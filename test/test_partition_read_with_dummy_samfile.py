@@ -44,7 +44,7 @@ class DummySamFile(object):
 
     def pileup(self, chromosome, start, end):
         for i in range(start, end + 1):
-            yield DummyPileupColumn(pos=i, reads=self.reads)
+            yield DummyPileupColumn(pos=i + 1, reads=self.reads)
 
 def test_partitioned_read_sequences_snv():
     """
@@ -72,3 +72,59 @@ def test_partitioned_read_sequences_snv():
         alt=alt)
     print(seq_parts)
     eq_(seq_parts, [("ACC", "G", "TG")])
+
+
+def test_partitioned_read_sequences_insertion():
+    """
+    Test that read gets correctly partitioned for
+    chr1:4 T>TG
+    where the sequence for chr1 is assumed to be "ACCTTG"
+    """
+    # chr1_seq = "ACCTTG"
+    chromosome = "chromosome"
+    location = 4
+    ref = "T"
+    alt = "TG"
+
+    read = pysam.AlignedSegment()
+    read.seq = "ACCTGTG"
+    read.cigarstring = "4M1I2M"
+    read.set_tag("MD", "6")
+
+    samfile = DummySamFile(reads=[read])
+    seq_parts = partition_variant_reads(
+        samfile=samfile,
+        chromosome=chromosome,
+        base1_location=location,
+        ref=ref,
+        alt=alt)
+    print(seq_parts)
+    eq_(seq_parts, [("ACCT", "G", "TG")])
+
+
+def test_partitioned_read_sequences_deletion():
+    """
+    Test that read gets correctly partitioned for
+    chr1:4 TT>T
+    where the sequence for chr1 is assumed to be "ACCTTG"
+    """
+    # chr1_seq = "ACCTTG"
+    chromosome = "chromosome"
+    location = 4
+    ref = "TT"
+    alt = "T"
+
+    read = pysam.AlignedSegment()
+    read.seq = "ACCTG"
+    read.cigarstring = "4M1D1M"
+    read.set_tag("MD", "4^T1")
+
+    samfile = DummySamFile(reads=[read])
+    seq_parts = partition_variant_reads(
+        samfile=samfile,
+        chromosome=chromosome,
+        base1_location=location,
+        ref=ref,
+        alt=alt)
+    print(seq_parts)
+    eq_(seq_parts, [("ACCT", "", "G")])

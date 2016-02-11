@@ -84,12 +84,19 @@ def overlapping_read_tuple_generator(
 
 
 def get_variant_base0_interval(base1_location, ref, alt):
-    base0_start = base1_location - 1
     if len(ref) == 0:
         # if the variant is an insertion then we need to check to make sure
         # both sides of the insertion are matches
+        base0_start = base1_location - 1
+        base0_end = base1_location + 1
+    elif len(alt) == 0:
+        # if we're deleting from the sequence, then move the interval
+        # to the base behind the deletion so that we have an aligned
+        # nucleotide to use from string slicing
+        base0_start = base1_location - 2
         base0_end = base1_location + 1
     else:
+        base0_start = base1_location - 1
         base0_end = base0_start + len(ref)
     return base0_start, base0_end
 
@@ -126,6 +133,20 @@ def partitioned_read_sequences_from_tuples(read_tuples, ref, alt):
                 continue
             next_ref_pos = reference_positions[offset + 1]
             if next_ref_pos != ref_pos + 1:
+                continue
+            prefix = sequence[:offset + 1]
+            suffix = sequence[offset + len(alt) + 1:]
+        elif len(alt) == 0:
+            if len(reference_positions) < offset + 2:
+                # if we're missing the position after the deletion then
+                # skip this read
+                continue
+            ref_pos_before = reference_positions[offset]
+            ref_pos_after = reference_positions[offset + 1]
+            if ref_pos_after - ref_pos_before - 1 != len(ref):
+                # if the number of nucleotides skipped isn't the same
+                # as the number deleted in the variant then
+                # don't use this read
                 continue
             prefix = sequence[:offset + 1]
             suffix = sequence[offset + 1:]
