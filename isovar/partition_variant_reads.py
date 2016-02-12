@@ -153,16 +153,17 @@ def partitioned_read_sequences_from_tuples(read_tuples, ref, alt):
         else:
             # deletions and substitutions work similarly, we just need
             # all the reference bases to be adjacently aligned
-            if any(
-                    (
-                        reference_positions[offset + i] -
-                        reference_positions[offset + i - 1]
-                    ) != 1
-                    for i in range(1, len(ref))):
+            ref_pos_start = reference_positions[offset]
+            ref_pos_end = reference_positions[offset + len(ref)]
+            if ref_pos_end - ref_pos_start != len(ref):
                 continue
             prefix = sequence[:offset]
             suffix = sequence[offset + len(ref):]
-        yield str(prefix, "ascii"), alt, str(suffix, "ascii")
+        if isinstance(prefix, bytes):
+            prefix = str(prefix, "ascii")
+        if isinstance(suffix, bytes):
+            suffix = str(suffix, "ascii")
+        yield prefix, alt, suffix
 
 def partition_variant_reads(samfile, chromosome, base1_location, ref, alt):
     base1_location, ref, alt = trim_variant(base1_location, ref, alt)

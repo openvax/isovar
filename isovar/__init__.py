@@ -16,8 +16,11 @@ from .partition_variant_reads import (
     partition_variant_reads,
     partitioned_read_sequences_from_tuples,
 )
+from .assembly import assemble_transcript_fragments, unique_counts
 
 __all__ = [
     "partition_variant_reads",
     "partitioned_read_sequences_from_tuples",
+    "assemble_transcript_fragments",
+    "unique_counts",
 ]

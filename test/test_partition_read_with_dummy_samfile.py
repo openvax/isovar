@@ -70,7 +70,6 @@ def test_partitioned_read_sequences_snv():
         base1_location=location,
         ref=ref,
         alt=alt)
-    print(seq_parts)
     eq_(seq_parts, [("ACC", "G", "TG")])
 
 
