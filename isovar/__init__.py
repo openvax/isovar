@@ -12,16 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .partition_variant_reads import (
-    partition_variant_reads,
-    partitioned_read_sequences_from_tuples,
-)
+from .variant_reads import gather_variant_reads
+from .overlapping_reads import gather_overlapping_reads
 from .assembly import assemble_transcript_fragments
 from .nucleotide_counts import most_common_nucleotides
+from .common import (
+    group_unique_sequences,
+    nucleotides,
+    index_to_nucleotide,
+    nucleotide_to_index
+)
+from .sequence_counts import sequence_counts
 
 __all__ = [
-    "partition_variant_reads",
-    "partitioned_read_sequences_from_tuples",
+    "gather_variant_reads",
+    "gather_overlapping_reads",
     "assemble_transcript_fragments",
     "most_common_nucleotides",
+    "group_unique_sequences",
+    "nucleotides",
+    "index_to_nucleotide",
+    "nucleotide_to_index",
+    "sequence_counts",
 ]

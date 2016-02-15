@@ -17,7 +17,7 @@ from nose.tools import eq_
 
 import pysam
 
-from isovar import partition_variant_reads
+from isovar import gather_variant_reads
 
 class DummyPileupElement(object):
     def __init__(self, alignment, is_refskip, is_del):
@@ -64,14 +64,16 @@ def test_partitioned_read_sequences_snv():
     read.set_tag("MD", "3G2")
 
     samfile = DummySamFile(reads=[read])
-    seq_parts = partition_variant_reads(
+    seq_parts = gather_variant_reads(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=location,
         ref=ref,
         alt=alt)
-    eq_(seq_parts, [("ACC", "G", "TG")])
-
+    assert len(seq_parts) == 1
+    eq_(seq_parts[0].prefix, "ACC")
+    eq_(seq_parts[0].variant, "G")
+    eq_(seq_parts[0].suffix, "TG")
 
 def test_partitioned_read_sequences_insertion():
     """
@@ -91,15 +93,17 @@ def test_partitioned_read_sequences_insertion():
     read.set_tag("MD", "6")
 
     samfile = DummySamFile(reads=[read])
-    seq_parts = partition_variant_reads(
+    seq_parts = gather_variant_reads(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=location,
         ref=ref,
         alt=alt)
     print(seq_parts)
-    eq_(seq_parts, [("ACCT", "G", "TG")])
-
+    assert len(seq_parts) == 1
+    eq_(seq_parts[0].prefix, "ACCT")
+    eq_(seq_parts[0].variant, "G")
+    eq_(seq_parts[0].suffix, "TG")
 
 def test_partitioned_read_sequences_deletion():
     """
@@ -119,11 +123,14 @@ def test_partitioned_read_sequences_deletion():
     read.set_tag("MD", "4^T1")
 
     samfile = DummySamFile(reads=[read])
-    seq_parts = partition_variant_reads(
+    seq_parts = gather_variant_reads(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=location,
         ref=ref,
         alt=alt)
     print(seq_parts)
-    eq_(seq_parts, [("ACCT", "", "G")])
+    assert len(seq_parts) == 1
+    eq_(seq_parts[0].prefix, "ACCT")
+    eq_(seq_parts[0].variant, "")
+    eq_(seq_parts[0].suffix, "G")

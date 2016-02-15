@@ -15,7 +15,7 @@
 import numpy as np
 
 from .common import (
-    drop_variant_from_partitioned_sequences,
+    make_prefix_suffix_pairs,
     nucleotide_to_index,
     index_to_nucleotide,
 )
@@ -28,7 +28,7 @@ def nucleotide_counts(partitioned_read_sequences):
     variant and the number of variant nucleotids.
     2) the column indices for the variant nucleotides
     """
-    variant_seq, prefix_suffix_pairs = drop_variant_from_partitioned_sequences(
+    variant_seq, prefix_suffix_pairs = make_prefix_suffix_pairs(
         partitioned_read_sequences)
     n_reads = len(prefix_suffix_pairs)
     max_prefix_length = max(len(p) for (p, _) in prefix_suffix_pairs)
@@ -70,7 +70,8 @@ def most_common_nucleotides(partitioned_read_sequences):
     - an array of counts indicating how many reads supported this nucleotide
     - an array of counts for all the *other* nucleotides at that position
     """
-    counts, variant_column_indices = nucleotide_counts(partitioned_read_sequences)
+    counts, variant_column_indices = nucleotide_counts(
+        partitioned_read_sequences)
     max_count_per_column = counts.max(axis=0)
 
     assert len(max_count_per_column) == counts.shape[1]

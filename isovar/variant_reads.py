@@ -17,6 +17,12 @@ Collect reads containing a variant and split them into prefix, variant, and
 suffix portions
 """
 
+from collections import namedtuple
+
+from .overlapping_reads import gather_overlapping_reads
+
+VariantRead = namedtuple(
+    "VariantRead", "prefix variant suffix name")
 
 def trim_variant(location, ref, alt):
     """Trims common prefixes from the ref and alt sequences"""
@@ -42,47 +48,6 @@ def trim_variant(location, ref, alt):
         ref = ""
     return location, ref, alt
 
-
-def overlapping_read_tuple_generator(
-        samfile,
-        chromosome,
-        base0_start,
-        base0_end,
-        is_del):
-    """
-    Generator that yields a sequence of tuples from reads which overlap the
-    given locus and have a matching alignment on the first position.
-
-    The tuples contain the following information:
-        - nucleotide sequence of the read
-        - list of reference position alignments for each nucleotide
-            (where a non-aligned nucleotide is given by None)
-
-    """
-    base1_start = base0_start + 1
-    # Let pysam pileup the reads covering our location of interest for us
-    for column in samfile.pileup(
-            chromosome,
-            base0_start,
-            base0_end):
-        if column.pos != base1_start:
-            continue
-        for i, pileup_element in enumerate(column.pileups):
-            if pileup_element.is_refskip:
-                # if read sequence doesn't actually align here, skip it
-                continue
-            elif pileup_element.is_del and not is_del:
-                # if read has a deletion at this location and variant isn't a
-                # deletion
-                continue
-            read = pileup_element.alignment
-            reference_positions = read.get_reference_positions(
-                full_length=False)
-            if base0_start in reference_positions:
-                offset = reference_positions.index(base0_start)
-                yield (reference_positions, offset, read.query_sequence)
-
-
 def get_variant_base0_interval(base1_location, ref, alt):
     if len(ref) == 0:
         # if the variant is an insertion then we need to check to make sure
@@ -101,7 +66,7 @@ def get_variant_base0_interval(base1_location, ref, alt):
     return base0_start, base0_end
 
 
-def partitioned_read_sequences_from_tuples(read_tuples, ref, alt):
+def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
     """
     Parameters
     ----------
@@ -119,7 +84,10 @@ def partitioned_read_sequences_from_tuples(read_tuples, ref, alt):
 
     Returns a sequence of (prefix, alt, suffix) string tuples.
     """
-    for (reference_positions, offset, sequence) in read_tuples:
+    for read in overlapping_reads:
+        reference_positions = read.reference_positions
+        offset = read.locus_offset
+        sequence = read.sequence
         if len(ref) == 0:
             # insertions require a sequence of non-aligned bases
             # followed by the subsequence reference position
@@ -163,19 +131,18 @@ def partitioned_read_sequences_from_tuples(read_tuples, ref, alt):
             prefix = str(prefix, "ascii")
         if isinstance(suffix, bytes):
             suffix = str(suffix, "ascii")
-        yield prefix, alt, suffix
+        yield VariantRead(prefix, alt, suffix, name=read.name)
 
-def partition_variant_reads(samfile, chromosome, base1_location, ref, alt):
+def gather_variant_reads(samfile, chromosome, base1_location, ref, alt):
     base1_location, ref, alt = trim_variant(base1_location, ref, alt)
     base0_start, base0_end = get_variant_base0_interval(
         base1_location=base1_location,
         ref=ref,
         alt=alt)
-    read_tuples = overlapping_read_tuple_generator(
+    reads = gather_overlapping_reads(
         samfile=samfile,
         chromosome=chromosome,
         base0_start=base0_start,
         base0_end=base0_end,
         is_del=len(alt) == 0)
-    return list(
-        partitioned_read_sequences_from_tuples(read_tuples, ref=ref, alt=alt))
+    return list(variant_reads_from_overlapping_reads(reads, ref=ref, alt=alt))

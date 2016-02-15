@@ -13,30 +13,11 @@
 # limitations under the License.
 
 from isovar import (
-    unique_counts,
-    partition_variant_reads,
+    gather_variant_reads,
     assemble_transcript_fragments
 )
 from pysam import AlignmentFile
 
-def test_unique_counts():
-    samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
-    chromosome = "chr12"
-    base1_location = 65857041
-    ref = "G"
-    alt = "C"
-
-    seq_parts = partition_variant_reads(
-        samfile=samfile,
-        chromosome=chromosome,
-        base1_location=base1_location,
-        ref=ref,
-        alt=alt)
-
-    c = unique_counts(seq_parts)
-    # there are some redundant reads, so we expect that the number of
-    # unique entries should be less than the total read partitions
-    assert len(seq_parts) > len(c)
 
 def test_assemble_transcript_fragments_snv():
     samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
@@ -45,21 +26,22 @@ def test_assemble_transcript_fragments_snv():
     ref = "G"
     alt = "C"
 
-    seq_parts = partition_variant_reads(
+    variant_reads = gather_variant_reads(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=base1_location,
         ref=ref,
         alt=alt)
 
-    for (p, v, s), c in assemble_transcript_fragments(seq_parts):
+    longer_sequences = assemble_transcript_fragments(variant_reads, min_overlap_size=30)
+    for (p, v, s), c in longer_sequences:
         print("%s%s%s weight=%d length=%d" % (
             p,
             v,
             s,
             c,
             len(p + v + s)))
+    assert len(longer_sequences) == 1, "Expected unique sequence for locus"
 
 if __name__ == "__main__":
-    test_unique_counts()
     test_assemble_transcript_fragments_snv()

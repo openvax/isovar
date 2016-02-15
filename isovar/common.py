@@ -1,24 +1,51 @@
 
-from collections import Counter
+from collections import defaultdict
 
-nucleotide_to_index = {"A": 0, "C": 1, "G": 2, "T": 3}
-index_to_nucleotide = {i: c for (c, i) in nucleotide_to_index.items()}
+nucleotides = ["A", "C", "T", "G"]
+nucleotide_to_index = {c: i for (i, c) in enumerate(nucleotides)}
+index_to_nucleotide = {i: c for (i, c) in enumerate(nucleotides)}
 
-
-def unique_counts(tuple_list):
+def group_unique_sequences(
+        variant_reads,
+        max_prefix_size=None,
+        max_suffix_size=None):
     """
-    Given a list of (prefix, suffix) sequence parts,
-    return a Counter of distinct sequences
+    Given a list of VariantRead objects, extracts all unique
+    (prefix, suffix) sequence pairs and associate each with a list
+    of read names that contained that sequence.
     """
-    counter = Counter()
-    for x in tuple_list:
-        counter[x] += 1
-    return counter
+    groups = defaultdict(set)
+    for r in variant_reads:
+        prefix = r.prefix
+        suffix = r.suffix
+        if max_prefix_size:
+            prefix = prefix[-max_prefix_size:]
+        if max_suffix_size:
+            suffix = suffix[-max_suffix_size:]
+        key = (r.prefix, r.suffix)
+        groups[key].add(r.name)
+    return groups
 
-def drop_variant_from_partitioned_sequences(partitioned_read_sequences):
-    assert len(partitioned_read_sequences) > 0
-    variant_seq = partitioned_read_sequences[0][1]
-    # get rid of the repeated variant nucleotides and keep only the
-    # prefix and suffix
-    pairs = [(p, s) for (p, _, s) in partitioned_read_sequences]
+def count_unique_sequences(
+        variant_reads,
+        max_prefix_size=None,
+        max_suffix_size=None):
+    """
+    Given a list of VariantRead objects, extracts all unique
+    (prefix, suffix) sequence pairs and associate each with the number
+    of reads that contain that sequence.
+    """
+    groups = group_unique_sequences(
+        variant_reads,
+        max_prefix_size=max_prefix_size,
+        max_suffix_size=max_suffix_size)
+    return {
+        seq_pair: len(read_names)
+        for (seq_pair, read_names) in groups.items()
+    }
+
+def make_prefix_suffix_pairs(variant_reads):
+    assert len(variant_reads) > 0
+    variant_seq = variant_reads[0].variant
+    pairs = [(r.prefix, r.suffix) for r in variant_reads]
     return variant_seq, pairs

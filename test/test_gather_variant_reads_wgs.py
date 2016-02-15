@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from isovar import partition_variant_reads
+from isovar import gather_variant_reads
 
 from pysam import AlignmentFile
 
@@ -23,16 +23,15 @@ def test_partition_variant_reads_snv():
     ref = "G"
     alt = "C"
 
-    seq_parts = partition_variant_reads(
+    seq_parts = gather_variant_reads(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=base1_location,
         ref=ref,
         alt=alt)
     assert len(seq_parts) > 1
-    for (prefix, read_alt, suffix) in sorted(seq_parts, key=lambda x: len(x[0])):
-        print("%100s%s%-100s" % (prefix, read_alt, suffix))
-        assert read_alt == alt
+    for variant_read in seq_parts:
+        assert variant_read.variant == alt
 
 def test_partition_variant_reads_deletion():
     samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
@@ -40,17 +39,15 @@ def test_partition_variant_reads_deletion():
     base1_location = 70091490
     ref = "TTGTAGATGCTGCCTCTCC"
     alt = ""
-    seq_parts = partition_variant_reads(
+    seq_parts = gather_variant_reads(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=base1_location,
         ref=ref,
         alt=alt)
     assert len(seq_parts) > 1
-    for (prefix, read_alt, suffix) in sorted(seq_parts, key=lambda x: len(x[0])):
-        print("%100s%s%-100s" % (prefix, read_alt, suffix))
-        assert read_alt == alt
-
+    for variant_read in seq_parts:
+        assert variant_read.variant == alt
 
 if __name__ == "__main__":
     test_partition_variant_reads_snv()
