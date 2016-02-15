@@ -74,6 +74,9 @@ def greedy_merge(prefix_suffix_pair_groups, min_overlap_size=30):
     return merged
 
 def collapse_substrings(assembly_groups):
+    """
+    Combine shorter sequences which are fully contained in longer sequences
+    """
     assert len(assembly_groups) > 0
     sorted_pairs = list(sorted(
         assembly_groups.items(),
@@ -82,8 +85,6 @@ def collapse_substrings(assembly_groups):
     for ((prefix_short, suffix_short), names_short) in sorted_pairs:
         found_superstring = False
         for (prefix_long, suffix_long), names_long in result_list:
-            print(prefix_short, suffix_short, prefix_long, suffix_long)
-
             if prefix_long.endswith(prefix_short) and suffix_long.startswith(
                     suffix_short):
                 found_superstring = True

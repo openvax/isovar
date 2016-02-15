@@ -18,11 +18,11 @@ def group_unique_sequences(
     for r in variant_reads:
         prefix = r.prefix
         suffix = r.suffix
-        if max_prefix_size:
+        if max_prefix_size and len(prefix) > max_prefix_size:
             prefix = prefix[-max_prefix_size:]
-        if max_suffix_size:
-            suffix = suffix[-max_suffix_size:]
-        key = (r.prefix, r.suffix)
+        if max_suffix_size and len(suffix) > max_suffix_size:
+            suffix = suffix[:max_suffix_size]
+        key = (prefix, suffix)
         groups[key].add(r.name)
     return groups
 
@@ -44,8 +44,20 @@ def count_unique_sequences(
         for (seq_pair, read_names) in groups.items()
     }
 
+
+def get_variant_nucleotides(variant_reads):
+    if len(variant_reads) > 0:
+        variant_seq = variant_reads[0].variant
+        if not all(r.variant == variant_seq for r in variant_reads):
+            raise ValueError(
+                ("Cannot call `get_variant_nucleotides` on a collection"
+                 " of VariantRead objects spanning multiple variants"))
+        return variant_seq
+    else:
+        raise ValueError("Expected len(variant_reads) > 0")
+
+
 def make_prefix_suffix_pairs(variant_reads):
-    assert len(variant_reads) > 0
-    variant_seq = variant_reads[0].variant
+    variant_seq = get_variant_nucleotides(variant_reads)
     pairs = [(r.prefix, r.suffix) for r in variant_reads]
     return variant_seq, pairs
