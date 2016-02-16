@@ -14,9 +14,7 @@
 
 import argparse
 
-
-import varlens
-import varlens.reads_util
+import varcode
 import skbio
 from pysam import AlignmentFile
 
@@ -34,23 +32,23 @@ parser.add_argument(
 
 parser.add_argument(
     "--genome",
-    default="hg19")
+    default=None)
 
 parser.add_argument(
     "--min-weight", type=float, default=3.0)
 
+parser.add_argument(
+    "--context-size",
+    default=45,
+    type=int)
+
 if __name__ == "__main__":
     args = parser.parse_args()
-    variants_df = varlens.variants_util.load_as_dataframe(
-        args.vcf,
-        genome=args.genome)
-    print(variants_df)
+    variants = varcode.load_vcf(args.vcf, genome=args.genome)
 
     samfile = AlignmentFile(args.bam)
 
-    variant_to_locus_dict = {}
-    for variant in variants_df["variant"]:
-        print(variant)
+    for variant in variants:
         variant_reads = gather_variant_reads(
             samfile=samfile,
             chromosome="chr" + variant.contig,
@@ -59,7 +57,7 @@ if __name__ == "__main__":
             alt=variant.alt)
         if len(variant_reads) == 0:
             continue
-        result = sequence_counts(variant_reads)
+        result = sequence_counts(variant_reads, context_size=args.context_size)
         for ((prefix, suffix), weight) in sorted(
                 result.sequence_weights.items(),
                 key=lambda x: -x[1]):
