@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from __future__ import print_function, division, absolute_import
 
 import logging
@@ -161,7 +160,7 @@ def variant_to_protein_sequences(
         return {}
     collapsed_sequences = sequence_counts(
         variant_reads, context_size=sequence_context_size)
-    sequence_to_count_dict = collapsed_sequences.fully_supporting_read_counts
+    sequence_to_count_dict = collapsed_sequences.full_read_counts
 
     if len(sequence_to_count_dict) == 0:
         return {}
