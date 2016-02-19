@@ -17,6 +17,8 @@ Collect reads containing a variant and split them into prefix, variant, and
 suffix portions
 """
 
+from __future__ import print_function, division, absolute_import
+
 from collections import namedtuple
 
 from .overlapping_reads import gather_overlapping_reads

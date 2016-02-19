@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function, division, absolute_import
+
 from collections import Counter, defaultdict, namedtuple
 
 from .common import group_unique_sequences, get_variant_nucleotides
@@ -23,16 +25,16 @@ SequenceCounts = namedtuple(
         # dictionary mapping unique sequences to the sum of the number
         # of reads fully supporting that sequence and fraction of that
         # sequence supported by partially overlapping reads
-        "sequence_weights",
+        "combined_sequence_weights",
         # dictionary of context sequences mapping to the # of reads
         # they were detected in
-        "fully_supporting_read_counts",
+        "full_read_counts",
         # dictionary of context sequences mapping to the # of reads
         # which partially overlap them in (and agree at all overlapped bases)
-        "partially_supporting_read_counts",
+        "partial_read_counts",
         # dictionary mapping context sequences to the sum of
         # overlap weights from all partially overlapping reads
-        "partially_supporting_read_weights",
+        "partial_read_weights",
         # variant nucleotide string, since all the dictionary keys
         # above are only (prefix, suffix) pairs which are missing these
         # nucleotides
@@ -115,8 +117,8 @@ def sequence_counts(
         for (key, full_count) in full_sequence_counts.items()
     }
     return SequenceCounts(
-        sequence_weights=combined_weights,
-        fully_supporting_read_counts=full_sequence_counts,
-        partially_supporting_read_counts=partially_supporting_read_counts,
-        partially_supporting_read_weights=partially_supporting_read_weights,
+        combined_sequence_weights=combined_weights,
+        full_read_counts=full_sequence_counts,
+        partial_read_counts=partially_supporting_read_counts,
+        partial_read_weights=partially_supporting_read_weights,
         variant_nucleotides=variant_seq)

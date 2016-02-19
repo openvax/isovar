@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Copyright (c) 2016. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,6 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from __future__ import print_function, division, absolute_import
 
 import argparse
 
@@ -35,12 +39,13 @@ parser.add_argument(
     default=None)
 
 parser.add_argument(
-    "--min-weight", type=float, default=3.0)
+    "--min-count", type=int, default=3)
 
 parser.add_argument(
     "--context-size",
     default=45,
     type=int)
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -55,21 +60,22 @@ if __name__ == "__main__":
             base1_location=variant.start,
             ref=variant.ref,
             alt=variant.alt)
-        if len(variant_reads) == 0:
+        if len(variant_reads) < args.min_count:
             continue
-        result = sequence_counts(variant_reads, context_size=args.context_size)
-        for ((prefix, suffix), weight) in sorted(
-                result.sequence_weights.items(),
+        sequence_count_info = sequence_counts(
+            variant_reads, context_size=args.context_size)
+        for ((prefix, suffix), count) in sorted(
+                sequence_count_info.full_read_counts.items(),
                 key=lambda x: -x[1]):
-            if weight < args.min_weight:
-                continue
+            if count < args.min_count:
+                break
 
-            variant = result.variant_nucleotides
-            print("\t%s|%s|%s: %f" % (
+            variant = sequence_count_info.variant_nucleotides
+            print("\t%s_%s_%s: %d" % (
                 prefix,
                 variant,
                 suffix,
-                weight))
+                count))
 
             # translate in three reading frames:
             seq = "%s%s%s" % (prefix, variant, suffix)

@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import (absolute_import,)
+
 import os
 import logging
 
@@ -54,6 +56,12 @@ if __name__ == '__main__':
             'six',
             'pysam >= 0.8.4'
         ],
+
         long_description=readme,
         packages=['isovar'],
+        scripts=[
+            "script/isovar-find-matching-transcripts.py",
+            "script/isovar-translate-all-frames.py",
+            "script/isovar-translate-variants.py",
+        ],
     )

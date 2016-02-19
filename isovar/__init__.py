@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function, division, absolute_import
+
 from .variant_reads import gather_variant_reads
 from .overlapping_reads import gather_overlapping_reads
 from .assembly import assemble_transcript_fragments
@@ -23,6 +25,10 @@ from .common import (
     nucleotide_to_index
 )
 from .sequence_counts import sequence_counts
+from .protein_sequences import (
+    variant_to_protein_sequences,
+    variants_to_protein_sequences,
+)
 
 __all__ = [
     "gather_variant_reads",
@@ -34,4 +40,6 @@ __all__ = [
     "index_to_nucleotide",
     "nucleotide_to_index",
     "sequence_counts",
+    "variant_to_protein_sequences",
+    "variants_to_protein_sequences"
 ]

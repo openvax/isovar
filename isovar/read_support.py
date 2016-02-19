@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function, division, absolute_import
+
 import varlens
 import varlens.support
-
 
 def load_variants(vcf_path, rna_bam_path, genome=None):
     variants_df = varlens.variants_util.load_as_dataframe(
