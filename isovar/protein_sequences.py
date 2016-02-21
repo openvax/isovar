@@ -18,6 +18,7 @@ import logging
 from collections import namedtuple
 
 from skbio import DNA
+import numpy as np
 
 from .variant_reads import gather_variant_reads
 from .sequence_counts import sequence_counts
@@ -38,36 +39,32 @@ ProteinFragment = namedtuple(
         "protein_sequence_offset",
     ])
 
-MIN_READS_SUPPORTING_CONTEXT = 3
+MIN_READS_SUPPORTING_RNA_SEQUENCE = 3
 MIN_TRANSCRIPT_PREFIX_LENGTH = 15
 MAX_TRANSCRIPT_MISMATCHES = 2
+PROTEIN_FRAGMENT_LEGNTH = 25
+MAX_SEQUENCES_PER_VARIANT = 5
 
 
 def matching_isoform_fragment_protein_sequences(
-        variant,
         dna_sequence_prefix,
         dna_sequence_variant,
         dna_sequence_suffix,
+        variant_is_insertion,
+        base1_variant_start_location,
+        base1_variant_end_location,
         transcripts,
         max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH):
     results = []
 
     for transcript in transcripts:
-        if not transcript.contains(variant.contig, variant.start, variant.end):
-            logging.info(
-                "Skipping transcript %s because it does not overlap %s" % (
-                    transcript, variant))
-            continue
-
-        if not transcript.complete:
-            continue
-
         if transcript.strand == "+":
             cdna_prefix = dna_sequence_prefix
             cdna_suffix = dna_sequence_suffix
             cdna_variant = dna_sequence_variant
-            variant_in_transcript_idx = transcript.spliced_offset(variant.start)
+            variant_in_transcript_idx = transcript.spliced_offset(
+                base1_variant_start_location)
         else:
             # if the transcript is on the reverse strand then we have to
             # take the sequence PREFIX|VARIANT|SUFFIX
@@ -76,9 +73,10 @@ def matching_isoform_fragment_protein_sequences(
             cdna_suffix = str(DNA(dna_sequence_prefix).reverse_complement())
             cdna_variant = str(
                 DNA(dna_sequence_variant).reverse_complement())
-            variant_in_transcript_idx = transcript.spliced_offset(variant.end)
+            variant_in_transcript_idx = transcript.spliced_offset(
+                base1_variant_end_location)
 
-        if len(variant.ref) == 0:
+        if variant_is_insertion:
             # insertions don't actually affect the base referred to
             # by the start position of the variant, but rather the
             # variant gets inserted *after* that position
@@ -89,8 +87,8 @@ def matching_isoform_fragment_protein_sequences(
         start_codon_idx = min(transcript.start_codon_spliced_offsets)
         if variant_in_transcript_idx < start_codon_idx + 3:
             logging.info(
-                "Skipping %s because variant %s is not after start codon" % (
-                    transcript, variant))
+                "Skipping %s because variant is not after start codon" % (
+                    transcript,))
 
         subseq_start_idx = subseq_end_idx - len(cdna_prefix)
         if subseq_start_idx < 0:
@@ -142,79 +140,143 @@ def matching_isoform_fragment_protein_sequences(
                 protein_sequence_offset=subseq_start_idx - start_codon_idx % 3))
     return results
 
-def variant_to_protein_sequences(
+def mutant_protein_fragments(
         variant,
         samfile,
-        transcript_id_whitelist=None,
-        sequence_context_size=45,
-        min_reads_supporting_context=MIN_READS_SUPPORTING_CONTEXT,
+        reference_transcripts,
+        protein_fragment_length=PROTEIN_FRAGMENT_LEGNTH,
+        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_RNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES):
+        max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
+        max_sequences=MAX_SEQUENCES_PER_VARIANT,
+        chromosome_name=None):
+
+    if len(reference_transcripts) == 0:
+        return []
+
     variant_reads = gather_variant_reads(
         samfile=samfile,
-        chromosome="chr" + variant.contig,
+        chromosome=chromosome_name if chromosome_name else variant.contig,
         base1_location=variant.start,
         ref=variant.ref,
         alt=variant.alt)
-    if len(variant_reads) == 0:
-        return {}
-    collapsed_sequences = sequence_counts(
-        variant_reads, context_size=sequence_context_size)
-    sequence_to_count_dict = collapsed_sequences.full_read_counts
+    if len(variant_reads) < min_reads_supporting_rna_sequence:
+        return []
 
-    if len(sequence_to_count_dict) == 0:
-        return {}
+    rna_sequence_length = protein_fragment_length * 3
 
-    variant_seq = collapsed_sequences.variant_nucleotides
+    # the number of context nucleotides on either side of the variant
+    # is half the desired length (minus the number of variant nucleotides)
+    n_surrounding_nucleotides = rna_sequence_length - len(variant.alt)
+    flanking_context_size = int(np.ceil(n_surrounding_nucleotides / 2.0))
 
-    candidate_transcripts = variant.transcripts
+    sequence_count_info = sequence_counts(
+        variant_reads,
+        context_size=flanking_context_size)
 
-    if transcript_id_whitelist:
-        candidate_transcripts = [
-            transcript
-            for transcript in candidate_transcripts
-            if transcript.id in transcript_id_whitelist
-        ]
+    sequence_count_dict = sequence_count_info.full_read_counts
 
-    if len(candidate_transcripts) == 0:
-        return {}
+    if len(sequence_count_dict) == 0:
+        return []
+
+    variant_seq = sequence_count_info.variant_nucleotides
 
     result_list = []
-    for ((prefix, suffix), read_count) in sequence_to_count_dict.items():
-        if read_count < min_reads_supporting_context:
-            continue
+
+    for i, ((prefix, suffix), count) in enumerate(sorted(
+            sequence_count_dict.items(),
+            key=lambda x: -x[1])):
+        if i >= max_sequences:
+            break
+
+        if count < min_reads_supporting_rna_sequence:
+            break
+
         for protein_fragment in matching_isoform_fragment_protein_sequences(
-                variant=variant,
                 dna_sequence_prefix=prefix,
                 dna_sequence_variant=variant_seq,
                 dna_sequence_suffix=suffix,
-                transcripts=candidate_transcripts,
+                base1_variant_start_location=variant.start,
+                base1_variant_end_location=variant.end,
+                variant_is_insertion=len(variant.ref) == 0,
+                transcripts=reference_transcripts,
                 max_transcript_mismatches=max_transcript_mismatches,
                 min_transcript_prefix_length=max_transcript_mismatches):
-            result_list.append((protein_fragment, read_count))
+            result_list.append((protein_fragment, count))
     return result_list
 
-def variants_to_protein_sequences(
+def translate_variant_collection(
         variants,
         samfile,
         transcript_id_whitelist=None,
-        sequence_context_size=45,
-        min_reads_supporting_context=MIN_READS_SUPPORTING_CONTEXT,
+        protein_fragment_length=PROTEIN_FRAGMENT_LEGNTH,
+        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_RNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES):
+        max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
+        max_sequences_per_variant=MAX_SEQUENCES_PER_VARIANT):
     """
     Returns a dictionary mapping each variant to a list of protein fragment,
     read count pairs.
     """
     variant_to_protein_fragments = {}
+
+    chromosome_names = set(samfile.reference_names())
     for variant in variants:
+        chromosome = variant.contig
+
+        # I imagine the conversation went like this:
+        # A: "Hey, I have an awesome idea"
+        # B: "What's up?"
+        # A: "Let's make two nearly identical reference genomes"
+        # B: "But...that sounds like it might confuse people."
+        # A: "Nah, it's cool, we'll give the chromosomes different prefixes!"
+        # B: "OK, sounds like a good idea."
+        if chromosome not in chromosome_names:
+            if "chr" + chromosome in chromosome_names:
+                chromosome = "chr" + chromosome
+            else:
+                logging.warn(
+                    "Chromosome '%s' from variant %s not in alignment file %s" % (
+                        chromosome, variant, samfile))
+                continue
+
+        start = variant.start
+        end = variant.end
+        # because of the "1" vs "chr1" mess the contig we use to search
+        # Ensembl may be different than the one we use in the BAM file
+        ensembl_contig = variant.contig
+        reference_transcripts = [
+            transcript
+            for transcript in variant.transcripts
+            if transcript.contains(ensembl_contig, start, end) and transcript.complete
+        ]
+
+        if transcript_id_whitelist:
+            n_transcripts_before_filtering = len(reference_transcripts)
+            reference_transcripts = [
+                transcript for transcript in reference_transcripts
+                if transcript.id in transcript_id_whitelist
+            ]
+            n_transcripts_after_filtering = len(reference_transcripts)
+            n_dropped = (
+                n_transcripts_before_filtering - n_transcripts_after_filtering)
+            if n_dropped > 0:
+                logging.info("Dropped %d/%d candidate transcripts for %s" % (
+                    n_dropped,
+                    n_transcripts_before_filtering,
+                    variant))
+
+        if len(reference_transcripts) == 0:
+            continue
+
         variant_to_protein_fragments[variant] = \
-            variant_to_protein_sequences(
+            mutant_protein_fragments(
+                chromosome_name=chromosome,
                 variant=variant,
                 samfile=samfile,
-                transcript_id_whitelist=transcript_id_whitelist,
-                sequence_context_size=sequence_context_size,
-                min_reads_supporting_context=min_reads_supporting_context,
+                reference_transcripts=reference_transcripts,
+                protein_fragment_length=protein_fragment_length,
+                min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
                 min_transcript_prefix_length=min_transcript_prefix_length,
                 max_transcript_mismatches=max_transcript_mismatches)
     return variant_to_protein_fragments
