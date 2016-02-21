@@ -140,7 +140,7 @@ def matching_isoform_fragment_protein_sequences(
                 protein_sequence_offset=subseq_start_idx - start_codon_idx % 3))
     return results
 
-def mutant_protein_fragments(
+def variant_protein_fragments_with_read_counts(
         variant,
         samfile,
         reference_transcripts,
@@ -220,7 +220,7 @@ def translate_variant_collection(
     """
     variant_to_protein_fragments = {}
 
-    chromosome_names = set(samfile.reference_names())
+    chromosome_names = set(samfile.references)
     for variant in variants:
         chromosome = variant.contig
 
@@ -270,7 +270,7 @@ def translate_variant_collection(
             continue
 
         variant_to_protein_fragments[variant] = \
-            mutant_protein_fragments(
+            variant_protein_fragments_with_read_counts(
                 chromosome_name=chromosome,
                 variant=variant,
                 samfile=samfile,
