@@ -58,4 +58,10 @@ if __name__ == "__main__":
 
     samfile = AlignmentFile(args.bam)
     print(variants)
-    print(translate_variant_collection(variants, samfile))
+    variant_to_proteins = translate_variant_collection(variants, samfile)
+    for (variant, protein_fragments) in variant_to_proteins.items():
+        print(variant)
+        for protein_fragment in protein_fragments:
+            print("-- %d: %s" % (
+                protein_fragment.number_supporting_reads,
+                protein_fragment,))

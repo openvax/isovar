@@ -15,7 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 import logging
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 from skbio import DNA
 import numpy as np
@@ -23,20 +23,41 @@ import numpy as np
 from .variant_reads import gather_variant_reads
 from .sequence_counts import sequence_counts
 
-ProteinFragment = namedtuple(
-    "ProteinFragment",
+# information related to the translation of a RNA sequence context
+# in a reading frame determined by a particular reference transcript
+TranslationFromReferenceORF = namedtuple(
+    "TranslationFromReferenceORF",
     [
         "cdna_prefix",
         "cdna_variant",
         "cdna_suffix",
         "transcript_id",
+        "transcript_name",
         "number_transcript_sequence_mismatches",
         "fraction_transcript_sequence_mismatches",
         "reading_frame_at_start_of_cdna_sequence",
         "transcript_sequence_before_variant",
         "variant_protein_sequence",
-        "transcript_protein_sequence",
-        "protein_sequence_offset",
+        "reference_protein_sequence",
+        "protein_fragment_start_offset",
+        "protein_variant_offset",
+    ])
+
+# if multiple distinct RNA sequence contexts and/or reference transcripts
+# give us the same translation then we group them into a single object
+# which summarizes the supporting read count and reference transcript ORFs
+# for a unique protein sequence
+ProteinFragment = namedtuple(
+    "ProteinFragment",
+    [
+        # number of reads supporting any RNA sequence which translates to
+        # this protein sequence
+        "number_supporting_reads",
+        "variant_protein_sequence",
+        "reference_transcript_ids",
+        "reference_transcript_names",
+        "reference_protein_sequences",
+        "cdna_sequence_tuples",
     ])
 
 MIN_READS_SUPPORTING_RNA_SEQUENCE = 3
@@ -80,22 +101,25 @@ def matching_isoform_fragment_protein_sequences(
             # insertions don't actually affect the base referred to
             # by the start position of the variant, but rather the
             # variant gets inserted *after* that position
-            subseq_end_idx = variant_in_transcript_idx + 1
+            query_sequence_end_idx = variant_in_transcript_idx + 1
         else:
-            subseq_end_idx = variant_in_transcript_idx
+            query_sequence_end_idx = variant_in_transcript_idx
 
         start_codon_idx = min(transcript.start_codon_spliced_offsets)
+
         if variant_in_transcript_idx < start_codon_idx + 3:
             logging.info(
-                "Skipping %s because variant is not after start codon" % (
+                "Skipping %s because variant appears in 5' UTR" % (
                     transcript,))
 
-        subseq_start_idx = subseq_end_idx - len(cdna_prefix)
-        if subseq_start_idx < 0:
-            continue
+        query_sequence_start_idx = query_sequence_end_idx - len(cdna_prefix)
 
+        if query_sequence_start_idx < 0:
+            logging.warn("Transcript %s not long enough for observed sequence" % (
+                transcript,))
+            continue
         transcript_sequence_before_variant = transcript.sequence[
-            subseq_start_idx:subseq_end_idx]
+            query_sequence_start_idx:query_sequence_end_idx]
 
         assert len(transcript_sequence_before_variant) == len(cdna_prefix)
         if len(transcript_sequence_before_variant) < min_transcript_prefix_length:
@@ -110,34 +134,104 @@ def matching_isoform_fragment_protein_sequences(
 
         fraction_mismatch = float(n_mismatch) / len(cdna_prefix)
 
-        reading_frame = (subseq_start_idx - start_codon_idx) % 3
+        reading_frame = (query_sequence_start_idx - start_codon_idx) % 3
+
+        if reading_frame == 1:
+            # if we're 1 nucleotide into the codon then we need to shift
+            # over two more to restore the ORF
+            orf_offset = 2
+        elif reading_frame == 2:
+            orf_offset = 1
+        else:
+            orf_offset = 0
 
         combined_variant_cdna_sequence = DNA(
             cdna_prefix + cdna_variant + cdna_suffix)
+
         in_frame_combined_variant_sequence = combined_variant_cdna_sequence[
-            reading_frame:]
+            orf_offset:]
         variant_protein_fragment = in_frame_combined_variant_sequence.translate()
 
         combined_transcript_sequence = DNA(
             transcript.sequence[
-                subseq_start_idx:
-                subseq_start_idx + len(combined_variant_cdna_sequence)])
+                query_sequence_start_idx:
+                query_sequence_start_idx + len(combined_variant_cdna_sequence)])
         in_frame_transcript_sequence = combined_transcript_sequence[
-            reading_frame:]
+            orf_offset:]
         transcript_protein_sequence = in_frame_transcript_sequence.translate()
+        protein_fragment_start_offset = (
+            query_sequence_start_idx - start_codon_idx) // 3
+        protein_variant_offset = (
+            query_sequence_end_idx - start_codon_idx) // 3
         results.append(
-            ProteinFragment(
+            TranslationFromReferenceORF(
                 cdna_prefix=cdna_prefix,
                 cdna_variant=cdna_variant,
                 cdna_suffix=cdna_suffix,
                 transcript_id=transcript.id,
+                transcript_name=transcript.name,
                 number_transcript_sequence_mismatches=n_mismatch,
                 fraction_transcript_sequence_mismatches=fraction_mismatch,
                 reading_frame_at_start_of_cdna_sequence=reading_frame,
                 transcript_sequence_before_variant=transcript_sequence_before_variant,
-                variant_protein_sequence=variant_protein_fragment,
-                transcript_protein_sequence=transcript_protein_sequence,
-                protein_sequence_offset=subseq_start_idx - start_codon_idx % 3))
+                variant_protein_sequence=str(variant_protein_fragment),
+                reference_protein_sequence=str(transcript_protein_sequence),
+                protein_fragment_start_offset=protein_fragment_start_offset,
+                protein_variant_offset=protein_variant_offset // 3))
+    return results
+
+def rna_sequence_key(fragment_info):
+    """
+    Get the cDNA (prefix, variant, suffix) fields from a
+    TranslationFromReferenceORF object.
+    """
+    return (
+        fragment_info.cdna_prefix,
+        fragment_info.cdna_variant,
+        fragment_info.cdna_suffix
+    )
+
+def group_protein_fragments(fragment_and_count_list):
+    """
+    Parameters
+    ----------
+    fragment_and_count_list : list
+        List of tuples containing (1) a TranslationFromReferenceORF object and
+        (2) an integer indicating the number of spanning RNA reads for that
+        unique sequence.
+
+    Returns list of ProteinFragment objects.
+    """
+    protein_sequence_dict = defaultdict(list)
+    rna_sequence_counts = {}
+    for (fragment_info, read_count) in fragment_and_count_list:
+        protein_sequence = fragment_info.variant_protein_sequence
+        protein_sequence_dict[protein_sequence].append(fragment_info)
+        cnda_tuple = rna_sequence_key(fragment_info)
+        if cnda_tuple in rna_sequence_counts:
+            assert rna_sequence_counts[cnda_tuple] == read_count
+        else:
+            rna_sequence_counts[cnda_tuple] = read_count
+    results = []
+    for (protein_sequence, info_objs) in protein_sequence_dict.items():
+        rna_sequence_keys = list(set([rna_sequence_key(x) for x in info_objs]))
+        total_read_count = sum(
+            rna_sequence_counts[cnda_tuple] for cnda_tuple in rna_sequence_keys)
+        transcript_ids = list(set([x.transcript_id for x in info_objs]))
+        transcript_names = list(set([x.transcript_name for x in info_objs]))
+        reference_protein_sequences = list(set([
+            x.reference_protein_sequence
+            for x in info_objs]))
+        cdna_sequence_tuples = list(set(
+            [rna_sequence_key(x) for x in info_objs]))
+        results.append(
+            ProteinFragment(
+                number_supporting_reads=total_read_count,
+                variant_protein_sequence=protein_sequence,
+                reference_transcript_ids=transcript_ids,
+                reference_transcript_names=transcript_names,
+                reference_protein_sequences=reference_protein_sequences,
+                cdna_sequence_tuples=cdna_sequence_tuples))
     return results
 
 def variant_protein_fragments_with_read_counts(
@@ -203,7 +297,7 @@ def variant_protein_fragments_with_read_counts(
                 max_transcript_mismatches=max_transcript_mismatches,
                 min_transcript_prefix_length=max_transcript_mismatches):
             result_list.append((protein_fragment, count))
-    return result_list
+    return group_protein_fragments(result_list)
 
 def translate_variant_collection(
         variants,
