@@ -257,13 +257,21 @@ def variant_protein_fragments_with_read_counts(
     if len(variant_reads) < min_reads_supporting_rna_sequence:
         return []
 
-    rna_sequence_length = protein_fragment_length * 3
+    # adding 2nt to total RNA sequence length  in case we need to clip 1 or 2
+    # bases of the sequence to match a reference ORF but still want to end up
+    # with the desired number of amino acids
+    rna_sequence_length = protein_fragment_length * 3 + 2
 
     # the number of context nucleotides on either side of the variant
     # is half the desired length (minus the number of variant nucleotides)
     n_surrounding_nucleotides = rna_sequence_length - len(variant.alt)
-    flanking_context_size = int(np.ceil(n_surrounding_nucleotides / 2.0))
 
+    flanking_context_size = int(np.ceil(n_surrounding_nucleotides / 2.0))
+    logging.info(
+        "Looking or %dnt RNA sequence around %s for %d codons)" % (
+            rna_sequence_length,
+            variant,
+            protein_fragment_length))
     sequence_count_info = sequence_counts(
         variant_reads,
         context_size=flanking_context_size)
