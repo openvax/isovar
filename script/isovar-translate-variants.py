@@ -16,10 +16,12 @@
 
 from __future__ import print_function, division, absolute_import
 
+from collections import defaultdict
 import argparse
 
 import varcode
 from pysam import AlignmentFile
+import pandas as pd
 
 from isovar import translate_variant_collection
 
@@ -57,11 +59,32 @@ if __name__ == "__main__":
     variants = varcode.load_vcf(args.vcf, genome=args.genome)
 
     samfile = AlignmentFile(args.bam)
-    print(variants)
     variant_to_proteins = translate_variant_collection(variants, samfile)
+
+    # construct a dictionary incrementally which we'll turn into a
+    # DataFrame
+    column_dict = defaultdict(list)
     for (variant, protein_fragments) in variant_to_proteins.items():
         print(variant)
         for protein_fragment in protein_fragments:
-            print("-- %d: %s" % (
-                protein_fragment.number_supporting_reads,
-                protein_fragment,))
+            column_dict["chr"].append(variant.contig)
+            column_dict["base1_start_pos"].append(variant.start)
+            column_dict["base1_end_pos"].append(variant.end)
+            column_dict["ref"].append(variant.ref)
+            column_dict["alt"].append(variant.alt)
+            column_dict["variant_protein_sequence"].append(
+                protein_fragment.variant_protein_sequence)
+            column_dict["reference_transcript_ids"].append(
+                ";".join(protein_fragment.reference_transcript_ids))
+            column_dict["reference_transcript_names"].append(
+                ";".join(protein_fragment.reference_transcript_names))
+            column_dict["rna_sequences"].append(
+                ";".join([
+                    "%s_%s_%s" % (prefix, alt, suffix)
+                    for (prefix, alt, suffix)
+                    in protein_fragment.cdna_sequence_tuples
+                ]))
+            column_dict["number_supporting_reads"].append(
+                protein_fragment.number_supporting_reads)
+    df = pd.DataFrame(column_dict)
+    print(df)
