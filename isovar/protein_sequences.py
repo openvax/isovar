@@ -67,7 +67,7 @@ PROTEIN_FRAGMENT_LEGNTH = 25
 MAX_SEQUENCES_PER_VARIANT = 5
 
 
-def matching_isoform_fragment_protein_sequences(
+def translate_compatible_reading_frames(
         dna_sequence_prefix,
         dna_sequence_variant,
         dna_sequence_suffix,
@@ -77,6 +77,50 @@ def matching_isoform_fragment_protein_sequences(
         transcripts,
         max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH):
+    """
+    Use the given reference transcripts to attempt to establish the ORF
+    of a sequence context extract from RNA reads. It's expected that the
+    sequence has been aligned to the reference genome potentially using its
+    reverse-complement, and thus the sequence we are given is always from the
+    positive strand of DNA.
+
+    Parameters
+    ----------
+    dna_sequence_prefix : str
+        Nucleotides before the variant.
+
+    dna_sequence_variant : str
+        Mutated nucleotides, should be empty for a deletion.
+
+    dna_sequence_suffix : str
+        Nucleotides after the variant
+
+    variant_is_insertion : bool
+
+    base1_variant_start_location : int
+        For deletions and substitutions, this position is the first modified
+        nucleotide. For insertions, this is the position before any inserted
+        nucleotides.
+
+    base1_variant_end_location : int
+        For deletions and substitutions, this is the positions of the last
+        affected reference nucleotide. For insertions, this is the location of
+        the base after the insertion.
+
+    transcripts : list of pyensembl.Transcript
+        List of candidate reference transcripts from which we try to determine
+        the ORF of a variant RNA sequence.
+
+    max_transcript_mismatches : int
+        Ignore transcripts with more than this number of mismatching nucleotides
+
+    min_transcript_prefix_length : int
+        Don't consider transcripts with less than this number of nucleotides
+        before the variant position (setting this value to 0 will enable use
+        of transcripts without 5' UTR)
+
+    Returns list of TranslationFromReferenceORF objects.
+    """
     results = []
 
     for transcript in transcripts:
@@ -191,30 +235,76 @@ def rna_sequence_key(fragment_info):
         fragment_info.cdna_suffix
     )
 
-def group_protein_fragments(fragment_and_count_list):
+def group_protein_fragments(
+        protein_fragment_and_read_names_list,
+        desired_protein_length=None):
     """
+    If we end up with multiple equivalent protein fragments from distinct
+    cDNA sequences then we want to group them since ultimately it's
+    not relevant which codon gives us a particular amino acid.
+
     Parameters
     ----------
-    fragment_and_count_list : list
+    fragments_and_read_names : list
         List of tuples containing (1) a TranslationFromReferenceORF object and
-        (2) an integer indicating the number of spanning RNA reads for that
+        (2) a set of read names from spanning RNA reads for that
         unique sequence.
 
     Returns list of ProteinFragment objects.
     """
+    # map every distinct protein sequence to a tuple with the following fields:
+    # - transcript ID
+    # - transcript name
+    # - cDNA sequence
+    # - reading frame
+
     protein_sequence_dict = defaultdict(list)
-    rna_sequence_counts = {}
-    for (fragment_info, read_count) in fragment_and_count_list:
-        protein_sequence = fragment_info.variant_protein_sequence
-        protein_sequence_dict[protein_sequence].append(fragment_info)
-        cnda_tuple = rna_sequence_key(fragment_info)
-        if cnda_tuple in rna_sequence_counts:
-            assert rna_sequence_counts[cnda_tuple] == read_count
+    cdna_to_read_names = {}
+    for (translation_info, read_names) in protein_fragment_and_read_names_list:
+        cnda_tuple = rna_sequence_key(translation_info)
+        if cnda_tuple in cdna_to_read_names:
+            assert cdna_to_read_names[cnda_tuple] == read_names
         else:
-            rna_sequence_counts[cnda_tuple] = read_count
+            cdna_to_read_names[cnda_tuple] = read_names
+
+        protein_sequence = translation_info.variant_protein_sequence
+        # if we can chop up the translated protein fragment into shorter pieces
+        # then go for it!
+
+        variant_protein_sequence = translation_info.variant_protein_sequence
+        ref_protein_sequence = translation_info.reference_protein_sequence
+        n_amino_acids = len(variant_protein_sequence)
+
+        for start, end in enumerate(range(desired_protein_length, n_amino_acids)):
+
+            # all protein fragments must overlap the variant
+            if start > translation_info.base0_variant_amino_acid_start_offset:
+                break
+            if end < translation_info.base0_variant_amino_acid_start_offset:
+                continue
+
+            variant_protein_subsequence = protein_sequence[start:end]
+            ref_protein_subsequence = ref_protein_sequence[start:end]
+            info_tuple = (
+                variant_protein_subsequence,
+                ref_protein_subsequence,
+                translation_info.transcript_id,
+                translation_info.transcript_name,
+                # TODO: actually add these fields!
+                translation_info.base0_variant_amino_acid_start_offset,
+                translation_info.base0_variant_amino_acid_end_offset,
+            )
+            protein_sequence_dict[protein_sequence].append(info_tuple)
+
     results = []
     for (protein_sequence, info_objs) in protein_sequence_dict.items():
-        rna_sequence_keys = list(set([rna_sequence_key(x) for x in info_objs]))
+        transcript_names = list(set([x.transcript_name for x in info_objs]))
+        transcript_ids = list(set([x.transcript_id for x in info_objs]))
+        cdna_sequence_keys = list(set([rna_sequence_key(x) for x in info_objs]))
+
+        reference_protein_sequences = []
+        all_read_names = set([])
+
         total_read_count = sum(
             rna_sequence_counts[cnda_tuple] for cnda_tuple in rna_sequence_keys)
         transcript_ids = list(set([x.transcript_id for x in info_objs]))
@@ -244,6 +334,11 @@ def variant_protein_fragments_with_read_counts(
         max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
         max_sequences=MAX_SEQUENCES_PER_VARIANT,
         chromosome_name=None):
+    """
+    Returns list of tuples containing:
+        1) ProteinFragment object
+        2) set of read names supporting the protein fragment
+    """
 
     if len(reference_transcripts) == 0:
         return []
@@ -272,29 +367,32 @@ def variant_protein_fragments_with_read_counts(
             rna_sequence_length,
             variant,
             protein_fragment_length))
+
     sequence_count_info = sequence_counts(
         variant_reads,
         context_size=flanking_context_size)
 
-    sequence_count_dict = sequence_count_info.full_read_counts
+    sequences_and_read_names = sequence_count_info.full_read_names
 
-    if len(sequence_count_dict) == 0:
+    if len(translate_compatible_reading_frames) == 0:
         return []
 
     variant_seq = sequence_count_info.variant_nucleotides
 
     result_list = []
 
-    for i, ((prefix, suffix), count) in enumerate(sorted(
-            sequence_count_dict.items(),
-            key=lambda x: -x[1])):
+    for i, ((prefix, suffix), read_names) in enumerate(sorted(
+            sequences_and_read_names.items(),
+            key=lambda x: -len(x[1]))):
         if i >= max_sequences:
             break
+
+        count = len(read_names)
 
         if count < min_reads_supporting_rna_sequence:
             break
 
-        for protein_fragment in matching_isoform_fragment_protein_sequences(
+        for protein_fragment in translate_compatible_reading_frames(
                 dna_sequence_prefix=prefix,
                 dna_sequence_variant=variant_seq,
                 dna_sequence_suffix=suffix,

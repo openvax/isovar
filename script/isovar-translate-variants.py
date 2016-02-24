@@ -33,7 +33,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--bam",
-    default="/Users/iskander/code/varlens/test/data/CELSR1/bams/bam_2.bam")
+    default="/Users/iskander/code/varlens/test/data/CELSR1/bams/bam_9.bam")
 
 parser.add_argument(
     "--genome",
@@ -99,6 +99,7 @@ if __name__ == "__main__":
         ("variant_protein_sequence_length", []),
         ("reference_transcript_ids", []),
         ("reference_transcript_names", []),
+        ("reference_protein_sequences", []),
         ("cdna_sequences", []),
         ("cdna_sequence_length", []),
         ("number_supporting_reads", [])
@@ -119,6 +120,8 @@ if __name__ == "__main__":
                 ";".join(protein_fragment.reference_transcript_ids))
             column_dict["reference_transcript_names"].append(
                 ";".join(protein_fragment.reference_transcript_names))
+            column_dict["reference_protein_sequences"].append(
+                ";".join(protein_fragment.reference_protein_sequences))
             column_dict["cdna_sequences"].append(
                 ";".join([
                     "%s_%s_%s" % (prefix, alt, suffix)

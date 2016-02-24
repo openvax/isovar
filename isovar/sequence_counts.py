@@ -29,9 +29,14 @@ SequenceCounts = namedtuple(
         # dictionary of context sequences mapping to the # of reads
         # they were detected in
         "full_read_counts",
+        # names of reads which fully overlap a sequence
+        "full_read_names",
         # dictionary of context sequences mapping to the # of reads
         # which partially overlap them in (and agree at all overlapped bases)
         "partial_read_counts",
+        # dictionary from context sequence to the names of partially
+        # overlapping reads
+        "partial_read_names",
         # dictionary mapping context sequences to the sum of
         # overlap weights from all partially overlapping reads
         "partial_read_weights",
@@ -92,6 +97,7 @@ def sequence_counts(
     for (prefix, suffix) in full_sequences.keys():
         prefix_to_suffixes[prefix].add(suffix)
 
+    partially_supporting_read_names = defaultdict(set)
     partially_supporting_read_counts = Counter()
     partially_supporting_read_weights = Counter()
     for (prefix, suffix), reads in unique_sequence_groups.items():
@@ -111,6 +117,7 @@ def sequence_counts(
                         partially_supporting_read_counts[other_key] += n_reads
                         partially_supporting_read_weights[other_key] += (
                             n_reads * fraction_bases_covered)
+                        partially_supporting_read_names[other_key].update(reads)
 
     combined_weights = {
         key: full_count + partially_supporting_read_weights[key]
@@ -119,6 +126,8 @@ def sequence_counts(
     return SequenceCounts(
         combined_sequence_weights=combined_weights,
         full_read_counts=full_sequence_counts,
+        full_read_names=full_sequences,
         partial_read_counts=partially_supporting_read_counts,
         partial_read_weights=partially_supporting_read_weights,
+        partial_read_names=partially_supporting_read_names,
         variant_nucleotides=variant_seq)
