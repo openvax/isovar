@@ -15,10 +15,11 @@
 from __future__ import print_function, division, absolute_import
 
 import logging
-from collections import namedtuple, defaultdict
+from collections import namedtuple, defaultdict, OrderedDict
 
 from skbio import DNA
 import numpy as np
+import pandas as pd
 
 from .variant_reads import gather_variant_reads
 from .sequence_counts import sequence_counts
@@ -57,7 +58,7 @@ ProteinFragment = namedtuple(
         "reference_transcript_ids",
         "reference_transcript_names",
         "reference_protein_sequences",
-        "cdna_sequence_tuples",
+        "cdna_sequences_to_read_names",
     ])
 
 MIN_READS_SUPPORTING_RNA_SEQUENCE = 3
@@ -237,7 +238,7 @@ def rna_sequence_key(fragment_info):
 
 def group_protein_fragments(
         protein_fragment_and_read_names_list,
-        desired_protein_length=None):
+        desired_protein_length=PROTEIN_FRAGMENT_LEGNTH):
     """
     If we end up with multiple equivalent protein fragments from distinct
     cDNA sequences then we want to group them since ultimately it's
@@ -303,16 +304,20 @@ def group_protein_fragments(
         cdna_sequence_keys = list(set([rna_sequence_key(x) for x in info_objs]))
 
         reference_protein_sequences = []
-        all_read_names = set([])
 
         total_read_count = sum(
-            rna_sequence_counts[cnda_tuple] for cnda_tuple in rna_sequence_keys)
+            len(cdna_to_read_names[cnda_tuple])
+            for cnda_tuple in cdna_sequence_keys)
         transcript_ids = list(set([x.transcript_id for x in info_objs]))
         transcript_names = list(set([x.transcript_name for x in info_objs]))
         reference_protein_sequences = list(set([
             x.reference_protein_sequence
             for x in info_objs]))
-        cdna_sequence_tuples = list(set(
+        cdna_sequences_to_read_names = {
+            rna_sequence_key(x): cdna_to_read_names[rna_sequence_key(x)]
+            for x in info_objs
+        }
+        list(set(
             [rna_sequence_key(x) for x in info_objs]))
         results.append(
             ProteinFragment(
@@ -321,7 +326,7 @@ def group_protein_fragments(
                 reference_transcript_ids=transcript_ids,
                 reference_transcript_names=transcript_names,
                 reference_protein_sequences=reference_protein_sequences,
-                cdna_sequence_tuples=cdna_sequence_tuples))
+                cdna_sequences_to_read_names=cdna_sequences_to_read_names))
     return results
 
 def variant_protein_fragments_with_read_counts(
@@ -374,7 +379,7 @@ def variant_protein_fragments_with_read_counts(
 
     sequences_and_read_names = sequence_count_info.full_read_names
 
-    if len(translate_compatible_reading_frames) == 0:
+    if len(sequences_and_read_names) == 0:
         return []
 
     variant_seq = sequence_count_info.variant_nucleotides
@@ -480,3 +485,99 @@ def translate_variant_collection(
                 min_transcript_prefix_length=min_transcript_prefix_length,
                 max_transcript_mismatches=max_transcript_mismatches)
     return variant_to_protein_fragments
+
+
+def variant_protein_fragments_dataframe(
+        variants,
+        samfile,
+        protein_fragment_length=PROTEIN_FRAGMENT_LEGNTH,
+        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_RNA_SEQUENCE,
+        min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
+        max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
+        max_sequences_per_variant=MAX_SEQUENCES_PER_VARIANT):
+    """
+    Given a collection of variants and a SAM/BAM file of overlapping reads,
+    returns a DataFrame of translated protein fragments with the following
+    columns:
+        chr : str
+            Chromosome of variant
+
+        base1_start_pos : int
+            First reference nucleotide affected by variant (or position before
+            insertion)
+
+        base1_end_pos : int
+            Last reference nucleotide affect by variant (or position after
+            insertion)
+
+        ref : str
+            Reference nucleotides
+        alt : str
+            Variant nucleotides
+
+        variant_protein_sequence : str
+            Translated variant protein fragment sequence
+
+        variant_protein_sequence_length : int
+            Number of amino acids in each sequence
+
+        reference_transcript_ids : str list
+
+        reference_transcript_names : str list
+
+        reference_protein_sequences : str list
+
+        cdna_sequence_to_support_reads : dict
+            Maps distinct (prefix, variant, suffix) triplets to
+            names of reads supporting these cDNA sequences
+
+        total_supporting_read_count : int
+        """
+    variant_to_proteins = translate_variant_collection(
+        variants,
+        samfile,
+        protein_fragment_length=protein_fragment_length,
+        min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
+        min_transcript_prefix_length=min_transcript_prefix_length,
+        max_transcript_mismatches=max_transcript_mismatches,
+        max_sequences_per_variant=max_sequences_per_variant)
+
+    # construct a dictionary incrementally which we'll turn into a
+    # DataFrame
+    column_dict = OrderedDict([
+        ("chr", []),
+        ("base1_start_pos", []),
+        ("base1_end_pos", []),
+        ("ref", []),
+        ("alt", []),
+        ("variant_protein_sequence", []),
+        ("variant_protein_sequence_length", []),
+        ("reference_transcript_ids", []),
+        ("reference_transcript_names", []),
+        ("reference_protein_sequences", []),
+        ("cdna_sequences_to_read_names", []),
+        ("total_supporting_read_count", [])
+    ])
+    for (variant, protein_fragments) in variant_to_proteins.items():
+        for protein_fragment in protein_fragments:
+            column_dict["chr"].append(variant.contig)
+            column_dict["base1_start_pos"].append(variant.start)
+            column_dict["base1_end_pos"].append(variant.end)
+            column_dict["ref"].append(variant.ref)
+            column_dict["alt"].append(variant.alt)
+            column_dict["variant_protein_sequence"].append(
+                protein_fragment.variant_protein_sequence)
+            column_dict["variant_protein_sequence_length"].append(
+                len(protein_fragment.variant_protein_sequence))
+            column_dict["reference_transcript_ids"].append(
+                ";".join(protein_fragment.reference_transcript_ids))
+            column_dict["reference_transcript_names"].append(
+                ";".join(protein_fragment.reference_transcript_names))
+            column_dict["reference_protein_sequences"].append(
+                ";".join(protein_fragment.reference_protein_sequences))
+            column_dict["cdna_sequences_to_read_names"].append(
+                protein_fragment.cdna_sequences_to_read_names)
+            column_dict["total_supporting_read_count"].append(
+                protein_fragment.number_supporting_reads)
+    df = pd.DataFrame(column_dict)
+    return df

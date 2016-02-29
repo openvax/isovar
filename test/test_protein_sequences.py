@@ -14,7 +14,7 @@ def test_translate_variant_collection():
     variants = load_vcf(VCF, genome=GENOME)
     samfile = AlignmentFile(BAM)
     result = translate_variant_collection(variants, samfile)
-    assert len(result) > 0
+    assert len(result) > 0, result
 
 
 if __name__ == "__main__":

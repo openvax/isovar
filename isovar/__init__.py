@@ -28,6 +28,7 @@ from .sequence_counts import sequence_counts
 from .protein_sequences import (
     variant_protein_fragments_with_read_counts,
     translate_variant_collection,
+    variant_protein_fragments_dataframe,
 )
 
 __all__ = [
@@ -41,5 +42,6 @@ __all__ = [
     "nucleotide_to_index",
     "sequence_counts",
     "variant_protein_fragments_with_read_counts",
-    "translate_variant_collection"
+    "translate_variant_collection",
+    "variant_protein_fragments_dataframe",
 ]
