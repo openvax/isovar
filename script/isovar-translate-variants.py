@@ -31,7 +31,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--bam",
-    default="/Users/iskander/code/varlens/test/data/CELSR1/bams/bam_9.bam")
+    default="/Users/iskander/code/varlens/test/data/CELSR1/bams/bam_1.bam")
 
 parser.add_argument(
     "--genome",
@@ -73,6 +73,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    print(args)
     variants = varcode.load_vcf(
         args.vcf,
         genome=args.genome)

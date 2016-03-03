@@ -19,6 +19,7 @@ suffix portions
 
 from __future__ import print_function, division, absolute_import
 
+import logging
 from collections import namedtuple
 
 from .overlapping_reads import gather_overlapping_reads
@@ -137,6 +138,12 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
 
 def gather_variant_reads(samfile, chromosome, base1_location, ref, alt):
     base1_location, ref, alt = trim_variant(base1_location, ref, alt)
+
+    logging.info("Gathering variant reads for variant %s:%s '%s'>'%s'" % (
+        chromosome,
+        base1_location,
+        ref,
+        alt))
     base0_start, base0_end = get_variant_base0_interval(
         base1_location=base1_location,
         ref=ref,
