@@ -28,7 +28,22 @@ VariantRead = namedtuple(
     "VariantRead", "prefix variant suffix name")
 
 def trim_variant(location, ref, alt):
-    """Trims common prefixes from the ref and alt sequences"""
+    """
+    Trims common prefixes from the ref and alt sequences
+
+    Parameters
+    ----------
+    location : int
+        Position (starting from 1) on some chromosome
+
+    ref : str
+        Reference nucleotides
+
+    alt : str
+        Alternate (mutant) nucleotide
+
+    Returns adjusted triplet (location, ref, alt)
+    """
     if len(alt) > 0 and ref.startswith(alt):
         # if alt is a prefix of the ref sequence then we actually have a
         # deletion like:
@@ -71,13 +86,13 @@ def get_variant_base0_interval(base1_location, ref, alt):
 
 def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
     """
+    Given a collection of pysam.AlignedSegment objects, generates a
+    sequence of VariantRead objects (which are split into prefix/variant/suffix
+    nucleotides).
+
     Parameters
     ----------
-    read_tuples : sequence
-        Each tuple contains the following elements:
-        1) list of aligned reference positions
-        2) offset into the reference (where the variant aligned to)
-        3) nucleotide sequence of the read
+    overlapping_reads : list of pysam.AlignedSegment
 
     ref : str
         Reference sequence of the variant (empty for insertions)
@@ -85,7 +100,7 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
     alt : str
         Alternate sequence of the variant (empty for deletions)
 
-    Returns a sequence of (prefix, alt, suffix) string tuples.
+    Returns a sequence of VariantRead objects.
     """
     for read in overlapping_reads:
         reference_positions = read.reference_positions
@@ -137,6 +152,11 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
         yield VariantRead(prefix, alt, suffix, name=read.name)
 
 def gather_variant_reads(samfile, chromosome, base1_location, ref, alt):
+    """
+    Find reads in the given SAM/BAM file which overlap the given variant, filter
+    to only include those which agree with the variant's nucleotide(s), and turn
+    them into a list of VariantRead objects.
+    """
     base1_location, ref, alt = trim_variant(base1_location, ref, alt)
 
     logging.info("Gathering variant reads for variant %s:%s '%s'>'%s'" % (

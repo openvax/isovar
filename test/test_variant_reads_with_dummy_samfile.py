@@ -48,9 +48,9 @@ class DummySamFile(object):
 
 def test_partitioned_read_sequences_snv():
     """
-    Test that read gets correctly partitioned for
-    chr1:4 T>G
-    where the sequence for chr1 is assumed to be "ACCTTG"
+    test_partitioned_read_sequences_snv : Test that read gets correctly
+    partitioned for chr1:4 T>G where the sequence for chr1 is assumed
+    to be "ACCTTG"
     """
     # chr1_seq = "ACCTTG"
     chromosome = "chromosome"
@@ -77,8 +77,8 @@ def test_partitioned_read_sequences_snv():
 
 def test_partitioned_read_sequences_insertion():
     """
-    Test that read gets correctly partitioned for
-    chr1:4 T>TG
+    test_partitioned_read_sequences_insertion : Test that read gets correctly
+    partitioned for chr1:4 T>TG
     where the sequence for chr1 is assumed to be "ACCTTG"
     """
     # chr1_seq = "ACCTTG"
@@ -107,9 +107,9 @@ def test_partitioned_read_sequences_insertion():
 
 def test_partitioned_read_sequences_deletion():
     """
-    Test that read gets correctly partitioned for
-    chr1:4 TT>T
-    where the sequence for chr1 is assumed to be "ACCTTG"
+    test_partitioned_read_sequences_deletion : Test that read gets correctly
+    partitioned for chr1:4 TT>T where the sequence for chr1 is assumed to
+    be "ACCTTG"
     """
     # chr1_seq = "ACCTTG"
     chromosome = "chromosome"

@@ -41,12 +41,9 @@ TranslationFromReferenceORF = namedtuple(
         "variant_protein_sequence",
         "reference_protein_sequence",
         "protein_fragment_start_offset",
-        "protein_variant_offset",
-        "base0_variant_amino_acid_start_offset",
-        "base0_variant_amino_acid_end_offset",
-        "aa_prefix",
-        "aa_variant",
-        "aa_suffix",
+        "protein_fragment_end_offset",
+        "base0_first_variant_codon_in_fragment",
+        "base0_last_variant_codon_in_fragment",
     ])
 
 # if multiple distinct RNA sequence contexts and/or reference transcripts
@@ -220,7 +217,7 @@ def translate_compatible_reading_frames(
             cdna_prefix + cdna_variant + cdna_suffix)
 
         variant_protein_fragment_sequence = str(
-            combined_variant_cdna_sequence.translate(start=orf_offset))
+            combined_variant_cdna_sequence[orf_offset:].translate())
 
         logging.info("Combined variant cDNA sequence %s translates to protein %s" % (
             combined_variant_cdna_sequence,
@@ -235,27 +232,21 @@ def translate_compatible_reading_frames(
                 query_sequence_start_idx + len(combined_variant_cdna_sequence)])
 
         transcript_protein_fragment_sequence = str(
-            combined_transcript_sequence.translate(start=orf_offset))
+            combined_transcript_sequence[orf_offset].translate())
 
         protein_fragment_start_offset = (
             query_sequence_start_idx - start_codon_idx) // 3
         protein_fragment_end_offset = (
             query_sequence_end_idx - start_codon_idx) // 3
 
+        first_variant_codon = 0
+        last_variant_codon = 0
+
+        """
         # the number of non-mutated codons in the prefix (before the variant)
         # has to trim the ORF offset and then count up by multiples of 3
         n_prefix_nucleotides = len(cdna_prefix) - orf_offset
         n_prefix_codons = n_prefix_nucleotides // 3
-
-        # start from the first codon which could be affected by this
-        # variant and scan forward until we find a mismatching AAs
-        n_variant_aa = len(variant_protein_fragment_sequence)
-        n_reference_aa = len(transcript_protein_fragment_sequence)
-
-        # if len(cdna_variant) % 3 == 0:
-
-        # n_variant_codons = math.ceil()
-        n_variant_nucleotides = n_prefix_nucleotides % 3 + len(cdna_variant)
 
         aa_prefix = variant_protein_fragment_sequence[:n_prefix_codons]
         aa_variant = variant_protein_fragment_sequence[
@@ -264,7 +255,10 @@ def translate_compatible_reading_frames(
             n_prefix_codons + n_variant_codons:]
 
         assert aa_prefix + aa_variant + aa_suffix == variant_protein_fragment_sequence
-
+                        aa_prefix=aa_prefix,
+                aa_variant=aa_variant,
+                aa_suffix=aa_suffix)
+        """
         results.append(
             TranslationFromReferenceORF(
                 cdna_prefix=cdna_prefix,
@@ -280,15 +274,20 @@ def translate_compatible_reading_frames(
                 reference_protein_sequence=transcript_protein_fragment_sequence,
                 protein_fragment_start_offset=protein_fragment_start_offset,
                 protein_fragment_end_offset=protein_fragment_end_offset,
-                aa_prefix=aa_prefix,
-                aa_variant=aa_variant,
-                aa_suffix=aa_suffix))
+                base0_first_variant_codon_in_fragment=first_variant_codon,
+                base0_last_variant_codon_in_fragment=last_variant_codon))
     return results
 
 def rna_sequence_key(fragment_info):
     """
     Get the cDNA (prefix, variant, suffix) fields from a
     TranslationFromReferenceORF object.
+
+    Parameters
+    ----------
+    fragment_info : TranslationFromReferenceORF
+
+    Returns (str, str, str)
     """
     return (
         fragment_info.cdna_prefix,
@@ -488,11 +487,23 @@ def variant_protein_fragments_with_read_counts(
             read_names))
 
         if i >= max_sequences:
+            logging.info(
+                "Skipping sequence %s for variant %s, already reached max_sequences (%d)",
+                prefix + "|" + suffix,
+                variant,
+                max_sequences)
             break
 
-        count = len(read_names)
+        num_reads_supporting_current_sequence = len(read_names)
 
-        if count < min_reads_supporting_rna_sequence:
+        if num_reads_supporting_current_sequence < min_reads_supporting_rna_sequence:
+            logging.info(
+                "Skipping sequence %s for variant %s, too few supporting reads (%d)",
+                prefix + "|" + suffix,
+                variant,
+                num_reads_supporting_current_sequence)
+            # we can break here instead of `continue` since the loop iterations
+            # are sorted in decreasing order by the number of reads
             break
 
         for protein_fragment in translate_compatible_reading_frames(
@@ -501,7 +512,8 @@ def variant_protein_fragments_with_read_counts(
                 dna_sequence_suffix=suffix,
                 base1_variant_start_location=variant.start,
                 base1_variant_end_location=variant.end,
-                variant_is_insertion=len(variant.ref) == 0,
+                variant_is_insertion=variant.is_insertion,
+                variant_is_deletion=variant.is_deletion,
                 transcripts=reference_transcripts,
                 max_transcript_mismatches=max_transcript_mismatches,
                 min_transcript_prefix_length=max_transcript_mismatches):
