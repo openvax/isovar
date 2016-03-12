@@ -13,14 +13,17 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+import logging
 
 from collections import Counter, defaultdict, namedtuple
 
+import numpy as np
+
 from .common import group_unique_sequences, get_variant_nucleotides
+from .variant_reads import variant_reads_generator
 
-
-SequenceCounts = namedtuple(
-    "SequenceCounts",
+VariantSequences = namedtuple(
+    "VariantSequences",
     [
         # dictionary mapping unique sequences to the sum of the number
         # of reads fully supporting that sequence and fraction of that
@@ -46,16 +49,34 @@ SequenceCounts = namedtuple(
         "variant_nucleotides",
     ])
 
-def sequence_counts(
+def variant_reads_to_sequences(
         variant_reads,
-        context_size=45,
-        min_sequence_length=None):
+        context_size,
+        min_sequence_length=None,
+        min_reads_per_sequence=1):
     """
-    Returns a dictionary mapping (prefix, variant, suffix) to a pair of
-    integers: the first indicating the number of reads which fully support
-    the sequence and the second is the number of reads which partially
-    support the sequence (weighted by the fraction of nucleotides
-    overlapping).
+    Parameters
+    ----------
+    variant_reads : list of VariantRead objects
+        Each variant read should have the following fields:
+            - prefix : str
+            - variant : str
+            - suffix : str
+            - name : str
+
+    context_size : int
+        Number of nucleotides left and right of the variant
+
+    min_sequence_length : int, optional
+        Minimum length of detected sequence
+
+    min_reads_per_sequence : int, optional
+        Drop sequences which don't at least have this number of fully spanning
+        reads.
+
+    Returns a VariantSequences object, containing several different
+    dictionaries mapping (prefix, variant, suffix) sequence tuples
+    to names, counts, and weights of read support.
     """
 
     # Get all unique sequences from reads spanning the
@@ -82,7 +103,8 @@ def sequence_counts(
         (prefix, suffix): read_names
         for ((prefix, suffix), read_names)
         in unique_sequence_groups.items()
-        if (len(prefix) + len(suffix) + variant_len) >= min_sequence_length
+        if (len(prefix) + len(suffix) + variant_len) >= min_sequence_length and
+        len(read_names) >= min_reads_per_sequence
     }
 
     full_sequence_counts = {
@@ -100,7 +122,8 @@ def sequence_counts(
     partially_supporting_read_names = defaultdict(set)
     partially_supporting_read_counts = Counter()
     partially_supporting_read_weights = Counter()
-    for (prefix, suffix), reads in unique_sequence_groups.items():
+
+    for (prefix, suffix), reads in full_sequences.items():
         n_reads = len(reads)
         curr_len = len(prefix) + len(suffix)
         for other_prefix, other_suffixes in prefix_to_suffixes.items():
@@ -113,7 +136,9 @@ def sequence_counts(
                         other_len = len(other_prefix) + len(other_suffix)
                         other_key = (other_prefix, other_suffix)
                         fraction_bases_covered = float(curr_len) / other_len
-                        assert fraction_bases_covered < 1.0
+                        assert fraction_bases_covered < 1.0, \
+                            "Fraction for partial match must be <1.0, got %f " % (
+                                fraction_bases_covered,)
                         partially_supporting_read_counts[other_key] += n_reads
                         partially_supporting_read_weights[other_key] += (
                             n_reads * fraction_bases_covered)
@@ -121,9 +146,10 @@ def sequence_counts(
 
     combined_weights = {
         key: full_count + partially_supporting_read_weights[key]
-        for (key, full_count) in full_sequence_counts.items()
+        for (key, full_count)
+        in full_sequence_counts.items()
     }
-    return SequenceCounts(
+    return VariantSequences(
         combined_sequence_weights=combined_weights,
         full_read_counts=full_sequence_counts,
         full_read_names=full_sequences,
@@ -131,3 +157,71 @@ def sequence_counts(
         partial_read_weights=partially_supporting_read_weights,
         partial_read_names=partially_supporting_read_names,
         variant_nucleotides=variant_seq)
+
+def variant_sequences_generator(
+        variants,
+        samfile,
+        sequence_length=105,
+        min_reads=2):
+    """
+    Generator that yields pairs of variants and VariantSequences objects.
+
+    Parameters
+    ----------
+    variants : varcode.VariantCollection
+        Variants for which we're trying to construct context sequences
+
+    samfile : pysam.AlignmentFile
+        BAM or SAM file containing RNA reads
+
+    sequence_length : int
+        Desired sequence length, including variant nucleotides
+
+    min_reads : int
+        Minimum number of reads supporting
+    """
+    for variant, variant_reads in variant_reads_generator(
+            variants=variants,
+            samfile=samfile):
+        # the number of context nucleotides on either side of the variant
+        # is half the desired length (minus the number of variant nucleotides)
+        n_surrounding_nucleotides = sequence_length - len(variant.alt)
+
+        flanking_context_size = int(np.ceil(n_surrounding_nucleotides / 2.0))
+        logging.info(
+            "Looking at %dnt RNA sequence context around %s" % (
+                flanking_context_size,
+                variant))
+
+        sequences = variant_reads_to_sequences(
+            variant_reads,
+            context_size=flanking_context_size,
+            min_reads=min_reads)
+
+        yield variant, sequences
+
+def variants_to_sequence_dataframe(
+        variants,
+        samfile,
+        context_size=45,
+        min_sequence_length=None):
+    """
+    Creates a dataframe of all detected cDNA sequences for the given variant
+    collection and alignment file.
+
+    Parameters
+    ----------
+    variants : varcode.VariantCollection
+        Look for sequences containing these variants
+
+    samfile : pysam.AlignmentFile
+        Reads from which surrounding sequences are detected
+
+    context_size : int
+        Number of nucleotides left and right of the variant
+
+    min_sequence_length : int, optional
+        Minimum length of detected sequence
+
+    Returns pandas.DataFrame
+    """

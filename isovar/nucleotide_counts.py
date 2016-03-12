@@ -24,11 +24,22 @@ from .common import (
 
 def nucleotide_counts(partitioned_read_sequences):
     """
+    Count the number of times {A, C, T, G} occur at each position to the
+    left and right of the variant.
+
+    Parameters
+    ----------
+    partitioned_read_sequences : list of tuples
+        Each tuple has three elements:
+            - sequence before mutant nucleotides
+            - mutant nucleotides
+            - sequence after mutant nucleotides
+
     Returns a tuple with the following elements:
-    1) a matrix with four rows and as many columns as the sum of
-    the longest prefix preceding the variant, the longest suffix after the
-    variant and the number of variant nucleotids.
-    2) the column indices for the variant nucleotides
+        - a matrix with four rows and as many columns as the sum of the longest
+          prefix preceding the variant, the longest suffix after the variant and
+          the number of variant nucleotids.
+        - the column indices for the variant nucleotides
     """
     variant_seq, prefix_suffix_pairs = make_prefix_suffix_pairs(
         partitioned_read_sequences)
@@ -66,11 +77,22 @@ def nucleotide_counts(partitioned_read_sequences):
 
 def most_common_nucleotides(partitioned_read_sequences):
     """
+    Find the most common nucleotide at each offset to the left and
+    right of a variant.
+
+    Parameters
+    ----------
+    partitioned_read_sequences : list of tuples
+        Each tuple has three elements:
+            - sequence before mutant nucleotides
+            - mutant nucleotides
+            - sequence after mutant nucleotides
+
     Returns a tuple with the following elements:
-    - nucleotide sequence from most common nucleotide at each offset
-    relative to the variant
-    - an array of counts indicating how many reads supported this nucleotide
-    - an array of counts for all the *other* nucleotides at that position
+        - nucleotide sequence from most common nucleotide at each offset
+           relative to the variant
+        - an array of counts indicating how many reads supported this nucleotide
+        - an array of counts for all the *other* nucleotides at that position
     """
     counts, variant_column_indices = nucleotide_counts(
         partitioned_read_sequences)

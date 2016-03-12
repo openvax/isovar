@@ -20,7 +20,9 @@ suffix portions
 from __future__ import print_function, division, absolute_import
 
 import logging
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
+
+from pandas import DataFrame
 
 from .overlapping_reads import gather_overlapping_reads
 
@@ -151,11 +153,32 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
             suffix = str(suffix, "ascii")
         yield VariantRead(prefix, alt, suffix, name=read.name)
 
-def gather_variant_reads(samfile, chromosome, base1_location, ref, alt):
+def gather_reads_for_single_variant(
+        samfile,
+        chromosome,
+        base1_location,
+        ref,
+        alt):
     """
     Find reads in the given SAM/BAM file which overlap the given variant, filter
     to only include those which agree with the variant's nucleotide(s), and turn
     them into a list of VariantRead objects.
+
+    Parameters
+    ----------
+    samfile : pysam.AlignmentFile
+
+    chromosome : str
+
+    base1_location : int
+
+    ref : str
+        Reference nucleotides
+
+    alt : str
+        Variant nucleotides
+
+    Returns list of VariantRead objects.
     """
     base1_location, ref, alt = trim_variant(base1_location, ref, alt)
 
@@ -168,10 +191,76 @@ def gather_variant_reads(samfile, chromosome, base1_location, ref, alt):
         base1_location=base1_location,
         ref=ref,
         alt=alt)
-    reads = gather_overlapping_reads(
+    overlapping_reads = gather_overlapping_reads(
         samfile=samfile,
         chromosome=chromosome,
         base0_start=base0_start,
         base0_end=base0_end,
         is_del=len(alt) == 0)
-    return list(variant_reads_from_overlapping_reads(reads, ref=ref, alt=alt))
+    return list(
+        variant_reads_from_overlapping_reads(
+            overlapping_reads=overlapping_reads,
+            ref=ref,
+            alt=alt))
+
+
+def variant_reads_generator(variants, samfile):
+    """
+    Generates sequence of tuples, each containing a variant paired with
+    a list of VariantRead objects.
+
+    Parameters
+    ----------
+    variants : varcode.VariantCollection
+
+    samfile : pysam.AlignmentFile
+    """
+    chromosome_names = set(samfile.references)
+    for variant in variants:
+        # I imagine the conversation went like this:
+        # A: "Hey, I have an awesome idea"
+        # B: "What's up?"
+        # A: "Let's make two nearly identical reference genomes"
+        # B: "But...that sounds like it might confuse people."
+        # A: "Nah, it's cool, we'll give the chromosomes different prefixes!"
+        # B: "OK, sounds like a good idea."
+        if variant.contig in chromosome_names:
+            chromosome = variant.contig
+        elif "chr" + variant.contig in chromosome_names:
+            chromosome = "chr" + variant.contig
+        else:
+            logging.warn(
+                "Chromosome '%s' from variant %s not in alignment file %s" % (
+                    chromosome, variant, samfile))
+            continue
+
+        variant_reads = gather_reads_for_single_variant(
+            samfile=samfile,
+            chromosome=chromosome,
+            base1_location=variant.start,
+            ref=variant.ref,
+            alt=variant.alt)
+        yield variant, variant_reads
+
+def variant_reads_dataframe(variants, samfile):
+    columns = OrderedDict([
+        ("chr", []),
+        ("pos", []),
+        ("ref", []),
+        ("alt", []),
+        ("read_name", []),
+        ("read_prefix", []),
+        ("read_variant", []),
+        ("read_suffix", []),
+    ])
+    for variant, variant_reads in variant_reads_generator(variants, samfile):
+        for variant_read in variant_reads:
+            columns["chr"].append(variant.contig)
+            columns["pos"].append(variant.start)
+            columns["ref"].append(variant.ref)
+            columns["alt"].append(variant.alt)
+            columns["read_name"].append(variant_read.name)
+            columns["read_prefix"].append(variant_read.prefix)
+            columns["read_variant"].append(variant_read.variant)
+            columns["read_suffix"].append(variant_read.suffix)
+    return DataFrame(columns)
