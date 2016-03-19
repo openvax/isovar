@@ -68,7 +68,6 @@ MAX_TRANSCRIPT_MISMATCHES = 2
 PROTEIN_FRAGMENT_LEGNTH = 25
 MAX_SEQUENCES_PER_VARIANT = 5
 
-
 def translate_compatible_reading_frames(
         dna_sequence_prefix,
         dna_sequence_variant,
@@ -175,7 +174,7 @@ def translate_compatible_reading_frames(
         if len(transcript_sequence_before_variant) < min_transcript_prefix_length:
             continue
 
-        n_mismatch = sum(
+        n_mismatch_before = sum(
             xi != yi
             for (xi, yi) in zip(
                 transcript_sequence_before_variant, cdna_prefix))
@@ -482,25 +481,35 @@ def predicted_effects_for_variant(variant, transcript_id_whitelist=None):
     return usable_effects
 
 
-def variant_protein_fragments_with_read_counts(
+def translate_variant(
         variant,
-        samfile,
-        transcript_id_whitelist=None,
+        sequence_context_to_read_names_dict,
+        variant_nucleotides,
+        reference_transcripts,
         protein_fragment_length=PROTEIN_FRAGMENT_LEGNTH,
         min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_RNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
-        max_sequences=MAX_SEQUENCES_PER_VARIANT,
-        chromosome_name=None):
+        max_sequences=MAX_SEQUENCES_PER_VARIANT):
     """
+    Generate possible protein sequences around a variant from surrounding
+    context sequences and a set of reference transcripts from the same locus
+    which can be used to establish an ORF.
+
     Parameters
     ----------
     variant : varcode.Variant
 
-    samfile : pysam.AlignmentFile
+    sequence_context_to_read_names_dict : dict
+        Dictionary mapping pair of (prefix, suffix) sequences to a set of
+        read names which support this sequence.
 
-    transcript_id_whitelist : set of strings
-        Optional whitelist for filtering transcripts by ID
+    variant_nucleotides : str
+        Nucleotides found between the (prefix, suffix) pair of each context.
+
+    reference_transcripts : list of pyensembl.Transcript
+        Transcripts which are used to establish the reading frame for
+        the discovered cDNA sequences.
 
     protein_fragment_length : int
 
@@ -520,30 +529,10 @@ def variant_protein_fragments_with_read_counts(
         1) ProteinFragment object
         2) set of read names supporting the protein fragment
     """
-
-
-    predicted_effects = predicted_effects_for_variant(
-        variant=variant,
-        transcript_id_whitelist=transcript_id_whitelist)
-
-    if len(predicted_effects) == 0:
-        logging.info(
-            "Skipping variant %s, no predicted coding effects" % (variant,))
-        return []
-
-
-    if len(sequences_and_read_names) == 0:
-        logging.info("Too few read names for %s: %s" % (
-            variant,
-            sequences_and_read_names))
-        return []
-
-    variant_seq = sequence_count_info.variant_nucleotides
-
     protein_fragments_and_read_names = []
 
     for i, ((prefix, suffix), read_names) in enumerate(sorted(
-            sequences_and_read_names.items(),
+            sequence_context_to_read_names_dict.items(),
             key=lambda x: -len(x[1]))):
         logging.info("%d %s|%s %s" % (
             i,
@@ -573,7 +562,7 @@ def variant_protein_fragments_with_read_counts(
 
         for protein_fragment in translate_compatible_reading_frames(
                 dna_sequence_prefix=prefix,
-                dna_sequence_variant=variant_seq,
+                dna_sequence_variant=variant_nucleotides,
                 dna_sequence_suffix=suffix,
                 base1_variant_start_location=variant.start,
                 base1_variant_end_location=variant.end,
@@ -600,7 +589,7 @@ def variant_protein_fragments_with_read_counts(
     return grouped_results
 
 
-def translate_variant_collection(
+def translate_variants(
         variants,
         samfile,
         transcript_id_whitelist=None,
@@ -635,8 +624,9 @@ def translate_variant_collection(
 
     max_sequences_per_variant : int
 
-    Returns a dictionary mapping each variant to a list of protein fragment,
-    read count pairs.
+    Returns a dictionary mapping each variant to DataFrame with the following
+    fields:
+        -
     """
 
     # adding 2nt to total RNA sequence length  in case we need to clip 1 or 2
@@ -651,15 +641,35 @@ def translate_variant_collection(
             samfile=samfile,
             sequence_length=rna_sequence_length,
             min_reads=min_reads_supporting_rna_sequence):
+        sequences_to_read_names_dict = variant_sequences.full_read_names
+        variant_nucleotides = variant_sequences.variant_nucleotides
 
-        sequence_to_read_names_dict = variant_sequences.full_read_names
+        if len(sequences_to_read_names_dict):
+            logging.info("No variant sequences detected in %s for %s" % (
+                samfile,
+                variant))
+            continue
+
+        predicted_effects = predicted_effects_for_variant(
+            variant=variant,
+            transcript_id_whitelist=transcript_id_whitelist)
+
+        if len(predicted_effects) == 0:
+            logging.info(
+                "Skipping variant %s, no predicted coding effects" % (variant,))
+            continue
+
+        reference_transcripts = [
+            effect.transcript
+            for effect in predicted_effects
+        ]
 
         variant_to_protein_fragments[variant] = \
-            variant_protein_fragments_with_read_counts(
-                chromosome_name=chromosome,
+            translate_variant(
                 variant=variant,
-                samfile=samfile,
-                transcript_id_whitelist=transcript_id_whitelist,
+                sequence_context_to_read_names_dict=sequences_to_read_names_dict,
+                variant_nucleotides=variant_nucleotides,
+                reference_transcripts=reference_transcripts,
                 protein_fragment_length=protein_fragment_length,
                 min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
                 min_transcript_prefix_length=min_transcript_prefix_length,
@@ -685,7 +695,7 @@ def translate_variant_collection(
 # ---- reference protein sequence
 # ---- predicted mutant protein sequence
 
-def variant_protein_fragments_dataframe(
+def translate_variants_dataframe(
         variants,
         samfile,
         transcript_id_whitelist=None,
@@ -701,18 +711,27 @@ def variant_protein_fragments_dataframe(
         chr : str
             Chromosome of variant
 
-        base1_start_pos : int
+        base1_pos : int
             First reference nucleotide affected by variant (or position before
-            insertion)
-
-        base1_end_pos : int
-            Last reference nucleotide affect by variant (or position after
             insertion)
 
         ref : str
             Reference nucleotides
+
         alt : str
             Variant nucleotides
+
+        cdna_sequence : str
+            cDNA sequence context detected from RNAseq BAM
+
+        cdna_mutation_start_offset : int
+            Interbase start offset for variant nucleotides in the cDNA sequence
+
+        cdna_mutation_end_offset : int
+            Interbase end offset for variant nucleotides in the cDNA sequence
+
+        supporting_read_count : int
+            How many reads fully spanned the cDNA sequence
 
         variant_protein_sequence : str
             Translated variant protein fragment sequence
@@ -731,53 +750,48 @@ def variant_protein_fragments_dataframe(
             names of reads supporting these cDNA sequences
 
         total_supporting_read_count : int
-        """
-    variant_to_proteins = translate_variant_collection(
-        variants,
-        samfile,
-        transcript_id_whitelist=transcript_id_whitelist,
-        protein_fragment_length=protein_fragment_length,
-        min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
-        min_transcript_prefix_length=min_transcript_prefix_length,
-        max_transcript_mismatches=max_transcript_mismatches,
-        max_sequences_per_variant=max_sequences_per_variant)
 
+        """
     # construct a dictionary incrementally which we'll turn into a
     # DataFrame
     column_dict = OrderedDict([
+        # fields related to variant
         ("chr", []),
-        ("base1_start_pos", []),
-        ("base1_end_pos", []),
+        ("base1_pos", []),
         ("ref", []),
         ("alt", []),
+        # fields related to cDNA sequence context around variant
+        ("cdna_sequence", []),
+        ("supporting_read_count", [])
+        ("cdna_mutation_offset_start", []),
+        ("cdna_mutation_offset_end", []),
+        # fields related to reference transcript from which we're trying to
+        # determine a reading frame
+        ("reference_transcript_id", []),
+        ("reference_transcript_name", []),
+        ("reference_cdna_sequence", []),
+        ("reference_protein_sequence", []),
+        # fields related to translation of variant cDNA from reading frame
+        # of the associated transcrpt_id
+        ("reading_frame", []),
+        ("number_prefix_mismatches", []),
         ("variant_protein_sequence", []),
-        ("variant_protein_sequence_length", []),
-        ("reference_transcript_ids", []),
-        ("reference_transcript_names", []),
-        ("reference_protein_sequences", []),
-        ("cdna_sequences_to_read_names", []),
-        ("total_supporting_read_count", [])
     ])
-    for (variant, protein_fragments) in variant_to_proteins.items():
-        for protein_fragment in protein_fragments:
+
+    for (variant, transcript_translation_dict) in translate_variants(
+            variants,
+            samfile,
+            transcript_id_whitelist=transcript_id_whitelist,
+            protein_fragment_length=protein_fragment_length,
+            min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
+            min_transcript_prefix_length=min_transcript_prefix_length,
+            max_transcript_mismatches=max_transcript_mismatches,
+            max_sequences_per_variant=max_sequences_per_variant).items():
+        for transcript_id, translation_info in transcript_translation_dict.items():
+            # variant info
             column_dict["chr"].append(variant.contig)
-            column_dict["base1_start_pos"].append(variant.start)
-            column_dict["base1_end_pos"].append(variant.end)
+            column_dict["base1_pos"].append(variant.start)
             column_dict["ref"].append(variant.ref)
             column_dict["alt"].append(variant.alt)
-            column_dict["variant_protein_sequence"].append(
-                protein_fragment.variant_protein_sequence)
-            column_dict["variant_protein_sequence_length"].append(
-                len(protein_fragment.variant_protein_sequence))
-            column_dict["reference_transcript_ids"].append(
-                ";".join(protein_fragment.reference_transcript_ids))
-            column_dict["reference_transcript_names"].append(
-                ";".join(protein_fragment.reference_transcript_names))
-            column_dict["reference_protein_sequences"].append(
-                ";".join(protein_fragment.reference_protein_sequences))
-            column_dict["cdna_sequences_to_read_names"].append(
-                protein_fragment.cdna_sequences_to_read_names)
-            column_dict["total_supporting_read_count"].append(
-                protein_fragment.number_supporting_reads)
     df = pd.DataFrame(column_dict)
     return df
