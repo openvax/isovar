@@ -1,5 +1,5 @@
 from pysam import AlignmentFile
-from isovar import gather_variant_reads, group_unique_sequences
+from isovar import gather_reads_for_single_variant, group_unique_sequences
 
 def test_group_unique_sequences():
     samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
@@ -8,7 +8,7 @@ def test_group_unique_sequences():
     ref = "G"
     alt = "C"
 
-    variant_reads = gather_variant_reads(
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=base1_location,

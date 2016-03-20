@@ -17,7 +17,7 @@ from nose.tools import eq_
 
 import pysam
 
-from isovar import gather_variant_reads
+from isovar import gather_reads_for_single_variant
 
 class DummyPileupElement(object):
     def __init__(self, alignment, is_refskip, is_del):
@@ -64,7 +64,7 @@ def test_partitioned_read_sequences_snv():
     read.set_tag("MD", "3G2")
 
     samfile = DummySamFile(reads=[read])
-    seq_parts = gather_variant_reads(
+    seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=location,
@@ -93,7 +93,7 @@ def test_partitioned_read_sequences_insertion():
     read.set_tag("MD", "6")
 
     samfile = DummySamFile(reads=[read])
-    seq_parts = gather_variant_reads(
+    seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=location,
@@ -123,7 +123,7 @@ def test_partitioned_read_sequences_deletion():
     read.set_tag("MD", "4^T1")
 
     samfile = DummySamFile(reads=[read])
-    seq_parts = gather_variant_reads(
+    seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=location,

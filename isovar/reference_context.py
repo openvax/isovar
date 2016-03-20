@@ -176,7 +176,7 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
         end_offset = max(offsets) + 1
     return (start_offset, end_offset)
 
-def variants_to_reference_contexts(
+def reference_contexts_for_variant(
         variant,
         context_size,
         transcript_id_whitelist=None):
@@ -190,15 +190,34 @@ def variants_to_reference_contexts(
     transcript_id_whitelist : set, optional
         If given, then only consider transcripts whose IDs are in this set.
 
-    Returns a dictionary from variants to ReferenceContext objects.
+    Returns set of ReferenceContext objects.
+    """
+    pass
+
+
+def reference_contexts_for_variants(
+        variants,
+        context_size,
+        transcript_id_whitelist=None):
+    """
+    variants : varcode.VariantCollection
+
+    context_size : int
+        Max of nucleotides to include to the left and right of the variant
+        in the context sequence.
+
+    transcript_id_whitelist : set, optional
+        If given, then only consider transcripts whose IDs are in this set.
+
+    Returns a dictionary from variants to sets of ReferenceContext objects.
     """
     result = OrderedDict()
     for variant in variants:
-        effects = predicted_coding_effects_with_mutant_sequence(
+        result[variant] = reference_contexts_for_variant(
             variant=variant,
+            context_size=context_size,
             transcript_id_whitelist=transcript_id_whitelist)
-        transcripts = [effect.transcript for effect in effects]
-        for transcript in transcripts:
+    return result
 
 def variants_to_reference_contexts_dataframe(
         variants,
@@ -222,3 +241,4 @@ def variants_to_reference_contexts_dataframe(
     Returns a DataFrame with {"chr", "pos", "ref", "alt"} columns for variants,
     as well as all the fields of ReferenceContext.
     """
+    pass

@@ -17,6 +17,7 @@ from __future__ import print_function, division, absolute_import
 from .variant_reads import (
     variant_reads_generator,
     variant_reads_dataframe,
+    gather_reads_for_single_variant,
 )
 from .overlapping_reads import gather_overlapping_reads
 from .assembly import assemble_transcript_fragments
@@ -31,14 +32,14 @@ from .variant_sequences import (
     variant_sequences_generator,
 )
 from .protein_sequences import (
-    variant_protein_fragments_with_read_counts,
-    translate_variant_collection,
-    variant_protein_fragments_dataframe,
+    translate_variants,
+    translate_variants_dataframe,
 )
 
 __all__ = [
     "variant_reads_generator",
     "variant_reads_dataframe",
+    "gather_reads_for_single_variant",
     "gather_overlapping_reads",
     "assemble_transcript_fragments",
     "most_common_nucleotides",
@@ -47,8 +48,7 @@ __all__ = [
     "index_to_nucleotide",
     "nucleotide_to_index",
     "variant_sequences_generator",
-    "variant_protein_fragments_with_read_counts",
-    "translate_variant_collection",
-    "variant_protein_fragments_dataframe",
+    "translate_variants",
+    "translate_variants_dataframe",
 
 ]

@@ -1,4 +1,4 @@
-from isovar import most_common_nucleotides, gather_variant_reads
+from isovar import most_common_nucleotides, gather_reads_for_single_variant
 from pysam import AlignmentFile
 
 
@@ -8,7 +8,7 @@ def test_most_common_nucleotides_for_chr12_deletion():
     base1_location = 70091490
     ref = "TTGTAGATGCTGCCTCTCC"
     alt = ""
-    seq_parts = gather_variant_reads(
+    seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=base1_location,

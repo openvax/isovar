@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from isovar import gather_variant_reads
+from isovar import gather_reads_for_single_variant
 
 from pysam import AlignmentFile
 
@@ -23,7 +23,7 @@ def test_partition_variant_reads_snv():
     ref = "G"
     alt = "C"
 
-    seq_parts = gather_variant_reads(
+    seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=base1_location,
@@ -39,7 +39,7 @@ def test_partition_variant_reads_deletion():
     base1_location = 70091490
     ref = "TTGTAGATGCTGCCTCTCC"
     alt = ""
-    seq_parts = gather_variant_reads(
+    seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=base1_location,

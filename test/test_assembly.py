@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from isovar import (
-    gather_variant_reads,
+    gather_reads_for_single_variant,
     assemble_transcript_fragments
 )
 from pysam import AlignmentFile
@@ -26,7 +26,7 @@ def test_assemble_transcript_fragments_snv():
     ref = "G"
     alt = "C"
 
-    variant_reads = gather_variant_reads(
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=base1_location,

@@ -1,5 +1,5 @@
 from pysam import AlignmentFile
-from isovar import sequence_counts, gather_variant_reads
+from isovar import sequence_counts, gather_reads_for_single_variant
 import skbio
 
 def test_sequence_counts_snv():
@@ -9,7 +9,7 @@ def test_sequence_counts_snv():
     ref = "G"
     alt = "C"
 
-    variant_reads = gather_variant_reads(
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         base1_location=base1_location,

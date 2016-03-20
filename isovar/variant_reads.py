@@ -242,6 +242,7 @@ def variant_reads_generator(variants, samfile):
             alt=variant.alt)
         yield variant, variant_reads
 
+
 def variant_reads_dataframe(variants, samfile):
     columns = OrderedDict([
         ("chr", []),
