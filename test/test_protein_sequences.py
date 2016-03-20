@@ -1,7 +1,7 @@
 
 from pysam import AlignmentFile
 from varcode import load_vcf
-from isovar import translate_variant_collection
+from isovar import translate_variants
 
 VCF = "/Users/iskander/code/varlens/test/data/CELSR1/vcfs/vcf_1.vcf"
 
@@ -13,7 +13,7 @@ GENOME = "hg19"
 def test_translate_variant_collection():
     variants = load_vcf(VCF, genome=GENOME)
     samfile = AlignmentFile(BAM)
-    result = translate_variant_collection(variants, samfile)
+    result = translate_variants(variants, samfile)
     assert len(result) > 0, result
 
 

@@ -15,45 +15,52 @@
 from __future__ import print_function, division, absolute_import
 import logging
 
-from collections import Counter, defaultdict, namedtuple
+from collections import Counter, defaultdict, namedtuple, OrderedDict
 
 import numpy as np
+import pandas as pd
 
 from .common import group_unique_sequences, get_variant_nucleotides
 from .variant_reads import variant_reads_generator
 
+DEFAULT_SEQUENCE_LENGTH = 105
+DEFAULT_CONTEXT_SIZE = DEFAULT_SEQUENCE_LENGTH // 2
+DEFAULT_MIN_READS = 2
+
+variant_sequences_object_fields = [
+    # dictionary mapping unique sequences to the sum of the number
+    # of reads fully supporting that sequence and fraction of that
+    # sequence supported by partially overlapping reads
+    "combined_sequence_weights",
+    # dictionary of context sequences mapping to the # of reads
+    # they were detected in
+    "full_read_counts",
+    # names of reads which fully overlap a sequence
+    "full_read_names",
+    # dictionary of context sequences mapping to the # of reads
+    # which partially overlap them in (and agree at all overlapped bases)
+    "partial_read_counts",
+    # dictionary from context sequence to the names of partially
+    # overlapping reads
+    "partial_read_names",
+    # dictionary mapping context sequences to the sum of
+    # overlap weights from all partially overlapping reads
+    "partial_read_weights",
+    # variant nucleotide string, since all the dictionary keys
+    # above are only (prefix, suffix) pairs which are missing these
+    # nucleotides
+    "variant_nucleotides",
+]
+
 VariantSequences = namedtuple(
     "VariantSequences",
-    [
-        # dictionary mapping unique sequences to the sum of the number
-        # of reads fully supporting that sequence and fraction of that
-        # sequence supported by partially overlapping reads
-        "combined_sequence_weights",
-        # dictionary of context sequences mapping to the # of reads
-        # they were detected in
-        "full_read_counts",
-        # names of reads which fully overlap a sequence
-        "full_read_names",
-        # dictionary of context sequences mapping to the # of reads
-        # which partially overlap them in (and agree at all overlapped bases)
-        "partial_read_counts",
-        # dictionary from context sequence to the names of partially
-        # overlapping reads
-        "partial_read_names",
-        # dictionary mapping context sequences to the sum of
-        # overlap weights from all partially overlapping reads
-        "partial_read_weights",
-        # variant nucleotide string, since all the dictionary keys
-        # above are only (prefix, suffix) pairs which are missing these
-        # nucleotides
-        "variant_nucleotides",
-    ])
+    variant_sequences_object_fields)
 
 def variant_reads_to_sequences(
         variant_reads,
-        context_size,
+        context_size=None,
         min_sequence_length=None,
-        min_reads_per_sequence=1):
+        min_reads_per_sequence=DEFAULT_MIN_READS):
     """
     Parameters
     ----------
@@ -64,8 +71,9 @@ def variant_reads_to_sequences(
             - suffix : str
             - name : str
 
-    context_size : int
-        Number of nucleotides left and right of the variant
+    context_size : int, optional
+        Number of nucleotides left and right of the variant. If omitted then
+        use full length of reads.
 
     min_sequence_length : int, optional
         Minimum length of detected sequence
@@ -161,10 +169,11 @@ def variant_reads_to_sequences(
 def variant_sequences_generator(
         variants,
         samfile,
-        sequence_length=105,
-        min_reads=2):
+        sequence_length=DEFAULT_SEQUENCE_LENGTH,
+        min_reads=DEFAULT_MIN_READS):
     """
-    Generator that yields pairs of variants and VariantSequences objects.
+    For each variant, collect all possible sequence contexts around the
+    variant which are spanned by at least min_reads.
 
     Parameters
     ----------
@@ -178,7 +187,9 @@ def variant_sequences_generator(
         Desired sequence length, including variant nucleotides
 
     min_reads : int
-        Minimum number of reads supporting
+        Minimum number of reads supporting a particular sequence
+
+    Generator that yields pairs of variants and VariantSequences objects.
     """
     for variant, variant_reads in variant_reads_generator(
             variants=variants,
@@ -196,15 +207,15 @@ def variant_sequences_generator(
         sequences = variant_reads_to_sequences(
             variant_reads,
             context_size=flanking_context_size,
-            min_reads=min_reads)
+            min_reads_per_sequence=min_reads)
 
         yield variant, sequences
 
-def variants_to_sequence_dataframe(
+def variant_sequences_dataframe(
         variants,
         samfile,
-        context_size=45,
-        min_sequence_length=None):
+        sequence_length=DEFAULT_SEQUENCE_LENGTH,
+        min_reads=DEFAULT_MIN_READS):
     """
     Creates a dataframe of all detected cDNA sequences for the given variant
     collection and alignment file.
@@ -217,11 +228,34 @@ def variants_to_sequence_dataframe(
     samfile : pysam.AlignmentFile
         Reads from which surrounding sequences are detected
 
-    context_size : int
-        Number of nucleotides left and right of the variant
+    sequence_length : int
+        Desired sequence length, including variant nucleotides
 
-    min_sequence_length : int, optional
-        Minimum length of detected sequence
+    min_reads : int
+        Minimum number of reads supporting
 
     Returns pandas.DataFrame
     """
+    columns = OrderedDict([
+        ("chr", []),
+        ("pos", []),
+        ("ref", []),
+        ("alt", [])
+    ])
+    for field in variant_sequences_object_fields:
+        columns[field] = []
+
+    for variant, sequences in variant_sequences_generator(
+            variants=variants,
+            samfile=samfile,
+            sequence_length=sequence_length,
+            min_reads=min_reads):
+        for sequences_obj in sequences:
+            columns["chr"].append(variant.contig)
+            columns["pos"].append(variant.original_start)
+            columns["ref"].append(variant.original_ref)
+            columns["alt"].append(variant.original_alt)
+            for field_name in variant_sequences_object_fields:
+                columns[field_name] = getattr(sequences_obj, field_name)
+
+    return pd.DataFrame(columns)

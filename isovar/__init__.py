@@ -30,6 +30,7 @@ from .common import (
 )
 from .variant_sequences import (
     variant_sequences_generator,
+    variant_sequences_dataframe,
 )
 from .protein_sequences import (
     translate_variants,

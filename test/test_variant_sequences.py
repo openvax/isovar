@@ -1,6 +1,10 @@
+from nose.tools import eq_
 from pysam import AlignmentFile
-from isovar import sequence_counts, gather_reads_for_single_variant
 import skbio
+
+from isovar.variant_sequences import variant_reads_to_sequences
+from isovar.variant_reads import gather_reads_for_single_variant
+
 
 def test_sequence_counts_snv():
     samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
@@ -15,16 +19,19 @@ def test_sequence_counts_snv():
         base1_location=base1_location,
         ref=ref,
         alt=alt)
-    result = sequence_counts(variant_reads)
-    assert result.variant_nucleotides == alt
-    assert len(result.combined_sequence_weights) == 1
-    assert len(result.full_read_counts) == 1
-    assert len(result.partial_read_counts) == 1
-    assert len(result.partial_read_weights) == 1
+    result = variant_reads_to_sequences(
+        variant_reads,
+        context_size=45)
+    print(result)
+    eq_(result.variant_nucleotides, alt)
+    eq_(len(result.combined_sequence_weights), 1)
+    eq_(len(result.full_read_counts), 1)
 
     for ((prefix, suffix), weight) in sorted(
             result.combined_sequence_weights.items(),
             key=lambda x: x[1]):
+        eq_(len(prefix), 45)
+        eq_(len(suffix), 45)
         variant = result.variant_nucleotides
         print("%s|%s|%s: %f" % (
             prefix,
@@ -38,12 +45,6 @@ def test_sequence_counts_snv():
             dna = skbio.DNA(seq[offset:])
             print("frame=%d: %s" % (offset, dna.translate()))
 
-        assert result.full_read_counts[(prefix, suffix)] < weight
-        assert result.partial_read_weights[(prefix, suffix)] < weight
-        assert (
-            result.partial_read_counts[(prefix, suffix)] >
-            result.partial_read_weights[(prefix, suffix)]
-        )
 
 if __name__ == "__main__":
     test_sequence_counts_snv()
