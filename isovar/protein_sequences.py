@@ -14,7 +14,6 @@
 
 from __future__ import print_function, division, absolute_import
 
-import logging
 from collections import namedtuple, defaultdict, OrderedDict
 
 from skbio import DNA
@@ -22,28 +21,9 @@ import pandas as pd
 from varcode import EffectCollection
 
 from .variant_sequences import variant_sequences_generator
+from .logging import create_logger
 
-# information related to the translation of a RNA sequence context
-# in a reading frame determined by a particular reference transcript
-TranslationFromReferenceORF = namedtuple(
-    "TranslationFromReferenceORF",
-    [
-        "cdna_prefix",
-        "cdna_variant",
-        "cdna_suffix",
-        "transcript_id",
-        "transcript_name",
-        "number_transcript_sequence_mismatches",
-        "fraction_transcript_sequence_mismatches",
-        "reading_frame_at_start_of_cdna_sequence",
-        "transcript_sequence_before_variant",
-        "variant_protein_sequence",
-        "reference_protein_sequence",
-        "fragment_aa_start_offset_in_protein",
-        "fragment_aa_end_offset_in_protein"
-        "variant_aa_start_offset_in_fragment",
-        "variant_aa_end_offset_in_fragment",
-    ])
+logger = create_logger(__name__)
 
 # if multiple distinct RNA sequence contexts and/or reference transcripts
 # give us the same translation then we group them into a single object
@@ -68,243 +48,6 @@ MAX_TRANSCRIPT_MISMATCHES = 2
 PROTEIN_FRAGMENT_LEGNTH = 25
 MAX_SEQUENCES_PER_VARIANT = 5
 
-def translate_compatible_reading_frames(
-        dna_sequence_prefix,
-        dna_sequence_variant,
-        dna_sequence_suffix,
-        variant_is_insertion,
-        variant_is_deletion,
-        variant_is_frameshift,
-        base1_variant_start_location,
-        base1_variant_end_location,
-        transcripts,
-        max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
-        min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH):
-    """
-    Use the given reference transcripts to attempt to establish the ORF
-    of a sequence context extract from RNA reads. It's expected that the
-    sequence has been aligned to the reference genome potentially using its
-    reverse-complement, and thus the sequence we are given is always from the
-    positive strand of DNA.
-
-    Parameters
-    ----------
-    dna_sequence_prefix : str
-        Nucleotides before the variant.
-
-    dna_sequence_variant : str
-        Mutated nucleotides, should be empty for a deletion.
-
-    dna_sequence_suffix : str
-        Nucleotides after the variant
-
-    variant_is_insertion : bool
-
-    base1_variant_start_location : int
-        For deletions and substitutions, this position is the first modified
-        nucleotide. For insertions, this is the position before any inserted
-        nucleotides.
-
-    base1_variant_end_location : int
-        For deletions and substitutions, this is the positions of the last
-        affected reference nucleotide. For insertions, this is the location of
-        the base after the insertion.
-
-    transcripts : list of pyensembl.Transcript
-        List of candidate reference transcripts from which we try to determine
-        the ORF of a variant RNA sequence.
-
-    max_transcript_mismatches : int
-        Ignore transcripts with more than this number of mismatching nucleotides
-
-    min_transcript_prefix_length : int
-        Don't consider transcripts with less than this number of nucleotides
-        before the variant position (setting this value to 0 will enable use
-        of transcripts without 5' UTR)
-
-    Returns list of TranslationFromReferenceORF objects.
-    """
-    results = []
-
-    for transcript in transcripts:
-        if transcript.strand == "+":
-            cdna_prefix = dna_sequence_prefix
-            cdna_suffix = dna_sequence_suffix
-            cdna_variant = dna_sequence_variant
-            variant_in_transcript_idx = transcript.spliced_offset(
-                base1_variant_start_location)
-        else:
-            # if the transcript is on the reverse strand then we have to
-            # take the sequence PREFIX|VARIANT|SUFFIX
-            # and take the complement of XIFFUS|TNAIRAV|XIFERP
-            cdna_prefix = str(DNA(dna_sequence_suffix).reverse_complement())
-            cdna_suffix = str(DNA(dna_sequence_prefix).reverse_complement())
-            cdna_variant = str(
-                DNA(dna_sequence_variant).reverse_complement())
-            variant_in_transcript_idx = transcript.spliced_offset(
-                base1_variant_end_location)
-
-        if variant_is_insertion:
-            # insertions don't actually affect the base referred to
-            # by the start position of the variant, but rather the
-            # variant gets inserted *after* that position
-            query_sequence_end_idx = variant_in_transcript_idx + 1
-        else:
-            query_sequence_end_idx = variant_in_transcript_idx
-
-        start_codon_idx = min(transcript.start_codon_spliced_offsets)
-
-        if variant_in_transcript_idx < start_codon_idx + 3:
-            logging.info(
-                "Skipping %s because variant appears in 5' UTR" % (
-                    transcript))
-            continue
-
-        query_sequence_start_idx = query_sequence_end_idx - len(cdna_prefix)
-
-        if query_sequence_start_idx < 0:
-            logging.warn("Transcript %s not long enough for observed sequence" % (
-                transcript))
-            continue
-
-        transcript_sequence_before_variant = transcript.sequence[
-            query_sequence_start_idx:query_sequence_end_idx]
-
-        assert len(transcript_sequence_before_variant) == len(cdna_prefix)
-        if len(transcript_sequence_before_variant) < min_transcript_prefix_length:
-            continue
-
-        n_mismatch_before = sum(
-            xi != yi
-            for (xi, yi) in zip(
-                transcript_sequence_before_variant, cdna_prefix))
-
-        if n_mismatch > max_transcript_mismatches:
-            logging.info(
-                "Skipping transcript %s, too many mismatching bases (%d)",
-                transcript,
-                n_mismatch)
-            continue
-
-        # past this point we're assuming that the sequence of the reference
-        # transcript up to the variant largely matches the sequence we
-        # detected from RNA
-
-        fraction_mismatch = float(n_mismatch) / len(cdna_prefix)
-
-        reading_frame = (query_sequence_start_idx - start_codon_idx) % 3
-
-        if reading_frame == 1:
-            # if we're 1 nucleotide into the codon then we need to shift
-            # over two more to restore the ORF
-            orf_offset = 2
-        elif reading_frame == 2:
-            orf_offset = 1
-        else:
-            orf_offset = 0
-
-        logging.info("ORF offset into sequence %s_%s_%s from transcript %s: %d" % (
-            cdna_prefix,
-            cdna_variant,
-            cdna_suffix,
-            transcript,
-            orf_offset))
-
-        # translate the variant cDNA sequence we detected from spanning reads
-        # using the ORF offset from the current reference transcript
-        combined_variant_cdna_sequence = DNA(
-            cdna_prefix + cdna_variant + cdna_suffix)
-
-        variant_protein_fragment_sequence = str(
-            combined_variant_cdna_sequence[orf_offset:].translate())
-
-        logging.info("Combined variant cDNA sequence %s translates to protein %s" % (
-            combined_variant_cdna_sequence,
-            variant_protein_fragment_sequence))
-
-        # translate the reference sequence using the given ORF offset,
-        # we can probably sanity check this by making sure it matches a
-        # substring of the transcript.protein_sequence field
-        combined_transcript_sequence = DNA(
-            transcript.sequence[
-                query_sequence_start_idx:
-                query_sequence_start_idx + len(combined_variant_cdna_sequence)])
-
-        transcript_protein_fragment_sequence = str(
-            combined_transcript_sequence[orf_offset].translate())
-
-        fragment_aa_start_offset_in_protein = (
-            query_sequence_start_idx - start_codon_idx) // 3
-        fragment_aa_end_offset_in_protein = (
-            query_sequence_end_idx - start_codon_idx) // 3 + 1
-
-        n_prefix_codons = n_prefix_nucleotides // 3
-
-        if variant_is_deletion and variant_is_frameshift:
-            # after a deletion that shifts the reading frame,
-            # there is a partial codon left, which may be different from
-            # the original codon at that location. Additionally,
-            # the reading frame for all subsequent codons will be different
-            # from the reference
-            variant_codons_start_offset_in_fragment = None
-
-        # TODO: change variant_codons_start_offset_in_fragment in the
-        # TranslationFromReferenceORF to
-        # - variant_amino_acids_start_offset_in_fragment
-        # - variant_amino_acids_end_offset_in_fragment
-        # which are computed from _codons_ offsets by checking which amino
-        # acids differ from the reference sequence(s).
-        # If a mutated sequence ends up having no differences then
-        # we should skip it as a synonymous mutation.
-
-        # TODO #2:
-        # Instead of doing this once per sequence/transcript pair, we
-        # should precompute the reference transcript sequences and the
-        # ORFs they imply and pass in a list of ReferenceTranscriptContext
-        # objects with the following field:
-        #   sequence_before_variant_locus : cDNA
-        #   reading_frame_at_start_of_sequence : int
-        #   transcript_ids : str set
-        #   transcript_names : str set
-        #   gene : str
-
-        variant_aa_start_offset_in_fragment = 0
-        last_variant_codon = 0
-
-        """
-        # the number of non-mutated codons in the prefix (before the variant)
-        # has to trim the ORF offset and then count up by multiples of 3
-
-
-        aa_prefix = variant_protein_fragment_sequence[:n_prefix_codons]
-        aa_variant = variant_protein_fragment_sequence[
-            n_prefix_codons:n_prefix_codons + n_variant_codons]
-        aa_suffix = variant_protein_fragment_sequence[
-            n_prefix_codons + n_variant_codons:]
-
-        assert aa_prefix + aa_variant + aa_suffix == variant_protein_fragment_sequence
-                        aa_prefix=aa_prefix,
-                aa_variant=aa_variant,
-                aa_suffix=aa_suffix)
-        """
-        results.append(
-            TranslationFromReferenceORF(
-                cdna_prefix=cdna_prefix,
-                cdna_variant=cdna_variant,
-                cdna_suffix=cdna_suffix,
-                transcript_id=transcript.id,
-                transcript_name=transcript.name,
-                number_transcript_sequence_mismatches=n_mismatch,
-                fraction_transcript_sequence_mismatches=fraction_mismatch,
-                reading_frame_at_start_of_cdna_sequence=reading_frame,
-                transcript_sequence_before_variant=transcript_sequence_before_variant,
-                variant_protein_sequence=variant_protein_fragment_sequence,
-                reference_protein_sequence=transcript_protein_fragment_sequence,
-                fragment_aa_start_offset_in_protein=fragment_aa_start_offset_in_protein,
-                fragment_aa_end_offset_in_protein=fragment_aa_end_offset_in_protein,
-                variant_aa_start_offset_in_fragment=variant_aa_start_offset_in_fragment,
-                variant_aa_end_offset_in_fragment=variant_aa_end_offset_in_fragment))
-    return results
 
 def rna_sequence_key(fragment_info):
     """
@@ -420,65 +163,6 @@ def group_protein_fragments(
     return results
 
 
-def predicted_effects_for_variant(variant, transcript_id_whitelist=None):
-    """
-    For a given variant, return the set of predicted mutation effects
-    on transcripts where this variant results in a predictable non-synonymous
-    change to the protein sequence.
-
-    Parameters
-    ----------
-    variant : varcode.Variant
-
-    transcript_id_whitelist : set
-        Filter effect predictions to only include these transcripts
-
-    Returns a varcode.EffectCollection object
-    """
-
-    effects = []
-    for transcript in variant.transcripts:
-        if not transcript.complete:
-            logging.info(
-                "Skipping transcript %s for variant %s because it's incomplete" % (
-                    transcript,
-                    variant))
-            continue
-
-        if transcript_id_whitelist and transcript.id not in transcript_id_whitelist:
-            logging.info(
-                "Skipping transcript %s for variant %s because it's not one of %d allowed" % (
-                    transcript,
-                    variant,
-                    len(transcript_id_whitelist)))
-            continue
-        effects.append(variant.effect_on_transcript(transcript))
-
-    effects = EffectCollection(effects)
-
-    n_total_effects = len(effects)
-    logging.info("Predicted %d effects for variant %s" % (
-        n_total_effects,
-        variant))
-
-    nonsynonymous_coding_effects = effects.drop_silent_and_noncoding()
-    logging.info(
-        "Keeping %d/%d non-synonymous coding effects for %s" % (
-            len(nonsynonymous_coding_effects),
-            n_total_effects,
-            variant))
-
-    usable_effects = [
-        effect
-        for effect in nonsynonymous_coding_effects
-        if effect.mutant_protein_sequence is not None
-    ]
-    logging.info(
-        "Keeping %d/%d effects with predictable AA sequences for %s" % (
-            len(usable_effects),
-            len(nonsynonymous_coding_effects),
-            variant))
-    return usable_effects
 
 
 def translate_variant(
@@ -534,14 +218,14 @@ def translate_variant(
     for i, ((prefix, suffix), read_names) in enumerate(sorted(
             sequence_context_to_read_names_dict.items(),
             key=lambda x: -len(x[1]))):
-        logging.info("%d %s|%s %s" % (
+        logger.info("%d %s|%s %s" % (
             i,
             prefix,
             suffix,
             read_names))
 
         if i >= max_sequences:
-            logging.info(
+            logger.info(
                 "Skipping sequence %s for variant %s, already reached max_sequences (%d)",
                 prefix + "|" + suffix,
                 variant,
@@ -551,7 +235,7 @@ def translate_variant(
         num_reads_supporting_current_sequence = len(read_names)
 
         if num_reads_supporting_current_sequence < min_reads_supporting_rna_sequence:
-            logging.info(
+            logger.info(
                 "Skipping sequence %s for variant %s, too few supporting reads (%d)",
                 prefix + "|" + suffix,
                 variant,
@@ -575,7 +259,7 @@ def translate_variant(
             protein_fragments_and_read_names.append(
                 (protein_fragment, read_names))
 
-    logging.info("Gathered protein fragments for %s: %s" % (
+    logger.info("Gathered protein fragments for %s: %s" % (
         variant,
         protein_fragments_and_read_names))
 
@@ -583,7 +267,7 @@ def translate_variant(
         protein_fragments_and_read_names,
         protein_fragment_length=protein_fragment_length)
 
-    logging.info("Grouped protein fragments for %s: %s" % (
+    logger.info("Grouped protein fragments for %s: %s" % (
         variant,
         grouped_results))
     return grouped_results
@@ -641,12 +325,14 @@ def translate_variants(
             samfile=samfile,
             sequence_length=rna_sequence_length,
             min_reads=min_reads_supporting_rna_sequence):
+        print(variant)
+        print(variant_sequences)
         sequences_to_read_names_dict = variant_sequences.full_read_names
         variant_nucleotides = variant_sequences.variant_nucleotides
 
-        if len(sequences_to_read_names_dict):
-            logging.info("No variant sequences detected in %s for %s" % (
-                samfile,
+        if len(sequences_to_read_names_dict) == 0:
+            logger.info("No variant sequences detected in %s for %s" % (
+                samfile.filename,
                 variant))
             continue
 
@@ -655,7 +341,7 @@ def translate_variants(
             transcript_id_whitelist=transcript_id_whitelist)
 
         if len(predicted_effects) == 0:
-            logging.info(
+            logger.info(
                 "Skipping variant %s, no predicted coding effects" % (variant,))
             continue
 

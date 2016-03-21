@@ -14,9 +14,13 @@
 
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple
-import logging
 
 from skbio import DNA
+
+from .common import create_logger
+
+logger = create_logger(__name__)
+
 
 MAX_TRANSCRIPT_MISMATCHES = 2
 MIN_TRANSCRIPT_PREFIX_LENGTH = 10
@@ -83,7 +87,7 @@ def _translate(
     else:
         orf_offset = 0
 
-    logging.info("ORF offset into sequence %s_%s_%s from transcript %s: %d" % (
+    logger.info("ORF offset into sequence %s_%s_%s from transcript %s: %d" % (
         cdna_sequence_before_variant,
         cdna_sequence_of_variant,
         cdna_sequence_after_variant,
@@ -98,7 +102,7 @@ def _translate(
     variant_protein_fragment_sequence = str(
         combined_variant_cdna_sequence[orf_offset:].translate())
 
-    logging.info("Combined variant cDNA sequence %s translates to protein %s" % (
+    logger.info("Combined variant cDNA sequence %s translates to protein %s" % (
         combined_variant_cdna_sequence,
         variant_protein_fragment_sequence))
 
@@ -106,7 +110,7 @@ def _translate(
     # we can probably sanity check this by making sure it matches a
     # substring of the transcript.protein_sequence field
     combined_transcript_sequence = DNA(
-        transcript.sequence[
+        transcript_full_cdna[
             query_sequence_start_idx:
             query_sequence_start_idx + len(combined_variant_cdna_sequence)])
 
@@ -210,7 +214,7 @@ def translate_variant_on_transcript(
     start_codon_idx = min(transcript.start_codon_spliced_offsets)
 
     if variant_in_transcript_idx < start_codon_idx + 3:
-        logging.info(
+        logger.info(
             "Skipping %s because variant appears in 5' UTR" % (
                 transcript))
         return None
@@ -218,7 +222,7 @@ def translate_variant_on_transcript(
     query_sequence_start_idx = query_sequence_end_idx - len(cdna_prefix)
 
     if query_sequence_start_idx < 0:
-        logging.warn("Transcript %s not long enough for observed sequence" % (
+        logger.warn("Transcript %s not long enough for observed sequence" % (
             transcript))
         return None
 
@@ -228,7 +232,7 @@ def translate_variant_on_transcript(
     assert len(transcript_sequence_before_variant) == len(cdna_prefix)
 
     if len(transcript_sequence_before_variant) < min_transcript_prefix_length:
-        logging.info(
+        logger.info(
             "Skipping transcript %s because it does not have %d nucleotides before variant" % (
                 transcript,
                 min_transcript_prefix_length))
@@ -240,7 +244,7 @@ def translate_variant_on_transcript(
             transcript_sequence_before_variant, cdna_prefix))
 
     if n_mismatch_before_variant > max_transcript_mismatches:
-        logging.info(
+        logger.info(
             "Skipping transcript %s, too many mismatching bases (%d)",
             transcript,
             n_mismatch_before_variant)

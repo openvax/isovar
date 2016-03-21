@@ -14,10 +14,12 @@
 
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple, OrderedDict
-import logging
 
-from skbio import DNA
 from varcode import EffectCollection
+
+from .logging import create_logger
+
+logger = create_logger(__name__)
 
 def predicted_coding_effects_with_mutant_sequence(
         variant,
@@ -40,14 +42,14 @@ def predicted_coding_effects_with_mutant_sequence(
     effects = []
     for transcript in variant.transcripts:
         if not transcript.complete:
-            logging.info(
+            logger.info(
                 "Skipping transcript %s for variant %s because it's incomplete" % (
                     transcript,
                     variant))
             continue
 
         if transcript_id_whitelist and transcript.id not in transcript_id_whitelist:
-            logging.info(
+            logger.info(
                 "Skipping transcript %s for variant %s because it's not one of %d allowed" % (
                     transcript,
                     variant,
@@ -58,12 +60,12 @@ def predicted_coding_effects_with_mutant_sequence(
     effects = EffectCollection(effects)
 
     n_total_effects = len(effects)
-    logging.info("Predicted %d effects for variant %s" % (
+    logger.info("Predicted %d effects for variant %s" % (
         n_total_effects,
         variant))
 
     nonsynonymous_coding_effects = effects.drop_silent_and_noncoding()
-    logging.info(
+    logger.info(
         "Keeping %d/%d non-synonymous coding effects for %s" % (
             len(nonsynonymous_coding_effects),
             n_total_effects,
@@ -74,7 +76,7 @@ def predicted_coding_effects_with_mutant_sequence(
         for effect in nonsynonymous_coding_effects
         if effect.mutant_protein_sequence is not None
     ]
-    logging.info(
+    logger.info(
         "Keeping %d/%d effects with predictable AA sequences for %s" % (
             len(usable_effects),
             len(nonsynonymous_coding_effects),
@@ -133,12 +135,6 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
         On the other hand, deletion the preceding "CGG" at that same locus could
         result in an offset pair such as (97, 100)
     """
-    # First, we must convert it to a stranded offset on the mRNA.
-    # We must then adjust this offset into a start:end range depending
-    # on which kind of variant we're dealing with and whether the
-    # transcript is actually on the backward strand.
-    forward_strand_offset = transcript.spliced_offset(variant.start)
-
     if variant.is_insertion:
         if transcript.strand == "+":
             # base-1 position of an insertion is the genomic nucleotide
@@ -162,7 +158,7 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
             try:
                 offsets.append(transcript.spliced_offset(dna_pos))
             except ValueError:
-                logging.info(
+                logger.info(
                     "Couldn't find position %d from %s on exons of %s" % (
                         dna_pos,
                         variant,

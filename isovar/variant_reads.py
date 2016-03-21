@@ -19,12 +19,14 @@ suffix portions
 
 from __future__ import print_function, division, absolute_import
 
-import logging
 from collections import namedtuple, OrderedDict
 
 from pandas import DataFrame
 
 from .overlapping_reads import gather_overlapping_reads
+from .logging import create_logger
+
+logger = create_logger(__name__)
 
 VariantRead = namedtuple(
     "VariantRead", "prefix variant suffix name")
@@ -108,6 +110,7 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
         reference_positions = read.reference_positions
         offset = read.locus_offset
         sequence = read.sequence
+        logger.info("Read sequence: %s" % sequence)
         if len(ref) == 0:
             # insertions require a sequence of non-aligned bases
             # followed by the subsequence reference position
@@ -151,7 +154,9 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
             prefix = str(prefix, "ascii")
         if isinstance(suffix, bytes):
             suffix = str(suffix, "ascii")
-        yield VariantRead(prefix, alt, suffix, name=read.name)
+        variant_read = VariantRead(prefix, alt, suffix, name=read.name)
+        logger.info(variant_read)
+        yield variant_read
 
 def gather_reads_for_single_variant(
         samfile,
@@ -182,7 +187,7 @@ def gather_reads_for_single_variant(
     """
     base1_location, ref, alt = trim_variant(base1_location, ref, alt)
 
-    logging.info("Gathering variant reads for variant %s:%s '%s'>'%s'" % (
+    logger.info("Gathering variant reads for variant %s:%s '%s'>'%s'" % (
         chromosome,
         base1_location,
         ref,
@@ -191,6 +196,14 @@ def gather_reads_for_single_variant(
         base1_location=base1_location,
         ref=ref,
         alt=alt)
+    logger.info(
+        "Interbase coordinates for '%s:%d '%s'>'%s': (start=%d, end=%d)" % (
+            chromosome,
+            base1_location,
+            ref,
+            alt,
+            base0_start,
+            base0_end))
     overlapping_reads = gather_overlapping_reads(
         samfile=samfile,
         chromosome=chromosome,
@@ -229,9 +242,9 @@ def variant_reads_generator(variants, samfile):
         elif "chr" + variant.contig in chromosome_names:
             chromosome = "chr" + variant.contig
         else:
-            logging.warn(
+            logger.warn(
                 "Chromosome '%s' from variant %s not in alignment file %s" % (
-                    chromosome, variant, samfile))
+                    chromosome, variant, samfile.filename))
             continue
 
         variant_reads = gather_reads_for_single_variant(
@@ -240,6 +253,9 @@ def variant_reads_generator(variants, samfile):
             base1_location=variant.start,
             ref=variant.ref,
             alt=variant.alt)
+        logger.info("%s => %s" % (
+            variant,
+            variant_reads))
         yield variant, variant_reads
 
 

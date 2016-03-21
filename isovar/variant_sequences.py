@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
 
 from collections import Counter, defaultdict, namedtuple, OrderedDict
 
@@ -22,10 +21,13 @@ import pandas as pd
 
 from .common import group_unique_sequences, get_variant_nucleotides
 from .variant_reads import variant_reads_generator
+from .logging import create_logger
+
+logger = create_logger(__name__)
 
 DEFAULT_SEQUENCE_LENGTH = 105
 DEFAULT_CONTEXT_SIZE = DEFAULT_SEQUENCE_LENGTH // 2
-DEFAULT_MIN_READS = 2
+DEFAULT_MIN_READS = 1
 
 variant_sequences_object_fields = [
     # dictionary mapping unique sequences to the sum of the number
@@ -96,6 +98,7 @@ def variant_reads_to_sequences(
         variant_reads,
         max_prefix_size=context_size,
         max_suffix_size=context_size)
+    logger.info("Sequence groups: %s" % (unique_sequence_groups,))
 
     variant_seq = get_variant_nucleotides(variant_reads)
     variant_len = len(variant_seq)
@@ -194,12 +197,17 @@ def variant_sequences_generator(
     for variant, variant_reads in variant_reads_generator(
             variants=variants,
             samfile=samfile):
+
+        if len(variant_reads) == 0:
+            logger.info("No variant reads found for %s" % variant)
+            continue
+
         # the number of context nucleotides on either side of the variant
         # is half the desired length (minus the number of variant nucleotides)
         n_surrounding_nucleotides = sequence_length - len(variant.alt)
 
         flanking_context_size = int(np.ceil(n_surrounding_nucleotides / 2.0))
-        logging.info(
+        logger.info(
             "Looking at %dnt RNA sequence context around %s" % (
                 flanking_context_size,
                 variant))
