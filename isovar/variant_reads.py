@@ -25,68 +25,15 @@ from pandas import DataFrame
 
 from .overlapping_reads import gather_overlapping_reads
 from .logging import create_logger
+from .variant_helpers import (
+    trim_variant_fields,
+    base0_interval_for_variant_fields
+)
 
 logger = create_logger(__name__)
 
 VariantRead = namedtuple(
     "VariantRead", "prefix variant suffix name")
-
-def trim_variant(location, ref, alt):
-    """
-    Trims common prefixes from the ref and alt sequences
-
-    Parameters
-    ----------
-    location : int
-        Position (starting from 1) on some chromosome
-
-    ref : str
-        Reference nucleotides
-
-    alt : str
-        Alternate (mutant) nucleotide
-
-    Returns adjusted triplet (location, ref, alt)
-    """
-    if len(alt) > 0 and ref.startswith(alt):
-        # if alt is a prefix of the ref sequence then we actually have a
-        # deletion like:
-        #   g.10 GTT > GT
-        # which can be trimmed to
-        #   g.12 'T'>''
-        ref = ref[len(alt):]
-        location += len(alt)
-        alt = ""
-    if len(ref) > 0 and alt.startswith(ref):
-        # if ref sequence is a prefix of the alt sequence then we actually have
-        # an insertion like:
-        #   g.10 GT>GTT
-        # which can be trimmed to
-        #   g.11 ''>'T'
-        # Note that we are selecting the position *before* the insertion
-        # (as an arbitrary convention)
-        alt = alt[len(ref):]
-        location += len(ref) - 1
-        ref = ""
-    return location, ref, alt
-
-def get_variant_base0_interval(base1_location, ref, alt):
-    if len(ref) == 0:
-        # if the variant is an insertion then we need to check to make sure
-        # both sides of the insertion are matches
-        base0_start = base1_location - 1
-        base0_end = base1_location + 1
-    elif len(alt) == 0:
-        # if we're deleting from the sequence, then move the interval
-        # to the base behind the deletion so that we have an aligned
-        # nucleotide to use from string slicing
-        base0_start = base1_location - 2
-        base0_end = base1_location + 1
-    else:
-        base0_start = base1_location - 1
-        base0_end = base0_start + len(ref)
-    return base0_start, base0_end
-
 
 def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
     """
@@ -185,14 +132,14 @@ def gather_reads_for_single_variant(
 
     Returns list of VariantRead objects.
     """
-    base1_location, ref, alt = trim_variant(base1_location, ref, alt)
+    base1_location, ref, alt = trim_variant_fields(base1_location, ref, alt)
 
     logger.info("Gathering variant reads for variant %s:%s '%s'>'%s'" % (
         chromosome,
         base1_location,
         ref,
         alt))
-    base0_start, base0_end = get_variant_base0_interval(
+    base0_start, base0_end = base0_interval_for_variant_fields(
         base1_location=base1_location,
         ref=ref,
         alt=alt)
