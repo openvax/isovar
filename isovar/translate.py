@@ -25,44 +25,49 @@ logger = create_logger(__name__)
 MAX_TRANSCRIPT_MISMATCHES = 2
 MIN_TRANSCRIPT_PREFIX_LENGTH = 10
 
+translation_info_fields = [
+    # sequence identified in RNAseq data which includes variant nucleotides
+    "cdna_sequence",
+    # interbase coordinates of the variant nucleotides in the cDNA sequence
+    "variant_cdna_start_offset",
+    "variant_cdna_end_offset",
+    # transcripts whose reference sequence we're comparing against
+    "transcript_ids",
+    "transcript_names",
+
+    # refernece cDNA sequence aligned with the "prefix" of the variant
+    # cDNA sequence, we'll be checking if these bases mostly agree
+    "aligned_reference_sequence"
+    "transcript_sequence_before_variant",
+
+    # protein sequence of the transcript starting from same codon as the
+    # translated sequence, and containing the same number of codons
+    # (ends prematurely on stop codons)
+    "aligned_reference_protein_sequence",
+
+    # number of nucleotides before the variant which disagree with the
+    # reference sequence for this transcript
+    "number_transcript_prefix_mismatches",
+
+    # OPTIONAL FIELDS, only given values if the reference
+
+    "reading_frame_at_start_of_cdna_sequence",
+    # translation from first full codon of the cnda_sequence
+    "translated_protein_sequence",
+    # interbase coordinates of new/modified amino acids in the translated
+    # amino acid sequence
+    "variant_protein_start_offset",
+    "variant_protein_end_offset",
+
+]
+
 # information related to the translation of a RNA sequence context
 # in a reading frame determined by a particular reference transcript
-TranslationFromReferenceORF = namedtuple(
-    "TranslationFromReferenceORF",
-    [
-        "cdna_prefix",
-        "cdna_variant",
-        "cdna_suffix",
-        "transcript_id",
-        "transcript_name",
-        "number_transcript_sequence_mismatches",
-        "reading_frame_at_start_of_cdna_sequence",
-        "transcript_sequence_before_variant",
-        "variant_protein_sequence",
-        "reference_protein_sequence",
-        "fragment_aa_start_offset_in_protein",
-        "fragment_aa_end_offset_in_protein"
-        "variant_aa_start_offset_in_fragment",
-        "variant_aa_end_offset_in_fragment",
-    ])
+TranslationFromReferenceContext = namedtuple(
+    "TranslationFromReferenceContext", translation_info_fields)
 
-class TranslationOrFailure(object):
-    def __init__(self, translation_info=None, failure_message=None):
-        self.translation_info = translation_info
-        self.failure_message = failure_message
-
-        none_count = 0
-        none_count += (self.translation_info is None)
-        none_count += (self.failure_message is None)
-        if none_count == 0:
-            raise ValueError(
-                "One of translation_info or failure_message must be not None")
-        elif none_count == 2:
-            raise ValueError(
-                "One of translation_info and failure_message must have a valid value")
-
-
-def _translate(
+def translate(
+        reference_context,
         cdna_sequence_before_variant,
         cdna_sequence_of_variant,
         cdna_sequence_after_variant,
@@ -72,11 +77,28 @@ def _translate(
         transcript_full_protein,
         variant_base1_offset_in_transcript):
     """
-    Try to  translate the cDNA sequence context around a variant using the
-    reading frame of a transcript.
+    Try to  translate the detected cDNA sequence context around a variant using
+    the reading frame of reference transcripts (which must share sequences
+    around the variant).
 
-    We're assuming that the sequence of the reference transcript up to the
-    variant largely matches the sequence we detected from RNA.
+    Parameters
+    ----------
+    reference_context : ReferenceContext
+        Has the following fields:
+         - strand
+         - transcript_ids
+         - transcript_names
+         - gene
+         - reference_cdna_sequence_around_variant
+         - reading_frame_at_start_of_context
+         - number_cdna_bases_before_variant
+         - number_cdna_bases_after_variant
+         - reference_protein_sequence_around_variant
+
+    To determine the reading frame we assume that the reference transcript
+    sequence up to the variant largely matches the sequence we detected
+    from RNA. If this is violated then the returned
+    TranslationFromReferenceContext will be incomplete.
     """
     if transcript_reading_frame_at_start_of_context_sequence == 1:
         # if we're 1 nucleotide into the codon then we need to shift
