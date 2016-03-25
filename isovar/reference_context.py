@@ -21,25 +21,61 @@ from .effect_prediction import reference_transcripts_for_variant
 logger = create_logger(__name__)
 
 
-reference_context_fields = [
-    "variant",
-    "strand",
-    "reference_cdna_before_variant",
-    "refernece_cdna_at_variant",
-    "reference_cdna_after_variant",
-    "reference_protein_sequence_around_variant",
-    "transcripts",
-]
+##########################
+#
+# SequenceKey
+# -----------
+#
+# Used to identify and group the distinct sequences occurring  on a set of
+# transcripts overlapping a variant locus
+#
+##########################
+
+SequenceKey = namedtuple(
+    "SequenceKey", [
+        "strand",
+        "sequence_before_variant_locus",
+        "sequence_at_variant_locus",
+        "sequence_after_variant_locus"
+    ]
+)
+
+
+##########################
+#
+# ReferenceContext
+# ----------------
+#
+# Includes all the fields of a SequenceKey, in addition to which variant we're
+# examining, all transcripts overlapping that variant which matched this
+# particular sequence context
+#
+##########################
 
 ReferenceContext = namedtuple(
-    "ReferenceContext",
-    reference_context_fields)
+    "ReferenceContext", SequenceKey._fields + [
+        "variant",
+        "transcripts",
+    ]
+)
 
-ReferenceContextWithReadingFrame = namedtuple(
-    "ReferenceContextWithReadingFrame",
-    reference_context_fields + [
+
+##########################
+#
+# ReferenceContextWithORF
+# ----------------
+#
+# Same fields as ReferenceContext but also includes a reading frame at the
+# start of the reference sequence.
+#
+##########################
+
+ReferenceContextWithORF = namedtuple(
+    "ReferenceContextWithORF", ReferenceContext._fields + [
         "reading_frame_start_of_sequence",
-        "first_codon_offset"])
+        "first_codon_offset"
+    ]
+)
 
 def interbase_range_affected_by_variant_on_transcript(variant, transcript):
     """
@@ -104,6 +140,51 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
         end_offset = max(offsets) + 1
     return (start_offset, end_offset)
 
+
+def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
+    """
+    Extracts the reference sequence around a variant locus on a particular
+    transcript.
+
+    Parameters
+    ----------
+    variant : varcode.Variant
+
+    transcript : pyensembl.Transcript
+
+    context_size : int
+
+    Returns tuple with the following fields:
+        - strand
+        - sequence before variant locus
+        - sequence at variant locus
+        - sequence after variant locus
+    """
+    variant_on_transcript_start, variant_on_transcript_end = \
+        interbase_range_affected_by_variant_on_transcript(
+            variant=variant,
+            transcript=transcript)
+
+    start_codon_idx = min(transcript.start_codon_spliced_offsets)
+
+    if variant.is_insertion:
+        # insertions don't actually affect the base referred to
+        # by the start position of the variant, but rather the
+        # variant gets inserted *after* that position
+        sequence_end_idx = variant_on_transcript_start + 1
+    else:
+        # if not an insertion then the start offset of the variant
+        # should actually point to a modified reference nucleotide,
+        # so we should keep it as the upper bound of the "query" region
+        # of the variant sequence
+        sequence_end_idx = variant_on_transcript_start
+
+    sequence_start_idx = max(
+        start_codon_idx, sequence_end_idx - context_size)
+
+    sequence = transcript.sequence[sequence_start_idx:sequence_end_idx]
+
+
 def reference_contexts_for_variant(
         variant,
         context_size,
@@ -124,31 +205,13 @@ def reference_contexts_for_variant(
         variant=variant,
         transcript_id_whitelist=transcript_id_whitelist)
 
-    sequence_groups = {}
+    sequence_groups = defaultdict(list)
+
     for transcript in transcripts:
-        variant_on_transcript_start, variant_on_transcript_end = \
-            interbase_range_affected_by_variant_on_transcript(
-                variant=variant,
-                transcript=transcript)
-        start_codon_idx = min(transcript.start_codon_spliced_offsets)
-
-        if variant.is_insertion:
-            # insertions don't actually affect the base referred to
-            # by the start position of the variant, but rather the
-            # variant gets inserted *after* that position
-            sequence_end_idx = variant_on_transcript_start + 1
-        else:
-            # if not an insertion then the start offset of the variant
-            # should actually point to a modified reference nucleotide,
-            # so we should keep it as the upper bound of the "query" region
-            # of the variant sequence
-            sequence_end_idx = variant_on_transcript_start
-
-        sequence_start_idx = max(
-            start_codon_idx, sequence_end_idx - context_size)
-
-        sequence = transcript.sequence[sequence_start_idx:sequence_end_idx]
-
+        sequence_key = sequence_around_variant_on_transcript(
+            variant=variant
+            transcript=transcript,
+            context_size=context_size)
 
 def reference_contexts_for_variants(
         variants,
