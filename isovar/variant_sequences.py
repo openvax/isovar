@@ -29,34 +29,33 @@ DEFAULT_SEQUENCE_LENGTH = 105
 DEFAULT_CONTEXT_SIZE = DEFAULT_SEQUENCE_LENGTH // 2
 DEFAULT_MIN_READS = 1
 
-variant_sequences_object_fields = [
-    # dictionary mapping unique sequences to the sum of the number
-    # of reads fully supporting that sequence and fraction of that
-    # sequence supported by partially overlapping reads
-    "combined_sequence_weights",
-    # dictionary of context sequences mapping to the # of reads
-    # they were detected in
-    "full_read_counts",
-    # names of reads which fully overlap a sequence
-    "full_read_names",
-    # dictionary of context sequences mapping to the # of reads
-    # which partially overlap them in (and agree at all overlapped bases)
-    "partial_read_counts",
-    # dictionary from context sequence to the names of partially
-    # overlapping reads
-    "partial_read_names",
-    # dictionary mapping context sequences to the sum of
-    # overlap weights from all partially overlapping reads
-    "partial_read_weights",
-    # variant nucleotide string, since all the dictionary keys
-    # above are only (prefix, suffix) pairs which are missing these
-    # nucleotides
-    "variant_nucleotides",
-]
-
 VariantSequences = namedtuple(
     "VariantSequences",
-    variant_sequences_object_fields)
+    [
+        # dictionary mapping unique sequences to the sum of the number
+        # of reads fully supporting that sequence and fraction of that
+        # sequence supported by partially overlapping reads
+        "combined_sequence_weights",
+        # dictionary of context sequences mapping to the # of reads
+        # they were detected in
+        "full_read_counts",
+        # names of reads which fully overlap a sequence
+        "full_read_names",
+        # dictionary of context sequences mapping to the # of reads
+        # which partially overlap them in (and agree at all overlapped bases)
+        "partial_read_counts",
+        # dictionary from context sequence to the names of partially
+        # overlapping reads
+        "partial_read_names",
+        # dictionary mapping context sequences to the sum of
+        # overlap weights from all partially overlapping reads
+        "partial_read_weights",
+        # variant nucleotide string, since all the dictionary keys
+        # above are only (prefix, suffix) pairs which are missing these
+        # nucleotides
+        "variant_nucleotides",
+    ]
+)
 
 def variant_reads_to_sequences(
         variant_reads,
@@ -250,7 +249,7 @@ def variant_sequences_dataframe(
         ("ref", []),
         ("alt", [])
     ])
-    for field in variant_sequences_object_fields:
+    for field in VariantSequences._fields:
         columns[field] = []
 
     for variant, sequences in variant_sequences_generator(
@@ -263,7 +262,7 @@ def variant_sequences_dataframe(
             columns["pos"].append(variant.original_start)
             columns["ref"].append(variant.original_ref)
             columns["alt"].append(variant.original_alt)
-            for field_name in variant_sequences_object_fields:
+            for field_name in VariantSequences._fields:
                 columns[field_name] = getattr(sequences_obj, field_name)
 
     return pd.DataFrame(columns)

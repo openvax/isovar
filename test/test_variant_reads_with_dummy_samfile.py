@@ -17,7 +17,7 @@ from nose.tools import eq_
 
 import pysam
 
-from isovar import gather_reads_for_single_variant
+from isovar.variant_reads import gather_reads_for_single_variant
 
 class DummyPileupElement(object):
     def __init__(self, alignment, is_refskip, is_del):
