@@ -25,10 +25,7 @@ from pandas import DataFrame
 
 from .overlapping_reads import gather_overlapping_reads
 from .logging import create_logger
-from .variant_helpers import (
-    trim_variant_fields,
-    base0_interval_for_variant_fields
-)
+from .variant_helpers import base0_interval_for_variant_fields, trim_variant
 
 logger = create_logger(__name__)
 
@@ -105,12 +102,11 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
         logger.info(variant_read)
         yield variant_read
 
+
 def gather_reads_for_single_variant(
         samfile,
         chromosome,
-        base1_location,
-        ref,
-        alt):
+        variant):
     """
     Find reads in the given SAM/BAM file which overlap the given variant, filter
     to only include those which agree with the variant's nucleotide(s), and turn
@@ -122,47 +118,37 @@ def gather_reads_for_single_variant(
 
     chromosome : str
 
-    base1_location : int
-
-    ref : str
-        Reference nucleotides
-
-    alt : str
-        Variant nucleotides
+    variant : varcode.Variant
 
     Returns list of VariantRead objects.
     """
-    base1_location, ref, alt = trim_variant_fields(base1_location, ref, alt)
+    logger.info("Gathering variant reads for variant %s (chromosome=%s)" % (
+        variant,
+        chromosome))
 
-    logger.info("Gathering variant reads for variant %s:%s '%s'>'%s'" % (
-        chromosome,
-        base1_location,
-        ref,
-        alt))
-    base0_start, base0_end = base0_interval_for_variant_fields(
+    base1_location, ref, alt = trim_variant(variant)
+
+    variant_base0_start, variant_base0_end = base0_interval_for_variant_fields(
         base1_location=base1_location,
         ref=ref,
         alt=alt)
-    logger.info(
-        "Interbase coordinates for '%s:%d '%s'>'%s': (start=%d, end=%d)" % (
-            chromosome,
-            base1_location,
-            ref,
-            alt,
-            base0_start,
-            base0_end))
+
+    # we need to check the two adjacent nucleotides to make sure that the alt
+    # nucleotides are in the right context
+    wider_base0_start = variant_base0_start - 1
+    wider_base0_end = variant_base0_end + 1
+
     overlapping_reads = gather_overlapping_reads(
         samfile=samfile,
         chromosome=chromosome,
-        base0_start=base0_start,
-        base0_end=base0_end,
-        is_del=len(alt) == 0)
+        base0_start=wider_base0_start,
+        base0_end=wider_base0_end,
+        is_del=variant.is_deletion)
     return list(
         variant_reads_from_overlapping_reads(
             overlapping_reads=overlapping_reads,
             ref=ref,
             alt=alt))
-
 
 def variant_reads_generator(variants, samfile):
     """
@@ -197,9 +183,7 @@ def variant_reads_generator(variants, samfile):
         variant_reads = gather_reads_for_single_variant(
             samfile=samfile,
             chromosome=chromosome,
-            base1_location=variant.start,
-            ref=variant.ref,
-            alt=variant.alt)
+            variant=variant)
         logger.info("%s => %s" % (
             variant,
             variant_reads))

@@ -75,6 +75,9 @@ def trim_variant(variant):
 
 def base0_interval_for_variant_fields(base1_location, ref, alt):
     """
+    Inteval of interbase offsets of the affected reference positions for a
+    particular variant.
+
     Parameters
     ----------
     base1_location : int
@@ -92,13 +95,8 @@ def base0_interval_for_variant_fields(base1_location, ref, alt):
         # both sides of the insertion are matches
         base0_start = base1_location - 1
         base0_end = base1_location + 1
-    elif len(alt) == 0:
-        # if we're deleting from the sequence, then move the interval
-        # to the base behind the deletion so that we have an aligned
-        # nucleotide to use from string slicing
-        base0_start = base1_location - 2
-        base0_end = base1_location + 1
     else:
+        # substitution or deletion
         base0_start = base1_location - 1
         base0_end = base0_start + len(ref)
     return base0_start, base0_end
@@ -113,6 +111,7 @@ def base0_interval_for_variant(variant):
     Returns triplet of (base1_location, ref, alt)
     """
     base1_location, ref, alt = trim_variant(variant)
+    print(base1_location, ref, alt)
     return base0_interval_for_variant_fields(
         base1_location=base1_location,
         ref=ref,
