@@ -53,10 +53,7 @@ SequenceKey = namedtuple(
 ##########################
 
 ReferenceContext = namedtuple(
-    "ReferenceContext", SequenceKey._fields + [
-        "variant",
-        "transcripts",
-    ]
+    "ReferenceContext", SequenceKey._fields + ("variant", "transcripts")
 )
 
 
@@ -71,74 +68,11 @@ ReferenceContext = namedtuple(
 ##########################
 
 ReferenceContextWithORF = namedtuple(
-    "ReferenceContextWithORF", ReferenceContext._fields + [
+    "ReferenceContextWithORF", ReferenceContext._fields + (
         "reading_frame_start_of_sequence",
         "first_codon_offset"
-    ]
+    )
 )
-
-def interbase_range_affected_by_variant_on_transcript(variant, transcript):
-    """
-    Convert from a variant's position in global genomic coordinates on the
-    forward strand to an interval of interbase offsets on a particular
-    transcript's mRNA.
-
-    Parameters
-    ----------
-    variant : varcode.Variant
-
-    transcript : pyensembl.Transcript
-
-    Assumes that the transcript overlaps the variant.
-
-    Returns (start, end) tuple of offsets into the transcript's cDNA sequence
-    which indicates which bases in the reference sequence are affected by a
-    variant.
-
-    Example:
-        The insertion of "TTT" into the middle of an exon would result in an
-        offset pair such as (100,100) since no reference bases are changed
-        or deleted by an insertion.
-
-        On the other hand, deletion the preceding "CGG" at that same locus could
-        result in an offset pair such as (97, 100)
-    """
-    if variant.is_insertion:
-        if transcript.strand == "+":
-            # base-1 position of an insertion is the genomic nucleotide
-            # before any inserted mutant nucleotides
-            start_offset = [transcript.spliced_offset(variant.start)]
-        else:
-            # assuming that this transcript was considered to overlap
-            # with the variant since the insertion happens inside
-            # one of its exons (rather than simply immediately before
-            # of after)
-            start_offset = [transcript.spliced_offset(variant.start + 1)]
-        # an insertion happens *between* two reference bases
-        # so the start:end offsets coincide
-        end_offset = start_offset
-    else:
-        # reference bases affected by substitution or deletion defined by
-        # range starting at first affected base
-        offsets = []
-        assert len(variant.ref) > 0
-        for dna_pos in range(variant.start, variant.start + len(variant.ref)):
-            try:
-                offsets.append(transcript.spliced_offset(dna_pos))
-            except ValueError:
-                logger.info(
-                    "Couldn't find position %d from %s on exons of %s" % (
-                        dna_pos,
-                        variant,
-                        transcript))
-        if len(offsets) == 0:
-            raise ValueError(
-                "Couldn't find any exonic reference bases affected by %s on %s" % (
-                    variant,
-                    transcript))
-        start_offset = min(offsets)
-        end_offset = max(offsets) + 1
-    return (start_offset, end_offset)
 
 
 def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
@@ -159,30 +93,61 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
         - sequence before variant locus
         - sequence at variant locus
         - sequence after variant locus
+
+    Can also return None if Transcript lacks start codon or sequence
     """
+
+    full_sequence = transcript.sequence
+
+    if full_sequence is None:
+        logger.warn(
+            "Expected transcript %s (overlapping %s) to have sequence" % (
+                transcript,
+                variant))
+        return None
+
+    if len(full_sequence) < 6:
+        # need at least 6 nucleotides for a start and stop codon
+        logger.warn(
+            "Sequence of %s (overlapping %s) too short: %d" % (
+                transcript,
+                variant,
+                len(full_sequence)))
+        return None
+
+    if not transcript.contains_start_codon:
+        logger.warn(
+            "Expected transcript %s (overlapping %s)to have start codon" % (
+                transcript,
+                variant))
+        return None
+
+    start_codon_idx = min(transcript.start_codon_spliced_offsets)
+
     variant_on_transcript_start, variant_on_transcript_end = \
         interbase_range_affected_by_variant_on_transcript(
             variant=variant,
             transcript=transcript)
 
-    start_codon_idx = min(transcript.start_codon_spliced_offsets)
-
     if variant.is_insertion:
         # insertions don't actually affect the base referred to
         # by the start position of the variant, but rather the
         # variant gets inserted *after* that position
-        sequence_end_idx = variant_on_transcript_start + 1
+        context_sequence_end_idx = variant_on_transcript_start + 1
     else:
         # if not an insertion then the start offset of the variant
         # should actually point to a modified reference nucleotide,
         # so we should keep it as the upper bound of the "query" region
         # of the variant sequence
-        sequence_end_idx = variant_on_transcript_start
+        context_sequence_end_idx = variant_on_transcript_start
 
-    sequence_start_idx = max(
-        start_codon_idx, sequence_end_idx - context_size)
+    context_sequence_start_idx = max(
+        start_codon_idx, context_sequence_end_idx - context_size)
 
-    sequence = transcript.sequence[sequence_start_idx:sequence_end_idx]
+    context_sequence_before_variant = full_sequences[
+        context_sequence_start_idx:context_sequence_end_idx]
+
+    n_ref_nucleotides_mutated = len(variant.ref)
 
 
 def reference_contexts_for_variant(
@@ -209,7 +174,7 @@ def reference_contexts_for_variant(
 
     for transcript in transcripts:
         sequence_key = sequence_around_variant_on_transcript(
-            variant=variant
+            variant=variant,
             transcript=transcript,
             context_size=context_size)
 
@@ -283,7 +248,7 @@ def reading_frame_to_offset(reading_frame_at_start_of_sequence):
     # If we're 1 nucleotide into the codon then we need to shift
     # over two more to restore the ORF. Likewise, if we're 2 nucleotides in
     # then we have to shift over one more.
-    return 3 - reading_frame_at_start_of_sequence
+    return (3 - reading_frame_at_start_of_sequence) % 3
 
 def split_reference_context_by_reading_frames(reference_context):
     """

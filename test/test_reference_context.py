@@ -1,17 +1,25 @@
-from varcode import Variant
-from pyensembl import ensembl_grch38
+# Copyright (c) 2016. Mount Sinai School of Medicine
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from __future__ import print_function, division, absolute_import
 from isovar.reference_context import (
-    interbase_range_affected_by_variant_on_transcript
+    reading_frame_to_offset
 )
 from nose.tools import eq_
 
 
-def test_interbase_of_brca2_utr_substitution():
-    # rs769125639 is a simple T>A substitution in the 6th nucleotide of
-    # BRCA2-001's 5' UTR
-    brca2_variant_rs769125639 = Variant("13", 32315479, "T", "A")
-    brca2_001 = ensembl_grch38.transcripts_by_name("BRCA2-001")[0]
-    (start, end) = interbase_range_affected_by_variant_on_transcript(
-        variant=brca2_variant_rs769125639,
-        transcript=brca2_001)
-    eq_((start, end), (5, 6))
+def test_reading_frame_to_offset():
+    eq_(reading_frame_to_offset(0), 0)
+    eq_(reading_frame_to_offset(1), 2)
+    eq_(reading_frame_to_offset(2), 1)

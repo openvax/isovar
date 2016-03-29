@@ -76,7 +76,7 @@ def trim_variant(variant):
 def base0_interval_for_variant_fields(base1_location, ref, alt):
     """
     Inteval of interbase offsets of the affected reference positions for a
-    particular variant.
+    particular variant's primary fields (pos, ref, alt).
 
     Parameters
     ----------
@@ -90,11 +90,15 @@ def base0_interval_for_variant_fields(base1_location, ref, alt):
     alt : str
         Alternative nucleotides
     """
+    print(ref, alt, base1_location)
     if len(ref) == 0:
-        # if the variant is an insertion then we need to check to make sure
-        # both sides of the insertion are matches
-        base0_start = base1_location - 1
-        base0_end = base1_location + 1
+        # in interbase coordinates, the insertion happens
+        # at the same start/end offsets, since those are already between
+        # reference bases. Furthermore, since the convention for base-1
+        # coordinates is to locate the insertion *after* the position,
+        # in this case the interbase and base-1 positions coincide.
+        base0_start = base1_location
+        base0_end = base1_location
     else:
         # substitution or deletion
         base0_start = base1_location - 1
@@ -104,6 +108,9 @@ def base0_interval_for_variant_fields(base1_location, ref, alt):
 
 def base0_interval_for_variant(variant):
     """
+    Inteval of interbase offsets of the affected reference positions for a
+    particular variant.
+
     Parameters
     ----------
     variant : varcode.Variant
@@ -111,7 +118,6 @@ def base0_interval_for_variant(variant):
     Returns triplet of (base1_location, ref, alt)
     """
     base1_location, ref, alt = trim_variant(variant)
-    print(base1_location, ref, alt)
     return base0_interval_for_variant_fields(
         base1_location=base1_location,
         ref=ref,
@@ -147,14 +153,16 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
     if variant.is_insertion:
         if transcript.strand == "+":
             # base-1 position of an insertion is the genomic nucleotide
-            # before any inserted mutant nucleotides
-            start_offset = [transcript.spliced_offset(variant.start)]
+            # before any inserted mutant nucleotides, so the start offset
+            # of the actual inserted nucleotides is one past that reference
+            # position
+            start_offset = transcript.spliced_offset(variant.start) + 1
         else:
-            # assuming that this transcript was considered to overlap
-            # with the variant since the insertion happens inside
-            # one of its exons (rather than simply immediately before
-            # of after)
-            start_offset = [transcript.spliced_offset(variant.start + 1)]
+            # on the negative strand the genomic base-1 position actually
+            # refers to the transcript base *after* the insertion, so we can
+            # use that as the interbase coordinate for where the insertion
+            # occurs
+            start_offset = transcript.spliced_offset(variant.start)
         # an insertion happens *between* two reference bases
         # so the start:end offsets coincide
         end_offset = start_offset

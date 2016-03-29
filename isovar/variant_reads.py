@@ -54,7 +54,6 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
         reference_positions = read.reference_positions
         offset = read.locus_offset
         sequence = read.sequence
-        logger.info("Read sequence: %s" % sequence)
         if len(ref) == 0:
             # insertions require a sequence of non-aligned bases
             # followed by the subsequence reference position
@@ -98,9 +97,7 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
             prefix = str(prefix, "ascii")
         if isinstance(suffix, bytes):
             suffix = str(suffix, "ascii")
-        variant_read = VariantRead(prefix, alt, suffix, name=read.name)
-        logger.info(variant_read)
-        yield variant_read
+        yield VariantRead(prefix, alt, suffix, name=read.name)
 
 
 def gather_reads_for_single_variant(

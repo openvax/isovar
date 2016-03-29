@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
-
 import pysam
-
+from varcode import Variant
 from isovar.variant_reads import gather_reads_for_single_variant
 
 class DummyPileupElement(object):
@@ -58,6 +58,9 @@ def test_partitioned_read_sequences_snv():
     ref = "T"
     alt = "G"
 
+    variant = Variant(
+        chromosome, location, ref, alt, normalize_contig_name=False)
+
     read = pysam.AlignedSegment()
     read.seq = "ACCGTG"
     read.cigarstring = "6M"
@@ -67,9 +70,8 @@ def test_partitioned_read_sequences_snv():
     seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
-        base1_location=location,
-        ref=ref,
-        alt=alt)
+        variant=variant)
+    print(seq_parts)
     assert len(seq_parts) == 1
     eq_(seq_parts[0].prefix, "ACC")
     eq_(seq_parts[0].variant, "G")
@@ -86,6 +88,8 @@ def test_partitioned_read_sequences_insertion():
     location = 4
     ref = "T"
     alt = "TG"
+    variant = Variant(
+        chromosome, location, ref, alt, normalize_contig_name=False)
 
     read = pysam.AlignedSegment()
     read.seq = "ACCTGTG"
@@ -96,9 +100,7 @@ def test_partitioned_read_sequences_insertion():
     seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
-        base1_location=location,
-        ref=ref,
-        alt=alt)
+        variant=variant)
     print(seq_parts)
     assert len(seq_parts) == 1
     eq_(seq_parts[0].prefix, "ACCT")
@@ -116,6 +118,8 @@ def test_partitioned_read_sequences_deletion():
     location = 4
     ref = "TT"
     alt = "T"
+    variant = Variant(
+        chromosome, location, ref, alt, normalize_contig_name=False)
 
     read = pysam.AlignedSegment()
     read.seq = "ACCTG"
@@ -126,9 +130,7 @@ def test_partitioned_read_sequences_deletion():
     seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
-        base1_location=location,
-        ref=ref,
-        alt=alt)
+        variant=variant)
     print(seq_parts)
     assert len(seq_parts) == 1
     eq_(seq_parts[0].prefix, "ACCT")

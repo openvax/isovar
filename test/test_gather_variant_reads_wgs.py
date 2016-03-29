@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from isovar import gather_reads_for_single_variant
+from __future__ import print_function, division, absolute_import
 
+from isovar.variant_reads import gather_reads_for_single_variant
 from pysam import AlignmentFile
+from varcode import Variant
+from nose.tools import eq_
 
 def test_partition_variant_reads_snv():
     samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
@@ -22,16 +25,18 @@ def test_partition_variant_reads_snv():
     base1_location = 65857041
     ref = "G"
     alt = "C"
-
+    variant = Variant(
+        contig=chromosome,
+        start=base1_location,
+        ref=ref,
+        alt=alt)
     seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
-        base1_location=base1_location,
-        ref=ref,
-        alt=alt)
+        variant=variant)
     assert len(seq_parts) > 1
     for variant_read in seq_parts:
-        assert variant_read.variant == alt
+        eq_(variant_read.variant, alt)
 
 def test_partition_variant_reads_deletion():
     samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
@@ -39,15 +44,18 @@ def test_partition_variant_reads_deletion():
     base1_location = 70091490
     ref = "TTGTAGATGCTGCCTCTCC"
     alt = ""
+    variant = Variant(
+        contig=chromosome,
+        start=base1_location,
+        ref=ref,
+        alt=alt)
     seq_parts = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
-        base1_location=base1_location,
-        ref=ref,
-        alt=alt)
+        variant=variant)
     assert len(seq_parts) > 1
     for variant_read in seq_parts:
-        assert variant_read.variant == alt
+        eq_(variant_read.variant, alt)
 
 if __name__ == "__main__":
     test_partition_variant_reads_snv()
