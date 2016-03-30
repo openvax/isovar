@@ -57,8 +57,19 @@ SequenceKey = namedtuple(
 
 SequenceKeyWithReadingFrame = namedtuple(
     "ReferenceContext", SequenceKey._fields + (
-        "reading_frame",
-        "offset_to_first_codon"
+        # if the reference context includes the 5' UTR then
+        # this is the offset to the start codon, otherwise it's the
+        # offset needed to get the first base of a codon
+        "offset_to_first_complete_codon",
+        # does this context overlap a start codon?
+        "overlaps_start_codon",
+        # does this context contain the whole trinucleotide start codon?
+        "contains_start_codon",
+        # does this context contain any UTR bases?
+        "contains_five_prime_utr",
+        # translation of complete codons in the reference context
+        # before the variant
+        "amino_acids_before_variant",
     )
 )
 
@@ -126,7 +137,12 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
         interbase_range_affected_by_variant_on_transcript(
             variant=variant,
             transcript=transcript)
-    print(variant_start_offset, variant_end_offset)
+    logger.info("Interbase offset range on %s for variant %s = %d:%d" % (
+        transcript,
+        variant,
+        variant_start_offset,
+        variant_end_offset))
+
     prefix = full_sequence[
         max(0, variant_start_offset - context_size):
         variant_start_offset]
@@ -186,16 +202,8 @@ def sequence_key_with_reading_frame_for_variant_on_transcript(
 
     context_size : int
 
-    Returns SequenceKeyWithReadingFrame object with the following fields:
-        - strand
-        - sequence_before_variant_locus
-        - sequence_at_variant_locus
-        - sequence_after_variant_locus
-        - reading_frame
-        - offset_to_first_codon
-
-    Can also return None if Transcript lacks sufficiently long sequence or
-    annotated start/stop codons.
+    Returns SequenceKeyWithReadingFrame object or None if Transcript lacks
+    coding sequence, protein sequence or annotated start/stop codons.
     """
     if not transcript.contains_start_codon:
         logger.info(
@@ -207,6 +215,13 @@ def sequence_key_with_reading_frame_for_variant_on_transcript(
     if not transcript.contains_stop_codon:
         logger.info(
             "Expected transcript %s for variant %s to have stop codon" % (
+                transcript,
+                variant))
+        return None
+
+    if not transcript.protein_sequence:
+        logger.info(
+            "Expected transript %s for variant %s to have protein sequence" % (
                 transcript,
                 variant))
         return None
@@ -236,7 +251,7 @@ def sequence_key_with_reading_frame_for_variant_on_transcript(
     #   (1) UTR variants have unclear coding effects and
     #   (2) start-loss variants may result in a new start codon / reading
     #       frame but we're not sure which one!
-    if variant_start_offset <= start_codon_idx + 3:
+    if variant_start_offset < start_codon_idx + 3:
         logger.info(
             "Skipping transcript %s for variant %s, must be after start codon" % (
                 transcript,
@@ -256,16 +271,40 @@ def sequence_key_with_reading_frame_for_variant_on_transcript(
 
     n_prefix = len(sequence_key.sequence_before_variant_locus)
     prefix_start_idx = variant_start_offset - n_prefix
+    n_bases_between_start_and_variant = variant_start_offset - start_codon_idx
+    n_full_codons_before_variant = n_bases_between_start_and_variant // 3
 
-    reading_frame = (prefix_start_idx - start_codon_idx) % 3
-    offset_to_first_codon = reading_frame_to_offset(reading_frame)
+    # if the sequence before the variant contains more bases than the
+    # distance to the start codon, then by definition it must contain
+    # some untranslated bases
+    contains_five_prime_utr = (n_prefix > n_bases_between_start_and_variant)
+    # allows for the possibility that the first base in the sequence might
+    # be the first nucleotide of the start codon
+    contains_start_codon = (n_prefix >= n_bases_between_start_and_variant)
+    # the sequence context might only include the 2nd or 3rd bases of
+    # the start codon
+    overlaps_start_codon = (n_prefix > n_bases_between_start_and_variant - 3)
+
+    if contains_start_codon:
+        offset_to_first_complete_codon = start_codon_idx - prefix_start_idx
+        amino_acids_before_variant = transcript.protein_sequence[:n_full_codons_before_variant]
+    else:
+        reading_frame = (prefix_start_idx - start_codon_idx) % 3
+        offset_to_first_complete_codon = reading_frame_to_offset(reading_frame)
+        n_codons_in_prefix = (n_prefix - offset_to_first_complete_codon) // 3
+        amino_acids_before_variant = transcript.protein_sequence[
+            n_full_codons_before_variant - n_codons_in_prefix:
+            n_full_codons_before_variant]
     return SequenceKeyWithReadingFrame(
         strand=sequence_key.strand,
         sequence_before_variant_locus=sequence_key.sequence_before_variant_locus,
         sequence_at_variant_locus=sequence_key.sequence_at_variant_locus,
         sequence_after_variant_locus=sequence_key.sequence_after_variant_locus,
-        reading_frame=reading_frame,
-        offset_to_first_codon=offset_to_first_codon)
+        offset_to_first_complete_codon=offset_to_first_complete_codon,
+        contains_start_codon=contains_start_codon,
+        overlaps_start_codon=overlaps_start_codon,
+        contains_five_prime_utr=contains_five_prime_utr,
+        amino_acids_before_variant=amino_acids_before_variant)
 
 def sort_key_decreasing_max_length_transcript_cds(reference_context):
     """
@@ -310,15 +349,18 @@ def reference_contexts_for_variant(
 
     reference_contexts = [
         ReferenceContext(
-            strand=sequence_key.strand,
-            sequence_before_variant_locus=sequence_key.sequence_before_variant_locus,
-            sequence_at_variant_locus=sequence_key.sequence_at_variant_locus,
-            sequence_after_variant_locus=sequence_key.sequence_after_variant_locus,
-            reading_frame=sequence_key.reading_frame,
-            offset_to_first_codon=sequence_key.offset_to_first_codon,
+            strand=key.strand,
+            sequence_before_variant_locus=key.sequence_before_variant_locus,
+            sequence_at_variant_locus=key.sequence_at_variant_locus,
+            sequence_after_variant_locus=key.sequence_after_variant_locus,
+            offset_to_first_complete_codon=key.offset_to_first_complete_codon,
+            contains_start_codon=key.contains_start_codon,
+            overlaps_start_codon=key.overlaps_start_codon,
+            contains_five_prime_utr=key.contains_five_prime_utr,
+            amino_acids_before_variant=key.amino_acids_before_variant,
             variant=variant,
             transcripts=matching_transcripts)
-        for (sequence_key, matching_transcripts) in sequence_groups.items()
+        for (key, matching_transcripts) in sequence_groups.items()
     ]
     reference_contexts.sort(key=sort_key_decreasing_max_length_transcript_cds)
     return reference_contexts
@@ -328,6 +370,10 @@ def reference_contexts_for_variants(
         context_size,
         transcript_id_whitelist=None):
     """
+    Extract a set of reference contexts for each variant in the collection.
+
+    Parameters
+    ----------
     variants : varcode.VariantCollection
 
     context_size : int
@@ -390,5 +436,4 @@ def variants_to_reference_contexts_dataframe(
         columns_dict["alt"].append(variant.original_alt)
         for field in ReferenceContext._fields:
             columns_dict[field].append(getattr(reference_context, field))
-
     return pd.DataFrame(columns_dict)

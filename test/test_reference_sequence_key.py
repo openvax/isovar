@@ -15,19 +15,12 @@
 from __future__ import print_function, division, absolute_import
 
 from isovar.reference_context import (
-    reading_frame_to_offset,
     sequence_key_for_variant_on_transcript,
     SequenceKey,
 )
 from varcode import Variant
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
-
-
-def test_reading_frame_to_offset():
-    eq_(reading_frame_to_offset(0), 0)
-    eq_(reading_frame_to_offset(1), 2)
-    eq_(reading_frame_to_offset(2), 1)
 
 def test_sequence_key_for_variant_on_transcript_substitution():
     # rs769125639 is a simple T>A substitution in the 6th nucleotide of
