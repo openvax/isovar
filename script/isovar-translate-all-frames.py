@@ -22,17 +22,17 @@ import varcode
 import skbio
 from pysam import AlignmentFile
 
-from isovar import gather_variant_reads, sequence_counts
+from isovar.variant_reads import gather_variant_reads, sequence_counts
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
     "--vcf",
-    default="/Users/iskander/code/varlens/test/data/CELSR1/vcfs/vcf_1.vcf")
+    default="../test/data/CELSR1/vcfs/vcf_1.vcf")
 
 parser.add_argument(
     "--bam",
-    default="/Users/iskander/code/varlens/test/data/CELSR1/bams/bam_1.bam")
+    default="../test/data/CELSR1/bams/bam_1.bam")
 
 parser.add_argument(
     "--genome",

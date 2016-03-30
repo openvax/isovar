@@ -81,7 +81,8 @@ def test_base0_interval_for_variant_deletion():
 def test_interbase_range_for_brca2_utr_substitution():
     # rs769125639 is a simple T>A substitution in the 6th nucleotide of
     # BRCA2-001's 5' UTR
-    brca2_variant_rs769125639 = Variant("13", 32315479, "T", "A")
+    brca2_variant_rs769125639 = Variant(
+        "13", 32315479, "T", "A", ensembl_grch38)
     brca2_001 = ensembl_grch38.transcripts_by_name("BRCA2-001")[0]
     interbase_range = interbase_range_affected_by_variant_on_transcript(
         variant=brca2_variant_rs769125639,
@@ -91,7 +92,7 @@ def test_interbase_range_for_brca2_utr_substitution():
 
 def test_interbase_range_for_brca2_utr_insertion():
     # T>TC insertion after the 6th nucleotide of BRCA2-001's 5' UTR
-    brca2_insertion = Variant("13", 32315479, "T", "TC")
+    brca2_insertion = Variant("13", 32315479, "T", "TC", ensembl_grch38)
     brca2_001 = ensembl_grch38.transcripts_by_name("BRCA2-001")[0]
     interbase_range = interbase_range_affected_by_variant_on_transcript(
         variant=brca2_insertion,
@@ -101,7 +102,7 @@ def test_interbase_range_for_brca2_utr_insertion():
 
 def test_interbase_range_for_brca2_utr_deletion():
     # Deletion of the 6th nucleotide of BRCA2-001's 5' UTR
-    brca2_deletion = Variant("13", 32315479, "T", "")
+    brca2_deletion = Variant("13", 32315479, "T", "", ensembl_grch38)
     brca2_001 = ensembl_grch38.transcripts_by_name("BRCA2-001")[0]
     interbase_range = interbase_range_affected_by_variant_on_transcript(
         variant=brca2_deletion,
