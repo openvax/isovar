@@ -145,3 +145,136 @@ def test_sequence_key_with_reading_frame_insertion_with_five_prime_utr():
         contains_five_prime_utr=True,
         amino_acids_before_variant="ME")
     _check_equal_fields(result, expected)
+
+def test_sequence_key_with_reading_frame_insertion_inside_start_codon():
+    # insert nucleotide "C" in the middle of the start codon of TP53-001,
+    # keeping only 1 nucleotide of context
+    tp53_insertion = Variant(
+        "17", 7676592, "A", "AC", ensembl_grch38)
+
+    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+
+    result = \
+        sequence_key_with_reading_frame_for_variant_on_transcript(
+            variant=tp53_insertion,
+            transcript=tp53_001,
+            context_size=1)
+    assert result is None, "Expected result to be None when variant affects start codon"
+
+def test_sequence_key_with_reading_frame_insertion_before_start_codon():
+    # insert nucleotide "T" before of the start codon of TP53-001,
+    tp53_insertion = Variant("17", 7676593, "C", "CT", ensembl_grch38)
+
+    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+
+    result = \
+        sequence_key_with_reading_frame_for_variant_on_transcript(
+            variant=tp53_insertion,
+            transcript=tp53_001,
+            context_size=1)
+    assert result is None, "Expected result to be None when variant before start codon"
+
+
+def test_sequence_key_with_reading_frame_insertion_context_6nt_contains_start():
+    # insert nucleotide "T" after second codon of TP53-001,
+    # but in this test we're going to only keep enough context to see
+    # the start codon but none of the 5' UTR
+    tp53_insertion = Variant(
+        "17", 7676586, "GAG", "GAGT", ensembl_grch38)
+
+    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+    # Sequence of TP53 around boundary of 2nd/3rd codons
+    # with 6 context nucleotides:
+    #   start codon: ATG (translates to M)
+    #   2nd codon: GAG (translates to E)
+    #   <---- insertion variant occurs between these two codons
+    #   3rd codon: GAG
+    #   4th codon: CCG
+
+    result = \
+        sequence_key_with_reading_frame_for_variant_on_transcript(
+            variant=tp53_insertion,
+            transcript=tp53_001,
+            context_size=6)
+
+    expected = SequenceKeyWithReadingFrame(
+        strand="-",
+        sequence_before_variant_locus="ATGGAG",
+        sequence_at_variant_locus="",
+        sequence_after_variant_locus="GAGCCG",
+        offset_to_first_complete_codon=0,
+        contains_start_codon=True,
+        overlaps_start_codon=True,
+        contains_five_prime_utr=False,
+        amino_acids_before_variant="ME")
+    _check_equal_fields(result, expected)
+
+
+def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
+    # insert nucleotide "T" after second codon of TP53-001,
+    # but in this test we're going to only keep enough context to see
+    # a part of the start codon, thus the result shouldn't "contain"
+    # the start codon but does "overlap" it
+    tp53_insertion = Variant(
+        "17", 7676586, "GAG", "GAGT", ensembl_grch38)
+
+    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+    # Sequence of TP53 around boundary of 2nd/3rd codons
+    # with 6 context nucleotides:
+    #   last two nt of start codon: TG
+    #   2nd codon: GAG (translates to E)
+    #   <---- insertion variant occurs between these two codons
+    #   3rd codon: GAG
+    #   first two nt of 4th codon: CC
+
+    result = \
+        sequence_key_with_reading_frame_for_variant_on_transcript(
+            variant=tp53_insertion,
+            transcript=tp53_001,
+            context_size=5)
+
+    expected = SequenceKeyWithReadingFrame(
+        strand="-",
+        sequence_before_variant_locus="TGGAG",
+        sequence_at_variant_locus="",
+        sequence_after_variant_locus="GAGCC",
+        offset_to_first_complete_codon=2,
+        contains_start_codon=False,
+        overlaps_start_codon=True,
+        contains_five_prime_utr=False,
+        amino_acids_before_variant="E")
+    _check_equal_fields(result, expected)
+
+
+def test_sequence_key_with_reading_frame_insertion_context_3nt_no_start():
+    # insert nucleotide "T" after second codon of TP53-001,
+    # but in this test we're going to only keep enough context to see
+    # the second codon (and no nucleotides from the start)
+
+    tp53_insertion = Variant(
+        "17", 7676586, "GAG", "GAGT", ensembl_grch38)
+
+    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+    # Sequence of TP53 around boundary of 2nd/3rd codons
+    # with 6 context nucleotides:
+    #   2nd codon: GAG (translates to E)
+    #   <---- insertion variant occurs between these two codons
+    #   3rd codon: GAG
+
+    result = \
+        sequence_key_with_reading_frame_for_variant_on_transcript(
+            variant=tp53_insertion,
+            transcript=tp53_001,
+            context_size=3)
+
+    expected = SequenceKeyWithReadingFrame(
+        strand="-",
+        sequence_before_variant_locus="GAG",
+        sequence_at_variant_locus="",
+        sequence_after_variant_locus="GAG",
+        offset_to_first_complete_codon=0,
+        contains_start_codon=False,
+        overlaps_start_codon=False,
+        contains_five_prime_utr=False,
+        amino_acids_before_variant="E")
+    _check_equal_fields(result, expected)
