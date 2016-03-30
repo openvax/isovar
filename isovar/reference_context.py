@@ -13,10 +13,11 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple, OrderedDict
+from collections import namedtuple, OrderedDict, defaultdict
 
 from .logging import create_logger
 from .effect_prediction import reference_transcripts_for_variant
+from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 
 logger = create_logger(__name__)
 
@@ -48,7 +49,7 @@ SequenceKey = namedtuple(
 #
 # Includes all the fields of a SequenceKey, in addition to which variant we're
 # examining, all transcripts overlapping that variant which matched this
-# particular sequence context
+# particular sequence context.
 #
 ##########################
 
@@ -88,12 +89,12 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
 
     context_size : int
 
-    Returns tuple with the following fields:
+    Returns SequenceKey object with the following fields:
         - strand
-        - sequence before variant locus
-        - sequence at variant locus
-        - sequence after variant locus
-
+        - sequence_before_variant_locus
+        - sequence_at_variant_locus
+        - sequence_after_variant_locus
+    ]
     Can also return None if Transcript lacks start codon or sequence
     """
 
@@ -122,32 +123,28 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
                 variant))
         return None
 
-    start_codon_idx = min(transcript.start_codon_spliced_offsets)
-
-    variant_on_transcript_start, variant_on_transcript_end = \
+    # get the interbase range of offsets which capture all reference
+    # bases modified by the variant
+    variant_start_offset, variant_end_offset = \
         interbase_range_affected_by_variant_on_transcript(
             variant=variant,
             transcript=transcript)
+    print(variant_start_offset, variant_end_offset)
+    prefix = full_sequence[
+        max(0, variant_start_offset - context_size):
+        variant_start_offset]
 
-    if variant.is_insertion:
-        # insertions don't actually affect the base referred to
-        # by the start position of the variant, but rather the
-        # variant gets inserted *after* that position
-        context_sequence_end_idx = variant_on_transcript_start + 1
-    else:
-        # if not an insertion then the start offset of the variant
-        # should actually point to a modified reference nucleotide,
-        # so we should keep it as the upper bound of the "query" region
-        # of the variant sequence
-        context_sequence_end_idx = variant_on_transcript_start
+    suffix = full_sequence[
+        variant_end_offset:
+        variant_end_offset + context_size]
 
-    context_sequence_start_idx = max(
-        start_codon_idx, context_sequence_end_idx - context_size)
+    variant_nucleotides = full_sequence[variant_start_offset:variant_end_offset]
 
-    context_sequence_before_variant = full_sequences[
-        context_sequence_start_idx:context_sequence_end_idx]
-
-    n_ref_nucleotides_mutated = len(variant.ref)
+    return SequenceKey(
+        strand=transcript.strand,
+        sequence_before_variant_locus=prefix,
+        sequence_at_variant_locus=variant_nucleotides,
+        sequence_after_variant_locus=suffix)
 
 
 def reference_contexts_for_variant(
@@ -173,10 +170,24 @@ def reference_contexts_for_variant(
     sequence_groups = defaultdict(list)
 
     for transcript in transcripts:
-        sequence_key = sequence_around_variant_on_transcript(
+        sequence_key = sequence_key_for_variant_on_transcript(
             variant=variant,
             transcript=transcript,
             context_size=context_size)
+        if sequence_key is None:
+            logger.info("No sequence key for variant %s on transcript %s" % (
+                variant,
+                transcript))
+            continue
+        start_codon_idx = min(transcript.start_codon_spliced_offsets)
+
+        # get the interbase range of offsets which capture all reference
+        # bases modified by the variant
+        variant_start_offset, variant_end_offset = \
+            interbase_range_affected_by_variant_on_transcript(
+                variant=variant,
+                transcript=transcript)
+
 
 def reference_contexts_for_variants(
         variants,

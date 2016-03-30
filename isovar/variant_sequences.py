@@ -147,7 +147,8 @@ def variant_sequences_generator(
     min_reads : int
         Minimum number of reads supporting a particular sequence
 
-    Generator that yields pairs of variants and VariantSequences objects.
+    Generator that yields pairs of variants and sorted list of VariantSequence
+    objects.
     """
     for variant, variant_reads in variant_reads_generator(
             variants=variants,
