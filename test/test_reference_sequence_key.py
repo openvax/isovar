@@ -22,6 +22,21 @@ from varcode import Variant
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
+
+def _check_equal_fields(result, expected):
+    """
+    Assert that fields of two SequenceKey objects have
+    same field values.
+    """
+    for field in SequenceKey._fields:
+        result_value = getattr(result, field)
+        expected_value = getattr(expected, field)
+        assert result_value == expected_value, \
+            "Wrong value for '%s', expected %s but got %s" % (
+                field,
+                expected_value,
+                result_value)
+
 def test_sequence_key_for_variant_on_transcript_substitution():
     # rs769125639 is a simple T>A substitution in the 6th nucleotide of
     # BRCA2-001's 5' UTR
@@ -43,7 +58,7 @@ def test_sequence_key_for_variant_on_transcript_substitution():
         sequence_before_variant_locus=brca2_ref_seq[:5],
         sequence_at_variant_locus="T",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    eq_(sequence_key, expected_sequence_key)
+    _check_equal_fields(sequence_key, expected_sequence_key)
 
 
 def test_sequence_key_for_variant_on_transcript_deletion():
@@ -66,7 +81,7 @@ def test_sequence_key_for_variant_on_transcript_deletion():
         sequence_before_variant_locus=brca2_ref_seq[:5],
         sequence_at_variant_locus="T",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    eq_(sequence_key, expected_sequence_key)
+    _check_equal_fields(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_insertion():
     # Insert 'CCC' after the 6th nucleotide of BRCA2-001's 5' UTR
@@ -91,13 +106,14 @@ def test_sequence_key_for_variant_on_transcript_insertion():
         sequence_before_variant_locus=brca2_ref_seq[:6],
         sequence_at_variant_locus="",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    eq_(sequence_key, expected_sequence_key)
+    _check_equal_fields(sequence_key, expected_sequence_key)
 
 
 def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
-    # replace start codon of TP53-001 with 'CCC'
+    # Replace start codon of TP53-001 with 'CCC', however since this is on
+    # reverse strand the variant becomes "CAT">"GGG"
     tp53_substitution = Variant(
-        "17", 7676592, "CAT", "CCC", ensembl_grch38)
+        "17", 7676592, "CAT", "GGG", ensembl_grch38)
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around start codon with 10 context nucleotides:
     # In [51]: t.sequence[190-10:190+13]
@@ -115,7 +131,7 @@ def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
         sequence_before_variant_locus="GGTCACTGCC",
         sequence_at_variant_locus="ATG",
         sequence_after_variant_locus="GAGGAGCCGC")
-    eq_(sequence_key, expected_sequence_key)
+    _check_equal_fields(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
     # delete start codon of TP53-001, which in reverse complement means
@@ -139,7 +155,7 @@ def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
         sequence_before_variant_locus="GGTCACTGCC",
         sequence_at_variant_locus="ATG",
         sequence_after_variant_locus="GAGGAGCCGC")
-    eq_(sequence_key, expected_sequence_key)
+    _check_equal_fields(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
     # insert 'CCC' after start codon of TP53-001, which on the reverse
@@ -152,6 +168,10 @@ def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
     # Out[51]: 'GGTCACTGCC_ATG_GAGGAGCCGC'
     eq_(tp53_001.sequence[190 - 10:190 + 13], "GGTCACTGCCATGGAGGAGCCGC")
 
+    # The above gives us the cDNA sequence from the transcript, whereas the
+    # reverse complement genomic sequence is:
+    #    GCGGCTCCTC_CAT_GGCAGTGACC
+
     # get the 5 nucleotides before the variant and 10 nucleotides after
     sequence_key = sequence_key_for_variant_on_transcript(
         variant=tp53_insertion,
@@ -160,7 +180,7 @@ def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
 
     expected_sequence_key = SequenceKey(
         strand="-",
-        sequence_before_variant_locus="GGTCACTGCCATG",
+        sequence_before_variant_locus="CACTGCCATG",
         sequence_at_variant_locus="",
         sequence_after_variant_locus="GAGGAGCCGC")
-    eq_(sequence_key, expected_sequence_key)
+    _check_equal_fields(sequence_key, expected_sequence_key)

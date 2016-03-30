@@ -65,7 +65,9 @@ if __name__ == '__main__':
         ],
         install_requires=[
             'six',
-            'pysam >= 0.8.4'
+            'pysam >= 0.8.4',
+            'pandas',
+            'scikit-bio',
         ],
 
         long_description=readme,

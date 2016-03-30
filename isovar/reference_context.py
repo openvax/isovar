@@ -16,6 +16,7 @@ from __future__ import print_function, division, absolute_import
 from collections import namedtuple, OrderedDict, defaultdict
 
 import pandas as pd
+from skbio import DNA
 
 from .logging import create_logger
 from .effect_prediction import reference_transcripts_for_variant
@@ -90,6 +91,16 @@ ReferenceContext = namedtuple(
     SequenceKeyWithReadingFrame._fields + ("variant", "transcripts")
 )
 
+def variant_matches_reference_sequence(variant, ref_seq_on_transcript, strand):
+    """
+    Make sure that reference nucleotides we expect to see on the reference
+    transcript from a variant are the same ones we encounter.
+    """
+    if strand == "-":
+        ref_seq_on_transcript = str(
+            DNA(ref_seq_on_transcript).reverse_complement())
+
+    return ref_seq_on_transcript == variant.ref
 
 def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
     """
@@ -154,13 +165,17 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
 
     ref_nucleotides_at_variant = full_sequence[
         variant_start_offset:variant_end_offset]
-
-    if ref_nucleotides_at_variant != variant.ref:
+    if not variant_matches_reference_sequence(
+            variant=variant,
+            strand=transcript.strand,
+            ref_seq_on_transcript=ref_nucleotides_at_variant):
+        # TODO: once we're more confident about other logic in isovar,
+        # change this to a warning and return None to allow for modest
+        # differences between reference sequence patches, since
+        # GRCh38.p1 may differ at some positions from GRCh38.p5
         raise ValueError(
-            "Expected ref='%s' for variant %s but got '%s' on transcript %s" % (
-                variant.ref,
+            "Wrong reference sequence for variant %s on transcript %s" % (
                 variant,
-                ref_nucleotides_at_variant,
                 transcript))
     return SequenceKey(
         strand=transcript.strand,
