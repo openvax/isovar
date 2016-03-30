@@ -44,10 +44,14 @@ def _check_equal_fields(result, expected):
 
 
 def test_sequence_key_with_reading_frame_substitution_with_five_prime_utr():
-    # replace second codon of TP53-001 with 'CCC'
+    # Replace second codon of TP53-001 with 'CCC', the surrounding context
+    # includes nucleotides from the 5' UTR. Since TP53 is on the negative
+    # strand we have to take the reverse complement of the variant which turns
+    # it into CTC>GGG
     tp53_substitution = Variant(
-        "17", 7676589, "GAG", "CCC", ensembl_grch38)
+        "17", 7676589, "CTC", "GGG", ensembl_grch38)
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+
     # Sequence of TP53 around second codon with 10 context nucleotides:
     # In [51]: t.sequence[193-10:193+13]
     # Out[51]: 'CACTGCCATGGAGGAGCCGCAGT'
@@ -77,10 +81,14 @@ def test_sequence_key_with_reading_frame_substitution_with_five_prime_utr():
     _check_equal_fields(result, expected)
 
 def test_sequence_key_with_reading_frame_deletion_with_five_prime_utr():
-    # delete second codon of TP53-001
+    # Delete second codon of TP53-001, the surrounding context
+    # includes nucleotides from the 5' UTR. Since TP53 is on the negative
+    # strand we have to take the reverse complement of the variant which turns
+    # it into 'CTC'>''
     tp53_deletion = Variant(
-        "17", 7676589, "GAG", "", ensembl_grch38)
+        "17", 7676589, "CTC", "", ensembl_grch38)
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+
     # Sequence of TP53 around second codon with 10 context nucleotides:
     # In [51]: t.sequence[193-10:193+13]
     # Out[51]: 'CACTGCCATGGAGGAGCCGCAGT'
@@ -111,10 +119,13 @@ def test_sequence_key_with_reading_frame_deletion_with_five_prime_utr():
     _check_equal_fields(result, expected)
 
 
-def test_sequence_key_with_reading_frame_insertion_with_five_prime_utr():
-    # insert nucleotide "T" after second codon of TP53-001
+def test_sequence_key_with_reading_frame_insertion():
+    # Insert nucleotide "T" after second codon of TP53-001, the
+    # surrounding context includes nucleotides from the 5' UTR. Since TP53 is on
+    # the negative strand we have to take the reverse complement of the variant
+    # which turns it into 'CTC'>'CTCA'
     tp53_insertion = Variant(
-        "17", 7676586, "GAG", "GAGT", ensembl_grch38)
+        "17", 7676586, "CTC", "CTCA", ensembl_grch38)
 
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around boundary of 2nd/3rd codons
@@ -148,9 +159,10 @@ def test_sequence_key_with_reading_frame_insertion_with_five_prime_utr():
 
 def test_sequence_key_with_reading_frame_insertion_inside_start_codon():
     # insert nucleotide "C" in the middle of the start codon of TP53-001,
-    # keeping only 1 nucleotide of context
+    # keeping only 1 nucleotide of context. In the reverse complement this
+    # becomes 'T'>'TG'
     tp53_insertion = Variant(
-        "17", 7676592, "A", "AC", ensembl_grch38)
+        "17", 7676592, "T", "TG", ensembl_grch38)
 
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
 
@@ -176,11 +188,12 @@ def test_sequence_key_with_reading_frame_insertion_before_start_codon():
 
 
 def test_sequence_key_with_reading_frame_insertion_context_6nt_contains_start():
-    # insert nucleotide "T" after second codon of TP53-001,
+    # Insert nucleotide "T" after second codon of TP53-001,
     # but in this test we're going to only keep enough context to see
-    # the start codon but none of the 5' UTR
+    # the start codon but none of the 5' UTR. In the reverse complement this
+    # variant becomes CTC>CTCA
     tp53_insertion = Variant(
-        "17", 7676586, "GAG", "GAGT", ensembl_grch38)
+        "17", 7676586, "CTC", "CTCA", ensembl_grch38)
 
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around boundary of 2nd/3rd codons
@@ -211,12 +224,13 @@ def test_sequence_key_with_reading_frame_insertion_context_6nt_contains_start():
 
 
 def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
-    # insert nucleotide "T" after second codon of TP53-001,
+    # Insert nucleotide "T" after second codon of TP53-001,
     # but in this test we're going to only keep enough context to see
     # a part of the start codon, thus the result shouldn't "contain"
-    # the start codon but does "overlap" it
+    # the start codon but does "overlap" it. In the reverse complement
+    # this variant becomes CTC>CTCA
     tp53_insertion = Variant(
-        "17", 7676586, "GAG", "GAGT", ensembl_grch38)
+        "17", 7676586, "CTC", "CTCA", ensembl_grch38)
 
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around boundary of 2nd/3rd codons
@@ -247,12 +261,13 @@ def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
 
 
 def test_sequence_key_with_reading_frame_insertion_context_3nt_no_start():
-    # insert nucleotide "T" after second codon of TP53-001,
+    # Insert nucleotide "T" after second codon of TP53-001,
     # but in this test we're going to only keep enough context to see
-    # the second codon (and no nucleotides from the start)
+    # the second codon (and no nucleotides from the start). In the reverse
+    # complement this variant becomes CTC>CTCA.
 
     tp53_insertion = Variant(
-        "17", 7676586, "GAG", "GAGT", ensembl_grch38)
+        "17", 7676586, "CTC", "CTCA", ensembl_grch38)
 
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around boundary of 2nd/3rd codons

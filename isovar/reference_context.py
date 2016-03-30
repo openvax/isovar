@@ -137,6 +137,7 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
         interbase_range_affected_by_variant_on_transcript(
             variant=variant,
             transcript=transcript)
+
     logger.info("Interbase offset range on %s for variant %s = %d:%d" % (
         transcript,
         variant,
@@ -151,12 +152,20 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
         variant_end_offset:
         variant_end_offset + context_size]
 
-    variant_nucleotides = full_sequence[variant_start_offset:variant_end_offset]
+    ref_nucleotides_at_variant = full_sequence[
+        variant_start_offset:variant_end_offset]
 
+    if ref_nucleotides_at_variant != variant.ref:
+        raise ValueError(
+            "Expected ref='%s' for variant %s but got '%s' on transcript %s" % (
+                variant.ref,
+                variant,
+                ref_nucleotides_at_variant,
+                transcript))
     return SequenceKey(
         strand=transcript.strand,
         sequence_before_variant_locus=prefix,
-        sequence_at_variant_locus=variant_nucleotides,
+        sequence_at_variant_locus=ref_nucleotides_at_variant,
         sequence_after_variant_locus=suffix)
 
 

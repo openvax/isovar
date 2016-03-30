@@ -97,7 +97,7 @@ def test_sequence_key_for_variant_on_transcript_insertion():
 def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
     # replace start codon of TP53-001 with 'CCC'
     tp53_substitution = Variant(
-        "17", 7676592, "GTA", "CCC", ensembl_grch38)
+        "17", 7676592, "CAT", "CCC", ensembl_grch38)
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around start codon with 10 context nucleotides:
     # In [51]: t.sequence[190-10:190+13]
@@ -118,9 +118,10 @@ def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
     eq_(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
-    # replace start codon of TP53-001 with 'CCC'
+    # delete start codon of TP53-001, which in reverse complement means
+    # deleting the sequence "CAT"
     tp53_deletion = Variant(
-        "17", 7676592, "GTA", "", ensembl_grch38)
+        "17", 7676592, "CAT", "", ensembl_grch38)
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around start codon with 10 context nucleotides:
     # In [51]: t.sequence[190-10:190+13]
@@ -141,9 +142,10 @@ def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
     eq_(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
-    # replace start codon of TP53-001 with 'CCC'
+    # insert 'CCC' after start codon of TP53-001, which on the reverse
+    # complement means inserting "GGG" between "CTC_CAT"
     tp53_insertion = Variant(
-        "17", 7676592, "GTA", "", ensembl_grch38)
+        "17", 7676589, "CTC", "CTCGGG", ensembl_grch38)
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around start codon with 10 context nucleotides:
     # In [51]: t.sequence[190-10:190+13]
@@ -158,7 +160,7 @@ def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
 
     expected_sequence_key = SequenceKey(
         strand="-",
-        sequence_before_variant_locus="GGTCACTGCC",
-        sequence_at_variant_locus="ATG",
+        sequence_before_variant_locus="GGTCACTGCCATG",
+        sequence_at_variant_locus="",
         sequence_after_variant_locus="GAGGAGCCGC")
     eq_(sequence_key, expected_sequence_key)

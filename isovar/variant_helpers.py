@@ -123,7 +123,6 @@ def base0_interval_for_variant(variant):
         ref=ref,
         alt=alt)
 
-
 def interbase_range_affected_by_variant_on_transcript(variant, transcript):
     """
     Convert from a variant's position in global genomic coordinates on the
