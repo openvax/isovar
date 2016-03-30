@@ -15,6 +15,8 @@
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple, OrderedDict, defaultdict
 
+import pandas as pd
+
 from .logging import create_logger
 from .effect_prediction import reference_transcripts_for_variant
 from .variant_helpers import interbase_range_affected_by_variant_on_transcript
@@ -44,35 +46,37 @@ SequenceKey = namedtuple(
 
 ##########################
 #
-# ReferenceContext
-# ----------------
+# SequenceKeyWithReadingFrame
+# ---------------------------
 #
-# Includes all the fields of a SequenceKey, in addition to which variant we're
-# examining, all transcripts overlapping that variant which matched this
-# particular sequence context.
+# Includes all the fields of a SequenceKey, but also includes a reading frame
+# at the start of the reference sequence.
+#
 #
 ##########################
 
-ReferenceContext = namedtuple(
-    "ReferenceContext", SequenceKey._fields + ("variant", "transcripts")
+SequenceKeyWithReadingFrame = namedtuple(
+    "ReferenceContext", SequenceKey._fields + (
+        "reading_frame",
+        "offset_to_first_codon"
+    )
 )
 
 
 ##########################
 #
-# ReferenceContextWithORF
+# ReferenceContext
 # ----------------
 #
-# Same fields as ReferenceContext but also includes a reading frame at the
-# start of the reference sequence.
+# Includes all the fields of SequenceKeyWithReadingFrame in addition to which
+# variant we're examining and all transcripts overlapping that variant
+# which produced this particular sequence context and reading frame.
 #
 ##########################
 
-ReferenceContextWithORF = namedtuple(
-    "ReferenceContextWithORF", ReferenceContext._fields + (
-        "reading_frame_start_of_sequence",
-        "first_codon_offset"
-    )
+ReferenceContext = namedtuple(
+    "ReferenceContext",
+    SequenceKeyWithReadingFrame._fields + ("variant", "transcripts")
 )
 
 
@@ -94,8 +98,8 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
         - sequence_before_variant_locus
         - sequence_at_variant_locus
         - sequence_after_variant_locus
-    ]
-    Can also return None if Transcript lacks start codon or sequence
+
+    Can also return None if Transcript lacks sufficiently long sequence
     """
 
     full_sequence = transcript.sequence
@@ -114,13 +118,6 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
                 transcript,
                 variant,
                 len(full_sequence)))
-        return None
-
-    if not transcript.contains_start_codon:
-        logger.warn(
-            "Expected transcript %s (overlapping %s)to have start codon" % (
-                transcript,
-                variant))
         return None
 
     # get the interbase range of offsets which capture all reference
@@ -147,6 +144,136 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
         sequence_after_variant_locus=suffix)
 
 
+def reading_frame_to_offset(reading_frame_at_start_of_sequence):
+    """
+    Given a reading frame (how many nucleotides into a codon) at the
+    start of a cDNA sequence, return the number of nucleotides which need
+    to be trimmed to start on a complete codon.
+
+    Parameters
+    ----------
+
+    reading_frame_at_start_of_sequence : int
+
+    Returns an int
+    """
+    if reading_frame_at_start_of_sequence < 0:
+        raise ValueError("Reading frame can't be negative: %d" % (
+            reading_frame_at_start_of_sequence,))
+    elif reading_frame_at_start_of_sequence > 2:
+        raise ValueError("Reading frame must be within 0 and 2, not %d" % (
+            reading_frame_at_start_of_sequence,))
+    # If we're 1 nucleotide into the codon then we need to shift
+    # over two more to restore the ORF. Likewise, if we're 2 nucleotides in
+    # then we have to shift over one more.
+    return (3 - reading_frame_at_start_of_sequence) % 3
+
+
+def sequence_key_with_reading_frame_for_variant_on_transcript(
+        variant,
+        transcript,
+        context_size):
+    """
+    Extracts the reference sequence around a variant locus on a particular
+    transcript and determines the reading frame at the start of that
+    sequence context.
+
+    Parameters
+    ----------
+    variant : varcode.Variant
+
+    transcript : pyensembl.Transcript
+
+    context_size : int
+
+    Returns SequenceKeyWithReadingFrame object with the following fields:
+        - strand
+        - sequence_before_variant_locus
+        - sequence_at_variant_locus
+        - sequence_after_variant_locus
+        - reading_frame
+        - offset_to_first_codon
+
+    Can also return None if Transcript lacks sufficiently long sequence or
+    annotated start/stop codons.
+    """
+    if not transcript.contains_start_codon:
+        logger.info(
+            "Expected transcript %s for variant %s to have start codon" % (
+                transcript,
+                variant))
+        return None
+
+    if not transcript.contains_stop_codon:
+        logger.info(
+            "Expected transcript %s for variant %s to have stop codon" % (
+                transcript,
+                variant))
+        return None
+
+    sequence_key = sequence_key_for_variant_on_transcript(
+        variant=variant,
+        transcript=transcript,
+        context_size=context_size)
+
+    if sequence_key is None:
+        logger.info("No sequence key for variant %s on transcript %s" % (
+            variant,
+            transcript))
+        return None
+
+    # get the interbase range of offsets which capture all reference
+    # bases modified by the variant
+    variant_start_offset, variant_end_offset = \
+        interbase_range_affected_by_variant_on_transcript(
+            variant=variant,
+            transcript=transcript)
+
+    start_codon_idx = min(transcript.start_codon_spliced_offsets)
+
+    # skip any variants which occur in the 5' UTR or overlap the start codon
+    # since
+    #   (1) UTR variants have unclear coding effects and
+    #   (2) start-loss variants may result in a new start codon / reading
+    #       frame but we're not sure which one!
+    if variant_start_offset <= start_codon_idx + 3:
+        logger.info(
+            "Skipping transcript %s for variant %s, must be after start codon" % (
+                transcript,
+                variant))
+        return None
+
+    stop_codon_idx = min(transcript.stop_codon_spliced_offsets)
+
+    # skip variants which affect the 3' UTR of the transcript since
+    # they don't have obvious coding effects on the protein sequence
+    if variant_start_offset >= stop_codon_idx + 3:
+        logger.info(
+            "Skipping transcript %s for variant %s, occurs in 3' UTR" % (
+                transcript,
+                variant))
+        return None
+
+    n_prefix = len(sequence_key.sequence_before_variant_locus)
+    prefix_start_idx = variant_start_offset - n_prefix
+
+    reading_frame = (prefix_start_idx - start_codon_idx) % 3
+    offset_to_first_codon = reading_frame_to_offset(reading_frame)
+    return SequenceKeyWithReadingFrame(
+        strand=sequence_key.strand,
+        sequence_before_variant_locus=sequence_key.sequence_before_variant_locus,
+        sequence_at_variant_locus=sequence_key.sequence_at_variant_locus,
+        sequence_after_variant_locus=sequence_key.sequence_after_variant_locus,
+        reading_frame=reading_frame,
+        offset_to_first_codon=offset_to_first_codon)
+
+def sort_key_decreasing_max_length_transcript_cds(reference_context):
+    """
+    Used to sort a sequence of ReferenceContext objects by the longest CDS
+    in each context's list of transcripts.
+    """
+    return -max(len(t.coding_sequence) for t in reference_context.transcripts)
+
 def reference_contexts_for_variant(
         variant,
         context_size,
@@ -161,33 +288,40 @@ def reference_contexts_for_variant(
     transcript_id_whitelist : set, optional
         If given, then only consider transcripts whose IDs are in this set.
 
-    Returns set of ReferenceContext objects.
+    Returns list of ReferenceContext objects, sorted by maximum length of
+    coding sequence of any supporting transcripts.
     """
-    transcripts = reference_transcripts_for_variant(
+    overlapping_transcripts = reference_transcripts_for_variant(
         variant=variant,
         transcript_id_whitelist=transcript_id_whitelist)
 
+    # dictionary mapping SequenceKeyWithReadingFrame keys to list of
+    # transcript objects
     sequence_groups = defaultdict(list)
 
-    for transcript in transcripts:
-        sequence_key = sequence_key_for_variant_on_transcript(
-            variant=variant,
-            transcript=transcript,
-            context_size=context_size)
-        if sequence_key is None:
-            logger.info("No sequence key for variant %s on transcript %s" % (
-                variant,
-                transcript))
-            continue
-        start_codon_idx = min(transcript.start_codon_spliced_offsets)
-
-        # get the interbase range of offsets which capture all reference
-        # bases modified by the variant
-        variant_start_offset, variant_end_offset = \
-            interbase_range_affected_by_variant_on_transcript(
+    for transcript in overlapping_transcripts:
+        sequence_key_with_reading_frame = \
+            sequence_key_with_reading_frame_for_variant_on_transcript(
                 variant=variant,
-                transcript=transcript)
+                transcript=transcript,
+                context_size=context_size)
+        if sequence_key_with_reading_frame is not None:
+            sequence_groups[sequence_key_with_reading_frame].append(transcript)
 
+    reference_contexts = [
+        ReferenceContext(
+            strand=sequence_key.strand,
+            sequence_before_variant_locus=sequence_key.sequence_before_variant_locus,
+            sequence_at_variant_locus=sequence_key.sequence_at_variant_locus,
+            sequence_after_variant_locus=sequence_key.sequence_after_variant_locus,
+            reading_frame=sequence_key.reading_frame,
+            offset_to_first_codon=sequence_key.offset_to_first_codon,
+            variant=variant,
+            transcripts=matching_transcripts)
+        for (sequence_key, matching_transcripts) in sequence_groups.items()
+    ]
+    reference_contexts.sort(key=sort_key_decreasing_max_length_transcript_cds)
+    return reference_contexts
 
 def reference_contexts_for_variants(
         variants,
@@ -203,7 +337,8 @@ def reference_contexts_for_variants(
     transcript_id_whitelist : set, optional
         If given, then only consider transcripts whose IDs are in this set.
 
-    Returns a dictionary from variants to sets of ReferenceContext objects.
+    Returns a dictionary from variants to lists of ReferenceContext objects,
+    sorted by max coding sequence length of any transcript.
     """
     result = OrderedDict()
     for variant in variants:
@@ -235,48 +370,25 @@ def variants_to_reference_contexts_dataframe(
     Returns a DataFrame with {"chr", "pos", "ref", "alt"} columns for variants,
     as well as all the fields of ReferenceContext.
     """
-    pass
+    columns = [
+        ("chr", []),
+        ("pos", []),
+        ("ref", []),
+        ("alt", []),
+    ]
+    for field in ReferenceContext._fields:
+        columns.append((field, []))
+    columns_dict = OrderedDict(columns)
 
-def reading_frame_to_offset(reading_frame_at_start_of_sequence):
-    """
-    Given a reading frame (how many nucleotides into a codon) at the
-    start of a cDNA sequence, return the number of nucleotides which need
-    to be trimmed to start on a complete codon.
+    for variant, reference_context in reference_contexts_for_variants(
+            variants=variants,
+            context_size=context_size,
+            transcript_id_whitelist=transcript_id_whitelist):
+        columns_dict["chr"].append(variant.contig)
+        columns_dict["pos"].append(variant.original_start)
+        columns_dict["ref"].append(variant.original_ref)
+        columns_dict["alt"].append(variant.original_alt)
+        for field in ReferenceContext._fields:
+            columns_dict[field].append(getattr(reference_context, field))
 
-    Parameters
-    ----------
-
-    reading_frame_at_start_of_sequence : int
-
-    Returns an int
-    """
-    if reading_frame_at_start_of_sequence < 0:
-        raise ValueError("Reading frame can't be negative: %d" % (
-            reading_frame_at_start_of_sequence,))
-    elif reading_frame_at_start_of_sequence > 2:
-        raise ValueError("Reading frame must be within 0 and 2, not %d" % (
-            reading_frame_at_start_of_sequence,))
-    # If we're 1 nucleotide into the codon then we need to shift
-    # over two more to restore the ORF. Likewise, if we're 2 nucleotides in
-    # then we have to shift over one more.
-    return (3 - reading_frame_at_start_of_sequence) % 3
-
-def split_reference_context_by_reading_frames(reference_context):
-    """
-    Converts a single ReferenceContext into potentially multiple
-    ReferenceContextWithReadingFrame objects.
-
-    Parameters
-    ----------
-    reference_context : ReferenceContext
-
-    A ReferenceContext conatains a reference cDNA sequence around a variant
-    locus which is possibly shared by multiple transcript. However, there is a
-    small possibility that the transcripts don't agree on the reading frame
-    at the start of the sequence.
-
-    To make sure we don't run into any strange edge-cases, we use this function
-    to split a single ReferenceContext into potentially multiple
-    ReferenceContext objects with disjoint sets of transcripts.
-    """
-    pass
+    return pd.DataFrame(columns_dict)
