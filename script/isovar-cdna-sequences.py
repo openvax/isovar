@@ -75,7 +75,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print(args)
-    
+
     variants = varcode.load_vcf(
         args.vcf,
         genome=args.genome)

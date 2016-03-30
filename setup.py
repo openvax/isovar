@@ -14,6 +14,7 @@ from __future__ import (absolute_import,)
 
 import os
 import logging
+import re
 
 from setuptools import setup
 
@@ -34,10 +35,20 @@ except:
     logging.warn("Conversion of long_description from MD to RST failed")
     pass
 
+
+with open('isovar/__init__.py', 'r') as f:
+    version = re.search(
+        r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+        f.read(),
+        re.MULTILINE).group(1)
+
+if not version:
+    raise RuntimeError("Cannot find version information")
+
 if __name__ == '__main__':
     setup(
         name='isovar',
-        version="0.0.1",
+        version=version,
         description="Assemble transcript sequences fragments near variants",
         author="Alex Rubinsteyn and Arman Aksoy",
         author_email="alex {dot} rubinsteyn {at} mssm {dot} edu",
@@ -60,8 +71,11 @@ if __name__ == '__main__':
         long_description=readme,
         packages=['isovar'],
         scripts=[
+            "script/isovar-translate-variants.py",
             "script/isovar-find-matching-transcripts.py",
             "script/isovar-translate-all-frames.py",
-            "script/isovar-translate-variants.py",
+            "script/isovar-reference-contexts.py",
+            "script/isovar-reads.py",
+            "script/isovar-cdna_sequences.py",
         ],
     )
