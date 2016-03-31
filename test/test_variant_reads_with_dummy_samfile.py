@@ -46,6 +46,18 @@ class DummySamFile(object):
         for i in range(start, end + 1):
             yield DummyPileupColumn(pos=i + 1, reads=self.reads)
 
+def make_read(seq, cigar, mdtag=None, name="dummy", mapq=10, baseq=30):
+    read = pysam.AlignedSegment()
+    read.seq = seq
+    read.cigarstring = cigar
+    if mdtag:
+        read.set_tag("MD", mdtag)
+    read.qname = name
+    read.mapq = mapq
+    read.qual = bytes(
+        pysam.qualities_to_qualitystring([baseq] * len(seq)), 'ascii')
+    return read
+
 def test_partitioned_read_sequences_snv():
     """
     test_partitioned_read_sequences_snv : Test that read gets correctly
@@ -61,10 +73,7 @@ def test_partitioned_read_sequences_snv():
     variant = Variant(
         chromosome, location, ref, alt, normalize_contig_name=False)
 
-    read = pysam.AlignedSegment()
-    read.seq = "ACCGTG"
-    read.cigarstring = "6M"
-    read.set_tag("MD", "3G2")
+    read = make_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
 
     samfile = DummySamFile(reads=[read])
     seq_parts = gather_reads_for_single_variant(
@@ -91,10 +100,7 @@ def test_partitioned_read_sequences_insertion():
     variant = Variant(
         chromosome, location, ref, alt, normalize_contig_name=False)
 
-    read = pysam.AlignedSegment()
-    read.seq = "ACCTGTG"
-    read.cigarstring = "4M1I2M"
-    read.set_tag("MD", "6")
+    read = make_read(seq="ACCTGTG", cigar="4M1I2M", mdtag="6")
 
     samfile = DummySamFile(reads=[read])
     seq_parts = gather_reads_for_single_variant(
@@ -121,10 +127,7 @@ def test_partitioned_read_sequences_deletion():
     variant = Variant(
         chromosome, location, ref, alt, normalize_contig_name=False)
 
-    read = pysam.AlignedSegment()
-    read.seq = "ACCTG"
-    read.cigarstring = "4M1D1M"
-    read.set_tag("MD", "4^T1")
+    read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
     samfile = DummySamFile(reads=[read])
     seq_parts = gather_reads_for_single_variant(

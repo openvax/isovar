@@ -18,10 +18,9 @@ from collections import namedtuple, defaultdict, OrderedDict
 
 import pandas as pd
 
-from .variant_sequences import variant_sequences_generator
 from .logging import create_logger
 from .reference_context import ReferenceContext
-from .variant_sequence import VariantSequence
+from .variant_sequence import variant_sequences_generator, VariantSequence
 
 logger = create_logger(__name__)
 

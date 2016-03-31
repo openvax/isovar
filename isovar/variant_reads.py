@@ -25,7 +25,7 @@ from pandas import DataFrame
 
 from .overlapping_reads import gather_overlapping_reads
 from .logging import create_logger
-from .variant_helpers import base0_interval_for_variant_fields, trim_variant
+from .variant_helpers import trim_variant
 
 logger = create_logger(__name__)
 
@@ -52,49 +52,83 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
     """
     for read in overlapping_reads:
         reference_positions = read.reference_positions
-        offset = read.locus_offset
+        start_offset, end_offset = read.locus_start, read.locus_end
+
         sequence = read.sequence
-        print(reference_positions, offset, sequence)
+
+        #################
+        #
+        # INSERTIONS
+        #
+        #################
         if len(ref) == 0:
+
+            if len(reference_positions) < end_offset + 1:
+                # if we can't check the base after the inserted nucleotides
+                logger.debug(
+                    "Skipping read, can't get reference position after insertion")
+                continue
+            elif start_offset == 0:
+                # if we can't check the base before the variant, also skip the read
+                logger.debug(
+                    "Skipping read, can't get reference position before insertion")
+                continue
+
             # insertions require a sequence of non-aligned bases
             # followed by the subsequence reference position
-            if len(reference_positions) < offset + len(alt) + 1:
-                continue
-            ref_pos = reference_positions[offset]
-            insert_positions = reference_positions[offset + 1:offset + len(alt)]
+            insert_positions = reference_positions[start_offset:end_offset + 1]
             if any(insert_pos is not None for insert_pos in insert_positions):
                 # all these inserted nucleotides should *not* align to the
                 # reference
+                logger.debug(
+                    "Skipping read, inserted nucleotides shouldn't map to reference")
                 continue
-            next_ref_pos = reference_positions[offset + 1]
-            if next_ref_pos != ref_pos + 1:
+            ref_pos_before_insertion = reference_positions[start_offset - 1]
+            ref_pos_after_insertion = reference_positions[end_offset + 1]
+            if ref_pos_after_insertion != ref_pos_before_insertion + 1:
+                logger.debug(
+                    "Skipping read, positions before+after insertion should be adjacent")
                 continue
-            prefix = sequence[:offset + 1]
-            suffix = sequence[offset + len(alt) + 1:]
+            prefix = sequence[:start_offset]
+            suffix = sequence[end_offset + 1:]
+        ###################
+        #
+        # DELETIONS
+        #
+        ###################
         elif len(alt) == 0:
-            if len(reference_positions) < offset + 2:
-                # if we're missing the position after the deletion then
-                # skip this read
-                continue
-            ref_pos_before = reference_positions[offset]
-            ref_pos_after = reference_positions[offset + 1]
-            if ref_pos_after - ref_pos_before - 1 != len(ref):
+            # the meaning of the locus is different for deletions, since
+            # these offsets point to the bases before and after the deleted
+            # nucleotides
+
+            ref_pos_before = reference_positions[start_offset]
+            ref_pos_after = reference_positions[end_offset]
+
+            if ref_pos_after - ref_pos_before != len(ref):
                 # if the number of nucleotides skipped isn't the same
                 # as the number deleted in the variant then
                 # don't use this read
+                logger.debug("Positions before and after deletion should be adjacent")
                 continue
-            prefix = sequence[:offset + 1]
-            suffix = sequence[offset + 1:]
+            # capture the prefix sequence including the base before the deletion
+            prefix = sequence[:start_offset + 1]
+            # capture the suffix sequence including the base after the deletion
+            suffix = sequence[end_offset:]
+        ###################
+        #
+        # SUBSTITUTIONS
+        #
+        ###################
         else:
             # deletions and substitutions work similarly, we just need
             # all the reference bases to be adjacently aligned
-            ref_pos_start = reference_positions[offset]
-            ref_pos_end = reference_positions[offset + len(ref)]
+            ref_pos_start = reference_positions[start_offset]
+            ref_pos_end = reference_positions[end_offset]
             if ref_pos_end - ref_pos_start != len(ref):
+                logger.debug("Positions before and after substitution should be adjacent")
                 continue
-            prefix = sequence[:offset]
-            suffix = sequence[offset + len(ref):]
-            print(ref_pos_start, ref_pos_end, prefix, suffix)
+            prefix = sequence[:start_offset]
+            suffix = sequence[end_offset + 1:]
         if isinstance(prefix, bytes):
             prefix = str(prefix, "ascii")
         if isinstance(suffix, bytes):
@@ -125,27 +159,13 @@ def gather_reads_for_single_variant(
         variant,
         chromosome))
 
-    base1_location, ref, alt = trim_variant(variant)
-
-    variant_base0_start, variant_base0_end = base0_interval_for_variant_fields(
-        base1_location=base1_location,
-        ref=ref,
-        alt=alt)
-
-    # we need to check the two adjacent nucleotides to make sure that the alt
-    # nucleotides are in the right context
-    wider_base0_start = variant_base0_start - 1
-    wider_base0_end = variant_base0_end + 1
-
-    # TODO: figure out how to reconcile the widened coordinates with
-    # needing to tell variant_reads_from_overlapping_reads about
-    # which position is actually a variant.
+    base1_position, ref, alt = trim_variant(variant)
     overlapping_reads = list(gather_overlapping_reads(
         samfile=samfile,
         chromosome=chromosome,
-        base0_start=wider_base0_start,
-        base0_end=wider_base0_end,
-        is_del=variant.is_deletion))
+        base1_position=base1_position,
+        n_bases=len(ref),
+        is_deletion=variant.is_deletion))
     logger.info("Overlapping reads: %s" % (overlapping_reads,))
     variant_reads = list(
         variant_reads_from_overlapping_reads(
