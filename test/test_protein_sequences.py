@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 from pysam import AlignmentFile
 from varcode import load_vcf
-from isovar.protein_sequences import translate_variants
+from isovar.protein_sequence import translate_variants
 
 VCF = "data/CELSR1/vcfs/vcf_1.vcf"
 

@@ -53,6 +53,7 @@ def gather_overlapping_reads(
         - offset of the locus within the read
 
     """
+    print(base0_start, base0_end, is_del)
     base1_start = base0_start + 1
     # Let pysam pileup the reads covering our location of interest for us
     for column in samfile.pileup(

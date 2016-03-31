@@ -54,6 +54,7 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
         reference_positions = read.reference_positions
         offset = read.locus_offset
         sequence = read.sequence
+        print(reference_positions, offset, sequence)
         if len(ref) == 0:
             # insertions require a sequence of non-aligned bases
             # followed by the subsequence reference position
@@ -93,6 +94,7 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
                 continue
             prefix = sequence[:offset]
             suffix = sequence[offset + len(ref):]
+            print(ref_pos_start, ref_pos_end, prefix, suffix)
         if isinstance(prefix, bytes):
             prefix = str(prefix, "ascii")
         if isinstance(suffix, bytes):
@@ -135,17 +137,23 @@ def gather_reads_for_single_variant(
     wider_base0_start = variant_base0_start - 1
     wider_base0_end = variant_base0_end + 1
 
-    overlapping_reads = gather_overlapping_reads(
+    # TODO: figure out how to reconcile the widened coordinates with
+    # needing to tell variant_reads_from_overlapping_reads about
+    # which position is actually a variant.
+    overlapping_reads = list(gather_overlapping_reads(
         samfile=samfile,
         chromosome=chromosome,
         base0_start=wider_base0_start,
         base0_end=wider_base0_end,
-        is_del=variant.is_deletion)
-    return list(
+        is_del=variant.is_deletion))
+    logger.info("Overlapping reads: %s" % (overlapping_reads,))
+    variant_reads = list(
         variant_reads_from_overlapping_reads(
             overlapping_reads=overlapping_reads,
             ref=ref,
             alt=alt))
+    logger.info("Variant reads: %s" % (variant_reads,))
+    return variant_reads
 
 def variant_reads_generator(variants, samfile):
     """

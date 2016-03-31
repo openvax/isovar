@@ -90,7 +90,6 @@ def base0_interval_for_variant_fields(base1_location, ref, alt):
     alt : str
         Alternative nucleotides
     """
-    print(ref, alt, base1_location)
     if len(ref) == 0:
         # in interbase coordinates, the insertion happens
         # at the same start/end offsets, since those are already between

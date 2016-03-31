@@ -18,7 +18,7 @@ from nose.tools import eq_
 from pysam import AlignmentFile
 import skbio
 from varcode import Variant
-from isovar.variant_sequences import variant_reads_to_sequences
+from isovar.variant_sequence import variant_reads_to_sequences
 from isovar.variant_reads import gather_reads_for_single_variant
 
 
