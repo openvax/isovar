@@ -78,6 +78,6 @@ if __name__ == '__main__':
             "script/isovar-translate-all-frames.py",
             "script/isovar-reference-contexts.py",
             "script/isovar-reads.py",
-            "script/isovar-cdna_sequences.py",
+            "script/isovar-cdna-sequences.py",
         ],
     )
