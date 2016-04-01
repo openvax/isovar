@@ -15,48 +15,10 @@
 from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
-import pysam
 from varcode import Variant
 from isovar.variant_reads import gather_reads_for_single_variant
 
-class DummyPileupElement(object):
-    def __init__(self, alignment, is_refskip, is_del):
-        self.alignment = alignment
-        self.is_del = is_del
-        self.is_refskip = is_refskip
-
-class DummyPileupColumn(object):
-    def __init__(self, pos, reads, is_del=False, is_refskip=False):
-        self.pos = pos
-        self.pileups = [
-            DummyPileupElement(read, is_del=is_del, is_refskip=is_refskip)
-            for read in reads]
-
-class DummySamFile(object):
-    """
-    Used instead of real AlignmentFile objects for test.
-    """
-    def __init__(self, reads):
-        self.reads = reads
-
-    def fetch(self, *args, **kwargs):
-        return self.reads
-
-    def pileup(self, chromosome, start, end):
-        for i in range(start, end + 1):
-            yield DummyPileupColumn(pos=i + 1, reads=self.reads)
-
-def make_read(seq, cigar, mdtag=None, name="dummy", mapq=10, baseq=30):
-    read = pysam.AlignedSegment()
-    read.seq = seq
-    read.cigarstring = cigar
-    if mdtag:
-        read.set_tag("MD", mdtag)
-    read.qname = name
-    read.mapq = mapq
-    read.qual = bytes(
-        pysam.qualities_to_qualitystring([baseq] * len(seq)), 'ascii')
-    return read
+from mock_read_data import DummySamFile, make_read
 
 def test_partitioned_read_sequences_snv():
     """
@@ -91,6 +53,7 @@ def test_partitioned_read_sequences_insertion():
     test_partitioned_read_sequences_insertion : Test that read gets correctly
     partitioned for chr1:4 T>TG
     where the sequence for chr1 is assumed to be "ACCTTG"
+    and the variant sequence is "ACCTGTG"
     """
     # chr1_seq = "ACCTTG"
     chromosome = "chromosome"

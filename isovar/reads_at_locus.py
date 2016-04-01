@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This module wraps pysam and gives us a view of any reads overlapping
+a variant locus which includes offsets into the read sequence & qualities
+for extracting variant nucleotides.
+"""
+
 from __future__ import print_function, division, absolute_import
 
 from collections import namedtuple
@@ -23,29 +29,27 @@ logger = create_logger(__name__)
 ReadAtLocus = namedtuple(
     "ReadAtLocus",
     [
+        "name",
         "sequence",
         "reference_positions",
         "base_qualities",
-        "locus_start",
-        "locus_end",
-        "locus_size",
-        "is_deletion",
-        "name"
+        "offset_before_variant",
+        "offset_after_variant",
     ])
 
-def gather_overlapping_reads(
+def gather_reads_at_locus(
         samfile,
         chromosome,
-        base1_position,
-        n_bases,
-        is_deletion,
-        padding=1,
+        base1_position_before_variant,
+        base1_position_after_variant,
         use_duplicate_reads=False,
         use_secondary_alignments=True,
         min_mapping_quality=5):
     """
-    Generator that yields a sequence of OverlappingRead records for reads which
-    overlap the given locus and have a matching alignment on the first position.
+    Generator that yields a sequence of ReadAtLocus records for reads which
+    contain the positions before and after a variant. The actual work to figure
+    out if what's between those positions matches a variant happens later in
+    the `variant_reads` module.
 
     Parameters
     ----------
@@ -53,19 +57,11 @@ def gather_overlapping_reads(
 
     chromosome : str
 
-    base1_position : int
-        First variant position in a reference locus
+    base1_position_before_variant : int
+        Genomic position of reference nucleotide before a variant
 
-    n_bases : int
-        Number of bases to select
-
-    is_deletion : bool
-        Does this locus originate from a deletion variant?
-        (if so, we want to include reads that have deletions at the locus)
-
-    padding : int
-        Number of bases to the left and right of a variant that we want a read
-        to contain before considering it overlapping.
+    base1_position_before_variant : int
+        Genomic position of reference nucleotide before a variant
 
     use_duplicate_reads : bool
         By default, we're ignoring any duplicate reads
@@ -77,36 +73,32 @@ def gather_overlapping_reads(
     min_mapping_quality : int
         Drop reads below this mapping quality
 
-    Yields OverlappingRead objects contain the following information:
-        - nucleotide sequence of the read
-        - list of reference position alignments for each nucleotide
-            (where a non-aligned nucleotide is given by None)
-        - offset of the locus within the read
-
+    Yields ReadAtLocus objects
     """
 
-    base0_position = base1_position - 1
+    base0_position_before_variant = base1_position_before_variant - 1
+    base0_position_after_variant = base1_position_after_variant - 1
 
     # Let pysam pileup the reads covering our location of interest for us
     #
-    # Annoyingly this function takes base-0 intervals but returns
-    # columns with base-1 positions
-    for column in samfile.pileup(chromosome, base0_position, base1_position):
-        if column.pos != base1_position:
-            # if this column isn't centered on the first base of the
+    # We get a pileup at the base before the variant and then check to make sure
+    # that reads also overlap the reference position after the variant.
+    #
+    # Annoyingly AlignmentFile.pileup takes base-0 intervals but returns
+    # columns with base-1 positions.
+    for column in samfile.pileup(
+            chromosome,
+            base0_position_before_variant,
+            base0_position_before_variant + 1):
+        if column.pos != base1_position_before_variant:
+            # if this column isn't centered on the base before the
             # variant then keep going
             continue
 
-        for i, pileup_element in enumerate(column.pileups):
-            if pileup_element.is_refskip:
-                # if read sequence doesn't actually align here, skip it
-                continue
-            elif pileup_element.is_del and not is_deletion:
-                logger.debug("Skipping deletion")
-                # if read has a deletion at this location and variant isn't a
-                # deletion
-                #
-                # TODO: how to ensure that *all* of n_bases are deleted?
+        for pileup_element in column.pileups:
+            if pileup_element.is_refskip or pileup_element.is_del:
+                # if read sequence doesn't actually align to the reference
+                # base before a variant, skip it
                 continue
 
             read = pileup_element.alignment
@@ -118,9 +110,10 @@ def gather_overlapping_reads(
             name = read.query_name
 
             if name is None:
-                logger.warn("Read at locus %s:%d missing name" % (
+                logger.warn("Read at locus %s %d-%d missing name" % (
                     chromosome,
-                    base0_position + 1))
+                    base1_position_before_variant,
+                    base1_position_after_variant))
                 continue
 
             if read.is_unmapped:
@@ -141,6 +134,18 @@ def gather_overlapping_reads(
                     read.mapping_quality, min_mapping_quality))
                 continue
 
+            sequence = read.query_sequence
+
+            if sequence is None:
+                logger.warn("Read '%s' missing sequence")
+                continue
+
+            base_qualities = read.query_qualities
+
+            if base_qualities is None:
+                logger.warn("Read '%s' missing base qualities" % (name,))
+                continue
+
             #
             # Documentation for pysam.AlignedSegment.get_reference_positions:
             # ------------------------------------------------------------------
@@ -157,53 +162,33 @@ def gather_overlapping_reads(
             reference_positions = read.get_reference_positions(
                 full_length=False)
 
-            # if we're looking for deleted bases then inspect the bases to the
-            # left and right of the deletion. Otherwise we should find
-            # the reference bases directly on the read.
-            genomic_locus_start = (
-                base0_position - 1 if is_deletion else base0_position)
-            genomic_locus_end = (
-                base0_position + n_bases if is_deletion
-                else base0_position + n_bases - 1)
-
             # pysam uses base-0 positions everywhere except region strings
             # Source:
             # http://pysam.readthedocs.org/en/latest/faq.html#pysam-coordinates-are-wrong
-            if genomic_locus_start not in reference_positions:
+            if base0_position_before_variant not in reference_positions:
                 logger.debug(
                     "Skipping read '%s' because first position %d not mapped" % (
                         name,
-                        genomic_locus_start))
+                        base0_position_before_variant))
                 continue
             else:
-                locus_start_in_read = reference_positions.index(genomic_locus_start)
+                offset_before_variant = reference_positions.index(
+                    base0_position_before_variant)
 
-            if genomic_locus_end not in reference_positions:
+            if base0_position_before_variant not in reference_positions:
                 logger.debug(
                     "Skipping read '%s' because last position %d not mapped" % (
                         name,
-                        genomic_locus_end))
+                        base0_position_after_variant))
                 continue
             else:
-                locus_end_in_read = reference_positions.index(genomic_locus_end)
-
-            sequence = read.query_sequence
-            if sequence is None:
-                logger.warn("Read '%s' missing sequence")
-                continue
-
-            base_qualities = read.query_qualities
-
-            if base_qualities is None:
-                logger.warn("Read '%s' missing base qualities" % (name,))
-                continue
+                offset_after_variant = reference_positions.index(
+                    base0_position_after_variant)
 
             yield ReadAtLocus(
+                name=name,
                 sequence=sequence,
                 reference_positions=reference_positions,
                 base_qualities=base_qualities,
-                locus_start=locus_start_in_read,
-                locus_end=locus_end_in_read,
-                locus_size=n_bases,
-                is_deletion=is_deletion,
-                name=name)
+                offset_before_variant=offset_before_variant,
+                offset_after_variant=offset_after_variant)

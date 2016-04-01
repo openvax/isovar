@@ -23,7 +23,7 @@ from collections import namedtuple, OrderedDict
 
 from pandas import DataFrame
 
-from .overlapping_reads import gather_overlapping_reads
+from .reads_at_locus import gather_reads_at_locus
 from .logging import create_logger
 from .variant_helpers import trim_variant
 
@@ -32,7 +32,7 @@ logger = create_logger(__name__)
 VariantRead = namedtuple(
     "VariantRead", "prefix variant suffix name")
 
-def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
+def variant_reads_from_overlapping_reads(reads, ref, alt):
     """
     Given a collection of pysam.AlignedSegment objects, generates a
     sequence of VariantRead objects (which are split into prefix/variant/suffix
@@ -40,7 +40,7 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
 
     Parameters
     ----------
-    overlapping_reads : list of pysam.AlignedSegment
+    reads : sequence of ReadAtLocus records
 
     ref : str
         Reference sequence of the variant (empty for insertions)
@@ -50,9 +50,10 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
 
     Returns a sequence of VariantRead objects.
     """
-    for read in overlapping_reads:
+    for read in reads:
         reference_positions = read.reference_positions
-        start_offset, end_offset = read.locus_start, read.locus_end
+        offset_before = read.offset_before_variant
+        offset_after = read.offset_after_variant
 
         sequence = read.sequence
 
@@ -124,8 +125,10 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
             # all the reference bases to be adjacently aligned
             ref_pos_start = reference_positions[start_offset]
             ref_pos_end = reference_positions[end_offset]
-            if ref_pos_end - ref_pos_start != len(ref):
-                logger.debug("Positions before and after substitution should be adjacent")
+            if ref_pos_end - ref_pos_start + 1 != len(ref):
+                logger.debug(
+                    "Positions before and after substitution should be adjacent: %d:%d" % (
+                        ref_pos_start, ref_pos_end))
                 continue
             prefix = sequence[:start_offset]
             suffix = sequence[end_offset + 1:]
@@ -139,7 +142,10 @@ def variant_reads_from_overlapping_reads(overlapping_reads, ref, alt):
 def gather_reads_for_single_variant(
         samfile,
         chromosome,
-        variant):
+        variant,
+        use_duplicate_reads=False,
+        use_secondary_alignments=True,
+        min_mapping_quality=5):
     """
     Find reads in the given SAM/BAM file which overlap the given variant, filter
     to only include those which agree with the variant's nucleotide(s), and turn
@@ -160,13 +166,22 @@ def gather_reads_for_single_variant(
         chromosome))
 
     base1_position, ref, alt = trim_variant(variant)
-    overlapping_reads = list(gather_overlapping_reads(
+    if len(ref) == 0:
+        # if the variant is an insertion
+        base1_position_before_variant = base1_position
+        base1_position_after_variant = base1_position + 1
+    else:
+        base1_position_before_variant = base1_position - 1
+        base1_position_after_variant = base1_position + len(ref)
+
+    reads_at_locus_generator = gather_reads_at_locus(
         samfile=samfile,
         chromosome=chromosome,
-        base1_position=base1_position,
-        n_bases=len(ref),
-        is_deletion=variant.is_deletion))
-    logger.info("Overlapping reads: %s" % (overlapping_reads,))
+        base1_position_before_variant=base1_position_before_variant,
+        base1_position_after_variant=base1_position_after_variant,
+        use_duplicate_reads=use_duplicate_reads,
+        use_secondary_alignments=use_secondary_alignments,
+        min_mapping_quality=min_mapping_quality)
     variant_reads = list(
         variant_reads_from_overlapping_reads(
             overlapping_reads=overlapping_reads,
@@ -175,7 +190,12 @@ def gather_reads_for_single_variant(
     logger.info("Variant reads: %s" % (variant_reads,))
     return variant_reads
 
-def variant_reads_generator(variants, samfile):
+def variant_reads_generator(
+        variants,
+        samfile,
+        use_duplicate_reads=False,
+        use_secondary_alignments=True,
+        min_mapping_quality=5):
     """
     Generates sequence of tuples, each containing a variant paired with
     a list of VariantRead objects.
@@ -208,7 +228,10 @@ def variant_reads_generator(variants, samfile):
         variant_reads = gather_reads_for_single_variant(
             samfile=samfile,
             chromosome=chromosome,
-            variant=variant)
+            variant=variant,
+            use_duplicate_reads=use_duplicate_reads,
+            use_secondary_alignments=use_secondary_alignments,
+            min_mapping_quality=min_mapping_quality)
         logger.info("%s => %s" % (
             variant,
             variant_reads))

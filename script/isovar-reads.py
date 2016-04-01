@@ -25,7 +25,7 @@ import argparse
 import varcode
 from pysam import AlignmentFile
 
-from isovar import variant_reads_dataframe
+from isovar.variant_reads import variant_reads_dataframe
 
 parser = argparse.ArgumentParser()
 
