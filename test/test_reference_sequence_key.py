@@ -22,20 +22,7 @@ from varcode import Variant
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
-
-def _check_equal_fields(result, expected):
-    """
-    Assert that fields of two SequenceKey objects have
-    same field values.
-    """
-    for field in SequenceKey._fields:
-        result_value = getattr(result, field)
-        expected_value = getattr(expected, field)
-        assert result_value == expected_value, \
-            "Wrong value for '%s', expected %s but got %s" % (
-                field,
-                expected_value,
-                result_value)
+from common import assert_equal_fields
 
 def test_sequence_key_for_variant_on_transcript_substitution():
     # rs769125639 is a simple T>A substitution in the 6th nucleotide of
@@ -58,7 +45,7 @@ def test_sequence_key_for_variant_on_transcript_substitution():
         sequence_before_variant_locus=brca2_ref_seq[:5],
         sequence_at_variant_locus="T",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    _check_equal_fields(sequence_key, expected_sequence_key)
+    assert_equal_fields(sequence_key, expected_sequence_key)
 
 
 def test_sequence_key_for_variant_on_transcript_deletion():
@@ -81,7 +68,7 @@ def test_sequence_key_for_variant_on_transcript_deletion():
         sequence_before_variant_locus=brca2_ref_seq[:5],
         sequence_at_variant_locus="T",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    _check_equal_fields(sequence_key, expected_sequence_key)
+    assert_equal_fields(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_insertion():
     # Insert 'CCC' after the 6th nucleotide of BRCA2-001's 5' UTR
@@ -106,7 +93,7 @@ def test_sequence_key_for_variant_on_transcript_insertion():
         sequence_before_variant_locus=brca2_ref_seq[:6],
         sequence_at_variant_locus="",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    _check_equal_fields(sequence_key, expected_sequence_key)
+    assert_equal_fields(sequence_key, expected_sequence_key)
 
 
 def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
@@ -131,7 +118,7 @@ def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
         sequence_before_variant_locus="GGTCACTGCC",
         sequence_at_variant_locus="ATG",
         sequence_after_variant_locus="GAGGAGCCGC")
-    _check_equal_fields(sequence_key, expected_sequence_key)
+    assert_equal_fields(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
     # delete start codon of TP53-001, which in reverse complement means
@@ -155,7 +142,7 @@ def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
         sequence_before_variant_locus="GGTCACTGCC",
         sequence_at_variant_locus="ATG",
         sequence_after_variant_locus="GAGGAGCCGC")
-    _check_equal_fields(sequence_key, expected_sequence_key)
+    assert_equal_fields(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
     # insert 'CCC' after start codon of TP53-001, which on the reverse
@@ -183,4 +170,4 @@ def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
         sequence_before_variant_locus="CACTGCCATG",
         sequence_at_variant_locus="",
         sequence_after_variant_locus="GAGGAGCCGC")
-    _check_equal_fields(sequence_key, expected_sequence_key)
+    assert_equal_fields(sequence_key, expected_sequence_key)

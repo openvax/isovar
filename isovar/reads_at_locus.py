@@ -32,19 +32,23 @@ ReadAtLocus = namedtuple(
         "name",
         "sequence",
         "reference_positions",
-        "base_qualities",
-        "offset_before_variant",
-        "offset_after_variant",
+        "quality_scores",
+        "base0_read_position_before_variant",
+        "base0_read_position_after_variant",
     ])
+
+DEFAULT_MIN_MAPPING_QUALITY = 1
+DEFAULT_USE_DUPLICATE_READS = False
+DEFAULT_USE_SECONDARY_ALIGNMENTS = True
 
 def gather_reads_at_locus(
         samfile,
         chromosome,
         base1_position_before_variant,
         base1_position_after_variant,
-        use_duplicate_reads=False,
-        use_secondary_alignments=True,
-        min_mapping_quality=5):
+        use_duplicate_reads=DEFAULT_USE_DUPLICATE_READS,
+        use_secondary_alignments=DEFAULT_USE_SECONDARY_ALIGNMENTS,
+        min_mapping_quality=DEFAULT_MIN_MAPPING_QUALITY):
     """
     Generator that yields a sequence of ReadAtLocus records for reads which
     contain the positions before and after a variant. The actual work to figure
@@ -75,7 +79,11 @@ def gather_reads_at_locus(
 
     Yields ReadAtLocus objects
     """
-
+    logger.info(
+        "Gathering reads at locus %s: %d-%d" % (
+            chromosome,
+            base1_position_before_variant,
+            base1_position_after_variant))
     base0_position_before_variant = base1_position_before_variant - 1
     base0_position_after_variant = base1_position_after_variant - 1
 
@@ -129,8 +137,14 @@ def gather_reads_at_locus(
                 logger.debug("Skipping duplicate read '%s'" % name)
                 continue
 
-            if read.mapping_quality < min_mapping_quality:
-                logger.debug("Skipping read '%s' due to low mapq: %d < %d" % (
+            mapping_quality = read.mapping_quality
+
+            if mapping_quality is None or mapping_quality == 255:
+                logger.debug("Skipping read '%s' due to missing MAPQ" % (
+                    name,))
+                continue
+            elif mapping_quality < min_mapping_quality:
+                logger.debug("Skipping read '%s' due to low MAPQ: %d < %d" % (
                     read.mapping_quality, min_mapping_quality))
                 continue
 
@@ -159,8 +173,10 @@ def gather_reads_at_locus(
             # http://pysam.readthedocs.org/en/latest/
             # api.html#pysam.AlignedSegment.get_reference_positions
             #
+            # We want a None value for every read position that does not have a
+            # corresponding reference position.
             reference_positions = read.get_reference_positions(
-                full_length=False)
+                full_length=True)
 
             # pysam uses base-0 positions everywhere except region strings
             # Source:
@@ -175,7 +191,7 @@ def gather_reads_at_locus(
                 offset_before_variant = reference_positions.index(
                     base0_position_before_variant)
 
-            if base0_position_before_variant not in reference_positions:
+            if base0_position_after_variant not in reference_positions:
                 logger.debug(
                     "Skipping read '%s' because last position %d not mapped" % (
                         name,
@@ -189,6 +205,6 @@ def gather_reads_at_locus(
                 name=name,
                 sequence=sequence,
                 reference_positions=reference_positions,
-                base_qualities=base_qualities,
-                offset_before_variant=offset_before_variant,
-                offset_after_variant=offset_after_variant)
+                quality_scores=base_qualities,
+                base0_read_position_before_variant=offset_before_variant,
+                base0_read_position_after_variant=offset_after_variant)

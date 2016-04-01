@@ -14,12 +14,11 @@
 
 from __future__ import print_function, division, absolute_import
 
-from nose.tools import eq_
 from varcode import Variant
 from isovar.reads_at_locus import ReadAtLocus, gather_reads_at_locus
 
 from mock_read_data import DummySamFile, make_read
-
+from common import assert_equal_fields
 
 def test_reads_at_locus_snv():
     """
@@ -39,17 +38,19 @@ def test_reads_at_locus_snv():
         chromosome="chromosome",
         base1_position_before_variant=variant.start - 1,
         base1_position_after_variant=variant.start + 1))
-    eq_(len(reads), 1)
     print(reads)
+    assert len(reads) == 1, \
+        "Expected to get back one read but instead got %d" % (
+            len(reads),)
     read = reads[0]
     expected = ReadAtLocus(
         name=pysam_read.qname,
-        sequence="ACCGTG",
+        sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 2, 3, 4, 5],
-        base_qualities=pysam_read.query_qualities,
-        offset_before_variant=2,
-        offset_after_variant=4)
-    eq_(read, expected)
+        quality_scores=pysam_read.query_qualities,
+        base0_read_position_before_variant=2,
+        base0_read_position_after_variant=4)
+    assert_equal_fields(read, expected)
 
 def test_reads_at_locus_insertion():
     """
@@ -69,17 +70,21 @@ def test_reads_at_locus_insertion():
         chromosome="chromosome",
         base1_position_before_variant=variant.start,
         base1_position_after_variant=variant.start + 1))
-    eq_(len(reads), 1)
     print(reads)
+    assert len(reads) == 1, \
+        "Expected to get back one read but instead got %d" % (
+            len(reads),)
     read = reads[0]
     expected = ReadAtLocus(
         name=pysam_read.qname,
-        sequence="ACCTGTG",
+        sequence=pysam_read.query_sequence,
+        # expect the inserted nucleotide to be missing a corresponding
+        # ref position
         reference_positions=[0, 1, 2, 3, None, 4, 5],
-        base_qualities=pysam_read.query_qualities,
-        offset_before_variant=3,
-        offset_after_variant=4)
-    eq_(read, expected)
+        quality_scores=pysam_read.query_qualities,
+        base0_read_position_before_variant=3,
+        base0_read_position_after_variant=5)
+    assert_equal_fields(read, expected)
 
 def test_reads_at_locus_deletion():
     """
@@ -87,9 +92,11 @@ def test_reads_at_locus_deletion():
     partitioned for chr1:4 TT>T where the sequence for chr1 is assumed to
     be "ACCTTG"
     """
+    # normalization of this variant will turn it into the deletion of
+    # "T" at base-1 position 5
     variant = Variant(
         "chromosome", 4, ref="TT", alt="T", normalize_contig_name=False)
-
+    print(variant)
     pysam_read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
     samfile = DummySamFile(reads=[pysam_read])
@@ -98,22 +105,74 @@ def test_reads_at_locus_deletion():
         chromosome="chromosome",
         base1_position_before_variant=variant.start - 1,
         base1_position_after_variant=variant.start + 1))
-    eq_(len(reads), 1)
+    print(reads)
+    assert len(reads) == 1, \
+        "Expected to get back one read but instead got %d" % (
+            len(reads),)
+    read = reads[0]
+    expected = ReadAtLocus(
+        name=pysam_read.qname,
+        sequence=pysam_read.query_sequence,
+        reference_positions=[0, 1, 2, 3, 5],
+        quality_scores=pysam_read.query_qualities,
+        base0_read_position_before_variant=3,
+        base0_read_position_after_variant=4)
+    assert_equal_fields(read, expected)
+
+def test_reads_at_locus_substitution_longer():
+    # test C>GG subsitution at second nucleotide of reference sequence "ACCTTG",
+    # the alignment is interpreted as a C>G variant followed by an insertion of
+    # another G
+    variant = Variant(
+        "chromosome", 2, ref="C", alt="GG", normalize_contig_name=False)
+    print(variant)
+    pysam_read = make_read(seq="AGGCTTG", cigar="2M1I4M", mdtag="1C4")
+
+    samfile = DummySamFile(reads=[pysam_read])
+    reads = list(gather_reads_at_locus(
+        samfile=samfile,
+        chromosome="chromosome",
+        base1_position_before_variant=1,
+        base1_position_after_variant=3))
+    print(reads)
+    assert len(reads) == 1, \
+        "Expected to get back one read but instead got %d" % (
+            len(reads),)
+    read = reads[0]
+    expected = ReadAtLocus(
+        name=pysam_read.qname,
+        sequence=pysam_read.query_sequence,
+        reference_positions=[0, 1, None, 2, 3, 4, 5],
+        quality_scores=pysam_read.query_qualities,
+        base0_read_position_before_variant=0,
+        base0_read_position_after_variant=3)
+    assert_equal_fields(read, expected)
+
+def test_reads_at_locus_substitution_shorter():
+    # test CC>G subsitution at 2nd and 3rd nucleotides of reference sequence
+    # "ACCTTG", for which the alignment is interpreted as a C>G variant
+    # followed by the deletion of a C
+    variant = Variant(
+        "chromosome", 2, ref="CC", alt="G", normalize_contig_name=False)
+    print(variant)
+    pysam_read = make_read(seq="AGTTG", cigar="2M1D3M", mdtag="1C^C4")
+
+    samfile = DummySamFile(reads=[pysam_read])
+    reads = list(gather_reads_at_locus(
+        samfile=samfile,
+        chromosome="chromosome",
+        base1_position_before_variant=1,
+        base1_position_after_variant=4))
+    assert len(reads) == 1, \
+        "Expected to get back one read but instead got %d" % (
+            len(reads),)
     print(reads)
     read = reads[0]
     expected = ReadAtLocus(
         name=pysam_read.qname,
-        sequence="ACCTG",
-        reference_positions=[0, 1, 2, 3, 5],
-        base_qualities=pysam_read.query_qualities,
-        offset_before_variant=2,
-        offset_after_variant=4)
-    eq_(read, expected)
-
-def test_reads_at_locus_substitution_longer():
-    # test C>TT subsitution
-    pass
-
-def test_reads_at_locus_substitution_shorter():
-    # test TT>C substitution
-    pass
+        sequence=pysam_read.query_sequence,
+        reference_positions=[0, 1, 3, 4, 5],
+        quality_scores=pysam_read.query_qualities,
+        base0_read_position_before_variant=0,
+        base0_read_position_after_variant=2)
+    assert_equal_fields(read, expected)

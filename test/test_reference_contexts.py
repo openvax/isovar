@@ -21,19 +21,7 @@ from isovar.reference_context import (
 from varcode import Variant, VariantCollection
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
-
-def _check_equal_fields(result, expected):
-    """
-    Assert that fields of two ReferenceContext objects have same field values.
-    """
-    for field in ReferenceContext._fields:
-        result_value = getattr(result, field)
-        expected_value = getattr(expected, field)
-        assert result_value == expected_value, \
-            "Wrong value for '%s', expected %s but got %s" % (
-                field,
-                expected_value,
-                result_value)
+from common import assert_equal_fields
 
 def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
     # replace second codon of TP53-001 with 'CCC'
@@ -104,4 +92,4 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
         amino_acids_before_variant="M",
         variant=tp53_substitution,
         transcripts=[tp53_001])
-    _check_equal_fields(result, expected)
+    assert_equal_fields(result, expected)

@@ -23,7 +23,12 @@ from collections import namedtuple, OrderedDict
 
 from pandas import DataFrame
 
-from .reads_at_locus import gather_reads_at_locus
+from .reads_at_locus import (
+    gather_reads_at_locus,
+    DEFAULT_MIN_MAPPING_QUALITY,
+    DEFAULT_USE_SECONDARY_ALIGNMENTS,
+    DEFAULT_USE_DUPLICATE_READS
+)
 from .logging import create_logger
 from .variant_helpers import trim_variant
 
@@ -143,9 +148,9 @@ def gather_reads_for_single_variant(
         samfile,
         chromosome,
         variant,
-        use_duplicate_reads=False,
-        use_secondary_alignments=True,
-        min_mapping_quality=5):
+        use_duplicate_reads=DEFAULT_USE_DUPLICATE_READS,
+        use_secondary_alignments=DEFAULT_USE_SECONDARY_ALIGNMENTS,
+        min_mapping_quality=DEFAULT_MIN_MAPPING_QUALITY):
     """
     Find reads in the given SAM/BAM file which overlap the given variant, filter
     to only include those which agree with the variant's nucleotide(s), and turn
@@ -158,6 +163,15 @@ def gather_reads_for_single_variant(
     chromosome : str
 
     variant : varcode.Variant
+
+    use_duplicate_reads : bool
+        Should we use reads that have been marked as PCR duplicates
+
+    use_secondary_alignments : bool
+        Should we use reads at locations other than their best alignment
+
+    min_mapping_quality : int
+        Drop reads below this mapping quality
 
     Returns list of VariantRead objects.
     """
@@ -205,6 +219,15 @@ def variant_reads_generator(
     variants : varcode.VariantCollection
 
     samfile : pysam.AlignmentFile
+
+    use_duplicate_reads : bool
+        Should we use reads that have been marked as PCR duplicates
+
+    use_secondary_alignments : bool
+        Should we use reads at locations other than their best alignment
+
+    min_mapping_quality : int
+        Drop reads below this mapping quality
     """
     chromosome_names = set(samfile.references)
     for variant in variants:

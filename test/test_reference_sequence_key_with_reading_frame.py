@@ -23,24 +23,12 @@ from varcode import Variant
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
+from common import assert_equal_fields
+
 def test_reading_frame_to_offset():
     eq_(reading_frame_to_offset(0), 0)
     eq_(reading_frame_to_offset(1), 2)
     eq_(reading_frame_to_offset(2), 1)
-
-def _check_equal_fields(result, expected):
-    """
-    Assert that fields of two SequenceKeyWithReadingFrame objects have
-    same field values.
-    """
-    for field in SequenceKeyWithReadingFrame._fields:
-        result_value = getattr(result, field)
-        expected_value = getattr(expected, field)
-        assert result_value == expected_value, \
-            "Wrong value for '%s', expected %s but got %s" % (
-                field,
-                expected_value,
-                result_value)
 
 
 def test_sequence_key_with_reading_frame_substitution_with_five_prime_utr():
@@ -78,7 +66,7 @@ def test_sequence_key_with_reading_frame_substitution_with_five_prime_utr():
         overlaps_start_codon=True,
         contains_five_prime_utr=True,
         amino_acids_before_variant="M")
-    _check_equal_fields(result, expected)
+    assert_equal_fields(result, expected)
 
 def test_sequence_key_with_reading_frame_deletion_with_five_prime_utr():
     # Delete second codon of TP53-001, the surrounding context
@@ -116,7 +104,7 @@ def test_sequence_key_with_reading_frame_deletion_with_five_prime_utr():
         overlaps_start_codon=True,
         contains_five_prime_utr=True,
         amino_acids_before_variant="M")
-    _check_equal_fields(result, expected)
+    assert_equal_fields(result, expected)
 
 
 def test_sequence_key_with_reading_frame_insertion():
@@ -155,7 +143,7 @@ def test_sequence_key_with_reading_frame_insertion():
         overlaps_start_codon=True,
         contains_five_prime_utr=True,
         amino_acids_before_variant="ME")
-    _check_equal_fields(result, expected)
+    assert_equal_fields(result, expected)
 
 def test_sequence_key_with_reading_frame_insertion_inside_start_codon():
     # insert nucleotide "C" in the middle of the start codon of TP53-001,
@@ -220,7 +208,7 @@ def test_sequence_key_with_reading_frame_insertion_context_6nt_contains_start():
         overlaps_start_codon=True,
         contains_five_prime_utr=False,
         amino_acids_before_variant="ME")
-    _check_equal_fields(result, expected)
+    assert_equal_fields(result, expected)
 
 
 def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
@@ -257,7 +245,7 @@ def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
         overlaps_start_codon=True,
         contains_five_prime_utr=False,
         amino_acids_before_variant="E")
-    _check_equal_fields(result, expected)
+    assert_equal_fields(result, expected)
 
 
 def test_sequence_key_with_reading_frame_insertion_context_3nt_no_start():
@@ -292,4 +280,4 @@ def test_sequence_key_with_reading_frame_insertion_context_3nt_no_start():
         overlaps_start_codon=False,
         contains_five_prime_utr=False,
         amino_acids_before_variant="E")
-    _check_equal_fields(result, expected)
+    assert_equal_fields(result, expected)
