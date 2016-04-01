@@ -14,6 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Translate each non-synonymous coding variants into possible mutant protein
+sequences using an RNAseq BAM from the same tissuie.
+"""
+
 from __future__ import print_function, division, absolute_import
 
 import argparse
@@ -21,7 +26,7 @@ import argparse
 import varcode
 from pysam import AlignmentFile
 
-from isovar import variant_protein_fragments_dataframe
+from isovar.protein_sequence import translate_variants_dataframe
 
 parser = argparse.ArgumentParser()
 
@@ -44,13 +49,13 @@ parser.add_argument(
 
 parser.add_argument(
     "--protein-fragment-length",
-    default=30,
+    default=45,
     type=int)
 
 parser.add_argument(
     "--max-sequences-per-variant",
     type=int,
-    default=5)
+    default=1)
 
 parser.add_argument(
     "--max-reference-transcript-mismatches",
@@ -68,7 +73,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--output",
-    default="isovar-results.csv",
+    default="isovar-translate-variants-results.csv",
     help="Name of CSV file which contains predicted sequences")
 
 if __name__ == "__main__":
@@ -81,7 +86,7 @@ if __name__ == "__main__":
         genome=args.genome)
 
     samfile = AlignmentFile(args.bam)
-    df = variant_protein_fragments_dataframe(
+    df = translate_variants_dataframe(
         variants=variants,
         samfile=samfile,
         protein_fragment_length=args.protein_fragment_length,

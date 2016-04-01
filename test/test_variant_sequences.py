@@ -16,7 +16,6 @@ from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
 from pysam import AlignmentFile
-import skbio
 from varcode import Variant
 from isovar.variant_sequence import variant_reads_to_sequences
 from isovar.variant_reads import gather_reads_for_single_variant
@@ -41,18 +40,12 @@ def test_sequence_counts_snv():
     assert len(variant_sequences) > 0
     for variant_sequence in variant_sequences:
         print(variant_sequence)
-        eq_(variant_sequence.variant_nucleotides, alt)
+        eq_(variant_sequence.alt, alt)
         eq_(len(variant_sequence.prefix), 45)
         eq_(len(variant_sequence.suffix), 45)
-
-        # translate in three reading frames:
-        seq = "%s%s%s" % (
-            variant_sequence.prefix,
-            variant_sequence.variant_nucleotides,
-            variant_sequence.suffix)
-        for offset in range(3):
-            dna = skbio.DNA(seq[offset:])
-            print("frame=%d: %s" % (offset, dna.translate()))
+        eq_(
+            variant_sequence.prefix + variant_sequence.alt + variant_sequence.suffix,
+            variant_sequence.full_sequence)
 
 if __name__ == "__main__":
     test_sequence_counts_snv()

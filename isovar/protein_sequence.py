@@ -305,9 +305,8 @@ def translate_variants(
 
     max_sequences_per_variant : int
 
-    Returns a dictionary mapping each variant to DataFrame with the following
-    fields:
-        -
+    Returns a dictionary mapping each variant to a list of ProteinSequence
+    records.
     """
 
     # adding 2nt to total RNA sequence length  in case we need to clip 1 or 2
@@ -357,24 +356,6 @@ def translate_variants(
                 max_transcript_mismatches=max_transcript_mismatches)
     return variant_to_protein_fragments
 
-#
-# What do we expect from each variant?
-# - total_variant_reads
-# - rna_sequences:
-# -- sequence
-# -- number_reads_supporting_sequence
-# -- reading_frames:
-# --- reading frame
-# --- translated protein fragment
-# --- transcripts:
-# ---- transcript_id
-# ---- transcript_name
-# ---- predicted effect prediction
-# ---- sequence_prefix
-# ---- sequence_ref
-# ---- sequence_suffix
-# ---- reference protein sequence
-# ---- predicted mutant protein sequence
 
 def translate_variants_dataframe(
         variants,

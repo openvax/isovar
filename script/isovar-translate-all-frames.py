@@ -14,6 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Translates cDNA sequences associated with variants into proteins using
+all 3 possible open reading frames.
+"""
+
 from __future__ import print_function, division, absolute_import
 
 import argparse
@@ -68,7 +73,7 @@ if __name__ == "__main__":
             if count < args.min_count:
                 continue
 
-            variant = result.variant_nucleotides
+            variant = result.alt
             print("\t%s|%s|%s: %d" % (
                 prefix,
                 variant,

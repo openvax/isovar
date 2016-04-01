@@ -15,7 +15,7 @@
 # limitations under the License.
 
 """
-Prints all supporting read sequences, along with their name
+Prints all supporting read sequences containing a variant, along with their name
 """
 
 from __future__ import print_function, division, absolute_import
@@ -44,7 +44,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--output",
-    default="isovar-reads-result.csv",
+    default="isovar-variant-reads-result.csv",
     help="Name of CSV file which contains read sequences")
 
 if __name__ == "__main__":

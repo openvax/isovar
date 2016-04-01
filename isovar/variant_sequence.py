@@ -33,11 +33,11 @@ VariantSequence = namedtuple(
     "VariantSequence",
     [
         "prefix",
-        "variant_nucleotides",
+        "alt",
         "suffix",
         # combined sequence cached for convenience, so we don't have to
         # repeatedly concatenate prefix + variant_nucleotides + suffix
-        "seq",
+        "full_sequence",
         "read_names",
         "read_count",
     ]
@@ -111,7 +111,7 @@ def variant_reads_to_sequences(
 
     variant_sequences = [
         x for x in variant_sequences
-        if len(x.seq) >= min_sequence_length and
+        if len(x.full_sequence) >= min_sequence_length and
         len(x.read_names) >= min_reads_per_sequence
     ]
 
