@@ -32,3 +32,16 @@ Variant(contig=22, start=46931062, ref=G, alt=A, reference_name=GRCh37)
 1                    33                       49
 ```
 
+## Algorithm/Design
+
+The one line explanation of isovar: `ProteinSequence = VariantSequence + ReferenceContext`.
+
+A little more detail about the algorithm:
+  1. Scan through an RNAseq BAM file and extract sequences overlapping a variant locus (represented by `ReadAtLocus`)
+  2. Make sure that the read contains the variant allele and split its sequence into prefix/alt/suffix string parts (represented by `VariantRead`)
+  3. Combine multiple `VariantRead` records into a `VariantSequence`
+  4. Gather possible reading frames for distinct reference sequences around the variant locus (represented by `ReferenceContext`).
+  5. Use the reading frame from a `ReferenceContext` to translate a `VariantSequence` into a protein fragment (represented by `ProteinSequence`).
+
+Since we may not want to deal with *every* possible translation of *every* distinct sequence detected around a variant, `isovar` sorts the variant sequences by the number of supporting reads and the reference contexts in order of protein length and a configurable number of
+translated protein fragments can be kept from this ordering.
