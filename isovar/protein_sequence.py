@@ -19,7 +19,10 @@ from collections import namedtuple, defaultdict, OrderedDict
 import pandas as pd
 
 from .logging import create_logger
-from .reference_context import ReferenceContext
+from .reference_context import (
+    ReferenceContext,
+    reference_contexts_for_variant
+)
 from .variant_sequence import variant_sequences_generator, VariantSequence
 
 logger = create_logger(__name__)
@@ -278,7 +281,7 @@ def translate_variants(
         min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_RNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
-        max_sequences_per_variant=MAX_SEQUENCES_PER_VARIANT):
+        max_protein_sequences_per_variant=MAX_SEQUENCES_PER_VARIANT):
     """
     Translates each coding variant in a collection to one or more protein
     fragment sequences (if the variant is not filtered and its spanning RNA
@@ -296,14 +299,23 @@ def translate_variants(
         try to use all overlapping reference transcripts.
 
     protein_fragment_length : int
+        Try to translate protein sequences of this length, though sometimes
+        we'll have to return something shorter (depending on the RNAseq data,
+        and presence of stop codons).
 
     min_reads_supporting_rna_sequence : int
+        Drop variant sequences supported by fewer than this number of reads.
 
     min_transcript_prefix_length : int
+        Minimum number of bases we need to try matching between the reference
+        context and variant sequence.
 
     max_transcript_mismatches : int
+        Don't try to determine the reading frame for a transcript if more
+        than this number of bases differ.
 
-    max_sequences_per_variant : int
+    max_protein_sequences_per_variant : int
+        Ignore any translations once we have this many for a variant.
 
     Returns a dictionary mapping each variant to a list of ProteinSequence
     records.
@@ -314,48 +326,59 @@ def translate_variants(
     # with the desired number of amino acids
     rna_sequence_length = protein_fragment_length * 3 + 2
 
-    variant_to_protein_fragments = {}
+    variant_to_protein_sequences_dict = OrderedDict()
 
     for variant, variant_sequences in variant_sequences_generator(
             variants=variants,
             samfile=samfile,
             sequence_length=rna_sequence_length,
             min_reads=min_reads_supporting_rna_sequence):
-        sequences_to_read_names_dict = variant_sequences.full_read_names
-        variant_nucleotides = variant_sequences.variant_nucleotides
+        variant_to_protein_sequences_dict[variant] = []
 
-        if len(sequences_to_read_names_dict) == 0:
-            logger.info("No variant sequences detected in %s for %s" % (
-                samfile.filename,
-                variant))
+        if len(variant_sequences) == 0:
+            logger.info(
+                "Skipping variant %s, no cDNA sequences detected" % (
+                    variant,))
             continue
 
-        predicted_effects = predicted_effects_for_variant(
-            variant=variant,
+        # try translating the variant sequences from the same set of
+        # ReferenceContext objects, which requires using the longest
+        # context_size to be compatible with all of the sequences. Some
+        # sequences maybe have fewer nucleotides than this before the variant
+        # and will thus have to be trimmed.
+        context_size = max(
+            len(variant_sequence.prefix)
+            for variant_sequence in variant_sequences)
+
+        if context_size < min_transcript_prefix_length:
+            logger.info(
+                "Skipping variant %s, none of the cDNA sequences have sufficient context" % (
+                    variant,))
+            continue
+
+        reference_contexts = reference_contexts_for_variant(
+            variant,
+            context_size=context_size,
             transcript_id_whitelist=transcript_id_whitelist)
 
-        if len(predicted_effects) == 0:
-            logger.info(
-                "Skipping variant %s, no predicted coding effects" % (variant,))
-            continue
-
-        reference_transcripts = [
-            effect.transcript
-            for effect in predicted_effects
-        ]
-
-        variant_to_protein_fragments[variant] = \
-            translate_variant(
-                variant=variant,
-                sequence_context_to_read_names_dict=sequences_to_read_names_dict,
-                variant_nucleotides=variant_nucleotides,
-                reference_transcripts=reference_transcripts,
-                protein_fragment_length=protein_fragment_length,
-                min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
-                min_transcript_prefix_length=min_transcript_prefix_length,
-                max_transcript_mismatches=max_transcript_mismatches)
-    return variant_to_protein_fragments
-
+        for reference_context in reference_contexts:
+            for variant_sequence in variant_sequences:
+                translations = translate_variant_sequence(
+                    variant_sequence=variant_sequence,
+                    reference_context=reference_context,
+                    max_transcript_mismatches=max_transcript_mismatches,
+                    protein_fragment_length=protein_fragment_length)
+                for translation in translations:
+                    # assuming that the reference contexts and variant sequences
+                    # were sorted in order of priority, we will also get back
+                    # translations in order of quality, so it's OK to only keep
+                    # the top k
+                    n_protein_sequences = len(variant_to_protein_sequences_dict[variant])
+                    if n_protein_sequences >= max_protein_sequences_per_variant:
+                        break
+                    else:
+                        variant_to_protein_sequences_dict[variant].append(translation)
+    return variant_to_protein_sequences_dict
 
 def translate_variants_dataframe(
         variants,
@@ -422,14 +445,14 @@ def translate_variants_dataframe(
         ("pos", []),
         ("ref", []),
         ("alt", []),
-        # protein sequence
-        ("amino_acids", []),
-        ("variant_aa_start_offset", []),
-        ("variant_aa_end_offset", [])
     ]
 
-    # add in all the fields of ReferenceContext and VariantSequence
-    # from which we got this translation
+    # flattened representation of fields in ProteinSequence, and its member
+    # objects of type ReferenceContext and VariantSequence
+    for field in ProteinSequence._fields:
+        if field != "reference_context" and field != "variant_sequence":
+            columns.append((field, []))
+
     for field in ReferenceContext._fields + VariantSequence._fields:
         columns.append((field, []))
 
@@ -450,16 +473,21 @@ def translate_variants_dataframe(
             column_dict["pos"].append(variant.original_start)
             column_dict["ref"].append(variant.original_ref)
             column_dict["alt"].append(variant.original_alt)
-            column_dict["amino_acids"].append(protein_sequence.amino_acids)
-            column_dict["variant_aa_start_offset"].append(
-                protein_sequence.variant_aa_start_offset)
-            column_dict["variant_aa_end_offset"].append(
-                protein_sequence.variant_aa_end_offset)
+            for field in ProteinSequence._fields:
+                if field == "variant_sequence" or field == "reference_context":
+                    continue
+                column_dict[field].append(
+                    getattr(protein_sequence, field))
+            # include fields of protein_sequence.reference_context directly
+            # with the primary columns
             for field in ReferenceContext._fields:
                 column_dict[field].append(
                     getattr(protein_sequence.reference_context, field))
+            # include fields of protein_sequence.VariantSequence directly
+            # with the primary columns
             for field in VariantSequence._fields:
                 column_dict[field].append(
                     getattr(protein_sequence.variant_sequence, field))
+
     df = pd.DataFrame(column_dict)
     return df
