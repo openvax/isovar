@@ -188,7 +188,7 @@ def gather_reads_at_locus(
                         base0_position_before_variant))
                 continue
             else:
-                offset_before_variant = reference_positions.index(
+                base0_read_position_before_variant = reference_positions.index(
                     base0_position_before_variant)
 
             if base0_position_after_variant not in reference_positions:
@@ -198,13 +198,13 @@ def gather_reads_at_locus(
                         base0_position_after_variant))
                 continue
             else:
-                offset_after_variant = reference_positions.index(
+                base0_read_position_after_variant = reference_positions.index(
                     base0_position_after_variant)
-
+            logger.debug("Using read %s" % read)
             yield ReadAtLocus(
                 name=name,
                 sequence=sequence,
                 reference_positions=reference_positions,
                 quality_scores=base_qualities,
-                base0_read_position_before_variant=offset_before_variant,
-                base0_read_position_after_variant=offset_after_variant)
+                base0_read_position_before_variant=base0_read_position_before_variant,
+                base0_read_position_after_variant=base0_read_position_after_variant)

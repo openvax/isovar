@@ -14,11 +14,11 @@
 
 from __future__ import print_function, division, absolute_import
 
-from nose.tools import eq_
 from varcode import Variant
-from isovar.variant_reads import gather_reads_for_single_variant
+from isovar.variant_reads import gather_reads_for_single_variant, VariantRead
 
 from mock_read_data import DummySamFile, make_read
+from common import assert_equal_fields
 
 def test_partitioned_read_sequences_snv():
     """
@@ -38,15 +38,19 @@ def test_partitioned_read_sequences_snv():
     read = make_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
 
     samfile = DummySamFile(reads=[read])
-    seq_parts = gather_reads_for_single_variant(
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
-    print(seq_parts)
-    assert len(seq_parts) == 1
-    eq_(seq_parts[0].prefix, "ACC")
-    eq_(seq_parts[0].variant, "G")
-    eq_(seq_parts[0].suffix, "TG")
+    print(variant_reads)
+    assert len(variant_reads) == 1
+    variant_read = variant_reads[0]
+    expected = VariantRead(
+        name=read.qname,
+        prefix="ACC",
+        alt="G",
+        suffix="TG")
+    assert_equal_fields(variant_read, expected)
 
 def test_partitioned_read_sequences_insertion():
     """
@@ -66,15 +70,19 @@ def test_partitioned_read_sequences_insertion():
     read = make_read(seq="ACCTGTG", cigar="4M1I2M", mdtag="6")
 
     samfile = DummySamFile(reads=[read])
-    seq_parts = gather_reads_for_single_variant(
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
-    print(seq_parts)
-    assert len(seq_parts) == 1
-    eq_(seq_parts[0].prefix, "ACCT")
-    eq_(seq_parts[0].variant, "G")
-    eq_(seq_parts[0].suffix, "TG")
+    print(variant_reads)
+    assert len(variant_reads) == 1
+    variant_read = variant_reads[0]
+    expected = VariantRead(
+        name=read.qname,
+        prefix="ACCT",
+        alt="G",
+        suffix="TG")
+    assert_equal_fields(variant_read, expected)
 
 def test_partitioned_read_sequences_deletion():
     """
@@ -93,12 +101,16 @@ def test_partitioned_read_sequences_deletion():
     read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
     samfile = DummySamFile(reads=[read])
-    seq_parts = gather_reads_for_single_variant(
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
-    print(seq_parts)
-    assert len(seq_parts) == 1
-    eq_(seq_parts[0].prefix, "ACCT")
-    eq_(seq_parts[0].variant, "")
-    eq_(seq_parts[0].suffix, "G")
+    print(variant_reads)
+    assert len(variant_reads) == 1
+    variant_read = variant_reads[0]
+    expected = VariantRead(
+        name=read.qname,
+        prefix="ACCT",
+        alt="",
+        suffix="G")
+    assert_equal_fields(variant_read, expected)

@@ -30,13 +30,13 @@ def test_partition_variant_reads_snv():
         start=base1_location,
         ref=ref,
         alt=alt)
-    seq_parts = gather_reads_for_single_variant(
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
-    assert len(seq_parts) > 1
-    for variant_read in seq_parts:
-        eq_(variant_read.variant, alt)
+    assert len(variant_reads) > 1
+    for variant_read in variant_reads:
+        eq_(variant_read.alt, alt)
 
 def test_partition_variant_reads_deletion():
     samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
@@ -49,13 +49,13 @@ def test_partition_variant_reads_deletion():
         start=base1_location,
         ref=ref,
         alt=alt)
-    seq_parts = gather_reads_for_single_variant(
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
-    assert len(seq_parts) > 1
-    for variant_read in seq_parts:
-        eq_(variant_read.variant, alt)
+    assert len(variant_reads) > 1
+    for variant_read in variant_reads:
+        eq_(variant_read.alt, alt)
 
 if __name__ == "__main__":
     test_partition_variant_reads_snv()

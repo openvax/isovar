@@ -35,9 +35,9 @@ from .variant_helpers import trim_variant
 logger = create_logger(__name__)
 
 VariantRead = namedtuple(
-    "VariantRead", "prefix variant suffix name")
+    "VariantRead", "prefix alt suffix name")
 
-def variant_reads_from_overlapping_reads(reads, ref, alt):
+def variant_reads_from_reads_at_locus(reads, ref, alt):
     """
     Given a collection of pysam.AlignedSegment objects, generates a
     sequence of VariantRead objects (which are split into prefix/variant/suffix
@@ -56,87 +56,63 @@ def variant_reads_from_overlapping_reads(reads, ref, alt):
     Returns a sequence of VariantRead objects.
     """
     for read in reads:
-        reference_positions = read.reference_positions
-        offset_before = read.offset_before_variant
-        offset_after = read.offset_after_variant
-
         sequence = read.sequence
+        reference_positions = read.reference_positions
 
-        #################
-        #
-        # INSERTIONS
-        #
-        #################
+        # positions of the nucleotides before and after the variant within
+        # the read sequence
+        read_pos_before = read.base0_read_position_before_variant
+        read_pos_after = read.base0_read_position_after_variant
+
+        # positions of the nucleotides before and after the variant on the
+        # reference genome
+        ref_pos_before = reference_positions[read_pos_before]
+        if ref_pos_before is None:
+            logger.warn(
+                "Missing reference pos for nucleotide before variant on read: %s" % (
+                    read,))
+
+        ref_pos_after = reference_positions[read_pos_after]
+        if ref_pos_after is None:
+            logger.warn(
+                "Missing reference pos for nucleotide after variant on read: %s" % (
+                    read,))
+
         if len(ref) == 0:
-
-            if len(reference_positions) < end_offset + 1:
-                # if we can't check the base after the inserted nucleotides
+            if ref_pos_after - ref_pos_before != 1:
+                # if the number of nucleotides skipped isn't the same
+                # as the number of reference nucleotides in the variant then
+                # don't use this read
                 logger.debug(
-                    "Skipping read, can't get reference position after insertion")
+                    "Positions before (%d) and after (%d) variant should be adjacent on read %s" % (
+                        ref_pos_before,
+                        ref_pos_after,
+                        read))
                 continue
-            elif start_offset == 0:
-                # if we can't check the base before the variant, also skip the read
-                logger.debug(
-                    "Skipping read, can't get reference position before insertion")
-                continue
-
             # insertions require a sequence of non-aligned bases
             # followed by the subsequence reference position
-            insert_positions = reference_positions[start_offset:end_offset + 1]
-            if any(insert_pos is not None for insert_pos in insert_positions):
+            ref_positions_for_inserted = reference_positions[
+                read_pos_before + 1:read_pos_after]
+            if any(insert_pos is not None for insert_pos in ref_positions_for_inserted):
                 # all these inserted nucleotides should *not* align to the
                 # reference
                 logger.debug(
                     "Skipping read, inserted nucleotides shouldn't map to reference")
-                continue
-            ref_pos_before_insertion = reference_positions[start_offset - 1]
-            ref_pos_after_insertion = reference_positions[end_offset + 1]
-            if ref_pos_after_insertion != ref_pos_before_insertion + 1:
-                logger.debug(
-                    "Skipping read, positions before+after insertion should be adjacent")
-                continue
-            prefix = sequence[:start_offset]
-            suffix = sequence[end_offset + 1:]
-        ###################
-        #
-        # DELETIONS
-        #
-        ###################
-        elif len(alt) == 0:
-            # the meaning of the locus is different for deletions, since
-            # these offsets point to the bases before and after the deleted
-            # nucleotides
-
-            ref_pos_before = reference_positions[start_offset]
-            ref_pos_after = reference_positions[end_offset]
-
-            if ref_pos_after - ref_pos_before != len(ref):
-                # if the number of nucleotides skipped isn't the same
-                # as the number deleted in the variant then
-                # don't use this read
-                logger.debug("Positions before and after deletion should be adjacent")
-                continue
-            # capture the prefix sequence including the base before the deletion
-            prefix = sequence[:start_offset + 1]
-            # capture the suffix sequence including the base after the deletion
-            suffix = sequence[end_offset:]
-        ###################
-        #
-        # SUBSTITUTIONS
-        #
-        ###################
         else:
-            # deletions and substitutions work similarly, we just need
-            # all the reference bases to be adjacently aligned
-            ref_pos_start = reference_positions[start_offset]
-            ref_pos_end = reference_positions[end_offset]
-            if ref_pos_end - ref_pos_start + 1 != len(ref):
+            # substitutions and deletions
+            if ref_pos_after - ref_pos_before != len(ref) + 1:
+                # if the number of nucleotides skipped isn't the same
+                # as the number of reference nucleotides in the variant then
+                # don't use this read
                 logger.debug(
-                    "Positions before and after substitution should be adjacent: %d:%d" % (
-                        ref_pos_start, ref_pos_end))
+                    "Positions before (%d) and after (%d) variant should be adjacent on read %s" % (
+                        ref_pos_before,
+                        ref_pos_after,
+                        read))
                 continue
-            prefix = sequence[:start_offset]
-            suffix = sequence[end_offset + 1:]
+
+        prefix = sequence[:read_pos_before + 1]
+        suffix = sequence[read_pos_after:]
         if isinstance(prefix, bytes):
             prefix = str(prefix, "ascii")
         if isinstance(suffix, bytes):
@@ -197,8 +173,8 @@ def gather_reads_for_single_variant(
         use_secondary_alignments=use_secondary_alignments,
         min_mapping_quality=min_mapping_quality)
     variant_reads = list(
-        variant_reads_from_overlapping_reads(
-            overlapping_reads=overlapping_reads,
+        variant_reads_from_reads_at_locus(
+            reads=reads_at_locus_generator,
             ref=ref,
             alt=alt))
     logger.info("Variant reads: %s" % (variant_reads,))
@@ -207,9 +183,9 @@ def gather_reads_for_single_variant(
 def variant_reads_generator(
         variants,
         samfile,
-        use_duplicate_reads=False,
-        use_secondary_alignments=True,
-        min_mapping_quality=5):
+        use_duplicate_reads=DEFAULT_USE_DUPLICATE_READS,
+        use_secondary_alignments=DEFAULT_USE_SECONDARY_ALIGNMENTS,
+        min_mapping_quality=DEFAULT_MIN_MAPPING_QUALITY):
     """
     Generates sequence of tuples, each containing a variant paired with
     a list of VariantRead objects.
@@ -261,7 +237,31 @@ def variant_reads_generator(
         yield variant, variant_reads
 
 
-def variant_reads_dataframe(variants, samfile):
+def variant_reads_dataframe(
+        variants,
+        samfile,
+        use_duplicate_reads=DEFAULT_USE_DUPLICATE_READS,
+        use_secondary_alignments=DEFAULT_USE_SECONDARY_ALIGNMENTS,
+        min_mapping_quality=DEFAULT_MIN_MAPPING_QUALITY):
+    """
+    Creates a DataFrame containing sequences around variant from variant
+    collection and BAM/SAM file.
+
+    Parameters
+    ----------
+    variants : varcode.VariantCollection
+
+    samfile : pysam.AlignmentFile
+
+    use_duplicate_reads : bool
+        Should we use reads that have been marked as PCR duplicates
+
+    use_secondary_alignments : bool
+        Should we use reads at locations other than their best alignment
+
+    min_mapping_quality : int
+        Drop reads below this mapping quality
+    """
     columns = OrderedDict([
         ("chr", []),
         ("pos", []),
@@ -280,6 +280,6 @@ def variant_reads_dataframe(variants, samfile):
             columns["alt"].append(variant.alt)
             columns["read_name"].append(variant_read.name)
             columns["read_prefix"].append(variant_read.prefix)
-            columns["read_variant"].append(variant_read.variant)
+            columns["read_variant"].append(variant_read.alt)
             columns["read_suffix"].append(variant_read.suffix)
     return DataFrame(columns)

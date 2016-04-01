@@ -34,6 +34,7 @@ def test_sequence_counts_snv():
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
+
     variant_sequences = variant_reads_to_sequences(
         variant_reads,
         context_size=45)

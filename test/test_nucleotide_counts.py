@@ -27,18 +27,28 @@ def test_most_common_nucleotides_for_chr12_deletion():
     ref = "TTGTAGATGCTGCCTCTCC"
     alt = ""
     variant = Variant(chromosome, base1_location, ref, alt)
-    seq_parts = gather_reads_for_single_variant(
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
     consensus_sequence, chosen_counts, other_counts = most_common_nucleotides(
-        seq_parts)
+        variant_reads)
+    print(chosen_counts)
+    print(other_counts)
     eq_(len(chosen_counts), len(consensus_sequence))
     eq_(len(other_counts), len(consensus_sequence))
-    eq_(other_counts.sum(), 0, "Didn't expect disagreement among reads")
-    for variant_read in seq_parts:
-        assert variant_read.prefix in consensus_sequence
-        assert variant_read.suffix in consensus_sequence
+    assert other_counts.sum() < chosen_counts.sum(), \
+        "Counts for alternate nucleotides should not exceed the chosen sequence"
+
+    number_matching_reads = 0
+    for variant_read in variant_reads:
+        full_seq = variant_read.prefix + variant_read.alt + variant_read.suffix
+        number_matching_reads += (full_seq in consensus_sequence)
+    fraction_matching_reads = number_matching_reads / float(len(variant_reads))
+    print("Fraction matching reads is %d/%d = %f" % (
+        number_matching_reads, len(variant_reads), fraction_matching_reads))
+    assert fraction_matching_reads > 0.5, \
+        "Expected majority of reads to match consensus sequence"
 
 if __name__ == "__main__":
     test_most_common_nucleotides_for_chr12_deletion()

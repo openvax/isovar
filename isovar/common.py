@@ -77,8 +77,8 @@ def count_unique_sequences(
 
 def get_variant_nucleotides(variant_reads):
     if len(variant_reads) > 0:
-        variant_seq = variant_reads[0].variant
-        if not all(r.variant == variant_seq for r in variant_reads):
+        variant_seq = variant_reads[0].alt
+        if not all(r.alt == variant_seq for r in variant_reads):
             raise ValueError(
                 ("Cannot call `get_variant_nucleotides` on a collection"
                  " of VariantRead objects spanning multiple variants"))
