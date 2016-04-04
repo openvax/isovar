@@ -98,9 +98,9 @@ def variant_reads_to_sequences(
     variant_sequences = [
         VariantSequence(
             prefix=prefix,
-            variant_nucleotides=variant_seq,
+            alt=variant_seq,
             suffix=suffix,
-            seq=prefix + variant_seq + suffix,
+            full_sequence=prefix + variant_seq + suffix,
             read_names=read_names,
             read_count=len(read_names))
         for ((prefix, suffix), read_names)

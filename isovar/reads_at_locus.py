@@ -64,7 +64,7 @@ def gather_reads_at_locus(
     base1_position_before_variant : int
         Genomic position of reference nucleotide before a variant
 
-    base1_position_before_variant : int
+    base1_position_after_variant : int
         Genomic position of reference nucleotide before a variant
 
     use_duplicate_reads : bool
