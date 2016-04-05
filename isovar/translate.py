@@ -29,18 +29,55 @@ from .variant_sequence import variant_sequences_generator, VariantSequence
 
 logger = create_logger(__name__)
 
+
 # When multiple distinct RNA sequence contexts and/or reference transcripts
 # give us the same translation then we group them into a single object
 # which summarizes the supporting read count and reference transcript ORFs
 # for a unique protein sequence.
+
+
+################################
 #
-# This object combines the information of a ReferenceContext
-# (which establishes the reading frame for particular reference sequence) with
-# a VariantSequence (which contains a cDNA sequence and its supporting reads).
+# VariantSequenceInReadingFrame
+# ------------------------------
+#
+# Combines a VariantSequence with the reading frame implied by a
+# ReferenceContext, reverse complementing if necessary and finding the
+# offset to the first complete codon in the cDNA sequence.
+#
+#################################
+
+
+VariantSequenceInReadingFrame = namedtuple(
+    "VariantSequenceInReadingFrame",
+    (
+        # since the reference context and variant sequence may have
+        # different numbers of nucleotides before the variant, the cDNA prefix
+        # gets truncated to the shortest length. To avoid having to recompute
+        # that sequence again, let's just cache the full cDNA sequence we used
+        # for translation here, along with an interval indicating which
+        # nucleotides are from the variant of interest
+        "cdna_sequence",
+        "offset_to_first_complete_codon",
+        "variant_cdna_interval_start",
+        "variant_cdna_interval_end",
+        "reference_cdna_sequence_before_variant",
+        "number_mismatches",
+    ))
+
+
+##########################
+#
+# ProteinSequence
+# ---------------
+#
+# Translation of a VariantSequenceInReadingFrame to amino acids.
+#
+##########################
+
 
 ProteinSequence = namedtuple(
-    "ProteinSequence",
-    [
+    "ProteinSequence", VariantSequenceInReadingFrame._fields + (
         # translated sequence of a variant sequence in the ORF established
         # by a reference context
         "amino_acids",
@@ -48,9 +85,12 @@ ProteinSequence = namedtuple(
         # in the translated sequence
         "variant_aa_interval_start",
         "variant_aa_end_offset",
-        "reference_context"
-        "variant_sequence",
-    ])
+        # did the amino acid sequence end due to a stop codon or did we
+        # just run out of sequence context around the variant?
+        "ends_with_stop_codon",
+        # was the variant a frameshift relative to the reference sequence?
+        "frameshift",
+    ))
 
 
 MIN_READS_SUPPORTING_RNA_SEQUENCE = 3
@@ -58,6 +98,165 @@ MIN_TRANSCRIPT_PREFIX_LENGTH = 15
 MAX_TRANSCRIPT_MISMATCHES = 2
 PROTEIN_FRAGMENT_LEGNTH = 25
 MAX_SEQUENCES_PER_VARIANT = 5
+
+def trim_sequences(variant_sequence, reference_context):
+    """
+    A VariantSequence and ReferenceContext may contain a different number of
+    nucleotides before the variant locus. Furthermore, the VariantSequence is
+    always expressed in terms of the positive strand against which it aligned,
+    but reference transcripts may have sequences from the negative strand of the
+    genome. Take the reverse complement of the VariantSequence if the
+    ReferenceContext is from negative strand transcripts and trim either
+    sequence to ensure that the prefixes are of the same length.
+
+    Parameters
+    ----------
+    variant_sequence : VariantSequence
+
+    reference_context : ReferenceContext
+
+    Returns a tuple with the following fields:
+        1) cDNA prefix of variant sequence, trimmed to be same length as the
+           reference prefix. If the reference context was on the negative
+           strand then this is the trimmed sequence *after* the variant from
+           the genomic DNA sequence.
+        2) cDNA sequence of the variant nucleotides, in reverse complement if
+           the reference context is on the negative strand.
+        3) cDNA sequence of the nucleotides after the variant nucleotides. If
+           the reference context is on the negative strand then this sequence
+           is the reverse complement of the original prefix sequence.
+        4) Reference sequence before the variant locus, trimmed to be the
+           same length as the variant prefix.
+        5) Number of nucleotides trimmed from the reference sequence, used
+           later for adjustint offset to first complete codon.
+    """
+    cdna_prefix = DNA(variant_sequence.prefix)
+    cdna_alt = DNA(variant_sequence.alt)
+    cdna_suffix = DNA(variant_sequence.suffix)
+
+    # if the transcript is on the reverse strand then we have to
+    # take the sequence PREFIX|VARIANT|SUFFIX
+    # and take the complement of XIFFUS|TNAIRAV|XIFERP
+    if reference_context.strand == "-":
+        cdna_prefix = cdna_suffix.reverse_complement()
+        cdna_alt = cdna_alt.reverse_complement()
+        cdna_suffix = cdna_prefix.reverse_complement()
+
+    reference_sequence_before_variant = reference_context.sequence_before_variant_locus
+
+    # trim the reference sequence and the RNA-derived sequence to the same length
+    if len(reference_sequence_before_variant) > len(cdna_prefix):
+        n_trimmed_from_reference = len(reference_sequence_before_variant) - len(cdna_prefix)
+        n_trimmed_from_variant = 0
+    elif len(reference_sequence_before_variant) < len(cdna_prefix):
+        n_trimmed_from_variant = len(cdna_prefix) - len(reference_sequence_before_variant)
+        n_trimmed_from_reference = 0
+    else:
+        n_trimmed_from_variant = 0
+        n_trimmed_from_reference = 0
+
+    reference_sequence_before_variant = reference_sequence_before_variant[
+        n_trimmed_from_reference:]
+
+    cdna_prefix = cdna_prefix[n_trimmed_from_variant:]
+
+    return (
+        cdna_prefix,
+        cdna_alt,
+        cdna_suffix,
+        reference_sequence_before_variant,
+        n_trimmed_from_reference
+    )
+
+
+def count_mismatches(reference_prefix, cdna_prefix):
+    """
+    Computes the number of mismatching nucleotides between two cDNA sequences.
+
+    Parameters
+    ----------
+    reference_prefix : str or skbio.DNA
+        cDNA sequence of a reference transcript before a variant locus
+
+    cdna_prefix : str or skbio.DNA
+        cDNA sequence detected from RNAseq before a variant locus
+    """
+    if len(reference_prefix) != len(cdna_prefix):
+        raise ValueError(
+            "Expected reference prefix '%s' to be same length as %s" % (
+                reference_prefix, cdna_prefix))
+    return sum(xi != yi for (xi, yi) in zip(reference_prefix, cdna_prefix))
+
+
+def compute_offset_to_first_complete_codon(
+        offset_to_first_complete_reference_codon,
+        n_trimmed_from_reference):
+    """
+    Once we've aligned the variant sequence to the ReferenceContext, we need
+    to transfer reading frame from the reference transcripts to the variant
+    sequences.
+
+    Parameters
+    ----------
+    offset_to_first_complete_codon_in_reference_context : ReferenceContext
+
+    n_trimmed_from_reference : int
+
+    Returns an offset into the variant sequence that starts from a complete
+    codon.
+    """
+    # if the reference sequence is longer then add in the number of
+    # of codons (full or partial) that we trimmed
+    n_reference_codons_trimmed = int(math.ceil(n_trimmed_from_reference / 3.0))
+    n_reference_nucleotides_trimmed = n_reference_codons_trimmed * 3
+    return offset_to_first_complete_reference_codon + n_reference_nucleotides_trimmed
+
+def align_variant_sequence_to_reference_context(
+        variant_sequence,
+        reference_context,
+        max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES):
+    """
+    Parameters
+    ----------
+    variant_sequence : VariantSequence
+
+    reference_context : ReferenceContext
+
+    Returns a VariantSequenceInReadingFrame object or, if the max number of
+    mismatches is exceeded, then None.
+    """
+    cdna_prefix, cdna_alt, cdna_suffix, reference_prefix, n_trimmed_from_reference = \
+        trim_sequences(variant_sequence, reference_context)
+
+    n_mismatch_before_variant = count_mismatches(reference_prefix, cdna_prefix)
+
+    if n_mismatch_before_variant > max_transcript_mismatches:
+        logger.info(
+            "Skipping reference context %s for %s, too many mismatching bases (%d)",
+            reference_context,
+            variant_sequence,
+            n_mismatch_before_variant)
+        return None
+
+    # ReferenceContext carries with an offset to the first complete codon
+    # in the reference sequence. This may need to be adjusted if the reference
+    # sequence is longer than the variant sequence (and thus needs to be trimmed)
+    offset_to_first_complete_codon = compute_offset_to_first_complete_codon(
+        offset_to_first_complete_reference_codon=reference_context.offset_to_first_complete_codon,
+        n_trimmed_from_reference=n_trimmed_from_reference)
+
+    cdna_sequence = DNA.concat([cdna_prefix, cdna_alt, cdna_suffix])
+    variant_interval_start = len(cdna_prefix) + 1
+    variant_interval_end = variant_interval_start + len(cdna_alt)
+
+    return VariantSequenceInReadingFrame(
+        cdna_sequence=cdna_sequence,
+        offset_to_first_complete_codon=offset_to_first_complete_codon,
+        variant_cdna_interval_start=variant_interval_start,
+        variant_cdna_interval_end=variant_interval_end,
+        reference_cdna_sequence_before_variant=reference_prefix,
+        number_mismatches=n_mismatch_before_variant)
+
 
 def translate_variant_sequence(
         variant_sequence,
@@ -80,83 +279,84 @@ def translate_variant_sequence(
 
     Returns either a ProteinSequence object or None.
     """
-    cdna_prefix = DNA(variant_sequence.prefix)
-    cdna_alt = DNA(variant_sequence.alt)
-    cdna_suffix = DNA(variant_sequence.suffix)
 
-    # if the transcript is on the reverse strand then we have to
-    # take the sequence PREFIX|VARIANT|SUFFIX
-    # and take the complement of XIFFUS|TNAIRAV|XIFERP
-    if reference_context.strand == "-":
-        cdna_prefix = cdna_prefix.reverse_complement()
-        cdna_alt = cdna_alt.reverse_complement()
-        cdna_suffix = cdna_suffix.reverse_complement()
+    variant_sequence_in_reading_frame = align_variant_sequence_to_reference_context(
+        variant_sequence=variant_sequence,
+        reference_context=reference_context,
+        max_transcript_mismatches=max_transcript_mismatches)
 
-    reference_sequence_before_variant = reference_context.sequence_before_variant_locus
-
-    # trim the reference sequence and the RNA-derived sequence to the same length
-    if len(reference_sequence_before_variant) > len(cdna_prefix):
-        n_trimmed_from_reference = len(reference_sequence_before_variant) - len(cdna_prefix)
-        n_trimmed_from_variant = 0
-    elif len(reference_sequence_before_variant) < len(cdna_prefix):
-        n_trimmed_from_variant = len(cdna_prefix) - len(reference_sequence_before_variant)
-        n_trimmed_from_reference = 0
-    else:
-        n_trimmed_from_variant = 0
-        n_trimmed_from_reference = 0
-
-    reference_sequence_before_variant = reference_sequence_before_variant[
-        n_trimmed_from_reference:]
-    cdna_prefix = cdna_prefix[n_trimmed_from_variant:]
-    assert len(reference_sequence_before_variant) == len(cdna_prefix), \
-        "Something has gone wrong! %s should be same length as %s" % (
-            reference_sequence_before_variant, cdna_prefix)
-
-    n_mismatch_before_variant = sum(
-        xi != yi
-        for (xi, yi) in zip(
-            reference_sequence_before_variant,
-            cdna_prefix))
-
-    if n_mismatch_before_variant > max_transcript_mismatches:
-        logger.info(
-            "Skipping reference context %s for %s, too many mismatching bases (%d)",
-            reference_context,
+    if variant_sequence_in_reading_frame is None:
+        logger.debug("Failed to align %s to reference context %s" % (
             variant_sequence,
-            n_mismatch_before_variant)
+            reference_context))
         return None
 
-    # ReferenceContext carries with an offset to the first complete codon
-    # in the reference sequence. This may need to be adjusted if the reference
-    # sequence is longer than the variant sequence (and thus needs to be trimmed)
-    offset_to_first_complete_codon = reference_context.offset_to_first_complete_codon
+    cdna_sequence = variant_sequence_in_reading_frame.cdna_sequence
+    cdna_codon_offset = variant_sequence_in_reading_frame.offset_to_first_complete_codon
+    cdna_sequence_from_first_codon = cdna_sequence[cdna_codon_offset:]
 
-    # if the reference sequence is longer then add in the number of
-    # of codons (full or partial) that we trimmed
-    n_reference_codons_trimmed = int(math.ceil(n_trimmed_from_reference / 3.0))
-    offset_to_first_complete_codon += n_reference_codons_trimmed * 3
+    # once we drop some of the prefix nucleotides, we should be in a reading frame
+    # which allows us to translate this protein
+    variant_amino_acids = cdna_sequence_from_first_codon.translate()
 
-    cdna_prefix_from_first_codon = cdna_prefix[offset_to_first_complete_codon:]
-    combined_variant_cdna_sequence = DNA.concat([
-        cdna_prefix_from_first_codon, cdna_alt, cdna_suffix])
+    # by default, the translate method emits "*" for
+    # the stop codons TAA, TAG and TGG
+    ends_with_stop_codon = "*" in variant_amino_acids
 
-    variant_amino_acids = combined_variant_cdna_sequence.translate()
+    if ends_with_stop_codon:
+        # truncate the amino acid sequence at the stop codon
+        stop_codon_index = variant_amino_acids.index("*")
+        variant_amino_acids = variant_amino_acids[stop_codon_index]
+
+    # get the offsets into the cDNA sequence which pick out the variant nucleotides
+    cdna_variant_start_offset = variant_sequence_in_reading_frame.variant_cdna_interval_start
+    cdna_variant_end_offset = variant_sequence_in_reading_frame.variant_cdna_interval_end
 
     # rounding down since a change in the middle of a codon should count
     # toward the variant codons
-    n_complete_prefix_codons = len(cdna_prefix_from_first_codon) // 3
+    n_complete_prefix_codons = cdna_variant_start_offset // 3
 
-    if len(cdna_alt) % 3 != 0:
-        pass
+    n_ref = len(reference_context.sequence_at_variant_locus)
+    n_alt = len(variant_sequence.alt)
 
-    n_variant_codons = int(math.ceil(len(cdna_alt) / 3.0))
+    # sanity check the number of alt nucleotides, we should get the same number
+    # from the VariantSequence and VariantSequenceInReadingFrame
+    cdna_alt_nucleotides = cdna_sequence[
+        cdna_variant_start_offset:cdna_variant_end_offset]
+    if len(cdna_alt_nucleotides) != n_alt:
+        raise ValueError(
+            ("Expected to find %d nucleotides for variant sequence %s, "
+             "got %d from VariantSequenceInReadingFrame %s") % (
+                n_alt,
+                variant_sequence,
+                len(cdna_alt_nucleotides),
+                variant_sequence_in_reading_frame))
+
+    frameshift = abs(n_ref - n_alt) % 3 != 0
+
+    # if mutation is a frame shift then every amino acid from the
+    # first affected codon to the stop is considered mutant
+
+    if frameshift:
+        # TODO: what if the first k amino acids are synonymous with the
+        # reference sequence?
+        variant_aa_interval_start = n_complete_prefix_codons + 1
+        variant_aa_interval_end = len(variant_amino_acids)
+    else:
+        n_variant_codons = int(math.ceil(len(cdna_alt) / 3.0))
+        n_
 
     return ProteinSequence(
-        amino_acids=variant_amino_acids,
-        variant_aa_interval_start=n_complete_prefix_codons + 1,
-        variant_aa_interval_end=variant_aa_interval_end,
         reference_context=reference_context,
-        variant_sequence=variant_sequence)
+        variant_sequence=variant_sequence,
+        amino_acids=variant_amino_acids,
+        frameshift=frameshift,
+        ends_with_stop_codon=ends_with_stop_codon,
+        variant_aa_interval_start=variant_aa_interval_start,
+        variant_aa_interval_end=variant_aa_interval_end,
+        cdna_sequence=combined_variant_cdna_sequence,
+        variant_cdna_interval_start=variant_cdna_start,
+        variant_cdna_interval_end=variant_cdna_end)
 
 
 def translate_multiple_protein_sequences_from_variant_sequences(
