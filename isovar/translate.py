@@ -425,15 +425,16 @@ def translate_variant_sequence(
 
     reference_sequence_before_variant = (
         variant_sequence_in_reading_frame.reference_cdna_sequence_before_variant)
-
+    # converting sequence objects to str since skbio.DNA objects aren't really
+    # useful outside of the translation module & debugging
     return ProteinSequence(
-        cdna_sequence=cdna_sequence,
+        cdna_sequence=str(cdna_sequence),
         offset_to_first_complete_codon=cdna_codon_offset,
         variant_cdna_interval_start=cdna_variant_start_offset,
         variant_cdna_interval_end=cdna_variant_end_offset,
         reference_cdna_sequence_before_variant=reference_sequence_before_variant,
         number_mismatches=variant_sequence_in_reading_frame.number_mismatches,
-        amino_acids=variant_amino_acids,
+        amino_acids=str(variant_amino_acids),
         frameshift=frameshift,
         ends_with_stop_codon=ends_with_stop_codon,
         variant_aa_interval_start=variant_aa_interval_start,
@@ -485,7 +486,7 @@ def translate_variants(
         variants,
         samfile,
         transcript_id_whitelist=None,
-        protein_fragment_length=PROTEIN_SEQUENCE_LEGNTH,
+        protein_sequence_length=PROTEIN_SEQUENCE_LEGNTH,
         min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -506,7 +507,7 @@ def translate_variants(
         for determining the reading frame around a variant. If omitted, then
         try to use all overlapping reference transcripts.
 
-    protein_fragment_length : int
+    protein_sequence_length : int
         Try to translate protein sequences of this length, though sometimes
         we'll have to return something shorter (depending on the RNAseq data,
         and presence of stop codons).
@@ -532,7 +533,7 @@ def translate_variants(
     # adding 2nt to total RNA sequence length  in case we need to clip 1 or 2
     # bases of the sequence to match a reference ORF but still want to end up
     # with the desired number of amino acids
-    rna_sequence_length = protein_fragment_length * 3 + 2
+    rna_sequence_length = protein_sequence_length * 3 + 2
 
     variant_to_protein_sequences_dict = OrderedDict()
 
@@ -583,59 +584,16 @@ def translate_variants_dataframe(
         variants,
         samfile,
         transcript_id_whitelist=None,
-        protein_fragment_length=PROTEIN_SEQUENCE_LEGNTH,
+        protein_sequence_length=PROTEIN_SEQUENCE_LEGNTH,
         min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
         max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT):
     """
     Given a collection of variants and a SAM/BAM file of overlapping reads,
-    returns a DataFrame of translated protein fragments with the following
-    columns:
-        chr : str
-            Chromosome of variant
-
-        base1_pos : int
-            First reference nucleotide affected by variant (or position before
-            insertion)
-
-        ref : str
-            Reference nucleotides
-
-        alt : str
-            Variant nucleotides
-
-        cdna_sequence : str
-            cDNA sequence context detected from RNAseq BAM
-
-        cdna_mutation_start_offset : int
-            Interbase start offset for variant nucleotides in the cDNA sequence
-
-        cdna_mutation_end_offset : int
-            Interbase end offset for variant nucleotides in the cDNA sequence
-
-        supporting_read_count : int
-            How many reads fully spanned the cDNA sequence
-
-        variant_protein_sequence : str
-            Translated variant protein fragment sequence
-
-        variant_protein_sequence_length : int
-            Number of amino acids in each sequence
-
-        reference_transcript_ids : str list
-
-        reference_transcript_names : str list
-
-        reference_protein_sequences : str list
-
-        cdna_sequence_to_support_reads : dict
-            Maps distinct (prefix, variant, suffix) triplets to
-            names of reads supporting these cDNA sequences
-
-        total_supporting_read_count : int
-
-        """
+    returns a DataFrame of translated protein fragments with columns
+    for each field of a ProteinSequence object (and chr/pos/ref/alt).
+    """
     # construct a dictionary incrementally which we'll turn into a
     # DataFrame
     columns = [
@@ -657,7 +615,7 @@ def translate_variants_dataframe(
             variants,
             samfile,
             transcript_id_whitelist=transcript_id_whitelist,
-            protein_fragment_length=protein_fragment_length,
+            protein_sequence_length=protein_sequence_length,
             min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
             min_transcript_prefix_length=min_transcript_prefix_length,
             max_transcript_mismatches=max_transcript_mismatches,

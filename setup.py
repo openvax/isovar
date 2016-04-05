@@ -74,10 +74,9 @@ if __name__ == '__main__':
         packages=['isovar'],
         scripts=[
             "script/isovar-translate-variants.py",
-            "script/isovar-find-matching-transcripts.py",
             "script/isovar-translate-all-frames.py",
             "script/isovar-reference-contexts.py",
-            "script/isovar-reads.py",
-            "script/isovar-cdna-sequences.py",
+            "script/isovar-variant-reads.py",
+            "script/isovar-variant-sequences.py",
         ],
     )

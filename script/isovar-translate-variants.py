@@ -26,7 +26,7 @@ import argparse
 import varcode
 from pysam import AlignmentFile
 
-from isovar.protein_sequence import translate_variants_dataframe
+from isovar.translate import translate_variants_dataframe
 from isovar.default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     MIN_TRANSCRIPT_PREFIX_LENGTH,
@@ -40,11 +40,11 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument(
     "--vcf",
-    default="../test/data/CELSR1/vcfs/vcf_1.vcf")
+    help="VCF file containing variants")
 
 parser.add_argument(
     "--bam",
-    default="../test/data/CELSR1/bams/bam_1.bam")
+    help="BAM file containing RNAseq reads")
 
 parser.add_argument(
     "--genome",
@@ -97,10 +97,10 @@ if __name__ == "__main__":
     df = translate_variants_dataframe(
         variants=variants,
         samfile=samfile,
-        protein_fragment_length=args.protein_fragment_length,
+        protein_sequence_length=args.protein_sequence_length,
         min_reads_supporting_rna_sequence=args.min_reads,
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        max_sequences_per_variant=args.max_sequences_per_variant)
+        max_protein_sequences_per_variant=args.max_sequences_per_variant)
     print(df)
     df.to_csv(args.output)
