@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-
 from collections import namedtuple, OrderedDict
 import math
 import logging
@@ -21,11 +20,15 @@ import logging
 import pandas as pd
 from skbio import DNA
 
-from .reference_context import (
-    ReferenceContext,
-    reference_contexts_for_variant
+from .reference_context import reference_contexts_for_variant
+from .variant_sequence import variant_sequences_generator
+from .default_parameters import (
+    MIN_TRANSCRIPT_PREFIX_LENGTH,
+    MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+    PROTEIN_SEQUENCE_LEGNTH,
+    MAX_PROTEIN_SEQUENCES_PER_VARIANT,
+    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
 )
-from .variant_sequence import variant_sequences_generator, VariantSequence
 
 # When multiple distinct RNA sequence contexts and/or reference transcripts
 # give us the same translation then we group them into a single object
@@ -87,13 +90,6 @@ ProteinSequence = namedtuple(
         # was the variant a frameshift relative to the reference sequence?
         "frameshift",
     ))
-
-
-MIN_READS_SUPPORTING_RNA_SEQUENCE = 3
-MIN_TRANSCRIPT_PREFIX_LENGTH = 30
-MAX_TRANSCRIPT_MISMATCHES = 2
-PROTEIN_FRAGMENT_LEGNTH = 20
-MAX_SEQUENCES_PER_VARIANT = 1
 
 def trim_sequences(variant_sequence, reference_context):
     """
@@ -214,7 +210,7 @@ def compute_offset_to_first_complete_codon(
 def align_variant_sequence_to_reference_context(
         variant_sequence,
         reference_context,
-        max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES):
+        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES):
     """
     Parameters
     ----------
@@ -489,11 +485,11 @@ def translate_variants(
         variants,
         samfile,
         transcript_id_whitelist=None,
-        protein_fragment_length=PROTEIN_FRAGMENT_LEGNTH,
-        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_RNA_SEQUENCE,
+        protein_fragment_length=PROTEIN_SEQUENCE_LEGNTH,
+        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
-        max_protein_sequences_per_variant=MAX_SEQUENCES_PER_VARIANT):
+        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT):
     """
     Translates each coding variant in a collection to one or more protein
     fragment sequences (if the variant is not filtered and its spanning RNA
@@ -587,11 +583,11 @@ def translate_variants_dataframe(
         variants,
         samfile,
         transcript_id_whitelist=None,
-        protein_fragment_length=PROTEIN_FRAGMENT_LEGNTH,
-        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_RNA_SEQUENCE,
+        protein_fragment_length=PROTEIN_SEQUENCE_LEGNTH,
+        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_TRANSCRIPT_MISMATCHES,
-        max_sequences_per_variant=MAX_SEQUENCES_PER_VARIANT):
+        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT):
     """
     Given a collection of variants and a SAM/BAM file of overlapping reads,
     returns a DataFrame of translated protein fragments with the following
@@ -653,10 +649,6 @@ def translate_variants_dataframe(
     # flattened representation of fields in ProteinSequence, and its member
     # objects of type ReferenceContext and VariantSequence
     for field in ProteinSequence._fields:
-        if field != "reference_context" and field != "variant_sequence":
-            columns.append((field, []))
-
-    for field in ReferenceContext._fields + VariantSequence._fields:
         columns.append((field, []))
 
     column_dict = OrderedDict(columns)
@@ -669,7 +661,7 @@ def translate_variants_dataframe(
             min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
             min_transcript_prefix_length=min_transcript_prefix_length,
             max_transcript_mismatches=max_transcript_mismatches,
-            max_sequences_per_variant=max_sequences_per_variant).items():
+            max_protein_sequences_per_variant=max_protein_sequences_per_variant).items():
         for protein_sequence in protein_sequences:
             # variant info
             column_dict["chr"].append(variant.contig)
@@ -677,20 +669,7 @@ def translate_variants_dataframe(
             column_dict["ref"].append(variant.original_ref)
             column_dict["alt"].append(variant.original_alt)
             for field in ProteinSequence._fields:
-                if field == "variant_sequence" or field == "reference_context":
-                    continue
                 column_dict[field].append(
                     getattr(protein_sequence, field))
-            # include fields of protein_sequence.reference_context directly
-            # with the primary columns
-            for field in ReferenceContext._fields:
-                column_dict[field].append(
-                    getattr(protein_sequence.reference_context, field))
-            # include fields of protein_sequence.VariantSequence directly
-            # with the primary columns
-            for field in VariantSequence._fields:
-                column_dict[field].append(
-                    getattr(protein_sequence.variant_sequence, field))
-
     df = pd.DataFrame(column_dict)
     return df

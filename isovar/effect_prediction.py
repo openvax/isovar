@@ -13,12 +13,9 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+import logging
 
 from varcode import EffectCollection
-
-from .logging import create_logger
-
-logger = create_logger(__name__)
 
 def predicted_coding_effects_with_mutant_sequence(
         variant,
@@ -41,14 +38,14 @@ def predicted_coding_effects_with_mutant_sequence(
     effects = []
     for transcript in variant.transcripts:
         if not transcript.complete:
-            logger.info(
+            logging.info(
                 "Skipping transcript %s for variant %s because it's incomplete" % (
                     transcript,
                     variant))
             continue
 
         if transcript_id_whitelist and transcript.id not in transcript_id_whitelist:
-            logger.info(
+            logging.info(
                 "Skipping transcript %s for variant %s because it's not one of %d allowed" % (
                     transcript,
                     variant,
@@ -59,12 +56,12 @@ def predicted_coding_effects_with_mutant_sequence(
     effects = EffectCollection(effects)
 
     n_total_effects = len(effects)
-    logger.info("Predicted %d effects for variant %s" % (
+    logging.info("Predicted %d effects for variant %s" % (
         n_total_effects,
         variant))
 
     nonsynonymous_coding_effects = effects.drop_silent_and_noncoding()
-    logger.info(
+    logging.info(
         "Keeping %d/%d non-synonymous coding effects for %s" % (
             len(nonsynonymous_coding_effects),
             n_total_effects,
@@ -75,7 +72,7 @@ def predicted_coding_effects_with_mutant_sequence(
         for effect in nonsynonymous_coding_effects
         if effect.mutant_protein_sequence is not None
     ]
-    logger.info(
+    logging.info(
         "Keeping %d/%d effects with predictable AA sequences for %s" % (
             len(usable_effects),
             len(nonsynonymous_coding_effects),

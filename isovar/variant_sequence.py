@@ -13,21 +13,18 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-
 from collections import namedtuple, OrderedDict
+import logging
 
 import numpy as np
 import pandas as pd
 
 from .common import group_unique_sequences, get_variant_nucleotides
 from .variant_reads import variant_reads_generator
-from .logging import create_logger
-
-logger = create_logger(__name__)
-
-DEFAULT_SEQUENCE_LENGTH = 90
-DEFAULT_CONTEXT_SIZE = DEFAULT_SEQUENCE_LENGTH // 2
-DEFAULT_MIN_READS = 1
+from .default_parameters import (
+    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+    VARIANT_CDNA_SEQUENCE_LENGTH
+)
 
 VariantSequence = namedtuple(
     "VariantSequence",
@@ -50,7 +47,7 @@ def variant_reads_to_sequences(
         variant_reads,
         context_size=None,
         min_sequence_length=None,
-        min_reads_per_sequence=DEFAULT_MIN_READS):
+        min_reads_per_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
     """
     Parameters
     ----------
@@ -116,8 +113,7 @@ def variant_reads_to_sequences(
     ]
 
     n_dropped = n_total - len(variant_sequences)
-    logger.info("Dropped %d/%d variant sequences" % (
-        n_dropped, n_total))
+    logging.info("Dropped %d/%d variant sequences" % (n_dropped, n_total))
 
     # sort VariantSequence objects by decreasing order of supporting read
     # counts
@@ -127,8 +123,8 @@ def variant_reads_to_sequences(
 def variant_sequences_generator(
         variants,
         samfile,
-        sequence_length=DEFAULT_SEQUENCE_LENGTH,
-        min_reads=DEFAULT_MIN_READS):
+        sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH,
+        min_reads=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
     """
     For each variant, collect all possible sequence contexts around the
     variant which are spanned by at least min_reads.
@@ -155,7 +151,7 @@ def variant_sequences_generator(
             samfile=samfile):
 
         if len(variant_reads) == 0:
-            logger.info("No variant reads found for %s" % variant)
+            logging.info("No variant reads found for %s" % variant)
             continue
 
         # the number of context nucleotides on either side of the variant
@@ -163,7 +159,7 @@ def variant_sequences_generator(
         n_surrounding_nucleotides = sequence_length - len(variant.alt)
 
         flanking_context_size = int(np.ceil(n_surrounding_nucleotides / 2.0))
-        logger.info(
+        logging.info(
             "Looking at %dnt RNA sequence context around %s" % (
                 flanking_context_size,
                 variant))
@@ -178,8 +174,8 @@ def variant_sequences_generator(
 def variant_sequences_dataframe(
         variants,
         samfile,
-        sequence_length=DEFAULT_SEQUENCE_LENGTH,
-        min_reads=DEFAULT_MIN_READS):
+        sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH,
+        min_reads=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
     """
     Creates a dataframe of all detected cDNA sequences for the given variant
     collection and alignment file.

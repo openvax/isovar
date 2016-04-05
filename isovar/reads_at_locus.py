@@ -23,6 +23,11 @@ from __future__ import print_function, division, absolute_import
 from collections import namedtuple
 
 from .logging import create_logger
+from .default_parameters import (
+    MIN_READ_MAPPING_QUALITY,
+    USE_DUPLICATE_READS,
+    USE_SECONDARY_ALIGNMENTS,
+)
 
 logger = create_logger(__name__)
 
@@ -37,18 +42,15 @@ ReadAtLocus = namedtuple(
         "base0_read_position_after_variant",
     ])
 
-DEFAULT_MIN_MAPPING_QUALITY = 1
-DEFAULT_USE_DUPLICATE_READS = False
-DEFAULT_USE_SECONDARY_ALIGNMENTS = True
 
 def gather_reads_at_locus(
         samfile,
         chromosome,
         base1_position_before_variant,
         base1_position_after_variant,
-        use_duplicate_reads=DEFAULT_USE_DUPLICATE_READS,
-        use_secondary_alignments=DEFAULT_USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=DEFAULT_MIN_MAPPING_QUALITY):
+        use_duplicate_reads=USE_DUPLICATE_READS,
+        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """
     Generator that yields a sequence of ReadAtLocus records for reads which
     contain the positions before and after a variant. The actual work to figure

@@ -17,10 +17,7 @@ Helper functions for normalizing and working with genomic variants
 """
 
 from __future__ import print_function, division, absolute_import
-
-from .logging import create_logger
-
-logger = create_logger(__name__)
+import logging
 
 def trim_variant_fields(location, ref, alt):
     """
@@ -173,7 +170,7 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
             try:
                 offsets.append(transcript.spliced_offset(dna_pos))
             except ValueError:
-                logger.info(
+                logging.info(
                     "Couldn't find position %d from %s on exons of %s" % (
                         dna_pos,
                         variant,

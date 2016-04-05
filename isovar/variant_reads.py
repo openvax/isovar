@@ -18,21 +18,19 @@ suffix portions
 """
 
 from __future__ import print_function, division, absolute_import
-
 from collections import namedtuple, OrderedDict
+import logging
 
 from pandas import DataFrame
 
-from .reads_at_locus import (
-    gather_reads_at_locus,
-    DEFAULT_MIN_MAPPING_QUALITY,
-    DEFAULT_USE_SECONDARY_ALIGNMENTS,
-    DEFAULT_USE_DUPLICATE_READS
+from .reads_at_locus import gather_reads_at_locus
+from .default_parameters import (
+    MIN_READ_MAPPING_QUALITY,
+    USE_SECONDARY_ALIGNMENTS,
+    USE_DUPLICATE_READS
 )
-from .logging import create_logger
 from .variant_helpers import trim_variant
 
-logger = create_logger(__name__)
 
 VariantRead = namedtuple(
     "VariantRead", "prefix alt suffix name")
@@ -68,13 +66,13 @@ def variant_reads_from_reads_at_locus(reads, ref, alt):
         # reference genome
         ref_pos_before = reference_positions[read_pos_before]
         if ref_pos_before is None:
-            logger.warn(
+            logging.warn(
                 "Missing reference pos for nucleotide before variant on read: %s" % (
                     read,))
 
         ref_pos_after = reference_positions[read_pos_after]
         if ref_pos_after is None:
-            logger.warn(
+            logging.warn(
                 "Missing reference pos for nucleotide after variant on read: %s" % (
                     read,))
 
@@ -83,7 +81,7 @@ def variant_reads_from_reads_at_locus(reads, ref, alt):
                 # if the number of nucleotides skipped isn't the same
                 # as the number of reference nucleotides in the variant then
                 # don't use this read
-                logger.debug(
+                logging.debug(
                     "Positions before (%d) and after (%d) variant should be adjacent on read %s" % (
                         ref_pos_before,
                         ref_pos_after,
@@ -96,7 +94,7 @@ def variant_reads_from_reads_at_locus(reads, ref, alt):
             if any(insert_pos is not None for insert_pos in ref_positions_for_inserted):
                 # all these inserted nucleotides should *not* align to the
                 # reference
-                logger.debug(
+                logging.debug(
                     "Skipping read, inserted nucleotides shouldn't map to reference")
         else:
             # substitutions and deletions
@@ -104,7 +102,7 @@ def variant_reads_from_reads_at_locus(reads, ref, alt):
                 # if the number of nucleotides skipped isn't the same
                 # as the number of reference nucleotides in the variant then
                 # don't use this read
-                logger.debug(
+                logging.debug(
                     "Positions before (%d) and after (%d) variant should be adjacent on read %s" % (
                         ref_pos_before,
                         ref_pos_after,
@@ -124,9 +122,9 @@ def gather_reads_for_single_variant(
         samfile,
         chromosome,
         variant,
-        use_duplicate_reads=DEFAULT_USE_DUPLICATE_READS,
-        use_secondary_alignments=DEFAULT_USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=DEFAULT_MIN_MAPPING_QUALITY):
+        use_duplicate_reads=USE_DUPLICATE_READS,
+        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """
     Find reads in the given SAM/BAM file which overlap the given variant, filter
     to only include those which agree with the variant's nucleotide(s), and turn
@@ -151,7 +149,7 @@ def gather_reads_for_single_variant(
 
     Returns list of VariantRead objects.
     """
-    logger.info("Gathering variant reads for variant %s (chromosome=%s)" % (
+    logging.info("Gathering variant reads for variant %s (chromosome=%s)" % (
         variant,
         chromosome))
 
@@ -177,15 +175,15 @@ def gather_reads_for_single_variant(
             reads=reads_at_locus_generator,
             ref=ref,
             alt=alt))
-    logger.info("Variant reads: %s" % (variant_reads,))
+    logging.info("Variant reads: %s" % (variant_reads,))
     return variant_reads
 
 def variant_reads_generator(
         variants,
         samfile,
-        use_duplicate_reads=DEFAULT_USE_DUPLICATE_READS,
-        use_secondary_alignments=DEFAULT_USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=DEFAULT_MIN_MAPPING_QUALITY):
+        use_duplicate_reads=USE_DUPLICATE_READS,
+        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """
     Generates sequence of tuples, each containing a variant paired with
     a list of VariantRead objects.
@@ -219,7 +217,7 @@ def variant_reads_generator(
         elif "chr" + variant.contig in chromosome_names:
             chromosome = "chr" + variant.contig
         else:
-            logger.warn(
+            logging.warn(
                 "Chromosome '%s' from variant %s not in alignment file %s" % (
                     chromosome, variant, samfile.filename))
             continue
@@ -231,7 +229,7 @@ def variant_reads_generator(
             use_duplicate_reads=use_duplicate_reads,
             use_secondary_alignments=use_secondary_alignments,
             min_mapping_quality=min_mapping_quality)
-        logger.info("%s => %s" % (
+        logging.info("%s => %s" % (
             variant,
             variant_reads))
         yield variant, variant_reads
@@ -240,9 +238,9 @@ def variant_reads_generator(
 def variant_reads_dataframe(
         variants,
         samfile,
-        use_duplicate_reads=DEFAULT_USE_DUPLICATE_READS,
-        use_secondary_alignments=DEFAULT_USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=DEFAULT_MIN_MAPPING_QUALITY):
+        use_duplicate_reads=USE_DUPLICATE_READS,
+        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """
     Creates a DataFrame containing sequences around variant from variant
     collection and BAM/SAM file.
