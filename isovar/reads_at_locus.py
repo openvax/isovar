@@ -19,17 +19,15 @@ for extracting variant nucleotides.
 """
 
 from __future__ import print_function, division, absolute_import
-
 from collections import namedtuple
+import logging
 
-from .logging import create_logger
 from .default_parameters import (
     MIN_READ_MAPPING_QUALITY,
     USE_DUPLICATE_READS,
     USE_SECONDARY_ALIGNMENTS,
 )
 
-logger = create_logger(__name__)
 
 ReadAtLocus = namedtuple(
     "ReadAtLocus",
@@ -81,7 +79,7 @@ def gather_reads_at_locus(
 
     Yields ReadAtLocus objects
     """
-    logger.info(
+    logging.info(
         "Gathering reads at locus %s: %d-%d" % (
             chromosome,
             base1_position_before_variant,
@@ -113,53 +111,53 @@ def gather_reads_at_locus(
 
             read = pileup_element.alignment
 
-            logger.debug(read)
+            logging.debug(read)
 
             # For future reference,  may get overlapping reads
             # which can be identified by having the same name
             name = read.query_name
 
             if name is None:
-                logger.warn("Read at locus %s %d-%d missing name" % (
+                logging.warn("Read at locus %s %d-%d missing name" % (
                     chromosome,
                     base1_position_before_variant,
                     base1_position_after_variant))
                 continue
 
             if read.is_unmapped:
-                logger.warn(
+                logging.warn(
                     "How did we get unmapped read '%s' in a pileup?" % (name,))
                 continue
 
             if read.is_secondary and not use_secondary_alignments:
-                logger.debug("Skipping secondary alignment of read '%s'")
+                logging.debug("Skipping secondary alignment of read '%s'")
                 continue
 
             if read.is_duplicate and not use_duplicate_reads:
-                logger.debug("Skipping duplicate read '%s'" % name)
+                logging.debug("Skipping duplicate read '%s'" % name)
                 continue
 
             mapping_quality = read.mapping_quality
 
             if mapping_quality is None or mapping_quality == 255:
-                logger.debug("Skipping read '%s' due to missing MAPQ" % (
+                logging.debug("Skipping read '%s' due to missing MAPQ" % (
                     name,))
                 continue
             elif mapping_quality < min_mapping_quality:
-                logger.debug("Skipping read '%s' due to low MAPQ: %d < %d" % (
+                logging.debug("Skipping read '%s' due to low MAPQ: %d < %d" % (
                     read.mapping_quality, min_mapping_quality))
                 continue
 
             sequence = read.query_sequence
 
             if sequence is None:
-                logger.warn("Read '%s' missing sequence")
+                logging.warn("Read '%s' missing sequence")
                 continue
 
             base_qualities = read.query_qualities
 
             if base_qualities is None:
-                logger.warn("Read '%s' missing base qualities" % (name,))
+                logging.warn("Read '%s' missing base qualities" % (name,))
                 continue
 
             #
@@ -184,7 +182,7 @@ def gather_reads_at_locus(
             # Source:
             # http://pysam.readthedocs.org/en/latest/faq.html#pysam-coordinates-are-wrong
             if base0_position_before_variant not in reference_positions:
-                logger.debug(
+                logging.debug(
                     "Skipping read '%s' because first position %d not mapped" % (
                         name,
                         base0_position_before_variant))
@@ -194,7 +192,7 @@ def gather_reads_at_locus(
                     base0_position_before_variant)
 
             if base0_position_after_variant not in reference_positions:
-                logger.debug(
+                logging.debug(
                     "Skipping read '%s' because last position %d not mapped" % (
                         name,
                         base0_position_after_variant))
@@ -202,7 +200,7 @@ def gather_reads_at_locus(
             else:
                 base0_read_position_after_variant = reference_positions.index(
                     base0_position_after_variant)
-            logger.debug("Using read %s" % read)
+            logging.debug("Using read %s" % read)
             yield ReadAtLocus(
                 name=name,
                 sequence=sequence,

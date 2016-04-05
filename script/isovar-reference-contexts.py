@@ -21,6 +21,7 @@ import argparse
 import varcode
 
 from isovar.reference_context import variants_to_reference_contexts_dataframe
+from isovar.default_parameters import CDNA_CONTEXT_SIZE
 
 parser = argparse.ArgumentParser()
 
@@ -34,9 +35,8 @@ parser.add_argument(
 
 parser.add_argument(
     "--context-size",
-    default=45,
+    default=CDNA_CONTEXT_SIZE,
     type=int)
-
 
 parser.add_argument(
     "--output",

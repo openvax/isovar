@@ -28,6 +28,10 @@ import skbio
 from pysam import AlignmentFile
 
 from isovar.variant_reads import gather_variant_reads, sequence_counts
+from isovar.default_parameters import (
+    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+    CDNA_CONTEXT_SIZE
+)
 
 parser = argparse.ArgumentParser()
 
@@ -44,11 +48,13 @@ parser.add_argument(
     default=None)
 
 parser.add_argument(
-    "--min-count", type=int, default=3)
+    "--min-reads",
+    type=int,
+    default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE)
 
 parser.add_argument(
     "--context-size",
-    default=45,
+    default=CDNA_CONTEXT_SIZE,
     type=int)
 
 if __name__ == "__main__":
@@ -70,7 +76,7 @@ if __name__ == "__main__":
         for ((prefix, suffix), count) in sorted(
                 result.full_read_counts.items(),
                 key=lambda x: -x[1]):
-            if count < args.min_count:
+            if count < args.min_reads:
                 continue
 
             variant = result.alt

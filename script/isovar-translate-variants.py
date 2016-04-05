@@ -27,6 +27,14 @@ import varcode
 from pysam import AlignmentFile
 
 from isovar.protein_sequence import translate_variants_dataframe
+from isovar.default_parameters import (
+    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+    MIN_TRANSCRIPT_PREFIX_LENGTH,
+    MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+    PROTEIN_SEQUENCE_LEGNTH,
+    MAX_PROTEIN_SEQUENCES_PER_VARIANT,
+)
+
 
 parser = argparse.ArgumentParser()
 
@@ -45,27 +53,27 @@ parser.add_argument(
 parser.add_argument(
     "--min-reads",
     type=int,
-    default=3)
+    default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE)
 
 parser.add_argument(
-    "--protein-fragment-length",
-    default=45,
+    "--protein-sequence-length",
+    default=PROTEIN_SEQUENCE_LEGNTH,
     type=int)
 
 parser.add_argument(
     "--max-sequences-per-variant",
     type=int,
-    default=1)
+    default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
 
 parser.add_argument(
     "--max-reference-transcript-mismatches",
     type=int,
-    default=2)
+    default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES)
 
 parser.add_argument(
     "--min-transcript-prefix-length",
     type=int,
-    default=15,
+    default=MIN_TRANSCRIPT_PREFIX_LENGTH,
     help=(
         "Number of nucleotides before the variant we try to match against "
         "a reference transcript. Values greater than zero exclude variants "

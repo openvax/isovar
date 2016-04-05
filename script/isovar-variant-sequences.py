@@ -22,6 +22,10 @@ import varcode
 from pysam import AlignmentFile
 
 from isovar.variant_sequences import variant_sequences_dataframe
+from isovar.default_parameters import (
+    VARIANT_CDNA_SEQUENCE_LENGTH,
+    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE
+)
 
 parser = argparse.ArgumentParser()
 
@@ -40,12 +44,12 @@ parser.add_argument(
 parser.add_argument(
     "--min-reads",
     type=int,
-    default=3,
+    default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     help="Minimum number of reads supporting a variant sequence")
 
 parser.add_argument(
     "--sequence-length",
-    default=100,
+    default=VARIANT_CDNA_SEQUENCE_LENGTH,
     type=int)
 
 parser.add_argument(
