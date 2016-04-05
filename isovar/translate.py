@@ -257,6 +257,123 @@ def align_variant_sequence_to_reference_context(
         reference_cdna_sequence_before_variant=reference_prefix,
         number_mismatches=n_mismatch_before_variant)
 
+def find_mutant_amino_acid_interval(
+        cdna_sequence,
+        cdna_first_codon_offset,
+        cdna_variant_start_offset,
+        cdna_variant_end_offset,
+        n_ref,
+        n_amino_acids):
+    """
+    Parameters
+    ----------
+    cdna_sequence : skbio.DNA or str
+        cDNA sequence found in RNAseq data
+
+    cdna_first_codon_offset : int
+        Offset into cDNA sequence to first complete codon, lets us skip
+        past UTR region and incomplete codons.
+
+    cdna_variant_start_offset : int
+        Interbase start offset into cDNA sequence for selecting mutant
+        nucleotides.
+
+    cdna_variant_end_offset : int
+        Interbase end offset into cDNA sequence for selecting mutant
+        nucleotides.
+
+    n_ref : int
+        Number of reference nucleotides
+
+    n_amino_acids : int
+        Number of translated amino acids
+
+    Returns tuple with three fields:
+        1) Start offset for interval of mutant amino acids in translated sequence
+        2) End offset for interval of mutant amino acids in translated sequence
+        3) Boolean flag indicating whether the variant was a frameshift.
+    """
+    cdna_alt_nucleotides = cdna_sequence[
+        cdna_variant_start_offset:cdna_variant_end_offset]
+
+    n_alt = len(cdna_alt_nucleotides)
+
+    # sequence of nucleotides before the variant starting from the first codon
+    cdna_coding_prefix = cdna_sequence[cdna_first_codon_offset:cdna_variant_start_offset]
+
+    # rounding down since a change in the middle of a codon should count
+    # toward the variant codons
+    n_coding_nucleotides_before_variant = len(cdna_coding_prefix)
+    n_complete_prefix_codons = cdna_variant_start_offset // 3
+
+    frame_of_variant_nucleotides = n_coding_nucleotides_before_variant % 3
+    frameshift = abs(n_ref - n_alt) % 3 != 0
+    indel = n_ref != n_alt
+
+    variant_aa_interval_start = n_complete_prefix_codons + 1
+    if frameshift:
+        # if mutation is a frame shift then every amino acid from the
+        # first affected codon to the stop is considered mutant
+        #
+        # TODO: what if the first k amino acids are synonymous with the
+        # reference sequence?
+        variant_aa_interval_end = n_amino_acids
+    else:
+        n_alt_codons = int(math.ceil(n_alt / 3.0))
+        if indel:
+            # We need to adjust the number of affected codons by whether the
+            # variant is aligned with codon boundaries, since in-frame indels
+            # may still be split across multiple codons.
+            #
+            # Example of in-frame deletion of 3 nucleotides which leaves
+            # 0 variant codons in the sequence (interval = 1:1)
+            #   ref = CCC|AAA|GGG|TTT
+            #   alt = CCC|GGG|TTT
+            #
+            # Example of in-frame deletion of 3 nucleotides which leaves
+            # 1 variant codon in the sequence (interval = 1:2)
+            #   ref = CCC|AAA|GGG|TTT
+            #   alt = CCC|AGG|TTT
+            #
+            # Example of in-frame insertion of 3 nucleotides which
+            # yields two variant codons:
+            #   ref = CCC|AAA|GGG|TTT
+            #   alt = CTT|TCC|AAA|GGG|TTT
+            extra_affected_codon = int(frame_of_variant_nucleotides != 0)
+            variant_aa_interval_end = (
+                variant_aa_interval_start + n_alt_codons + extra_affected_codon)
+        else:
+            # if the variant is a simple substitution then it only affects
+            # as many codons as are in the alternate sequence
+            variant_aa_interval_end = variant_aa_interval_start + n_alt_codons
+    return variant_aa_interval_start, variant_aa_interval_end, frameshift
+
+def translate_cdna(cdna_sequence_from_first_codon):
+    """
+    Given a cDNA sequence which is aligned to a reading frame, returns
+    the translated protein sequence and a boolean flag indicating whether
+    the translated sequence ended on a stop codon (or just ran out of codons).
+
+    Parameters
+    ----------
+    cdna_sequence_from_first_codon : skbio.DNA
+        cDNA sequence which is expected to start and end on complete codons.
+    """
+    # once we drop some of the prefix nucleotides, we should be in a reading frame
+    # which allows us to translate this protein
+    variant_amino_acids = cdna_sequence_from_first_codon.translate()
+
+    # by default, the translate method emits "*" for
+    # the stop codons TAA, TAG and TGG
+    ends_with_stop_codon = "*" in variant_amino_acids
+
+    if ends_with_stop_codon:
+        # truncate the amino acid sequence at the stop codon
+        stop_codon_index = variant_amino_acids.index("*")
+        variant_amino_acids = variant_amino_acids[:stop_codon_index]
+
+    return variant_amino_acids, ends_with_stop_codon
+
 
 def translate_variant_sequence(
         variant_sequence,
@@ -295,68 +412,38 @@ def translate_variant_sequence(
     cdna_codon_offset = variant_sequence_in_reading_frame.offset_to_first_complete_codon
     cdna_sequence_from_first_codon = cdna_sequence[cdna_codon_offset:]
 
-    # once we drop some of the prefix nucleotides, we should be in a reading frame
-    # which allows us to translate this protein
-    variant_amino_acids = cdna_sequence_from_first_codon.translate()
-
-    # by default, the translate method emits "*" for
-    # the stop codons TAA, TAG and TGG
-    ends_with_stop_codon = "*" in variant_amino_acids
-
-    if ends_with_stop_codon:
-        # truncate the amino acid sequence at the stop codon
-        stop_codon_index = variant_amino_acids.index("*")
-        variant_amino_acids = variant_amino_acids[stop_codon_index]
+    variant_amino_acids, ends_with_stop_codon = translate_cdna(cdna_sequence_from_first_codon)
 
     # get the offsets into the cDNA sequence which pick out the variant nucleotides
     cdna_variant_start_offset = variant_sequence_in_reading_frame.variant_cdna_interval_start
     cdna_variant_end_offset = variant_sequence_in_reading_frame.variant_cdna_interval_end
 
-    # rounding down since a change in the middle of a codon should count
-    # toward the variant codons
-    n_complete_prefix_codons = cdna_variant_start_offset // 3
+    variant_aa_interval_start, variant_aa_interval_end, frameshift = \
+        find_mutant_amino_acid_interval(
+            cdna_sequence=cdna_sequence,
+            cdna_first_codon_offset=cdna_codon_offset,
+            cdna_variant_start_offset=cdna_variant_start_offset,
+            cdna_variant_end_offset=cdna_variant_end_offset,
+            n_ref=len(reference_context.sequence_at_variant_locus),
+            n_amino_acids=len(variant_amino_acids))
 
-    n_ref = len(reference_context.sequence_at_variant_locus)
-    n_alt = len(variant_sequence.alt)
-
-    # sanity check the number of alt nucleotides, we should get the same number
-    # from the VariantSequence and VariantSequenceInReadingFrame
-    cdna_alt_nucleotides = cdna_sequence[
-        cdna_variant_start_offset:cdna_variant_end_offset]
-    if len(cdna_alt_nucleotides) != n_alt:
-        raise ValueError(
-            ("Expected to find %d nucleotides for variant sequence %s, "
-             "got %d from VariantSequenceInReadingFrame %s") % (
-                n_alt,
-                variant_sequence,
-                len(cdna_alt_nucleotides),
-                variant_sequence_in_reading_frame))
-
-    frameshift = abs(n_ref - n_alt) % 3 != 0
-
-    # if mutation is a frame shift then every amino acid from the
-    # first affected codon to the stop is considered mutant
-
-    if frameshift:
-        # TODO: what if the first k amino acids are synonymous with the
-        # reference sequence?
-        variant_aa_interval_start = n_complete_prefix_codons + 1
-        variant_aa_interval_end = len(variant_amino_acids)
-    else:
-        n_variant_codons = int(math.ceil(len(cdna_alt) / 3.0))
-        n_
+    reference_sequence_before_variant = (
+        variant_sequence_in_reading_frame.reference_cdna_sequence_before_variant)
 
     return ProteinSequence(
-        reference_context=reference_context,
-        variant_sequence=variant_sequence,
+        cdna_sequence=cdna_sequence,
+        offset_to_first_complete_codon=cdna_codon_offset,
+        variant_cdna_interval_start=cdna_variant_start_offset,
+        variant_cdna_interval_end=cdna_variant_end_offset,
+        reference_cdna_sequence_before_variant=reference_sequence_before_variant,
+        number_mismatches=variant_sequence_in_reading_frame.number_mismatches,
         amino_acids=variant_amino_acids,
         frameshift=frameshift,
         ends_with_stop_codon=ends_with_stop_codon,
         variant_aa_interval_start=variant_aa_interval_start,
         variant_aa_interval_end=variant_aa_interval_end,
-        cdna_sequence=combined_variant_cdna_sequence,
-        variant_cdna_interval_start=variant_cdna_start,
-        variant_cdna_interval_end=variant_cdna_end)
+        reference_context=reference_context,
+        variant_sequence=variant_sequence)
 
 
 def translate_multiple_protein_sequences_from_variant_sequences(
