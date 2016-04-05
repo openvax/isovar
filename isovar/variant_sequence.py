@@ -25,7 +25,7 @@ from .logging import create_logger
 
 logger = create_logger(__name__)
 
-DEFAULT_SEQUENCE_LENGTH = 105
+DEFAULT_SEQUENCE_LENGTH = 90
 DEFAULT_CONTEXT_SIZE = DEFAULT_SEQUENCE_LENGTH // 2
 DEFAULT_MIN_READS = 1
 

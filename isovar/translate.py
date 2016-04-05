@@ -16,25 +16,21 @@ from __future__ import print_function, division, absolute_import
 
 from collections import namedtuple, OrderedDict
 import math
+import logging
 
 import pandas as pd
 from skbio import DNA
 
-from .logging import create_logger
 from .reference_context import (
     ReferenceContext,
     reference_contexts_for_variant
 )
 from .variant_sequence import variant_sequences_generator, VariantSequence
 
-logger = create_logger(__name__)
-
-
 # When multiple distinct RNA sequence contexts and/or reference transcripts
 # give us the same translation then we group them into a single object
 # which summarizes the supporting read count and reference transcript ORFs
 # for a unique protein sequence.
-
 
 ################################
 #
@@ -84,7 +80,7 @@ ProteinSequence = namedtuple(
         # half-open interval coordinates for variant amino acids
         # in the translated sequence
         "variant_aa_interval_start",
-        "variant_aa_end_offset",
+        "variant_aa_interval_end",
         # did the amino acid sequence end due to a stop codon or did we
         # just run out of sequence context around the variant?
         "ends_with_stop_codon",
@@ -94,10 +90,10 @@ ProteinSequence = namedtuple(
 
 
 MIN_READS_SUPPORTING_RNA_SEQUENCE = 3
-MIN_TRANSCRIPT_PREFIX_LENGTH = 15
+MIN_TRANSCRIPT_PREFIX_LENGTH = 30
 MAX_TRANSCRIPT_MISMATCHES = 2
-PROTEIN_FRAGMENT_LEGNTH = 25
-MAX_SEQUENCES_PER_VARIANT = 5
+PROTEIN_FRAGMENT_LEGNTH = 20
+MAX_SEQUENCES_PER_VARIANT = 1
 
 def trim_sequences(variant_sequence, reference_context):
     """
@@ -185,7 +181,11 @@ def count_mismatches(reference_prefix, cdna_prefix):
         raise ValueError(
             "Expected reference prefix '%s' to be same length as %s" % (
                 reference_prefix, cdna_prefix))
-    return sum(xi != yi for (xi, yi) in zip(reference_prefix, cdna_prefix))
+    # converting to str before zip because skbio.DNA is weird and sometimes
+    # returns elements which don't compare equally despite being the same
+    # nucleotide
+    return sum(xi != yi for (xi, yi) in zip(
+        str(reference_prefix), str(cdna_prefix)))
 
 
 def compute_offset_to_first_complete_codon(
@@ -231,7 +231,7 @@ def align_variant_sequence_to_reference_context(
     n_mismatch_before_variant = count_mismatches(reference_prefix, cdna_prefix)
 
     if n_mismatch_before_variant > max_transcript_mismatches:
-        logger.info(
+        logging.info(
             "Skipping reference context %s for %s, too many mismatching bases (%d)",
             reference_context,
             variant_sequence,
@@ -403,7 +403,7 @@ def translate_variant_sequence(
         max_transcript_mismatches=max_transcript_mismatches)
 
     if variant_sequence_in_reading_frame is None:
-        logger.debug("Failed to align %s to reference context %s" % (
+        logging.debug("Failed to align %s to reference context %s" % (
             variant_sequence,
             reference_context))
         return None
@@ -441,9 +441,7 @@ def translate_variant_sequence(
         frameshift=frameshift,
         ends_with_stop_codon=ends_with_stop_codon,
         variant_aa_interval_start=variant_aa_interval_start,
-        variant_aa_interval_end=variant_aa_interval_end,
-        reference_context=reference_context,
-        variant_sequence=variant_sequence)
+        variant_aa_interval_end=variant_aa_interval_end)
 
 
 def translate_multiple_protein_sequences_from_variant_sequences(
@@ -553,7 +551,7 @@ def translate_variants(
         variant_to_protein_sequences_dict[variant] = []
 
         if len(variant_sequences) == 0:
-            logger.info(
+            logging.info(
                 "Skipping variant %s, no cDNA sequences detected" % (
                     variant,))
             continue
@@ -568,7 +566,7 @@ def translate_variants(
             for variant_sequence in variant_sequences)
 
         if context_size < min_transcript_prefix_length:
-            logger.info(
+            logging.info(
                 "Skipping variant %s, none of the cDNA sequences have sufficient context" % (
                     variant,))
             continue
