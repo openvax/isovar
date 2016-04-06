@@ -219,8 +219,7 @@ def compute_offset_to_first_complete_codon(
 
 def align_variant_sequence_to_reference_context(
         variant_sequence,
-        reference_context,
-        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES):
+        reference_context):
     """
     Parameters
     ----------
@@ -228,21 +227,12 @@ def align_variant_sequence_to_reference_context(
 
     reference_context : ReferenceContext
 
-    Returns a VariantSequenceInReadingFrame object or, if the max number of
-    mismatches is exceeded, then None.
+    Returns a VariantSequenceInReadingFrame object
     """
     cdna_prefix, cdna_alt, cdna_suffix, reference_prefix, n_trimmed_from_reference = \
         trim_sequences(variant_sequence, reference_context)
 
     n_mismatch_before_variant = count_mismatches(reference_prefix, cdna_prefix)
-
-    if n_mismatch_before_variant > max_transcript_mismatches:
-        logging.info(
-            "Skipping reference context %s for %s, too many mismatching bases (%d)",
-            reference_context,
-            variant_sequence,
-            n_mismatch_before_variant)
-        return None
 
     # ReferenceContext carries with an offset to the first complete codon
     # in the reference sequence. This may need to be adjusted if the reference
@@ -400,18 +390,23 @@ def translate_variant_sequence(
         sequences disagrees at more than this number of positions before the
         variant nucleotides.
 
-    Returns either a ProteinSequence object or None.
+    Returns either a ProteinSequence object or None if the number of
+    mismatches between the RNA and reference transcript sequences exceeds the
+    given threshold.
     """
 
     variant_sequence_in_reading_frame = align_variant_sequence_to_reference_context(
         variant_sequence=variant_sequence,
         reference_context=reference_context,
         max_transcript_mismatches=max_transcript_mismatches)
+    n_mismatch_before_variant = variant_sequence_in_reading_frame.number_mismatches
 
-    if variant_sequence_in_reading_frame is None:
-        logging.debug("Failed to align %s to reference context %s" % (
+    if n_mismatch_before_variant > max_transcript_mismatches:
+        logging.info(
+            "Skipping reference context %s for %s, too many mismatching bases (%d)",
+            reference_context,
             variant_sequence,
-            reference_context))
+            n_mismatch_before_variant)
         return None
 
     cdna_sequence = variant_sequence_in_reading_frame.cdna_sequence
