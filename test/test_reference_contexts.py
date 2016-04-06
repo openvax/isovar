@@ -21,7 +21,8 @@ from isovar.reference_context import (
 from varcode import Variant, VariantCollection
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
-from common import assert_equal_fields
+
+from testing_helpers import assert_equal_fields
 
 def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
     # replace second codon of TP53-001 with 'CCC'

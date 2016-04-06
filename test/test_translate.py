@@ -14,9 +14,11 @@
 
 from __future__ import print_function, division, absolute_import
 
-from pysam import AlignmentFile
-from varcode import load_vcf
+
 from isovar.translate import translate_variants
+
+from testing_helpers import load_bam, load_vcf
+
 
 VCF = "data/CELSR1/vcfs/vcf_1.vcf"
 
@@ -27,7 +29,7 @@ GENOME = "hg19"
 
 def test_translate_variant_collection():
     variants = load_vcf(VCF, genome=GENOME)
-    samfile = AlignmentFile(BAM)
+    samfile = load_bam(BAM)
     result = translate_variants(variants, samfile)
     print(result)
     assert len(result) > 0, result

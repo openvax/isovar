@@ -15,12 +15,15 @@
 from __future__ import print_function, division, absolute_import
 
 from isovar.variant_reads import gather_reads_for_single_variant
-from pysam import AlignmentFile
+from pyensembl import ensembl_grch38
+
 from varcode import Variant
 from nose.tools import eq_
 
+from testing_helpers import load_bam
+
 def test_partition_variant_reads_snv():
-    samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
+    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 65857041
     ref = "G"
@@ -29,7 +32,8 @@ def test_partition_variant_reads_snv():
         contig=chromosome,
         start=base1_location,
         ref=ref,
-        alt=alt)
+        alt=alt,
+        ensembl=ensembl_grch38)
     variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
@@ -39,7 +43,7 @@ def test_partition_variant_reads_snv():
         eq_(variant_read.alt, alt)
 
 def test_partition_variant_reads_deletion():
-    samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
+    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 70091490
     ref = "TTGTAGATGCTGCCTCTCC"
@@ -48,7 +52,8 @@ def test_partition_variant_reads_deletion():
         contig=chromosome,
         start=base1_location,
         ref=ref,
-        alt=alt)
+        alt=alt,
+        ensembl=ensembl_grch38)
     variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,

@@ -23,7 +23,7 @@ from varcode import Variant
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
-from common import assert_equal_fields
+from testing_helpers import assert_equal_fields
 
 def test_reading_frame_to_offset():
     eq_(reading_frame_to_offset(0), 0)

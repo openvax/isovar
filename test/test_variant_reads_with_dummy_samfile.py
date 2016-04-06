@@ -18,7 +18,7 @@ from varcode import Variant
 from isovar.variant_reads import gather_reads_for_single_variant, VariantRead
 
 from mock_read_data import DummySamFile, make_read
-from common import assert_equal_fields
+from testing_helpers import assert_equal_fields
 
 def test_partitioned_read_sequences_snv():
     """

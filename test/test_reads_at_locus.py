@@ -18,7 +18,7 @@ from varcode import Variant
 from isovar.reads_at_locus import ReadAtLocus, gather_reads_at_locus
 
 from mock_read_data import DummySamFile, make_read
-from common import assert_equal_fields
+from testing_helpers import assert_equal_fields
 
 def test_reads_at_locus_snv():
     """
@@ -28,7 +28,11 @@ def test_reads_at_locus_snv():
     """
     # chr1_seq = "ACCTTG"
     variant = Variant(
-        "chromosome", 4, ref="T", alt="G", normalize_contig_name=False)
+        "chromosome",
+        4,
+        ref="T",
+        alt="G",
+        normalize_contig_name=False)
 
     pysam_read = make_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
 

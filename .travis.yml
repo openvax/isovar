@@ -38,6 +38,6 @@ install:
 script:
   - pyensembl install --release 83 --species human
   # run tests
-  - nosetests test --with-coverage --cover-package=pyensembl  && ./lint.sh
+  - nosetests test --with-coverage --cover-package=isovar  && ./lint.sh
 after_success:
   coveralls

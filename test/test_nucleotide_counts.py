@@ -16,17 +16,26 @@ from __future__ import print_function, division, absolute_import
 
 from isovar.nucleotide_counts import most_common_nucleotides
 from isovar.variant_reads import gather_reads_for_single_variant
-from pysam import AlignmentFile
+
 from varcode import Variant
+from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
+from testing_helpers import load_bam
+
+
 def test_most_common_nucleotides_for_chr12_deletion():
-    samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
+    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 70091490
     ref = "TTGTAGATGCTGCCTCTCC"
     alt = ""
-    variant = Variant(chromosome, base1_location, ref, alt)
+    variant = Variant(
+        chromosome,
+        base1_location,
+        ref,
+        alt,
+        ensembl=ensembl_grch38)
     variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,

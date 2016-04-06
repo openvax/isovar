@@ -16,17 +16,24 @@ from __future__ import print_function, division, absolute_import
 
 from isovar.variant_reads import gather_reads_for_single_variant
 from isovar.assembly import assemble_transcript_fragments
-from pysam import AlignmentFile
+from pyensembl import ensembl_grch38
 from varcode import Variant
 from nose.tools import eq_
 
+from testing_helpers import load_bam
+
 def test_assemble_transcript_fragments_snv():
-    samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
+    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 65857041
     ref = "G"
     alt = "C"
-    variant = Variant(contig=chromosome, start=base1_location, ref=ref, alt=alt)
+    variant = Variant(
+        contig=chromosome,
+        start=base1_location,
+        ref=ref,
+        alt=alt,
+        ensembl=ensembl_grch38)
     variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
@@ -35,7 +42,9 @@ def test_assemble_transcript_fragments_snv():
     longer_sequences = assemble_transcript_fragments(
         variant_reads,
         min_overlap_size=30)
+
     assert len(longer_sequences) > 0
+
     for (p, v, s), c in longer_sequences:
         print("%s%s%s weight=%d length=%d" % (
             p,

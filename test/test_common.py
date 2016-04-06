@@ -14,18 +14,24 @@
 
 from __future__ import print_function, division, absolute_import
 
-from pysam import AlignmentFile
 from isovar.common import group_unique_sequences
 from isovar.variant_reads import gather_reads_for_single_variant
 from varcode import Variant
+from pyensembl import ensembl_grch38
+
+from testing_helpers import load_bam
 
 def test_group_unique_sequences():
-    samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
+    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 65857041
     ref = "G"
     alt = "C"
-    variant = Variant(contig=chromosome, start=base1_location, ref=ref, alt=alt)
+    variant = Variant(
+        contig=chromosome,
+        start=base1_location,
+        ref=ref, alt=alt,
+        ensembl=ensembl_grch38)
     variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,

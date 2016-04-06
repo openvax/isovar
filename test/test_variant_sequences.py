@@ -15,14 +15,14 @@
 from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
-from pysam import AlignmentFile
 from varcode import Variant
 from isovar.variant_sequence import variant_reads_to_sequences
 from isovar.variant_reads import gather_reads_for_single_variant
 
+from testing_helpers import load_bam
 
 def test_sequence_counts_snv():
-    samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
+    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 65857041
     ref = "G"

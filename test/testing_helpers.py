@@ -13,8 +13,11 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+from os.path import join, dirname
 
 from nose.tools import eq_
+from pysam import AlignmentFile
+import varcode
 
 def assert_equal_fields(result, expected):
     """
@@ -29,3 +32,19 @@ def assert_equal_fields(result, expected):
                 field,
                 expected_value,
                 result_value)
+
+
+def data_path(path):
+    """
+    Return the absolute path to a file in the test directory.
+    The name specified should be relative to test.
+    """
+    return join(dirname(__file__), path)
+
+
+def load_bam(bam_path):
+    return AlignmentFile(data_path(bam_path))
+
+
+def load_vcf(vcf_path, genome=None):
+    return varcode.load_vcf(data_path(vcf_path), genome=genome)

@@ -22,7 +22,7 @@ from varcode import Variant
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
-from common import assert_equal_fields
+from testing_helpers import assert_equal_fields
 
 def test_sequence_key_for_variant_on_transcript_substitution():
     # rs769125639 is a simple T>A substitution in the 6th nucleotide of
