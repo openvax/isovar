@@ -68,12 +68,14 @@ def variant_reads_from_reads_at_locus(reads, ref, alt):
             logging.warn(
                 "Missing reference pos for nucleotide before variant on read: %s" % (
                     read,))
+            continue
 
         ref_pos_after = reference_positions[read_pos_after]
         if ref_pos_after is None:
             logging.warn(
                 "Missing reference pos for nucleotide after variant on read: %s" % (
                     read,))
+            continue
 
         if len(ref) == 0:
             if ref_pos_after - ref_pos_before != 1:
