@@ -27,7 +27,9 @@ import varcode
 import skbio
 from pysam import AlignmentFile
 
-from isovar.variant_reads import gather_variant_reads, sequence_counts
+from isovar.variant_reads import gather_reads_for_single_variant
+from isovar.variant_sequence import variant_reads_to_sequences
+
 from isovar.default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     CDNA_CONTEXT_SIZE
@@ -64,25 +66,25 @@ if __name__ == "__main__":
     samfile = AlignmentFile(args.bam)
 
     for variant in variants:
-        variant_reads = gather_variant_reads(
+        variant_reads = gather_reads_for_single_variant(
             samfile=samfile,
-            chromosome="chr" + variant.contig,
-            base1_location=variant.start,
-            ref=variant.ref,
-            alt=variant.alt)
+            variant=variant,
+            chromosome=variant.contig)
         if len(variant_reads) == 0:
             continue
-        result = sequence_counts(variant_reads, context_size=args.context_size)
-        for ((prefix, suffix), count) in sorted(
-                result.full_read_counts.items(),
-                key=lambda x: -x[1]):
+        variant_sequences = variant_reads_to_sequences(
+            variant_reads,
+            context_size=args.context_size)
+        for variant_sequence in variant_sequences:
+            count = len(variant_sequence.read_names)
             if count < args.min_reads:
                 continue
-
-            variant = result.alt
+            prefix = variant_sequence.prefix
+            alt = variant_sequence.alt
+            suffix = variant_sequence.suffix
             print("\t%s|%s|%s: %d" % (
                 prefix,
-                variant,
+                alt,
                 suffix,
                 count))
 

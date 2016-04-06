@@ -142,8 +142,11 @@ def gather_reads_at_locus(
                     name,))
                 continue
             elif mapping_quality < min_mapping_quality:
-                logging.debug("Skipping read '%s' due to low MAPQ: %d < %d" % (
-                    read.mapping_quality, min_mapping_quality))
+                logging.debug(
+                    "Skipping read '%s' due to low MAPQ: %d < %d" % (
+                        read.mapping_quality,
+                        mapping_quality,
+                        min_mapping_quality))
                 continue
 
             sequence = read.query_sequence

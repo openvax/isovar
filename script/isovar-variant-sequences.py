@@ -21,7 +21,7 @@ import argparse
 import varcode
 from pysam import AlignmentFile
 
-from isovar.variant_sequences import variant_sequences_dataframe
+from isovar.variant_sequence import variant_sequences_dataframe
 from isovar.default_parameters import (
     VARIANT_CDNA_SEQUENCE_LENGTH,
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE

@@ -120,8 +120,8 @@ def variant_reads_from_reads_at_locus(reads, ref, alt):
 
 def gather_reads_for_single_variant(
         samfile,
-        chromosome,
         variant,
+        chromosome=None,
         use_duplicate_reads=USE_DUPLICATE_READS,
         use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
         min_mapping_quality=MIN_READ_MAPPING_QUALITY):
@@ -134,9 +134,9 @@ def gather_reads_for_single_variant(
     ----------
     samfile : pysam.AlignmentFile
 
-    chromosome : str
-
     variant : varcode.Variant
+
+    chromosome : str
 
     use_duplicate_reads : bool
         Should we use reads that have been marked as PCR duplicates
@@ -149,6 +149,9 @@ def gather_reads_for_single_variant(
 
     Returns list of VariantRead objects.
     """
+    if chromosome is None:
+        chromosome = variant.contig
+
     logging.info("Gathering variant reads for variant %s (chromosome=%s)" % (
         variant,
         chromosome))
