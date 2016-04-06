@@ -34,12 +34,12 @@ def test_compute_offset_to_first_complete_codon_no_trimming():
     eq_(
         compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon=0,
-            n_trimmed_from_reference=0),
+            n_trimmed_from_reference_sequence=0),
         0)
     eq_(
         compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon=5,
-            n_trimmed_from_reference=0),
+            n_trimmed_from_reference_sequence=0),
         5)
 
 def test_compute_offset_to_first_complete_codon_trimming_before_codon():

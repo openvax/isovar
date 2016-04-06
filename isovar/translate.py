@@ -186,7 +186,7 @@ def count_mismatches(reference_prefix, cdna_prefix):
 
 def compute_offset_to_first_complete_codon(
         offset_to_first_complete_reference_codon,
-        n_trimmed_from_reference):
+        n_trimmed_from_reference_sequence):
     """
     Once we've aligned the variant sequence to the ReferenceContext, we need
     to transfer reading frame from the reference transcripts to the variant
@@ -194,16 +194,26 @@ def compute_offset_to_first_complete_codon(
 
     Parameters
     ----------
-    offset_to_first_complete_codon_in_reference_context : ReferenceContext
+    offset_to_first_complete_reference_codon : ReferenceContext
 
-    n_trimmed_from_reference : int
+    n_trimmed_from_reference_sequence : int
 
     Returns an offset into the variant sequence that starts from a complete
     codon.
+
+    TODO:
+    if n_trimmed_from_reference < offset_to_first_complete_codon:
+        return (
+            offset_to_first_complete_reference_codon -
+            n_trimmed_from_reference_sequence)
+    else:
+        n_trimmed_past_first_codon = (
+            n_trimmed_from_reference_sequence -
+            offset_to_first_complete_codon)
     """
     # if the reference sequence is longer then add in the number of
     # of codons (full or partial) that we trimmed
-    n_reference_codons_trimmed = int(math.ceil(n_trimmed_from_reference / 3.0))
+    n_reference_codons_trimmed = int(math.ceil(n_trimmed_from_reference_sequence / 3.0))
     n_reference_nucleotides_trimmed = n_reference_codons_trimmed * 3
     return offset_to_first_complete_reference_codon + n_reference_nucleotides_trimmed
 
@@ -239,7 +249,7 @@ def align_variant_sequence_to_reference_context(
     # sequence is longer than the variant sequence (and thus needs to be trimmed)
     offset_to_first_complete_codon = compute_offset_to_first_complete_codon(
         offset_to_first_complete_reference_codon=reference_context.offset_to_first_complete_codon,
-        n_trimmed_from_reference=n_trimmed_from_reference)
+        n_trimmed_from_reference_sequence=n_trimmed_from_reference)
 
     cdna_sequence = DNA.concat([cdna_prefix, cdna_alt, cdna_suffix])
     variant_interval_start = len(cdna_prefix) + 1

@@ -51,6 +51,7 @@ def make_read(seq, cigar, mdtag=None, name="dummy", mapq=10, baseq=30):
         read.set_tag("MD", mdtag)
     read.qname = name
     read.mapq = mapq
-    read.qual = bytes(
-        pysam.qualities_to_qualitystring([baseq] * len(seq)), 'ascii')
+    qualities_string = pysam.qualities_to_qualitystring([baseq] * len(seq))
+    qualities_bytes = qualities_string.encode("ascii")
+    read.qual = qualities_bytes
     return read
