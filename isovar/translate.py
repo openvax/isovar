@@ -397,8 +397,8 @@ def translate_variant_sequence(
 
     variant_sequence_in_reading_frame = align_variant_sequence_to_reference_context(
         variant_sequence=variant_sequence,
-        reference_context=reference_context,
-        max_transcript_mismatches=max_transcript_mismatches)
+        reference_context=reference_context)
+
     n_mismatch_before_variant = variant_sequence_in_reading_frame.number_mismatches
 
     if n_mismatch_before_variant > max_transcript_mismatches:
