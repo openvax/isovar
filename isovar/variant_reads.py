@@ -31,7 +31,6 @@ from .default_parameters import (
 )
 from .variant_helpers import trim_variant
 
-
 VariantRead = namedtuple(
     "VariantRead", "prefix alt suffix name")
 
@@ -108,13 +107,14 @@ def variant_reads_from_reads_at_locus(reads, ref, alt):
                         ref_pos_after,
                         read))
                 continue
-
         prefix = sequence[:read_pos_before + 1]
         suffix = sequence[read_pos_after:]
+
         if isinstance(prefix, bytes):
-            prefix = str(prefix, "ascii")
+            prefix = prefix.decode('ascii')
         if isinstance(suffix, bytes):
-            suffix = str(suffix, "ascii")
+            suffix = suffix.decode('ascii')
+
         yield VariantRead(prefix, alt, suffix, name=read.name)
 
 

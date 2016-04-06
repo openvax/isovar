@@ -67,7 +67,7 @@ def test_partitioned_read_sequences_insertion():
     variant = Variant(
         chromosome, location, ref, alt, normalize_contig_name=False)
 
-    read = make_read(seq="ACCTGTG", cigar="4M1I2M", mdtag="6")
+    read = make_read(seq=b"ACCTGTG", cigar="4M1I2M", mdtag="6")
 
     samfile = DummySamFile(reads=[read])
     variant_reads = gather_reads_for_single_variant(

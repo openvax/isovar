@@ -111,8 +111,6 @@ def gather_reads_at_locus(
 
             read = pileup_element.alignment
 
-            logging.debug(read)
-
             # For future reference,  may get overlapping reads
             # which can be identified by having the same name
             name = read.query_name
@@ -200,7 +198,8 @@ def gather_reads_at_locus(
             else:
                 base0_read_position_after_variant = reference_positions.index(
                     base0_position_after_variant)
-            logging.debug("Using read %s" % read)
+            if isinstance(sequence, bytes):
+                sequence = sequence.decode('ascii')
             yield ReadAtLocus(
                 name=name,
                 sequence=sequence,
