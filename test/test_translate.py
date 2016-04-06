@@ -15,7 +15,11 @@
 from __future__ import print_function, division, absolute_import
 
 
-from isovar.translate import translate_variants
+from isovar.translate import (
+    translate_variants,
+    compute_offset_to_first_complete_codon,
+)
+from nose.tools import eq_
 
 from testing_helpers import load_bam, load_vcf
 
@@ -26,6 +30,23 @@ BAM = "data/CELSR1/bams/bam_1.bam"
 
 GENOME = "hg19"
 
+def test_compute_offset_to_first_complete_codon_no_trimming():
+    eq_(
+        compute_offset_to_first_complete_codon(
+            offset_to_first_complete_reference_codon=0,
+            n_trimmed_from_reference=0),
+        0)
+    eq_(
+        compute_offset_to_first_complete_codon(
+            offset_to_first_complete_reference_codon=5,
+            n_trimmed_from_reference=0),
+        5)
+
+def test_compute_offset_to_first_complete_codon_trimming_before_codon():
+    pass
+
+def test_compute_offset_to_first_complete_codon_trimming_after_codon():
+    pass
 
 def test_translate_variant_collection():
     variants = load_vcf(VCF, genome=GENOME)
