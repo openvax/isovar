@@ -19,7 +19,7 @@ translations.
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple, OrderedDict
+from collections import namedtuple
 import math
 import logging
 
@@ -546,22 +546,17 @@ def translate_variants(
     # with the desired number of amino acids
     rna_sequence_length = protein_sequence_length * 3 + 2
 
-    variant_to_translations_dict = OrderedDict()
-
     for variant, variant_sequences in variant_sequences_generator(
             variants=variants,
             samfile=samfile,
             sequence_length=rna_sequence_length,
             min_reads=min_reads_supporting_rna_sequence):
-        # include every variant in the dictionary, even if it doesn't yield any
-        # translated proteins, just in case we later want to count how many
-        # translations succeeded vs. failed
-        variant_to_translations_dict[variant] = []
 
         if len(variant_sequences) == 0:
             logging.info(
                 "Skipping variant %s, no cDNA sequences detected" % (
                     variant,))
+            yield (variant, [])
             continue
 
         # try translating the variant sequences from the same set of
@@ -577,16 +572,19 @@ def translate_variants(
             logging.info(
                 "Skipping variant %s, none of the cDNA sequences have sufficient context" % (
                     variant,))
+            yield (variant, [])
             continue
 
         reference_contexts = reference_contexts_for_variant(
             variant,
             context_size=context_size,
             transcript_id_whitelist=transcript_id_whitelist)
+
         translations = translation_generator(
             variant_sequences=variant_sequences,
             reference_contexts=reference_contexts,
             max_transcript_mismatches=max_transcript_mismatches)
+
         yield variant, translations
 
 

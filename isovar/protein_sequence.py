@@ -20,9 +20,8 @@ ProteinSequence.
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
-from .translation import TranslationKey
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -31,7 +30,7 @@ from .default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
 )
 from .dataframe_builder import DataFrameBuilder
-
+from .translation import translate_variants, TranslationKey
 
 ##########################
 #
@@ -77,7 +76,44 @@ def variants_to_protein_sequences(
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
         max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT):
-    pass
+
+    for (variant, translations) in translate_variants(
+            variants=variants,
+            samfile=samfile,
+            transcript_id_whitelist=transcript_id_whitelist,
+            protein_sequence_length=protein_sequence_length,
+            min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
+            min_transcript_prefix_length=min_transcript_prefix_length,
+            max_transcript_mismatches=max_transcript_mismatches):
+        # dictionary mapping TranslationKey object to a list of Translations
+        # with the same protein sequence
+        equivalent_translations_dict = defaultdict(list)
+        for translation in translations:
+            translation_key_values = {
+                name: getattr(translation, name)
+                for name in TranslationKey._fields
+            }
+            key = TranslationKey(**translation_key_values)
+            equivalent_translations_dict[key].append(translation)
+
+        protein_sequences = []
+        for (key, equivalent_translations) in equivalent_translations_dict.items():
+            # first fill in all the ProteinSequence fields which are shared
+            # with TranslationKey
+            protein_sequence_values = {
+                name: getattr(key, name)
+                for name in TranslationKey._fields
+            }
+            protein_sequence_values["translations"] = equivalent_translations
+            # TODO: finish this
+            protein_sequence_values["number_supporting_reads"] = None
+            protein_sequence_values["total_variant_reads"] = None
+            protein_sequence_values["number_supporting_transcripts"] = None
+            protein_sequence_values["total_overlapping_transcripts"] = None
+            protein_sequence_values["gene"] = None
+            protein_sequences.append(ProteinSequence(**protein_sequence_values))
+            # TODO: sort protein sequences
+        yield variant, protein_sequences[:max_protein_sequences_per_variant]
 
 def variants_to_protein_sequences_dataframe(*args, **kwargs):
     """
@@ -90,8 +126,7 @@ def variants_to_protein_sequences_dataframe(*args, **kwargs):
         key_by_variant=True,
         column_names=ProteinSequence._fields,
         exclude=["translations"])
-    protein_sequences_dict = variants_to_protein_sequences(*args, **kwargs)
-    for (variant, protein_sequences) in protein_sequences_dict.items():
+    for (variant, protein_sequences) in variants_to_protein_sequences(*args, **kwargs):
         for protein_sequence in protein_sequences:
             df_builder.add(variant, protein_sequence)
     return df_builder.to_dataframe()

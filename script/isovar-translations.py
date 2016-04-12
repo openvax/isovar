@@ -26,13 +26,12 @@ import argparse
 import varcode
 from pysam import AlignmentFile
 
-from isovar.translate import translate_variants_dataframe
+from isovar.translation import translate_variants_dataframe
 from isovar.default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     PROTEIN_SEQUENCE_LEGNTH,
-    MAX_PROTEIN_SEQUENCES_PER_VARIANT,
 )
 
 
@@ -59,11 +58,6 @@ parser.add_argument(
     "--protein-sequence-length",
     default=PROTEIN_SEQUENCE_LEGNTH,
     type=int)
-
-parser.add_argument(
-    "--max-sequences-per-variant",
-    type=int,
-    default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
 
 parser.add_argument(
     "--max-reference-transcript-mismatches",
@@ -100,7 +94,6 @@ if __name__ == "__main__":
         protein_sequence_length=args.protein_sequence_length,
         min_reads_supporting_rna_sequence=args.min_reads,
         min_transcript_prefix_length=args.min_transcript_prefix_length,
-        max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        max_protein_sequences_per_variant=args.max_sequences_per_variant)
+        max_transcript_mismatches=args.max_reference_transcript_mismatches)
     print(df)
     df.to_csv(args.output)
