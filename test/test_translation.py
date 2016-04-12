@@ -15,7 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 
-from isovar.translate import (
+from isovar.translation import (
     translate_variants,
     compute_offset_to_first_complete_codon,
 )
@@ -74,10 +74,20 @@ def test_compute_offset_to_first_complete_codon_trimming_after_codon():
             n_trimmed_from_reference_sequence=10),
         0)
 
+"""
+def test_determine_reading_frame_for_variant_sequence():
+    reference_context = None
+    variant_sequence = None
+    variant_sequence_in_reading_frame = \
+        determine_reading_frame_for_variant_sequence(
+            variant_sequence=variant_sequence,
+            reference_context=reference_context)
+"""
+
 def test_translate_variant_collection():
     variants = load_vcf(VCF, genome=GENOME)
     samfile = load_bam(BAM)
-    result = translate_variants(variants, samfile)
+    result = list(translate_variants(variants, samfile))
     print(result)
     assert len(result) > 0, result
 

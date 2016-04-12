@@ -15,7 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 from varcode import Variant
-from isovar.variant_reads import gather_reads_for_single_variant, VariantRead
+from isovar.variant_read import gather_reads_for_single_variant, VariantRead
 
 from mock_read_data import DummySamFile, make_read
 from testing_helpers import assert_equal_fields

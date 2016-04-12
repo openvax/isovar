@@ -15,7 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 from varcode import Variant
-from isovar.reads_at_locus import ReadAtLocus, gather_reads_at_locus
+from isovar.read_at_locus import ReadAtLocus, read_at_locus_generator
 
 from mock_read_data import DummySamFile, make_read
 from testing_helpers import assert_equal_fields
@@ -37,7 +37,7 @@ def test_reads_at_locus_snv():
     pysam_read = make_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
 
     samfile = DummySamFile(reads=[pysam_read])
-    reads = list(gather_reads_at_locus(
+    reads = list(read_at_locus_generator(
         samfile=samfile,
         chromosome="chromosome",
         base1_position_before_variant=variant.start - 1,
@@ -69,7 +69,7 @@ def test_reads_at_locus_insertion():
     pysam_read = make_read(seq="ACCTGTG", cigar="4M1I2M", mdtag="6")
 
     samfile = DummySamFile(reads=[pysam_read])
-    reads = list(gather_reads_at_locus(
+    reads = list(read_at_locus_generator(
         samfile=samfile,
         chromosome="chromosome",
         base1_position_before_variant=variant.start,
@@ -104,7 +104,7 @@ def test_reads_at_locus_deletion():
     pysam_read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
     samfile = DummySamFile(reads=[pysam_read])
-    reads = list(gather_reads_at_locus(
+    reads = list(read_at_locus_generator(
         samfile=samfile,
         chromosome="chromosome",
         base1_position_before_variant=variant.start - 1,
@@ -133,7 +133,7 @@ def test_reads_at_locus_substitution_longer():
     pysam_read = make_read(seq="AGGCTTG", cigar="2M1I4M", mdtag="1C4")
 
     samfile = DummySamFile(reads=[pysam_read])
-    reads = list(gather_reads_at_locus(
+    reads = list(read_at_locus_generator(
         samfile=samfile,
         chromosome="chromosome",
         base1_position_before_variant=1,
@@ -162,7 +162,7 @@ def test_reads_at_locus_substitution_shorter():
     pysam_read = make_read(seq="AGTTG", cigar="2M1D3M", mdtag="1C^C4")
 
     samfile = DummySamFile(reads=[pysam_read])
-    reads = list(gather_reads_at_locus(
+    reads = list(read_at_locus_generator(
         samfile=samfile,
         chromosome="chromosome",
         base1_position_before_variant=1,

@@ -14,7 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.variant_reads import gather_reads_for_single_variant
+from isovar.variant_read import gather_reads_for_single_variant
 from isovar.assembly import assemble_transcript_fragments
 from pyensembl import ensembl_grch38
 from varcode import Variant

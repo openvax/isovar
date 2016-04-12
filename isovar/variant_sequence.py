@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 
 from .common import group_unique_sequences, get_variant_nucleotides
-from .variant_reads import variant_reads_generator
+from .variant_read import variant_reads_generator
 from .default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     VARIANT_CDNA_SEQUENCE_LENGTH

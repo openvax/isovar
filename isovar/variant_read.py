@@ -18,18 +18,18 @@ suffix portions
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple, OrderedDict
+from collections import namedtuple
 import logging
 
-from pandas import DataFrame
-
-from .reads_at_locus import gather_reads_at_locus
+from .read_at_locus import read_at_locus_generator
 from .default_parameters import (
     MIN_READ_MAPPING_QUALITY,
     USE_SECONDARY_ALIGNMENTS,
     USE_DUPLICATE_READS
 )
 from .variant_helpers import trim_variant
+from .dataframe_builder import DataFrameBuilder
+
 
 VariantRead = namedtuple(
     "VariantRead", "prefix alt suffix name")
@@ -167,7 +167,7 @@ def gather_reads_for_single_variant(
         base1_position_before_variant = base1_position - 1
         base1_position_after_variant = base1_position + len(ref)
 
-    reads_at_locus_generator = gather_reads_at_locus(
+    reads = read_at_locus_generator(
         samfile=samfile,
         chromosome=chromosome,
         base1_position_before_variant=base1_position_before_variant,
@@ -177,7 +177,7 @@ def gather_reads_for_single_variant(
         min_mapping_quality=min_mapping_quality)
     variant_reads = list(
         variant_reads_from_reads_at_locus(
-            reads=reads_at_locus_generator,
+            reads=reads,
             ref=ref,
             alt=alt))
     logging.info("Variant reads: %s" % (variant_reads,))
@@ -265,24 +265,13 @@ def variant_reads_dataframe(
     min_mapping_quality : int
         Drop reads below this mapping quality
     """
-    columns = OrderedDict([
-        ("chr", []),
-        ("pos", []),
-        ("ref", []),
-        ("alt", []),
-        ("read_name", []),
-        ("read_prefix", []),
-        ("read_variant", []),
-        ("read_suffix", []),
-    ])
-    for variant, variant_reads in variant_reads_generator(variants, samfile):
+    df_builder = DataFrameBuilder(VariantRead)
+    for variant, variant_reads in variant_reads_generator(
+            variants,
+            samfile,
+            use_duplicate_reads=use_duplicate_reads,
+            use_secondary_alignments=use_secondary_alignments,
+            min_mapping_quality=min_mapping_quality):
         for variant_read in variant_reads:
-            columns["chr"].append(variant.contig)
-            columns["pos"].append(variant.start)
-            columns["ref"].append(variant.ref)
-            columns["alt"].append(variant.alt)
-            columns["read_name"].append(variant_read.name)
-            columns["read_prefix"].append(variant_read.prefix)
-            columns["read_variant"].append(variant_read.alt)
-            columns["read_suffix"].append(variant_read.suffix)
-    return DataFrame(columns)
+            df_builder.add(variant, variant_read)
+    return df_builder.to_dataframe()

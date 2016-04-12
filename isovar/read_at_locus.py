@@ -41,7 +41,7 @@ ReadAtLocus = namedtuple(
     ])
 
 
-def gather_reads_at_locus(
+def read_at_locus_generator(
         samfile,
         chromosome,
         base1_position_before_variant,
@@ -79,6 +79,10 @@ def gather_reads_at_locus(
 
     Yields ReadAtLocus objects
     """
+    # TODO: hackish fix
+    if not chromosome.startswith("chr"):
+        chromosome = "chr" + chromosome
+
     logging.info(
         "Gathering reads at locus %s: %d-%d" % (
             chromosome,

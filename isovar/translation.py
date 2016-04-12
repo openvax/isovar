@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This module combines variant cDNA sequences collected from a BAM file with
+the reading frames of annotated reference transcripts to create candidate
+translations.
+"""
+
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple, OrderedDict
 import math
 import logging
 
-import pandas as pd
 from skbio import DNA
 
 from .reference_context import reference_contexts_for_variant
@@ -26,9 +31,9 @@ from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     PROTEIN_SEQUENCE_LEGNTH,
-    MAX_PROTEIN_SEQUENCES_PER_VARIANT,
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
 )
+from .dataframe_builder import DataFrameBuilder
 
 # When multiple distinct RNA sequence contexts and/or reference transcripts
 # give us the same translation then we group them into a single object
@@ -67,16 +72,19 @@ VariantSequenceInReadingFrame = namedtuple(
 
 ##########################
 #
-# ProteinSequence
-# ---------------
+# TranslationKey
+# --------------
 #
-# Translation of a VariantSequenceInReadingFrame to amino acids.
+# Fields related to a translated protein sequence which should be used to
+# combine multiple equivalent sequences.
 #
 ##########################
 
 
-ProteinSequence = namedtuple(
-    "ProteinSequence", VariantSequenceInReadingFrame._fields + (
+# pulling out the tuple of fields so that we can reuse them in the
+# ProteinSequence namedtuple, as well as
+TranslationKey = namedtuple(
+    "TranslationKey", (
         # translated sequence of a variant sequence in the ORF established
         # by a reference context
         "amino_acids",
@@ -88,8 +96,27 @@ ProteinSequence = namedtuple(
         # just run out of sequence context around the variant?
         "ends_with_stop_codon",
         # was the variant a frameshift relative to the reference sequence?
-        "frameshift",
-    ))
+        "frameshift"))
+
+
+##########################
+#
+# Translation
+# -----------
+#
+# Translated amino acid sequence of a VariantSequenceInReadingFrame for a
+# particular ReferenceContext and VariantSequence.
+#
+##########################
+
+
+Translation = namedtuple(
+    "Translation",
+    VariantSequenceInReadingFrame._fields + TranslationKey._fields + (
+        "variant_sequence",
+        "reference_context",
+        "variant_sequence_in_reading_frame"))
+
 
 def trim_sequences(variant_sequence, reference_context):
     """
@@ -212,9 +239,7 @@ def compute_offset_to_first_complete_codon(
         frame = n_nucleotides_trimmed_after_first_codon % 3
         return (3 - frame) % 3
 
-def align_variant_sequence_to_reference_context(
-        variant_sequence,
-        reference_context):
+def determine_reading_frame_for_variant_sequence(variant_sequence, reference_context):
     """
     Parameters
     ----------
@@ -390,7 +415,7 @@ def translate_variant_sequence(
     given threshold.
     """
 
-    variant_sequence_in_reading_frame = align_variant_sequence_to_reference_context(
+    variant_sequence_in_reading_frame = determine_reading_frame_for_variant_sequence(
         variant_sequence=variant_sequence,
         reference_context=reference_context)
 
@@ -427,7 +452,7 @@ def translate_variant_sequence(
         variant_sequence_in_reading_frame.reference_cdna_sequence_before_variant)
     # converting sequence objects to str since skbio.DNA objects aren't really
     # useful outside of the translation module & debugging
-    return ProteinSequence(
+    return Translation(
         cdna_sequence=str(cdna_sequence),
         offset_to_first_complete_codon=cdna_codon_offset,
         variant_cdna_interval_start=cdna_variant_start_offset,
@@ -441,11 +466,10 @@ def translate_variant_sequence(
         variant_aa_interval_end=variant_aa_interval_end)
 
 
-def translate_multiple_protein_sequences_from_variant_sequences(
+def translation_generator(
         variant_sequences,
         reference_contexts,
-        max_transcript_mismatches,
-        max_protein_sequences_per_variant):
+        max_transcript_mismatches):
     """
     Given all detected VariantSequence objects for a particular variant
     and all the ReferenceContext objects for that locus, translate
@@ -462,25 +486,16 @@ def translate_multiple_protein_sequences_from_variant_sequences(
 
     max_transcript_mismatches : int
 
-    max_protein_sequences_per_variant
+    Yields a sequence of Translation objects.
     """
-    protein_sequences = []
     for reference_context in reference_contexts:
         for variant_sequence in variant_sequences:
-            # assuming that the reference contexts and variant sequences
-            # were sorted in order of priority, we will also get back
-            # translations in order of quality, so it's OK to only keep
-            # the top k
-            n_protein_sequences = len(protein_sequences)
-            if n_protein_sequences >= max_protein_sequences_per_variant:
-                return protein_sequences
-            protein_sequence = translate_variant_sequence(
+            translation = translate_variant_sequence(
                 variant_sequence=variant_sequence,
                 reference_context=reference_context,
                 max_transcript_mismatches=max_transcript_mismatches)
-            if protein_sequence is not None:
-                protein_sequences.append(protein_sequence)
-    return protein_sequences
+            if translation is not None:
+                yield translation
 
 def translate_variants(
         variants,
@@ -489,8 +504,7 @@ def translate_variants(
         protein_sequence_length=PROTEIN_SEQUENCE_LEGNTH,
         min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT):
+        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES):
     """
     Translates each coding variant in a collection to one or more protein
     fragment sequences (if the variant is not filtered and its spanning RNA
@@ -523,19 +537,16 @@ def translate_variants(
         Don't try to determine the reading frame for a transcript if more
         than this number of bases differ.
 
-    max_protein_sequences_per_variant : int
-        Ignore any translations once we have this many for a variant.
-
-    Returns a dictionary mapping each variant to a list of ProteinSequence
-    records.
+    Yields pairs of a Variant and a generator of all its candidate
+    Translation objects.
     """
 
-    # adding 2nt to total RNA sequence length  in case we need to clip 1 or 2
+    # adding 2nt to total RNA sequence length in case we need to clip 1 or 2
     # bases of the sequence to match a reference ORF but still want to end up
     # with the desired number of amino acids
     rna_sequence_length = protein_sequence_length * 3 + 2
 
-    variant_to_protein_sequences_dict = OrderedDict()
+    variant_to_translations_dict = OrderedDict()
 
     for variant, variant_sequences in variant_sequences_generator(
             variants=variants,
@@ -545,7 +556,7 @@ def translate_variants(
         # include every variant in the dictionary, even if it doesn't yield any
         # translated proteins, just in case we later want to count how many
         # translations succeeded vs. failed
-        variant_to_protein_sequences_dict[variant] = []
+        variant_to_translations_dict[variant] = []
 
         if len(variant_sequences) == 0:
             logging.info(
@@ -572,62 +583,31 @@ def translate_variants(
             variant,
             context_size=context_size,
             transcript_id_whitelist=transcript_id_whitelist)
-        variant_to_protein_sequences_dict[variant] = \
-            translate_multiple_protein_sequences_from_variant_sequences(
-                variant_sequences=variant_sequences,
-                reference_contexts=reference_contexts,
-                max_transcript_mismatches=max_transcript_mismatches,
-                max_protein_sequences_per_variant=max_protein_sequences_per_variant)
-    return variant_to_protein_sequences_dict
+        translations = translation_generator(
+            variant_sequences=variant_sequences,
+            reference_contexts=reference_contexts,
+            max_transcript_mismatches=max_transcript_mismatches)
+        yield variant, translations
 
-def translate_variants_dataframe(
-        variants,
-        samfile,
-        transcript_id_whitelist=None,
-        protein_sequence_length=PROTEIN_SEQUENCE_LEGNTH,
-        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-        min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT):
+
+def translate_variants_dataframe(*args, **kwargs):
     """
     Given a collection of variants and a SAM/BAM file of overlapping reads,
     returns a DataFrame of translated protein fragments with columns
-    for each field of a ProteinSequence object (and chr/pos/ref/alt).
+    for each field of a Translation object (and chr/pos/ref/alt per variant).
+
+    Takes the same parameters as translate_variants.
     """
-    # construct a dictionary incrementally which we'll turn into a
-    # DataFrame
-    columns = [
-        # fields related to variant
-        ("chr", []),
-        ("pos", []),
-        ("ref", []),
-        ("alt", []),
-    ]
 
-    # flattened representation of fields in ProteinSequence, and its member
-    # objects of type ReferenceContext and VariantSequence
-    for field in ProteinSequence._fields:
-        columns.append((field, []))
+    df_builder = DataFrameBuilder(
+        element_class=Translation,
+        # exlude fields which are structured objects
+        exclude_field_names=[
+            "variant_sequence",
+            "reference_context",
+            "variant_sequence_in_reading_frame"])
 
-    column_dict = OrderedDict(columns)
-
-    for (variant, protein_sequences) in translate_variants(
-            variants,
-            samfile,
-            transcript_id_whitelist=transcript_id_whitelist,
-            protein_sequence_length=protein_sequence_length,
-            min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
-            min_transcript_prefix_length=min_transcript_prefix_length,
-            max_transcript_mismatches=max_transcript_mismatches,
-            max_protein_sequences_per_variant=max_protein_sequences_per_variant).items():
-        for protein_sequence in protein_sequences:
-            # variant info
-            column_dict["chr"].append(variant.contig)
-            column_dict["pos"].append(variant.original_start)
-            column_dict["ref"].append(variant.original_ref)
-            column_dict["alt"].append(variant.original_alt)
-            for field in ProteinSequence._fields:
-                column_dict[field].append(
-                    getattr(protein_sequence, field))
-    df = pd.DataFrame(column_dict)
-    return df
+    for (variant, translations) in translate_variants(*args, **kwargs):
+        for translation in translations:
+            df_builder.add(variant, translation)
+    return df_builder.to_dataframe()
