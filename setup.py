@@ -73,8 +73,8 @@ if __name__ == '__main__':
         long_description=readme,
         packages=['isovar'],
         scripts=[
-            "script/isovar-translate-variants.py",
-            "script/isovar-translate-all-frames.py",
+            "script/isovar-protein-sequences.py",
+            "script/isovar-translations.py",
             "script/isovar-reference-contexts.py",
             "script/isovar-variant-reads.py",
             "script/isovar-variant-sequences.py",
