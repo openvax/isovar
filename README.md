@@ -6,30 +6,33 @@ Abundance quantification of distinct transcript sequences containing somatic var
 ## Example
 
 ```sh
-$ isovar-translate-variants.py \
-    --vcf /Users/iskander/code/varlens/test/data/CELSR1/vcfs/vcf_1.vcf  \
+$ isovar-protein-sequences.py  \
+    --vcf somatic-variants.vcf  \
+    --bam rnaseq.bam \
     --genome hg19 \
-    --bam /Users/iskander/code/varlens/test/data/CELSR1/bams/bam_2.bam  \
-    --protein-fragment-length 10 \
-    --min-reads 20 \
+    --min-reads 2 \
+    --protein-sequence-length 30 \
     --output isovar-results.csv
 
-Variant(contig=22, start=46931062, ref=G, alt=A, reference_name=GRCh37)
-  chr  base1_start_pos  base1_end_pos ref alt variant_protein_sequence  \
-0  22         46931060       46931060   A   C               PPMSSATSVS
-1  22         46931062       46931062   G   A              WPPMSFSTSVS
+  chr       pos ref alt                      amino_acids  \
+0  22  46931060   A   C   FGVEAVDHGWPSMSSGSSWRASRGPPPPPR
+1  22  46931062   G   A  CFGVEAVDHGWPPMSLAHGGPAVVHRLHPEA
 
-   variant_protein_sequence_length         reference_transcript_ids  \
-0                               10  ENST00000395964;ENST00000262738
-1                               11  ENST00000395964;ENST00000262738
+   variant_aa_interval_start  variant_aa_interval_end ends_with_stop_codon  \
+0                         16                       17                False
+1                         16                       17                False
 
-  reference_transcript_names                       cdna_sequences  \
-0      CELSR1-201;CELSR1-001  GCCCCCCATGAGCTCC_G_CCACCAGCGTGTCCAT
-1      CELSR1-201;CELSR1-001  TGGCCCCCCATGAGCT_T_CTCCACCAGCGTGTCC
+  frameshift  translations_count  supporting_variant_reads_count  \
+0      False                   1                               1
+1      False                   1                               1
 
-   cdna_sequence_length  number_supporting_reads
-0                    33                       48
-1                    33                       49
+   total_variant_reads  supporting_transcripts_count  total_transcripts  \
+0                  130                             2                  2
+1                  127                             2                  2
+
+     gene
+0  CELSR1
+1  CELSR1
 ```
 
 ## Algorithm/Design
@@ -41,7 +44,8 @@ A little more detail about the algorithm:
   2. Make sure that the read contains the variant allele and split its sequence into prefix/alt/suffix string parts (represented by `VariantRead`)
   3. Combine multiple `VariantRead` records into a `VariantSequence`
   4. Gather possible reading frames for distinct reference sequences around the variant locus (represented by `ReferenceContext`).
-  5. Use the reading frame from a `ReferenceContext` to translate a `VariantSequence` into a protein fragment (represented by `ProteinSequence`).
+  5. Use the reading frame from a `ReferenceContext` to translate a `VariantSequence` into a protein fragment (represented by `Translation`).
+  6. Multiple distinct variant sequences and reference contexts can generate the same translations, so we aggregate those equivalent `Translation` objects into a `ProteinSequence`.
 
 Since we may not want to deal with *every* possible translation of *every* distinct sequence detected around a variant, `isovar` sorts the variant sequences by the number of supporting reads and the reference contexts in order of protein length and a configurable number of
 translated protein fragments can be kept from this ordering.

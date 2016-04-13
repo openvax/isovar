@@ -26,8 +26,10 @@ class DataFrameBuilder(object):
     def __init__(
             self,
             element_class,
-            exclude_field_names=set([])):
+            exclude_field_names=set([]),
+            convert_sequences_to_string=True):
         self.element_class = element_class
+        self.convert_sequences_to_string = convert_sequences_to_string
 
         # remove specified field names without changing the order of the others
         self.field_names = [
@@ -54,7 +56,10 @@ class DataFrameBuilder(object):
         self.columns_dict["alt"].append(variant.original_alt)
 
         for name in self.field_names:
-            self.columns_dict[name].append(getattr(element, name))
+            value = getattr(element, name)
+            if isinstance(value, (list, tuple)) and self.convert_sequences_to_string:
+                value = ";".join(value)
+            self.columns_dict[name].append(value)
 
     def to_dataframe(self):
         return pd.DataFrame(self.columns_dict)

@@ -463,7 +463,10 @@ def translate_variant_sequence(
         frameshift=frameshift,
         ends_with_stop_codon=ends_with_stop_codon,
         variant_aa_interval_start=variant_aa_interval_start,
-        variant_aa_interval_end=variant_aa_interval_end)
+        variant_aa_interval_end=variant_aa_interval_end,
+        variant_sequence=variant_sequence,
+        reference_context=reference_context,
+        variant_sequence_in_reading_frame=variant_sequence_in_reading_frame)
 
 
 def translation_generator(
