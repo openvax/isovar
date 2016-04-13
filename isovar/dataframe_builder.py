@@ -27,10 +27,30 @@ class DataFrameBuilder(object):
             self,
             element_class,
             exclude_field_names=set([]),
+            transform_fields={},
             convert_sequences_to_string=True):
+        """
+        Parameters
+        ----------
+        element_class : type
+            Expected to a have a class-member named '_fields' which is a list
+            of field names.
+
+        exclude_field_names : set
+            Field names from element_class which should be used as columns for
+            the DataFrame we're building
+
+        transform_fields : dict
+            Dictionary of names mapping to functions. These functions will be
+            applied to each element of a column before it's added to the
+            DataFrame.
+
+        convert_sequences_to_string : bool
+            If a value being added to a column is a list or tuple, should
+            it be converted to a semi-colon separated string?
+        """
         self.element_class = element_class
         self.convert_sequences_to_string = convert_sequences_to_string
-
         # remove specified field names without changing the order of the others
         self.field_names = [
             x
@@ -48,6 +68,11 @@ class DataFrameBuilder(object):
         for name in self.field_names:
             columns_list.append((name, []))
         self.columns_dict = OrderedDict(columns_list)
+        self.transform_fields = transform_fields
+        for name in transform_fields:
+            if name not in self.columns_dict:
+                raise ValueError("No field named '%s' in %s" % (
+                    name, element_class))
 
     def add(self, variant, element):
         self.columns_dict["chr"].append(variant.contig)
@@ -57,8 +82,14 @@ class DataFrameBuilder(object):
 
         for name in self.field_names:
             value = getattr(element, name)
-            if isinstance(value, (list, tuple)) and self.convert_sequences_to_string:
-                value = ";".join(value)
+
+            if name in self.transform_fields:
+                fn = self.transform_fields[name]
+                value = fn(value)
+
+            if isinstance(value, (list, tuple)):
+                if self.convert_sequences_to_string:
+                    value = ";".join(value)
             self.columns_dict[name].append(value)
 
     def to_dataframe(self):

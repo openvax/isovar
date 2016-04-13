@@ -51,16 +51,15 @@ ProteinSequence = namedtuple(
         # list of all the Translation objects which support this distinct
         # amino acid sequence
         "translations",
-        "translations_count",
         # number of unique read names from all the VariantSequence objects
         # from each translation
-        "supporting_variant_reads_count",
+        "supporting_variant_reads",
         # total number of reads at the locus which contained the variant
         # nucleotides, even if they supported other phased sequences
         "total_variant_reads",
         # how many reference transcripts were used to establish the
         # reading frame for this protein sequence
-        "supporting_transcripts_count",
+        "supporting_transcripts",
         # how many reference transcripts overlap the variant locus?
         "total_transcripts",
         # name of gene of the reference transcripts used in Translation
@@ -110,6 +109,28 @@ def summarize_translations(translations):
             gene_names.add(transcript.gene.name)
     return read_names, transcript_ids, gene_names
 
+def protein_sequence_sort_key(protein_sequence):
+    """
+    Sort protein sequences lexicographically by three criteria:
+        - number of unique supporting reads
+        - minimum mismatch versus a supporting reference transcript
+        - number of supporting reference transcripts
+    """
+    return (
+        len(protein_sequence.supporting_variant_reads),
+        min(
+            t.variant_sequence_in_reading_frame.number_mismatches
+            for t in protein_sequence.translations),
+        len(protein_sequence.supporting_transcripts)
+    )
+
+def sort_protein_sequences(protein_sequences):
+    """
+    Sort protein sequences in decreasing order of priority
+    """
+    return list(
+        sorted(protein_sequences, key=protein_sequence_sort_key, reverse=True))
+
 def variants_to_protein_sequences(
         variants,
         samfile,
@@ -119,7 +140,43 @@ def variants_to_protein_sequences(
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
         max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT):
+    """"
+    Translates each coding variant in a collection to one or more
+    Translation objects, which are then aggregated into equivalent
+    ProteinSequence objects.
 
+    Parameters
+    ----------
+    variants : varcode.VariantCollection
+
+    samfile : pysam.AlignmentFile
+
+    transcript_id_whitelist : set, optional
+        If given, expected to be a set of transcript IDs which we should use
+        for determining the reading frame around a variant. If omitted, then
+        try to use all overlapping reference transcripts.
+
+    protein_sequence_length : int
+        Try to translate protein sequences of this length, though sometimes
+        we'll have to return something shorter (depending on the RNAseq data,
+        and presence of stop codons).
+
+    min_reads_supporting_rna_sequence : int
+        Drop variant sequences supported by fewer than this number of reads.
+
+    min_transcript_prefix_length : int
+        Minimum number of bases we need to try matching between the reference
+        context and variant sequence.
+
+    max_transcript_mismatches : int
+        Don't try to determine the reading frame for a transcript if more
+        than this number of bases differ.
+
+    max_protein_sequences_per_variant : int
+        Number of protein sequences to return for each ProteinSequence
+
+    Yields pairs of a Variant and a list of ProteinSequence objects
+    """
     for (variant, translations) in translate_variants(
             variants=variants,
             samfile=samfile,
@@ -143,8 +200,11 @@ def variants_to_protein_sequences(
             equivalent_translations_dict[key].append(translation)
 
         all_read_names, all_transcript_ids, _ = summarize_translations(translations)
+        n_total_read_names = len(all_read_names)
+        n_total_transcripts = len(all_transcript_ids)
 
         protein_sequences = []
+
         for (key, equivalent_translations) in equivalent_translations_dict.items():
             # get the variant read names, transcript IDs and gene names for
             # protein sequence we're about to construct
@@ -154,14 +214,16 @@ def variants_to_protein_sequences(
             protein_sequence = translation_key_to_protein_sequence(
                 translation_key=key,
                 translations=equivalent_translations,
-                translations_count=len(equivalent_translations),
-                supporting_variant_reads_count=len(group_read_names),
-                total_variant_reads=len(all_read_names),
-                supporting_transcripts_count=len(group_transcript_ids),
-                total_transcripts=len(all_transcript_ids),
+                supporting_variant_reads=group_read_names,
+                total_variant_reads=n_total_read_names,
+                supporting_transcripts=group_transcript_ids,
+                total_transcripts=n_total_transcripts,
                 gene=list(group_gene_names))
             protein_sequences.append(protein_sequence)
-        # TODO: sort protein sequences before clipping!
+
+        # sort protein sequences before returning the top results
+        protein_sequences = sort_protein_sequences(protein_sequences)
+
         yield variant, protein_sequences[:max_protein_sequences_per_variant]
 
 def variants_to_protein_sequences_dataframe(*args, **kwargs):
@@ -173,7 +235,12 @@ def variants_to_protein_sequences_dataframe(*args, **kwargs):
     """
     df_builder = DataFrameBuilder(
         ProteinSequence,
-        exclude_field_names=["translations"])
+        transform_fields={
+            "translations": len,
+            "supporting_variant_reads": len,
+            "supporting_transcripts": len,
+            "gene": lambda x: ";".join(x)
+        })
     for (variant, protein_sequences) in variants_to_protein_sequences(*args, **kwargs):
         for protein_sequence in protein_sequences:
             df_builder.add(variant, protein_sequence)

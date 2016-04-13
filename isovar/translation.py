@@ -82,7 +82,7 @@ VariantSequenceInReadingFrame = namedtuple(
 
 
 # pulling out the tuple of fields so that we can reuse them in the
-# ProteinSequence namedtuple, as well as
+# ProteinSequence namedtuple, as well as Translation
 TranslationKey = namedtuple(
     "TranslationKey", (
         # translated sequence of a variant sequence in the ORF established
