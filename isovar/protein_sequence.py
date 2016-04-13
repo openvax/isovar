@@ -161,6 +161,7 @@ def variants_to_protein_sequences(
                 total_transcripts=len(all_transcript_ids),
                 gene=list(group_gene_names))
             protein_sequences.append(protein_sequence)
+        # TODO: sort protein sequences before clipping!
         yield variant, protein_sequences[:max_protein_sequences_per_variant]
 
 def variants_to_protein_sequences_dataframe(*args, **kwargs):

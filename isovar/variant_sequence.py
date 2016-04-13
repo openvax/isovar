@@ -85,7 +85,7 @@ def variant_reads_to_sequences(
     variant_seq = get_variant_nucleotides(variant_reads)
     variant_len = len(variant_seq)
 
-    if not min_sequence_length:
+    if min_sequence_length is None or min_sequence_length == 0:
         # if not specified, then use the longest sequence available
         # which will be at most twice the context size
         min_sequence_length = variant_len + max(
@@ -103,7 +103,6 @@ def variant_reads_to_sequences(
         for ((prefix, suffix), read_names)
         in unique_sequence_groups.items()
     ]
-
     n_total = len(variant_sequences)
 
     variant_sequences = [
@@ -164,12 +163,12 @@ def variant_sequences_generator(
                 flanking_context_size,
                 variant))
 
-        sequences = variant_reads_to_sequences(
+        variant_sequences = variant_reads_to_sequences(
             variant_reads,
             context_size=flanking_context_size,
             min_reads_per_sequence=min_reads)
 
-        yield variant, sequences
+        yield variant, variant_sequences
 
 def variant_sequences_dataframe(
         variants,
