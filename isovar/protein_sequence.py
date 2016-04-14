@@ -119,7 +119,7 @@ def protein_sequence_sort_key(protein_sequence):
     return (
         len(protein_sequence.supporting_variant_reads),
         min(
-            t.variant_sequence_in_reading_frame.number_mismatches
+            t.number_mismatches
             for t in protein_sequence.translations),
         len(protein_sequence.supporting_transcripts)
     )
