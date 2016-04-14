@@ -82,8 +82,7 @@ def test_translate_variant_collection():
     variants = load_vcf("data/b16.f10/b16.vcf")
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
     result = list(translate_variants(variants, samfile))
-    print(result)
-    assert len(result) > 0, result
+    assert len(result) == 4, result
 
 if __name__ == "__main__":
     test_translate_variant_collection()

@@ -18,8 +18,12 @@ from nose.tools import eq_
 from isovar.translation import Translation
 from isovar.protein_sequence import (
     ProteinSequence,
-    sort_protein_sequences
+    sort_protein_sequences,
+    variants_to_protein_sequences_dataframe
 )
+
+from testing_helpers import load_bam, load_vcf
+
 
 # fields of a ProteinSequence:
 #   translations
@@ -137,3 +141,11 @@ def test_sort_protein_sequences():
         protseq_fewest_reads_or_transcripts,
     ]
     eq_(sort_protein_sequences(unsorted_protein_sequences), expected_order)
+
+
+def test_variants_to_protein_sequences_dataframe():
+    variants = load_vcf("data/b16.f10/b16.vcf")
+    samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
+    df = variants_to_protein_sequences_dataframe(variants, samfile)
+    print(df)
+    assert len(df) == 4, len(df)
