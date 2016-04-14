@@ -28,6 +28,7 @@ from .default_parameters import (
     PROTEIN_SEQUENCE_LEGNTH,
     MAX_PROTEIN_SEQUENCES_PER_VARIANT,
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+    MIN_READ_MAPPING_QUALITY,
 )
 from .dataframe_builder import DataFrameBuilder
 from .translation import translate_variants, TranslationKey
@@ -139,7 +140,8 @@ def variants_to_protein_sequences(
         min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT):
+        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """"
     Translates each coding variant in a collection to one or more
     Translation objects, which are then aggregated into equivalent
@@ -175,6 +177,9 @@ def variants_to_protein_sequences(
     max_protein_sequences_per_variant : int
         Number of protein sequences to return for each ProteinSequence
 
+    min_mapping_quality : int
+        Minimum MAPQ value before a read gets ignored
+
     Yields pairs of a Variant and a list of ProteinSequence objects
     """
     for (variant, translations) in translate_variants(
@@ -184,7 +189,8 @@ def variants_to_protein_sequences(
             protein_sequence_length=protein_sequence_length,
             min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
             min_transcript_prefix_length=min_transcript_prefix_length,
-            max_transcript_mismatches=max_transcript_mismatches):
+            max_transcript_mismatches=max_transcript_mismatches,
+            min_mapping_quality=min_mapping_quality):
 
         # convert to list so we can traverse it twice, once to get TranslationKey
         # mappings for each Translation and a second time to collect all the

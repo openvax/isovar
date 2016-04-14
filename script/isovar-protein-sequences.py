@@ -21,7 +21,7 @@ a read count to each protein sequence.
 """
 
 from __future__ import print_function, division, absolute_import
-
+import logging
 import argparse
 
 import varcode
@@ -83,11 +83,18 @@ parser.add_argument(
         "near the start codon of transcripts without 5' UTRs."))
 
 parser.add_argument(
+    "--min-mapping-quality",
+    type=int,
+    default=0,
+    help="Minimum MAPQ value to allow for a read")
+
+parser.add_argument(
     "--output",
     default="isovar-translate-variants-results.csv",
     help="Name of CSV file which contains predicted sequences")
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     args = parser.parse_args()
 
     print(args)
@@ -104,6 +111,7 @@ if __name__ == "__main__":
         min_reads_supporting_rna_sequence=args.min_reads,
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        max_protein_sequences_per_variant=args.max_sequences_per_variant)
+        max_protein_sequences_per_variant=args.max_sequences_per_variant,
+        min_mapping_quality=args.min_mapping_quality)
     print(df)
     df.to_csv(args.output)

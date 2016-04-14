@@ -25,7 +25,7 @@ from .read_at_locus import read_at_locus_generator
 from .default_parameters import (
     MIN_READ_MAPPING_QUALITY,
     USE_SECONDARY_ALIGNMENTS,
-    USE_DUPLICATE_READS
+    USE_DUPLICATE_READS,
 )
 from .variant_helpers import trim_variant
 from .dataframe_builder import DataFrameBuilder
@@ -151,6 +151,7 @@ def gather_reads_for_single_variant(
 
     Returns list of VariantRead objects.
     """
+    logging.info("Gathering reads for %s" % variant)
     if chromosome is None:
         chromosome = variant.contig
 
@@ -167,20 +168,26 @@ def gather_reads_for_single_variant(
         base1_position_before_variant = base1_position - 1
         base1_position_after_variant = base1_position + len(ref)
 
-    reads = read_at_locus_generator(
+    reads = list(read_at_locus_generator(
         samfile=samfile,
         chromosome=chromosome,
         base1_position_before_variant=base1_position_before_variant,
         base1_position_after_variant=base1_position_after_variant,
         use_duplicate_reads=use_duplicate_reads,
         use_secondary_alignments=use_secondary_alignments,
-        min_mapping_quality=min_mapping_quality)
+        min_mapping_quality=min_mapping_quality))
+
+    logging.info(
+        "Found %d reads at locus overlapping %s" % (len(reads), variant))
+
     variant_reads = list(
         variant_reads_from_reads_at_locus(
             reads=reads,
             ref=ref,
             alt=alt))
-    logging.info("Variant reads: %s" % (variant_reads,))
+    logging.info("Found %d VariantReads for variant %s" % (
+        len(variant_reads),
+        variant))
     return variant_reads
 
 def variant_reads_generator(
@@ -234,9 +241,6 @@ def variant_reads_generator(
             use_duplicate_reads=use_duplicate_reads,
             use_secondary_alignments=use_secondary_alignments,
             min_mapping_quality=min_mapping_quality)
-        logging.info("%s => %s" % (
-            variant,
-            variant_reads))
         yield variant, variant_reads
 
 

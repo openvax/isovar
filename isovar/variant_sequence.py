@@ -23,7 +23,8 @@ from .common import group_unique_sequences, get_variant_nucleotides
 from .variant_read import variant_reads_generator
 from .default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-    VARIANT_CDNA_SEQUENCE_LENGTH
+    VARIANT_CDNA_SEQUENCE_LENGTH,
+    MIN_READ_MAPPING_QUALITY,
 )
 
 VariantSequence = namedtuple(
@@ -123,7 +124,8 @@ def variant_sequences_generator(
         variants,
         samfile,
         sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH,
-        min_reads=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
+        min_reads=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """
     For each variant, collect all possible sequence contexts around the
     variant which are spanned by at least min_reads.
@@ -142,13 +144,17 @@ def variant_sequences_generator(
     min_reads : int
         Minimum number of reads supporting a particular sequence
 
+    min_mapping_quality : int
+        Minimum MAPQ value before a read gets ignored
+
     Generator that yields pairs of variants and sorted list of VariantSequence
     objects.
     """
     for variant, variant_reads in variant_reads_generator(
             variants=variants,
-            samfile=samfile):
-
+            samfile=samfile,
+            min_mapping_quality=min_mapping_quality):
+        logging.info("Generating variant sequences for %s" % variant)
         if len(variant_reads) == 0:
             logging.info("No variant reads found for %s" % variant)
             continue

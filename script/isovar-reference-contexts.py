@@ -27,7 +27,8 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument(
     "--vcf",
-    default="../test/data/CELSR1/vcfs/vcf_1.vcf")
+    required=True,
+    help="Path to VCF file")
 
 parser.add_argument(
     "--genome",

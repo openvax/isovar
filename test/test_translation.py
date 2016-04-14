@@ -24,12 +24,6 @@ from nose.tools import eq_
 from testing_helpers import load_bam, load_vcf
 
 
-VCF = "data/CELSR1/vcfs/vcf_1.vcf"
-
-BAM = "data/CELSR1/bams/bam_1.bam"
-
-GENOME = "hg19"
-
 def test_compute_offset_to_first_complete_codon_no_trimming():
     # if nothing gets trimmed from the reference sequence, then
     # the offset to the first codon shouldn't change
@@ -85,8 +79,8 @@ def test_determine_reading_frame_for_variant_sequence():
 """
 
 def test_translate_variant_collection():
-    variants = load_vcf(VCF, genome=GENOME)
-    samfile = load_bam(BAM)
+    variants = load_vcf("data/b16.f10/b16.vcf")
+    samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
     result = list(translate_variants(variants, samfile))
     print(result)
     assert len(result) > 0, result

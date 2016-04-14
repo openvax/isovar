@@ -31,11 +31,13 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument(
     "--vcf",
-    default="/Users/iskander/code/varlens/test/data/CELSR1/vcfs/vcf_1.vcf")
+    required=True,
+    help="Path to VCF file containing variants")
 
 parser.add_argument(
     "--bam",
-    default="/Users/iskander/code/varlens/test/data/CELSR1/bams/bam_1.bam")
+    required=True,
+    help="Path to BAM or SAM file containing RNAseq reads")
 
 parser.add_argument(
     "--genome",

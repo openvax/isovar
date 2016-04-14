@@ -32,6 +32,7 @@ from .default_parameters import (
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     PROTEIN_SEQUENCE_LEGNTH,
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+    MIN_READ_MAPPING_QUALITY,
 )
 from .dataframe_builder import DataFrameBuilder
 
@@ -507,7 +508,8 @@ def translate_variants(
         protein_sequence_length=PROTEIN_SEQUENCE_LEGNTH,
         min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES):
+        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """
     Translates each coding variant in a collection to one or more protein
     fragment sequences (if the variant is not filtered and its spanning RNA
@@ -539,6 +541,9 @@ def translate_variants(
     max_transcript_mismatches : int
         Don't try to determine the reading frame for a transcript if more
         than this number of bases differ.
+
+     min_mapping_quality : int
+        Minimum MAPQ value before a read gets ignored
 
     Yields pairs of a Variant and a generator of all its candidate
     Translation objects.

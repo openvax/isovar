@@ -79,10 +79,6 @@ def read_at_locus_generator(
 
     Yields ReadAtLocus objects
     """
-    # TODO: hackish fix
-    if not chromosome.startswith("chr"):
-        chromosome = "chr" + chromosome
-
     logging.info(
         "Gathering reads at locus %s: %d-%d" % (
             chromosome,
@@ -132,21 +128,22 @@ def read_at_locus_generator(
                 continue
 
             if read.is_secondary and not use_secondary_alignments:
-                logging.debug("Skipping secondary alignment of read '%s'")
+                logging.info("Skipping secondary alignment of read '%s'")
                 continue
 
             if read.is_duplicate and not use_duplicate_reads:
-                logging.debug("Skipping duplicate read '%s'" % name)
+                logging.info("Skipping duplicate read '%s'" % name)
                 continue
 
             mapping_quality = read.mapping_quality
-
-            if mapping_quality is None or mapping_quality == 255:
-                logging.debug("Skipping read '%s' due to missing MAPQ" % (
+            missing_mapping_quality = (
+                mapping_quality is None or mapping_quality == 255)
+            if min_mapping_quality > 0 and missing_mapping_quality:
+                logging.info("Skipping read '%s' due to missing MAPQ" % (
                     name,))
                 continue
             elif mapping_quality < min_mapping_quality:
-                logging.debug(
+                logging.info(
                     "Skipping read '%s' due to low MAPQ: %d < %d" % (
                         read.mapping_quality,
                         mapping_quality,
@@ -187,7 +184,7 @@ def read_at_locus_generator(
             # Source:
             # http://pysam.readthedocs.org/en/latest/faq.html#pysam-coordinates-are-wrong
             if base0_position_before_variant not in reference_positions:
-                logging.debug(
+                logging.info(
                     "Skipping read '%s' because first position %d not mapped" % (
                         name,
                         base0_position_before_variant))
@@ -197,7 +194,7 @@ def read_at_locus_generator(
                     base0_position_before_variant)
 
             if base0_position_after_variant not in reference_positions:
-                logging.debug(
+                logging.info(
                     "Skipping read '%s' because last position %d not mapped" % (
                         name,
                         base0_position_after_variant))

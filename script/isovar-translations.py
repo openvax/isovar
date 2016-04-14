@@ -39,10 +39,12 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument(
     "--vcf",
+    required=True,
     help="VCF file containing variants")
 
 parser.add_argument(
     "--bam",
+    required=True,
     help="BAM file containing RNAseq reads")
 
 parser.add_argument(
