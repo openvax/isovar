@@ -38,11 +38,11 @@ VARIANT_CDNA_SEQUENCE_LENGTH = 90
 CDNA_CONTEXT_SIZE = VARIANT_CDNA_SEQUENCE_LENGTH // 2
 
 # only consider variant cDNA sequences with at least this many reads
-MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE = 1
+MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE = 2
 
 # number of nucleotides shared between reference and variant sequence
 # before variant for reference contexts used to establish ORF
-MIN_TRANSCRIPT_PREFIX_LENGTH = 30
+MIN_TRANSCRIPT_PREFIX_LENGTH = 10
 
 # maximum number of mismatching nucleotides between reference and variant
 # prefix sequences

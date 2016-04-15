@@ -142,10 +142,69 @@ def test_sort_protein_sequences():
     ]
     eq_(sort_protein_sequences(unsorted_protein_sequences), expected_order)
 
+"""
+protein_sequence_length=PROTEIN_SEQUENCE_LEGNTH,
+        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+        min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
+        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY
+"""
 
-def test_variants_to_protein_sequences_dataframe():
+def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant():
     variants = load_vcf("data/b16.f10/b16.vcf")
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
-    df = variants_to_protein_sequences_dataframe(variants, samfile)
+    df = variants_to_protein_sequences_dataframe(
+        variants,
+        samfile,
+        min_mapping_quality=0,
+        max_protein_sequences_per_variant=1)
     print(df)
-    assert len(df) == 4, len(df)
+    eq_(
+        len(df),
+        len(variants),
+        "Expected %d entries, got %d" % (len(variants), len(df)))
+
+def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_quality():
+    # since the B16 BAM has all MAPQ=255 values then all the reads should get dropped
+    variants = load_vcf("data/b16.f10/b16.vcf")
+    samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
+    df = variants_to_protein_sequences_dataframe(
+        variants,
+        samfile,
+        min_mapping_quality=100,
+        max_protein_sequences_per_variant=1)
+    print(df)
+    eq_(
+        len(df),
+        0,
+        "Expected 0 entries, got %d" % (len(df),))
+
+def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
+    # since the B16 BAM has all MAPQ=255 values then all the reads should get dropped
+    variants = load_vcf("data/b16.f10/b16.vcf")
+    samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
+
+    for desired_length in range(9, 20, 3):
+        df = variants_to_protein_sequences_dataframe(
+            variants,
+            samfile,
+            max_protein_sequences_per_variant=1,
+            protein_sequence_length=desired_length)
+        eq_(
+            len(df),
+            len(variants),
+            "Expected %d entries for protein_sequnece_length=%d, got %d results" % (
+                len(variants),
+                desired_length,
+                len(df)))
+        protein_sequences = df["amino_acids"]
+        print(protein_sequences)
+        protien_sequence_lengths = protein_sequences.str.len()
+        assert (protien_sequence_lengths == desired_length).all(), protien_sequence_lengths
+
+if __name__ == "__main__":
+    test_sort_protein_sequences()
+    test_variants_to_protein_sequences_dataframe_one_sequence_per_variant()
+    test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_quality()
+    test_variants_to_protein_sequences_dataframe_protein_sequence_length()

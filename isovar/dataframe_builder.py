@@ -32,7 +32,8 @@ class DataFrameBuilder(object):
             element_class,
             exclude=set([]),
             converters={},
-            rename_dict={}):
+            rename_dict={},
+            variant_columns=True):
         """
         Parameters
         ----------
@@ -52,10 +53,14 @@ class DataFrameBuilder(object):
         rename_dict : dict
             Dictionary mapping element_class field names to desired column names
             in the produced DataFrame.
+
+        variant_columns : bool
+            If True, then add four columns for fields of a Variant: chr/pos/ref/alt
         """
         self.element_class = element_class
         self.rename_dict = rename_dict
         self.converters = converters
+        self.variant_columns = variant_columns
 
         # remove specified field names without changing the order of the others
         self.original_field_names = [
@@ -74,13 +79,16 @@ class DataFrameBuilder(object):
             self.rename_dict.get(x, x)
             for x in self.original_field_names
         ]
-        columns_list = [
-            # fields related to variant
-            ("chr", []),
-            ("pos", []),
-            ("ref", []),
-            ("alt", []),
-        ]
+        if self.variant_columns:
+            columns_list = [
+                # fields related to variant
+                ("chr", []),
+                ("pos", []),
+                ("ref", []),
+                ("alt", []),
+            ]
+        else:
+            columns_list = []
 
         for name in self.renamed_field_names:
             columns_list.append((name, []))
@@ -88,13 +96,16 @@ class DataFrameBuilder(object):
         self.columns_dict = OrderedDict(columns_list)
 
     def add(self, variant, element):
-        assert isinstance(variant, Variant)
-        assert isinstance(element, self.element_class)
+        if self.variant_columns:
+            assert isinstance(variant, Variant)
+            self.columns_dict["chr"].append(variant.contig)
+            self.columns_dict["pos"].append(variant.original_start)
+            self.columns_dict["ref"].append(variant.original_ref)
+            self.columns_dict["alt"].append(variant.original_alt)
+        else:
+            assert variant is None
 
-        self.columns_dict["chr"].append(variant.contig)
-        self.columns_dict["pos"].append(variant.original_start)
-        self.columns_dict["ref"].append(variant.original_ref)
-        self.columns_dict["alt"].append(variant.original_alt)
+        assert isinstance(element, self.element_class)
 
         for name in self.original_field_names:
             value = getattr(element, name)

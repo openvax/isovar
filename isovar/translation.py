@@ -395,7 +395,8 @@ def translate_cdna(cdna_sequence_from_first_codon):
 def translate_variant_sequence(
         variant_sequence,
         reference_context,
-        max_transcript_mismatches):
+        max_transcript_mismatches,
+        protein_sequence_length=None):
     """
     Attempt to translate a single VariantSequence using the reading frame
     from a single ReferenceContext.
@@ -410,6 +411,9 @@ def translate_variant_sequence(
         Don't use the reading frame from a context where the cDNA variant
         sequences disagrees at more than this number of positions before the
         variant nucleotides.
+
+    protein_sequence_length : int, optional
+        Truncate protein to be at most this long
 
     Returns either a ProteinSequence object or None if the number of
     mismatches between the RNA and reference transcript sequences exceeds the
@@ -449,6 +453,22 @@ def translate_variant_sequence(
             n_ref=len(reference_context.sequence_at_variant_locus),
             n_amino_acids=len(variant_amino_acids))
 
+    if protein_sequence_length and len(variant_amino_acids) > protein_sequence_length:
+        if protein_sequence_length <= variant_aa_interval_start:
+            logging.warn(
+                ("Truncating amino acid sequence %s from variant sequence %s "
+                 "to only %d elements loses all variant residues") % (
+                    variant_amino_acids,
+                    variant_sequence,
+                    protein_sequence_length))
+            return None
+        # if the protein is too long then short it, which implies we're no longer
+        # stopping due to a stop codon and that the variant amino acids might
+        # need a new stop index
+        variant_amino_acids = variant_amino_acids[:protein_sequence_length]
+        variant_aa_interval_end = min(variant_aa_interval_end, protein_sequence_length)
+        ends_with_stop_codon = False
+
     reference_sequence_before_variant = (
         variant_sequence_in_reading_frame.reference_cdna_sequence_before_variant)
     # converting sequence objects to str since skbio.DNA objects aren't really
@@ -473,7 +493,8 @@ def translate_variant_sequence(
 def translation_generator(
         variant_sequences,
         reference_contexts,
-        max_transcript_mismatches):
+        max_transcript_mismatches,
+        protein_sequence_length=None):
     """
     Given all detected VariantSequence objects for a particular variant
     and all the ReferenceContext objects for that locus, translate
@@ -490,6 +511,9 @@ def translation_generator(
 
     max_transcript_mismatches : int
 
+    protein_sequence_length : int, optional
+        Truncate protein to be at most this long
+
     Yields a sequence of Translation objects.
     """
     for reference_context in reference_contexts:
@@ -497,7 +521,8 @@ def translation_generator(
             translation = translate_variant_sequence(
                 variant_sequence=variant_sequence,
                 reference_context=reference_context,
-                max_transcript_mismatches=max_transcript_mismatches)
+                max_transcript_mismatches=max_transcript_mismatches,
+                protein_sequence_length=protein_sequence_length)
             if translation is not None:
                 yield translation
 
@@ -549,16 +574,16 @@ def translate_variants(
     Translation objects.
     """
 
-    # adding 2nt to total RNA sequence length in case we need to clip 1 or 2
-    # bases of the sequence to match a reference ORF but still want to end up
-    # with the desired number of amino acids
-    rna_sequence_length = protein_sequence_length * 3 + 2
+    # Adding an extra codon to the desired RNA sequence length in case we
+    # need to clip nucleotides at the start/end of the sequence
+    rna_sequence_length = (protein_sequence_length + 1) * 3
 
     for variant, variant_sequences in variant_sequences_generator(
             variants=variants,
             samfile=samfile,
             sequence_length=rna_sequence_length,
-            min_reads=min_reads_supporting_rna_sequence):
+            min_reads=min_reads_supporting_rna_sequence,
+            min_mapping_quality=min_mapping_quality):
 
         if len(variant_sequences) == 0:
             logging.info(
@@ -591,7 +616,8 @@ def translate_variants(
         translations = translation_generator(
             variant_sequences=variant_sequences,
             reference_contexts=reference_contexts,
-            max_transcript_mismatches=max_transcript_mismatches)
+            max_transcript_mismatches=max_transcript_mismatches,
+            protein_sequence_length=protein_sequence_length)
 
         yield variant, translations
 

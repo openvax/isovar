@@ -182,6 +182,7 @@ def variants_to_protein_sequences(
 
     Yields pairs of a Variant and a list of ProteinSequence objects
     """
+
     for (variant, translations) in translate_variants(
             variants=variants,
             samfile=samfile,

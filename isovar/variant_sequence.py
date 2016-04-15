@@ -192,7 +192,8 @@ def variant_sequences_dataframe(
         variants,
         samfile,
         sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH,
-        min_reads=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
+        min_reads=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """
     Creates a dataframe of all detected cDNA sequences for the given variant
     collection and alignment file.
@@ -211,6 +212,9 @@ def variant_sequences_dataframe(
     min_reads : int
         Minimum number of reads supporting
 
+    min_mapping_quality : int
+        Minimum MAPQ value before a read gets ignored
+
     Returns pandas.DataFrame
     """
     df_builder = DataFrameBuilder(VariantSequence)
@@ -218,7 +222,8 @@ def variant_sequences_dataframe(
             variants=variants,
             samfile=samfile,
             sequence_length=sequence_length,
-            min_reads=min_reads):
+            min_reads=min_reads,
+            min_mapping_quality=min_mapping_quality):
         for variant_sequence in variant_sequences:
             df_builder.add(variant, variant_sequence)
     return df_builder.to_dataframe()

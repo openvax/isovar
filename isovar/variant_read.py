@@ -233,7 +233,6 @@ def variant_reads_generator(
                 "Chromosome '%s' from variant %s not in alignment file %s" % (
                     chromosome, variant, samfile.filename))
             continue
-
         variant_reads = gather_reads_for_single_variant(
             samfile=samfile,
             chromosome=chromosome,

@@ -136,6 +136,7 @@ def read_at_locus_generator(
                 continue
 
             mapping_quality = read.mapping_quality
+
             missing_mapping_quality = (
                 mapping_quality is None or mapping_quality == 255)
             if min_mapping_quality > 0 and missing_mapping_quality:
@@ -219,7 +220,7 @@ def reads_at_locus_dataframe(*args, **kwargs):
 
     Parameters are the same as those for read_locus_generator.
     """
-    df_builder = DataFrameBuilder(ReadAtLocus)
+    df_builder = DataFrameBuilder(ReadAtLocus, variant_columns=False)
     for read_at_locus in read_at_locus_generator(*args, **kwargs):
-        df_builder.add(read_at_locus)
+        df_builder.add(variant=None, element=read_at_locus)
     return df_builder.to_dataframe()
