@@ -14,33 +14,39 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.common import group_unique_sequences
-from isovar.variant_read import gather_reads_for_single_variant
+from nose.tools import eq_
 from varcode import Variant
-from pyensembl import ensembl_grch38
+from isovar.variant_sequence import variant_reads_to_sequences
+from isovar.variant_read import gather_reads_for_single_variant
 
 from testing_helpers import load_bam
 
-def test_group_unique_sequences():
+def test_sequence_counts_snv():
     samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 65857041
     ref = "G"
     alt = "C"
-    variant = Variant(
-        contig=chromosome,
-        start=base1_location,
-        ref=ref, alt=alt,
-        ensembl=ensembl_grch38)
+    variant = Variant(chromosome, base1_location, ref, alt)
+
     variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
 
-    groups = group_unique_sequences(variant_reads)
-    # there are some redundant reads, so we expect that the number of
-    # unique entries should be less than the total read partitions
-    assert len(variant_reads) > len(groups)
+    variant_sequences = variant_reads_to_sequences(
+        variant_reads,
+        max_nucleotides_before_variant=45,
+        max_nucleotides_after_variant=45)
+    assert len(variant_sequences) > 0
+    for variant_sequence in variant_sequences:
+        print(variant_sequence)
+        eq_(variant_sequence.alt, alt)
+        eq_(len(variant_sequence.prefix), 45)
+        eq_(len(variant_sequence.suffix), 45)
+        eq_(
+            variant_sequence.prefix + variant_sequence.alt + variant_sequence.suffix,
+            variant_sequence.full_sequence)
 
 if __name__ == "__main__":
-    test_group_unique_sequences()
+    test_sequence_counts_snv()

@@ -14,7 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .common import group_unique_sequences
+from .common import group_unique_sequences, get_variant_nucleotides
 
 
 def sort_by_decreasing_prefix_length(x):
@@ -134,8 +134,7 @@ def assemble_transcript_fragments(
         min_overlap_size=30,
         n_merge_iters=2):
     assert len(variant_reads) > 0
-    variant_seq = variant_reads[0].variant
-    assert all(r.variant == variant_seq for r in variant_reads)
+    variant_seq = get_variant_nucleotides(variant_reads)
     assembly_counts = recursive_assembly(
         variant_reads,
         min_overlap_size=min_overlap_size,

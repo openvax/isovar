@@ -13,12 +13,27 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+import logging
 
 from collections import defaultdict
 
 nucleotides = ["A", "C", "T", "G"]
 nucleotide_to_index = {c: i for (i, c) in enumerate(nucleotides)}
 index_to_nucleotide = {i: c for (i, c) in enumerate(nucleotides)}
+
+def create_logger(
+        name="root",
+        level=logging.DEBUG,
+        format_string="%(levelname)s: %(message)s (%(filename)s:%(lineno)s - %(funcName)s)"):
+    logger = logging.getLogger(name)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(format_string)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(level)
+    return logger
+
+logger = create_logger()
 
 def group_unique_sequences(
         variant_reads,
@@ -62,8 +77,8 @@ def count_unique_sequences(
 
 def get_variant_nucleotides(variant_reads):
     if len(variant_reads) > 0:
-        variant_seq = variant_reads[0].variant
-        if not all(r.variant == variant_seq for r in variant_reads):
+        variant_seq = variant_reads[0].alt
+        if not all(r.alt == variant_seq for r in variant_reads):
             raise ValueError(
                 ("Cannot call `get_variant_nucleotides` on a collection"
                  " of VariantRead objects spanning multiple variants"))

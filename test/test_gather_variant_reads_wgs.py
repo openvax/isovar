@@ -12,42 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from isovar import gather_variant_reads
+from __future__ import print_function, division, absolute_import
 
-from pysam import AlignmentFile
+from isovar.variant_read import gather_reads_for_single_variant
+from pyensembl import ensembl_grch38
+
+from varcode import Variant
+from nose.tools import eq_
+
+from testing_helpers import load_bam
 
 def test_partition_variant_reads_snv():
-    samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
+    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 65857041
     ref = "G"
     alt = "C"
-
-    seq_parts = gather_variant_reads(
+    variant = Variant(
+        contig=chromosome,
+        start=base1_location,
+        ref=ref,
+        alt=alt,
+        ensembl=ensembl_grch38)
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
-        base1_location=base1_location,
-        ref=ref,
-        alt=alt)
-    assert len(seq_parts) > 1
-    for variant_read in seq_parts:
-        assert variant_read.variant == alt
+        variant=variant)
+    assert len(variant_reads) > 1
+    for variant_read in variant_reads:
+        eq_(variant_read.alt, alt)
 
 def test_partition_variant_reads_deletion():
-    samfile = AlignmentFile("data/cancer-wgs-primary.chr12.bam")
+    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 70091490
     ref = "TTGTAGATGCTGCCTCTCC"
     alt = ""
-    seq_parts = gather_variant_reads(
+    variant = Variant(
+        contig=chromosome,
+        start=base1_location,
+        ref=ref,
+        alt=alt,
+        ensembl=ensembl_grch38)
+    variant_reads = gather_reads_for_single_variant(
         samfile=samfile,
         chromosome=chromosome,
-        base1_location=base1_location,
-        ref=ref,
-        alt=alt)
-    assert len(seq_parts) > 1
-    for variant_read in seq_parts:
-        assert variant_read.variant == alt
+        variant=variant)
+    assert len(variant_reads) > 1
+    for variant_read in variant_reads:
+        eq_(variant_read.alt, alt)
 
 if __name__ == "__main__":
     test_partition_variant_reads_snv()

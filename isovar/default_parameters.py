@@ -1,0 +1,55 @@
+# Copyright (c) 2016. Mount Sinai School of Medicine
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from __future__ import print_function, division, absolute_import
+
+"""
+Gathered all the default function parameters in a single module, so that these
+values can be easily shared between modules and also between commandline
+arguments of different scripts.
+"""
+
+# lowest mapping quality (MAPQ) value to allow for RNAseq reads
+MIN_READ_MAPPING_QUALITY = 0
+
+# use a read even if it's been marked as a duplicate?
+USE_DUPLICATE_READS = False
+
+# use a read even at a location that isn't its primary alignment?
+USE_SECONDARY_ALIGNMENTS = True
+
+# number of nucleotides to extract from RNAseq reads around each variant
+VARIANT_CDNA_SEQUENCE_LENGTH = 90
+
+# number of nucleotides to the left and right of a variant to extract,
+# usually gets adjusted for variant length but some functions take this
+# parameter directly
+CDNA_CONTEXT_SIZE = VARIANT_CDNA_SEQUENCE_LENGTH // 2
+
+# only consider variant cDNA sequences with at least this many reads
+MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE = 2
+
+# number of nucleotides shared between reference and variant sequence
+# before variant for reference contexts used to establish ORF
+MIN_TRANSCRIPT_PREFIX_LENGTH = 10
+
+# maximum number of mismatching nucleotides between reference and variant
+# prefix sequences
+MAX_REFERENCE_TRANSCRIPT_MISMATCHES = 2
+
+# number of amino acids / codons we're trying to translate
+PROTEIN_SEQUENCE_LEGNTH = 20
+
+# number of protein sequences we want to return per variant
+MAX_PROTEIN_SEQUENCES_PER_VARIANT = 1
