@@ -241,12 +241,11 @@ def variants_to_protein_sequences_dataframe(*args, **kwargs):
     """
     df_builder = DataFrameBuilder(
         ProteinSequence,
-        transform_fields={
-            "translations": len,
-            "supporting_variant_reads": len,
-            "supporting_transcripts": len,
-            "gene": lambda x: ";".join(x)
-        })
+        converters=dict(
+            translations=len,
+            supporting_variant_reads=len,
+            supporting_transcripts=len,
+            gene=lambda x: ";".join(x)))
     for (variant, protein_sequences) in variants_to_protein_sequences(*args, **kwargs):
         for protein_sequence in protein_sequences:
             df_builder.add(variant, protein_sequence)

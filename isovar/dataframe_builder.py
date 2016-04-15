@@ -14,8 +14,12 @@
 
 from __future__ import print_function, division, absolute_import
 from collections import OrderedDict
+from six import integer_types, text_type, binary_type
 
+from varcode import Variant
 import pandas as pd
+
+VALID_ELEMENT_TYPES = integer_types + (text_type, binary_type, float, bool)
 
 class DataFrameBuilder(object):
     """
@@ -26,9 +30,9 @@ class DataFrameBuilder(object):
     def __init__(
             self,
             element_class,
-            exclude_field_names=set([]),
-            transform_fields={},
-            convert_sequences_to_string=True):
+            exclude=set([]),
+            converters={},
+            rename_dict={}):
         """
         Parameters
         ----------
@@ -36,26 +40,39 @@ class DataFrameBuilder(object):
             Expected to a have a class-member named '_fields' which is a list
             of field names.
 
-        exclude_field_names : set
+        exclude : set
             Field names from element_class which should be used as columns for
             the DataFrame we're building
 
-        transform_fields : dict
+        converters : dict
             Dictionary of names mapping to functions. These functions will be
             applied to each element of a column before it's added to the
             DataFrame.
 
-        convert_sequences_to_string : bool
-            If a value being added to a column is a list or tuple, should
-            it be converted to a semi-colon separated string?
+        rename_dict : dict
+            Dictionary mapping element_class field names to desired column names
+            in the produced DataFrame.
         """
         self.element_class = element_class
-        self.convert_sequences_to_string = convert_sequences_to_string
+        self.rename_dict = rename_dict
+        self.converters = converters
+
         # remove specified field names without changing the order of the others
-        self.field_names = [
+        self.original_field_names = [
             x
             for x in element_class._fields
-            if x not in exclude_field_names
+            if x not in exclude
+        ]
+
+        for name in converters:
+            if name not in self.original_field_names:
+                raise ValueError("No field named '%s', valid names: %s" % (
+                    name,
+                    self.original_field_names))
+
+        self.renamed_field_names = [
+            self.rename_dict.get(x, x)
+            for x in self.original_field_names
         ]
         columns_list = [
             # fields related to variant
@@ -65,31 +82,35 @@ class DataFrameBuilder(object):
             ("alt", []),
         ]
 
-        for name in self.field_names:
+        for name in self.renamed_field_names:
             columns_list.append((name, []))
+
         self.columns_dict = OrderedDict(columns_list)
-        self.transform_fields = transform_fields
-        for name in transform_fields:
-            if name not in self.columns_dict:
-                raise ValueError("No field named '%s' in %s" % (
-                    name, element_class))
 
     def add(self, variant, element):
+        assert isinstance(variant, Variant)
+        assert isinstance(element, self.element_class)
+
         self.columns_dict["chr"].append(variant.contig)
         self.columns_dict["pos"].append(variant.original_start)
         self.columns_dict["ref"].append(variant.original_ref)
         self.columns_dict["alt"].append(variant.original_alt)
 
-        for name in self.field_names:
+        for name in self.original_field_names:
             value = getattr(element, name)
 
-            if name in self.transform_fields:
-                fn = self.transform_fields[name]
+            if name in self.converters:
+                fn = self.converters[name]
                 value = fn(value)
 
-            if isinstance(value, (list, tuple)):
-                if self.convert_sequences_to_string:
-                    value = ";".join(value)
+            if not isinstance(value, VALID_ELEMENT_TYPES):
+                raise ValueError(
+                    "Please provider converter for field '%s' : %s to make a scalar or string" % (
+                        name,
+                        type(value)))
+
+            if name in self.rename_dict:
+                name = self.rename_dict[name]
             self.columns_dict[name].append(value)
 
     def to_dataframe(self):

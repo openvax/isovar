@@ -19,11 +19,21 @@ from isovar.dataframe_builder import DataFrameBuilder
 from varcode import Variant
 import pandas as pd
 
+TestClass = namedtuple("TestClass", "a b c")
+test_obj = TestClass(a=1, b="s", c=3.0)
+test_variant = Variant("X", 10, "CC", "C")
+
+def check_same_dataframes(df, expected):
+    eq_(len(df.columns), len(expected.columns))
+    assert all(x == y for (x, y) in zip(df.columns, expected.columns)), \
+        (df.columns, expected.columns)
+    # need to aggregate twice because the first time just rolls up each column,
+    # giving us a boolean Series
+    assert (df == expected).all().all(), "Expected %s == %s" % (df, expected)
+
+
 def test_dataframe_builder():
-    TestClass = namedtuple("TestClass", "a b c")
     df_builder = DataFrameBuilder(TestClass)
-    test_obj = TestClass(a=1, b="s", c=3.0)
-    test_variant = Variant("X", 10, "CC", "C")
     df_builder.add(test_variant, test_obj)
     df = df_builder.to_dataframe()
     expected = pd.DataFrame(OrderedDict([
@@ -35,9 +45,56 @@ def test_dataframe_builder():
         ("b", [test_obj.b]),
         ("c", [test_obj.c]),
     ]))
-    eq_(len(df.columns), len(expected.columns))
-    assert all(x == y for (x, y) in zip(df.columns, expected.columns)), \
-        (df.columns, expected.columns)
-    # need to aggregate twice because the first time just rolls up each column,
-    # giving us a boolean Series
-    assert (df == expected).all().all(), "Expected %s == %s" % (df, expected)
+    check_same_dataframes(df, expected)
+
+def test_dataframe_builder_rename():
+    df_builder = DataFrameBuilder(
+        TestClass,
+        rename_dict={"a": "A", "b": "B", "c": "C"})
+    df_builder.add(test_variant, test_obj)
+    df = df_builder.to_dataframe()
+    expected = pd.DataFrame(OrderedDict([
+        ("chr", ["X"]),
+        ("pos", [10]),
+        ("ref", ["CC"]),
+        ("alt", ["C"]),
+        ("A", [test_obj.a]),
+        ("B", [test_obj.b]),
+        ("C", [test_obj.c]),
+    ]))
+    check_same_dataframes(df, expected)
+
+def test_dataframe_rename_and_converters():
+    df_builder = DataFrameBuilder(
+        TestClass,
+        rename_dict={"a": "A", "b": "B", "c": "C"},
+        converters=dict(a=float, c=int))
+    df_builder.add(test_variant, test_obj)
+    df = df_builder.to_dataframe()
+    expected = pd.DataFrame(OrderedDict([
+        ("chr", ["X"]),
+        ("pos", [10]),
+        ("ref", ["CC"]),
+        ("alt", ["C"]),
+        ("A", [float(test_obj.a)]),
+        ("B", [test_obj.b]),
+        ("C", [int(test_obj.c)]),
+    ]))
+    check_same_dataframes(df, expected)
+
+def test_dataframe_rename_and_converters_and_exclude():
+    df_builder = DataFrameBuilder(
+        TestClass,
+        rename_dict={"c": "C"},
+        converters=dict(c=int),
+        exclude=["a", "b"])
+    df_builder.add(test_variant, test_obj)
+    df = df_builder.to_dataframe()
+    expected = pd.DataFrame(OrderedDict([
+        ("chr", ["X"]),
+        ("pos", [10]),
+        ("ref", ["CC"]),
+        ("alt", ["C"]),
+        ("C", [int(test_obj.c)]),
+    ]))
+    check_same_dataframes(df, expected)

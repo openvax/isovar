@@ -13,11 +13,9 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple, OrderedDict
+from collections import namedtuple
 import logging
 
-import numpy as np
-import pandas as pd
 
 from .common import group_unique_sequences, get_variant_nucleotides
 from .variant_read import variant_reads_generator
@@ -26,6 +24,7 @@ from .default_parameters import (
     VARIANT_CDNA_SEQUENCE_LENGTH,
     MIN_READ_MAPPING_QUALITY,
 )
+from .dataframe_builder import DataFrameBuilder
 
 VariantSequence = namedtuple(
     "VariantSequence",
@@ -46,7 +45,8 @@ def sort_key_decreasing_read_count(variant_sequence):
 
 def variant_reads_to_sequences(
         variant_reads,
-        context_size=None,
+        max_nucleotides_before_variant=None,
+        max_nucleotides_after_variant=None,
         min_sequence_length=None,
         min_reads_per_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
     """
@@ -59,9 +59,13 @@ def variant_reads_to_sequences(
             - suffix : str
             - name : str
 
-    context_size : int, optional
-        Number of nucleotides left and right of the variant. If omitted then
-        use full length of reads.
+    max_nucleotides_before_variant : int, optional
+        Number of nucleotides left of a variant. If omitted then
+        use all prefix nucleotides.
+
+    max_nucleotides_after_variant : int, optional
+        Number of nucleotides right of a variant. If omitted then
+        use all suffix nucleotides.
 
     min_sequence_length : int, optional
         Minimum length of detected sequence
@@ -72,6 +76,11 @@ def variant_reads_to_sequences(
 
     Returns a collection of VariantSequence objects
     """
+    # just in case variant_reads is a generator, convert it to a list
+    variant_reads = list(variant_reads)
+
+    if len(variant_reads) == 0:
+        return []
 
     # Get all unique sequences from reads spanning the
     # variant locus. This will include partial sequences
@@ -80,8 +89,8 @@ def variant_reads_to_sequences(
     # full length sequence
     unique_sequence_groups = group_unique_sequences(
         variant_reads,
-        max_prefix_size=context_size,
-        max_suffix_size=context_size)
+        max_prefix_size=max_nucleotides_before_variant,
+        max_suffix_size=max_nucleotides_after_variant)
 
     variant_seq = get_variant_nucleotides(variant_reads)
     variant_len = len(variant_seq)
@@ -147,31 +156,34 @@ def variant_sequences_generator(
     min_mapping_quality : int
         Minimum MAPQ value before a read gets ignored
 
-    Generator that yields pairs of variants and sorted list of VariantSequence
-    objects.
+    Generator that yields tuples with the following fields:
+        - Variant
+        - list of VariantSequence objects
     """
     for variant, variant_reads in variant_reads_generator(
             variants=variants,
             samfile=samfile,
             min_mapping_quality=min_mapping_quality):
-        logging.info("Generating variant sequences for %s" % variant)
-        if len(variant_reads) == 0:
-            logging.info("No variant reads found for %s" % variant)
-            continue
-
         # the number of context nucleotides on either side of the variant
         # is half the desired length (minus the number of variant nucleotides)
-        n_surrounding_nucleotides = sequence_length - len(variant.alt)
-
-        flanking_context_size = int(np.ceil(n_surrounding_nucleotides / 2.0))
+        n_alt = len(variant.alt)
+        n_surrounding_nucleotides = sequence_length - n_alt
+        max_nucleotides_after_variant = n_surrounding_nucleotides // 2
+        # if the number of nucleotides we need isn't divisible by 2 then
+        # prefer to have one more *before* the variant since we need the
+        # prefix sequence to match against reference transcripts
+        max_nucleotides_before_variant = (
+            n_surrounding_nucleotides - max_nucleotides_after_variant)
         logging.info(
-            "Looking at %dnt RNA sequence context around %s" % (
-                flanking_context_size,
+            "Looking at %dnt before and %dnt after variant %s" % (
+                max_nucleotides_before_variant,
+                max_nucleotides_after_variant,
                 variant))
 
         variant_sequences = variant_reads_to_sequences(
             variant_reads,
-            context_size=flanking_context_size,
+            max_nucleotides_before_variant=max_nucleotides_before_variant,
+            max_nucleotides_after_variant=max_nucleotides_after_variant,
             min_reads_per_sequence=min_reads)
 
         yield variant, variant_sequences
@@ -201,26 +213,12 @@ def variant_sequences_dataframe(
 
     Returns pandas.DataFrame
     """
-    columns = OrderedDict([
-        ("chr", []),
-        ("pos", []),
-        ("ref", []),
-        ("alt", [])
-    ])
-    for field in VariantSequence._fields:
-        columns[field] = []
-
-    for variant, variant_sequences in variant_sequences_generator(
+    df_builder = DataFrameBuilder(VariantSequence)
+    for variant, variant_sequences, variant_reads in variant_sequences_generator(
             variants=variants,
             samfile=samfile,
             sequence_length=sequence_length,
             min_reads=min_reads):
         for variant_sequence in variant_sequences:
-            columns["chr"].append(variant.contig)
-            columns["pos"].append(variant.original_start)
-            columns["ref"].append(variant.original_ref)
-            columns["alt"].append(variant.original_alt)
-            for field_name in VariantSequence._fields:
-                columns[field_name] = getattr(variant_sequence, field_name)
-
-    return pd.DataFrame(columns)
+            df_builder.add(variant, variant_sequence)
+    return df_builder.to_dataframe()

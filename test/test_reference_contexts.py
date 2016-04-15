@@ -16,13 +16,14 @@ from __future__ import print_function, division, absolute_import
 
 from isovar.reference_context import (
     reference_contexts_for_variants,
+    variants_to_reference_contexts_dataframe,
     ReferenceContext,
 )
 from varcode import Variant, VariantCollection
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
-from testing_helpers import assert_equal_fields
+from testing_helpers import assert_equal_fields, load_vcf
 
 def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
     # replace second codon of TP53-001 with 'CCC'
@@ -94,3 +95,18 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
         variant=tp53_substitution,
         transcripts=[tp53_001])
     assert_equal_fields(result, expected)
+
+def test_variants_to_reference_contexts_dataframe():
+    variants = load_vcf("data/b16.f10/b16.vcf")
+    assert len(variants) > 0
+    df = variants_to_reference_contexts_dataframe(variants, context_size=10)
+    print(df)
+    groups = df.groupby(["chr", "pos", "ref", "alt"])
+    # make sure we have at least one reference context for each
+    # of the B16 coding variants
+    eq_(len(groups), len(variants))
+
+
+if __name__ == "__main__":
+    test_sequence_key_with_reading_frame_substitution_on_negative_strand()
+    test_variants_to_reference_contexts_dataframe()

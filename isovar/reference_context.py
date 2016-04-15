@@ -16,12 +16,11 @@ from __future__ import print_function, division, absolute_import
 from collections import namedtuple, OrderedDict, defaultdict
 import logging
 
-import pandas as pd
 from skbio import DNA
 
 from .effect_prediction import reference_transcripts_for_variant
 from .variant_helpers import interbase_range_affected_by_variant_on_transcript
-
+from .dataframe_builder import DataFrameBuilder
 
 ##########################
 #
@@ -438,24 +437,15 @@ def variants_to_reference_contexts_dataframe(
     Returns a DataFrame with {"chr", "pos", "ref", "alt"} columns for variants,
     as well as all the fields of ReferenceContext.
     """
-    columns = [
-        ("chr", []),
-        ("pos", []),
-        ("ref", []),
-        ("alt", []),
-    ]
-    for field in ReferenceContext._fields:
-        columns.append((field, []))
-    columns_dict = OrderedDict(columns)
 
-    for variant, reference_context in reference_contexts_for_variants(
+    df_builder = DataFrameBuilder(
+        ReferenceContext,
+        exclude=["variant"],
+        converters=dict(transcripts=lambda ts: ";".join(t.name for t in ts)))
+    for variant, reference_contexts in reference_contexts_for_variants(
             variants=variants,
             context_size=context_size,
-            transcript_id_whitelist=transcript_id_whitelist):
-        columns_dict["chr"].append(variant.contig)
-        columns_dict["pos"].append(variant.original_start)
-        columns_dict["ref"].append(variant.original_ref)
-        columns_dict["alt"].append(variant.original_alt)
-        for field in ReferenceContext._fields:
-            columns_dict[field].append(getattr(reference_context, field))
-    return pd.DataFrame(columns_dict)
+            transcript_id_whitelist=transcript_id_whitelist).items():
+        for reference_context in reference_contexts:
+            df_builder.add(variant, reference_context)
+    return df_builder.to_dataframe()

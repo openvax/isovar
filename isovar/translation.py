@@ -606,9 +606,9 @@ def translate_variants_dataframe(*args, **kwargs):
     """
 
     df_builder = DataFrameBuilder(
-        element_class=Translation,
+        Translation,
         # exlude fields which are structured objects
-        exclude_field_names=[
+        exclude=[
             "variant_sequence",
             "reference_context",
             "variant_sequence_in_reading_frame"])

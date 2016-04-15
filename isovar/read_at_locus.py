@@ -27,7 +27,7 @@ from .default_parameters import (
     USE_DUPLICATE_READS,
     USE_SECONDARY_ALIGNMENTS,
 )
-
+from .dataframe_builder import DataFrameBuilder
 
 ReadAtLocus = namedtuple(
     "ReadAtLocus",
@@ -211,3 +211,15 @@ def read_at_locus_generator(
                 quality_scores=base_qualities,
                 base0_read_position_before_variant=base0_read_position_before_variant,
                 base0_read_position_after_variant=base0_read_position_after_variant)
+
+
+def reads_at_locus_dataframe(*args, **kwargs):
+    """
+    Traverse a BAM file to find all the reads overlapping a specified locus.
+
+    Parameters are the same as those for read_locus_generator.
+    """
+    df_builder = DataFrameBuilder(ReadAtLocus)
+    for read_at_locus in read_at_locus_generator(*args, **kwargs):
+        df_builder.add(read_at_locus)
+    return df_builder.to_dataframe()
