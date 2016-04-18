@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/18834/hammerlab/isovar.svg)](https://zenodo.org/badge/latestdoi/18834/hammerlab/isovar) [![Build Status](https://travis-ci.org/hammerlab/isovar.svg?branch=master)](https://travis-ci.org/hammerlab/isovar)
+[![DOI](https://zenodo.org/badge/18834/hammerlab/isovar.svg)](https://zenodo.org/badge/latestdoi/18834/hammerlab/isovar) [![Build Status](https://travis-ci.org/hammerlab/isovar.svg?branch=master)](https://travis-ci.org/hammerlab/isovar) [![Coverage Status](https://coveralls.io/repos/github/hammerlab/isovar/badge.svg?branch=master)](https://coveralls.io/github/hammerlab/isovar?branch=master)
 
 # isovar
 Abundance quantification of distinct transcript sequences containing somatic variants from cancer RNAseq
