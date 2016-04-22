@@ -91,3 +91,10 @@ def make_prefix_suffix_pairs(variant_reads):
     variant_seq = get_variant_nucleotides(variant_reads)
     pairs = [(r.prefix, r.suffix) for r in variant_reads]
     return variant_seq, pairs
+
+
+def list_to_string(list_of_anything, sep=";"):
+    """
+    Helper function used for building the fields of a printable dataframe
+    """
+    return sep.join(str(x) for x in list_of_anything)

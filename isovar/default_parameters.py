@@ -21,7 +21,7 @@ arguments of different scripts.
 """
 
 # lowest mapping quality (MAPQ) value to allow for RNAseq reads
-MIN_READ_MAPPING_QUALITY = 0
+MIN_READ_MAPPING_QUALITY = 1
 
 # use a read even if it's been marked as a duplicate?
 USE_DUPLICATE_READS = False
