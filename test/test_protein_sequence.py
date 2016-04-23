@@ -167,12 +167,13 @@ def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant():
 
 def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_quality():
     # since the B16 BAM has all MAPQ=255 values then all the reads should get dropped
+    # if we set the minimum quality to 256
     variants = load_vcf("data/b16.f10/b16.vcf")
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
     df = variants_to_protein_sequences_dataframe(
         variants,
         samfile,
-        min_mapping_quality=100,
+        min_mapping_quality=256,
         max_protein_sequences_per_variant=1)
     print(df)
     eq_(
@@ -180,8 +181,8 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
         0,
         "Expected 0 entries, got %d" % (len(df),))
 
-def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
-    # since the B16 BAM has all MAPQ=255 values then all the reads should get dropped
+def test_variants_to_protein_sequences_dataframe_desired_length():
+    # make sure that the protein sequencces we get back are the length we asked for 
     variants = load_vcf("data/b16.f10/b16.vcf")
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
 
