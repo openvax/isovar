@@ -181,7 +181,7 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
         0,
         "Expected 0 entries, got %d" % (len(df),))
 
-def test_variants_to_protein_sequences_dataframe_desired_length():
+def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
     # make sure that the protein sequencces we get back are the length we asked for 
     variants = load_vcf("data/b16.f10/b16.vcf")
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
