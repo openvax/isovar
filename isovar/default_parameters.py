@@ -21,7 +21,26 @@ arguments of different scripts.
 """
 
 # lowest mapping quality (MAPQ) value to allow for RNAseq reads
-MIN_READ_MAPPING_QUALITY = 0
+# Rationale for a default value of 1:
+#   RNA aligners such as STAR typically reserve MAPQ=255 for unique alignments
+#   and then have some heuristic for decreasing MAPQ as a function of the number
+#   of locations to which a read can map.
+#   Continuing to use STAR as an example, here's a guide to its MAPQ values:
+#       255 = uniquely mapped reads
+#       3 = read maps to 2 locations
+#       2 = read maps to 3 locations
+#       1 = reads maps to 4-9 locations
+#       0 = reads maps to 10 or more locations
+#   (from http://seqanswers.com/forums/archive/index.php/t-27470.html)
+#   Since there's no bound on just how bad MAPQ=0 really can be, it seems
+#   wises to exclude those reads but still allow 9 candidate locations
+#   per read.
+#
+#   The exact numbers differ with other aligners but the basic principle is the
+#   same: MAPQ=0 might have an extremely large number of mapping locations
+#   (probably due to low complexity of the sequence) but anything with MAPQ=1
+#   is probably useful.
+MIN_READ_MAPPING_QUALITY = 1
 
 # use a read even if it's been marked as a duplicate?
 USE_DUPLICATE_READS = False

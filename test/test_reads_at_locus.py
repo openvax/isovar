@@ -14,11 +14,16 @@
 
 from __future__ import print_function, division, absolute_import
 
+from nose.tools import eq_
 from varcode import Variant
-from isovar.read_at_locus import ReadAtLocus, read_at_locus_generator
+from isovar.read_at_locus import (
+    ReadAtLocus,
+    read_at_locus_generator,
+    reads_at_locus_dataframe,
+)
 
 from mock_read_data import DummySamFile, make_read
-from testing_helpers import assert_equal_fields
+from testing_helpers import assert_equal_fields, load_bam, data_path
 
 def test_reads_at_locus_snv():
     """
@@ -180,3 +185,32 @@ def test_reads_at_locus_substitution_shorter():
         base0_read_position_before_variant=0,
         base0_read_position_after_variant=2)
     assert_equal_fields(read, expected)
+
+def test_reads_at_locus_dataframe():
+    sam_all_variants = load_bam("data/b16.f10/b16.combined.bam")
+
+    n_reads_expected = 0
+
+    sam_path_single_variant = data_path(
+        "data/b16.f10/b16.f10.127a.aldh1b1.chr4.45802539.refG.altC.sam")
+    with open(sam_path_single_variant) as f:
+        for line in f:
+            if line.startswith("HWI"):
+                n_reads_expected += 1
+    # we know from inspecting the file that *one* of the reads overlapping this
+    # variant has a CIGAR string of N at the location before and thus we'll
+    # be missing that read.
+    #
+    # TODO: figure out what to do when the variant nucleotide is at the start or
+    # end of an exon, since that won't have mapping positions on both its left
+    # and right
+    n_reads_expected -= 1
+
+    print("Found %d sequences in %s" % (n_reads_expected, sam_path_single_variant))
+    df = reads_at_locus_dataframe(
+        samfile=sam_all_variants,
+        chromosome="chr4",
+        base1_position_before_variant=45802538,
+        base1_position_after_variant=45802540)
+    print(df)
+    eq_(len(df), n_reads_expected)

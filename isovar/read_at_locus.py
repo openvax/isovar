@@ -27,6 +27,7 @@ from .default_parameters import (
     USE_DUPLICATE_READS,
     USE_SECONDARY_ALIGNMENTS,
 )
+from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
 
 ReadAtLocus = namedtuple(
@@ -79,7 +80,7 @@ def read_at_locus_generator(
 
     Yields ReadAtLocus objects
     """
-    logging.info(
+    logging.debug(
         "Gathering reads at locus %s: %d-%d" % (
             chromosome,
             base1_position_before_variant,
@@ -104,9 +105,15 @@ def read_at_locus_generator(
             continue
 
         for pileup_element in column.pileups:
-            if pileup_element.is_refskip or pileup_element.is_del:
+            if pileup_element.is_refskip:
                 # if read sequence doesn't actually align to the reference
                 # base before a variant, skip it
+                logging.debug("Skipping pileup element with CIGAR alignment N (intron)")
+                continue
+            elif pileup_element.is_del:
+                logging.debug(
+                    "Skipping pileup element with deletion at position %d" % (
+                        base1_position_before_variant,))
                 continue
 
             read = pileup_element.alignment
@@ -128,23 +135,22 @@ def read_at_locus_generator(
                 continue
 
             if read.is_secondary and not use_secondary_alignments:
-                logging.info("Skipping secondary alignment of read '%s'")
+                logging.debug("Skipping secondary alignment of read '%s'")
                 continue
 
             if read.is_duplicate and not use_duplicate_reads:
-                logging.info("Skipping duplicate read '%s'" % name)
+                logging.debug("Skipping duplicate read '%s'" % name)
                 continue
 
             mapping_quality = read.mapping_quality
 
-            missing_mapping_quality = (
-                mapping_quality is None or mapping_quality == 255)
+            missing_mapping_quality = mapping_quality is None
             if min_mapping_quality > 0 and missing_mapping_quality:
-                logging.info("Skipping read '%s' due to missing MAPQ" % (
+                logging.debug("Skipping read '%s' due to missing MAPQ" % (
                     name,))
                 continue
             elif mapping_quality < min_mapping_quality:
-                logging.info(
+                logging.debug(
                     "Skipping read '%s' due to low MAPQ: %d < %d" % (
                         read.mapping_quality,
                         mapping_quality,
@@ -185,7 +191,7 @@ def read_at_locus_generator(
             # Source:
             # http://pysam.readthedocs.org/en/latest/faq.html#pysam-coordinates-are-wrong
             if base0_position_before_variant not in reference_positions:
-                logging.info(
+                logging.debug(
                     "Skipping read '%s' because first position %d not mapped" % (
                         name,
                         base0_position_before_variant))
@@ -195,7 +201,7 @@ def read_at_locus_generator(
                     base0_position_before_variant)
 
             if base0_position_after_variant not in reference_positions:
-                logging.info(
+                logging.debug(
                     "Skipping read '%s' because last position %d not mapped" % (
                         name,
                         base0_position_after_variant))
@@ -213,14 +219,19 @@ def read_at_locus_generator(
                 base0_read_position_before_variant=base0_read_position_before_variant,
                 base0_read_position_after_variant=base0_read_position_after_variant)
 
-
 def reads_at_locus_dataframe(*args, **kwargs):
     """
     Traverse a BAM file to find all the reads overlapping a specified locus.
 
     Parameters are the same as those for read_locus_generator.
     """
-    df_builder = DataFrameBuilder(ReadAtLocus, variant_columns=False)
+    df_builder = DataFrameBuilder(
+        ReadAtLocus,
+        variant_columns=False,
+        converters={
+            "reference_positions": list_to_string,
+            "quality_scores": list_to_string,
+        })
     for read_at_locus in read_at_locus_generator(*args, **kwargs):
         df_builder.add(variant=None, element=read_at_locus)
     return df_builder.to_dataframe()
