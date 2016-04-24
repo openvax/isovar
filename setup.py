@@ -67,7 +67,8 @@ if __name__ == '__main__':
             'six',
             'pysam == 0.8.4',
             'pandas',
-            'scikit-bio',
+            'scikit-bio>=0.4.2',
+            'varcode>=0.4.6'
         ],
 
         long_description=readme,
