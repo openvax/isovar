@@ -34,6 +34,37 @@ from .dataframe_builder import DataFrameBuilder
 VariantRead = namedtuple(
     "VariantRead", "prefix alt suffix name")
 
+
+def trim_N_nucleotides(prefix, suffix):
+    """
+    Drop all occurrences of 'N' from prefix and suffix nucleotide strings
+    by trimming.
+    """
+    if 'N' in prefix:
+        # trim prefix to exclude all occurrences of N
+        rightmost_index = prefix.rfind('N')
+        prefix = prefix[rightmost_index + 1:]
+
+    if 'N' in suffix:
+        leftmost_index = suffix.find('N')
+        suffix = suffix[:leftmost_index]
+
+    return prefix, suffix
+
+def convert_from_bytes_if_necessary(prefix, suffix):
+    """
+    Depending on how we extract data from pysam we may end up with either
+    a string or a byte array of nucleotides. For consistency and simplicity,
+    we want to only use strings in the rest of our code.
+    """
+    if isinstance(prefix, bytes):
+        prefix = prefix.decode('ascii')
+
+    if isinstance(suffix, bytes):
+        suffix = suffix.decode('ascii')
+
+    return prefix, suffix
+
 def variant_read_from_single_read_at_locus(read, ref, alt):
     """
     Given a single ReadAtLocus object, return either a VariantRead or None
@@ -41,11 +72,15 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
 
     Parameters
     ----------
-    read: ReadAtLocus
+    read : ReadAtLocus
+        Read which may possibly contain the alternate nucleotides
 
     ref : str
+        Reference sequence of the variant (empty for insertions)
 
     alt : str
+        Alternate sequence of the variant (empty for deletions)
+
     """
     sequence = read.sequence
     reference_positions = read.reference_positions
@@ -110,22 +145,8 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
 
     prefix = sequence[:read_pos_before + 1]
     suffix = sequence[read_pos_after:]
-
-    if isinstance(prefix, bytes):
-        prefix = prefix.decode('ascii')
-
-    if isinstance(suffix, bytes):
-        suffix = suffix.decode('ascii')
-
-    if 'N' in prefix:
-        # trim prefix to exclude all occurrences of N
-        rightmost_index = prefix.rfind('N')
-        prefix = prefix[rightmost_index + 1:]
-
-    if 'N' in suffix:
-        leftmost_index = suffix.find('N')
-        suffix = suffix[:leftmost_index]
-
+    prefix, suffix = convert_from_bytes_if_necessary(prefix, suffix)
+    prefix, suffix = trim_N_nucleotides(prefix, suffix)
     return VariantRead(prefix, alt, suffix, name=read.name)
 
 def variant_reads_from_reads_at_locus(reads, ref, alt):
