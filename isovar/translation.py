@@ -158,9 +158,13 @@ def trim_sequences(variant_sequence, reference_context):
     # take the sequence PREFIX|VARIANT|SUFFIX
     # and take the complement of XIFFUS|TNAIRAV|XIFERP
     if reference_context.strand == "-":
-        cdna_prefix = cdna_suffix.reverse_complement()
-        cdna_alt = cdna_alt.reverse_complement()
-        cdna_suffix = cdna_prefix.reverse_complement()
+        # notice that we are setting the *prefix* to be reverse complement
+        # of the *suffix* and vice versa
+        cdna_prefix, cdna_alt, cdna_suffix = (
+            cdna_suffix.reverse_complement(),
+            cdna_alt.reverse_complement(),
+            cdna_prefix.reverse_complement()
+        )
 
     reference_sequence_before_variant = reference_context.sequence_before_variant_locus
 
