@@ -255,7 +255,7 @@ def determine_reading_frame_for_variant_sequence(variant_sequence, reference_con
     Returns a VariantSequenceInReadingFrame object
     """
     cdna_prefix, cdna_alt, cdna_suffix, reference_prefix, n_trimmed_from_reference = \
-        trim(variant_sequence, reference_context)
+        trim_sequences(variant_sequence, reference_context)
 
     n_mismatch_before_variant = count_mismatches(reference_prefix, cdna_prefix)
 
