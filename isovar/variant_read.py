@@ -43,13 +43,13 @@ def trim_N_nucleotides(prefix, suffix):
     if 'N' in prefix:
         # trim prefix to exclude all occurrences of N
         rightmost_index = prefix.rfind('N')
-        logging.info("Trimming %d nucleotides from read prefix '%s'" % (
+        logging.debug("Trimming %d nucleotides from read prefix '%s'" % (
             rightmost_index + 1, prefix))
         prefix = prefix[rightmost_index + 1:]
 
     if 'N' in suffix:
         leftmost_index = suffix.find('N')
-        logging.info("Trimming %d nucleotides from read suffix '%s'" % (
+        logging.debug("Trimming %d nucleotides from read suffix '%s'" % (
             len(suffix)  - leftmost_index,
             suffix))
         suffix = suffix[:leftmost_index]
