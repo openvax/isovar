@@ -22,17 +22,10 @@ import varcode
 
 from isovar.reference_context import variants_to_reference_contexts_dataframe
 from isovar.default_parameters import CDNA_CONTEXT_SIZE
+from isovar.args import extend_parser_with_somatic_vcf_args
 
 parser = argparse.ArgumentParser()
-
-parser.add_argument(
-    "--vcf",
-    required=True,
-    help="Path to VCF file")
-
-parser.add_argument(
-    "--genome",
-    default=None)
+extend_parser_with_somatic_vcf_args(parser)
 
 parser.add_argument(
     "--context-size",

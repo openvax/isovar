@@ -19,30 +19,19 @@ Prints all supporting read sequences containing a variant, along with their name
 """
 
 from __future__ import print_function, division, absolute_import
-
 import argparse
 
 import varcode
 from pysam import AlignmentFile
 
 from isovar.variant_read import variant_reads_dataframe
+from isovar.args import (
+    extend_parser_with_somatic_vcf_args,
+)
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument(
-    "--vcf",
-    required=True,
-    help="Path to VCF file containing variants")
-
-parser.add_argument(
-    "--bam",
-    required=True,
-    help="Path to BAM or SAM file containing RNAseq reads")
-
-parser.add_argument(
-    "--genome",
-    default=None)
-
+extend_parser_with_somatic_vcf_args(parser)
 
 parser.add_argument(
     "--output",
