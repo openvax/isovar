@@ -25,7 +25,7 @@ from collections import namedtuple, defaultdict
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-    PROTEIN_SEQUENCE_LEGNTH,
+    PROTEIN_SEQUENCE_LENGTH,
     MAX_PROTEIN_SEQUENCES_PER_VARIANT,
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     MIN_READ_MAPPING_QUALITY,
@@ -136,7 +136,7 @@ def variants_to_protein_sequences(
         variants,
         samfile,
         transcript_id_whitelist=None,
-        protein_sequence_length=PROTEIN_SEQUENCE_LEGNTH,
+        protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
         min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,

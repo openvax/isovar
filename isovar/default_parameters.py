@@ -68,7 +68,7 @@ MIN_TRANSCRIPT_PREFIX_LENGTH = 10
 MAX_REFERENCE_TRANSCRIPT_MISMATCHES = 2
 
 # number of amino acids / codons we're trying to translate
-PROTEIN_SEQUENCE_LEGNTH = 20
+PROTEIN_SEQUENCE_LENGTH = 20
 
 # number of protein sequences we want to return per variant
 MAX_PROTEIN_SEQUENCES_PER_VARIANT = 1

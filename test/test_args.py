@@ -1,7 +1,8 @@
 from isovar.args import (
-    extend_parser_with_somatic_vcf_args,
-    extend_parser_with_rna_args,
-    extend_parser_with_reference_context_args,
+    add_somatic_vcf_args,
+    add_rna_args,
+    add_reference_context_args,
+    add_protein_sequence_args,
 )
 from argparse import ArgumentParser
 from nose.tools import eq_
@@ -9,9 +10,10 @@ from nose.tools import eq_
 def test_extend_parser():
     parser = ArgumentParser()
     fns = [
-        extend_parser_with_somatic_vcf_args,
-        extend_parser_with_rna_args,
-        extend_parser_with_reference_context_args,
+        add_somatic_vcf_args,
+        add_rna_args,
+        add_reference_context_args,
+        add_protein_sequence_args,
     ]
     for fn in fns:
         parser = fn(parser)

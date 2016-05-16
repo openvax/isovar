@@ -26,39 +26,22 @@ import argparse
 import varcode
 from pysam import AlignmentFile
 
+from isovar.args import add_somatic_vcf_args, add_rna_args
 from isovar.translation import translate_variants_dataframe
 from isovar.default_parameters import (
-    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-    PROTEIN_SEQUENCE_LEGNTH,
+    PROTEIN_SEQUENCE_LENGTH,
 )
 
 
 parser = argparse.ArgumentParser()
-
-parser.add_argument(
-    "--vcf",
-    required=True,
-    help="VCF file containing variants")
-
-parser.add_argument(
-    "--bam",
-    required=True,
-    help="BAM file containing RNAseq reads")
-
-parser.add_argument(
-    "--genome",
-    default=None)
-
-parser.add_argument(
-    "--min-reads",
-    type=int,
-    default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE)
+parser = add_somatic_vcf_args(parser)
+parser = add_rna_args(parser)
 
 parser.add_argument(
     "--protein-sequence-length",
-    default=PROTEIN_SEQUENCE_LEGNTH,
+    default=PROTEIN_SEQUENCE_LENGTH,
     type=int)
 
 parser.add_argument(
