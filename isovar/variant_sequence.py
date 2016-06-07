@@ -114,7 +114,7 @@ def variant_reads_to_sequences(
         in unique_sequence_groups.items()
     ]
     n_total = len(variant_sequences)
-
+    print(variant_sequences)
     variant_sequences = [
         x for x in variant_sequences
         if len(x.full_sequence) >= min_sequence_length and

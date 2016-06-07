@@ -150,8 +150,15 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
                     read))
             return None
 
-    if sequence[read_pos_before + 1:read_pos_after] != alt:
+    nucleotides_at_variant_locus = sequence[read_pos_before + 1:read_pos_after]
+    if nucleotides_at_variant_locus != alt:
         # read sequence doesn't match variant
+        logging.debug("Read '%s' has '%s' at variant locus (%d:%d), required '%s'" % (
+            read.name,
+            nucleotides_at_variant_locus,
+            read_pos_before + 1,
+            read_pos_after,
+            alt))
         return None
 
     prefix = sequence[:read_pos_before + 1]
