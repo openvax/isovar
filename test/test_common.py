@@ -36,8 +36,14 @@ def test_group_unique_sequences():
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
-
-    groups = group_unique_sequences(variant_reads)
+    print("%d variant reads: %s" % (
+        len(variant_reads), variant_reads))
+    groups = group_unique_sequences(
+        variant_reads,
+        max_prefix_size=30,
+        max_suffix_size=30)
+    print("%d unique sequences: %s" % (
+        len(groups), groups))
     # there are some redundant reads, so we expect that the number of
     # unique entries should be less than the total read partitions
     assert len(variant_reads) > len(groups)

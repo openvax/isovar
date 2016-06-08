@@ -41,6 +41,144 @@ ReadAtLocus = namedtuple(
         "base0_read_position_after_variant",
     ])
 
+def create_read_at_locus_from_pysam_pileup_element(
+        pileup_element,
+        base0_position_before_variant,
+        base0_position_after_variant,
+        use_secondary_alignments,
+        use_duplicate_reads,
+        min_mapping_quality):
+    """
+    Parameters
+    ----------
+    pileup_element : pysam.PileupRead
+
+    base0_position_before_variant : int
+
+    base0_position_after_variant : int
+
+    use_secondary_alignments : bool
+
+    use_duplicate_reads : bool
+
+    min_mapping_quality : int
+
+    Returns ReadAtLocus or None
+    """
+    read = pileup_element.alignment
+
+    # For future reference,  may get overlapping reads
+    # which can be identified by having the same name
+    name = read.query_name
+
+    if read.is_unmapped:
+        logging.warn(
+            "How did we get unmapped read '%s' in a pileup?" % (name,))
+        return None
+
+    if name is None:
+        logging.warn("Read missing name at position base-0 position %d" % (
+            pileup_element.query_position))
+        return None
+
+    if pileup_element.is_refskip:
+        # if read sequence doesn't actually align to the reference
+        # base before a variant, skip it
+        logging.debug("Skipping pileup element with CIGAR alignment N (intron)")
+        return None
+    elif pileup_element.is_del:
+        logging.debug(
+            "Skipping deletion at base-0 position %d (read name = %s)" % (
+                pileup_element.query_position,
+                name))
+        return None
+
+    if read.is_secondary and not use_secondary_alignments:
+        logging.debug("Skipping secondary alignment of read '%s'")
+        return None
+
+    if read.is_duplicate and not use_duplicate_reads:
+        logging.debug("Skipping duplicate read '%s'" % name)
+        return None
+
+    mapping_quality = read.mapping_quality
+
+    missing_mapping_quality = mapping_quality is None
+    if min_mapping_quality > 0 and missing_mapping_quality:
+        logging.debug("Skipping read '%s' due to missing MAPQ" % (
+            name,))
+        return None
+    elif mapping_quality < min_mapping_quality:
+        logging.debug(
+            "Skipping read '%s' due to low MAPQ: %d < %d" % (
+                read.mapping_quality,
+                mapping_quality,
+                min_mapping_quality))
+        return None
+
+    sequence = read.query_sequence
+
+    if sequence is None:
+        logging.warn("Read '%s' missing sequence")
+        return None
+
+    base_qualities = read.query_qualities
+
+    if base_qualities is None:
+        logging.warn("Read '%s' missing base qualities" % (name,))
+        return None
+
+    #
+    # Documentation for pysam.AlignedSegment.get_reference_positions:
+    # ------------------------------------------------------------------
+    # By default, this method only returns positions in the reference
+    # that are within the alignment. If full_length is set, None values
+    # will be included for any soft-clipped or unaligned positions
+    # within the read. The returned list will thus be of the same length
+    # as the read.
+    #
+    # Source:
+    # http://pysam.readthedocs.org/en/latest/
+    # api.html#pysam.AlignedSegment.get_reference_positions
+    #
+    # We want a None value for every read position that does not have a
+    # corresponding reference position.
+    reference_positions = read.get_reference_positions(
+        full_length=True)
+
+    # pysam uses base-0 positions everywhere except region strings
+    # Source:
+    # http://pysam.readthedocs.org/en/latest/faq.html#pysam-coordinates-are-wrong
+    if base0_position_before_variant not in reference_positions:
+        logging.debug(
+            "Skipping read '%s' because first position %d not mapped" % (
+                name,
+                base0_position_before_variant))
+        return None
+    else:
+        base0_read_position_before_variant = reference_positions.index(
+            base0_position_before_variant)
+
+    if base0_position_after_variant not in reference_positions:
+        logging.debug(
+            "Skipping read '%s' because last position %d not mapped" % (
+                name,
+                base0_position_after_variant))
+        return None
+    else:
+        base0_read_position_after_variant = reference_positions.index(
+            base0_position_after_variant)
+
+    if isinstance(sequence, bytes):
+        sequence = sequence.decode('ascii')
+    return ReadAtLocus(
+        name=name,
+        sequence=sequence,
+        reference_positions=reference_positions,
+        quality_scores=base_qualities,
+        base0_read_position_before_variant=base0_read_position_before_variant,
+        base0_read_position_after_variant=base0_read_position_after_variant)
+
 
 def read_at_locus_generator(
         samfile,
@@ -80,6 +218,7 @@ def read_at_locus_generator(
 
     Yields ReadAtLocus objects
     """
+
     logging.debug(
         "Gathering reads at locus %s: %d-%d" % (
             chromosome,
@@ -93,131 +232,30 @@ def read_at_locus_generator(
     # We get a pileup at the base before the variant and then check to make sure
     # that reads also overlap the reference position after the variant.
     #
-    # Annoyingly AlignmentFile.pileup takes base-0 intervals but returns
-    # columns with base-1 positions.
+    # TODO: I want to pass truncate=True, stepper="all"
+    # but for some reason I get this error:
+    #      pileup() got an unexpected keyword argument 'truncate'
+    # ...even though these options are listed in the docs for pysam 0.9.0
     for column in samfile.pileup(
             chromosome,
-            base0_position_before_variant,
-            base0_position_before_variant + 1):
-        if column.pos != base1_position_before_variant:
+            start=base0_position_before_variant,
+            end=base0_position_after_variant + 1):
+        print(column.pos)
+        if column.pos != base0_position_before_variant:
             # if this column isn't centered on the base before the
             # variant then keep going
             continue
 
         for pileup_element in column.pileups:
-            if pileup_element.is_refskip:
-                # if read sequence doesn't actually align to the reference
-                # base before a variant, skip it
-                logging.debug("Skipping pileup element with CIGAR alignment N (intron)")
-                continue
-            elif pileup_element.is_del:
-                logging.debug(
-                    "Skipping pileup element with deletion at position %d" % (
-                        base1_position_before_variant,))
-                continue
-
-            read = pileup_element.alignment
-
-            # For future reference,  may get overlapping reads
-            # which can be identified by having the same name
-            name = read.query_name
-
-            if name is None:
-                logging.warn("Read at locus %s %d-%d missing name" % (
-                    chromosome,
-                    base1_position_before_variant,
-                    base1_position_after_variant))
-                continue
-
-            if read.is_unmapped:
-                logging.warn(
-                    "How did we get unmapped read '%s' in a pileup?" % (name,))
-                continue
-
-            if read.is_secondary and not use_secondary_alignments:
-                logging.debug("Skipping secondary alignment of read '%s'")
-                continue
-
-            if read.is_duplicate and not use_duplicate_reads:
-                logging.debug("Skipping duplicate read '%s'" % name)
-                continue
-
-            mapping_quality = read.mapping_quality
-
-            missing_mapping_quality = mapping_quality is None
-            if min_mapping_quality > 0 and missing_mapping_quality:
-                logging.debug("Skipping read '%s' due to missing MAPQ" % (
-                    name,))
-                continue
-            elif mapping_quality < min_mapping_quality:
-                logging.debug(
-                    "Skipping read '%s' due to low MAPQ: %d < %d" % (
-                        read.mapping_quality,
-                        mapping_quality,
-                        min_mapping_quality))
-                continue
-
-            sequence = read.query_sequence
-
-            if sequence is None:
-                logging.warn("Read '%s' missing sequence")
-                continue
-
-            base_qualities = read.query_qualities
-
-            if base_qualities is None:
-                logging.warn("Read '%s' missing base qualities" % (name,))
-                continue
-
-            #
-            # Documentation for pysam.AlignedSegment.get_reference_positions:
-            # ------------------------------------------------------------------
-            # By default, this method only returns positions in the reference
-            # that are within the alignment. If full_length is set, None values
-            # will be included for any soft-clipped or unaligned positions
-            # within the read. The returned list will thus be of the same length
-            # as the read.
-            #
-            # Source:
-            # http://pysam.readthedocs.org/en/latest/
-            # api.html#pysam.AlignedSegment.get_reference_positions
-            #
-            # We want a None value for every read position that does not have a
-            # corresponding reference position.
-            reference_positions = read.get_reference_positions(
-                full_length=True)
-
-            # pysam uses base-0 positions everywhere except region strings
-            # Source:
-            # http://pysam.readthedocs.org/en/latest/faq.html#pysam-coordinates-are-wrong
-            if base0_position_before_variant not in reference_positions:
-                logging.debug(
-                    "Skipping read '%s' because first position %d not mapped" % (
-                        name,
-                        base0_position_before_variant))
-                continue
-            else:
-                base0_read_position_before_variant = reference_positions.index(
-                    base0_position_before_variant)
-
-            if base0_position_after_variant not in reference_positions:
-                logging.debug(
-                    "Skipping read '%s' because last position %d not mapped" % (
-                        name,
-                        base0_position_after_variant))
-                continue
-            else:
-                base0_read_position_after_variant = reference_positions.index(
-                    base0_position_after_variant)
-            if isinstance(sequence, bytes):
-                sequence = sequence.decode('ascii')
-            yield ReadAtLocus(
-                name=name,
-                sequence=sequence,
-                reference_positions=reference_positions,
-                quality_scores=base_qualities,
-                base0_read_position_before_variant=base0_read_position_before_variant,
-                base0_read_position_after_variant=base0_read_position_after_variant)
+            read_at_locus = create_read_at_locus_from_pysam_pileup_element(
+                pileup_element,
+                base0_position_before_variant=base0_position_before_variant,
+                base0_position_after_variant=base0_position_after_variant,
+                use_secondary_alignments=use_secondary_alignments,
+                use_duplicate_reads=use_duplicate_reads,
+                min_mapping_quality=min_mapping_quality)
+            if read_at_locus is not None:
+                yield read_at_locus
 
 def reads_at_locus_dataframe(*args, **kwargs):
     """
