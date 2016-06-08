@@ -166,7 +166,12 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
 
     prefix, suffix = convert_from_bytes_if_necessary(prefix, suffix)
     prefix, suffix = trim_N_nucleotides(prefix, suffix)
-    return VariantRead(prefix, alt, suffix, name=read.name)
+
+    return VariantRead(
+        prefix,
+        nucleotides_at_variant_locus,
+        suffix,
+        name=read.name)
 
 def variant_reads_from_reads_at_locus(reads, ref, alt):
     """

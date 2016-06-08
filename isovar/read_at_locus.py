@@ -240,7 +240,7 @@ def read_at_locus_generator(
             chromosome,
             start=base0_position_before_variant,
             end=base0_position_after_variant + 1):
-        print(column.pos)
+
         if column.pos != base0_position_before_variant:
             # if this column isn't centered on the base before the
             # variant then keep going
