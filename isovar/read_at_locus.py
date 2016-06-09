@@ -179,6 +179,32 @@ def create_read_at_locus_from_pysam_pileup_element(
         base0_read_position_before_variant=base0_read_position_before_variant,
         base0_read_position_after_variant=base0_read_position_after_variant)
 
+def pileup_reads_at_position(samfile, chromosome, base0_position):
+    """
+    Returns a pileup column at the specified position. Unclear if a function
+    like this is hiding somewhere in pysam API.
+    """
+
+    # TODO: I want to pass truncate=True, stepper="all"
+    # but for some reason I get this error:
+    #      pileup() got an unexpected keyword argument 'truncate'
+    # ...even though these options are listed in the docs for pysam 0.9.0
+    #
+    for column in samfile.pileup(
+            chromosome,
+            start=base0_position,
+            end=base0_position + 1):
+
+        if column.pos != base0_position:
+            # if this column isn't centered on the base before the
+            # variant then keep going
+            continue
+
+        return column.pileups
+
+    # if we get to this point then we never saw a pileup at the
+    # desired position
+    return []
 
 def read_at_locus_generator(
         samfile,
@@ -227,35 +253,24 @@ def read_at_locus_generator(
     base0_position_before_variant = base1_position_before_variant - 1
     base0_position_after_variant = base1_position_after_variant - 1
 
-    # Let pysam pileup the reads covering our location of interest for us
-    #
     # We get a pileup at the base before the variant and then check to make sure
     # that reads also overlap the reference position after the variant.
     #
-    # TODO: I want to pass truncate=True, stepper="all"
-    # but for some reason I get this error:
-    #      pileup() got an unexpected keyword argument 'truncate'
-    # ...even though these options are listed in the docs for pysam 0.9.0
-    for column in samfile.pileup(
-            chromosome,
-            start=base0_position_before_variant,
-            end=base0_position_after_variant + 1):
-
-        if column.pos != base0_position_before_variant:
-            # if this column isn't centered on the base before the
-            # variant then keep going
-            continue
-
-        for pileup_element in column.pileups:
-            read_at_locus = create_read_at_locus_from_pysam_pileup_element(
-                pileup_element,
-                base0_position_before_variant=base0_position_before_variant,
-                base0_position_after_variant=base0_position_after_variant,
-                use_secondary_alignments=use_secondary_alignments,
-                use_duplicate_reads=use_duplicate_reads,
-                min_mapping_quality=min_mapping_quality)
-            if read_at_locus is not None:
-                yield read_at_locus
+    # TODO: scan over a wider interval of pileups and collect reads that don't
+    # overlap the bases before/after a variant due to splicing
+    for pileup_element in pileup_reads_at_position(
+            samfile=samfile,
+            chromosome=chromosome,
+            base0_position=base0_position_before_variant):
+        read_at_locus = create_read_at_locus_from_pysam_pileup_element(
+            pileup_element,
+            base0_position_before_variant=base0_position_before_variant,
+            base0_position_after_variant=base0_position_after_variant,
+            use_secondary_alignments=use_secondary_alignments,
+            use_duplicate_reads=use_duplicate_reads,
+            min_mapping_quality=min_mapping_quality)
+        if read_at_locus is not None:
+            yield read_at_locus
 
 def reads_at_locus_dataframe(*args, **kwargs):
     """
