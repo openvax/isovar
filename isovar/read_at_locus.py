@@ -71,14 +71,14 @@ def create_read_at_locus_from_pysam_pileup_element(
     # which can be identified by having the same name
     name = read.query_name
 
+    if name is None:
+        logging.warn("Read missing name at position %d" % (
+            base0_position_before_variant + 1))
+        return None
+
     if read.is_unmapped:
         logging.warn(
             "How did we get unmapped read '%s' in a pileup?" % (name,))
-        return None
-
-    if name is None:
-        logging.warn("Read missing name at position base-0 position %d" % (
-            pileup_element.query_position))
         return None
 
     if pileup_element.is_refskip:
@@ -88,8 +88,8 @@ def create_read_at_locus_from_pysam_pileup_element(
         return None
     elif pileup_element.is_del:
         logging.debug(
-            "Skipping deletion at base-0 position %d (read name = %s)" % (
-                pileup_element.query_position,
+            "Skipping deletion at position %d (read name = %s)" % (
+                base0_position_before_variant + 1,
                 name))
         return None
 
