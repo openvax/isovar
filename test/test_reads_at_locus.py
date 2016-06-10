@@ -54,7 +54,7 @@ def test_reads_at_locus_snv():
     read = reads[0]
     expected = ReadAtLocus(
         name=pysam_read.qname,
-        sequence=pysam_read.query_sequence.decode('ascii'),
+        sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 2, 3, 4, 5],
         quality_scores=pysam_read.query_qualities,
         base0_read_position_before_variant=2,
@@ -86,7 +86,7 @@ def test_reads_at_locus_insertion():
     read = reads[0]
     expected = ReadAtLocus(
         name=pysam_read.qname,
-        sequence=pysam_read.query_sequence.decode('ascii'),
+        sequence=pysam_read.query_sequence,
         # expect the inserted nucleotide to be missing a corresponding
         # ref position
         reference_positions=[0, 1, 2, 3, None, 4, 5],
@@ -121,7 +121,7 @@ def test_reads_at_locus_deletion():
     read = reads[0]
     expected = ReadAtLocus(
         name=pysam_read.qname,
-        sequence=pysam_read.query_sequence.decode('ascii'),
+        sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 2, 3, 5],
         quality_scores=pysam_read.query_qualities,
         base0_read_position_before_variant=3,
@@ -150,7 +150,7 @@ def test_reads_at_locus_substitution_longer():
     read = reads[0]
     expected = ReadAtLocus(
         name=pysam_read.qname,
-        sequence=pysam_read.query_sequence.decode('ascii'),
+        sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, None, 2, 3, 4, 5],
         quality_scores=pysam_read.query_qualities,
         base0_read_position_before_variant=0,
@@ -179,7 +179,7 @@ def test_reads_at_locus_substitution_shorter():
     read = reads[0]
     expected = ReadAtLocus(
         name=pysam_read.qname,
-        sequence=pysam_read.query_sequence.decode('ascii'),
+        sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 3, 4, 5],
         quality_scores=pysam_read.query_qualities,
         base0_read_position_before_variant=0,

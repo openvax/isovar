@@ -21,6 +21,7 @@ from isovar.protein_sequence import (
     sort_protein_sequences,
     variants_to_protein_sequences_dataframe
 )
+from varcode import VariantCollection
 
 from testing_helpers import load_bam, load_vcf
 
@@ -142,28 +143,28 @@ def test_sort_protein_sequences():
     ]
     eq_(sort_protein_sequences(unsorted_protein_sequences), expected_order)
 
-"""
-protein_sequence_length=PROTEIN_SEQUENCE_LEGNTH,
-        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-        min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY
-"""
 
 def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant():
-    variants = load_vcf("data/b16.f10/b16.vcf")
+    expressed_variants = load_vcf("data/b16.f10/b16.expressed.vcf")
+    not_expressed_variants = load_vcf("data/b16.f10/b16.not-expressed.vcf")
+
+    combined_variants = VariantCollection(
+        list(expressed_variants) + list(not_expressed_variants))
+
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
     df = variants_to_protein_sequences_dataframe(
-        variants,
+        combined_variants,
         samfile,
         min_mapping_quality=0,
         max_protein_sequences_per_variant=1)
     print(df)
     eq_(
         len(df),
-        len(variants),
-        "Expected %d entries, got %d" % (len(variants), len(df)))
+        len(expressed_variants),
+        "Expected %d/%d entries to have RNA support, got %d" % (
+            len(expressed_variants),
+            len(combined_variants),
+            len(df),))
 
 def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_quality():
     # since the B16 BAM has all MAPQ=255 values then all the reads should get dropped
@@ -182,8 +183,7 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
         "Expected 0 entries, got %d" % (len(df),))
 
 def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
-    # make sure that the protein sequencces we get back are the length we asked for 
-    variants = load_vcf("data/b16.f10/b16.vcf")
+    variants = load_vcf("data/b16.f10/b16.expressed.vcf")
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
 
     for desired_length in range(9, 20, 3):

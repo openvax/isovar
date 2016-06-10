@@ -43,15 +43,17 @@ def trim_N_nucleotides(prefix, suffix):
     if 'N' in prefix:
         # trim prefix to exclude all occurrences of N
         rightmost_index = prefix.rfind('N')
-        logging.debug("Trimming %d nucleotides from read prefix '%s'" % (
-            rightmost_index + 1, prefix))
+        logging.debug(
+            "Trimming %d nucleotides from read prefix '%s'" % (
+                rightmost_index + 1, prefix))
         prefix = prefix[rightmost_index + 1:]
 
     if 'N' in suffix:
         leftmost_index = suffix.find('N')
-        logging.debug("Trimming %d nucleotides from read suffix '%s'" % (
-            len(suffix)  - leftmost_index,
-            suffix))
+        logging.debug(
+            "Trimming %d nucleotides from read suffix '%s'" % (
+                len(suffix) - leftmost_index,
+                suffix))
         suffix = suffix[:leftmost_index]
 
     return prefix, suffix
@@ -148,11 +150,28 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
                     read))
             return None
 
+    nucleotides_at_variant_locus = sequence[read_pos_before + 1:read_pos_after]
+    if nucleotides_at_variant_locus != alt:
+        # read sequence doesn't match variant
+        logging.debug("Read '%s' has '%s' at variant locus (%d:%d), required '%s'" % (
+            read.name,
+            nucleotides_at_variant_locus,
+            read_pos_before + 1,
+            read_pos_after,
+            alt))
+        return None
+
     prefix = sequence[:read_pos_before + 1]
     suffix = sequence[read_pos_after:]
+
     prefix, suffix = convert_from_bytes_if_necessary(prefix, suffix)
     prefix, suffix = trim_N_nucleotides(prefix, suffix)
-    return VariantRead(prefix, alt, suffix, name=read.name)
+
+    return VariantRead(
+        prefix,
+        nucleotides_at_variant_locus,
+        suffix,
+        name=read.name)
 
 def variant_reads_from_reads_at_locus(reads, ref, alt):
     """

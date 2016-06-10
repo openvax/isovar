@@ -36,14 +36,14 @@ def test_sequence_counts_snv():
 
     variant_sequences = variant_reads_to_sequences(
         variant_reads,
-        max_nucleotides_before_variant=45,
-        max_nucleotides_after_variant=45)
-    assert len(variant_sequences) > 0
+        max_nucleotides_before_variant=30,
+        max_nucleotides_after_variant=30)
+    assert len(variant_sequences) == 1
     for variant_sequence in variant_sequences:
         print(variant_sequence)
         eq_(variant_sequence.alt, alt)
-        eq_(len(variant_sequence.prefix), 45)
-        eq_(len(variant_sequence.suffix), 45)
+        eq_(len(variant_sequence.prefix), 30)
+        eq_(len(variant_sequence.suffix), 30)
         eq_(
             variant_sequence.prefix + variant_sequence.alt + variant_sequence.suffix,
             variant_sequence.full_sequence)

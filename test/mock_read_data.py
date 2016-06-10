@@ -41,7 +41,7 @@ class DummySamFile(object):
 
     def pileup(self, chromosome, start, end):
         for i in range(start, end + 1):
-            yield DummyPileupColumn(pos=i + 1, reads=self.reads)
+            yield DummyPileupColumn(pos=i, reads=self.reads)
 
 def make_read(seq, cigar, mdtag=None, name="dummy", mapq=10, baseq=30):
     read = pysam.AlignedSegment()
