@@ -36,61 +36,56 @@ def create_logger(
 logger = create_logger()
 
 def group_unique_sequences(
-        variant_reads,
+        allele_reads,
         max_prefix_size=None,
         max_suffix_size=None):
     """
     Given a list of VariantRead objects, extracts all unique
-    (prefix, suffix) sequence pairs and associate each with a list
-    of read names that contained that sequence.
+    (prefix, allele, suffix) sequences and associate each with a list
+    of reads that contained that sequence.
     """
     groups = defaultdict(set)
-    for r in variant_reads:
+    for r in allele_reads:
         prefix = r.prefix
+        allele = r.allele
         suffix = r.suffix
         if max_prefix_size and len(prefix) > max_prefix_size:
             prefix = prefix[-max_prefix_size:]
         if max_suffix_size and len(suffix) > max_suffix_size:
             suffix = suffix[:max_suffix_size]
-        key = (prefix, suffix)
-        groups[key].add(r.name)
+        key = (prefix, allele, suffix)
+        groups[key].add(r)
     return groups
 
 def count_unique_sequences(
-        variant_reads,
+        allele_reads,
         max_prefix_size=None,
         max_suffix_size=None):
     """
-    Given a list of VariantRead objects, extracts all unique
-    (prefix, suffix) sequence pairs and associate each with the number
+    Given a list of AlleleRead objects, extracts all unique
+    (prefix, allele, suffix) sequences and associate each with the number
     of reads that contain that sequence.
     """
     groups = group_unique_sequences(
-        variant_reads,
+        allele_reads,
         max_prefix_size=max_prefix_size,
         max_suffix_size=max_suffix_size)
     return {
-        seq_pair: len(read_names)
-        for (seq_pair, read_names) in groups.items()
+        seq_tuple: len(read_names)
+        for (seq_tuple, read_names) in groups.items()
     }
 
+"""
+def group_reads_by_allele(allele_reads, **kwargs):
+    Given a sequence of AlleleRead objects, group them into a dictionary
+    keyed by allele.
 
-def get_variant_nucleotides(variant_reads):
-    if len(variant_reads) > 0:
-        variant_seq = variant_reads[0].alt
-        if not all(r.alt == variant_seq for r in variant_reads):
-            raise ValueError(
-                ("Cannot call `get_variant_nucleotides` on a collection"
-                 " of VariantRead objects spanning multiple variants"))
-        return variant_seq
-    else:
-        raise ValueError("Expected len(variant_reads) > 0")
-
-
-def make_prefix_suffix_pairs(variant_reads):
-    variant_seq = get_variant_nucleotides(variant_reads)
+    result = defaultdict(list)
+    for (prefix, allele, suffix), reads in group_unique_sequences(allele_reads, **kwargs):
+        result[allele].append((prefix, suffix))
     pairs = [(r.prefix, r.suffix) for r in variant_reads]
     return variant_seq, pairs
+"""
 
 
 def list_to_string(list_of_anything, sep=";"):

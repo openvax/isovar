@@ -14,20 +14,24 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .common import group_unique_sequences, get_variant_nucleotides
+from .common import group_unique_sequences
 
 
 def sort_by_decreasing_prefix_length(x):
-    return -len(x[0][0])
+    prefix, _, _ = x[0]
+    return -len(prefix)
 
 def sort_by_decreasing_suffix_length(x):
-    return -len(x[0][1])
+    _, _, suffix = x[0]
+    return -len(suffix)
 
 def sort_by_increasing_total_length(x):
-    return (len(x[0][0]) + len(x[0][1]))
+    prefix, allele, suffix = x[0]
+    return len(prefix) + len(allele) + len(suffix)
 
 def sort_by_decreasing_total_length(x):
-    return -(len(x[0][0]) + len(x[0][1]))
+    prefix, allele, suffix = x[0]
+    return -(len(prefix) + len(allele) + len(suffix))
 
 def greedy_merge(prefix_suffix_pair_groups, min_overlap_size=30):
     """
@@ -37,13 +41,16 @@ def greedy_merge(prefix_suffix_pair_groups, min_overlap_size=30):
     counts of how many reads support the new longer sequences.
     """
     merged = {}
-    for (p1, s1), names1 in sorted(
+    for (p1, a1, s1), names1 in sorted(
             prefix_suffix_pair_groups.items(),
             key=sort_by_decreasing_prefix_length):
         len1 = len(p1) + len(s1)
-        for (p2, s2), names2 in sorted(
+        for (p2, a2, s2), names2 in sorted(
                 prefix_suffix_pair_groups.items(),
                 key=sort_by_decreasing_suffix_length):
+            if a1 != a2:
+                # allele must match!
+                continue
             if len(p2) > len(p1):
                 continue
             elif len(s2) < len(s1):
@@ -61,17 +68,17 @@ def greedy_merge(prefix_suffix_pair_groups, min_overlap_size=30):
             elif p1.endswith(p2) and s2.startswith(s1):
                 # is the candidate sequence is a prefix of the accepted?
                 # Example:
-                # p1 s1 = XXXXXXXX ZZZZZZ
-                # p2 s2 =       XX ZZZZZZZZZ
+                # p1 a1 s1 = XXXXXXXX Y ZZZZZZ
+                # p2 a2 s2 =       XX Y ZZZZZZZZZ
                 # ...
                 # then combine them into a longer sequence
-                longer_pair = (p1, s2)
+                longer_seq = (p1, a1, s2)
                 combined_read_names = names1.union(names2)
-                if longer_pair in merged:
-                    merged[longer_pair] = merged[longer_pair].union(
+                if longer_seq in merged:
+                    merged[longer_seq] = merged[longer_seq].union(
                         combined_read_names)
                 else:
-                    merged[longer_pair] = combined_read_names
+                    merged[longer_seq] = combined_read_names
     return merged
 
 def collapse_substrings(assembly_groups):
@@ -83,9 +90,11 @@ def collapse_substrings(assembly_groups):
         assembly_groups.items(),
         key=sort_by_decreasing_total_length))
     result_list = []
-    for ((prefix_short, suffix_short), names_short) in sorted_pairs:
+    for ((prefix_short, allele, suffix_short), names_short) in sorted_pairs:
         found_superstring = False
-        for (prefix_long, suffix_long), names_long in result_list:
+        for (prefix_long, allele_long, suffix_long), names_long in result_list:
+            if allele != allele_long:
+                continue
             if prefix_long.endswith(prefix_short) and suffix_long.startswith(
                     suffix_short):
                 found_superstring = True
@@ -93,20 +102,17 @@ def collapse_substrings(assembly_groups):
                     names_long.add(name)
         if not found_superstring:
             result_list.append(
-                ((prefix_short, suffix_short), names_short.copy()))
-    return {
-        (p, s): names
-        for ((p, s), names) in result_list
-    }
+                ((prefix_short, allele, suffix_short), names_short.copy()))
+    return dict(result_list)
 
-def recursive_assembly(variant_reads, min_overlap_size=30, n_merge_iters=2):
+def recursive_assembly(allele_reads, min_overlap_size=30, n_merge_iters=2):
     """
     Assembles longer sequences from reads centered on a variant by alternating
     between merging all pairs of overlapping sequences and collapsing
     shorter sequences onto every longer sequence which contains them.
     """
-    assert len(variant_reads) > 0
-    assembly_groups = group_unique_sequences(variant_reads)
+    assert len(allele_reads) > 0
+    assembly_groups = group_unique_sequences(allele_reads)
     for i in range(n_merge_iters):
         previous_assembly_groups = {k: v for (k, v) in assembly_groups.items()}
 
@@ -122,25 +128,22 @@ def recursive_assembly(variant_reads, min_overlap_size=30, n_merge_iters=2):
     return assembly_groups
 
 def final_sort_key(x):
-    supporting_read_names = x[1]
+    (prefix, allele, suffix), supporting_read_names = x
     n_supporting_reads = len(supporting_read_names)
-    prefix = x[0][0]
-    suffix = x[0][1]
-    combined_length = len(prefix) + len(suffix)
+    combined_length = len(prefix) + len(allele) + len(suffix)
     return (n_supporting_reads, combined_length)
 
 def assemble_transcript_fragments(
-        variant_reads,
+        allele_reads,
         min_overlap_size=30,
         n_merge_iters=2):
-    assert len(variant_reads) > 0
-    variant_seq = get_variant_nucleotides(variant_reads)
+    assert len(allele_reads) > 0
     assembly_counts = recursive_assembly(
-        variant_reads,
+        allele_reads,
         min_overlap_size=min_overlap_size,
         n_merge_iters=n_merge_iters)
     return [
-        ((prefix, variant_seq, suffix), len(supporting_read_names))
-        for ((prefix, suffix), supporting_read_names)
+        ((prefix, allele, suffix), len(supporting_read_names))
+        for ((prefix, allele, suffix), supporting_read_names)
         in sorted(assembly_counts.items(), key=final_sort_key)
     ]
