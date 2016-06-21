@@ -58,6 +58,9 @@ ProteinSequence = namedtuple(
         # total number of reads at the locus which contained the variant
         # nucleotides, even if they supported other phased sequences
         "total_variant_reads",
+        # number of reads overlapping the variant locus supporting any allele,
+        # including the reference, alt, or anything else
+        "total_reads",
         # how many reference transcripts were used to establish the
         # reading frame for this protein sequence
         "supporting_transcripts",
@@ -206,8 +209,9 @@ def variants_to_protein_sequences(
             key = to_translation_key(translation)
             equivalent_translations_dict[key].append(translation)
 
-        all_read_names, all_transcript_ids, _ = summarize_translations(translations)
-        n_total_read_names = len(all_read_names)
+        all_variant_read_names, all_transcript_ids, _ = summarize_translations(
+            translations)
+        n_total_variant_read_names = len(all_variant_read_names)
         n_total_transcripts = len(all_transcript_ids)
 
         protein_sequences = []
@@ -222,7 +226,8 @@ def variants_to_protein_sequences(
                 translation_key=key,
                 translations=equivalent_translations,
                 supporting_variant_reads=group_read_names,
-                total_variant_reads=n_total_read_names,
+                total_variant_reads=n_total_variant_read_names,
+                total_reads=NONE,
                 supporting_transcripts=group_transcript_ids,
                 total_transcripts=n_total_transcripts,
                 gene=list(group_gene_names))
