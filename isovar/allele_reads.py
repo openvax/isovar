@@ -32,9 +32,12 @@ from .dataframe_builder import DataFrameBuilder
 from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
 
 
+# simplified representation of a RNA read containing just the
+# sequence before, at, and after the variant locus, along with the read name
 AlleleRead = namedtuple(
     "AlleleRead",
     "prefix allele suffix name")
+
 
 def allele_read_from_locus_read(read_at_locus, n_ref):
     """
@@ -153,7 +156,8 @@ def allele_reads_for_variant(
         chromosome=None,
         use_duplicate_reads=USE_DUPLICATE_READS,
         use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY,
+        only_alt_allele=False):
     """
     Find reads in the given SAM/BAM file which overlap the given variant, filter
     to only include those which agree with the variant's nucleotide(s), and turn
@@ -176,7 +180,11 @@ def allele_reads_for_variant(
     min_mapping_quality : int
         Drop reads below this mapping quality
 
-    Returns list of VariantRead objects.
+    only_alt_allele : bool
+        Filter reads to only include those that support the alt allele of
+        the variant.
+
+    Returns sequence of AlleleRead objects.
     """
     logging.info("Gathering reads for %s" % variant)
     if chromosome is None:
@@ -187,6 +195,7 @@ def allele_reads_for_variant(
         chromosome))
 
     base1_position, ref, alt = trim_variant(variant)
+
     if len(ref) == 0:
         # if the variant is an insertion
         base1_position_before_variant = base1_position
@@ -203,9 +212,13 @@ def allele_reads_for_variant(
         use_duplicate_reads=use_duplicate_reads,
         use_secondary_alignments=use_secondary_alignments,
         min_mapping_quality=min_mapping_quality)
-    return allele_reads_from_locus_reads(
-        reads=locus_reads,
+
+    allele_reads = allele_reads_from_locus_reads(
+        locus_reads=locus_reads,
         n_ref=len(ref))
+
+    return allele_reads
+
 
 def allele_reads_for_variants(
         variants,
@@ -215,7 +228,7 @@ def allele_reads_for_variants(
         min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """
     Generates sequence of tuples, each containing a variant paired with
-    a list of VariantRead objects.
+    a list of AlleleRead objects.
 
     Parameters
     ----------
@@ -259,38 +272,15 @@ def allele_reads_for_variants(
             min_mapping_quality=min_mapping_quality)
         yield variant, allele_reads
 
-def allele_reads_dataframe(
-        variants,
-        samfile,
-        use_duplicate_reads=USE_DUPLICATE_READS,
-        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+def allele_reads_to_dataframe(variants_and_allele_reads):
     """
-    Creates a DataFrame containing sequences around variant from variant
-    collection and BAM/SAM file.
-
     Parameters
     ----------
-    variants : varcode.VariantCollection
-
-    samfile : pysam.AlignmentFile
-
-    use_duplicate_reads : bool
-        Should we use reads that have been marked as PCR duplicates
-
-    use_secondary_alignments : bool
-        Should we use reads at locations other than their best alignment
-
-    min_mapping_quality : int
-        Drop reads below this mapping quality
+    variants_and_allele_reads : sequence
+        List or generator of pairs whose first element is a Variant and
+        whose second element is a sequence of AlleleRead objects.
     """
     df_builder = DataFrameBuilder(AlleleRead)
-    for variant, variant_reads in allele_reads_for_variants(
-            variants,
-            samfile,
-            use_duplicate_reads=use_duplicate_reads,
-            use_secondary_alignments=use_secondary_alignments,
-            min_mapping_quality=min_mapping_quality):
-        for variant_read in variant_reads:
-            df_builder.add(variant, variant_read)
+    for variant, allele_reads in variants_and_allele_reads:
+        df_builder.add_many(variant, allele_reads)
     return df_builder.to_dataframe()

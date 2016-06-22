@@ -124,5 +124,9 @@ class DataFrameBuilder(object):
                 name = self.rename_dict[name]
             self.columns_dict[name].append(value)
 
+    def add_many(self, variant, elements):
+        for element in elements:
+            self.add(variant, element)
+
     def to_dataframe(self):
         return pd.DataFrame(self.columns_dict)

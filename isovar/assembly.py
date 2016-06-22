@@ -111,8 +111,8 @@ def recursive_assembly(allele_reads, min_overlap_size=30, n_merge_iters=2):
     between merging all pairs of overlapping sequences and collapsing
     shorter sequences onto every longer sequence which contains them.
     """
-    assert len(allele_reads) > 0
     assembly_groups = group_unique_sequences(allele_reads)
+    assert len(assembly_groups) > 0
     for i in range(n_merge_iters):
         previous_assembly_groups = {k: v for (k, v) in assembly_groups.items()}
 
@@ -137,11 +137,11 @@ def assemble_transcript_fragments(
         allele_reads,
         min_overlap_size=30,
         n_merge_iters=2):
-    assert len(allele_reads) > 0
     assembly_counts = recursive_assembly(
         allele_reads,
         min_overlap_size=min_overlap_size,
         n_merge_iters=n_merge_iters)
+    assert len(assembly_counts) > 0
     return [
         ((prefix, allele, suffix), len(supporting_read_names))
         for ((prefix, allele, suffix), supporting_read_names)

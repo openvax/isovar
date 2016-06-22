@@ -13,27 +13,12 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
 
 from collections import defaultdict
 
 nucleotides = ["A", "C", "T", "G"]
 nucleotide_to_index = {c: i for (i, c) in enumerate(nucleotides)}
 index_to_nucleotide = {i: c for (i, c) in enumerate(nucleotides)}
-
-def create_logger(
-        name="root",
-        level=logging.DEBUG,
-        format_string="%(levelname)s: %(message)s (%(filename)s:%(lineno)s - %(funcName)s)"):
-    logger = logging.getLogger(name)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter(format_string)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(level)
-    return logger
-
-logger = create_logger()
 
 def group_unique_sequences(
         allele_reads,
@@ -74,19 +59,6 @@ def count_unique_sequences(
         seq_tuple: len(read_names)
         for (seq_tuple, read_names) in groups.items()
     }
-
-"""
-def group_reads_by_allele(allele_reads, **kwargs):
-    Given a sequence of AlleleRead objects, group them into a dictionary
-    keyed by allele.
-
-    result = defaultdict(list)
-    for (prefix, allele, suffix), reads in group_unique_sequences(allele_reads, **kwargs):
-        result[allele].append((prefix, suffix))
-    pairs = [(r.prefix, r.suffix) for r in variant_reads]
-    return variant_seq, pairs
-"""
-
 
 def list_to_string(list_of_anything, sep=";"):
     """

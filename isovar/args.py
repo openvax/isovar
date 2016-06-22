@@ -28,88 +28,19 @@ from .default_parameters import (
     MAX_PROTEIN_SEQUENCES_PER_VARIANT,
 )
 
-def add_somatic_vcf_args(
-        parser,
-        vcf_arg="--vcf",
-        vcf_required=True,
-        genome_arg="--genome",
-        genome_required=False):
-    """
-    Extends an ArgumentParser instance with the following commandline arguments:
-        --vcf
-        --genome
-    """
-    parser.add_argument(
-        vcf_arg,
-        required=vcf_required,
-        help="Path to VCF file containing somatic variants")
 
-    parser.add_argument(
-        genome_arg,
-        default=None,
-        required=genome_required,
-        help="Name of reference genome for VCF of somatic variants")
-    return parser
 
-def add_rna_args(
+
+def add_rna_consensus_sequence_args(
         parser,
-        rna_bam_arg="--bam",
-        rna_bam_required=True,
         min_rna_reads_arg="--min-reads",
-        min_rna_reads_default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-        min_mapping_quality_arg="--min-mapping-quality",
-        min_mapping_quality_default=MIN_READ_MAPPING_QUALITY):
-    """
-    Extends an ArgumentParser instance with the following commandline arguments:
-        --bam
-        --min-reads
-        --min-mapping-quality
-    """
-    parser.add_argument(
-        rna_bam_arg,
-        required=rna_bam_required,
-        help="BAM file containing RNAseq reads")
-
-    parser.add_argument(
+        min_rna_reads_default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
+    rna_sequence_group = parser.add_argument_group("Consensus expressed coding sequence")
+    rna_sequence_group.add_argument(
         min_rna_reads_arg,
         type=int,
         default=min_rna_reads_default,
         help="Minimum number of reads supporting a variant sequence")
-
-    parser.add_argument(
-        "--min-mapping-quality",
-        type=int,
-        default=min_mapping_quality_default,
-        help="Minimum MAPQ value to allow for a read")
-    return parser
-
-def add_reference_context_args(
-        parser,
-        max_reference_transcript_mismatches_arg="--max-reference-transcript-mismatches",
-        max_reference_transcript_mismatches_default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        min_transcript_prefix_length_arg="--min-transcript-prefix-length",
-        min_transcript_prefix_length_default=MIN_TRANSCRIPT_PREFIX_LENGTH):
-    """
-    Extends an ArgumentParser instance with the following commandline arguments:
-        --max-reference-transcript-mismatches
-        --min-transcript-prefix-length
-    """
-    parser.add_argument(
-        max_reference_transcript_mismatches_arg,
-        type=int,
-        default=max_reference_transcript_mismatches_default,
-        help=(
-            "Maximum number of mismatches between variant sequence"
-            " reference sequence before a candidate reading frame is ignored."))
-
-    parser.add_argument(
-        min_transcript_prefix_length_arg,
-        type=int,
-        default=min_transcript_prefix_length_default,
-        help=(
-            "Number of nucleotides before the variant we try to match against "
-            "a reference transcript. Values greater than zero exclude variants "
-            "near the start codon of transcrPROTEIN_SEQUENCE_LEGNTHipts without 5' UTRs."))
     return parser
 
 def add_protein_sequence_args(
@@ -123,11 +54,12 @@ def add_protein_sequence_args(
         --protein-sequence-length
         --max-protein-sequences-per-variant
     """
-    parser.add_argument(
+    protein_sequence_group = parser.add_argument_group("Protein Sequence")
+    protein_sequence_group.add_argument(
         protein_sequence_length_arg,
         default=protein_sequence_length_default,
         type=int)
-    parser.add_argument(
+    protein_sequence_group.add_argument(
         max_protein_sequences_per_variant_arg,
         type=int,
         default=max_protein_sequences_per_variant_default)
