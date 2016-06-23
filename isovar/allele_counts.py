@@ -36,16 +36,6 @@ AlleleCount = namedtuple(
         "n_other",
     ])
 
-def group_reads_by_allele(allele_reads):
-    """
-    Returns dictionary mapping each allele's nucleotide sequence to a list of
-    supporting AlleleRead objects.
-    """
-    allele_to_reads_dict = defaultdict(list)
-    for allele_read in allele_reads:
-        allele_to_reads_dict[allele_read.allele].append(allele_read)
-    return allele_to_reads_dict
-
 def count_alleles_at_variant_locus(variant, allele_reads):
     allele_reads = list(allele_reads)
     n_total = len(allele_reads)

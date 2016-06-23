@@ -18,10 +18,10 @@ allele (ref, alt, or otherwise), and suffix portions
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 import logging
 
-from .locus_read import locus_read_generator
+from .locus_reads import locus_read_generator
 from .default_parameters import (
     MIN_READ_MAPPING_QUALITY,
     USE_SECONDARY_ALIGNMENTS,
@@ -150,14 +150,13 @@ def allele_reads_from_locus_reads(locus_reads, n_ref):
         else:
             yield allele_read
 
-def allele_reads_for_variant(
+def reads_overlapping_variant(
         samfile,
         variant,
         chromosome=None,
         use_duplicate_reads=USE_DUPLICATE_READS,
         use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY,
-        only_alt_allele=False):
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """
     Find reads in the given SAM/BAM file which overlap the given variant, filter
     to only include those which agree with the variant's nucleotide(s), and turn
@@ -219,13 +218,7 @@ def allele_reads_for_variant(
 
     return allele_reads
 
-
-def allele_reads_for_variants(
-        variants,
-        samfile,
-        use_duplicate_reads=USE_DUPLICATE_READS,
-        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+def reads_overlapping_variants(variants, samfile, **kwargs):
     """
     Generates sequence of tuples, each containing a variant paired with
     a list of AlleleRead objects.
@@ -263,16 +256,51 @@ def allele_reads_for_variants(
                 "Chromosome '%s' from variant %s not in alignment file %s" % (
                     chromosome, variant, samfile.filename))
             continue
-        allele_reads = allele_reads_for_variant(
+        allele_reads = reads_overlapping_variant(
             samfile=samfile,
             chromosome=chromosome,
             variant=variant,
-            use_duplicate_reads=use_duplicate_reads,
-            use_secondary_alignments=use_secondary_alignments,
-            min_mapping_quality=min_mapping_quality)
+            **kwargs)
         yield variant, allele_reads
 
-def allele_reads_to_dataframe(variants_and_allele_reads):
+
+def group_reads_by_allele(allele_reads):
+    """
+    Returns dictionary mapping each allele's nucleotide sequence to a list of
+    supporting AlleleRead objects.
+    """
+    allele_to_reads_dict = defaultdict(list)
+    for allele_read in allele_reads:
+        allele_to_reads_dict[allele_read.allele].append(allele_read)
+    return allele_to_reads_dict
+
+def filter_non_alt_reads_for_variant(variant, allele_reads):
+    _, _, alt = trim_variant(variant)
+    return [read for read in allele_reads if read.allele == alt]
+
+def filter_non_alt_reads_for_variants(variants_and_allele_reads_sequence):
+    """
+    Given a sequence of variants paired with all of their overlapping reads,
+    yields a sequence of variants paired only with reads which contain their
+    mutated nucleotide sequence.
+    """
+    for variant, allele_reads in variants_and_allele_reads_sequence:
+        yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
+
+def reads_supporting_variant(samfile, variant, *args, **kwargs):
+    allele_reads = reads_overlapping_variant(samfile, variant, *args, **kwargs)
+    return filter_non_alt_reads_for_variant(variant, allele_reads)
+
+def reads_supporting_variants(samfile, variants, *args, **kwargs):
+    """
+    Given a SAM/BAM file and a collection of variants, generates a sequence
+    of variants paired with reads which support each variant.
+    """
+    for variant, allele_reads in reads_supporting_variants(
+            variants, samfile, *args, **kwargs):
+        yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
+
+def reads_to_dataframe(variants_and_allele_reads):
     """
     Parameters
     ----------
