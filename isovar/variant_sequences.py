@@ -17,8 +17,8 @@ from collections import namedtuple
 import logging
 
 
-from .common import group_unique_sequences, get_variant_nucleotides
-from .variant_read import variant_reads_generator
+from .common import group_unique_sequences
+from .allele_read import allele_to_reads_dict
 from .default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     VARIANT_CDNA_SEQUENCE_LENGTH,
@@ -34,9 +34,9 @@ VariantSequence = namedtuple(
         "suffix",
         # combined sequence cached for convenience, so we don't have to
         # repeatedly concatenate prefix + variant_nucleotides + suffix
-        "full_sequence",
-        "read_names",
-        "read_count",
+        "sequence",
+        # reads which were used to determine this sequences
+        "spanning_reads",
     ]
 )
 
@@ -107,9 +107,8 @@ def variant_reads_to_sequences(
             prefix=prefix,
             alt=variant_seq,
             suffix=suffix,
-            full_sequence=prefix + variant_seq + suffix,
-            read_names=read_names,
-            read_count=len(read_names))
+            sequence=prefix + variant_seq + suffix,
+            spanning_reads=read_names,)
         for ((prefix, suffix), read_names)
         in unique_sequence_groups.items()
     ]
@@ -117,7 +116,7 @@ def variant_reads_to_sequences(
 
     variant_sequences = [
         x for x in variant_sequences
-        if len(x.full_sequence) >= min_sequence_length and
+        if len(x.sequence) >= min_sequence_length and
         len(x.read_names) >= min_reads_per_sequence
     ]
 
@@ -160,6 +159,11 @@ def variant_sequences_generator(
         - Variant
         - list of VariantSequence objects
     """
+    for variant, locus_info in locus_info_generator(
+            variants=variants,
+            samfile=samfile,
+            min_mapping_quality=min_mapping_quality):
+        variant_reads =
     for variant, variant_reads in variant_reads_generator(
             variants=variants,
             samfile=samfile,

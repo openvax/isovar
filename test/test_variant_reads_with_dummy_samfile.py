@@ -15,7 +15,8 @@
 from __future__ import print_function, division, absolute_import
 
 from varcode import Variant
-from isovar.variant_read import gather_reads_for_single_variant, VariantRead
+from isovar.variant_reads import reads_supporting_variant
+from isovar.allele_reads import AlleleRead
 
 from mock_read_data import DummySamFile, make_read
 from testing_helpers import assert_equal_fields
@@ -38,17 +39,17 @@ def test_partitioned_read_sequences_snv():
     read = make_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
 
     samfile = DummySamFile(reads=[read])
-    variant_reads = gather_reads_for_single_variant(
+    variant_reads = reads_supporting_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
     print(variant_reads)
     assert len(variant_reads) == 1
     variant_read = variant_reads[0]
-    expected = VariantRead(
+    expected = AlleleRead(
         name=read.qname,
         prefix="ACC",
-        alt="G",
+        allele="G",
         suffix="TG")
     assert_equal_fields(variant_read, expected)
 
@@ -70,17 +71,17 @@ def test_partitioned_read_sequences_insertion():
     read = make_read(seq=b"ACCTGTG", cigar="4M1I2M", mdtag="6")
 
     samfile = DummySamFile(reads=[read])
-    variant_reads = gather_reads_for_single_variant(
+    variant_reads = reads_supporting_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
     print(variant_reads)
     assert len(variant_reads) == 1
     variant_read = variant_reads[0]
-    expected = VariantRead(
+    expected = AlleleRead(
         name=read.qname,
         prefix="ACCT",
-        alt="G",
+        allele="G",
         suffix="TG")
     assert_equal_fields(variant_read, expected)
 
@@ -101,16 +102,21 @@ def test_partitioned_read_sequences_deletion():
     read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
     samfile = DummySamFile(reads=[read])
-    variant_reads = gather_reads_for_single_variant(
+    variant_reads = reads_supporting_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
     print(variant_reads)
     assert len(variant_reads) == 1
     variant_read = variant_reads[0]
-    expected = VariantRead(
+    expected = AlleleRead(
         name=read.qname,
         prefix="ACCT",
-        alt="",
+        allele="",
         suffix="G")
     assert_equal_fields(variant_read, expected)
+
+if __name__ == "__main__":
+    test_partitioned_read_sequences_snv()
+    test_partitioned_read_sequences_insertion()
+    test_partitioned_read_sequences_deletion()

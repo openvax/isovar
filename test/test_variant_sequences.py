@@ -16,8 +16,8 @@ from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
 from varcode import Variant
-from isovar.variant_sequence import variant_reads_to_sequences
-from isovar.variant_read import gather_reads_for_single_variant
+from isovar.variant_sequences import variant_reads_to_sequences
+from isovar.variant_reads import reads_supporting_variant
 
 from testing_helpers import load_bam
 
@@ -29,7 +29,7 @@ def test_sequence_counts_snv():
     alt = "C"
     variant = Variant(chromosome, base1_location, ref, alt)
 
-    variant_reads = gather_reads_for_single_variant(
+    variant_reads = reads_supporting_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)

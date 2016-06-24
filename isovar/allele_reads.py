@@ -274,32 +274,6 @@ def group_reads_by_allele(allele_reads):
         allele_to_reads_dict[allele_read.allele].append(allele_read)
     return allele_to_reads_dict
 
-def filter_non_alt_reads_for_variant(variant, allele_reads):
-    _, _, alt = trim_variant(variant)
-    return [read for read in allele_reads if read.allele == alt]
-
-def filter_non_alt_reads_for_variants(variants_and_allele_reads_sequence):
-    """
-    Given a sequence of variants paired with all of their overlapping reads,
-    yields a sequence of variants paired only with reads which contain their
-    mutated nucleotide sequence.
-    """
-    for variant, allele_reads in variants_and_allele_reads_sequence:
-        yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
-
-def reads_supporting_variant(samfile, variant, *args, **kwargs):
-    allele_reads = reads_overlapping_variant(samfile, variant, *args, **kwargs)
-    return filter_non_alt_reads_for_variant(variant, allele_reads)
-
-def reads_supporting_variants(samfile, variants, *args, **kwargs):
-    """
-    Given a SAM/BAM file and a collection of variants, generates a sequence
-    of variants paired with reads which support each variant.
-    """
-    for variant, allele_reads in reads_supporting_variants(
-            variants, samfile, *args, **kwargs):
-        yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
-
 def reads_to_dataframe(variants_and_allele_reads):
     """
     Parameters

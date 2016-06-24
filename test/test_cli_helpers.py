@@ -13,11 +13,11 @@ def test_variants_to_protein_sequences_dataframe_from_args():
     vcf_path = data_path("data/b16.f10/b16.vcf")
     bam_path = data_path("data/b16.f10/b16.combined.bam")
 
-    parser = \
-        add_protein_sequence_args(
-            add_reference_context_args(
-                add_rna_args(
-                    add_somatic_vcf_args(ArgumentParser()))))
+    parser = ArgumentParser()
+    add_protein_sequence_args(parser)
+    add_reference_context_args(parser)
+    add_rna_args(parser)
+    add_somatic_vcf_args(parser)
     args = parser.parse_args([
         "--vcf", vcf_path,
         "--bam", bam_path,
