@@ -1,4 +1,4 @@
-from isovar.variant_read import gather_reads_for_single_variant
+from isovar.variant_reads import reads_supporting_variant
 from varcode import Variant
 from testing_helpers import load_bam
 from nose.tools import eq_
@@ -10,19 +10,19 @@ def test_somatic_variant_with_2_supporting_rna_reads():
     tumor_reads = load_bam(base_dir + "tumor.14.105849746.G.A.many-alt.sorted.bam")
     rna_reads = load_bam(base_dir + "rna.14.105849746.G.A.2-alt.sorted.bam")
 
-    normal_sample_variant_reads = gather_reads_for_single_variant(
+    normal_sample_variant_reads = reads_supporting_variant(
         variant=variant,
         samfile=normal_reads)
     eq_(len(normal_sample_variant_reads), 0)
     print(normal_sample_variant_reads)
 
-    tumor_sample_variant_reads = gather_reads_for_single_variant(
+    tumor_sample_variant_reads = reads_supporting_variant(
         variant=variant,
         samfile=tumor_reads)
     print(tumor_sample_variant_reads)
     eq_(len(tumor_sample_variant_reads), 8)
 
-    rna_sample_variant_reads = gather_reads_for_single_variant(
+    rna_sample_variant_reads = reads_supporting_variant(
         variant=variant,
         samfile=rna_reads)
     print(rna_sample_variant_reads)

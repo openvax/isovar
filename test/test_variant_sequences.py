@@ -46,7 +46,7 @@ def test_sequence_counts_snv():
         eq_(len(variant_sequence.suffix), 30)
         eq_(
             variant_sequence.prefix + variant_sequence.alt + variant_sequence.suffix,
-            variant_sequence.full_sequence)
+            variant_sequence.sequence)
 
 if __name__ == "__main__":
     test_sequence_counts_snv()

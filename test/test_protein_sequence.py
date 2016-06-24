@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
 from isovar.translation import Translation
-from isovar.protein_sequence import (
+from isovar.protein_sequences import (
     ProteinSequence,
     sort_protein_sequences,
     variants_to_protein_sequences_dataframe

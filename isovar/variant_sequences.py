@@ -17,8 +17,8 @@ from collections import namedtuple
 import logging
 
 
-from .common import group_unique_sequences
-from .allele_read import allele_to_reads_dict
+from .common import group_unique_sequences, get_single_allele_from_reads
+from .variant_reads import reads_supporting_variants
 from .default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     VARIANT_CDNA_SEQUENCE_LENGTH,
@@ -36,12 +36,12 @@ VariantSequence = namedtuple(
         # repeatedly concatenate prefix + variant_nucleotides + suffix
         "sequence",
         # reads which were used to determine this sequences
-        "spanning_reads",
+        "reads",
     ]
 )
 
 def sort_key_decreasing_read_count(variant_sequence):
-    return -variant_sequence.read_count
+    return -len(variant_sequence.reads)
 
 def variant_reads_to_sequences(
         variant_reads,
@@ -82,6 +82,8 @@ def variant_reads_to_sequences(
     if len(variant_reads) == 0:
         return []
 
+    variant_seq = get_single_allele_from_reads(variant_reads)
+
     # Get all unique sequences from reads spanning the
     # variant locus. This will include partial sequences
     # due to reads starting in the middle of the context,
@@ -92,7 +94,6 @@ def variant_reads_to_sequences(
         max_prefix_size=max_nucleotides_before_variant,
         max_suffix_size=max_nucleotides_after_variant)
 
-    variant_seq = get_variant_nucleotides(variant_reads)
     variant_len = len(variant_seq)
 
     if min_sequence_length is None or min_sequence_length == 0:
@@ -100,7 +101,7 @@ def variant_reads_to_sequences(
         # which will be at most twice the context size
         min_sequence_length = variant_len + max(
             len(prefix) + len(suffix)
-            for (prefix, suffix) in unique_sequence_groups.keys())
+            for (prefix, _, suffix) in unique_sequence_groups.keys())
 
     variant_sequences = [
         VariantSequence(
@@ -108,8 +109,8 @@ def variant_reads_to_sequences(
             alt=variant_seq,
             suffix=suffix,
             sequence=prefix + variant_seq + suffix,
-            spanning_reads=read_names,)
-        for ((prefix, suffix), read_names)
+            reads=reads)
+        for ((prefix, _, suffix), reads)
         in unique_sequence_groups.items()
     ]
     n_total = len(variant_sequences)
@@ -117,7 +118,7 @@ def variant_reads_to_sequences(
     variant_sequences = [
         x for x in variant_sequences
         if len(x.sequence) >= min_sequence_length and
-        len(x.read_names) >= min_reads_per_sequence
+        len(x.reads) >= min_reads_per_sequence
     ]
 
     n_dropped = n_total - len(variant_sequences)
@@ -159,12 +160,7 @@ def variant_sequences_generator(
         - Variant
         - list of VariantSequence objects
     """
-    for variant, locus_info in locus_info_generator(
-            variants=variants,
-            samfile=samfile,
-            min_mapping_quality=min_mapping_quality):
-        variant_reads =
-    for variant, variant_reads in variant_reads_generator(
+    for variant, variant_reads in reads_supporting_variants(
             variants=variants,
             samfile=samfile,
             min_mapping_quality=min_mapping_quality):
@@ -228,6 +224,5 @@ def variant_sequences_dataframe(
             sequence_length=sequence_length,
             min_reads=min_reads,
             min_mapping_quality=min_mapping_quality):
-        for variant_sequence in variant_sequences:
-            df_builder.add(variant, variant_sequence)
+        df_builder.add_many(variant, variant_sequences)
     return df_builder.to_dataframe()

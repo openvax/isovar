@@ -21,7 +21,11 @@ import argparse
 import varcode
 from pysam import AlignmentFile
 
-from isovar.args import add_somatic_vcf_args
+from isovar.args import (
+    add_somatic_vcf_args,
+    add_rna_args,
+    add_rna_consensus_sequence_args
+)
 from isovar.variant_sequence import variant_sequences_dataframe
 from isovar.default_parameters import (
     VARIANT_CDNA_SEQUENCE_LENGTH,
