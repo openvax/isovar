@@ -54,18 +54,21 @@ ProteinSequence = namedtuple(
         "translations",
         # number of unique read names from all the VariantSequence objects
         # from each translation
-        "supporting_variant_reads",
+        "n_variant_reads_supporting_sequence",
         # total number of reads at the locus which contained the variant
         # nucleotides, even if they supported other phased sequences
-        "total_variant_reads",
+        "n_variant_reads",
+        # number of reads overlapping this locus which support the reference
+        # allele
+        "n_ref_reads",
         # number of reads overlapping the variant locus supporting any allele,
         # including the reference, alt, or anything else
-        "total_reads",
+        "n_total_reads",
         # how many reference transcripts were used to establish the
         # reading frame for this protein sequence
-        "supporting_transcripts",
+        "n_matching_reference_transcripts",
         # how many reference transcripts overlap the variant locus?
-        "total_transcripts",
+        "n_total_reference_transcripts",
         # name of gene of the reference transcripts used in Translation
         # objects
         "gene",
@@ -106,8 +109,8 @@ def summarize_translations(translations):
     gene_names = set([])
     transcript_ids = set([])
     for translation in translations:
-        for read_name in translation.variant_sequence.read_names:
-            read_names.add(read_name)
+        for read in translation.variant_sequence.reads:
+            read_names.add(read.name)
         for transcript in translation.reference_context.transcripts:
             transcript_ids.add(transcript.id)
             gene_names.add(transcript.gene.name)
@@ -227,7 +230,6 @@ def variants_to_protein_sequences(
                 translations=equivalent_translations,
                 supporting_variant_reads=group_read_names,
                 total_variant_reads=n_total_variant_read_names,
-                total_reads=NONE,
                 supporting_transcripts=group_transcript_ids,
                 total_transcripts=n_total_transcripts,
                 gene=list(group_gene_names))

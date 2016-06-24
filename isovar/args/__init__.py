@@ -15,12 +15,16 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .variants import add_somatic_vcf_args, variants_from_args
+from .variants import (
+    add_somatic_vcf_args,
+    variants_from_args
+)
 from .reads import (
     samfile_from_args,
     allele_reads_from_args,
-    allele_counts_from_args
+    variant_reads_from_args
 )
+from .reference_context import add_reference_context_args
 
 
 __all__ = [
@@ -28,5 +32,6 @@ __all__ = [
     "variants_from_args",
     "samfile_from_args",
     "allele_reads_from_args",
-    "allele_counts_from_args",
+    "variant_reads_from_args",
+    "add_reference_context_args",
 ]

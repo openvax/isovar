@@ -14,17 +14,12 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .default_parameters import (
+from ..default_parameters import (
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     MIN_TRANSCRIPT_PREFIX_LENGTH
 )
 
-def add_reference_context_args(
-        parser,
-        max_reference_transcript_mismatches_arg="--max-reference-transcript-mismatches",
-        max_reference_transcript_mismatches_default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        min_transcript_prefix_length_arg="--min-transcript-prefix-length",
-        min_transcript_prefix_length_default=MIN_TRANSCRIPT_PREFIX_LENGTH):
+def add_reference_context_args(parser):
     """
     Extends an ArgumentParser instance with the following commandline arguments:
         --max-reference-transcript-mismatches
@@ -32,17 +27,17 @@ def add_reference_context_args(
     """
     reference_context_group = parser.add_argument_group("Reference Transcripts")
     reference_context_group.add_argument(
-        max_reference_transcript_mismatches_arg,
+        "--max-reference-transcript-mismatches",
         type=int,
-        default=max_reference_transcript_mismatches_default,
+        default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
         help=(
             "Maximum number of mismatches between variant sequence"
             " reference sequence before a candidate reading frame is ignored."))
 
     reference_context_group.add_argument(
-        min_transcript_prefix_length_arg,
+        "--min-transcript-prefix-length",
         type=int,
-        default=min_transcript_prefix_length_default,
+        default=MIN_TRANSCRIPT_PREFIX_LENGTH,
         help=(
             "Number of nucleotides before the variant we try to match against "
             "a reference transcript. Values greater than zero exclude variants "

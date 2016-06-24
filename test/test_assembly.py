@@ -14,7 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.allele_read import allele_reads_for_variant
+from isovar.allele_reads import allele_reads_for_variant
 from isovar.assembly import assemble_transcript_fragments
 from pyensembl import ensembl_grch38
 from varcode import Variant

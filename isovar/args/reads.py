@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+from __future__ import print_function, division, absolute_import
+
 from pysam import AlignmentFile
 
 from .variants import variants_from_args
 from ..default_parameters import MIN_READ_MAPPING_QUALITY
-from ..allele_reads import allele_reads_for_variants
+from ..allele_reads import reads_overlapping_variants
+from ..variant_reads import reads_supporting_variants
+
 
 def add_rna_read_args(
         parser,
@@ -58,10 +63,20 @@ def samfile_from_args(args):
 def allele_reads_from_args(args):
     variants = variants_from_args(args)
     samfile = samfile_from_args(args)
-
-    return allele_reads_for_variants(
+    return reads_overlapping_variants(
         variants=variants,
         samfile=samfile,
         use_duplicate_reads=args.use_duplicate_reads,
         use_secondary_alignments=not args.drop_secondary_alignments,
         min_mapping_quality=args.min_mapping_quality)
+
+def variant_reads_from_args(args):
+    variants = variants_from_args(args)
+    samfile = samfile_from_args(args)
+    return reads_supporting_variants(
+        variants=variants,
+        samfile=samfile,
+        use_duplicate_reads=args.use_duplicate_reads,
+        use_secondary_alignments=not args.drop_secondary_alignments,
+        min_mapping_quality=args.min_mapping_quality)
+
