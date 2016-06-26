@@ -129,63 +129,63 @@ def variant_reads_to_sequences(
     variant_sequences.sort(key=sort_key_decreasing_read_count)
     return variant_sequences
 
+def extract_consensus_cdna_sequences(
+        variant,
+        variant_reads,
+        min_reads,
+        sequence_length):
+    # the number of context nucleotides on either side of the variant
+    # is half the desired length (minus the number of variant nucleotides)
+    n_alt = len(variant.alt)
+    n_surrounding_nucleotides = sequence_length - n_alt
+    max_nucleotides_after_variant = n_surrounding_nucleotides // 2
+    # if the number of nucleotides we need isn't divisible by 2 then
+    # prefer to have one more *before* the variant since we need the
+    # prefix sequence to match against reference transcripts
+    max_nucleotides_before_variant = (
+        n_surrounding_nucleotides - max_nucleotides_after_variant)
+    logging.info(
+        "Looking at %dnt before and %dnt after variant %s" % (
+            max_nucleotides_before_variant,
+            max_nucleotides_after_variant,
+            variant))
+
+    return variant_reads_to_sequences(
+        variant_reads,
+        max_nucleotides_before_variant=max_nucleotides_before_variant,
+        max_nucleotides_after_variant=max_nucleotides_after_variant,
+        min_reads_per_sequence=min_reads)
+
 def variant_sequences_generator(
-        variants,
-        samfile,
-        sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH,
+        variant_and_supporting_reads_generator,
         min_reads=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+        sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH):
     """
     For each variant, collect all possible sequence contexts around the
     variant which are spanned by at least min_reads.
 
     Parameters
     ----------
-    variants : varcode.VariantCollection
-        Variants for which we're trying to construct context sequences
+    variant_and_reads_generator : generator
+        Sequence of Variant objects paired with a list of reads which
+        support that variant.
 
-    samfile : pysam.AlignmentFile
-        BAM or SAM file containing RNA reads
+    min_reads : int
+        Minimum number of reads supporting variant sequence
 
     sequence_length : int
         Desired sequence length, including variant nucleotides
 
-    min_reads : int
-        Minimum number of reads supporting a particular sequence
-
-    min_mapping_quality : int
-        Minimum MAPQ value before a read gets ignored
-
-    Generator that yields tuples with the following fields:
+    Yields pairs with the following fields:
         - Variant
         - list of VariantSequence objects
     """
-    for variant, variant_reads in reads_supporting_variants(
-            variants=variants,
-            samfile=samfile,
-            min_mapping_quality=min_mapping_quality):
-        # the number of context nucleotides on either side of the variant
-        # is half the desired length (minus the number of variant nucleotides)
-        n_alt = len(variant.alt)
-        n_surrounding_nucleotides = sequence_length - n_alt
-        max_nucleotides_after_variant = n_surrounding_nucleotides // 2
-        # if the number of nucleotides we need isn't divisible by 2 then
-        # prefer to have one more *before* the variant since we need the
-        # prefix sequence to match against reference transcripts
-        max_nucleotides_before_variant = (
-            n_surrounding_nucleotides - max_nucleotides_after_variant)
-        logging.info(
-            "Looking at %dnt before and %dnt after variant %s" % (
-                max_nucleotides_before_variant,
-                max_nucleotides_after_variant,
-                variant))
-
-        variant_sequences = variant_reads_to_sequences(
-            variant_reads,
-            max_nucleotides_before_variant=max_nucleotides_before_variant,
-            max_nucleotides_after_variant=max_nucleotides_after_variant,
-            min_reads_per_sequence=min_reads)
-
+    for variant, variant_reads in variant_and_supporting_reads_generator:
+        variant_sequences = extract_consensus_cdna_sequences(
+            variant=variant,
+            variant_reads=variant_reads,
+            min_reads=min_reads,
+            sequence_length=sequence_length)
         yield variant, variant_sequences
 
 def variant_sequences_dataframe(
@@ -210,7 +210,7 @@ def variant_sequences_dataframe(
         Desired sequence length, including variant nucleotides
 
     min_reads : int
-        Minimum number of reads supporting
+        Minimum number of reads supporting variant sequence
 
     min_mapping_quality : int
         Minimum MAPQ value before a read gets ignored
@@ -218,11 +218,14 @@ def variant_sequences_dataframe(
     Returns pandas.DataFrame
     """
     df_builder = DataFrameBuilder(VariantSequence)
-    for variant, variant_sequences, variant_reads in variant_sequences_generator(
+    for variant, variant_reads in reads_supporting_variants(
             variants=variants,
             samfile=samfile,
-            sequence_length=sequence_length,
-            min_reads=min_reads,
             min_mapping_quality=min_mapping_quality):
+        variant_sequences = extract_consensus_cdna_sequences(
+            variant,
+            variant_reads,
+            min_reads=min_reads,
+            sequence_length=sequence_length)
         df_builder.add_many(variant, variant_sequences)
     return df_builder.to_dataframe()

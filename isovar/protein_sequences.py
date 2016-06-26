@@ -52,23 +52,23 @@ ProteinSequence = namedtuple(
         # list of all the Translation objects which support this distinct
         # amino acid sequence
         "translations",
-        # number of unique read names from all the VariantSequence objects
-        # from each translation
-        "n_variant_reads_supporting_sequence",
-        # total number of reads at the locus which contained the variant
-        # nucleotides, even if they supported other phased sequences
-        "n_variant_reads",
-        # number of reads overlapping this locus which support the reference
-        # allele
-        "n_ref_reads",
         # number of reads overlapping the variant locus supporting any allele,
         # including the reference, alt, or anything else
-        "n_total_reads",
+        "overlapping_reads",
+        # total number of reads at the locus which contained the variant
+        # nucleotides, even if they supported other phased sequences
+        "alt_reads",
+        # number of unique read names from all the VariantSequence objects
+        # from each translation
+        "alt_reads_supporting_protein_sequence",
+        # number of reads overlapping this locus which support the reference
+        # allele
+        "ref_reads",
+        # how many reference transcripts overlap the variant locus?
+        "overlapping_reference_transcripts",
         # how many reference transcripts were used to establish the
         # reading frame for this protein sequence
-        "n_matching_reference_transcripts",
-        # how many reference transcripts overlap the variant locus?
-        "n_total_reference_transcripts",
+        "supporting_reference_transcripts",
         # name of gene of the reference transcripts used in Translation
         # objects
         "gene",
@@ -228,6 +228,12 @@ def variants_to_protein_sequences(
             protein_sequence = translation_key_to_protein_sequence(
                 translation_key=key,
                 translations=equivalent_translations,
+                overlapping_reads=overlapping_reads,
+                alt_reads=alt_reads,
+                ref_reads=ref_reads,
+                alt_reads_supporting_protein_sequence=alt_reads_supporting_protein_sequence,
+                overlapping_reference_transcripts=overlapping_reference_transcripts,
+                supporting_reference_transcripts=supporting_reference_transcripts,
                 supporting_variant_reads=group_read_names,
                 total_variant_reads=n_total_variant_read_names,
                 supporting_transcripts=group_transcript_ids,
