@@ -26,8 +26,8 @@ import logging
 from skbio import DNA
 
 from .reference_context import reference_contexts_for_variant
-from .variant_sequences import variant_sequences_generator
-from .allele_reads import reads_overlapping_variant
+from .variant_sequences import overlapping_reads_to_variant_sequences
+from .allele_reads import reads_overlapping_variants
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -583,11 +583,15 @@ def translate_variants(
     # need to clip nucleotides at the start/end of the sequence
     rna_sequence_length = (protein_sequence_length + 1) * 3
 
-    for variant, allele_reads in reads_overlapping_variant(
+    for variant, allele_reads in reads_overlapping_variants(
             variants=variants,
             samfile=samfile,
             min_mapping_quality=min_mapping_quality):
-
+        variant_sequences = overlapping_reads_to_variant_sequences(
+            variant=variant,
+            overlapping_reads=allele_reads,
+            min_reads_supporting_cdna_sequence=min_reads_supporting_rna_sequence,
+            preferred_sequence_length=rna_sequence_length)
         if len(variant_sequences) == 0:
             logging.info(
                 "Skipping variant %s, no cDNA sequences detected" % (

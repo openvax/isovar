@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
 from varcode import Variant
-from isovar.variant_sequences import variant_reads_to_sequences
+from isovar.variant_sequences import variant_reads_to_variant_sequences
 from isovar.variant_reads import reads_supporting_variant
 
 from testing_helpers import load_bam
@@ -34,10 +34,9 @@ def test_sequence_counts_snv():
         chromosome=chromosome,
         variant=variant)
 
-    variant_sequences = variant_reads_to_sequences(
+    variant_sequences = variant_reads_to_variant_sequences(
         variant_reads,
-        max_nucleotides_before_variant=30,
-        max_nucleotides_after_variant=30)
+        preferred_sequence_length=61)
     assert len(variant_sequences) == 1
     for variant_sequence in variant_sequences:
         print(variant_sequence)

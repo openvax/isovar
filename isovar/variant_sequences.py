@@ -159,7 +159,9 @@ def variant_reads_to_variant_sequences(
         max_nucleotides_after_variant=max_nucleotides_after_variant)
 
     variant_sequences = filter_variant_sequences(
-        variant_sequences=variant_sequences)
+        variant_sequences=variant_sequences,
+        preferred_sequence_length=preferred_sequence_length,
+        min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
 
     # sort VariantSequence objects by decreasing order of supporting read
     # counts

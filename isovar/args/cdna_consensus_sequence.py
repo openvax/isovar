@@ -15,28 +15,16 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .variants import (
-    add_somatic_vcf_args,
-    variants_from_args
-)
-from .reads import (
-    add_rna_args,
-    samfile_from_args,
-    allele_reads_from_args,
-    variant_reads_from_args,
-)
-from .reference_context import add_reference_context_args
-from .protein_sequence import add_protein_sequence_args
-from .cdna_consensus_sequence import add_cdna_consensus_sequence_args
+from ..default_parameters import MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE
 
-__all__ = [
-    "add_somatic_vcf_args",
-    "add_rna_args",
-    "add_reference_context_args",
-    "add_protein_sequence_args",
-    "add_cdna_consensus_sequence_args",
-    "variants_from_args",
-    "samfile_from_args",
-    "allele_reads_from_args",
-    "variant_reads_from_args",
-]
+def add_cdna_consensus_sequence_args(
+        parser,
+        min_rna_reads_arg="--min-reads",
+        min_rna_reads_default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
+    rna_sequence_group = parser.add_argument_group("Consensus expressed coding sequence")
+    rna_sequence_group.add_argument(
+        min_rna_reads_arg,
+        type=int,
+        default=min_rna_reads_default,
+        help="Minimum number of reads supporting a variant sequence")
+    return parser

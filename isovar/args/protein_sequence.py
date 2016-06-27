@@ -1,0 +1,35 @@
+# Copyright (c) 2016. Mount Sinai School of Medicine
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+from __future__ import print_function, division, absolute_import
+
+from ..default_parameters import PROTEIN_SEQUENCE_LENGTH, MAX_PROTEIN_SEQUENCES_PER_VARIANT
+
+def add_protein_sequence_args(parser):
+    """
+    Extends an ArgumentParser instance with the following args:
+        --protein-sequence-length
+        --max-protein-sequences-per-variant
+    """
+    protein_sequence_group = parser.add_argument_group("Protein Sequence")
+    protein_sequence_group.add_argument(
+        "--protein-sequence-length",
+        default=PROTEIN_SEQUENCE_LENGTH,
+        type=int)
+    protein_sequence_group.add_argument(
+        "--max-protein-sequences-per-variant",
+        type=int,
+        default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
+    return parser

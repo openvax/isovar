@@ -23,7 +23,7 @@ from ..allele_reads import reads_overlapping_variants
 from ..variant_reads import reads_supporting_variants
 
 
-def add_rna_read_args(
+def add_rna_args(
         parser,
         min_mapping_quality_default=MIN_READ_MAPPING_QUALITY):
     """
@@ -79,4 +79,3 @@ def variant_reads_from_args(args):
         use_duplicate_reads=args.use_duplicate_reads,
         use_secondary_alignments=not args.drop_secondary_alignments,
         min_mapping_quality=args.min_mapping_quality)
-
