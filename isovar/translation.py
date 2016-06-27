@@ -26,7 +26,8 @@ import logging
 from skbio import DNA
 
 from .reference_context import reference_contexts_for_variant
-from .variant_sequence import variant_sequences_generator
+from .variant_sequences import variant_sequences_generator
+from .allele_reads import reads_overlapping_variant
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -582,11 +583,9 @@ def translate_variants(
     # need to clip nucleotides at the start/end of the sequence
     rna_sequence_length = (protein_sequence_length + 1) * 3
 
-    for variant, variant_sequences in variant_sequences_generator(
+    for variant, allele_reads in reads_overlapping_variant(
             variants=variants,
             samfile=samfile,
-            sequence_length=rna_sequence_length,
-            min_reads=min_reads_supporting_rna_sequence,
             min_mapping_quality=min_mapping_quality):
 
         if len(variant_sequences) == 0:

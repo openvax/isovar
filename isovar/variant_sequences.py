@@ -18,7 +18,8 @@ import logging
 
 
 from .common import group_unique_sequences, get_single_allele_from_reads
-from .variant_reads import reads_supporting_variants
+from .allele_reads import reads_overlapping_variants
+from .variant_reads import filter_non_alt_reads_for_variant
 from .default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     VARIANT_CDNA_SEQUENCE_LENGTH,
@@ -43,13 +44,72 @@ VariantSequence = namedtuple(
 def sort_key_decreasing_read_count(variant_sequence):
     return -len(variant_sequence.reads)
 
-def variant_reads_to_sequences(
+def all_variant_sequences_supported_by_variant_reads(
         variant_reads,
         max_nucleotides_before_variant=None,
-        max_nucleotides_after_variant=None,
-        min_sequence_length=None,
-        min_reads_per_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
+        max_nucleotides_after_variant=None):
     """
+    Get all unique sequences from reads spanning a variant locus. This will
+    include partial sequences due to reads starting in the middle of the
+    sequence around around a variant.
+    """
+    unique_sequence_groups = group_unique_sequences(
+        variant_reads,
+        max_prefix_size=max_nucleotides_before_variant,
+        max_suffix_size=max_nucleotides_after_variant)
+
+    return [
+        VariantSequence(
+            prefix=prefix,
+            alt=alt,
+            suffix=suffix,
+            sequence=prefix + alt + suffix,
+            reads=reads)
+        for ((prefix, alt, suffix), reads)
+        in unique_sequence_groups.items()
+    ]
+
+def filter_variant_sequences(
+        variant_sequences,
+        preferred_sequence_length,
+        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
+    """
+    Drop variant sequences which are shorter than request or don't have
+    enough supporting reads.
+    """
+    # since we might have gotten some shorter fragments,
+    # keep only the longest spanning sequence
+    max_observed_sequence_length = max(
+        len(s.sequence) for s in variant_sequences)
+    # if we get back a sequence that's longer than the preferred length
+    # then that doesn't mean we should necessarily drop the other sequences
+    min_required_sequence_length = min(
+        max_observed_sequence_length,
+        preferred_sequence_length)
+
+    variant_sequences = [
+        s for s in variant_sequences
+        if len(s.sequence) >= min_required_sequence_length
+    ]
+    n_total = len(variant_sequences)
+    variant_sequences = [
+        s
+        for s in variant_sequences
+        if len(s.reads) >= min_reads_supporting_cdna_sequence
+    ]
+    n_dropped = n_total - len(variant_sequences)
+    logging.info("Dropped %d/%d variant sequences" % (n_dropped, n_total))
+    return variant_sequences
+
+def variant_reads_to_variant_sequences(
+        variant_reads,
+        preferred_sequence_length,
+        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
+    """
+    Collapse variant-support RNA reads into consensus sequences of approximately
+    the preferred length (may differ at the ends of transcripts), filter
+    consensus sequences by length and number of supporting RNA reads.
+
     Parameters
     ----------
     variant_reads : list of VariantRead objects
@@ -59,16 +119,13 @@ def variant_reads_to_sequences(
             - suffix : str
             - name : str
 
-    max_nucleotides_before_variant : int, optional
-        Number of nucleotides left of a variant. If omitted then
-        use all prefix nucleotides.
+    preferred_sequence_length : int
+        Total number of nucleotides in the assembled sequences, including
+        variant nucleotides.
 
-    max_nucleotides_after_variant : int, optional
-        Number of nucleotides right of a variant. If omitted then
-        use all suffix nucleotides.
 
     min_sequence_length : int, optional
-        Minimum length of detected sequence
+        Drop sequences shorter than this.
 
     min_reads_per_sequence : int, optional
         Drop sequences which don't at least have this number of fully spanning
@@ -82,84 +139,48 @@ def variant_reads_to_sequences(
     if len(variant_reads) == 0:
         return []
 
-    variant_seq = get_single_allele_from_reads(variant_reads)
+    alt_seq = get_single_allele_from_reads(variant_reads)
 
-    # Get all unique sequences from reads spanning the
-    # variant locus. This will include partial sequences
-    # due to reads starting in the middle of the context,
-    # we'll use these only to compute partial support for a
-    # full length sequence
-    unique_sequence_groups = group_unique_sequences(
-        variant_reads,
-        max_prefix_size=max_nucleotides_before_variant,
-        max_suffix_size=max_nucleotides_after_variant)
+    # the number of context nucleotides on either side of the variant
+    # is half the desired length (minus the number of variant nucleotides)
+    n_alt = len(alt_seq)
+    n_surrounding_nucleotides = preferred_sequence_length - n_alt
+    max_nucleotides_after_variant = n_surrounding_nucleotides // 2
 
-    variant_len = len(variant_seq)
+    # if the number of nucleotides we need isn't divisible by 2 then
+    # prefer to have one more *before* the variant since we need the
+    # prefix sequence to match against reference transcripts
+    max_nucleotides_before_variant = (
+        n_surrounding_nucleotides - max_nucleotides_after_variant)
 
-    if min_sequence_length is None or min_sequence_length == 0:
-        # if not specified, then use the longest sequence available
-        # which will be at most twice the context size
-        min_sequence_length = variant_len + max(
-            len(prefix) + len(suffix)
-            for (prefix, _, suffix) in unique_sequence_groups.keys())
+    variant_sequences = all_variant_sequences_supported_by_variant_reads(
+        variant_reads=variant_reads,
+        max_nucleotides_before_variant=max_nucleotides_before_variant,
+        max_nucleotides_after_variant=max_nucleotides_after_variant)
 
-    variant_sequences = [
-        VariantSequence(
-            prefix=prefix,
-            alt=variant_seq,
-            suffix=suffix,
-            sequence=prefix + variant_seq + suffix,
-            reads=reads)
-        for ((prefix, _, suffix), reads)
-        in unique_sequence_groups.items()
-    ]
-    n_total = len(variant_sequences)
-
-    variant_sequences = [
-        x for x in variant_sequences
-        if len(x.sequence) >= min_sequence_length and
-        len(x.reads) >= min_reads_per_sequence
-    ]
-
-    n_dropped = n_total - len(variant_sequences)
-    logging.info("Dropped %d/%d variant sequences" % (n_dropped, n_total))
+    variant_sequences = filter_variant_sequences(
+        variant_sequences=variant_sequences)
 
     # sort VariantSequence objects by decreasing order of supporting read
     # counts
     variant_sequences.sort(key=sort_key_decreasing_read_count)
     return variant_sequences
 
-def extract_consensus_cdna_sequences(
+def overlapping_reads_to_variant_sequences(
         variant,
+        overlapping_reads,
+        min_reads_supporting_cdna_sequence,
+        preferred_sequence_length):
+    variant_reads = filter_non_alt_reads_for_variant(variant, overlapping_reads)
+    return variant_reads_to_variant_sequences(
         variant_reads,
-        min_reads,
-        sequence_length):
-    # the number of context nucleotides on either side of the variant
-    # is half the desired length (minus the number of variant nucleotides)
-    n_alt = len(variant.alt)
-    n_surrounding_nucleotides = sequence_length - n_alt
-    max_nucleotides_after_variant = n_surrounding_nucleotides // 2
-    # if the number of nucleotides we need isn't divisible by 2 then
-    # prefer to have one more *before* the variant since we need the
-    # prefix sequence to match against reference transcripts
-    max_nucleotides_before_variant = (
-        n_surrounding_nucleotides - max_nucleotides_after_variant)
-    logging.info(
-        "Looking at %dnt before and %dnt after variant %s" % (
-            max_nucleotides_before_variant,
-            max_nucleotides_after_variant,
-            variant))
-
-    return variant_reads_to_sequences(
-        variant_reads,
-        max_nucleotides_before_variant=max_nucleotides_before_variant,
-        max_nucleotides_after_variant=max_nucleotides_after_variant,
-        min_reads_per_sequence=min_reads)
+        preferred_sequence_length=preferred_sequence_length,
+        min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
 
 def variant_sequences_generator(
-        variant_and_supporting_reads_generator,
-        min_reads=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-        sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH):
+        variant_and_reads_generator,
+        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+        preferred_sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH):
     """
     For each variant, collect all possible sequence contexts around the
     variant which are spanned by at least min_reads.
@@ -168,7 +189,7 @@ def variant_sequences_generator(
     ----------
     variant_and_reads_generator : generator
         Sequence of Variant objects paired with a list of reads which
-        support that variant.
+        overlap that variant.
 
     min_reads : int
         Minimum number of reads supporting variant sequence
@@ -180,12 +201,12 @@ def variant_sequences_generator(
         - Variant
         - list of VariantSequence objects
     """
-    for variant, variant_reads in variant_and_supporting_reads_generator:
-        variant_sequences = extract_consensus_cdna_sequences(
+    for variant, variant_reads in variant_and_reads_generator:
+        variant_sequences = overlapping_reads_to_variant_sequences(
             variant=variant,
             variant_reads=variant_reads,
-            min_reads=min_reads,
-            sequence_length=sequence_length)
+            min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
+            preferred_sequence_length=preferred_sequence_length)
         yield variant, variant_sequences
 
 def variant_sequences_dataframe(
@@ -218,13 +239,13 @@ def variant_sequences_dataframe(
     Returns pandas.DataFrame
     """
     df_builder = DataFrameBuilder(VariantSequence)
-    for variant, variant_reads in reads_supporting_variants(
+    for variant, overlapping_reads in reads_overlapping_variants(
             variants=variants,
             samfile=samfile,
             min_mapping_quality=min_mapping_quality):
-        variant_sequences = extract_consensus_cdna_sequences(
+        variant_sequences = overlapping_reads_to_variant_sequences(
             variant,
-            variant_reads,
+            overlapping_reads,
             min_reads=min_reads,
             sequence_length=sequence_length)
         df_builder.add_many(variant, variant_sequences)
