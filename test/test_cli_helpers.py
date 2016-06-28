@@ -5,7 +5,7 @@ from isovar.args import (
     add_reference_context_args,
     add_protein_sequence_args,
 )
-from isovar.cli_helpers import variants_to_protein_sequences_dataframe_from_args
+from isovar.args import protein_sequences_dataframe_from_args
 
 from testing_helpers import data_path
 
@@ -23,5 +23,5 @@ def test_variants_to_protein_sequences_dataframe_from_args():
         "--bam", bam_path,
         "--genome", "mm10",
     ])
-    df = variants_to_protein_sequences_dataframe_from_args(args)
+    df = protein_sequences_dataframe_from_args(args)
     assert len(df) > 0

@@ -16,7 +16,8 @@
 from __future__ import print_function, division, absolute_import
 
 from ..default_parameters import PROTEIN_SEQUENCE_LENGTH, MAX_PROTEIN_SEQUENCES_PER_VARIANT
-from .protein_sequences import variants_to_protein_sequences_dataframe
+from ..protein_sequences import protein_sequences_dataframe
+# from ..variant_reads import reads_supporting_variants
 from .variants import variants_from_args
 from .rna_reads import samfile_from_args
 
@@ -41,7 +42,7 @@ def add_protein_sequence_args(parser):
 def protein_sequences_dataframe_from_args(args):
     variants = variants_from_args(args)
     samfile = samfile_from_args(args)
-    return variants_to_protein_sequences_dataframe(
+    return protein_sequences_dataframe(
         variants=variants,
         samfile=samfile,
         protein_sequence_length=args.protein_sequence_length,

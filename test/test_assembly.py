@@ -14,7 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.allele_reads import allele_reads_for_variant
+from isovar.variant_reads import reads_supporting_variant
 from isovar.assembly import assemble_transcript_fragments
 from pyensembl import ensembl_grch38
 from varcode import Variant
@@ -34,10 +34,10 @@ def test_assemble_transcript_fragments_snv():
         ref=ref,
         alt=alt,
         ensembl=ensembl_grch38)
-    variant_reads = allele_reads_for_variant(
+    variant_reads = reads_supporting_variant(
+        variant=variant,
         samfile=samfile,
-        chromosome=chromosome,
-        variant=variant)
+        chromosome=chromosome,)
 
     longer_sequences = assemble_transcript_fragments(
         variant_reads,
