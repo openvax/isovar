@@ -19,7 +19,7 @@ from isovar.translation import Translation
 from isovar.protein_sequences import (
     ProteinSequence,
     sort_protein_sequences,
-    variants_to_protein_sequences_dataframe
+    protein_sequences_dataframe
 )
 from varcode import VariantCollection
 
@@ -152,7 +152,7 @@ def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant():
         list(expressed_variants) + list(not_expressed_variants))
 
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
-    df = variants_to_protein_sequences_dataframe(
+    df = protein_sequences_dataframe(
         combined_variants,
         samfile,
         min_mapping_quality=0,
@@ -171,7 +171,7 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
     # if we set the minimum quality to 256
     variants = load_vcf("data/b16.f10/b16.vcf")
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
-    df = variants_to_protein_sequences_dataframe(
+    df = protein_sequences_dataframe(
         variants,
         samfile,
         min_mapping_quality=256,
@@ -187,7 +187,7 @@ def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
 
     for desired_length in range(9, 20, 3):
-        df = variants_to_protein_sequences_dataframe(
+        df = protein_sequences_dataframe(
             variants,
             samfile,
             max_protein_sequences_per_variant=1,

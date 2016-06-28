@@ -32,15 +32,22 @@ def filter_non_alt_reads_for_variants(variants_and_allele_reads_sequence):
     for variant, allele_reads in variants_and_allele_reads_sequence:
         yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
 
-def reads_supporting_variant(samfile, variant, *args, **kwargs):
-    allele_reads = reads_overlapping_variant(samfile, variant, *args, **kwargs)
-    return filter_non_alt_reads_for_variant(variant, allele_reads)
+def reads_supporting_variant(variant, samfile, **kwargs):
+    allele_reads = reads_overlapping_variant(
+        variant=variant,
+        samfile=samfile,
+        **kwargs)
+    return filter_non_alt_reads_for_variant(
+        variant=variant,
+        allele_reads=allele_reads)
 
-def reads_supporting_variants(samfile, variants, *args, **kwargs):
+def reads_supporting_variants(variants, samfile, **kwargs):
     """
     Given a SAM/BAM file and a collection of variants, generates a sequence
     of variants paired with reads which support each variant.
     """
     for variant, allele_reads in reads_overlapping_variants(
-            variants, samfile, *args, **kwargs):
+            variants=variants,
+            samfile=samfile,
+            **kwargs):
         yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)

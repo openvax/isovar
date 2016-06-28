@@ -572,11 +572,11 @@ def translate_variant_reads(
         context_size=context_size,
         transcript_id_whitelist=transcript_id_whitelist)
 
-    return translation_generator(
+    return list(translation_generator(
         variant_sequences=variant_sequences,
         reference_contexts=reference_contexts,
         max_transcript_mismatches=max_transcript_mismatches,
-        protein_sequence_length=protein_sequence_length)
+        protein_sequence_length=protein_sequence_length))
 
 def translate_variants(
         variants_with_supporting_reads,
@@ -623,21 +623,19 @@ def translate_variants(
     for variant, variant_reads in variants_with_supporting_reads:
         if len(variant_reads) == 0:
             logging.info("No variant reads for %s" % variant)
-            continue
+            translations = []
+        else:
+            translations = translate_variant_reads(
+                variant=variant,
+                variant_reads=variant_reads,
+                protein_sequence_length=protein_sequence_length,
+                transcript_id_whitelist=transcript_id_whitelist,
+                min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
+                min_transcript_prefix_length=min_transcript_prefix_length,
+                max_transcript_mismatches=max_transcript_mismatches)
+        yield variant, translations
 
-        translations = translate_variant_reads(
-            variant=variant,
-            variant_reads=variant_reads,
-            protein_sequence_length=protein_sequence_length,
-            transcript_id_whitelist=transcript_id_whitelist,
-            min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
-            min_transcript_prefix_length=min_transcript_prefix_length,
-            max_transcript_mismatches=max_transcript_mismatches)
-
-        if translations:
-            yield variant, translations
-
-def translations_dataframe(*args, **kwargs):
+def translations_dataframe(variants_with_supporting_reads, **kwargs):
     """
     Given a generator of (variant, variant_reads) pairs,
     returns a DataFrame of translated protein fragments with columns
@@ -654,7 +652,9 @@ def translations_dataframe(*args, **kwargs):
             "reference_context",
             "variant_sequence_in_reading_frame"])
 
-    for (variant, translations) in translate_variants(*args, **kwargs):
+    for (variant, translations) in translate_variants(
+            variants_with_supporting_reads=variants_with_supporting_reads,
+            **kwargs):
         for translation in translations:
             df_builder.add(variant, translation)
     return df_builder.to_dataframe()
