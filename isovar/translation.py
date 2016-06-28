@@ -537,6 +537,10 @@ def translate_variant_reads(
         min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES):
+    if len(variant_reads) == 0:
+        logging.info("No supporting reads for variant %s" % (variant,))
+        return []
+
     # Adding an extra codon to the desired RNA sequence length in case we
     # need to clip nucleotides at the start/end of the sequence
     cdna_sequence_length = (protein_sequence_length + 1) * 3
@@ -547,9 +551,7 @@ def translate_variant_reads(
         min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
 
     if not variant_sequences:
-        logging.info(
-            "Skipping variant %s, no cDNA sequences detected" % (
-                variant,))
+        logging.info("No spanning cDNA sequences for variant %s" % (variant,))
         return []
 
     # try translating the variant sequences from the same set of
@@ -617,22 +619,18 @@ def translate_variants(
         Don't try to determine the reading frame for a transcript if more
         than this number of bases differ.
 
-    Yields pairs of a Variant and a generator of all its candidate
+    Yields pairs of a Variant and a sequence of all its candidate
     Translation objects.
     """
     for variant, variant_reads in variants_with_supporting_reads:
-        if len(variant_reads) == 0:
-            logging.info("No variant reads for %s" % variant)
-            translations = []
-        else:
-            translations = translate_variant_reads(
-                variant=variant,
-                variant_reads=variant_reads,
-                protein_sequence_length=protein_sequence_length,
-                transcript_id_whitelist=transcript_id_whitelist,
-                min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
-                min_transcript_prefix_length=min_transcript_prefix_length,
-                max_transcript_mismatches=max_transcript_mismatches)
+        translations = translate_variant_reads(
+            variant=variant,
+            variant_reads=variant_reads,
+            protein_sequence_length=protein_sequence_length,
+            transcript_id_whitelist=transcript_id_whitelist,
+            min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
+            min_transcript_prefix_length=min_transcript_prefix_length,
+            max_transcript_mismatches=max_transcript_mismatches)
         yield variant, translations
 
 def translations_dataframe(variants_with_supporting_reads, **kwargs):
