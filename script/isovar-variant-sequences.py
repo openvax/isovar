@@ -29,22 +29,12 @@ from isovar.args import (
 from isovar.variant_sequence import variant_sequences_dataframe
 from isovar.default_parameters import (
     VARIANT_CDNA_SEQUENCE_LENGTH,
-    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE
 )
 
 parser = argparse.ArgumentParser()
-parser = add_somatic_vcf_args(parser)
-
-parser.add_argument(
-    "--bam",
-    required=True,
-    help="Path to BAM or SAM file containing RNAseq reads")
-
-parser.add_argument(
-    "--min-reads",
-    type=int,
-    default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-    help="Minimum number of reads supporting a variant sequence")
+add_somatic_vcf_args(parser)
+add_rna_args(parser)
+add_rna_consensus_sequence_args(parser)
 
 parser.add_argument(
     "--sequence-length",

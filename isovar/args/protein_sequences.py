@@ -46,7 +46,7 @@ def protein_sequences_dataframe_from_args(args):
         variants=variants,
         samfile=samfile,
         protein_sequence_length=args.protein_sequence_length,
-        min_reads_supporting_rna_sequence=args.min_reads,
+        min_reads_supporting_cdna_sequence=args.min_reads,
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
         max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,

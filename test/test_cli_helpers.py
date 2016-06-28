@@ -4,6 +4,7 @@ from isovar.args import (
     add_rna_args,
     add_reference_context_args,
     add_protein_sequence_args,
+    add_cdna_consensus_sequence_args,
 )
 from isovar.args import protein_sequences_dataframe_from_args
 
@@ -18,6 +19,7 @@ def test_variants_to_protein_sequences_dataframe_from_args():
     add_reference_context_args(parser)
     add_rna_args(parser)
     add_somatic_vcf_args(parser)
+    add_cdna_consensus_sequence_args(parser)
     args = parser.parse_args([
         "--vcf", vcf_path,
         "--bam", bam_path,

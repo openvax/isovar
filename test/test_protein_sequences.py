@@ -96,10 +96,12 @@ def make_dummy_protein_sequence(
 
     return ProteinSequence(
         translations=[translation] * n_translations,
-        supporting_variant_reads=[None] * n_supporting_variant_reads,
-        total_variant_reads=n_total_variant_reads,
-        supporting_transcripts=[None] * n_supporting_reference_transcripts,
-        total_transcripts=n_total_reference_transcripts,
+        overlapping_reads=[None] * n_supporting_variant_reads,
+        ref_reads=[],
+        alt_reads=[None] * n_supporting_variant_reads,
+        alt_reads_supporting_protein_sequence=[None] * n_supporting_variant_reads,
+        transcripts_supporting_protein_sequence=[None] * n_supporting_reference_transcripts,
+        transcripts_overlapping_variant=[None] * n_supporting_reference_transcripts,
         gene=gene,
         amino_acids=amino_acids,
         variant_aa_interval_start=variant_aa_interval_start,

@@ -26,7 +26,11 @@ import argparse
 import varcode
 from pysam import AlignmentFile
 
-from isovar.args import add_somatic_vcf_args, add_rna_args
+from isovar.args import (
+    add_somatic_vcf_args,
+    add_rna_args,
+    add_cdna_consensus_sequence_args
+)
 from isovar.translation import translate_variants_dataframe
 from isovar.default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
@@ -36,8 +40,9 @@ from isovar.default_parameters import (
 
 
 parser = argparse.ArgumentParser()
-parser = add_somatic_vcf_args(parser)
-parser = add_rna_args(parser)
+add_somatic_vcf_args(parser)
+add_rna_args(parser)
+add_cdna_consensus_sequence_args(parser)
 
 parser.add_argument(
     "--protein-sequence-length",

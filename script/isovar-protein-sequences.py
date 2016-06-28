@@ -29,6 +29,7 @@ from isovar.args import (
     add_rna_args,
     add_reference_context_args,
     add_protein_sequence_args,
+    add_cdna_consensus_sequence_args,
     protein_sequences_dataframe_from_args
 )
 
@@ -36,6 +37,7 @@ parser = argparse.ArgumentParser()
 add_somatic_vcf_args(parser)
 add_rna_args(parser)
 add_reference_context_args(parser)
+add_cdna_consensus_sequence_args(parser)
 add_protein_sequence_args(parser)
 
 parser.add_argument(

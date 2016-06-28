@@ -114,7 +114,9 @@ class DataFrameBuilder(object):
                 fn = self.converters[name]
                 value = fn(value)
 
-            if not isinstance(value, VALID_ELEMENT_TYPES):
+            if isinstance(value, (tuple, list, set)):
+                value = len(value)
+            elif not isinstance(value, VALID_ELEMENT_TYPES):
                 raise ValueError(
                     "Please provider converter for field '%s' : %s to make a scalar or string" % (
                         name,

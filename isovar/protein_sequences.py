@@ -265,12 +265,6 @@ def protein_sequences_dataframe(*args, **kwargs):
     df_builder = DataFrameBuilder(
         ProteinSequence,
         converters=dict(
-            translations=len,
-            overlapping_reads=len,
-            alt_reads=len,
-            ref_reads=len,
-            alt_reads_supporting_protein_sequence=len,
-            transcripts_supporting_protein_sequence=len,
             gene=lambda x: ";".join(x)))
     for (variant, protein_sequences) in variants_to_protein_sequences(*args, **kwargs):
         for protein_sequence in protein_sequences:
