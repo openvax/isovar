@@ -18,16 +18,11 @@ Summarizes which alleles are found at a locus overlapping a variant.
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 
-from .default_parameters import (
-    MIN_READ_MAPPING_QUALITY,
-    USE_SECONDARY_ALIGNMENTS,
-    USE_DUPLICATE_READS,
-)
 from .variant_helpers import trim_variant
 from .dataframe_builder import DataFrameBuilder
-from .allele_read import allele_reads_for_variants
+from .allele_reads import group_reads_by_allele
 
 AlleleCount = namedtuple(
     "AlleleCount", [
@@ -46,38 +41,13 @@ def count_alleles_at_variant_locus(variant, allele_reads):
     n_other = n_total - (n_ref + n_alt)
     return AlleleCount(n_ref=n_ref, n_alt=n_alt, n_other=n_other)
 
-def allele_counts_dataframe(
-        variants,
-        samfile,
-        use_duplicate_reads=USE_DUPLICATE_READS,
-        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+def allele_counts_dataframe(variant_and_allele_reads_generator):
     """
     Creates a DataFrame containing number of reads supporting the
     ref vs. alt alleles for each variant.
-
-    Parameters
-    ----------
-    variants : varcode.VariantCollection
-
-    samfile : pysam.AlignmentFile
-
-    use_duplicate_reads : bool
-        Should we use reads that have been marked as PCR duplicates
-
-    use_secondary_alignments : bool
-        Should we use reads at locations other than their best alignment
-
-    min_mapping_quality : int
-        Drop reads below this mapping quality
     """
     df_builder = DataFrameBuilder(AlleleCount)
-    for variant, allele_reads in allele_reads_for_variants(
-            variants,
-            samfile,
-            use_duplicate_reads=use_duplicate_reads,
-            use_secondary_alignments=use_secondary_alignments,
-            min_mapping_quality=min_mapping_quality):
+    for variant, allele_reads in variant_and_allele_reads_generator:
         counts = count_alleles_at_variant_locus(variant, allele_reads)
         df_builder.add(variant, counts)
     return df_builder.to_dataframe()

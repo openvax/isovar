@@ -101,7 +101,7 @@ def filter_variant_sequences(
     logging.info("Dropped %d/%d variant sequences" % (n_dropped, n_total))
     return variant_sequences
 
-def variant_reads_to_variant_sequences(
+def supporting_reads_to_variant_sequences(
         variant_reads,
         preferred_sequence_length,
         min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
@@ -174,7 +174,7 @@ def overlapping_reads_to_variant_sequences(
         min_reads_supporting_cdna_sequence,
         preferred_sequence_length):
     variant_reads = filter_non_alt_reads_for_variant(variant, overlapping_reads)
-    return variant_reads_to_variant_sequences(
+    return supporting_reads_to_variant_sequences(
         variant_reads,
         preferred_sequence_length=preferred_sequence_length,
         min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)

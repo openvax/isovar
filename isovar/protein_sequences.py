@@ -32,6 +32,10 @@ from .default_parameters import (
 )
 from .dataframe_builder import DataFrameBuilder
 from .translation import translate_variants, TranslationKey
+from .variant_reads import (
+    filter_non_alt_reads_for_variant,
+    reads_overlapping_variants
+)
 
 ##########################
 #
@@ -189,16 +193,20 @@ def variants_to_protein_sequences(
     Yields pairs of a Variant and a list of ProteinSequence objects
     """
 
-    for (variant, translations) in translate_variants(
+    for (variant, allele_reads) in reads_overlapping_variants(
             variants=variants,
             samfile=samfile,
+            min_mapping_quality=min_mapping_quality):
+        variant_reads = filter_non_alt_reads_for_variant(
+            variant=variant,
+            allele_reads=allele_reads)
+        translations = translate_variant_reads(
+            variant=variant,
             transcript_id_whitelist=transcript_id_whitelist,
             protein_sequence_length=protein_sequence_length,
             min_reads_supporting_rna_sequence=min_reads_supporting_rna_sequence,
             min_transcript_prefix_length=min_transcript_prefix_length,
-            max_transcript_mismatches=max_transcript_mismatches,
-            min_mapping_quality=min_mapping_quality):
-
+            max_transcript_mismatches=max_transcript_mismatches)
         # convert to list so we can traverse it twice, once to get TranslationKey
         # mappings for each Translation and a second time to collect all the
         # unique read names and transript IDs.
@@ -246,7 +254,7 @@ def variants_to_protein_sequences(
 
         yield variant, protein_sequences[:max_protein_sequences_per_variant]
 
-def variants_to_protein_sequences_dataframe(*args, **kwargs):
+def protein_sequences_dataframe(*args, **kwargs):
     """
     Given a collection of variants and a SAM/BAM file of overlapping reads,
     returns a DataFrame with a row for each protein sequence.

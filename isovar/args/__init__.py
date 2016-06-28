@@ -19,14 +19,17 @@ from .variants import (
     add_somatic_vcf_args,
     variants_from_args
 )
-from .reads import (
+from .rna_reads import (
     add_rna_args,
     samfile_from_args,
     allele_reads_from_args,
     variant_reads_from_args,
 )
 from .reference_context import add_reference_context_args
-from .protein_sequence import add_protein_sequence_args
+from .protein_sequences import (
+    add_protein_sequence_args,
+    protein_sequences_dataframe_from_args
+)
 from .cdna_consensus_sequence import add_cdna_consensus_sequence_args
 
 __all__ = [
@@ -39,4 +42,5 @@ __all__ = [
     "samfile_from_args",
     "allele_reads_from_args",
     "variant_reads_from_args",
+    "protein_sequences_dataframe_from_args",
 ]

@@ -26,14 +26,13 @@ import logging
 from skbio import DNA
 
 from .reference_context import reference_contexts_for_variant
-from .variant_sequences import overlapping_reads_to_variant_sequences
-from .allele_reads import reads_overlapping_variants
+from .variant_sequences import supporting_reads_to_variant_sequences
+
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     PROTEIN_SEQUENCE_LENGTH,
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-    MIN_READ_MAPPING_QUALITY,
 )
 from .dataframe_builder import DataFrameBuilder
 
@@ -118,7 +117,6 @@ Translation = namedtuple(
         "variant_sequence",
         "reference_context",
         "variant_sequence_in_reading_frame"))
-
 
 def trim_sequences(variant_sequence, reference_context):
     """
@@ -531,15 +529,62 @@ def translation_generator(
             if translation is not None:
                 yield translation
 
+def translate_variant_reads(
+        variant,
+        variant_reads,
+        protein_sequence_length,
+        transcript_id_whitelist=None,
+        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+        min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
+        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES):
+    # Adding an extra codon to the desired RNA sequence length in case we
+    # need to clip nucleotides at the start/end of the sequence
+    cdna_sequence_length = (protein_sequence_length + 1) * 3
+
+    variant_sequences = supporting_reads_to_variant_sequences(
+        variant_reads=variant_reads,
+        preferred_sequence_length=cdna_sequence_length,
+        min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
+
+    if not variant_sequences:
+        logging.info(
+            "Skipping variant %s, no cDNA sequences detected" % (
+                variant,))
+        return []
+
+    # try translating the variant sequences from the same set of
+    # ReferenceContext objects, which requires using the longest
+    # context_size to be compatible with all of the sequences. Some
+    # sequences maybe have fewer nucleotides than this before the variant
+    # and will thus have to be trimmed.
+    context_size = max(
+        len(variant_sequence.prefix)
+        for variant_sequence in variant_sequences)
+
+    if context_size < min_transcript_prefix_length:
+        logging.info(
+            "Skipping variant %s, none of the cDNA sequences have sufficient context" % (
+                variant,))
+        return []
+
+    reference_contexts = reference_contexts_for_variant(
+        variant,
+        context_size=context_size,
+        transcript_id_whitelist=transcript_id_whitelist)
+
+    return translation_generator(
+        variant_sequences=variant_sequences,
+        reference_contexts=reference_contexts,
+        max_transcript_mismatches=max_transcript_mismatches,
+        protein_sequence_length=protein_sequence_length)
+
 def translate_variants(
-        variants,
-        samfile,
+        variants_with_supporting_reads,
         transcript_id_whitelist=None,
         protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
-        min_reads_supporting_rna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES):
     """
     Translates each coding variant in a collection to one or more protein
     fragment sequences (if the variant is not filtered and its spanning RNA
@@ -547,9 +592,9 @@ def translate_variants(
 
     Parameters
     ----------
-    variants : varcode.VariantCollection
-
-    samfile : pysam.AlignmentFile
+    variants_with_reads : sequence or generator
+        Each item of this sequence should be a pair containing a varcode.Variant
+        and a list of AlleleRead objects supporting that variant.
 
     transcript_id_whitelist : set, optional
         If given, expected to be a set of transcript IDs which we should use
@@ -561,7 +606,7 @@ def translate_variants(
         we'll have to return something shorter (depending on the RNAseq data,
         and presence of stop codons).
 
-    min_reads_supporting_rna_sequence : int
+    min_reads_supporting_cdna_sequence : int
         Drop variant sequences supported by fewer than this number of reads.
 
     min_transcript_prefix_length : int
@@ -572,66 +617,29 @@ def translate_variants(
         Don't try to determine the reading frame for a transcript if more
         than this number of bases differ.
 
-     min_mapping_quality : int
-        Minimum MAPQ value before a read gets ignored
-
     Yields pairs of a Variant and a generator of all its candidate
     Translation objects.
     """
+    for variant, variant_reads in variants_with_supporting_reads:
+        if len(variant_reads) == 0:
+            logging.info("No variant reads for %s" % variant)
+            continue
 
-    # Adding an extra codon to the desired RNA sequence length in case we
-    # need to clip nucleotides at the start/end of the sequence
-    rna_sequence_length = (protein_sequence_length + 1) * 3
-
-    for variant, allele_reads in reads_overlapping_variants(
-            variants=variants,
-            samfile=samfile,
-            min_mapping_quality=min_mapping_quality):
-        variant_sequences = overlapping_reads_to_variant_sequences(
+        translations = translate_variant_reads(
             variant=variant,
-            overlapping_reads=allele_reads,
-            min_reads_supporting_cdna_sequence=min_reads_supporting_rna_sequence,
-            preferred_sequence_length=rna_sequence_length)
-        if len(variant_sequences) == 0:
-            logging.info(
-                "Skipping variant %s, no cDNA sequences detected" % (
-                    variant,))
-            yield (variant, [])
-            continue
+            variant_reads=variant_reads,
+            protein_sequence_length=protein_sequence_length,
+            transcript_id_whitelist=transcript_id_whitelist,
+            min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
+            min_transcript_prefix_length=min_transcript_prefix_length,
+            max_transcript_mismatches=max_transcript_mismatches)
 
-        # try translating the variant sequences from the same set of
-        # ReferenceContext objects, which requires using the longest
-        # context_size to be compatible with all of the sequences. Some
-        # sequences maybe have fewer nucleotides than this before the variant
-        # and will thus have to be trimmed.
-        context_size = max(
-            len(variant_sequence.prefix)
-            for variant_sequence in variant_sequences)
+        if translations:
+            yield variant, translations
 
-        if context_size < min_transcript_prefix_length:
-            logging.info(
-                "Skipping variant %s, none of the cDNA sequences have sufficient context" % (
-                    variant,))
-            yield (variant, [])
-            continue
-
-        reference_contexts = reference_contexts_for_variant(
-            variant,
-            context_size=context_size,
-            transcript_id_whitelist=transcript_id_whitelist)
-
-        translations = translation_generator(
-            variant_sequences=variant_sequences,
-            reference_contexts=reference_contexts,
-            max_transcript_mismatches=max_transcript_mismatches,
-            protein_sequence_length=protein_sequence_length)
-
-        yield variant, translations
-
-
-def translate_variants_dataframe(*args, **kwargs):
+def translations_dataframe(*args, **kwargs):
     """
-    Given a collection of variants and a SAM/BAM file of overlapping reads,
+    Given a generator of (variant, variant_reads) pairs,
     returns a DataFrame of translated protein fragments with columns
     for each field of a Translation object (and chr/pos/ref/alt per variant).
 

@@ -12,19 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Helper functions which it easier to write shell scripts
-"""
 
 from __future__ import print_function, division, absolute_import
-import varcode
-from pysam import AlignmentFile
 
-from .protein_sequence import variants_to_protein_sequences_dataframe
+from ..default_parameters import PROTEIN_SEQUENCE_LENGTH, MAX_PROTEIN_SEQUENCES_PER_VARIANT
+from .protein_sequences import variants_to_protein_sequences_dataframe
+from .variants import variants_from_args
+from .rna_reads import samfile_from_args
 
-def variants_to_protein_sequences_dataframe_from_args(args):
-    variants = varcode.load_vcf(args.vcf, genome=args.genome)
-    samfile = AlignmentFile(args.bam)
+def add_protein_sequence_args(parser):
+    """
+    Extends an ArgumentParser instance with the following args:
+        --protein-sequence-length
+        --max-protein-sequences-per-variant
+    """
+    protein_sequence_group = parser.add_argument_group("Protein Sequence")
+    protein_sequence_group.add_argument(
+        "--protein-sequence-length",
+        default=PROTEIN_SEQUENCE_LENGTH,
+        type=int)
+    protein_sequence_group.add_argument(
+        "--max-protein-sequences-per-variant",
+        type=int,
+        default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
+    return parser
+
+
+def protein_sequences_dataframe_from_args(args):
+    variants = variants_from_args(args)
+    samfile = samfile_from_args(args)
     return variants_to_protein_sequences_dataframe(
         variants=variants,
         samfile=samfile,

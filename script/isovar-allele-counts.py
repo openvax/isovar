@@ -21,11 +21,12 @@ Prints number of reads supporting ref, alt, and other alleles at variant loci.
 from __future__ import print_function, division, absolute_import
 import argparse
 
-import varcode
-from pysam import AlignmentFile
-
-from isovar.allele_count import allele_counts_dataframe
-from isovar.args import add_somatic_vcf_args, add_rna_args
+from isovar.args import (
+    add_somatic_vcf_args,
+    add_rna_args,
+    allele_reads_from_args
+)
+from isovar.allele_counts import allele_counts_dataframe
 
 parser = argparse.ArgumentParser()
 add_somatic_vcf_args(parser)
@@ -39,6 +40,7 @@ parser.add_argument(
 if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
-    allele_reads = allele_counts_from_args(args)
-    print(df)
-    df.to_csv(args.output)
+    variants_and_allele_reads = allele_reads_from_args(args)
+    allele_counts_df = allele_counts_dataframe(variants_and_allele_reads)
+    print(allele_counts_df)
+    allele_counts_df.to_csv(args.output)
