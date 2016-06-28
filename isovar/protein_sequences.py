@@ -140,11 +140,11 @@ def protein_sequence_sort_key(protein_sequence):
         - number of supporting reference transcripts
     """
     return (
-        len(protein_sequence.supporting_variant_reads),
+        len(protein_sequence.alt_reads_supporting_protein_sequence),
         min(
             t.number_mismatches
             for t in protein_sequence.translations),
-        len(protein_sequence.supporting_transcripts)
+        len(protein_sequence.transcripts_supporting_protein_sequence)
     )
 
 def sort_protein_sequences(protein_sequences):
@@ -216,6 +216,7 @@ def variants_to_protein_sequences(
             if is_coding_biotype(t.biotype)
         ]
         _, ref, alt = trim_variant(variant)
+        overlapping_reads = list(overlapping_reads)
         reads_grouped_by_allele = group_reads_by_allele(overlapping_reads)
 
         ref_reads = reads_grouped_by_allele.get(ref, [])
@@ -265,6 +266,7 @@ def protein_sequences_dataframe(*args, **kwargs):
         ProteinSequence,
         converters=dict(
             translations=len,
+            overlapping_reads=len,
             alt_reads=len,
             ref_reads=len,
             alt_reads_supporting_protein_sequence=len,
