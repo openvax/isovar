@@ -42,6 +42,13 @@ script:
   - pyensembl install --release 75 --species human
   - pyensembl install --release 83 --species human
   - pyensembl install --release 83 --species mouse
+  # try running commandline arguments
+  - isovar-allele-reads.py
+  - isovar-variant-reads.py
+  - isovar-reference-contexts.py
+  - isovar-translations.py
+  - isovar-variant-sequences.py
+  - isovar-protein-sequences.py
   # run tests
   - nosetests test --with-coverage --cover-package=isovar  && ./lint.sh
 after_success:
