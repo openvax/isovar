@@ -91,5 +91,5 @@ def variant_reads_generator_from_args(args):
         use_secondary_alignments=not args.drop_secondary_alignments,
         min_mapping_quality=args.min_mapping_quality)
 
-def variants_reads_dataframe_from_args(args):
+def variant_reads_dataframe_from_args(args):
     return reads_to_dataframe(variant_reads_generator_from_args(args))
