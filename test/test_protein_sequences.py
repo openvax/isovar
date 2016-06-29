@@ -23,8 +23,10 @@ from isovar.args.protein_sequences import (
 from isovar.protein_sequences import (
     ProteinSequence,
     sort_protein_sequences,
-    protein_sequences_dataframe
+    reads_generator_to_protein_sequences_generator,
+    protein_sequences_generator_to_dataframe,
 )
+from isovar.allele_reads import reads_overlapping_variant
 from varcode import VariantCollection
 
 from testing_helpers import load_bam, load_vcf, data_path
@@ -156,13 +158,17 @@ def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant():
 
     combined_variants = VariantCollection(
         list(expressed_variants) + list(not_expressed_variants))
-
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
-    df = protein_sequences_dataframe(
-        combined_variants,
-        samfile,
-        min_mapping_quality=0,
+
+    allele_reads_generator = reads_overlapping_variant(
+        variants=combined_variants,
+        samfile=samfile,
+        min_mapping_quality=0)
+
+    protein_sequences_generator = reads_generator_to_protein_sequences_generator(
+        allele_reads_generator,
         max_protein_sequences_per_variant=1)
+    df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
     print(df)
     eq_(
         len(df),

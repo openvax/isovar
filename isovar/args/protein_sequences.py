@@ -15,6 +15,8 @@
 
 from __future__ import print_function, division, absolute_import
 
+import argparse
+
 from ..default_parameters import MAX_PROTEIN_SEQUENCES_PER_VARIANT
 from ..protein_sequences import (
     protein_sequences_generator_to_dataframe,
@@ -22,6 +24,7 @@ from ..protein_sequences import (
 )
 
 from .rna_reads import allele_reads_generator_from_args
+from .translation import make_translation_arg_parser
 
 def add_protein_sequence_args(parser):
     """
@@ -37,6 +40,12 @@ def add_protein_sequence_args(parser):
         type=int,
         default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
     return protein_sequence_group
+
+def make_protein_sequences_arg_parser(**kwargs):
+    make_translation_arg_parser(**kwargs)
+    parser = argparse.ArgumentParser(**kwargs)
+    add_protein_sequence_args(parser)
+    return parser
 
 def protein_sequences_generator_from_args(args):
     allele_reads_generator = allele_reads_generator_from_args(args)

@@ -20,11 +20,9 @@ Prints names and sequences of reads overlapping a given set of variants.
 
 from __future__ import print_function, division, absolute_import
 
-
-from isovar.allele_reads import reads_to_dataframe
 from isovar.args.rna_reads import (
     make_rna_reads_arg_parser,
-    allele_reads_from_args
+    allele_reads_dataframe_from_args
 )
 
 parser = make_rna_reads_arg_parser()
@@ -36,7 +34,6 @@ parser.add_argument(
 if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
-    allele_reads = allele_reads_from_args(args)
-    df = reads_to_dataframe(allele_reads)
+    df = allele_reads_dataframe_from_args(args)
     print(df)
     df.to_csv(args.output)
