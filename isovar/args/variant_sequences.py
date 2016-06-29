@@ -14,7 +14,6 @@
 
 
 from __future__ import print_function, division, absolute_import
-from argparse import ArgumentParser
 
 from ..default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
@@ -24,12 +23,10 @@ from ..variant_sequences import (
     reads_generator_to_sequences_generator,
     variant_sequences_generator_to_dataframe
 )
-from .variants import add_somatic_vcf_args
-from .rna_reads import allele_reads_generator_from_args, add_rna_args
+from .rna_reads import allele_reads_generator_from_args, make_rna_reads_arg_parser
 
 def add_variant_sequence_args(parser, add_sequence_length_arg=True):
-    rna_sequence_group = parser.add_argument_group(
-        "Consensus variant cDNA sequence constructed from multiple RNA-seq reads")
+    rna_sequence_group = parser.add_argument_group("Consensus cDNA sequence")
     rna_sequence_group.add_argument(
         "--min-reads-supporting-variant-sequence",
         type=int,
@@ -46,9 +43,7 @@ def add_variant_sequence_args(parser, add_sequence_length_arg=True):
     return parser
 
 def make_variant_sequences_arg_parser(add_sequence_length_arg=True, **kwargs):
-    parser = ArgumentParser(**kwargs)
-    add_somatic_vcf_args(parser)
-    add_rna_args(parser)
+    parser = make_rna_reads_arg_parser(**kwargs)
     add_variant_sequence_args(parser)
     return parser
 

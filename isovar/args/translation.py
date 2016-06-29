@@ -14,7 +14,6 @@
 
 
 from __future__ import print_function, division, absolute_import
-from argparse import ArgumentParser
 
 from ..default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
@@ -25,9 +24,8 @@ from ..translation import (
     translate_variants,
     translations_generator_to_dataframe
 )
-from .variants import add_somatic_vcf_args
-from .variant_sequences import add_variant_sequence_args
-from .rna_reads import variant_reads_generator_from_args, add_rna_args
+from .variant_sequences import make_variant_sequences_arg_parser
+from .rna_reads import variant_reads_generator_from_args
 
 def add_translation_args(parser):
     translation_group = parser.add_argument_group(
@@ -54,10 +52,7 @@ def add_translation_args(parser):
     return translation_group
 
 def make_translation_arg_parser(**kwargs):
-    parser = ArgumentParser(**kwargs)
-    add_somatic_vcf_args(parser)
-    add_rna_args(parser)
-    add_variant_sequence_args(parser)
+    parser = make_variant_sequences_arg_parser(**kwargs)
     add_translation_args(parser)
     return parser
 

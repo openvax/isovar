@@ -26,7 +26,7 @@ from isovar.protein_sequences import (
     reads_generator_to_protein_sequences_generator,
     protein_sequences_generator_to_dataframe,
 )
-from isovar.allele_reads import reads_overlapping_variant
+from isovar.allele_reads import reads_overlapping_variants
 from varcode import VariantCollection
 
 from testing_helpers import load_bam, load_vcf, data_path
@@ -160,7 +160,7 @@ def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant():
         list(expressed_variants) + list(not_expressed_variants))
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
 
-    allele_reads_generator = reads_overlapping_variant(
+    allele_reads_generator = reads_overlapping_variants(
         variants=combined_variants,
         samfile=samfile,
         min_mapping_quality=0)
@@ -183,11 +183,14 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
     # if we set the minimum quality to 256
     variants = load_vcf("data/b16.f10/b16.vcf")
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
-    df = protein_sequences_dataframe(
-        variants,
-        samfile,
-        min_mapping_quality=256,
+    allele_reads_generator = reads_overlapping_variants(
+        variants=variants,
+        samfile=samfile,
+        min_mapping_quality=256)
+    protein_sequences_generator = reads_generator_to_protein_sequences_generator(
+        allele_reads_generator,
         max_protein_sequences_per_variant=1)
+    df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
     print(df)
     eq_(
         len(df),
@@ -195,9 +198,9 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
         "Expected 0 entries, got %d" % (len(df),))
 
 def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
-    variants = load_vcf("data/b16.f10/b16.vcf")
+    expressed_variants = load_vcf("data/b16.f10/b16.expressed.vcf")
     parser = make_protein_sequences_arg_parser()
-
+    parser.print_help()
     for desired_length in range(9, 20, 3):
         args = parser.parse_args([
             "--vcf", data_path("data/b16.f10/b16.vcf"),
@@ -208,9 +211,9 @@ def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
         df = protein_sequences_dataframe_from_args(args)
         eq_(
             len(df),
-            len(variants),
+            len(expressed_variants),
             "Expected %d entries for protein_sequnece_length=%d, got %d results" % (
-                len(variants),
+                len(expressed_variants),
                 desired_length,
                 len(df)))
         protein_sequences = df["amino_acids"]

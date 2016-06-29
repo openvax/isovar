@@ -17,7 +17,7 @@ def test_extend_parser():
         add_variant_sequence_args,
     ]
     for fn in fns:
-        parser = fn(parser)
+        fn(parser)
     args = parser.parse_args([
         "--vcf", "ABC.vcf",
         "--bam", "xyz.bam"])
