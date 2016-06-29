@@ -16,6 +16,10 @@ from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
 from isovar.translation import Translation
+from isovar.args.protein_sequences import (
+    protein_sequences_dataframe_from_args,
+    make_protein_sequences_arg_parser,
+)
 from isovar.protein_sequences import (
     ProteinSequence,
     sort_protein_sequences,
@@ -23,7 +27,7 @@ from isovar.protein_sequences import (
 )
 from varcode import VariantCollection
 
-from testing_helpers import load_bam, load_vcf
+from testing_helpers import load_bam, load_vcf, data_path
 
 
 # fields of a ProteinSequence:
@@ -185,15 +189,17 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
         "Expected 0 entries, got %d" % (len(df),))
 
 def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
-    variants = load_vcf("data/b16.f10/b16.expressed.vcf")
-    samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
+    variants = load_vcf("data/b16.f10/b16.vcf")
+    parser = make_protein_sequences_arg_parser()
 
     for desired_length in range(9, 20, 3):
-        df = protein_sequences_dataframe(
-            variants,
-            samfile,
-            max_protein_sequences_per_variant=1,
-            protein_sequence_length=desired_length)
+        args = parser.parse_args([
+            "--vcf", data_path("data/b16.f10/b16.vcf"),
+            "--bam", data_path("data/b16.f10/b16.combined.sorted.bam"),
+            "--max-protein-sequences-per-variant", "1",
+            "--protein-sequence-length", str(desired_length)
+        ])
+        df = protein_sequences_dataframe_from_args(args)
         eq_(
             len(df),
             len(variants),
