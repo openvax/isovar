@@ -18,6 +18,9 @@ from ..default_parameters import (
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     MIN_TRANSCRIPT_PREFIX_LENGTH
 )
+from ..reference_context import variants_to_reference_contexts_dataframe
+
+from .variants import variants_from_args
 
 def add_reference_context_args(parser):
     """
@@ -43,3 +46,9 @@ def add_reference_context_args(parser):
             "a reference transcript. Values greater than zero exclude variants "
             "near the start codon of transcrPROTEIN_SEQUENCE_LEGNTHipts without 5' UTRs."))
     return parser
+
+def reference_contexts_dataframe_from_args(args):
+    variants = variants_from_args(args)
+    return variants_to_reference_contexts_dataframe(
+        variants=variants,
+        context_size=args.context_size)
