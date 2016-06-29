@@ -19,19 +19,13 @@ Prints names and sequences of reads supporting a given set of variants.
 """
 
 from __future__ import print_function, division, absolute_import
-import argparse
 
-
-from isovar.allele_reads import reads_to_dataframe
-from isovar.args import (
+from isovar.args.rna_reads import (
     variant_reads_dataframe_from_args,
-    add_somatic_vcf_args,
-    add_rna_args
+    make_rna_reads_arg_parser,
 )
 
-parser = argparse.ArgumentParser()
-add_somatic_vcf_args(parser)
-add_rna_args(parser)
+parser = make_rna_reads_arg_parser()
 
 parser.add_argument(
     "--output",

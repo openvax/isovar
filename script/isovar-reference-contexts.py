@@ -16,21 +16,12 @@
 
 from __future__ import print_function, division, absolute_import
 
-import argparse
-
-from isovar.default_parameters import CDNA_CONTEXT_SIZE
-from isovar.args import (
-    add_somatic_vcf_args,
+from isovar.args.reference_context import (
+    make_reference_context_arg_parser,
     reference_contexts_dataframe_from_args
 )
 
-parser = argparse.ArgumentParser()
-parser = add_somatic_vcf_args(parser)
-
-parser.add_argument(
-    "--context-size",
-    default=CDNA_CONTEXT_SIZE,
-    type=int)
+parser = make_reference_context_arg_parser()
 
 parser.add_argument(
     "--output",

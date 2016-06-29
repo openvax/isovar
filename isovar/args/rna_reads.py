@@ -14,6 +14,7 @@
 
 
 from __future__ import print_function, division, absolute_import
+from argparse import ArgumentParser
 
 from pysam import AlignmentFile
 
@@ -21,7 +22,7 @@ from ..default_parameters import MIN_READ_MAPPING_QUALITY
 from ..allele_reads import reads_overlapping_variants, reads_to_dataframe
 from ..variant_reads import reads_supporting_variants
 
-from .variants import variants_from_args
+from .variants import variants_from_args, add_somatic_vcf_args
 
 
 def add_rna_args(
@@ -57,6 +58,12 @@ def add_rna_args(
         default=True,
         action="store_false")
     return rna_group
+
+def make_rna_reads_arg_parser(**kwargs):
+    parser = ArgumentParser(**kwargs)
+    add_somatic_vcf_args(parser)
+    add_rna_args(parser)
+    return parser
 
 def samfile_from_args(args):
     return AlignmentFile(args.bam)

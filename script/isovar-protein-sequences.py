@@ -22,23 +22,13 @@ a read count to each protein sequence.
 
 from __future__ import print_function, division, absolute_import
 import logging
-import argparse
 
-from isovar.args import (
-    add_somatic_vcf_args,
-    add_rna_args,
-    add_reference_context_args,
-    add_protein_sequence_args,
-    add_variant_sequence_args,
+from isovar.args.protein_sequences import (
+    make_protein_sequences_arg_parser,
     protein_sequences_dataframe_from_args
 )
 
-parser = argparse.ArgumentParser()
-add_somatic_vcf_args(parser)
-add_rna_args(parser)
-add_reference_context_args(parser)
-add_variant_sequence_args(parser)
-add_protein_sequence_args(parser)
+parser = make_protein_sequences_arg_parser()
 
 parser.add_argument(
     "--output",

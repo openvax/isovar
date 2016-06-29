@@ -19,18 +19,14 @@ Prints number of reads supporting ref, alt, and other alleles at variant loci.
 """
 
 from __future__ import print_function, division, absolute_import
-import argparse
 
-from isovar.args import (
-    add_somatic_vcf_args,
-    add_rna_args,
+from isovar.args.rna_reads import (
+    make_rna_reads_arg_parser,
     allele_reads_generator_from_args
 )
 from isovar.allele_counts import allele_counts_dataframe
 
-parser = argparse.ArgumentParser()
-add_somatic_vcf_args(parser)
-add_rna_args(parser)
+parser = make_rna_reads_arg_parser()
 
 parser.add_argument(
     "--output",

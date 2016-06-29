@@ -16,30 +16,12 @@
 
 from __future__ import print_function, division, absolute_import
 
-import argparse
-
-import varcode
-from pysam import AlignmentFile
-
-from isovar.args import (
-    add_somatic_vcf_args,
-    add_rna_args,
-    add_cdna_consensus_sequence_args
-)
-from isovar.variant_sequence import variant_sequences_dataframe
-from isovar.default_parameters import (
-    VARIANT_CDNA_SEQUENCE_LENGTH,
+from isovar.args.variant_sequences import (
+    make_variant_sequences_arg_parser,
+    variant_sequences_dataframe_from_args
 )
 
-parser = argparse.ArgumentParser()
-add_somatic_vcf_args(parser)
-add_rna_args(parser)
-add_cdna_consensus_sequence_args(parser)
-
-parser.add_argument(
-    "--sequence-length",
-    default=VARIANT_CDNA_SEQUENCE_LENGTH,
-    type=int)
+parser = make_variant_sequences_arg_parser()
 
 parser.add_argument(
     "--output",
@@ -48,20 +30,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-
     print(args)
-
-    variants = varcode.load_vcf(
-        args.vcf,
-        genome=args.genome)
-
-    samfile = AlignmentFile(args.bam)
-
-    df = variant_sequences_dataframe(
-        variants=variants,
-        samfile=samfile,
-        sequence_length=args.sequence_length,
-        min_reads=args.min_reads)
-
+    df = variant_sequences_dataframe_from_args(args)
     print(df)
     df.to_csv(args.output)

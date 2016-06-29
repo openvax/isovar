@@ -21,23 +21,12 @@ sequences using an RNAseq BAM from the same tissuie.
 
 from __future__ import print_function, division, absolute_import
 
-import argparse
-
-from isovar.args import (
-    add_somatic_vcf_args,
-    add_rna_args,
-    add_variant_sequence_args,
-    add_translation_args,
+from isovar.args.translation import (
+    make_translation_arg_parser,
     translations_dataframe_from_args,
 )
 
-
-parser = argparse.ArgumentParser()
-add_somatic_vcf_args(parser)
-add_rna_args(parser)
-add_variant_sequence_args(parser)
-add_translation_args(parser)
-
+parser = make_translation_arg_parser()
 parser.add_argument(
     "--output",
     default="isovar-translate-variants-results.csv",
