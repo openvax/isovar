@@ -21,7 +21,6 @@ Prints names and sequences of reads overlapping a given set of variants.
 from __future__ import print_function, division, absolute_import
 import argparse
 
-
 from isovar.allele_reads import reads_to_dataframe
 from isovar.args import allele_reads_from_args, add_somatic_vcf_args, add_rna_args
 

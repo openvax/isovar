@@ -49,7 +49,8 @@ script:
   - isovar-translations.py
   - isovar-variant-sequences.py
   - isovar-protein-sequences.py
+  - ./lint.sh
   # run tests
-  - nosetests test --with-coverage --cover-package=isovar  && ./lint.sh
+  - nosetests test --with-coverage --cover-package=isovar
 after_success:
   coveralls
