@@ -96,9 +96,9 @@ def make_dummy_protein_sequence(
 
     return ProteinSequence(
         translations=[translation] * n_translations,
-        overlapping_reads=[None] * n_supporting_variant_reads,
+        overlapping_reads=[None] * n_total_variant_reads,
         ref_reads=[],
-        alt_reads=[None] * n_supporting_variant_reads,
+        alt_reads=[None] * n_total_variant_reads,
         alt_reads_supporting_protein_sequence=[None] * n_supporting_variant_reads,
         transcripts_supporting_protein_sequence=[None] * n_supporting_reference_transcripts,
         transcripts_overlapping_variant=[None] * n_supporting_reference_transcripts,
