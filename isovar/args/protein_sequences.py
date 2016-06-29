@@ -15,7 +15,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from ..default_parameters import PROTEIN_SEQUENCE_LENGTH, MAX_PROTEIN_SEQUENCES_PER_VARIANT
+from ..default_parameters import MAX_PROTEIN_SEQUENCES_PER_VARIANT
 from ..protein_sequences import (
     protein_sequences_generator_to_dataframe,
     reads_generator_to_protein_sequences_generator
@@ -26,19 +26,17 @@ from .rna_reads import allele_reads_generator_from_args
 def add_protein_sequence_args(parser):
     """
     Extends an ArgumentParser instance with the following args:
-        --protein-sequence-length
         --max-protein-sequences-per-variant
+    Also adds all translation arguments such as:
+        --protein-sequence-length
     """
-    protein_sequence_group = parser.add_argument_group("Protein Sequence")
-    protein_sequence_group.add_argument(
-        "--protein-sequence-length",
-        default=PROTEIN_SEQUENCE_LENGTH,
-        type=int)
+    protein_sequence_group = parser.add_argument_group(
+        "Protein sequences (grouping equivalent translations)")
     protein_sequence_group.add_argument(
         "--max-protein-sequences-per-variant",
         type=int,
         default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
-    return parser
+    return protein_sequence_group
 
 def protein_sequences_generator_from_args(args):
     allele_reads_generator = allele_reads_generator_from_args(args)

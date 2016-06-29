@@ -39,11 +39,17 @@ from .variant_sequences import (
     variant_sequences_dataframe_from_args,
     variant_sequences_generator_from_args,
 )
+from .translation import (
+    translations_generator_from_args,
+    translations_dataframe_from_args,
+    add_translation_args,
+)
 
 __all__ = [
     "add_somatic_vcf_args",
     "add_rna_args",
     "add_reference_context_args",
+    "add_translation_args",
     "add_protein_sequence_args",
     "add_variant_sequence_args",
     "variants_from_args",
@@ -53,6 +59,8 @@ __all__ = [
     "variant_reads_generator_from_args",
     "variant_sequences_generator_from_args",
     "variant_sequences_dataframe_from_args",
+    "translations_generator_from_args",
+    "translations_dataframe_from_args",
     "protein_sequences_generator_from_args",
     "protein_sequences_dataframe_from_args",
 ]

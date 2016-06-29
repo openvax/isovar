@@ -45,7 +45,7 @@ def add_reference_context_args(parser):
             "Number of nucleotides before the variant we try to match against "
             "a reference transcript. Values greater than zero exclude variants "
             "near the start codon of transcrPROTEIN_SEQUENCE_LEGNTHipts without 5' UTRs."))
-    return parser
+    return reference_context_group
 
 def reference_contexts_dataframe_from_args(args):
     variants = variants_from_args(args)

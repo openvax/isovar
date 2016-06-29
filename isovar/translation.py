@@ -34,7 +34,7 @@ from .default_parameters import (
     PROTEIN_SEQUENCE_LENGTH,
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
 )
-from .dataframe_builder import DataFrameBuilder
+from .dataframe_builder import dataframe_from_generator
 
 # When multiple distinct RNA sequence contexts and/or reference transcripts
 # give us the same translation then we group them into a single object
@@ -633,26 +633,17 @@ def translate_variants(
             max_transcript_mismatches=max_transcript_mismatches)
         yield variant, translations
 
-def translations_dataframe(variants_with_supporting_reads, **kwargs):
+def translations_generator_to_dataframe(translations_generator):
     """
-    Given a generator of (variant, variant_reads) pairs,
+    Given a generator of (Variant, [Translation]) pairs,
     returns a DataFrame of translated protein fragments with columns
     for each field of a Translation object (and chr/pos/ref/alt per variant).
-
-    Takes the same parameters as translate_variants.
     """
-
-    df_builder = DataFrameBuilder(
-        Translation,
+    return dataframe_from_generator(
+        element_class=Translation,
+        variant_and_elements_generator=translations_generator,
         # exlude fields which are structured objects
         exclude=[
             "variant_sequence",
             "reference_context",
             "variant_sequence_in_reading_frame"])
-
-    for (variant, translations) in translate_variants(
-            variants_with_supporting_reads=variants_with_supporting_reads,
-            **kwargs):
-        for translation in translations:
-            df_builder.add(variant, translation)
-    return df_builder.to_dataframe()

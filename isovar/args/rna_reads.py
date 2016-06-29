@@ -55,7 +55,7 @@ def add_rna_args(
         "--drop-secondary-alignments",
         default=True,
         action="store_false")
-    return parser
+    return rna_group
 
 def samfile_from_args(args):
     return AlignmentFile(args.bam)
