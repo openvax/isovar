@@ -39,26 +39,26 @@ AlleleRead = namedtuple(
     "prefix allele suffix name")
 
 
-def allele_read_from_locus_read(read_at_locus, n_ref):
+def allele_read_from_locus_read(locus_read, n_ref):
     """
     Given a single ReadAtLocus object, return either an AlleleRead or None
 
     Parameters
     ----------
-    read : ReadAtLocus
+    locus_read : LocusRead
         Read which may possibly contain the alternate nucleotides
 
     n_ref : int
         Number of reference positions we are expecting to be modified or
         deleted (for insertions this should be 0)
     """
-    sequence = read_at_locus.sequence
-    reference_positions = read_at_locus.reference_positions
+    sequence = locus_read.sequence
+    reference_positions = locus_read.reference_positions
 
     # positions of the nucleotides before and after the variant within
     # the read sequence
-    read_pos_before = read_at_locus.base0_read_position_before_variant
-    read_pos_after = read_at_locus.base0_read_position_after_variant
+    read_pos_before = locus_read.base0_read_position_before_variant
+    read_pos_after = locus_read.base0_read_position_after_variant
 
     # positions of the nucleotides before and after the variant on the
     # reference genome
@@ -67,7 +67,7 @@ def allele_read_from_locus_read(read_at_locus, n_ref):
     if ref_pos_before is None:
         logging.warn(
             "Missing reference pos for nucleotide before variant on read: %s" % (
-                read_at_locus,))
+                locus_read,))
         return None
 
     ref_pos_after = reference_positions[read_pos_after]
@@ -75,7 +75,7 @@ def allele_read_from_locus_read(read_at_locus, n_ref):
     if ref_pos_after is None:
         logging.warn(
             "Missing reference pos for nucleotide after variant on read: %s" % (
-                read_at_locus,))
+                locus_read,))
         return None
 
     if n_ref == 0:
@@ -87,7 +87,7 @@ def allele_read_from_locus_read(read_at_locus, n_ref):
                 "Positions before (%d) and after (%d) variant should be adjacent on read %s" % (
                     ref_pos_before,
                     ref_pos_after,
-                    read_at_locus))
+                    locus_read))
             return None
 
         # insertions require a sequence of non-aligned bases
@@ -110,7 +110,7 @@ def allele_read_from_locus_read(read_at_locus, n_ref):
                 "Positions before (%d) and after (%d) variant should be adjacent on read %s" % (
                     ref_pos_before,
                     ref_pos_after,
-                    read_at_locus))
+                    locus_read))
             return None
 
     nucleotides_at_variant_locus = sequence[read_pos_before + 1:read_pos_after]
@@ -125,7 +125,7 @@ def allele_read_from_locus_read(read_at_locus, n_ref):
         prefix,
         nucleotides_at_variant_locus,
         suffix,
-        name=read_at_locus.name)
+        name=locus_read.name)
 
 def allele_reads_from_locus_reads(locus_reads, n_ref):
     """
