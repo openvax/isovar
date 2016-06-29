@@ -16,10 +16,12 @@
 from __future__ import print_function, division, absolute_import
 
 from ..default_parameters import PROTEIN_SEQUENCE_LENGTH, MAX_PROTEIN_SEQUENCES_PER_VARIANT
-from ..protein_sequences import protein_sequences_dataframe
-# from ..variant_reads import reads_supporting_variants
-from .variants import variants_from_args
-from .rna_reads import samfile_from_args
+from ..protein_sequences import (
+    protein_sequences_generator_to_dataframe,
+    reads_generator_to_protein_sequences_generator
+)
+
+from .rna_reads import allele_reads_generator_from_args
 
 def add_protein_sequence_args(parser):
     """
@@ -38,16 +40,16 @@ def add_protein_sequence_args(parser):
         default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
     return parser
 
-
-def protein_sequences_dataframe_from_args(args):
-    variants = variants_from_args(args)
-    samfile = samfile_from_args(args)
-    return protein_sequences_dataframe(
-        variants=variants,
-        samfile=samfile,
+def protein_sequences_generator_from_args(args):
+    allele_reads_generator = allele_reads_generator_from_args(args)
+    return reads_generator_to_protein_sequences_generator(
+        allele_reads_generator,
         protein_sequence_length=args.protein_sequence_length,
-        min_reads_supporting_cdna_sequence=args.min_reads,
+        min_reads_supporting_cdna_sequence=args.min_reads_supporting_variant_sequence,
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
-        min_mapping_quality=args.min_mapping_quality)
+        max_protein_sequences_per_variant=args.max_protein_sequences_per_variant)
+
+def protein_sequences_dataframe_from_args(args):
+    protein_sequences_generator = protein_sequences_generator_from_args(args)
+    return protein_sequences_generator_to_dataframe(protein_sequences_generator)

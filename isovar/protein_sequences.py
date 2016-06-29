@@ -153,8 +153,7 @@ def sort_protein_sequences(protein_sequences):
     return list(
         sorted(protein_sequences, key=protein_sequence_sort_key, reverse=True))
 
-
-def overlapping_reads_generator_to_protein_sequences_generator(
+def reads_generator_to_protein_sequences_generator(
         variant_and_overlapping_reads_generator,
         transcript_id_whitelist=None,
         protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
@@ -243,7 +242,7 @@ def overlapping_reads_generator_to_protein_sequences_generator(
 
         yield variant, protein_sequences[:max_protein_sequences_per_variant]
 
-def protein_sequences_to_dataframe(variant_and_protein_sequences_generator):
+def protein_sequences_generator_to_dataframe(variant_and_protein_sequences_generator):
     """
     Given a generator which yields (Variant, [ProteinSequence]) elements,
     returns a pandas.DataFrame

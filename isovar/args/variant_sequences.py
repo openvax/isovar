@@ -19,7 +19,10 @@ from ..default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     VARIANT_CDNA_SEQUENCE_LENGTH,
 )
-from ..variant_sequences import reads_generator_to_sequences_generator
+from ..variant_sequences import (
+    reads_generator_to_sequences_generator,
+    variant_sequences_generator_to_dataframe
+)
 from .rna_reads import allele_reads_generator_from_args
 
 def add_variant_sequence_args(parser, add_sequence_length_arg=True):
@@ -40,9 +43,13 @@ def add_variant_sequence_args(parser, add_sequence_length_arg=True):
             type=int)
     return parser
 
-def variant_sequences_from_args(args):
+def variant_sequences_generator_from_args(args):
     allele_reads_generator = allele_reads_generator_from_args(args)
     return reads_generator_to_sequences_generator(
         allele_reads_generator,
         min_reads_supporting_cdna_sequence=args.min_reads_supporting_variant_sequence,
         preferred_sequence_length=args.cdna_sequence_sequence_length)
+
+def variant_sequences_dataframe_from_args(args):
+    variant_sequences_generator = variant_sequences_generator_from_args(args)
+    return variant_sequences_generator_to_dataframe(variant_sequences_generator)

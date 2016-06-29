@@ -210,11 +210,11 @@ def reads_generator_to_sequences_generator(
             preferred_sequence_length=preferred_sequence_length)
         yield variant, variant_sequences
 
-def variant_sequences_to_dataframe(variant_and_sequences_generator):
+def variant_sequences_generator_to_dataframe(variant_sequences_generator):
     """
     Creates a dataframe from a generator which yields
     (Variant, [VariantSequence]) pairs.
 
     Returns pandas.DataFrame
     """
-    return dataframe_from_generator(VariantSequence, variant_and_sequences_generator)
+    return dataframe_from_generator(VariantSequence, variant_sequences_generator)

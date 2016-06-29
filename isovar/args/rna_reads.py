@@ -60,7 +60,7 @@ def add_rna_args(
 def samfile_from_args(args):
     return AlignmentFile(args.bam)
 
-def allele_reads_from_args(args):
+def allele_reads_generator_from_args(args):
     variants = variants_from_args(args)
     samfile = samfile_from_args(args)
     return reads_overlapping_variants(
@@ -70,7 +70,7 @@ def allele_reads_from_args(args):
         use_secondary_alignments=not args.drop_secondary_alignments,
         min_mapping_quality=args.min_mapping_quality)
 
-def variant_reads_from_args(args):
+def variant_reads_generator_from_args(args):
     variants = variants_from_args(args)
     samfile = samfile_from_args(args)
     return reads_supporting_variants(
