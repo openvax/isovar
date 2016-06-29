@@ -30,17 +30,21 @@ from .protein_sequences import (
     add_protein_sequence_args,
     protein_sequences_dataframe_from_args
 )
-from .cdna_consensus_sequences import add_cdna_consensus_sequence_args
+from .variant_sequences import (
+    add_variant_sequence_args,
+    variant_sequences_from_args,
+)
 
 __all__ = [
     "add_somatic_vcf_args",
     "add_rna_args",
     "add_reference_context_args",
     "add_protein_sequence_args",
-    "add_cdna_consensus_sequence_args",
+    "add_variant_sequence_args",
     "variants_from_args",
     "samfile_from_args",
     "allele_reads_from_args",
     "variant_reads_from_args",
+    "variant_sequences_from_args",
     "protein_sequences_dataframe_from_args",
 ]

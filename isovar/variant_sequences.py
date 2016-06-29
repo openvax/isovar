@@ -18,14 +18,13 @@ import logging
 
 
 from .common import group_unique_sequences, get_single_allele_from_reads
-from .allele_reads import reads_overlapping_variants
+
 from .variant_reads import filter_non_alt_reads_for_variant
 from .default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
     VARIANT_CDNA_SEQUENCE_LENGTH,
-    MIN_READ_MAPPING_QUALITY,
 )
-from .dataframe_builder import DataFrameBuilder
+from .dataframe_builder import dataframe_from_generator
 
 VariantSequence = namedtuple(
     "VariantSequence",
@@ -179,7 +178,7 @@ def overlapping_reads_to_variant_sequences(
         preferred_sequence_length=preferred_sequence_length,
         min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
 
-def variant_sequences_generator(
+def reads_generator_to_sequences_generator(
         variant_and_reads_generator,
         min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         preferred_sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH):
@@ -211,44 +210,11 @@ def variant_sequences_generator(
             preferred_sequence_length=preferred_sequence_length)
         yield variant, variant_sequences
 
-def variant_sequences_dataframe(
-        variants,
-        samfile,
-        sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH,
-        min_reads=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+def variant_sequences_to_dataframe(variant_and_sequences_generator):
     """
-    Creates a dataframe of all detected cDNA sequences for the given variant
-    collection and alignment file.
-
-    Parameters
-    ----------
-    variants : varcode.VariantCollection
-        Look for sequences containing these variants
-
-    samfile : pysam.AlignmentFile
-        Reads from which surrounding sequences are detected
-
-    sequence_length : int
-        Desired sequence length, including variant nucleotides
-
-    min_reads : int
-        Minimum number of reads supporting variant sequence
-
-    min_mapping_quality : int
-        Minimum MAPQ value before a read gets ignored
+    Creates a dataframe from a generator which yields
+    (Variant, [VariantSequence]) pairs.
 
     Returns pandas.DataFrame
     """
-    df_builder = DataFrameBuilder(VariantSequence)
-    for variant, overlapping_reads in reads_overlapping_variants(
-            variants=variants,
-            samfile=samfile,
-            min_mapping_quality=min_mapping_quality):
-        variant_sequences = overlapping_reads_to_variant_sequences(
-            variant,
-            overlapping_reads,
-            min_reads=min_reads,
-            sequence_length=sequence_length)
-        df_builder.add_many(variant, variant_sequences)
-    return df_builder.to_dataframe()
+    return dataframe_from_generator(VariantSequence, variant_and_sequences_generator)

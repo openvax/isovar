@@ -30,11 +30,10 @@ from .default_parameters import (
     PROTEIN_SEQUENCE_LENGTH,
     MAX_PROTEIN_SEQUENCES_PER_VARIANT,
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-    MIN_READ_MAPPING_QUALITY,
 )
-from .dataframe_builder import DataFrameBuilder
+from .dataframe_builder import dataframe_from_generator
 from .translation import translate_variant_reads, TranslationKey
-from .allele_reads import group_reads_by_allele, reads_overlapping_variants
+from .allele_reads import group_reads_by_allele
 from .variant_helpers import trim_variant
 
 ##########################
@@ -155,16 +154,14 @@ def sort_protein_sequences(protein_sequences):
         sorted(protein_sequences, key=protein_sequence_sort_key, reverse=True))
 
 
-def variants_to_protein_sequences(
-        variants,
-        samfile,
+def overlapping_reads_generator_to_protein_sequences_generator(
+        variant_and_overlapping_reads_generator,
         transcript_id_whitelist=None,
         protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
         min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT):
     """"
     Translates each coding variant in a collection to one or more
     Translation objects, which are then aggregated into equivalent
@@ -172,10 +169,6 @@ def variants_to_protein_sequences(
 
     Parameters
     ----------
-    variants : varcode.VariantCollection
-
-    samfile : pysam.AlignmentFile
-
     transcript_id_whitelist : set, optional
         If given, expected to be a set of transcript IDs which we should use
         for determining the reading frame around a variant. If omitted, then
@@ -200,16 +193,11 @@ def variants_to_protein_sequences(
     max_protein_sequences_per_variant : int
         Number of protein sequences to return for each ProteinSequence
 
-    min_mapping_quality : int
-        Minimum MAPQ value before a read gets ignored
 
     Yields pairs of a Variant and a list of ProteinSequence objects
     """
 
-    for (variant, overlapping_reads) in reads_overlapping_variants(
-            variants=variants,
-            samfile=samfile,
-            min_mapping_quality=min_mapping_quality):
+    for (variant, overlapping_reads) in variant_and_overlapping_reads_generator:
         overlapping_transcript_ids = [
             t.id
             for t in variant.transcripts
@@ -255,18 +243,13 @@ def variants_to_protein_sequences(
 
         yield variant, protein_sequences[:max_protein_sequences_per_variant]
 
-def protein_sequences_dataframe(*args, **kwargs):
+def protein_sequences_to_dataframe(variant_and_protein_sequences_generator):
     """
-    Given a collection of variants and a SAM/BAM file of overlapping reads,
-    returns a DataFrame with a row for each protein sequence.
-
-    Takes the same parameters as variants_to_protein_sequences.
+    Given a generator which yields (Variant, [ProteinSequence]) elements,
+    returns a pandas.DataFrame
     """
-    df_builder = DataFrameBuilder(
-        ProteinSequence,
+    return dataframe_from_generator(
+        element_class=ProteinSequence,
+        variant_and_elements_generator=variant_and_protein_sequences_generator,
         converters=dict(
             gene=lambda x: ";".join(x)))
-    for (variant, protein_sequences) in variants_to_protein_sequences(*args, **kwargs):
-        for protein_sequence in protein_sequences:
-            df_builder.add(variant, protein_sequence)
-    return df_builder.to_dataframe()
