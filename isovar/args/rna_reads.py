@@ -17,10 +17,11 @@ from __future__ import print_function, division, absolute_import
 
 from pysam import AlignmentFile
 
-from .variants import variants_from_args
 from ..default_parameters import MIN_READ_MAPPING_QUALITY
-from ..allele_reads import reads_overlapping_variants
+from ..allele_reads import reads_overlapping_variants, reads_to_dataframe
 from ..variant_reads import reads_supporting_variants
+
+from .variants import variants_from_args
 
 
 def add_rna_args(
@@ -70,6 +71,9 @@ def allele_reads_generator_from_args(args):
         use_secondary_alignments=not args.drop_secondary_alignments,
         min_mapping_quality=args.min_mapping_quality)
 
+def allele_reads_dataframe_from_args(args):
+    return reads_to_dataframe(allele_reads_generator_from_args(args))
+
 def variant_reads_generator_from_args(args):
     variants = variants_from_args(args)
     samfile = samfile_from_args(args)
@@ -79,3 +83,6 @@ def variant_reads_generator_from_args(args):
         use_duplicate_reads=args.use_duplicate_reads,
         use_secondary_alignments=not args.drop_secondary_alignments,
         min_mapping_quality=args.min_mapping_quality)
+
+def variants_reads_dataframe_from_args(args):
+    return reads_to_dataframe(variant_reads_generator_from_args(args))

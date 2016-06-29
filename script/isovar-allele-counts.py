@@ -24,7 +24,7 @@ import argparse
 from isovar.args import (
     add_somatic_vcf_args,
     add_rna_args,
-    allele_reads_from_args
+    allele_reads_generator_from_args
 )
 from isovar.allele_counts import allele_counts_dataframe
 
@@ -40,7 +40,7 @@ parser.add_argument(
 if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
-    variants_and_allele_reads = allele_reads_from_args(args)
-    allele_counts_df = allele_counts_dataframe(variants_and_allele_reads)
+    variants_and_allele_reads_generator = allele_reads_generator_from_args(args)
+    allele_counts_df = allele_counts_dataframe(variants_and_allele_reads_generator)
     print(allele_counts_df)
     allele_counts_df.to_csv(args.output)

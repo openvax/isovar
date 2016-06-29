@@ -23,7 +23,9 @@ from .rna_reads import (
     add_rna_args,
     samfile_from_args,
     allele_reads_generator_from_args,
+    allele_reads_dataframe_from_args,
     variant_reads_generator_from_args,
+    variant_reads_dataframe_from_args,
 )
 from .reference_context import (
     add_reference_context_args,
@@ -56,7 +58,9 @@ __all__ = [
     "samfile_from_args",
     "reference_contexts_dataframe_from_args",
     "allele_reads_generator_from_args",
+    "allele_reads_dataframe_from_args",
     "variant_reads_generator_from_args",
+    "variant_reads_dataframe_from_args",
     "variant_sequences_generator_from_args",
     "variant_sequences_dataframe_from_args",
     "translations_generator_from_args",

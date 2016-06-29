@@ -205,7 +205,7 @@ def reads_generator_to_sequences_generator(
     for variant, variant_reads in variant_and_reads_generator:
         variant_sequences = overlapping_reads_to_variant_sequences(
             variant=variant,
-            variant_reads=variant_reads,
+            overlapping_reads=variant_reads,
             min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
             preferred_sequence_length=preferred_sequence_length)
         yield variant, variant_sequences
