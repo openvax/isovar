@@ -70,7 +70,6 @@ if __name__ == '__main__':
             'scikit-bio==0.4.2',
             'varcode>=0.4.6'
         ],
-
         long_description=readme,
         packages=['isovar', 'isovar.args'],
         scripts=[
