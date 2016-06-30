@@ -72,7 +72,7 @@ if __name__ == '__main__':
         ],
 
         long_description=readme,
-        packages=['isovar'],
+        packages=['isovar', 'isovar.args'],
         scripts=[
             "script/isovar-protein-sequences.py",
             "script/isovar-translations.py",
