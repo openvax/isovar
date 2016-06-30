@@ -14,7 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.reference_contexts import (
+from isovar.reference_context import (
     reading_frame_to_offset,
     sequence_key_with_reading_frame_for_variant_on_transcript,
     SequenceKeyWithReadingFrame,

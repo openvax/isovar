@@ -17,9 +17,11 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 
 from .common import (
-    make_prefix_suffix_pairs,
     nucleotide_to_index,
     index_to_nucleotide,
+)
+from .read_helpers import (
+    make_prefix_suffix_pairs,
     get_single_allele_from_reads,
 )
 
