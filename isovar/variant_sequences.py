@@ -17,8 +17,8 @@ from collections import namedtuple
 import logging
 
 
-from .common import group_unique_sequences, get_single_allele_from_reads
-
+from .common import group_unique_sequences
+from .read_helpers import get_single_allele_from_reads
 from .variant_reads import filter_non_alt_reads_for_variant
 from .default_parameters import (
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,

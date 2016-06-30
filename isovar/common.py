@@ -65,23 +65,3 @@ def list_to_string(list_of_anything, sep=";"):
     Helper function used for building the fields of a printable dataframe
     """
     return sep.join(str(x) for x in list_of_anything)
-
-def get_single_allele_from_reads(allele_reads):
-    """
-    Given a sequence of AlleleRead objects, which are expected to all have
-    the same allele, return that allele.
-    """
-    allele_reads = list(allele_reads)
-
-    if len(allele_reads) == 0:
-        raise ValueError("Expected non-empty list of AlleleRead objects")
-
-    seq = allele_reads[0].allele
-    if any(read.allele != seq for read in allele_reads):
-        raise ValueError("Expected all AlleleRead objects to have same allele '%s', got %s" % (
-            seq, allele_reads))
-    return seq
-
-
-def make_prefix_suffix_pairs(allele_reads):
-    return [(r.prefix, r.suffix) for r in allele_reads]
