@@ -40,6 +40,18 @@ def add_protein_sequence_args(parser):
     return protein_sequence_group
 
 def make_protein_sequences_arg_parser(**kwargs):
+    """
+    Parameters
+    ----------
+    **kwargs : dict
+        Passed directly to argparse.ArgumentParser
+
+    Creates argparse.ArgumentParser instance with all of the options
+    needed to determine protein sequences from variants & RNAseq.
+
+    See `args.translation` for commandline parameters which aren't added in
+    this module.
+    """
     parser = make_translation_arg_parser(**kwargs)
     add_protein_sequence_args(parser)
     return parser

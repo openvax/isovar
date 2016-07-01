@@ -52,6 +52,19 @@ def add_translation_args(parser):
     return translation_group
 
 def make_translation_arg_parser(**kwargs):
+    """
+    Parameters
+    ----------
+    **kwargs : dict
+        Passed directly to argparse.ArgumentParser
+
+    Creates argparse.ArgumentParser instance with all of the options
+    needed to translate each distinct cDNA sequence determined from
+    variants & RNAseq.
+
+    See `args.variant_sequences` for commandline parameters which aren't added
+    in this module.
+    """
     parser = make_variant_sequences_arg_parser(**kwargs)
     add_translation_args(parser)
     return parser

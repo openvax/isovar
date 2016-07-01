@@ -55,11 +55,20 @@ def add_rna_args(
 
     rna_group.add_argument(
         "--drop-secondary-alignments",
-        default=True,
-        action="store_false")
+        default=False,
+        action="store_true")
     return rna_group
 
 def make_rna_reads_arg_parser(**kwargs):
+    """
+    Parameters
+    ----------
+    **kwargs : dict
+        Passed directly to argparse.ArgumentParser
+
+    Creates argparse.ArgumentParser instance with all of the options
+    needed to load a set of variants and their supporting RNA reads.
+    """
     parser = ArgumentParser(**kwargs)
     add_somatic_vcf_args(parser)
     add_rna_args(parser)

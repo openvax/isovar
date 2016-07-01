@@ -55,6 +55,17 @@ def add_reference_context_args(parser, add_context_size_arg=True):
     return reference_context_group
 
 def make_reference_context_arg_parser(add_context_size_arg=True, **kwargs):
+    """
+    Parameters
+    ----------
+    add_context_size_arg : bool
+        If True then add a `--context-size` argument, which is otherwise
+        inferred from cDNA sequence length.
+    **kwargs : dict
+        Parameters passed directly to argparse.ArgumentParser.
+
+    Returns an argparse.ArgumentParser instance.
+    """
     parser = ArgumentParser(**kwargs)
     add_somatic_vcf_args(parser)
     add_reference_context_args(parser, add_context_size_arg=add_context_size_arg)

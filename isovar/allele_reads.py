@@ -46,7 +46,8 @@ def allele_read_from_locus_read(locus_read, n_ref):
     Parameters
     ----------
     locus_read : LocusRead
-        Read which may possibly contain the alternate nucleotides
+        Read which overlaps a variant locus but doesn't necessarily contain the
+        alternate nucleotides
 
     n_ref : int
         Number of reference positions we are expecting to be modified or

@@ -43,6 +43,23 @@ def add_variant_sequence_args(parser, add_sequence_length_arg=True):
     return parser
 
 def make_variant_sequences_arg_parser(add_sequence_length_arg=True, **kwargs):
+    """
+    Parameters
+    ----------
+    add_sequence_length_arg : bool
+        If True then add the `--cdna-sequence-length` argument. This may be
+        omitted if the cDNA sequence length is inferred from a protein length.
+
+    **kwargs : dict
+        Passed directly to argparse.ArgumentParser
+
+    Creates argparse.ArgumentParser instance with all of the options
+    needed to translate each distinct cDNA sequence determined from
+    variants & RNAseq.
+
+    See `args.variant_sequences` for commandline parameters which aren't added
+    in this module.
+    """
     parser = make_rna_reads_arg_parser(**kwargs)
     add_variant_sequence_args(parser)
     return parser
