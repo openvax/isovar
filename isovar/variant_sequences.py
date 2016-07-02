@@ -26,19 +26,36 @@ from .default_parameters import (
 )
 from .dataframe_builder import dataframe_from_generator
 
-VariantSequence = namedtuple(
+
+# using this base class to define the core fields of a VariantSequence
+# but inheriting it from it to allow the addition of helper methods
+VariantSequenceBase = namedtuple(
     "VariantSequence",
     [
+        # nucleotides before a variant
         "prefix",
+        # nucleotide sequence of a variant
         "alt",
+        # nucleotides after a variant
         "suffix",
-        # combined sequence cached for convenience, so we don't have to
-        # repeatedly concatenate prefix + variant_nucleotides + suffix
-        "sequence",
         # reads which were used to determine this sequences
         "reads",
-    ]
-)
+    ])
+
+class VariantSequence(VariantSequenceBase):
+    def __init__(self, **kwargs):
+        VariantSequenceBase.__init__(self, **kwargs)
+        # cache concatenation of sequence parts so we don't have to
+        # do this repeatedly
+        self.sequence = self.prefix + self.alt + self.suffix
+
+    def __len__(self):
+        return len(self.sequence)
+
+    @property
+    def read_names(self):
+        return {r.name for r in self.reads}
+
 
 def sort_key_decreasing_read_count(variant_sequence):
     return -len(variant_sequence.reads)
@@ -62,7 +79,6 @@ def all_variant_sequences_supported_by_variant_reads(
             prefix=prefix,
             alt=alt,
             suffix=suffix,
-            sequence=prefix + alt + suffix,
             reads=reads)
         for ((prefix, alt, suffix), reads)
         in unique_sequence_groups.items()
@@ -78,8 +94,7 @@ def filter_variant_sequences(
     """
     # since we might have gotten some shorter fragments,
     # keep only the longest spanning sequence
-    max_observed_sequence_length = max(
-        len(s.sequence) for s in variant_sequences)
+    max_observed_sequence_length = max(len(s) for s in variant_sequences)
     # if we get back a sequence that's longer than the preferred length
     # then that doesn't mean we should necessarily drop the other sequences
     min_required_sequence_length = min(
@@ -111,12 +126,7 @@ def supporting_reads_to_variant_sequences(
 
     Parameters
     ----------
-    variant_reads : list of VariantRead objects
-        Each variant read should have the following fields:
-            - prefix : str
-            - variant : str
-            - suffix : str
-            - name : str
+    variant_reads : list of AlleleRead objects
 
     preferred_sequence_length : int
         Total number of nucleotides in the assembled sequences, including

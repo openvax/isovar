@@ -39,7 +39,10 @@ def add_translation_args(parser):
     translation_group.add_argument(
         "--max-reference-transcript-mismatches",
         type=int,
-        default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES)
+        default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+        help=(
+            "Maximum number of mismatches between variant sequence"
+            " reference sequence before a candidate reading frame is ignored."))
 
     translation_group.add_argument(
         "--min-transcript-prefix-length",
@@ -49,6 +52,7 @@ def add_translation_args(parser):
             "Number of nucleotides before the variant we try to match against "
             "a reference transcript. Values greater than zero exclude variants "
             "near the start codon of transcripts without 5' UTRs."))
+
     return translation_group
 
 def make_translation_arg_parser(**kwargs):

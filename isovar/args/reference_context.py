@@ -15,46 +15,24 @@
 from __future__ import print_function, division, absolute_import
 from argparse import ArgumentParser
 
-from ..default_parameters import (
-    MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-    MIN_TRANSCRIPT_PREFIX_LENGTH,
-    CDNA_CONTEXT_SIZE
-)
+from ..default_parameters import CDNA_CONTEXT_SIZE
 from ..reference_context import variants_to_reference_contexts_dataframe
 
 from .variants import variants_from_args, add_somatic_vcf_args
 
-def add_reference_context_args(parser, add_context_size_arg=True):
+def add_reference_context_args(parser):
     """
     Extends an ArgumentParser instance with the following commandline arguments:
-        --max-reference-transcript-mismatches
-        --min-transcript-prefix-length
+        --context-size
     """
     reference_context_group = parser.add_argument_group("Reference Transcripts")
-    reference_context_group.add_argument(
-        "--max-reference-transcript-mismatches",
-        type=int,
-        default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        help=(
-            "Maximum number of mismatches between variant sequence"
-            " reference sequence before a candidate reading frame is ignored."))
-
-    reference_context_group.add_argument(
-        "--min-transcript-prefix-length",
-        type=int,
-        default=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        help=(
-            "Number of nucleotides before the variant we try to match against "
-            "a reference transcript. Values greater than zero exclude variants "
-            "near the start codon of transcrPROTEIN_SEQUENCE_LEGNTHipts without 5' UTRs."))
-    if add_context_size_arg:
-        parser.add_argument(
-            "--context-size",
-            default=CDNA_CONTEXT_SIZE,
-            type=int)
+    parser.add_argument(
+        "--context-size",
+        default=CDNA_CONTEXT_SIZE,
+        type=int)
     return reference_context_group
 
-def make_reference_context_arg_parser(add_context_size_arg=True, **kwargs):
+def make_reference_context_arg_parser(**kwargs):
     """
     Parameters
     ----------
@@ -68,7 +46,7 @@ def make_reference_context_arg_parser(add_context_size_arg=True, **kwargs):
     """
     parser = ArgumentParser(**kwargs)
     add_somatic_vcf_args(parser)
-    add_reference_context_args(parser, add_context_size_arg=add_context_size_arg)
+    add_reference_context_args(parser)
     return parser
 
 def reference_contexts_dataframe_from_args(args):
