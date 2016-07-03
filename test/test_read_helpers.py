@@ -14,7 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.common import group_unique_sequences
+from isovar.read_helpers import group_unique_sequences
 from isovar.variant_reads import reads_supporting_variant
 from varcode import Variant
 from pyensembl import ensembl_grch38

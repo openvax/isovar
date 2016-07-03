@@ -33,7 +33,7 @@ from .default_parameters import (
 )
 from .dataframe_builder import dataframe_from_generator
 from .translation import translate_variant_reads, TranslationKey
-from .allele_reads import group_reads_by_allele
+from .read_helpers import group_reads_by_allele
 from .variant_helpers import trim_variant
 
 ##########################

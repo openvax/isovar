@@ -22,7 +22,7 @@ from collections import namedtuple
 
 from .variant_helpers import trim_variant
 from .dataframe_builder import DataFrameBuilder
-from .allele_reads import group_reads_by_allele
+from .read_helpers import group_reads_by_allele
 
 AlleleCount = namedtuple(
     "AlleleCount", [

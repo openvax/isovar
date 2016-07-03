@@ -78,3 +78,13 @@ def count_unique_sequences(
         seq_tuple: len(read_names)
         for (seq_tuple, read_names) in groups.items()
     }
+
+def group_reads_by_allele(allele_reads):
+    """
+    Returns dictionary mapping each allele's nucleotide sequence to a list of
+    supporting AlleleRead objects.
+    """
+    allele_to_reads_dict = defaultdict(list)
+    for allele_read in allele_reads:
+        allele_to_reads_dict[allele_read.allele].append(allele_read)
+    return allele_to_reads_dict
