@@ -33,7 +33,8 @@ class DataFrameBuilder(object):
             exclude=set([]),
             converters={},
             rename_dict={},
-            variant_columns=True):
+            variant_columns=True,
+            convert_collections_to_size=True):
         """
         Parameters
         ----------
@@ -56,11 +57,17 @@ class DataFrameBuilder(object):
 
         variant_columns : bool
             If True, then add four columns for fields of a Variant: chr/pos/ref/alt
+
+        convert_collections_to_size : bool
+            If a value is a built-in collection (list, tuple, or set) then
+            transform it to the size of that collection. If this option is False
+            then collection values cause a runtime error.
         """
         self.element_class = element_class
         self.rename_dict = rename_dict
         self.converters = converters
         self.variant_columns = variant_columns
+        self.convert_collections_to_size = convert_collections_to_size
 
         # remove specified field names without changing the order of the others
         self.original_field_names = [
@@ -114,7 +121,7 @@ class DataFrameBuilder(object):
                 fn = self.converters[name]
                 value = fn(value)
 
-            if isinstance(value, (tuple, list, set)):
+            if isinstance(value, (tuple, list, set)) and self.convert_collections_to_size:
                 value = len(value)
             elif not isinstance(value, VALID_ELEMENT_TYPES):
                 raise ValueError(

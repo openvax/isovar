@@ -16,6 +16,8 @@ from __future__ import print_function, division, absolute_import
 
 from collections import defaultdict
 import logging
+# I'd rather just use list.copy but Python 2.7 doesn't support it
+from copy import copy
 
 from .read_helpers import group_unique_sequences
 from .variant_sequences import VariantSequence
@@ -172,7 +174,7 @@ def iterative_assembly(
     shorter sequences onto every longer sequence which contains them.
     """
     for i in range(n_merge_iters):
-        previous_sequences = variant_sequences.copy()
+        previous_sequences = copy(variant_sequences)
         variant_sequences = greedy_merge(
             variant_sequences,
             min_overlap_size=min_overlap_size)
