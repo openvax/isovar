@@ -14,6 +14,8 @@
 
 from __future__ import print_function, division, absolute_import
 
+from collections import defaultdict
+
 from .variant_sequence import (
     supporting_reads_to_variant_sequences,
     VariantSequence
@@ -61,7 +63,15 @@ def sort_by_decreasing_total_length(seq):
     """
     return -len(seq.sequence)
 
-def combine_variant_sequences(
+def combine_variant_sequences(variant_sequence1, variant_sequence2):
+    return VariantSequence(
+        prefix=variant_sequence1.prefix,
+        alt=variant_sequence1.alt,
+        suffix=variant_sequence2.suffix,
+        reads=set(
+            variant_sequence1.reads).union(set(variant_sequence2.reads)))
+
+def ok_to_combine_variant_sequences(
         variant_sequence1,
         variant_sequence2,
         min_overlap_size=MIN_OVERLAP_SIZE):
@@ -72,22 +82,23 @@ def combine_variant_sequences(
 
     variant_sequence2 : VariantSequence
 
-    Returns either an elongated VariantSequence or None
+    Returns boolean indicating whether the two sequences have sufficient
+    overlap and whether they agree in the overlapping regions.
     """
     if variant_sequence1.alt != variant_sequence2.alt:
-            # allele must match!
-            return
+        # allele must match!
+        return False
     if len(variant_sequence2.prefix) > len(variant_sequence1.prefix):
         # only consider strings that overlap like:
         #   variant_sequence1: ppppAssss
         #   variant_sequence2:   ppAsssssss
         # which excludes cases where variant_sequence2 has a longer
         # prefix
-        return
+        return False
     elif len(variant_sequence2.suffix) < len(variant_sequence1.suffix):
         # similarly, we throw cases where variant_sequence2 is shorter
         # after the alt nucleotides than variant_sequence1
-        return
+        return False
 
     possible_overlap = (
         len(variant_sequence2.prefix) +
@@ -95,7 +106,7 @@ def combine_variant_sequences(
     )
 
     if possible_overlap < min_overlap_size:
-        return
+        return False
 
     # compare lengths of the two old sequences and the candidate
     # sequence we're considering constructing
@@ -105,23 +116,17 @@ def combine_variant_sequences(
 
     if new_length <= len1 or new_length <= len2:
         # if we're not extending the sequence length, then why bother?
-        return
+        return False
 
+    # is the candidate sequence is a prefix of the accepted?
+    # Example:
+    # p1 a1 s1 = XXXXXXXX Y ZZZZZZ
+    # p2 a2 s2 =       XX Y ZZZZZZZZZ
+    # ...
+    # then combine them into a longer sequence
     prefix_ok = variant_sequence1.prefix.endswith(variant_sequence2.prefix)
     suffix_ok = variant_sequence2.suffix.startswith(variant_sequence1.suffix)
-    if prefix_ok and suffix_ok:
-        # is the candidate sequence is a prefix of the accepted?
-        # Example:
-        # p1 a1 s1 = XXXXXXXX Y ZZZZZZ
-        # p2 a2 s2 =       XX Y ZZZZZZZZZ
-        # ...
-        # then combine them into a longer sequence
-        return VariantSequence(
-            prefix=variant_sequence1.prefix,
-            alt=variant_sequence1.alt,
-            suffix=variant_sequence2.suffix,
-            reads=set(
-                variant_sequence1.reads).union(set(variant_sequence2.reads)))
+    return prefix_ok and suffix_ok
 
 def greedy_merge(variant_sequences, min_overlap_size=MIN_OVERLAP_SIZE):
     """
@@ -146,16 +151,14 @@ def greedy_merge(variant_sequences, min_overlap_size=MIN_OVERLAP_SIZE):
         for variant_sequence2 in sorted(
                 variant_sequences,
                 key=sort_by_decreasing_suffix_length):
-            combined = combine_variant_sequences(
-                variant_sequence1,
-                variant_sequence2,
-                min_overlap_size=min_overlap_size)
-            if combined is None:
+            if not ok_to_combine_variant_sequences(
+                    variant_sequence1,
+                    variant_sequence2,
+                    min_overlap_size=min_overlap_size):
                 continue
-
-            key = combined.sequence
-
-            if key in merged_variant_sequences:
+            combined = combine_variant_sequences(
+                variant_sequence1, variant_sequence2)
+            if combined.sequence in merged_variant_sequences:
                 # it's possible to get the same merged sequence from distinct
                 # input sequences
                 # For example
@@ -165,54 +168,48 @@ def greedy_merge(variant_sequences, min_overlap_size=MIN_OVERLAP_SIZE):
                 # reads from both original sequences.
                 # TODO: In the future I'd like to track how much of each total
                 # sequence is supported by any one read.
-                existing_record_with_same_sequence = merged_variant_sequences[key]
-                union_of_reads = set(combined.reads).union(
-                    existing_record_with_same_sequence.reads)
-                combined_with_more_reads = VariantSequence(
-                    prefix=combined.prefix,
-                    alt=combined.alt,
-                    suffix=combined.suffix,
-                    reads=union_of_reads)
-                merged_variant_sequences[key] = combined_with_more_reads
+                existing_record_with_same_sequence = merged_variant_sequences[
+                    combined.sequence]
+                combined_with_more_reads = combine_variant_sequences(
+                    existing_record_with_same_sequence,
+                    combined)
+                merged_variant_sequences[combined.sequence] = combined_with_more_reads
             else:
-                merged_variant_sequences[key] = combined
+                merged_variant_sequences[combined.sequence] = combined
     return merged_variant_sequences
 
-def collapse_substrings(variant_sequences_dict):
+def collapse_substrings(variant_sequences):
     """
     Combine shorter sequences which are fully contained in longer sequences.
 
     Parameters
     ----------
-    variant_sequences_dict : dict
-        Dictionary mapping each distinct string sequence
-        (prefix + alt + suffix) to a VariantSequence object containing the
-        supporting reads for that sequence
+    variant_sequences : list
+       List of VariantSequence objects
 
-    Returns a similar dictionary but with substrings subsumed by longer sequences.
+    Returns a (potentially shorter) list without any contained subsequences.
     """
-    sorted_pairs = list(sorted(
-        assembly_groups.items(),
-        key=sort_by_decreasing_total_length))
+    # dictionary mapping VariantSequence objects to lists of reads
+    # they absorb from substring VariantSequences
+    extra_reads_from_substrings = defaultdict(set)
     result_list = []
     for short_variant_sequence in sorted(
             variant_sequences,
             key=sort_by_decreasing_total_length):
         found_superstring = False
         for long_variant_sequence in result_list:
-            if short_variant_sequence.alt != long_variant_sequence.alt:
-                # if the alleles disagree then can't combine
-                continue
-            if prefix_long.endswith(prefix_short) and suffix_long.startswith(
-                    suffix_short):
-                found_superstring = True
-                for name in names_short:
-                    names_long.add(name)
+            found_superstring = long_variant_sequence.contains(short_variant_sequence)
+            if found_superstring:
+                extra_reads_from_substrings[long_variant_sequence].update(
+                    short_variant_sequence.reads)
         if not found_superstring:
-            result_list.append(
-                ((prefix_short, allele, suffix_short), names_short.copy()))
-    return dict(result_list)
-
+            result_list.append(long_variant_sequence)
+    # add to each VariantSequence the reads it absorbed from dropped substrings
+    # and then return
+    return [
+        variant_sequence.add_reads(extra_reads_from_substrings[variant_sequence])
+        for variant_sequence in result_list
+    ]
 
 def sort_by_decreasing_read_count_and_sequence_lenth(variant_sequence):
     """

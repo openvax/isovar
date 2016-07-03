@@ -56,6 +56,18 @@ class VariantSequence(VariantSequenceBase):
     def read_names(self):
         return {r.name for r in self.reads}
 
+    def contains(self, other):
+        """
+        Is the other VariantSequence a subsequence of this one?
+
+        The two sequences must agree on the alt nucleotides, the prefix of the
+        longer must contain the prefix of the shorter, and the suffix of the
+        longer must contain the suffix of the shorter.
+        """
+        return (self.alt == other.alt and
+                self.prefix.endswith(other.prefix) and
+                self.suffix.startswith(other.suffix))
+
 
 def sort_key_decreasing_read_count(variant_sequence):
     return -len(variant_sequence.reads)
@@ -127,11 +139,11 @@ def supporting_reads_to_variant_sequences(
     Parameters
     ----------
     variant_reads : list of AlleleRead objects
+        Should all support the same variant allele nucleotides.
 
     preferred_sequence_length : int
         Total number of nucleotides in the assembled sequences, including
         variant nucleotides.
-
 
     min_sequence_length : int, optional
         Drop sequences shorter than this.
