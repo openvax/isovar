@@ -17,6 +17,7 @@ Helper functions for working with RNA reads
 """
 
 from __future__ import print_function, division, absolute_import
+from collections import defaultdict
 
 def get_single_allele_from_reads(allele_reads):
     """
@@ -37,3 +38,43 @@ def get_single_allele_from_reads(allele_reads):
 
 def make_prefix_suffix_pairs(allele_reads):
     return [(r.prefix, r.suffix) for r in allele_reads]
+
+def group_unique_sequences(
+        allele_reads,
+        max_prefix_size=None,
+        max_suffix_size=None):
+    """
+    Given a list of AlleleRead objects, extracts all unique
+    (prefix, allele, suffix) sequences and associate each with a list
+    of reads that contained that sequence.
+    """
+    groups = defaultdict(set)
+    for r in allele_reads:
+        prefix = r.prefix
+        allele = r.allele
+        suffix = r.suffix
+        if max_prefix_size and len(prefix) > max_prefix_size:
+            prefix = prefix[-max_prefix_size:]
+        if max_suffix_size and len(suffix) > max_suffix_size:
+            suffix = suffix[:max_suffix_size]
+        key = (prefix, allele, suffix)
+        groups[key].add(r)
+    return groups
+
+def count_unique_sequences(
+        allele_reads,
+        max_prefix_size=None,
+        max_suffix_size=None):
+    """
+    Given a list of AlleleRead objects, extracts all unique
+    (prefix, allele, suffix) sequences and associate each with the number
+    of reads that contain that sequence.
+    """
+    groups = group_unique_sequences(
+        allele_reads,
+        max_prefix_size=max_prefix_size,
+        max_suffix_size=max_suffix_size)
+    return {
+        seq_tuple: len(read_names)
+        for (seq_tuple, read_names) in groups.items()
+    }

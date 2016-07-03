@@ -31,13 +31,25 @@ from .variant_helpers import trim_variant
 from .dataframe_builder import DataFrameBuilder
 from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
 
-
-# simplified representation of a RNA read containing just the
-# sequence before, at, and after the variant locus, along with the read name
-AlleleRead = namedtuple(
+# subclassing from namedtuple to get a lightweight object with built-in
+# hashing and comparison while also being able to add methods
+AlleleReadFields = namedtuple(
     "AlleleRead",
-    "prefix allele suffix name")
+    "prefix allele suffix name sequence")
 
+class AlleleRead(AlleleReadFields):
+    def __new__(cls, prefix, allele, suffix, name):
+        # construct sequence from prefix + alt + suffix
+        return AlleleReadFields.__new__(
+            cls,
+            prefix=prefix,
+            allele=allele,
+            suffix=suffix,
+            name=name,
+            sequence=prefix + allele + suffix)
+
+    def __len__(self):
+        return len(self.prefix) + len(self.allele) + len(self.suffix)
 
 def allele_read_from_locus_read(locus_read, n_ref):
     """

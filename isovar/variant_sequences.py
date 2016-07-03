@@ -29,7 +29,7 @@ from .dataframe_builder import dataframe_from_generator
 
 # using this base class to define the core fields of a VariantSequence
 # but inheriting it from it to allow the addition of helper methods
-VariantSequenceBase = namedtuple(
+VariantSequenceFields = namedtuple(
     "VariantSequence",
     [
         # nucleotides before a variant
@@ -38,16 +38,22 @@ VariantSequenceBase = namedtuple(
         "alt",
         # nucleotides after a variant
         "suffix",
+        # since we often want to look at prefix+alt+suffix, let's cache it
+        "sequence",
         # reads which were used to determine this sequences
         "reads",
     ])
 
-class VariantSequence(VariantSequenceBase):
-    def __init__(self, **kwargs):
-        VariantSequenceBase.__init__(self, **kwargs)
-        # cache concatenation of sequence parts so we don't have to
-        # do this repeatedly
-        self.sequence = self.prefix + self.alt + self.suffix
+class VariantSequence(VariantSequenceFields):
+    def __new__(cls, prefix, alt, suffix, reads):
+        # construct sequence from prefix + alt + suffix
+        return VariantSequenceFields.__new__(
+            cls,
+            prefix=prefix,
+            alt=alt,
+            suffix=suffix,
+            sequence=prefix + alt + suffix,
+            reads=frozenset(reads))
 
     def __len__(self):
         return len(self.sequence)
@@ -68,6 +74,49 @@ class VariantSequence(VariantSequenceBase):
                 self.prefix.endswith(other.prefix) and
                 self.suffix.startswith(other.suffix))
 
+    def left_overlaps(self, other, min_overlap_size=1):
+        """
+        Does this VariantSequence overlap another on the left side?
+        The alleles must match and they must share at least `min_overlap_size`
+        nucleotides in their prefix or suffix.
+        """
+
+        if self.alt != other.alt:
+            # allele must match!
+            return False
+
+        if len(other.prefix) > len(self.prefix):
+            # only consider strings that overlap like:
+            #   variant_sequence1: ppppAssss
+            #   variant_sequence2:   ppAsssssss
+            # which excludes cases where variant_sequence2 has a longer
+            # prefix
+            return False
+        elif len(other.suffix) < len(self.suffix):
+            # similarly, we throw cases where variant_sequence2 is shorter
+            # after the alt nucleotides than variant_sequence1
+            return False
+
+        # is the candidate sequence is a prefix of the accepted?
+        # Example:
+        # p1 a1 s1 = XXXXXXXX Y ZZZZZZ
+        # p2 a2 s2 =       XX Y ZZZZZZZZZ
+        # ...
+        # then we can combine them into a longer sequence
+        return (
+            self.prefix.endswith(other.prefix) and
+            other.suffix.startswith(self.suffix)
+        )
+
+    def add_reads(self, reads):
+        """
+        Create another VariantSequence with more supporting reads.
+        """
+        return VariantSequence(
+            prefix=self.prefix,
+            alt=self.alt,
+            suffix=self.suffix,
+            reads=self.reads.union(reads))
 
 def sort_key_decreasing_read_count(variant_sequence):
     return -len(variant_sequence.reads)

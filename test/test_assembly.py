@@ -15,7 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 from isovar.variant_reads import reads_supporting_variant
-from isovar.assembly import assemble_transcript_fragments
+from isovar.assembly import assemble_reads_into_variant_sequences
 from pyensembl import ensembl_grch38
 from varcode import Variant
 from nose.tools import eq_
@@ -39,20 +39,23 @@ def test_assemble_transcript_fragments_snv():
         samfile=samfile,
         chromosome=chromosome,)
 
-    longer_sequences = assemble_transcript_fragments(
+    sequences = assemble_reads_into_variant_sequences(
         variant_reads,
         min_overlap_size=30)
 
-    assert len(longer_sequences) > 0
-
-    for (p, v, s), c in longer_sequences:
+    assert len(sequences) > 0
+    max_read_length = max(len(r) for r in variant_reads)
+    for s in sequences:
         print("%s%s%s weight=%d length=%d" % (
-            p,
-            v,
-            s,
-            c,
-            len(p + v + s)))
-        eq_(v, alt)
+            s.prefix,
+            s.alt,
+            s.suffix,
+            len(s.reads),
+            len(s.sequence)))
+        eq_(s.alt, alt)
+        assert len(s) > max_read_length, \
+            "Expected assembled sequences to be longer than read length (%d)" % (
+                max_read_length,)
 
 if __name__ == "__main__":
     test_assemble_transcript_fragments_snv()

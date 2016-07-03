@@ -15,11 +15,10 @@
 from __future__ import print_function, division, absolute_import
 
 from collections import defaultdict
+import logging
 
-from .variant_sequence import (
-    supporting_reads_to_variant_sequences,
-    VariantSequence
-)
+from .read_helpers import group_unique_sequences
+from .variant_sequences import VariantSequence
 
 MIN_OVERLAP_SIZE = 30
 
@@ -71,63 +70,6 @@ def combine_variant_sequences(variant_sequence1, variant_sequence2):
         reads=set(
             variant_sequence1.reads).union(set(variant_sequence2.reads)))
 
-def ok_to_combine_variant_sequences(
-        variant_sequence1,
-        variant_sequence2,
-        min_overlap_size=MIN_OVERLAP_SIZE):
-    """
-    Parameters
-    ----------
-    variant_sequence1 : VariantSequence
-
-    variant_sequence2 : VariantSequence
-
-    Returns boolean indicating whether the two sequences have sufficient
-    overlap and whether they agree in the overlapping regions.
-    """
-    if variant_sequence1.alt != variant_sequence2.alt:
-        # allele must match!
-        return False
-    if len(variant_sequence2.prefix) > len(variant_sequence1.prefix):
-        # only consider strings that overlap like:
-        #   variant_sequence1: ppppAssss
-        #   variant_sequence2:   ppAsssssss
-        # which excludes cases where variant_sequence2 has a longer
-        # prefix
-        return False
-    elif len(variant_sequence2.suffix) < len(variant_sequence1.suffix):
-        # similarly, we throw cases where variant_sequence2 is shorter
-        # after the alt nucleotides than variant_sequence1
-        return False
-
-    possible_overlap = (
-        len(variant_sequence2.prefix) +
-        len(variant_sequence1.suffix)
-    )
-
-    if possible_overlap < min_overlap_size:
-        return False
-
-    # compare lengths of the two old sequences and the candidate
-    # sequence we're considering constructing
-    len1 = len(variant_sequence1.prefix) + len(variant_sequence1.suffix)
-    len2 = len(variant_sequence2.prefix) + len(variant_sequence2.suffix)
-    new_length = len(variant_sequence1.prefix) + len(variant_sequence2.suffix)
-
-    if new_length <= len1 or new_length <= len2:
-        # if we're not extending the sequence length, then why bother?
-        return False
-
-    # is the candidate sequence is a prefix of the accepted?
-    # Example:
-    # p1 a1 s1 = XXXXXXXX Y ZZZZZZ
-    # p2 a2 s2 =       XX Y ZZZZZZZZZ
-    # ...
-    # then combine them into a longer sequence
-    prefix_ok = variant_sequence1.prefix.endswith(variant_sequence2.prefix)
-    suffix_ok = variant_sequence2.suffix.startswith(variant_sequence1.suffix)
-    return prefix_ok and suffix_ok
-
 def greedy_merge(variant_sequences, min_overlap_size=MIN_OVERLAP_SIZE):
     """
     Greedily merge overlapping sequences into longer sequences.
@@ -151,13 +93,15 @@ def greedy_merge(variant_sequences, min_overlap_size=MIN_OVERLAP_SIZE):
         for variant_sequence2 in sorted(
                 variant_sequences,
                 key=sort_by_decreasing_suffix_length):
-            if not ok_to_combine_variant_sequences(
-                    variant_sequence1,
+            if not variant_sequence1.left_overlaps(
                     variant_sequence2,
                     min_overlap_size=min_overlap_size):
                 continue
             combined = combine_variant_sequences(
                 variant_sequence1, variant_sequence2)
+            if len(combined) <= max(len(variant_sequence1), len(variant_sequence2)):
+                # if the combined sequence isn't any longer, then why bother?
+                continue
             if combined.sequence in merged_variant_sequences:
                 # it's possible to get the same merged sequence from distinct
                 # input sequences
@@ -176,7 +120,7 @@ def greedy_merge(variant_sequences, min_overlap_size=MIN_OVERLAP_SIZE):
                 merged_variant_sequences[combined.sequence] = combined_with_more_reads
             else:
                 merged_variant_sequences[combined.sequence] = combined
-    return merged_variant_sequences
+    return list(merged_variant_sequences.values())
 
 def collapse_substrings(variant_sequences):
     """
@@ -203,7 +147,7 @@ def collapse_substrings(variant_sequences):
                 extra_reads_from_substrings[long_variant_sequence].update(
                     short_variant_sequence.reads)
         if not found_superstring:
-            result_list.append(long_variant_sequence)
+            result_list.append(short_variant_sequence)
     # add to each VariantSequence the reads it absorbed from dropped substrings
     # and then return
     return [
@@ -233,6 +177,12 @@ def iterative_assembly(
             variant_sequences,
             min_overlap_size=min_overlap_size)
 
+        logging.info(
+            "Iteration #%d of assembly: generated %d sequences (from %d)" % (
+                i + 1,
+                len(variant_sequences),
+                len(previous_sequences)))
+
         if len(variant_sequences) == 0:
             # if the greedy merge procedure fails for all pairs of candidate
             # sequences then we'll get an empty set of new longer sequences,
@@ -241,7 +191,9 @@ def iterative_assembly(
             return previous_sequences
 
         variant_sequences = collapse_substrings(variant_sequences)
-
+        logging.info(
+            "After collpasing subsequences, %d distinct sequences left" % (
+                len(variant_sequences)))
         if len(variant_sequences) == 1:
             # once we have only one sequence then there's no point trying
             # to further combine sequences
@@ -251,23 +203,20 @@ def iterative_assembly(
 def assemble_reads_into_variant_sequences(
         variant_reads,
         min_overlap_size=30,
-        n_merge_iters=2,
-        initial_sequence_length=None):
+        n_merge_iters=2):
     """
     Turn a collection of AlleleRead objects into a collection of VariantSequence
     objects, which are returned in order of (# supported reads, sequence length)
     """
-    if initial_sequence_length is None:
-        # if no length given for initial 'consensus' sequences then
-        # just use the shortest read length
-        initial_sequence_length = min(
-            len(r.prefix + r.allele + r.suffix)
-            for r in variant_reads)
-
-    initial_variant_sequences = supporting_reads_to_variant_sequences(
-        reads=variant_reads,
-        preferred_sequence_length=initial_sequence_length,
-        min_reads_supporting_cdna_sequence=1)
+    initial_variant_sequences = [
+        VariantSequence(
+            prefix=prefix,
+            alt=alt,
+            suffix=suffix,
+            reads=reads)
+        for (prefix, alt, suffix), reads in
+        group_unique_sequences(variant_reads).items()
+    ]
     return iterative_assembly(
         initial_variant_sequences,
         min_overlap_size=min_overlap_size,
