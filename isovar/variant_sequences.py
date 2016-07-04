@@ -145,15 +145,27 @@ def all_variant_sequences_supported_by_variant_reads(
         for ((prefix, alt, suffix), reads)
         in unique_sequence_groups.items()
     ]
-
-def filter_variant_sequences(
+def filter_variant_sequences_by_read_support(
         variant_sequences,
-        preferred_sequence_length,
-        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
-    """
-    Drop variant sequences which are shorter than request or don't have
-    enough supporting reads.
-    """
+        min_reads_supporting_cdna_sequence):
+    n_total = len(variant_sequences)
+    variant_sequences = [
+        s
+        for s in variant_sequences
+        if len(s.reads) >= min_reads_supporting_cdna_sequence
+    ]
+    n_dropped = n_total - len(variant_sequences)
+    if n_dropped > 0:
+        logging.info("Dropped %d/%d variant sequences less than %d supporting reads" % (
+            n_dropped,
+            n_total,
+            min_reads_supporting_cdna_sequence))
+    return variant_sequences
+
+def filter_variant_sequences_by_length(
+        variant_sequences,
+        preferred_sequence_length):
+    n_total = len(variant_sequences)
     # since we might have gotten some shorter fragments,
     # keep only the longest spanning sequence
     max_observed_sequence_length = max(len(s) for s in variant_sequences)
@@ -167,15 +179,28 @@ def filter_variant_sequences(
         s for s in variant_sequences
         if len(s.sequence) >= min_required_sequence_length
     ]
-    n_total = len(variant_sequences)
-    variant_sequences = [
-        s
-        for s in variant_sequences
-        if len(s.reads) >= min_reads_supporting_cdna_sequence
-    ]
     n_dropped = n_total - len(variant_sequences)
-    logging.info("Dropped %d/%d variant sequences" % (n_dropped, n_total))
+    if n_dropped > 0:
+        logging.info("Dropped %d/%d variant sequences shorter than %d" % (
+            n_dropped,
+            n_total,
+            min_required_sequence_length))
     return variant_sequences
+
+def filter_variant_sequences(
+        variant_sequences,
+        preferred_sequence_length,
+        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
+    """
+    Drop variant sequences which are shorter than request or don't have
+    enough supporting reads.
+    """
+    variant_sequences = filter_variant_sequences_by_read_support(
+        variant_sequences=variant_sequences,
+        min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
+    return filter_variant_sequences_by_length(
+        variant_sequences=variant_sequences,
+        preferred_sequence_length=preferred_sequence_length)
 
 def supporting_reads_to_variant_sequences(
         variant_reads,
