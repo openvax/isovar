@@ -42,7 +42,7 @@ def add_variant_sequence_args(parser, add_sequence_length_arg=True):
             type=int)
     return parser
 
-def make_variant_sequences_arg_parser(add_sequence_length_arg=True, **kwargs):
+def make_variant_sequences_arg_parser(add_sequence_length_arg=False, **kwargs):
     """
     Parameters
     ----------

@@ -21,7 +21,7 @@ from isovar.args.variant_sequences import (
     variant_sequences_dataframe_from_args
 )
 
-parser = make_variant_sequences_arg_parser()
+parser = make_variant_sequences_arg_parser(add_sequence_length_arg=True)
 
 parser.add_argument(
     "--output",
