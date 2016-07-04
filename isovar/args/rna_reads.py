@@ -46,7 +46,7 @@ def add_rna_args(
         "--min-mapping-quality",
         type=int,
         default=min_mapping_quality_default,
-        help="Minimum MAPQ value to allow for a read")
+        help="Minimum MAPQ value to allow for a read (default=%(defaults)s)")
 
     rna_group.add_argument(
         "--use-duplicate-reads",

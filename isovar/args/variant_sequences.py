@@ -25,13 +25,15 @@ from ..variant_sequences import (
 )
 from .rna_reads import allele_reads_generator_from_args, make_rna_reads_arg_parser
 
-def add_variant_sequence_args(parser, add_sequence_length_arg=False):
+def add_variant_sequence_args(
+        parser,
+        add_sequence_length_arg=False):
     rna_sequence_group = parser.add_argument_group("Consensus cDNA sequence")
     rna_sequence_group.add_argument(
         "--min-reads-supporting-variant-sequence",
         type=int,
         default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-        help="Minimum number of reads supporting a variant sequence")
+        help="Minimum number of reads supporting a variant sequence (default=%(default)s")
 
     # when cDNA sequence length can be inferred from a protein length then
     # we may want to omit this arg
