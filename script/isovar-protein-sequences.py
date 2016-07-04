@@ -22,22 +22,14 @@ a read count to each protein sequence.
 
 from __future__ import print_function, division, absolute_import
 import logging
-import argparse
 
-from isovar.args import (
-    add_somatic_vcf_args,
-    add_rna_args,
-    add_reference_context_args,
-    add_protein_sequence_args
+from isovar.args.protein_sequences import (
+    make_protein_sequences_arg_parser,
+    protein_sequences_dataframe_from_args
 )
-from isovar.cli_helpers import variants_to_protein_sequences_dataframe_from_args
 
+parser = make_protein_sequences_arg_parser()
 
-parser = argparse.ArgumentParser()
-parser = add_somatic_vcf_args(parser)
-parser = add_rna_args(parser)
-parser = add_reference_context_args(parser)
-parser = add_protein_sequence_args(parser)
 parser.add_argument(
     "--output",
     default="isovar-translate-variants-results.csv",
@@ -47,6 +39,6 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     args = parser.parse_args()
     print(args)
-    df = variants_to_protein_sequences_dataframe_from_args(args)
+    df = protein_sequences_dataframe_from_args(args)
     print(df)
     df.to_csv(args.output)

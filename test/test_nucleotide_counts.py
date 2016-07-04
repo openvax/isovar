@@ -15,7 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 from isovar.nucleotide_counts import most_common_nucleotides
-from isovar.variant_read import gather_reads_for_single_variant
+from isovar.variant_reads import reads_supporting_variant
 
 from varcode import Variant
 from pyensembl import ensembl_grch38
@@ -36,7 +36,7 @@ def test_most_common_nucleotides_for_chr12_deletion():
         ref,
         alt,
         ensembl=ensembl_grch38)
-    variant_reads = gather_reads_for_single_variant(
+    variant_reads = reads_supporting_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
@@ -51,7 +51,7 @@ def test_most_common_nucleotides_for_chr12_deletion():
 
     number_matching_reads = 0
     for variant_read in variant_reads:
-        full_seq = variant_read.prefix + variant_read.alt + variant_read.suffix
+        full_seq = variant_read.prefix + variant_read.allele + variant_read.suffix
         number_matching_reads += (full_seq in consensus_sequence)
     fraction_matching_reads = number_matching_reads / float(len(variant_reads))
     print("Fraction matching reads is %d/%d = %f" % (

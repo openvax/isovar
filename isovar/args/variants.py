@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (c) 2016. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,21 +14,26 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.args.variant_sequences import (
-    make_variant_sequences_arg_parser,
-    variant_sequences_dataframe_from_args
-)
+from varcode import load_vcf_fast
 
-parser = make_variant_sequences_arg_parser()
+def add_somatic_vcf_args(parser):
+    """
+    Extends an ArgumentParser instance with the following commandline arguments:
+        --vcf
+        --genome
+    """
+    variant_group = parser.add_argument_group("Variants")
+    variant_group.add_argument(
+        "--vcf",
+        required=True,
+        help="Path to VCF file containing somatic variants")
 
-parser.add_argument(
-    "--output",
-    default="isovar-variant-sequences-results.csv",
-    help="Name of CSV file which contains predicted sequences")
+    variant_group.add_argument(
+        "--genome",
+        default=None,
+        required=False,
+        help="Name of reference genome for VCF of somatic variants")
+    return parser
 
-if __name__ == "__main__":
-    args = parser.parse_args()
-    print(args)
-    df = variant_sequences_dataframe_from_args(args)
-    print(df)
-    df.to_csv(args.output)
+def variants_from_args(args):
+    return load_vcf_fast(args.vcf, genome=args.genome)

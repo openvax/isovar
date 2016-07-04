@@ -19,6 +19,7 @@ from isovar.translation import (
     translate_variants,
     compute_offset_to_first_complete_codon,
 )
+from isovar.variant_reads import reads_supporting_variants
 from nose.tools import eq_
 
 from testing_helpers import load_bam, load_vcf
@@ -68,21 +69,19 @@ def test_compute_offset_to_first_complete_codon_trimming_after_codon():
             n_trimmed_from_reference_sequence=10),
         0)
 
-"""
-def test_determine_reading_frame_for_variant_sequence():
-    reference_context = None
-    variant_sequence = None
-    variant_sequence_in_reading_frame = \
-        determine_reading_frame_for_variant_sequence(
-            variant_sequence=variant_sequence,
-            reference_context=reference_context)
-"""
-
 def test_translate_variant_collection():
     variants = load_vcf("data/b16.f10/b16.vcf")
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
-    result = list(translate_variants(variants, samfile))
-    assert len(result) == 4, result
+
+    result = list(translate_variants(reads_supporting_variants(variants, samfile)))
+    assert len(result) == 4, \
+        "Expected %d translated variants but got %d: %s" % (
+            len(variants),
+            len(result),
+            result)
 
 if __name__ == "__main__":
+    test_compute_offset_to_first_complete_codon_no_trimming()
+    test_compute_offset_to_first_complete_codon_trimming_before_codon()
+    test_compute_offset_to_first_complete_codon_trimming_after_codon()
     test_translate_variant_collection()

@@ -85,7 +85,9 @@ SequenceKeyWithReadingFrame = namedtuple(
 
 ReferenceContext = namedtuple(
     "ReferenceContext",
-    SequenceKeyWithReadingFrame._fields + ("variant", "transcripts")
+    SequenceKeyWithReadingFrame._fields + (
+        "variant",
+        "transcripts")
 )
 
 def variant_matches_reference_sequence(variant, ref_seq_on_transcript, strand):

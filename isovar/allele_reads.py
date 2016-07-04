@@ -13,15 +13,15 @@
 # limitations under the License.
 
 """
-Collect reads containing a variant and split them into prefix, variant, and
-suffix portions
+Reads overlapping a locus of interest split into prefix,
+allele (ref, alt, or otherwise), and suffix portions
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 import logging
 
-from .read_at_locus import read_at_locus_generator
+from .locus_reads import locus_read_generator
 from .default_parameters import (
     MIN_READ_MAPPING_QUALITY,
     USE_SECONDARY_ALIGNMENTS,
@@ -29,73 +29,49 @@ from .default_parameters import (
 )
 from .variant_helpers import trim_variant
 from .dataframe_builder import DataFrameBuilder
+from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
 
+# subclassing from namedtuple to get a lightweight object with built-in
+# hashing and comparison while also being able to add methods
+AlleleReadFields = namedtuple(
+    "AlleleRead",
+    "prefix allele suffix name sequence")
 
-VariantRead = namedtuple(
-    "VariantRead", "prefix alt suffix name")
+class AlleleRead(AlleleReadFields):
+    def __new__(cls, prefix, allele, suffix, name):
+        # construct sequence from prefix + alt + suffix
+        return AlleleReadFields.__new__(
+            cls,
+            prefix=prefix,
+            allele=allele,
+            suffix=suffix,
+            name=name,
+            sequence=prefix + allele + suffix)
 
+    def __len__(self):
+        return len(self.prefix) + len(self.allele) + len(self.suffix)
 
-def trim_N_nucleotides(prefix, suffix):
+def allele_read_from_locus_read(locus_read, n_ref):
     """
-    Drop all occurrences of 'N' from prefix and suffix nucleotide strings
-    by trimming.
-    """
-    if 'N' in prefix:
-        # trim prefix to exclude all occurrences of N
-        rightmost_index = prefix.rfind('N')
-        logging.debug(
-            "Trimming %d nucleotides from read prefix '%s'" % (
-                rightmost_index + 1, prefix))
-        prefix = prefix[rightmost_index + 1:]
-
-    if 'N' in suffix:
-        leftmost_index = suffix.find('N')
-        logging.debug(
-            "Trimming %d nucleotides from read suffix '%s'" % (
-                len(suffix) - leftmost_index,
-                suffix))
-        suffix = suffix[:leftmost_index]
-
-    return prefix, suffix
-
-def convert_from_bytes_if_necessary(prefix, suffix):
-    """
-    Depending on how we extract data from pysam we may end up with either
-    a string or a byte array of nucleotides. For consistency and simplicity,
-    we want to only use strings in the rest of our code.
-    """
-    if isinstance(prefix, bytes):
-        prefix = prefix.decode('ascii')
-
-    if isinstance(suffix, bytes):
-        suffix = suffix.decode('ascii')
-
-    return prefix, suffix
-
-def variant_read_from_single_read_at_locus(read, ref, alt):
-    """
-    Given a single ReadAtLocus object, return either a VariantRead or None
-    (if the read's sequence didn't contain the variant nucleotides).
+    Given a single ReadAtLocus object, return either an AlleleRead or None
 
     Parameters
     ----------
-    read : ReadAtLocus
-        Read which may possibly contain the alternate nucleotides
+    locus_read : LocusRead
+        Read which overlaps a variant locus but doesn't necessarily contain the
+        alternate nucleotides
 
-    ref : str
-        Reference sequence of the variant (empty for insertions)
-
-    alt : str
-        Alternate sequence of the variant (empty for deletions)
-
+    n_ref : int
+        Number of reference positions we are expecting to be modified or
+        deleted (for insertions this should be 0)
     """
-    sequence = read.sequence
-    reference_positions = read.reference_positions
+    sequence = locus_read.sequence
+    reference_positions = locus_read.reference_positions
 
     # positions of the nucleotides before and after the variant within
     # the read sequence
-    read_pos_before = read.base0_read_position_before_variant
-    read_pos_after = read.base0_read_position_after_variant
+    read_pos_before = locus_read.base0_read_position_before_variant
+    read_pos_after = locus_read.base0_read_position_after_variant
 
     # positions of the nucleotides before and after the variant on the
     # reference genome
@@ -104,7 +80,7 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
     if ref_pos_before is None:
         logging.warn(
             "Missing reference pos for nucleotide before variant on read: %s" % (
-                read,))
+                locus_read,))
         return None
 
     ref_pos_after = reference_positions[read_pos_after]
@@ -112,10 +88,10 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
     if ref_pos_after is None:
         logging.warn(
             "Missing reference pos for nucleotide after variant on read: %s" % (
-                read,))
+                locus_read,))
         return None
 
-    if len(ref) == 0:
+    if n_ref == 0:
         if ref_pos_after - ref_pos_before != 1:
             # if the number of nucleotides skipped isn't the same
             # as the number of reference nucleotides in the variant then
@@ -124,7 +100,7 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
                 "Positions before (%d) and after (%d) variant should be adjacent on read %s" % (
                     ref_pos_before,
                     ref_pos_after,
-                    read))
+                    locus_read))
             return None
 
         # insertions require a sequence of non-aligned bases
@@ -139,7 +115,7 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
             return None
     else:
         # substitutions and deletions
-        if ref_pos_after - ref_pos_before != len(ref) + 1:
+        if ref_pos_after - ref_pos_before != n_ref + 1:
             # if the number of nucleotides skipped isn't the same
             # as the number of reference nucleotides in the variant then
             # don't use this read
@@ -147,19 +123,10 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
                 "Positions before (%d) and after (%d) variant should be adjacent on read %s" % (
                     ref_pos_before,
                     ref_pos_after,
-                    read))
+                    locus_read))
             return None
 
     nucleotides_at_variant_locus = sequence[read_pos_before + 1:read_pos_after]
-    if nucleotides_at_variant_locus != alt:
-        # read sequence doesn't match variant
-        logging.debug("Read '%s' has '%s' at variant locus (%d:%d), required '%s'" % (
-            read.name,
-            nucleotides_at_variant_locus,
-            read_pos_before + 1,
-            read_pos_after,
-            alt))
-        return None
 
     prefix = sequence[:read_pos_before + 1]
     suffix = sequence[read_pos_after:]
@@ -167,13 +134,13 @@ def variant_read_from_single_read_at_locus(read, ref, alt):
     prefix, suffix = convert_from_bytes_if_necessary(prefix, suffix)
     prefix, suffix = trim_N_nucleotides(prefix, suffix)
 
-    return VariantRead(
+    return AlleleRead(
         prefix,
         nucleotides_at_variant_locus,
         suffix,
-        name=read.name)
+        name=locus_read.name)
 
-def variant_reads_from_reads_at_locus(reads, ref, alt):
+def allele_reads_from_locus_reads(locus_reads, n_ref):
     """
     Given a collection of ReadAtLocus objects, returns a
     list of VariantRead objects (which are split into prefix/variant/suffix
@@ -181,24 +148,22 @@ def variant_reads_from_reads_at_locus(reads, ref, alt):
 
     Parameters
     ----------
-    reads : sequence of ReadAtLocus records
+    locus_reads : sequence of LocusRead records
 
-    ref : str
-        Reference sequence of the variant (empty for insertions)
+    n_ref : int
+        Number of reference nucleotides affected by variant.
 
-    alt : str
-        Alternate sequence of the variant (empty for deletions)
-
-    Returns a list of VariantRead objects.
+    Generates AlleleRead objects.
     """
-    variant_reads = []
-    for read in reads:
-        variant_read = variant_read_from_single_read_at_locus(read, ref, alt)
-        if variant_read is not None:
-            variant_reads.append(variant_read)
-    return variant_reads
 
-def gather_reads_for_single_variant(
+    for locus_read in locus_reads:
+        allele_read = allele_read_from_locus_read(locus_read, n_ref)
+        if allele_read is None:
+            continue
+        else:
+            yield allele_read
+
+def reads_overlapping_variant(
         samfile,
         variant,
         chromosome=None,
@@ -227,7 +192,11 @@ def gather_reads_for_single_variant(
     min_mapping_quality : int
         Drop reads below this mapping quality
 
-    Returns list of VariantRead objects.
+    only_alt_allele : bool
+        Filter reads to only include those that support the alt allele of
+        the variant.
+
+    Returns sequence of AlleleRead objects.
     """
     logging.info("Gathering reads for %s" % variant)
     if chromosome is None:
@@ -238,6 +207,7 @@ def gather_reads_for_single_variant(
         chromosome))
 
     base1_position, ref, alt = trim_variant(variant)
+
     if len(ref) == 0:
         # if the variant is an insertion
         base1_position_before_variant = base1_position
@@ -246,37 +216,25 @@ def gather_reads_for_single_variant(
         base1_position_before_variant = base1_position - 1
         base1_position_after_variant = base1_position + len(ref)
 
-    reads = list(read_at_locus_generator(
+    locus_reads = locus_read_generator(
         samfile=samfile,
         chromosome=chromosome,
         base1_position_before_variant=base1_position_before_variant,
         base1_position_after_variant=base1_position_after_variant,
         use_duplicate_reads=use_duplicate_reads,
         use_secondary_alignments=use_secondary_alignments,
-        min_mapping_quality=min_mapping_quality))
+        min_mapping_quality=min_mapping_quality)
 
-    logging.info(
-        "Found %d reads at locus overlapping %s" % (len(reads), variant))
+    allele_reads = allele_reads_from_locus_reads(
+        locus_reads=locus_reads,
+        n_ref=len(ref))
 
-    variant_reads = list(
-        variant_reads_from_reads_at_locus(
-            reads=reads,
-            ref=ref,
-            alt=alt))
-    logging.info("Found %d VariantReads for variant %s" % (
-        len(variant_reads),
-        variant))
-    return variant_reads
+    return allele_reads
 
-def variant_reads_generator(
-        variants,
-        samfile,
-        use_duplicate_reads=USE_DUPLICATE_READS,
-        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+def reads_overlapping_variants(variants, samfile, **kwargs):
     """
     Generates sequence of tuples, each containing a variant paired with
-    a list of VariantRead objects.
+    a list of AlleleRead objects.
 
     Parameters
     ----------
@@ -311,48 +269,33 @@ def variant_reads_generator(
                 "Chromosome '%s' from variant %s not in alignment file %s" % (
                     chromosome, variant, samfile.filename))
             continue
-        variant_reads = gather_reads_for_single_variant(
+        allele_reads = reads_overlapping_variant(
             samfile=samfile,
             chromosome=chromosome,
             variant=variant,
-            use_duplicate_reads=use_duplicate_reads,
-            use_secondary_alignments=use_secondary_alignments,
-            min_mapping_quality=min_mapping_quality)
-        yield variant, variant_reads
+            **kwargs)
+        yield variant, allele_reads
 
 
-def variant_reads_dataframe(
-        variants,
-        samfile,
-        use_duplicate_reads=USE_DUPLICATE_READS,
-        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+def group_reads_by_allele(allele_reads):
     """
-    Creates a DataFrame containing sequences around variant from variant
-    collection and BAM/SAM file.
+    Returns dictionary mapping each allele's nucleotide sequence to a list of
+    supporting AlleleRead objects.
+    """
+    allele_to_reads_dict = defaultdict(list)
+    for allele_read in allele_reads:
+        allele_to_reads_dict[allele_read.allele].append(allele_read)
+    return allele_to_reads_dict
 
+def reads_to_dataframe(variants_and_allele_reads):
+    """
     Parameters
     ----------
-    variants : varcode.VariantCollection
-
-    samfile : pysam.AlignmentFile
-
-    use_duplicate_reads : bool
-        Should we use reads that have been marked as PCR duplicates
-
-    use_secondary_alignments : bool
-        Should we use reads at locations other than their best alignment
-
-    min_mapping_quality : int
-        Drop reads below this mapping quality
+    variants_and_allele_reads : sequence
+        List or generator of pairs whose first element is a Variant and
+        whose second element is a sequence of AlleleRead objects.
     """
-    df_builder = DataFrameBuilder(VariantRead)
-    for variant, variant_reads in variant_reads_generator(
-            variants,
-            samfile,
-            use_duplicate_reads=use_duplicate_reads,
-            use_secondary_alignments=use_secondary_alignments,
-            min_mapping_quality=min_mapping_quality):
-        for variant_read in variant_reads:
-            df_builder.add(variant, variant_read)
+    df_builder = DataFrameBuilder(AlleleRead)
+    for variant, allele_reads in variants_and_allele_reads:
+        df_builder.add_many(variant, allele_reads)
     return df_builder.to_dataframe()

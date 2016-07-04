@@ -17,23 +17,23 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 
 from .common import (
-    make_prefix_suffix_pairs,
     nucleotide_to_index,
     index_to_nucleotide,
 )
+from .read_helpers import (
+    make_prefix_suffix_pairs,
+    get_single_allele_from_reads,
+)
 
-def nucleotide_counts(partitioned_read_sequences):
+def nucleotide_counts(variant_reads):
     """
     Count the number of times {A, C, T, G} occur at each position to the
     left and right of the variant.
 
     Parameters
     ----------
-    partitioned_read_sequences : list of tuples
-        Each tuple has three elements:
-            - sequence before mutant nucleotides
-            - mutant nucleotides
-            - sequence after mutant nucleotides
+    variant_reads : list of AlleleRead objects
+        Expected to all contain the same variant allele.
 
     Returns a tuple with the following elements:
         - a matrix with four rows and as many columns as the sum of the longest
@@ -41,8 +41,9 @@ def nucleotide_counts(partitioned_read_sequences):
           the number of variant nucleotids.
         - the column indices for the variant nucleotides
     """
-    variant_seq, prefix_suffix_pairs = make_prefix_suffix_pairs(
-        partitioned_read_sequences)
+    variant_seq = get_single_allele_from_reads(variant_reads)
+
+    prefix_suffix_pairs = make_prefix_suffix_pairs(variant_reads)
     n_reads = len(prefix_suffix_pairs)
     max_prefix_length = max(len(p) for (p, _) in prefix_suffix_pairs)
     max_suffix_length = max(len(s) for (_, s) in prefix_suffix_pairs)

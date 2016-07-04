@@ -21,43 +21,12 @@ sequences using an RNAseq BAM from the same tissuie.
 
 from __future__ import print_function, division, absolute_import
 
-import argparse
-
-import varcode
-from pysam import AlignmentFile
-
-from isovar.args import add_somatic_vcf_args, add_rna_args
-from isovar.translation import translate_variants_dataframe
-from isovar.default_parameters import (
-    MIN_TRANSCRIPT_PREFIX_LENGTH,
-    MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-    PROTEIN_SEQUENCE_LENGTH,
+from isovar.args.translation import (
+    make_translation_arg_parser,
+    translations_dataframe_from_args,
 )
 
-
-parser = argparse.ArgumentParser()
-parser = add_somatic_vcf_args(parser)
-parser = add_rna_args(parser)
-
-parser.add_argument(
-    "--protein-sequence-length",
-    default=PROTEIN_SEQUENCE_LENGTH,
-    type=int)
-
-parser.add_argument(
-    "--max-reference-transcript-mismatches",
-    type=int,
-    default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES)
-
-parser.add_argument(
-    "--min-transcript-prefix-length",
-    type=int,
-    default=MIN_TRANSCRIPT_PREFIX_LENGTH,
-    help=(
-        "Number of nucleotides before the variant we try to match against "
-        "a reference transcript. Values greater than zero exclude variants "
-        "near the start codon of transcripts without 5' UTRs."))
-
+parser = make_translation_arg_parser()
 parser.add_argument(
     "--output",
     default="isovar-translate-variants-results.csv",
@@ -65,20 +34,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-
     print(args)
-
-    variants = varcode.load_vcf(
-        args.vcf,
-        genome=args.genome)
-
-    samfile = AlignmentFile(args.bam)
-    df = translate_variants_dataframe(
-        variants=variants,
-        samfile=samfile,
-        protein_sequence_length=args.protein_sequence_length,
-        min_reads_supporting_rna_sequence=args.min_reads,
-        min_transcript_prefix_length=args.min_transcript_prefix_length,
-        max_transcript_mismatches=args.max_reference_transcript_mismatches)
+    df = translations_dataframe_from_args(args)
     print(df)
     df.to_csv(args.output)

@@ -30,8 +30,8 @@ from .default_parameters import (
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
 
-ReadAtLocus = namedtuple(
-    "ReadAtLocus",
+LocusRead = namedtuple(
+    "LocusRead",
     [
         "name",
         "sequence",
@@ -41,7 +41,7 @@ ReadAtLocus = namedtuple(
         "base0_read_position_after_variant",
     ])
 
-def create_read_at_locus_from_pysam_pileup_element(
+def create_locus_read_from_pysam_pileup_element(
         pileup_element,
         base0_position_before_variant,
         base0_position_after_variant,
@@ -63,7 +63,7 @@ def create_read_at_locus_from_pysam_pileup_element(
 
     min_mapping_quality : int
 
-    Returns ReadAtLocus or None
+    Returns LocusRead or None
     """
     read = pileup_element.alignment
 
@@ -171,7 +171,7 @@ def create_read_at_locus_from_pysam_pileup_element(
 
     if isinstance(sequence, bytes):
         sequence = sequence.decode('ascii')
-    return ReadAtLocus(
+    return LocusRead(
         name=name,
         sequence=sequence,
         reference_positions=reference_positions,
@@ -206,7 +206,7 @@ def pileup_reads_at_position(samfile, chromosome, base0_position):
     # desired position
     return []
 
-def read_at_locus_generator(
+def locus_read_generator(
         samfile,
         chromosome,
         base1_position_before_variant,
@@ -253,6 +253,8 @@ def read_at_locus_generator(
     base0_position_before_variant = base1_position_before_variant - 1
     base0_position_after_variant = base1_position_after_variant - 1
 
+    count = 0
+
     # We get a pileup at the base before the variant and then check to make sure
     # that reads also overlap the reference position after the variant.
     #
@@ -262,29 +264,38 @@ def read_at_locus_generator(
             samfile=samfile,
             chromosome=chromosome,
             base0_position=base0_position_before_variant):
-        read_at_locus = create_read_at_locus_from_pysam_pileup_element(
+        read = create_locus_read_from_pysam_pileup_element(
             pileup_element,
             base0_position_before_variant=base0_position_before_variant,
             base0_position_after_variant=base0_position_after_variant,
             use_secondary_alignments=use_secondary_alignments,
             use_duplicate_reads=use_duplicate_reads,
             min_mapping_quality=min_mapping_quality)
-        if read_at_locus is not None:
-            yield read_at_locus
 
-def reads_at_locus_dataframe(*args, **kwargs):
+        if read is not None:
+            count += 1
+            yield read
+
+    logging.info(
+        "Found %d reads overlapping locus %s: %d-%d" % (
+            count,
+            chromosome,
+            base1_position_before_variant,
+            base1_position_after_variant))
+
+def locus_reads_dataframe(*args, **kwargs):
     """
     Traverse a BAM file to find all the reads overlapping a specified locus.
 
     Parameters are the same as those for read_locus_generator.
     """
     df_builder = DataFrameBuilder(
-        ReadAtLocus,
+        LocusRead,
         variant_columns=False,
         converters={
             "reference_positions": list_to_string,
             "quality_scores": list_to_string,
         })
-    for read_at_locus in read_at_locus_generator(*args, **kwargs):
-        df_builder.add(variant=None, element=read_at_locus)
+    for locus_read in locus_read_generator(*args, **kwargs):
+        df_builder.add(variant=None, element=locus_read)
     return df_builder.to_dataframe()

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (c) 2016. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,23 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from __future__ import print_function, division, absolute_import
-
-from isovar.args.variant_sequences import (
-    make_variant_sequences_arg_parser,
-    variant_sequences_dataframe_from_args
-)
-
-parser = make_variant_sequences_arg_parser()
-
-parser.add_argument(
-    "--output",
-    default="isovar-variant-sequences-results.csv",
-    help="Name of CSV file which contains predicted sequences")
-
-if __name__ == "__main__":
-    args = parser.parse_args()
-    print(args)
-    df = variant_sequences_dataframe_from_args(args)
-    print(df)
-    df.to_csv(args.output)

@@ -14,23 +14,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Prints number of reads supporting ref, alt, and other alleles at variant loci.
+"""
+
 from __future__ import print_function, division, absolute_import
 
-from isovar.args.variant_sequences import (
-    make_variant_sequences_arg_parser,
-    variant_sequences_dataframe_from_args
+from isovar.args.rna_reads import (
+    make_rna_reads_arg_parser,
+    allele_reads_generator_from_args
 )
+from isovar.allele_counts import allele_counts_dataframe
 
-parser = make_variant_sequences_arg_parser()
+parser = make_rna_reads_arg_parser()
 
 parser.add_argument(
     "--output",
-    default="isovar-variant-sequences-results.csv",
-    help="Name of CSV file which contains predicted sequences")
+    default="isovar-allele-counts-result.csv",
+    help="Name of CSV file which contains read sequences")
 
 if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
-    df = variant_sequences_dataframe_from_args(args)
-    print(df)
-    df.to_csv(args.output)
+    variants_and_allele_reads_generator = allele_reads_generator_from_args(args)
+    allele_counts_df = allele_counts_dataframe(variants_and_allele_reads_generator)
+    print(allele_counts_df)
+    allele_counts_df.to_csv(args.output)

@@ -33,7 +33,8 @@ class DataFrameBuilder(object):
             exclude=set([]),
             converters={},
             rename_dict={},
-            variant_columns=True):
+            variant_columns=True,
+            convert_collections_to_size=True):
         """
         Parameters
         ----------
@@ -56,11 +57,17 @@ class DataFrameBuilder(object):
 
         variant_columns : bool
             If True, then add four columns for fields of a Variant: chr/pos/ref/alt
+
+        convert_collections_to_size : bool
+            If a value is a built-in collection (list, tuple, or set) then
+            transform it to the size of that collection. If this option is False
+            then collection values cause a runtime error.
         """
         self.element_class = element_class
         self.rename_dict = rename_dict
         self.converters = converters
         self.variant_columns = variant_columns
+        self.convert_collections_to_size = convert_collections_to_size
 
         # remove specified field names without changing the order of the others
         self.original_field_names = [
@@ -114,7 +121,9 @@ class DataFrameBuilder(object):
                 fn = self.converters[name]
                 value = fn(value)
 
-            if not isinstance(value, VALID_ELEMENT_TYPES):
+            if isinstance(value, (tuple, list, set)) and self.convert_collections_to_size:
+                value = len(value)
+            elif not isinstance(value, VALID_ELEMENT_TYPES):
                 raise ValueError(
                     "Please provider converter for field '%s' : %s to make a scalar or string" % (
                         name,
@@ -124,5 +133,15 @@ class DataFrameBuilder(object):
                 name = self.rename_dict[name]
             self.columns_dict[name].append(value)
 
+    def add_many(self, variant, elements):
+        for element in elements:
+            self.add(variant, element)
+
     def to_dataframe(self):
         return pd.DataFrame(self.columns_dict)
+
+def dataframe_from_generator(element_class, variant_and_elements_generator, **kwargs):
+    builder = DataFrameBuilder(element_class, **kwargs)
+    for variant, elements in variant_and_elements_generator:
+        builder.add_many(variant, elements)
+    return builder.to_dataframe()

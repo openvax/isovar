@@ -15,38 +15,26 @@
 # limitations under the License.
 
 """
-Prints all supporting read sequences containing a variant, along with their name
+Prints names and sequences of reads supporting a given set of variants.
 """
 
 from __future__ import print_function, division, absolute_import
-import argparse
 
-import varcode
-from pysam import AlignmentFile
+from isovar.args.rna_reads import (
+    variant_reads_dataframe_from_args,
+    make_rna_reads_arg_parser,
+)
 
-from isovar.variant_read import variant_reads_dataframe
-from isovar.args import add_somatic_vcf_args
+parser = make_rna_reads_arg_parser()
 
-parser = argparse.ArgumentParser()
-parser = add_somatic_vcf_args(parser)
 parser.add_argument(
     "--output",
     default="isovar-variant-reads-result.csv",
-    help="Name of CSV file which contains read sequences")
+    help="Name of CSV file which contains variant read sequences")
 
 if __name__ == "__main__":
     args = parser.parse_args()
-
     print(args)
-
-    variants = varcode.load_vcf(
-        args.vcf,
-        genome=args.genome)
-
-    samfile = AlignmentFile(args.bam)
-
-    df = variant_reads_dataframe(variants, samfile)
-
+    df = variant_reads_dataframe_from_args(args)
     print(df)
-
     df.to_csv(args.output)

@@ -14,7 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.variant_read import gather_reads_for_single_variant
+from isovar.variant_reads import reads_supporting_variant
 from pyensembl import ensembl_grch38
 
 from varcode import Variant
@@ -34,13 +34,13 @@ def test_partition_variant_reads_snv():
         ref=ref,
         alt=alt,
         ensembl=ensembl_grch38)
-    variant_reads = gather_reads_for_single_variant(
+    variant_reads = reads_supporting_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
     assert len(variant_reads) > 1
     for variant_read in variant_reads:
-        eq_(variant_read.alt, alt)
+        eq_(variant_read.allele, alt)
 
 def test_partition_variant_reads_deletion():
     samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
@@ -54,13 +54,13 @@ def test_partition_variant_reads_deletion():
         ref=ref,
         alt=alt,
         ensembl=ensembl_grch38)
-    variant_reads = gather_reads_for_single_variant(
+    variant_reads = reads_supporting_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
     assert len(variant_reads) > 1
     for variant_read in variant_reads:
-        eq_(variant_read.alt, alt)
+        eq_(variant_read.allele, alt)
 
 if __name__ == "__main__":
     test_partition_variant_reads_snv()

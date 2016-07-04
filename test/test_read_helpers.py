@@ -14,8 +14,8 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.common import group_unique_sequences
-from isovar.variant_read import gather_reads_for_single_variant
+from isovar.read_helpers import group_unique_sequences
+from isovar.variant_reads import reads_supporting_variant
 from varcode import Variant
 from pyensembl import ensembl_grch38
 
@@ -32,7 +32,7 @@ def test_group_unique_sequences():
         start=base1_location,
         ref=ref, alt=alt,
         ensembl=ensembl_grch38)
-    variant_reads = gather_reads_for_single_variant(
+    variant_reads = reads_supporting_variant(
         samfile=samfile,
         chromosome=chromosome,
         variant=variant)
