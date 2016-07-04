@@ -33,7 +33,7 @@ def add_variant_sequence_args(
         "--min-reads-supporting-variant-sequence",
         type=int,
         default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-        help="Minimum number of reads supporting a variant sequence (default=%(default)s")
+        help="Minimum number of reads supporting a variant sequence (default %(default)s)")
 
     # when cDNA sequence length can be inferred from a protein length then
     # we may want to omit this arg
