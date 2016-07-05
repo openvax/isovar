@@ -166,6 +166,8 @@ def filter_variant_sequences_by_length(
         variant_sequences,
         preferred_sequence_length):
     n_total = len(variant_sequences)
+    if n_total == 0:
+        return []
     # since we might have gotten some shorter fragments,
     # keep only the longest spanning sequence
     max_observed_sequence_length = max(len(s) for s in variant_sequences)
