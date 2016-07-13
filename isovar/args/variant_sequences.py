@@ -39,7 +39,7 @@ def add_variant_sequence_args(
     # we may want to omit this arg
     if add_sequence_length_arg:
         rna_sequence_group.add_argument(
-            "--cdna-sequence-sequence-length",
+            "--cdna-sequence-length",
             default=VARIANT_CDNA_SEQUENCE_LENGTH,
             type=int)
     return parser
@@ -73,7 +73,7 @@ def variant_sequences_generator_from_args(args):
     return reads_generator_to_sequences_generator(
         allele_reads_generator,
         min_reads_supporting_cdna_sequence=args.min_reads_supporting_variant_sequence,
-        preferred_sequence_length=args.cdna_sequence_sequence_length)
+        preferred_sequence_length=args.cdna_sequence_length)
 
 def variant_sequences_dataframe_from_args(args):
     variant_sequences_generator = variant_sequences_generator_from_args(args)
