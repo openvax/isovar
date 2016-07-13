@@ -105,7 +105,6 @@ class DataFrameBuilder(object):
                 ("pos", []),
                 ("ref", []),
                 ("alt", []),
-                ("gene", []),
             ]
         else:
             columns_list = []
