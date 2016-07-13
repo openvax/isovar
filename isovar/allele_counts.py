@@ -46,7 +46,11 @@ def allele_counts_dataframe(variant_and_allele_reads_generator):
     Creates a DataFrame containing number of reads supporting the
     ref vs. alt alleles for each variant.
     """
-    df_builder = DataFrameBuilder(AlleleCount)
+    df_builder = DataFrameBuilder(
+        AlleleCount,
+        extra_column_fns={
+            "gene": lambda variant, _: ";".join(variant.gene_names),
+        })
     for variant, allele_reads in variant_and_allele_reads_generator:
         counts = count_alleles_at_variant_locus(variant, allele_reads)
         df_builder.add(variant, counts)

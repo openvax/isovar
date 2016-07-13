@@ -295,7 +295,11 @@ def reads_to_dataframe(variants_and_allele_reads):
         List or generator of pairs whose first element is a Variant and
         whose second element is a sequence of AlleleRead objects.
     """
-    df_builder = DataFrameBuilder(AlleleRead)
+    df_builder = DataFrameBuilder(
+        AlleleRead,
+        extra_column_fns={
+            "gene": lambda variant, _: ";".join(variant.gene_names),
+        })
     for variant, allele_reads in variants_and_allele_reads:
         df_builder.add_many(variant, allele_reads)
     return df_builder.to_dataframe()

@@ -321,4 +321,7 @@ def variant_sequences_generator_to_dataframe(variant_sequences_generator):
     return dataframe_from_generator(
         VariantSequence,
         variant_sequences_generator,
-        rename_dict={"alt": "allele"})
+        rename_dict={"alt": "allele"},
+        extra_column_fns={
+            "gene": lambda variant, _: ";".join(variant.gene_names),
+        })
