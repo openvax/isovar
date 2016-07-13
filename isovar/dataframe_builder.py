@@ -126,7 +126,6 @@ class DataFrameBuilder(object):
             self.columns_dict["pos"].append(variant.original_start)
             self.columns_dict["ref"].append(variant.original_ref)
             self.columns_dict["alt"].append(variant.original_alt)
-            self.columns_dict["gene"].append(";".join(variant.gene_names))
         else:
             assert variant is None
 

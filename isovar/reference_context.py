@@ -443,11 +443,13 @@ def variants_to_reference_contexts_dataframe(
     df_builder = DataFrameBuilder(
         ReferenceContext,
         exclude=["variant"],
-        converters=dict(transcripts=lambda ts: ";".join(t.name for t in ts)))
+        converters=dict(transcripts=lambda ts: ";".join(t.name for t in ts)),
+        extra_column_fns={
+            "gene": lambda variant, _: ";".join(variant.gene_names),
+        })
     for variant, reference_contexts in reference_contexts_for_variants(
             variants=variants,
             context_size=context_size,
             transcript_id_whitelist=transcript_id_whitelist).items():
-        for reference_context in reference_contexts:
-            df_builder.add(variant, reference_context)
+        df_builder.add_many(variant, reference_contexts)
     return df_builder.to_dataframe()
