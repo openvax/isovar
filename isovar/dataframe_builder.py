@@ -21,6 +21,10 @@ import pandas as pd
 
 VALID_ELEMENT_TYPES = integer_types + (text_type, binary_type, float, bool)
 
+# values of these types are automatically converted to their size or length
+# unless some other conversion function is provided
+COLLECTION_TYPES = (tuple, list, set, frozenset)
+
 class DataFrameBuilder(object):
     """
     Helper class for constructing a DataFrame which always has fields
@@ -134,7 +138,7 @@ class DataFrameBuilder(object):
                 fn = self.converters[name]
                 value = fn(value)
 
-            if isinstance(value, (tuple, list, set)) and self.convert_collections_to_size:
+            if isinstance(value, COLLECTION_TYPES) and self.convert_collections_to_size:
                 value = len(value)
             elif not isinstance(value, VALID_ELEMENT_TYPES):
                 raise ValueError(
