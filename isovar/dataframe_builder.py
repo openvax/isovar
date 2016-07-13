@@ -152,13 +152,29 @@ class DataFrameBuilder(object):
             self.columns_dict[name].append(value)
 
         for column_name, fn in self.extra_column_fns.items():
-            self.columns_dict[column_name] = fn(variant, element)
+            self.columns_dict[column_name].append(fn(variant, element))
 
     def add_many(self, variant, elements):
         for element in elements:
             self.add(variant, element)
 
+    def _check_column_lengths(self):
+        """
+        Make sure columns are of the same length or else DataFrame construction
+        will fail.
+        """
+        column_lengths_dict = {
+            name: len(xs)
+            for (name, xs)
+            in self.columns_dict.items()
+        }
+        unique_column_lengths = set(column_lengths_dict.values())
+        if len(unique_column_lengths) != 1:
+            raise ValueError(
+                "Mismatch between lengths of columns: %s" % (column_lengths_dict,))
+
     def to_dataframe(self):
+        self._check_column_lengths()
         return pd.DataFrame(self.columns_dict)
 
 def dataframe_from_generator(element_class, variant_and_elements_generator, **kwargs):
