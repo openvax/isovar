@@ -77,6 +77,7 @@ if __name__ == '__main__':
             "script/isovar-translations.py",
             "script/isovar-reference-contexts.py",
             "script/isovar-allele-reads.py",
+            "script/isovar-allele-counts.py",
             "script/isovar-variant-reads.py",
             "script/isovar-variant-sequences.py",
         ],
