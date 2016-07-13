@@ -316,4 +316,9 @@ def variant_sequences_generator_to_dataframe(variant_sequences_generator):
 
     Returns pandas.DataFrame
     """
-    return dataframe_from_generator(VariantSequence, variant_sequences_generator)
+    # TODO: Change VariantSequence.alt to VariantSequence.alt_nucleotides
+    # or something else that doesn't clash with a variant's `alt` field
+    return dataframe_from_generator(
+        VariantSequence,
+        variant_sequences_generator,
+        rename_dict={"alt": "allele"})
