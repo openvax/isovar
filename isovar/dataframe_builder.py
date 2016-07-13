@@ -62,7 +62,8 @@ class DataFrameBuilder(object):
 
         extra_column_fns : dict
             Dictionary mapping column names to functions which take a variant
-            and element and return a single value for each row.
+            and element (such as an AlleleRead instance) and return a single
+            value for each row.
 
         variant_columns : bool
             If True, then add four columns for fields of a Variant: chr/pos/ref/alt
