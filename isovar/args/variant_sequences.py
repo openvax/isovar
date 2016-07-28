@@ -23,7 +23,10 @@ from ..variant_sequences import (
     reads_generator_to_sequences_generator,
     variant_sequences_generator_to_dataframe
 )
-from .rna_reads import allele_reads_generator_from_args, make_rna_reads_arg_parser
+from .rna_reads import (
+    allele_reads_generator_from_args,
+    make_rna_reads_arg_parser
+)
 
 def add_variant_sequence_args(
         parser,
