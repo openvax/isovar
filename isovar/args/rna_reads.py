@@ -14,15 +14,16 @@
 
 
 from __future__ import print_function, division, absolute_import
-from argparse import ArgumentParser
 
 from pysam import AlignmentFile
+from varcode.cli.variant_args import (
+    make_variants_parser,
+    variant_collection_from_args
+)
 
 from ..default_parameters import MIN_READ_MAPPING_QUALITY
 from ..allele_reads import reads_overlapping_variants, reads_to_dataframe
 from ..variant_reads import reads_supporting_variants
-
-from .variants import variants_from_args, add_somatic_vcf_args
 
 
 def add_rna_args(
@@ -69,8 +70,7 @@ def make_rna_reads_arg_parser(**kwargs):
     Creates argparse.ArgumentParser instance with all of the options
     needed to load a set of variants and their supporting RNA reads.
     """
-    parser = ArgumentParser(**kwargs)
-    add_somatic_vcf_args(parser)
+    parser = make_variants_parser(**kwargs)
     add_rna_args(parser)
     return parser
 
@@ -78,7 +78,7 @@ def samfile_from_args(args):
     return AlignmentFile(args.bam)
 
 def allele_reads_generator_from_args(args):
-    variants = variants_from_args(args)
+    variants = variant_collection_from_args(args)
     samfile = samfile_from_args(args)
     return reads_overlapping_variants(
         variants=variants,
@@ -91,7 +91,7 @@ def allele_reads_dataframe_from_args(args):
     return reads_to_dataframe(allele_reads_generator_from_args(args))
 
 def variant_reads_generator_from_args(args):
-    variants = variants_from_args(args)
+    variants = variant_collection_from_args(args)
     samfile = samfile_from_args(args)
     return reads_supporting_variants(
         variants=variants,

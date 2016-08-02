@@ -16,7 +16,7 @@ import os
 import logging
 import re
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 readme_dir = os.path.dirname(__file__)
 readme_filename = os.path.join(readme_dir, 'README.md')
@@ -71,7 +71,7 @@ if __name__ == '__main__':
             'varcode>=0.4.6'
         ],
         long_description=readme,
-        packages=['isovar', 'isovar.args'],
+        packages=find_packages(),
         scripts=[
             "script/isovar-protein-sequences.py",
             "script/isovar-translations.py",

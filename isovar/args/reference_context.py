@@ -13,12 +13,15 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-from argparse import ArgumentParser
+
+from varcode.cli.variant_args import (
+    make_variants_parser,
+    variant_collection_from_args
+)
 
 from ..default_parameters import CDNA_CONTEXT_SIZE
 from ..reference_context import variants_to_reference_contexts_dataframe
 
-from .variants import variants_from_args, add_somatic_vcf_args
 
 def add_reference_context_args(parser):
     """
@@ -44,13 +47,12 @@ def make_reference_context_arg_parser(**kwargs):
 
     Returns an argparse.ArgumentParser instance.
     """
-    parser = ArgumentParser(**kwargs)
-    add_somatic_vcf_args(parser)
+    parser = make_variants_parser(**kwargs)
     add_reference_context_args(parser)
     return parser
 
 def reference_contexts_dataframe_from_args(args):
-    variants = variants_from_args(args)
+    variants = variant_collection_from_args(args)
     return variants_to_reference_contexts_dataframe(
         variants=variants,
         context_size=args.context_size)
