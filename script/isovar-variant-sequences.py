@@ -16,7 +16,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.args.variant_sequences import (
+from isovar.cli.variant_sequences import (
     make_variant_sequences_arg_parser,
     variant_sequences_dataframe_from_args
 )

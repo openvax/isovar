@@ -16,7 +16,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.args.reference_context import (
+from isovar.cli.reference_context import (
     make_reference_context_arg_parser,
     reference_contexts_dataframe_from_args
 )

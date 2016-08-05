@@ -20,7 +20,7 @@ Prints names and sequences of reads supporting a given set of variants.
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.args.rna_reads import (
+from isovar.cli.rna_reads import (
     variant_reads_dataframe_from_args,
     make_rna_reads_arg_parser,
 )
