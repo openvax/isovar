@@ -68,7 +68,8 @@ if __name__ == '__main__':
             'pysam >= 0.9.0',
             'pandas',
             'scikit-bio==0.4.2',
-            'varcode>=0.4.6'
+            'varcode>=0.4.6',
+            'pyensembl>=0.9.5'
         ],
         long_description=readme,
         packages=find_packages(),
