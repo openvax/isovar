@@ -1,8 +1,8 @@
 from nose.tools import eq_
-from isovar.args.rna_reads import make_rna_reads_arg_parser
-from isovar.args.reference_context import add_reference_context_args
-from isovar.args.protein_sequences import add_protein_sequence_args
-from isovar.args.variant_sequences import add_variant_sequence_args
+from isovar.cli.rna_reads import make_rna_reads_arg_parser
+from isovar.cli.reference_context import add_reference_context_args
+from isovar.cli.protein_sequences import add_protein_sequence_args
+from isovar.cli.variant_sequences import add_variant_sequence_args
 
 
 def test_extend_parser():

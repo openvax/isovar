@@ -20,7 +20,7 @@ Prints names and sequences of reads overlapping a given set of variants.
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.args.rna_reads import (
+from isovar.cli.rna_reads import (
     make_rna_reads_arg_parser,
     allele_reads_dataframe_from_args
 )

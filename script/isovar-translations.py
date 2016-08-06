@@ -21,7 +21,7 @@ sequences using an RNAseq BAM from the same tissuie.
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.args.translation import (
+from isovar.cli.translation import (
     make_translation_arg_parser,
     translations_dataframe_from_args,
 )

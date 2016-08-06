@@ -23,7 +23,7 @@ a read count to each protein sequence.
 from __future__ import print_function, division, absolute_import
 import logging
 
-from isovar.args.protein_sequences import (
+from isovar.cli.protein_sequences import (
     make_protein_sequences_arg_parser,
     protein_sequences_dataframe_from_args
 )

@@ -16,10 +16,8 @@
 from __future__ import print_function, division, absolute_import
 
 from pysam import AlignmentFile
-from varcode.cli.variant_args import (
-    make_variants_parser,
-    variant_collection_from_args
-)
+
+from varcode.cli import make_variants_parser, variant_collection_from_args
 
 from ..default_parameters import MIN_READ_MAPPING_QUALITY
 from ..allele_reads import reads_overlapping_variants, reads_to_dataframe
