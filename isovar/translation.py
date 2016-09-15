@@ -324,13 +324,22 @@ def find_mutant_amino_acid_interval(
     # rounding down since a change in the middle of a codon should count
     # toward the variant codons
     n_coding_nucleotides_before_variant = len(cdna_coding_prefix)
-    n_complete_prefix_codons = cdna_variant_start_offset // 3
+
+    # subtract off the number of nucleotides we dropped to shift the sequence
+    # into the correct reading frame reading frame
+    n_complete_prefix_codons = n_coding_nucleotides_before_variant // 3
 
     frame_of_variant_nucleotides = n_coding_nucleotides_before_variant % 3
     frameshift = abs(n_ref - n_alt) % 3 != 0
     indel = n_ref != n_alt
 
-    variant_aa_interval_start = n_complete_prefix_codons + 1
+    if n_ref == 0 and frame_of_variant_nucleotides == 0:
+        # if inserting at the codon boundary then add 1 to the number of
+        # previous codons
+        variant_aa_interval_start = n_complete_prefix_codons + 1
+    else:
+        variant_aa_interval_start = n_complete_prefix_codons
+
     if frameshift:
         # if mutation is a frame shift then every amino acid from the
         # first affected codon to the stop is considered mutant
@@ -439,13 +448,13 @@ def translate_variant_sequence(
 
     cdna_sequence = variant_sequence_in_reading_frame.cdna_sequence
     cdna_codon_offset = variant_sequence_in_reading_frame.offset_to_first_complete_codon
-    cdna_sequence_from_first_codon = cdna_sequence[cdna_codon_offset:]
-
-    variant_amino_acids, ends_with_stop_codon = translate_cdna(cdna_sequence_from_first_codon)
 
     # get the offsets into the cDNA sequence which pick out the variant nucleotides
     cdna_variant_start_offset = variant_sequence_in_reading_frame.variant_cdna_interval_start
     cdna_variant_end_offset = variant_sequence_in_reading_frame.variant_cdna_interval_end
+
+    # cdna_sequence_from_first_codon = cdna_sequence[cdna_codon_offset:]
+    variant_amino_acids, ends_with_stop_codon = translate_cdna(cdna_sequence[cdna_codon_offset:])
 
     variant_aa_interval_start, variant_aa_interval_end, frameshift = \
         find_mutant_amino_acid_interval(
