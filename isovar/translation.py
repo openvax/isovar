@@ -333,12 +333,7 @@ def find_mutant_amino_acid_interval(
     frameshift = abs(n_ref - n_alt) % 3 != 0
     indel = n_ref != n_alt
 
-    if n_ref == 0 and frame_of_variant_nucleotides == 0:
-        # if inserting at the codon boundary then add 1 to the number of
-        # previous codons
-        variant_aa_interval_start = n_complete_prefix_codons + 1
-    else:
-        variant_aa_interval_start = n_complete_prefix_codons
+    variant_aa_interval_start = n_complete_prefix_codons
 
     if frameshift:
         # if mutation is a frame shift then every amino acid from the
