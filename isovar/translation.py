@@ -325,8 +325,6 @@ def find_mutant_amino_acid_interval(
     # toward the variant codons
     n_coding_nucleotides_before_variant = len(cdna_coding_prefix)
 
-    # subtract off the number of nucleotides we dropped to shift the sequence
-    # into the correct reading frame reading frame
     n_complete_prefix_codons = n_coding_nucleotides_before_variant // 3
 
     frame_of_variant_nucleotides = n_coding_nucleotides_before_variant % 3

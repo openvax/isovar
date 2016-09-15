@@ -24,7 +24,7 @@ from isovar.cli.protein_sequences import (
 from testing_helpers import data_path
 
 
-def check_vaxrank_mutant_amino_acids(variant, protein_sequence, expected_amino_acids=None):
+def check_mutant_amino_acids(variant, protein_sequence, expected_amino_acids=None):
     predicted_effect = variant.effects().top_priority_effect()
 
     if expected_amino_acids is None:
@@ -59,7 +59,7 @@ def test_mutant_amino_acids_in_mm10_chrX_8125624_refC_altA_pS460I():
     ])
     for variant, protein_sequences in protein_sequences_generator_from_args(args):
         protein_sequence = protein_sequences[0]
-        check_vaxrank_mutant_amino_acids(variant, protein_sequence)
+        check_mutant_amino_acids(variant, protein_sequence)
 
 def test_mutant_amino_acids_in_mm10_chr9_82927102_refG_altT_pT441H():
     # the variant chr9:82927102 G>T occurs right next to T>G so the varcode
@@ -74,7 +74,7 @@ def test_mutant_amino_acids_in_mm10_chr9_82927102_refG_altT_pT441H():
     ])
     for variant, protein_sequences in protein_sequences_generator_from_args(args):
         protein_sequence = protein_sequences[0]
-        check_vaxrank_mutant_amino_acids(
+        check_mutant_amino_acids(
             variant,
             protein_sequence,
             expected_amino_acids="H")
