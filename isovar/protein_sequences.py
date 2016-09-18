@@ -22,8 +22,6 @@ ProteinSequence.
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple, defaultdict
 
-from pyensembl.biotypes import is_coding_biotype
-
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -200,7 +198,7 @@ def reads_generator_to_protein_sequences_generator(
         overlapping_transcript_ids = [
             t.id
             for t in variant.transcripts
-            if is_coding_biotype(t.biotype)
+            if t.is_protein_coding
         ]
         _, ref, alt = trim_variant(variant)
         overlapping_reads = list(overlapping_reads)
