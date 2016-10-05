@@ -22,6 +22,10 @@ from .effect_prediction import reference_transcripts_for_variant
 from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 from .dataframe_builder import DataFrameBuilder
 
+
+logger = logging.getLogger(__name__)
+
+
 ##########################
 #
 # SequenceKey
@@ -126,19 +130,19 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
     full_sequence = transcript.sequence
 
     if full_sequence is None:
-        logging.warn(
-            "Expected transcript %s (overlapping %s) to have sequence" % (
+        logger.warn(
+            "Expected transcript %s (overlapping %s) to have sequence",
                 transcript,
-                variant))
+                variant)
         return None
 
     if len(full_sequence) < 6:
         # need at least 6 nucleotides for a start and stop codon
-        logging.warn(
-            "Sequence of %s (overlapping %s) too short: %d" % (
+        logger.warn(
+            "Sequence of %s (overlapping %s) too short: %d",
                 transcript,
                 variant,
-                len(full_sequence)))
+                len(full_sequence))
         return None
 
     # get the interbase range of offsets which capture all reference
@@ -148,11 +152,11 @@ def sequence_key_for_variant_on_transcript(variant, transcript, context_size):
             variant=variant,
             transcript=transcript)
 
-    logging.info("Interbase offset range on %s for variant %s = %d:%d" % (
+    logger.info("Interbase offset range on %s for variant %s = %d:%d",
         transcript,
         variant,
         variant_start_offset,
-        variant_end_offset))
+        variant_end_offset)
 
     prefix = full_sequence[
         max(0, variant_start_offset - context_size):
@@ -229,24 +233,24 @@ def sequence_key_with_reading_frame_for_variant_on_transcript(
     coding sequence, protein sequence or annotated start/stop codons.
     """
     if not transcript.contains_start_codon:
-        logging.info(
-            "Expected transcript %s for variant %s to have start codon" % (
+        logger.info(
+            "Expected transcript %s for variant %s to have start codon",
                 transcript,
-                variant))
+                variant)
         return None
 
     if not transcript.contains_stop_codon:
-        logging.info(
-            "Expected transcript %s for variant %s to have stop codon" % (
+        logger.info(
+            "Expected transcript %s for variant %s to have stop codon",
                 transcript,
-                variant))
+                variant)
         return None
 
     if not transcript.protein_sequence:
-        logging.info(
-            "Expected transript %s for variant %s to have protein sequence" % (
+        logger.info(
+            "Expected transript %s for variant %s to have protein sequence",
                 transcript,
-                variant))
+                variant)
         return None
 
     sequence_key = sequence_key_for_variant_on_transcript(
@@ -255,9 +259,9 @@ def sequence_key_with_reading_frame_for_variant_on_transcript(
         context_size=context_size)
 
     if sequence_key is None:
-        logging.info("No sequence key for variant %s on transcript %s" % (
+        logger.info("No sequence key for variant %s on transcript %s",
             variant,
-            transcript))
+            transcript)
         return None
 
     # get the interbase range of offsets which capture all reference
@@ -275,10 +279,10 @@ def sequence_key_with_reading_frame_for_variant_on_transcript(
     #   (2) start-loss variants may result in a new start codon / reading
     #       frame but we're not sure which one!
     if variant_start_offset < start_codon_idx + 3:
-        logging.info(
-            "Skipping transcript %s for variant %s, must be after start codon" % (
+        logger.info(
+            "Skipping transcript %s for variant %s, must be after start codon",
                 transcript,
-                variant))
+                variant)
         return None
 
     stop_codon_idx = min(transcript.stop_codon_spliced_offsets)
@@ -286,10 +290,10 @@ def sequence_key_with_reading_frame_for_variant_on_transcript(
     # skip variants which affect the 3' UTR of the transcript since
     # they don't have obvious coding effects on the protein sequence
     if variant_start_offset >= stop_codon_idx + 3:
-        logging.info(
-            "Skipping transcript %s for variant %s, occurs in 3' UTR" % (
+        logger.info(
+            "Skipping transcript %s for variant %s, occurs in 3' UTR",
                 transcript,
-                variant))
+                variant)
         return None
 
     n_prefix = len(sequence_key.sequence_before_variant_locus)

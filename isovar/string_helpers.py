@@ -17,6 +17,9 @@ from __future__ import print_function, division, absolute_import
 import logging
 
 
+logger = logging.getLogger(__name__)
+
+
 def trim_N_nucleotides(prefix, suffix):
     """
     Drop all occurrences of 'N' from prefix and suffix nucleotide strings
@@ -25,17 +28,17 @@ def trim_N_nucleotides(prefix, suffix):
     if 'N' in prefix:
         # trim prefix to exclude all occurrences of N
         rightmost_index = prefix.rfind('N')
-        logging.debug(
-            "Trimming %d nucleotides from read prefix '%s'" % (
-                rightmost_index + 1, prefix))
+        logger.debug(
+            "Trimming %d nucleotides from read prefix '%s'",
+                rightmost_index + 1, prefix)
         prefix = prefix[rightmost_index + 1:]
 
     if 'N' in suffix:
         leftmost_index = suffix.find('N')
-        logging.debug(
-            "Trimming %d nucleotides from read suffix '%s'" % (
+        logger.debug(
+            "Trimming %d nucleotides from read suffix '%s'",
                 len(suffix) - leftmost_index,
-                suffix))
+                suffix)
         suffix = suffix[:leftmost_index]
 
     return prefix, suffix

@@ -30,6 +30,10 @@ from .default_parameters import (
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
 
+
+logger = logging.getLogger(__name__)
+
+
 LocusRead = namedtuple(
     "LocusRead",
     [
@@ -72,60 +76,59 @@ def create_locus_read_from_pysam_pileup_element(
     name = read.query_name
 
     if name is None:
-        logging.warn("Read missing name at position %d" % (
-            base0_position_before_variant + 1))
+        logger.warn("Read missing name at position %d",
+            base0_position_before_variant + 1)
         return None
 
     if read.is_unmapped:
-        logging.warn(
-            "How did we get unmapped read '%s' in a pileup?" % (name,))
+        logger.warn(
+            "How did we get unmapped read '%s' in a pileup?", name)
         return None
 
     if pileup_element.is_refskip:
         # if read sequence doesn't actually align to the reference
         # base before a variant, skip it
-        logging.debug("Skipping pileup element with CIGAR alignment N (intron)")
+        logger.debug("Skipping pileup element with CIGAR alignment N (intron)")
         return None
     elif pileup_element.is_del:
-        logging.debug(
-            "Skipping deletion at position %d (read name = %s)" % (
+        logger.debug(
+            "Skipping deletion at position %d (read name = %s)",
                 base0_position_before_variant + 1,
-                name))
+                name)
         return None
 
     if read.is_secondary and not use_secondary_alignments:
-        logging.debug("Skipping secondary alignment of read '%s'")
+        logger.debug("Skipping secondary alignment of read '%s'", name)
         return None
 
     if read.is_duplicate and not use_duplicate_reads:
-        logging.debug("Skipping duplicate read '%s'" % name)
+        logger.debug("Skipping duplicate read '%s'", name)
         return None
 
     mapping_quality = read.mapping_quality
 
     missing_mapping_quality = mapping_quality is None
     if min_mapping_quality > 0 and missing_mapping_quality:
-        logging.debug("Skipping read '%s' due to missing MAPQ" % (
-            name,))
+        logger.debug("Skipping read '%s' due to missing MAPQ", name)
         return None
     elif mapping_quality < min_mapping_quality:
-        logging.debug(
-            "Skipping read '%s' due to low MAPQ: %d < %d" % (
+        logger.debug(
+            "Skipping read '%s' due to low MAPQ: %d < %d",
                 read.mapping_quality,
                 mapping_quality,
-                min_mapping_quality))
+                min_mapping_quality)
         return None
 
     sequence = read.query_sequence
 
     if sequence is None:
-        logging.warn("Read '%s' missing sequence")
+        logger.warn("Read '%s' missing sequence", name)
         return None
 
     base_qualities = read.query_qualities
 
     if base_qualities is None:
-        logging.warn("Read '%s' missing base qualities" % (name,))
+        logger.warn("Read '%s' missing base qualities", name)
         return None
 
     #
@@ -150,20 +153,20 @@ def create_locus_read_from_pysam_pileup_element(
     # Source:
     # http://pysam.readthedocs.org/en/latest/faq.html#pysam-coordinates-are-wrong
     if base0_position_before_variant not in reference_positions:
-        logging.debug(
-            "Skipping read '%s' because first position %d not mapped" % (
+        logger.debug(
+            "Skipping read '%s' because first position %d not mapped",
                 name,
-                base0_position_before_variant))
+                base0_position_before_variant)
         return None
     else:
         base0_read_position_before_variant = reference_positions.index(
             base0_position_before_variant)
 
     if base0_position_after_variant not in reference_positions:
-        logging.debug(
-            "Skipping read '%s' because last position %d not mapped" % (
+        logger.debug(
+            "Skipping read '%s' because last position %d not mapped",
                 name,
-                base0_position_after_variant))
+                base0_position_after_variant)
         return None
     else:
         base0_read_position_after_variant = reference_positions.index(
@@ -245,11 +248,11 @@ def locus_read_generator(
     Yields ReadAtLocus objects
     """
 
-    logging.debug(
-        "Gathering reads at locus %s: %d-%d" % (
+    logger.debug(
+        "Gathering reads at locus %s: %d-%d",
             chromosome,
             base1_position_before_variant,
-            base1_position_after_variant))
+            base1_position_after_variant)
     base0_position_before_variant = base1_position_before_variant - 1
     base0_position_after_variant = base1_position_after_variant - 1
 
@@ -276,12 +279,12 @@ def locus_read_generator(
             count += 1
             yield read
 
-    logging.info(
-        "Found %d reads overlapping locus %s: %d-%d" % (
+    logger.info(
+        "Found %d reads overlapping locus %s: %d-%d",
             count,
             chromosome,
             base1_position_before_variant,
-            base1_position_after_variant))
+            base1_position_after_variant)
 
 def locus_reads_dataframe(*args, **kwargs):
     """

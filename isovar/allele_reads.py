@@ -31,6 +31,10 @@ from .variant_helpers import trim_variant
 from .dataframe_builder import DataFrameBuilder
 from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
 
+
+logger = logging.getLogger(__name__)
+
+
 # subclassing from namedtuple to get a lightweight object with built-in
 # hashing and comparison while also being able to add methods
 AlleleReadFields = namedtuple(
@@ -78,17 +82,17 @@ def allele_read_from_locus_read(locus_read, n_ref):
     ref_pos_before = reference_positions[read_pos_before]
 
     if ref_pos_before is None:
-        logging.warn(
-            "Missing reference pos for nucleotide before variant on read: %s" % (
-                locus_read,))
+        logger.warn(
+            "Missing reference pos for nucleotide before variant on read: %s",
+                locus_read)
         return None
 
     ref_pos_after = reference_positions[read_pos_after]
 
     if ref_pos_after is None:
-        logging.warn(
-            "Missing reference pos for nucleotide after variant on read: %s" % (
-                locus_read,))
+        logger.warn(
+            "Missing reference pos for nucleotide after variant on read: %s",
+                locus_read)
         return None
 
     if n_ref == 0:
@@ -96,11 +100,11 @@ def allele_read_from_locus_read(locus_read, n_ref):
             # if the number of nucleotides skipped isn't the same
             # as the number of reference nucleotides in the variant then
             # don't use this read
-            logging.debug(
-                "Positions before (%d) and after (%d) variant should be adjacent on read %s" % (
+            logger.debug(
+                "Positions before (%d) and after (%d) variant should be adjacent on read %s",
                     ref_pos_before,
                     ref_pos_after,
-                    locus_read))
+                    locus_read)
             return None
 
         # insertions require a sequence of non-aligned bases
@@ -110,7 +114,7 @@ def allele_read_from_locus_read(locus_read, n_ref):
         if any(insert_pos is not None for insert_pos in ref_positions_for_inserted):
             # all these inserted nucleotides should *not* align to the
             # reference
-            logging.debug(
+            logger.debug(
                 "Skipping read, inserted nucleotides shouldn't map to reference")
             return None
     else:
@@ -119,11 +123,11 @@ def allele_read_from_locus_read(locus_read, n_ref):
             # if the number of nucleotides skipped isn't the same
             # as the number of reference nucleotides in the variant then
             # don't use this read
-            logging.debug(
-                "Positions before (%d) and after (%d) variant should be adjacent on read %s" % (
+            logger.debug(
+                "Positions before (%d) and after (%d) variant should be adjacent on read %s",
                     ref_pos_before,
                     ref_pos_after,
-                    locus_read))
+                    locus_read)
             return None
 
     nucleotides_at_variant_locus = sequence[read_pos_before + 1:read_pos_after]
@@ -198,13 +202,13 @@ def reads_overlapping_variant(
 
     Returns sequence of AlleleRead objects.
     """
-    logging.info("Gathering reads for %s" % variant)
+    logger.info("Gathering reads for %s", variant)
     if chromosome is None:
         chromosome = variant.contig
 
-    logging.info("Gathering variant reads for variant %s (chromosome=%s)" % (
+    logger.info("Gathering variant reads for variant %s (chromosome=%s)",
         variant,
-        chromosome))
+        chromosome)
 
     base1_position, ref, alt = trim_variant(variant)
 
@@ -265,9 +269,9 @@ def reads_overlapping_variants(variants, samfile, **kwargs):
         elif "chr" + variant.contig in chromosome_names:
             chromosome = "chr" + variant.contig
         else:
-            logging.warn(
-                "Chromosome '%s' from variant %s not in alignment file %s" % (
-                    chromosome, variant, samfile.filename))
+            logger.warn(
+                "Chromosome '%s' from variant %s not in alignment file %s",
+                    chromosome, variant, samfile.filename)
             continue
         allele_reads = reads_overlapping_variant(
             samfile=samfile,

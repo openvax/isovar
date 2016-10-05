@@ -36,6 +36,10 @@ from .default_parameters import (
 )
 from .dataframe_builder import dataframe_from_generator
 
+
+logger = logging.getLogger(__name__)
+
+
 # When multiple distinct RNA sequence contexts and/or reference transcripts
 # give us the same translation then we group them into a single object
 # which summarizes the supporting read count and reference transcript ORFs
@@ -432,7 +436,7 @@ def translate_variant_sequence(
     n_mismatch_before_variant = variant_sequence_in_reading_frame.number_mismatches
 
     if n_mismatch_before_variant > max_transcript_mismatches:
-        logging.info(
+        logger.info(
             "Skipping reference context %s for %s, too many mismatching bases (%d)",
             reference_context,
             variant_sequence,
@@ -460,12 +464,12 @@ def translate_variant_sequence(
 
     if protein_sequence_length and len(variant_amino_acids) > protein_sequence_length:
         if protein_sequence_length <= variant_aa_interval_start:
-            logging.warn(
+            logger.warn(
                 ("Truncating amino acid sequence %s from variant sequence %s "
-                 "to only %d elements loses all variant residues") % (
+                 "to only %d elements loses all variant residues"),
                     variant_amino_acids,
                     variant_sequence,
-                    protein_sequence_length))
+                    protein_sequence_length)
             return None
         # if the protein is too long then short it, which implies we're no longer
         # stopping due to a stop codon and that the variant amino acids might
@@ -540,7 +544,7 @@ def translate_variant_reads(
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES):
     if len(variant_reads) == 0:
-        logging.info("No supporting reads for variant %s" % (variant,))
+        logger.info("No supporting reads for variant %s", variant)
         return []
 
     # Adding an extra codon to the desired RNA sequence length in case we
@@ -553,7 +557,7 @@ def translate_variant_reads(
         min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
 
     if not variant_sequences:
-        logging.info("No spanning cDNA sequences for variant %s" % (variant,))
+        logger.info("No spanning cDNA sequences for variant %s", variant)
         return []
 
     # try translating the variant sequences from the same set of
@@ -566,9 +570,9 @@ def translate_variant_reads(
         for variant_sequence in variant_sequences)
 
     if context_size < min_transcript_prefix_length:
-        logging.info(
-            "Skipping variant %s, none of the cDNA sequences have sufficient context" % (
-                variant,))
+        logger.info(
+            "Skipping variant %s, none of the cDNA sequences have sufficient context",
+                variant)
         return []
 
     reference_contexts = reference_contexts_for_variant(

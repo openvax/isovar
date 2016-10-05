@@ -28,6 +28,9 @@ from .default_parameters import (
 from .dataframe_builder import dataframe_from_generator
 
 
+logger = logging.getLogger(__name__)
+
+
 # using this base class to define the core fields of a VariantSequence
 # but inheriting it from it to allow the addition of helper methods
 VariantSequenceFields = namedtuple(
@@ -156,10 +159,10 @@ def filter_variant_sequences_by_read_support(
     ]
     n_dropped = n_total - len(variant_sequences)
     if n_dropped > 0:
-        logging.info("Dropped %d/%d variant sequences less than %d supporting reads" % (
+        logger.info("Dropped %d/%d variant sequences less than %d supporting reads",
             n_dropped,
             n_total,
-            min_reads_supporting_cdna_sequence))
+            min_reads_supporting_cdna_sequence)
     return variant_sequences
 
 def filter_variant_sequences_by_length(
@@ -183,10 +186,10 @@ def filter_variant_sequences_by_length(
     ]
     n_dropped = n_total - len(variant_sequences)
     if n_dropped > 0:
-        logging.info("Dropped %d/%d variant sequences shorter than %d" % (
+        logger.info("Dropped %d/%d variant sequences shorter than %d",
             n_dropped,
             n_total,
-            min_required_sequence_length))
+            min_required_sequence_length)
     return variant_sequences
 
 def filter_variant_sequences(

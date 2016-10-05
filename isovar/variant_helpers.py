@@ -19,6 +19,10 @@ Helper functions for normalizing and working with genomic variants
 from __future__ import print_function, division, absolute_import
 import logging
 
+
+logger = logging.getLogger(__name__)
+
+
 def trim_variant_fields(location, ref, alt):
     """
     Trims common prefixes from the ref and alt sequences
@@ -170,16 +174,16 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
             try:
                 offsets.append(transcript.spliced_offset(dna_pos))
             except ValueError:
-                logging.info(
-                    "Couldn't find position %d from %s on exons of %s" % (
+                logger.info(
+                    "Couldn't find position %d from %s on exons of %s",
                         dna_pos,
                         variant,
-                        transcript))
+                        transcript)
         if len(offsets) == 0:
             raise ValueError(
-                "Couldn't find any exonic reference bases affected by %s on %s" % (
+                "Couldn't find any exonic reference bases affected by %s on %s",
                     variant,
-                    transcript))
+                    transcript)
         start_offset = min(offsets)
         end_offset = max(offsets) + 1
     return (start_offset, end_offset)

@@ -28,6 +28,10 @@ from isovar.cli.protein_sequences import (
     protein_sequences_dataframe_from_args
 )
 
+
+logger = logging.getLogger(__name__)
+
+
 parser = make_protein_sequences_arg_parser()
 
 parser.add_argument(
@@ -36,9 +40,8 @@ parser.add_argument(
     help="Name of CSV file which contains predicted sequences")
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
     args = parser.parse_args()
-    print(args)
+    logger.info(args)
     df = protein_sequences_dataframe_from_args(args)
-    print(df)
+    logger.info(df)
     df.to_csv(args.output)
