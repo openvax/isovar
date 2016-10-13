@@ -17,6 +17,10 @@ import logging
 
 from varcode import EffectCollection
 
+
+logger = logging.getLogger(__name__)
+
+
 def predicted_coding_effects_with_mutant_sequence(
         variant,
         transcript_id_whitelist=None):
@@ -38,30 +42,30 @@ def predicted_coding_effects_with_mutant_sequence(
     effects = []
     for transcript in variant.transcripts:
         if not transcript.complete:
-            logging.info(
-                "Skipping transcript %s for variant %s because it's incomplete" % (
+            logger.info(
+                "Skipping transcript %s for variant %s because it's incomplete",
                     transcript,
-                    variant))
+                    variant)
             continue
 
         if transcript_id_whitelist and transcript.id not in transcript_id_whitelist:
-            logging.info(
-                "Skipping transcript %s for variant %s because it's not one of %d allowed" % (
+            logger.info(
+                "Skipping transcript %s for variant %s because it's not one of %d allowed",
                     transcript,
                     variant,
-                    len(transcript_id_whitelist)))
+                    len(transcript_id_whitelist))
             continue
         effects.append(variant.effect_on_transcript(transcript))
 
     effects = EffectCollection(effects)
 
     n_total_effects = len(effects)
-    logging.info("Predicted %d effects for variant %s" % (
+    logger.info("Predicted %d effects for variant %s" % (
         n_total_effects,
         variant))
 
     nonsynonymous_coding_effects = effects.drop_silent_and_noncoding()
-    logging.info(
+    logger.info(
         "Keeping %d/%d non-synonymous coding effects for %s" % (
             len(nonsynonymous_coding_effects),
             n_total_effects,
@@ -72,11 +76,11 @@ def predicted_coding_effects_with_mutant_sequence(
         for effect in nonsynonymous_coding_effects
         if effect.mutant_protein_sequence is not None
     ]
-    logging.info(
-        "Keeping %d/%d effects with predictable AA sequences for %s" % (
+    logger.info(
+        "Keeping %d/%d effects with predictable AA sequences for %s",
             len(usable_effects),
             len(nonsynonymous_coding_effects),
-            variant))
+            variant)
     return usable_effects
 
 def reference_transcripts_for_variant(variant, transcript_id_whitelist=None):

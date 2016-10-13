@@ -22,6 +22,10 @@ from copy import copy
 from .read_helpers import group_unique_sequences
 from .variant_sequences import VariantSequence
 
+
+logger = logging.getLogger(__name__)
+
+
 MIN_OVERLAP_SIZE = 30
 
 def sort_by_decreasing_prefix_length(seq):
@@ -179,11 +183,11 @@ def iterative_assembly(
             variant_sequences,
             min_overlap_size=min_overlap_size)
 
-        logging.info(
-            "Iteration #%d of assembly: generated %d sequences (from %d)" % (
+        logger.info(
+            "Iteration #%d of assembly: generated %d sequences (from %d)",
                 i + 1,
                 len(variant_sequences),
-                len(previous_sequences)))
+                len(previous_sequences))
 
         if len(variant_sequences) == 0:
             # if the greedy merge procedure fails for all pairs of candidate
@@ -193,9 +197,9 @@ def iterative_assembly(
             return previous_sequences
 
         variant_sequences = collapse_substrings(variant_sequences)
-        logging.info(
-            "After collpasing subsequences, %d distinct sequences left" % (
-                len(variant_sequences)))
+        logger.info(
+            "After collapsing subsequences, %d distinct sequences left",
+                len(variant_sequences))
         if len(variant_sequences) == 1:
             # once we have only one sequence then there's no point trying
             # to further combine sequences

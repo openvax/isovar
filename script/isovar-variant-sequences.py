@@ -15,14 +15,20 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+import logging
+import logging.config
+import pkg_resources
 
 from isovar.cli.variant_sequences import (
     make_variant_sequences_arg_parser,
     variant_sequences_dataframe_from_args
 )
 
-parser = make_variant_sequences_arg_parser(add_sequence_length_arg=True)
 
+logging.config.fileConfig(pkg_resources.resource_filename(__name__, 'logging.conf'))
+logger = logging.getLogger(__name__)
+
+parser = make_variant_sequences_arg_parser(add_sequence_length_arg=True)
 parser.add_argument(
     "--output",
     default="isovar-variant-sequences-results.csv",
@@ -30,7 +36,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    print(args)
+    logger.info(args)
     df = variant_sequences_dataframe_from_args(args)
-    print(df)
+    logger.info(df)
     df.to_csv(args.output)

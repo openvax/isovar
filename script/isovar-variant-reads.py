@@ -19,14 +19,19 @@ Prints names and sequences of reads supporting a given set of variants.
 """
 
 from __future__ import print_function, division, absolute_import
+import logging
+import logging.config
+import pkg_resources
 
 from isovar.cli.rna_reads import (
     variant_reads_dataframe_from_args,
     make_rna_reads_arg_parser,
 )
 
-parser = make_rna_reads_arg_parser()
+logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
+logger = logging.getLogger(__name__)
 
+parser = make_rna_reads_arg_parser()
 parser.add_argument(
     "--output",
     default="isovar-variant-reads-result.csv",
@@ -34,7 +39,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    print(args)
+    logger.info(args)
     df = variant_reads_dataframe_from_args(args)
-    print(df)
+    logger.info(df)
     df.to_csv(args.output)

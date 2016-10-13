@@ -68,11 +68,12 @@ if __name__ == '__main__':
             'pysam >= 0.9.0',
             'pandas',
             'scikit-bio==0.4.2',
-            'varcode>=0.5.0',
-            'pyensembl>=1.0.0'
+            'varcode>=0.5.9',
+            'pyensembl>=1.0.3'
         ],
         long_description=readme,
         packages=find_packages(),
+        package_data={'isovar.cli': ['logging.conf']},
         scripts=[
             "script/isovar-protein-sequences.py",
             "script/isovar-translations.py",
