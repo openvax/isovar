@@ -20,11 +20,17 @@ sequences using an RNAseq BAM from the same tissuie.
 """
 
 from __future__ import print_function, division, absolute_import
+import logging
+import logging.config
+import pkg_resources
 
 from isovar.cli.translation import (
     make_translation_arg_parser,
     translations_dataframe_from_args,
 )
+
+logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
+logger = logging.getLogger(__name__)
 
 parser = make_translation_arg_parser()
 parser.add_argument(
@@ -34,7 +40,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    print(args)
+    logger.info(args)
     df = translations_dataframe_from_args(args)
-    print(df)
+    logger.info(df)
     df.to_csv(args.output)

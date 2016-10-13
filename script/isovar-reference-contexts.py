@@ -15,14 +15,19 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+import logging
+import logging.config
+import pkg_resources
 
 from isovar.cli.reference_context import (
     make_reference_context_arg_parser,
     reference_contexts_dataframe_from_args
 )
 
-parser = make_reference_context_arg_parser()
+logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
+logger = logging.getLogger(__name__)
 
+parser = make_reference_context_arg_parser()
 parser.add_argument(
     "--output",
     default="isovar-reference-contexts-result.csv",
@@ -31,5 +36,5 @@ parser.add_argument(
 if __name__ == "__main__":
     args = parser.parse_args()
     reference_contexts_df = reference_contexts_dataframe_from_args(args)
-    print(reference_contexts_df)
+    logger.info(reference_contexts_df)
     reference_contexts_df.to_csv(args.output)

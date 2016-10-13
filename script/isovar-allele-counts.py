@@ -18,7 +18,10 @@
 Prints number of reads supporting ref, alt, and other alleles at variant loci.
 """
 
-from __future__ import print_function, division, absolute_import
+from __future__ import division, absolute_import
+import logging
+import logging.config
+import pkg_resources
 
 from isovar.cli.rna_reads import (
     make_rna_reads_arg_parser,
@@ -26,8 +29,11 @@ from isovar.cli.rna_reads import (
 )
 from isovar.allele_counts import allele_counts_dataframe
 
-parser = make_rna_reads_arg_parser()
 
+logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
+logger = logging.getLogger(__name__)
+
+parser = make_rna_reads_arg_parser()
 parser.add_argument(
     "--output",
     default="isovar-allele-counts-result.csv",
@@ -35,8 +41,8 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    print(args)
+    logger.info(args)
     variants_and_allele_reads_generator = allele_reads_generator_from_args(args)
     allele_counts_df = allele_counts_dataframe(variants_and_allele_reads_generator)
-    print(allele_counts_df)
+    logger.info(allele_counts_df)
     allele_counts_df.to_csv(args.output)

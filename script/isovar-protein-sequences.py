@@ -22,6 +22,8 @@ a read count to each protein sequence.
 
 from __future__ import print_function, division, absolute_import
 import logging
+import logging.config
+import pkg_resources
 
 from isovar.cli.protein_sequences import (
     make_protein_sequences_arg_parser,
@@ -29,11 +31,10 @@ from isovar.cli.protein_sequences import (
 )
 
 
+logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
 logger = logging.getLogger(__name__)
 
-
 parser = make_protein_sequences_arg_parser()
-
 parser.add_argument(
     "--output",
     default="isovar-translate-variants-results.csv",
