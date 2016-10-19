@@ -25,7 +25,7 @@ from isovar.cli.variant_sequences import (
 )
 
 
-logging.config.fileConfig(pkg_resources.resource_filename(__name__, 'logging.conf'))
+logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
 logger = logging.getLogger(__name__)
 
 parser = make_variant_sequences_arg_parser(add_sequence_length_arg=True)
