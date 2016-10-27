@@ -13,8 +13,10 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple
 import logging
+from collections import namedtuple
+
+import numpy as np
 
 from .read_helpers import (
     get_single_allele_from_reads,
@@ -26,10 +28,9 @@ from .default_parameters import (
     VARIANT_CDNA_SEQUENCE_LENGTH,
 )
 from .dataframe_builder import dataframe_from_generator
-
+from .assembly import iterative_overlap_assembly, collapse_substrings
 
 logger = logging.getLogger(__name__)
-
 
 # using this base class to define the core fields of a VariantSequence
 # but inheriting it from it to allow the addition of helper methods
@@ -81,8 +82,6 @@ class VariantSequence(VariantSequenceFields):
     def left_overlaps(self, other, min_overlap_size=1):
         """
         Does this VariantSequence overlap another on the left side?
-        The alleles must match and they must share at least `min_overlap_size`
-        nucleotides in their prefix or suffix.
         """
 
         if self.alt != other.alt:
@@ -107,10 +106,14 @@ class VariantSequence(VariantSequenceFields):
         # p2 a2 s2 =       XX Y ZZZZZZZZZ
         # ...
         # then we can combine them into a longer sequence
-        return (
+        sequence_overlaps = (
             self.prefix.endswith(other.prefix) and
             other.suffix.startswith(self.suffix)
         )
+        prefix_overlap_size = len(self.prefix) - len(other.prefix)
+        suffix_overlap_size = len(other.suffix) - len(self.suffix)
+        return sequence_overlaps and (
+            (prefix_overlap_size + suffix_overlap_size) >= min_overlap_size)
 
     def add_reads(self, reads):
         """
@@ -121,6 +124,106 @@ class VariantSequence(VariantSequenceFields):
             alt=self.alt,
             suffix=self.suffix,
             reads=self.reads.union(reads))
+
+    def combine(self, other_sequence):
+        """
+        If this sequence is the prefix of another sequence, combine
+        them into a single VariantSequence object.
+        """
+        if other_sequence.alt != self.alt:
+            raise ValueError(
+                "Cannot combine %s and %s with mismatching alt sequences" % (
+                    self,
+                    other_sequence))
+        elif self.left_overlaps(other_sequence):
+            # If sequences are like AABC and ABCC
+            return VariantSequence(
+                prefix=self.prefix,
+                alt=self.alt,
+                suffix=other_sequence.suffix,
+                reads=self.reads.union(other_sequence.reads))
+        elif other_sequence.left_overlaps(self):
+            return other_sequence.combine(self)
+        elif self.contains(other_sequence):
+            return self.add_reads(other_sequence.reads)
+        elif other_sequence.contains(self):
+            return other_sequence.add_reads(self.reads)
+        else:
+            raise ValueError("%s does not overlap with %s" % (self, other_sequence))
+
+    def variant_indices(self):
+        """
+        When we combine prefix + alt + suffix into a single string,
+        what are is base-0 index interval which gets us back the alt
+        sequence? First returned index is inclusive, the second is exclusive.
+        """
+        variant_start_index = len(self.prefix)
+        variant_len = len(self.alt)
+        variant_end_index = variant_start_index + variant_len
+        return variant_start_index, variant_end_index
+
+    def coverage(self):
+        """
+        Returns NumPy array indicating number of reads covering each
+        nucleotides of this sequence.
+        """
+        variant_start_index, variant_end_index = self.variant_indices()
+        n_nucleotides = len(self)
+        coverage_array = np.zeros(n_nucleotides, dtype="int32")
+        for read in self.reads:
+            coverage_array[
+                max(0, variant_start_index - len(read.prefix)):
+                min(n_nucleotides, variant_end_index + len(read.suffix))] += 1
+        return coverage_array
+
+    def min_coverage(self):
+        return np.min(self.coverage())
+
+    def mean_coverage(self):
+        return np.mean(self.coverage())
+
+    def trim_by_coverage(self, min_reads):
+        """
+        Given the min number of reads overlapping each nucleotide of
+        a variant sequence, trim this sequence by getting rid of positions
+        which are overlapped by fewer reads than specified.
+        """
+        read_count_array = self.coverage()
+
+        sufficient_coverage_mask = read_count_array >= min_reads
+        sufficient_coverage_indices = np.argwhere(sufficient_coverage_mask)
+        if len(sufficient_coverage_indices) == 0:
+            logger.debug("No bases in %s have coverage >= %d" % (self, min_reads))
+            return VariantSequence(prefix="", alt="", suffix="", reads=self.reads)
+        variant_start_index, variant_end_index = self.variant_indices()
+        # assuming that coverage drops off monotonically away from
+        # variant nucleotides
+        first_covered_index = sufficient_coverage_indices.min()
+        last_covered_index = sufficient_coverage_indices.max()
+        # adding 1 to last_covered_index since it's an inclusive index
+        # whereas variant_end_index is the end of a half-open interval
+        if (first_covered_index > variant_start_index or
+                last_covered_index + 1 < variant_end_index):
+            # Example:
+            #   Nucleotide sequence:
+            #       ACCCTTTT|AA|GGCGCGCC
+            #   Coverage:
+            #       12222333|44|33333211
+            # Then the mask for bases covered >= 4x would be:
+            #       ________|**|________
+            # with indices:
+            #       first_covered_index = 9
+            #       last_covered_index = 10
+            #       variant_start_index = 9
+            #       variant_end_index = 11
+            logger.debug("Some variant bases in %s don't have coverage >= %d" % (
+                self, min_reads))
+            return VariantSequence(prefix="", alt="", suffix="", reads=self.reads)
+        return VariantSequence(
+            prefix=self.prefix[first_covered_index:],
+            alt=self.alt,
+            suffix=self.suffix[:last_covered_index - variant_end_index + 1],
+            reads=self.reads)
 
 def sort_key_decreasing_read_count(variant_sequence):
     return -len(variant_sequence.reads)
@@ -148,6 +251,7 @@ def all_variant_sequences_supported_by_variant_reads(
         for ((prefix, alt, suffix), reads)
         in unique_sequence_groups.items()
     ]
+
 def filter_variant_sequences_by_read_support(
         variant_sequences,
         min_reads_supporting_cdna_sequence):
@@ -155,11 +259,12 @@ def filter_variant_sequences_by_read_support(
     variant_sequences = [
         s
         for s in variant_sequences
-        if len(s.reads) >= min_reads_supporting_cdna_sequence
+        if s.min_coverage() >= min_reads_supporting_cdna_sequence
     ]
     n_dropped = n_total - len(variant_sequences)
     if n_dropped > 0:
-        logger.info("Dropped %d/%d variant sequences less than %d supporting reads",
+        logger.info(
+            "Dropped %d/%d variant sequences less than %d supporting reads",
             n_dropped,
             n_total,
             min_reads_supporting_cdna_sequence)
@@ -179,18 +284,37 @@ def filter_variant_sequences_by_length(
     min_required_sequence_length = min(
         max_observed_sequence_length,
         preferred_sequence_length)
-
     variant_sequences = [
         s for s in variant_sequences
         if len(s.sequence) >= min_required_sequence_length
     ]
     n_dropped = n_total - len(variant_sequences)
     if n_dropped > 0:
-        logger.info("Dropped %d/%d variant sequences shorter than %d",
+        logger.info(
+            "Dropped %d/%d variant sequences shorter than %d",
             n_dropped,
             n_total,
             min_required_sequence_length)
     return variant_sequences
+
+def trim_variant_sequences(variant_sequences, min_reads_supporting_cdna_sequence):
+    """
+    Trim VariantSequences to desired coverage and then combine any
+    subsequences which get generated.
+    """
+    n_total = len(variant_sequences)
+    trimmed_variant_sequences = [
+        variant_sequence.trim_by_coverage(min_reads_supporting_cdna_sequence)
+        for variant_sequence in variant_sequences
+    ]
+    collapsed_variant_sequences = collapse_substrings(trimmed_variant_sequences)
+    n_after_trimming = len(collapsed_variant_sequences)
+    logger.info(
+        "Kept %d/%d variant sequences after read coverage trimming to >=%dx",
+        n_after_trimming,
+        n_total,
+        min_reads_supporting_cdna_sequence)
+    return collapsed_variant_sequences
 
 def filter_variant_sequences(
         variant_sequences,
@@ -200,9 +324,8 @@ def filter_variant_sequences(
     Drop variant sequences which are shorter than request or don't have
     enough supporting reads.
     """
-    variant_sequences = filter_variant_sequences_by_read_support(
-        variant_sequences=variant_sequences,
-        min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
+    variant_sequences = trim_variant_sequences(
+        variant_sequences, min_reads_supporting_cdna_sequence)
     return filter_variant_sequences_by_length(
         variant_sequences=variant_sequences,
         preferred_sequence_length=preferred_sequence_length)
@@ -259,10 +382,37 @@ def supporting_reads_to_variant_sequences(
         max_nucleotides_before_variant=max_nucleotides_before_variant,
         max_nucleotides_after_variant=max_nucleotides_after_variant)
 
+    logger.info(
+        "Initial pool of %d variant sequences (min length=%d, max length=%d)",
+        len(variant_sequences),
+        min(len(s) for s in variant_sequences),
+        max(len(s) for s in variant_sequences))
+
+    variant_sequences = iterative_overlap_assembly(variant_sequences)
+
+    if variant_sequences:
+        logger.info(
+            "After overlap assembly: %d variant sequences (min length=%d, max length=%d)",
+            len(variant_sequences),
+            min(len(s) for s in variant_sequences),
+            max(len(s) for s in variant_sequences))
+    else:
+        logger.info("After overlap assembly: 0 variant sequences")
+
     variant_sequences = filter_variant_sequences(
         variant_sequences=variant_sequences,
         preferred_sequence_length=preferred_sequence_length,
         min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
+
+    if variant_sequences:
+        logger.info(
+            ("After coverage & length filtering: %d variant sequences "
+             "(min length=%d, max length=%d)"),
+            len(variant_sequences),
+            min(len(s) for s in variant_sequences),
+            max(len(s) for s in variant_sequences))
+    else:
+        logger.info("After coverage & length filtering: 0 variant sequences")
 
     # sort VariantSequence objects by decreasing order of supporting read
     # counts

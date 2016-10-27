@@ -1,9 +1,3 @@
-,chr,pos,ref,alt,amino_acids,variant_aa_interval_start,variant_aa_interval_end,ends_with_stop_codon,frameshift,translations,supporting_variant_reads,total_variant_reads,supporting_transcripts,total_transcripts,gene
-0,13,5864876,C,CG,DSQEDLWTKFILARGGEEGGIRTEDFF,14,27,False,True,1,16,27,1,1,Klf6
-1,13,5864876,C,CG,DSQEDLWTKFILARGGRRRRNQN,14,23,True,True,1,8,27,1,1,Klf6
-2,13,5864876,C,CG,DSQEDLWTKFILARGGEEGGTTDCARN,14,27,False,True,1,2,27,1,1,Klf6
-3,13,5864876,C,CG,DSQEDLWTKFILARGGEEGGIRTDDFF,14,27,False,True,1,1,27,1,1,Klf6
-4,4,45802539,G,C,CLQGRTTSYSTAAPLPNPIPNPEICY,14,15,False,False,1,3,3,1,1,Aldh1b1
-5,9,82927102,G,T,TMVAWDRHDNTVINYNCVVMSIPSYHS,14,15,False,False,2,11,13,1,1,Phip
-6,9,82927102,G,T,TMVAWDRHDNTVIQYNCVVMSIPSYHS,14,15,False,False,1,2,13,1,1,Phip
-7,X,8125624,C,A,NKLQGHSAPVLDVIDVKHGRAVALQLV,14,15,False,False,2,8,8,3,3,Wdr13
+,chr,pos,ref,alt,amino_acids,variant_aa_interval_start,variant_aa_interval_end,ends_with_stop_codon,frameshift,translations,overlapping_reads,ref_reads,alt_reads,alt_reads_supporting_protein_sequence,transcripts_overlapping_variant,transcripts_supporting_protein_sequence,gene
+0,9,82927102,G,T,AWDRHDNTVIHAVNNMTLKV,10,11,False,False,1,56,39,17,5,1,1,Phip
+1,X,8125624,C,A,QGHSAPVLDVIVNCDESLLA,10,11,False,False,1,71,46,25,8,3,3,Wdr13
