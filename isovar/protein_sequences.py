@@ -28,6 +28,7 @@ from .default_parameters import (
     PROTEIN_SEQUENCE_LENGTH,
     MAX_PROTEIN_SEQUENCES_PER_VARIANT,
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+    VARIANT_CDNA_SEQUENCE_ASSEMBLY
 )
 from .dataframe_builder import dataframe_from_generator
 from .translation import translate_variant_reads, TranslationKey
@@ -158,7 +159,8 @@ def reads_generator_to_protein_sequences_generator(
         min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT):
+        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
+        variant_cdna_sequence_assembly=VARIANT_CDNA_SEQUENCE_ASSEMBLY):
     """"
     Translates each coding variant in a collection to one or more
     Translation objects, which are then aggregated into equivalent
@@ -190,6 +192,7 @@ def reads_generator_to_protein_sequences_generator(
     max_protein_sequences_per_variant : int
         Number of protein sequences to return for each ProteinSequence
 
+    variant_cdna_sequence_assembly : bool
 
     Yields pairs of a Variant and a list of ProteinSequence objects
     """
@@ -214,7 +217,8 @@ def reads_generator_to_protein_sequences_generator(
             protein_sequence_length=protein_sequence_length,
             min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
             min_transcript_prefix_length=min_transcript_prefix_length,
-            max_transcript_mismatches=max_transcript_mismatches)
+            max_transcript_mismatches=max_transcript_mismatches,
+            variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)
 
         protein_sequences = []
         for (key, equivalent_translations) in group_translations(translations).items():

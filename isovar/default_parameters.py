@@ -72,3 +72,8 @@ PROTEIN_SEQUENCE_LENGTH = 20
 
 # number of protein sequences we want to return per variant
 MAX_PROTEIN_SEQUENCES_PER_VARIANT = 1
+
+# run overlap assembly algorithm to construct variant
+# sequences from multiple reads which only partially
+# overlap (rather than fully spanning a coding sequence)
+VARIANT_CDNA_SEQUENCE_ASSEMBLY = False

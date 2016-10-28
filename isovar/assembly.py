@@ -22,7 +22,6 @@ from copy import copy
 
 logger = logging.getLogger(__name__)
 
-
 MIN_OVERLAP_SIZE = 30
 
 def sort_by_decreasing_prefix_length(seq):
@@ -93,15 +92,6 @@ def greedy_merge(variant_sequences, min_overlap_size=MIN_OVERLAP_SIZE):
                     min_overlap_size=min_overlap_size):
                 continue
             combined = variant_sequence1.combine(variant_sequence2)
-            if len(combined) <= max(len(variant_sequence1), len(variant_sequence2)):
-                # if the combined sequence isn't any longer, then why bother?
-                logger.info(
-                    "Skipping %s since doesn't increase length beyond max(%d, %d)",
-                    combined,
-                    len(variant_sequence1),
-                    len(variant_sequence2)
-                )
-                continue
             if combined.sequence in merged_variant_sequences:
                 # it's possible to get the same merged sequence from distinct
                 # input sequences

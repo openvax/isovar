@@ -38,6 +38,11 @@ def add_variant_sequence_args(
         default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         help="Minimum number of reads supporting a variant sequence (default %(default)s)")
 
+    rna_sequence_group.add_argument(
+        "--overlap-assembly",
+        default=False,
+        action="store_true")
+
     # when cDNA sequence length can be inferred from a protein length then
     # we may want to omit this arg
     if add_sequence_length_arg:
@@ -76,7 +81,8 @@ def variant_sequences_generator_from_args(args):
     return reads_generator_to_sequences_generator(
         allele_reads_generator,
         min_reads_supporting_cdna_sequence=args.min_reads_supporting_variant_sequence,
-        preferred_sequence_length=args.cdna_sequence_length)
+        preferred_sequence_length=args.cdna_sequence_length,
+        overlap_assembly=args.overlap_assembly)
 
 def variant_sequences_dataframe_from_args(args):
     variant_sequences_generator = variant_sequences_generator_from_args(args)

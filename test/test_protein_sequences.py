@@ -166,18 +166,20 @@ def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant():
         samfile=samfile,
         min_mapping_quality=0)
 
-    protein_sequences_generator = reads_generator_to_protein_sequences_generator(
-        allele_reads_generator,
-        max_protein_sequences_per_variant=1)
-    df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
-    print(df)
-    eq_(
-        len(df),
-        len(expressed_variants),
-        "Expected %d/%d entries to have RNA support, got %d" % (
+    for overlap_assembly in [False, True]:
+        protein_sequences_generator = reads_generator_to_protein_sequences_generator(
+            allele_reads_generator,
+            max_protein_sequences_per_variant=1,
+            variant_cdna_sequence_assembly=overlap_assembly)
+        df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
+        print(df)
+        eq_(
+            len(df),
             len(expressed_variants),
-            len(combined_variants),
-            len(df),))
+            "Expected %d/%d entries to have RNA support, got %d" % (
+                len(expressed_variants),
+                len(combined_variants),
+                len(df),))
 
 def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_quality():
     # since the B16 BAM has all MAPQ=255 values then all the reads should get dropped
@@ -207,7 +209,7 @@ def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
             "--vcf", data_path("data/b16.f10/b16.vcf"),
             "--bam", data_path("data/b16.f10/b16.combined.sorted.bam"),
             "--max-protein-sequences-per-variant", "1",
-            "--protein-sequence-length", str(desired_length)
+            "--protein-sequence-length", str(desired_length),
         ])
         df = protein_sequences_dataframe_from_args(args)
         eq_(

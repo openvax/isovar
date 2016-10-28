@@ -14,10 +14,8 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.variant_reads import (
-    reads_supporting_variant,
-    all_variant_sequences_supported_by_variant_reads,
-)
+from isovar.variant_reads import reads_supporting_variant
+from isovar.variant_sequences import initial_variant_sequences_from_reads
 from isovar.assembly import iterative_overlap_assembly
 from pyensembl import ensembl_grch38
 from varcode import Variant
@@ -43,7 +41,7 @@ def test_assemble_transcript_fragments_snv():
         chromosome=chromosome,)
 
     sequences = iterative_overlap_assembly(
-        all_variant_sequences_supported_by_variant_reads(variant_reads),
+        initial_variant_sequences_from_reads(variant_reads),
         min_overlap_size=30)
 
     assert len(sequences) > 0
