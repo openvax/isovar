@@ -190,7 +190,8 @@ class VariantSequence(VariantSequenceFields):
         which are overlapped by fewer reads than specified.
         """
         read_count_array = self.coverage()
-        logger.info("%s (len=%d)" % (read_count_array, len(read_count_array)))
+        logger.info("Coverage: %s (len=%d)" % (
+            read_count_array, len(read_count_array)))
         sufficient_coverage_mask = read_count_array >= min_reads
         sufficient_coverage_indices = np.argwhere(sufficient_coverage_mask)
         if len(sufficient_coverage_indices) == 0:

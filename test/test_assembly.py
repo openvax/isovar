@@ -16,6 +16,8 @@ from __future__ import print_function, division, absolute_import
 
 from isovar.variant_reads import reads_supporting_variant
 from isovar.variant_sequences import initial_variant_sequences_from_reads
+from isovar.allele_reads import AlleleRead
+from isovar.variant_sequences import VariantSequence
 from isovar.assembly import iterative_overlap_assembly
 from pyensembl import ensembl_grch38
 from varcode import Variant
@@ -57,6 +59,11 @@ def test_assemble_transcript_fragments_snv():
         assert len(s) > max_read_length, \
             "Expected assembled sequences to be longer than read length (%d)" % (
                 max_read_length,)
+"""
+def test_assemble_simple_sequences():
+    AlleleRead
+    VariantSequence
+"""
 
 if __name__ == "__main__":
     test_assemble_transcript_fragments_snv()

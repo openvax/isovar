@@ -21,6 +21,7 @@ ProteinSequence.
 
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple, defaultdict
+import logging
 
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
@@ -48,6 +49,8 @@ from .variant_helpers import trim_variant
 #
 ##########################
 
+logger = logging.getLogger(__name__)
+
 ProteinSequence = namedtuple(
     "ProteinSequence",
     TranslationKey._fields + (
@@ -66,10 +69,10 @@ ProteinSequence = namedtuple(
         # number of unique read names from all the VariantSequence objects
         # from each translation
         "alt_reads_supporting_protein_sequence",
-        # how many reference transcripts overlap the variant locus?
+        # IDs of transcripts overlapping the variant locus
         "transcripts_overlapping_variant",
-        # how many reference transcripts were used to establish the
-        # reading frame for this protein sequence
+        # IDs of reference transcripts used to establish the reading frame for
+        # this protein sequence
         "transcripts_supporting_protein_sequence",
         # name of gene of the reference transcripts used in Translation
         # objects
@@ -193,6 +196,9 @@ def reads_generator_to_protein_sequences_generator(
         Number of protein sequences to return for each ProteinSequence
 
     variant_cdna_sequence_assembly : bool
+        If True, then assemble variant cDNA sequences based on overlap of
+        RNA reads. If False, then variant cDNA sequences must be fully spanned
+        and contained within RNA reads.
 
     Yields pairs of a Variant and a list of ProteinSequence objects
     """
@@ -222,10 +228,17 @@ def reads_generator_to_protein_sequences_generator(
 
         protein_sequences = []
         for (key, equivalent_translations) in group_translations(translations).items():
+
             # get the variant read names, transcript IDs and gene names for
             # protein sequence we're about to construct
             alt_reads_supporting_protein_sequence, group_transcript_ids, group_gene_names = \
                 summarize_translations(equivalent_translations)
+
+            logger.info(
+                "%s: %s alt reads supporting protein sequence (gene names = %s)",
+                key,
+                len(alt_reads_supporting_protein_sequence),
+                group_gene_names)
 
             protein_sequence = translation_key_to_protein_sequence(
                 translation_key=key,
@@ -237,6 +250,7 @@ def reads_generator_to_protein_sequences_generator(
                 transcripts_supporting_protein_sequence=group_transcript_ids,
                 transcripts_overlapping_variant=overlapping_transcript_ids,
                 gene=list(group_gene_names))
+            logger.info("%s: protein sequence = %s" % (key, protein_sequence.amino_acids))
             protein_sequences.append(protein_sequence)
 
         # sort protein sequences before returning the top results
