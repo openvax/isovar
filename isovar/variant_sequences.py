@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 # using this base class to define the core fields of a VariantSequence
 # but inheriting it from it to allow the addition of helper methods
-VariantSequenceFields = namedtuple(
+VariantSequenceBase = namedtuple(
     "VariantSequence",
     [
         # nucleotides before a variant
@@ -47,13 +47,12 @@ VariantSequenceFields = namedtuple(
         # since we often want to look at prefix+alt+suffix, let's cache it
         "sequence",
         # reads which were used to determine this sequences
-        "reads",
-    ])
+        "reads"])
 
-class VariantSequence(VariantSequenceFields):
+class VariantSequence(VariantSequenceBase):
     def __new__(cls, prefix, alt, suffix, reads):
         # construct sequence from prefix + alt + suffix
-        return VariantSequenceFields.__new__(
+        return VariantSequenceBase.__new__(
             cls,
             prefix=prefix,
             alt=alt,
@@ -227,8 +226,8 @@ class VariantSequence(VariantSequenceFields):
             suffix=self.suffix[:last_covered_index - variant_end_index + 1],
             reads=self.reads)
 
-def sort_key_decreasing_read_count(variant_sequence):
-    return -len(variant_sequence.reads)
+    def sort_key_decreasing_read_count(self):
+        return -len(self.reads)
 
 def initial_variant_sequences_from_reads(
         variant_reads,
@@ -429,7 +428,7 @@ def reads_to_variant_sequences(
 
     # sort VariantSequence objects by decreasing order of supporting read
     # counts
-    variant_sequences.sort(key=sort_key_decreasing_read_count)
+    variant_sequences.sort(key=VariantSequence.sort_key_decreasing_read_count)
     return variant_sequences
 
 def reads_generator_to_sequences_generator(
