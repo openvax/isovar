@@ -26,7 +26,7 @@ import logging
 from skbio import DNA
 
 from .reference_context import reference_contexts_for_variant
-from .variant_sequences import supporting_reads_to_variant_sequences
+from .variant_sequences import reads_to_variant_sequences
 
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
@@ -553,8 +553,9 @@ def translate_variant_reads(
     # need to clip nucleotides at the start/end of the sequence
     cdna_sequence_length = (protein_sequence_length + 1) * 3
 
-    variant_sequences = supporting_reads_to_variant_sequences(
-        variant_reads=variant_reads,
+    variant_sequences = reads_to_variant_sequences(
+        variant=variant,
+        reads=variant_reads,
         preferred_sequence_length=cdna_sequence_length,
         min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
         variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)

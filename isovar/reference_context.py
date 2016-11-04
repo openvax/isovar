@@ -34,19 +34,31 @@ logger = logging.getLogger(__name__)
 #
 ##########################
 
-ReferenceContext = namedtuple(
-    "ReferenceContext",
-    ReferenceCodingSequenceKey._fields + (
-        "variant",
-        "transcripts")
-)
+class ReferenceContext(namedtuple(
+        "ReferenceContext",
+        ReferenceCodingSequenceKey._fields + ("variant", "transcripts"))):
 
-def sort_key_decreasing_max_length_transcript_cds(reference_context):
-    """
-    Used to sort a sequence of ReferenceContext objects by the longest CDS
-    in each context's list of transcripts.
-    """
-    return -max(len(t.coding_sequence) for t in reference_context.transcripts)
+    @classmethod
+    def from_reference_coding_sequence_key(cls, key, variant, transcripts):
+        return cls(
+            strand=key.strand,
+            sequence_before_variant_locus=key.sequence_before_variant_locus,
+            sequence_at_variant_locus=key.sequence_at_variant_locus,
+            sequence_after_variant_locus=key.sequence_after_variant_locus,
+            offset_to_first_complete_codon=key.offset_to_first_complete_codon,
+            contains_start_codon=key.contains_start_codon,
+            overlaps_start_codon=key.overlaps_start_codon,
+            contains_five_prime_utr=key.contains_five_prime_utr,
+            amino_acids_before_variant=key.amino_acids_before_variant,
+            variant=variant,
+            transcripts=transcripts)
+
+    def sort_key_decreasing_max_length_transcript_cds(self):
+        """
+        Used to sort a sequence of ReferenceContext objects by the longest CDS
+        in each context's list of transcripts.
+        """
+        return -max(len(t.coding_sequence) for t in self.transcripts)
 
 def reference_contexts_for_variant(
         variant,
@@ -83,21 +95,12 @@ def reference_contexts_for_variant(
             sequence_groups[sequence_key_with_reading_frame].append(transcript)
 
     reference_contexts = [
-        ReferenceContext(
-            strand=key.strand,
-            sequence_before_variant_locus=key.sequence_before_variant_locus,
-            sequence_at_variant_locus=key.sequence_at_variant_locus,
-            sequence_after_variant_locus=key.sequence_after_variant_locus,
-            offset_to_first_complete_codon=key.offset_to_first_complete_codon,
-            contains_start_codon=key.contains_start_codon,
-            overlaps_start_codon=key.overlaps_start_codon,
-            contains_five_prime_utr=key.contains_five_prime_utr,
-            amino_acids_before_variant=key.amino_acids_before_variant,
-            variant=variant,
-            transcripts=matching_transcripts)
+        ReferenceContext.from_reference_coding_sequence_key(
+            key, variant, matching_transcripts)
         for (key, matching_transcripts) in sequence_groups.items()
     ]
-    reference_contexts.sort(key=sort_key_decreasing_max_length_transcript_cds)
+    reference_contexts.sort(
+        key=ReferenceContext.sort_key_decreasing_max_length_transcript_cds)
     return reference_contexts
 
 def reference_contexts_for_variants(

@@ -12,7 +12,7 @@ def test_allele_count_dataframe():
     ]
     df = allele_counts_dataframe([(variant, reads)])
     assert len(df) == 1, "Wrong number of rows in DataFrame: %s" % (df,)
-    row = df.irow(0)
+    row = df.iloc[0]
     eq_(row.n_ref, 2)
     eq_(row.n_alt, 1)
     eq_(row.n_other, 0)

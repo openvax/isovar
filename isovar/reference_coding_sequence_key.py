@@ -40,9 +40,9 @@ class ReferenceCodingSequenceKey(
                 "amino_acids_before_variant"))):
 
     """
-    Includes all the fields of a ReferenceSequenceKey, and adds on top of those
-    a reading frame and information about where the start codon / 5' UTR are
-    relative to this sequence fragment.
+    ReferenceCodingSequenceKey includes all the fields of a ReferenceSequenceKey,
+    and additionally tracks the reading frame and information about where the
+    start codon and 5' UTR are relative to this sequence fragment.
     """
 
     @classmethod
