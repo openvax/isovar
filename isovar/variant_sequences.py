@@ -452,7 +452,7 @@ def reads_generator_to_sequences_generator(
     sequence_length : int
         Desired sequence length, including variant nucleotides
 
-    overlap_assembly : bool
+    variant_cdna_sequence_assembly : bool
         Construct variant sequences by merging overlapping reads. If False
         then variant sequences must be fully spanned by cDNA reads.
 
