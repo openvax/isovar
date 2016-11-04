@@ -332,19 +332,22 @@ def filter_variant_sequences(
         variant_sequences=variant_sequences,
         preferred_sequence_length=preferred_sequence_length)
 
-def supporting_reads_to_variant_sequences(
-        variant_reads,
+def reads_to_variant_sequences(
+        variant,
+        reads,
         preferred_sequence_length,
         min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         variant_cdna_sequence_assembly=VARIANT_CDNA_SEQUENCE_ASSEMBLY):
     """
-    Collapse variant-support RNA reads into consensus sequences of approximately
-    the preferred length (may differ at the ends of transcripts), filter
-    consensus sequences by length and number of supporting RNA reads.
+    Collapse variant-supporting RNA reads into consensus sequences of
+    approximately the preferred length (may differ at the ends of transcripts),
+    filter consensus sequences by length and number of supporting RNA reads.
 
     Parameters
     ----------
-    variant_reads : list of AlleleRead objects
+    variant : varcode.Variant
+
+    reads : list of AlleleRead objects
         Should all support the same variant allele nucleotides.
 
     preferred_sequence_length : int
@@ -358,14 +361,14 @@ def supporting_reads_to_variant_sequences(
         Drop sequences which don't at least have this number of fully spanning
         reads.
 
-    overlap_assembly : bool
+    reads_to_variant_sequences : bool
         Construct variant sequences by merging overlapping reads. If False
         then variant sequences must be fully spanned by cDNA reads.
 
     Returns a collection of VariantSequence objects
     """
     # just in case variant_reads is a generator, convert it to a list
-    variant_reads = list(variant_reads)
+    variant_reads = list(filter_non_alt_reads_for_variant(variant, reads))
 
     if len(variant_reads) == 0:
         return []
@@ -406,6 +409,7 @@ def supporting_reads_to_variant_sequences(
             max(len(s) for s in variant_sequences))
     else:
         logger.info("After overlap assembly: 0 variant sequences")
+        return []
 
     variant_sequences = filter_variant_sequences(
         variant_sequences=variant_sequences,
@@ -421,22 +425,12 @@ def supporting_reads_to_variant_sequences(
             max(len(s) for s in variant_sequences))
     else:
         logger.info("After coverage & length filtering: 0 variant sequences")
+        return []
 
     # sort VariantSequence objects by decreasing order of supporting read
     # counts
     variant_sequences.sort(key=sort_key_decreasing_read_count)
     return variant_sequences
-
-def overlapping_reads_to_variant_sequences(
-        variant,
-        overlapping_reads,
-        min_reads_supporting_cdna_sequence,
-        preferred_sequence_length):
-    variant_reads = filter_non_alt_reads_for_variant(variant, overlapping_reads)
-    return supporting_reads_to_variant_sequences(
-        variant_reads,
-        preferred_sequence_length=preferred_sequence_length,
-        min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
 
 def reads_generator_to_sequences_generator(
         variant_and_reads_generator,
@@ -468,9 +462,9 @@ def reads_generator_to_sequences_generator(
         - list of VariantSequence objects
     """
     for variant, variant_reads in variant_and_reads_generator:
-        variant_sequences = overlapping_reads_to_variant_sequences(
+        variant_sequences = reads_to_variant_sequences(
             variant=variant,
-            overlapping_reads=variant_reads,
+            reads=variant_reads,
             min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
             preferred_sequence_length=preferred_sequence_length,
             variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)
