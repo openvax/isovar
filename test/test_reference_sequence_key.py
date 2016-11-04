@@ -14,10 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.reference_context import (
-    sequence_key_for_variant_on_transcript,
-    SequenceKey,
-)
+from isovar.reference_sequence_key import ReferenceSequenceKey
 from varcode import Variant
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
@@ -36,11 +33,11 @@ def test_sequence_key_for_variant_on_transcript_substitution():
     eq_(brca2_ref_seq, "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG")
     print(brca2_ref_seq)
     # get the 5 nucleotides before the variant and 10 nucleotides after
-    sequence_key = sequence_key_for_variant_on_transcript(
+    sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
         variant=brca2_variant_rs769125639,
         transcript=brca2_001,
         context_size=10)
-    expected_sequence_key = SequenceKey(
+    expected_sequence_key = ReferenceSequenceKey(
         strand="+",
         sequence_before_variant_locus=brca2_ref_seq[:5],
         sequence_at_variant_locus="T",
@@ -59,11 +56,11 @@ def test_sequence_key_for_variant_on_transcript_deletion():
     eq_(brca2_ref_seq, "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG")
     print(brca2_ref_seq)
     # get the 5 nucleotides before the variant and 10 nucleotides after
-    sequence_key = sequence_key_for_variant_on_transcript(
+    sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
         variant=brca2_variant_deletion,
         transcript=brca2_001,
         context_size=10)
-    expected_sequence_key = SequenceKey(
+    expected_sequence_key = ReferenceSequenceKey(
         strand="+",
         sequence_before_variant_locus=brca2_ref_seq[:5],
         sequence_at_variant_locus="T",
@@ -81,14 +78,14 @@ def test_sequence_key_for_variant_on_transcript_insertion():
     eq_(brca2_ref_seq, "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG")
     print(brca2_ref_seq)
     # get the 5 nucleotides before the variant and 10 nucleotides after
-    sequence_key = sequence_key_for_variant_on_transcript(
+    sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
         variant=brca2_variant_insertion,
         transcript=brca2_001,
         context_size=10)
 
     # expecting nothing at the variant locus since we're inserting between
     # two reference nucleotides
-    expected_sequence_key = SequenceKey(
+    expected_sequence_key = ReferenceSequenceKey(
         strand="+",
         sequence_before_variant_locus=brca2_ref_seq[:6],
         sequence_at_variant_locus="",
@@ -108,12 +105,12 @@ def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
     eq_(tp53_001.sequence[190 - 10:190 + 13], "GGTCACTGCCATGGAGGAGCCGC")
 
     # get the 5 nucleotides before the variant and 10 nucleotides after
-    sequence_key = sequence_key_for_variant_on_transcript(
+    sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
         variant=tp53_substitution,
         transcript=tp53_001,
         context_size=10)
 
-    expected_sequence_key = SequenceKey(
+    expected_sequence_key = ReferenceSequenceKey(
         strand="-",
         sequence_before_variant_locus="GGTCACTGCC",
         sequence_at_variant_locus="ATG",
@@ -132,12 +129,12 @@ def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
     eq_(tp53_001.sequence[190 - 10:190 + 13], "GGTCACTGCCATGGAGGAGCCGC")
 
     # get the 5 nucleotides before the variant and 10 nucleotides after
-    sequence_key = sequence_key_for_variant_on_transcript(
+    sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
         variant=tp53_deletion,
         transcript=tp53_001,
         context_size=10)
 
-    expected_sequence_key = SequenceKey(
+    expected_sequence_key = ReferenceSequenceKey(
         strand="-",
         sequence_before_variant_locus="GGTCACTGCC",
         sequence_at_variant_locus="ATG",
@@ -160,12 +157,12 @@ def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
     #    GCGGCTCCTC_CAT_GGCAGTGACC
 
     # get the 5 nucleotides before the variant and 10 nucleotides after
-    sequence_key = sequence_key_for_variant_on_transcript(
+    sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
         variant=tp53_insertion,
         transcript=tp53_001,
         context_size=10)
 
-    expected_sequence_key = SequenceKey(
+    expected_sequence_key = ReferenceSequenceKey(
         strand="-",
         sequence_before_variant_locus="CACTGCCATG",
         sequence_at_variant_locus="",

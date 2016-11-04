@@ -135,7 +135,9 @@ def summarize_translations(translations):
 
 def protein_sequence_sort_key(protein_sequence):
     """
-    Sort protein sequences lexicographically by three criteria:
+    Sort protein sequences lexicographically by six criteria:
+        - TODO: min number of reads covering each nucleotide of
+          the protein sequence >= 2
         - number of unique supporting reads
         - minimum mismatch versus a supporting reference transcript
         - number of supporting reference transcripts
