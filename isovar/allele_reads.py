@@ -36,12 +36,18 @@ logger = logging.getLogger(__name__)
 
 # subclassing from namedtuple to get a lightweight object with built-in
 # hashing and comparison while also being able to add methods
-class AlleleRead(
-        namedtuple("AlleleRead", "prefix allele suffix name sequence")):
+AlleleReadBase = namedtuple(
+    "AlleleRead",
+    "prefix allele suffix name sequence")
 
-    @property
-    def sequence(self):
-        return self.prefix + self.allele + self.suffix
+class AlleleRead(AlleleReadBase):
+    def __new__(cls, prefix, allele, suffix, name):
+        return AlleleReadBase(
+            prefix=prefix,
+            allele=allele,
+            suffix=suffix,
+            name=name,
+            sequence=prefix + allele + suffix)
 
     def __len__(self):
         return len(self.prefix) + len(self.allele) + len(self.suffix)

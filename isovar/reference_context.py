@@ -18,8 +18,7 @@ import logging
 
 from .effect_prediction import reference_transcripts_for_variant
 from .dataframe_builder import DataFrameBuilder
-from .reference_sequence_key_with_reading_frame import (
-    ReferenceSequenceKeyWithReadingFrame,)
+from .reference_coding_sequence_key import ReferenceCodingSequenceKey
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 ReferenceContext = namedtuple(
     "ReferenceContext",
-    ReferenceSequenceKeyWithReadingFrame._fields + (
+    ReferenceCodingSequenceKey._fields + (
         "variant",
         "transcripts")
 )
@@ -76,7 +75,7 @@ def reference_contexts_for_variant(
 
     for transcript in overlapping_transcripts:
         sequence_key_with_reading_frame = \
-            ReferenceSequenceKeyWithReadingFrame.from_variant_and_transcript(
+            ReferenceCodingSequenceKey.from_variant_and_transcript(
                 variant=variant,
                 transcript=transcript,
                 context_size=context_size)

@@ -22,21 +22,16 @@ from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 
 logger = logging.getLogger(__name__)
 
-##########################
-#
-# ReferenceSequenceKey
-# -----------
-#
-# Used to identify and group the distinct sequences occurring on a set of
-# transcripts overlapping a variant locus
-#
-##########################
 
 class ReferenceSequenceKey(namedtuple("ReferenceSequenceKey", [
         "strand",
         "sequence_before_variant_locus",
         "sequence_at_variant_locus",
         "sequence_after_variant_locus"])):
+    """
+    Used to identify and group the distinct sequences occurring on a set of
+    transcripts overlapping a variant locus
+    """
 
     @classmethod
     def from_variant_and_transcript(cls, variant, transcript, context_size):
