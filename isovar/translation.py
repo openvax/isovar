@@ -26,13 +26,14 @@ import logging
 from skbio import DNA
 
 from .reference_context import reference_contexts_for_variant
-from .variant_sequences import supporting_reads_to_variant_sequences
+from .variant_sequences import reads_to_variant_sequences
 
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     PROTEIN_SEQUENCE_LENGTH,
     MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+    VARIANT_CDNA_SEQUENCE_ASSEMBLY,
 )
 from .dataframe_builder import dataframe_from_generator
 
@@ -467,9 +468,9 @@ def translate_variant_sequence(
             logger.warn(
                 ("Truncating amino acid sequence %s from variant sequence %s "
                  "to only %d elements loses all variant residues"),
-                    variant_amino_acids,
-                    variant_sequence,
-                    protein_sequence_length)
+                variant_amino_acids,
+                variant_sequence,
+                protein_sequence_length)
             return None
         # if the protein is too long then short it, which implies we're no longer
         # stopping due to a stop codon and that the variant amino acids might
@@ -542,7 +543,8 @@ def translate_variant_reads(
         transcript_id_whitelist=None,
         min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES):
+        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+        variant_cdna_sequence_assembly=VARIANT_CDNA_SEQUENCE_ASSEMBLY):
     if len(variant_reads) == 0:
         logger.info("No supporting reads for variant %s", variant)
         return []
@@ -551,10 +553,12 @@ def translate_variant_reads(
     # need to clip nucleotides at the start/end of the sequence
     cdna_sequence_length = (protein_sequence_length + 1) * 3
 
-    variant_sequences = supporting_reads_to_variant_sequences(
-        variant_reads=variant_reads,
+    variant_sequences = reads_to_variant_sequences(
+        variant=variant,
+        reads=variant_reads,
         preferred_sequence_length=cdna_sequence_length,
-        min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
+        min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
+        variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)
 
     if not variant_sequences:
         logger.info("No spanning cDNA sequences for variant %s", variant)
@@ -572,7 +576,7 @@ def translate_variant_reads(
     if context_size < min_transcript_prefix_length:
         logger.info(
             "Skipping variant %s, none of the cDNA sequences have sufficient context",
-                variant)
+            variant)
         return []
 
     reference_contexts = reference_contexts_for_variant(
@@ -592,7 +596,8 @@ def translate_variants(
         protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
         min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES):
+        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+        variant_cdna_sequence_assembly=VARIANT_CDNA_SEQUENCE_ASSEMBLY):
     """
     Translates each coding variant in a collection to one or more protein
     fragment sequences (if the variant is not filtered and its spanning RNA
@@ -636,7 +641,8 @@ def translate_variants(
             transcript_id_whitelist=transcript_id_whitelist,
             min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
             min_transcript_prefix_length=min_transcript_prefix_length,
-            max_transcript_mismatches=max_transcript_mismatches)
+            max_transcript_mismatches=max_transcript_mismatches,
+            variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)
         yield variant, translations
 
 def translations_generator_to_dataframe(translations_generator):

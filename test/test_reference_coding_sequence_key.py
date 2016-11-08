@@ -14,10 +14,9 @@
 
 from __future__ import print_function, division, absolute_import
 
-from isovar.reference_context import (
+from isovar.reference_coding_sequence_key import (
     reading_frame_to_offset,
-    sequence_key_with_reading_frame_for_variant_on_transcript,
-    SequenceKeyWithReadingFrame,
+    ReferenceCodingSequenceKey,
 )
 from varcode import Variant
 from pyensembl import ensembl_grch38
@@ -51,12 +50,11 @@ def test_sequence_key_with_reading_frame_substitution_with_five_prime_utr():
     #  4th codon: CCG
     #  5th codon:  CAG
     #  first nt of 6th codon: T
-    result = \
-        sequence_key_with_reading_frame_for_variant_on_transcript(
-            variant=tp53_substitution,
-            transcript=tp53_001,
-            context_size=10)
-    expected = SequenceKeyWithReadingFrame(
+    result = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=tp53_substitution,
+        transcript=tp53_001,
+        context_size=10)
+    expected = ReferenceCodingSequenceKey(
         strand="-",
         sequence_before_variant_locus="CACTGCCATG",
         sequence_at_variant_locus="GAG",
@@ -89,12 +87,11 @@ def test_sequence_key_with_reading_frame_deletion_with_five_prime_utr():
     #  5th codon:  CAG
     #  first nt of 6th codon: T
 
-    result = \
-        sequence_key_with_reading_frame_for_variant_on_transcript(
-            variant=tp53_deletion,
-            transcript=tp53_001,
-            context_size=10)
-    expected = SequenceKeyWithReadingFrame(
+    result = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=tp53_deletion,
+        transcript=tp53_001,
+        context_size=10)
+    expected = ReferenceCodingSequenceKey(
         strand="-",
         sequence_before_variant_locus="CACTGCCATG",
         sequence_at_variant_locus="GAG",
@@ -127,13 +124,12 @@ def test_sequence_key_with_reading_frame_insertion():
     #   5th codon:  CAG
     #   first nt of 6th codon: T
 
-    result = \
-        sequence_key_with_reading_frame_for_variant_on_transcript(
-            variant=tp53_insertion,
-            transcript=tp53_001,
-            context_size=10)
+    result = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=tp53_insertion,
+        transcript=tp53_001,
+        context_size=10)
 
-    expected = SequenceKeyWithReadingFrame(
+    expected = ReferenceCodingSequenceKey(
         strand="-",
         sequence_before_variant_locus="TGCCATGGAG",
         sequence_at_variant_locus="",
@@ -145,7 +141,7 @@ def test_sequence_key_with_reading_frame_insertion():
         amino_acids_before_variant="ME")
     assert_equal_fields(result, expected)
 
-def test_sequence_key_with_reading_frame_insertion_inside_start_codon():
+def test_reference_coding_sequence_key_insertion_inside_start_codon():
     # insert nucleotide "C" in the middle of the start codon of TP53-001,
     # keeping only 1 nucleotide of context. In the reverse complement this
     # becomes 'T'>'TG'
@@ -154,11 +150,10 @@ def test_sequence_key_with_reading_frame_insertion_inside_start_codon():
 
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
 
-    result = \
-        sequence_key_with_reading_frame_for_variant_on_transcript(
-            variant=tp53_insertion,
-            transcript=tp53_001,
-            context_size=1)
+    result = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=tp53_insertion,
+        transcript=tp53_001,
+        context_size=1)
     assert result is None, "Expected result to be None when variant affects start codon"
 
 def test_sequence_key_with_reading_frame_insertion_before_start_codon():
@@ -167,11 +162,10 @@ def test_sequence_key_with_reading_frame_insertion_before_start_codon():
 
     tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
 
-    result = \
-        sequence_key_with_reading_frame_for_variant_on_transcript(
-            variant=tp53_insertion,
-            transcript=tp53_001,
-            context_size=1)
+    result = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=tp53_insertion,
+        transcript=tp53_001,
+        context_size=1)
     assert result is None, "Expected result to be None when variant before start codon"
 
 
@@ -192,13 +186,12 @@ def test_sequence_key_with_reading_frame_insertion_context_6nt_contains_start():
     #   3rd codon: GAG
     #   4th codon: CCG
 
-    result = \
-        sequence_key_with_reading_frame_for_variant_on_transcript(
-            variant=tp53_insertion,
-            transcript=tp53_001,
-            context_size=6)
+    result = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=tp53_insertion,
+        transcript=tp53_001,
+        context_size=6)
 
-    expected = SequenceKeyWithReadingFrame(
+    expected = ReferenceCodingSequenceKey(
         strand="-",
         sequence_before_variant_locus="ATGGAG",
         sequence_at_variant_locus="",
@@ -229,13 +222,12 @@ def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
     #   3rd codon: GAG
     #   first two nt of 4th codon: CC
 
-    result = \
-        sequence_key_with_reading_frame_for_variant_on_transcript(
-            variant=tp53_insertion,
-            transcript=tp53_001,
-            context_size=5)
+    result = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=tp53_insertion,
+        transcript=tp53_001,
+        context_size=5)
 
-    expected = SequenceKeyWithReadingFrame(
+    expected = ReferenceCodingSequenceKey(
         strand="-",
         sequence_before_variant_locus="TGGAG",
         sequence_at_variant_locus="",
@@ -264,13 +256,12 @@ def test_sequence_key_with_reading_frame_insertion_context_3nt_no_start():
     #   <---- insertion variant occurs between these two codons
     #   3rd codon: GAG
 
-    result = \
-        sequence_key_with_reading_frame_for_variant_on_transcript(
-            variant=tp53_insertion,
-            transcript=tp53_001,
-            context_size=3)
+    result = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=tp53_insertion,
+        transcript=tp53_001,
+        context_size=3)
 
-    expected = SequenceKeyWithReadingFrame(
+    expected = ReferenceCodingSequenceKey(
         strand="-",
         sequence_before_variant_locus="GAG",
         sequence_at_variant_locus="",
