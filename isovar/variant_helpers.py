@@ -176,14 +176,14 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
             except ValueError:
                 logger.info(
                     "Couldn't find position %d from %s on exons of %s",
-                        dna_pos,
-                        variant,
-                        transcript)
+                    dna_pos,
+                    variant,
+                    transcript)
         if len(offsets) == 0:
             raise ValueError(
                 "Couldn't find any exonic reference bases affected by %s on %s",
-                    variant,
-                    transcript)
+                variant,
+                transcript)
         start_offset = min(offsets)
         end_offset = max(offsets) + 1
     return (start_offset, end_offset)

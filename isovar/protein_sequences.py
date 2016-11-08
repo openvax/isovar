@@ -20,9 +20,10 @@ ProteinSequence.
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 import logging
 
+from .common import groupby
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -51,7 +52,7 @@ from .variant_helpers import trim_variant
 
 logger = logging.getLogger(__name__)
 
-ProteinSequence = namedtuple(
+ProteinSequenceBase = namedtuple(
     "ProteinSequence",
     TranslationKey._fields + (
         # list of all the Translation objects which support this distinct
@@ -79,83 +80,65 @@ ProteinSequence = namedtuple(
         "gene",
     ))
 
+class ProteinSequence(ProteinSequenceBase):
+    @classmethod
+    def _summarize_translations(cls, translations):
+        """
+        Summarize a collection of Translation objects into three values:
+            1) List of unique reads supporting underlying variant sequences
+            2) Set of unique transcript names for establishing reading frames of the
+               translations.
+            3) Set of unique gene names for all transcripts used by translations.
+        """
+        read_name_to_reads = {}
+        gene_names = set([])
+        transcript_ids = set([])
+        for translation in translations:
+            for read in translation.variant_sequence.reads:
+                read_name_to_reads[read.name] = read
+            for transcript in translation.reference_context.transcripts:
+                transcript_ids.add(transcript.id)
+                gene_names.add(transcript.gene.name)
+        unique_reads = list(read_name_to_reads.values())
+        return unique_reads, transcript_ids, gene_names
 
-def to_translation_key(x):
-    """
-    If a namedtuple has a superset of the fields of a TranslationKey,
-    project it down to create a TranslationKey object.
-    """
-    values_dict = {
-        name: getattr(x, name)
-        for name in TranslationKey._fields
-    }
-    return TranslationKey(**values_dict)
+    @classmethod
+    def from_translation_key(cls, translation_key, **extra_kwargs):
+        """
+        Create a ProteinSequence object from a TranslationKey, and extra fields
+        which must be supplied in extra_kwargs.
+        """
+        values_dict = {}
+        for name in TranslationKey._fields:
+            values_dict[name] = getattr(translation_key, name)
+        values_dict.update(extra_kwargs)
+        return cls(**values_dict)
 
+    def ascending_sort_key(self):
+        """
+        Sort protein sequences lexicographically by three criteria:
+            - number of unique supporting reads
+            - minimum mismatch versus a supporting reference transcript
+            - number of supporting reference transcripts
 
-def group_translations(translations):
-    """
-    Returns a dictionary mapping TranslationKey object to a list of
-    Translations with the same protein sequence
-    """
-    equivalent_translations_dict = defaultdict(list)
-    for translation in translations:
-        equivalent_translations_dict[to_translation_key(translation)].append(translation)
-    return equivalent_translations_dict
-
-def translation_key_to_protein_sequence(translation_key, **extra_kwargs):
-    """
-    Create a ProteinSequence object from a TranslationKey, and extra fields
-    which must be supplied in extra_kwargs.
-    """
-    values_dict = {}
-    for name in TranslationKey._fields:
-        values_dict[name] = getattr(translation_key, name)
-    values_dict.update(extra_kwargs)
-    return ProteinSequence(**values_dict)
-
-def summarize_translations(translations):
-    """
-    Summarize a collection of Translation objects into three values:
-        1) List of unique reads supporting underlying variant sequences
-        2) Set of unique transcript names for establishing reading frames of the
-           translations.
-        3) Set of unique gene names for all transcripts used by translations.
-    """
-    read_name_to_reads = {}
-    gene_names = set([])
-    transcript_ids = set([])
-    for translation in translations:
-        for read in translation.variant_sequence.reads:
-            read_name_to_reads[read.name] = read
-        for transcript in translation.reference_context.transcripts:
-            transcript_ids.add(transcript.id)
-            gene_names.add(transcript.gene.name)
-    unique_reads = list(read_name_to_reads.values())
-    return unique_reads, transcript_ids, gene_names
-
-def protein_sequence_sort_key(protein_sequence):
-    """
-    Sort protein sequences lexicographically by six criteria:
-        - TODO: min number of reads covering each nucleotide of
-          the protein sequence >= 2
-        - number of unique supporting reads
-        - minimum mismatch versus a supporting reference transcript
-        - number of supporting reference transcripts
-    """
-    return (
-        len(protein_sequence.alt_reads_supporting_protein_sequence),
-        min(
-            t.number_mismatches
-            for t in protein_sequence.translations),
-        len(protein_sequence.transcripts_supporting_protein_sequence)
-    )
+        TODO: Add sort criterion:
+            - min number of reads covering each nucleotide of
+              the protein sequence >= 2
+        """
+        return (
+            len(self.alt_reads_supporting_protein_sequence),
+            min(
+                t.number_mismatches
+                for t in self.translations),
+            len(self.transcripts_supporting_protein_sequence)
+        )
 
 def sort_protein_sequences(protein_sequences):
     """
     Sort protein sequences in decreasing order of priority
     """
     return list(
-        sorted(protein_sequences, key=protein_sequence_sort_key, reverse=True))
+        sorted(protein_sequences, key=ProteinSequence.ascending_sort_key, reverse=True))
 
 def reads_generator_to_protein_sequences_generator(
         variant_and_overlapping_reads_generator,
@@ -229,12 +212,13 @@ def reads_generator_to_protein_sequences_generator(
             variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)
 
         protein_sequences = []
-        for (key, equivalent_translations) in group_translations(translations).items():
+        for (key, equivalent_translations) in groupby(
+                translations, key_fn=TranslationKey.as_translation_key).items():
 
             # get the variant read names, transcript IDs and gene names for
             # protein sequence we're about to construct
             alt_reads_supporting_protein_sequence, group_transcript_ids, group_gene_names = \
-                summarize_translations(equivalent_translations)
+                ProteinSequence._summarize_translations(equivalent_translations)
 
             logger.info(
                 "%s: %s alt reads supporting protein sequence (gene names = %s)",
@@ -242,7 +226,7 @@ def reads_generator_to_protein_sequences_generator(
                 len(alt_reads_supporting_protein_sequence),
                 group_gene_names)
 
-            protein_sequence = translation_key_to_protein_sequence(
+            protein_sequence = ProteinSequence.from_translation_key(
                 translation_key=key,
                 translations=equivalent_translations,
                 overlapping_reads=overlapping_reads,

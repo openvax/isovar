@@ -25,3 +25,15 @@ def list_to_string(list_of_anything, sep=";"):
     Helper function used for building the fields of a printable dataframe
     """
     return sep.join(str(x) for x in list_of_anything)
+
+def groupby(xs, key_fn):
+    """
+    Group elements of the list `xs` by keys generated from calling `key_fn`.
+
+    Returns a dictionary which maps keys to sub-lists of `xs`.
+    """
+    result = defaultdict(list)
+    for x in xs:
+        key = key_fn(x)
+        result[key].append(x)
+    return result
