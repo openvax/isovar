@@ -20,6 +20,11 @@ translations.
 
 from __future__ import print_function, division, absolute_import
 
+from .genetic_code import (
+    standard_genetic_code_with_extra_start_codons,
+    vertebrate_mitochondrial_genetic_code,
+)
+
 def compute_offset_to_first_complete_codon(
         offset_to_first_complete_reference_codon,
         n_trimmed_from_reference_sequence):
@@ -48,45 +53,8 @@ def compute_offset_to_first_complete_codon(
         frame = n_nucleotides_trimmed_after_first_codon % 3
         return (3 - frame) % 3
 
-human_standard_codon_table = {
-    'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
-    'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
-    'AAC': 'N', 'AAT': 'N', 'AAA': 'K', 'AAG': 'K',
-    'AGC': 'S', 'AGT': 'S', 'AGA': 'R', 'AGG': 'R',
-    'CTA': 'L', 'CTC': 'L', 'CTG': 'L', 'CTT': 'L',
-    'CCA': 'P', 'CCC': 'P', 'CCG': 'P', 'CCT': 'P',
-    'CAC': 'H', 'CAT': 'H', 'CAA': 'Q', 'CAG': 'Q',
-    'CGA': 'R', 'CGC': 'R', 'CGG': 'R', 'CGT': 'R',
-    'GTA': 'V', 'GTC': 'V', 'GTG': 'V', 'GTT': 'V',
-    'GCA': 'A', 'GCC': 'A', 'GCG': 'A', 'GCT': 'A',
-    'GAC': 'D', 'GAT': 'D', 'GAA': 'E', 'GAG': 'E',
-    'GGA': 'G', 'GGC': 'G', 'GGG': 'G', 'GGT': 'G',
-    'TCA': 'S', 'TCC': 'S', 'TCG': 'S', 'TCT': 'S',
-    'TTC': 'F', 'TTT': 'F', 'TTA': 'L', 'TTG': 'L',
-    'TAC': 'Y', 'TAT': 'Y', 'TAA': '*', 'TAG': '*',
-    'TGC': 'C', 'TGT': 'C', 'TGA': '*', 'TGG': 'W',
-}
-
-# Non-canonical start sites based on figure 2 of
-#   "Global mapping of translation initiation sites in mammalian
-#   cells at single-nucleotide resolution"
-
-human_standard_start_codons = {
-    'ATG',
-    'CTG',  # how often are CTG translated as leucine? skimming of papers
-            # makes it seem rare and dependent on upstream sequence
-    'TTG',
-    'GTG',
-    'AGG',
-    'ACG',
-    'AAG',
-    'ATC',
-    'ATA',
-    'ATT',
-}
-
 def translate_cdna(
-        cdna_sequence_from_first_codon,
+        cdna_sequence,
         first_codon_is_start=False,
         mitochondrial=False):
     """
@@ -96,40 +64,22 @@ def translate_cdna(
 
     Parameters
     ----------
-    cdna_sequence_from_first_codon : skbio.DNA
+    cdna_sequence : str
         cDNA sequence which is expected to start and end on complete codons.
+
+    first_codon_is_start : bool
+
+    mitochondrial : bool
+        Use the mitochondrial codon table instead of standard
+        codon to amino acid table.
     """
     # once we drop some of the prefix nucleotides, we should be in a reading frame
     # which allows us to translate this protein
     if mitochondrial:
-        raise ValueError("Translation of mitochondrial cDNA not yet supported")
-    if not isinstance(cdna_sequence_from_first_codon, str):
-        cdna_sequence_from_first_codon = str(cdna_sequence_from_first_codon)
-    n = len(cdna_sequence_from_first_codon)
-    if len(cdna_sequence_from_first_codon) < 3:
-        return ''
-
-    if first_codon_is_start and (
-            cdna_sequence_from_first_codon[:3] in human_standard_start_codons):
-        amino_acid_list = ['M']
-        start_index = 3
+        genetic_code = vertebrate_mitochondrial_genetic_code
     else:
-        start_index = 0
-        amino_acid_list = []
+        genetic_code = standard_genetic_code_with_extra_start_codons
 
-    # trim to multiple of 3 length
-    end_idx = 3 * (n // 3)
-    ends_with_stop_codon = False
-    for i in range(start_index, end_idx, 3):
-        codon = cdna_sequence_from_first_codon[i:i + 3]
-        assert codon, (i, start_index, end_idx, cdna_sequence_from_first_codon)
-        aa = human_standard_codon_table[codon]
-
-        if aa == "*":
-            ends_with_stop_codon = True
-            break
-        amino_acid_list.append(aa)
-
-    amino_acids = "".join(amino_acid_list)
-
-    return amino_acids, ends_with_stop_codon
+    return genetic_code.translate(
+        cdna_sequence=cdna_sequence,
+        first_codon_is_start=first_codon_is_start)
