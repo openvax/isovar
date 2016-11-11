@@ -21,7 +21,7 @@ translations.
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple
 
-from skbio import DNA
+from .common import reverse_complement_dna
 
 class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", (
         # since the reference context and variant sequence may have
@@ -70,7 +70,7 @@ class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", 
             offset_to_first_complete_reference_codon=ref_codon_offset,
             n_trimmed_from_reference_sequence=n_trimmed_from_reference)
 
-        cdna_sequence = DNA.concat([cdna_prefix, cdna_alt, cdna_suffix])
+        cdna_sequence = cdna_prefix + cdna_alt + cdna_suffix
         variant_interval_start = len(cdna_prefix) + 1
         variant_interval_end = variant_interval_start + len(cdna_alt)
 
@@ -81,7 +81,6 @@ class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", 
             variant_cdna_interval_end=variant_interval_end,
             reference_cdna_sequence_before_variant=reference_prefix,
             number_mismatches=n_mismatch_before_variant)
-
 
 def trim_sequences(variant_sequence, reference_context):
     """
@@ -114,9 +113,9 @@ def trim_sequences(variant_sequence, reference_context):
         5) Number of nucleotides trimmed from the reference sequence, used
            later for adjustint offset to first complete codon.
     """
-    cdna_prefix = DNA(variant_sequence.prefix)
-    cdna_alt = DNA(variant_sequence.alt)
-    cdna_suffix = DNA(variant_sequence.suffix)
+    cdna_prefix = variant_sequence.prefix
+    cdna_alt = variant_sequence.alt
+    cdna_suffix = variant_sequence.suffix
 
     # if the transcript is on the reverse strand then we have to
     # take the sequence PREFIX|VARIANT|SUFFIX
@@ -125,9 +124,9 @@ def trim_sequences(variant_sequence, reference_context):
         # notice that we are setting the *prefix* to be reverse complement
         # of the *suffix* and vice versa
         cdna_prefix, cdna_alt, cdna_suffix = (
-            cdna_suffix.reverse_complement(),
-            cdna_alt.reverse_complement(),
-            cdna_prefix.reverse_complement()
+            reverse_complement_dna(cdna_suffix),
+            reverse_complement_dna(cdna_alt),
+            reverse_complement_dna(cdna_prefix)
         )
 
     reference_sequence_before_variant = reference_context.sequence_before_variant_locus
@@ -162,21 +161,17 @@ def count_mismatches(reference_prefix, cdna_prefix):
 
     Parameters
     ----------
-    reference_prefix : str or skbio.DNA
+    reference_prefix : str
         cDNA sequence of a reference transcript before a variant locus
 
-    cdna_prefix : str or skbio.DNA
+    cdna_prefix : str
         cDNA sequence detected from RNAseq before a variant locus
     """
     if len(reference_prefix) != len(cdna_prefix):
         raise ValueError(
             "Expected reference prefix '%s' to be same length as %s" % (
                 reference_prefix, cdna_prefix))
-    # converting to str before zip because skbio.DNA is weird and sometimes
-    # returns elements which don't compare equally despite being the same
-    # nucleotide
-    return sum(xi != yi for (xi, yi) in zip(
-        str(reference_prefix), str(cdna_prefix)))
+    return sum(xi != yi for (xi, yi) in zip(reference_prefix, cdna_prefix))
 
 
 def compute_offset_to_first_complete_codon(

@@ -20,6 +20,20 @@ nucleotides = ["A", "C", "T", "G"]
 nucleotide_to_index = {c: i for (i, c) in enumerate(nucleotides)}
 index_to_nucleotide = {i: c for (i, c) in enumerate(nucleotides)}
 
+dna_complement_dictionary = {
+    "A": "T",
+    "T": "A",
+    "C": "G",
+    "G": "C",
+    "N": "N"
+}
+
+def complement_dna(seq):
+    return "".join(dna_complement_dictionary[nt] for nt in seq)
+
+def reverse_complement_dna(seq):
+    return complement_dna(seq)[::-1]
+
 def list_to_string(list_of_anything, sep=";"):
     """
     Helper function used for building the fields of a printable dataframe

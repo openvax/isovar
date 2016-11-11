@@ -177,16 +177,15 @@ class Translation(namedtuple(
 
         reference_sequence_before_variant = (
             variant_sequence_in_reading_frame.reference_cdna_sequence_before_variant)
-        # converting sequence objects to str since skbio.DNA objects aren't really
-        # useful outside of the translation module & debugging
+
         return Translation(
-            cdna_sequence=str(cdna_sequence),
+            cdna_sequence=cdna_sequence,
             offset_to_first_complete_codon=cdna_codon_offset,
             variant_cdna_interval_start=cdna_variant_start_offset,
             variant_cdna_interval_end=cdna_variant_end_offset,
             reference_cdna_sequence_before_variant=reference_sequence_before_variant,
             number_mismatches=variant_sequence_in_reading_frame.number_mismatches,
-            amino_acids=str(variant_amino_acids),
+            amino_acids=variant_amino_acids,
             frameshift=frameshift,
             ends_with_stop_codon=ends_with_stop_codon,
             variant_aa_interval_start=variant_aa_interval_start,
