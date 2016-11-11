@@ -23,9 +23,6 @@ from collections import namedtuple
 
 from skbio import DNA
 
-from .translation_helpers import compute_offset_to_first_complete_codon
-
-
 class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", (
         # since the reference context and variant sequence may have
         # different numbers of nucleotides before the variant, the cDNA prefix
@@ -180,3 +177,32 @@ def count_mismatches(reference_prefix, cdna_prefix):
     # nucleotide
     return sum(xi != yi for (xi, yi) in zip(
         str(reference_prefix), str(cdna_prefix)))
+
+
+def compute_offset_to_first_complete_codon(
+        offset_to_first_complete_reference_codon,
+        n_trimmed_from_reference_sequence):
+    """
+    Once we've aligned the variant sequence to the ReferenceContext, we need
+    to transfer reading frame from the reference transcripts to the variant
+    sequences.
+
+    Parameters
+    ----------
+    offset_to_first_complete_reference_codon : int
+
+    n_trimmed_from_reference_sequence : int
+
+    Returns an offset into the variant sequence that starts from a complete
+    codon.
+    """
+    if n_trimmed_from_reference_sequence <= offset_to_first_complete_reference_codon:
+        return (
+            offset_to_first_complete_reference_codon -
+            n_trimmed_from_reference_sequence)
+    else:
+        n_nucleotides_trimmed_after_first_codon = (
+            n_trimmed_from_reference_sequence -
+            offset_to_first_complete_reference_codon)
+        frame = n_nucleotides_trimmed_after_first_codon % 3
+        return (3 - frame) % 3

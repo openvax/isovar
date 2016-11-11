@@ -60,6 +60,14 @@ class ReferenceContext(namedtuple(
         """
         return -max(len(t.coding_sequence) for t in self.transcripts)
 
+    @property
+    def mitochondrial(self):
+        """
+        Is this a reference context for a variant in the mitochondrial
+        genome?
+        """
+        return self.variant.contig.lower() in {"chrm", "m", "chrmt", "mt"}
+
 def reference_contexts_for_variant(
         variant,
         context_size,

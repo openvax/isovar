@@ -26,7 +26,7 @@ import logging
 
 from .reference_context import reference_contexts_for_variant
 from .variant_sequences import reads_to_variant_sequences
-from .translation_helpers import translate_cdna
+from .genetic_code import translate_cdna
 from .variant_sequence_in_reading_frame import VariantSequenceInReadingFrame
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
@@ -89,7 +89,9 @@ class Translation(namedtuple(
 
     @classmethod
     def from_variant_sequence_and_reference_context(
-            cls, variant_sequence, reference_context,
+            cls,
+            variant_sequence,
+            reference_context,
             max_transcript_mismatches,
             protein_sequence_length=None):
         """
@@ -109,6 +111,9 @@ class Translation(namedtuple(
 
         protein_sequence_length : int, optional
             Truncate protein to be at most this long
+
+        mitochondrial : bool
+            Is this a cDNA sequence from a mitochondrial transcript?
 
         Returns either a ProteinSequence object or None if the number of
         mismatches between the RNA and reference transcript sequences exceeds the
@@ -137,8 +142,13 @@ class Translation(namedtuple(
         cdna_variant_start_offset = variant_sequence_in_reading_frame.variant_cdna_interval_start
         cdna_variant_end_offset = variant_sequence_in_reading_frame.variant_cdna_interval_end
 
+        # TODO: determine if the first codon is the start codon of a
+        # transcript, for now any of the unusual start codons like CTG
+        # will translate to leucine instead of methionine.
         variant_amino_acids, ends_with_stop_codon = translate_cdna(
-            cdna_sequence[cdna_codon_offset:])
+            cdna_sequence[cdna_codon_offset:],
+            first_codon_is_start=False,
+            mitochondrial=reference_context.mitochondrial)
 
         variant_aa_interval_start, variant_aa_interval_end, frameshift = \
             find_mutant_amino_acid_interval(

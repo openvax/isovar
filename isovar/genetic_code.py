@@ -19,16 +19,19 @@ class GeneticCode(object):
                             stop_codon,))
             else:
                 self.codon_table[stop_codon] = "*"
+
         for start_codon in self.start_codons:
             if start_codon not in self.codon_table:
                 raise ValueError(
                     "Start codon '%s' missing from codon table" % (
                         start_codon,))
+
         for codon, amino_acid in self.codon_table.items():
             if amino_acid == "*" and codon not in self.stop_codons:
                 raise ValueError(
                     "Non-stop codon '%s' can't translate to '*'" % (
                         codon,))
+
         if len(self.codon_table) != 64:
             raise ValueError(
                 "Expected 64 codons but found %d in codon table" % (
@@ -49,9 +52,10 @@ class GeneticCode(object):
             Is the first codon of the sequence a start codon?
         """
         if not isinstance(cdna_sequence, str):
-            cdna_sequence_from_first_codon = str(cdna_sequence)
-        n = len(cdna_sequence_from_first_codon)
-        if len(cdna_sequence_from_first_codon) < 3:
+            cdna_sequence = str(cdna_sequence)
+        n = len(cdna_sequence)
+
+        if len(cdna_sequence) < 3:
             return ''
 
         codon_table = self.codon_table
@@ -92,16 +96,20 @@ class GeneticCode(object):
             self.start_codons.copy()
             if start_codons is None
             else start_codons)
+
         new_stop_codons = (
             self.stop_codons.copy()
             if stop_codons is None
             else stop_codons)
+
         new_codon_table = (
             self.codon_table.copy()
             if codon_table is None
             else codon_table)
+
         if codon_table_changes is not None:
             new_codon_table.update(codon_table_changes)
+
         return GeneticCode(
             name=name,
             start_codons=new_start_codons,
@@ -110,7 +118,7 @@ class GeneticCode(object):
 
 standard_genetic_code = GeneticCode(
     name="standard",
-    stard_codons={'ATG', 'CTG', 'TTG'},
+    start_codons={'ATG', 'CTG', 'TTG'},
     stop_codons={'TAA', 'TAG', 'TGA'},
     codon_table={
         'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L',
@@ -135,7 +143,6 @@ standard_genetic_code = GeneticCode(
 # Non-canonical start sites based on figure 2 of
 #   "Global mapping of translation initiation sites in mammalian
 #   cells at single-nucleotide resolution"
-
 standard_genetic_code_with_extra_start_codons = standard_genetic_code.copy(
     name="standard-with-extra-start-codons",
     start_codons=standard_genetic_code.start_codons.union({
@@ -148,6 +155,7 @@ standard_genetic_code_with_extra_start_codons = standard_genetic_code.copy(
         'ATT'}))
 
 vertebrate_mitochondrial_genetic_code = standard_genetic_code.copy(
+    name="verterbrate-mitochondrial",
     # "For thirty years AGA and AGG were considered terminators instead
     #  of coding for arginine. However, Temperley (2010) has recently shown
     #  that human mitochondria use only UAA and UAG stop codons."
@@ -163,3 +171,34 @@ vertebrate_mitochondrial_genetic_code = standard_genetic_code.copy(
     # (http://mitomap.org/bin/view.pl/MITOMAP/HumanMitoCode)
     codon_table_changes={'TGA': 'W', 'ATA': 'M'},
 )
+
+def translate_cdna(
+        cdna_sequence,
+        first_codon_is_start=False,
+        mitochondrial=False):
+    """
+    Given a cDNA sequence which is aligned to a reading frame, returns
+    the translated protein sequence and a boolean flag indicating whether
+    the translated sequence ended on a stop codon (or just ran out of codons).
+
+    Parameters
+    ----------
+    cdna_sequence : str
+        cDNA sequence which is expected to start and end on complete codons.
+
+    first_codon_is_start : bool
+
+    mitochondrial : bool
+        Use the mitochondrial codon table instead of standard
+        codon to amino acid table.
+    """
+    # once we drop some of the prefix nucleotides, we should be in a reading frame
+    # which allows us to translate this protein
+    if mitochondrial:
+        genetic_code = vertebrate_mitochondrial_genetic_code
+    else:
+        genetic_code = standard_genetic_code_with_extra_start_codons
+
+    return genetic_code.translate(
+        cdna_sequence=cdna_sequence,
+        first_codon_is_start=first_codon_is_start)
