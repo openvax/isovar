@@ -33,7 +33,7 @@ from .default_parameters import (
     VARIANT_CDNA_SEQUENCE_ASSEMBLY
 )
 from .dataframe_builder import dataframe_from_generator
-from .translation import translate_variant_reads, TranslationKey
+from .translation import translate_variant_reads, Translation, TranslationKey
 from .read_helpers import group_reads_by_allele
 from .variant_helpers import trim_variant
 
@@ -213,7 +213,7 @@ def reads_generator_to_protein_sequences_generator(
 
         protein_sequences = []
         for (key, equivalent_translations) in groupby(
-                translations, key_fn=TranslationKey.as_translation_key).items():
+                translations, key_fn=Translation.as_translation_key).items():
 
             # get the variant read names, transcript IDs and gene names for
             # protein sequence we're about to construct

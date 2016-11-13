@@ -18,6 +18,7 @@ the reading frames of annotated reference transcripts to create candidate
 translations.
 """
 
+
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple
 import math
@@ -40,31 +41,75 @@ from .dataframe_builder import dataframe_from_generator
 
 logger = logging.getLogger(__name__)
 
+# TranslationKey contains fields related to a translated protein sequence
+# which should be used to combine multiple equivalent mutated amino acid
+# sequences.
+TranslationKey = namedtuple("TranslationKey", (
+    # translated sequence of a variant sequence in the ORF established
+    # by a reference context
+    "amino_acids",
+    # half-open interval coordinates for variant amino acids
+    # in the translated sequence
+    "variant_aa_interval_start",
+    "variant_aa_interval_end",
+    # did the amino acid sequence end due to a stop codon or did we
+    # just run out of sequence context around the variant?
+    "ends_with_stop_codon",
+    # was the variant a frameshift relative to the reference sequence?
+    "frameshift"))
 
-# When multiple distinct RNA sequence contexts and/or reference transcripts
-# give us the same translation then we group them into a single object
-# which summarizes the supporting read count and reference transcript ORFs
-# for a unique protein sequence.
-
-
-class TranslationKey(namedtuple("TranslationKey", (
-        # translated sequence of a variant sequence in the ORF established
-        # by a reference context
-        "amino_acids",
-        # half-open interval coordinates for variant amino acids
-        # in the translated sequence
-        "variant_aa_interval_start",
-        "variant_aa_interval_end",
-        # did the amino acid sequence end due to a stop codon or did we
-        # just run out of sequence context around the variant?
-        "ends_with_stop_codon",
-        # was the variant a frameshift relative to the reference sequence?
-        "frameshift"))):
+class Translation(object):
     """
-    TranslationKey contains fields related to a translated protein sequence
-    which should be used to combine multiple equivalent mutated amino acid
-    sequences.
+    Translated amino acid sequence of a VariantSequenceInReadingFrame for a
+    particular ReferenceContext and VariantSequence.
     """
+
+    def __init__(
+            self,
+            amino_acids,
+            variant_aa_interval_start,
+            variant_aa_interval_end,
+            ends_with_stop_codon,
+            frameshift,
+            variant_sequence,
+            reference_context,
+            variant_sequence_in_reading_frame):
+        self.amino_acids = amino_acids
+        self.variant_aa_interval_start = variant_aa_interval_start
+        self.variant_aa_interval_end = variant_aa_interval_end
+        self.ends_with_stop_codon = ends_with_stop_codon
+        self.frameshift = frameshift
+        self.variant_sequence = variant_sequence
+        self.reference_context = reference_context
+        self.variant_sequence_in_reading_frame = variant_sequence_in_reading_frame
+
+    @property
+    def reference_cdna_sequence_before_variant(self):
+        return (
+            self.
+            variant_sequence_in_reading_frame.
+            reference_cdna_sequence_before_variant)
+
+    @property
+    def number_mismatches(self):
+        return self.variant_sequence_in_reading_frame.number_mismatches
+
+    @property
+    def cdna_sequence(self):
+        return self.variant_sequence_in_reading_frame.cdna_sequence
+
+    @property
+    def offset_to_first_complete_codon(self):
+        return self.variant_sequence_in_reading_frame.offset_to_first_complete_codon
+
+    @property
+    def variant_cdna_interval_start(self):
+        return self.variant_sequence_in_reading_frame.variant_cdna_interval_start
+
+    @property
+    def variant_cdna_interval_end(self):
+        return self.variant_sequence_in_reading_frame.variant_cdna_interval_end
+
     def as_translation_key(self):
         """
         Project Translation object or any other derived class into just a
@@ -74,18 +119,6 @@ class TranslationKey(namedtuple("TranslationKey", (
         return TranslationKey(**{
             name: getattr(self, name)
             for name in TranslationKey._fields})
-
-
-class Translation(namedtuple(
-        "Translation",
-        VariantSequenceInReadingFrame._fields + TranslationKey._fields + (
-            "variant_sequence",
-            "reference_context",
-            "variant_sequence_in_reading_frame"))):
-    """
-    Translated amino acid sequence of a VariantSequenceInReadingFrame for a
-    particular ReferenceContext and VariantSequence.
-    """
 
     @classmethod
     def from_variant_sequence_and_reference_context(
@@ -175,16 +208,7 @@ class Translation(namedtuple(
             variant_aa_interval_end = min(variant_aa_interval_end, protein_sequence_length)
             ends_with_stop_codon = False
 
-        reference_sequence_before_variant = (
-            variant_sequence_in_reading_frame.reference_cdna_sequence_before_variant)
-
         return Translation(
-            cdna_sequence=cdna_sequence,
-            offset_to_first_complete_codon=cdna_codon_offset,
-            variant_cdna_interval_start=cdna_variant_start_offset,
-            variant_cdna_interval_end=cdna_variant_end_offset,
-            reference_cdna_sequence_before_variant=reference_sequence_before_variant,
-            number_mismatches=variant_sequence_in_reading_frame.number_mismatches,
             amino_acids=variant_amino_acids,
             frameshift=frameshift,
             ends_with_stop_codon=ends_with_stop_codon,

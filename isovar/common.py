@@ -16,7 +16,6 @@ from __future__ import print_function, division, absolute_import
 
 from collections import defaultdict
 
-
 dna_complement_dictionary = {
     "A": "T",
     "T": "A",
@@ -29,7 +28,6 @@ dna_nucleotides = list(sorted(dna_complement_dictionary.keys()))
 dna_nucleotide_to_index = {c: i for (i, c) in enumerate(dna_nucleotides)}
 
 index_to_dna_nucleotide = {i: c for (i, c) in enumerate(dna_nucleotides)}
-
 
 def complement_dna(seq):
     return "".join(dna_complement_dictionary[nt] for nt in seq)
