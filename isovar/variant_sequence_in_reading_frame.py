@@ -20,8 +20,11 @@ translations.
 
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple
+import logging
 
 from .common import reverse_complement_dna
+
+logger = logging.getLogger(__name__)
 
 class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", (
         # since the reference context and variant sequence may have
@@ -201,3 +204,36 @@ def compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon)
         frame = n_nucleotides_trimmed_after_first_codon % 3
         return (3 - frame) % 3
+
+def match_variant_sequence_to_reference_context(
+        variant_sequence,
+        reference_context,
+        max_transcript_mismatches):
+    """
+    Iteratively trim low-coverage subsequences of a variant sequence
+    until it either matches the given reference context or there
+    are no nucleotides left.
+    """
+    variant_sequence_in_reading_frame = None
+    # if we can't get the variant sequence to match this reference
+    # context then keep trimming it by coverage until either
+    while variant_sequence_in_reading_frame is None and len(variant_sequence) > 0:
+        variant_sequence_in_reading_frame = \
+            VariantSequenceInReadingFrame.from_variant_sequence_and_reference_context(
+                variant_sequence=variant_sequence,
+                reference_context=reference_context)
+        n_mismatch_before_variant = variant_sequence_in_reading_frame.number_mismatches
+
+        if n_mismatch_before_variant > max_transcript_mismatches:
+            logger.info(
+                ("Too many mismatches (%d) between variant sequence %s and "
+                 "reference context %s"),
+                n_mismatch_before_variant,
+                reference_context,
+                variant_sequence)
+            # if portions of the sequence are supported by only 1 read
+            # then try trimming to 2 to see if the better supported
+            # subsequence can be better matched against the reference
+            variant_sequence = variant_sequence.trim_by_coverage(
+                variant_sequence.min_coverage() + 1)
+    return variant_sequence_in_reading_frame

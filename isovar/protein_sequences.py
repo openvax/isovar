@@ -94,7 +94,7 @@ class ProteinSequence(ProteinSequenceBase):
         gene_names = set([])
         transcript_ids = set([])
         for translation in translations:
-            for read in translation.variant_sequence.reads:
+            for read in translation.reads:
                 read_name_to_reads[read.name] = read
             for transcript in translation.reference_context.transcripts:
                 transcript_ids.add(transcript.id)

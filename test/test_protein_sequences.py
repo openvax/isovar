@@ -66,7 +66,7 @@ def make_dummy_translation(
         variant_aa_interval_end=variant_aa_interval_end,
         frameshift=False,
         ends_with_stop_codon=False,
-        variant_sequence=None,
+        untrimmed_variant_sequence=None,
         reference_context=None)
 
 def make_dummy_protein_sequence(

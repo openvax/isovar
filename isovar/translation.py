@@ -28,7 +28,9 @@ import logging
 from .reference_context import reference_contexts_for_variant
 from .variant_sequences import reads_to_variant_sequences
 from .genetic_code import translate_cdna
-from .variant_sequence_in_reading_frame import VariantSequenceInReadingFrame
+from .variant_sequence_in_reading_frame import (
+    match_variant_sequence_to_reference_context,
+)
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -71,7 +73,7 @@ class Translation(object):
             variant_aa_interval_end,
             ends_with_stop_codon,
             frameshift,
-            variant_sequence,
+            untrimmed_variant_sequence,
             reference_context,
             variant_sequence_in_reading_frame):
         self.amino_acids = amino_acids
@@ -79,9 +81,20 @@ class Translation(object):
         self.variant_aa_interval_end = variant_aa_interval_end
         self.ends_with_stop_codon = ends_with_stop_codon
         self.frameshift = frameshift
-        self.variant_sequence = variant_sequence
+        # this variant sequence might differ from the one
+        # in variant_sequence_in_reading_frame due to trimming
+        # required to match the reference
+        self.untrimmed_variant_sequence = untrimmed_variant_sequence
         self.reference_context = reference_context
         self.variant_sequence_in_reading_frame = variant_sequence_in_reading_frame
+
+    @property
+    def reads(self):
+        """
+        RNA reads which were used to construct the coding sequence
+        from which we translated these amino acids.
+        """
+        return self.untrimmed_variant_sequence.reads
 
     @property
     def reference_cdna_sequence_before_variant(self):
@@ -145,42 +158,15 @@ class Translation(object):
         protein_sequence_length : int, optional
             Truncate protein to be at most this long
 
-        mitochondrial : bool
-            Is this a cDNA sequence from a mitochondrial transcript?
-
         Returns either a ProteinSequence object or None if the number of
         mismatches between the RNA and reference transcript sequences exceeds the
         given threshold.
         """
 
-        original_variant_sequence = variant_sequence
-        variant_sequence_in_reading_frame = None
-        # if we can't get the variant sequence to match this reference
-        # context then keep trimming it by coverage until either
-        while variant_sequence_in_reading_frame is None and len(variant_sequence) > 0:
-            variant_sequence_in_reading_frame = \
-                VariantSequenceInReadingFrame.from_variant_sequence_and_reference_context(
-                    variant_sequence=variant_sequence,
-                    reference_context=reference_context)
-            n_mismatch_before_variant = variant_sequence_in_reading_frame.number_mismatches
-
-            if n_mismatch_before_variant > max_transcript_mismatches:
-                logger.info(
-                    ("Too many mismatches (%d) between variant sequence %s and "
-                     "reference context %s"),
-                    n_mismatch_before_variant,
-                    reference_context,
-                    variant_sequence)
-                # if portions of the sequence are supported by only 1 read
-                # then try trimming to 2 to see if the better supported
-                # subsequence can be better matched against the reference
-                variant_sequence = variant_sequence.trim_by_coverage(
-                    variant_sequence.min_coverage() + 1)
-
-        if variant_sequence_in_reading_frame is None:
-            logger.info("Failed to find reading frame for %s" % (
-                original_variant_sequence,))
-            return None
+        variant_sequence_in_reading_frame = match_variant_sequence_to_reference_context(
+            variant_sequence,
+            reference_context,
+            max_transcript_mismatches)
 
         cdna_sequence = variant_sequence_in_reading_frame.cdna_sequence
         cdna_codon_offset = variant_sequence_in_reading_frame.offset_to_first_complete_codon
@@ -209,10 +195,9 @@ class Translation(object):
         if protein_sequence_length and len(variant_amino_acids) > protein_sequence_length:
             if protein_sequence_length <= variant_aa_interval_start:
                 logger.warn(
-                    ("Truncating amino acid sequence %s from variant sequence %s "
+                    ("Truncating amino acid sequence %s "
                      "to only %d elements loses all variant residues"),
                     variant_amino_acids,
-                    variant_sequence,
                     protein_sequence_length)
                 return None
             # if the protein is too long then shorten it, which implies
@@ -228,10 +213,9 @@ class Translation(object):
             ends_with_stop_codon=ends_with_stop_codon,
             variant_aa_interval_start=variant_aa_interval_start,
             variant_aa_interval_end=variant_aa_interval_end,
-            variant_sequence=variant_sequence,
+            untrimmed_variant_sequence=variant_sequence,
             reference_context=reference_context,
             variant_sequence_in_reading_frame=variant_sequence_in_reading_frame)
-
 
 def find_mutant_amino_acid_interval(
         cdna_sequence,
@@ -325,7 +309,6 @@ def find_mutant_amino_acid_interval(
             # as many codons as are in the alternate sequence
             variant_aa_interval_end = variant_aa_interval_start + n_alt_codons
     return variant_aa_interval_start, variant_aa_interval_end, frameshift
-
 
 def translation_generator(
         variant_sequences,
