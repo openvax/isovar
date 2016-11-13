@@ -37,38 +37,6 @@ def complement_dna(seq):
 def reverse_complement_dna(seq):
     return complement_dna(seq)[::-1]
 
-
-# TODO: move all the DNA manipulating code out to its own library
-#
-# map each degenerate DNA letter code to the set of core nucleotides
-# it represents
-degenerate_dna_nucleotide_dict = {
-    "A": {"A"},
-    "T": {"T"},
-    "C": {"C"},
-    "G": {"G"},
-    # weak
-    "W": {"A", "T"},
-    # strong
-    "S": {"G", "C"},
-    # amine
-    "M": {"A", "C"},
-    # ketone
-    "K": {"G", "T"},
-    # purine
-    "R": {"A", "G"},
-    # pyrimidine
-    "Y": {"C", "T"},
-    # 3 base degeneracies
-    "B": {"C", "T", "G"},
-    "D": {"A", "T", "G"},
-    "H": {"A", "C", "T"},
-    "V": {"A", "C", "G"},
-    # 4 base degeneracy - could be anything!
-    "N": {"A", "C", "G", "T"},
-}
-
-
 def list_to_string(list_of_anything, sep=";"):
     """
     Helper function used for building the fields of a printable dataframe

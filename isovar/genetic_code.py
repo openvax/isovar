@@ -15,8 +15,8 @@ class GeneticCode(object):
             if stop_codon in self.codon_table:
                 if self.codon_table[stop_codon] != "*":
                     raise ValueError(
-                        "Stop codon '%s' must translate to '*'" % (
-                            stop_codon,))
+                        ("Codon '%s' not found in stop_codons, but codon table "
+                         "indicates that it should be") % (stop_codon,))
             else:
                 self.codon_table[stop_codon] = "*"
 
@@ -55,7 +55,7 @@ class GeneticCode(object):
             cdna_sequence = str(cdna_sequence)
         n = len(cdna_sequence)
 
-        if len(cdna_sequence) < 3:
+        if n < 3:
             return ''
 
         codon_table = self.codon_table

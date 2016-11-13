@@ -168,9 +168,9 @@ class Translation(namedtuple(
                     variant_sequence,
                     protein_sequence_length)
                 return None
-            # if the protein is too long then short it, which implies we're no longer
-            # stopping due to a stop codon and that the variant amino acids might
-            # need a new stop index
+            # if the protein is too long then shorten it, which implies
+            # we're no longer stopping due to a stop codon and that the variant
+            # amino acids might need a new stop index
             variant_amino_acids = variant_amino_acids[:protein_sequence_length]
             variant_aa_interval_end = min(variant_aa_interval_end, protein_sequence_length)
             ends_with_stop_codon = False
