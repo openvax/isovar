@@ -8,7 +8,10 @@ cache:
   # cache directory used for Ensembl downloads of GTF and FASTA files
   # along with the indexed db of intervals and ID mappings and pickles
   # of sequence dictionaries
-  directories: /home/travis/.cache/pyensembl/
+  directories:
+  - /home/travis/.cache/pyensembl/
+  - /home/travis/.cache/pyensembl/GRCh37/ensembl75/
+  - /home/travis/.cache/pyensembl/GRCh37/ensembl85/
 before_install:
   # Commands below copied from: http://conda.pydata.org/docs/travis.html
   # We do this conditionally because it saves us some downloading if the
