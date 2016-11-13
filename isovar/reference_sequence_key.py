@@ -16,8 +16,7 @@ from __future__ import print_function, division, absolute_import
 import logging
 from collections import namedtuple
 
-from skbio import DNA
-
+from .common import reverse_complement_dna
 from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 
 logger = logging.getLogger(__name__)
@@ -122,6 +121,5 @@ def variant_matches_reference_sequence(variant, ref_seq_on_transcript, strand):
     transcript from a variant are the same ones we encounter.
     """
     if strand == "-":
-        ref_seq_on_transcript = str(
-            DNA(ref_seq_on_transcript).reverse_complement())
+        ref_seq_on_transcript = reverse_complement_dna(ref_seq_on_transcript)
     return ref_seq_on_transcript == variant.ref
