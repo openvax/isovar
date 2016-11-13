@@ -28,6 +28,7 @@ from isovar.protein_sequences import (
     protein_sequences_generator_to_dataframe,
 )
 from isovar.allele_reads import reads_overlapping_variants
+from isovar.variant_sequence_in_reading_frame import VariantSequenceInReadingFrame
 from varcode import VariantCollection
 
 from testing_helpers import load_bam, load_vcf, data_path
@@ -41,6 +42,7 @@ from testing_helpers import load_bam, load_vcf, data_path
 #   total_transcripts
 #   gene
 
+
 def make_dummy_translation(
         amino_acids="MKHW",  # ATG=M|AAA=K|CAC=H|TGG=W
         cdna_sequence="CCCATGAAACACTGGTAG",
@@ -50,14 +52,15 @@ def make_dummy_translation(
         variant_aa_interval_start=1,
         variant_aa_interval_end=2,
         number_mismatches=1):
-    return Translation(
-        variant_sequence_in_reading_frame=None,
+    varseq_in_orf = VariantSequenceInReadingFrame(
         cdna_sequence=cdna_sequence,
         offset_to_first_complete_codon=offset_to_first_complete_codon,
         variant_cdna_interval_start=variant_cdna_interval_start,
         variant_cdna_interval_end=variant_cdna_interval_end,
         reference_cdna_sequence_before_variant=cdna_sequence[:variant_cdna_interval_start],
-        number_mismatches=number_mismatches,
+        number_mismatches=number_mismatches)
+    return Translation(
+        variant_sequence_in_reading_frame=varseq_in_orf,
         amino_acids=amino_acids,
         variant_aa_interval_start=variant_aa_interval_start,
         variant_aa_interval_end=variant_aa_interval_end,

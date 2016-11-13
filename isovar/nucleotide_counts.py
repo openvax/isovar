@@ -17,8 +17,8 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 
 from .common import (
-    nucleotide_to_index,
-    index_to_nucleotide,
+    dna_nucleotide_to_index,
+    index_to_dna_nucleotide,
 )
 from .read_helpers import (
     make_prefix_suffix_pairs,
@@ -60,19 +60,19 @@ def nucleotide_counts(variant_reads):
     for i, nucleotide in enumerate(variant_seq):
         variant_col_idx = max_prefix_length + i
         variant_column_indices.append(variant_col_idx)
-        row_idx = nucleotide_to_index[nucleotide_to_index]
+        row_idx = dna_nucleotide_to_index[dna_nucleotide_to_index]
         counts[row_idx, variant_col_idx] = n_reads
 
     for p, s in prefix_suffix_pairs:
         for i, prefix_col_idx in enumerate(range(
                 max_prefix_length - len(p),
                 max_prefix_length)):
-            row_idx = nucleotide_to_index[p[i]]
+            row_idx = dna_nucleotide_to_index[p[i]]
             counts[row_idx, prefix_col_idx] += 1
         for i, suffix_col_idx in enumerate(range(
                 max_prefix_length + n_variant_nucleotides,
                 max_prefix_length + n_variant_nucleotides + len(s))):
-            row_idx = nucleotide_to_index[s[i]]
+            row_idx = dna_nucleotide_to_index[s[i]]
             counts[row_idx, suffix_col_idx] += 1
     return counts, variant_column_indices
 
@@ -103,7 +103,7 @@ def most_common_nucleotides(partitioned_read_sequences):
     max_nucleotide_index_per_column = np.argmax(counts, axis=0)
     assert len(max_nucleotide_index_per_column) == counts.shape[1]
     nucleotides = [
-        index_to_nucleotide[idx]
+        index_to_dna_nucleotide[idx]
         for idx in max_nucleotide_index_per_column
     ]
     other_nucleotide_counts = counts.sum(axis=0) - max_count_per_column

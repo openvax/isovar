@@ -18,16 +18,17 @@ the reading frames of annotated reference transcripts to create candidate
 translations.
 """
 
+
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple
 import math
 import logging
 
-from skbio import DNA
 
 from .reference_context import reference_contexts_for_variant
 from .variant_sequences import reads_to_variant_sequences
-
+from .genetic_code import translate_cdna
+from .variant_sequence_in_reading_frame import VariantSequenceInReadingFrame
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -40,247 +41,183 @@ from .dataframe_builder import dataframe_from_generator
 
 logger = logging.getLogger(__name__)
 
+# TranslationKey contains fields related to a translated protein sequence
+# which should be used to combine multiple equivalent mutated amino acid
+# sequences.
+TranslationKey = namedtuple("TranslationKey", (
+    # translated sequence of a variant sequence in the ORF established
+    # by a reference context
+    "amino_acids",
+    # half-open interval coordinates for variant amino acids
+    # in the translated sequence
+    "variant_aa_interval_start",
+    "variant_aa_interval_end",
+    # did the amino acid sequence end due to a stop codon or did we
+    # just run out of sequence context around the variant?
+    "ends_with_stop_codon",
+    # was the variant a frameshift relative to the reference sequence?
+    "frameshift"))
 
-# When multiple distinct RNA sequence contexts and/or reference transcripts
-# give us the same translation then we group them into a single object
-# which summarizes the supporting read count and reference transcript ORFs
-# for a unique protein sequence.
-
-################################
-#
-# VariantSequenceInReadingFrame
-# ------------------------------
-#
-# Combines a VariantSequence with the reading frame implied by a
-# ReferenceContext, reverse complementing if necessary and finding the
-# offset to the first complete codon in the cDNA sequence.
-#
-#################################
-
-
-VariantSequenceInReadingFrame = namedtuple(
-    "VariantSequenceInReadingFrame",
-    (
-        # since the reference context and variant sequence may have
-        # different numbers of nucleotides before the variant, the cDNA prefix
-        # gets truncated to the shortest length. To avoid having to recompute
-        # that sequence again, let's just cache the full cDNA sequence we used
-        # for translation here, along with an interval indicating which
-        # nucleotides are from the variant of interest
-        "cdna_sequence",
-        "offset_to_first_complete_codon",
-        "variant_cdna_interval_start",
-        "variant_cdna_interval_end",
-        "reference_cdna_sequence_before_variant",
-        "number_mismatches",
-    ))
-
-
-##########################
-#
-# TranslationKey
-# --------------
-#
-# Fields related to a translated protein sequence which should be used to
-# combine multiple equivalent sequences.
-#
-##########################
-
-
-# pulling out the tuple of fields so that we can reuse them in the
-# ProteinSequence namedtuple, as well as Translation
-TranslationKey = namedtuple(
-    "TranslationKey", (
-        # translated sequence of a variant sequence in the ORF established
-        # by a reference context
-        "amino_acids",
-        # half-open interval coordinates for variant amino acids
-        # in the translated sequence
-        "variant_aa_interval_start",
-        "variant_aa_interval_end",
-        # did the amino acid sequence end due to a stop codon or did we
-        # just run out of sequence context around the variant?
-        "ends_with_stop_codon",
-        # was the variant a frameshift relative to the reference sequence?
-        "frameshift"))
-
-
-##########################
-#
-# Translation
-# -----------
-#
-# Translated amino acid sequence of a VariantSequenceInReadingFrame for a
-# particular ReferenceContext and VariantSequence.
-#
-##########################
-
-
-Translation = namedtuple(
-    "Translation",
-    VariantSequenceInReadingFrame._fields + TranslationKey._fields + (
-        "variant_sequence",
-        "reference_context",
-        "variant_sequence_in_reading_frame"))
-
-def trim_sequences(variant_sequence, reference_context):
+class Translation(object):
     """
-    A VariantSequence and ReferenceContext may contain a different number of
-    nucleotides before the variant locus. Furthermore, the VariantSequence is
-    always expressed in terms of the positive strand against which it aligned,
-    but reference transcripts may have sequences from the negative strand of the
-    genome. Take the reverse complement of the VariantSequence if the
-    ReferenceContext is from negative strand transcripts and trim either
-    sequence to ensure that the prefixes are of the same length.
-
-    Parameters
-    ----------
-    variant_sequence : VariantSequence
-
-    reference_context : ReferenceContext
-
-    Returns a tuple with the following fields:
-        1) cDNA prefix of variant sequence, trimmed to be same length as the
-           reference prefix. If the reference context was on the negative
-           strand then this is the trimmed sequence *after* the variant from
-           the genomic DNA sequence.
-        2) cDNA sequence of the variant nucleotides, in reverse complement if
-           the reference context is on the negative strand.
-        3) cDNA sequence of the nucleotides after the variant nucleotides. If
-           the reference context is on the negative strand then this sequence
-           is the reverse complement of the original prefix sequence.
-        4) Reference sequence before the variant locus, trimmed to be the
-           same length as the variant prefix.
-        5) Number of nucleotides trimmed from the reference sequence, used
-           later for adjustint offset to first complete codon.
+    Translated amino acid sequence of a VariantSequenceInReadingFrame for a
+    particular ReferenceContext and VariantSequence.
     """
-    cdna_prefix = DNA(variant_sequence.prefix)
-    cdna_alt = DNA(variant_sequence.alt)
-    cdna_suffix = DNA(variant_sequence.suffix)
 
-    # if the transcript is on the reverse strand then we have to
-    # take the sequence PREFIX|VARIANT|SUFFIX
-    # and take the complement of XIFFUS|TNAIRAV|XIFERP
-    if reference_context.strand == "-":
-        # notice that we are setting the *prefix* to be reverse complement
-        # of the *suffix* and vice versa
-        cdna_prefix, cdna_alt, cdna_suffix = (
-            cdna_suffix.reverse_complement(),
-            cdna_alt.reverse_complement(),
-            cdna_prefix.reverse_complement()
-        )
+    def __init__(
+            self,
+            amino_acids,
+            variant_aa_interval_start,
+            variant_aa_interval_end,
+            ends_with_stop_codon,
+            frameshift,
+            variant_sequence,
+            reference_context,
+            variant_sequence_in_reading_frame):
+        self.amino_acids = amino_acids
+        self.variant_aa_interval_start = variant_aa_interval_start
+        self.variant_aa_interval_end = variant_aa_interval_end
+        self.ends_with_stop_codon = ends_with_stop_codon
+        self.frameshift = frameshift
+        self.variant_sequence = variant_sequence
+        self.reference_context = reference_context
+        self.variant_sequence_in_reading_frame = variant_sequence_in_reading_frame
 
-    reference_sequence_before_variant = reference_context.sequence_before_variant_locus
-
-    # trim the reference sequence and the RNA-derived sequence to the same length
-    if len(reference_sequence_before_variant) > len(cdna_prefix):
-        n_trimmed_from_reference = len(reference_sequence_before_variant) - len(cdna_prefix)
-        n_trimmed_from_variant = 0
-    elif len(reference_sequence_before_variant) < len(cdna_prefix):
-        n_trimmed_from_variant = len(cdna_prefix) - len(reference_sequence_before_variant)
-        n_trimmed_from_reference = 0
-    else:
-        n_trimmed_from_variant = 0
-        n_trimmed_from_reference = 0
-
-    reference_sequence_before_variant = reference_sequence_before_variant[
-        n_trimmed_from_reference:]
-
-    cdna_prefix = cdna_prefix[n_trimmed_from_variant:]
-
-    return (
-        cdna_prefix,
-        cdna_alt,
-        cdna_suffix,
-        reference_sequence_before_variant,
-        n_trimmed_from_reference
-    )
-
-
-def count_mismatches(reference_prefix, cdna_prefix):
-    """
-    Computes the number of mismatching nucleotides between two cDNA sequences.
-
-    Parameters
-    ----------
-    reference_prefix : str or skbio.DNA
-        cDNA sequence of a reference transcript before a variant locus
-
-    cdna_prefix : str or skbio.DNA
-        cDNA sequence detected from RNAseq before a variant locus
-    """
-    if len(reference_prefix) != len(cdna_prefix):
-        raise ValueError(
-            "Expected reference prefix '%s' to be same length as %s" % (
-                reference_prefix, cdna_prefix))
-    # converting to str before zip because skbio.DNA is weird and sometimes
-    # returns elements which don't compare equally despite being the same
-    # nucleotide
-    return sum(xi != yi for (xi, yi) in zip(
-        str(reference_prefix), str(cdna_prefix)))
-
-
-def compute_offset_to_first_complete_codon(
-        offset_to_first_complete_reference_codon,
-        n_trimmed_from_reference_sequence):
-    """
-    Once we've aligned the variant sequence to the ReferenceContext, we need
-    to transfer reading frame from the reference transcripts to the variant
-    sequences.
-
-    Parameters
-    ----------
-    offset_to_first_complete_reference_codon : ReferenceContext
-
-    n_trimmed_from_reference_sequence : int
-
-    Returns an offset into the variant sequence that starts from a complete
-    codon.
-    """
-    if n_trimmed_from_reference_sequence <= offset_to_first_complete_reference_codon:
+    @property
+    def reference_cdna_sequence_before_variant(self):
         return (
-            offset_to_first_complete_reference_codon -
-            n_trimmed_from_reference_sequence)
-    else:
-        n_nucleotides_trimmed_after_first_codon = (
-            n_trimmed_from_reference_sequence -
-            offset_to_first_complete_reference_codon)
-        frame = n_nucleotides_trimmed_after_first_codon % 3
-        return (3 - frame) % 3
+            self.
+            variant_sequence_in_reading_frame.
+            reference_cdna_sequence_before_variant)
 
-def determine_reading_frame_for_variant_sequence(variant_sequence, reference_context):
-    """
-    Parameters
-    ----------
-    variant_sequence : VariantSequence
+    @property
+    def number_mismatches(self):
+        return self.variant_sequence_in_reading_frame.number_mismatches
 
-    reference_context : ReferenceContext
+    @property
+    def cdna_sequence(self):
+        return self.variant_sequence_in_reading_frame.cdna_sequence
 
-    Returns a VariantSequenceInReadingFrame object
-    """
-    cdna_prefix, cdna_alt, cdna_suffix, reference_prefix, n_trimmed_from_reference = \
-        trim_sequences(variant_sequence, reference_context)
+    @property
+    def offset_to_first_complete_codon(self):
+        return self.variant_sequence_in_reading_frame.offset_to_first_complete_codon
 
-    n_mismatch_before_variant = count_mismatches(reference_prefix, cdna_prefix)
+    @property
+    def variant_cdna_interval_start(self):
+        return self.variant_sequence_in_reading_frame.variant_cdna_interval_start
 
-    # ReferenceContext carries with an offset to the first complete codon
-    # in the reference sequence. This may need to be adjusted if the reference
-    # sequence is longer than the variant sequence (and thus needs to be trimmed)
-    offset_to_first_complete_codon = compute_offset_to_first_complete_codon(
-        offset_to_first_complete_reference_codon=reference_context.offset_to_first_complete_codon,
-        n_trimmed_from_reference_sequence=n_trimmed_from_reference)
+    @property
+    def variant_cdna_interval_end(self):
+        return self.variant_sequence_in_reading_frame.variant_cdna_interval_end
 
-    cdna_sequence = DNA.concat([cdna_prefix, cdna_alt, cdna_suffix])
-    variant_interval_start = len(cdna_prefix) + 1
-    variant_interval_end = variant_interval_start + len(cdna_alt)
+    def as_translation_key(self):
+        """
+        Project Translation object or any other derived class into just a
+        TranslationKey, which has fewer fields and can be used as a
+        dictionary key.
+        """
+        return TranslationKey(**{
+            name: getattr(self, name)
+            for name in TranslationKey._fields})
 
-    return VariantSequenceInReadingFrame(
-        cdna_sequence=cdna_sequence,
-        offset_to_first_complete_codon=offset_to_first_complete_codon,
-        variant_cdna_interval_start=variant_interval_start,
-        variant_cdna_interval_end=variant_interval_end,
-        reference_cdna_sequence_before_variant=reference_prefix,
-        number_mismatches=n_mismatch_before_variant)
+    @classmethod
+    def from_variant_sequence_and_reference_context(
+            cls,
+            variant_sequence,
+            reference_context,
+            max_transcript_mismatches,
+            protein_sequence_length=None):
+        """
+        Attempt to translate a single VariantSequence using the reading frame
+        from a single ReferenceContext.
+
+        Parameters
+        ----------
+        variant_sequence : VariantSequence
+
+        reference_context : ReferenceContext
+
+        max_transcript_mismatches : int
+            Don't use the reading frame from a context where the cDNA variant
+            sequences disagrees at more than this number of positions before the
+            variant nucleotides.
+
+        protein_sequence_length : int, optional
+            Truncate protein to be at most this long
+
+        mitochondrial : bool
+            Is this a cDNA sequence from a mitochondrial transcript?
+
+        Returns either a ProteinSequence object or None if the number of
+        mismatches between the RNA and reference transcript sequences exceeds the
+        given threshold.
+        """
+
+        variant_sequence_in_reading_frame = \
+            VariantSequenceInReadingFrame.from_variant_sequence_and_reference_context(
+                variant_sequence=variant_sequence,
+                reference_context=reference_context)
+
+        n_mismatch_before_variant = variant_sequence_in_reading_frame.number_mismatches
+
+        if n_mismatch_before_variant > max_transcript_mismatches:
+            logger.info(
+                "Skipping reference context %s for %s, too many mismatching bases (%d)",
+                reference_context,
+                variant_sequence,
+                n_mismatch_before_variant)
+            return None
+
+        cdna_sequence = variant_sequence_in_reading_frame.cdna_sequence
+        cdna_codon_offset = variant_sequence_in_reading_frame.offset_to_first_complete_codon
+
+        # get the offsets into the cDNA sequence which pick out the variant nucleotides
+        cdna_variant_start_offset = variant_sequence_in_reading_frame.variant_cdna_interval_start
+        cdna_variant_end_offset = variant_sequence_in_reading_frame.variant_cdna_interval_end
+
+        # TODO: determine if the first codon is the start codon of a
+        # transcript, for now any of the unusual start codons like CTG
+        # will translate to leucine instead of methionine.
+        variant_amino_acids, ends_with_stop_codon = translate_cdna(
+            cdna_sequence[cdna_codon_offset:],
+            first_codon_is_start=False,
+            mitochondrial=reference_context.mitochondrial)
+
+        variant_aa_interval_start, variant_aa_interval_end, frameshift = \
+            find_mutant_amino_acid_interval(
+                cdna_sequence=cdna_sequence,
+                cdna_first_codon_offset=cdna_codon_offset,
+                cdna_variant_start_offset=cdna_variant_start_offset,
+                cdna_variant_end_offset=cdna_variant_end_offset,
+                n_ref=len(reference_context.sequence_at_variant_locus),
+                n_amino_acids=len(variant_amino_acids))
+
+        if protein_sequence_length and len(variant_amino_acids) > protein_sequence_length:
+            if protein_sequence_length <= variant_aa_interval_start:
+                logger.warn(
+                    ("Truncating amino acid sequence %s from variant sequence %s "
+                     "to only %d elements loses all variant residues"),
+                    variant_amino_acids,
+                    variant_sequence,
+                    protein_sequence_length)
+                return None
+            # if the protein is too long then shorten it, which implies
+            # we're no longer stopping due to a stop codon and that the variant
+            # amino acids might need a new stop index
+            variant_amino_acids = variant_amino_acids[:protein_sequence_length]
+            variant_aa_interval_end = min(variant_aa_interval_end, protein_sequence_length)
+            ends_with_stop_codon = False
+
+        return Translation(
+            amino_acids=variant_amino_acids,
+            frameshift=frameshift,
+            ends_with_stop_codon=ends_with_stop_codon,
+            variant_aa_interval_start=variant_aa_interval_start,
+            variant_aa_interval_end=variant_aa_interval_end,
+            variant_sequence=variant_sequence,
+            reference_context=reference_context,
+            variant_sequence_in_reading_frame=variant_sequence_in_reading_frame)
+
 
 def find_mutant_amino_acid_interval(
         cdna_sequence,
@@ -375,130 +312,6 @@ def find_mutant_amino_acid_interval(
             variant_aa_interval_end = variant_aa_interval_start + n_alt_codons
     return variant_aa_interval_start, variant_aa_interval_end, frameshift
 
-def translate_cdna(cdna_sequence_from_first_codon):
-    """
-    Given a cDNA sequence which is aligned to a reading frame, returns
-    the translated protein sequence and a boolean flag indicating whether
-    the translated sequence ended on a stop codon (or just ran out of codons).
-
-    Parameters
-    ----------
-    cdna_sequence_from_first_codon : skbio.DNA
-        cDNA sequence which is expected to start and end on complete codons.
-    """
-    # once we drop some of the prefix nucleotides, we should be in a reading frame
-    # which allows us to translate this protein
-    variant_amino_acids = cdna_sequence_from_first_codon.translate()
-
-    # by default, the translate method emits "*" for
-    # the stop codons TAA, TAG and TGG
-    ends_with_stop_codon = "*" in variant_amino_acids
-
-    if ends_with_stop_codon:
-        # truncate the amino acid sequence at the stop codon
-        stop_codon_index = variant_amino_acids.index("*")
-        variant_amino_acids = variant_amino_acids[:stop_codon_index]
-
-    return variant_amino_acids, ends_with_stop_codon
-
-
-def translate_variant_sequence(
-        variant_sequence,
-        reference_context,
-        max_transcript_mismatches,
-        protein_sequence_length=None):
-    """
-    Attempt to translate a single VariantSequence using the reading frame
-    from a single ReferenceContext.
-
-    Parameters
-    ----------
-    variant_sequence : VariantSequence
-
-    reference_context : ReferenceContext
-
-    max_transcript_mismatches : int
-        Don't use the reading frame from a context where the cDNA variant
-        sequences disagrees at more than this number of positions before the
-        variant nucleotides.
-
-    protein_sequence_length : int, optional
-        Truncate protein to be at most this long
-
-    Returns either a ProteinSequence object or None if the number of
-    mismatches between the RNA and reference transcript sequences exceeds the
-    given threshold.
-    """
-
-    variant_sequence_in_reading_frame = determine_reading_frame_for_variant_sequence(
-        variant_sequence=variant_sequence,
-        reference_context=reference_context)
-
-    n_mismatch_before_variant = variant_sequence_in_reading_frame.number_mismatches
-
-    if n_mismatch_before_variant > max_transcript_mismatches:
-        logger.info(
-            "Skipping reference context %s for %s, too many mismatching bases (%d)",
-            reference_context,
-            variant_sequence,
-            n_mismatch_before_variant)
-        return None
-
-    cdna_sequence = variant_sequence_in_reading_frame.cdna_sequence
-    cdna_codon_offset = variant_sequence_in_reading_frame.offset_to_first_complete_codon
-
-    # get the offsets into the cDNA sequence which pick out the variant nucleotides
-    cdna_variant_start_offset = variant_sequence_in_reading_frame.variant_cdna_interval_start
-    cdna_variant_end_offset = variant_sequence_in_reading_frame.variant_cdna_interval_end
-
-    # cdna_sequence_from_first_codon = cdna_sequence[cdna_codon_offset:]
-    variant_amino_acids, ends_with_stop_codon = translate_cdna(cdna_sequence[cdna_codon_offset:])
-
-    variant_aa_interval_start, variant_aa_interval_end, frameshift = \
-        find_mutant_amino_acid_interval(
-            cdna_sequence=cdna_sequence,
-            cdna_first_codon_offset=cdna_codon_offset,
-            cdna_variant_start_offset=cdna_variant_start_offset,
-            cdna_variant_end_offset=cdna_variant_end_offset,
-            n_ref=len(reference_context.sequence_at_variant_locus),
-            n_amino_acids=len(variant_amino_acids))
-
-    if protein_sequence_length and len(variant_amino_acids) > protein_sequence_length:
-        if protein_sequence_length <= variant_aa_interval_start:
-            logger.warn(
-                ("Truncating amino acid sequence %s from variant sequence %s "
-                 "to only %d elements loses all variant residues"),
-                variant_amino_acids,
-                variant_sequence,
-                protein_sequence_length)
-            return None
-        # if the protein is too long then short it, which implies we're no longer
-        # stopping due to a stop codon and that the variant amino acids might
-        # need a new stop index
-        variant_amino_acids = variant_amino_acids[:protein_sequence_length]
-        variant_aa_interval_end = min(variant_aa_interval_end, protein_sequence_length)
-        ends_with_stop_codon = False
-
-    reference_sequence_before_variant = (
-        variant_sequence_in_reading_frame.reference_cdna_sequence_before_variant)
-    # converting sequence objects to str since skbio.DNA objects aren't really
-    # useful outside of the translation module & debugging
-    return Translation(
-        cdna_sequence=str(cdna_sequence),
-        offset_to_first_complete_codon=cdna_codon_offset,
-        variant_cdna_interval_start=cdna_variant_start_offset,
-        variant_cdna_interval_end=cdna_variant_end_offset,
-        reference_cdna_sequence_before_variant=reference_sequence_before_variant,
-        number_mismatches=variant_sequence_in_reading_frame.number_mismatches,
-        amino_acids=str(variant_amino_acids),
-        frameshift=frameshift,
-        ends_with_stop_codon=ends_with_stop_codon,
-        variant_aa_interval_start=variant_aa_interval_start,
-        variant_aa_interval_end=variant_aa_interval_end,
-        variant_sequence=variant_sequence,
-        reference_context=reference_context,
-        variant_sequence_in_reading_frame=variant_sequence_in_reading_frame)
-
 
 def translation_generator(
         variant_sequences,
@@ -528,7 +341,7 @@ def translation_generator(
     """
     for reference_context in reference_contexts:
         for variant_sequence in variant_sequences:
-            translation = translate_variant_sequence(
+            translation = Translation.from_variant_sequence_and_reference_context(
                 variant_sequence=variant_sequence,
                 reference_context=reference_context,
                 max_transcript_mismatches=max_transcript_mismatches,
