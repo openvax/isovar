@@ -55,8 +55,10 @@ class GeneticCode(object):
             cdna_sequence = str(cdna_sequence)
         n = len(cdna_sequence)
 
-        if n < 3:
-            return ''
+        # trim to multiple of 3 length, if there are 1 or 2 nucleotides
+        # dangling at the end of an mRNA they will not affect translation
+        # since ribosome will fall off at that point
+        end_idx = 3 * (n // 3)
 
         codon_table = self.codon_table
         if first_codon_is_start and cdna_sequence[:3] in self.start_codons:
@@ -66,8 +68,6 @@ class GeneticCode(object):
             start_index = 0
             amino_acid_list = []
 
-        # trim to multiple of 3 length
-        end_idx = 3 * (n // 3)
         ends_with_stop_codon = False
         for i in range(start_index, end_idx, 3):
             codon = cdna_sequence[i:i + 3]
