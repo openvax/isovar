@@ -14,23 +14,86 @@
 
 from __future__ import print_function, division, absolute_import
 import logging
-from collections import namedtuple
 
 from .common import reverse_complement_dna
 from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 
 logger = logging.getLogger(__name__)
 
-
-class ReferenceSequenceKey(namedtuple("ReferenceSequenceKey", [
-        "strand",
-        "sequence_before_variant_locus",
-        "sequence_at_variant_locus",
-        "sequence_after_variant_locus"])):
+class ReferenceSequenceKey(object):
     """
     Used to identify and group the distinct sequences occurring on a set of
-    transcripts overlapping a variant locus
+    transcripts overlapping a variant locus.
     """
+
+    __slots__ = [
+        "strand",
+        "reference_cdna_sequence",
+        "base0_variant_start_offset",
+        "base0_variant_end_offset"
+    ]
+
+    def __init__(
+            self,
+            strand,
+            reference_cdna_sequence,
+            base0_variant_start_offset,
+            base0_variant_end_offset):
+
+        if strand not in {'+', '-'}:
+            raise ValueError("Invalid strand: '%s'" % strand)
+        self.strand = strand
+
+        if len(reference_cdna_sequence) == 0:
+            raise ValueError("Empty reference cDNA sequence")
+
+        self.reference_cdna_sequence = reference_cdna_sequence
+
+        if base0_variant_start_offset > base0_variant_end_offset:
+            raise ValueError(
+                "Invalid variant start offset %d cannot be after end %d" % (
+                    base0_variant_start_offset,
+                    base0_variant_end_offset))
+
+        self.base0_variant_start_offset = base0_variant_start_offset
+        self.base0_variant_end_offset = base0_variant_end_offset
+
+    def __str__(self):
+        return (
+            "ReferenceSequenceKey("
+            "strand='%s', reference_cdna_sequence='%s', "
+            "base0_variant_start_offset=%d, base0_variant_end_offset=%d") % (
+                self.strand,
+                self.reference_cdna_sequence,
+                self.base0_variant_start_offset,
+                self.base0_variant_end_offset)
+
+    def __repr__(self):
+        return str(self)
+
+    def __hash__(self):
+        return hash((
+            self.strand,
+            self.reference_cdna_sequence,
+            self.base0_variant_start_offset,
+            self.base0_variant_end_offset))
+
+    @property
+    def sequence_before_variant_locus(self):
+        return self.reference_cdna_sequence[:self.base0_variant_start_offset]
+
+    @property
+    def sequence_at_variant_locus(self):
+        return self.reference_cdna_sequence[
+            self.base0_variant_start_offset:
+            self.base0_variant_end_offset]
+
+    @property
+    def sequence_after_variant_locus(self):
+        return self.reference_cdna_sequence[self.base0_variant_end_offset:]
+
+    def __len__(self):
+        return len(self.reference_cdna_sequence)
 
     @classmethod
     def from_variant_and_transcript(cls, variant, transcript, context_size):
@@ -54,6 +117,7 @@ class ReferenceSequenceKey(namedtuple("ReferenceSequenceKey", [
 
         Can also return None if Transcript lacks sufficiently long sequence
         """
+
         full_transcript_sequence = transcript.sequence
 
         if full_transcript_sequence is None:
@@ -62,6 +126,29 @@ class ReferenceSequenceKey(namedtuple("ReferenceSequenceKey", [
                 transcript,
                 variant)
             return None
+
+        # get the interbase range of offsets which capture all reference
+        # bases modified by the variant
+        variant_start_offset, variant_end_offset = \
+            interbase_range_affected_by_variant_on_transcript(
+                variant=variant,
+                transcript=transcript)
+
+        reference_cdna_at_variant = full_transcript_sequence[
+            variant_start_offset:variant_end_offset]
+
+        if not variant_matches_reference_sequence(
+                variant=variant,
+                strand=transcript.strand,
+                ref_seq_on_transcript=reference_cdna_at_variant):
+            # TODO: once we're more confident about other logic in isovar,
+            # change this to a warning and return None to allow for modest
+            # differences between reference sequence patches, since
+            # GRCh38.p1 may differ at some positions from GRCh38.p5
+            raise ValueError(
+                "Wrong reference sequence for variant %s on transcript %s" % (
+                    variant,
+                    transcript))
 
         if len(full_transcript_sequence) < 6:
             # need at least 6 nucleotides for a start and stop codon
@@ -72,13 +159,6 @@ class ReferenceSequenceKey(namedtuple("ReferenceSequenceKey", [
                 len(full_transcript_sequence))
             return None
 
-        # get the interbase range of offsets which capture all reference
-        # bases modified by the variant
-        variant_start_offset, variant_end_offset = \
-            interbase_range_affected_by_variant_on_transcript(
-                variant=variant,
-                transcript=transcript)
-
         logger.info(
             "Interbase offset range on %s for variant %s = %d:%d",
             transcript,
@@ -86,33 +166,26 @@ class ReferenceSequenceKey(namedtuple("ReferenceSequenceKey", [
             variant_start_offset,
             variant_end_offset)
 
-        prefix = full_transcript_sequence[
+        reference_cdna_before_variant = full_transcript_sequence[
             max(0, variant_start_offset - context_size):
             variant_start_offset]
 
-        suffix = full_transcript_sequence[
+        reference_cdna_after_variant = full_transcript_sequence[
             variant_end_offset:
             variant_end_offset + context_size]
 
-        ref_nucleotides_at_variant = full_transcript_sequence[
-            variant_start_offset:variant_end_offset]
-        if not variant_matches_reference_sequence(
-                variant=variant,
-                strand=transcript.strand,
-                ref_seq_on_transcript=ref_nucleotides_at_variant):
-            # TODO: once we're more confident about other logic in isovar,
-            # change this to a warning and return None to allow for modest
-            # differences between reference sequence patches, since
-            # GRCh38.p1 may differ at some positions from GRCh38.p5
-            raise ValueError(
-                "Wrong reference sequence for variant %s on transcript %s" % (
-                    variant,
-                    transcript))
+        reference_cdna_sequence = (
+            reference_cdna_before_variant +
+            reference_cdna_at_variant +
+            reference_cdna_after_variant)
+
+        n_before = len(reference_cdna_before_variant)
+
         return cls(
             strand=transcript.strand,
-            sequence_before_variant_locus=prefix,
-            sequence_at_variant_locus=ref_nucleotides_at_variant,
-            sequence_after_variant_locus=suffix)
+            reference_cdna_sequence=reference_cdna_sequence,
+            base0_variant_start_offset=n_before,
+            base0_variant_end_offset=n_before + len(reference_cdna_at_variant))
 
 
 def variant_matches_reference_sequence(variant, ref_seq_on_transcript, strand):

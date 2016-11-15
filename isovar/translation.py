@@ -138,6 +138,7 @@ class Translation(object):
             cls,
             variant_sequence,
             reference_context,
+            min_transcript_prefix_length,
             max_transcript_mismatches,
             protein_sequence_length=None):
         """
@@ -149,6 +150,11 @@ class Translation(object):
         variant_sequence : VariantSequence
 
         reference_context : ReferenceContext
+
+        min_transcript_prefix_length : int
+            Minimum number of nucleotides before the variant to test whether
+            our variant sequence can use the reading frame from a reference
+            transcript.
 
         max_transcript_mismatches : int
             Don't use the reading frame from a context where the cDNA variant
@@ -166,7 +172,8 @@ class Translation(object):
         variant_sequence_in_reading_frame = match_variant_sequence_to_reference_context(
             variant_sequence,
             reference_context,
-            max_transcript_mismatches)
+            min_transcript_prefix_length=min_transcript_prefix_length,
+            max_transcript_mismatches=max_transcript_mismatches)
 
         cdna_sequence = variant_sequence_in_reading_frame.cdna_sequence
         cdna_codon_offset = variant_sequence_in_reading_frame.offset_to_first_complete_codon
@@ -313,6 +320,7 @@ def find_mutant_amino_acid_interval(
 def translation_generator(
         variant_sequences,
         reference_contexts,
+        min_transcript_prefix_length,
         max_transcript_mismatches,
         protein_sequence_length=None):
     """
@@ -329,10 +337,18 @@ def translation_generator(
     reference_contexts : list of ReferenceContext objects
         Reference sequence contexts from the same variant as the variant_sequences
 
+    min_transcript_prefix_length : int
+        Minimum number of nucleotides before the variant to test whether
+        our variant sequence can use the reading frame from a reference
+        transcript.
+
     max_transcript_mismatches : int
+        Maximum number of mismatches between coding sequence before variant
+        and reference transcript we're considering for determing the reading
+        frame.
 
     protein_sequence_length : int, optional
-        Truncate protein to be at most this long
+        Truncate protein to be at most this long.
 
     Yields a sequence of Translation objects.
     """
@@ -341,6 +357,7 @@ def translation_generator(
             translation = Translation.from_variant_sequence_and_reference_context(
                 variant_sequence=variant_sequence,
                 reference_context=reference_context,
+                min_transcript_prefix_length=min_transcript_prefix_length,
                 max_transcript_mismatches=max_transcript_mismatches,
                 protein_sequence_length=protein_sequence_length)
             if translation is not None:
@@ -383,12 +400,6 @@ def translate_variant_reads(
         len(variant_sequence.prefix)
         for variant_sequence in variant_sequences)
 
-    if context_size < min_transcript_prefix_length:
-        logger.info(
-            "Skipping variant %s, none of the cDNA sequences have sufficient context",
-            variant)
-        return []
-
     reference_contexts = reference_contexts_for_variant(
         variant,
         context_size=context_size,
@@ -397,6 +408,7 @@ def translate_variant_reads(
     return list(translation_generator(
         variant_sequences=variant_sequences,
         reference_contexts=reference_contexts,
+        min_transcript_prefix_length=min_transcript_prefix_length,
         max_transcript_mismatches=max_transcript_mismatches,
         protein_sequence_length=protein_sequence_length))
 

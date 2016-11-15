@@ -208,32 +208,63 @@ def compute_offset_to_first_complete_codon(
 def match_variant_sequence_to_reference_context(
         variant_sequence,
         reference_context,
-        max_transcript_mismatches):
+        min_transcript_prefix_length,
+        max_transcript_mismatches,
+        max_attempts=5):
     """
     Iteratively trim low-coverage subsequences of a variant sequence
     until it either matches the given reference context or there
-    are no nucleotides left.
+    are too few nucleotides left in the variant sequence.
+
+    Parameters
+    ----------
+    variant_sequence : VariantSequence
+
+    reference_context : ReferenceContext
+
+    min_transcript_prefix_length : int
+
+    max_transcript_mismatches : int
+
+    max_attempts : int
+
+    Returns VariantSequenceInReadingFrame or None
     """
+
     variant_sequence_in_reading_frame = None
+    attempt = 0
+
     # if we can't get the variant sequence to match this reference
     # context then keep trimming it by coverage until either
-    while variant_sequence_in_reading_frame is None and len(variant_sequence) > 0:
+    while (variant_sequence_in_reading_frame is None and
+            len(variant_sequence.prefix) >= min_transcript_prefix_length and
+            attempt < max_attempts):
+
         variant_sequence_in_reading_frame = \
             VariantSequenceInReadingFrame.from_variant_sequence_and_reference_context(
                 variant_sequence=variant_sequence,
                 reference_context=reference_context)
-        n_mismatch_before_variant = variant_sequence_in_reading_frame.number_mismatches
+        attempt += 1
 
-        if n_mismatch_before_variant > max_transcript_mismatches:
-            logger.info(
-                ("Too many mismatches (%d) between variant sequence %s and "
-                 "reference context %s"),
-                n_mismatch_before_variant,
-                reference_context,
-                variant_sequence)
-            # if portions of the sequence are supported by only 1 read
-            # then try trimming to 2 to see if the better supported
-            # subsequence can be better matched against the reference
-            variant_sequence = variant_sequence.trim_by_coverage(
-                variant_sequence.min_coverage() + 1)
+        if variant_sequence_in_reading_frame is not None:
+            n_mismatch_before_variant = (
+                variant_sequence_in_reading_frame.number_mismatches)
+
+            if n_mismatch_before_variant > max_transcript_mismatches:
+                logger.info(
+                    ("Too many mismatches (%d) between variant sequence %s and "
+                     "reference context %s"),
+                    n_mismatch_before_variant,
+                    reference_context,
+                    variant_sequence)
+
+                variant_sequence_in_reading_frame = None
+
+                # if portions of the sequence are supported by only 1 read
+                # then try trimming to 2 to see if the better supported
+                # subsequence can be better matched against the reference
+                current_min_coverage = variant_sequence.min_coverage()
+                variant_sequence = variant_sequence.trim_by_coverage(
+                    current_min_coverage + 1)
+
     return variant_sequence_in_reading_frame

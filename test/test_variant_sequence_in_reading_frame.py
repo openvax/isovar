@@ -1,5 +1,9 @@
 from nose.tools import eq_
-from isovar.variant_sequence_in_reading_frame import compute_offset_to_first_complete_codon
+from isovar.variant_sequence_in_reading_frame import (
+    compute_offset_to_first_complete_codon,
+    match_variant_sequence_to_reference_context,
+    VariantSequenceInReadingFrame
+)
 
 def test_compute_offset_to_first_complete_codon_no_trimming():
     # if nothing gets trimmed from the reference sequence, then
@@ -44,3 +48,16 @@ def test_compute_offset_to_first_complete_codon_trimming_after_codon():
             offset_to_first_complete_reference_codon=7,
             n_trimmed_from_reference_sequence=10),
         0)
+
+def test_match_variant_sequence_to_reference_context_exact_match():
+    # Coding sequence = --|ATG|CCC|TAG
+    # first two nucleotides are untranslated region
+    cdna_sequence = "GGATGCCCTAG"
+    varseq_in_orf = VariantSequenceInReadingFrame(
+        cdna_sequence=cdna_sequence,
+        offset_to_first_complete_codon=2,
+        variant_cdna_interval_start=5,
+        variant_cdna_interval_end=6,
+        reference_cdna_sequence_before_variant="GGATG",
+        number_mismatches=0)
+

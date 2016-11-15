@@ -77,3 +77,9 @@ MAX_PROTEIN_SEQUENCES_PER_VARIANT = 1
 # sequences from multiple reads which only partially
 # overlap (rather than fully spanning a coding sequence)
 VARIANT_CDNA_SEQUENCE_ASSEMBLY = False
+
+# Only merge variant cDNA sequences which at least share
+# this number of nucleotides. Should be sufficiently high
+# to minimize false assembly of isoforms which don't
+# actually exist.
+MIN_VARIANT_CDNA_SEQUENCE_ASSEMBLY_OVERLAP_SIZE = 30
