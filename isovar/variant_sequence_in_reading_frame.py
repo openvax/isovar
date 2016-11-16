@@ -22,7 +22,7 @@ from __future__ import print_function, division, absolute_import
 from collections import namedtuple
 import logging
 
-from .common import reverse_complement_dna
+from .dna import reverse_complement_dna
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,7 @@ def trim_sequences(variant_sequence, reference_context):
     # if the transcript is on the reverse strand then we have to
     # take the sequence PREFIX|VARIANT|SUFFIX
     # and take the complement of XIFFUS|TNAIRAV|XIFERP
-    if False and reference_context.strand == "-":
+    if reference_context.strand == "-":
         # notice that we are setting the *prefix* to be reverse complement
         # of the *suffix* and vice versa
         cdna_prefix, cdna_alt, cdna_suffix = (

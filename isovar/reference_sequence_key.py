@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 import logging
 
 from .compact_object import CompactObject
-from .common import reverse_complement_dna
+from .dna import reverse_complement_dna
 from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 
 logger = logging.getLogger(__name__)

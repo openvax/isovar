@@ -9,6 +9,7 @@ from isovar.variant_sequences import VariantSequence
 from isovar.reference_coding_sequence_key import ReferenceCodingSequenceKey
 from isovar.reference_context import ReferenceContext
 from isovar.allele_reads import AlleleRead
+from isovar.dna import reverse_complement_dna
 
 
 def test_compute_offset_to_first_complete_codon_no_trimming():
@@ -57,7 +58,7 @@ def test_compute_offset_to_first_complete_codon_trimming_after_codon():
 
 def make_inputs_for_tp53_201_variant(
         context_size=3,
-        prefix=None):
+        cdna_prefix=None):
     # TP53-201 is an isoform of TP53 which seems to lack untranslated
     # regions so the sequence is:
     # First exon: chr17 7,676,594 - 7,676,521
@@ -77,24 +78,31 @@ def make_inputs_for_tp53_201_variant(
     eq_(effect.aa_ref, "E")
     eq_(effect.aa_alt, "K")
 
-    prefix = "ATG" if prefix is None else prefix
-    alt = "A"
-    suffix = "AGGAGCCGCAGTCAGAT"
-    cdna_sequence = prefix + alt + suffix
+    cdna_prefix = "ATG" if cdna_prefix is None else cdna_prefix
+    cdna_alt = "A"
+    cdna_suffix = "AGGAGCCGCAGTCAGAT"
+    cdna_sequence = cdna_prefix + cdna_alt + cdna_suffix
+
+    # genomic DNA is the reverse complement of the cDNA
+    # for TP53-001 since it's on the negative strand
+    gdna_prefix = reverse_complement_dna(cdna_suffix)
+    gdna_alt = reverse_complement_dna(cdna_alt)
+    gdna_suffix = reverse_complement_dna(cdna_prefix)
+
     # variant sequence supported by two reads
     # one fully spanning the variant sequence
     # and another missing the first and last
     # nucleotides
     variant_sequence = VariantSequence(
-        prefix=prefix,
-        alt=alt,
-        suffix=suffix,
+        prefix=gdna_prefix,
+        alt=gdna_alt,
+        suffix=gdna_suffix,
         reads=[
             AlleleRead(
-                prefix=prefix, allele=alt, suffix=suffix,
+                prefix=gdna_prefix, allele=gdna_alt, suffix=gdna_suffix,
                 name="full-overlap"),
             AlleleRead(
-                prefix=prefix[1:], allele=alt, suffix=suffix[:-1],
+                prefix=gdna_prefix[1:], allele=gdna_alt, suffix=gdna_suffix[:-1],
                 name="partial-overlap"),
         ])
     assert isinstance(variant_sequence, VariantSequence)
