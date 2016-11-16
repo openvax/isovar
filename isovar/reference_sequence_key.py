@@ -72,7 +72,7 @@ class ReferenceSequenceKey(CompactObject):
         if full_transcript_sequence is None:
             logger.warn(
                 "Expected transcript %s (overlapping %s) to have sequence",
-                transcript,
+                transcript.name,
                 variant)
             return None
 
@@ -110,7 +110,7 @@ class ReferenceSequenceKey(CompactObject):
 
         logger.info(
             "Interbase offset range on %s for variant %s = %d:%d",
-            transcript,
+            transcript.name,
             variant,
             variant_start_offset,
             variant_end_offset)

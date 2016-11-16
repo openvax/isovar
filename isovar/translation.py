@@ -165,7 +165,7 @@ class Translation(object):
             Truncate protein to be at most this long
 
         Returns either a ProteinSequence object or None if the number of
-        mismatches between the RNA and reference transcript sequences exceeds the
+        mismatches between the RNA and reference transcript sequences exceeds
         given threshold.
         """
 
@@ -174,6 +174,10 @@ class Translation(object):
             reference_context,
             min_transcript_prefix_length=min_transcript_prefix_length,
             max_transcript_mismatches=max_transcript_mismatches)
+
+        if variant_sequence_in_reading_frame is None:
+            logger.info("Unable to determine reading frame for %s", variant_sequence)
+            return None
 
         cdna_sequence = variant_sequence_in_reading_frame.cdna_sequence
         cdna_codon_offset = variant_sequence_in_reading_frame.offset_to_first_complete_codon

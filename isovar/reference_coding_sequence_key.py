@@ -105,7 +105,7 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
         if variant_start_offset < start_codon_idx + 3:
             logger.info(
                 "Skipping transcript %s for variant %s, must be after start codon",
-                transcript,
+                transcript.name,
                 variant)
             return None
 
