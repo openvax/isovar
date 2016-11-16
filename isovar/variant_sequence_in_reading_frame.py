@@ -62,6 +62,15 @@ class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", 
         cdna_prefix, cdna_alt, cdna_suffix, reference_prefix, n_trimmed_from_reference = \
             trim_sequences(variant_sequence, reference_context)
 
+        logger.info(
+            ("cdna_predix='%s', cdna_alt='%s', cdna_suffix='%s', "
+             "reference_prefix='%s', n_trimmed=%d"),
+            cdna_prefix,
+            cdna_alt,
+            cdna_suffix,
+            reference_prefix,
+            n_trimmed_from_reference)
+
         n_mismatch_before_variant = count_mismatches(reference_prefix, cdna_prefix)
 
         ref_codon_offset = reference_context.offset_to_first_complete_codon
@@ -74,7 +83,7 @@ class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", 
             n_trimmed_from_reference_sequence=n_trimmed_from_reference)
 
         cdna_sequence = cdna_prefix + cdna_alt + cdna_suffix
-        variant_interval_start = len(cdna_prefix) + 1
+        variant_interval_start = len(cdna_prefix)
         variant_interval_end = variant_interval_start + len(cdna_alt)
 
         return VariantSequenceInReadingFrame(
@@ -123,7 +132,7 @@ def trim_sequences(variant_sequence, reference_context):
     # if the transcript is on the reverse strand then we have to
     # take the sequence PREFIX|VARIANT|SUFFIX
     # and take the complement of XIFFUS|TNAIRAV|XIFERP
-    if reference_context.strand == "-":
+    if False and reference_context.strand == "-":
         # notice that we are setting the *prefix* to be reverse complement
         # of the *suffix* and vice versa
         cdna_prefix, cdna_alt, cdna_suffix = (
@@ -255,8 +264,8 @@ def match_variant_sequence_to_reference_context(
                     ("Too many mismatches (%d) between variant sequence %s and "
                      "reference context %s"),
                     n_mismatch_before_variant,
-                    reference_context,
-                    variant_sequence)
+                    variant_sequence,
+                    reference_context)
 
                 variant_sequence_in_reading_frame = None
 

@@ -83,7 +83,7 @@ class ReferenceContext(ReferenceCodingSequenceKey):
 
     @classmethod
     def from_reference_coding_sequence_key(cls, key, variant, transcripts):
-        return cls(
+        return ReferenceContext(
             strand=key.strand,
             sequence_before_variant_locus=key.sequence_before_variant_locus,
             sequence_at_variant_locus=key.sequence_at_variant_locus,

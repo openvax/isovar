@@ -326,3 +326,38 @@ def test_reference_sequence_key_hash_and_equality_different_objects():
     assert str(rcsk1) != str(rcsk_different_strand)
     assert repr(rcsk1) != repr(rcsk_different_strand)
     assert hash(rcsk1) != hash(rcsk_different_strand)
+
+def test_reference_coding_sequence_key_around_TP53_201_variant():
+    # TP53-201 is an isoform of TP53 which seems to lack untranslated
+    # regions so the sequence is:
+    # First exon: chr17 7,676,594 - 7,676,521
+    # ATG|GAG|GAG|CCG|CAG|TCA|GAT...
+    # -M-|-E-|-E-|-P-|-Q-|-S-|-D-
+
+    # we're assuming a variant
+    # chr17. 7,676,591 C>T which changes GAG (E) > AAG (K)
+    variant = Variant("chr17", 7676591, "C", "T", "GRCh38")
+
+    # TP53-201
+    transcript = variant.ensembl.transcripts_by_name("TP53-201")[0]
+
+    effect = variant.effect_on_transcript(transcript)
+
+    eq_(effect.__class__.__name__, "Substitution")
+    eq_(effect.aa_ref, "E")
+    eq_(effect.aa_alt, "K")
+    expected = ReferenceCodingSequenceKey(
+        strand="-",
+        sequence_before_variant_locus="ATG",
+        sequence_at_variant_locus="G",
+        sequence_after_variant_locus="AGG",
+        offset_to_first_complete_codon=0,
+        contains_start_codon=True,
+        overlaps_start_codon=True,
+        contains_five_prime_utr=False,
+        amino_acids_before_variant="M")
+    reference_coding_sequence_key = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=variant,
+        transcript=transcript,
+        context_size=3)
+    eq_(expected, reference_coding_sequence_key)
