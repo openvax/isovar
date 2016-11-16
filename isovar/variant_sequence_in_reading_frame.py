@@ -242,14 +242,24 @@ def match_variant_sequence_to_reference_context(
 
     variant_sequence_in_reading_frame = None
     attempt = 0
-
     # if we can't get the variant sequence to match this reference
     # context then keep trimming it by coverage until either
-    while (variant_sequence_in_reading_frame is None and
-            # TODO: check the reverse-complemented prefix if it's on the
-            # negative strand
-            len(variant_sequence.prefix) >= min_transcript_prefix_length and
-            attempt < max_attempts):
+    while variant_sequence_in_reading_frame is None and attempt < max_attempts:
+
+        # check the reverse-complemented prefix if the reference context is
+        # on the negative strand
+        variant_sequence_too_short = (
+            (reference_context.strand == "+" and
+                len(variant_sequence.prefix) < min_transcript_prefix_length) or
+            (reference_context.strand == "-" and
+                len(variant_sequence.suffix) < min_transcript_prefix_length)
+        )
+        if variant_sequence_too_short:
+            logger.info(
+                "Skipping variant sequence %s because too few nucleotides before variant (min %d)",
+                variant_sequence,
+                min_transcript_prefix_length)
+            break
 
         variant_sequence_in_reading_frame = \
             VariantSequenceInReadingFrame.from_variant_sequence_and_reference_context(
