@@ -23,7 +23,7 @@ from varcode import Variant, VariantCollection
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
-from testing_helpers import assert_equal_fields, load_vcf
+from testing_helpers import load_vcf
 
 def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
     # replace second codon of TP53-001 with 'CCC'
@@ -94,7 +94,7 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
         amino_acids_before_variant="M",
         variant=tp53_substitution,
         transcripts=[tp53_001])
-    assert_equal_fields(result, expected)
+    eq_(result, expected)
 
 def test_variants_to_reference_contexts_dataframe():
     variants = load_vcf("data/b16.f10/b16.vcf")
@@ -107,6 +107,76 @@ def test_variants_to_reference_contexts_dataframe():
     eq_(len(groups), len(variants))
 
 
-if __name__ == "__main__":
-    test_sequence_key_with_reading_frame_substitution_on_negative_strand()
-    test_variants_to_reference_contexts_dataframe()
+def test_reference_context_hash_and_equality_same_object():
+    rc1 = ReferenceContext(
+        strand="-",
+        sequence_before_variant_locus="C" * 7 + "ATG",
+        sequence_at_variant_locus="T",
+        sequence_after_variant_locus="TT",
+        offset_to_first_complete_codon=7,
+        contains_start_codon=True,
+        overlaps_start_codon=True,
+        contains_five_prime_utr=True,
+        amino_acids_before_variant="M",
+        variant=None,
+        transcripts=[])
+    rc2 = ReferenceContext(
+        strand="-",
+        sequence_before_variant_locus="C" * 7 + "ATG",
+        sequence_at_variant_locus="T",
+        sequence_after_variant_locus="TT",
+        offset_to_first_complete_codon=7,
+        contains_start_codon=True,
+        overlaps_start_codon=True,
+        contains_five_prime_utr=True,
+        amino_acids_before_variant="M",
+        variant=None,
+        transcripts=[])
+
+    eq_(rc1, rc2)
+    eq_(str(rc1), str(rc2))
+    eq_(repr(rc1), repr(rc2))
+    eq_(hash(rc1), hash(rc2))
+
+def test_reference_context_hash_and_equality_different_objects():
+    rc1 = ReferenceContext(
+        strand="-",
+        sequence_before_variant_locus="C" * 7 + "ATG",
+        sequence_at_variant_locus="T",
+        sequence_after_variant_locus="TT",
+        offset_to_first_complete_codon=7,
+        contains_start_codon=True,
+        overlaps_start_codon=True,
+        contains_five_prime_utr=True,
+        amino_acids_before_variant="M",
+        variant=None,
+        transcripts=[])
+
+    rc_different_strand = ReferenceContext(
+        strand="+",
+        sequence_before_variant_locus="C" * 7 + "ATG",
+        sequence_at_variant_locus="T",
+        sequence_after_variant_locus="TT",
+        offset_to_first_complete_codon=7,
+        contains_start_codon=True,
+        overlaps_start_codon=True,
+        contains_five_prime_utr=True,
+        amino_acids_before_variant="M",
+        variant=None,
+        transcripts=[])
+
+    assert rc1 != rc_different_strand, \
+        "Expected %s != %s" % (rc1, rc_different_strand)
+    assert str(rc1) != str(rc_different_strand), \
+        "Expected __str__ '%s' != '%s'" % (
+            rc1, rc_different_strand)
+    assert repr(rc1) != repr(rc_different_strand), \
+        "Expected __repr__ '%s' != '%s'" % (
+            rc1, rc_different_strand)
+
+    assert hash(rc1) != hash(rc_different_strand), \
+        "Expected hash(%s) != hash(%s) (%d vs. %d)" % (
+            rc1,
+            rc_different_strand,
+            hash(rc1),
+            hash(rc_different_strand))

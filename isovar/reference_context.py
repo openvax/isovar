@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple, OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict
 import logging
 
 from .effect_prediction import reference_transcripts_for_variant
@@ -34,9 +34,52 @@ logger = logging.getLogger(__name__)
 #
 ##########################
 
-class ReferenceContext(namedtuple(
-        "ReferenceContext",
-        ReferenceCodingSequenceKey._fields + ("variant", "transcripts"))):
+class ReferenceContext(ReferenceCodingSequenceKey):
+
+    # additional fields on top of slots for ReferenceCodingSequenceKey
+    __slots__ = ["variant", "transcripts"]
+
+    def __init__(
+            self,
+            strand,
+            sequence_before_variant_locus,
+            sequence_at_variant_locus,
+            sequence_after_variant_locus,
+            offset_to_first_complete_codon,
+            contains_start_codon,
+            overlaps_start_codon,
+            contains_five_prime_utr,
+            amino_acids_before_variant,
+            variant,
+            transcripts):
+        ReferenceCodingSequenceKey.__init__(
+            self=self,
+            strand=strand,
+            sequence_before_variant_locus=sequence_before_variant_locus,
+            sequence_at_variant_locus=sequence_at_variant_locus,
+            sequence_after_variant_locus=sequence_after_variant_locus,
+            offset_to_first_complete_codon=offset_to_first_complete_codon,
+            contains_start_codon=contains_start_codon,
+            overlaps_start_codon=overlaps_start_codon,
+            contains_five_prime_utr=contains_five_prime_utr,
+            amino_acids_before_variant=amino_acids_before_variant)
+        self.variant = variant
+        self.transcripts = tuple(transcripts)
+
+    def __str__(self):
+        return (
+            "ReferenceContext("
+            "strand='%s', "
+            "sequence_before_variant_locus='%s',"
+            "sequence_at_variant_locus=%s, "
+            "sequence_after_variant_locus=%s, "
+            "offset_to_first_complete_codon=%d, "
+            "contains_start_codon=%s, "
+            "overlaps_start_codon=%s, "
+            "contains_five_prime_utr=%s, "
+            "amino_acids_before_variant='%s', "
+            "variant=%s, "
+            "transcripts=%s)") % self._values()
 
     @classmethod
     def from_reference_coding_sequence_key(cls, key, variant, transcripts):
@@ -165,6 +208,7 @@ def variants_to_reference_contexts_dataframe(
 
     df_builder = DataFrameBuilder(
         ReferenceContext,
+        field_names=ReferenceContext._fields(),
         exclude=["variant"],
         converters=dict(transcripts=lambda ts: ";".join(t.name for t in ts)),
         extra_column_fns={

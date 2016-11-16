@@ -19,7 +19,7 @@ from isovar.variant_reads import reads_supporting_variant
 from isovar.allele_reads import AlleleRead
 
 from mock_read_data import DummySamFile, make_read
-from testing_helpers import assert_equal_fields
+from nose.tools import eq_
 
 def test_partitioned_read_sequences_snv():
     """
@@ -51,7 +51,7 @@ def test_partitioned_read_sequences_snv():
         prefix="ACC",
         allele="G",
         suffix="TG")
-    assert_equal_fields(variant_read, expected)
+    eq_(variant_read, expected)
 
 def test_partitioned_read_sequences_insertion():
     """
@@ -83,7 +83,7 @@ def test_partitioned_read_sequences_insertion():
         prefix="ACCT",
         allele="G",
         suffix="TG")
-    assert_equal_fields(variant_read, expected)
+    eq_(variant_read, expected)
 
 def test_partitioned_read_sequences_deletion():
     """
@@ -114,9 +114,4 @@ def test_partitioned_read_sequences_deletion():
         prefix="ACCT",
         allele="",
         suffix="G")
-    assert_equal_fields(variant_read, expected)
-
-if __name__ == "__main__":
-    test_partitioned_read_sequences_snv()
-    test_partitioned_read_sequences_insertion()
-    test_partitioned_read_sequences_deletion()
+    eq_(variant_read, expected)

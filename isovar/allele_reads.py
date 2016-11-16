@@ -59,7 +59,7 @@ class AlleleRead(object):
         return str(self)
 
     def __hash__(self):
-        return hash(self.sequence)
+        return hash(self.name)
 
     def __eq__(self, other):
         return (

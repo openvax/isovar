@@ -15,12 +15,13 @@
 from __future__ import print_function, division, absolute_import
 import logging
 
+from .compact_object import CompactObject
 from .common import reverse_complement_dna
 from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 
 logger = logging.getLogger(__name__)
 
-class ReferenceSequenceKey(object):
+class ReferenceSequenceKey(CompactObject):
     """
     Used to identify and group the distinct sequences occurring on a set of
     transcripts overlapping a variant locus.
@@ -28,75 +29,27 @@ class ReferenceSequenceKey(object):
 
     __slots__ = [
         "strand",
-        "reference_cdna_sequence",
-        "base0_variant_start_offset",
-        "base0_variant_end_offset"
+        "sequence_before_variant_locus",
+        "sequence_at_variant_locus",
+        "sequence_after_variant_locus",
     ]
 
     def __init__(
             self,
             strand,
-            reference_cdna_sequence,
-            base0_variant_start_offset,
-            base0_variant_end_offset):
-
+            sequence_before_variant_locus,
+            sequence_at_variant_locus,
+            sequence_after_variant_locus):
         if strand not in {'+', '-'}:
             raise ValueError("Invalid strand: '%s'" % strand)
         self.strand = strand
-
-        if len(reference_cdna_sequence) == 0:
-            raise ValueError("Empty reference cDNA sequence")
-
-        self.reference_cdna_sequence = reference_cdna_sequence
-
-        if base0_variant_start_offset > base0_variant_end_offset:
-            raise ValueError(
-                "Invalid variant start offset %d cannot be after end %d" % (
-                    base0_variant_start_offset,
-                    base0_variant_end_offset))
-
-        self.base0_variant_start_offset = base0_variant_start_offset
-        self.base0_variant_end_offset = base0_variant_end_offset
-
-    def __str__(self):
-        return (
-            "ReferenceSequenceKey("
-            "strand='%s', reference_cdna_sequence='%s', "
-            "base0_variant_start_offset=%d, base0_variant_end_offset=%d") % (
-                self.strand,
-                self.reference_cdna_sequence,
-                self.base0_variant_start_offset,
-                self.base0_variant_end_offset)
-
-    def __repr__(self):
-        return str(self)
-
-    def __hash__(self):
-        return hash((
-            self.strand,
-            self.reference_cdna_sequence,
-            self.base0_variant_start_offset,
-            self.base0_variant_end_offset))
-
-    @property
-    def sequence_before_variant_locus(self):
-        return self.reference_cdna_sequence[:self.base0_variant_start_offset]
-
-    @property
-    def sequence_at_variant_locus(self):
-        return self.reference_cdna_sequence[
-            self.base0_variant_start_offset:
-            self.base0_variant_end_offset]
-
-    @property
-    def sequence_after_variant_locus(self):
-        return self.reference_cdna_sequence[self.base0_variant_end_offset:]
-
-    def __len__(self):
-        return len(self.reference_cdna_sequence)
+        self.sequence_before_variant_locus = sequence_before_variant_locus
+        self.sequence_at_variant_locus = sequence_at_variant_locus
+        self.sequence_after_variant_locus = sequence_after_variant_locus
 
     @classmethod
-    def from_variant_and_transcript(cls, variant, transcript, context_size):
+    def from_variant_and_transcript(
+            cls, variant, transcript, context_size):
         """
         Extracts the reference sequence around a variant locus on a particular
         transcript.
@@ -109,11 +62,7 @@ class ReferenceSequenceKey(object):
 
         context_size : int
 
-        Returns SequenceKey object with the following fields:
-            - strand
-            - sequence_before_variant_locus
-            - sequence_at_variant_locus
-            - sequence_after_variant_locus
+        Returns SequenceKey object.
 
         Can also return None if Transcript lacks sufficiently long sequence
         """
@@ -174,18 +123,37 @@ class ReferenceSequenceKey(object):
             variant_end_offset:
             variant_end_offset + context_size]
 
-        reference_cdna_sequence = (
-            reference_cdna_before_variant +
-            reference_cdna_at_variant +
-            reference_cdna_after_variant)
-
-        n_before = len(reference_cdna_before_variant)
-
-        return cls(
+        return ReferenceSequenceKey(
             strand=transcript.strand,
-            reference_cdna_sequence=reference_cdna_sequence,
-            base0_variant_start_offset=n_before,
-            base0_variant_end_offset=n_before + len(reference_cdna_at_variant))
+            sequence_before_variant_locus=reference_cdna_before_variant,
+            sequence_at_variant_locus=reference_cdna_at_variant,
+            sequence_after_variant_locus=reference_cdna_after_variant)
+
+    def __str__(self):
+        return (
+            "ReferenceSequenceKey("
+            "strand='%s', "
+            "sequence_before_variant_locus='%s', "
+            "sequence_at_variant_locus='%s', "
+            "sequence_after_variant_locus='%s')") % self._values()
+
+    @property
+    def base0_variant_start_offset(self):
+        return len(self.sequence_before_variant_locus)
+
+    @property
+    def base0_variant_end_offset(self):
+        return self.base0_variant_start_offset + len(self.sequence_at_variant_locus)
+
+    @property
+    def sequence(self):
+        return (
+            self.sequence_before_variant_locus +
+            self.sequence_at_variant_locus +
+            self.sequence_after_variant_locus)
+
+    def __len__(self):
+        return len(self.sequence)
 
 
 def variant_matches_reference_sequence(variant, ref_seq_on_transcript, strand):

@@ -19,7 +19,6 @@ from varcode import Variant
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
-from testing_helpers import assert_equal_fields
 
 def test_sequence_key_for_variant_on_transcript_substitution():
     # rs769125639 is a simple T>A substitution in the 6th nucleotide of
@@ -42,7 +41,7 @@ def test_sequence_key_for_variant_on_transcript_substitution():
         sequence_before_variant_locus=brca2_ref_seq[:5],
         sequence_at_variant_locus="T",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    assert_equal_fields(sequence_key, expected_sequence_key)
+    eq_(sequence_key, expected_sequence_key)
 
 
 def test_sequence_key_for_variant_on_transcript_deletion():
@@ -65,7 +64,7 @@ def test_sequence_key_for_variant_on_transcript_deletion():
         sequence_before_variant_locus=brca2_ref_seq[:5],
         sequence_at_variant_locus="T",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    assert_equal_fields(sequence_key, expected_sequence_key)
+    eq_(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_insertion():
     # Insert 'CCC' after the 6th nucleotide of BRCA2-001's 5' UTR
@@ -90,7 +89,7 @@ def test_sequence_key_for_variant_on_transcript_insertion():
         sequence_before_variant_locus=brca2_ref_seq[:6],
         sequence_at_variant_locus="",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    assert_equal_fields(sequence_key, expected_sequence_key)
+    eq_(sequence_key, expected_sequence_key)
 
 
 def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
@@ -115,7 +114,7 @@ def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
         sequence_before_variant_locus="GGTCACTGCC",
         sequence_at_variant_locus="ATG",
         sequence_after_variant_locus="GAGGAGCCGC")
-    assert_equal_fields(sequence_key, expected_sequence_key)
+    eq_(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
     # delete start codon of TP53-001, which in reverse complement means
@@ -139,7 +138,7 @@ def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
         sequence_before_variant_locus="GGTCACTGCC",
         sequence_at_variant_locus="ATG",
         sequence_after_variant_locus="GAGGAGCCGC")
-    assert_equal_fields(sequence_key, expected_sequence_key)
+    eq_(sequence_key, expected_sequence_key)
 
 def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
     # insert 'CCC' after start codon of TP53-001, which on the reverse
@@ -167,4 +166,37 @@ def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
         sequence_before_variant_locus="CACTGCCATG",
         sequence_at_variant_locus="",
         sequence_after_variant_locus="GAGGAGCCGC")
-    assert_equal_fields(sequence_key, expected_sequence_key)
+    eq_(sequence_key, expected_sequence_key)
+
+
+def test_reference_sequence_key_hash_and_equality_same_objects():
+    rsk1 = ReferenceSequenceKey(
+        strand="+",
+        sequence_before_variant_locus="AAA",
+        sequence_at_variant_locus="T",
+        sequence_after_variant_locus="GGG")
+    rsk2 = ReferenceSequenceKey(
+        strand="+",
+        sequence_before_variant_locus="AAA",
+        sequence_at_variant_locus="T",
+        sequence_after_variant_locus="GGG")
+    eq_(rsk1, rsk2)
+    eq_(hash(rsk1), hash(rsk2))
+    eq_(str(rsk1), str(rsk2))
+    eq_(repr(rsk1), repr(rsk2))
+
+def test_reference_sequence_key_hash_and_equality_different_objects():
+    rsk1 = ReferenceSequenceKey(
+        strand="+",
+        sequence_before_variant_locus="AAA",
+        sequence_at_variant_locus="T",
+        sequence_after_variant_locus="GGG")
+    rsk_different_strand = ReferenceSequenceKey(
+        strand="-",
+        sequence_before_variant_locus="AAA",
+        sequence_at_variant_locus="T",
+        sequence_after_variant_locus="GGG")
+    assert rsk1 != rsk_different_strand
+    assert hash(rsk1) != hash(rsk_different_strand)
+    assert str(rsk1) != str(rsk_different_strand)
+    assert repr(rsk1) != repr(rsk_different_strand)
