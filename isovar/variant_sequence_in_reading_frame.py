@@ -246,6 +246,8 @@ def match_variant_sequence_to_reference_context(
     # if we can't get the variant sequence to match this reference
     # context then keep trimming it by coverage until either
     while (variant_sequence_in_reading_frame is None and
+            # TODO: check the reverse-complemented prefix if it's on the
+            # negative strand
             len(variant_sequence.prefix) >= min_transcript_prefix_length and
             attempt < max_attempts):
 

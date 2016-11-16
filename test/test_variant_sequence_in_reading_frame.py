@@ -56,9 +56,7 @@ def test_compute_offset_to_first_complete_codon_trimming_after_codon():
             n_trimmed_from_reference_sequence=10),
         0)
 
-def make_inputs_for_tp53_201_variant(
-        context_size=3,
-        cdna_prefix=None):
+def make_inputs_for_tp53_201_variant(prefix_length=3):
     # TP53-201 is an isoform of TP53 which seems to lack untranslated
     # regions so the sequence is:
     # First exon: chr17 7,676,594 - 7,676,521
@@ -78,7 +76,7 @@ def make_inputs_for_tp53_201_variant(
     eq_(effect.aa_ref, "E")
     eq_(effect.aa_alt, "K")
 
-    cdna_prefix = "ATG" if cdna_prefix is None else cdna_prefix
+    cdna_prefix = "ATG"[-prefix_length:]
     cdna_alt = "A"
     cdna_suffix = "AGGAGCCGCAGTCAGAT"
     cdna_sequence = cdna_prefix + cdna_alt + cdna_suffix
@@ -110,7 +108,7 @@ def make_inputs_for_tp53_201_variant(
     reference_coding_sequence_key = ReferenceCodingSequenceKey.from_variant_and_transcript(
         variant=variant,
         transcript=transcript,
-        context_size=3)
+        context_size=prefix_length)
     assert isinstance(reference_coding_sequence_key, ReferenceCodingSequenceKey)
 
     reference_context = ReferenceContext.from_reference_coding_sequence_key(
@@ -124,7 +122,7 @@ def make_inputs_for_tp53_201_variant(
         offset_to_first_complete_codon=0,
         variant_cdna_interval_start=3,
         variant_cdna_interval_end=4,
-        reference_cdna_sequence_before_variant="ATG",
+        reference_cdna_sequence_before_variant="ATG"[-prefix_length:],
         number_mismatches=0)
     assert isinstance(expected, VariantSequenceInReadingFrame)
 
@@ -132,7 +130,7 @@ def make_inputs_for_tp53_201_variant(
 
 def test_match_variant_sequence_to_reference_context_exact_match():
     variant_sequence, reference_context, expected = \
-        make_inputs_for_tp53_201_variant(context_size=3)
+        make_inputs_for_tp53_201_variant(prefix_length=3)
 
     result = match_variant_sequence_to_reference_context(
         variant_sequence=variant_sequence,
@@ -140,3 +138,15 @@ def test_match_variant_sequence_to_reference_context_exact_match():
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0)
     eq_(expected, result)
+
+
+def test_match_variant_sequence_to_reference_context_not_enough_prefix():
+    variant_sequence, reference_context, _ = \
+        make_inputs_for_tp53_201_variant(prefix_length=2)
+
+    result = match_variant_sequence_to_reference_context(
+        variant_sequence=variant_sequence,
+        reference_context=reference_context,
+        min_transcript_prefix_length=3,
+        max_transcript_mismatches=0)
+    assert result is None, (variant_sequence, reference_context, result)
