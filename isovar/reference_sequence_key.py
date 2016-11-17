@@ -129,9 +129,6 @@ class ReferenceSequenceKey(CompactObject):
             sequence_at_variant_locus=reference_cdna_at_variant,
             sequence_after_variant_locus=reference_cdna_after_variant)
 
-    def __len__(self):
-        return len(self.sequence)
-
 
 def variant_matches_reference_sequence(variant, ref_seq_on_transcript, strand):
     """
