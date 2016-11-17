@@ -30,12 +30,12 @@ from .default_parameters import (
 from .variant_helpers import trim_variant
 from .dataframe_builder import DataFrameBuilder
 from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
-
+from .compact_object import CompactObject
 
 logger = logging.getLogger(__name__)
 
 
-class AlleleRead(object):
+class AlleleRead(CompactObject):
     __slots__ = ["prefix", "allele", "suffix", "name", "sequence"]
 
     def __init__(self, prefix, allele, suffix, name):
@@ -47,27 +47,6 @@ class AlleleRead(object):
 
     def __len__(self):
         return len(self.sequence)
-
-    def __str__(self):
-        return "AlleleRead(prefix='%s', allele='%s', suffix='%s', name='%s')" % (
-            self.prefix,
-            self.allele,
-            self.suffix,
-            self.name)
-
-    def __repr__(self):
-        return str(self)
-
-    def __hash__(self):
-        return hash(self.name)
-
-    def __eq__(self, other):
-        return (
-            other.__class__ is AlleleRead and
-            self.prefix == other.prefix and
-            self.allele == other.allele and
-            self.suffix == other.suffix and
-            self.name == other.name)
 
     @classmethod
     def from_locus_read(cls, locus_read, n_ref):
