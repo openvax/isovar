@@ -56,7 +56,29 @@ def test_compute_offset_to_first_complete_codon_trimming_after_codon():
             n_trimmed_from_reference_sequence=10),
         0)
 
-def make_inputs_for_tp53_201_variant(prefix_length=3):
+def make_inputs_for_tp53_201_variant(
+        cdna_prefix="ATG",
+        n_bad_nucleotides_at_start=0,
+        mismatches=0,
+        reference_context_size=3):
+    """
+    Parameters
+    ----------
+    cdna_prefix : str
+        Transcript nucleotides before the variant that we're pretending
+        got detected from RNA-seq reads.
+
+    n_bad_nucleotides_at_start : int
+        Number of nucleotides we expect to get trimmed from the
+        beginning of the variant sequence while matching to a reference context.
+
+    mismatches : int
+        Expected number of nucleotide mismatches in the result
+
+    reference_context_size : int
+        Number of nucleotides before the variant locus to try matching
+        against a reference transcript.
+    """
     # TP53-201 is an isoform of TP53 which seems to lack untranslated
     # regions so the sequence is:
     # First exon: chr17 7,676,594 - 7,676,521
@@ -76,10 +98,8 @@ def make_inputs_for_tp53_201_variant(prefix_length=3):
     eq_(effect.aa_ref, "E")
     eq_(effect.aa_alt, "K")
 
-    cdna_prefix = "ATG"[-prefix_length:]
     cdna_alt = "A"
     cdna_suffix = "AGGAGCCGCAGTCAGAT"
-    cdna_sequence = cdna_prefix + cdna_alt + cdna_suffix
 
     # genomic DNA is the reverse complement of the cDNA
     # for TP53-001 since it's on the negative strand
@@ -89,8 +109,7 @@ def make_inputs_for_tp53_201_variant(prefix_length=3):
 
     # variant sequence supported by two reads
     # one fully spanning the variant sequence
-    # and another missing the first and last
-    # nucleotides
+    # and another missing the last nucleotide
     variant_sequence = VariantSequence(
         prefix=gdna_prefix,
         alt=gdna_alt,
@@ -100,15 +119,17 @@ def make_inputs_for_tp53_201_variant(prefix_length=3):
                 prefix=gdna_prefix, allele=gdna_alt, suffix=gdna_suffix,
                 name="full-overlap"),
             AlleleRead(
-                prefix=gdna_prefix[1:], allele=gdna_alt, suffix=gdna_suffix[:-1],
+                prefix=gdna_prefix, allele=gdna_alt, suffix=gdna_suffix[:-1],
                 name="partial-overlap"),
         ])
     assert isinstance(variant_sequence, VariantSequence)
 
+    prefix_length = len(cdna_prefix) - n_bad_nucleotides_at_start
+
     reference_coding_sequence_key = ReferenceCodingSequenceKey.from_variant_and_transcript(
         variant=variant,
         transcript=transcript,
-        context_size=prefix_length)
+        context_size=reference_context_size)
     assert isinstance(reference_coding_sequence_key, ReferenceCodingSequenceKey)
 
     reference_context = ReferenceContext.from_reference_coding_sequence_key(
@@ -118,19 +139,20 @@ def make_inputs_for_tp53_201_variant(prefix_length=3):
     assert isinstance(reference_context, ReferenceContext)
 
     expected = VariantSequenceInReadingFrame(
-        cdna_sequence=cdna_sequence,
-        offset_to_first_complete_codon=0,
-        variant_cdna_interval_start=3,
-        variant_cdna_interval_end=4,
+        cdna_sequence=cdna_prefix[-prefix_length:] + cdna_alt + cdna_suffix,
+        offset_to_first_complete_codon=prefix_length % 3,
+        variant_cdna_interval_start=prefix_length,
+        variant_cdna_interval_end=prefix_length + 1,
         reference_cdna_sequence_before_variant="ATG"[-prefix_length:],
-        number_mismatches=0)
+        number_mismatches=mismatches)
     assert isinstance(expected, VariantSequenceInReadingFrame)
 
     return variant_sequence, reference_context, expected
 
 def test_match_variant_sequence_to_reference_context_exact_match():
+    # Variant sequence is exact match for beginning of TP53-201 transcript
     variant_sequence, reference_context, expected = \
-        make_inputs_for_tp53_201_variant(prefix_length=3)
+        make_inputs_for_tp53_201_variant()
 
     result = match_variant_sequence_to_reference_context(
         variant_sequence=variant_sequence,
@@ -141,12 +163,105 @@ def test_match_variant_sequence_to_reference_context_exact_match():
 
 
 def test_match_variant_sequence_to_reference_context_not_enough_prefix():
+    # Variant sequence missing first nucleotide of start codon
+    # ("TG" instead of "ATG") and the variant occurrs immediately after
+    # the start codon. Since the min_transcript_prefix_length is 3 in
+    # this case we expect the match function to return None
     variant_sequence, reference_context, _ = \
-        make_inputs_for_tp53_201_variant(prefix_length=2)
+        make_inputs_for_tp53_201_variant(
+            cdna_prefix="TG",
+            reference_context_size=2)
 
     result = match_variant_sequence_to_reference_context(
         variant_sequence=variant_sequence,
         reference_context=reference_context,
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0)
-    assert result is None, (variant_sequence, reference_context, result)
+    eq_(result, None)
+
+def test_match_variant_sequence_to_reference_context_trim_1_bad_nucleotide():
+    # Variant sequence has an extra nucleotide at the beginning which is
+    # supported by only 1 read, whereas the correct sequence is supported by
+    # 2 reads. If we allow > 1 "attempt" in the match function then it will
+    # trim off the extra "G" and correctly match against the TP53-201
+    # transcript sequence.
+
+    variant_sequence, reference_context, expected = \
+        make_inputs_for_tp53_201_variant(
+            cdna_prefix="GATG",
+            n_bad_nucleotides_at_start=1)
+
+    result = match_variant_sequence_to_reference_context(
+        variant_sequence=variant_sequence,
+        reference_context=reference_context,
+        min_transcript_prefix_length=3,
+        max_transcript_mismatches=0,
+        max_attempts=2)
+    eq_(expected, result)
+
+def test_match_variant_sequence_to_reference_context_ignore_extra_prefix():
+    # There are three "extra" nucleotides at the start but since we are
+    # only using reference context size of 3 then this sequence will
+    # match.
+    variant_sequence, reference_context, expected = \
+        make_inputs_for_tp53_201_variant(
+            cdna_prefix="GGGATG",
+            n_bad_nucleotides_at_start=3,
+            reference_context_size=3)
+
+    result = match_variant_sequence_to_reference_context(
+        variant_sequence=variant_sequence,
+        reference_context=reference_context,
+        min_transcript_prefix_length=3,
+        max_transcript_mismatches=0,
+        max_attempts=1)
+    eq_(expected, result)
+    # make sure that the "GGG" codon got ignored since translation
+    # should start at the "ATG" after it
+    eq_(result.cdna_sequence[:3], "ATG")
+
+def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_1_attempt():
+    # matching should fail if no mismatches are allowed and no trimming rounds
+    # are allowed
+    variant_sequence, reference_context, _ = \
+        make_inputs_for_tp53_201_variant(
+            cdna_prefix="CTG",
+            n_bad_nucleotides_at_start=1)
+
+    result = match_variant_sequence_to_reference_context(
+        variant_sequence=variant_sequence,
+        reference_context=reference_context,
+        min_transcript_prefix_length=2,
+        max_transcript_mismatches=0,
+        max_attempts=1)
+    eq_(None, result)
+
+
+def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_2_attempts():
+    # match should succeed if 1 round of trimming is allowed
+    variant_sequence, reference_context, expected = \
+        make_inputs_for_tp53_201_variant(
+            cdna_prefix="CTG",
+            n_bad_nucleotides_at_start=1)
+    result = match_variant_sequence_to_reference_context(
+        variant_sequence=variant_sequence,
+        reference_context=reference_context,
+        min_transcript_prefix_length=2,
+        max_transcript_mismatches=0,
+        max_attempts=2)
+    eq_(expected, result)
+
+def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_allow_mismatch():
+    # match should succeed if 1 mismatch is allowed
+    variant_sequence, reference_context, expected = \
+        make_inputs_for_tp53_201_variant(
+            cdna_prefix="CTG",
+            n_bad_nucleotides_at_start=0,
+            mismatches=1)
+    result = match_variant_sequence_to_reference_context(
+        variant_sequence=variant_sequence,
+        reference_context=reference_context,
+        min_transcript_prefix_length=3,
+        max_transcript_mismatches=1,
+        max_attempts=1)
+    eq_(expected, result)

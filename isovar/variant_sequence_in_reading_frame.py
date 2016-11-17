@@ -22,6 +22,8 @@ from __future__ import print_function, division, absolute_import
 from collections import namedtuple
 import logging
 
+from six.moves import range
+
 from .dna import reverse_complement_dna
 
 logger = logging.getLogger(__name__)
@@ -239,15 +241,14 @@ def match_variant_sequence_to_reference_context(
 
     Returns VariantSequenceInReadingFrame or None
     """
-
     variant_sequence_in_reading_frame = None
-    attempt = 0
+
     # if we can't get the variant sequence to match this reference
     # context then keep trimming it by coverage until either
-    while variant_sequence_in_reading_frame is None and attempt < max_attempts:
-
+    for attempt in range(max_attempts):
         # check the reverse-complemented prefix if the reference context is
-        # on the negative strand
+        # on the negative strand since variant sequence is aligned to
+        # genomic DNA (positive strand)
         variant_sequence_too_short = (
             (reference_context.strand == "+" and
                 len(variant_sequence.prefix) < min_transcript_prefix_length) or
@@ -256,36 +257,47 @@ def match_variant_sequence_to_reference_context(
         )
         if variant_sequence_too_short:
             logger.info(
-                "Skipping variant sequence %s because too few nucleotides before variant (min %d)",
+                "Variant sequence %s shorter than min allowed %d (# attempts=%d)",
                 variant_sequence,
-                min_transcript_prefix_length)
-            break
+                min_transcript_prefix_length,
+                attempt + 1)
+            return None
 
         variant_sequence_in_reading_frame = \
             VariantSequenceInReadingFrame.from_variant_sequence_and_reference_context(
                 variant_sequence=variant_sequence,
                 reference_context=reference_context)
-        attempt += 1
 
         if variant_sequence_in_reading_frame is not None:
             n_mismatch_before_variant = (
                 variant_sequence_in_reading_frame.number_mismatches)
-
-            if n_mismatch_before_variant > max_transcript_mismatches:
+            logger.info("Attempt #%d/%d: %s" % (
+                attempt + 1, max_attempts, variant_sequence_in_reading_frame))
+            if n_mismatch_before_variant <= max_transcript_mismatches:
+                # if we got a variant sequence + reading frame with sufficiently
+                # few mismatches then call it a day
+                return variant_sequence_in_reading_frame
+            else:
                 logger.info(
                     ("Too many mismatches (%d) between variant sequence %s and "
-                     "reference context %s"),
+                     "reference context %s (attempt=%d/%d)"),
                     n_mismatch_before_variant,
                     variant_sequence,
-                    reference_context)
-
+                    reference_context,
+                    attempt + 1,
+                    max_attempts)
+                # abandon the VariantSequenceInReadingFrame we've gotten
+                # so far in favor of hopefully one with fewer mismatches
+                # after trimming
                 variant_sequence_in_reading_frame = None
 
                 # if portions of the sequence are supported by only 1 read
                 # then try trimming to 2 to see if the better supported
                 # subsequence can be better matched against the reference
                 current_min_coverage = variant_sequence.min_coverage()
+                logger.info(
+                    "Trimming to subsequence covered by at least %d reads",
+                    current_min_coverage + 1)
                 variant_sequence = variant_sequence.trim_by_coverage(
                     current_min_coverage + 1)
-
     return variant_sequence_in_reading_frame
