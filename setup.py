@@ -68,7 +68,7 @@ if __name__ == '__main__':
             'pysam >= 0.9.0',
             'pandas',
             'varcode>=0.5.9',
-            'pyensembl>=1.0.3'
+            'pyensembl>=1.0.3',
         ],
         long_description=readme,
         packages=find_packages(),

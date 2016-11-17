@@ -18,7 +18,7 @@ allele (ref, alt, or otherwise), and suffix portions
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple, defaultdict
+from collections import defaultdict
 import logging
 
 from .locus_reads import locus_read_generator
@@ -30,27 +30,23 @@ from .default_parameters import (
 from .variant_helpers import trim_variant
 from .dataframe_builder import DataFrameBuilder
 from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
-
+from .compact_object import CompactObject
 
 logger = logging.getLogger(__name__)
 
-# subclassing from namedtuple to get a lightweight object with built-in
-# hashing and comparison while also being able to add methods
-AlleleReadBase = namedtuple(
-    "AlleleRead",
-    "prefix allele suffix name sequence")
 
-class AlleleRead(AlleleReadBase):
-    def __new__(cls, prefix, allele, suffix, name):
-        return AlleleReadBase(
-            prefix=prefix,
-            allele=allele,
-            suffix=suffix,
-            name=name,
-            sequence=prefix + allele + suffix)
+class AlleleRead(CompactObject):
+    __slots__ = ["prefix", "allele", "suffix", "name", "sequence"]
+
+    def __init__(self, prefix, allele, suffix, name):
+        self.prefix = prefix
+        self.allele = allele
+        self.suffix = suffix
+        self.name = name
+        self.sequence = prefix + allele + suffix
 
     def __len__(self):
-        return len(self.prefix) + len(self.allele) + len(self.suffix)
+        return len(self.sequence)
 
     @classmethod
     def from_locus_read(cls, locus_read, n_ref):

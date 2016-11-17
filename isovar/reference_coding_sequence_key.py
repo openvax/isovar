@@ -14,92 +14,67 @@
 
 from __future__ import print_function, division, absolute_import
 import logging
-from collections import namedtuple
 
 from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 from .reference_sequence_key import ReferenceSequenceKey
 
 logger = logging.getLogger(__name__)
 
-class ReferenceCodingSequenceKey(
-        namedtuple(
-            "ReferenceCodingSequenceKey",
-            ReferenceSequenceKey._fields + (
-                # if the reference context includes the 5' UTR then
-                # this is the offset to the start codon, otherwise it's the
-                # offset needed to get the first base of a codon
-                "offset_to_first_complete_codon",
-                # does this context overlap a start codon?
-                "overlaps_start_codon",
-                # does this context contain the whole trinucleotide start codon?
-                "contains_start_codon",
-                # does this context contain any UTR bases?
-                "contains_five_prime_utr",
-                # translation of complete codons in the reference context
-                # before the variant
-                "amino_acids_before_variant"))):
-
+class ReferenceCodingSequenceKey(ReferenceSequenceKey):
     """
     ReferenceCodingSequenceKey includes all the fields of a ReferenceSequenceKey,
     and additionally tracks the reading frame and information about where the
     start codon and 5' UTR are relative to this sequence fragment.
     """
 
+    # additional fields on top of ReferenceSequenceKey
+    __slots__ = [
+        # if the reference context includes the 5' UTR then
+        # this is the offset to the start codon, otherwise it's the
+        # offset needed to get the first base of a codon
+        "offset_to_first_complete_codon",
+        # does this context overlap a start codon?
+        "overlaps_start_codon",
+        # does this context contain the whole trinucleotide start codon?
+        "contains_start_codon",
+        # does this context contain any UTR bases?
+        "contains_five_prime_utr",
+        # translation of complete codons in the reference context
+        # before the variant
+        "amino_acids_before_variant"
+    ]
+
+    def __init__(
+            self,
+            strand,
+            sequence_before_variant_locus,
+            sequence_at_variant_locus,
+            sequence_after_variant_locus,
+            offset_to_first_complete_codon,
+            contains_start_codon,
+            overlaps_start_codon,
+            contains_five_prime_utr,
+            amino_acids_before_variant):
+        ReferenceSequenceKey.__init__(
+            self,
+            strand=strand,
+            sequence_before_variant_locus=sequence_before_variant_locus,
+            sequence_at_variant_locus=sequence_at_variant_locus,
+            sequence_after_variant_locus=sequence_after_variant_locus)
+        self.offset_to_first_complete_codon = offset_to_first_complete_codon
+        self.overlaps_start_codon = overlaps_start_codon
+        self.contains_start_codon = contains_start_codon
+        self.contains_five_prime_utr = contains_five_prime_utr
+        self.amino_acids_before_variant = amino_acids_before_variant
+
     @classmethod
-    def from_variant_and_transcript(
-            cls,
-            variant,
-            transcript,
-            context_size):
+    def from_variant_and_transcript_and_sequence_key(
+            cls, variant, transcript, sequence_key):
         """
-        Extracts the reference sequence around a variant locus on a particular
-        transcript and determines the reading frame at the start of that
-        sequence context.
-
-        Parameters
-        ----------
-        variant : varcode.Variant
-
-        transcript : pyensembl.Transcript
-
-        context_size : int
-
-        Returns SequenceKeyWithReadingFrame object or None if Transcript lacks
-        coding sequence, protein sequence or annotated start/stop codons.
+        Assuming that the transcript has a coding sequence, take a
+        ReferenceSequenceKey (region of the transcript around the variant) and
+        return a ReferenceCodingSequenceKey (or None).
         """
-        if not transcript.contains_start_codon:
-            logger.info(
-                "Expected transcript %s for variant %s to have start codon",
-                transcript,
-                variant)
-            return None
-
-        if not transcript.contains_stop_codon:
-            logger.info(
-                "Expected transcript %s for variant %s to have stop codon",
-                transcript,
-                variant)
-            return None
-
-        if not transcript.protein_sequence:
-            logger.info(
-                "Expected transript %s for variant %s to have protein sequence",
-                transcript,
-                variant)
-            return None
-
-        sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
-            variant=variant,
-            transcript=transcript,
-            context_size=context_size)
-
-        if sequence_key is None:
-            logger.info(
-                "No sequence key for variant %s on transcript %s",
-                variant,
-                transcript)
-            return None
-
         # get the interbase range of offsets which capture all reference
         # bases modified by the variant
         variant_start_offset, variant_end_offset = \
@@ -117,7 +92,7 @@ class ReferenceCodingSequenceKey(
         if variant_start_offset < start_codon_idx + 3:
             logger.info(
                 "Skipping transcript %s for variant %s, must be after start codon",
-                transcript,
+                transcript.name,
                 variant)
             return None
 
@@ -158,6 +133,7 @@ class ReferenceCodingSequenceKey(
             amino_acids_before_variant = transcript.protein_sequence[
                 n_full_codons_before_variant - n_codons_in_prefix:
                 n_full_codons_before_variant]
+
         return cls(
             strand=sequence_key.strand,
             sequence_before_variant_locus=sequence_key.sequence_before_variant_locus,
@@ -168,6 +144,66 @@ class ReferenceCodingSequenceKey(
             overlaps_start_codon=overlaps_start_codon,
             contains_five_prime_utr=contains_five_prime_utr,
             amino_acids_before_variant=amino_acids_before_variant)
+
+    @classmethod
+    def from_variant_and_transcript(
+            cls,
+            variant,
+            transcript,
+            context_size):
+        """
+        Extracts the reference sequence around a variant locus on a particular
+        transcript and determines the reading frame at the start of that
+        sequence context.
+
+        Parameters
+        ----------
+        variant : varcode.Variant
+
+        transcript : pyensembl.Transcript
+
+        context_size : int
+
+        Returns SequenceKeyWithReadingFrame object or None if Transcript lacks
+        coding sequence, protein sequence or annotated start/stop codons.
+        """
+        if not transcript.contains_start_codon:
+            logger.info(
+                "Expected transcript %s for variant %s to have start codon",
+                transcript.name,
+                variant)
+            return None
+
+        if not transcript.contains_stop_codon:
+            logger.info(
+                "Expected transcript %s for variant %s to have stop codon",
+                transcript.name,
+                variant)
+            return None
+
+        if not transcript.protein_sequence:
+            logger.info(
+                "Expected transript %s for variant %s to have protein sequence",
+                transcript.name,
+                variant)
+            return None
+
+        sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
+            variant=variant,
+            transcript=transcript,
+            context_size=context_size)
+
+        if sequence_key is None:
+            logger.info(
+                "No sequence key for variant %s on transcript %s",
+                variant,
+                transcript.name)
+            return None
+
+        return cls.from_variant_and_transcript_and_sequence_key(
+            variant=variant,
+            transcript=transcript,
+            sequence_key=sequence_key)
 
 
 def reading_frame_to_offset(reading_frame_at_start_of_sequence):

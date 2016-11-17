@@ -28,7 +28,9 @@ import logging
 from .reference_context import reference_contexts_for_variant
 from .variant_sequences import reads_to_variant_sequences
 from .genetic_code import translate_cdna
-from .variant_sequence_in_reading_frame import VariantSequenceInReadingFrame
+from .variant_sequence_in_reading_frame import (
+    match_variant_sequence_to_reference_context,
+)
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -71,17 +73,30 @@ class Translation(object):
             variant_aa_interval_end,
             ends_with_stop_codon,
             frameshift,
-            variant_sequence,
+            untrimmed_variant_sequence,
             reference_context,
             variant_sequence_in_reading_frame):
+        # TODO: get rid of untrimmed_variant_sequence by making
+        # VariantSequenceInReadingFrame keep track of its inputs
         self.amino_acids = amino_acids
         self.variant_aa_interval_start = variant_aa_interval_start
         self.variant_aa_interval_end = variant_aa_interval_end
         self.ends_with_stop_codon = ends_with_stop_codon
         self.frameshift = frameshift
-        self.variant_sequence = variant_sequence
+        # this variant sequence might differ from the one
+        # in variant_sequence_in_reading_frame due to trimming
+        # required to match the reference
+        self.untrimmed_variant_sequence = untrimmed_variant_sequence
         self.reference_context = reference_context
         self.variant_sequence_in_reading_frame = variant_sequence_in_reading_frame
+
+    @property
+    def reads(self):
+        """
+        RNA reads which were used to construct the coding sequence
+        from which we translated these amino acids.
+        """
+        return self.untrimmed_variant_sequence.reads
 
     @property
     def reference_cdna_sequence_before_variant(self):
@@ -125,6 +140,7 @@ class Translation(object):
             cls,
             variant_sequence,
             reference_context,
+            min_transcript_prefix_length,
             max_transcript_mismatches,
             protein_sequence_length=None):
         """
@@ -137,6 +153,11 @@ class Translation(object):
 
         reference_context : ReferenceContext
 
+        min_transcript_prefix_length : int
+            Minimum number of nucleotides before the variant to test whether
+            our variant sequence can use the reading frame from a reference
+            transcript.
+
         max_transcript_mismatches : int
             Don't use the reading frame from a context where the cDNA variant
             sequences disagrees at more than this number of positions before the
@@ -145,27 +166,18 @@ class Translation(object):
         protein_sequence_length : int, optional
             Truncate protein to be at most this long
 
-        mitochondrial : bool
-            Is this a cDNA sequence from a mitochondrial transcript?
-
         Returns either a ProteinSequence object or None if the number of
-        mismatches between the RNA and reference transcript sequences exceeds the
+        mismatches between the RNA and reference transcript sequences exceeds
         given threshold.
         """
+        variant_sequence_in_reading_frame = match_variant_sequence_to_reference_context(
+            variant_sequence,
+            reference_context,
+            min_transcript_prefix_length=min_transcript_prefix_length,
+            max_transcript_mismatches=max_transcript_mismatches)
 
-        variant_sequence_in_reading_frame = \
-            VariantSequenceInReadingFrame.from_variant_sequence_and_reference_context(
-                variant_sequence=variant_sequence,
-                reference_context=reference_context)
-
-        n_mismatch_before_variant = variant_sequence_in_reading_frame.number_mismatches
-
-        if n_mismatch_before_variant > max_transcript_mismatches:
-            logger.info(
-                "Skipping reference context %s for %s, too many mismatching bases (%d)",
-                reference_context,
-                variant_sequence,
-                n_mismatch_before_variant)
+        if variant_sequence_in_reading_frame is None:
+            logger.info("Unable to determine reading frame for %s", variant_sequence)
             return None
 
         cdna_sequence = variant_sequence_in_reading_frame.cdna_sequence
@@ -195,10 +207,9 @@ class Translation(object):
         if protein_sequence_length and len(variant_amino_acids) > protein_sequence_length:
             if protein_sequence_length <= variant_aa_interval_start:
                 logger.warn(
-                    ("Truncating amino acid sequence %s from variant sequence %s "
+                    ("Truncating amino acid sequence %s "
                      "to only %d elements loses all variant residues"),
                     variant_amino_acids,
-                    variant_sequence,
                     protein_sequence_length)
                 return None
             # if the protein is too long then shorten it, which implies
@@ -214,10 +225,9 @@ class Translation(object):
             ends_with_stop_codon=ends_with_stop_codon,
             variant_aa_interval_start=variant_aa_interval_start,
             variant_aa_interval_end=variant_aa_interval_end,
-            variant_sequence=variant_sequence,
+            untrimmed_variant_sequence=variant_sequence,
             reference_context=reference_context,
             variant_sequence_in_reading_frame=variant_sequence_in_reading_frame)
-
 
 def find_mutant_amino_acid_interval(
         cdna_sequence,
@@ -312,10 +322,10 @@ def find_mutant_amino_acid_interval(
             variant_aa_interval_end = variant_aa_interval_start + n_alt_codons
     return variant_aa_interval_start, variant_aa_interval_end, frameshift
 
-
 def translation_generator(
         variant_sequences,
         reference_contexts,
+        min_transcript_prefix_length,
         max_transcript_mismatches,
         protein_sequence_length=None):
     """
@@ -332,10 +342,18 @@ def translation_generator(
     reference_contexts : list of ReferenceContext objects
         Reference sequence contexts from the same variant as the variant_sequences
 
+    min_transcript_prefix_length : int
+        Minimum number of nucleotides before the variant to test whether
+        our variant sequence can use the reading frame from a reference
+        transcript.
+
     max_transcript_mismatches : int
+        Maximum number of mismatches between coding sequence before variant
+        and reference transcript we're considering for determing the reading
+        frame.
 
     protein_sequence_length : int, optional
-        Truncate protein to be at most this long
+        Truncate protein to be at most this long.
 
     Yields a sequence of Translation objects.
     """
@@ -344,6 +362,7 @@ def translation_generator(
             translation = Translation.from_variant_sequence_and_reference_context(
                 variant_sequence=variant_sequence,
                 reference_context=reference_context,
+                min_transcript_prefix_length=min_transcript_prefix_length,
                 max_transcript_mismatches=max_transcript_mismatches,
                 protein_sequence_length=protein_sequence_length)
             if translation is not None:
@@ -386,12 +405,6 @@ def translate_variant_reads(
         len(variant_sequence.prefix)
         for variant_sequence in variant_sequences)
 
-    if context_size < min_transcript_prefix_length:
-        logger.info(
-            "Skipping variant %s, none of the cDNA sequences have sufficient context",
-            variant)
-        return []
-
     reference_contexts = reference_contexts_for_variant(
         variant,
         context_size=context_size,
@@ -400,6 +413,7 @@ def translate_variant_reads(
     return list(translation_generator(
         variant_sequences=variant_sequences,
         reference_contexts=reference_contexts,
+        min_transcript_prefix_length=min_transcript_prefix_length,
         max_transcript_mismatches=max_transcript_mismatches,
         protein_sequence_length=protein_sequence_length))
 

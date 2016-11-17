@@ -34,6 +34,7 @@ class DataFrameBuilder(object):
     def __init__(
             self,
             element_class,
+            field_names=None,
             exclude=set([]),
             converters={},
             rename_dict={},
@@ -44,8 +45,11 @@ class DataFrameBuilder(object):
         Parameters
         ----------
         element_class : type
-            Expected to a have a class-member named '_fields' which is a list
-            of field names.
+            Class of elements in this collection.
+
+        field_name : list, optional
+            If not given then we expect element_class to have a class member
+            named '_fields' which is a list of field names.
 
         exclude : set
             Field names from element_class which should be used as columns for
@@ -81,10 +85,15 @@ class DataFrameBuilder(object):
         self.variant_columns = variant_columns
         self.convert_collections_to_size = convert_collections_to_size
 
+        if field_names is None:
+            assert hasattr(element_class, "_fields"), (
+                "Expected %s to have member called `_fields`" % element_class)
+            field_names = element_class._fields
+
         # remove specified field names without changing the order of the others
         self.original_field_names = [
             x
-            for x in element_class._fields
+            for x in field_names
             if x not in exclude
         ]
 

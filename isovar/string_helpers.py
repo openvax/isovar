@@ -30,15 +30,15 @@ def trim_N_nucleotides(prefix, suffix):
         rightmost_index = prefix.rfind('N')
         logger.debug(
             "Trimming %d nucleotides from read prefix '%s'",
-                rightmost_index + 1, prefix)
+            rightmost_index + 1, prefix)
         prefix = prefix[rightmost_index + 1:]
 
     if 'N' in suffix:
         leftmost_index = suffix.find('N')
         logger.debug(
             "Trimming %d nucleotides from read suffix '%s'",
-                len(suffix) - leftmost_index,
-                suffix)
+            len(suffix) - leftmost_index,
+            suffix)
         suffix = suffix[:leftmost_index]
 
     return prefix, suffix

@@ -20,8 +20,13 @@ translations.
 
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple
+import logging
 
-from .common import reverse_complement_dna
+from six.moves import range, zip
+
+from .dna import reverse_complement_dna
+
+logger = logging.getLogger(__name__)
 
 class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", (
         # since the reference context and variant sequence may have
@@ -59,6 +64,15 @@ class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", 
         cdna_prefix, cdna_alt, cdna_suffix, reference_prefix, n_trimmed_from_reference = \
             trim_sequences(variant_sequence, reference_context)
 
+        logger.info(
+            ("cdna_predix='%s', cdna_alt='%s', cdna_suffix='%s', "
+             "reference_prefix='%s', n_trimmed=%d"),
+            cdna_prefix,
+            cdna_alt,
+            cdna_suffix,
+            reference_prefix,
+            n_trimmed_from_reference)
+
         n_mismatch_before_variant = count_mismatches(reference_prefix, cdna_prefix)
 
         ref_codon_offset = reference_context.offset_to_first_complete_codon
@@ -71,7 +85,7 @@ class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", 
             n_trimmed_from_reference_sequence=n_trimmed_from_reference)
 
         cdna_sequence = cdna_prefix + cdna_alt + cdna_suffix
-        variant_interval_start = len(cdna_prefix) + 1
+        variant_interval_start = len(cdna_prefix)
         variant_interval_end = variant_interval_start + len(cdna_alt)
 
         return VariantSequenceInReadingFrame(
@@ -201,3 +215,101 @@ def compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon)
         frame = n_nucleotides_trimmed_after_first_codon % 3
         return (3 - frame) % 3
+
+def match_variant_sequence_to_reference_context(
+        variant_sequence,
+        reference_context,
+        min_transcript_prefix_length,
+        max_transcript_mismatches,
+        max_trimming_attempts=2):
+    """
+    Iteratively trim low-coverage subsequences of a variant sequence
+    until it either matches the given reference context or there
+    are too few nucleotides left in the variant sequence.
+
+    Parameters
+    ----------
+    variant_sequence : VariantSequence
+        Assembled sequence from RNA reads, will need to be to be reverse
+        complemented if matching against a reference transcript on the
+        negative strand.
+
+    reference_context : ReferenceContext
+        Sequence of reference transcript before the variant and associated
+        metadata.
+
+    min_transcript_prefix_length : int
+        Minimum number of nucleotides we try to match against a reference
+        transcript.
+
+    max_transcript_mismatches : int
+        Maximum number of nucleotide differences between reference transcript
+        sequence and the variant sequence.
+
+    max_trimming_attempts : int
+        How many times do we try trimming the VariantSequence to higher
+        levels of coverage before giving up?
+
+    Returns VariantSequenceInReadingFrame or None
+    """
+    variant_sequence_in_reading_frame = None
+
+    # if we can't get the variant sequence to match this reference
+    # context then keep trimming it by coverage until either
+    for i in range(max_trimming_attempts + 1):
+        # check the reverse-complemented prefix if the reference context is
+        # on the negative strand since variant sequence is aligned to
+        # genomic DNA (positive strand)
+        variant_sequence_too_short = (
+            (reference_context.strand == "+" and
+                len(variant_sequence.prefix) < min_transcript_prefix_length) or
+            (reference_context.strand == "-" and
+                len(variant_sequence.suffix) < min_transcript_prefix_length)
+        )
+        if variant_sequence_too_short:
+            logger.info(
+                "Variant sequence %s shorter than min allowed %d (iter=%d)",
+                variant_sequence,
+                min_transcript_prefix_length,
+                i + 1)
+            return None
+
+        variant_sequence_in_reading_frame = \
+            VariantSequenceInReadingFrame.from_variant_sequence_and_reference_context(
+                variant_sequence=variant_sequence,
+                reference_context=reference_context)
+
+        if variant_sequence_in_reading_frame is None:
+            return None
+
+        n_mismatch_before_variant = (
+            variant_sequence_in_reading_frame.number_mismatches)
+
+        logger.info("Iter #%d/%d: %s" % (
+            i + 1,
+            max_trimming_attempts + 1,
+            variant_sequence_in_reading_frame))
+
+        if n_mismatch_before_variant <= max_transcript_mismatches:
+            # if we got a variant sequence + reading frame with sufficiently
+            # few mismatches then call it a day
+            return variant_sequence_in_reading_frame
+
+        logger.info(
+            ("Too many mismatches (%d) between variant sequence %s and "
+             "reference context %s (attempt=%d/%d)"),
+            n_mismatch_before_variant,
+            variant_sequence,
+            reference_context,
+            i + 1,
+            max_trimming_attempts + 1)
+        # if portions of the sequence are supported by only 1 read
+        # then try trimming to 2 to see if the better supported
+        # subsequence can be better matched against the reference
+        current_min_coverage = variant_sequence.min_coverage()
+        logger.info(
+            "Trimming to subsequence covered by at least %d reads",
+            current_min_coverage + 1)
+        variant_sequence = variant_sequence.trim_by_coverage(
+            current_min_coverage + 1)
+    return None

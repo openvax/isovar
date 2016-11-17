@@ -47,6 +47,3 @@ def test_group_unique_sequences():
     # there are some redundant reads, so we expect that the number of
     # unique entries should be less than the total read partitions
     assert len(variant_reads) > len(groups)
-
-if __name__ == "__main__":
-    test_group_unique_sequences()

@@ -22,7 +22,6 @@ from varcode import Variant
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
-from testing_helpers import assert_equal_fields
 
 def test_reading_frame_to_offset():
     eq_(reading_frame_to_offset(0), 0)
@@ -64,7 +63,7 @@ def test_sequence_key_with_reading_frame_substitution_with_five_prime_utr():
         overlaps_start_codon=True,
         contains_five_prime_utr=True,
         amino_acids_before_variant="M")
-    assert_equal_fields(result, expected)
+    eq_(result, expected)
 
 def test_sequence_key_with_reading_frame_deletion_with_five_prime_utr():
     # Delete second codon of TP53-001, the surrounding context
@@ -101,7 +100,7 @@ def test_sequence_key_with_reading_frame_deletion_with_five_prime_utr():
         overlaps_start_codon=True,
         contains_five_prime_utr=True,
         amino_acids_before_variant="M")
-    assert_equal_fields(result, expected)
+    eq_(result, expected)
 
 
 def test_sequence_key_with_reading_frame_insertion():
@@ -139,7 +138,7 @@ def test_sequence_key_with_reading_frame_insertion():
         overlaps_start_codon=True,
         contains_five_prime_utr=True,
         amino_acids_before_variant="ME")
-    assert_equal_fields(result, expected)
+    eq_(result, expected)
 
 def test_reference_coding_sequence_key_insertion_inside_start_codon():
     # insert nucleotide "C" in the middle of the start codon of TP53-001,
@@ -201,7 +200,7 @@ def test_sequence_key_with_reading_frame_insertion_context_6nt_contains_start():
         overlaps_start_codon=True,
         contains_five_prime_utr=False,
         amino_acids_before_variant="ME")
-    assert_equal_fields(result, expected)
+    eq_(result, expected)
 
 
 def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
@@ -237,7 +236,7 @@ def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
         overlaps_start_codon=True,
         contains_five_prime_utr=False,
         amino_acids_before_variant="E")
-    assert_equal_fields(result, expected)
+    eq_(result, expected)
 
 
 def test_sequence_key_with_reading_frame_insertion_context_3nt_no_start():
@@ -271,4 +270,94 @@ def test_sequence_key_with_reading_frame_insertion_context_3nt_no_start():
         overlaps_start_codon=False,
         contains_five_prime_utr=False,
         amino_acids_before_variant="E")
-    assert_equal_fields(result, expected)
+    eq_(result, expected)
+
+
+def test_reference_sequence_key_hash_and_equality_same_objects():
+    rcsk1 = ReferenceCodingSequenceKey(
+        strand="-",
+        sequence_before_variant_locus="GAG",
+        sequence_at_variant_locus="",
+        sequence_after_variant_locus="GAG",
+        offset_to_first_complete_codon=0,
+        contains_start_codon=False,
+        overlaps_start_codon=False,
+        contains_five_prime_utr=False,
+        amino_acids_before_variant="E")
+    rcsk2 = ReferenceCodingSequenceKey(
+        strand="-",
+        sequence_before_variant_locus="GAG",
+        sequence_at_variant_locus="",
+        sequence_after_variant_locus="GAG",
+        offset_to_first_complete_codon=0,
+        contains_start_codon=False,
+        overlaps_start_codon=False,
+        contains_five_prime_utr=False,
+        amino_acids_before_variant="E")
+
+    eq_(rcsk1, rcsk2)
+    eq_(str(rcsk1), str(rcsk2))
+    eq_(repr(rcsk1), repr(rcsk2))
+    eq_(hash(rcsk1), hash(rcsk2))
+
+def test_reference_sequence_key_hash_and_equality_different_objects():
+    rcsk1 = ReferenceCodingSequenceKey(
+        strand="-",
+        sequence_before_variant_locus="GAG",
+        sequence_at_variant_locus="",
+        sequence_after_variant_locus="GAG",
+        offset_to_first_complete_codon=0,
+        contains_start_codon=False,
+        overlaps_start_codon=False,
+        contains_five_prime_utr=False,
+        amino_acids_before_variant="E")
+    rcsk_different_strand = ReferenceCodingSequenceKey(
+        strand="+",
+        sequence_before_variant_locus="GAG",
+        sequence_at_variant_locus="",
+        sequence_after_variant_locus="GAG",
+        offset_to_first_complete_codon=0,
+        contains_start_codon=False,
+        overlaps_start_codon=False,
+        contains_five_prime_utr=False,
+        amino_acids_before_variant="E")
+
+    assert rcsk1 != rcsk_different_strand
+    assert str(rcsk1) != str(rcsk_different_strand)
+    assert repr(rcsk1) != repr(rcsk_different_strand)
+    assert hash(rcsk1) != hash(rcsk_different_strand)
+
+def test_reference_coding_sequence_key_around_TP53_201_variant():
+    # TP53-201 is an isoform of TP53 which seems to lack untranslated
+    # regions so the sequence is:
+    # First exon: chr17 7,676,594 - 7,676,521
+    # ATG|GAG|GAG|CCG|CAG|TCA|GAT...
+    # -M-|-E-|-E-|-P-|-Q-|-S-|-D-
+
+    # we're assuming a variant
+    # chr17. 7,676,591 C>T which changes GAG (E) > AAG (K)
+    variant = Variant("chr17", 7676591, "C", "T", "GRCh38")
+
+    # TP53-201
+    transcript = variant.ensembl.transcripts_by_name("TP53-201")[0]
+
+    effect = variant.effect_on_transcript(transcript)
+
+    eq_(effect.__class__.__name__, "Substitution")
+    eq_(effect.aa_ref, "E")
+    eq_(effect.aa_alt, "K")
+    expected = ReferenceCodingSequenceKey(
+        strand="-",
+        sequence_before_variant_locus="ATG",
+        sequence_at_variant_locus="G",
+        sequence_after_variant_locus="AGG",
+        offset_to_first_complete_codon=0,
+        contains_start_codon=True,
+        overlaps_start_codon=True,
+        contains_five_prime_utr=False,
+        amino_acids_before_variant="M")
+    reference_coding_sequence_key = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=variant,
+        transcript=transcript,
+        context_size=3)
+    eq_(expected, reference_coding_sequence_key)
