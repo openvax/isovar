@@ -76,6 +76,8 @@ class Translation(object):
             untrimmed_variant_sequence,
             reference_context,
             variant_sequence_in_reading_frame):
+        # TODO: get rid of untrimmed_variant_sequence by making
+        # VariantSequenceInReadingFrame keep track of its inputs
         self.amino_acids = amino_acids
         self.variant_aa_interval_start = variant_aa_interval_start
         self.variant_aa_interval_end = variant_aa_interval_end
@@ -168,7 +170,6 @@ class Translation(object):
         mismatches between the RNA and reference transcript sequences exceeds
         given threshold.
         """
-
         variant_sequence_in_reading_frame = match_variant_sequence_to_reference_context(
             variant_sequence,
             reference_context,
