@@ -221,7 +221,7 @@ def match_variant_sequence_to_reference_context(
         reference_context,
         min_transcript_prefix_length,
         max_transcript_mismatches,
-        max_attempts=5):
+        max_attempts=3):
     """
     Iteratively trim low-coverage subsequences of a variant sequence
     until it either matches the given reference context or there
