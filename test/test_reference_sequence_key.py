@@ -19,7 +19,6 @@ from varcode import Variant
 from pyensembl import ensembl_grch38
 from nose.tools import eq_
 
-
 def test_sequence_key_for_variant_on_transcript_substitution():
     # rs769125639 is a simple T>A substitution in the 6th nucleotide of
     # BRCA2-001's 5' UTR

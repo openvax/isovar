@@ -110,18 +110,31 @@ def make_inputs_for_tp53_201_variant(
     # variant sequence supported by two reads
     # one fully spanning the variant sequence
     # and another missing the last nucleotide
+    fully_overlapping_read = AlleleRead(
+        prefix=gdna_prefix,
+        allele=gdna_alt,
+        suffix=gdna_suffix,
+        name="full-overlap")
+    # testing the prefix and allele to make sure they have the expected
+    # TP53-201 sequence but the suffix might change depending on what's
+    # passed in as cdna_prefix
+    eq_(fully_overlapping_read.prefix, "ATCTGACTGCGGCTCCT")
+    eq_(fully_overlapping_read.allele, "T")
+
+    partially_overlapping_read = AlleleRead(
+        prefix=gdna_prefix,
+        allele=gdna_alt,
+        suffix=gdna_suffix[:-1],
+        name="partial-overlap")
+    eq_(partially_overlapping_read.prefix, "ATCTGACTGCGGCTCCT")
+    eq_(partially_overlapping_read.allele, "T")
+
     variant_sequence = VariantSequence(
         prefix=gdna_prefix,
         alt=gdna_alt,
         suffix=gdna_suffix,
-        reads=[
-            AlleleRead(
-                prefix=gdna_prefix, allele=gdna_alt, suffix=gdna_suffix,
-                name="full-overlap"),
-            AlleleRead(
-                prefix=gdna_prefix, allele=gdna_alt, suffix=gdna_suffix[:-1],
-                name="partial-overlap"),
-        ])
+        reads=[fully_overlapping_read, partially_overlapping_read])
+
     assert isinstance(variant_sequence, VariantSequence)
 
     prefix_length = len(cdna_prefix) - n_bad_nucleotides_at_start
