@@ -221,7 +221,7 @@ def match_variant_sequence_to_reference_context(
         reference_context,
         min_transcript_prefix_length,
         max_transcript_mismatches,
-        max_attempts=3):
+        max_trimming_attempts=2):
     """
     Iteratively trim low-coverage subsequences of a variant sequence
     until it either matches the given reference context or there
@@ -230,14 +230,25 @@ def match_variant_sequence_to_reference_context(
     Parameters
     ----------
     variant_sequence : VariantSequence
+        Assembled sequence from RNA reads, will need to be to be reverse
+        complemented if matching against a reference transcript on the
+        negative strand.
 
     reference_context : ReferenceContext
+        Sequence of reference transcript before the variant and associated
+        metadata.
 
     min_transcript_prefix_length : int
+        Minimum number of nucleotides we try to match against a reference
+        transcript.
 
     max_transcript_mismatches : int
+        Maximum number of nucleotide differences between reference transcript
+        sequence and the variant sequence.
 
-    max_attempts : int
+    max_trimming_attempts : int
+        How many times do we try trimming the VariantSequence to higher
+        levels of coverage before giving up?
 
     Returns VariantSequenceInReadingFrame or None
     """
@@ -245,7 +256,7 @@ def match_variant_sequence_to_reference_context(
 
     # if we can't get the variant sequence to match this reference
     # context then keep trimming it by coverage until either
-    for attempt in range(max_attempts):
+    for i in range(max_trimming_attempts + 1):
         # check the reverse-complemented prefix if the reference context is
         # on the negative strand since variant sequence is aligned to
         # genomic DNA (positive strand)
@@ -257,10 +268,10 @@ def match_variant_sequence_to_reference_context(
         )
         if variant_sequence_too_short:
             logger.info(
-                "Variant sequence %s shorter than min allowed %d (# attempts=%d)",
+                "Variant sequence %s shorter than min allowed %d (iter=%d)",
                 variant_sequence,
                 min_transcript_prefix_length,
-                attempt + 1)
+                i + 1)
             return None
 
         variant_sequence_in_reading_frame = \
@@ -273,33 +284,32 @@ def match_variant_sequence_to_reference_context(
 
         n_mismatch_before_variant = (
             variant_sequence_in_reading_frame.number_mismatches)
-        logger.info("Attempt #%d/%d: %s" % (
-            attempt + 1, max_attempts, variant_sequence_in_reading_frame))
+
+        logger.info("Iter #%d/%d: %s" % (
+            i + 1,
+            max_trimming_attempts + 1,
+            variant_sequence_in_reading_frame))
+
         if n_mismatch_before_variant <= max_transcript_mismatches:
             # if we got a variant sequence + reading frame with sufficiently
             # few mismatches then call it a day
             return variant_sequence_in_reading_frame
-        else:
-            logger.info(
-                ("Too many mismatches (%d) between variant sequence %s and "
-                 "reference context %s (attempt=%d/%d)"),
-                n_mismatch_before_variant,
-                variant_sequence,
-                reference_context,
-                attempt + 1,
-                max_attempts)
-            # abandon the VariantSequenceInReadingFrame we've gotten
-            # so far in favor of hopefully one with fewer mismatches
-            # after trimming
-            variant_sequence_in_reading_frame = None
 
-            # if portions of the sequence are supported by only 1 read
-            # then try trimming to 2 to see if the better supported
-            # subsequence can be better matched against the reference
-            current_min_coverage = variant_sequence.min_coverage()
-            logger.info(
-                "Trimming to subsequence covered by at least %d reads",
-                current_min_coverage + 1)
-            variant_sequence = variant_sequence.trim_by_coverage(
-                current_min_coverage + 1)
-    return variant_sequence_in_reading_frame
+        logger.info(
+            ("Too many mismatches (%d) between variant sequence %s and "
+             "reference context %s (attempt=%d/%d)"),
+            n_mismatch_before_variant,
+            variant_sequence,
+            reference_context,
+            i + 1,
+            max_trimming_attempts + 1)
+        # if portions of the sequence are supported by only 1 read
+        # then try trimming to 2 to see if the better supported
+        # subsequence can be better matched against the reference
+        current_min_coverage = variant_sequence.min_coverage()
+        logger.info(
+            "Trimming to subsequence covered by at least %d reads",
+            current_min_coverage + 1)
+        variant_sequence = variant_sequence.trim_by_coverage(
+            current_min_coverage + 1)
+    return None

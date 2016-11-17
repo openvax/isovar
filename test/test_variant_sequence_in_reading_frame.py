@@ -134,7 +134,6 @@ def make_inputs_for_tp53_201_variant(
         alt=gdna_alt,
         suffix=gdna_suffix,
         reads=[fully_overlapping_read, partially_overlapping_read])
-
     assert isinstance(variant_sequence, VariantSequence)
 
     prefix_length = len(cdna_prefix) - n_bad_nucleotides_at_start
@@ -209,7 +208,7 @@ def test_match_variant_sequence_to_reference_context_trim_1_bad_nucleotide():
         reference_context=reference_context,
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0,
-        max_attempts=2)
+        max_trimming_attempts=1)
     eq_(expected, result)
 
 def test_match_variant_sequence_to_reference_context_ignore_extra_prefix():
@@ -227,13 +226,13 @@ def test_match_variant_sequence_to_reference_context_ignore_extra_prefix():
         reference_context=reference_context,
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0,
-        max_attempts=1)
+        max_trimming_attempts=0)
     eq_(expected, result)
     # make sure that the "GGG" codon got ignored since translation
     # should start at the "ATG" after it
     eq_(result.cdna_sequence[:3], "ATG")
 
-def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_1_attempt():
+def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_no_trimming():
     # matching should fail if no mismatches are allowed and no trimming rounds
     # are allowed
     variant_sequence, reference_context, _ = \
@@ -246,11 +245,11 @@ def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_1_atte
         reference_context=reference_context,
         min_transcript_prefix_length=2,
         max_transcript_mismatches=0,
-        max_attempts=1)
+        max_trimming_attempts=0)
     eq_(None, result)
 
 
-def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_2_attempts():
+def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_trimming():
     # match should succeed if 1 round of trimming is allowed
     variant_sequence, reference_context, expected = \
         make_inputs_for_tp53_201_variant(
@@ -261,7 +260,7 @@ def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_2_atte
         reference_context=reference_context,
         min_transcript_prefix_length=2,
         max_transcript_mismatches=0,
-        max_attempts=2)
+        max_trimming_attempts=1)
     eq_(expected, result)
 
 def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_allow_mismatch():
@@ -276,5 +275,5 @@ def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_allow_
         reference_context=reference_context,
         min_transcript_prefix_length=3,
         max_transcript_mismatches=1,
-        max_attempts=1)
+        max_trimming_attempts=0)
     eq_(expected, result)
