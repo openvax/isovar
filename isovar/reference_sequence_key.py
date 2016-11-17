@@ -129,14 +129,6 @@ class ReferenceSequenceKey(CompactObject):
             sequence_at_variant_locus=reference_cdna_at_variant,
             sequence_after_variant_locus=reference_cdna_after_variant)
 
-    def __str__(self):
-        return (
-            "ReferenceSequenceKey("
-            "strand='%s', "
-            "sequence_before_variant_locus='%s', "
-            "sequence_at_variant_locus='%s', "
-            "sequence_after_variant_locus='%s')") % self._values()
-
     @property
     def base0_variant_start_offset(self):
         return len(self.sequence_before_variant_locus)

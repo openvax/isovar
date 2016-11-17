@@ -90,14 +90,6 @@ class DataFrameBuilder(object):
                 "Expected %s to have member called `_fields`" % element_class)
             field_names = element_class._fields
 
-        if hasattr(field_names, "__call__"):
-            # we expect field names to either be a list or a
-            # method that when called returns a list. This is to
-            # accomodate the difference between namedtuples, which
-            # have a class property _fields and objects which
-            # have classmethods instead.
-            field_names = field_names()
-
         # remove specified field names without changing the order of the others
         self.original_field_names = [
             x

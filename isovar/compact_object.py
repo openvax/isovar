@@ -14,7 +14,30 @@
 
 from __future__ import print_function, division, absolute_import
 from itertools import chain
+from six import add_metaclass, string_types
+from six.moves import zip
 
+class MetaclassCollectSlots(type):
+    """
+    Metaclass which concatenates all __slots__ fields
+    from the inheritance hierarchy into a single class member
+    called _fields (which is also how namedtuple objects expose their
+    field names).
+    """
+    def __init__(self, name, bases, dictionary):
+        """
+        Get all field names of this class by traversing
+        its inheritance hierarchy in reverse order and
+        concatenating the names in __slots__.
+        """
+        type.__init__(self, name, bases, dictionary)
+        inherited_class_order = reversed(self.__mro__)
+        self._fields = tuple(
+            chain.from_iterable(
+                getattr(cls, '__slots__', [])
+                for cls in inherited_class_order))
+
+@add_metaclass(MetaclassCollectSlots)
 class CompactObject(object):
     """
     Base class for objects which define their fields
@@ -23,34 +46,31 @@ class CompactObject(object):
     """
     __slots__ = []
 
-    def _values(self):
-        return tuple(
-            getattr(self, name)
-            for name in self._fields())
+    def _values_generator(self):
+        return (getattr(self, name) for name in self._fields)
 
-    @classmethod
-    def _fields(cls):
-        """
-        Get all field names of this object by traversing
-        its inheritance hierarchy in reverse order and
-        concatenating the names in __slots__.
-        """
-        inherited_class_order = reversed(cls.__mro__)
-        return tuple(
-            chain.from_iterable(
-                getattr(cls, '__slots__', [])
-                for cls in inherited_class_order))
+    @property
+    def _values(self):
+        return tuple(self._values_generator())
 
     def __str__(self):
-        raise NotImplementedError("__str__ must be implemented")
+        field_strings = []
+        for name, value in zip(self._fields, self._values):
+            format_string = (
+                "%s='%s'" if isinstance(value, string_types) else "%s=%s")
+            field_strings.append(format_string % (name, value))
+        return "%s(%s)" % (
+            self.__class__.__name__,
+            ", ".join(field_strings))
 
     def __repr__(self):
         return str(self)
 
     def __hash__(self):
-        return hash(self._values())
+        return hash(self._values)
 
     def __eq__(self, other):
-        return (
-            self.__class__ is other.__class__ and
-            self._values() == other._values())
+        return self.__class__ is other.__class__ and all(
+            value_self == value_other
+            for (value_self, value_other) in
+            zip(self._values_generator(), other._values_generator()))

@@ -67,19 +67,6 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
         self.contains_five_prime_utr = contains_five_prime_utr
         self.amino_acids_before_variant = amino_acids_before_variant
 
-    def __str__(self):
-        return (
-            "ReferenceCodingSequenceKey("
-            "strand='%s', "
-            "sequence_before_variant_locus='%s', "
-            "sequence_at_variant_locus='%s', "
-            "sequence_after_variant_locus='%s', "
-            "offset_to_first_complete_codon=%d, "
-            "contains_start_codon=%s, "
-            "overlaps_start_codon=%s, "
-            "contains_five_prime_utr=%s, "
-            "amino_acids_before_variant=%s)") % self._values()
-
     @classmethod
     def from_variant_and_transcript_and_sequence_key(
             cls, variant, transcript, sequence_key):
@@ -183,21 +170,21 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
         if not transcript.contains_start_codon:
             logger.info(
                 "Expected transcript %s for variant %s to have start codon",
-                transcript,
+                transcript.name,
                 variant)
             return None
 
         if not transcript.contains_stop_codon:
             logger.info(
                 "Expected transcript %s for variant %s to have stop codon",
-                transcript,
+                transcript.name,
                 variant)
             return None
 
         if not transcript.protein_sequence:
             logger.info(
                 "Expected transript %s for variant %s to have protein sequence",
-                transcript,
+                transcript.name,
                 variant)
             return None
 
@@ -210,7 +197,7 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
             logger.info(
                 "No sequence key for variant %s on transcript %s",
                 variant,
-                transcript)
+                transcript.name)
             return None
 
         return cls.from_variant_and_transcript_and_sequence_key(
