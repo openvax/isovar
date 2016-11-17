@@ -26,7 +26,6 @@ class ReferenceSequenceKey(CompactObject):
     Used to identify and group the distinct sequences occurring on a set of
     transcripts overlapping a variant locus.
     """
-
     __slots__ = [
         "strand",
         "sequence_before_variant_locus",

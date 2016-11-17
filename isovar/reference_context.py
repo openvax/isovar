@@ -35,7 +35,6 @@ logger = logging.getLogger(__name__)
 ##########################
 
 class ReferenceContext(ReferenceCodingSequenceKey):
-
     # additional fields on top of slots for ReferenceCodingSequenceKey
     __slots__ = ["variant", "transcripts"]
 
@@ -53,7 +52,7 @@ class ReferenceContext(ReferenceCodingSequenceKey):
             variant,
             transcripts):
         ReferenceCodingSequenceKey.__init__(
-            self=self,
+            self,
             strand=strand,
             sequence_before_variant_locus=sequence_before_variant_locus,
             sequence_at_variant_locus=sequence_at_variant_locus,

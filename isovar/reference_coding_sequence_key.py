@@ -56,7 +56,7 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
             contains_five_prime_utr,
             amino_acids_before_variant):
         ReferenceSequenceKey.__init__(
-            self=self,
+            self,
             strand=strand,
             sequence_before_variant_locus=sequence_before_variant_locus,
             sequence_at_variant_locus=sequence_at_variant_locus,

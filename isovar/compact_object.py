@@ -24,13 +24,13 @@ class MetaclassCollectSlots(type):
     called _fields (which is also how namedtuple objects expose their
     field names).
     """
-    def __init__(self, name, bases, dictionary):
+    def __init__(self, *args, **kwargs):
         """
         Get all field names of this class by traversing
         its inheritance hierarchy in reverse order and
         concatenating the names in __slots__.
         """
-        type.__init__(self, name, bases, dictionary)
+        super(MetaclassCollectSlots, self).__init__(*args, **kwargs)
         inherited_class_order = reversed(self.__mro__)
         self._fields = tuple(
             chain.from_iterable(
