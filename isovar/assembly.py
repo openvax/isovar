@@ -19,7 +19,7 @@ import logging
 # I'd rather just use list.copy but Python 2.7 doesn't support it
 from copy import copy
 
-from .default_parameters import MIN_VARIANT_CDNA_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
+from .default_parameters import MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ def sort_by_decreasing_total_length(seq):
 
 def greedy_merge(
         variant_sequences,
-        min_overlap_size=MIN_VARIANT_CDNA_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
+        min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
     """
     Greedily merge overlapping sequences into longer sequences.
 
@@ -154,7 +154,7 @@ def sort_by_decreasing_read_count_and_sequence_lenth(variant_sequence):
 
 def iterative_overlap_assembly(
         variant_sequences,
-        min_overlap_size=MIN_VARIANT_CDNA_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+        min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
         n_merge_iters=2):
     """
     Assembles longer sequences from reads centered on a variant by alternating

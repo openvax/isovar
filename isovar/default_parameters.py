@@ -49,15 +49,19 @@ USE_DUPLICATE_READS = False
 USE_SECONDARY_ALIGNMENTS = True
 
 # number of nucleotides to extract from RNAseq reads around each variant
-VARIANT_CDNA_SEQUENCE_LENGTH = 90
+VARIANT_SEQUENCE_LENGTH = 90
 
 # number of nucleotides to the left and right of a variant to extract,
 # usually gets adjusted for variant length but some functions take this
 # parameter directly
-CDNA_CONTEXT_SIZE = VARIANT_CDNA_SEQUENCE_LENGTH // 2
+CDNA_CONTEXT_SIZE = VARIANT_SEQUENCE_LENGTH // 2
 
-# only consider variant cDNA sequences with at least this many reads
-MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE = 2
+# minimum number of total RNA reads supporting a variant allele
+MIN_ALT_RNA_READS = 2
+
+# minimum number of reads supporting each nucleotide of a
+# variant coding sequence
+MIN_VARIANT_SEQUENCE_COVERAGE = 2
 
 # number of nucleotides shared between reference and variant sequence
 # before variant for reference contexts used to establish ORF
@@ -76,10 +80,10 @@ MAX_PROTEIN_SEQUENCES_PER_VARIANT = 1
 # run overlap assembly algorithm to construct variant
 # sequences from multiple reads which only partially
 # overlap (rather than fully spanning a coding sequence)
-VARIANT_CDNA_SEQUENCE_ASSEMBLY = False
+VARIANT_SEQUENCE_ASSEMBLY = False
 
 # Only merge variant cDNA sequences which at least share
 # this number of nucleotides. Should be sufficiently high
 # to minimize false assembly of isoforms which don't
 # actually exist.
-MIN_VARIANT_CDNA_SEQUENCE_ASSEMBLY_OVERLAP_SIZE = 30
+MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE = 30

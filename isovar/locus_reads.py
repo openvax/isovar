@@ -107,6 +107,7 @@ class LocusRead(namedtuple("LocusRead", [
         mapping_quality = read.mapping_quality
 
         missing_mapping_quality = mapping_quality is None
+
         if min_mapping_quality > 0 and missing_mapping_quality:
             logger.debug("Skipping read '%s' due to missing MAPQ", name)
             return None
