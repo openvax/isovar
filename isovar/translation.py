@@ -35,8 +35,9 @@ from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     PROTEIN_SEQUENCE_LENGTH,
-    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-    VARIANT_CDNA_SEQUENCE_ASSEMBLY,
+    MIN_ALT_RNA_READS,
+    MIN_VARIANT_SEQUENCE_COVERAGE,
+    VARIANT_SEQUENCE_ASSEMBLY,
 )
 from .dataframe_builder import dataframe_from_generator
 
@@ -373,10 +374,53 @@ def translate_variant_reads(
         variant_reads,
         protein_sequence_length,
         transcript_id_whitelist=None,
-        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+        min_alt_rna_reads=MIN_ALT_RNA_READS,
+        min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        variant_cdna_sequence_assembly=VARIANT_CDNA_SEQUENCE_ASSEMBLY):
+        variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
+    """
+    Given a variant and its associated alt reads, construct variant sequences
+    and translate them into Translation objects.
+
+    Returns 0 or more Translation objects.
+
+    Parameters
+    ----------
+    variant : varcode.Variant
+
+    variant_reads : sequence or generator
+        AlleleRead objects supporting the variant
+
+    protein_sequence_length : int
+        Try to translate protein sequences of this length, though sometimes
+        we'll have to return something shorter (depending on the RNAseq data,
+        and presence of stop codons).
+
+    transcript_id_whitelist : set, optional
+        If given, expected to be a set of transcript IDs which we should use
+        for determining the reading frame around a variant. If omitted, then
+        try to use all overlapping reference transcripts.
+
+    min_alt_rna_reads : int
+        Drop variant sequences from loci with fewer than this number of
+        RNA reads supporting the alt allele.
+
+    min_reads_supporting_cdna_sequence : int
+        Trim variant sequences to nucleotides covered by at least this many
+        reads.
+
+    min_transcript_prefix_length : int
+        Minimum number of bases we need to try matching between the reference
+        context and variant sequence.
+
+    max_transcript_mismatches : int
+        Don't try to determine the reading frame for a transcript if more
+        than this number of bases differ.
+
+    variant_sequence_assembly : bool
+        Use overlap assembly to construct longer variant cDNA sequences.
+    """
     if len(variant_reads) == 0:
         logger.info("No supporting reads for variant %s", variant)
         return []
@@ -389,8 +433,9 @@ def translate_variant_reads(
         variant=variant,
         reads=variant_reads,
         preferred_sequence_length=cdna_sequence_length,
-        min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
-        variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)
+        min_alt_rna_reads=min_alt_rna_reads,
+        min_variant_sequence_coverage=min_variant_sequence_coverage,
+        variant_sequence_assembly=variant_sequence_assembly)
 
     if not variant_sequences:
         logger.info("No spanning cDNA sequences for variant %s", variant)
@@ -421,10 +466,11 @@ def translate_variants(
         variants_with_supporting_reads,
         transcript_id_whitelist=None,
         protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
-        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+        min_alt_rna_reads=MIN_ALT_RNA_READS,
+        min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        variant_cdna_sequence_assembly=VARIANT_CDNA_SEQUENCE_ASSEMBLY):
+        variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
     """
     Translates each coding variant in a collection to one or more protein
     fragment sequences (if the variant is not filtered and its spanning RNA
@@ -446,8 +492,13 @@ def translate_variants(
         we'll have to return something shorter (depending on the RNAseq data,
         and presence of stop codons).
 
+    min_alt_rna_reads : int
+        Drop variant sequences from loci with fewer than this number of
+        RNA reads supporting the alt allele.
+
     min_reads_supporting_cdna_sequence : int
-        Drop variant sequences supported by fewer than this number of reads.
+        Trim variant sequences to nucleotides covered by at least this many
+        reads.
 
     min_transcript_prefix_length : int
         Minimum number of bases we need to try matching between the reference
@@ -456,6 +507,9 @@ def translate_variants(
     max_transcript_mismatches : int
         Don't try to determine the reading frame for a transcript if more
         than this number of bases differ.
+
+    variant_sequence_assembly : bool
+        Use overlap assembly to construct longer variant cDNA sequences.
 
     Yields pairs of a Variant and a sequence of all its candidate
     Translation objects.
@@ -466,10 +520,11 @@ def translate_variants(
             variant_reads=variant_reads,
             protein_sequence_length=protein_sequence_length,
             transcript_id_whitelist=transcript_id_whitelist,
-            min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
+            min_alt_rna_reads=min_alt_rna_reads,
+            min_variant_sequence_coverage=min_variant_sequence_coverage,
             min_transcript_prefix_length=min_transcript_prefix_length,
             max_transcript_mismatches=max_transcript_mismatches,
-            variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)
+            variant_sequence_assembly=variant_sequence_assembly)
         yield variant, translations
 
 def translations_generator_to_dataframe(translations_generator):

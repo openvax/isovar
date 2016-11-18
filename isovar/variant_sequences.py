@@ -24,9 +24,10 @@ from .read_helpers import (
 )
 from .variant_reads import filter_non_alt_reads_for_variant
 from .default_parameters import (
-    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-    VARIANT_CDNA_SEQUENCE_LENGTH,
-    VARIANT_CDNA_SEQUENCE_ASSEMBLY,
+    MIN_ALT_RNA_READS,
+    MIN_VARIANT_SEQUENCE_COVERAGE,
+    VARIANT_SEQUENCE_LENGTH,
+    VARIANT_SEQUENCE_ASSEMBLY,
 )
 from .dataframe_builder import dataframe_from_generator
 from .assembly import iterative_overlap_assembly, collapse_substrings
@@ -298,14 +299,14 @@ def filter_variant_sequences_by_length(
             min_required_sequence_length)
     return variant_sequences
 
-def trim_variant_sequences(variant_sequences, min_reads_supporting_cdna_sequence):
+def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
     """
     Trim VariantSequences to desired coverage and then combine any
     subsequences which get generated.
     """
     n_total = len(variant_sequences)
     trimmed_variant_sequences = [
-        variant_sequence.trim_by_coverage(min_reads_supporting_cdna_sequence)
+        variant_sequence.trim_by_coverage(min_variant_sequence_coverage)
         for variant_sequence in variant_sequences
     ]
     collapsed_variant_sequences = collapse_substrings(trimmed_variant_sequences)
@@ -314,19 +315,19 @@ def trim_variant_sequences(variant_sequences, min_reads_supporting_cdna_sequence
         "Kept %d/%d variant sequences after read coverage trimming to >=%dx",
         n_after_trimming,
         n_total,
-        min_reads_supporting_cdna_sequence)
+        min_variant_sequence_coverage)
     return collapsed_variant_sequences
 
 def filter_variant_sequences(
         variant_sequences,
         preferred_sequence_length,
-        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE):
+        min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,):
     """
     Drop variant sequences which are shorter than request or don't have
     enough supporting reads.
     """
     variant_sequences = trim_variant_sequences(
-        variant_sequences, min_reads_supporting_cdna_sequence)
+        variant_sequences, min_variant_sequence_coverage)
     return filter_variant_sequences_by_length(
         variant_sequences=variant_sequences,
         preferred_sequence_length=preferred_sequence_length)
@@ -335,8 +336,9 @@ def reads_to_variant_sequences(
         variant,
         reads,
         preferred_sequence_length,
-        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-        variant_cdna_sequence_assembly=VARIANT_CDNA_SEQUENCE_ASSEMBLY):
+        min_alt_rna_reads=MIN_ALT_RNA_READS,
+        min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
+        variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
     """
     Collapse variant-supporting RNA reads into consensus sequences of
     approximately the preferred length (may differ at the ends of transcripts),
@@ -353,14 +355,15 @@ def reads_to_variant_sequences(
         Total number of nucleotides in the assembled sequences, including
         variant nucleotides.
 
-    min_sequence_length : int, optional
-        Drop sequences shorter than this.
+    min_alt_rna_reads : int
+        Drop sequences from loci which lack at least this number of reads
+        that agree with the variant allele.
 
-    min_reads_per_sequence : int, optional
-        Drop sequences which don't at least have this number of fully spanning
-        reads.
+    min_variant_sequence_coverage : int
+        Drop sequences which don't at least have this number of reads
+        covering each cDNA position.
 
-    reads_to_variant_sequences : bool
+    variant_sequence_assembly : bool
         Construct variant sequences by merging overlapping reads. If False
         then variant sequences must be fully spanned by cDNA reads.
 
@@ -377,6 +380,12 @@ def reads_to_variant_sequences(
     # the number of context nucleotides on either side of the variant
     # is half the desired length (minus the number of variant nucleotides)
     n_alt = len(alt_seq)
+    if n_alt < min_alt_rna_reads:
+        logger.info(
+            "Skipping %s because only %d alt RNA reads (min=%d)",
+            variant,
+            n_alt,
+            min_alt_rna_reads)
     n_surrounding_nucleotides = preferred_sequence_length - n_alt
     max_nucleotides_after_variant = n_surrounding_nucleotides // 2
 
@@ -397,7 +406,7 @@ def reads_to_variant_sequences(
         min(len(s) for s in variant_sequences),
         max(len(s) for s in variant_sequences))
 
-    if variant_cdna_sequence_assembly:
+    if variant_sequence_assembly:
         variant_sequences = iterative_overlap_assembly(variant_sequences)
 
     if variant_sequences:
@@ -413,7 +422,7 @@ def reads_to_variant_sequences(
     variant_sequences = filter_variant_sequences(
         variant_sequences=variant_sequences,
         preferred_sequence_length=preferred_sequence_length,
-        min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence)
+        min_variant_sequence_coverage=min_variant_sequence_coverage)
 
     if variant_sequences:
         logger.info(
@@ -433,9 +442,10 @@ def reads_to_variant_sequences(
 
 def reads_generator_to_sequences_generator(
         variant_and_reads_generator,
-        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-        preferred_sequence_length=VARIANT_CDNA_SEQUENCE_LENGTH,
-        variant_cdna_sequence_assembly=VARIANT_CDNA_SEQUENCE_ASSEMBLY):
+        min_alt_rna_reads=MIN_ALT_RNA_READS,
+        min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
+        preferred_sequence_length=VARIANT_SEQUENCE_LENGTH,
+        variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
     """
     For each variant, collect all possible sequence contexts around the
     variant which are spanned by at least min_reads.
@@ -446,13 +456,17 @@ def reads_generator_to_sequences_generator(
         Sequence of Variant objects paired with a list of reads which
         overlap that variant.
 
-    min_reads : int
-        Minimum number of reads supporting variant sequence
+    min_alt_rna_reads : int
+        Minimum number of RNA reads supporting variant allele
+
+    min_variant_sequence_coverage : int
+        Minimum number of RNA reads supporting each nucleotide of the
+        variant cDNA sequence
 
     sequence_length : int
         Desired sequence length, including variant nucleotides
 
-    variant_cdna_sequence_assembly : bool
+    variant_sequence_assembly : bool
         Construct variant sequences by merging overlapping reads. If False
         then variant sequences must be fully spanned by cDNA reads.
 
@@ -464,9 +478,10 @@ def reads_generator_to_sequences_generator(
         variant_sequences = reads_to_variant_sequences(
             variant=variant,
             reads=variant_reads,
-            min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
+            min_alt_rna_reads=min_alt_rna_reads,
+            min_variant_sequence_coverage=min_variant_sequence_coverage,
             preferred_sequence_length=preferred_sequence_length,
-            variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)
+            variant_sequence_assembly=variant_sequence_assembly)
         yield variant, variant_sequences
 
 def variant_sequences_generator_to_dataframe(variant_sequences_generator):
