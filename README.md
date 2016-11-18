@@ -22,11 +22,8 @@ $ isovar-protein-sequences.py  \
   frameshift  translations_count  supporting_variant_reads_count  \
 0      False                   1                               1
 
-   total_variant_reads  supporting_transcripts_count  total_transcripts  \
-0                  130                             2                  2
-
-     gene
-0  CELSR1
+   total_variant_reads  supporting_transcripts_count  total_transcripts     gene
+0                  130                             2                  2   CELSR1
 ```
 
 ## Algorithm/Design
