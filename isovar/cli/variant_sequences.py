@@ -91,7 +91,7 @@ def variant_sequences_generator_from_args(args):
         min_alt_rna_reads=args.min_alt_rna_reads,
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,
         preferred_sequence_length=args.cdna_sequence_length,
-        variant_cdna_sequence_assembly=not args.disable_variant_sequence_assembly)
+        variant_sequence_assembly=not args.disable_variant_sequence_assembly)
 
 def variant_sequences_dataframe_from_args(args):
     variant_sequences_generator = variant_sequences_generator_from_args(args)
