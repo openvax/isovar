@@ -131,7 +131,6 @@ class LocusRead(namedtuple("LocusRead", [
             logger.warn("Read '%s' missing base qualities", name)
             return None
 
-        #
         # Documentation for pysam.AlignedSegment.get_reference_positions:
         # ------------------------------------------------------------------
         # By default, this method only returns positions in the reference
@@ -248,7 +247,6 @@ def locus_read_generator(
 
     Yields ReadAtLocus objects
     """
-
     logger.debug(
         "Gathering reads at locus %s: %d-%d",
         chromosome,

@@ -406,7 +406,7 @@ def translate_variant_reads(
         Drop variant sequences from loci with fewer than this number of
         RNA reads supporting the alt allele.
 
-    min_reads_supporting_cdna_sequence : int
+    min_variant_sequence_coverage : int
         Trim variant sequences to nucleotides covered by at least this many
         reads.
 
@@ -496,7 +496,7 @@ def translate_variants(
         Drop variant sequences from loci with fewer than this number of
         RNA reads supporting the alt allele.
 
-    min_reads_supporting_cdna_sequence : int
+    min_variant_sequence_coverage : int
         Trim variant sequences to nucleotides covered by at least this many
         reads.
 

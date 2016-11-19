@@ -256,12 +256,12 @@ def initial_variant_sequences_from_reads(
 
 def filter_variant_sequences_by_read_support(
         variant_sequences,
-        min_reads_supporting_cdna_sequence):
+        min_variant_sequence_coverage):
     n_total = len(variant_sequences)
     variant_sequences = [
         s
         for s in variant_sequences
-        if s.min_coverage() >= min_reads_supporting_cdna_sequence
+        if s.min_coverage() >= min_variant_sequence_coverage
     ]
     n_dropped = n_total - len(variant_sequences)
     if n_dropped > 0:
@@ -269,7 +269,7 @@ def filter_variant_sequences_by_read_support(
             "Dropped %d/%d variant sequences less than %d supporting reads",
             n_dropped,
             n_total,
-            min_reads_supporting_cdna_sequence)
+            min_variant_sequence_coverage)
     return variant_sequences
 
 def filter_variant_sequences_by_length(
