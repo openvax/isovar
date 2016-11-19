@@ -16,25 +16,6 @@ from __future__ import print_function, division, absolute_import
 
 from collections import defaultdict
 
-dna_complement_dictionary = {
-    "A": "T",
-    "T": "A",
-    "C": "G",
-    "G": "C",
-}
-
-dna_nucleotides = list(sorted(dna_complement_dictionary.keys()))
-
-dna_nucleotide_to_index = {c: i for (i, c) in enumerate(dna_nucleotides)}
-
-index_to_dna_nucleotide = {i: c for (i, c) in enumerate(dna_nucleotides)}
-
-def complement_dna(seq):
-    return "".join(dna_complement_dictionary[nt] for nt in seq)
-
-def reverse_complement_dna(seq):
-    return complement_dna(seq)[::-1]
-
 def list_to_string(list_of_anything, sep=";"):
     """
     Helper function used for building the fields of a printable dataframe

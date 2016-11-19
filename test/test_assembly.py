@@ -15,10 +15,13 @@
 from __future__ import print_function, division, absolute_import
 
 from isovar.variant_reads import reads_supporting_variant
-from isovar.variant_sequences import initial_variant_sequences_from_reads
+from isovar.variant_sequences import (
+    initial_variant_sequences_from_reads,
+    VariantSequence
+)
 from isovar.allele_reads import AlleleRead
-from isovar.variant_sequences import VariantSequence
 from isovar.assembly import iterative_overlap_assembly
+
 from pyensembl import ensembl_grch38
 from varcode import Variant
 from nose.tools import eq_
@@ -61,7 +64,6 @@ def test_assemble_transcript_fragments_snv():
                 max_read_length,)
 
 def test_assembly_of_simple_sequence_from_mock_reads():
-    #
     # Read sequences:
     #    AAAAA|CC|TTTTT
     #    AAAAA|CC|TTTTT
@@ -72,7 +74,11 @@ def test_assembly_of_simple_sequence_from_mock_reads():
         AlleleRead(prefix="A" * 5, allele="CC", suffix="T" * 5, name="dup1"),
         AlleleRead(prefix="A" * 5, allele="CC", suffix="T" * 5, name="dup2"),
         # longer sequence GAAAAA|CC|TTTTTG
-        AlleleRead(prefix="G" + "A" * 5, allele="CC", suffix="T" * 5 + "G", name="longer"),
+        AlleleRead(
+            prefix="G" + "A" * 5,
+            allele="CC",
+            suffix="T" * 5 + "G",
+            name="longer"),
         # shorter sequence AAAA|CC|TTTT
         AlleleRead(prefix="A" * 4, allele="CC", suffix="T" * 4, name="shorter"),
     ]
