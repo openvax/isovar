@@ -66,7 +66,7 @@ def protein_sequences_generator_from_args(args):
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
         max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
-        variant_sequence_assembly=not args.disable_variant_sequence_assembly)
+        variant_sequence_assembly=args.variant_sequence_assembly)
 
 def protein_sequences_dataframe_from_args(args):
     protein_sequences_generator = protein_sequences_generator_from_args(args)
