@@ -28,7 +28,6 @@ from .rna_reads import (
     allele_reads_generator_from_args,
     make_rna_reads_arg_parser
 )
-
 def add_variant_sequence_args(
         parser,
         add_sequence_length_arg=False):
@@ -47,10 +46,11 @@ def add_variant_sequence_args(
         help="Minimum number of reads supporting a variant sequence (default %(default)s)")
 
     rna_sequence_group.add_argument(
-        "--disable-variant-sequence-assembly",
+        "--no-variant-sequence-assembly",
+        dest="variant_sequence_assembly",
         default=True,
-        action="store_false")
-
+        action="store_false",
+        help="Disable assemble variant cDNA sequence from overlapping reads")
     # when cDNA sequence length can be inferred from a protein length then
     # we may want to omit this arg
     if add_sequence_length_arg:
@@ -91,7 +91,7 @@ def variant_sequences_generator_from_args(args):
         min_alt_rna_reads=args.min_alt_rna_reads,
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,
         preferred_sequence_length=args.cdna_sequence_length,
-        variant_sequence_assembly=not args.disable_variant_sequence_assembly)
+        variant_sequence_assembly=args.variant_sequence_assembly)
 
 def variant_sequences_dataframe_from_args(args):
     variant_sequences_generator = variant_sequences_generator_from_args(args)
