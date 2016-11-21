@@ -46,7 +46,7 @@ def add_variant_sequence_args(
         help="Minimum number of reads supporting a variant sequence (default %(default)s)")
 
     rna_sequence_group.add_argument(
-        "--no-variant-sequence-assembly",
+        "--disable-variant-sequence-assembly",
         dest="variant_sequence_assembly",
         default=True,
         action="store_false",
