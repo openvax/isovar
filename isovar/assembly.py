@@ -139,6 +139,10 @@ def collapse_substrings(variant_sequences):
     """
     # dictionary mapping VariantSequence objects to lists of reads
     # they absorb from substring VariantSequences
+    if len(variant_sequences) <= 1:
+        # if we don't have at least two VariantSequences then just
+        # return your input
+        return variant_sequences
     extra_reads_from_substrings = defaultdict(set)
     result_list = []
     for short_variant_sequence in sorted(
@@ -155,7 +159,8 @@ def collapse_substrings(variant_sequences):
     # add to each VariantSequence the reads it absorbed from dropped substrings
     # and then return
     return [
-        variant_sequence.add_reads(extra_reads_from_substrings[variant_sequence])
+        variant_sequence.add_reads(
+            extra_reads_from_substrings[variant_sequence])
         for variant_sequence in result_list
     ]
 
@@ -177,6 +182,12 @@ def iterative_overlap_assembly(
     """
     # reduce the number of inputs to the merge algorithm by first collapsing
     # shorter sequences onto the longer sequences which contain them
+
+    if len(variant_sequences) <= 1:
+        # if we don't have at least two sequences to start with then
+        # skip the whole mess below
+        return variant_sequences
+
     n_before_collapse = len(variant_sequences)
 
     variant_sequences = collapse_substrings(variant_sequences)
@@ -201,22 +212,26 @@ def iterative_overlap_assembly(
         # did the set of variant sequences change? if not, then we're done
         if {vs.sequence for vs in variant_sequences} == {
                 vs.sequence for vs in variant_sequences_after_merge}:
-            logger.info("Converged on iter #%d with %d sequences" % (
-                i + 1, n_after_collapse))
+            logger.info(
+                "Converged on iter #%d with %d sequences",
+                i + 1,
+                n_after_collapse)
             break
-
-        if n_after_merge == 0:
+        elif n_after_merge == 0:
             # if the greedy merge procedure fails for all pairs of candidate
             # sequences then we'll get an empty set of new longer sequences,
             # in which case we should just stop with the results of the last
             # iteration
-            return variant_sequences
+            logger.info(
+                "Leaving loop with %d sequences from last iteration",
+                len(variant_sequences))
+            break
         elif n_after_merge == 1:
             # once we have only one sequence then there's no point trying
             # to further combine sequences
             return variant_sequences_after_merge
         variant_sequences = variant_sequences_after_merge
-    # final cleanup step, merge any VariantSequences which contain each other
+    # Final cleanup step: merge any VariantSequences which contain each other
     #
     # TODO: this used to be necessary in the old greedy_merge implementation
     # but now might be redundnat with the contains-collapse logic in the
