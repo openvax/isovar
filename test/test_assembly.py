@@ -59,9 +59,12 @@ def test_assemble_transcript_fragments_snv():
             len(s.reads),
             len(s.sequence)))
         eq_(s.alt, alt)
-        assert len(s) > max_read_length, \
-            "Expected assembled sequences to be longer than read length (%d)" % (
-                max_read_length,)
+        if len(s.read_names) > 1:
+            # expect sequences supported by more than one read to be greater
+            # than the read length
+            assert len(s) > max_read_length, \
+                "Expected assembled sequences to be longer than read length (%d)" % (
+                    max_read_length,)
 
 def test_assembly_of_simple_sequence_from_mock_reads():
     # Read sequences:
