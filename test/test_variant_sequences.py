@@ -129,6 +129,7 @@ def test_variant_sequence_overlaps():
         reads=[
             AlleleRead(
                 prefix="AAA", allele="GG", suffix="TT", name="1")])
+    # AA|GG|TT
     vs_2A = VariantSequence(
         prefix="AA",
         alt="GG",
@@ -144,154 +145,96 @@ def test_variant_sequence_overlaps():
         assert not vs_2A.left_overlaps(vs_3A, min_overlap_size=min_overlap_size), \
             "Expected %s to not overlap %s from left (min overlap size=%d)" % (
                 vs_2A, vs_3A, min_overlap_size)
+    assert not vs_3A.left_overlaps(vs_2A, min_overlap_size=7), \
+        "Unexpected overlap between %s and %s for min_overlap_size=7" % (
+            vs_3A, vs_2A)
 
+def test_variant_sequence_add_reads():
+    vs = VariantSequence(prefix="A", alt="C", suffix="G", reads={"1"})
+    # adding reads '2' and '3', sometimes multiple times
+    vs_result = vs.add_reads("2").add_reads("1").add_reads("2").add_reads("3")
+    expected = VariantSequence(prefix="A", alt="C", suffix="G", reads={"1", "2", "3"})
+    eq_(vs_result, expected)
 
-"""
-class VariantSequence(VariantSequenceBase):
-    def __new__(cls, prefix, alt, suffix, reads):
-        # construct sequence from prefix + alt + suffix
-        return VariantSequenceBase.__new__(
-            cls,
-            prefix=prefix,
-            alt=alt,
-            suffix=suffix,
-            sequence=prefix + alt + suffix,
-            reads=frozenset(reads))
+def test_variant_sequence_combine():
+    vs1 = VariantSequence(prefix="A", alt="C", suffix="GG", reads={"1"})
+    vs2 = VariantSequence(prefix="AA", alt="C", suffix="GG", reads={"2"})
+    vs_result_1_to_2 = vs1.combine(vs2)
+    expected = VariantSequence(prefix="AA", alt="C", suffix="GG", reads={"1", "2"})
+    eq_(vs_result_1_to_2, expected)
 
-    def __len__(self):
-        return len(self.sequence)
+    # shouldn't matter which sequence is first as an argument to the combine
+    # function
+    vs_result_2_to_1 = vs2.combine(vs1)
+    eq_(vs_result_2_to_1, expected)
 
-    @property
-    def read_names(self):
-        return {r.name for r in self.reads}
+def test_variant_sequence_trim_by_coverage():
+    reads = [
+        AlleleRead(
+            prefix="AA", allele="C", suffix="T", name="1"),
+        AlleleRead(
+            prefix="A", allele="C", suffix="T", name="2")
+    ]
+    vs = VariantSequence(
+        prefix="AA",
+        alt="C",
+        suffix="T",
+        reads=reads)
+    # every nucleotide is spanned by one read
+    eq_(vs.trim_by_coverage(1), vs)
 
-    def contains(self, other):
-        return (self.alt == other.alt and
-                self.prefix.endswith(other.prefix) and
-                self.suffix.startswith(other.suffix))
+    vs_expected_trim_by_2 = VariantSequence(
+        prefix="A",
+        alt="C",
+        suffix="T",
+        reads=reads)
+    eq_(vs.trim_by_coverage(2), vs_expected_trim_by_2)
 
-    def left_overlaps(self, other, min_overlap_size=1):
-        if self.alt != other.alt:
-            # allele must match!
-            return False
+def test_variant_sequence_min_coverage():
+    # 1: AA|C|TT
+    # 2: AA|C|T
+    # 3:  A|C|TT
+    reads = [
+        AlleleRead(
+            prefix="AA", allele="C", suffix="TT", name="1"),
+        AlleleRead(
+            prefix="AA", allele="C", suffix="T", name="2"),
+        AlleleRead(
+            prefix="A", allele="C", suffix="TT", name="3")
+    ]
+    vs = VariantSequence(
+        prefix="AA",
+        alt="C",
+        suffix="TT",
+        reads=reads)
+    eq_(vs.min_coverage(), 2)
 
-        if len(other.prefix) > len(self.prefix):
-            # only consider strings that overlap like:
-            #   variant_sequence1: ppppAssss
-            #   variant_sequence2:   ppAsssssss
-            # which excludes cases where variant_sequence2 has a longer
-            # prefix
-            return False
-        elif len(other.suffix) < len(self.suffix):
-            # similarly, we throw cases where variant_sequence2 is shorter
-            # after the alt nucleotides than variant_sequence1
-            return False
+def test_variant_sequence_mean_coverage():
+    # 1: AA|C|TT
+    # 2: AA|C|T
+    # 3:  A|C|TT
+    reads = [
+        AlleleRead(
+            prefix="AA", allele="C", suffix="TT", name="1"),
+        AlleleRead(
+            prefix="AA", allele="C", suffix="T", name="2"),
+        AlleleRead(
+            prefix="A", allele="C", suffix="TT", name="3")
+    ]
+    vs = VariantSequence(
+        prefix="AA",
+        alt="C",
+        suffix="TT",
+        reads=reads)
+    # count the number of times a nucleotide in the sequences above
+    # is contained in a read
+    expected_mean_coverage = (2 + 3 + 3 + 3 + 2) / 5
+    eq_(vs.mean_coverage(), expected_mean_coverage)
 
-        # is the candidate sequence is a prefix of the accepted?
-        # Example:
-        # p1 a1 s1 = XXXXXXXX Y ZZZZZZ
-        # p2 a2 s2 =       XX Y ZZZZZZZZZ
-        # ...
-        # then we can combine them into a longer sequence
-        sequence_overlaps = (
-            self.prefix.endswith(other.prefix) and
-            other.suffix.startswith(self.suffix)
-        )
-        prefix_overlap_size = len(self.prefix) - len(other.prefix)
-        suffix_overlap_size = len(other.suffix) - len(self.suffix)
-        overlap_size = prefix_overlap_size + suffix_overlap_size + len(self.alt)
-        return sequence_overlaps and overlap_size >= min_overlap_size
-
-    def add_reads(self, reads):
-        return VariantSequence(
-            prefix=self.prefix,
-            alt=self.alt,
-            suffix=self.suffix,
-            reads=self.reads.union(reads))
-
-    def combine(self, other_sequence):
-        if other_sequence.alt != self.alt:
-            raise ValueError(
-                "Cannot combine %s and %s with mismatching alt sequences" % (
-                    self,
-                    other_sequence))
-        elif self.left_overlaps(other_sequence):
-            # If sequences are like AABC and ABCC
-            return VariantSequence(
-                prefix=self.prefix,
-                alt=self.alt,
-                suffix=other_sequence.suffix,
-                reads=self.reads.union(other_sequence.reads))
-        elif other_sequence.left_overlaps(self):
-            return other_sequence.combine(self)
-        elif self.contains(other_sequence):
-            return self.add_reads(other_sequence.reads)
-        elif other_sequence.contains(self):
-            return other_sequence.add_reads(self.reads)
-        else:
-            raise ValueError("%s does not overlap with %s" % (self, other_sequence))
-
-    def variant_indices(self):
-        variant_start_index = len(self.prefix)
-        variant_len = len(self.alt)
-        variant_end_index = variant_start_index + variant_len
-        return variant_start_index, variant_end_index
-
-    def coverage(self):
-        variant_start_index, variant_end_index = self.variant_indices()
-        n_nucleotides = len(self)
-        coverage_array = np.zeros(n_nucleotides, dtype="int32")
-        for read in self.reads:
-            coverage_array[
-                max(0, variant_start_index - len(read.prefix)):
-                min(n_nucleotides, variant_end_index + len(read.suffix))] += 1
-        return coverage_array
-
-    def min_coverage(self):
-        return np.min(self.coverage())
-
-    def mean_coverage(self):
-        return np.mean(self.coverage())
-
-    def trim_by_coverage(self, min_reads):
-        read_count_array = self.coverage()
-        logger.info("Coverage: %s (len=%d)" % (
-            read_count_array, len(read_count_array)))
-        sufficient_coverage_mask = read_count_array >= min_reads
-        sufficient_coverage_indices = np.argwhere(sufficient_coverage_mask)
-        if len(sufficient_coverage_indices) == 0:
-            logger.debug("No bases in %s have coverage >= %d" % (self, min_reads))
-            return VariantSequence(prefix="", alt="", suffix="", reads=self.reads)
-        variant_start_index, variant_end_index = self.variant_indices()
-        # assuming that coverage drops off monotonically away from
-        # variant nucleotides
-        first_covered_index = sufficient_coverage_indices.min()
-        last_covered_index = sufficient_coverage_indices.max()
-        # adding 1 to last_covered_index since it's an inclusive index
-        # whereas variant_end_index is the end of a half-open interval
-        if (first_covered_index > variant_start_index or
-                last_covered_index + 1 < variant_end_index):
-            # Example:
-            #   Nucleotide sequence:
-            #       ACCCTTTT|AA|GGCGCGCC
-            #   Coverage:
-            #       12222333|44|33333211
-            # Then the mask for bases covered >= 4x would be:
-            #       ________|**|________
-            # with indices:
-            #       first_covered_index = 9
-            #       last_covered_index = 10
-            #       variant_start_index = 9
-            #       variant_end_index = 11
-            logger.debug("Some variant bases in %s don't have coverage >= %d" % (
-                self, min_reads))
-            return VariantSequence(prefix="", alt="", suffix="", reads=self.reads)
-        return VariantSequence(
-            prefix=self.prefix[first_covered_index:],
-            alt=self.alt,
-            suffix=self.suffix[:last_covered_index - variant_end_index + 1],
-            reads=self.reads)
-
-    def sort_key_decreasing_read_count(self):
-        return -len(self.reads)
-"""
+def test_variant_sequence_len():
+    vs = VariantSequence(
+        prefix="AA",
+        alt="C",
+        suffix="TT",
+        reads=[])
+    eq_(len(vs), 5)
