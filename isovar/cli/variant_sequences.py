@@ -36,6 +36,7 @@ def add_variant_sequence_args(
 
     rna_sequence_group.add_argument(
         "--min-alt-rna-reads",
+        type=int,
         default=MIN_ALT_RNA_READS,
         help="Minimum number of reads supporting variant allele (default %(default)s)")
 
