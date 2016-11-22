@@ -20,7 +20,11 @@ from isovar.variant_sequences import (
     VariantSequence
 )
 from isovar.allele_reads import AlleleRead
-from isovar.assembly import iterative_overlap_assembly
+from isovar.assembly import (
+    iterative_overlap_assembly,
+    greedy_merge,
+    collapse_substrings
+)
 
 from pyensembl import ensembl_grch38
 from varcode import Variant
@@ -92,22 +96,41 @@ def test_assembly_of_simple_sequence_from_mock_reads():
     # duplicates
     eq_(len(initial_variant_sequences), len(reads) - 1)
 
-    assembled_variant_sequences = iterative_overlap_assembly(
-        initial_variant_sequences,
-        min_overlap_size=1)
+    # calling into either iterative_overlap_assembly or greedy_merge should
+    # give same results
+    for fn in [iterative_overlap_assembly, greedy_merge]:
 
-    # since no reads contradict each other then we should get back a single
-    # assembled sequence
-    eq_(len(assembled_variant_sequences),
-        1,
-        "Unexpected number of variant sequences: %s" % (assembled_variant_sequences,))
-    assembled_variant_sequence = assembled_variant_sequences[0]
-    eq_(assembled_variant_sequence, expected_variant_sequence)
+        assembled_variant_sequences = fn(
+            initial_variant_sequences,
+            min_overlap_size=1)
 
-    eq_(len(assembled_variant_sequence.reads), len(reads))
+        # since no reads contradict each other then we should get back a single
+        # assembled sequence
+        eq_(len(assembled_variant_sequences),
+            1,
+            "Unexpected number of variant sequences: %s" % (assembled_variant_sequences,))
+        assembled_variant_sequence = assembled_variant_sequences[0]
+        eq_(assembled_variant_sequence, expected_variant_sequence)
 
-    eq_(assembled_variant_sequence.min_coverage(), 1)
-    # 2 bases with 1/4 reads, 2 bases with 3/4 reads, remaining 10 bases with
-    # all 4/4 reads
-    expected_mean_coverage = (2 * 1 + 2 * 3 + 10 * 4) / 14
-    eq_(assembled_variant_sequence.mean_coverage(), expected_mean_coverage)
+        eq_(len(assembled_variant_sequence.reads), len(reads))
+
+        eq_(assembled_variant_sequence.min_coverage(), 1)
+        # 2 bases with 1/4 reads, 2 bases with 3/4 reads, remaining 10 bases with
+        # all 4/4 reads
+        expected_mean_coverage = (2 * 1 + 2 * 3 + 10 * 4) / 14
+        eq_(assembled_variant_sequence.mean_coverage(), expected_mean_coverage)
+
+def test_collapse_substrings():
+    # AAA|C|GGG
+    vs_longer = VariantSequence(
+        prefix="AAA", alt="C", suffix="GGG", reads={"1"})
+    # AAA|C|GG
+    vs_shorter = VariantSequence(
+        prefix="AAA", alt="C", suffix="GG", reads={"2"})
+    vs_unrelated = VariantSequence("TAA", alt="C", suffix="GG", reads={"3"})
+    results = collapse_substrings([vs_longer, vs_shorter, vs_unrelated])
+    eq_(len(results), 2), "Expected two sequences, got %d: %s" % (
+        len(results), results)
+    vs_combined = vs_longer.add_reads({"2"})
+    assert vs_combined in results, "Expeceted %s to be in %s" % (vs_combined, results)
+    assert vs_unrelated in results, "Expected %s to be in %s" % (vs_unrelated, results)

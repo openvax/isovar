@@ -135,7 +135,10 @@ class VariantSequence(VariantSequenceBase):
     def combine(self, other_sequence):
         """
         If this sequence is the prefix of another sequence, combine
-        them into a single VariantSequence object.
+        them into a single VariantSequence object. If the other sequence
+        is contained in this one, then add its reads to this VariantSequence.
+        Also tries to flip the order (e.g. this sequence is a suffix or
+        this sequence is a subsequence).
         """
         if other_sequence.alt != self.alt:
             raise ValueError(
@@ -232,9 +235,6 @@ class VariantSequence(VariantSequenceBase):
             alt=self.alt,
             suffix=self.suffix[:last_covered_index - variant_end_index + 1],
             reads=self.reads)
-
-    def sort_key_decreasing_read_count(self):
-        return -len(self.reads)
 
 def initial_variant_sequences_from_reads(
         variant_reads,
@@ -456,7 +456,7 @@ def reads_to_variant_sequences(
 
     # sort VariantSequence objects by decreasing order of supporting read
     # counts
-    variant_sequences.sort(key=VariantSequence.sort_key_decreasing_read_count)
+    variant_sequences.sort(key=lambda vs: -len(vs.reads))
     return variant_sequences
 
 def reads_generator_to_sequences_generator(

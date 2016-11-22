@@ -41,16 +41,6 @@ def sort_by_decreasing_suffix_length(seq):
     """
     return -len(seq.suffix)
 
-def sort_by_increasing_total_length(seq):
-    """
-    Key function for sorting from shortest to longest total length.
-
-    Parameters
-    ----------
-    seq : VariantSequence
-    """
-    return len(seq.sequence)
-
 def sort_by_decreasing_total_length(seq):
     """
     Key function for sorting from longest to shortest total length.
