@@ -96,7 +96,10 @@ def greedy_merge(
         for variant_sequence2 in sorted(
                 variant_sequences,
                 key=sort_by_decreasing_suffix_length):
-            if not variant_sequence1.left_overlaps(
+            if variant_sequence1 == variant_sequence2:
+                # don't count merging a sequence with itself
+                continue
+            elif not variant_sequence1.left_overlaps(
                     variant_sequence2,
                     min_overlap_size=min_overlap_size):
                 continue
@@ -196,8 +199,8 @@ def iterative_overlap_assembly(
             n_before_merge,
             n_after_merge)
         # did the set of variant sequences change? if not, then we're done
-        if set(vs.sequence for vs in variant_sequences) == set(
-                vs.sequence for vs in variant_sequences_after_merge):
+        if {vs.sequence for vs in variant_sequences} == {
+                vs.sequence for vs in variant_sequences_after_merge}:
             logger.info("Converged on iter #%d with %d sequences" % (
                 i + 1, n_after_collapse))
             break
@@ -214,4 +217,8 @@ def iterative_overlap_assembly(
             return variant_sequences_after_merge
         variant_sequences = variant_sequences_after_merge
     # final cleanup step, merge any VariantSequences which contain each other
+    #
+    # TODO: this used to be necessary in the old greedy_merge implementation
+    # but now might be redundnat with the contains-collapse logic in the
+    # new implementation of greedy_merge.
     return collapse_substrings(variant_sequences)
