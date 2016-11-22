@@ -28,6 +28,7 @@ from .default_parameters import (
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_LENGTH,
     VARIANT_SEQUENCE_ASSEMBLY,
+    MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
 )
 from .dataframe_builder import dataframe_from_generator
 from .assembly import iterative_overlap_assembly, collapse_substrings
@@ -111,20 +112,25 @@ class VariantSequence(VariantSequenceBase):
             self.prefix.endswith(other.prefix) and
             other.suffix.startswith(self.suffix)
         )
-        prefix_overlap_size = len(self.prefix) - len(other.prefix)
-        suffix_overlap_size = len(other.suffix) - len(self.suffix)
-        overlap_size = prefix_overlap_size + suffix_overlap_size + len(self.alt)
+        prefix_overlap_size = min(len(self.prefix), len(other.prefix))
+        suffix_overlap_size = min(len(other.suffix), len(self.suffix))
+        overlap_size = (
+            prefix_overlap_size + suffix_overlap_size + len(self.alt))
+
         return sequence_overlaps and overlap_size >= min_overlap_size
 
     def add_reads(self, reads):
         """
         Create another VariantSequence with more supporting reads.
         """
-        return VariantSequence(
-            prefix=self.prefix,
-            alt=self.alt,
-            suffix=self.suffix,
-            reads=self.reads.union(reads))
+        if len(reads) == 0:
+            return self
+        else:
+            return VariantSequence(
+                prefix=self.prefix,
+                alt=self.alt,
+                suffix=self.suffix,
+                reads=self.reads.union(reads))
 
     def combine(self, other_sequence):
         """
@@ -281,11 +287,13 @@ def filter_variant_sequences_by_length(
     # since we might have gotten some shorter fragments,
     # keep only the longest spanning sequence
     max_observed_sequence_length = max(len(s) for s in variant_sequences)
+
     # if we get back a sequence that's longer than the preferred length
     # then that doesn't mean we should necessarily drop the other sequences
     min_required_sequence_length = min(
         max_observed_sequence_length,
         preferred_sequence_length)
+
     variant_sequences = [
         s for s in variant_sequences
         if len(s.sequence) >= min_required_sequence_length
@@ -328,6 +336,7 @@ def filter_variant_sequences(
     """
     variant_sequences = trim_variant_sequences(
         variant_sequences, min_variant_sequence_coverage)
+
     return filter_variant_sequences_by_length(
         variant_sequences=variant_sequences,
         preferred_sequence_length=preferred_sequence_length)
@@ -372,6 +381,13 @@ def reads_to_variant_sequences(
     # just in case variant_reads is a generator, convert it to a list
     variant_reads = list(filter_non_alt_reads_for_variant(variant, reads))
 
+    if len(variant_reads) < min_alt_rna_reads:
+        logger.info(
+            "Skipping %s because only %d alt RNA reads (min=%d)",
+            variant,
+            len(variant_reads),
+            min_alt_rna_reads)
+        return []
     if len(variant_reads) == 0:
         return []
 
@@ -379,14 +395,9 @@ def reads_to_variant_sequences(
 
     # the number of context nucleotides on either side of the variant
     # is half the desired length (minus the number of variant nucleotides)
-    n_alt = len(alt_seq)
-    if n_alt < min_alt_rna_reads:
-        logger.info(
-            "Skipping %s because only %d alt RNA reads (min=%d)",
-            variant,
-            n_alt,
-            min_alt_rna_reads)
-    n_surrounding_nucleotides = preferred_sequence_length - n_alt
+    n_alt_nucleotides = len(alt_seq)
+
+    n_surrounding_nucleotides = preferred_sequence_length - n_alt_nucleotides
     max_nucleotides_after_variant = n_surrounding_nucleotides // 2
 
     # if the number of nucleotides we need isn't divisible by 2 then
@@ -407,7 +418,15 @@ def reads_to_variant_sequences(
         max(len(s) for s in variant_sequences))
 
     if variant_sequence_assembly:
-        variant_sequences = iterative_overlap_assembly(variant_sequences)
+        # this is a tricky parameter to set correctly:
+        # by how many bases should two sequences overlap before
+        # we merge, currently defaulting to either half the non-variant
+        # nucleotides or 30 (whichever is smaller)
+        variant_sequences = iterative_overlap_assembly(
+            variant_sequences,
+            min_overlap_size=min(
+                MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+                n_surrounding_nucleotides // 2))
 
     if variant_sequences:
         logger.info(

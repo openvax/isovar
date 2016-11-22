@@ -225,7 +225,7 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
     eq_(
         len(df),
         0,
-        "Expected 0 entries, got %d" % (len(df),))
+        "Expected 0 entries, got %d: %s" % (len(df), df))
 
 def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
     expressed_variants = load_vcf("data/b16.f10/b16.expressed.vcf")
@@ -242,10 +242,11 @@ def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
         eq_(
             len(df),
             len(expressed_variants),
-            "Expected %d entries for protein_sequnece_length=%d, got %d results" % (
+            "Expected %d entries for protein_sequnece_length=%d, got %d results: %s" % (
                 len(expressed_variants),
                 desired_length,
-                len(df)))
+                len(df),
+                df))
         protein_sequences = df["amino_acids"]
         print(protein_sequences)
         protien_sequence_lengths = protein_sequences.str.len()
