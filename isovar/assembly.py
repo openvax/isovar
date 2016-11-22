@@ -49,7 +49,7 @@ def sort_by_decreasing_total_length(seq):
     ----------
     seq : VariantSequence
     """
-    return -len(seq.sequence)
+    return -len(seq)
 
 def greedy_merge(
         variant_sequences,
