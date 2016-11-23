@@ -242,9 +242,17 @@ def test_assembly_unrelated_sequences():
         variant_sequences, min_overlap_size=1)
     eq_(len(results), 4)
     # first two sequences were overlapping
-    eq_(results[0].reads, {"1", "2"})
-    for singleton_result in results[1:]:
-        eq_(len(singleton_result.reads), 1)
+    count_multiple = 0
+    count_singleton = 0
+    for result in results:
+        # all but one result are singletons
+        if len(result.reads) > 1:
+            eq_(result.reads, {"1", "2"})
+            count_multiple += 1
+        else:
+            count_singleton += 1
+    eq_(3, count_singleton)
+    eq_(1, count_multiple)
 
 def test_assembly_no_sequences():
     eq_(iterative_overlap_assembly([]), [])
