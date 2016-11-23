@@ -160,17 +160,19 @@ def test_assembly_of_many_subsequences():
         suffix=original_suffix,
         reads={"decoy"})
     input_sequences = subsequences + [decoy]
-    for fn in [iterative_overlap_assembly, greedy_merge]:
-        results = fn(input_sequences, min_overlap_size=len(original_allele))
-        eq_(len(results), 2)
-        result = results[0]
-        eq_(result.prefix, original_prefix)
-        eq_(result.alt, original_allele)
-        eq_(result.suffix, original_suffix)
-        eq_(len(result.reads), len(subsequences))
+    results = iterative_overlap_assembly(
+        input_sequences, min_overlap_size=len(original_allele))
 
-        result_decoy = results[1]
-        eq_(result_decoy.sequence, decoy.sequence)
+    eq_(len(results), 2)
+
+    result = results[0]
+    eq_(result.prefix, original_prefix)
+    eq_(result.alt, original_allele)
+    eq_(result.suffix, original_suffix)
+    eq_(len(result.reads), len(subsequences))
+
+    result_decoy = results[1]
+    eq_(result_decoy.sequence, decoy.sequence)
 
 def test_assembly_time():
     original_prefix = "ACTGAACCTTGGAAACCCTTTGGG"
@@ -240,3 +242,14 @@ def test_assembly_unrelated_sequences():
     eq_(results[0].reads, {"1", "2"})
     for singleton_result in results[1:]:
         eq_(len(singleton_result.reads), 1)
+
+def test_assembly_no_sequences():
+    eq_(iterative_overlap_assembly([]), [])
+
+def test_assembly_1_sequence():
+    vs = VariantSequence(
+        prefix="CCC",
+        alt="T",
+        suffix="GGG",
+        reads={"1"})
+    eq_(iterative_overlap_assembly([vs]), [vs])
