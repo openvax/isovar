@@ -92,17 +92,17 @@ class VariantSequence(VariantSequenceBase):
 
         if len(other.prefix) > len(self.prefix):
             # only consider strings that overlap like:
-            #   variant_sequence1: ppppAssss
-            #   variant_sequence2:   ppAsssssss
-            # which excludes cases where variant_sequence2 has a longer
+            #   self: ppppAssss
+            #   other:   ppAsssssss
+            # which excludes cases where the other sequence has a longer
             # prefix
             return False
         elif len(other.suffix) < len(self.suffix):
-            # similarly, we throw cases where variant_sequence2 is shorter
-            # after the alt nucleotides than variant_sequence1
+            # similarly, we throw away cases where the other sequence is shorter
+            # after the alt nucleotides than this sequence
             return False
 
-        # is the candidate sequence is a prefix of the accepted?
+        # is the other sequence a prefix of this sequence?
         # Example:
         # p1 a1 s1 = XXXXXXXX Y ZZZZZZ
         # p2 a2 s2 =       XX Y ZZZZZZZZZ
