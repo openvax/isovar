@@ -35,6 +35,8 @@ def greedy_merge_helper(
     unmerged_variant_sequences = set(variant_sequences)
     for i in range(len(variant_sequences)):
         sequence1 = variant_sequences[i]
+        # it works to loop over the triangle (i+1 onwards) because combine() tries flipping the
+        # arguments if sequence1 is on the right of sequence2
         for j in range(i+1, len(variant_sequences)):
             sequence2 = variant_sequences[j]
             try:
@@ -44,8 +46,7 @@ def greedy_merge_helper(
                     # we may have already created the same sequence from another set of reads, in
                     # which case we need to merge the reads
                     if s.reads != existing_s.reads:
-                        new_s = existing_s.combine(s)
-                        s = new_s
+                        s = s.add_reads(existing_s.reads)
                 merged_variant_sequences[s.sequence] = s
                 unmerged_variant_sequences.discard(sequence1)
                 unmerged_variant_sequences.discard(sequence2)
