@@ -134,3 +134,29 @@ def test_collapse_substrings():
     vs_combined = vs_longer.add_reads({"2"})
     assert vs_combined in results, "Expeceted %s to be in %s" % (vs_combined, results)
     assert vs_unrelated in results, "Expected %s to be in %s" % (vs_unrelated, results)
+
+
+def test_assembly_of_many_subsequences():
+    original_prefix = "ACTGAACCTTGGAAACCCTTTGGG"
+    original_allele = "CCCTTT"
+    original_suffix = "GGAAGGAAGGAATTTTTTTT"
+
+    # generate 100 subsequences of all combinations of 0-9
+    # characters trimmed from beginning of prefix vs. end of suffix
+    subsequences = [
+        VariantSequence(
+            prefix=original_prefix[i:],
+            alt=original_allele,
+            suffix=original_suffix[:-j] if j > 0 else original_suffix,
+            reads={str(i) + "_" + str(j)})
+        for i in range(10)
+        for j in range(10)
+    ]
+    for fn in [iterative_overlap_assembly, greedy_merge]:
+        results = fn(subsequences, min_overlap_size=len(original_allele))
+        eq_(len(results), 1)
+        result = results[0]
+        eq_(result.prefix, original_prefix)
+        eq_(result.alt, original_allele)
+        eq_(result.suffix, original_suffix)
+        eq_(len(result.reads), len(subsequences))

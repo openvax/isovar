@@ -109,10 +109,10 @@ def greedy_merge(
                 merged_variant_sequences[combined.sequence] = combined
             else:
                 # it's possible to get the same merged sequence from distinct
-                # input sequences
+                # values of variant_sequence2
                 # For example
-                #   abcXYZddd + cXYZdddd = abcXYZdddd
-                #   abcXYZd + bcXYZdddd =  abcXYZdddd
+                #   abcXYZddd +  cXYZdddd  = abcXYZdddd
+                #   abcXYZddd + bcXYZdddd  = abcXYZdddd
                 # In this case we make a VariantSequence record with the
                 # reads from both original sequences.
                 existing_record_with_same_sequence = merged_variant_sequences[
