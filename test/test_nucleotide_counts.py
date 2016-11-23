@@ -23,7 +23,6 @@ from nose.tools import eq_
 
 from testing_helpers import load_bam
 
-
 def test_most_common_nucleotides_for_chr12_deletion():
     samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
@@ -58,6 +57,3 @@ def test_most_common_nucleotides_for_chr12_deletion():
         number_matching_reads, len(variant_reads), fraction_matching_reads))
     assert fraction_matching_reads > 0.5, \
         "Expected majority of reads to match consensus sequence"
-
-if __name__ == "__main__":
-    test_most_common_nucleotides_for_chr12_deletion()

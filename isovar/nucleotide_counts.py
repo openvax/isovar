@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 
-from .common import (
+from .dna import (
     dna_nucleotide_to_index,
     index_to_dna_nucleotide,
 )

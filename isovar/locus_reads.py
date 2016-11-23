@@ -107,6 +107,7 @@ class LocusRead(namedtuple("LocusRead", [
         mapping_quality = read.mapping_quality
 
         missing_mapping_quality = mapping_quality is None
+
         if min_mapping_quality > 0 and missing_mapping_quality:
             logger.debug("Skipping read '%s' due to missing MAPQ", name)
             return None
@@ -130,7 +131,6 @@ class LocusRead(namedtuple("LocusRead", [
             logger.warn("Read '%s' missing base qualities", name)
             return None
 
-        #
         # Documentation for pysam.AlignedSegment.get_reference_positions:
         # ------------------------------------------------------------------
         # By default, this method only returns positions in the reference
@@ -247,7 +247,6 @@ def locus_read_generator(
 
     Yields ReadAtLocus objects
     """
-
     logger.debug(
         "Gathering reads at locus %s: %d-%d",
         chromosome,

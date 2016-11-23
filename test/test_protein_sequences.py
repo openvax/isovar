@@ -161,7 +161,7 @@ def variants_to_protein_sequences_dataframe(
         tumor_rna_bam="data/b16.f10/b16.combined.sorted.bam",
         min_mapping_quality=0,
         max_protein_sequences_per_variant=1,
-        variant_cdna_sequence_assembly=False):
+        variant_sequence_assembly=False):
     """
     Helper function to load pair of VCFs and tumor RNA BAM
     and use them to generate a DataFrame of expressed variant protein
@@ -182,13 +182,13 @@ def variants_to_protein_sequences_dataframe(
     protein_sequences_generator = reads_generator_to_protein_sequences_generator(
         allele_reads_generator,
         max_protein_sequences_per_variant=max_protein_sequences_per_variant,
-        variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)
+        variant_sequence_assembly=variant_sequence_assembly)
     df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
     return df, expressed_variants, combined_variants
 
 def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_with_assembly():
     df, expressed_variants, combined_variants = \
-        variants_to_protein_sequences_dataframe(variant_cdna_sequence_assembly=True)
+        variants_to_protein_sequences_dataframe(variant_sequence_assembly=True)
     print(df)
     eq_(len(df),
         len(expressed_variants),
@@ -199,7 +199,7 @@ def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_with_a
 
 def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_without_assembly():
     df, expressed_variants, combined_variants = \
-        variants_to_protein_sequences_dataframe(variant_cdna_sequence_assembly=False)
+        variants_to_protein_sequences_dataframe(variant_sequence_assembly=False)
     print(df)
     eq_(len(df),
         len(expressed_variants),
@@ -225,7 +225,7 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
     eq_(
         len(df),
         0,
-        "Expected 0 entries, got %d" % (len(df),))
+        "Expected 0 entries, got %d: %s" % (len(df), df))
 
 def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
     expressed_variants = load_vcf("data/b16.f10/b16.expressed.vcf")
@@ -242,19 +242,13 @@ def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
         eq_(
             len(df),
             len(expressed_variants),
-            "Expected %d entries for protein_sequnece_length=%d, got %d results" % (
+            "Expected %d entries for protein_sequnece_length=%d, got %d results: %s" % (
                 len(expressed_variants),
                 desired_length,
-                len(df)))
+                len(df),
+                df))
         protein_sequences = df["amino_acids"]
         print(protein_sequences)
         protien_sequence_lengths = protein_sequences.str.len()
         assert (protien_sequence_lengths == desired_length).all(), (
             protien_sequence_lengths,)
-
-if __name__ == "__main__":
-    test_sort_protein_sequences()
-    test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_with_assembly()
-    test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_without_assembly()
-    test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_quality()
-    test_variants_to_protein_sequences_dataframe_protein_sequence_length()

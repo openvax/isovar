@@ -61,10 +61,12 @@ def protein_sequences_generator_from_args(args):
     return reads_generator_to_protein_sequences_generator(
         allele_reads_generator,
         protein_sequence_length=args.protein_sequence_length,
-        min_reads_supporting_cdna_sequence=args.min_reads_supporting_variant_sequence,
+        min_alt_rna_reads=args.min_alt_rna_reads,
+        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        max_protein_sequences_per_variant=args.max_protein_sequences_per_variant)
+        max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
+        variant_sequence_assembly=args.variant_sequence_assembly)
 
 def protein_sequences_dataframe_from_args(args):
     protein_sequences_generator = protein_sequences_generator_from_args(args)

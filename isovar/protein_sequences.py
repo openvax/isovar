@@ -29,8 +29,9 @@ from .default_parameters import (
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     PROTEIN_SEQUENCE_LENGTH,
     MAX_PROTEIN_SEQUENCES_PER_VARIANT,
-    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-    VARIANT_CDNA_SEQUENCE_ASSEMBLY
+    MIN_ALT_RNA_READS,
+    MIN_VARIANT_SEQUENCE_COVERAGE,
+    VARIANT_SEQUENCE_ASSEMBLY
 )
 from .dataframe_builder import dataframe_from_generator
 from .translation import translate_variant_reads, Translation, TranslationKey
@@ -144,11 +145,12 @@ def reads_generator_to_protein_sequences_generator(
         variant_and_overlapping_reads_generator,
         transcript_id_whitelist=None,
         protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
-        min_reads_supporting_cdna_sequence=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+        min_alt_rna_reads=MIN_ALT_RNA_READS,
+        min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
         max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
-        variant_cdna_sequence_assembly=VARIANT_CDNA_SEQUENCE_ASSEMBLY):
+        variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
     """"
     Translates each coding variant in a collection to one or more
     Translation objects, which are then aggregated into equivalent
@@ -156,6 +158,10 @@ def reads_generator_to_protein_sequences_generator(
 
     Parameters
     ----------
+    variant_and_overlapping_reads_generator : generator
+        Yields sequence of varcode.Variant objects paired with sequences
+        of AlleleRead objects that support that variant.
+
     transcript_id_whitelist : set, optional
         If given, expected to be a set of transcript IDs which we should use
         for determining the reading frame around a variant. If omitted, then
@@ -166,8 +172,13 @@ def reads_generator_to_protein_sequences_generator(
         we'll have to return something shorter (depending on the RNAseq data,
         and presence of stop codons).
 
-    min_reads_supporting_cdna_sequence : int
-        Drop variant sequences supported by fewer than this number of reads.
+    min_alt_rna_reads : int
+        Drop variant sequences at loci with fewer than this number of reads
+        supporting the alt allele.
+
+    min_variant_sequence_coverage : int
+        Trim variant sequences to positions supported by at least this number
+        of RNA reads.
 
     min_transcript_prefix_length : int
         Minimum number of bases we need to try matching between the reference
@@ -206,10 +217,11 @@ def reads_generator_to_protein_sequences_generator(
             variant_reads=alt_reads,
             transcript_id_whitelist=transcript_id_whitelist,
             protein_sequence_length=protein_sequence_length,
-            min_reads_supporting_cdna_sequence=min_reads_supporting_cdna_sequence,
+            min_alt_rna_reads=min_alt_rna_reads,
+            min_variant_sequence_coverage=min_variant_sequence_coverage,
             min_transcript_prefix_length=min_transcript_prefix_length,
             max_transcript_mismatches=max_transcript_mismatches,
-            variant_cdna_sequence_assembly=variant_cdna_sequence_assembly)
+            variant_sequence_assembly=variant_sequence_assembly)
 
         protein_sequences = []
         for (key, equivalent_translations) in groupby(

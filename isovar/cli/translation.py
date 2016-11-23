@@ -78,7 +78,9 @@ def translations_generator_from_args(args):
     return translate_variants(
         variant_reads_generator,
         protein_sequence_length=args.protein_sequence_length,
-        min_reads_supporting_cdna_sequence=args.min_reads_supporting_variant_sequence,
+        min_alt_rna_reads=args.min_alt_rna_reads,
+        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
+        variant_sequence_assembly=args.variant_sequence_assembly,
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches)
 

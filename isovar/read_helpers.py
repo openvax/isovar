@@ -19,6 +19,8 @@ Helper functions for working with RNA reads
 from __future__ import print_function, division, absolute_import
 from collections import defaultdict
 
+from .common import groupby
+
 def get_single_allele_from_reads(allele_reads):
     """
     Given a sequence of AlleleRead objects, which are expected to all have
@@ -84,7 +86,4 @@ def group_reads_by_allele(allele_reads):
     Returns dictionary mapping each allele's nucleotide sequence to a list of
     supporting AlleleRead objects.
     """
-    allele_to_reads_dict = defaultdict(list)
-    for allele_read in allele_reads:
-        allele_to_reads_dict[allele_read.allele].append(allele_read)
-    return allele_to_reads_dict
+    return groupby(allele_reads, lambda read: read.allele)
