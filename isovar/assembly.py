@@ -73,16 +73,6 @@ def greedy_merge(
             MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE)
     return variant_sequences
 
-def sort_by_decreasing_total_length(seq):
-    """
-    Key function for sorting from longest to shortest total length.
-
-    Parameters
-    ----------
-    seq : VariantSequence
-    """
-    return -len(seq)
-
 def collapse_substrings(variant_sequences):
     """
     Combine shorter sequences which are fully contained in longer sequences.
@@ -102,9 +92,10 @@ def collapse_substrings(variant_sequences):
         return variant_sequences
     extra_reads_from_substrings = defaultdict(set)
     result_list = []
+    # sort by longest to shortest total length
     for short_variant_sequence in sorted(
             variant_sequences,
-            key=sort_by_decreasing_total_length):
+            key=lambda seq: -len(seq)):
         found_superstring = False
         for long_variant_sequence in result_list:
             found_superstring = long_variant_sequence.contains(short_variant_sequence)
