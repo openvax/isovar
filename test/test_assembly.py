@@ -154,11 +154,21 @@ def test_assembly_of_many_subsequences():
         for i in range(10)
         for j in range(10)
     ]
+    # adding one decoy sequence which doesn't match
+    decoy = VariantSequence(
+        prefix="G" + original_prefix[1:],
+        alt=original_allele,
+        suffix=original_suffix,
+        reads={"decoy"})
+    input_sequences = subsequences + [decoy]
     for fn in [iterative_overlap_assembly, greedy_merge]:
-        results = fn(subsequences, min_overlap_size=len(original_allele))
-        eq_(len(results), 1)
+        results = fn(input_sequences, min_overlap_size=len(original_allele))
+        eq_(len(results), 2)
         result = results[0]
         eq_(result.prefix, original_prefix)
         eq_(result.alt, original_allele)
         eq_(result.suffix, original_suffix)
         eq_(len(result.reads), len(subsequences))
+
+        result_decoy = results[1]
+        eq_(result_decoy.sequence, decoy.sequence)

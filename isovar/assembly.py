@@ -278,4 +278,6 @@ def iterative_overlap_assembly(
     # TODO: this used to be necessary in the old greedy_merge implementation
     # but now might be redundnat with the contains-collapse logic in the
     # new implementation of greedy_merge.
-    return collapse_substrings(variant_sequences)
+    return list(sorted(
+        collapse_substrings(variant_sequences),
+        key=sort_by_decreasing_read_count_and_sequence_lenth))
