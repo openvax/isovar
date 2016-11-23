@@ -211,7 +211,7 @@ def sort_by_decreasing_read_count_and_sequence_lenth(variant_sequence):
     Sort variant sequences by number of supporting reads and length of
     assembled sequence.
     """
-    return -len(variant_sequence.reads), -len(variant_sequence.sequence)
+    return -len(variant_sequence.reads), -len(variant_sequence)
 
 def iterative_overlap_assembly(
         variant_sequences,
