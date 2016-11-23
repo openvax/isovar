@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+from time import time
 
 from isovar.variant_reads import reads_supporting_variant
 from isovar.variant_sequences import (
@@ -172,3 +173,34 @@ def test_assembly_of_many_subsequences():
 
         result_decoy = results[1]
         eq_(result_decoy.sequence, decoy.sequence)
+
+def test_assembly_time():
+    original_prefix = "ACTGAACCTTGGAAACCCTTTGGG"
+    original_allele = "CCCTTT"
+    original_suffix = "GGAAGGAAGGAATTTTTTTTGGCC"
+
+    # generate 400 subsequences of all combinations of 0-19
+    # characters trimmed from beginning of prefix vs. end of suffix
+    subsequences = [
+        VariantSequence(
+            prefix=original_prefix[i:],
+            alt=original_allele,
+            suffix=original_suffix[:-j] if j > 0 else original_suffix,
+            reads={str(i) + "_" + str(j)})
+        for i in range(20)
+        for j in range(20)
+    ]
+    eq_(len(subsequences), 400)
+    t_start = time()
+    results = iterative_overlap_assembly(
+        subsequences,
+        min_overlap_size=len(original_allele))
+    t_end = time()
+    eq_(len(results), 1)
+    result = results[0]
+    eq_(result.prefix, original_prefix)
+    eq_(result.suffix, original_suffix)
+    t_elapsed = t_end - t_start
+    assert t_elapsed < 0.1, \
+        "Expected assembly of 400 sequences to take less than 100ms: %0.4fms" % (
+            t_elapsed * 1000,)
