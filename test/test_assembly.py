@@ -135,7 +135,7 @@ def test_collapse_substrings():
     eq_(len(results), 2), "Expected two sequences, got %d: %s" % (
         len(results), results)
     vs_combined = vs_longer.add_reads({"2"})
-    assert vs_combined in results, "Expeceted %s to be in %s" % (vs_combined, results)
+    assert vs_combined in results, "Expected %s to be in %s" % (vs_combined, results)
     assert vs_unrelated in results, "Expected %s to be in %s" % (vs_unrelated, results)
 
 
@@ -155,6 +155,7 @@ def test_assembly_of_many_subsequences():
         for i in range(10)
         for j in range(10)
     ]
+    eq_(100, len(subsequences))
     # adding one decoy sequence which doesn't match
     decoy = VariantSequence(
         prefix="G" + original_prefix[1:],

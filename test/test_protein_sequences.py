@@ -242,13 +242,13 @@ def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
         eq_(
             len(df),
             len(expressed_variants),
-            "Expected %d entries for protein_sequnece_length=%d, got %d results: %s" % (
+            "Expected %d entries for protein_sequence_length=%d, got %d results: %s" % (
                 len(expressed_variants),
                 desired_length,
                 len(df),
                 df))
         protein_sequences = df["amino_acids"]
         print(protein_sequences)
-        protien_sequence_lengths = protein_sequences.str.len()
-        assert (protien_sequence_lengths == desired_length).all(), (
-            protien_sequence_lengths,)
+        protein_sequence_lengths = protein_sequences.str.len()
+        assert (protein_sequence_lengths == desired_length).all(), (
+            protein_sequence_lengths,)

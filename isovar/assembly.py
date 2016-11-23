@@ -129,44 +129,39 @@ def greedy_merge_old(
 def greedy_merge_helper(
         variant_sequences,
         min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
-    # variant_sequences is a dictionary of sequence to VariantSequence objects.
-    #
-    # return a dictionary of sequence to VariantSequence object, and True if any
+    # return a list of merged VariantSequence object, and True if any
     # were successfully merged
     merged_variant_sequences = {}
     merged_any = False
-    for i in range(0, len(variant_sequences)):
-        sequence1 = variant_sequences.values()[i]
+    for i in range(len(variant_sequences)):
+        sequence1 = variant_sequences[i]
         for j in range(i+1, len(variant_sequences)):
-            sequence2 = variant_sequences.values()[j]
+            sequence2 = variant_sequences[j]
             try:    
                 s = sequence1.combine(sequence2)
                 if s.sequence in merged_variant_sequences:
                     existing_s = merged_variant_sequences[s.sequence]
                     # we may have already created the same sequence from another set of reads, in
                     # which case we need to merge the reads
-                    if s.read_names != existing_s.read_names:
+                    if s.reads != existing_s.reads:
                         new_s = existing_s.combine(s)
                         s = new_s
                 merged_variant_sequences[s.sequence] = s
                 merged_any = True
             except ValueError:
                 continue
-    logger.info("\n\n\n")
-    return merged_variant_sequences, merged_any
+    return list(merged_variant_sequences.values()), merged_any
 
 def greedy_merge(
         variant_sequences,
         min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
     # construct a dictionary from the variant sequence objects
-    variant_sequence_dict = {s.sequence: s for s in variant_sequences}
-    to_merge = True
-    while to_merge and len(variant_sequence_dict) > 1:
-        merged_variant_sequences, to_merge = greedy_merge_helper(
-            variant_sequence_dict,
+    merged_any = True
+    while merged_any and len(variant_sequences) > 1:
+        variant_sequences, merged_any = greedy_merge_helper(
+            variant_sequences,
             MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE)
-        variant_sequence_dict = merged_variant_sequences
-    return list(variant_sequence_dict.values())
+    return variant_sequences
 
 def collapse_substrings(variant_sequences):
     """
