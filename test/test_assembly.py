@@ -202,3 +202,41 @@ def test_assembly_time():
     assert t_elapsed < 0.1, \
         "Expected assembly of 400 sequences to take less than 100ms: %0.4fms" % (
             t_elapsed * 1000,)
+
+def test_assembly_unrelated_sequences():
+    # 2 overlapping sequences, 1 with a different suffix,
+    # and 2 totally unrelated sequences
+    variant_sequences = [
+        VariantSequence(
+            prefix="CCC",
+            alt="T",
+            suffix="GGG",
+            reads={"1"}),
+        VariantSequence(
+            prefix="TCCC",
+            alt="T",
+            suffix="G",
+            reads={"2"}),
+        VariantSequence(
+            prefix="CCC",
+            alt="T",
+            suffix="AAA",
+            reads={"3"}),
+        VariantSequence(
+            prefix="AGG",
+            alt="T",
+            suffix="CGG",
+            reads={"4"}),
+        VariantSequence(
+            prefix="CAC",
+            alt="T",
+            suffix="TTT",
+            reads={"5"})
+    ]
+    results = iterative_overlap_assembly(
+        variant_sequences, min_overlap_size=1)
+    eq_(len(results), 4)
+    # first two sequences were overlapping
+    eq_(results[0].reads, {"1", "2"})
+    for singleton_result in results[1:]:
+        eq_(len(singleton_result.reads), 1)
