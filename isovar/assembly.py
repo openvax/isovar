@@ -120,6 +120,8 @@ def iterative_overlap_assembly(
     Assembles longer sequences from reads centered on a variant by
     between merging all pairs of overlapping sequences and collapsing
     shorter sequences onto every longer sequence which contains them.
+
+    Returns a list of variant sequences, sorted by decreasing read support.
     """
     if len(variant_sequences) <= 1:
         # if we don't have at least two sequences to start with then
@@ -135,4 +137,6 @@ def iterative_overlap_assembly(
         "Collapsed %d -> %d sequences",
         n_before_collapse,
         n_after_collapse)
-    return greedy_merge(variant_sequences, min_overlap_size)
+
+    merged_variant_sequences = greedy_merge(variant_sequences, min_overlap_size)
+    return list(sorted(merged_variant_sequences, key=lambda seq: -len(seq.reads)))
