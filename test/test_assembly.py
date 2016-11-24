@@ -99,9 +99,7 @@ def test_assembly_of_simple_sequence_from_mock_reads():
 
     # calling into either iterative_overlap_assembly or greedy_merge should
     # give same results
-    #
-    # removing iterative_overlap_assembly for now
-    for fn in [greedy_merge]:
+    for fn in [greedy_merge, iterative_overlap_assembly]:
 
         assembled_variant_sequences = fn(
             initial_variant_sequences,
