@@ -16,8 +16,9 @@
 from __future__ import print_function, division, absolute_import
 
 from ..default_parameters import (
-    MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
-    VARIANT_CDNA_SEQUENCE_LENGTH,
+    MIN_ALT_RNA_READS,
+    MIN_VARIANT_SEQUENCE_COVERAGE,
+    VARIANT_SEQUENCE_LENGTH,
 )
 from ..variant_sequences import (
     reads_generator_to_sequences_generator,
@@ -27,28 +28,36 @@ from .rna_reads import (
     allele_reads_generator_from_args,
     make_rna_reads_arg_parser
 )
-
 def add_variant_sequence_args(
         parser,
         add_sequence_length_arg=False):
-    rna_sequence_group = parser.add_argument_group("Consensus cDNA sequence")
+    rna_sequence_group = parser.add_argument_group(
+        "Determine coding sequence from RNA")
+
     rna_sequence_group.add_argument(
-        "--min-reads-supporting-variant-sequence",
+        "--min-alt-rna-reads",
         type=int,
-        default=MIN_READS_SUPPORTING_VARIANT_CDNA_SEQUENCE,
+        default=MIN_ALT_RNA_READS,
+        help="Minimum number of reads supporting variant allele (default %(default)s)")
+
+    rna_sequence_group.add_argument(
+        "--min-variant-sequence-coverage",
+        type=int,
+        default=MIN_VARIANT_SEQUENCE_COVERAGE,
         help="Minimum number of reads supporting a variant sequence (default %(default)s)")
 
     rna_sequence_group.add_argument(
-        "--variant-sequence-assembly",
-        default=False,
-        action="store_true")
-
+        "--disable-variant-sequence-assembly",
+        dest="variant_sequence_assembly",
+        default=True,
+        action="store_false",
+        help="Disable assemble variant cDNA sequence from overlapping reads")
     # when cDNA sequence length can be inferred from a protein length then
     # we may want to omit this arg
     if add_sequence_length_arg:
         rna_sequence_group.add_argument(
-            "--cdna-sequence-length",
-            default=VARIANT_CDNA_SEQUENCE_LENGTH,
+            "--variant-sequence-length",
+            default=VARIANT_SEQUENCE_LENGTH,
             type=int)
     return parser
 
@@ -80,9 +89,10 @@ def variant_sequences_generator_from_args(args):
     allele_reads_generator = allele_reads_generator_from_args(args)
     return reads_generator_to_sequences_generator(
         allele_reads_generator,
-        min_reads_supporting_cdna_sequence=args.min_reads_supporting_variant_sequence,
+        min_alt_rna_reads=args.min_alt_rna_reads,
+        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
         preferred_sequence_length=args.cdna_sequence_length,
-        variant_cdna_sequence_assembly=args.variant_sequence_assembly)
+        variant_sequence_assembly=args.variant_sequence_assembly)
 
 def variant_sequences_dataframe_from_args(args):
     variant_sequences_generator = variant_sequences_generator_from_args(args)
