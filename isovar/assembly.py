@@ -27,7 +27,7 @@ def greedy_merge_helper(
     """
     Returns a list of merged VariantSequence objects, and True if any
     were successfully merged.
-    """ 
+    """
     merged_variant_sequences = {}
     merged_any = False
 
@@ -39,20 +39,20 @@ def greedy_merge_helper(
         # arguments if sequence1 is on the right of sequence2
         for j in range(i+1, len(variant_sequences)):
             sequence2 = variant_sequences[j]
-            try:
-                s = sequence1.combine(sequence2)
-                if s.sequence in merged_variant_sequences:
-                    existing_s = merged_variant_sequences[s.sequence]
-                    # we may have already created the same sequence from another set of reads, in
-                    # which case we need to merge the reads
-                    if s.reads != existing_s.reads:
-                        s = s.add_reads(existing_s.reads)
-                merged_variant_sequences[s.sequence] = s
+            combined = sequence1.combine(sequence2)
+            if combined is None:
+                continue
+
+            if combined.sequence in merged_variant_sequences:
+                existing_s = merged_variant_sequences[s.sequence]
+                # we may have already created the same sequence from another set of reads, in
+                # which case we need to merge the reads
+                if combined.reads != existing_s.reads:
+                    combined = combined.add_reads(existing_s.reads)
+                merged_variant_sequences[s.sequence] = combined
                 unmerged_variant_sequences.discard(sequence1)
                 unmerged_variant_sequences.discard(sequence2)
                 merged_any = True
-            except ValueError:
-                continue
     result = list(merged_variant_sequences.values()) + list(unmerged_variant_sequences)
     return result, merged_any
 

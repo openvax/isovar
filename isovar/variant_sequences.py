@@ -138,13 +138,19 @@ class VariantSequence(VariantSequenceBase):
         them into a single VariantSequence object. If the other sequence
         is contained in this one, then add its reads to this VariantSequence.
         Also tries to flip the order (e.g. this sequence is a suffix or
-        this sequence is a subsequence).
+        this sequence is a subsequence). If sequences can't be combined
+        then returns None.
         """
         if other_sequence.alt != self.alt:
-            raise ValueError(
-                "Cannot combine %s and %s with mismatching alt sequences" % (
-                    self,
-                    other_sequence))
+            logger.warn(
+                "Cannot combine %s and %s with mismatching alt sequences",
+                self,
+                other_sequence)
+            return None
+        elif self.contains(other_sequence):
+            return self.add_reads(other_sequence.reads)
+        elif other_sequence.contains(self):
+            return other_sequence.add_reads(self.reads)
         elif self.left_overlaps(other_sequence):
             # If sequences are like AABC and ABCC
             return VariantSequence(
@@ -153,13 +159,14 @@ class VariantSequence(VariantSequenceBase):
                 suffix=other_sequence.suffix,
                 reads=self.reads.union(other_sequence.reads))
         elif other_sequence.left_overlaps(self):
-            return other_sequence.combine(self)
-        elif self.contains(other_sequence):
-            return self.add_reads(other_sequence.reads)
-        elif other_sequence.contains(self):
-            return other_sequence.add_reads(self.reads)
+            return VariantSequence(
+                prefix=other_sequence.prefix,
+                alt=self.alt,
+                suffix=self.suffix,
+                reads=self.reads.union(other_sequence.reads))
         else:
-            raise ValueError("%s does not overlap with %s" % (self, other_sequence))
+            # sequences don't overlap
+            return None
 
     def variant_indices(self):
         """
