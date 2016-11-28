@@ -46,8 +46,8 @@ def greedy_merge_helper(
                 continue
             if combined.sequence in merged_variant_sequences:
                 existing = merged_variant_sequences[combined.sequence]
-                # the existing VariantSequence the newly merged VariantSequence
-                # should differ only in which reads support them
+                # the existing VariantSequence and the newly merged
+                # VariantSequence should differ only in which reads support them
                 combined = combined.add_reads(existing.reads)
             merged_variant_sequences[combined.sequence] = combined
             unmerged_variant_sequences.discard(sequence1)
