@@ -17,6 +17,8 @@ from __future__ import print_function, division, absolute_import
 from collections import defaultdict
 import logging
 
+from six.moves import range
+
 from .default_parameters import MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
 
 logger = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ def greedy_merge_helper(
     """
     Returns a list of merged VariantSequence objects, and True if any
     were successfully merged.
-    """ 
+    """
     merged_variant_sequences = {}
     merged_any = False
 
@@ -37,22 +39,20 @@ def greedy_merge_helper(
         sequence1 = variant_sequences[i]
         # it works to loop over the triangle (i+1 onwards) because combine() tries flipping the
         # arguments if sequence1 is on the right of sequence2
-        for j in range(i+1, len(variant_sequences)):
+        for j in range(i + 1, len(variant_sequences)):
             sequence2 = variant_sequences[j]
-            try:
-                s = sequence1.combine(sequence2)
-                if s.sequence in merged_variant_sequences:
-                    existing_s = merged_variant_sequences[s.sequence]
-                    # we may have already created the same sequence from another set of reads, in
-                    # which case we need to merge the reads
-                    if s.reads != existing_s.reads:
-                        s = s.add_reads(existing_s.reads)
-                merged_variant_sequences[s.sequence] = s
-                unmerged_variant_sequences.discard(sequence1)
-                unmerged_variant_sequences.discard(sequence2)
-                merged_any = True
-            except ValueError:
+            combined = sequence1.combine(sequence2)
+            if combined is None:
                 continue
+            if combined.sequence in merged_variant_sequences:
+                existing = merged_variant_sequences[combined.sequence]
+                # the existing VariantSequence and the newly merged
+                # VariantSequence should differ only in which reads support them
+                combined = combined.add_reads(existing.reads)
+            merged_variant_sequences[combined.sequence] = combined
+            unmerged_variant_sequences.discard(sequence1)
+            unmerged_variant_sequences.discard(sequence2)
+            merged_any = True
     result = list(merged_variant_sequences.values()) + list(unmerged_variant_sequences)
     return result, merged_any
 
@@ -71,7 +71,7 @@ def greedy_merge(
     while merged_any:
         variant_sequences, merged_any = greedy_merge_helper(
             variant_sequences,
-            MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE)
+            min_overlap_size=min_overlap_size)
     return variant_sequences
 
 def collapse_substrings(variant_sequences):
@@ -85,12 +85,13 @@ def collapse_substrings(variant_sequences):
 
     Returns a (potentially shorter) list without any contained subsequences.
     """
-    # dictionary mapping VariantSequence objects to lists of reads
-    # they absorb from substring VariantSequences
     if len(variant_sequences) <= 1:
         # if we don't have at least two VariantSequences then just
         # return your input
         return variant_sequences
+
+    # dictionary mapping VariantSequence objects to lists of reads
+    # they absorb from substring VariantSequences
     extra_reads_from_substrings = defaultdict(set)
     result_list = []
     # sort by longest to shortest total length
@@ -139,4 +140,6 @@ def iterative_overlap_assembly(
         n_after_collapse)
 
     merged_variant_sequences = greedy_merge(variant_sequences, min_overlap_size)
-    return list(sorted(merged_variant_sequences, key=lambda seq: -len(seq.reads)))
+    return list(sorted(
+        merged_variant_sequences,
+        key=lambda seq: -len(seq.reads)))
