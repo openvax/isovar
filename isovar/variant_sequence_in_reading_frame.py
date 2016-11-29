@@ -19,16 +19,24 @@ translations.
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple
+
 import logging
 
 from six.moves import range, zip
 
 from .dna import reverse_complement_dna
+from .value_object import ValueObject
 
 logger = logging.getLogger(__name__)
 
-class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", (
+class VariantSequenceInReadingFrame(ValueObject):
+    """
+    A variant cDNA sequence (possibly trimmed to get rid of low coverage
+    tails) assigned to a particular strand ('+' or '-') and reading frame
+    (one of 0, +1, +2). The strand and reading frame are determined by
+    matching the cDNA sequence to a ReferenceContext.
+    """
+    __slots__ = [
         # since the reference context and variant sequence may have
         # different numbers of nucleotides before the variant, the cDNA prefix
         # gets truncated to the shortest length. To avoid having to recompute
@@ -40,11 +48,24 @@ class VariantSequenceInReadingFrame(namedtuple("VariantSequenceInReadingFrame", 
         "variant_cdna_interval_start",
         "variant_cdna_interval_end",
         "reference_cdna_sequence_before_variant",
-        "number_mismatches"))):
-    """
-    VariantSequence trimmed to have its first codon align with a reading
-    frame determined from a ReferenceContext.
-    """
+        "number_mismatches"
+    ]
+
+    def __init__(
+            self,
+            cdna_sequence,
+            offset_to_first_complete_codon,
+            variant_cdna_interval_start,
+            variant_cdna_interval_end,
+            reference_cdna_sequence_before_variant,
+            number_mismatches):
+        self.cdna_sequence = cdna_sequence
+        self.offset_to_first_complete_codon = offset_to_first_complete_codon
+        self.variant_cdna_interval_start = variant_cdna_interval_start
+        self.variant_cdna_interval_end = variant_cdna_interval_end
+        self.reference_cdna_sequence_before_variant = (
+            reference_cdna_sequence_before_variant)
+        self.number_mismatches = number_mismatches
 
     @classmethod
     def from_variant_sequence_and_reference_context(

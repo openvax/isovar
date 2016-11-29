@@ -38,13 +38,29 @@ class MetaclassCollectSlots(type):
                 for cls in inherited_class_order))
 
 @add_metaclass(MetaclassCollectSlots)
-class CompactObject(object):
+class ValueObject(object):
     """
     Base class for objects which define their fields
     via __slots__ to decrease memory footporint and
     speed up field access.
+
+    Since a ValueObject can specified purely by a list of field names
+    and then inherits a lot of useful helper methods (e.g. hashing,
+    equality, string representation) it can act as something like
+    an algebraic datatype implementation in Python.
     """
     __slots__ = []
+
+    def __init__(self, **kwargs):
+        """
+        Default initializer for any instance of ValueObject
+        """
+        for field_name in self._fields:
+            if field_name not in kwargs:
+                raise ValueError("Missing argument '%s' to %s.__init__" % (
+                    field_name,
+                    self.__class__.__name__))
+            setattr(self, field_name, kwargs[field_name])
 
     def _values_generator(self):
         return (getattr(self, name) for name in self._fields)

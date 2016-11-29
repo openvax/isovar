@@ -20,7 +20,6 @@ translations.
 
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple
 import math
 import logging
 
@@ -40,32 +39,41 @@ from .default_parameters import (
     VARIANT_SEQUENCE_ASSEMBLY,
 )
 from .dataframe_builder import dataframe_from_generator
-
+from .value_object import ValueObject
 
 logger = logging.getLogger(__name__)
 
-# TranslationKey contains fields related to a translated protein sequence
-# which should be used to combine multiple equivalent mutated amino acid
-# sequences.
-TranslationKey = namedtuple("TranslationKey", (
-    # translated sequence of a variant sequence in the ORF established
-    # by a reference context
-    "amino_acids",
-    # half-open interval coordinates for variant amino acids
-    # in the translated sequence
-    "variant_aa_interval_start",
-    "variant_aa_interval_end",
-    # did the amino acid sequence end due to a stop codon or did we
-    # just run out of sequence context around the variant?
-    "ends_with_stop_codon",
-    # was the variant a frameshift relative to the reference sequence?
-    "frameshift"))
+class TranslationKey(ValueObject):
+    """
+    TranslationKey contains fields related to a translated protein sequence
+    which should be used to combine multiple equivalent mutated amino acid
+    sequences.
+    """
+    __slots__ = [
+        # translated sequence of a variant sequence in the ORF established
+        # by a reference context
+        "amino_acids",
+        # half-open interval coordinates for variant amino acids
+        # in the translated sequence
+        "variant_aa_interval_start",
+        "variant_aa_interval_end",
+        # did the amino acid sequence end due to a stop codon or did we
+        # just run out of sequence context around the variant?
+        "ends_with_stop_codon",
+        # was the variant a frameshift relative to the reference sequence?
+        "frameshift"
+    ]
 
-class Translation(object):
+class Translation(TranslationKey):
     """
     Translated amino acid sequence of a VariantSequenceInReadingFrame for a
     particular ReferenceContext and VariantSequence.
     """
+    __slots__ = [
+        "untrimmed_variant_sequence",
+        "reference_context",
+        "variant_sequence_in_reading_frame"
+    ]
 
     def __init__(
             self,
