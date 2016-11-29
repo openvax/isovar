@@ -119,12 +119,15 @@ class VariantSequence(ValueObject):
         """
         if len(reads) == 0:
             return self
-        else:
+        new_reads = self.reads.union(reads)
+        if len(new_reads) > len(self.reads):
             return VariantSequence(
                 prefix=self.prefix,
                 alt=self.alt,
                 suffix=self.suffix,
-                reads=self.reads.union(reads))
+                reads=new_reads)
+        else:
+            return self
 
     def combine(self, other_sequence):
         """
