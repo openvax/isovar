@@ -22,6 +22,10 @@ def test_default_init():
 class DerivedWithInit(ValueObject):
     __slots__ = ["a", "b"]
 
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
 def test_equality_checks_class():
     # two objects of different classes should not be equal
     # even if their fields are the same
