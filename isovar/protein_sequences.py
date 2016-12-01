@@ -140,8 +140,8 @@ class ProteinSequence(TranslationKey):
             transcripts_supporting_protein_sequence,
             gene):
         """
-        Create a ProteinSequence object from a TranslationKey, and extra fields
-        which must be supplied in extra_kwargs.
+        Create a ProteinSequence object from a TranslationKey, along with
+        all the extra fields a ProteinSequence requires.
         """
         return cls(
             amino_acids=translation_key.amino_acids,
