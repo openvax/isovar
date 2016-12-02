@@ -19,7 +19,6 @@ for extracting variant nucleotides.
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple
 import logging
 
 from .default_parameters import (
@@ -29,17 +28,34 @@ from .default_parameters import (
 )
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
-
+from .value_object import ValueObject
 
 logger = logging.getLogger(__name__)
 
-class LocusRead(namedtuple("LocusRead", [
+class LocusRead(ValueObject):
+    __slots__ = [
         "name",
         "sequence",
         "reference_positions",
         "quality_scores",
         "base0_read_position_before_variant",
-        "base0_read_position_after_variant"])):
+        "base0_read_position_after_variant"
+    ]
+
+    def __init__(
+            self,
+            name,
+            sequence,
+            reference_positions,
+            quality_scores,
+            base0_read_position_before_variant,
+            base0_read_position_after_variant):
+        self.name = name
+        self.sequence = sequence
+        self.reference_positions = reference_positions
+        self.quality_scores = quality_scores
+        self.base0_read_position_before_variant = base0_read_position_before_variant
+        self.base0_read_position_after_variant = base0_read_position_after_variant
 
     @classmethod
     def from_pysam_pileup_element(

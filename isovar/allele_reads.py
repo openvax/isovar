@@ -30,12 +30,12 @@ from .default_parameters import (
 from .variant_helpers import trim_variant
 from .dataframe_builder import DataFrameBuilder
 from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
-from .compact_object import CompactObject
+from .value_object import ValueObject
 
 logger = logging.getLogger(__name__)
 
 
-class AlleleRead(CompactObject):
+class AlleleRead(ValueObject):
     __slots__ = ["prefix", "allele", "suffix", "name", "sequence"]
 
     def __init__(self, prefix, allele, suffix, name):

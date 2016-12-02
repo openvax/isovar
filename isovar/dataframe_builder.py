@@ -29,7 +29,7 @@ class DataFrameBuilder(object):
     """
     Helper class for constructing a DataFrame which always has fields
     of a variant (chr/pos/ref/alt) as well as some subset of the fields
-    from a namedtuple.
+    from a namedtuple or ValueObject.
     """
     def __init__(
             self,
@@ -47,7 +47,7 @@ class DataFrameBuilder(object):
         element_class : type
             Class of elements in this collection.
 
-        field_name : list, optional
+        field_names : list, optional
             If not given then we expect element_class to have a class member
             named '_fields' which is a list of field names.
 

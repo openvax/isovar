@@ -19,9 +19,9 @@ Helper functions for normalizing and working with genomic variants
 from __future__ import print_function, division, absolute_import
 import logging
 
+from six.moves import range
 
 logger = logging.getLogger(__name__)
-
 
 def trim_variant_fields(location, ref, alt):
     """

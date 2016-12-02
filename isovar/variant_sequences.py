@@ -14,7 +14,6 @@
 
 from __future__ import print_function, division, absolute_import
 import logging
-from collections import namedtuple
 
 import numpy as np
 
@@ -32,14 +31,12 @@ from .default_parameters import (
 )
 from .dataframe_builder import dataframe_from_generator
 from .assembly import iterative_overlap_assembly, collapse_substrings
+from .value_object import ValueObject
 
 logger = logging.getLogger(__name__)
 
-# using this base class to define the core fields of a VariantSequence
-# but inheriting it from it to allow the addition of helper methods
-VariantSequenceBase = namedtuple(
-    "VariantSequence",
-    [
+class VariantSequence(ValueObject):
+    __slots__ = [
         # nucleotides before a variant
         "prefix",
         # nucleotide sequence of a variant
@@ -49,18 +46,15 @@ VariantSequenceBase = namedtuple(
         # since we often want to look at prefix+alt+suffix, let's cache it
         "sequence",
         # reads which were used to determine this sequences
-        "reads"])
+        "reads"
+    ]
 
-class VariantSequence(VariantSequenceBase):
-    def __new__(cls, prefix, alt, suffix, reads):
-        # construct sequence from prefix + alt + suffix
-        return VariantSequenceBase.__new__(
-            cls,
-            prefix=prefix,
-            alt=alt,
-            suffix=suffix,
-            sequence=prefix + alt + suffix,
-            reads=frozenset(reads))
+    def __init__(self, prefix, alt, suffix, reads):
+        self.prefix = prefix
+        self.alt = alt
+        self.suffix = suffix
+        self.sequence = prefix + alt + suffix
+        self.reads = frozenset(reads)
 
     def __len__(self):
         return len(self.sequence)
@@ -125,12 +119,15 @@ class VariantSequence(VariantSequenceBase):
         """
         if len(reads) == 0:
             return self
-        else:
+        new_reads = self.reads.union(reads)
+        if len(new_reads) > len(self.reads):
             return VariantSequence(
                 prefix=self.prefix,
                 alt=self.alt,
                 suffix=self.suffix,
-                reads=self.reads.union(reads))
+                reads=new_reads)
+        else:
+            return self
 
     def combine(self, other_sequence):
         """

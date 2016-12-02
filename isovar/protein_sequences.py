@@ -20,7 +20,6 @@ ProteinSequence.
 """
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple
 import logging
 
 from .common import groupby
@@ -38,24 +37,19 @@ from .translation import translate_variant_reads, Translation, TranslationKey
 from .read_helpers import group_reads_by_allele
 from .variant_helpers import trim_variant
 
-##########################
-#
-# ProteinSequence
-# ---------------
-#
-# Translated amino acid sequence aggregated across possibly multiple
-# VariantSequence and ReferenceContext objects (e.g. imagine two distinct
-# sequences which contain synonymous codons).
-#
-# This is the final result of the isovar variant->expressed peptide pipeline.
-#
-##########################
 
 logger = logging.getLogger(__name__)
 
-ProteinSequenceBase = namedtuple(
-    "ProteinSequence",
-    TranslationKey._fields + (
+
+class ProteinSequence(TranslationKey):
+    """
+    Translated amino acid sequence aggregated across possibly multiple
+    VariantSequence and ReferenceContext objects (e.g. imagine two distinct
+    sequences which contain synonymous codons).
+
+    This is the final result of the isovar variant->expressed peptide pipeline.
+    """
+    __slots__ = [
         # list of all the Translation objects which support this distinct
         # amino acid sequence
         "translations",
@@ -79,9 +73,39 @@ ProteinSequenceBase = namedtuple(
         # name of gene of the reference transcripts used in Translation
         # objects
         "gene",
-    ))
+    ]
 
-class ProteinSequence(ProteinSequenceBase):
+    def __init__(
+            self,
+            amino_acids,
+            variant_aa_interval_start,
+            variant_aa_interval_end,
+            ends_with_stop_codon,
+            frameshift,
+            translations,
+            overlapping_reads,
+            ref_reads,
+            alt_reads,
+            alt_reads_supporting_protein_sequence,
+            transcripts_overlapping_variant,
+            transcripts_supporting_protein_sequence,
+            gene):
+        self.amino_acids = amino_acids
+        self.variant_aa_interval_start = variant_aa_interval_start
+        self.variant_aa_interval_end = variant_aa_interval_end
+        self.ends_with_stop_codon = ends_with_stop_codon
+        self.frameshift = frameshift
+        self.translations = translations
+        self.overlapping_reads = overlapping_reads
+        self.ref_reads = ref_reads
+        self.alt_reads = alt_reads
+        self.alt_reads_supporting_protein_sequence = (
+            alt_reads_supporting_protein_sequence)
+        self.transcripts_overlapping_variant = transcripts_overlapping_variant
+        self.transcripts_supporting_protein_sequence = (
+            transcripts_supporting_protein_sequence)
+        self.gene = gene
+
     @classmethod
     def _summarize_translations(cls, translations):
         """
@@ -104,16 +128,37 @@ class ProteinSequence(ProteinSequenceBase):
         return unique_reads, transcript_ids, gene_names
 
     @classmethod
-    def from_translation_key(cls, translation_key, **extra_kwargs):
+    def from_translation_key(
+            cls,
+            translation_key,
+            translations,
+            overlapping_reads,
+            ref_reads,
+            alt_reads,
+            alt_reads_supporting_protein_sequence,
+            transcripts_overlapping_variant,
+            transcripts_supporting_protein_sequence,
+            gene):
         """
-        Create a ProteinSequence object from a TranslationKey, and extra fields
-        which must be supplied in extra_kwargs.
+        Create a ProteinSequence object from a TranslationKey, along with
+        all the extra fields a ProteinSequence requires.
         """
-        values_dict = {}
-        for name in TranslationKey._fields:
-            values_dict[name] = getattr(translation_key, name)
-        values_dict.update(extra_kwargs)
-        return cls(**values_dict)
+        return cls(
+            amino_acids=translation_key.amino_acids,
+            variant_aa_interval_start=translation_key.variant_aa_interval_start,
+            variant_aa_interval_end=translation_key.variant_aa_interval_end,
+            ends_with_stop_codon=translation_key.ends_with_stop_codon,
+            frameshift=translation_key.frameshift,
+            translations=translations,
+            overlapping_reads=overlapping_reads,
+            ref_reads=ref_reads,
+            alt_reads=alt_reads,
+            alt_reads_supporting_protein_sequence=(
+                alt_reads_supporting_protein_sequence),
+            transcripts_overlapping_variant=transcripts_overlapping_variant,
+            transcripts_supporting_protein_sequence=(
+                transcripts_supporting_protein_sequence),
+            gene=gene)
 
     def ascending_sort_key(self):
         """
@@ -128,8 +173,7 @@ class ProteinSequence(ProteinSequenceBase):
         """
         return (
             len(self.alt_reads_supporting_protein_sequence),
-            min(
-                t.number_mismatches
+            min(t.number_mismatches
                 for t in self.translations),
             len(self.transcripts_supporting_protein_sequence)
         )
@@ -139,7 +183,10 @@ def sort_protein_sequences(protein_sequences):
     Sort protein sequences in decreasing order of priority
     """
     return list(
-        sorted(protein_sequences, key=ProteinSequence.ascending_sort_key, reverse=True))
+        sorted(
+            protein_sequences,
+            key=ProteinSequence.ascending_sort_key,
+            reverse=True))
 
 def reads_generator_to_protein_sequences_generator(
         variant_and_overlapping_reads_generator,
