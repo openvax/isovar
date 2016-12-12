@@ -198,6 +198,76 @@ class LocusRead(ValueObject):
             base0_read_position_before_variant=base0_read_position_before_variant,
             base0_read_position_after_variant=base0_read_position_after_variant)
 
+class LocusReadExtractor(object):
+    """
+    Holds to an AlignmentFile object for a SAM/BAM file and then
+    generates lists of LocusRead objects at the specified locus.
+    """
+    def __init__(
+            self,
+            samfile=samfile,
+            use_duplicate_reads=USE_DUPLICATE_READS,
+            use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
+            min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+        self.samfile = samfile
+        self.use_duplicate_reads = use_duplicate_reads
+        self.use_secondary_alignments = use_secondary_alignments
+        self.min_mapping_quality = min_mapping_quality
+
+    def _convert_aligned_segment(self, aligned_segment):
+        """
+        Converts pysam.AlignedSegment object to LocusRead. Can also return None
+        if aligned segment doesn't meet the filtering criteria such as
+        minimum mapping quality.
+        """
+    def get_locus_reads(
+        self,
+        chromosome,
+        base0_locus_start,
+        base0_locus_end):
+    """
+    Generator that yields a sequence of ReadAtLocus records for reads which
+    overlap the requested locus. The actual work to figure out if what's at the
+    locus matches a variant happens later.
+
+    Parameters
+    ----------
+    samfile : pysam.AlignmentFile
+
+    chromosome : str
+
+    base0_locus_start : int
+        Interbase position before first reference nucleotide
+
+    base0_locus_end : int
+        Interbase position after last reference nucleotide
+
+    Returns list of LocusRead objects
+    """
+    logger.debug(
+        "Gathering reads at locus chr=%s, interbase start=%d, interbase end=%d",
+        chromosome,
+        base0_locus_start,
+        base0_locus_end)
+
+    reads = []
+    # iterate over any pysam.AlignedSegment objects which overlap this locus
+    for aligned_segment in samfile.fetch(
+        chromosome, base0_locus_start, base0_locus_end):
+
+
+    logger.info(
+        "Found %d reads overlapping locus %s: %d-%d",
+        count,
+        chromosome,
+        base1_position_before_variant,
+        base1_position_after_variant)
+    # TODO: de-duplicate reads by name
+    # since overlapping mate pairs will have the same name, then...
+    #
+    # TODO: combine overlapping mate pairs into single sequence before
+    # de-duplication
+
 def pileup_reads_at_position(samfile, chromosome, base0_position):
     """
     Returns a pileup column at the specified position. Unclear if a function
@@ -224,82 +294,6 @@ def pileup_reads_at_position(samfile, chromosome, base0_position):
     # if we get to this point then we never saw a pileup at the
     # desired position
     return []
-
-def locus_read_generator(
-        samfile,
-        chromosome,
-        base1_position_before_variant,
-        base1_position_after_variant,
-        use_duplicate_reads=USE_DUPLICATE_READS,
-        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
-    """
-    Generator that yields a sequence of ReadAtLocus records for reads which
-    contain the positions before and after a variant. The actual work to figure
-    out if what's between those positions matches a variant happens later in
-    the `variant_reads` module.
-
-    Parameters
-    ----------
-    samfile : pysam.AlignmentFile
-
-    chromosome : str
-
-    base1_position_before_variant : int
-        Genomic position of reference nucleotide before a variant
-
-    base1_position_after_variant : int
-        Genomic position of reference nucleotide before a variant
-
-    use_duplicate_reads : bool
-        By default, we're ignoring any duplicate reads
-
-    use_secondary_alignments : bool
-        By default we are using secondary alignments, set this to False to
-        only use primary alignments of reads.
-
-    min_mapping_quality : int
-        Drop reads below this mapping quality
-
-    Yields ReadAtLocus objects
-    """
-    logger.debug(
-        "Gathering reads at locus %s: %d-%d",
-        chromosome,
-        base1_position_before_variant,
-        base1_position_after_variant)
-    base0_position_before_variant = base1_position_before_variant - 1
-    base0_position_after_variant = base1_position_after_variant - 1
-
-    count = 0
-
-    # We get a pileup at the base before the variant and then check to make sure
-    # that reads also overlap the reference position after the variant.
-    #
-    # TODO: scan over a wider interval of pileups and collect reads that don't
-    # overlap the bases before/after a variant due to splicing
-    for pileup_element in pileup_reads_at_position(
-            samfile=samfile,
-            chromosome=chromosome,
-            base0_position=base0_position_before_variant):
-        read = LocusRead.from_pysam_pileup_element(
-            pileup_element,
-            base0_position_before_variant=base0_position_before_variant,
-            base0_position_after_variant=base0_position_after_variant,
-            use_secondary_alignments=use_secondary_alignments,
-            use_duplicate_reads=use_duplicate_reads,
-            min_mapping_quality=min_mapping_quality)
-
-        if read is not None:
-            count += 1
-            yield read
-
-    logger.info(
-        "Found %d reads overlapping locus %s: %d-%d",
-        count,
-        chromosome,
-        base1_position_before_variant,
-        base1_position_after_variant)
 
 def locus_reads_dataframe(*args, **kwargs):
     """
