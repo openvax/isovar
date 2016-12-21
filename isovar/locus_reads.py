@@ -221,79 +221,53 @@ class LocusReadExtractor(object):
         minimum mapping quality.
         """
     def get_locus_reads(
-        self,
-        chromosome,
-        base0_locus_start,
-        base0_locus_end):
-    """
-    Generator that yields a sequence of ReadAtLocus records for reads which
-    overlap the requested locus. The actual work to figure out if what's at the
-    locus matches a variant happens later.
-
-    Parameters
-    ----------
-    samfile : pysam.AlignmentFile
-
-    chromosome : str
-
-    base0_locus_start : int
-        Interbase position before first reference nucleotide
-
-    base0_locus_end : int
-        Interbase position after last reference nucleotide
-
-    Returns list of LocusRead objects
-    """
-    logger.debug(
-        "Gathering reads at locus chr=%s, interbase start=%d, interbase end=%d",
-        chromosome,
-        base0_locus_start,
-        base0_locus_end)
-
-    reads = []
-    # iterate over any pysam.AlignedSegment objects which overlap this locus
-    for aligned_segment in samfile.fetch(
-        chromosome, base0_locus_start, base0_locus_end):
-
-
-    logger.info(
-        "Found %d reads overlapping locus %s: %d-%d",
-        count,
-        chromosome,
-        base1_position_before_variant,
-        base1_position_after_variant)
-    # TODO: de-duplicate reads by name
-    # since overlapping mate pairs will have the same name, then...
-    #
-    # TODO: combine overlapping mate pairs into single sequence before
-    # de-duplication
-
-def pileup_reads_at_position(samfile, chromosome, base0_position):
-    """
-    Returns a pileup column at the specified position. Unclear if a function
-    like this is hiding somewhere in pysam API.
-    """
-
-    # TODO: I want to pass truncate=True, stepper="all"
-    # but for some reason I get this error:
-    #      pileup() got an unexpected keyword argument 'truncate'
-    # ...even though these options are listed in the docs for pysam 0.9.0
-    #
-    for column in samfile.pileup(
+            self,
             chromosome,
-            start=base0_position,
-            end=base0_position + 1):
+            base0_locus_start,
+            base0_locus_end):
+        """
+        Generator that yields a sequence of ReadAtLocus records for reads which
+        overlap the requested locus. The actual work to figure out if what's at the
+        locus matches a variant happens later.
 
-        if column.pos != base0_position:
-            # if this column isn't centered on the base before the
-            # variant then keep going
-            continue
+        Parameters
+        ----------
+        samfile : pysam.AlignmentFile
 
-        return column.pileups
+        chromosome : str
 
-    # if we get to this point then we never saw a pileup at the
-    # desired position
-    return []
+        base0_locus_start : int
+            Interbase position before first reference nucleotide
+
+        base0_locus_end : int
+            Interbase position after last reference nucleotide
+
+        Returns list of LocusRead objects
+        """
+        logger.debug(
+            "Gathering reads at locus chr=%s, interbase start=%d, interbase end=%d",
+            chromosome,
+            base0_locus_start,
+            base0_locus_end)
+
+        reads = []
+        # iterate over any pysam.AlignedSegment objects which overlap this locus
+        for aligned_segment in samfile.fetch(
+            chromosome, base0_locus_start, base0_locus_end):
+            pass
+
+        logger.info(
+            "Found %d reads overlapping locus %s: %d-%d",
+            count,
+            chromosome,
+            base1_position_before_variant,
+            base1_position_after_variant)
+        # TODO: de-duplicate reads by name
+        # since overlapping mate pairs will have the same name, then...
+        #
+        # TODO: combine overlapping mate pairs into single sequence before
+        # de-duplication
+
 
 def locus_reads_dataframe(*args, **kwargs):
     """
