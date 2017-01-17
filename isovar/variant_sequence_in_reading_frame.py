@@ -238,16 +238,10 @@ def count_mismatches_after_variant(reference_suffix, cdna_suffix):
     """
     
     len_diff = len(cdna_suffix) - len(reference_suffix)
-    if len_diff > 0:
-        # if the reference is shorter than the read, the read runs into the intron - these count as
-        # mismatches. pad the reference suffix if necessary with underscores
-        reference_suffix += '_' * len_diff
-    elif len_diff < 0:
-        # reference is longer than the read, so trim the reference to ignore everything after read
-        # length
-        reference_suffix = reference_suffix[:len_diff]
 
-    return sum(xi != yi for (xi, yi) in zip(reference_suffix, cdna_suffix))
+    # if the reference is shorter than the read, the read runs into the intron - these count as
+    # mismatches
+    return sum(xi != yi for (xi, yi) in zip(reference_suffix, cdna_suffix)) + max(0, len_diff)
 
 def compute_offset_to_first_complete_codon(
         offset_to_first_complete_reference_codon,
