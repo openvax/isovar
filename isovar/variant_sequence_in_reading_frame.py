@@ -48,7 +48,9 @@ class VariantSequenceInReadingFrame(ValueObject):
         "variant_cdna_interval_start",
         "variant_cdna_interval_end",
         "reference_cdna_sequence_before_variant",
-        "number_mismatches"
+        "reference_cdna_sequence_after_variant",
+        "number_mismatches_before_variant",
+        "number_mismatches_after_variant"
     ]
 
     def __init__(
@@ -58,14 +60,20 @@ class VariantSequenceInReadingFrame(ValueObject):
             variant_cdna_interval_start,
             variant_cdna_interval_end,
             reference_cdna_sequence_before_variant,
-            number_mismatches):
+            reference_cdna_sequence_after_variant,
+            number_mismatches_before_variant,
+            number_mismatches_after_variant
+            ):
         self.cdna_sequence = cdna_sequence
         self.offset_to_first_complete_codon = offset_to_first_complete_codon
         self.variant_cdna_interval_start = variant_cdna_interval_start
         self.variant_cdna_interval_end = variant_cdna_interval_end
         self.reference_cdna_sequence_before_variant = (
             reference_cdna_sequence_before_variant)
-        self.number_mismatches = number_mismatches
+        self.reference_cdna_sequence_after_variant = (
+            reference_cdna_sequence_after_variant)
+        self.number_mismatches_before_variant = number_mismatches_before_variant
+        self.number_mismatches_after_variant = number_mismatches_after_variant
 
     @classmethod
     def from_variant_sequence_and_reference_context(
@@ -82,19 +90,22 @@ class VariantSequenceInReadingFrame(ValueObject):
 
         Returns a VariantSequenceInReadingFrame object
         """
-        cdna_prefix, cdna_alt, cdna_suffix, reference_prefix, n_trimmed_from_reference = \
-            trim_sequences(variant_sequence, reference_context)
+        (cdna_prefix, cdna_alt, cdna_suffix,
+            reference_prefix, reference_suffix, n_trimmed_from_reference) = trim_sequences(
+                variant_sequence, reference_context)
 
         logger.info(
             ("cdna_predix='%s', cdna_alt='%s', cdna_suffix='%s', "
-             "reference_prefix='%s', n_trimmed=%d"),
+             "reference_prefix='%s', reference_suffix='%s', n_trimmed=%d"),
             cdna_prefix,
             cdna_alt,
             cdna_suffix,
             reference_prefix,
+            reference_suffix,
             n_trimmed_from_reference)
 
-        n_mismatch_before_variant = count_mismatches(reference_prefix, cdna_prefix)
+        n_mismatch_before_variant = count_mismatches_before_variant(reference_prefix, cdna_prefix)
+        n_mismatch_after_variant = count_mismatches_after_variant(reference_suffix, cdna_suffix)
 
         ref_codon_offset = reference_context.offset_to_first_complete_codon
 
@@ -115,7 +126,9 @@ class VariantSequenceInReadingFrame(ValueObject):
             variant_cdna_interval_start=variant_interval_start,
             variant_cdna_interval_end=variant_interval_end,
             reference_cdna_sequence_before_variant=reference_prefix,
-            number_mismatches=n_mismatch_before_variant)
+            reference_cdna_sequence_after_variant=reference_suffix,
+            number_mismatches_before_variant=n_mismatch_before_variant,
+            number_mismatches_after_variant=n_mismatch_after_variant)
 
 def trim_sequences(variant_sequence, reference_context):
     """
@@ -145,7 +158,8 @@ def trim_sequences(variant_sequence, reference_context):
            is the reverse complement of the original prefix sequence.
         4) Reference sequence before the variant locus, trimmed to be the
            same length as the variant prefix.
-        5) Number of nucleotides trimmed from the reference sequence, used
+        5) Reference sequence after the variant locus, untrimmed.
+        6) Number of nucleotides trimmed from the reference sequence, used
            later for adjustint offset to first complete codon.
     """
     cdna_prefix = variant_sequence.prefix
@@ -165,8 +179,9 @@ def trim_sequences(variant_sequence, reference_context):
         )
 
     reference_sequence_before_variant = reference_context.sequence_before_variant_locus
+    reference_sequence_after_variant = reference_context.sequence_after_variant_locus
 
-    # trim the reference sequence and the RNA-derived sequence to the same length
+    # trim the reference prefix and the RNA-derived prefix sequences to the same length
     if len(reference_sequence_before_variant) > len(cdna_prefix):
         n_trimmed_from_reference = len(reference_sequence_before_variant) - len(cdna_prefix)
         n_trimmed_from_variant = 0
@@ -179,7 +194,6 @@ def trim_sequences(variant_sequence, reference_context):
 
     reference_sequence_before_variant = reference_sequence_before_variant[
         n_trimmed_from_reference:]
-
     cdna_prefix = cdna_prefix[n_trimmed_from_variant:]
 
     return (
@@ -187,12 +201,14 @@ def trim_sequences(variant_sequence, reference_context):
         cdna_alt,
         cdna_suffix,
         reference_sequence_before_variant,
+        reference_sequence_after_variant,
         n_trimmed_from_reference
     )
 
-def count_mismatches(reference_prefix, cdna_prefix):
+def count_mismatches_before_variant(reference_prefix, cdna_prefix):
     """
-    Computes the number of mismatching nucleotides between two cDNA sequences.
+    Computes the number of mismatching nucleotides between two cDNA sequences before a variant
+    locus.
 
     Parameters
     ----------
@@ -208,6 +224,24 @@ def count_mismatches(reference_prefix, cdna_prefix):
                 reference_prefix, cdna_prefix))
     return sum(xi != yi for (xi, yi) in zip(reference_prefix, cdna_prefix))
 
+def count_mismatches_after_variant(reference_suffix, cdna_suffix):
+    """
+    Computes the number of mismatching nucleotides between two cDNA sequences after a variant locus.
+
+    Parameters
+    ----------
+    reference_suffix : str
+        cDNA sequence of a reference transcript after a variant locus
+
+    cdna_suffix : str
+        cDNA sequence detected from RNAseq after a variant locus
+    """
+    
+    len_diff = len(cdna_suffix) - len(reference_suffix)
+
+    # if the reference is shorter than the read, the read runs into the intron - these count as
+    # mismatches
+    return sum(xi != yi for (xi, yi) in zip(reference_suffix, cdna_suffix)) + max(0, len_diff)
 
 def compute_offset_to_first_complete_codon(
         offset_to_first_complete_reference_codon,
@@ -242,6 +276,7 @@ def match_variant_sequence_to_reference_context(
         reference_context,
         min_transcript_prefix_length,
         max_transcript_mismatches,
+        include_mismatches_after_variant=False,
         max_trimming_attempts=2):
     """
     Iteratively trim low-coverage subsequences of a variant sequence
@@ -266,6 +301,11 @@ def match_variant_sequence_to_reference_context(
     max_transcript_mismatches : int
         Maximum number of nucleotide differences between reference transcript
         sequence and the variant sequence.
+
+    include_mismatches_after_variant : bool
+        Set to true if the number of mismatches after the variant locus should
+        count toward the total max_transcript_mismatches, which by default
+        only counts mismatches before the variant locus.
 
     max_trimming_attempts : int
         How many times do we try trimming the VariantSequence to higher
@@ -304,14 +344,19 @@ def match_variant_sequence_to_reference_context(
             return None
 
         n_mismatch_before_variant = (
-            variant_sequence_in_reading_frame.number_mismatches)
+            variant_sequence_in_reading_frame.number_mismatches_before_variant)
+        n_mismatch_after_variant = (
+            variant_sequence_in_reading_frame.number_mismatches_after_variant)
 
         logger.info("Iter #%d/%d: %s" % (
             i + 1,
             max_trimming_attempts + 1,
             variant_sequence_in_reading_frame))
 
-        if n_mismatch_before_variant <= max_transcript_mismatches:
+        total_mismatches = n_mismatch_before_variant
+        if include_mismatches_after_variant:
+            total_mismatches += n_mismatch_after_variant
+        if total_mismatches <= max_transcript_mismatches:
             # if we got a variant sequence + reading frame with sufficiently
             # few mismatches then call it a day
             return variant_sequence_in_reading_frame
