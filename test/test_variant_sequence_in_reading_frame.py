@@ -150,13 +150,17 @@ def make_inputs_for_tp53_201_variant(
         transcripts=[transcript])
     assert isinstance(reference_context, ReferenceContext)
 
+    # reference context can be shorter than the cdna suffix, which counts as mismatches
+    expected_num_mismatches = max(0, len(cdna_suffix) - reference_context_size)
     expected = VariantSequenceInReadingFrame(
         cdna_sequence=cdna_prefix[-prefix_length:] + cdna_alt + cdna_suffix,
         offset_to_first_complete_codon=prefix_length % 3,
         variant_cdna_interval_start=prefix_length,
         variant_cdna_interval_end=prefix_length + 1,
         reference_cdna_sequence_before_variant="ATG"[-prefix_length:],
-        number_mismatches=mismatches)
+        reference_cdna_sequence_after_variant=cdna_suffix[:reference_context_size],
+        number_mismatches=mismatches,
+        number_mismatches_after_variant=expected_num_mismatches)
     assert isinstance(expected, VariantSequenceInReadingFrame)
 
     return variant_sequence, reference_context, expected
@@ -172,7 +176,6 @@ def test_match_variant_sequence_to_reference_context_exact_match():
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0)
     eq_(expected, result)
-
 
 def test_match_variant_sequence_to_reference_context_not_enough_prefix():
     # Variant sequence missing first nucleotide of start codon
@@ -247,7 +250,6 @@ def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_no_tri
         max_transcript_mismatches=0,
         max_trimming_attempts=0)
     eq_(None, result)
-
 
 def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_trimming():
     # match should succeed if 1 round of trimming is allowed
