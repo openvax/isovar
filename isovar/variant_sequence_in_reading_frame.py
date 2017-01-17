@@ -49,7 +49,7 @@ class VariantSequenceInReadingFrame(ValueObject):
         "variant_cdna_interval_end",
         "reference_cdna_sequence_before_variant",
         "reference_cdna_sequence_after_variant",
-        "number_mismatches",
+        "number_mismatches_before_variant",
         "number_mismatches_after_variant"
     ]
 
@@ -61,7 +61,7 @@ class VariantSequenceInReadingFrame(ValueObject):
             variant_cdna_interval_end,
             reference_cdna_sequence_before_variant,
             reference_cdna_sequence_after_variant,
-            number_mismatches,
+            number_mismatches_before_variant,
             number_mismatches_after_variant
             ):
         self.cdna_sequence = cdna_sequence
@@ -72,7 +72,7 @@ class VariantSequenceInReadingFrame(ValueObject):
             reference_cdna_sequence_before_variant)
         self.reference_cdna_sequence_after_variant = (
             reference_cdna_sequence_after_variant)
-        self.number_mismatches = number_mismatches
+        self.number_mismatches_before_variant = number_mismatches_before_variant
         self.number_mismatches_after_variant = number_mismatches_after_variant
 
     @classmethod
@@ -127,7 +127,7 @@ class VariantSequenceInReadingFrame(ValueObject):
             variant_cdna_interval_end=variant_interval_end,
             reference_cdna_sequence_before_variant=reference_prefix,
             reference_cdna_sequence_after_variant=reference_suffix,
-            number_mismatches=n_mismatch_before_variant,
+            number_mismatches_before_variant=n_mismatch_before_variant,
             number_mismatches_after_variant=n_mismatch_after_variant)
 
 def trim_sequences(variant_sequence, reference_context):
@@ -282,6 +282,7 @@ def match_variant_sequence_to_reference_context(
         reference_context,
         min_transcript_prefix_length,
         max_transcript_mismatches,
+        include_mismatches_after_variant=False,
         max_trimming_attempts=2):
     """
     Iteratively trim low-coverage subsequences of a variant sequence
@@ -306,6 +307,11 @@ def match_variant_sequence_to_reference_context(
     max_transcript_mismatches : int
         Maximum number of nucleotide differences between reference transcript
         sequence and the variant sequence.
+
+    include_mismatches_after_variant : bool
+        Set to true if the number of mismatches after the variant locus should
+        count toward the total max_transcript_mismatches, which by default
+        only counts mismatches before the variant locus.
 
     max_trimming_attempts : int
         How many times do we try trimming the VariantSequence to higher
@@ -344,14 +350,19 @@ def match_variant_sequence_to_reference_context(
             return None
 
         n_mismatch_before_variant = (
-            variant_sequence_in_reading_frame.number_mismatches)
+            variant_sequence_in_reading_frame.number_mismatches_before_variant)
+        n_mismatch_after_variant = (
+            variant_sequence_in_reading_frame.number_mismatches_after_variant)
 
         logger.info("Iter #%d/%d: %s" % (
             i + 1,
             max_trimming_attempts + 1,
             variant_sequence_in_reading_frame))
 
-        if n_mismatch_before_variant <= max_transcript_mismatches:
+        total_mismatches = n_mismatch_before_variant
+        if include_mismatches_after_variant:
+            total_mismatches += n_mismatch_after_variant
+        if total_mismatches <= max_transcript_mismatches:
             # if we got a variant sequence + reading frame with sufficiently
             # few mismatches then call it a day
             return variant_sequence_in_reading_frame

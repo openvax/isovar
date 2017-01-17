@@ -59,7 +59,7 @@ def make_dummy_translation(
         variant_cdna_interval_end=variant_cdna_interval_end,
         reference_cdna_sequence_before_variant=cdna_sequence[:variant_cdna_interval_start],
         reference_cdna_sequence_after_variant=cdna_sequence[variant_cdna_interval_end:],
-        number_mismatches=number_mismatches,
+        number_mismatches_before_variant=number_mismatches,
         number_mismatches_after_variant=0)
     return Translation(
         variant_sequence_in_reading_frame=varseq_in_orf,
