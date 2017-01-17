@@ -26,6 +26,7 @@ from .common import groupby
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+    INCLUDE_MISMATCHES_AFTER_VARIANT,
     PROTEIN_SEQUENCE_LENGTH,
     MAX_PROTEIN_SEQUENCES_PER_VARIANT,
     MIN_ALT_RNA_READS,
@@ -196,6 +197,7 @@ def reads_generator_to_protein_sequences_generator(
         min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+        include_mismatches_after_variant=INCLUDE_MISMATCHES_AFTER_VARIANT,
         max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
         variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
     """"
@@ -235,6 +237,10 @@ def reads_generator_to_protein_sequences_generator(
         Don't try to determine the reading frame for a transcript if more
         than this number of bases differ.
 
+    include_mismatches_after_variant : bool
+        Include mismatches after the variant locus in the count compared
+        against max_transcript_mismatches.
+
     max_protein_sequences_per_variant : int
         Number of protein sequences to return for each ProteinSequence
 
@@ -268,6 +274,7 @@ def reads_generator_to_protein_sequences_generator(
             min_variant_sequence_coverage=min_variant_sequence_coverage,
             min_transcript_prefix_length=min_transcript_prefix_length,
             max_transcript_mismatches=max_transcript_mismatches,
+            include_mismatches_after_variant=include_mismatches_after_variant,
             variant_sequence_assembly=variant_sequence_assembly)
 
         protein_sequences = []

@@ -33,6 +33,7 @@ from .variant_sequence_in_reading_frame import (
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+    INCLUDE_MISMATCHES_AFTER_VARIANT,
     PROTEIN_SEQUENCE_LENGTH,
     MIN_ALT_RNA_READS,
     MIN_VARIANT_SEQUENCE_COVERAGE,
@@ -153,6 +154,7 @@ class Translation(TranslationKey):
             reference_context,
             min_transcript_prefix_length,
             max_transcript_mismatches,
+            include_mismatches_after_variant,
             protein_sequence_length=None):
         """
         Attempt to translate a single VariantSequence using the reading frame
@@ -174,6 +176,10 @@ class Translation(TranslationKey):
             sequences disagrees at more than this number of positions before the
             variant nucleotides.
 
+        include_mismatches_after_variant : bool
+            If true, mismatches after the variant nucleotides will also count
+            against max_transcript_mismatches filtering.
+
         protein_sequence_length : int, optional
             Truncate protein to be at most this long
 
@@ -185,7 +191,8 @@ class Translation(TranslationKey):
             variant_sequence,
             reference_context,
             min_transcript_prefix_length=min_transcript_prefix_length,
-            max_transcript_mismatches=max_transcript_mismatches)
+            max_transcript_mismatches=max_transcript_mismatches,
+            include_mismatches_after_variant=include_mismatches_after_variant)
 
         if variant_sequence_in_reading_frame is None:
             logger.info("Unable to determine reading frame for %s", variant_sequence)
@@ -338,6 +345,7 @@ def translation_generator(
         reference_contexts,
         min_transcript_prefix_length,
         max_transcript_mismatches,
+        include_mismatches_after_variant,
         protein_sequence_length=None):
     """
     Given all detected VariantSequence objects for a particular variant
@@ -363,6 +371,10 @@ def translation_generator(
         and reference transcript we're considering for determing the reading
         frame.
 
+    include_mismatches_after_variant : bool
+        If true, mismatches occurring after the variant locus will also count
+        toward max_transcript_mismatches filtering.
+
     protein_sequence_length : int, optional
         Truncate protein to be at most this long.
 
@@ -375,6 +387,7 @@ def translation_generator(
                 reference_context=reference_context,
                 min_transcript_prefix_length=min_transcript_prefix_length,
                 max_transcript_mismatches=max_transcript_mismatches,
+                include_mismatches_after_variant=include_mismatches_after_variant,
                 protein_sequence_length=protein_sequence_length)
             if translation is not None:
                 yield translation
@@ -388,6 +401,7 @@ def translate_variant_reads(
         min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+        include_mismatches_after_variant=INCLUDE_MISMATCHES_AFTER_VARIANT,
         variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
     """
     Given a variant and its associated alt reads, construct variant sequences
@@ -427,6 +441,10 @@ def translate_variant_reads(
     max_transcript_mismatches : int
         Don't try to determine the reading frame for a transcript if more
         than this number of bases differ.
+
+    include_mismatches_after_variant : bool
+        Include mismatches after the variant locus in the count compared
+        against max_transcript_mismatches.
 
     variant_sequence_assembly : bool
         Use overlap assembly to construct longer variant cDNA sequences.
@@ -470,6 +488,7 @@ def translate_variant_reads(
         reference_contexts=reference_contexts,
         min_transcript_prefix_length=min_transcript_prefix_length,
         max_transcript_mismatches=max_transcript_mismatches,
+        include_mismatches_after_variant=include_mismatches_after_variant,
         protein_sequence_length=protein_sequence_length))
 
 def translate_variants(
@@ -480,6 +499,7 @@ def translate_variants(
         min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
         min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
         max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+        include_mismatches_after_variant=INCLUDE_MISMATCHES_AFTER_VARIANT,
         variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
     """
     Translates each coding variant in a collection to one or more protein
@@ -518,6 +538,10 @@ def translate_variants(
         Don't try to determine the reading frame for a transcript if more
         than this number of bases differ.
 
+    include_mismatches_after_variant : bool
+        Include mismatches after the variant locus in the count compared
+        against max_transcript_mismatches.
+
     variant_sequence_assembly : bool
         Use overlap assembly to construct longer variant cDNA sequences.
 
@@ -534,6 +558,7 @@ def translate_variants(
             min_variant_sequence_coverage=min_variant_sequence_coverage,
             min_transcript_prefix_length=min_transcript_prefix_length,
             max_transcript_mismatches=max_transcript_mismatches,
+            include_mismatches_after_variant=include_mismatches_after_variant,
             variant_sequence_assembly=variant_sequence_assembly)
         yield variant, translations
 
