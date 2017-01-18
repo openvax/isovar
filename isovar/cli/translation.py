@@ -18,6 +18,7 @@ from __future__ import print_function, division, absolute_import
 from ..default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
+    INCLUDE_MISMATCHES_AFTER_VARIANT,
     PROTEIN_SEQUENCE_LENGTH,
 )
 from ..translation import (
@@ -43,6 +44,13 @@ def add_translation_args(parser):
         help=(
             "Maximum number of mismatches between variant sequence"
             " reference sequence before a candidate reading frame is ignored."))
+
+    translation_group.add_argument(
+        "--include-mismatches-after-variant",
+        action="store_true",
+        default=INCLUDE_MISMATCHES_AFTER_VARIANT,
+        help="If true, mismatches after the variant locus will count toward the "
+             "--max-reference-transcript-mismatches filter.")
 
     translation_group.add_argument(
         "--min-transcript-prefix-length",
@@ -82,7 +90,8 @@ def translations_generator_from_args(args):
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,
         variant_sequence_assembly=args.variant_sequence_assembly,
         min_transcript_prefix_length=args.min_transcript_prefix_length,
-        max_transcript_mismatches=args.max_reference_transcript_mismatches)
+        max_transcript_mismatches=args.max_reference_transcript_mismatches,
+        include_mismatches_after_variant=args.include_mismatches_after_variant)
 
 def translations_dataframe_from_args(args):
     translations_generator = translations_generator_from_args(args)
