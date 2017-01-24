@@ -18,7 +18,7 @@ from nose.tools import eq_
 from varcode import Variant
 from isovar.locus_reads import (
     LocusRead,
-    locus_read_generator,
+    LocusReadCollector,
     locus_reads_dataframe,
 )
 
@@ -42,11 +42,10 @@ def test_locus_reads_snv():
     pysam_read = make_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
 
     samfile = DummySamFile(reads=[pysam_read])
-    reads = list(locus_read_generator(
-        samfile=samfile,
+    reads = LocusReadCollector(samfile=samfile).get_locus_reads(
         chromosome="chromosome",
-        base1_position_before_variant=variant.start - 1,
-        base1_position_after_variant=variant.start + 1))
+        base0_locus_start=variant.start - 1,
+        base0_locus_end=variant.end)
     print(reads)
     assert len(reads) == 1, \
         "Expected to get back one read but instead got %d" % (
@@ -56,9 +55,7 @@ def test_locus_reads_snv():
         name=pysam_read.qname,
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 2, 3, 4, 5],
-        quality_scores=pysam_read.query_qualities,
-        base0_read_position_before_variant=2,
-        base0_read_position_after_variant=4)
+        quality_scores=pysam_read.query_qualities)
     assert_equal_fields(read, expected)
 
 def test_locus_reads_insertion():
@@ -74,11 +71,10 @@ def test_locus_reads_insertion():
     pysam_read = make_read(seq="ACCTGTG", cigar="4M1I2M", mdtag="6")
 
     samfile = DummySamFile(reads=[pysam_read])
-    reads = list(locus_read_generator(
-        samfile=samfile,
+    reads = LocusReadCollector(samfile=samfile).get_locus_reads(
         chromosome="chromosome",
-        base1_position_before_variant=variant.start,
-        base1_position_after_variant=variant.start + 1))
+        base0_locus_start=variant.start - 1,
+        base0_locus_end=variant.end - 1)
     print(reads)
     assert len(reads) == 1, \
         "Expected to get back one read but instead got %d" % (
@@ -90,9 +86,7 @@ def test_locus_reads_insertion():
         # expect the inserted nucleotide to be missing a corresponding
         # ref position
         reference_positions=[0, 1, 2, 3, None, 4, 5],
-        quality_scores=pysam_read.query_qualities,
-        base0_read_position_before_variant=3,
-        base0_read_position_after_variant=5)
+        quality_scores=pysam_read.query_qualities)
     assert_equal_fields(read, expected)
 
 def test_locus_reads_deletion():
@@ -109,11 +103,10 @@ def test_locus_reads_deletion():
     pysam_read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
     samfile = DummySamFile(reads=[pysam_read])
-    reads = list(locus_read_generator(
-        samfile=samfile,
+    reads = LocusReadCollector(samfile=samfile).get_locus_reads(
         chromosome="chromosome",
-        base1_position_before_variant=variant.start - 1,
-        base1_position_after_variant=variant.start + 1))
+        base0_locus_start=variant.start - 1,
+        base0_locus_end=variant.end)
     print(reads)
     assert len(reads) == 1, \
         "Expected to get back one read but instead got %d" % (
@@ -123,9 +116,7 @@ def test_locus_reads_deletion():
         name=pysam_read.qname,
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 2, 3, 5],
-        quality_scores=pysam_read.query_qualities,
-        base0_read_position_before_variant=3,
-        base0_read_position_after_variant=4)
+        quality_scores=pysam_read.query_qualities)
     assert_equal_fields(read, expected)
 
 def test_locus_reads_substitution_longer():
@@ -138,11 +129,10 @@ def test_locus_reads_substitution_longer():
     pysam_read = make_read(seq="AGGCTTG", cigar="2M1I4M", mdtag="1C4")
 
     samfile = DummySamFile(reads=[pysam_read])
-    reads = list(locus_read_generator(
-        samfile=samfile,
+    reads = LocusReadCollector(samfile=samfile).get_locus_reads(
         chromosome="chromosome",
-        base1_position_before_variant=1,
-        base1_position_after_variant=3))
+        base0_locus_start=2,
+        base0_locus_end=3)
     print(reads)
     assert len(reads) == 1, \
         "Expected to get back one read but instead got %d" % (
@@ -152,9 +142,7 @@ def test_locus_reads_substitution_longer():
         name=pysam_read.qname,
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, None, 2, 3, 4, 5],
-        quality_scores=pysam_read.query_qualities,
-        base0_read_position_before_variant=0,
-        base0_read_position_after_variant=3)
+        quality_scores=pysam_read.query_qualities)
     assert_equal_fields(read, expected)
 
 def test_locus_reads_substitution_shorter():
@@ -167,11 +155,10 @@ def test_locus_reads_substitution_shorter():
     pysam_read = make_read(seq="AGTTG", cigar="2M1D3M", mdtag="1C^C4")
 
     samfile = DummySamFile(reads=[pysam_read])
-    reads = list(locus_read_generator(
-        samfile=samfile,
+    reads = LocusReadCollector(samfile=samfile).get_locus_reads(
         chromosome="chromosome",
-        base1_position_before_variant=1,
-        base1_position_after_variant=4))
+        base0_locus_start=2,
+        base0_locus_end=3)
     assert len(reads) == 1, \
         "Expected to get back one read but instead got %d" % (
             len(reads),)
@@ -181,9 +168,7 @@ def test_locus_reads_substitution_shorter():
         name=pysam_read.qname,
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 3, 4, 5],
-        quality_scores=pysam_read.query_qualities,
-        base0_read_position_before_variant=0,
-        base0_read_position_after_variant=2)
+        quality_scores=pysam_read.query_qualities)
     assert_equal_fields(read, expected)
 
 def test_locus_reads_dataframe():

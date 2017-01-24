@@ -38,8 +38,6 @@ class LocusRead(ValueObject):
         "sequence",
         "reference_positions",
         "quality_scores",
-        "base0_locus_start",
-        "base0_locus_end"
     ]
 
     def __init__(
@@ -47,101 +45,80 @@ class LocusRead(ValueObject):
             name,
             sequence,
             reference_positions,
-            quality_scores,
-            base0_locus_start,
-            base0_locus_end):
+            quality_scores):
         self.name = name
         self.sequence = sequence
         self.reference_positions = reference_positions
         self.quality_scores = quality_scores
-        self.base0_locus_start = base0_locus_start
-        self.base0_locus_end = base0_locus_end
 
-    @classmethod
-    def from_pysam_pileup_element(
-            cls,
-            pileup_element,
-            base0_position_before_variant,
-            base0_position_after_variant,
-            use_secondary_alignments,
-            use_duplicate_reads,
-            min_mapping_quality):
+class LocusReadCollector(object):
+    """
+    Holds to an AlignmentFile object for a SAM/BAM file and then
+    generates lists of LocusRead objects at the specified locus.
+    """
+    def __init__(
+            self,
+            samfile,
+            use_duplicate_reads=USE_DUPLICATE_READS,
+            use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
+            min_mapping_quality=MIN_READ_MAPPING_QUALITY):
+        self.samfile = samfile
+        self.use_duplicate_reads = use_duplicate_reads
+        self.use_secondary_alignments = use_secondary_alignments
+        self.min_mapping_quality = min_mapping_quality
+
+    def _convert_aligned_segment(
+            self,
+            aligned_segment):
         """
-        Parameters
-        ----------
-        pileup_element : pysam.PileupRead
-
-        base0_position_before_variant : int
-
-        base0_position_after_variant : int
-
-        use_secondary_alignments : bool
-
-        use_duplicate_reads : bool
-
-        min_mapping_quality : int
-
-        Returns LocusRead or None
+        Converts pysam.AlignedSegment object to LocusRead. Can also return None
+        if aligned segment doesn't meet the filtering criteria such as
+        minimum mapping quality.
         """
-        read = pileup_element.alignment
-
         # For future reference,  may get overlapping reads
         # which can be identified by having the same name
-        name = read.query_name
+        name = aligned_segment.query_name
 
         if name is None:
             logger.warn(
-                "Read missing name at position %d",
-                base0_position_before_variant + 1)
+                "Read missing name: %s", aligned_segment)
             return None
 
-        if read.is_unmapped:
+        if aligned_segment.is_unmapped:
             logger.warn(
-                "How did we get unmapped read '%s' in a pileup?", name)
+                "Unmapped read: %s", aligned_segment)
             return None
 
-        if pileup_element.is_refskip:
-            # if read sequence doesn't actually align to the reference
-            # base before a variant, skip it
-            logger.debug("Skipping pileup element with CIGAR alignment N (intron)")
-            return None
-        elif pileup_element.is_del:
-            logger.debug(
-                "Skipping deletion at position %d (read name = %s)",
-                base0_position_before_variant + 1,
-                name)
-            return None
-
-        if read.is_secondary and not use_secondary_alignments:
+        if aligned_segment.is_secondary and not self.use_secondary_alignments:
             logger.debug("Skipping secondary alignment of read '%s'", name)
             return None
 
-        if read.is_duplicate and not use_duplicate_reads:
+        if aligned_segment.is_duplicate and not self.use_duplicate_reads:
             logger.debug("Skipping duplicate read '%s'", name)
             return None
 
-        mapping_quality = read.mapping_quality
+        mapping_quality = aligned_segment.mapping_quality
 
         missing_mapping_quality = mapping_quality is None
 
-        if min_mapping_quality > 0 and missing_mapping_quality:
+        if self.min_mapping_quality > 0 and missing_mapping_quality:
             logger.debug("Skipping read '%s' due to missing MAPQ", name)
             return None
-        elif mapping_quality < min_mapping_quality:
+        elif mapping_quality < self.min_mapping_quality:
             logger.debug(
-                "Skipping read '%s' due to low MAPQ: %d < %d",
-                read.mapping_quality,
+                "Skipping read '%s' due to low MAPQ %d (min=%d)",
+                name,
                 mapping_quality,
-                min_mapping_quality)
+                self.min_mapping_quality)
             return None
 
-        sequence = read.query_sequence
+        sequence = aligned_segment.query_sequence
 
         if sequence is None:
             logger.warn("Read '%s' missing sequence", name)
             return None
 
-        base_qualities = read.query_qualities
+        base_qualities = aligned_segment.query_qualities
 
         if base_qualities is None:
             logger.warn("Read '%s' missing base qualities", name)
@@ -161,13 +138,13 @@ class LocusRead(ValueObject):
         #
         # We want a None value for every read position that does not have a
         # corresponding reference position.
-        reference_positions = read.get_reference_positions(
+        reference_positions = aligned_segment.get_reference_positions(
             full_length=True)
-
+        """
         # pysam uses base-0 positions everywhere except region strings
         # Source:
         # http://pysam.readthedocs.org/en/latest/faq.html#pysam-coordinates-are-wrong
-        if base0_position_before_variant not in reference_positions:
+        if base0_locus_start not in reference_positions:
             logger.debug(
                 "Skipping read '%s' because first position %d not mapped",
                 name,
@@ -186,41 +163,16 @@ class LocusRead(ValueObject):
         else:
             base0_read_position_after_variant = reference_positions.index(
                 base0_position_after_variant)
+        """
 
         if isinstance(sequence, bytes):
             sequence = sequence.decode('ascii')
 
-        return cls(
+        return LocusRead(
             name=name,
             sequence=sequence,
             reference_positions=reference_positions,
-            quality_scores=base_qualities,
-            base0_read_position_before_variant=base0_read_position_before_variant,
-            base0_read_position_after_variant=base0_read_position_after_variant)
-
-class LocusReadCollector(object):
-    """
-    Holds to an AlignmentFile object for a SAM/BAM file and then
-    generates lists of LocusRead objects at the specified locus.
-    """
-    def __init__(
-            self,
-            samfile,
-            use_duplicate_reads=USE_DUPLICATE_READS,
-            use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-            min_mapping_quality=MIN_READ_MAPPING_QUALITY):
-        self.samfile = samfile
-        self.use_duplicate_reads = use_duplicate_reads
-        self.use_secondary_alignments = use_secondary_alignments
-        self.min_mapping_quality = min_mapping_quality
-
-    def _convert_aligned_segment(self, aligned_segment):
-        """
-        Converts pysam.AlignedSegment object to LocusRead. Can also return None
-        if aligned segment doesn't meet the filtering criteria such as
-        minimum mapping quality.
-        """
-        pass
+            quality_scores=base_qualities)
 
     def get_locus_reads(
             self,
@@ -256,7 +208,26 @@ class LocusReadCollector(object):
         # iterate over any pysam.AlignedSegment objects which overlap this locus
         for aligned_segment in self.samfile.fetch(
                 chromosome, base0_locus_start, base0_locus_end):
-            pass
+            locus_read = self._convert_aligned_segment(aligned_segment)
+            reference_positions = locus_read.reference_positions
+            if base0_locus_start == base0_locus_end:
+                # if we're looking for an insertion between two bases
+                # then just make sure that at least one of the bases to
+                # the left or right is mapped
+                before = base0_locus_start - 1
+                after = base0_locus_end - 1
+                if (before in reference_positions) or (after in reference_positions):
+                    reads.append(locus_read)
+            else:
+                # if we're looking at bases that actually align to the
+                # reference then make sure their positions are represented in
+                # this read's alignments
+                required_reference_positions = range(
+                        base0_locus_start, base0_locus_end)
+                if all(
+                        pos in reference_positions
+                        for pos in required_reference_positions):
+                    reads.append(locus_read)
 
         logger.info(
             "Found %d reads overlapping locus %s[%d:%d]",
