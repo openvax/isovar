@@ -210,7 +210,7 @@ def test_locus_reads_dataframe():
     df = locus_reads_dataframe(
         samfile=sam_all_variants,
         chromosome="chr4",
-        base1_position_before_variant=45802538,
-        base1_position_after_variant=45802540)
+        base0_locus_start=45802538,
+        base0_locus_end=45802539)
     print(df)
     eq_(len(df), n_reads_expected)

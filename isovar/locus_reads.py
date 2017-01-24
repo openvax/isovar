@@ -38,8 +38,8 @@ class LocusRead(ValueObject):
         "sequence",
         "reference_positions",
         "quality_scores",
-        "base0_read_position_before_variant",
-        "base0_read_position_after_variant"
+        "base0_locus_start",
+        "base0_locus_end"
     ]
 
     def __init__(
@@ -48,14 +48,14 @@ class LocusRead(ValueObject):
             sequence,
             reference_positions,
             quality_scores,
-            base0_read_position_before_variant,
-            base0_read_position_after_variant):
+            base0_locus_start,
+            base0_locus_end):
         self.name = name
         self.sequence = sequence
         self.reference_positions = reference_positions
         self.quality_scores = quality_scores
-        self.base0_read_position_before_variant = base0_read_position_before_variant
-        self.base0_read_position_after_variant = base0_read_position_after_variant
+        self.base0_locus_start = base0_locus_start
+        self.base0_locus_end = base0_locus_end
 
     @classmethod
     def from_pysam_pileup_element(
@@ -198,14 +198,14 @@ class LocusRead(ValueObject):
             base0_read_position_before_variant=base0_read_position_before_variant,
             base0_read_position_after_variant=base0_read_position_after_variant)
 
-class LocusReadExtractor(object):
+class LocusReadCollector(object):
     """
     Holds to an AlignmentFile object for a SAM/BAM file and then
     generates lists of LocusRead objects at the specified locus.
     """
     def __init__(
             self,
-            samfile=samfile,
+            samfile,
             use_duplicate_reads=USE_DUPLICATE_READS,
             use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
             min_mapping_quality=MIN_READ_MAPPING_QUALITY):
@@ -220,6 +220,8 @@ class LocusReadExtractor(object):
         if aligned segment doesn't meet the filtering criteria such as
         minimum mapping quality.
         """
+        pass
+
     def get_locus_reads(
             self,
             chromosome,
@@ -252,24 +254,25 @@ class LocusReadExtractor(object):
 
         reads = []
         # iterate over any pysam.AlignedSegment objects which overlap this locus
-        for aligned_segment in samfile.fetch(
-            chromosome, base0_locus_start, base0_locus_end):
+        for aligned_segment in self.samfile.fetch(
+                chromosome, base0_locus_start, base0_locus_end):
             pass
 
         logger.info(
-            "Found %d reads overlapping locus %s: %d-%d",
-            count,
+            "Found %d reads overlapping locus %s[%d:%d]",
+            len(reads),
             chromosome,
-            base1_position_before_variant,
-            base1_position_after_variant)
+            base0_locus_start,
+            base0_locus_end)
         # TODO: de-duplicate reads by name
         # since overlapping mate pairs will have the same name, then...
         #
         # TODO: combine overlapping mate pairs into single sequence before
         # de-duplication
+        return reads
 
-
-def locus_reads_dataframe(*args, **kwargs):
+def locus_reads_dataframe(
+        chromosome, base0_locus_start, base0_locus_end, **generator_kwargs):
     """
     Traverse a BAM file to find all the reads overlapping a specified locus.
 
@@ -282,6 +285,12 @@ def locus_reads_dataframe(*args, **kwargs):
             "reference_positions": list_to_string,
             "quality_scores": list_to_string,
         })
-    for locus_read in locus_read_generator(*args, **kwargs):
+
+    collector = LocusReadCollector(**generator_kwargs)
+    reads = collector.get_locus_reads(
+        chromosome=chromosome,
+        base0_locus_start=base0_locus_start,
+        base0_locus_end=base0_locus_end)
+    for locus_read in reads:
         df_builder.add(variant=None, element=locus_read)
     return df_builder.to_dataframe()
