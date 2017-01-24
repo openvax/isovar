@@ -91,7 +91,7 @@ def test_locus_reads_insertion():
 
 def test_locus_reads_deletion():
     """
-    test_partitioned_read_sequences_deletion : Test that read gets correctly
+    test_locus_reads_deletion : Test that read gets correctly
     partitioned for chr1:4 TT>T where the sequence for chr1 is assumed to
     be "ACCTTG"
     """
@@ -100,6 +100,8 @@ def test_locus_reads_deletion():
     variant = Variant(
         "chromosome", 4, ref="TT", alt="T", normalize_contig_name=False)
     print(variant)
+    print(variant.start, variant.end)
+
     pysam_read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
     samfile = DummySamFile(reads=[pysam_read])
