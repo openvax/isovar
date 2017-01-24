@@ -210,24 +210,41 @@ class LocusReadCollector(object):
                 chromosome, base0_locus_start, base0_locus_end):
             locus_read = self._convert_aligned_segment(aligned_segment)
             reference_positions = locus_read.reference_positions
-            if base0_locus_start == base0_locus_end:
-                # if we're looking for an insertion between two bases
-                # then just make sure that at least one of the bases to
-                # the left or right is mapped
+
+            aligned_positions = [
+                pos in reference_positions
+                for pos in range(base0_locus_start, base0_locus_end)]
+
+            if len(aligned_positions) > 0 and all(aligned_positions):
+                # if we're looking at positions in the reference and they
+                # are all mapped in this read then we're good
+                reads.append(locus_read)
+            else:
+                # if we're looking for an insertion between two bases or a
+                # deletion then we want to at least make sure that one of the bases
+                # to the left or right is mapped where we expect
+
                 before = base0_locus_start - 1
                 after = base0_locus_end - 1
-                if (before in reference_positions) or (after in reference_positions):
+                adjacent_position_aligned = (
+                    before in reference_positions or
+                    after in reference_positions)
+                if not adjacent_position_aligned:
+                    logger.info(
+                        "Skipping %s since no adjacent positions are mapped",
+                        locus_read)
+                    continue
+
+                if base0_locus_start == base0_locus_end:
+                    # read which can be used to look for an insertion
                     reads.append(locus_read)
-            else:
-                # if we're looking at bases that actually align to the
-                # reference then make sure their positions are represented in
-                # this read's alignments
-                required_reference_positions = range(
-                        base0_locus_start, base0_locus_end)
-                if all(
-                        pos in reference_positions
-                        for pos in required_reference_positions):
+                elif not any(aligned_positions):
+                    # read which is probably evidence of a deletion
                     reads.append(locus_read)
+                else:
+                    logger.info(
+                        "Not all required positions were mapped in %s",
+                        locus_read)
 
         logger.info(
             "Found %d reads overlapping locus %s[%d:%d]",

@@ -107,8 +107,8 @@ def test_locus_reads_deletion():
     samfile = DummySamFile(reads=[pysam_read])
     reads = LocusReadCollector(samfile=samfile).get_locus_reads(
         chromosome="chromosome",
-        base0_locus_start=variant.start - 1,
-        base0_locus_end=variant.end)
+        base0_locus_start=5,
+        base0_locus_end=6)
     print(reads)
     assert len(reads) == 1, \
         "Expected to get back one read but instead got %d" % (
