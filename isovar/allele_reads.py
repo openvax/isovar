@@ -21,7 +21,7 @@ from __future__ import print_function, division, absolute_import
 from collections import defaultdict
 import logging
 
-from .locus_reads import locus_read_generator
+from .locus_reads import LocusReadCollector
 from .default_parameters import (
     MIN_READ_MAPPING_QUALITY,
     USE_SECONDARY_ALIGNMENTS,
@@ -49,20 +49,29 @@ class AlleleRead(ValueObject):
         return len(self.sequence)
 
     @classmethod
-    def from_locus_read(cls, locus_read, n_ref):
+    def from_locus_read(
+            cls,
+            base0_locus_start,
+            base0_locus_end,
+            locus_read):
         """
-        Given a single LocusRead object, return either an AlleleRead or None
+        Given an interbase coordinate interval and a single LocusRead object
+        overlapping that interval, return either an AlleleRead or None
 
         Parameters
         ----------
+        base0_locus_start : int
+
+        base0_locus_end : int
+
         locus_read : LocusRead
             Read which overlaps a variant locus but doesn't necessarily contain the
             alternate nucleotides
 
-        n_ref : int
-            Number of reference positions we are expecting to be modified or
-            deleted (for insertions this should be 0)
         """
+        n_ref = base0_locus_end - base0_locus_start
+        assert n_ref >= 0, \
+            "Number of reference bases should never be negative: %d" % (n_ref,)
         sequence = locus_read.sequence
         reference_positions = locus_read.reference_positions
 
@@ -139,7 +148,10 @@ class AlleleRead(ValueObject):
             suffix,
             name=locus_read.name)
 
-def allele_reads_from_locus_reads(locus_reads, n_ref):
+def allele_reads_from_locus_reads(
+        base0_locus_start,
+        base0_locus_end,
+        locus_reads):
     """
     Given a collection of LocusRead objects, returns a
     list of AlleleRead objects
@@ -147,16 +159,22 @@ def allele_reads_from_locus_reads(locus_reads, n_ref):
 
     Parameters
     ----------
-    locus_reads : sequence of LocusRead records
+    base0_locus_start : int
+        Interbase start coordinate of interval we're inspecting
 
-    n_ref : int
-        Number of reference nucleotides affected by variant.
+    base0_locus_end : int
+        Interbase end coordinate of interval we're inspecting
+
+    locus_reads : sequence of LocusRead records
 
     Generates AlleleRead objects.
     """
 
     for locus_read in locus_reads:
-        allele_read = AlleleRead.from_locus_read(locus_read, n_ref)
+        allele_read = AlleleRead.from_locus_read(
+            base0_locus_start,
+            base0_locus_end,
+            locus_read)
         if allele_read is None:
             continue
         else:
@@ -209,26 +227,29 @@ def reads_overlapping_variant(
 
     base1_position, ref, alt = trim_variant(variant)
 
-    if len(ref) == 0:
-        # if the variant is an insertion
-        base1_position_before_variant = base1_position
-        base1_position_after_variant = base1_position + 1
-    else:
-        base1_position_before_variant = base1_position - 1
-        base1_position_after_variant = base1_position + len(ref)
+    base0_locus_start = base1_position - 1
+    base0_locus_end = base1_position + len(ref) - 1
 
-    locus_reads = locus_read_generator(
+    assert base0_locus_end >= base0_locus_start, \
+        "Locus end (%d) should never be less than start (%d)" % (
+            base0_locus_end,
+            base0_locus_start)
+
+    collector = LocusReadCollector(
         samfile=samfile,
-        chromosome=chromosome,
-        base1_position_before_variant=base1_position_before_variant,
-        base1_position_after_variant=base1_position_after_variant,
         use_duplicate_reads=use_duplicate_reads,
         use_secondary_alignments=use_secondary_alignments,
         min_mapping_quality=min_mapping_quality)
 
+    locus_reads = collector.get_locus_reads(
+        chromosome=chromosome,
+        base0_locus_start=base0_locus_start,
+        base0_locus_end=base0_locus_end)
+
     allele_reads = allele_reads_from_locus_reads(
-        locus_reads=locus_reads,
-        n_ref=len(ref))
+        base0_locus_start=base0_locus_start,
+        base0_locus_end=base0_locus_end,
+        locus_reads=locus_reads)
 
     return allele_reads
 
