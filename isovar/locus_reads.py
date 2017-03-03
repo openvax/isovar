@@ -51,6 +51,9 @@ class LocusRead(ValueObject):
         self.reference_positions = reference_positions
         self.quality_scores = quality_scores
 
+    def translate_interval_to_read():
+        pass
+
 class LocusReadCollector(object):
     """
     Holds to an AlignmentFile object for a SAM/BAM file and then

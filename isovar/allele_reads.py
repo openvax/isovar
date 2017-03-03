@@ -75,6 +75,11 @@ class AlleleRead(ValueObject):
         sequence = locus_read.sequence
         reference_positions = locus_read.reference_positions
 
+        base0_read_start, base0_read_end = translate_genomic_to_read_interval(
+            reference_positions,
+            base0_locus_start,
+            base0_locus_end)
+
         # positions of the nucleotides before and after the variant within
         # the read sequence
         read_pos_before = locus_read.base0_read_position_before_variant
