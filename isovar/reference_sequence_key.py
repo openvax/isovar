@@ -89,14 +89,12 @@ class ReferenceSequenceKey(ValueObject):
                 variant=variant,
                 strand=transcript.strand,
                 ref_seq_on_transcript=reference_cdna_at_variant):
-            # TODO: once we're more confident about other logic in isovar,
-            # change this to a warning and return None to allow for modest
-            # differences between reference sequence patches, since
-            # GRCh38.p1 may differ at some positions from GRCh38.p5
-            raise ValueError(
-                "Wrong reference sequence for variant %s on transcript %s" % (
-                    variant,
-                    transcript))
+            logger.warn(
+                "Variant %s doesn't match reference sequence on transcript %s: "
+                "may span splice junction",
+                variant,
+                transcript)
+            return None
 
         if len(full_transcript_sequence) < 6:
             # need at least 6 nucleotides for a start and stop codon

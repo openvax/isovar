@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 from isovar.reference_sequence_key import ReferenceSequenceKey
 from varcode import Variant
-from pyensembl import ensembl_grch38
+from pyensembl import ensembl_grch38, genome_for_reference_name
 from nose.tools import eq_
 
 def test_sequence_key_for_variant_on_transcript_substitution():
@@ -199,3 +199,15 @@ def test_reference_sequence_key_hash_and_equality_different_objects():
     assert hash(rsk1) != hash(rsk_different_strand)
     assert str(rsk1) != str(rsk_different_strand)
     assert repr(rsk1) != repr(rsk_different_strand)
+
+def test_reference_sequence_key_from_weird_deletion():
+    # variant reads into the intron; want to make sure isovar skips over such cases
+    mouse_genome = genome_for_reference_name("grcm38")
+    variant = Variant(
+        "11", 106262686, "GTGAAGG", "", mouse_genome)
+    transcript = mouse_genome.transcript_by_id("ENSMUST00000021049")
+    sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
+        variant=variant,
+        transcript=transcript,
+        context_size=10)
+    assert sequence_key is None, '%s\n%s' % (sequence_key, transcript)
