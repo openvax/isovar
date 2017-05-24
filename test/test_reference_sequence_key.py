@@ -210,4 +210,4 @@ def test_reference_sequence_key_from_weird_deletion():
         variant=variant,
         transcript=transcript,
         context_size=10)
-    assert sequence_key == None, '%s\n%s' % (sequence_key, transcript)
+    assert sequence_key is None, '%s\n%s' % (sequence_key, transcript)
