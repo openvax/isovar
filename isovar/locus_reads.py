@@ -65,7 +65,8 @@ class LocusRead(ValueObject):
             base0_position_after_variant,
             use_secondary_alignments,
             use_duplicate_reads,
-            min_mapping_quality):
+            min_mapping_quality,
+            use_soft_clipped_bases=False):
         """
         Parameters
         ----------
@@ -80,6 +81,8 @@ class LocusRead(ValueObject):
         use_duplicate_reads : bool
 
         min_mapping_quality : int
+
+        use_soft_clipped_bases : bool. Default false; set to true to keep soft-clipped bases
 
         Returns LocusRead or None
         """
@@ -189,6 +192,15 @@ class LocusRead(ValueObject):
 
         if isinstance(sequence, bytes):
             sequence = sequence.decode('ascii')
+
+        if not use_soft_clipped_bases:
+            start = read.query_alignment_start
+            end = read.query_alignment_end
+            sequence = sequence[start:end]
+            reference_positions = reference_positions[start:end]
+            base_qualities = base_qualities[start:end]
+            base0_read_position_before_variant -= start
+            base0_read_position_after_variant -= start
 
         return cls(
             name=name,
