@@ -62,8 +62,7 @@ class VariantSequenceInReadingFrame(ValueObject):
             reference_cdna_sequence_before_variant,
             reference_cdna_sequence_after_variant,
             number_mismatches_before_variant,
-            number_mismatches_after_variant
-            ):
+            number_mismatches_after_variant):
         self.cdna_sequence = cdna_sequence
         self.offset_to_first_complete_codon = offset_to_first_complete_codon
         self.variant_cdna_interval_start = variant_cdna_interval_start
@@ -236,7 +235,7 @@ def count_mismatches_after_variant(reference_suffix, cdna_suffix):
     cdna_suffix : str
         cDNA sequence detected from RNAseq after a variant locus
     """
-    
+
     len_diff = len(cdna_suffix) - len(reference_suffix)
 
     # if the reference is shorter than the read, the read runs into the intron - these count as

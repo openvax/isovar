@@ -2,7 +2,7 @@ sudo: false  # Use container-based infrastructure
 language: python
 python:
   - "2.7"
-  - "3.4"
+  - "3.6"
 cache:
   pip: true
   # cache directory used for Ensembl downloads of GTF and FASTA files
@@ -11,7 +11,7 @@ cache:
   directories:
   - /home/travis/.cache/pyensembl/
   - /home/travis/.cache/pyensembl/GRCh37/ensembl75/
-  - /home/travis/.cache/pyensembl/GRCh37/ensembl85/
+  - /home/travis/.cache/pyensembl/GRCh38/ensembl87/
 before_install:
   # Commands below copied from: http://conda.pydata.org/docs/travis.html
   # We do this conditionally because it saves us some downloading if the
@@ -29,16 +29,10 @@ before_install:
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-addons:
-  apt:
-    packages:
-    # install pandoc for use with pypandoc for converting the README
-    # from markdown to RST
-    - pandoc
 install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-      numpy scipy nose pandas
+      numpy scipy nose pandas pandoc
   - source activate test-environment
   # install pysam from conda because I'm having trouble installing Cython
   # for Python 3 on Travis
@@ -55,3 +49,12 @@ script:
   - nosetests test --with-coverage --cover-package=isovar
 after_success:
   coveralls
+deploy:
+  provider: pypi
+  user: openvax
+  distributions: sdist
+  password:
+    secure: "Y2r18QlWv6fCTwGUDB2zcbuaiY9V+wmQ6T95OYPMYB8g2KiaI/J8qvebd1GVIQN0YMUQ7nx0B0PWaAE8HZtBrWVoiQjR0PScQqOLLG+xFrfL5eOAkPppuHD6c7O/5Q02Pe6ZbqjdMaVbX5FOHj+dQhQHmcb1+CwIlnorBAEJovb7wSlDXYM9QupzXGKE+NT3Pn/FClu4nyTq2S4LC+9TMS3I6G1t+PvUR8ikeeldEj+0My0TppC0gGfNyRnKXt1Ly/DgRKBaYZgxfYaAK33SPIyXMxDDWXh8m4Fqud1vBObrYkWRfxk79Efla70kCiy6zGGAaNXH4++NI5JWobZ06RF7gq4zQQRe/RUi3rWuuvDAxsJvUjuxH0vEqTm4dKz5+nUoEuv4yXKNPwaB6PVh7Cz/wI28kZHDPyGDCujN1g90441SIBOIeKoRCcGXixmGB5EUmSZbJ9UoQgXZccssrJG3tixTmHaJkcync9YuTvzvywnqnnqeNAcpSiK1cwvQZ7yPLbCqy1gBw4P3KTjz2Rr3Qs/5D6DrQShW2ToX84eX9mULK+XLBNt55jcRR8Pi/aZMeFvEzvGa6ZhRPtUTXDar6AA8p1t7VPsdtnzTMzhSllEtUuxtftegeBp08s1ejE75hA1nYC70NjvkVlI45sHwUKdJNgWFT/Sm60ySlsQ="
+  on:
+    branch: master
+    condition: $TRAVIS_PYTHON_VERSION = "2.7"

@@ -1,7 +1,15 @@
-[![DOI](https://zenodo.org/badge/18834/hammerlab/isovar.svg)](https://zenodo.org/badge/latestdoi/18834/hammerlab/isovar) [![Build Status](https://travis-ci.org/hammerlab/isovar.svg?branch=master)](https://travis-ci.org/hammerlab/isovar) [![Coverage Status](https://coveralls.io/repos/github/hammerlab/isovar/badge.svg?branch=master)](https://coveralls.io/github/hammerlab/isovar?branch=master)
+<a href="https://travis-ci.org/openvax/isovar">
+    <img src="https://travis-ci.org/openvax/isovar.svg?branch=master" alt="Build Status" />
+</a>
+<a href="https://coveralls.io/github/openvax/isovar?branch=master">
+    <img src="https://coveralls.io/repos/openvax/isovar/badge.svg?branch=master&service=github" alt="Coverage Status" />
+</a>
+<a href="https://pypi.python.org/pypi/isovar/">
+    <img src="https://img.shields.io/pypi/v/isovar.svg?maxAge=1000" alt="PyPI" />
+</a>
 
 # isovar
-Isovar assembles protein subsequences around mutations from cancer RNA-Seq data. Since Isovar uses sequenced reads to determine a mutant coding sequence it is able to correctly phase somatic variants with adjacent germline variants, as well as sometimes recovering alternatively spliced isoforms. 
+Isovar assembles protein subsequences around mutations from cancer RNA-Seq data. Since Isovar uses sequenced reads to determine a mutant coding sequence it is able to correctly phase somatic variants with adjacent germline variants, as well as sometimes recovering alternatively spliced isoforms.
 
 ## Example
 
@@ -42,4 +50,4 @@ Since we may not want to deal with *every* possible translation of *every* disti
 
 ## Sequencing Recommendations
 
-Isovar works best with high quality / high coverage mRNA sequence data. This means that you will get best results from >100M paired-end reads sequenced on an Illumina HiSeq from a library enriched with poly-A capture. The number of reads varies depending on degree of RNA degradation and tumor purity. The read length will determine the longest protein sequence you can recover, since Isovar's cDNA assembly only considers reads that overlap a variant. With 100bp reads you will be able to assemble at most 199bp of sequence around a somatic single nucleotide variant, and consequently only be to determine 66 amino acids from the protein sequence. If you disable the cDNA assembly algorithm then a 100bp read will only be able to determine 33 amino acids. 
+Isovar works best with high quality / high coverage mRNA sequence data. This means that you will get best results from >100M paired-end reads sequenced on an Illumina HiSeq from a library enriched with poly-A capture. The number of reads varies depending on degree of RNA degradation and tumor purity. The read length will determine the longest protein sequence you can recover, since Isovar's cDNA assembly only considers reads that overlap a variant. With 100bp reads you will be able to assemble at most 199bp of sequence around a somatic single nucleotide variant, and consequently only be to determine 66 amino acids from the protein sequence. If you disable the cDNA assembly algorithm then a 100bp read will only be able to determine 33 amino acids.
