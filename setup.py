@@ -19,18 +19,20 @@ import re
 from setuptools import setup, find_packages
 
 readme_dir = os.path.dirname(__file__)
-readme_filename = os.path.join(readme_dir, 'README.md')
+readme_path = os.path.join(readme_dir, 'README.md')
 
 try:
-    with open(readme_filename, 'r') as f:
-        readme = f.read()
+    with open(readme_path, 'r') as f:
+        readme_markdown = f.read()
 except:
-    logging.warn("Failed to load %s" % readme_filename)
-    readme = ""
+    logging.warn("Failed to load %s" % readme_path)
+    readme_markdown = ""
 
 try:
     import pypandoc
-    readme = pypandoc.convert(readme, to='rst', format='md')
+    readme_restructured = pypandoc.convert(readme_markdown, to='rst', format='md')
+    with open(readme_path.replace(".md", ".rst"), "w") as f:
+        f.write(readme_restructured)
 except:
     logging.warn("Conversion of long_description from MD to RST failed")
     pass
@@ -51,7 +53,7 @@ if __name__ == '__main__':
         version=version,
         description="Assemble transcript sequences fragments near variants",
         author="Alex Rubinsteyn and Arman Aksoy",
-        author_email="alex {dot} rubinsteyn {at} mssm {dot} edu",
+        author_email="alex.rubinsteyn@mssm.edu",
         url="https://github.com/hammerlab/isovar",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
         classifiers=[
@@ -70,7 +72,7 @@ if __name__ == '__main__':
             'varcode>=0.5.9',
             'pyensembl>=1.0.3',
         ],
-        long_description=readme,
+        long_description=readme_restructured,
         packages=find_packages(),
         package_data={'isovar.cli': ['logging.conf']},
         scripts=[
