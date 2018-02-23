@@ -31,9 +31,8 @@ except:
 try:
     import pypandoc
     readme_restructured = pypandoc.convert(readme_markdown, to='rst', format='md')
-    with open(readme_path.replace(".md", ".rst"), "w") as f:
-        f.write(readme_restructured)
 except:
+    readme_restructured = readme_markdown
     logging.warn("Conversion of long_description from MD to RST failed")
     pass
 
