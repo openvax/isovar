@@ -11,9 +11,7 @@ cache:
   directories:
   - $HOME/.cache/pyensembl/
 before_install:
-  # don't install miniconda if it's already cached
-  # if not yet installed, use different versions for py2 vs. py3
-  - rm -rf $HOME/miniconda
+  # download different versions of mini-conda for py2 vs. py3
   - |
     if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
