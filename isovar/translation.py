@@ -119,7 +119,15 @@ class Translation(TranslationKey):
     def number_mismatches(self):
         """Only counting number of mismatches before the variant locus.
         """
+        return self.number_mismatches_before_variant
+
+    @property
+    def number_mismatches_before_variant(self):
         return self.variant_sequence_in_reading_frame.number_mismatches_before_variant
+
+    @property
+    def number_mismatches_after_variant(self):
+        return self.variant_sequence_in_reading_frame.number_mismatches_after_variant
 
     @property
     def cdna_sequence(self):
