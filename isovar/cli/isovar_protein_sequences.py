@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,31 +13,38 @@
 # limitations under the License.
 
 """
-Prints names and sequences of reads overlapping a given set of variants.
+Translate non-synonymous coding variants into mutant protein sequences using an
+RNAseq BAM from the same sample. Combine synonymous translations and assign
+a read count to each protein sequence.
 """
 
-from __future__ import division, absolute_import
+from __future__ import print_function, division, absolute_import
 import logging
+import sys
 import logging.config
 import pkg_resources
 
-from isovar.cli.rna_reads import (
-    make_rna_reads_arg_parser,
-    allele_reads_dataframe_from_args
+from .protein_sequences import (
+    make_protein_sequences_arg_parser,
+    protein_sequences_dataframe_from_args
 )
+
 
 logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
 logger = logging.getLogger(__name__)
 
-parser = make_rna_reads_arg_parser()
+parser = make_protein_sequences_arg_parser()
 parser.add_argument(
     "--output",
-    default="isovar-allele-reads-result.csv",
-    help="Name of CSV file which contains overlapping read sequences")
+    default="isovar-translate-variants-results.csv",
+    help="Name of CSV file which contains predicted sequences")
 
-if __name__ == "__main__":
-    args = parser.parse_args()
+
+def run(args=None):
+    if args is None:
+        args = sys.argv[1:]
+    args = parser.parse_args(args)
     logger.info(args)
-    df = allele_reads_dataframe_from_args(args)
+    df = protein_sequences_dataframe_from_args(args)
     logger.info(df)
     df.to_csv(args.output)

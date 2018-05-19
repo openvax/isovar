@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,34 +13,36 @@
 # limitations under the License.
 
 """
-Translate non-synonymous coding variants into mutant protein sequences using an
-RNAseq BAM from the same sample. Combine synonymous translations and assign
-a read count to each protein sequence.
+Translate each non-synonymous coding variants into possible mutant protein
+sequences using an RNAseq BAM from the same tissuie.
 """
 
 from __future__ import print_function, division, absolute_import
 import logging
 import logging.config
 import pkg_resources
+import sys
 
-from isovar.cli.protein_sequences import (
-    make_protein_sequences_arg_parser,
-    protein_sequences_dataframe_from_args
+from .translation import (
+    make_translation_arg_parser,
+    translations_dataframe_from_args,
 )
-
 
 logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
 logger = logging.getLogger(__name__)
 
-parser = make_protein_sequences_arg_parser()
+parser = make_translation_arg_parser()
 parser.add_argument(
     "--output",
     default="isovar-translate-variants-results.csv",
     help="Name of CSV file which contains predicted sequences")
 
-if __name__ == "__main__":
-    args = parser.parse_args()
+
+def run(args=None):
+    if args is None:
+        args = sys.argv[1:]
+    args = parser.parse_args(args)
     logger.info(args)
-    df = protein_sequences_dataframe_from_args(args)
+    df = translations_dataframe_from_args(args)
     logger.info(df)
     df.to_csv(args.output)

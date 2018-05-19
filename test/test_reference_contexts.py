@@ -25,6 +25,7 @@ from nose.tools import eq_
 
 from testing_helpers import load_vcf
 
+
 def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
     # replace second codon of TP53-001 with 'CCC'
     tp53_substitution = Variant(
@@ -96,6 +97,7 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
         transcripts=[tp53_001])
     eq_(result, expected)
 
+
 def test_variants_to_reference_contexts_dataframe():
     variants = load_vcf("data/b16.f10/b16.vcf")
     assert len(variants) > 0
@@ -137,6 +139,7 @@ def test_reference_context_hash_and_equality_same_object():
     eq_(str(rc1), str(rc2))
     eq_(repr(rc1), repr(rc2))
     eq_(hash(rc1), hash(rc2))
+
 
 def test_reference_context_hash_and_equality_different_objects():
     rc1 = ReferenceContext(

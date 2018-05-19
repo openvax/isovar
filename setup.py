@@ -74,13 +74,15 @@ if __name__ == '__main__':
         long_description=readme_restructured,
         packages=find_packages(),
         package_data={'isovar.cli': ['logging.conf']},
-        scripts=[
-            "script/isovar-protein-sequences.py",
-            "script/isovar-translations.py",
-            "script/isovar-reference-contexts.py",
-            "script/isovar-allele-reads.py",
-            "script/isovar-allele-counts.py",
-            "script/isovar-variant-reads.py",
-            "script/isovar-variant-sequences.py",
-        ],
+        entry_points={
+            'console_scripts': [
+                'isovar-protein-sequences = isovar.cli.isovar_protein_sequences:run',
+                "isovar-translations = isovar.cli.isovar_translations:run",
+                "isovar-reference-contexts = isovar.cli.isovar_reference-contexts:run",
+                "isovar-allele-reads = isovar.cli.isovar_allele_reads:run",
+                "isovar-allele-counts = isovar.cli.isovar_allele_counts:run",
+                "isovar-variant-reads = isovar.cli.isovar_variant_reads:run",
+                "isovar-variant-sequences = isovar.cli.isovar_variant_sequences:run",
+            ]
+        }
     )
