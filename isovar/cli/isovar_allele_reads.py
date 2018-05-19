@@ -31,6 +31,7 @@ logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging
 logger = logging.getLogger(__name__)
 
 parser = make_rna_reads_arg_parser()
+
 parser.add_argument(
     "--output",
     default="isovar-allele-reads-result.csv",

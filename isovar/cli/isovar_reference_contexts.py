@@ -18,7 +18,7 @@ import logging.config
 import pkg_resources
 import sys
 
-from .reference_context import (
+from .reference_context_args import (
     make_reference_context_arg_parser,
     reference_contexts_dataframe_from_args
 )

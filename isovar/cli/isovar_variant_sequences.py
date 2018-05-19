@@ -30,6 +30,7 @@ logging.config.fileConfig(
 logger = logging.getLogger(__name__)
 
 parser = make_variant_sequences_arg_parser(add_sequence_length_arg=True)
+
 parser.add_argument(
     "--output",
     default="isovar-variant-sequences-results.csv",
@@ -42,7 +43,7 @@ def variant_sequences_generator_from_args(args):
         allele_reads_generator,
         min_alt_rna_reads=args.min_alt_rna_reads,
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,
-        preferred_sequence_length=args.cdna_sequence_length,
+        preferred_sequence_length=args.variant_sequence_length,
         variant_sequence_assembly=args.variant_sequence_assembly)
 
 

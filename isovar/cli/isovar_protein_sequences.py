@@ -34,6 +34,7 @@ logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging
 logger = logging.getLogger(__name__)
 
 parser = make_protein_sequences_arg_parser()
+
 parser.add_argument(
     "--output",
     default="isovar-translate-variants-results.csv",
