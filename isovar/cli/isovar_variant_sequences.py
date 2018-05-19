@@ -18,10 +18,12 @@ import logging.config
 import pkg_resources
 import sys
 
-from .variant_sequences import (
-    make_variant_sequences_arg_parser,
-    variant_sequences_dataframe_from_args
+from ..variant_sequences import (
+    reads_generator_to_sequences_generator,
+    variant_sequences_generator_to_dataframe
 )
+from .rna_reads import allele_reads_generator_from_args
+from .variant_sequences_args import make_variant_sequences_arg_parser
 
 logging.config.fileConfig(
     pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
@@ -32,6 +34,21 @@ parser.add_argument(
     "--output",
     default="isovar-variant-sequences-results.csv",
     help="Name of CSV file which contains predicted sequences")
+
+
+def variant_sequences_generator_from_args(args):
+    allele_reads_generator = allele_reads_generator_from_args(args)
+    return reads_generator_to_sequences_generator(
+        allele_reads_generator,
+        min_alt_rna_reads=args.min_alt_rna_reads,
+        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
+        preferred_sequence_length=args.cdna_sequence_length,
+        variant_sequence_assembly=args.variant_sequence_assembly)
+
+
+def variant_sequences_dataframe_from_args(args):
+    variant_sequences_generator = variant_sequences_generator_from_args(args)
+    return variant_sequences_generator_to_dataframe(variant_sequences_generator)
 
 
 def run(args=None):

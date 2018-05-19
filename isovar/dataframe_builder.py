@@ -187,7 +187,9 @@ class DataFrameBuilder(object):
 
 
 def dataframe_from_generator(
-        element_class, variant_and_elements_generator, **kwargs):
+        element_class,
+        variant_and_elements_generator,
+        **kwargs):
     builder = DataFrameBuilder(element_class, **kwargs)
     for variant, elements in variant_and_elements_generator:
         builder.add_many(variant, elements)

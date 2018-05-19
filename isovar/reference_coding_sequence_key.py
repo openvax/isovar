@@ -20,6 +20,7 @@ from .reference_sequence_key import ReferenceSequenceKey
 
 logger = logging.getLogger(__name__)
 
+
 class ReferenceCodingSequenceKey(ReferenceSequenceKey):
     """
     ReferenceCodingSequenceKey includes all the fields of a ReferenceSequenceKey,

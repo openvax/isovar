@@ -21,6 +21,7 @@ from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 
 logger = logging.getLogger(__name__)
 
+
 class ReferenceSequenceKey(ValueObject):
     """
     Used to identify and group the distinct sequences occurring on a set of
