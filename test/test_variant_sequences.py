@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ from isovar.variant_reads import reads_supporting_variant
 from isovar.allele_reads import AlleleRead
 
 from testing_helpers import load_bam
+
 
 def test_sequence_counts_snv():
     samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
@@ -62,6 +63,7 @@ def test_variant_sequence_read_names():
             AlleleRead(prefix="A", allele="C", suffix="T", name="1"),
             AlleleRead(prefix="A", allele="C", suffix="T", name="2")])
     eq_(vs.read_names, {"1", "2"})
+
 
 def test_variant_sequence_contains():
     # AA|C|T
@@ -120,6 +122,7 @@ def test_variant_sequence_contains():
         assert not vs_different_allele.contains(vs), \
             "Expected %s to not contain %s" % (vs_different_allele, vs)
 
+
 def test_variant_sequence_overlaps():
     # AAA|GG|TT
     vs_3A = VariantSequence(
@@ -149,12 +152,14 @@ def test_variant_sequence_overlaps():
         "Unexpected overlap between %s and %s for min_overlap_size=7" % (
             vs_3A, vs_2A)
 
+
 def test_variant_sequence_add_reads():
     vs = VariantSequence(prefix="A", alt="C", suffix="G", reads={"1"})
     # adding reads '2' and '3', sometimes multiple times
     vs_result = vs.add_reads("2").add_reads("1").add_reads("2").add_reads("3")
     expected = VariantSequence(prefix="A", alt="C", suffix="G", reads={"1", "2", "3"})
     eq_(vs_result, expected)
+
 
 def test_variant_sequence_combine():
     vs1 = VariantSequence(prefix="A", alt="C", suffix="GG", reads={"1"})
@@ -167,6 +172,7 @@ def test_variant_sequence_combine():
     # function
     vs_result_2_to_1 = vs2.combine(vs1)
     eq_(vs_result_2_to_1, expected)
+
 
 def test_variant_sequence_trim_by_coverage():
     reads = [
@@ -190,6 +196,7 @@ def test_variant_sequence_trim_by_coverage():
         reads=reads)
     eq_(vs.trim_by_coverage(2), vs_expected_trim_by_2)
 
+
 def test_variant_sequence_min_coverage():
     # 1: AA|C|TT
     # 2: AA|C|T
@@ -208,6 +215,7 @@ def test_variant_sequence_min_coverage():
         suffix="TT",
         reads=reads)
     eq_(vs.min_coverage(), 2)
+
 
 def test_variant_sequence_mean_coverage():
     # 1: AA|C|TT
@@ -230,6 +238,7 @@ def test_variant_sequence_mean_coverage():
     # is contained in a read
     expected_mean_coverage = (2 + 3 + 3 + 3 + 2) / 5
     eq_(vs.mean_coverage(), expected_mean_coverage)
+
 
 def test_variant_sequence_len():
     vs = VariantSequence(

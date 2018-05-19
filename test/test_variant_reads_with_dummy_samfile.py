@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ from isovar.allele_reads import AlleleRead
 
 from mock_read_data import DummySamFile, make_read
 from nose.tools import eq_
+
 
 def test_partitioned_read_sequences_snv():
     """
@@ -53,6 +54,7 @@ def test_partitioned_read_sequences_snv():
         suffix="TG")
     eq_(variant_read, expected)
 
+
 def test_partitioned_read_sequences_insertion():
     """
     test_partitioned_read_sequences_insertion : Test that read gets correctly
@@ -84,6 +86,7 @@ def test_partitioned_read_sequences_insertion():
         allele="G",
         suffix="TG")
     eq_(variant_read, expected)
+
 
 def test_partitioned_read_sequences_deletion():
     """
