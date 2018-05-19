@@ -30,7 +30,7 @@ before_install:
 install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-      nose numpy scipy pandas pandoc mkl tensorflow pip
+      nose numpy scipy pandas pandoc mkl tensorflow pip cython
   - source activate test-environment
   # install pysam from conda because I'm having trouble installing Cython
   # for Python 3 on Travis
