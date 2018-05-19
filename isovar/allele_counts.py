@@ -31,6 +31,7 @@ AlleleCount = namedtuple(
         "n_other",
     ])
 
+
 def count_alleles_at_variant_locus(variant, allele_reads):
     allele_reads = list(allele_reads)
     n_total = len(allele_reads)
@@ -40,6 +41,7 @@ def count_alleles_at_variant_locus(variant, allele_reads):
     n_alt = len(allele_to_reads_dict[alt])
     n_other = n_total - (n_ref + n_alt)
     return AlleleCount(n_ref=n_ref, n_alt=n_alt, n_other=n_other)
+
 
 def allele_counts_dataframe(variant_and_allele_reads_generator):
     """
