@@ -237,6 +237,7 @@ def pileup_reads_at_position(samfile, chromosome, base0_position):
     # desired position
     return []
 
+
 def locus_read_generator(
         samfile,
         chromosome,
@@ -312,6 +313,7 @@ def locus_read_generator(
         chromosome,
         base1_position_before_variant,
         base1_position_after_variant)
+
 
 def locus_reads_dataframe(*args, **kwargs):
     """

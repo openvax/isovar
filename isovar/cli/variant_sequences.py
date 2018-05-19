@@ -28,6 +28,8 @@ from .rna_reads import (
     allele_reads_generator_from_args,
     make_rna_reads_arg_parser
 )
+
+
 def add_variant_sequence_args(
         parser,
         add_sequence_length_arg=False):
@@ -61,6 +63,7 @@ def add_variant_sequence_args(
             type=int)
     return parser
 
+
 def make_variant_sequences_arg_parser(add_sequence_length_arg=False, **kwargs):
     """
     Parameters
@@ -85,6 +88,7 @@ def make_variant_sequences_arg_parser(add_sequence_length_arg=False, **kwargs):
         add_sequence_length_arg=add_sequence_length_arg)
     return parser
 
+
 def variant_sequences_generator_from_args(args):
     allele_reads_generator = allele_reads_generator_from_args(args)
     return reads_generator_to_sequences_generator(
@@ -93,6 +97,7 @@ def variant_sequences_generator_from_args(args):
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,
         preferred_sequence_length=args.cdna_sequence_length,
         variant_sequence_assembly=args.variant_sequence_assembly)
+
 
 def variant_sequences_dataframe_from_args(args):
     variant_sequences_generator = variant_sequences_generator_from_args(args)

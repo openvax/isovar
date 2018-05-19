@@ -23,10 +23,15 @@ import logging.config
 import pkg_resources
 import sys
 
-from .translation import (
-    make_translation_arg_parser,
-    translations_dataframe_from_args,
+
+from ..translation import (
+    translate_variants,
+    translations_generator_to_dataframe
 )
+from .translation_args import (
+    make_translation_arg_parser,
+)
+from .rna_reads import variant_reads_generator_from_args
 
 logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
 logger = logging.getLogger(__name__)
@@ -36,6 +41,24 @@ parser.add_argument(
     "--output",
     default="isovar-translate-variants-results.csv",
     help="Name of CSV file which contains predicted sequences")
+
+
+def translations_generator_from_args(args):
+    variant_reads_generator = variant_reads_generator_from_args(args)
+    return translate_variants(
+        variant_reads_generator,
+        protein_sequence_length=args.protein_sequence_length,
+        min_alt_rna_reads=args.min_alt_rna_reads,
+        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
+        variant_sequence_assembly=args.variant_sequence_assembly,
+        min_transcript_prefix_length=args.min_transcript_prefix_length,
+        max_transcript_mismatches=args.max_reference_transcript_mismatches,
+        include_mismatches_after_variant=args.include_mismatches_after_variant)
+
+
+def translations_dataframe_from_args(args):
+    translations_generator = translations_generator_from_args(args)
+    return translations_generator_to_dataframe(translations_generator)
 
 
 def run(args=None):

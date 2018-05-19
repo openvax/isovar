@@ -27,10 +27,13 @@ from .rna_reads import (
     make_rna_reads_arg_parser,
 )
 
-logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
+logging.config.fileConfig(
+    pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
+
 logger = logging.getLogger(__name__)
 
 parser = make_rna_reads_arg_parser()
+
 parser.add_argument(
     "--output",
     default="isovar-variant-reads-result.csv",

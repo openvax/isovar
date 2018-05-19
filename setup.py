@@ -66,7 +66,7 @@ if __name__ == '__main__':
         ],
         install_requires=[
             'six',
-            'pysam >= 0.9.0',
+            'pysam==0.9.0',
             'pandas',
             'varcode>=0.5.9',
             'pyensembl>=1.0.3',
