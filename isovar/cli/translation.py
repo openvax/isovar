@@ -28,6 +28,7 @@ from ..translation import (
 from .variant_sequences import make_variant_sequences_arg_parser
 from .rna_reads import variant_reads_generator_from_args
 
+
 def add_translation_args(parser):
     translation_group = parser.add_argument_group(
         "Translation from cDNA to protein sequence")
@@ -63,6 +64,7 @@ def add_translation_args(parser):
 
     return translation_group
 
+
 def make_translation_arg_parser(**kwargs):
     """
     Parameters
@@ -81,6 +83,7 @@ def make_translation_arg_parser(**kwargs):
     add_translation_args(parser)
     return parser
 
+
 def translations_generator_from_args(args):
     variant_reads_generator = variant_reads_generator_from_args(args)
     return translate_variants(
@@ -92,6 +95,7 @@ def translations_generator_from_args(args):
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
         include_mismatches_after_variant=args.include_mismatches_after_variant)
+
 
 def translations_dataframe_from_args(args):
     translations_generator = translations_generator_from_args(args)
