@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,12 +22,14 @@ class DummyPileupElement(object):
         self.is_del = is_del
         self.is_refskip = is_refskip
 
+
 class DummyPileupColumn(object):
     def __init__(self, pos, reads, is_del=False, is_refskip=False):
         self.pos = pos
         self.pileups = [
             DummyPileupElement(read, is_del=is_del, is_refskip=is_refskip)
             for read in reads]
+
 
 class DummySamFile(object):
     """
@@ -42,6 +44,7 @@ class DummySamFile(object):
     def pileup(self, chromosome, start, end):
         for i in range(start, end + 1):
             yield DummyPileupColumn(pos=i, reads=self.reads)
+
 
 def make_read(seq, cigar, mdtag=None, name="dummy", mapq=10, baseq=30):
     read = pysam.AlignedSegment()

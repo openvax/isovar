@@ -586,20 +586,17 @@ def translations_generator_to_dataframe(translations_generator):
     return dataframe_from_generator(
         element_class=Translation,
         variant_and_elements_generator=translations_generator,
-        exclude=["reference_context"],
+        exclude=[],
         converters={
             "untrimmed_variant_sequence": lambda vs: vs.sequence,
-            "variant_sequence_in_reading_frame": lambda vs: vs.sequence,
-            "reference_context": lambda rc: rc,
+            "variant_sequence_in_reading_frame": (
+                lambda vs: vs.cdna_sequence[vs.offset_to_first_complete_codon]),
+            "reference_context": (
+                lambda rc: ";".join([
+                    transcript.name for
+                    transcript in rc.transcripts]))
         },
         extra_column_fns={
             "untrimmed_variant_sequence_read_count": (
-                lambda t: len(t.untrimmed_variant_sequence.reads)),
-            "variant_sequence_in_reading_frame_read_count": (
-                lambda t: len(t.variant_sequence_in_reading_frame.reads)),
-            "reference_context_transcripts": (
-                lambda t: ";".join([
-                    transcript.name for
-                    transcript in
-                    t.reference_context.transcripts]))
+                lambda _, t: len(t.untrimmed_variant_sequence.reads)),
         })

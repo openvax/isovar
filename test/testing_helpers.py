@@ -19,6 +19,7 @@ from nose.tools import eq_
 from pysam import AlignmentFile
 import varcode
 
+
 def assert_equal_fields(result, expected):
     """
     Assert that fields of two namedtuple objects have same field values.
