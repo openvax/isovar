@@ -21,7 +21,6 @@ translations.
 
 from __future__ import print_function, division, absolute_import
 import math
-import logging
 
 
 from .reference_context import reference_contexts_for_variant
@@ -41,8 +40,9 @@ from .default_parameters import (
 )
 from .dataframe_builder import dataframe_from_generator
 from .value_object import ValueObject
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class TranslationKey(ValueObject):

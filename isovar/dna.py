@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,8 +27,10 @@ dna_nucleotide_to_index = {c: i for (i, c) in enumerate(dna_nucleotides)}
 
 index_to_dna_nucleotide = {i: c for (i, c) in enumerate(dna_nucleotides)}
 
+
 def complement_dna(seq):
     return "".join(dna_complement_dictionary[nt] for nt in seq)
+
 
 def reverse_complement_dna(seq):
     return complement_dna(seq)[::-1]

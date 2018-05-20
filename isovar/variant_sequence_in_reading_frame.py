@@ -20,14 +20,13 @@ translations.
 
 from __future__ import print_function, division, absolute_import
 
-import logging
-
 from six.moves import range, zip
 
 from .dna import reverse_complement_dna
 from .value_object import ValueObject
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class VariantSequenceInReadingFrame(ValueObject):

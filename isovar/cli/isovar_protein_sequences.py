@@ -22,7 +22,7 @@ from __future__ import print_function, division, absolute_import
 import sys
 
 
-from ..common import get_logger
+from ..logging import get_logger
 from .protein_sequence_args import (
     make_protein_sequences_arg_parser,
     protein_sequences_dataframe_from_args

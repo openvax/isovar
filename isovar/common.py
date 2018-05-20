@@ -15,14 +15,6 @@
 from __future__ import print_function, division, absolute_import
 
 from collections import defaultdict
-import logging
-import pkg_resources
-
-
-def get_logger(name):
-    logging.config.fileConfig(pkg_resources.resource_filename(
-        'isovar', 'logging.conf'))
-    return logging.getLogger(name)
 
 
 def list_to_string(list_of_anything, sep=";"):

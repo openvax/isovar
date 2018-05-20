@@ -19,7 +19,7 @@ Prints names and sequences of reads supporting a given set of variants.
 from __future__ import print_function, division, absolute_import
 import sys
 
-from ..common import get_logger
+from ..logging import get_logger
 from .rna_args import (
     variant_reads_dataframe_from_args,
     make_rna_reads_arg_parser,

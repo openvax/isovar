@@ -15,7 +15,7 @@
 from __future__ import print_function, division, absolute_import
 import sys
 
-from ..common import get_logger
+from ..logging import get_logger
 
 from ..variant_sequences import (
     reads_generator_to_sequences_generator,

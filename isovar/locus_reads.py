@@ -19,7 +19,6 @@ for extracting variant nucleotides.
 """
 
 from __future__ import print_function, division, absolute_import
-import logging
 
 from .default_parameters import (
     MIN_READ_MAPPING_QUALITY,
@@ -29,8 +28,10 @@ from .default_parameters import (
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
 from .value_object import ValueObject
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 class LocusRead(ValueObject):
     __slots__ = [
@@ -209,6 +210,7 @@ class LocusRead(ValueObject):
             quality_scores=base_qualities,
             base0_read_position_before_variant=base0_read_position_before_variant,
             base0_read_position_after_variant=base0_read_position_after_variant)
+
 
 def pileup_reads_at_position(samfile, chromosome, base0_position):
     """

@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ from .read_helpers import (
     make_prefix_suffix_pairs,
     get_single_allele_from_reads,
 )
+
 
 def nucleotide_counts(variant_reads):
     """
@@ -75,6 +76,7 @@ def nucleotide_counts(variant_reads):
             row_idx = dna_nucleotide_to_index[s[i]]
             counts[row_idx, suffix_col_idx] += 1
     return counts, variant_column_indices
+
 
 def most_common_nucleotides(partitioned_read_sequences):
     """

@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 
-from ..common import get_logger
+from ..logging import get_logger
 from .reference_context_args import (
     make_reference_context_arg_parser,
     reference_contexts_dataframe_from_args

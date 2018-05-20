@@ -20,7 +20,7 @@ sequences using an RNAseq BAM from the same tissuie.
 from __future__ import print_function, division, absolute_import
 import sys
 
-from ..common import get_logger
+from ..logging import get_logger
 from ..translation import (
     translate_variants,
     translations_generator_to_dataframe

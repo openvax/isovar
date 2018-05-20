@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
 
 import numpy as np
 
@@ -32,8 +31,9 @@ from .default_parameters import (
 from .dataframe_builder import dataframe_from_generator
 from .assembly import iterative_overlap_assembly, collapse_substrings
 from .value_object import ValueObject
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class VariantSequence(ValueObject):
