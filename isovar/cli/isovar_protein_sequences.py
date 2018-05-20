@@ -19,19 +19,17 @@ a read count to each protein sequence.
 """
 
 from __future__ import print_function, division, absolute_import
-import logging
 import sys
-import logging.config
-import pkg_resources
 
-from .protein_sequences import (
+
+from ..common import get_logger
+from .protein_sequence_args import (
     make_protein_sequences_arg_parser,
     protein_sequences_dataframe_from_args
 )
 
 
-logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 parser = make_protein_sequences_arg_parser()
 

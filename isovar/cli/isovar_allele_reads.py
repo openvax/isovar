@@ -16,19 +16,16 @@
 Prints names and sequences of reads overlapping a given set of variants.
 """
 
-from __future__ import division, absolute_import
+from __future__ import print_function, division, absolute_import
 import sys
-import logging
-import logging.config
-import pkg_resources
 
-from .rna_reads import (
+from ..common import get_logger
+from .rna_args import (
     make_rna_reads_arg_parser,
     allele_reads_dataframe_from_args
 )
 
-logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 parser = make_rna_reads_arg_parser()
 

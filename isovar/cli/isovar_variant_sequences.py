@@ -13,21 +13,18 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
-import logging.config
-import pkg_resources
 import sys
+
+from ..common import get_logger
 
 from ..variant_sequences import (
     reads_generator_to_sequences_generator,
     variant_sequences_generator_to_dataframe
 )
-from .rna_reads import allele_reads_generator_from_args
+from .rna_args import allele_reads_generator_from_args
 from .variant_sequences_args import make_variant_sequences_arg_parser
 
-logging.config.fileConfig(
-    pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 parser = make_variant_sequences_arg_parser(add_sequence_length_arg=True)
 

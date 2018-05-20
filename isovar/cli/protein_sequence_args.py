@@ -21,7 +21,7 @@ from ..protein_sequences import (
     reads_generator_to_protein_sequences_generator
 )
 
-from .rna_reads import allele_reads_generator_from_args
+from .rna_args import allele_reads_generator_from_args
 from .translation_args import make_translation_arg_parser
 
 

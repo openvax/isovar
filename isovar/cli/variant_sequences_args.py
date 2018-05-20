@@ -20,7 +20,7 @@ from ..default_parameters import (
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_LENGTH,
 )
-from .rna_reads import make_rna_reads_arg_parser
+from .rna_args import make_rna_reads_arg_parser
 
 
 def add_variant_sequence_args(
@@ -47,6 +47,7 @@ def add_variant_sequence_args(
         default=True,
         action="store_false",
         help="Disable assemble variant cDNA sequence from overlapping reads")
+
     # when cDNA sequence length can be inferred from a protein length then
     # we may want to omit this arg
     if add_sequence_length_arg:

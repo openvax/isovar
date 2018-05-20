@@ -18,12 +18,9 @@ sequences using an RNAseq BAM from the same tissuie.
 """
 
 from __future__ import print_function, division, absolute_import
-import logging
-import logging.config
-import pkg_resources
 import sys
 
-
+from ..common import get_logger
 from ..translation import (
     translate_variants,
     translations_generator_to_dataframe
@@ -31,10 +28,9 @@ from ..translation import (
 from .translation_args import (
     make_translation_arg_parser,
 )
-from .rna_reads import variant_reads_generator_from_args
+from .rna_args import variant_reads_generator_from_args
 
-logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 parser = make_translation_arg_parser()
 parser.add_argument(

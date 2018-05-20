@@ -73,7 +73,7 @@ if __name__ == '__main__':
         ],
         long_description=readme_restructured,
         packages=find_packages(),
-        package_data={'isovar.cli': ['logging.conf']},
+        package_data={'isovar': ['logging.conf']},
         entry_points={
             'console_scripts': [
                 'isovar-protein-sequences=isovar.cli.isovar_protein_sequences:run',

@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,12 +15,22 @@
 from __future__ import print_function, division, absolute_import
 
 from collections import defaultdict
+import logging
+import pkg_resources
+
+
+def get_logger(name):
+    logging.config.fileConfig(pkg_resources.resource_filename(
+        'isovar', 'logging.conf'))
+    return logging.getLogger(name)
+
 
 def list_to_string(list_of_anything, sep=";"):
     """
     Helper function used for building the fields of a printable dataframe
     """
     return sep.join(str(x) for x in list_of_anything)
+
 
 def groupby(xs, key_fn):
     """

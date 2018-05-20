@@ -13,18 +13,16 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
-import logging.config
-import pkg_resources
+
 import sys
 
+from ..common import get_logger
 from .reference_context_args import (
     make_reference_context_arg_parser,
     reference_contexts_dataframe_from_args
 )
 
-logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 parser = make_reference_context_arg_parser()
 parser.add_argument(
