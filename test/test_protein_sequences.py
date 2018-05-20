@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ from __future__ import print_function, division, absolute_import
 from nose.tools import eq_
 from isovar.translation import Translation
 
-from isovar.cli.protein_sequences import (
+from isovar.cli.protein_sequence_args import (
     protein_sequences_dataframe_from_args,
     make_protein_sequences_arg_parser,
 )
@@ -71,6 +71,7 @@ def make_dummy_translation(
         untrimmed_variant_sequence=None,
         reference_context=None)
 
+
 def make_dummy_protein_sequence(
         n_supporting_variant_reads,
         n_supporting_variant_sequences,
@@ -121,6 +122,7 @@ def make_dummy_protein_sequence(
         ends_with_stop_codon=translation.ends_with_stop_codon,
         frameshift=translation.frameshift)
 
+
 def test_sort_protein_sequences():
     protseq_most_reads = make_dummy_protein_sequence(
         n_supporting_variant_reads=50,
@@ -157,6 +159,7 @@ def test_sort_protein_sequences():
     ]
     eq_(sort_protein_sequences(unsorted_protein_sequences), expected_order)
 
+
 def variants_to_protein_sequences_dataframe(
         expressed_vcf="data/b16.f10/b16.expressed.vcf",
         not_expressed_vcf="data/b16.f10/b16.not-expressed.vcf",
@@ -188,6 +191,7 @@ def variants_to_protein_sequences_dataframe(
     df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
     return df, expressed_variants, combined_variants
 
+
 def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_with_assembly():
     df, expressed_variants, combined_variants = \
         variants_to_protein_sequences_dataframe(variant_sequence_assembly=True)
@@ -199,6 +203,7 @@ def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_with_a
             len(combined_variants),
             len(df)))
 
+
 def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_without_assembly():
     df, expressed_variants, combined_variants = \
         variants_to_protein_sequences_dataframe(variant_sequence_assembly=False)
@@ -209,6 +214,7 @@ def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_withou
             len(expressed_variants),
             len(combined_variants),
             len(df)))
+
 
 def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_quality():
     # since the B16 BAM has all MAPQ=255 values then all the reads should get dropped
@@ -228,6 +234,7 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
         len(df),
         0,
         "Expected 0 entries, got %d: %s" % (len(df), df))
+
 
 def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
     expressed_variants = load_vcf("data/b16.f10/b16.expressed.vcf")
