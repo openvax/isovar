@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ def test_trim_variant_substitution():
     eq_(loc, 10)
     eq_(ref, "C")
     eq_(alt, "G")
+
 
 def test_trim_variant_fields_substitution():
     loc, ref, alt = trim_variant_fields(10, "C", "G")

@@ -3,6 +3,7 @@ from isovar.allele_reads import AlleleRead
 from varcode import Variant
 from nose.tools import eq_
 
+
 def test_allele_count_dataframe():
     variant = Variant("test_contig", 50, "C", "G")
     reads = [
@@ -16,6 +17,7 @@ def test_allele_count_dataframe():
     eq_(row.n_ref, 2)
     eq_(row.n_alt, 1)
     eq_(row.n_other, 0)
+
 
 if __name__ == "__main__":
     test_allele_count_dataframe()

@@ -15,13 +15,14 @@
 from __future__ import print_function, division, absolute_import
 
 from collections import defaultdict
-import logging
 
 from six.moves import range
 
 from .default_parameters import MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 def greedy_merge_helper(
         variant_sequences,

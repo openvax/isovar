@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,6 +58,7 @@ def add_rna_args(
         action="store_true")
     return rna_group
 
+
 def make_rna_reads_arg_parser(**kwargs):
     """
     Parameters
@@ -72,8 +73,10 @@ def make_rna_reads_arg_parser(**kwargs):
     add_rna_args(parser)
     return parser
 
+
 def samfile_from_args(args):
     return AlignmentFile(args.bam)
+
 
 def allele_reads_generator_from_args(args):
     variants = variant_collection_from_args(args)
@@ -85,8 +88,10 @@ def allele_reads_generator_from_args(args):
         use_secondary_alignments=not args.drop_secondary_alignments,
         min_mapping_quality=args.min_mapping_quality)
 
+
 def allele_reads_dataframe_from_args(args):
     return reads_to_dataframe(allele_reads_generator_from_args(args))
+
 
 def variant_reads_generator_from_args(args):
     variants = variant_collection_from_args(args)
@@ -97,6 +102,7 @@ def variant_reads_generator_from_args(args):
         use_duplicate_reads=args.use_duplicate_reads,
         use_secondary_alignments=not args.drop_secondary_alignments,
         min_mapping_quality=args.min_mapping_quality)
+
 
 def variant_reads_dataframe_from_args(args):
     return reads_to_dataframe(variant_reads_generator_from_args(args))

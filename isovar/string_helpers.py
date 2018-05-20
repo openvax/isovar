@@ -14,10 +14,10 @@
 
 
 from __future__ import print_function, division, absolute_import
-import logging
 
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def trim_N_nucleotides(prefix, suffix):

@@ -25,6 +25,7 @@ VALID_ELEMENT_TYPES = integer_types + (text_type, binary_type, float, bool)
 # unless some other conversion function is provided
 COLLECTION_TYPES = (tuple, list, set, frozenset)
 
+
 class DataFrameBuilder(object):
     """
     Helper class for constructing a DataFrame which always has fields
@@ -184,7 +185,11 @@ class DataFrameBuilder(object):
         self._check_column_lengths()
         return pd.DataFrame(self.columns_dict)
 
-def dataframe_from_generator(element_class, variant_and_elements_generator, **kwargs):
+
+def dataframe_from_generator(
+        element_class,
+        variant_and_elements_generator,
+        **kwargs):
     builder = DataFrameBuilder(element_class, **kwargs)
     for variant, elements in variant_and_elements_generator:
         builder.add_many(variant, elements)

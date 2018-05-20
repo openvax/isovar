@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,27 +16,29 @@
 Prints names and sequences of reads overlapping a given set of variants.
 """
 
-from __future__ import division, absolute_import
-import logging
-import logging.config
-import pkg_resources
+from __future__ import print_function, division, absolute_import
+import sys
 
-from isovar.cli.rna_reads import (
+from ..logging import get_logger
+from .rna_args import (
     make_rna_reads_arg_parser,
     allele_reads_dataframe_from_args
 )
 
-logging.config.fileConfig(pkg_resources.resource_filename('isovar.cli', 'logging.conf'))
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 parser = make_rna_reads_arg_parser()
+
 parser.add_argument(
     "--output",
     default="isovar-allele-reads-result.csv",
     help="Name of CSV file which contains overlapping read sequences")
 
-if __name__ == "__main__":
-    args = parser.parse_args()
+
+def run(args=None):
+    if args is None:
+        args = sys.argv[1:]
+    args = parser.parse_args(args)
     logger.info(args)
     df = allele_reads_dataframe_from_args(args)
     logger.info(df)

@@ -35,6 +35,7 @@ def add_reference_context_args(parser):
         type=int)
     return reference_context_group
 
+
 def make_reference_context_arg_parser(**kwargs):
     """
     Parameters
@@ -50,6 +51,7 @@ def make_reference_context_arg_parser(**kwargs):
     parser = make_variants_parser(**kwargs)
     add_reference_context_args(parser)
     return parser
+
 
 def reference_contexts_dataframe_from_args(args):
     variants = variant_collection_from_args(args)

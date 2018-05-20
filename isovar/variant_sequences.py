@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
 
 import numpy as np
 
@@ -32,8 +31,10 @@ from .default_parameters import (
 from .dataframe_builder import dataframe_from_generator
 from .assembly import iterative_overlap_assembly, collapse_substrings
 from .value_object import ValueObject
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 class VariantSequence(ValueObject):
     __slots__ = [
@@ -240,6 +241,7 @@ class VariantSequence(ValueObject):
             suffix=self.suffix[:last_covered_index - variant_end_index + 1],
             reads=self.reads)
 
+
 def initial_variant_sequences_from_reads(
         variant_reads,
         max_nucleotides_before_variant=None,
@@ -264,6 +266,7 @@ def initial_variant_sequences_from_reads(
         in unique_sequence_groups.items()
     ]
 
+
 def filter_variant_sequences_by_read_support(
         variant_sequences,
         min_variant_sequence_coverage):
@@ -281,6 +284,7 @@ def filter_variant_sequences_by_read_support(
             n_total,
             min_variant_sequence_coverage)
     return variant_sequences
+
 
 def filter_variant_sequences_by_length(
         variant_sequences,
@@ -311,6 +315,7 @@ def filter_variant_sequences_by_length(
             min_required_sequence_length)
     return variant_sequences
 
+
 def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
     """
     Trim VariantSequences to desired coverage and then combine any
@@ -330,6 +335,7 @@ def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
         min_variant_sequence_coverage)
     return collapsed_variant_sequences
 
+
 def filter_variant_sequences(
         variant_sequences,
         preferred_sequence_length,
@@ -344,6 +350,7 @@ def filter_variant_sequences(
     return filter_variant_sequences_by_length(
         variant_sequences=variant_sequences,
         preferred_sequence_length=preferred_sequence_length)
+
 
 def reads_to_variant_sequences(
         variant,
@@ -463,6 +470,7 @@ def reads_to_variant_sequences(
     variant_sequences.sort(key=lambda vs: -len(vs.reads))
     return variant_sequences
 
+
 def reads_generator_to_sequences_generator(
         variant_and_reads_generator,
         min_alt_rna_reads=MIN_ALT_RNA_READS,
@@ -506,6 +514,7 @@ def reads_generator_to_sequences_generator(
             preferred_sequence_length=preferred_sequence_length,
             variant_sequence_assembly=variant_sequence_assembly)
         yield variant, variant_sequences
+
 
 def variant_sequences_generator_to_dataframe(variant_sequences_generator):
     """

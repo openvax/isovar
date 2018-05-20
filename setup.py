@@ -50,8 +50,8 @@ if __name__ == '__main__':
     setup(
         name='isovar',
         version=version,
-        description="Assemble transcript sequences fragments near variants",
-        author="Alex Rubinsteyn and Arman Aksoy",
+        description="Assemble transcript sequences fragments around variants",
+        author="Alex Rubinsteyn, Arman Aksoy, Julia Kodysh",
         author_email="alex.rubinsteyn@mssm.edu",
         url="https://github.com/hammerlab/isovar",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
@@ -66,21 +66,23 @@ if __name__ == '__main__':
         ],
         install_requires=[
             'six',
-            'pysam >= 0.9.0',
+            'pysam==0.9.0',
             'pandas',
             'varcode>=0.5.9',
             'pyensembl>=1.0.3',
         ],
         long_description=readme_restructured,
         packages=find_packages(),
-        package_data={'isovar.cli': ['logging.conf']},
-        scripts=[
-            "script/isovar-protein-sequences.py",
-            "script/isovar-translations.py",
-            "script/isovar-reference-contexts.py",
-            "script/isovar-allele-reads.py",
-            "script/isovar-allele-counts.py",
-            "script/isovar-variant-reads.py",
-            "script/isovar-variant-sequences.py",
-        ],
+        package_data={'isovar': ['logging.conf']},
+        entry_points={
+            'console_scripts': [
+                'isovar-protein-sequences=isovar.cli.isovar_protein_sequences:run',
+                "isovar-translations=isovar.cli.isovar_translations:run",
+                "isovar-reference-contexts=isovar.cli.isovar_reference_contexts:run",
+                "isovar-allele-reads=isovar.cli.isovar_allele_reads:run",
+                "isovar-allele-counts=isovar.cli.isovar_allele_counts:run",
+                "isovar-variant-reads=isovar.cli.isovar_variant_reads:run",
+                "isovar-variant-sequences=isovar.cli.isovar_variant_sequences:run",
+            ]
+        }
     )

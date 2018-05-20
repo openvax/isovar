@@ -26,6 +26,7 @@ def test_compute_offset_to_first_complete_codon_no_trimming():
             n_trimmed_from_reference_sequence=0),
         5)
 
+
 def test_compute_offset_to_first_complete_codon_trimming_before_codon():
     # if the number of reference bases trimmed from the reference sequence
     # occurs before the reference codon, then it should decrease the
@@ -41,6 +42,7 @@ def test_compute_offset_to_first_complete_codon_trimming_before_codon():
             n_trimmed_from_reference_sequence=7),
         0)
 
+
 def test_compute_offset_to_first_complete_codon_trimming_after_codon():
     # if the number of reference bases trimmed from the reference sequence
     # occurs after the reference codon, then it needs to be rounded up the
@@ -55,6 +57,7 @@ def test_compute_offset_to_first_complete_codon_trimming_after_codon():
             offset_to_first_complete_reference_codon=7,
             n_trimmed_from_reference_sequence=10),
         0)
+
 
 def make_inputs_for_tp53_201_variant(
         cdna_prefix="ATG",
@@ -171,6 +174,7 @@ def make_inputs_for_tp53_201_variant(
 
     return variant_sequence, reference_context, expected
 
+
 def test_match_variant_sequence_to_reference_context_exact_match():
     # Variant sequence is exact match for beginning of TP53-201 transcript
     variant_sequence, reference_context, expected = \
@@ -182,6 +186,7 @@ def test_match_variant_sequence_to_reference_context_exact_match():
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0)
     eq_(expected, result)
+
 
 def test_match_variant_sequence_to_reference_context_not_enough_prefix():
     # Variant sequence missing first nucleotide of start codon
@@ -199,6 +204,7 @@ def test_match_variant_sequence_to_reference_context_not_enough_prefix():
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0)
     eq_(result, None)
+
 
 def test_match_variant_sequence_to_reference_context_trim_1_bad_nucleotide():
     # Variant sequence has an extra nucleotide at the beginning which is
@@ -219,6 +225,7 @@ def test_match_variant_sequence_to_reference_context_trim_1_bad_nucleotide():
         max_transcript_mismatches=0,
         max_trimming_attempts=1)
     eq_(expected, result)
+
 
 def test_match_variant_sequence_to_reference_context_ignore_extra_prefix():
     # There are three "extra" nucleotides at the start but since we are
@@ -241,6 +248,7 @@ def test_match_variant_sequence_to_reference_context_ignore_extra_prefix():
     # should start at the "ATG" after it
     eq_(result.cdna_sequence[:3], "ATG")
 
+
 def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_no_trimming():
     # matching should fail if no mismatches are allowed and no trimming rounds
     # are allowed
@@ -257,6 +265,7 @@ def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_no_tri
         max_trimming_attempts=0)
     eq_(None, result)
 
+
 def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_trimming():
     # match should succeed if 1 round of trimming is allowed
     variant_sequence, reference_context, expected = \
@@ -270,6 +279,7 @@ def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_trimmi
         max_transcript_mismatches=0,
         max_trimming_attempts=1)
     eq_(expected, result)
+
 
 def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_allow_mismatch():
     # match should succeed if 1 mismatch is allowed
@@ -285,6 +295,7 @@ def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_allow_
         max_transcript_mismatches=1,
         max_trimming_attempts=0)
     eq_(expected, result)
+
 
 def test_match_variant_sequence_to_reference_context_include_mismatches_after_variant():
     variant_sequence, reference_context, expected = \

@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,14 +20,14 @@ translations.
 
 from __future__ import print_function, division, absolute_import
 
-import logging
-
 from six.moves import range, zip
 
 from .dna import reverse_complement_dna
 from .value_object import ValueObject
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 class VariantSequenceInReadingFrame(ValueObject):
     """
@@ -129,6 +129,7 @@ class VariantSequenceInReadingFrame(ValueObject):
             number_mismatches_before_variant=n_mismatch_before_variant,
             number_mismatches_after_variant=n_mismatch_after_variant)
 
+
 def trim_sequences(variant_sequence, reference_context):
     """
     A VariantSequence and ReferenceContext may contain a different number of
@@ -204,6 +205,7 @@ def trim_sequences(variant_sequence, reference_context):
         n_trimmed_from_reference
     )
 
+
 def count_mismatches_before_variant(reference_prefix, cdna_prefix):
     """
     Computes the number of mismatching nucleotides between two cDNA sequences before a variant
@@ -223,6 +225,7 @@ def count_mismatches_before_variant(reference_prefix, cdna_prefix):
                 reference_prefix, cdna_prefix))
     return sum(xi != yi for (xi, yi) in zip(reference_prefix, cdna_prefix))
 
+
 def count_mismatches_after_variant(reference_suffix, cdna_suffix):
     """
     Computes the number of mismatching nucleotides between two cDNA sequences after a variant locus.
@@ -241,6 +244,7 @@ def count_mismatches_after_variant(reference_suffix, cdna_suffix):
     # if the reference is shorter than the read, the read runs into the intron - these count as
     # mismatches
     return sum(xi != yi for (xi, yi) in zip(reference_suffix, cdna_suffix)) + max(0, len_diff)
+
 
 def compute_offset_to_first_complete_codon(
         offset_to_first_complete_reference_codon,
@@ -269,6 +273,7 @@ def compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon)
         frame = n_nucleotides_trimmed_after_first_codon % 3
         return (3 - frame) % 3
+
 
 def match_variant_sequence_to_reference_context(
         variant_sequence,

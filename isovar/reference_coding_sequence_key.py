@@ -13,12 +13,13 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
 
 from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 from .reference_sequence_key import ReferenceSequenceKey
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 class ReferenceCodingSequenceKey(ReferenceSequenceKey):
     """

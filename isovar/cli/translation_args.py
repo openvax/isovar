@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,12 +21,8 @@ from ..default_parameters import (
     INCLUDE_MISMATCHES_AFTER_VARIANT,
     PROTEIN_SEQUENCE_LENGTH,
 )
-from ..translation import (
-    translate_variants,
-    translations_generator_to_dataframe
-)
-from .variant_sequences import make_variant_sequences_arg_parser
-from .rna_reads import variant_reads_generator_from_args
+from .variant_sequences_args import make_variant_sequences_arg_parser
+
 
 def add_translation_args(parser):
     translation_group = parser.add_argument_group(
@@ -63,6 +59,7 @@ def add_translation_args(parser):
 
     return translation_group
 
+
 def make_translation_arg_parser(**kwargs):
     """
     Parameters
@@ -80,19 +77,3 @@ def make_translation_arg_parser(**kwargs):
     parser = make_variant_sequences_arg_parser(**kwargs)
     add_translation_args(parser)
     return parser
-
-def translations_generator_from_args(args):
-    variant_reads_generator = variant_reads_generator_from_args(args)
-    return translate_variants(
-        variant_reads_generator,
-        protein_sequence_length=args.protein_sequence_length,
-        min_alt_rna_reads=args.min_alt_rna_reads,
-        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
-        variant_sequence_assembly=args.variant_sequence_assembly,
-        min_transcript_prefix_length=args.min_transcript_prefix_length,
-        max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        include_mismatches_after_variant=args.include_mismatches_after_variant)
-
-def translations_dataframe_from_args(args):
-    translations_generator = translations_generator_from_args(args)
-    return translations_generator_to_dataframe(translations_generator)

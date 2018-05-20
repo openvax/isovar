@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ from collections import defaultdict
 
 from .common import groupby
 
+
 def get_single_allele_from_reads(allele_reads):
     """
     Given a sequence of AlleleRead objects, which are expected to all have
@@ -40,6 +41,7 @@ def get_single_allele_from_reads(allele_reads):
 
 def make_prefix_suffix_pairs(allele_reads):
     return [(r.prefix, r.suffix) for r in allele_reads]
+
 
 def group_unique_sequences(
         allele_reads,
@@ -63,6 +65,7 @@ def group_unique_sequences(
         groups[key].add(r)
     return groups
 
+
 def count_unique_sequences(
         allele_reads,
         max_prefix_size=None,
@@ -80,6 +83,7 @@ def count_unique_sequences(
         seq_tuple: len(read_names)
         for (seq_tuple, read_names) in groups.items()
     }
+
 
 def group_reads_by_allele(allele_reads):
     """

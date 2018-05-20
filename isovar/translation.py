@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ translations.
 
 from __future__ import print_function, division, absolute_import
 import math
-import logging
 
 
 from .reference_context import reference_contexts_for_variant
@@ -41,8 +40,10 @@ from .default_parameters import (
 )
 from .dataframe_builder import dataframe_from_generator
 from .value_object import ValueObject
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 class TranslationKey(ValueObject):
     """
@@ -64,6 +65,7 @@ class TranslationKey(ValueObject):
         # was the variant a frameshift relative to the reference sequence?
         "frameshift"
     ]
+
 
 class Translation(TranslationKey):
     """
@@ -255,6 +257,7 @@ class Translation(TranslationKey):
             reference_context=reference_context,
             variant_sequence_in_reading_frame=variant_sequence_in_reading_frame)
 
+
 def find_mutant_amino_acid_interval(
         cdna_sequence,
         cdna_first_codon_offset,
@@ -348,6 +351,7 @@ def find_mutant_amino_acid_interval(
             variant_aa_interval_end = variant_aa_interval_start + n_alt_codons
     return variant_aa_interval_start, variant_aa_interval_end, frameshift
 
+
 def translation_generator(
         variant_sequences,
         reference_contexts,
@@ -399,6 +403,7 @@ def translation_generator(
                 protein_sequence_length=protein_sequence_length)
             if translation is not None:
                 yield translation
+
 
 def translate_variant_reads(
         variant,
@@ -499,6 +504,7 @@ def translate_variant_reads(
         include_mismatches_after_variant=include_mismatches_after_variant,
         protein_sequence_length=protein_sequence_length))
 
+
 def translate_variants(
         variants_with_supporting_reads,
         transcript_id_whitelist=None,
@@ -570,6 +576,7 @@ def translate_variants(
             variant_sequence_assembly=variant_sequence_assembly)
         yield variant, translations
 
+
 def translations_generator_to_dataframe(translations_generator):
     """
     Given a generator of (Variant, [Translation]) pairs,
@@ -579,8 +586,17 @@ def translations_generator_to_dataframe(translations_generator):
     return dataframe_from_generator(
         element_class=Translation,
         variant_and_elements_generator=translations_generator,
-        # exlude fields which are structured objects
-        exclude=[
-            "variant_sequence",
-            "reference_context",
-            "variant_sequence_in_reading_frame"])
+        exclude=[],
+        converters={
+            "untrimmed_variant_sequence": lambda vs: vs.sequence,
+            "variant_sequence_in_reading_frame": (
+                lambda vs: vs.cdna_sequence[vs.offset_to_first_complete_codon]),
+            "reference_context": (
+                lambda rc: ";".join([
+                    transcript.name for
+                    transcript in rc.transcripts]))
+        },
+        extra_column_fns={
+            "untrimmed_variant_sequence_read_count": (
+                lambda _, t: len(t.untrimmed_variant_sequence.reads)),
+        })

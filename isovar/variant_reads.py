@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,11 @@ Functions for getting AlleleReads which support variant alleles.
 from .variant_helpers import trim_variant
 from .allele_reads import reads_overlapping_variant, reads_overlapping_variants
 
+
 def filter_non_alt_reads_for_variant(variant, allele_reads):
     _, _, alt = trim_variant(variant)
     return [read for read in allele_reads if read.allele == alt]
+
 
 def filter_non_alt_reads_for_variants(variants_and_allele_reads_sequence):
     """
@@ -32,6 +34,7 @@ def filter_non_alt_reads_for_variants(variants_and_allele_reads_sequence):
     for variant, allele_reads in variants_and_allele_reads_sequence:
         yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
 
+
 def reads_supporting_variant(variant, samfile, **kwargs):
     allele_reads = reads_overlapping_variant(
         variant=variant,
@@ -40,6 +43,7 @@ def reads_supporting_variant(variant, samfile, **kwargs):
     return filter_non_alt_reads_for_variant(
         variant=variant,
         allele_reads=allele_reads)
+
 
 def reads_supporting_variants(variants, samfile, **kwargs):
     """

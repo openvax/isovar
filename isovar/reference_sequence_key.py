@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,13 +13,14 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
 
 from .value_object import ValueObject
 from .dna import reverse_complement_dna
 from .variant_helpers import interbase_range_affected_by_variant_on_transcript
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 class ReferenceSequenceKey(ValueObject):
     """

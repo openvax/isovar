@@ -19,7 +19,6 @@ for extracting variant nucleotides.
 """
 
 from __future__ import print_function, division, absolute_import
-import logging
 
 from .default_parameters import (
     MIN_READ_MAPPING_QUALITY,
@@ -29,8 +28,10 @@ from .default_parameters import (
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
 from .value_object import ValueObject
+from .logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 class LocusRead(ValueObject):
     __slots__ = [
@@ -210,6 +211,7 @@ class LocusRead(ValueObject):
             base0_read_position_before_variant=base0_read_position_before_variant,
             base0_read_position_after_variant=base0_read_position_after_variant)
 
+
 def pileup_reads_at_position(samfile, chromosome, base0_position):
     """
     Returns a pileup column at the specified position. Unclear if a function
@@ -236,6 +238,7 @@ def pileup_reads_at_position(samfile, chromosome, base0_position):
     # if we get to this point then we never saw a pileup at the
     # desired position
     return []
+
 
 def locus_read_generator(
         samfile,
@@ -312,6 +315,7 @@ def locus_read_generator(
         chromosome,
         base1_position_before_variant,
         base1_position_after_variant)
+
 
 def locus_reads_dataframe(*args, **kwargs):
     """

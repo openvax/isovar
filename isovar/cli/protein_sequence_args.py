@@ -21,8 +21,9 @@ from ..protein_sequences import (
     reads_generator_to_protein_sequences_generator
 )
 
-from .rna_reads import allele_reads_generator_from_args
-from .translation import make_translation_arg_parser
+from .rna_args import allele_reads_generator_from_args
+from .translation_args import make_translation_arg_parser
+
 
 def add_protein_sequence_args(parser):
     """
@@ -38,6 +39,7 @@ def add_protein_sequence_args(parser):
         type=int,
         default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
     return protein_sequence_group
+
 
 def make_protein_sequences_arg_parser(**kwargs):
     """
@@ -56,6 +58,7 @@ def make_protein_sequences_arg_parser(**kwargs):
     add_protein_sequence_args(parser)
     return parser
 
+
 def protein_sequences_generator_from_args(args):
     allele_reads_generator = allele_reads_generator_from_args(args)
     return reads_generator_to_protein_sequences_generator(
@@ -67,6 +70,7 @@ def protein_sequences_generator_from_args(args):
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
         max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
         variant_sequence_assembly=args.variant_sequence_assembly)
+
 
 def protein_sequences_dataframe_from_args(args):
     protein_sequences_generator = protein_sequences_generator_from_args(args)

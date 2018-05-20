@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2018. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ ProteinSequence.
 """
 
 from __future__ import print_function, division, absolute_import
-import logging
 
 from .common import groupby
 from .default_parameters import (
@@ -37,9 +36,9 @@ from .dataframe_builder import dataframe_from_generator
 from .translation import translate_variant_reads, Translation, TranslationKey
 from .read_helpers import group_reads_by_allele
 from .variant_helpers import trim_variant
+from .logging import get_logger
 
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ProteinSequence(TranslationKey):
@@ -310,6 +309,7 @@ def reads_generator_to_protein_sequences_generator(
         protein_sequences = sort_protein_sequences(protein_sequences)
 
         yield variant, protein_sequences[:max_protein_sequences_per_variant]
+
 
 def protein_sequences_generator_to_dataframe(variant_and_protein_sequences_generator):
     """
