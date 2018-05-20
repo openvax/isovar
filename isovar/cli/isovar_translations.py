@@ -64,4 +64,4 @@ def run(args=None):
     logger.info(args)
     df = translations_dataframe_from_args(args)
     logger.info(df)
-    df.to_csv(args.output)
+    df.to_csv(args.output, index=False)

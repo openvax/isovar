@@ -37,4 +37,4 @@ def run(args=None):
     args = parser.parse_args(args)
     reference_contexts_df = reference_contexts_dataframe_from_args(args)
     logger.info(reference_contexts_df)
-    reference_contexts_df.to_csv(args.output)
+    reference_contexts_df.to_csv(args.output, index=False)

@@ -45,4 +45,4 @@ def run(args=None):
     variants_and_allele_reads_generator = allele_reads_generator_from_args(args)
     allele_counts_df = allele_counts_dataframe(variants_and_allele_reads_generator)
     logger.info(allele_counts_df)
-    allele_counts_df.to_csv(args.output)
+    allele_counts_df.to_csv(args.output, index=False)
