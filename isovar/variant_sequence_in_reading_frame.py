@@ -74,6 +74,13 @@ class VariantSequenceInReadingFrame(ValueObject):
         self.number_mismatches_before_variant = number_mismatches_before_variant
         self.number_mismatches_after_variant = number_mismatches_after_variant
 
+    @property
+    def in_frame_cdna_sequence(self):
+        from_first_codon = self.cdna_sequence[self.offset_to_first_complete_codon:]
+        # get rid of any trailing out of frame nucleotides
+        in_frame_length = len(from_first_codon) // 3 * 3
+        return from_first_codon[:in_frame_length]
+
     @classmethod
     def from_variant_sequence_and_reference_context(
             cls, variant_sequence, reference_context):

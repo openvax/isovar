@@ -590,7 +590,7 @@ def translations_generator_to_dataframe(translations_generator):
         converters={
             "untrimmed_variant_sequence": lambda vs: vs.sequence,
             "variant_sequence_in_reading_frame": (
-                lambda vs: vs.cdna_sequence[vs.offset_to_first_complete_codon:]),
+                lambda vs: vs.in_frame_cdna_sequence),
             "reference_context": (
                 lambda rc: ";".join([
                     transcript.name for
