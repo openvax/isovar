@@ -21,14 +21,15 @@ from .reference_context_args import (
     make_reference_context_arg_parser,
     reference_contexts_dataframe_from_args
 )
+from .output_args import add_output_args, write_dataframe
+
 
 logger = get_logger(__name__)
 
 parser = make_reference_context_arg_parser()
-parser.add_argument(
-    "--output",
-    default="isovar-reference-contexts-result.csv",
-    help="Name of output CSV")
+parser = add_output_args(
+    parser,
+    filename="isovar-reference-contexts-result.csv")
 
 
 def run(args=None):
@@ -37,4 +38,4 @@ def run(args=None):
     args = parser.parse_args(args)
     reference_contexts_df = reference_contexts_dataframe_from_args(args)
     logger.info(reference_contexts_df)
-    reference_contexts_df.to_csv(args.output, index=False)
+    write_dataframe(reference_contexts_df, args)

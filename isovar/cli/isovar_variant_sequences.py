@@ -23,15 +23,15 @@ from ..variant_sequences import (
 )
 from .rna_args import allele_reads_generator_from_args
 from .variant_sequences_args import make_variant_sequences_arg_parser
+from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
 
 parser = make_variant_sequences_arg_parser(add_sequence_length_arg=True)
-
-parser.add_argument(
-    "--output",
-    default="isovar-variant-sequences-results.csv",
-    help="Name of CSV file which contains predicted sequences")
+parser = add_output_args(
+    parser,
+    filename="isovar-variant-sequences-results.csv",
+    description="Name of CSV file which contains predicted sequences")
 
 
 def variant_sequences_generator_from_args(args):
@@ -56,4 +56,4 @@ def run(args=None):
     logger.info(args)
     df = variant_sequences_dataframe_from_args(args)
     logger.info(df)
-    df.to_csv(args.output, index=False)
+    write_dataframe(df, args)

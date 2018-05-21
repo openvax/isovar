@@ -27,16 +27,15 @@ from .protein_sequence_args import (
     make_protein_sequences_arg_parser,
     protein_sequences_dataframe_from_args
 )
+from .output_args import add_output_args, write_dataframe
 
 
 logger = get_logger(__name__)
 
 parser = make_protein_sequences_arg_parser()
-
-parser.add_argument(
-    "--output",
-    default="isovar-translate-variants-results.csv",
-    help="Name of CSV file which contains predicted sequences")
+parser = add_output_args(
+    parser,
+    filename="isovar-protein-sequences-result.csv")
 
 
 def run(args=None):
@@ -46,4 +45,4 @@ def run(args=None):
     logger.info(args)
     df = protein_sequences_dataframe_from_args(args)
     logger.info(df)
-    df.to_csv(args.output, index=False)
+    write_dataframe(df, args)
