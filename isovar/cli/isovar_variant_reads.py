@@ -24,15 +24,16 @@ from .rna_args import (
     variant_reads_dataframe_from_args,
     make_rna_reads_arg_parser,
 )
+from .output_args import add_output_args, write_dataframe
+
 
 logger = get_logger(__name__)
 
 parser = make_rna_reads_arg_parser()
-
-parser.add_argument(
-    "--output",
-    default="isovar-variant-reads-result.csv",
-    help="Name of CSV file which contains variant read sequences")
+parser = add_output_args(
+    parser,
+    filename="isovar-variant-reads-result.csv",
+    description="Name of CSV file which contains variant read sequences")
 
 
 def run(args=None):
@@ -42,4 +43,4 @@ def run(args=None):
     logger.info(args)
     df = variant_reads_dataframe_from_args(args)
     logger.info(df)
-    df.to_csv(args.output, index=False)
+    write_dataframe(df, args)

@@ -25,16 +25,16 @@ from .rna_args import (
     make_rna_reads_arg_parser,
     allele_reads_generator_from_args
 )
+from .output_args import add_output_args, write_dataframe
 
 
 logger = get_logger(__name__)
 
 parser = make_rna_reads_arg_parser()
-
-parser.add_argument(
-    "--output",
-    default="isovar-allele-counts-result.csv",
-    help="Name of CSV file which contains read sequences")
+parser = add_output_args(
+    parser,
+    filename="isovar-allele-counts-result.csv",
+    description="Name of CSV file which contains read sequences")
 
 
 def run(args=None):
@@ -45,4 +45,6 @@ def run(args=None):
     variants_and_allele_reads_generator = allele_reads_generator_from_args(args)
     allele_counts_df = allele_counts_dataframe(variants_and_allele_reads_generator)
     logger.info(allele_counts_df)
-    allele_counts_df.to_csv(args.output, index=False)
+    write_dataframe(
+        df=allele_counts_df,
+        args=args)
