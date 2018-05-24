@@ -45,6 +45,8 @@ script:
   - pyensembl install --release 87 --species mouse
   # run tests
   - nosetests test --with-coverage --cover-package=isovar
+  - git clone https://github.com/openvax/openvax-integration-tests.git
+  - cd openvax-integration-tests/test && nosetests
 after_success:
   coveralls
 deploy:
