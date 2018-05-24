@@ -39,14 +39,17 @@ install:
   - pip install -r requirements.txt --ignore-installed
   - pip install .
   - pip install coveralls
+  # install openvax-integration-tests repo
+  - git clone https://github.com/openvax/openvax-integration-tests.git
+  - pip install -r openvax-integration-tests/requirements.txt --ignore-installed
 script:
   - ./lint.sh
   - pyensembl install --release 87 --species human
   - pyensembl install --release 87 --species mouse
-  # run tests
+  # run tests for isovar only
   - nosetests test --with-coverage --cover-package=isovar
-  - git clone https://github.com/openvax/openvax-integration-tests.git
-  - cd openvax-integration-tests/test && nosetests
+  # run integration tests
+  - nosetests openvax-integration-tests/test
 after_success:
   coveralls
 deploy:
