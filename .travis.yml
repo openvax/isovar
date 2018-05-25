@@ -39,9 +39,10 @@ install:
   - pip install -r requirements.txt --ignore-installed
   - pip install .
   - pip install coveralls
-  # install openvax-integration-tests repo
+  # install openvax-integration-tests repo and download mhcflurry
   - git clone https://github.com/openvax/openvax-integration-tests.git
   - pip install -r openvax-integration-tests/requirements.txt --ignore-installed
+  - mhcflurry-downloads fetch models_class1
 script:
   - ./lint.sh
   - pyensembl install --release 87 --species human
