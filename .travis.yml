@@ -45,8 +45,16 @@ install:
   - mhcflurry-downloads fetch models_class1_minimal
 script:
   - ./lint.sh
-  - pyensembl install --release 87 --species human
-  - pyensembl install --release 87 --species mouse
+  - >
+    pyensembl install
+    --release 87
+    --species human
+    --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.87/
+  - >
+    pyensembl install
+    --release 87
+    --species mouse
+    --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCm38.87/
   # run tests for isovar only
   - nosetests test --with-coverage --cover-package=isovar
   # run integration tests

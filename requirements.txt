@@ -1,6 +1,6 @@
 six>=1.9.0
 pylint>=1.4.4
-pyensembl>=1.0.3
+pyensembl>=1.5.0
 varcode>=0.5.9
 pandas>=0.23.0
 pysam==0.9.0

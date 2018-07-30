@@ -170,9 +170,8 @@ def reads_overlapping_variant(
         use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
         min_mapping_quality=MIN_READ_MAPPING_QUALITY):
     """
-    Find reads in the given SAM/BAM file which overlap the given variant, filter
-    to only include those which agree with the variant's nucleotide(s), and turn
-    them into a list of VariantRead objects.
+    Find reads in the given SAM/BAM file which overlap the given variant and
+    return them as a list of AlleleRead objects.
 
     Parameters
     ----------
@@ -271,6 +270,7 @@ def reads_overlapping_variants(variants, samfile, **kwargs):
                 chromosome,
                 variant,
                 samfile.filename)
+            yield variant, []
             continue
         allele_reads = reads_overlapping_variant(
             samfile=samfile,
