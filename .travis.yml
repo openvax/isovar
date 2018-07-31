@@ -43,7 +43,8 @@ install:
   - git clone https://github.com/openvax/openvax-integration-tests.git
   - pip install -r openvax-integration-tests/requirements.txt --ignore-installed
   - mhcflurry-downloads fetch models_class1_minimal
-script:
+  - export MHCFLURRY_DEFAULT_CLASS1_MODELS="$(mhcflurry-downloads path models_class1_minimal)/models"
+before_script:
   - ./lint.sh
   - >
     pyensembl install
@@ -55,10 +56,10 @@ script:
     --release 87
     --species mouse
     --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCm38.87/
-  # run tests for isovar only
-  - nosetests test --with-coverage --cover-package=isovar
-  # run integration tests
-  - nosetests openvax-integration-tests/test
+script:
+  - >
+    nosetests test --with-coverage --cover-package=isovar &&
+    nosetests openvax-integration-tests/test
 after_success:
   coveralls
 deploy:
