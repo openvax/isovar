@@ -16,7 +16,6 @@
 from __future__ import print_function, division, absolute_import
 
 from ..default_parameters import (
-    MIN_ALT_RNA_READS,
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_LENGTH,
 )
@@ -28,12 +27,6 @@ def add_variant_sequence_args(
         add_sequence_length_arg=False):
     rna_sequence_group = parser.add_argument_group(
         "Determine coding sequence from RNA")
-
-    rna_sequence_group.add_argument(
-        "--min-alt-rna-reads",
-        type=int,
-        default=MIN_ALT_RNA_READS,
-        help="Minimum number of reads supporting variant allele (default %(default)s)")
 
     rna_sequence_group.add_argument(
         "--min-variant-sequence-coverage",

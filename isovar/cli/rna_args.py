@@ -19,7 +19,13 @@ from pysam import AlignmentFile
 
 from varcode.cli import make_variants_parser, variant_collection_from_args
 
-from ..default_parameters import MIN_READ_MAPPING_QUALITY
+from ..default_parameters import (
+    MIN_READ_MAPPING_QUALITY,
+    MIN_ALT_RNA_READS,
+    MIN_ALT_RNA_FRAGMENTS,
+    MIN_RNA_VAF,
+    MIN_RATIO_ALT_TO_OTHER_NONREF_FRAGMENTS
+)
 from ..allele_reads import reads_overlapping_variants, reads_to_dataframe
 from ..variant_reads import reads_supporting_variants
 
@@ -50,12 +56,52 @@ def add_rna_args(
     rna_group.add_argument(
         "--use-duplicate-reads",
         default=False,
-        action="store_true")
+        action="store_true",
+        help=(
+            "By default, reads which have been marked as duplicates are excluded."
+            "Use this option to include duplicate reads."))
 
     rna_group.add_argument(
         "--drop-secondary-alignments",
         default=False,
-        action="store_true")
+        action="store_true",
+        help=(
+            "By default, secondary alignments are included in reads, "
+            "use this option to instead only use primary alignments."))
+
+    rna_group.add_argument(
+        "--min-alt-rna-reads",
+        type=int,
+        default=MIN_ALT_RNA_READS,
+        help="Minimum number of reads supporting variant allele (default %(default)s)")
+
+    rna_group.add_argument(
+        "--min-alt-rna-fragments",
+        type=int,
+        default=MIN_ALT_RNA_FRAGMENTS,
+        help=(
+            "Minimum number of fragments supporting variant allele (default %(default)s). "
+            "Note that this option is the same as --min-alt-rna-reads for single-end "
+            "sequencing."))
+
+    rna_group.add_argument(
+        "--min-rna_vaf",
+        type=float,
+        default=MIN_RNA_VAF,
+        help=(
+            "Minimum ratio of fragments supporting variant allele to total RNA fragments "
+            "(default %(default)s)."))
+
+    rna_group.add_argument(
+        "--min-ratio-alt-to-other-nonref-fragments",
+        type=float,
+        default=MIN_RATIO_ALT_TO_OTHER_NONREF_FRAGMENTS,
+        help=(
+            "At loci where alleles other than the ref and a single alt are supported, "
+            "this parameter controls how many more times fragments supporting "
+            "the variant allele are required relative to other non-reference "
+            "alleles (default %(default)s)."))
+
     return rna_group
 
 

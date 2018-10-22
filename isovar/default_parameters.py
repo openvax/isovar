@@ -59,6 +59,20 @@ CDNA_CONTEXT_SIZE = VARIANT_SEQUENCE_LENGTH // 2
 # minimum number of total RNA reads supporting a variant allele
 MIN_ALT_RNA_READS = 2
 
+# minimum number of total RNA fragments supporting a variant allele,
+# differs from MIN_ALT_READS for paired end sequencing but is the same
+# for single-end sequencing
+MIN_ALT_RNA_FRAGMENTS = 2
+
+# At loci where there is RNA support for both the alt allele and other
+# non-reference alleles, we want the number of reads supporting the alt
+# to be at least this many times greater than the total counts for the
+# third and fourth alleles.
+MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS = 3.0
+
+# minimum ratio of # alt fragments / # total overlapping fragments
+MIN_RNA_VAF = 0.005  # (at least e.g. 3 in 600)
+
 # minimum number of reads supporting each nucleotide of a
 # variant coding sequence
 MIN_VARIANT_SEQUENCE_COVERAGE = 2
