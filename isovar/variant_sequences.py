@@ -22,7 +22,6 @@ from .read_helpers import (
 )
 from .variant_reads import filter_non_alt_reads_for_variant
 from .default_parameters import (
-    MIN_ALT_RNA_READS,
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_LENGTH,
     VARIANT_SEQUENCE_ASSEMBLY,
@@ -356,7 +355,6 @@ def reads_to_variant_sequences(
         variant,
         reads,
         preferred_sequence_length,
-        min_alt_rna_reads=MIN_ALT_RNA_READS,
         min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
         variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
     """
@@ -375,10 +373,6 @@ def reads_to_variant_sequences(
         Total number of nucleotides in the assembled sequences, including
         variant nucleotides.
 
-    min_alt_rna_reads : int
-        Drop sequences from loci which lack at least this number of reads
-        that agree with the variant allele.
-
     min_variant_sequence_coverage : int
         Drop sequences which don't at least have this number of reads
         covering each cDNA position.
@@ -392,13 +386,6 @@ def reads_to_variant_sequences(
     # just in case variant_reads is a generator, convert it to a list
     variant_reads = list(filter_non_alt_reads_for_variant(variant, reads))
 
-    if len(variant_reads) < min_alt_rna_reads:
-        logger.info(
-            "Skipping %s because only %d alt RNA reads (min=%d)",
-            variant,
-            len(variant_reads),
-            min_alt_rna_reads)
-        return []
     if len(variant_reads) == 0:
         return []
 
@@ -473,7 +460,6 @@ def reads_to_variant_sequences(
 
 def reads_generator_to_sequences_generator(
         variant_and_reads_generator,
-        min_alt_rna_reads=MIN_ALT_RNA_READS,
         min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
         preferred_sequence_length=VARIANT_SEQUENCE_LENGTH,
         variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
@@ -486,9 +472,6 @@ def reads_generator_to_sequences_generator(
     variant_and_reads_generator : generator
         Sequence of Variant objects paired with a list of reads which
         overlap that variant.
-
-    min_alt_rna_reads : int
-        Minimum number of RNA reads supporting variant allele
 
     min_variant_sequence_coverage : int
         Minimum number of RNA reads supporting each nucleotide of the
@@ -509,7 +492,6 @@ def reads_generator_to_sequences_generator(
         variant_sequences = reads_to_variant_sequences(
             variant=variant,
             reads=variant_reads,
-            min_alt_rna_reads=min_alt_rna_reads,
             min_variant_sequence_coverage=min_variant_sequence_coverage,
             preferred_sequence_length=preferred_sequence_length,
             variant_sequence_assembly=variant_sequence_assembly)

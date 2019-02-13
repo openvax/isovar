@@ -24,7 +24,7 @@ from ..default_parameters import (
     MIN_ALT_RNA_READS,
     MIN_ALT_RNA_FRAGMENTS,
     MIN_RNA_VAF,
-    MIN_RATIO_ALT_TO_OTHER_NONREF_FRAGMENTS
+    MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS
 )
 from ..allele_reads import reads_overlapping_variants, reads_to_dataframe
 from ..variant_reads import reads_supporting_variants
@@ -95,7 +95,7 @@ def add_rna_args(
     rna_group.add_argument(
         "--min-ratio-alt-to-other-nonref-fragments",
         type=float,
-        default=MIN_RATIO_ALT_TO_OTHER_NONREF_FRAGMENTS,
+        default=MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
         help=(
             "At loci where alleles other than the ref and a single alt are supported, "
             "this parameter controls how many more times fragments supporting "
