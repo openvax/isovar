@@ -21,12 +21,12 @@ from isovar.cli.protein_sequence_args import (
     protein_sequences_dataframe_from_args,
     make_protein_sequences_arg_parser,
 )
-from isovar.protein_sequences import (
-    ProteinSequence,
+from isovar.protein_sequence_helpers import (
     sort_protein_sequences,
-    reads_generator_to_protein_sequences_generator,
     protein_sequences_generator_to_dataframe,
 )
+from isovar.protein_sequence_creator import ProteinSequenceCreator
+from isovar.protein_sequence import ProteinSequence
 from isovar.allele_reads import reads_overlapping_variants
 from isovar.variant_sequence_in_reading_frame import VariantSequenceInReadingFrame
 from varcode import VariantCollection
@@ -184,10 +184,11 @@ def variants_to_protein_sequences_dataframe(
         samfile=samfile,
         min_mapping_quality=min_mapping_quality)
 
-    protein_sequences_generator = reads_generator_to_protein_sequences_generator(
-        allele_reads_generator,
+    creator = ProteinSequenceCreator(
         max_protein_sequences_per_variant=max_protein_sequences_per_variant,
         variant_sequence_assembly=variant_sequence_assembly)
+    protein_sequences_generator = creator.reads_generator_to_protein_sequences_generator(
+        allele_reads_generator,)
     df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
     return df, expressed_variants, combined_variants
 
@@ -225,9 +226,10 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
         variants=variants,
         samfile=samfile,
         min_mapping_quality=256)
-    protein_sequences_generator = reads_generator_to_protein_sequences_generator(
-        allele_reads_generator,
+    creator = ProteinSequenceCreator(
         max_protein_sequences_per_variant=1)
+    protein_sequences_generator = creator.reads_generator_to_protein_sequences_generator(
+        allele_reads_generator,)
     df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
     print(df)
     eq_(

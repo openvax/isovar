@@ -145,21 +145,6 @@ class ProteinSequence(TranslationKey):
                 transcripts_supporting_protein_sequence),
             gene=gene)
 
-    def ascending_sort_key(self):
-        """
-        Sort protein sequences lexicographically by three criteria:
-            - number of unique supporting reads
-            - minimum mismatch versus a supporting reference transcript before variant
-            - minimum mismatch versus a supporting reference transcript after variant
-            - number of supporting reference transcripts
-        """
-        return (
-            len(self.alt_reads_supporting_protein_sequence),
-            min(t.number_mismatches_before_variant for t in self.translations),
-            min(t.number_mismatches_after_variant for t in self.translations),
-            len(self.transcripts_supporting_protein_sequence)
-        )
-
     @property
     def ref_read_names(self):
         return {r.name for r in self.ref_reads}

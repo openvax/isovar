@@ -162,6 +162,7 @@ def allele_reads_from_locus_reads(locus_reads, n_ref):
         else:
             yield allele_read
 
+
 def reads_overlapping_variant(
         samfile,
         variant,
@@ -231,6 +232,7 @@ def reads_overlapping_variant(
 
     return allele_reads
 
+
 def reads_overlapping_variants(variants, samfile, **kwargs):
     """
     Generates sequence of tuples, each containing a variant paired with
@@ -289,6 +291,7 @@ def group_reads_by_allele(allele_reads):
     for allele_read in allele_reads:
         allele_to_reads_dict[allele_read.allele].append(allele_read)
     return allele_to_reads_dict
+
 
 def reads_to_dataframe(variants_and_allele_reads):
     """

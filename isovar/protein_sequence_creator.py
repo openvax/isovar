@@ -40,6 +40,7 @@ from .common import groupby
 from .dataframe_builder import dataframe_from_generator
 from .translation import translate_variant_reads, Translation
 from .logging import get_logger
+from .variant_support import gather_variant_support
 
 logger = get_logger(__name__)
 
@@ -98,7 +99,7 @@ class ProteinSequenceCreator(object):
         max_protein_sequences_per_variant : int
             Number of protein sequences to return for each ProteinSequence
 
-        variant_cdna_sequence_assembly : bool
+        variant_sequence_assembly : bool
             If True, then assemble variant cDNA sequences based on overlap of
             RNA reads. If False, then variant cDNA sequences must be fully spanned
             and contained within RNA reads.
@@ -133,9 +134,11 @@ class ProteinSequenceCreator(object):
 
         Returns a list of ProteinSequence objects
         """
+        variant_support = gather_variant_support(variant, overlapping_reads)
+
         translations = translate_variant_reads(
             variant=variant,
-            variant_reads=alt_reads,
+            variant_reads=variant_support.alt_reads,
             transcript_id_whitelist=self.transcript_id_whitelist,
             protein_sequence_length=self.protein_sequence_length,
             min_variant_sequence_coverage=self.min_variant_sequence_coverage,
@@ -168,8 +171,8 @@ class ProteinSequenceCreator(object):
                 translation_key=key,
                 translations=equivalent_translations,
                 overlapping_reads=overlapping_reads,
-                alt_reads=alt_reads,
-                ref_reads=ref_reads,
+                alt_reads=variant_support.alt_reads,
+                ref_reads=variant_support.ref_reads,
                 alt_reads_supporting_protein_sequence=alt_reads_supporting_protein_sequence,
                 transcripts_supporting_protein_sequence=group_transcript_ids,
                 transcripts_overlapping_variant=overlapping_transcript_ids,
@@ -180,89 +183,35 @@ class ProteinSequenceCreator(object):
         protein_sequences = sort_protein_sequences(protein_sequences)
         return protein_sequences
 
+    def reads_generator_to_protein_sequences_generator(
+            self,
+            variant_and_overlapping_reads_generator,
+            transcript_id_whitelist=None):
+        """"
+        Translates each coding variant in a collection to one or more
+        Translation objects, which are then aggregated into equivalent
+        ProteinSequence objects.
 
-def reads_generator_to_protein_sequences_generator(
-        variant_and_overlapping_reads_generator,
-        transcript_id_whitelist=None,
-        protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
-        min_alt_rna_reads=MIN_ALT_RNA_READS,
-        min_ratio_alt_to_other_nonref_alleles=MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
-        min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
-        min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-        max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-        include_mismatches_after_variant=INCLUDE_MISMATCHES_AFTER_VARIANT,
-        max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
-        variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
-    """"
-    Translates each coding variant in a collection to one or more
-    Translation objects, which are then aggregated into equivalent
-    ProteinSequence objects.
+        Parameters
+        ----------
+        variant_and_overlapping_reads_generator : generator
+            Yields sequence of varcode.Variant objects paired with sequences
+            of AlleleRead objects that support that variant.
 
-    Parameters
-    ----------
-    variant_and_overlapping_reads_generator : generator
-        Yields sequence of varcode.Variant objects paired with sequences
-        of AlleleRead objects that support that variant.
+        transcript_id_whitelist : set, optional
+            If given, expected to be a set of transcript IDs which we should use
+            for determining the reading frame around a variant. If omitted, then
+            try to use all overlapping reference transcripts.
 
-    transcript_id_whitelist : set, optional
-        If given, expected to be a set of transcript IDs which we should use
-        for determining the reading frame around a variant. If omitted, then
-        try to use all overlapping reference transcripts.
-
-    protein_sequence_length : int
-        Try to translate protein sequences of this length, though sometimes
-        we'll have to return something shorter (depending on the RNAseq data,
-        and presence of stop codons).
-
-    min_alt_rna_reads : int
-        Drop variant sequences at loci with fewer than this number of reads
-        supporting the alt allele.
-
-     min_ratio_alt_to_other_nonref_reads : float
-        Drop variant sequences at loci where there is support for third/fourth
-        alleles in the RNA and the count for the alt allele is not at least
-        this number greater than the sum of other non-ref alleles.
-
-    min_variant_sequence_coverage : int
-        Trim variant sequences to positions supported by at least this number
-        of RNA reads.
-
-    min_transcript_prefix_length : int
-        Minimum number of bases we need to try matching between the reference
-        context and variant sequence.
-
-    max_transcript_mismatches : int
-        Don't try to determine the reading frame for a transcript if more
-        than this number of bases differ.
-
-    include_mismatches_after_variant : bool
-        Include mismatches after the variant locus in the count compared
-        against max_transcript_mismatches.
-
-    max_protein_sequences_per_variant : int
-        Number of protein sequences to return for each ProteinSequence
-
-    variant_cdna_sequence_assembly : bool
-        If True, then assemble variant cDNA sequences based on overlap of
-        RNA reads. If False, then variant cDNA sequences must be fully spanned
-        and contained within RNA reads.
-
-    Yields pairs of a Variant and a list of ProteinSequence objects
-    """
-    for (variant, overlapping_reads) in variant_and_overlapping_reads_generator:
-        protein_sequences = protein_sequences_from_variant_and_overlapping_reads(
-            variant=variant,
-            overlapping_reads=overlapping_reads,
-            transcript_id_whitelist=transcript_id_whitelist,
-            protein_sequence_length=protein_sequence_length,
-            min_alt_rna_reads=min_alt_rna_reads,
-            min_variant_sequence_coverage=min_variant_sequence_coverage,
-            min_transcript_prefix_length=min_transcript_prefix_length,
-            max_transcript_mismatches=max_transcript_mismatches,
-            include_mismatches_after_variant=include_mismatches_after_variant,
-            max_protein_sequences_per_variant=max_protein_sequences_per_variant,
-            variant_sequence_assembly=variant_sequence_assembly)
-        yield variant, protein_sequences[:max_protein_sequences_per_variant]
+        Yields pairs of a Variant and a list of ProteinSequence objects
+        """
+        for (variant, overlapping_reads) in variant_and_overlapping_reads_generator:
+            protein_sequences = \
+                self.protein_sequences_from_variant_and_overlapping_reads(
+                    variant=variant,
+                    overlapping_reads=overlapping_reads,
+                    transcript_id_whitelist=transcript_id_whitelist)
+            yield variant, protein_sequences[:self.max_protein_sequences_per_variant]
 
 
 def protein_sequences_generator_to_dataframe(variant_and_protein_sequences_generator):
