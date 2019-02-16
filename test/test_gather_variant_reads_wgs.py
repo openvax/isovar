@@ -22,6 +22,7 @@ from nose.tools import eq_
 
 from testing_helpers import load_bam
 
+
 def test_partition_variant_reads_snv():
     samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
@@ -41,6 +42,7 @@ def test_partition_variant_reads_snv():
     assert len(variant_reads) > 1
     for variant_read in variant_reads:
         eq_(variant_read.allele, alt)
+
 
 def test_partition_variant_reads_deletion():
     samfile = load_bam("data/cancer-wgs-primary.chr12.bam")

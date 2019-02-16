@@ -21,6 +21,7 @@ from isovar.allele_reads import AlleleRead
 from mock_read_data import DummySamFile, make_read
 from nose.tools import eq_
 
+from genomes_for_testing import grch38
 
 def test_partitioned_read_sequences_snv():
     """
@@ -35,7 +36,7 @@ def test_partitioned_read_sequences_snv():
     alt = "G"
 
     variant = Variant(
-        chromosome, location, ref, alt, normalize_contig_name=False)
+        chromosome, location, ref, alt, grch38, normalize_contig_name=False)
 
     read = make_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
 
@@ -68,7 +69,7 @@ def test_partitioned_read_sequences_insertion():
     ref = "T"
     alt = "TG"
     variant = Variant(
-        chromosome, location, ref, alt, normalize_contig_name=False)
+        chromosome, location, ref, alt, grch38, normalize_contig_name=False)
 
     read = make_read(seq=b"ACCTGTG", cigar="4M1I2M", mdtag="6")
 
@@ -100,7 +101,7 @@ def test_partitioned_read_sequences_deletion():
     ref = "TT"
     alt = "T"
     variant = Variant(
-        chromosome, location, ref, alt, normalize_contig_name=False)
+        chromosome, location, ref, alt, grch38, normalize_contig_name=False)
 
     read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 

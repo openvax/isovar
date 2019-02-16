@@ -24,6 +24,7 @@ from isovar.variant_reads import reads_supporting_variant
 from isovar.allele_reads import AlleleRead
 
 from testing_helpers import load_bam
+from genomes_for_testing import grch38
 
 
 def test_sequence_counts_snv():
@@ -32,7 +33,7 @@ def test_sequence_counts_snv():
     base1_location = 65857041
     ref = "G"
     alt = "C"
-    variant = Variant(chromosome, base1_location, ref, alt)
+    variant = Variant(chromosome, base1_location, ref, alt, grch38)
 
     variant_reads = reads_supporting_variant(
         samfile=samfile,

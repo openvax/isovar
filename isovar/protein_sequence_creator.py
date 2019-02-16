@@ -35,25 +35,13 @@ from .default_parameters import (
     VARIANT_SEQUENCE_ASSEMBLY
 )
 from .protein_sequence import ProteinSequence
+from .protein_sequence_helpers import sort_protein_sequences
 from .common import groupby
-from .read_helpers import group_reads_by_allele
-from .variant_helpers import trim_variant
 from .dataframe_builder import dataframe_from_generator
 from .translation import translate_variant_reads, Translation
 from .logging import get_logger
 
 logger = get_logger(__name__)
-
-
-def sort_protein_sequences(protein_sequences):
-    """
-    Sort protein sequences in decreasing order of priority
-    """
-    return list(
-        sorted(
-            protein_sequences,
-            key=ProteinSequence.ascending_sort_key,
-            reverse=True))
 
 
 class ProteinSequenceCreator(object):
@@ -133,9 +121,9 @@ class ProteinSequenceCreator(object):
             variant,
             overlapping_reads):
         """"
-        Translates a coding variant and its overlapping RNA reads into one or more
-        Translation objects, which are then aggregated into equivalent
-        ProteinSequence objects.
+        Translates a coding variant and its overlapping RNA reads into Translation
+        objects, which are aggregated into ProteinSequence objects by their
+        amino acid sequence (when they have equivalent coding sequences).
 
         Parameters
         ----------
@@ -145,34 +133,6 @@ class ProteinSequenceCreator(object):
 
         Returns a list of ProteinSequence objects
         """
-        _, ref, alt = trim_variant(variant)
-        overlapping_reads = list(overlapping_reads)
-        reads_grouped_by_allele = group_reads_by_allele(overlapping_reads)
-        ref_reads = reads_grouped_by_allele.get(ref, [])
-        alt_reads = reads_grouped_by_allele.get(alt, [])
-
-        n_ref_reads = len(ref_reads)
-        n_alt_reads = len(alt_reads)
-        other_reads = []
-        for allele, allele_reads in reads_grouped_by_allele.items():
-            if allele in {ref, alt}:
-                continue
-        other_reads.extend(allele_reads)
-        n_other_reads = len(other_reads)
-
-        n_total_reads = n_ref_reads + n_alt_reads + n_other_reads
-
-        n_ref_fragments = len({r.name for r in ref_reads})
-        n_alt_fragments = len({r.name for r in alt_reads})
-        n_other_fragments = len({r.name for r in other_reads})
-
-        if n_alt_reads < self.min_alt_rna_reads:
-            logger.info(
-                "Skipping %s because only %d alt RNA reads (min=%d)",
-                variant,
-                n_alt_reads,
-                min_alt_rna_reads)
-            return []
         translations = translate_variant_reads(
             variant=variant,
             variant_reads=alt_reads,

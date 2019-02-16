@@ -61,6 +61,7 @@ def test_mutant_amino_acids_in_mm10_chrX_8125624_refC_altA_pS460I():
         protein_sequence = protein_sequences[0]
         check_mutant_amino_acids(variant, protein_sequence)
 
+
 def test_mutant_amino_acids_in_mm10_chr9_82927102_refG_altT_pT441H():
     # the variant chr9:82927102 G>T occurs right next to T>G so the varcode
     # prediction for the protein sequence (Asparagine) will be wrong since

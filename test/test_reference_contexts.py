@@ -20,19 +20,19 @@ from isovar.reference_context import (
     ReferenceContext,
 )
 from varcode import Variant, VariantCollection
-from pyensembl import ensembl_grch38
+
 from nose.tools import eq_
 
 from testing_helpers import load_vcf
-
+from genomes_for_testing import grch38
 
 def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
     # replace second codon of TP53-001 with 'CCC'
     tp53_substitution = Variant(
-        "17", 7676589, "CTC", "GGG", ensembl_grch38)
+        "17", 7676589, "CTC", "GGG", grch38)
     variant_collection = VariantCollection([tp53_substitution])
 
-    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+    tp53_001 = grch38.transcripts_by_name("TP53-001")[0]
 
     # Sequence of TP53 around second codon with 10 context nucleotides:
     # In [51]: t.sequence[193-10:193+13]

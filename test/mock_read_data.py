@@ -16,6 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 import pysam
 
+
 class DummyPileupElement(object):
     def __init__(self, alignment, is_refskip, is_del):
         self.alignment = alignment

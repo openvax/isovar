@@ -25,6 +25,7 @@ from isovar.locus_reads import (
 from mock_read_data import DummySamFile, make_read
 from testing_helpers import assert_equal_fields, load_bam, data_path
 
+
 def test_locus_reads_snv():
     """
     test_partitioned_read_sequences_snv : Test that read gets correctly
@@ -61,6 +62,7 @@ def test_locus_reads_snv():
         base0_read_position_after_variant=4)
     assert_equal_fields(read, expected)
 
+
 def test_locus_reads_insertion():
     """
     test_partitioned_read_sequences_insertion : Test that read gets correctly
@@ -95,6 +97,7 @@ def test_locus_reads_insertion():
         base0_read_position_after_variant=5)
     assert_equal_fields(read, expected)
 
+
 def test_locus_reads_deletion():
     """
     test_partitioned_read_sequences_deletion : Test that read gets correctly
@@ -128,6 +131,7 @@ def test_locus_reads_deletion():
         base0_read_position_after_variant=4)
     assert_equal_fields(read, expected)
 
+
 def test_locus_reads_substitution_longer():
     # test C>GG subsitution at second nucleotide of reference sequence "ACCTTG",
     # the alignment is interpreted as a C>G variant followed by an insertion of
@@ -157,6 +161,7 @@ def test_locus_reads_substitution_longer():
         base0_read_position_after_variant=3)
     assert_equal_fields(read, expected)
 
+
 def test_locus_reads_substitution_shorter():
     # test CC>G subsitution at 2nd and 3rd nucleotides of reference sequence
     # "ACCTTG", for which the alignment is interpreted as a C>G variant
@@ -185,6 +190,7 @@ def test_locus_reads_substitution_shorter():
         base0_read_position_before_variant=0,
         base0_read_position_after_variant=2)
     assert_equal_fields(read, expected)
+
 
 def test_locus_reads_dataframe():
     sam_all_variants = load_bam("data/b16.f10/b16.combined.bam")

@@ -3,8 +3,11 @@ from varcode import Variant
 from testing_helpers import load_bam
 from nose.tools import eq_
 
+from genomes_for_testing import grch38
+
+
 def test_somatic_variant_with_2_supporting_rna_reads():
-    variant = Variant("14", 105849746, "G", "A")
+    variant = Variant("14", 105849746, "G", "A", grch38)
     base_dir = "data/somatic-variant-with-2-supporting-rna-reads/"
     normal_reads = load_bam(base_dir + "normal.14.105849746.G.A.no-alt.sorted.bam")
     tumor_reads = load_bam(base_dir + "tumor.14.105849746.G.A.many-alt.sorted.bam")

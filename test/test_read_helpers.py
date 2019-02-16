@@ -17,9 +17,10 @@ from __future__ import print_function, division, absolute_import
 from isovar.read_helpers import group_unique_sequences
 from isovar.variant_reads import reads_supporting_variant
 from varcode import Variant
-from pyensembl import ensembl_grch38
 
 from testing_helpers import load_bam
+from genomes_for_testing import grch38
+
 
 def test_group_unique_sequences():
     samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
@@ -31,7 +32,7 @@ def test_group_unique_sequences():
         contig=chromosome,
         start=base1_location,
         ref=ref, alt=alt,
-        ensembl=ensembl_grch38)
+        ensembl=grch38)
     variant_reads = reads_supporting_variant(
         samfile=samfile,
         chromosome=chromosome,
