@@ -21,9 +21,6 @@ ProteinSequence.
 
 from __future__ import print_function, division, absolute_import
 
-from .dataframe_builder import dataframe_from_generator
-from .protein_sequence import ProteinSequence
-
 
 def protein_sequence_ascending_sort_key(protein_sequence):
     """
@@ -50,15 +47,3 @@ def sort_protein_sequences(protein_sequences):
             protein_sequences,
             key=protein_sequence_ascending_sort_key,
             reverse=True))
-
-
-def protein_sequences_generator_to_dataframe(variant_and_protein_sequences_generator):
-    """
-    Given a generator which yields (Variant, [ProteinSequence]) elements,
-    returns a pandas.DataFrame
-    """
-    return dataframe_from_generator(
-        element_class=ProteinSequence,
-        variant_and_elements_generator=variant_and_protein_sequences_generator,
-        converters=dict(
-            gene=lambda x: ";".join(x)))

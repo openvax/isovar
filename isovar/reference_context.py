@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -95,6 +95,7 @@ class ReferenceContext(ReferenceCodingSequenceKey):
         """
         return self.variant.contig.lower() in {"chrm", "m", "chrmt", "mt"}
 
+
 def reference_contexts_for_variant(
         variant,
         context_size,
@@ -138,6 +139,7 @@ def reference_contexts_for_variant(
         key=ReferenceContext.sort_key_decreasing_max_length_transcript_cds)
     return reference_contexts
 
+
 def reference_contexts_for_variants(
         variants,
         context_size,
@@ -166,40 +168,3 @@ def reference_contexts_for_variants(
             context_size=context_size,
             transcript_id_whitelist=transcript_id_whitelist)
     return result
-
-def variants_to_reference_contexts_dataframe(
-        variants,
-        context_size,
-        transcript_id_whitelist=None):
-    """
-    Given a collection of variants, find all reference sequence contexts
-    around each variant.
-
-    Parameters
-    ----------
-    variants : varcode.VariantCollection
-
-    context_size : int
-        Max of nucleotides to include to the left and right of the variant
-        in the context sequence.
-
-    transcript_id_whitelist : set, optional
-        If given, then only consider transcripts whose IDs are in this set.
-
-    Returns a DataFrame with {"chr", "pos", "ref", "alt"} columns for variants,
-    as well as all the fields of ReferenceContext.
-    """
-
-    df_builder = DataFrameBuilder(
-        ReferenceContext,
-        exclude=["variant"],
-        converters=dict(transcripts=lambda ts: ";".join(t.name for t in ts)),
-        extra_column_fns={
-            "gene": lambda variant, _: ";".join(variant.gene_names),
-        })
-    for variant, reference_contexts in reference_contexts_for_variants(
-            variants=variants,
-            context_size=context_size,
-            transcript_id_whitelist=transcript_id_whitelist).items():
-        df_builder.add_many(variant, reference_contexts)
-    return df_builder.to_dataframe()

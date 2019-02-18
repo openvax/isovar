@@ -21,7 +21,6 @@ from __future__ import print_function, division, absolute_import
 from collections import namedtuple
 
 from .variant_helpers import trim_variant
-from .dataframe_builder import DataFrameBuilder
 from .read_helpers import group_reads_by_allele
 
 AlleleCount = namedtuple(
@@ -41,19 +40,3 @@ def count_alleles_at_variant_locus(variant, allele_reads):
     n_alt = len(allele_to_reads_dict[alt])
     n_other = n_total - (n_ref + n_alt)
     return AlleleCount(n_ref=n_ref, n_alt=n_alt, n_other=n_other)
-
-
-def allele_counts_dataframe(variant_and_allele_reads_generator):
-    """
-    Creates a DataFrame containing number of reads supporting the
-    ref vs. alt alleles for each variant.
-    """
-    df_builder = DataFrameBuilder(
-        AlleleCount,
-        extra_column_fns={
-            "gene": lambda variant, _: ";".join(variant.gene_names),
-        })
-    for variant, allele_reads in variant_and_allele_reads_generator:
-        counts = count_alleles_at_variant_locus(variant, allele_reads)
-        df_builder.add(variant, counts)
-    return df_builder.to_dataframe()

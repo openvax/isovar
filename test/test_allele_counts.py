@@ -1,5 +1,5 @@
-from isovar.allele_counts import allele_counts_dataframe
-from isovar.allele_reads import AlleleRead
+from isovar.dataframe_helpers import allele_counts_dataframe
+from isovar.allele_read import AlleleRead
 from varcode import Variant
 from nose.tools import eq_
 

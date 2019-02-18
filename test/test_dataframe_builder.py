@@ -15,9 +15,10 @@
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple, OrderedDict
 from nose.tools import eq_
-from isovar.dataframe_builder import DataFrameBuilder
 from varcode import Variant
 import pandas as pd
+
+from isovar.dataframe_builder import DataFrameBuilder
 
 TestClass = namedtuple("TestClass", "a b c")
 test_obj = TestClass(a=1, b="s", c=3.0)

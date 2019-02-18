@@ -1,7 +1,10 @@
-from isovar.variant_reads import reads_supporting_variant
+from __future__ import print_function, division, absolute_import
+
 from varcode import Variant
 from testing_helpers import load_bam
 from nose.tools import eq_
+
+from isovar.variant_reads import reads_supporting_variant
 
 from genomes_for_testing import grch38
 

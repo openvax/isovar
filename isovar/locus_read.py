@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,8 +25,6 @@ from .default_parameters import (
     USE_DUPLICATE_READS,
     USE_SECONDARY_ALIGNMENTS,
 )
-from .common import list_to_string
-from .dataframe_builder import DataFrameBuilder
 from .value_object import ValueObject
 from .logging import get_logger
 
@@ -315,21 +313,3 @@ def locus_read_generator(
         chromosome,
         base1_position_before_variant,
         base1_position_after_variant)
-
-
-def locus_reads_dataframe(*args, **kwargs):
-    """
-    Traverse a BAM file to find all the reads overlapping a specified locus.
-
-    Parameters are the same as those for read_locus_generator.
-    """
-    df_builder = DataFrameBuilder(
-        LocusRead,
-        variant_columns=False,
-        converters={
-            "reference_positions": list_to_string,
-            "quality_scores": list_to_string,
-        })
-    for locus_read in locus_read_generator(*args, **kwargs):
-        df_builder.add(variant=None, element=locus_read)
-    return df_builder.to_dataframe()

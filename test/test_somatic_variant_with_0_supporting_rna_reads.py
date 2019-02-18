@@ -1,9 +1,13 @@
-from isovar.variant_reads import reads_supporting_variant
+from __future__ import print_function, division, absolute_import
+
 from varcode import Variant
 from testing_helpers import load_bam
 from nose.tools import eq_
 
+from isovar.allele_read_helpers import reads_supporting_variant
+
 from genomes_for_testing import grch38
+
 
 def test_somatic_variant_with_0_supporting_rna_reads():
     variant = Variant("6", 90411765, "G", "A", grch38)

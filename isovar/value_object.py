@@ -38,6 +38,7 @@ class MetaclassCollectSlots(type):
                 getattr(cls, '__slots__', [])
                 for cls in inherited_class_order))
 
+
 @add_metaclass(MetaclassCollectSlots)
 class ValueObject(object):
     """

@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 from isovar.genetic_code import translate_cdna
 from nose.tools import eq_
 from genomes_for_testing import grch38

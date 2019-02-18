@@ -27,7 +27,7 @@ from .default_parameters import (
     VARIANT_SEQUENCE_ASSEMBLY,
     MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
 )
-from .dataframe_builder import dataframe_from_generator
+
 from .assembly import iterative_overlap_assembly, collapse_substrings
 from .value_object import ValueObject
 from .logging import get_logger
@@ -496,21 +496,3 @@ def reads_generator_to_sequences_generator(
             preferred_sequence_length=preferred_sequence_length,
             variant_sequence_assembly=variant_sequence_assembly)
         yield variant, variant_sequences
-
-
-def variant_sequences_generator_to_dataframe(variant_sequences_generator):
-    """
-    Creates a dataframe from a generator which yields
-    (Variant, [VariantSequence]) pairs.
-
-    Returns pandas.DataFrame
-    """
-    # TODO: Change VariantSequence.alt to VariantSequence.alt_nucleotides
-    # or something else that doesn't clash with a variant's `alt` field
-    return dataframe_from_generator(
-        VariantSequence,
-        variant_sequences_generator,
-        rename_dict={"alt": "allele"},
-        extra_column_fns={
-            "gene": lambda variant, _: ";".join(variant.gene_names),
-        })

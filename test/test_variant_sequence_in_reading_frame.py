@@ -1,14 +1,17 @@
+from __future__ import print_function, division, absolute_import
+
 from nose.tools import eq_
 from varcode import Variant
+
 from isovar.variant_sequence_in_reading_frame import (
     compute_offset_to_first_complete_codon,
     match_variant_sequence_to_reference_context,
     VariantSequenceInReadingFrame,
 )
-from isovar.variant_sequences import VariantSequence
+from isovar.variant_sequence import VariantSequence
 from isovar.reference_coding_sequence_key import ReferenceCodingSequenceKey
 from isovar.reference_context import ReferenceContext
-from isovar.allele_reads import AlleleRead
+from isovar.allele_read import AlleleRead
 from isovar.dna import reverse_complement_dna
 
 

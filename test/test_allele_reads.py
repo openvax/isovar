@@ -1,6 +1,6 @@
 
-from isovar.allele_reads import AlleleRead
-from isovar.locus_reads import LocusRead
+from isovar.allele_read import AlleleRead
+from isovar.locus_read import LocusRead
 from nose.tools import eq_
 
 

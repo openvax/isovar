@@ -23,6 +23,7 @@ from nose.tools import eq_
 
 from genomes_for_testing import grch38
 
+
 def test_reading_frame_to_offset():
     eq_(reading_frame_to_offset(0), 0)
     eq_(reading_frame_to_offset(1), 2)

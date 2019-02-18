@@ -28,7 +28,6 @@ from .default_parameters import (
     USE_DUPLICATE_READS,
 )
 from .variant_helpers import trim_variant
-from .dataframe_builder import DataFrameBuilder
 from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
 from .value_object import ValueObject
 
@@ -291,21 +290,3 @@ def group_reads_by_allele(allele_reads):
     for allele_read in allele_reads:
         allele_to_reads_dict[allele_read.allele].append(allele_read)
     return allele_to_reads_dict
-
-
-def reads_to_dataframe(variants_and_allele_reads):
-    """
-    Parameters
-    ----------
-    variants_and_allele_reads : sequence
-        List or generator of pairs whose first element is a Variant and
-        whose second element is a sequence of AlleleRead objects.
-    """
-    df_builder = DataFrameBuilder(
-        AlleleRead,
-        extra_column_fns={
-            "gene": lambda variant, _: ";".join(variant.gene_names),
-        })
-    for variant, allele_reads in variants_and_allele_reads:
-        df_builder.add_many(variant, allele_reads)
-    return df_builder.to_dataframe()

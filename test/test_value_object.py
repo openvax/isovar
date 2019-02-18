@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 from isovar.value_object import ValueObject
 from nose.tools import eq_
 
