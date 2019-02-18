@@ -37,7 +37,6 @@ from .default_parameters import (
 from .protein_sequence import ProteinSequence
 from .protein_sequence_helpers import sort_protein_sequences
 from .common import groupby
-from .dataframe_builder import dataframe_from_generator
 from .translation import translate_variant_reads, Translation
 from .logging import get_logger
 from .variant_support import gather_variant_support
@@ -212,15 +211,3 @@ class ProteinSequenceCreator(object):
                     overlapping_reads=overlapping_reads,
                     transcript_id_whitelist=transcript_id_whitelist)
             yield variant, protein_sequences[:self.max_protein_sequences_per_variant]
-
-
-def protein_sequences_generator_to_dataframe(variant_and_protein_sequences_generator):
-    """
-    Given a generator which yields (Variant, [ProteinSequence]) elements,
-    returns a pandas.DataFrame
-    """
-    return dataframe_from_generator(
-        element_class=ProteinSequence,
-        variant_and_elements_generator=variant_and_protein_sequences_generator,
-        converters=dict(
-            gene=lambda x: ";".join(x)))

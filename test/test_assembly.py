@@ -1,12 +1,12 @@
 from __future__ import print_function, division, absolute_import
 from time import time
 
-from isovar.variant_reads import reads_supporting_variant
-from isovar.variant_sequences import (
+from isovar.variant_read_helpers import reads_supporting_variant
+from isovar.variant_sequence import (
     initial_variant_sequences_from_reads,
     VariantSequence
 )
-from isovar import AlleleRead
+from isovar.allele_read import AlleleRead
 from isovar.assembly import (
     iterative_overlap_assembly,
     greedy_merge,

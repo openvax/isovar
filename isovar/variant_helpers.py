@@ -20,6 +20,7 @@ from __future__ import print_function, division, absolute_import
 
 from six.moves import range
 from .logging import get_logger
+from .dna import reverse_complement_dna
 
 logger = get_logger(__name__)
 
@@ -143,13 +144,10 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
     which indicates which bases in the reference sequence are affected by a
     variant.
 
-    Example:
-        The insertion of "TTT" into the middle of an exon would result in an
-        offset pair such as (100,100) since no reference bases are changed
-        or deleted by an insertion.
-
-        On the other hand, deletion the preceding "CGG" at that same locus could
-        result in an offset pair such as (97, 100)
+    For example, the insertion of "TTT" into the middle of an exon would result in an
+    offset pair such as (100,100) since no reference bases are changed or deleted by
+    an insertion. On the other hand, deletion the preceding "CGG" at that same locus could
+    result in an offset pair such as (97, 100)
     """
     if variant.is_insertion:
         if transcript.strand == "+":
@@ -189,3 +187,13 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
         start_offset = min(offsets)
         end_offset = max(offsets) + 1
     return (start_offset, end_offset)
+
+
+def variant_matches_reference_sequence(variant, ref_seq_on_transcript, strand):
+    """
+    Make sure that reference nucleotides we expect to see on the reference
+    transcript from a variant are the same ones we encounter.
+    """
+    if strand == "-":
+        ref_seq_on_transcript = reverse_complement_dna(ref_seq_on_transcript)
+    return ref_seq_on_transcript == variant.ref

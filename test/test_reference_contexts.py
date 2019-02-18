@@ -1,13 +1,14 @@
 from __future__ import print_function, division, absolute_import
 
-from isovar.reference_context import (
-    reference_contexts_for_variants,
-    variants_to_reference_contexts_dataframe,
-    ReferenceContext,
-)
 from varcode import Variant, VariantCollection
 
 from nose.tools import eq_
+
+from isovar.reference_context import (
+    reference_contexts_for_variants,
+    ReferenceContext,
+)
+from isovar.dataframe_helpers import variants_to_reference_contexts_dataframe
 
 from testing_helpers import load_vcf
 from genomes_for_testing import grch38

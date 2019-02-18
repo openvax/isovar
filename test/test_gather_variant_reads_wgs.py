@@ -7,7 +7,7 @@ from nose.tools import eq_
 
 from testing_helpers import load_bam
 
-from isovar.variant_read import reads_supporting_variant
+from isovar.allele_read_helpers import reads_supporting_variant
 
 
 def test_partition_variant_reads_snv():

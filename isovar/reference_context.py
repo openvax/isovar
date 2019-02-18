@@ -16,7 +16,6 @@ from __future__ import print_function, division, absolute_import
 from collections import OrderedDict, defaultdict
 
 from .effect_prediction import reference_transcripts_for_variant
-from .dataframe_builder import DataFrameBuilder
 from .reference_coding_sequence_key import ReferenceCodingSequenceKey
 from .logging import get_logger
 

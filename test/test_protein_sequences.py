@@ -1,23 +1,20 @@
 from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
-from isovar.translation import Translation
+from testing_helpers import load_bam, load_vcf, data_path
+from varcode import VariantCollection
 
+from isovar.allele_read_helpers import reads_overlapping_variants
 from isovar.cli.protein_sequence_args import (
     protein_sequences_dataframe_from_args,
     make_protein_sequences_arg_parser,
 )
-from isovar.protein_sequence_helpers import (
-    sort_protein_sequences,
-    protein_sequences_generator_to_dataframe,
-)
-from isovar.protein_sequence_creator import ProteinSequenceCreator
+from isovar.dataframe_helpers import protein_sequences_generator_to_dataframe
 from isovar.protein_sequence import ProteinSequence
-from isovar.allele_reads import reads_overlapping_variants
-from isovar.variant_sequence_in_reading_frame import VariantSequenceInReadingFrame
-from varcode import VariantCollection
-
-from testing_helpers import load_bam, load_vcf, data_path
+from isovar.protein_sequence_creator import ProteinSequenceCreator
+from isovar.protein_sequence_helpers import sort_protein_sequences,
+from isovar.translation import Translation
+from isovar.variant_orf import VariantORF
 
 
 # fields of a ProteinSequence:
@@ -38,7 +35,7 @@ def make_dummy_translation(
         variant_aa_interval_start=1,
         variant_aa_interval_end=2,
         number_mismatches=1):
-    varseq_in_orf = VariantSequenceInReadingFrame(
+    varseq_in_orf = VariantORF(
         cdna_sequence=cdna_sequence,
         offset_to_first_complete_codon=offset_to_first_complete_codon,
         variant_cdna_interval_start=variant_cdna_interval_start,

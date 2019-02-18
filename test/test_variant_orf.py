@@ -3,10 +3,10 @@ from __future__ import print_function, division, absolute_import
 from nose.tools import eq_
 from varcode import Variant
 
-from isovar.variant_sequence_in_reading_frame import (
+from isovar.variant_orf import (
     compute_offset_to_first_complete_codon,
     match_variant_sequence_to_reference_context,
-    VariantSequenceInReadingFrame,
+    VariantORF,
 )
 from isovar.variant_sequence import VariantSequence
 from isovar.reference_coding_sequence_key import ReferenceCodingSequenceKey
@@ -164,7 +164,7 @@ def make_inputs_for_tp53_201_variant(
         transcripts=[transcript])
     assert isinstance(reference_context, ReferenceContext)
 
-    expected = VariantSequenceInReadingFrame(
+    expected = VariantORF(
         cdna_sequence=cdna_prefix[-prefix_length:] + cdna_alt + cdna_suffix,
         offset_to_first_complete_codon=prefix_length % 3,
         variant_cdna_interval_start=prefix_length,
@@ -173,7 +173,7 @@ def make_inputs_for_tp53_201_variant(
         reference_cdna_sequence_after_variant="AGGAGCCGCAGTCAGAT"[:reference_context_size],
         number_mismatches_before_variant=mismatches_before_variant,
         number_mismatches_after_variant=mismatches_after_variant)
-    assert isinstance(expected, VariantSequenceInReadingFrame)
+    assert isinstance(expected, VariantORF)
 
     return variant_sequence, reference_context, expected
 

@@ -20,7 +20,7 @@ they support the reference, somatic allele, or some other allele.
 Allows for filtering variants by RNA evidence.
 """
 
-from .read_helpers import group_reads_by_allele
+from .allele_read_helpers import group_reads_by_allele
 from .variant_helpers import trim_variant
 
 from collections import namedtuple

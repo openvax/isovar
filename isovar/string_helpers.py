@@ -43,6 +43,7 @@ def trim_N_nucleotides(prefix, suffix):
 
     return prefix, suffix
 
+
 def convert_from_bytes_if_necessary(prefix, suffix):
     """
     Depending on how we extract data from pysam we may end up with either

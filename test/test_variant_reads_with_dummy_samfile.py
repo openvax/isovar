@@ -3,7 +3,7 @@ from __future__ import print_function, division, absolute_import
 from nose.tools import eq_
 from varcode import Variant
 
-from isovar.allele_reads import AlleleRead
+from isovar.allele_read import AlleleRead
 from isovar.allele_read_helpers import reads_supporting_variant
 
 from mock_read_data import DummySamFile, make_read

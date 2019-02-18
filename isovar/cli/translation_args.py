@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Common command-line arguments for all Isovar commands which translate
+cDNA into protein sequences.
+"""
 
 from __future__ import print_function, division, absolute_import
 

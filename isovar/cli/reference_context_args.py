@@ -20,7 +20,7 @@ from varcode.cli.variant_args import (
 )
 
 from ..default_parameters import CDNA_CONTEXT_SIZE
-from ..reference_context import variants_to_reference_contexts_dataframe
+from ..dataframe_helpers import variants_to_reference_contexts_dataframe
 
 
 def add_reference_context_args(parser):

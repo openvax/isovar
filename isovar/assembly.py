@@ -115,6 +115,7 @@ def collapse_substrings(variant_sequences):
         for variant_sequence in result_list
     ]
 
+
 def iterative_overlap_assembly(
         variant_sequences,
         min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):

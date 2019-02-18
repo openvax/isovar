@@ -22,13 +22,6 @@ translations.
 from __future__ import print_function, division, absolute_import
 import math
 
-
-from .reference_context import reference_contexts_for_variant
-from .variant_sequences import reads_to_variant_sequences
-from .genetic_code import translate_cdna
-from .variant_sequence_in_reading_frame import (
-    match_variant_sequence_to_reference_context,
-)
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -38,9 +31,15 @@ from .default_parameters import (
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_ASSEMBLY,
 )
-from .dataframe_builder import dataframe_from_generator
-from .value_object import ValueObject
+from .genetic_code import translate_cdna
 from .logging import get_logger
+from .reference_context import reference_contexts_for_variant
+from .value_object import ValueObject
+from .variant_sequence import reads_to_variant_sequences
+from .variant_orf import (
+    match_variant_sequence_to_reference_context,
+)
+
 
 logger = get_logger(__name__)
 
@@ -522,7 +521,7 @@ def translate_variants(
 
     Parameters
     ----------
-    variants_with_reads : sequence or generator
+    variants_with_supporting_reads : sequence or generator
         Each item of this sequence should be a pair containing a varcode.Variant
         and a list of AlleleRead objects supporting that variant.
 
@@ -575,28 +574,3 @@ def translate_variants(
             include_mismatches_after_variant=include_mismatches_after_variant,
             variant_sequence_assembly=variant_sequence_assembly)
         yield variant, translations
-
-
-def translations_generator_to_dataframe(translations_generator):
-    """
-    Given a generator of (Variant, [Translation]) pairs,
-    returns a DataFrame of translated protein fragments with columns
-    for each field of a Translation object (and chr/pos/ref/alt per variant).
-    """
-    return dataframe_from_generator(
-        element_class=Translation,
-        variant_and_elements_generator=translations_generator,
-        exclude=[],
-        converters={
-            "untrimmed_variant_sequence": lambda vs: vs.sequence,
-            "variant_sequence_in_reading_frame": (
-                lambda vs: vs.in_frame_cdna_sequence),
-            "reference_context": (
-                lambda rc: ";".join([
-                    transcript.name for
-                    transcript in rc.transcripts]))
-        },
-        extra_column_fns={
-            "untrimmed_variant_sequence_read_count": (
-                lambda _, t: len(t.untrimmed_variant_sequence.reads)),
-        })

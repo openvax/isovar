@@ -50,10 +50,10 @@ if __name__ == '__main__':
     setup(
         name='isovar',
         version=version,
-        description="Assemble transcript sequences fragments around variants",
+        description="Determine mutant protein sequences from RN using assembly around variants",
         author="Alex Rubinsteyn, Arman Aksoy, Julia Kodysh",
         author_email="alex.rubinsteyn@mssm.edu",
-        url="https://github.com/hammerlab/isovar",
+        url="https://github.com/openvax/isovar",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
         classifiers=[
             'Development Status :: 4 - Beta',

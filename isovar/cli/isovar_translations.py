@@ -21,10 +21,9 @@ from __future__ import print_function, division, absolute_import
 import sys
 
 from ..logging import get_logger
-from ..translation import (
-    translate_variants,
-    translations_generator_to_dataframe
-)
+from ..translation import translate_variants
+from ..dataframe_helpers import translations_generator_to_dataframe
+
 from .translation_args import (
     make_translation_arg_parser,
 )

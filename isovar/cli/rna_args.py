@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Common command-line arguments for all Isovar commands which use RNA
+"""
 
 from __future__ import print_function, division, absolute_import
 
@@ -26,8 +29,8 @@ from ..default_parameters import (
     MIN_RNA_VAF,
     MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS
 )
-from ..allele_reads import reads_overlapping_variants, reads_to_dataframe
-from ..variant_reads import reads_supporting_variants
+from ..allele_read_helpers import reads_overlapping_variants, reads_supporting_variants
+from ..dataframe_helpers import allele_reads_to_dataframe
 
 
 def add_rna_args(
@@ -136,7 +139,7 @@ def allele_reads_generator_from_args(args):
 
 
 def allele_reads_dataframe_from_args(args):
-    return reads_to_dataframe(allele_reads_generator_from_args(args))
+    return allele_reads_to_dataframe(allele_reads_generator_from_args(args))
 
 
 def variant_reads_generator_from_args(args):
@@ -151,4 +154,4 @@ def variant_reads_generator_from_args(args):
 
 
 def variant_reads_dataframe_from_args(args):
-    return reads_to_dataframe(variant_reads_generator_from_args(args))
+    return allele_reads_to_dataframe(variant_reads_generator_from_args(args))

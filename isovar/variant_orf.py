@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,13 +23,13 @@ from __future__ import print_function, division, absolute_import
 from six.moves import range, zip
 
 from .dna import reverse_complement_dna
-from .value_object import ValueObject
 from .logging import get_logger
+from .value_object import ValueObject
 
 logger = get_logger(__name__)
 
 
-class VariantSequenceInReadingFrame(ValueObject):
+class VariantORF(ValueObject):
     """
     A variant cDNA sequence (possibly trimmed to get rid of low coverage
     tails) assigned to a particular strand ('+' or '-') and reading frame
@@ -76,6 +76,9 @@ class VariantSequenceInReadingFrame(ValueObject):
 
     @property
     def in_frame_cdna_sequence(self):
+        """
+        Subsequence of cDNA from start to codon until last complete codon.
+        """
         from_first_codon = self.cdna_sequence[self.offset_to_first_complete_codon:]
         # get rid of any trailing out of frame nucleotides
         in_frame_length = len(from_first_codon) // 3 * 3
@@ -94,7 +97,7 @@ class VariantSequenceInReadingFrame(ValueObject):
 
         reference_context : ReferenceContext
 
-        Returns a VariantSequenceInReadingFrame object
+        Returns a VariantORF object
         """
         (cdna_prefix, cdna_alt, cdna_suffix,
             reference_prefix, reference_suffix, n_trimmed_from_reference) = trim_sequences(
@@ -126,7 +129,7 @@ class VariantSequenceInReadingFrame(ValueObject):
         variant_interval_start = len(cdna_prefix)
         variant_interval_end = variant_interval_start + len(cdna_alt)
 
-        return VariantSequenceInReadingFrame(
+        return VariantORF(
             cdna_sequence=cdna_sequence,
             offset_to_first_complete_codon=offset_to_first_complete_codon,
             variant_cdna_interval_start=variant_interval_start,
@@ -347,7 +350,7 @@ def match_variant_sequence_to_reference_context(
             return None
 
         variant_sequence_in_reading_frame = \
-            VariantSequenceInReadingFrame.from_variant_sequence_and_reference_context(
+            VariantORF.from_variant_sequence_and_reference_context(
                 variant_sequence=variant_sequence,
                 reference_context=reference_context)
 

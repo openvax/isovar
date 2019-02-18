@@ -17,10 +17,10 @@ import sys
 
 from ..logging import get_logger
 
-from ..variant_sequences import (
-    reads_generator_to_sequences_generator,
-    variant_sequences_generator_to_dataframe
-)
+from ..variant_sequence import reads_generator_to_sequences_generator
+from ..dataframe_helpers import variant_sequences_generator_to_dataframe
+
+
 from .rna_args import allele_reads_generator_from_args
 from .variant_sequences_args import make_variant_sequences_arg_parser
 from .output_args import add_output_args, write_dataframe

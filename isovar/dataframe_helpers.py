@@ -14,13 +14,14 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .allele_count import AlleleCount, count_alleles_at_variant_locus
+from .allele_counts import AlleleCount, count_alleles_at_variant_locus
 from .allele_read import AlleleRead
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
 from .locus_read import LocusRead, locus_read_generator
-from .reference_context import reference_contexts_for_variants, ReferenceContext
 from .protein_sequence import ProteinSequence
+from .reference_context import reference_contexts_for_variants, ReferenceContext
+from .translation import Translation
 from .variant_sequence import VariantSequence
 
 
@@ -151,4 +152,29 @@ def variant_sequences_generator_to_dataframe(variant_sequences_generator):
         rename_dict={"alt": "allele"},
         extra_column_fns={
             "gene": lambda variant, _: ";".join(variant.gene_names),
+        })
+
+
+def translations_generator_to_dataframe(translations_generator):
+    """
+    Given a generator of (Variant, [Translation]) pairs,
+    returns a DataFrame of translated protein fragments with columns
+    for each field of a Translation object (and chr/pos/ref/alt per variant).
+    """
+    return dataframe_from_generator(
+        element_class=Translation,
+        variant_and_elements_generator=translations_generator,
+        exclude=[],
+        converters={
+            "untrimmed_variant_sequence": lambda vs: vs.sequence,
+            "variant_sequence_in_reading_frame": (
+                lambda vs: vs.in_frame_cdna_sequence),
+            "reference_context": (
+                lambda rc: ";".join([
+                    transcript.name for
+                    transcript in rc.transcripts]))
+        },
+        extra_column_fns={
+            "untrimmed_variant_sequence_read_count": (
+                lambda _, t: len(t.untrimmed_variant_sequence.reads)),
         })

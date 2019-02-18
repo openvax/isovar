@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019 Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -184,13 +184,3 @@ class DataFrameBuilder(object):
     def to_dataframe(self):
         self._check_column_lengths()
         return pd.DataFrame(self.columns_dict)
-
-
-def dataframe_from_generator(
-        element_class,
-        variant_and_elements_generator,
-        **kwargs):
-    builder = DataFrameBuilder(element_class, **kwargs)
-    for variant, elements in variant_and_elements_generator:
-        builder.add_many(variant, elements)
-    return builder.to_dataframe()

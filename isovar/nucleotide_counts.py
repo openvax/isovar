@@ -20,10 +20,7 @@ from .dna import (
     dna_nucleotide_to_index,
     index_to_dna_nucleotide,
 )
-from .read_helpers import (
-    make_prefix_suffix_pairs,
-    get_single_allele_from_reads,
-)
+from .allele_read_helpers import get_single_allele_from_reads
 
 
 def nucleotide_counts(variant_reads):
@@ -43,8 +40,7 @@ def nucleotide_counts(variant_reads):
         - the column indices for the variant nucleotides
     """
     variant_seq = get_single_allele_from_reads(variant_reads)
-
-    prefix_suffix_pairs = make_prefix_suffix_pairs(variant_reads)
+    prefix_suffix_pairs = [(r.prefix, r.suffix) for r in variant_reads]
     n_reads = len(prefix_suffix_pairs)
     max_prefix_length = max(len(p) for (p, _) in prefix_suffix_pairs)
     max_suffix_length = max(len(s) for (_, s) in prefix_suffix_pairs)

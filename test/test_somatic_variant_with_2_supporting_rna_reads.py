@@ -4,7 +4,7 @@ from varcode import Variant
 from testing_helpers import load_bam
 from nose.tools import eq_
 
-from isovar.variant_reads import reads_supporting_variant
+from isovar.allele_read_helpers import reads_supporting_variant
 
 from genomes_for_testing import grch38
 

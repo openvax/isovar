@@ -21,7 +21,7 @@ from __future__ import print_function, division, absolute_import
 from collections import namedtuple
 
 from .variant_helpers import trim_variant
-from .read_helpers import group_reads_by_allele
+from .allele_read_helpers import group_reads_by_allele
 
 AlleleCount = namedtuple(
     "AlleleCount", [

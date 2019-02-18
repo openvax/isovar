@@ -1,7 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
 from isovar.nucleotide_counts import most_common_nucleotides
-from isovar.variant_read import reads_supporting_variant
+from isovar.allele_read_helpers import reads_supporting_variant
 
 from varcode import Variant
 from pyensembl import ensembl_grch38
