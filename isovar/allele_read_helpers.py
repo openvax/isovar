@@ -26,7 +26,7 @@ from .default_parameters import (
     USE_SECONDARY_ALIGNMENTS,
     USE_DUPLICATE_READS,
 )
-from .locus_read import locus_read_generator
+from .locus_read_helpers import locus_read_generator
 from .logging import get_logger
 from .variant_helpers import trim_variant
 

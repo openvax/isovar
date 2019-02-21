@@ -18,7 +18,8 @@ from .allele_counts import AlleleCount, count_alleles_at_variant_locus
 from .allele_read import AlleleRead
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
-from .locus_read import LocusRead, locus_read_generator
+from .locus_read import LocusRead
+from .locus_read_helpers import locus_read_generator
 from .protein_sequence import ProteinSequence
 from .reference_context import reference_contexts_for_variants, ReferenceContext
 from .translation import Translation

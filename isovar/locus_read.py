@@ -20,11 +20,6 @@ for extracting variant nucleotides.
 
 from __future__ import print_function, division, absolute_import
 
-from .default_parameters import (
-    MIN_READ_MAPPING_QUALITY,
-    USE_DUPLICATE_READS,
-    USE_SECONDARY_ALIGNMENTS,
-)
 from .value_object import ValueObject
 from .logging import get_logger
 
@@ -57,9 +52,9 @@ class LocusRead(ValueObject):
         self.base0_read_position_after_variant = base0_read_position_after_variant
 
     @classmethod
-    def from_pysam_pileup_element(
+    def from_pysam_aligned_segment(
             cls,
-            pileup_element,
+            read,
             base0_position_before_variant,
             base0_position_after_variant,
             use_secondary_alignments,
@@ -67,30 +62,23 @@ class LocusRead(ValueObject):
             min_mapping_quality,
             use_soft_clipped_bases=False):
         """
+        Create LocusRead object from pysam.AlignedSegment
+
         Parameters
         ----------
-        pileup_element : pysam.PileupRead
-
+        read : pysam.AlignedSegment
         base0_position_before_variant : int
-
         base0_position_after_variant : int
-
         use_secondary_alignments : bool
-
         use_duplicate_reads : bool
-
         min_mapping_quality : int
+        use_soft_clipped_bases : bool (optional
 
-        use_soft_clipped_bases : bool. Default false; set to true to keep soft-clipped bases
-
-        Returns LocusRead or None
+        Returns
+        -------
+        LocusRead or None
         """
-        read = pileup_element.alignment
-
-        # For future reference,  may get overlapping reads
-        # which can be identified by having the same name
         name = read.query_name
-
         if name is None:
             logger.warn(
                 "Read missing name at position %d",
@@ -100,18 +88,6 @@ class LocusRead(ValueObject):
         if read.is_unmapped:
             logger.warn(
                 "How did we get unmapped read '%s' in a pileup?", name)
-            return None
-
-        if pileup_element.is_refskip:
-            # if read sequence doesn't actually align to the reference
-            # base before a variant, skip it
-            logger.debug("Skipping pileup element with CIGAR alignment N (intron)")
-            return None
-        elif pileup_element.is_del:
-            logger.debug(
-                "Skipping deletion at position %d (read name = %s)",
-                base0_position_before_variant + 1,
-                name)
             return None
 
         if read.is_secondary and not use_secondary_alignments:
@@ -127,7 +103,7 @@ class LocusRead(ValueObject):
         missing_mapping_quality = mapping_quality is None
 
         if min_mapping_quality > 0 and missing_mapping_quality:
-            logger.debug("Skipping read '%s' due to missing MAPQ", name)
+            logger.debug("Skipping read '%s' due to missing MAPQ" % name)
             return None
         elif mapping_quality < min_mapping_quality:
             logger.debug(
@@ -209,107 +185,61 @@ class LocusRead(ValueObject):
             base0_read_position_before_variant=base0_read_position_before_variant,
             base0_read_position_after_variant=base0_read_position_after_variant)
 
-
-def pileup_reads_at_position(samfile, chromosome, base0_position):
-    """
-    Returns a pileup column at the specified position. Unclear if a function
-    like this is hiding somewhere in pysam API.
-    """
-
-    # TODO: I want to pass truncate=True, stepper="all"
-    # but for some reason I get this error:
-    #      pileup() got an unexpected keyword argument 'truncate'
-    # ...even though these options are listed in the docs for pysam 0.9.0
-    #
-    for column in samfile.pileup(
-            chromosome,
-            start=base0_position,
-            end=base0_position + 1):
-
-        if column.pos != base0_position:
-            # if this column isn't centered on the base before the
-            # variant then keep going
-            continue
-
-        return column.pileups
-
-    # if we get to this point then we never saw a pileup at the
-    # desired position
-    return []
-
-
-def locus_read_generator(
-        samfile,
-        chromosome,
-        base1_position_before_variant,
-        base1_position_after_variant,
-        use_duplicate_reads=USE_DUPLICATE_READS,
-        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-        min_mapping_quality=MIN_READ_MAPPING_QUALITY):
-    """
-    Generator that yields a sequence of ReadAtLocus records for reads which
-    contain the positions before and after a variant. The actual work to figure
-    out if what's between those positions matches a variant happens later in
-    the `variant_reads` module.
-
-    Parameters
-    ----------
-    samfile : pysam.AlignmentFile
-
-    chromosome : str
-
-    base1_position_before_variant : int
-        Genomic position of reference nucleotide before a variant
-
-    base1_position_after_variant : int
-        Genomic position of reference nucleotide before a variant
-
-    use_duplicate_reads : bool
-        By default, we're ignoring any duplicate reads
-
-    use_secondary_alignments : bool
-        By default we are using secondary alignments, set this to False to
-        only use primary alignments of reads.
-
-    min_mapping_quality : int
-        Drop reads below this mapping quality
-
-    Yields ReadAtLocus objects
-    """
-    logger.debug(
-        "Gathering reads at locus %s: %d-%d",
-        chromosome,
-        base1_position_before_variant,
-        base1_position_after_variant)
-    base0_position_before_variant = base1_position_before_variant - 1
-    base0_position_after_variant = base1_position_after_variant - 1
-
-    count = 0
-
-    # We get a pileup at the base before the variant and then check to make sure
-    # that reads also overlap the reference position after the variant.
-    #
-    # TODO: scan over a wider interval of pileups and collect reads that don't
-    # overlap the bases before/after a variant due to splicing
-    for pileup_element in pileup_reads_at_position(
-            samfile=samfile,
-            chromosome=chromosome,
-            base0_position=base0_position_before_variant):
-        read = LocusRead.from_pysam_pileup_element(
+    @classmethod
+    def from_pysam_pileup_element(
+            cls,
             pileup_element,
+            base0_position_before_variant,
+            base0_position_after_variant,
+            use_secondary_alignments,
+            use_duplicate_reads,
+            min_mapping_quality,
+            use_soft_clipped_bases=False):
+        """
+        Parameters
+        ----------
+        pileup_element : pysam.PileupRead
+
+        base0_position_before_variant : int
+
+        base0_position_after_variant : int
+
+        use_secondary_alignments : bool
+
+        use_duplicate_reads : bool
+
+        min_mapping_quality : int
+
+        use_soft_clipped_bases : bool. Default false; set to true to keep soft-clipped bases
+
+        Returns LocusRead or None
+        """
+        # extract the AlignedSegment, throwing away information about where in the read
+        # the current pileup occurs
+        read = pileup_element.alignment
+
+
+        # For future reference,  may get overlapping reads
+        # which can be identified by having the same name
+        name = read.query_name
+
+        if pileup_element.is_refskip:
+            # if read sequence doesn't actually align to the reference
+            # base before a variant, skip it
+            logger.debug("Skipping pileup element with CIGAR alignment N (intron), read name = %s")
+            return None
+        elif pileup_element.is_del:
+            logger.debug(
+                "Skipping deletion at position %d (read name = %s)",
+                base0_position_before_variant + 1,
+                pileup_element)
+            return None
+
+        return cls.from_pysam_aligned_segment(
+            read=read,
             base0_position_before_variant=base0_position_before_variant,
             base0_position_after_variant=base0_position_after_variant,
             use_secondary_alignments=use_secondary_alignments,
             use_duplicate_reads=use_duplicate_reads,
-            min_mapping_quality=min_mapping_quality)
-
-        if read is not None:
-            count += 1
-            yield read
-
-    logger.info(
-        "Found %d reads overlapping locus %s: %d-%d",
-        count,
-        chromosome,
-        base1_position_before_variant,
-        base1_position_after_variant)
+            min_mapping_quality=min_mapping_quality,
+            use_soft_clipped_bases=use_soft_clipped_bases)

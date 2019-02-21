@@ -2,10 +2,8 @@ from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
 from varcode import Variant
-from isovar.locus_read import (
-    LocusRead,
-    locus_read_generator,
-)
+from isovar.locus_read import LocusRead
+from isovar.locus_read_helpers import locus_read_generator
 from isovar.dataframe_helpers import locus_reads_dataframe
 
 from mock_read_data import DummySamFile, make_read
