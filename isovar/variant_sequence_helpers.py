@@ -31,8 +31,10 @@ from .default_parameters import (
     VARIANT_SEQUENCE_ASSEMBLY,
     MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
 )
+from .logging import get_logger
 from .variant_sequence import VariantSequence
 
+logger = get_logger(__name__)
 
 def initial_variant_sequences_from_reads(
         variant_reads,

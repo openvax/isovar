@@ -42,7 +42,7 @@ def greedy_merge_helper(
         # arguments if sequence1 is on the right of sequence2
         for j in range(i + 1, len(variant_sequences)):
             sequence2 = variant_sequences[j]
-            combined = sequence1.combine(sequence2)
+            combined = sequence1.combine(sequence2, min_overlap_size=min_overlap_size)
             if combined is None:
                 continue
             if combined.sequence in merged_variant_sequences:

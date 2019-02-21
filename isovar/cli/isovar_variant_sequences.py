@@ -17,7 +17,7 @@ import sys
 
 from ..logging import get_logger
 
-from ..variant_sequence import reads_generator_to_sequences_generator
+from ..variant_sequence_helpers import reads_generator_to_sequences_generator
 from ..dataframe_helpers import variant_sequences_generator_to_dataframe
 
 

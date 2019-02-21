@@ -117,7 +117,7 @@ class VariantSequence(ValueObject):
         else:
             return self
 
-    def combine(self, other_sequence, min_overlap_size=None):
+    def combine(self, other_sequence, min_overlap_size=1):
         """
         If this sequence is the prefix of another sequence, combine
         them into a single VariantSequence object. If the other sequence
@@ -133,12 +133,12 @@ class VariantSequence(ValueObject):
                 other_sequence)
             return None
         elif self.contains(other_sequence):
-            if min_overlap_size is None or len(other_sequence) >= min_overlap_size:
+            if len(other_sequence) >= min_overlap_size:
                 return self.add_reads(other_sequence.reads)
             else:
                 return None
         elif other_sequence.contains(self):
-            if min_overlap_size is None or len(self) >= min_overlap_size:
+            if len(self) >= min_overlap_size:
                 return other_sequence.add_reads(self.reads)
             else:
                 return None

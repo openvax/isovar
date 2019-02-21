@@ -12,7 +12,7 @@ from isovar.cli.protein_sequence_args import (
 from isovar.dataframe_helpers import protein_sequences_generator_to_dataframe
 from isovar.protein_sequence import ProteinSequence
 from isovar.protein_sequence_creator import ProteinSequenceCreator
-from isovar.protein_sequence_helpers import sort_protein_sequences,
+from isovar.protein_sequence_helpers import sort_protein_sequences
 from isovar.translation import Translation
 from isovar.variant_orf import VariantORF
 

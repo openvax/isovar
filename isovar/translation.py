@@ -35,7 +35,7 @@ from .genetic_code import translate_cdna
 from .logging import get_logger
 from .reference_context import reference_contexts_for_variant
 from .value_object import ValueObject
-from .variant_sequence import reads_to_variant_sequences
+from .variant_sequence_helpers import reads_to_variant_sequences
 from .variant_orf import (
     match_variant_sequence_to_reference_context,
 )
