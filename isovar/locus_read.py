@@ -59,22 +59,27 @@ class LocusRead(ValueObject):
             cDNA sequence
 
         reference_positions : list of (int or None)
-            For every base in the sequence, which reference position does it map to (if any)
+            For every base in the sequence, which base-1 reference position
+            does it map to, or None if the read base is an insertion or soft-clipped
 
         quality_scores : array of int
             Base qualities for every character in the sequence
 
         reference_base0_start_inclusive : int
-            Start of reference locus which is overlapped by this read (base 0, inclusive)
+            Start index of reference locus which is overlapped
+            by this read (base 0, inclusive)
 
         reference_base0_end_exclusive : int
-            End of reference locus which is overlapped by this read (base 0, exclusive)
+            End index of reference locus which is overlapped
+            by this read (base 0, exclusive)
 
         read_base0_start_inclusive : int or None
-            Index of base in read which corresponds to start of reference locus (if it's mapped)
+            Start index of base in read which corresponds to
+            start of reference locus (if it's mapped)
 
         read_base0_end_exclusive : int or None
-            Index after last base in sequence which correspinds to reference locus (if it's mapped)
+            End index after last base in sequence which
+            corresponds to reference locus (if it's mapped)
         """
         ######################################################################
         # When can the start or end of the read interval be None?
@@ -128,6 +133,7 @@ class LocusRead(ValueObject):
         #      |     |     |     |     |      |    |      |
         #    00024 00025 00026 00027 00028 00029 00030 00031 00032 00033 00034
         #      A     C     T     G     T      T    T      T    A     A     A
+
         self.name = name
         self.sequence = sequence
         self.reference_positions = reference_positions
@@ -136,4 +142,5 @@ class LocusRead(ValueObject):
         self.reference_base0_end_exclusive = reference_base0_end_exclusive
         self.read_base0_start_inclusive = read_base0_start_inclusive
         self.read_base0_end_exclusive = read_base0_end_exclusive
+
 

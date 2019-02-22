@@ -127,20 +127,70 @@ class ReadCreator(object):
             logger.warn("Skipping read '%s' due to missing base qualities" % name)
             return None
 
-        # By default, AlignedSegment.get_reference_positions  only returns positions
+        # By default, AlignedSegment.get_reference_positions only returns base-1 positions
         # from the reference that are within the alignment. If full_length is set,
         # None values will be included for any soft-clipped or unaligned positions
         # within the read. The returned list will thus be of the same
         # length as the read.
-        reference_positions = pysam_aligned_segment.get_reference_positions(full_length=True)
+        base1_reference_positions = pysam_aligned_segment.get_reference_positions(full_length=True)
         reference_positions_dict = {
-            reference_pos: read_pos
-            for (read_pos, reference_pos)
-            in enumerate(reference_positions)
-            if reference_pos is not None
+            base1_reference_pos: base0_read_pos
+            for (base0_read_pos, base1_reference_pos)
+            in enumerate(base1_reference_positions)
+            if base1_reference_pos is not None
         }
-        locus_on_read_base0_start = reference_positions_dict.get(base0_start_inclusive)
-        locus_on_read_base0_end = reference_positions_dict.get(base0_end_exclusive)
+
+        reference_interval_size = base0_end_exclusive - base0_start_inclusive
+        if reference_interval_size < 0:
+            raise ValueError("Unexpected interval start after interval end")
+
+        # we have a dictionary mapping base-1 reference positions to base-0
+        # read indices and we need to use that to convert the reference
+        # half-open interval into a half-open interval on the read.
+        if reference_interval_size == 0:
+            # To deal with insertions at the beginning and end of a read we're
+            # # going to try two approaches to figure out the read interval
+            # corresponding with a reference interval.
+            #
+            # First, try getting the read position of the base before the insertion
+            # and if that's not mapped, we'll try getting the position of the
+            # base after the insertion.
+            position_before_insertion = base0_start_inclusive
+            position_after_insertion = base0_start_inclusive + 1
+
+            if position_before_insertion in reference_positions_dict:
+                locus_on_read_base0_start = reference_positions_dict.get(position_before_insertion)
+            elif position_after_insertion in reference_positions_dict:
+                locus_on_read_base0_start = reference_positions_dict.get(position_after_insertion) - 1
+            else:
+                locus_on_read_base0_start = None
+            locus_on_read_base0_end = locus_on_read_base0_start
+        else:
+            # Reference bases are selected for match or deletion.
+            #
+            # What happens if the reference bases are interspersed with insertions?
+            # Reference:
+            #   10000 10001 10002 10003 10004 10005 10006 10007
+            #     A     T     G     C     A     A     A     A
+            #
+            # Read:
+            #   00000 00001 00002 00003 00004 00005 00006 00007
+            #     A    *A*     T     G     C     A     A     A
+            #
+            # ...and our reference interval is base-1 inclusive 10000:10001
+            # but the read has an inserted 'A' in between the two bases.
+            #
+            # In this case we need to figure out the first and last positions
+            # which match the inclusive interval and then convert it to a half-open
+            # interval. One possibly more obvious alternative is just to
+            # figure out which read indices correspond to base0_start_inclusive and
+            # base0_end_exclusive but this would fail if base0_end_exclusive is
+            # after the end the end of the read.
+            base1_start_inclusive = base0_start_inclusive + 1
+            base1_end_inclusive = base1_start_inclusive + reference_interval_size
+            locus_on_read_base0_start = reference_positions_dict.get(base1_start_inclusive)
+            locus_on_read_base0_end_inclusive_index = reference_positions_dict.get(base1_end_inclusive)
+            locus_on_read_base0_end = locus_on_read_base0_end_inclusive_index + 1
 
         if isinstance(sequence, bytes):
             sequence = sequence.decode('ascii')
@@ -154,7 +204,7 @@ class ReadCreator(object):
             aligned_subsequence_start = pysam_aligned_segment.query_alignment_start
             aligned_subsequence_end = pysam_aligned_segment.query_alignment_end
             sequence = sequence[aligned_subsequence_start:aligned_subsequence_end]
-            reference_positions = reference_positions[
+            base1_reference_positions = base1_reference_positions[
                 aligned_subsequence_start:aligned_subsequence_end]
             base_qualities = base_qualities[aligned_subsequence_start:aligned_subsequence_end]
             if locus_on_read_base0_start is not None:
@@ -165,7 +215,7 @@ class ReadCreator(object):
         return LocusRead(
             name=name,
             sequence=sequence,
-            reference_positions=reference_positions,
+            reference_positions=base1_reference_positions,
             quality_scores=base_qualities,
             reference_base0_start_inclusive=base0_start_inclusive,
             reference_base0_end_exclusive=base0_end_exclusive,
@@ -221,28 +271,6 @@ class ReadCreator(object):
             base0_start_inclusive,
             base0_end_exclusive)
         return reads
-
-    def allele_reads_from_locus_reads(locus_reads, n_ref):
-        """
-        Given a collection of LocusRead objects, returns a
-        list of AlleleRead objects
-        (which are split into prefix/allele/suffix nucleotide strings).
-
-        Parameters
-        ----------
-        locus_reads : sequence of LocusRead records
-
-        n_ref : int
-            Number of reference nucleotides affected by variant.
-
-        Generates AlleleRead objects.
-        """
-        for locus_read in locus_reads:
-            allele_read = AlleleRead.from_locus_read(locus_read, n_ref)
-            if allele_read is None:
-                continue
-            else:
-                yield allele_read
 
     def allele_reads_overlapping_variant(
             self,
@@ -307,10 +335,16 @@ class ReadCreator(object):
             base0_start_inclusive=base0_start_inclusive,
             base0_end_exclusive=base0_end_exclusive)
 
-        allele_reads = self.allele_reads_from_locus_reads(
-            locus_reads=locus_reads,
-            n_ref=len(ref))
-
+        allele_reads = []
+        for locus_read in locus_reads:
+            allele_read = self.allele_read_from_locus_read(
+                locus_read=locus_read,
+                n_ref=len(ref),
+                n_alt=len(alt))
+            if allele_read is None:
+                continue
+            else:
+                allele_reads.append(allele_read)
         return allele_reads
 
     def reads_overlapping_variants(self, variants, alignments):
@@ -382,9 +416,6 @@ class ReadCreator(object):
             yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
 
     def allele_read_from_locus_read(self, locus_read, n_ref, n_alt):
-        #####
-        # TODO: FIX THIS METHOD
-        ####
         """
         Given a single LocusRead object, return either an AlleleRead or None
 
@@ -407,7 +438,9 @@ class ReadCreator(object):
         read_base0_start_inclusive = locus_read.read_base0_start_inclusive
         read_base0_end_exclusive = locus_read.read_base0_end_exclusive
 
-        if n_ref == 0:
+        insertion = (n_ref == 0)
+        deletion = (n_alt == 0)
+        if insertion:
             if ref_pos_after - ref_pos_before != 1:
                 # if the number of nucleotides skipped isn't the same
                 # as the number of reference nucleotides in the variant then
@@ -422,7 +455,7 @@ class ReadCreator(object):
             # insertions require a sequence of non-aligned bases
             # followed by the subsequence reference position
             ref_positions_for_inserted = reference_positions[
-                                         read_pos_before + 1:read_pos_after]
+                read_pos_before + 1:read_pos_after]
             if any(insert_pos is not None for insert_pos in ref_positions_for_inserted):
                 # all these inserted nucleotides should *not* align to the
                 # reference
