@@ -37,7 +37,8 @@ from .default_parameters import (
 from .protein_sequence import ProteinSequence
 from .protein_sequence_helpers import sort_protein_sequences
 from .common import groupby
-from .translation import translate_variant_reads, Translation
+from .translation import Translation
+from .translation_helpers import translate_variant_reads
 from .logging import get_logger
 from .variant_support import gather_variant_support
 

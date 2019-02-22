@@ -21,19 +21,22 @@ for extracting variant nucleotides.
 from __future__ import print_function, division, absolute_import
 
 from .value_object import ValueObject
-from .logging import get_logger
-
-logger = get_logger(__name__)
 
 
 class LocusRead(ValueObject):
+    """
+    Minimal set of information extracted from SAM/BAM alignment file at a particular
+    locus to later figure out the allele at this locus.
+    """
     __slots__ = [
         "name",
         "sequence",
         "reference_positions",
         "quality_scores",
-        "base0_read_position_before_variant",
-        "base0_read_position_after_variant"
+        "reference_base0_start_inclusive",
+        "reference_base0_end_exclusive",
+        "read_base0_start_inclusive",
+        "read_base0_end_exclusive"
     ]
 
     def __init__(
@@ -42,204 +45,95 @@ class LocusRead(ValueObject):
             sequence,
             reference_positions,
             quality_scores,
-            base0_read_position_before_variant,
-            base0_read_position_after_variant):
+            reference_base0_start_inclusive,
+            reference_base0_end_exclusive,
+            read_base0_start_inclusive,
+            read_base0_end_exclusive):
+        """
+        Parameters
+        ----------
+        name : str
+            Fragment name, paired reads from the same fragment will have the same name
+
+        sequence : str
+            cDNA sequence
+
+        reference_positions : list of (int or None)
+            For every base in the sequence, which reference position does it map to (if any)
+
+        quality_scores : array of int
+            Base qualities for every character in the sequence
+
+        reference_base0_start_inclusive : int
+            Start of reference locus which is overlapped by this read (base 0, inclusive)
+
+        reference_base0_end_exclusive : int
+            End of reference locus which is overlapped by this read (base 0, exclusive)
+
+        read_base0_start_inclusive : int or None
+            Index of base in read which corresponds to start of reference locus (if it's mapped)
+
+        read_base0_end_exclusive : int or None
+            Index after last base in sequence which correspinds to reference locus (if it's mapped)
+        """
+        ######################################################################
+        # When can the start or end of the read interval be None?
+        # ---------------------------------------------------------
+        # If a locus goes from  [x:y) on the reference chromosome then there are
+        # a few possibilities for whether x and y will have corresponding mapped
+        # positions on a read.
+        #
+        # If x=y, then we expect the read to either match the reference or have some bases
+        # inserted between x and y. In this case, the only reason why x and y wouldn't be mapped
+        # is if they occur after the end of a read, but the read still overlaps some
+        # part of the interval.
+        #
+        # If y > x, then we're selecting some non-zero reference bases and either matching them
+        # or deleting them. If they CIGAR operation is M (match), then x and y should have
+        # corresponding positions on the read (unless, like previously, only part of the
+        # interval is covered by a read).
+        #
+        # In the case of a deletion, however, the selected reference bases do not have
+        # corresponding positions on the read.
+        #
+        # Diagram of a deletion:
+        #
+        #    REFERENCE
+        #    19124 19125 19126 19127 19128 19129 19130 19131 19132 19133 19134
+        #      A     C     T     G     G     C     A     T      T    T     T
+        #
+        # If we're interested in checking whether the sequence 'GCA' is deleted
+        # between 19128:19131 then we'll look at an RNA read.
+        #
+        #    RNA WHICH SUPPORTS REFERENCE
+        #    00024 00025 00026 00027 00028 00029 00030 00031 00032 00033 00034
+        #      A     C     T     G     G     C     A     T      T    T     T
+        #
+        #    RNA WHICH SUPPORTS MUTATION
+        #    00024 00025 00026 00027 00028 00029 00030 00031 00032 00033 00034
+        #      A     C     T     G     T      T    T      T    A     A     A
+        #
+        # In the RNA read which does not support the mutation (matches reference) the
+        # reference index 19128 is mapped to 28 and 19131 is mapped to 31.
+        #
+        # On the mutant RNA, however, the position 19128, 19129, 19130 are unmapped.
+        #
+        #    19124 19125 19126 19127 19128 19129 19130 19131 19132 19133 19134
+        #      A     C     T     G     G     C     A     T      T    T     T
+        #      |     |     |     |                       |      |    |     |
+        #      |     |     |     |     *-----------------*      |    |     |
+        #      |     |     |     |     |      *-----------------*    |     |
+        #      |     |     |     |     |      |    |-----------------*     |
+        #      |     |     |     |     |      |    |      *----------------*
+        #      |     |     |     |     |      |    |      |
+        #    00024 00025 00026 00027 00028 00029 00030 00031 00032 00033 00034
+        #      A     C     T     G     T      T    T      T    A     A     A
         self.name = name
         self.sequence = sequence
         self.reference_positions = reference_positions
         self.quality_scores = quality_scores
-        self.base0_read_position_before_variant = base0_read_position_before_variant
-        self.base0_read_position_after_variant = base0_read_position_after_variant
+        self.reference_base0_start_inclusive = reference_base0_start_inclusive
+        self.reference_base0_end_exclusive = reference_base0_end_exclusive
+        self.read_base0_start_inclusive = read_base0_start_inclusive
+        self.read_base0_end_exclusive = read_base0_end_exclusive
 
-    @classmethod
-    def from_pysam_aligned_segment(
-            cls,
-            read,
-            base0_position_before_variant,
-            base0_position_after_variant,
-            use_secondary_alignments,
-            use_duplicate_reads,
-            min_mapping_quality,
-            use_soft_clipped_bases=False):
-        """
-        Create LocusRead object from pysam.AlignedSegment
-
-        Parameters
-        ----------
-        read : pysam.AlignedSegment
-        base0_position_before_variant : int
-        base0_position_after_variant : int
-        use_secondary_alignments : bool
-        use_duplicate_reads : bool
-        min_mapping_quality : int
-        use_soft_clipped_bases : bool (optional
-
-        Returns
-        -------
-        LocusRead or None
-        """
-        name = read.query_name
-        if name is None:
-            logger.warn(
-                "Read missing name at position %d",
-                base0_position_before_variant + 1)
-            return None
-
-        if read.is_unmapped:
-            logger.warn(
-                "How did we get unmapped read '%s' in a pileup?", name)
-            return None
-
-        if read.is_secondary and not use_secondary_alignments:
-            logger.debug("Skipping secondary alignment of read '%s'", name)
-            return None
-
-        if read.is_duplicate and not use_duplicate_reads:
-            logger.debug("Skipping duplicate read '%s'", name)
-            return None
-
-        mapping_quality = read.mapping_quality
-
-        missing_mapping_quality = mapping_quality is None
-
-        if min_mapping_quality > 0 and missing_mapping_quality:
-            logger.debug("Skipping read '%s' due to missing MAPQ" % name)
-            return None
-        elif mapping_quality < min_mapping_quality:
-            logger.debug(
-                "Skipping read '%s' due to low MAPQ: %d < %d",
-                read.mapping_quality,
-                mapping_quality,
-                min_mapping_quality)
-            return None
-
-        sequence = read.query_sequence
-
-        if sequence is None:
-            logger.warn("Read '%s' missing sequence", name)
-            return None
-
-        base_qualities = read.query_qualities
-
-        if base_qualities is None:
-            logger.warn("Read '%s' missing base qualities", name)
-            return None
-
-        # Documentation for pysam.AlignedSegment.get_reference_positions:
-        # ------------------------------------------------------------------
-        # By default, this method only returns positions in the reference
-        # that are within the alignment. If full_length is set, None values
-        # will be included for any soft-clipped or unaligned positions
-        # within the read. The returned list will thus be of the same length
-        # as the read.
-        #
-        # Source:
-        # http://pysam.readthedocs.org/en/latest/
-        # api.html#pysam.AlignedSegment.get_reference_positions
-        #
-        # We want a None value for every read position that does not have a
-        # corresponding reference position.
-        reference_positions = read.get_reference_positions(
-            full_length=True)
-
-        # pysam uses base-0 positions everywhere except region strings
-        # Source:
-        # http://pysam.readthedocs.org/en/latest/faq.html#pysam-coordinates-are-wrong
-        if base0_position_before_variant not in reference_positions:
-            logger.debug(
-                "Skipping read '%s' because first position %d not mapped",
-                name,
-                base0_position_before_variant)
-            return None
-        else:
-            base0_read_position_before_variant = reference_positions.index(
-                base0_position_before_variant)
-
-        if base0_position_after_variant not in reference_positions:
-            logger.debug(
-                "Skipping read '%s' because last position %d not mapped",
-                name,
-                base0_position_after_variant)
-            return None
-        else:
-            base0_read_position_after_variant = reference_positions.index(
-                base0_position_after_variant)
-
-        if isinstance(sequence, bytes):
-            sequence = sequence.decode('ascii')
-
-        if not use_soft_clipped_bases:
-            start = read.query_alignment_start
-            end = read.query_alignment_end
-            sequence = sequence[start:end]
-            reference_positions = reference_positions[start:end]
-            base_qualities = base_qualities[start:end]
-            base0_read_position_before_variant -= start
-            base0_read_position_after_variant -= start
-
-        return cls(
-            name=name,
-            sequence=sequence,
-            reference_positions=reference_positions,
-            quality_scores=base_qualities,
-            base0_read_position_before_variant=base0_read_position_before_variant,
-            base0_read_position_after_variant=base0_read_position_after_variant)
-
-    @classmethod
-    def from_pysam_pileup_element(
-            cls,
-            pileup_element,
-            base0_position_before_variant,
-            base0_position_after_variant,
-            use_secondary_alignments,
-            use_duplicate_reads,
-            min_mapping_quality,
-            use_soft_clipped_bases=False):
-        """
-        Parameters
-        ----------
-        pileup_element : pysam.PileupRead
-
-        base0_position_before_variant : int
-
-        base0_position_after_variant : int
-
-        use_secondary_alignments : bool
-
-        use_duplicate_reads : bool
-
-        min_mapping_quality : int
-
-        use_soft_clipped_bases : bool. Default false; set to true to keep soft-clipped bases
-
-        Returns LocusRead or None
-        """
-        # extract the AlignedSegment, throwing away information about where in the read
-        # the current pileup occurs
-        read = pileup_element.alignment
-
-
-        # For future reference,  may get overlapping reads
-        # which can be identified by having the same name
-        name = read.query_name
-
-        if pileup_element.is_refskip:
-            # if read sequence doesn't actually align to the reference
-            # base before a variant, skip it
-            logger.debug("Skipping pileup element with CIGAR alignment N (intron), read name = %s")
-            return None
-        elif pileup_element.is_del:
-            logger.debug(
-                "Skipping deletion at position %d (read name = %s)",
-                base0_position_before_variant + 1,
-                pileup_element)
-            return None
-
-        return cls.from_pysam_aligned_segment(
-            read=read,
-            base0_position_before_variant=base0_position_before_variant,
-            base0_position_after_variant=base0_position_after_variant,
-            use_secondary_alignments=use_secondary_alignments,
-            use_duplicate_reads=use_duplicate_reads,
-            min_mapping_quality=min_mapping_quality,
-            use_soft_clipped_bases=use_soft_clipped_bases)
