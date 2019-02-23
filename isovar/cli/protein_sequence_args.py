@@ -19,7 +19,7 @@ from ..default_parameters import MAX_PROTEIN_SEQUENCES_PER_VARIANT
 from ..protein_sequence_creator import ProteinSequenceCreator
 from ..dataframe_helpers import protein_sequences_generator_to_dataframe
 
-from .rna_args import allele_reads_generator_from_args
+from .rna_args import overlapping_reads_generator_from_args
 from .translation_args import make_translation_arg_parser
 
 
@@ -38,6 +38,18 @@ def add_protein_sequence_args(parser):
         default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
     return protein_sequence_group
 
+def protein_sequence_creator_from_args(args):
+    """
+    Create ProteinSequenceCreator instance from parsed commandline arguments
+    """
+    return ProteinSequenceCreator(
+        protein_sequence_length=args.protein_sequence_length,
+        min_alt_rna_reads=args.min_alt_rna_reads,
+        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
+        min_transcript_prefix_length=args.min_transcript_prefix_length,
+        max_transcript_mismatches=args.max_reference_transcript_mismatches,
+        max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
+        variant_sequence_assembly=args.variant_sequence_assembly)
 
 def make_protein_sequences_arg_parser(**kwargs):
     """
@@ -58,16 +70,10 @@ def make_protein_sequences_arg_parser(**kwargs):
 
 
 def protein_sequences_generator_from_args(args):
-    allele_reads_generator = allele_reads_generator_from_args(args)
-    creator = ProteinSequenceCreator(
-        protein_sequence_length=args.protein_sequence_length,
-        min_alt_rna_reads=args.min_alt_rna_reads,
-        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
-        min_transcript_prefix_length=args.min_transcript_prefix_length,
-        max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
-        variant_sequence_assembly=args.variant_sequence_assembly)
-    return creator.reads_generator_to_protein_sequences_generator(allele_reads_generator)
+    allele_reads_generator = overlapping_reads_generator_from_args(args)
+    protein_sequence_creator = protein_sequence_creator_from_args(args)
+    return protein_sequence_creator.reads_generator_to_protein_sequences_generator(
+        allele_reads_generator)
 
 
 def protein_sequences_dataframe_from_args(args):

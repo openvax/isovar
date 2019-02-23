@@ -44,16 +44,12 @@ def trim_N_nucleotides(prefix, suffix):
     return prefix, suffix
 
 
-def convert_from_bytes_if_necessary(prefix, suffix):
+def convert_from_bytes_if_necessary(seq):
     """
     Depending on how we extract data from pysam we may end up with either
     a string or a byte array of nucleotides. For consistency and simplicity,
     we want to only use strings in the rest of our code.
     """
-    if isinstance(prefix, bytes):
-        prefix = prefix.decode('ascii')
-
-    if isinstance(suffix, bytes):
-        suffix = suffix.decode('ascii')
-
-    return prefix, suffix
+    if isinstance(seq, bytes):
+        seq = seq.decode('ascii')
+    return seq

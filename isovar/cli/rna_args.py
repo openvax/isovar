@@ -29,7 +29,7 @@ from ..default_parameters import (
     MIN_RNA_VAF,
     MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS
 )
-from ..allele_read_helpers import reads_overlapping_variants, reads_supporting_variants
+from ..read_creator import  ReadCreator
 from ..dataframe_helpers import allele_reads_to_dataframe
 
 
@@ -126,32 +126,33 @@ def make_rna_reads_arg_parser(**kwargs):
 def samfile_from_args(args):
     return AlignmentFile(args.bam)
 
+def read_creator_from_args(args):
+    return ReadCreator(
+        min_mapping_quality=args.min_mapping_quality,
+        use_duplicate_reads=args.use_duplicate_reads,
+        use_secondary_alignments=not args.drop_secondary_alignments)
 
-def allele_reads_generator_from_args(args):
+def overlapping_reads_generator_from_args(args):
     variants = variant_collection_from_args(args)
     samfile = samfile_from_args(args)
-    return reads_overlapping_variants(
+    read_creator = read_creator_from_args(read_creator_from_args)
+    return read_creator.allele_reads_overlapping_variants(
         variants=variants,
-        samfile=samfile,
-        use_duplicate_reads=args.use_duplicate_reads,
-        use_secondary_alignments=not args.drop_secondary_alignments,
-        min_mapping_quality=args.min_mapping_quality)
+        alignments=samfile)
 
 
 def allele_reads_dataframe_from_args(args):
     return allele_reads_to_dataframe(allele_reads_generator_from_args(args))
 
 
-def variant_reads_generator_from_args(args):
+def supporting_reads_generator_from_args(args):
     variants = variant_collection_from_args(args)
     samfile = samfile_from_args(args)
-    return reads_supporting_variants(
+    read_creator = read_creator_from_args(read_creator_from_args)
+    return read_creator.allele_reads_supporting_variants(
         variants=variants,
-        samfile=samfile,
-        use_duplicate_reads=args.use_duplicate_reads,
-        use_secondary_alignments=not args.drop_secondary_alignments,
-        min_mapping_quality=args.min_mapping_quality)
+        alignments=samfile)
 
 
 def variant_reads_dataframe_from_args(args):
-    return allele_reads_to_dataframe(variant_reads_generator_from_args(args))
+    return allele_reads_to_dataframe(supporting_reads_generator_from_args(args))

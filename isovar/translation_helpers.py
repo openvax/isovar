@@ -30,9 +30,11 @@ from .default_parameters import (
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_ASSEMBLY,
 )
+from .logging import get_logger
 from .reference_context import reference_contexts_for_variant
 from .variant_sequence_helpers import reads_to_variant_sequences
 
+logger = get_logger(__name__)
 
 def translation_generator(
         variant_sequences,

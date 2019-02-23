@@ -24,10 +24,8 @@ from ..logging import get_logger
 from ..translation import translate_variants
 from ..dataframe_helpers import translations_generator_to_dataframe
 
-from .translation_args import (
-    make_translation_arg_parser,
-)
-from .rna_args import variant_reads_generator_from_args
+from .translation_args import make_translation_arg_parser
+from .rna_args import supporting_reads_generator_from_args
 from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
@@ -40,7 +38,7 @@ parser = add_output_args(
 
 
 def translations_generator_from_args(args):
-    variant_reads_generator = variant_reads_generator_from_args(args)
+    variant_reads_generator = supporting_reads_generator_from_args(args)
     return translate_variants(
         variant_reads_generator,
         protein_sequence_length=args.protein_sequence_length,

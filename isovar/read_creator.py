@@ -19,7 +19,8 @@ from .allele_read_helpers import filter_non_alt_reads_for_variant
 from .default_parameters import (
     USE_SECONDARY_ALIGNMENTS,
     USE_DUPLICATE_READS,
-    MIN_READ_MAPPING_QUALITY
+    MIN_READ_MAPPING_QUALITY,
+    USE_SOFT_CLIPPED_BASES,
 )
 from .locus_read import LocusRead
 from .logging import get_logger
@@ -39,7 +40,7 @@ class ReadCreator(object):
             use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
             use_duplicate_reads=USE_DUPLICATE_READS,
             min_mapping_quality=MIN_READ_MAPPING_QUALITY,
-            use_soft_clipped_bases=False):
+            use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES):
         """
         Parameters
         ----------
@@ -159,9 +160,9 @@ class ReadCreator(object):
             position_after_insertion = base0_start_inclusive + 1
 
             if position_before_insertion in reference_positions_dict:
-                locus_on_read_base0_start = reference_positions_dict.get(position_before_insertion)
+                locus_on_read_base0_start = reference_positions_dict[position_before_insertion]
             elif position_after_insertion in reference_positions_dict:
-                locus_on_read_base0_start = reference_positions_dict.get(position_after_insertion) - 1
+                locus_on_read_base0_start = reference_positions_dict[position_after_insertion] - 1
             else:
                 locus_on_read_base0_start = None
             locus_on_read_base0_end = locus_on_read_base0_start
@@ -186,11 +187,15 @@ class ReadCreator(object):
             # figure out which read indices correspond to base0_start_inclusive and
             # base0_end_exclusive but this would fail if base0_end_exclusive is
             # after the end the end of the read.
-            base1_start_inclusive = base0_start_inclusive + 1
-            base1_end_inclusive = base1_start_inclusive + reference_interval_size
-            locus_on_read_base0_start = reference_positions_dict.get(base1_start_inclusive)
-            locus_on_read_base0_end_inclusive_index = reference_positions_dict.get(base1_end_inclusive)
-            locus_on_read_base0_end = locus_on_read_base0_end_inclusive_index + 1
+            reference_base1_start_inclusive = base0_start_inclusive + 1
+            reference_base1_end_inclusive = reference_base1_start_inclusive + reference_interval_size
+            locus_on_read_base0_start = reference_positions_dict.get(reference_base1_start_inclusive)
+            locus_on_read_base0_end_inclusive_index = \
+                    reference_positions_dict.get(reference_base1_end_inclusive)
+            if locus_on_read_base0_end_inclusive_index is None:
+                locus_on_read_base0_end = None
+            else:
+                locus_on_read_base0_end = locus_on_read_base0_end_inclusive_index + 1
 
         if isinstance(sequence, bytes):
             sequence = sequence.decode('ascii')
@@ -336,11 +341,9 @@ class ReadCreator(object):
             base0_end_exclusive=base0_end_exclusive)
 
         allele_reads = []
+
         for locus_read in locus_reads:
-            allele_read = self.allele_read_from_locus_read(
-                locus_read=locus_read,
-                n_ref=len(ref),
-                n_alt=len(alt))
+            allele_read = self.allele_read_from_locus_read(locus_read)
             if allele_read is None:
                 continue
             else:
@@ -386,7 +389,7 @@ class ReadCreator(object):
             yield variant, allele_reads
 
 
-    def reads_supporting_variant(self, variant, alignments):
+    def allele_reads_supporting_variant(self, variant, alignments):
         """
         Parameters
         ----------
@@ -397,7 +400,7 @@ class ReadCreator(object):
         Given a variant and a SAM/BAM file, finds all AlleleRead objects overlapping
         a variant and returns those that support the variant's alt allele.
         """
-        allele_reads = self.reads_overlapping_variant(
+        allele_reads = self.allele_reads_overlapping_variant(
             variant=variant,
             alignments=alignments)
         return filter_non_alt_reads_for_variant(
@@ -405,17 +408,25 @@ class ReadCreator(object):
             allele_reads=allele_reads)
     
     
-    def reads_supporting_variants(self, variants, alignments):
+    def allele_reads_supporting_variants(self, variants, alignments):
         """
         Given a SAM/BAM file and a collection of variants, generates a sequence
         of variants paired with reads which support each variant.
+
+        Parameters
+        ----------
+        variants : varcode.VariantCollection
+
+        alignments : pysam.AlignmentFile
+
+        Generator of (varcode.Variant, list of AlleleRead) pairs.
         """
         for variant, allele_reads in self.reads_overlapping_variants(
                 variants=variants,
                 alignments=alignments):
             yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
 
-    def allele_read_from_locus_read(self, locus_read, n_ref, n_alt):
+    def allele_read_from_locus_read(self, locus_read):
         """
         Given a single LocusRead object, return either an AlleleRead or None
 
@@ -424,68 +435,55 @@ class ReadCreator(object):
         locus_read : LocusRead
             Read which overlaps a variant locus but doesn't necessarily contain the
             alternate nucleotides
-
-        n_ref : int
-            Number of reference positions we are expecting to be modified or
-            deleted (for insertions this should be 0)
-
-        n_alt : int
         """
         sequence = locus_read.sequence
-        reference_positions = locus_read.reference_positions
+        read_name = locus_read.name
+
         reference_base0_start_inclusive = locus_read.reference_base0_start_inclusive
         reference_base0_end_exclusive = locus_read.reference_base0_end_exclusive
+
         read_base0_start_inclusive = locus_read.read_base0_start_inclusive
         read_base0_end_exclusive = locus_read.read_base0_end_exclusive
 
-        insertion = (n_ref == 0)
-        deletion = (n_alt == 0)
-        if insertion:
-            if ref_pos_after - ref_pos_before != 1:
-                # if the number of nucleotides skipped isn't the same
-                # as the number of reference nucleotides in the variant then
-                # don't use this read
-                logger.debug(
-                    "Positions before (%d) and after (%d) variant should be adjacent on read %s",
-                    ref_pos_before,
-                    ref_pos_after,
-                    locus_read)
-                return None
+        if read_base0_start_inclusive is None or read_base0_end_exclusive is None:
+            logger.debug(
+                "Skipping read '%s' because some required bases in reference interval %s:%s aren't mapped",
+                read_name,
+                reference_base0_start_inclusive,
+                reference_base0_end_exclusive)
+            return None
 
+        reference_positions = locus_read.reference_positions
+
+        n_ref_bases = reference_base0_end_exclusive - reference_base0_start_inclusive
+
+        insertion = (n_ref_bases == 0)
+
+        if insertion:
             # insertions require a sequence of non-aligned bases
             # followed by the subsequence reference position
-            ref_positions_for_inserted = reference_positions[
-                read_pos_before + 1:read_pos_after]
-            if any(insert_pos is not None for insert_pos in ref_positions_for_inserted):
-                # all these inserted nucleotides should *not* align to the
-                # reference
-                logger.debug(
-                    "Skipping read, inserted nucleotides shouldn't map to reference")
-                return None
-        else:
-            # substitutions and deletions
-            if ref_pos_after - ref_pos_before != n_ref + 1:
-                # if the number of nucleotides skipped isn't the same
-                # as the number of reference nucleotides in the variant then
-                # don't use this read
-                logger.debug(
-                    ("Positions before (%d) and after (%d) variant should be "
-                     "adjacent on read %s"),
-                    ref_pos_before,
-                    ref_pos_after,
-                    locus_read)
-                return None
+            for read_index in range(read_base0_start_inclusive, read_base0_end_exclusive):
+                # all the inserted nucleotides should *not* align to the reference
+                if reference_positions[read_index] is not None:
+                    logger.debug(
+                        "Skipping read '%s', inserted nucleotides shouldn't map to reference",
+                        read_name)
+                    return None
 
-        nucleotides_at_variant_locus = sequence[read_pos_before + 1:read_pos_after]
+        nucleotides_at_variant_locus = convert_from_bytes_if_necessary(
+            sequence[read_base0_start_inclusive:read_base0_end_exclusive])
 
-        prefix = sequence[:read_pos_before + 1]
-        suffix = sequence[read_pos_after:]
+        if "N" in nucleotides_at_variant_locus:
+            logger.debug(
+                "Skipping read '%s', found N nucleotides at variant locus",
+                read_name)
+        prefix = convert_from_bytes_if_necessary(sequence[:read_base0_start_inclusive])
+        suffix = convert_from_bytes_if_necessary(sequence[read_base0_end_exclusive:])
 
-        prefix, suffix = convert_from_bytes_if_necessary(prefix, suffix)
         prefix, suffix = trim_N_nucleotides(prefix, suffix)
 
         return AlleleRead(
             prefix,
             nucleotides_at_variant_locus,
             suffix,
-            name=locus_read.name)
+            name=read_name)

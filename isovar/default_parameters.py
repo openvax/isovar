@@ -105,3 +105,7 @@ VARIANT_SEQUENCE_ASSEMBLY = False
 # to minimize false assembly of isoforms which don't
 # actually exist.
 MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE = 30
+
+# include sequences from reads if they were clipped
+# by the aligner
+USE_SOFT_CLIPPED_BASES = False

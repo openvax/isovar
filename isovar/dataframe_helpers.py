@@ -30,6 +30,25 @@ def dataframe_from_generator(
         element_class,
         variant_and_elements_generator,
         **kwargs):
+    """
+    Creates a DataFrame from a generator whose elements
+    are varcode.Variant objects paired with objects
+    of the `element_class` type.
+
+    Parameters
+    ----------
+    element_class : type
+
+    variant_and_elements_generator : generator
+        Elements are (varcode.Variant, element_class)
+
+    **kwargs : dict
+        Additional arguments to pass to DataFrameBuilder.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
     builder = DataFrameBuilder(element_class, **kwargs)
     for variant, elements in variant_and_elements_generator:
         builder.add_many(variant, elements)
@@ -145,8 +164,6 @@ def variant_sequences_generator_to_dataframe(variant_sequences_generator):
 
     Returns pandas.DataFrame
     """
-    # TODO: Change VariantSequence.alt to VariantSequence.alt_nucleotides
-    # or something else that doesn't clash with a variant's `alt` field
     return dataframe_from_generator(
         VariantSequence,
         variant_sequences_generator,
