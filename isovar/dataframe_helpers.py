@@ -19,8 +19,8 @@ from .allele_read import AlleleRead
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
 from .locus_read import LocusRead
-from .locus_read_helpers import locus_read_generator
 from .protein_sequence import ProteinSequence
+from .read_creator import ReadCreator
 from .reference_context import reference_contexts_for_variants, ReferenceContext
 from .translation import Translation
 from .variant_sequence import VariantSequence
@@ -101,11 +101,12 @@ def allele_reads_to_dataframe(variants_and_allele_reads):
     return df_builder.to_dataframe()
 
 
-def locus_reads_dataframe(*args, **kwargs):
+def locus_reads_dataframe(alignments, chromosome, base0_start, base0_end, *args, **kwargs):
     """
-    Traverse a BAM file to find all the reads overlapping a specified locus.
+    Traverse an alignment file (typeically a BAM) to find all the reads 
+    overlapping a specified locus.
 
-    Parameters are the same as those for read_locus_generator.
+    Extra parameters are the same as those for ReadCreator
     """
     df_builder = DataFrameBuilder(
         LocusRead,
@@ -114,7 +115,9 @@ def locus_reads_dataframe(*args, **kwargs):
             "reference_positions": list_to_string,
             "quality_scores": list_to_string,
         })
-    for locus_read in locus_read_generator(*args, **kwargs):
+    read_creator = ReadCreator(*args, **kwargs)
+    for locus_read in read_creator.get_locus_reads(
+            alignments, chromosome, base0_start, base0_end):
         df_builder.add(variant=None, element=locus_read)
     return df_builder.to_dataframe()
 

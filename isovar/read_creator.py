@@ -265,8 +265,8 @@ class ReadCreator(object):
                 stop=base0_end_exclusive):
             read = self.locus_read_from_pysam_aligned_segment(
                 aligned_segment,
-                base0_position_before_variant=base0_start_inclusive,
-                base0_position_after_variant=base0_end_exclusive)
+                base0_start_inclusive=base0_start_inclusive,
+                base0_end_exclusive=base0_end_exclusive)
             if read is not None:
                 reads.append(read)
         logger.info(
@@ -350,7 +350,7 @@ class ReadCreator(object):
                 allele_reads.append(allele_read)
         return allele_reads
 
-    def reads_overlapping_variants(self, variants, alignments):
+    def allele_reads_overlapping_variants(self, variants, alignments):
         """
         Generates sequence of tuples, each containing a variant paired with
         a list of AlleleRead objects.
