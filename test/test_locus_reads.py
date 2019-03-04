@@ -24,7 +24,10 @@ def test_locus_reads_snv():
         alt="G",
         normalize_contig_name=False)
 
-    pysam_read = make_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
+    pysam_read = make_read(
+        seq="ACCGTG",
+        cigar="6M",
+        mdtag="3G2")
 
     samfile = DummySamFile(reads=[pysam_read])
     read_creator = ReadCreator()
@@ -39,10 +42,10 @@ def test_locus_reads_snv():
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 2, 3, 4, 5],
         quality_scores=pysam_read.query_qualities,
-        reference_base0_start_inclusive=2,
-        reference_base0_end_exclusive=3,
-        read_base0_start_inclusive=2,
-        read_base0_end_exclusive=3)
+        reference_base0_start_inclusive=3,
+        reference_base0_end_exclusive=4,
+        read_base0_start_inclusive=3,
+        read_base0_end_exclusive=4)
     assert_equal_fields(read, expected)
 
 
