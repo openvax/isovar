@@ -115,8 +115,11 @@ def test_locus_reads_deletion():
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 2, 3, 5],
         quality_scores=pysam_read.query_qualities,
-        read_position_before_variant=3,
-        read_position_after_variant=4)
+        # missing would have gone after 4th nucleotide in the read
+        read_base0_start_inclusive=4,
+        read_base0_end_exclusive=4,
+        reference_base0_start_inclusive=4,
+        reference_base0_end_exclusive=5)
     assert_equal_fields(read, expected)
 
 
@@ -144,10 +147,12 @@ def test_locus_reads_substitution_longer():
     expected = LocusRead(
         name=pysam_read.qname,
         sequence=pysam_read.query_sequence,
-        reference_positions=[0, 1, None, 2, 3, 4, 5],
+        reference_positions=[0, None, None, 2, 3, 4, 5],
         quality_scores=pysam_read.query_qualities,
-        base0_read_position_before_variant=0,
-        base0_read_position_after_variant=3)
+        read_base0_start_inclusive=1,
+        read_base0_end_exclusive=3,
+        reference_base0_start_inclusive=1,
+        reference_base0_end_exclusive=2)
     assert_equal_fields(read, expected)
 
 
@@ -177,8 +182,10 @@ def test_locus_reads_substitution_shorter():
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 3, 4, 5],
         quality_scores=pysam_read.query_qualities,
-        base0_read_position_before_variant=0,
-        base0_read_position_after_variant=2)
+        read_base0_start_inclusive=1,
+        read_base0_end_exclusive=2,
+        reference_base0_start_inclusive=1,
+        reference_base0_end_exclusive=3)
     assert_equal_fields(read, expected)
 
 

@@ -149,6 +149,8 @@ class DataFrameBuilder(object):
 
             if isinstance(value, COLLECTION_TYPES) and self.convert_collections_to_size:
                 value = len(value)
+            elif value is None:
+                value = "-"
             elif not isinstance(value, VALID_ELEMENT_TYPES):
                 raise ValueError(
                     "Please provider converter for field '%s' : %s to make a scalar or string" % (
