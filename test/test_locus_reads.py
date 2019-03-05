@@ -82,8 +82,8 @@ def test_locus_reads_insertion():
         quality_scores=pysam_read.query_qualities,
         read_base0_start_inclusive=4,
         read_base0_end_exclusive=5,
-        reference_base0_start_inclusive=variant.start,
-        reference_base0_end_exclusive=variant.start)
+        reference_base0_start_inclusive=4,
+        reference_base0_end_exclusive=4)
     print("Actual: %s" % (read,))
     print("Expected: %s" % (expected,))
     assert_equal_fields(read, expected)

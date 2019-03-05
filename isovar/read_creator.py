@@ -198,27 +198,33 @@ class ReadCreator(object):
             #
             # To deal with insertions at the beginning and end of a read we're
             # going to allow the start/end to be None.
-            reference_position_before_insertion = base0_start_inclusive
-            reference_position_after_insertion = base0_start_inclusive + 1
+            reference_position_before_insertion = base0_start_inclusive - 1
+            reference_position_after_insertion = base0_start_inclusive
             read_base0_before_insertion = base0_reference_positions_dict.get(
                 reference_position_before_insertion)
             read_base0_after_insertion = base0_reference_positions_dict.get(
                 reference_position_after_insertion)
+            print("[%d:%d)" % (base0_start_inclusive, base0_end_exclusive))
+            print(sequence)
+            print(base0_reference_positions)
+            print("ref", reference_position_before_insertion, reference_position_after_insertion)
+
+            print("read", read_base0_before_insertion, read_base0_after_insertion)
 
             if read_base0_before_insertion is None:
                 logger.warning("Cannot use read '%s' because reference position %d is not mapped" % (
                     name,
                     reference_position_before_insertion))
                 return None
-            if read_base0_after_insertion is None:
+            elif read_base0_after_insertion is None:
                 logger.warning("Cannot use read '%s' because reference position %d is not mapped" % (
                     name,
                     reference_position_after_insertion))
                 return None
-            if read_base0_after_insertion - read_base0_after_insertion == 1:
-                read_base0_start_inclusive = read_base0_end_exclusive = read_base0_before_insertion
+            elif read_base0_after_insertion - read_base0_after_insertion == 1:
+                read_base0_start_inclusive = read_base0_end_exclusive = read_base0_before_insertion + 1
             else:
-                read_base0_start_inclusive = read_base0_before_insertion
+                read_base0_start_inclusive = read_base0_before_insertion + 1
                 read_base0_end_exclusive = read_base0_after_insertion
         else:
             # Reference bases are selected for match or deletion.
@@ -250,6 +256,13 @@ class ReadCreator(object):
                     read_base0_position_before_locus = base0_reference_positions_dict[
                         reference_base0_position_before_locus]
                     read_base0_start_inclusive = read_base0_position_before_locus + 1
+                else:
+                    logger.warning(
+                        "Cannot use read '%s' because neither reference positions %d or %d are not mapped" % (
+                            name,
+                            base0_start_inclusive,
+                            reference_base0_position_before_locus))
+                    return None
 
             read_base0_end_exclusive = base0_reference_positions_dict.get(base0_end_exclusive)
             if read_base0_end_exclusive is None:
@@ -261,6 +274,14 @@ class ReadCreator(object):
                     read_base0_end_inclusive = base0_reference_positions_dict[
                         reference_base0_end_inclusive]
                     read_base0_end_exclusive = read_base0_end_inclusive + 1
+                else:
+                    logger.warning(
+                        "Cannot use read '%s' because neither reference positions %d or %d are not mapped" % (
+                            name,
+                            base0_end_exclusive,
+                            reference_base0_end_inclusive))
+                    return None
+
 
         if isinstance(sequence, bytes):
             sequence = sequence.decode('ascii')
