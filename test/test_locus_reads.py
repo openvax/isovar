@@ -84,7 +84,8 @@ def test_locus_reads_insertion():
         read_base0_end_exclusive=5,
         reference_base0_start_inclusive=variant.start,
         reference_base0_end_exclusive=variant.start)
-
+    print("Actual: %s" % (read,))
+    print("Expected: %s" % (expected,))
     assert_equal_fields(read, expected)
 
 

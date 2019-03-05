@@ -14,6 +14,8 @@
 
 from __future__ import print_function, division, absolute_import
 
+from six import integer_types
+
 from .allele_read import AlleleRead
 from .allele_read_helpers import filter_non_alt_reads_for_variant
 from .default_parameters import (
@@ -84,6 +86,13 @@ class ReadCreator(object):
         -------
         LocusRead or None
         """
+        if not isinstance(base0_start_inclusive, integer_types):
+            raise TypeError("Expected base0_start_inclusive to be an integer but got %s" % (
+                type(base0_start_inclusive),))
+        if not isinstance(base0_end_exclusive, integer_types):
+            raise TypeError("Expected base0_end_exclusive to be an integer but got %s" % (
+                type(base0_end_exclusive),))
+
         name = pysam_aligned_segment.query_name
         if name is None:
             logger.warn(
@@ -172,16 +181,15 @@ class ReadCreator(object):
             # First, try getting the read position of the base before the insertion
             # and if that's not mapped, we'll try getting the position of the
             # base after the insertion.
-            position_before_insertion = base0_start_inclusive
             position_after_insertion = base0_start_inclusive + 1
 
-            if position_before_insertion in base0_reference_positions_dict:
-                read_base0_start = base0_reference_positions_dict[position_before_insertion]
-            elif position_after_insertion in base0_reference_positions_dict:
-                read_base0_start = base0_reference_positions_dict[position_after_insertion] - 1
-            else:
-                read_base0_start = None
-            read_base0_end = read_base0_start
+            read_base0_start_inclusive = base0_reference_positions_dict.get(base0_start_inclusive)
+            read_base0_position_after = base0_reference_positions_dict.get(position_after_insertion)
+            if read_base0_start_inclusive is None and read_base0_position_after is not None:
+                read_base0_start_inclusive = read_base0_end_exclusive = (read_base0_position_after - 1)
+            #####
+            # TODO Check this logic ^^^^
+            # read_base0_end_exclusive = read_base0_start_inclusive
         else:
             # Reference bases are selected for match or deletion.
             #
@@ -203,14 +211,26 @@ class ReadCreator(object):
             # figure out which read indices correspond to base0_start_inclusive and
             # base0_end_exclusive but this would fail if base0_end_exclusive is
             # after the end the end of the read.
-            reference_base0_end_inclusive = reference_base1_start_inclusive + reference_interval_size
-            read_base0_start = base0_reference_positions_dict.get(reference_base1_start_inclusive)
-            read_base0_end_inclusive_index = \
-                    base0_reference_positions_dict.get(reference_base1_end_inclusive)
-            if read_base0_end_inclusive_index is None:
-                read_base0_end = None
-            else:
-                read_base0_end = read_base0_end_inclusive_index + 1
+            read_base0_start_inclusive = base0_reference_positions_dict.get(base0_start_inclusive)
+            if read_base0_start_inclusive is None:
+                # if first base of reference locus isn't mapped, try getting the base
+                # before it and then adding one to its corresponding base index
+                reference_base0_position_before_locus = base0_start_inclusive - 1
+                if reference_base0_position_before_locus in base0_reference_positions_dict:
+                    read_base0_position_before_locus = base0_reference_positions_dict[
+                        reference_base0_position_before_locus]
+                    read_base0_start_inclusive = read_base0_position_before_locus + 1
+
+            read_base0_end_exclusive = base0_reference_positions_dict.get(base0_end_exclusive)
+            if read_base0_end_exclusive is None:
+                # if exclusve last index of reference interval doesn't have a corresponding
+                # base position then try getting the base position of the reference
+                # position before it and then adding one
+                reference_base0_end_inclusive = base0_end_exclusive - 1
+                if reference_base0_end_inclusive in read_base0_end_exclusive:
+                    read_base0_end_inclusive = base0_reference_positions_dict[
+                        reference_base0_end_inclusive]
+                    read_base0_end_exclusive = read_base0_end_inclusive + 1
 
         if isinstance(sequence, bytes):
             sequence = sequence.decode('ascii')
@@ -227,11 +247,10 @@ class ReadCreator(object):
             base1_reference_positions = base1_reference_positions[
                 aligned_subsequence_start:aligned_subsequence_end]
             base_qualities = base_qualities[aligned_subsequence_start:aligned_subsequence_end]
-            if read_base0_start is not None:
-                read_base0_start -= aligned_subsequence_start
-            if read_base0_end is not None:
-                read_base0_end -= aligned_subsequence_start
-
+            if read_base0_start_inclusive is not None:
+                read_base0_start_inclusive -= aligned_subsequence_start
+            if read_base0_end_exclusive is not None:
+                read_base0_end_exclusive -= aligned_subsequence_start
         return LocusRead(
             name=name,
             sequence=sequence,
@@ -239,8 +258,8 @@ class ReadCreator(object):
             quality_scores=base_qualities,
             reference_base0_start_inclusive=base0_start_inclusive,
             reference_base0_end_exclusive=base0_end_exclusive,
-            read_base0_start_inclusive=read_base0_start,
-            read_base0_end_exclusive=read_base0_end)
+            read_base0_start_inclusive=read_base0_start_inclusive,
+            read_base0_end_exclusive=read_base0_end_exclusive)
 
     def get_locus_reads(
             self,
@@ -347,7 +366,6 @@ class ReadCreator(object):
             # then the base0 indices will be 9999:1001
             base0_start_inclusive = base1_position - 1
             base0_end_exclusive = base0_start_inclusive + len(ref)
-
 
         locus_reads = self.get_locus_reads(
             alignments=alignments,
