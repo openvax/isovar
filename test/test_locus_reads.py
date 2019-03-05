@@ -151,7 +151,7 @@ def test_locus_reads_substitution_longer():
     expected = LocusRead(
         name=pysam_read.qname,
         sequence=pysam_read.query_sequence,
-        reference_positions=[0, None, None, 2, 3, 4, 5],
+        reference_positions=[0, 1, None, 2, 3, 4, 5],
         quality_scores=pysam_read.query_qualities,
         read_base0_start_inclusive=1,
         read_base0_end_exclusive=3,

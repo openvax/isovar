@@ -149,20 +149,20 @@ class ReadCreator(object):
         # within the read. The returned list will thus be of the same
         # length as the read.
 
-        base1_reference_positions = pysam_aligned_segment.get_reference_positions(full_length=True)
+        base0_reference_positions = pysam_aligned_segment.get_reference_positions(full_length=True)
 
-        if len(base1_reference_positions) != len(base_qualities):
+        if len(base0_reference_positions) != len(base_qualities):
             logger.warn(
                 "Skipping read '%s' due to mismatch in length of positions (%d) and qualities (%d)" % (
                     name,
-                    len(base1_reference_positions),
+                    len(base0_reference_positions),
                     len(base_qualities)))
             return None
 
         base0_reference_positions_dict = {
             base0_reference_pos: base0_read_pos
             for (base0_read_pos, base0_reference_pos)
-            in enumerate(base1_reference_positions)
+            in enumerate(base0_reference_positions)
             if base0_reference_pos is not None
         }
 
@@ -178,32 +178,48 @@ class ReadCreator(object):
             # insertion.
             #
             # Reference:
-            #   10000 | 10001 10002 10003 10004 10005 10006 10007
-            #     A       T     G     C     A     A     A     A
+            #   Insertion location:       *
+            #   Reference position: 10000 | 10001 10002 10003 10004 10005 10006 10007
+            #   Base sequence:        A   |   T     G     C     A     A     A     A
             #
+            # Read with inserted nucleotide:
+            #   Read position:      00000 00001 00002 00003 00004 00005 00006 00007
+            #   Base sequence:        A    *A*    T     G     C     A     A     A
+            #   Reference position: 10000 ----- 10001 10002 10003 10004 10005 10006
             #
-            # Read:
-            #   00000 00001 00002 00003 00004 00005 00006 00007
-            #     A    *A*     T     G     C     A     A     A
-            # Mapping positions:
-            #   10000  None 10001 10002 10003 10004 10005 10006
+            # The start/end of the reference interval may be mapped to a read position,
+            # in this case reference:10000 -> read:00000, but it would be incorrect
+            # to take this position as the start/end of the insertion on the read
+            # since it does not cover the inserted bases. Instead, we look at the
+            # read position of the next base in the reference and, if it's more than
+            # 1 base away from the start, use that as the end of the interval. If it's
+            # next to the start of the interval then we return the empty "between bases"
+            # interval of [start, start).
             #
             # To deal with insertions at the beginning and end of a read we're
-            # going to try two approaches to figure out the read interval
-            # corresponding with a reference interval.
-            #
-            # First, try getting the read position of the base before the insertion
-            # and if that's not mapped, we'll try getting the position of the
-            # base after the insertion.
-            position_after_insertion = base0_start_inclusive + 1
+            # going to allow the start/end to be None.
+            reference_position_before_insertion = base0_start_inclusive
+            reference_position_after_insertion = base0_start_inclusive + 1
+            read_base0_before_insertion = base0_reference_positions_dict.get(
+                reference_position_before_insertion)
+            read_base0_after_insertion = base0_reference_positions_dict.get(
+                reference_position_after_insertion)
 
-            read_base0_start_inclusive = base0_reference_positions_dict.get(base0_start_inclusive)
-            read_base0_end_exclusive = base0_reference_positions_dict.get(position_after_insertion)
-            if read_base0_start_inclusive is None and read_base0_position_after is not None:
-                read_base0_start_inclusive = read_base0_end_exclusive = (read_base0_position_after - 1)
-            #####
-            # TODO Check this logic ^^^^
-            # read_base0_end_exclusive = read_base0_start_inclusive
+            if read_base0_before_insertion is None:
+                logger.warning("Cannot use read '%s' because reference position %d is not mapped" % (
+                    name,
+                    reference_position_before_insertion))
+                return None
+            if read_base0_after_insertion is None:
+                logger.warning("Cannot use read '%s' because reference position %d is not mapped" % (
+                    name,
+                    reference_position_after_insertion))
+                return None
+            if read_base0_after_insertion - read_base0_after_insertion == 1:
+                read_base0_start_inclusive = read_base0_end_exclusive = read_base0_before_insertion
+            else:
+                read_base0_start_inclusive = read_base0_before_insertion
+                read_base0_end_exclusive = read_base0_after_insertion
         else:
             # Reference bases are selected for match or deletion.
             #
@@ -241,7 +257,7 @@ class ReadCreator(object):
                 # base position then try getting the base position of the reference
                 # position before it and then adding one
                 reference_base0_end_inclusive = base0_end_exclusive - 1
-                if reference_base0_end_inclusive in read_base0_end_exclusive:
+                if reference_base0_end_inclusive in base0_reference_positions_dict:
                     read_base0_end_inclusive = base0_reference_positions_dict[
                         reference_base0_end_inclusive]
                     read_base0_end_exclusive = read_base0_end_inclusive + 1
@@ -258,7 +274,7 @@ class ReadCreator(object):
             aligned_subsequence_start = pysam_aligned_segment.query_alignment_start
             aligned_subsequence_end = pysam_aligned_segment.query_alignment_end
             sequence = sequence[aligned_subsequence_start:aligned_subsequence_end]
-            base1_reference_positions = base1_reference_positions[
+            base0_reference_positions = base0_reference_positions[
                 aligned_subsequence_start:aligned_subsequence_end]
             base_qualities = base_qualities[aligned_subsequence_start:aligned_subsequence_end]
             if read_base0_start_inclusive is not None:
@@ -268,7 +284,7 @@ class ReadCreator(object):
         return LocusRead(
             name=name,
             sequence=sequence,
-            reference_positions=base1_reference_positions,
+            reference_positions=base0_reference_positions,
             quality_scores=base_qualities,
             reference_base0_start_inclusive=base0_start_inclusive,
             reference_base0_end_exclusive=base0_end_exclusive,
