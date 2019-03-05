@@ -174,8 +174,22 @@ class ReadCreator(object):
         # read indices and we need to use that to convert the reference
         # half-open interval into a half-open interval on the read.
         if reference_interval_size == 0:
+            # Reference interval is between two bases but read may contain
+            # insertion.
+            #
+            # Reference:
+            #   10000 | 10001 10002 10003 10004 10005 10006 10007
+            #     A       T     G     C     A     A     A     A
+            #
+            #
+            # Read:
+            #   00000 00001 00002 00003 00004 00005 00006 00007
+            #     A    *A*     T     G     C     A     A     A
+            # Mapping positions:
+            #   10000  None 10001 10002 10003 10004 10005 10006
+            #
             # To deal with insertions at the beginning and end of a read we're
-            # # going to try two approaches to figure out the read interval
+            # going to try two approaches to figure out the read interval
             # corresponding with a reference interval.
             #
             # First, try getting the read position of the base before the insertion
@@ -184,7 +198,7 @@ class ReadCreator(object):
             position_after_insertion = base0_start_inclusive + 1
 
             read_base0_start_inclusive = base0_reference_positions_dict.get(base0_start_inclusive)
-            read_base0_position_after = base0_reference_positions_dict.get(position_after_insertion)
+            read_base0_end_exclusive = base0_reference_positions_dict.get(position_after_insertion)
             if read_base0_start_inclusive is None and read_base0_position_after is not None:
                 read_base0_start_inclusive = read_base0_end_exclusive = (read_base0_position_after - 1)
             #####
