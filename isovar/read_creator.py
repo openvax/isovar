@@ -170,6 +170,10 @@ class ReadCreator(object):
         if reference_interval_size < 0:
             raise ValueError("Unexpected interval start after interval end")
 
+        # TODO: Consider how to handle variants before splice sites, where
+        # the bases before or after on the genome will not be mapped on the
+        # read
+        #
         # we have a dictionary mapping base-1 reference positions to base-0
         # read indices and we need to use that to convert the reference
         # half-open interval into a half-open interval on the read.

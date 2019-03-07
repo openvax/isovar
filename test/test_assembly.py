@@ -1,7 +1,7 @@
 from __future__ import print_function, division, absolute_import
 from time import time
 
-from isovar.allele_read_helpers import reads_supporting_variant
+from isovar.read_creator import ReadCreator
 from isovar.variant_sequence import VariantSequence
 from isovar.variant_sequence_helpers import initial_variant_sequences_from_reads
 from isovar.allele_read import AlleleRead
@@ -30,10 +30,10 @@ def test_assemble_transcript_fragments_snv():
         ref=ref,
         alt=alt,
         ensembl=ensembl_grch38)
-    variant_reads = reads_supporting_variant(
+    read_creator = ReadCreator()
+    variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
-        samfile=samfile,
-        chromosome=chromosome,)
+        alignments=samfile)
 
     sequences = iterative_overlap_assembly(
         initial_variant_sequences_from_reads(variant_reads),

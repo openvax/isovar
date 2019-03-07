@@ -135,20 +135,18 @@ def read_creator_from_args(args):
 def overlapping_reads_generator_from_args(args):
     variants = variant_collection_from_args(args)
     samfile = samfile_from_args(args)
-    read_creator = read_creator_from_args(read_creator_from_args)
+    read_creator = read_creator_from_args(args)
     return read_creator.allele_reads_overlapping_variants(
         variants=variants,
         alignments=samfile)
 
-
 def allele_reads_dataframe_from_args(args):
-    return allele_reads_to_dataframe(allele_reads_generator_from_args(args))
-
+    return allele_reads_to_dataframe(overlapping_reads_generator_from_args(args))
 
 def supporting_reads_generator_from_args(args):
     variants = variant_collection_from_args(args)
     samfile = samfile_from_args(args)
-    read_creator = read_creator_from_args(read_creator_from_args)
+    read_creator = read_creator_from_args(args)
     return read_creator.allele_reads_supporting_variants(
         variants=variants,
         alignments=samfile)

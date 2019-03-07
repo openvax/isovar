@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,10 +22,7 @@ import sys
 from ..dataframe_helpers import allele_counts_dataframe
 from ..logging import get_logger
 
-from .rna_args import (
-    make_rna_reads_arg_parser,
-    allele_reads_generator_from_args
-)
+from .rna_args import make_rna_reads_arg_parser, overlapping_reads_generator_from_args
 from .output_args import add_output_args, write_dataframe
 
 
@@ -43,7 +40,7 @@ def run(args=None):
         args = sys.argv[1:]
     args = parser.parse_args(args)
     logger.info(args)
-    variants_and_allele_reads_generator = allele_reads_generator_from_args(args)
+    variants_and_allele_reads_generator = overlapping_reads_generator_from_args(args)
     allele_counts_df = allele_counts_dataframe(variants_and_allele_reads_generator)
     logger.info(allele_counts_df)
     write_dataframe(

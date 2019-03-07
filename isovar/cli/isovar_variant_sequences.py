@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+
 import sys
 
 from ..logging import get_logger
@@ -21,7 +22,7 @@ from ..variant_sequence_helpers import reads_generator_to_sequences_generator
 from ..dataframe_helpers import variant_sequences_generator_to_dataframe
 
 
-from .rna_args import allele_reads_generator_from_args
+from .rna_args import overlapping_reads_generator_from_args
 from .variant_sequences_args import make_variant_sequences_arg_parser
 from .output_args import add_output_args, write_dataframe
 
@@ -35,7 +36,7 @@ parser = add_output_args(
 
 
 def variant_sequences_generator_from_args(args):
-    allele_reads_generator = allele_reads_generator_from_args(args)
+    allele_reads_generator = overlapping_reads_generator_from_args(args)
     return reads_generator_to_sequences_generator(
         allele_reads_generator,
         min_alt_rna_reads=args.min_alt_rna_reads,
