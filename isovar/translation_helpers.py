@@ -12,71 +12,103 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Helper functions used to combine variant cDNA sequences collected from a
-BAM file with the reading frames of annotated reference transcripts to create
-candidate translations.
-"""
 
+"""
+Helper functions used for creating translating a variant's cDNA sequence
+into a particular reading frame.
+"""
 
 from __future__ import print_function, division, absolute_import
 
 
-from .logging import get_logger
-from .reference_context import reference_contexts_for_variant
-from .variant_sequence_helpers import reads_to_variant_sequences
-
-logger = get_logger(__name__)
-
-def translation_generator(
-        variant_sequences,
-        reference_contexts,
-        min_transcript_prefix_length,
-        max_transcript_mismatches,
-        include_mismatches_after_variant,
-        protein_sequence_length=None):
+def find_mutant_amino_acid_interval(
+        cdna_sequence,
+        cdna_first_codon_offset,
+        cdna_variant_start_offset,
+        cdna_variant_end_offset,
+        n_ref,
+        n_amino_acids):
     """
-    Given all detected VariantSequence objects for a particular variant
-    and all the ReferenceContext objects for that locus, translate
-    multiple protein sequences, up to the number specified by the argument
-    max_protein_sequences_per_variant.
-
     Parameters
     ----------
-    variant_sequences : list of VariantSequence objects
-        Variant sequences overlapping a single original variant
+    cdna_sequence : skbio.DNA or str
+        cDNA sequence found in RNAseq data
 
-    reference_contexts : list of ReferenceContext objects
-        Reference sequence contexts from the same variant as the variant_sequences
+    cdna_first_codon_offset : int
+        Offset into cDNA sequence to first complete codon, lets us skip
+        past UTR region and incomplete codons.
 
-    min_transcript_prefix_length : int
-        Minimum number of nucleotides before the variant to test whether
-        our variant sequence can use the reading frame from a reference
-        transcript.
+    cdna_variant_start_offset : int
+        Interbase start offset into cDNA sequence for selecting mutant
+        nucleotides.
 
-    max_transcript_mismatches : int
-        Maximum number of mismatches between coding sequence before variant
-        and reference transcript we're considering for determing the reading
-        frame.
+    cdna_variant_end_offset : int
+        Interbase end offset into cDNA sequence for selecting mutant
+        nucleotides.
 
-    include_mismatches_after_variant : bool
-        If true, mismatches occurring after the variant locus will also count
-        toward max_transcript_mismatches filtering.
+    n_ref : int
+        Number of reference nucleotides
 
-    protein_sequence_length : int, optional
-        Truncate protein to be at most this long.
+    n_amino_acids : int
+        Number of translated amino acids
 
-    Yields a sequence of Translation objects.
+    Returns tuple with three fields:
+        1) Start offset for interval of mutant amino acids in translated sequence
+        2) End offset for interval of mutant amino acids in translated sequence
+        3) Boolean flag indicating whether the variant was a frameshift.
     """
-    for reference_context in reference_contexts:
-        for variant_sequence in variant_sequences:
-            translation = Translation.from_variant_sequence_and_reference_context(
-                variant_sequence=variant_sequence,
-                reference_context=reference_context,
-                min_transcript_prefix_length=min_transcript_prefix_length,
-                max_transcript_mismatches=max_transcript_mismatches,
-                include_mismatches_after_variant=include_mismatches_after_variant,
-                protein_sequence_length=protein_sequence_length)
-            if translation is not None:
-                yield translation
+    cdna_alt_nucleotides = cdna_sequence[
+        cdna_variant_start_offset:cdna_variant_end_offset]
 
+    n_alt = len(cdna_alt_nucleotides)
+
+    # sequence of nucleotides before the variant starting from the first codon
+    cdna_coding_prefix = cdna_sequence[cdna_first_codon_offset:cdna_variant_start_offset]
+
+    # rounding down since a change in the middle of a codon should count
+    # toward the variant codons
+    n_coding_nucleotides_before_variant = len(cdna_coding_prefix)
+
+    n_complete_prefix_codons = n_coding_nucleotides_before_variant // 3
+
+    frame_of_variant_nucleotides = n_coding_nucleotides_before_variant % 3
+    frameshift = abs(n_ref - n_alt) % 3 != 0
+    indel = n_ref != n_alt
+
+    variant_aa_interval_start = n_complete_prefix_codons
+
+    if frameshift:
+        # if mutation is a frame shift then every amino acid from the
+        # first affected codon to the stop is considered mutant
+        #
+        # TODO: what if the first k amino acids are synonymous with the reference sequence?
+        variant_aa_interval_end = n_amino_acids
+    else:
+        n_alt_codons = int(math.ceil(n_alt / 3.0))
+        if indel:
+            # We need to adjust the number of affected codons by whether the
+            # variant is aligned with codon boundaries, since in-frame indels
+            # may still be split across multiple codons.
+            #
+            # Example of in-frame deletion of 3 nucleotides which leaves
+            # 0 variant codons in the sequence (interval = 1:1)
+            #   ref = CCC|AAA|GGG|TTT
+            #   alt = CCC|GGG|TTT
+            #
+            # Example of in-frame deletion of 3 nucleotides which leaves
+            # 1 variant codon in the sequence (interval = 1:2)
+            #   ref = CCC|AAA|GGG|TTT
+            #   alt = CCC|AGG|TTT
+            #
+            # Example of in-frame insertion of 3 nucleotides which
+            # yields two variant codons:
+            #   ref = CCC|AAA|GGG|TTT
+            #   alt = CTT|TCC|AAA|GGG|TTT
+            extra_affected_codon = int(frame_of_variant_nucleotides != 0)
+            variant_aa_interval_end = (
+                variant_aa_interval_start + n_alt_codons + extra_affected_codon)
+        else:
+            # if the variant is a simple substitution then it only affects
+            # as many codons as are in the alternate sequence
+            variant_aa_interval_end = variant_aa_interval_start + n_alt_codons
+    return variant_aa_interval_start, variant_aa_interval_end, frameshift

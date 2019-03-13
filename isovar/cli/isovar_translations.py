@@ -21,7 +21,7 @@ from __future__ import print_function, division, absolute_import
 import sys
 
 from ..logging import get_logger
-from ..translation_helpers import translate_variants
+from ..translation_creator import TranslationCreator
 from ..dataframe_helpers import translations_generator_to_dataframe
 
 from .translation_args import make_translation_arg_parser
@@ -39,8 +39,7 @@ parser = add_output_args(
 
 def translations_generator_from_args(args):
     variant_reads_generator = supporting_reads_generator_from_args(args)
-    return translate_variants(
-        variant_reads_generator,
+    translation_creator = TranslationCreator(
         protein_sequence_length=args.protein_sequence_length,
         min_alt_rna_reads=args.min_alt_rna_reads,
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,
@@ -48,6 +47,7 @@ def translations_generator_from_args(args):
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
         include_mismatches_after_variant=args.include_mismatches_after_variant)
+    return translation_creator.translate_variants(variant_reads_generator)
 
 
 def translations_dataframe_from_args(args):

@@ -19,7 +19,7 @@ from reads overlapping a variant locus.
 
 from __future__ import print_function, division, absolute_import
 
-from .allele_read_helpers import group_unique_sequences,
+from .allele_read_helpers import group_unique_sequences
 from .assembly import collapse_substrings
 from .logging import get_logger
 from .variant_sequence import VariantSequence

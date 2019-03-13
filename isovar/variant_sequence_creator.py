@@ -52,7 +52,8 @@ class VariantSequenceCreator(object):
             variant cDNA sequence
 
         preferred_sequence_length : int
-            Desired sequence length, including variant nucleotides
+            Total number of nucleotides in the assembled sequences, including
+            variant nucleotides.
 
         variant_sequence_assembly : bool
             Construct variant sequences by merging overlapping reads. If False
@@ -71,8 +72,7 @@ class VariantSequenceCreator(object):
     def reads_to_variant_sequences(
             self,
             variant,
-            reads,
-            preferred_sequence_length):
+            reads):
         """
         Collapse variant-supporting RNA reads into consensus sequences of
         approximately the preferred length (may differ at the ends of transcripts),
@@ -84,10 +84,6 @@ class VariantSequenceCreator(object):
 
         reads : list of AlleleRead objects
             Should all support the same variant allele nucleotides.
-
-        preferred_sequence_length : int
-            Total number of nucleotides in the assembled sequences, including
-            variant nucleotides.
 
         Returns a collection of VariantSequence objects
         """
@@ -103,7 +99,7 @@ class VariantSequenceCreator(object):
         # is half the desired length (minus the number of variant nucleotides)
         n_alt_nucleotides = len(alt_seq)
 
-        n_surrounding_nucleotides = preferred_sequence_length - n_alt_nucleotides
+        n_surrounding_nucleotides = self.preferred_sequence_length - n_alt_nucleotides
         max_nucleotides_after_variant = n_surrounding_nucleotides // 2
 
         # if the number of nucleotides we need isn't divisible by 2 then
@@ -146,7 +142,7 @@ class VariantSequenceCreator(object):
 
         variant_sequences = filter_variant_sequences(
             variant_sequences=variant_sequences,
-            preferred_sequence_length=preferred_sequence_length,
+            preferred_sequence_length=self.preferred_sequence_length,
             min_variant_sequence_coverage=self.min_variant_sequence_coverage)
 
         if variant_sequences:
