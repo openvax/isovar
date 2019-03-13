@@ -4,7 +4,7 @@ from varcode import Variant
 from testing_helpers import load_bam
 from nose.tools import eq_
 
-from isovar.allele_read_helpers import reads_supporting_variant
+from isovar.read_creator import ReadCreator
 
 from genomes_for_testing import grch38
 
@@ -15,22 +15,22 @@ def test_somatic_variant_with_0_supporting_rna_reads():
     normal_reads = load_bam(base_dir + "normal.6.90411765.G.A.sorted.bam")
     tumor_reads = load_bam(base_dir + "tumor.6.90411765.G.A.sorted.bam")
     rna_reads = load_bam(base_dir + "rna.6.90411765.G.A.sorted.bam")
-
-    normal_sample_variant_reads = reads_supporting_variant(
+    read_creator = ReadCreator()
+    normal_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
-        samfile=normal_reads)
+        alignments=normal_reads)
     eq_(len(normal_sample_variant_reads), 0)
     print(normal_sample_variant_reads)
 
-    tumor_sample_variant_reads = reads_supporting_variant(
+    tumor_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
-        samfile=tumor_reads)
+        alignments=tumor_reads)
     print(tumor_sample_variant_reads)
     eq_(len(tumor_sample_variant_reads), 5)
 
-    rna_sample_variant_reads = reads_supporting_variant(
+    rna_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
-        samfile=rna_reads)
+        alignments=rna_reads)
     print(rna_sample_variant_reads)
     eq_(len(rna_sample_variant_reads), 0)
 

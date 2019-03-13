@@ -22,9 +22,9 @@ from collections import defaultdict
 from .common import groupby
 from .logging import get_logger
 from .variant_helpers import trim_variant
+from .allele_read import AlleleRead
 
 logger = get_logger(__name__)
-
 
 def group_reads_by_allele(allele_reads):
     """
@@ -121,3 +121,26 @@ def group_reads_by_allele(allele_reads):
     supporting AlleleRead objects.
     """
     return groupby(allele_reads, lambda read: read.allele)
+
+
+def allele_reads_from_locus_reads(locus_reads):
+    """
+    Attempt to convert each LocusRead object to an AlleleRead and return
+    the successfully converted objects.
+
+    Parameters
+    ----------
+    locus_reads : list of LocusRead
+
+    Returns list of AlleleRead
+    -------
+
+    """
+    allele_reads = []
+    for locus_read in locus_reads:
+        allele_read = AlleleRead.from_locus_read(locus_read)
+        if allele_read is None:
+            continue
+        else:
+            allele_reads.append(allele_read)
+    return allele_reads

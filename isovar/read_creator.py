@@ -16,7 +16,6 @@ from __future__ import print_function, division, absolute_import
 
 from six import integer_types
 
-from .allele_read import AlleleRead
 from .allele_read_helpers import filter_non_alt_reads_for_variant
 from .default_parameters import (
     USE_SECONDARY_ALIGNMENTS,
@@ -26,7 +25,7 @@ from .default_parameters import (
 )
 from .locus_read import LocusRead
 from .logging import get_logger
-from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
+from .allele_read_helpers import allele_reads_from_locus_reads
 from .variant_helpers import trim_variant
 
 logger = get_logger(__name__)
@@ -366,6 +365,41 @@ class ReadCreator(object):
             base0_end_exclusive)
         return reads
 
+    def _infer_chromosome_name(self, variant_chromosome_name, valid_chromosome_names):
+        """
+        In case the variant is using an hg19 reference name and the alignment
+        was against b37 (or vice versa) we have to check whether adding or removing
+        the prefix "chr" is necessary.
+        Parameters
+        ----------
+        variant_chromosome_name : str
+
+        valid_chromosome_names : set of str
+
+        Returns
+        -------
+        str or None
+        """
+        # I imagine the conversation went like this:
+        # A: "Hey, I have an awesome idea"
+        # B: "What's up?"
+        # A: "Let's make two nearly identical reference genomes"
+        # B: "But...that sounds like it might confuse people."
+        # A: "Nah, it's cool, we'll give the chromosomes different prefixes!"
+        # B: "OK, sounds like a good idea."
+        candidate_names = {variant_chromosome_name}
+        if variant_chromosome_name.startswith("chr"):
+            candidate_names.add(variant_chromosome_name[3:])
+        else:
+            candidate_names.add("chr" + variant_chromosome_name)
+        for candidate in list(candidate_names):
+            candidate_names.add(candidate.lower())
+            candidate_names.add(candidate.upper())
+        for candidate in candidate_names:
+            if candidate in valid_chromosome_names:
+                return candidate
+        return None
+
     def allele_reads_overlapping_variant(
             self,
             alignments,
@@ -386,7 +420,23 @@ class ReadCreator(object):
         Returns sequence of AlleleRead objects.
         """
         if chromosome is None:
-            chromosome = variant.contig
+            # if a chromosome name isn't manually specified then try
+            # to figure out whether adding or removing "chr" is necessary
+            # match chromosome names used for variant calling and those
+            # found in read alignments
+            chromosome = self._infer_chromosome_name(
+                variant_chromosome_name=variant.contig,
+                valid_chromosome_names=set(alignments.references))
+
+        if chromosome is None:
+            # failed to infer a chromsome name for this variant which
+            # matches names used in SAM/BAM file
+            logger.warning(
+                "Chromosome '%s' from variant %s not in alignment file %s",
+                variant.contig,
+                variant,
+                alignments.filename)
+            return []
 
         logger.info(
             "Gathering variant reads for variant %s (with gene names %s)",
@@ -428,15 +478,7 @@ class ReadCreator(object):
             base0_start_inclusive=base0_start_inclusive,
             base0_end_exclusive=base0_end_exclusive)
 
-        allele_reads = []
-
-        for locus_read in locus_reads:
-            allele_read = self.allele_read_from_locus_read(locus_read)
-            if allele_read is None:
-                continue
-            else:
-                allele_reads.append(allele_read)
-        return allele_reads
+        return allele_reads_from_locus_reads(locus_reads)
 
     def allele_reads_overlapping_variants(self, variants, alignments):
         """
@@ -449,44 +491,27 @@ class ReadCreator(object):
 
         alignments : pysam.AlignmentFile
         """
-        chromosome_names = set(alignments.references)
+
         for variant in variants:
-            # I imagine the conversation went like this:
-            # A: "Hey, I have an awesome idea"
-            # B: "What's up?"
-            # A: "Let's make two nearly identical reference genomes"
-            # B: "But...that sounds like it might confuse people."
-            # A: "Nah, it's cool, we'll give the chromosomes different prefixes!"
-            # B: "OK, sounds like a good idea."
-            if variant.contig in chromosome_names:
-                chromosome = variant.contig
-            elif "chr" + variant.contig in chromosome_names:
-                chromosome = "chr" + variant.contig
-            else:
-                logger.warning(
-                    "Chromosome '%s' from variant %s not in alignment file %s",
-                    variant.contig,
-                    variant,
-                    alignments.filename)
-                yield variant, []
-                continue
             allele_reads = self.allele_reads_overlapping_variant(
                 alignments=alignments,
-                chromosome=chromosome,
                 variant=variant)
             yield variant, allele_reads
 
 
     def allele_reads_supporting_variant(self, variant, alignments):
         """
+        Given a variant and a SAM/BAM file, finds all AlleleRead objects overlapping
+        a variant and returns those that support the variant's alt allele.
+
         Parameters
         ----------
         variant: varcode.Variant
-    
+
         alignments:  pysam.AlignmentFile
-    
-        Given a variant and a SAM/BAM file, finds all AlleleRead objects overlapping
-        a variant and returns those that support the variant's alt allele.
+
+        Returns list of AlleleRead
+        -
         """
         allele_reads = self.allele_reads_overlapping_variant(
             variant=variant,
@@ -514,64 +539,3 @@ class ReadCreator(object):
                 alignments=alignments):
             yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
 
-    def allele_read_from_locus_read(self, locus_read):
-        """
-        Given a single LocusRead object, return either an AlleleRead or None
-
-        Parameters
-        ----------
-        locus_read : LocusRead
-            Read which overlaps a variant locus but doesn't necessarily contain the
-            alternate nucleotides
-        """
-        sequence = locus_read.sequence
-        read_name = locus_read.name
-
-        reference_base0_start_inclusive = locus_read.reference_base0_start_inclusive
-        reference_base0_end_exclusive = locus_read.reference_base0_end_exclusive
-
-        read_base0_start_inclusive = locus_read.read_base0_start_inclusive
-        read_base0_end_exclusive = locus_read.read_base0_end_exclusive
-
-        if read_base0_start_inclusive is None or read_base0_end_exclusive is None:
-            logger.debug(
-                "Skipping read '%s' because some required bases in reference interval %s:%s aren't mapped",
-                read_name,
-                reference_base0_start_inclusive,
-                reference_base0_end_exclusive)
-            return None
-
-        reference_positions = locus_read.reference_positions
-
-        n_ref_bases = reference_base0_end_exclusive - reference_base0_start_inclusive
-
-        insertion = (n_ref_bases == 0)
-
-        if insertion:
-            # insertions require a sequence of non-aligned bases
-            # followed by the subsequence reference position
-            for read_index in range(read_base0_start_inclusive, read_base0_end_exclusive):
-                # all the inserted nucleotides should *not* align to the reference
-                if reference_positions[read_index] is not None:
-                    logger.debug(
-                        "Skipping read '%s', inserted nucleotides shouldn't map to reference",
-                        read_name)
-                    return None
-
-        nucleotides_at_variant_locus = convert_from_bytes_if_necessary(
-            sequence[read_base0_start_inclusive:read_base0_end_exclusive])
-
-        if "N" in nucleotides_at_variant_locus:
-            logger.debug(
-                "Skipping read '%s', found N nucleotides at variant locus",
-                read_name)
-        prefix = convert_from_bytes_if_necessary(sequence[:read_base0_start_inclusive])
-        suffix = convert_from_bytes_if_necessary(sequence[read_base0_end_exclusive:])
-
-        prefix, suffix = trim_N_nucleotides(prefix, suffix)
-
-        return AlleleRead(
-            prefix,
-            nucleotides_at_variant_locus,
-            suffix,
-            name=read_name)

@@ -19,7 +19,7 @@ def make_read_at_locus(prefix, alt, suffix, base_quality=30, name="dummy"):
 
 def test_allele_read_from_single_read_at_locus_trim_N_nucleotides():
     read_at_locus = make_read_at_locus(prefix="NCCN", alt="A", suffix="TNNA")
-    allele_read = AlleleRead.from_locus_read(read_at_locus, n_ref=1)
+    allele_read = AlleleRead.from_locus_read(read_at_locus)
     print(allele_read)
     expected = AlleleRead(prefix="", allele="A", suffix="T", name="dummy")
     eq_(allele_read, expected)
