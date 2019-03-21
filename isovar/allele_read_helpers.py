@@ -144,3 +144,25 @@ def allele_reads_from_locus_reads(locus_reads):
         else:
             allele_reads.append(allele_read)
     return allele_reads
+
+
+def split_reads_into_ref_alt_other(ref, alt, overlapping_reads):
+    """
+    Returns three lists of AlleleRead objects
+        - reads which support the reference allele
+        - reads which support the variant's alt allele
+        - reads which support other alleles
+    """
+    # convert to list in case it's a generator since
+    # we want to traverse the sequence repeatedly
+    overlapping_reads = list(overlapping_reads)
+
+    reads_grouped_by_allele = group_reads_by_allele(overlapping_reads)
+    ref_reads = reads_grouped_by_allele.get(ref, [])
+    alt_reads = reads_grouped_by_allele.get(alt, [])
+    other_reads = []
+    for allele, allele_reads in reads_grouped_by_allele.items():
+        if allele in {ref, alt}:
+            continue
+        other_reads.extend(allele_reads)
+    return ref_reads, alt_reads, other_reads

@@ -48,7 +48,6 @@ logger = get_logger(__name__)
 class ProteinSequenceCreator(object):
     def __init__(
             self,
-            transcript_id_whitelist=None,
             protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
             min_alt_rna_fragments=MIN_ALT_RNA_FRAGMENTS,
             min_rna_vaf=MIN_RNA_VAF,
@@ -59,13 +58,9 @@ class ProteinSequenceCreator(object):
             max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
             include_mismatches_after_variant=INCLUDE_MISMATCHES_AFTER_VARIANT,
             max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
-            variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY):
+            variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY,
+            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
         """
-        transcript_id_whitelist : set, optional
-            If given, expected to be a set of transcript IDs which we should use
-            for determining the reading frame around a variant. If omitted, then
-            try to use all overlapping reference transcripts.
-
         protein_sequence_length : int
             Try to translate protein sequences of this length, though sometimes
             we'll have to return something shorter (depending on the RNAseq data,
@@ -104,11 +99,10 @@ class ProteinSequenceCreator(object):
             RNA reads. If False, then variant cDNA sequences must be fully spanned
             and contained within RNA reads.
         """
-        self.transcript_id_whitelist = transcript_id_whitelist
         self.protein_sequence_length = protein_sequence_length
         self.min_alt_rna_fragments = min_alt_rna_fragments
         self.min_rna_vaf = min_rna_vaf
-        self.min_alt_rna_reads = self.min_alt_rna_reads
+        self.min_alt_rna_reads = min_alt_rna_reads
         self.min_ratio_alt_to_other_rna_fragments = min_ratio_alt_to_other_rna_fragments
         self.min_variant_sequence_coverage = min_variant_sequence_coverage
         self.min_transcript_prefix_length = min_transcript_prefix_length
@@ -116,11 +110,22 @@ class ProteinSequenceCreator(object):
         self.include_mismatches_after_variant = include_mismatches_after_variant
         self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
         self.variant_sequence_assembly = variant_sequence_assembly
-
+        
+        self._translation_creator = TranslationCreator(
+            protein_sequence_length=self.protein_sequence_length,
+            min_variant_sequence_coverage=self.min_variant_sequence_coverage,
+            min_transcript_prefix_length=self.min_transcript_prefix_length,
+            max_transcript_mismatches=self.max_transcript_mismatches,
+            include_mismatches_after_variant=self.include_mismatches_after_variant,
+            variant_sequence_assembly=self.variant_sequence_assembly,
+            min_assembly_overlap_size=self.min_ass
+        )
+    
     def protein_sequences_from_variant_and_overlapping_reads(
             self,
             variant,
-            overlapping_reads):
+            overlapping_reads,
+            transcript_id_whitelist=None):
         """"
         Translates a coding variant and its overlapping RNA reads into Translation
         objects, which are aggregated into ProteinSequence objects by their
@@ -132,6 +137,10 @@ class ProteinSequenceCreator(object):
 
         overlapping_reads : list of AlleleReads
 
+        transcript_id_whitelist : set, optional
+            If given, expected to be a set of transcript IDs which we should use
+            for determining the reading frame around a variant. If omitted, then
+            try to use all overlapping reference transcripts.
         Returns a list of ProteinSequence objects
         """
         variant_support = gather_variant_support(variant, overlapping_reads)

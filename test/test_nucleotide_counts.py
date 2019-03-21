@@ -1,7 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
 from isovar.nucleotide_counts import most_common_nucleotides
-from isovar.read_creator import ReadCreator
+from isovar.read_collector import ReadCollector
 
 from varcode import Variant
 from pyensembl import ensembl_grch38
@@ -22,7 +22,7 @@ def test_most_common_nucleotides_for_chr12_deletion():
         ref,
         alt,
         ensembl=ensembl_grch38)
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
         alignments=samfile,
         variant=variant)

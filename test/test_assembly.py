@@ -1,7 +1,7 @@
 from __future__ import print_function, division, absolute_import
 from time import time
 
-from isovar.read_creator import ReadCreator
+from isovar.read_collector import ReadCollector
 from isovar.variant_sequence import VariantSequence
 from isovar.variant_sequence_helpers import initial_variant_sequences_from_reads
 from isovar.allele_read import AlleleRead
@@ -30,7 +30,7 @@ def test_assemble_transcript_fragments_snv():
         ref=ref,
         alt=alt,
         ensembl=ensembl_grch38)
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
         alignments=samfile)

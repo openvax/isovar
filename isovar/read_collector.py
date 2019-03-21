@@ -15,6 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 from six import integer_types
+from collections import OrderedDict
 
 from .allele_read_helpers import filter_non_alt_reads_for_variant
 from .default_parameters import (
@@ -31,9 +32,9 @@ from .variant_helpers import trim_variant
 logger = get_logger(__name__)
 
 
-class ReadCreator(object):
+class ReadCollector(object):
     """
-    LocusReadCreator holds options related to extracting reads from SAM/BAM alignment files
+    ReadCreator holds options related to extracting reads from SAM/BAM alignment files
     and provides methods for different ways to create LocusRead objects.
     """
     def __init__(
@@ -479,6 +480,29 @@ class ReadCreator(object):
             base0_end_exclusive=base0_end_exclusive)
 
         return allele_reads_from_locus_reads(locus_reads)
+
+    def gather_variant_support(self, variants, alignments):
+        """
+        Created an ordered dictionary of variants, each mapped
+        to a VariantSupport object which contains the ref/alt/other
+        AlleleRead objects.
+
+        Parameters
+        ----------
+        variants : varcode.VariantCollection
+            Variants which will be the keys of the result
+
+        alignments : pysam.AlignmentFile
+            Aligned RNA reads
+
+        Returns OrderedDict mapping varcode.Variant to VariantSupport
+        """
+        result = OrderedDict()
+        for variant in variants:
+            allele_reads = self.allele_reads_overlapping_variant(
+                alignments=alignments,
+                variant=variant)
+            result[variant] =
 
     def allele_reads_overlapping_variants(self, variants, alignments):
         """

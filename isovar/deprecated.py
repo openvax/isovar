@@ -20,7 +20,7 @@ from __future__ import print_function, division, absolute_import
 
 from warnings import warn
 
-from .read_creator import ReadCreator
+from .read_collector import ReadCollector
 
 def reads_supporting_variant(
         variant,
@@ -48,7 +48,7 @@ def reads_supporting_variant(
     if chromosome is not None:
         raise NotImplementedError(
             "Use of manual chromosome argument no longer supported for this function")
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     return read_creator.allele_reads_supporting_variant(
         variant=variant,
         alignments=samfile)

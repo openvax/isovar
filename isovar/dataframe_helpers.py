@@ -20,7 +20,7 @@ from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
 from .locus_read import LocusRead
 from .protein_sequence import ProteinSequence
-from .read_creator import ReadCreator
+from .read_collector import ReadCollector
 from .reference_context import reference_contexts_for_variants, ReferenceContext
 from .translation import Translation
 from .variant_sequence import VariantSequence
@@ -115,7 +115,7 @@ def locus_reads_dataframe(alignments, chromosome, base0_start, base0_end, *args,
             "reference_positions": list_to_string,
             "quality_scores": list_to_string,
         })
-    read_creator = ReadCreator(*args, **kwargs)
+    read_creator = ReadCollector(*args, **kwargs)
     for locus_read in read_creator.get_locus_reads(
             alignments, chromosome, base0_start, base0_end):
         df_builder.add(variant=None, element=locus_read)

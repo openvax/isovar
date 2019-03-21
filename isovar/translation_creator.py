@@ -19,7 +19,6 @@ from .default_parameters import (
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     INCLUDE_MISMATCHES_AFTER_VARIANT,
     PROTEIN_SEQUENCE_LENGTH,
-    MIN_ALT_RNA_READS,
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_ASSEMBLY,
     MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
@@ -43,7 +42,6 @@ class TranslationCreator(object):
     def __init__(
             self,
             protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
-            min_alt_rna_reads=MIN_ALT_RNA_READS,
             min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
             min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
             max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -57,10 +55,6 @@ class TranslationCreator(object):
             Try to translate protein sequences of this length, though sometimes
             we'll have to return something shorter (depending on the RNAseq data,
             and presence of stop codons).
-
-        min_alt_rna_reads : int
-            Drop variant sequences from loci with fewer than this number of
-            RNA reads supporting the alt allele.
 
         min_variant_sequence_coverage : int
             Trim variant sequences to nucleotides covered by at least this many
@@ -80,9 +74,12 @@ class TranslationCreator(object):
 
         variant_sequence_assembly : bool
             Use overlap assembly to construct longer variant cDNA sequences.
+
+        min_assembly_overlap_size : int
+            Minimum number of nucleotides that two reads need to overlap before they
+            can be merged into a single coding sequence.
         """
         self.protein_sequence_length = protein_sequence_length
-        self.min_alt_rna_reads = min_alt_rna_reads
         self.min_variant_sequence_coverage = min_variant_sequence_coverage
         self.min_transcript_prefix_length = min_transcript_prefix_length
         self.max_transcript_mismatches = max_transcript_mismatches

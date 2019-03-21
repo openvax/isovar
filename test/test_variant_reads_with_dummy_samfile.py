@@ -4,7 +4,7 @@ from nose.tools import eq_
 from varcode import Variant
 
 from isovar.allele_read import AlleleRead
-from isovar.read_creator import ReadCreator
+from isovar.read_collector import ReadCollector
 
 from mock_read_data import DummySamFile, make_read
 from genomes_for_testing import grch38
@@ -28,7 +28,7 @@ def test_partitioned_read_sequences_snv():
     read = make_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
 
     samfile = DummySamFile(reads=[read])
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
         alignments=samfile)
@@ -61,7 +61,7 @@ def test_partitioned_read_sequences_insertion():
     read = make_read(seq=b"ACCTGTG", cigar="4M1I2M", mdtag="6")
 
     samfile = DummySamFile(reads=[read])
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
 
     variant_reads = read_creator.allele_reads_supporting_variant(
         alignments=samfile,
@@ -94,7 +94,7 @@ def test_partitioned_read_sequences_deletion():
     read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
     samfile = DummySamFile(reads=[read])
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
         alignments=samfile,
         variant=variant)

@@ -4,7 +4,7 @@ from nose.tools import eq_
 from varcode import Variant
 from isovar.locus_read import LocusRead
 from isovar.dataframe_helpers import locus_reads_dataframe
-from isovar.read_creator import ReadCreator
+from isovar.read_collector import ReadCollector
 
 from mock_read_data import DummySamFile, make_read
 from testing_helpers import assert_equal_fields, load_bam, data_path
@@ -30,7 +30,7 @@ def test_locus_reads_snv():
         mdtag="3G2")
 
     samfile = DummySamFile(reads=[pysam_read])
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     reads = read_creator.get_locus_reads(samfile, "chromosome", variant.start - 1, variant.start)
     print(reads)
     assert len(reads) == 1, \
@@ -62,7 +62,7 @@ def test_locus_reads_insertion():
     pysam_read = make_read(seq="ACCTGTG", cigar="4M1I2M", mdtag="6")
 
     samfile = DummySamFile(reads=[pysam_read])
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     reads = read_creator.get_locus_reads(
         samfile,
         "chromosome",
@@ -103,7 +103,7 @@ def test_locus_reads_deletion():
     pysam_read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
     samfile = DummySamFile(reads=[pysam_read])
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     reads = read_creator.get_locus_reads(
         samfile,
         "chromosome",
@@ -137,7 +137,7 @@ def test_locus_reads_substitution_longer():
     pysam_read = make_read(seq="AGGCTTG", cigar="2M1I4M", mdtag="1C4")
 
     samfile = DummySamFile(reads=[pysam_read])
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     reads = read_creator.get_locus_reads(
         samfile,
         "chromosome",
@@ -170,7 +170,7 @@ def test_locus_reads_substitution_shorter():
     pysam_read = make_read(seq="AGTTG", cigar="2M1D3M", mdtag="1C^C4")
 
     samfile = DummySamFile(reads=[pysam_read])
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     reads = read_creator.get_locus_reads(
         samfile,
         "chromosome",

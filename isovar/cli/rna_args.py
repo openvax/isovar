@@ -29,7 +29,7 @@ from ..default_parameters import (
     MIN_RNA_VAF,
     MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS
 )
-from ..read_creator import  ReadCreator
+from ..read_collector import  ReadCollector
 from ..dataframe_helpers import allele_reads_to_dataframe
 
 
@@ -127,7 +127,7 @@ def samfile_from_args(args):
     return AlignmentFile(args.bam)
 
 def read_creator_from_args(args):
-    return ReadCreator(
+    return ReadCollector(
         min_mapping_quality=args.min_mapping_quality,
         use_duplicate_reads=args.use_duplicate_reads,
         use_secondary_alignments=not args.drop_secondary_alignments)

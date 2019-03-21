@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 from collections import defaultdict
-
+import numpy as np
 
 def list_to_string(list_of_anything, sep=";"):
     """
@@ -35,3 +35,26 @@ def groupby(xs, key_fn):
         key = key_fn(x)
         result[key].append(x)
     return result
+
+def safediv(x, y):
+    """
+    Compute ratio between two fields safely, so that
+    if numerator is zero, result is zero and if denominator
+    is zero then result is infinity.
+
+    Parameters
+    ----------
+    x : int or float
+        Numerator value
+
+    y : int or float
+        Denominator value
+
+    Returns float
+    """
+    if x == 0:
+        return 0.0
+    elif y == 0:
+        return np.inf
+    else:
+        return x / y

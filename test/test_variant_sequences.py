@@ -8,7 +8,7 @@ from isovar.variant_sequence import (
     VariantSequence
 )
 from isovar.allele_read import AlleleRead
-from isovar.read_creator import ReadCreator
+from isovar.read_collector import ReadCollector
 
 from testing_helpers import load_bam
 from genomes_for_testing import grch38
@@ -21,7 +21,7 @@ def test_sequence_counts_snv():
     ref = "G"
     alt = "C"
     variant = Variant(chromosome, base1_location, ref, alt, grch38)
-    read_creator = ReadCreator()
+    read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
         alignments=samfile,
         variant=variant)
