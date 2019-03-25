@@ -28,6 +28,7 @@ from .locus_read import LocusRead
 from .logging import get_logger
 from .allele_read_helpers import allele_reads_from_locus_reads
 from .variant_helpers import trim_variant
+from .grouped_allele_reads import GroupedAlleleReads
 
 logger = get_logger(__name__)
 
@@ -318,7 +319,7 @@ class ReadCollector(object):
 
     def get_locus_reads(
             self,
-            alignments,
+            alignment_file,
             chromosome,
             base0_start_inclusive,
             base0_end_exclusive):
@@ -330,7 +331,7 @@ class ReadCollector(object):
 
         Parameters
         ----------
-        alignments : pysam.AlignmentFile
+        alignment_file : pysam.AlignmentFile
 
         chromosome : str
 
@@ -348,7 +349,7 @@ class ReadCollector(object):
             base0_start_inclusive,
             base0_end_exclusive)
         reads = []
-        for aligned_segment in alignments.fetch(
+        for aligned_segment in alignment_file.fetch(
                 contig=chromosome,
                 start=base0_start_inclusive,
                 stop=base0_end_exclusive):
@@ -401,24 +402,24 @@ class ReadCollector(object):
                 return candidate
         return None
 
-    def allele_reads_overlapping_variant(
+    def locus_reads_overlapping_variant(
             self,
-            alignments,
+            alignment_file,
             variant,
             chromosome=None):
         """
         Find reads in the given SAM/BAM file which overlap the given variant and
-        return them as a list of AlleleRead objects.
+        return them as a list of LocusRead objects.
 
         Parameters
         ----------
-        alignments : pysam.AlignmentFile
+        alignment_file : pysam.AlignmentFile
 
         variant : varcode.Variant
 
         chromosome : str or None
 
-        Returns sequence of AlleleRead objects.
+        Returns sequence of LocusRead objects.
         """
         if chromosome is None:
             # if a chromosome name isn't manually specified then try
@@ -427,7 +428,7 @@ class ReadCollector(object):
             # found in read alignments
             chromosome = self._infer_chromosome_name(
                 variant_chromosome_name=variant.contig,
-                valid_chromosome_names=set(alignments.references))
+                valid_chromosome_names=set(alignment_file.references))
 
         if chromosome is None:
             # failed to infer a chromsome name for this variant which
@@ -436,7 +437,7 @@ class ReadCollector(object):
                 "Chromosome '%s' from variant %s not in alignment file %s",
                 variant.contig,
                 variant,
-                alignments.filename)
+                alignment_file.filename)
             return []
 
         logger.info(
@@ -473,93 +474,81 @@ class ReadCollector(object):
             base0_start_inclusive = base1_position - 1
             base0_end_exclusive = base0_start_inclusive + len(ref)
 
-        locus_reads = self.get_locus_reads(
-            alignments=alignments,
+        return self.get_locus_reads(
+            alignment_file=alignment_file,
             chromosome=chromosome,
             base0_start_inclusive=base0_start_inclusive,
             base0_end_exclusive=base0_end_exclusive)
 
-        return allele_reads_from_locus_reads(locus_reads)
+    def allele_reads_overlapping_variant(
+            self,
+            variant,
+            alignment_file):
+        """
+        Find reads in the given SAM/BAM file which overlap the given variant and
+        return them as a list of AlleleRead objects.
 
-    def gather_variant_support(self, variants, alignments):
+        Parameters
+        ----------
+        variant : varcode.Variant
+
+        alignment_file : pysam.AlignmentFile
+            Aligned RNA reads
+
+        Returns sequence of AlleleRead objects.
+        """
+        return allele_reads_from_locus_reads(
+            self.locus_reads_overlapping_variant(
+                alignment_file=alignment_file,
+                variant=variant))
+
+    def grouped_allele_reads_overlapping_variant(
+            self,
+            variant,
+            alignment_file):
+        """
+        Find reads in the given SAM/BAM file which overlap the given variant and
+        return them as a GroupedAlleleReads object, which splits the reads into
+        ref/alt/other groups.
+
+        Parameters
+        ----------
+        variant : varcode.Variant
+
+        alignment_file : pysam.AlignmentFile
+            Aligned RNA reads
+
+        Returns GroupedAlleleReads
+        """
+        allele_reads = self.allele_reads_overlapping_variant(
+            variant=variant,
+            alignment_file=alignment_file)
+        return GroupedAlleleReads.from_variant_and_allele_reads(
+            variant,
+            allele_reads)
+
+    def grouped_allele_reads_overlapping_variants(self, variants, alignment_file):
         """
         Created an ordered dictionary of variants, each mapped
-        to a VariantSupport object which contains the ref/alt/other
-        AlleleRead objects.
-
+        to a GroupedAlleleReads object which contains separate lists
+        of AlleleReads for the ref/alt/other alleles of each variant.
+    
         Parameters
         ----------
         variants : varcode.VariantCollection
             Variants which will be the keys of the result
 
-        alignments : pysam.AlignmentFile
+        alignment_file : pysam.AlignmentFile
             Aligned RNA reads
 
         Returns OrderedDict mapping varcode.Variant to VariantSupport
         """
-        result = OrderedDict()
+        variant_to_support_dict = OrderedDict()
         for variant in variants:
             allele_reads = self.allele_reads_overlapping_variant(
-                alignments=alignments,
+                alignment_file=alignment_file,
                 variant=variant)
-            result[variant] =
-
-    def allele_reads_overlapping_variants(self, variants, alignments):
-        """
-        Generates sequence of tuples, each containing a variant paired with
-        a list of AlleleRead objects.
-
-        Parameters
-        ----------
-        variants : varcode.VariantCollection
-
-        alignments : pysam.AlignmentFile
-        """
-
-        for variant in variants:
-            allele_reads = self.allele_reads_overlapping_variant(
-                alignments=alignments,
-                variant=variant)
-            yield variant, allele_reads
-
-
-    def allele_reads_supporting_variant(self, variant, alignments):
-        """
-        Given a variant and a SAM/BAM file, finds all AlleleRead objects overlapping
-        a variant and returns those that support the variant's alt allele.
-
-        Parameters
-        ----------
-        variant: varcode.Variant
-
-        alignments:  pysam.AlignmentFile
-
-        Returns list of AlleleRead
-        -
-        """
-        allele_reads = self.allele_reads_overlapping_variant(
-            variant=variant,
-            alignments=alignments)
-        return filter_non_alt_reads_for_variant(
-            variant=variant,
-            allele_reads=allele_reads)
-    
-    
-    def allele_reads_supporting_variants(self, variants, alignments):
-        """
-        Given a SAM/BAM file and a collection of variants, generates a sequence
-        of variants paired with reads which support each variant.
-
-        Parameters
-        ----------
-        variants : varcode.VariantCollection
-
-        alignments : pysam.AlignmentFile
-
-        Generator of (varcode.Variant, list of AlleleRead) pairs.
-        """
-        for variant, allele_reads in self.reads_overlapping_variants(
-                variants=variants,
-                alignments=alignments):
-            yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
+            variant_to_support_dict[variant] = \
+                    GroupedAlleleReads.from_variant_and_allele_reads(variant, allele_reads)
+        return variant_to_support_dict
 

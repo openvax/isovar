@@ -32,7 +32,8 @@ from .default_parameters import (
     MIN_RNA_VAF,
     MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
     MIN_VARIANT_SEQUENCE_COVERAGE,
-    VARIANT_SEQUENCE_ASSEMBLY
+    VARIANT_SEQUENCE_ASSEMBLY,
+    MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
 )
 from .protein_sequence import ProteinSequence
 from .protein_sequence_helpers import sort_protein_sequences
@@ -40,12 +41,12 @@ from .common import groupby
 from .translation import Translation
 from .translation_creator import TranslationCreator
 from .logging import get_logger
-from .variant_support import gather_variant_support
+from .grouped_allele_reads import gather_variant_support
 
 logger = get_logger(__name__)
 
 
-class ProteinSequenceCreator(object):
+class ProteinSequenceCreator(TranslationCreator):
     def __init__(
             self,
             protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
@@ -98,33 +99,29 @@ class ProteinSequenceCreator(object):
             If True, then assemble variant cDNA sequences based on overlap of
             RNA reads. If False, then variant cDNA sequences must be fully spanned
             and contained within RNA reads.
+
+        min_assembly_overlap_size : int
         """
-        self.protein_sequence_length = protein_sequence_length
-        self.min_alt_rna_fragments = min_alt_rna_fragments
-        self.min_rna_vaf = min_rna_vaf
-        self.min_alt_rna_reads = min_alt_rna_reads
-        self.min_ratio_alt_to_other_rna_fragments = min_ratio_alt_to_other_rna_fragments
-        self.min_variant_sequence_coverage = min_variant_sequence_coverage
-        self.min_transcript_prefix_length = min_transcript_prefix_length
-        self.max_transcript_mismatches = max_transcript_mismatches
-        self.include_mismatches_after_variant = include_mismatches_after_variant
-        self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
-        self.variant_sequence_assembly = variant_sequence_assembly
-        
-        self._translation_creator = TranslationCreator(
+        TranslationCreator.__init__(
+            self=self,
             protein_sequence_length=self.protein_sequence_length,
             min_variant_sequence_coverage=self.min_variant_sequence_coverage,
             min_transcript_prefix_length=self.min_transcript_prefix_length,
             max_transcript_mismatches=self.max_transcript_mismatches,
             include_mismatches_after_variant=self.include_mismatches_after_variant,
             variant_sequence_assembly=self.variant_sequence_assembly,
-            min_assembly_overlap_size=self.min_ass
-        )
+            min_assembly_overlap_size=self.min_assembly_overlap_size)
+        self.min_alt_rna_fragments = min_alt_rna_fragments
+        self.min_rna_vaf = min_rna_vaf
+        self.min_alt_rna_reads = min_alt_rna_reads
+        self.min_ratio_alt_to_other_rna_fragments = min_ratio_alt_to_other_rna_fragments
+        self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
+       
     
     def protein_sequences_from_variant_and_overlapping_reads(
             self,
             variant,
-            overlapping_reads,
+            grouped_allele_reads,
             transcript_id_whitelist=None):
         """"
         Translates a coding variant and its overlapping RNA reads into Translation
@@ -135,7 +132,7 @@ class ProteinSequenceCreator(object):
         ----------
         variant : varcode.Variant
 
-        overlapping_reads : list of AlleleReads
+        grouped_allele_reads : GroupedAlleleReads object
 
         transcript_id_whitelist : set, optional
             If given, expected to be a set of transcript IDs which we should use
@@ -143,18 +140,10 @@ class ProteinSequenceCreator(object):
             try to use all overlapping reference transcripts.
         Returns a list of ProteinSequence objects
         """
-        variant_support = gather_variant_support(variant, overlapping_reads)
-
-        translations = translate_variant_reads(
+        translations = self.translate_variant_reads(
             variant=variant,
-            variant_reads=variant_support.alt_reads,
-            transcript_id_whitelist=self.transcript_id_whitelist,
-            protein_sequence_length=self.protein_sequence_length,
-            min_variant_sequence_coverage=self.min_variant_sequence_coverage,
-            min_transcript_prefix_length=self.min_transcript_prefix_length,
-            max_transcript_mismatches=self.max_transcript_mismatches,
-            include_mismatches_after_variant=self.include_mismatches_after_variant,
-            variant_sequence_assembly=self.variant_sequence_assembly)
+            variant_reads=grouped_allele_reads.alt_reads,
+            transcript_id_whitelist=transcript_id_whitelist)
 
         overlapping_transcript_ids = {
             t.id

@@ -8,8 +8,46 @@
     <img src="https://img.shields.io/pypi/v/isovar.svg?maxAge=1000" alt="PyPI" />
 </a>
 
-# isovar
-Isovar assembles protein subsequences around mutations from cancer RNA-Seq data. Since Isovar uses sequenced reads to determine a mutant coding sequence it is able to correctly phase somatic variants with adjacent germline variants, as well as sometimes recovering alternatively spliced isoforms.
+# Isovar
+Isovar determines mutant protein subsequences around mutations from cancer RNAseq data.
+
+Isovar works by 
+(1) collecting RNA reads which spanning the location of a variant, 
+(2) filtering the RNA reads to those which support the mutation, 
+(3) assembling mutant reads into longer coding sequences, and 
+(4) matching mutant coding sequences against reference annotated reading
+frames. The assembled coding sequences may incorporate proximal 
+(germline and somatic) variants, along with any splicing alterations 
+which occur due to modified splice signals.
+
+## Organization and Algorithmic Design
+
+The inputs to Isovar are one or more somatic variant call (VCF) files, along with a BAM file 
+containing aligned tumor RNA reads. 
+
+1. Isovar examines each variant locus and extracts reads overlapping that locus, 
+represented by `LocusRead`. The `LocusRead` representation allows filtering  based
+on quality and alignment criteria (e.g. MAPQ > 0) which are thrown away in later stages
+of Isovar. 
+2. Once `LocusRead` objects have been filtered, they are converted into a simplified 
+representation called `AlleleRead`. Each `AlleleRead` contains only the cDNA sequences 
+*before*, *at*, and *after* the variant locus. The number of `AlleleRead` objects containing 
+each distinct allele is recorded and then only reads which support the mutation are 
+retained for further  processing.
+3. Overlapping `AlleleRead`s containing the same mutation are assembled into a longer
+sequence. The `VariantSequence` object represents this candidate coding sequence, as well
+as all the `AlleleRead` objects which were used to create it.
+4. To determine the reading frame in which to translate a `VariantSequence`, Isovar
+looks at all Ensembl annotated transcripts overlapping the locus and collapses them
+ into one or more `ReferenceContext` object. Each `ReferenceContext` represents the 
+ cDNA sequence upstream of the variant locus and in which of the {0, +1, +2} reading frames
+  it is translated. 
+5. Use the reading frame from a `ReferenceContext` to translate a `VariantSequence` 
+into a protein fragment, represented by `Translation`.
+6. Multiple distinct variant sequences and reference contexts can generate the same translations, so we aggregate those equivalent `Translation` objects into a `ProteinSequence`.
+
+Since we may not want to deal with *every* possible translation of *every* distinct sequence detected around a variant, Isovar sorts the variant sequences by the number of supporting reads and the reference contexts in order of protein length and a configurable number of translated protein fragments can be kept from this ordering.
+
 
 ## Example
 
@@ -34,19 +72,6 @@ $ isovar-protein-sequences  \
 0                  130                             2                  2   CELSR1
 ```
 
-## Algorithm/Design
-
-The one line explanation of Isovar: `ProteinSequence = VariantSequence + ReferenceContext`.
-
-A little more detail about the algorithm:
-  1. Scan through an RNAseq BAM file and extract sequences overlapping a variant locus (represented by `LocusRead`)
-  2. Make sure that the read contains the variant allele and split its sequence into prefix/alt/suffix string parts (represented by `AlleleRead`)
-  3. Assemble overlapping `AlleleRead`s (which agree with the variant allele) into a `VariantSequence`
-  4. Gather possible reading frames for distinct reference sequences around the variant locus (represented by `ReferenceContext`).
-  5. Use the reading frame from a `ReferenceContext` to translate a `VariantSequence` into a protein fragment (represented by `Translation`).
-  6. Multiple distinct variant sequences and reference contexts can generate the same translations, so we aggregate those equivalent `Translation` objects into a `ProteinSequence`.
-
-Since we may not want to deal with *every* possible translation of *every* distinct sequence detected around a variant, Isovar sorts the variant sequences by the number of supporting reads and the reference contexts in order of protein length and a configurable number of translated protein fragments can be kept from this ordering.
 
 ## Sequencing Recommendations
 

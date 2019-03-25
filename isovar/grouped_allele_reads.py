@@ -18,24 +18,20 @@ Collect AlleleReads overlapping each variant grouped by whether
 they support the reference, somatic allele, or some other allele.
 """
 
-
-
-from .allele_read_helpers import  split_reads_into_ref_alt_other
+from .allele_read_helpers import split_reads_into_ref_alt_other
 from .coverage_stats import CoverageStats
 from .variant_helpers import trim_variant
 from .value_object import ValueObject
 
 
-class VariantSupport(ValueObject):
+class GroupedAlleleReads(ValueObject):
     """
     This class represents the reads at a variant locus partitioned
-    by allele (ref/alt/other).
+    by allele (ref/alt/other) relative to a variant.
     """
 
     __slots__ = [
-        "variant",
-        "reads",
-        "trimemd_start",
+        "trimmed_start",
         "trimmed_ref",
         "trimmed_alt",
         "ref_reads",
@@ -43,20 +39,62 @@ class VariantSupport(ValueObject):
         "other_reads"
     ]
 
-    def __init__(
-            self,
+    @classmethod
+    def from_variant_and_allele_reads(
+            cls,
             variant,
-            reads):
-        self.variant = variant
-        self.reads = reads
+            allele_reads):
+        """
+        Create a GroupedAlleleReads object from a variant and the set of reads overlapping
+        the location of that variant.
 
-        trimmed_start, trimmed_ref, trimmed_alt = \
+        Parameters
+        ----------
+        variant : varcode.Variant
+
+        allele_reads : list of AlleleRead
+
+        Returns GroupedAlleleReads
+
+        """
+        trimmed_base1_start, trimmed_ref, trimmed_alt = \
             trim_variant(variant)
         ref_reads, alt_reads, other_reads = split_reads_into_ref_alt_other(
             ref=trimmed_ref,
             alt=trimmed_alt,
-            overlapping_reads=reads)
-        self.trimmed_start = trimmed_start
+            overlapping_reads=allele_reads)
+        return cls(
+            trimmed_base1_start=trimmed_base1_start,
+            trimmed_ref=trimmed_ref,
+            trimmed_alt=trimmed_alt,
+            ref_reads=ref_reads,
+            alt_reads=alt_reads,
+            other_reads=other_reads)
+
+    def __init__(
+            self,
+            trimmed_base1_start,
+            trimmed_ref,
+            trimmed_alt,
+            ref_reads,
+            alt_reads,
+            other_reads):
+        """
+        Parameters
+        ----------
+        trimmed_base1_start : int
+
+        trimmed_ref : str
+
+        trimmed_alt : str
+
+        ref_reads : list of AlleleRead
+
+        alt_reads : list of AlleleRead
+
+        other_reads : list of AlleleRead
+        """
+        self.trimmed_base1_start = trimmed_base1_start
         self.trimmed_ref = trimmed_ref
         self.trimmed_alt = trimmed_alt
         self.ref_reads = ref_reads
