@@ -38,12 +38,14 @@ class ProteinSequence(TranslationKey):
         # list of all the Translation objects which support this distinct
         # amino acid sequence
         "translations",
+        """
         # number of reads overlapping the variant locus supporting any allele,
         # including the reference, alt, or anything else
         "overlapping_reads",
         # number of reads overlapping this locus which support the reference
         # allele
         "ref_reads",
+        """
         # total number of reads at the locus which contained the variant
         # nucleotides, even if they supported other phased sequences
         "alt_reads",

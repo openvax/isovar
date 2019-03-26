@@ -116,7 +116,7 @@ class ProteinSequenceCreator(TranslationCreator):
         self.min_alt_rna_reads = min_alt_rna_reads
         self.min_ratio_alt_to_other_rna_fragments = min_ratio_alt_to_other_rna_fragments
         self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
-       
+
     
     def protein_sequences_from_variant_and_overlapping_reads(
             self,
