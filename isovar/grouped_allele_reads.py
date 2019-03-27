@@ -18,6 +18,8 @@ Collect AlleleReads overlapping each variant grouped by whether
 they support the reference, somatic allele, or some other allele.
 """
 
+from __future__ import print_function, division, absolute_import
+
 from .allele_read_helpers import split_reads_into_ref_alt_other
 from .coverage_stats import CoverageStats
 from .variant_helpers import trim_variant

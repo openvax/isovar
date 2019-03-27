@@ -38,14 +38,6 @@ class ProteinSequence(TranslationKey):
         # list of all the Translation objects which support this distinct
         # amino acid sequence
         "translations",
-        """
-        # number of reads overlapping the variant locus supporting any allele,
-        # including the reference, alt, or anything else
-        "overlapping_reads",
-        # number of reads overlapping this locus which support the reference
-        # allele
-        "ref_reads",
-        """
         # total number of reads at the locus which contained the variant
         # nucleotides, even if they supported other phased sequences
         "alt_reads",
@@ -146,57 +138,3 @@ class ProteinSequence(TranslationKey):
             transcripts_supporting_protein_sequence=(
                 transcripts_supporting_protein_sequence),
             gene=gene)
-
-    @property
-    def ref_read_names(self):
-        return {r.name for r in self.ref_reads}
-
-    @property
-    def alt_read_names(self):
-        return {r.name for r in self.alt_reads}
-
-    @property
-    def overlapping_read_names(self):
-        return {r.name for r in self.overlapping_reads}
-
-    @property
-    def ref_and_alt_read_names(self):
-        return self.ref_read_names.union(self.alt_read_names)
-
-    @property
-    def other_nonref_read_names(self):
-        return self.overlapping_read_names.difference(self.ref_and_alt_read_names)
-
-    @property
-    def num_ref_reads(self):
-        return len(self.ref_reads)
-
-    @property
-    def num_ref_fragments(self):
-        return len(self.ref_read_names)
-
-    @property
-    def num_alt_reads(self):
-        return len(self.alt_reads)
-
-    @property
-    def num_alt_fragments(self):
-        return len(self.alt_read_names)
-
-    @property
-    def num_overlapping_reads(self):
-        return len(self.overlapping_reads)
-
-    @property
-    def num_overlapping_fragments(self):
-        return len(self.overlapping_read_names)
-
-    @property
-    def num_other_nonref_reads(self):
-        num_nonref = self.num_overlapping_reads - self.num_ref_reads
-        return num_nonref - self.num_alt_reads
-
-    @property
-    def num_other_nonref_fragments(self):
-        num_nonref = self.num_overlapping_fragments - self.num_ref_fragments
-        return num_nonref - self.num_alt_fragments
