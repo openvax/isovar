@@ -38,20 +38,12 @@ class ProteinSequence(TranslationKey):
         # list of all the Translation objects which support this distinct
         # amino acid sequence
         "translations",
-        # total number of reads at the locus which contained the variant
-        # nucleotides, even if they supported other phased sequences
-        "alt_reads",
-        # number of unique read names from all the VariantSequence objects
-        # from each translation
-        "alt_reads_supporting_protein_sequence",
-        # IDs of transcripts overlapping the variant locus
-        "transcripts_overlapping_variant",
+        # AlleleRead objects used to construct coding sequence used
+        # to create this ProteinSequence
+        "reads_supporting_protein_sequence",
         # IDs of reference transcripts used to establish the reading frame for
         # this protein sequence
         "transcripts_supporting_protein_sequence",
-        # name of gene of the reference transcripts used in Translation
-        # objects
-        "gene",
     ]
 
     def __init__(
@@ -62,28 +54,20 @@ class ProteinSequence(TranslationKey):
             ends_with_stop_codon,
             frameshift,
             translations,
-            overlapping_reads,
-            ref_reads,
-            alt_reads,
-            alt_reads_supporting_protein_sequence,
-            transcripts_overlapping_variant,
-            transcripts_supporting_protein_sequence,
-            gene):
+            reads_supporting_protein_sequence,
+            transcripts_supporting_protein_sequence):
+        # fields of TranslationKey
         self.amino_acids = amino_acids
         self.variant_aa_interval_start = variant_aa_interval_start
         self.variant_aa_interval_end = variant_aa_interval_end
         self.ends_with_stop_codon = ends_with_stop_codon
         self.frameshift = frameshift
+
+        # extra fields added by ProteinSequence
         self.translations = translations
-        self.overlapping_reads = overlapping_reads
-        self.ref_reads = ref_reads
-        self.alt_reads = alt_reads
-        self.alt_reads_supporting_protein_sequence = (
-            alt_reads_supporting_protein_sequence)
-        self.transcripts_overlapping_variant = transcripts_overlapping_variant
-        self.transcripts_supporting_protein_sequence = (
-            transcripts_supporting_protein_sequence)
-        self.gene = gene
+        self.reads_supporting_protein_sequence = reads_supporting_protein_sequence
+        self.transcripts_supporting_protein_sequence = transcripts_supporting_protein_sequence
+
 
     @classmethod
     def _summarize_translations(cls, translations):
@@ -111,13 +95,8 @@ class ProteinSequence(TranslationKey):
             cls,
             translation_key,
             translations,
-            overlapping_reads,
-            ref_reads,
-            alt_reads,
-            alt_reads_supporting_protein_sequence,
-            transcripts_overlapping_variant,
-            transcripts_supporting_protein_sequence,
-            gene):
+            reads_supporting_protein_sequence,
+            transcripts_supporting_protein_sequence):
         """
         Create a ProteinSequence object from a TranslationKey, along with
         all the extra fields a ProteinSequence requires.
@@ -129,12 +108,5 @@ class ProteinSequence(TranslationKey):
             ends_with_stop_codon=translation_key.ends_with_stop_codon,
             frameshift=translation_key.frameshift,
             translations=translations,
-            overlapping_reads=overlapping_reads,
-            ref_reads=ref_reads,
-            alt_reads=alt_reads,
-            alt_reads_supporting_protein_sequence=(
-                alt_reads_supporting_protein_sequence),
-            transcripts_overlapping_variant=transcripts_overlapping_variant,
-            transcripts_supporting_protein_sequence=(
-                transcripts_supporting_protein_sequence),
-            gene=gene)
+            reads_supporting_protein_sequence=reads_supporting_protein_sequence,
+            transcripts_supporting_protein_sequence=transcripts_supporting_protein_sequence)

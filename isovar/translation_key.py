@@ -27,6 +27,7 @@ from .value_object import ValueObject
 
 logger = get_logger(__name__)
 
+
 class TranslationKey(ValueObject):
     """
     TranslationKey contains fields related to a translated protein sequence

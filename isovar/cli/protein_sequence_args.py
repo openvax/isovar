@@ -16,7 +16,7 @@
 from __future__ import print_function, division, absolute_import
 
 from ..default_parameters import MAX_PROTEIN_SEQUENCES_PER_VARIANT
-from ..protein_sequence_creator import ProteinSequenceCreator
+from ..isovar import ProteinSequenceCreator
 from ..dataframe_helpers import protein_sequences_generator_to_dataframe
 
 from .rna_args import overlapping_reads_generator_from_args

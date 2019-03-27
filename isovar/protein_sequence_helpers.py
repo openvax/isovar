@@ -37,6 +37,42 @@ def protein_sequence_ascending_sort_key(protein_sequence):
         len(protein_sequence.transcripts_supporting_protein_sequence)
     )
 
+def collapse_translations(translations):
+    """
+
+    Parameters
+    ----------
+    translations : list of Translation objects
+
+    Returns list of ProteinSequence objects
+    """
+    protein_sequences = []
+    for (key, equivalent_translations) in groupby(
+            translations, key_fn=Translation.as_translation_key).items():
+        # get the variant read names, transcript IDs and gene names for
+        # protein sequence we're about to construct
+        alt_reads_supporting_protein_sequence, group_transcript_ids, group_gene_names = \
+            ProteinSequence._summarize_translations(equivalent_translations)
+
+        logger.info(
+            "%s: %s alt reads supporting protein sequence (gene names = %s)",
+            key,
+            len(alt_reads_supporting_protein_sequence),
+            group_gene_names)
+
+        protein_sequence = ProteinSequence.from_translation_key(
+            translation_key=key,
+            translations=equivalent_translations,
+            overlapping_reads=overlapping_reads,
+            alt_reads=variant_support.alt_reads,
+            ref_reads=variant_support.ref_reads,
+            alt_reads_supporting_protein_sequence=alt_reads_supporting_protein_sequence,
+            transcripts_supporting_protein_sequence=group_transcript_ids,
+            transcripts_overlapping_variant=overlapping_transcript_ids,
+            gene=list(group_gene_names))
+        logger.info("%s: protein sequence = %s" % (key, protein_sequence.amino_acids))
+        protein_sequences.append(protein_sequence)
+
 
 def sort_protein_sequences(protein_sequences):
     """

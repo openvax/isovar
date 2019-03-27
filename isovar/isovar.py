@@ -1,4 +1,4 @@
-# Copyright (c) 2018. Mount Sinai School of Medicine
+# Copyright (c) 2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-"""
-Since multiple variant sequences can translate to the same amino acid sequence,
-this module aggregates equivalent Translation objects into a single
-ProteinSequence.
-"""
 
 from __future__ import print_function, division, absolute_import
 
@@ -41,12 +35,17 @@ from .common import groupby
 from .translation import Translation
 from .translation_creator import TranslationCreator
 from .logging import get_logger
-from .grouped_allele_reads import gather_variant_support
+from .grouped_allele_reads import GroupedAlleleReads
 
 logger = get_logger(__name__)
 
 
-class ProteinSequenceCreator(TranslationCreator):
+class Isovar(TranslationCreator):
+    """
+    This is the main entrypoint into the Isovar library, which collects
+    RNA reads supporting variants and translates their coding sequence
+    into amino acid sequences.
+    """
     def __init__(
             self,
             protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
@@ -101,16 +100,18 @@ class ProteinSequenceCreator(TranslationCreator):
             and contained within RNA reads.
 
         min_assembly_overlap_size : int
+            Minimum number of nucleotides that two reads need to overlap before they
+            can be merged into a single coding sequence.
         """
         TranslationCreator.__init__(
             self=self,
-            protein_sequence_length=self.protein_sequence_length,
-            min_variant_sequence_coverage=self.min_variant_sequence_coverage,
-            min_transcript_prefix_length=self.min_transcript_prefix_length,
-            max_transcript_mismatches=self.max_transcript_mismatches,
-            include_mismatches_after_variant=self.include_mismatches_after_variant,
-            variant_sequence_assembly=self.variant_sequence_assembly,
-            min_assembly_overlap_size=self.min_assembly_overlap_size)
+            protein_sequence_length=protein_sequence_length,
+            min_variant_sequence_coverage=min_variant_sequence_coverage,
+            min_transcript_prefix_length=min_transcript_prefix_length,
+            max_transcript_mismatches=max_transcript_mismatches,
+            include_mismatches_after_variant=include_mismatches_after_variant,
+            variant_sequence_assembly=variant_sequence_assembly,
+            min_assembly_overlap_size=min_assembly_overlap_size)
         self.min_alt_rna_fragments = min_alt_rna_fragments
         self.min_rna_vaf = min_rna_vaf
         self.min_alt_rna_reads = min_alt_rna_reads
@@ -118,7 +119,7 @@ class ProteinSequenceCreator(TranslationCreator):
         self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
 
     
-    def protein_sequences_from_variant_and_overlapping_reads(
+    def process_variant_with_allele_reads(
             self,
             variant,
             grouped_allele_reads,
@@ -138,6 +139,7 @@ class ProteinSequenceCreator(TranslationCreator):
             If given, expected to be a set of transcript IDs which we should use
             for determining the reading frame around a variant. If omitted, then
             try to use all overlapping reference transcripts.
+
         Returns a list of ProteinSequence objects
         """
         translations = self.translate_variant_reads(
@@ -150,33 +152,7 @@ class ProteinSequenceCreator(TranslationCreator):
             for t in variant.transcripts
             if t.is_protein_coding
         }
-        protein_sequences = []
-        for (key, equivalent_translations) in groupby(
-                translations, key_fn=Translation.as_translation_key).items():
 
-            # get the variant read names, transcript IDs and gene names for
-            # protein sequence we're about to construct
-            alt_reads_supporting_protein_sequence, group_transcript_ids, group_gene_names = \
-                ProteinSequence._summarize_translations(equivalent_translations)
-
-            logger.info(
-                "%s: %s alt reads supporting protein sequence (gene names = %s)",
-                key,
-                len(alt_reads_supporting_protein_sequence),
-                group_gene_names)
-
-            protein_sequence = ProteinSequence.from_translation_key(
-                translation_key=key,
-                translations=equivalent_translations,
-                overlapping_reads=overlapping_reads,
-                alt_reads=variant_support.alt_reads,
-                ref_reads=variant_support.ref_reads,
-                alt_reads_supporting_protein_sequence=alt_reads_supporting_protein_sequence,
-                transcripts_supporting_protein_sequence=group_transcript_ids,
-                transcripts_overlapping_variant=overlapping_transcript_ids,
-                gene=list(group_gene_names))
-            logger.info("%s: protein sequence = %s" % (key, protein_sequence.amino_acids))
-            protein_sequences.append(protein_sequence)
         # sort protein sequences before returning the top results
         protein_sequences = sort_protein_sequences(protein_sequences)
         return protein_sequences
