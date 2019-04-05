@@ -22,7 +22,7 @@ from __future__ import print_function, division, absolute_import
 
 from .value_object import  ValueObject
 
-class IsovarResult(ValueObject):
+class VariantResult(ValueObject):
     __slots__ = [
         "variant",
         "grouped_allele_reads",

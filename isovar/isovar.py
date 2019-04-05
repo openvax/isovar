@@ -117,9 +117,8 @@ class Isovar(TranslationCreator):
         self.min_alt_rna_reads = min_alt_rna_reads
         self.min_ratio_alt_to_other_rna_fragments = min_ratio_alt_to_other_rna_fragments
         self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
-
     
-    def process_variant_with_allele_reads(
+    def process_variant_with_grouped_allele_reads(
             self,
             variant,
             grouped_allele_reads,
@@ -186,3 +185,13 @@ class Isovar(TranslationCreator):
                     overlapping_reads=overlapping_reads,
                     transcript_id_whitelist=transcript_id_whitelist)
             yield variant, protein_sequences[:self.max_protein_sequences_per_variant]
+
+    def process_variant(self, variant, alignment_file):
+        """
+
+        Parameters
+        ----------
+        variant : varcode.Variant
+
+        Returns VariantResult
+        """

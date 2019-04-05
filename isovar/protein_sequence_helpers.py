@@ -21,10 +21,16 @@ ProteinSequence.
 
 from __future__ import print_function, division, absolute_import
 
+from .common import groupby
+from .logging import get_logger
+from .protein_sequence import ProteinSequence
+from .translation import  Translation
+
+logger = get_logger(__name__)
 
 def protein_sequence_ascending_sort_key(protein_sequence):
     """
-    Sort protein sequences lexicographically by three criteria:
+    Sort protein sequences lexicographically by these criteria:
         - number of unique supporting reads
         - minimum mismatch versus a supporting reference transcript before variant
         - minimum mismatch versus a supporting reference transcript after variant
@@ -37,8 +43,11 @@ def protein_sequence_ascending_sort_key(protein_sequence):
         len(protein_sequence.transcripts_supporting_protein_sequence)
     )
 
+
 def collapse_translations(translations):
     """
+    Convert a list of Translation objects into a (potentially smaller) list
+    of ProteinSequence objects by grouping the equivalent amino acid sequences.
 
     Parameters
     ----------
@@ -63,15 +72,11 @@ def collapse_translations(translations):
         protein_sequence = ProteinSequence.from_translation_key(
             translation_key=key,
             translations=equivalent_translations,
-            overlapping_reads=overlapping_reads,
-            alt_reads=variant_support.alt_reads,
-            ref_reads=variant_support.ref_reads,
-            alt_reads_supporting_protein_sequence=alt_reads_supporting_protein_sequence,
             transcripts_supporting_protein_sequence=group_transcript_ids,
-            transcripts_overlapping_variant=overlapping_transcript_ids,
             gene=list(group_gene_names))
         logger.info("%s: protein sequence = %s" % (key, protein_sequence.amino_acids))
         protein_sequences.append(protein_sequence)
+    return protein_sequences
 
 
 def sort_protein_sequences(protein_sequences):
