@@ -23,6 +23,12 @@ from __future__ import print_function, division, absolute_import
 from .value_object import  ValueObject
 
 class VariantResult(ValueObject):
+    """
+    This object represents all information gathered about a variant,
+    which includes the AlleleReads supporting any allele at this variant's
+    locus and any protein sequences generated from an alt-allele cDNA
+    assembly.
+    """
     __slots__ = [
         "variant",
         "grouped_allele_reads",

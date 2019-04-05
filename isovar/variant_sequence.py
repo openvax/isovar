@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,6 +49,11 @@ class VariantSequence(ValueObject):
 
     @property
     def read_names(self):
+        """
+        Unique read names from which this VariantSequence was constructed.
+
+        Returns set of str
+        """
         return {r.name for r in self.reads}
 
     def contains(self, other):
@@ -185,9 +190,19 @@ class VariantSequence(ValueObject):
         return coverage_array
 
     def min_coverage(self):
+        """
+        Minimum number of reads covering any base in the cDNA sequence
+
+        Returns int
+        """
         return np.min(self.coverage())
 
     def mean_coverage(self):
+        """
+        Average number of reads covering each base in the cDNA sequence.
+
+        Returns float
+        """
         return np.mean(self.coverage())
 
     def trim_by_coverage(self, min_reads):

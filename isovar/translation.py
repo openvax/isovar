@@ -20,8 +20,6 @@ translations.
 
 
 from __future__ import print_function, division, absolute_import
-import math
-
 
 from .logging import get_logger
 from .translation_key import TranslationKey
@@ -89,26 +87,56 @@ class Translation(TranslationKey):
 
     @property
     def number_mismatches_before_variant(self):
+        """
+        Number of nucleotides in the variant cDNA sequence which
+        don't match the ReferenceContext transcript sequence at
+        positions before the variant locus.
+
+        Returns int
+        """
         return self.variant_sequence_in_reading_frame.number_mismatches_before_variant
 
     @property
     def number_mismatches_after_variant(self):
+        """
+        Number of nucleotides in the variant cDNA sequence which
+        don't match the ReferenceContext transcript sequence at
+        positions after the variant locus.
+
+        Returns int
+        """
         return self.variant_sequence_in_reading_frame.number_mismatches_after_variant
 
     @property
     def cdna_sequence(self):
+        """
+        cDNA sequence assembled from variant supporting reads
+
+        Returns str
+        """
         return self.variant_sequence_in_reading_frame.cdna_sequence
 
     @property
     def offset_to_first_complete_codon(self):
+        """
+        Offset to first complete codon in the cDNA sequence
+
+        Returns int in {0, 1, 2}
+        """
         return self.variant_sequence_in_reading_frame.offset_to_first_complete_codon
 
     @property
     def variant_cdna_interval_start(self):
+        """
+        Interbase start coordinate of variant interval in the cDNA sequence
+        """
         return self.variant_sequence_in_reading_frame.variant_cdna_interval_start
 
     @property
     def variant_cdna_interval_end(self):
+        """
+        Interbase end coordinate of variant interval in the cDNA sequence
+        """
         return self.variant_sequence_in_reading_frame.variant_cdna_interval_end
 
     def as_translation_key(self):
