@@ -66,6 +66,18 @@ class ReferenceContext(ReferenceCodingSequenceKey):
 
     @classmethod
     def from_reference_coding_sequence_key(cls, key, variant, transcripts):
+        """
+        Construct a ReferenceContext object from a ReferenceSequenceKey, variant,
+        and a set of transcript.
+
+        Parameters
+        ----------
+        key : ReferenceSequenceKey
+        variant : varcode.Variant
+        transcripts : list of pyensembl.Transcript
+
+        Returns ReferenceContext
+        """
         return ReferenceContext(
             strand=key.strand,
             sequence_before_variant_locus=key.sequence_before_variant_locus,
