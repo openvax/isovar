@@ -15,6 +15,8 @@
 
 from __future__ import print_function, division, absolute_import
 
+from collections import OrderedDict
+
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
@@ -33,9 +35,11 @@ from .protein_sequence import ProteinSequence
 from .protein_sequence_helpers import sort_protein_sequences
 from .common import groupby
 from .translation import Translation
+from .translation_helpers import collapse_translations
 from .translation_creator import TranslationCreator
 from .logging import get_logger
 from .grouped_allele_reads import GroupedAlleleReads
+from .variant_result import VariantResult
 
 logger = get_logger(__name__)
 
@@ -118,7 +122,7 @@ class Isovar(TranslationCreator):
         self.min_ratio_alt_to_other_rna_fragments = min_ratio_alt_to_other_rna_fragments
         self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
     
-    def process_variant_with_grouped_allele_reads(
+    def protein_sequences_for_variant(
             self,
             variant,
             grouped_allele_reads,
@@ -146,19 +150,16 @@ class Isovar(TranslationCreator):
             variant_reads=grouped_allele_reads.alt_reads,
             transcript_id_whitelist=transcript_id_whitelist)
 
-        overlapping_transcript_ids = {
-            t.id
-            for t in variant.transcripts
-            if t.is_protein_coding
-        }
-
+        # group distinct cDNA translations into ProteinSequence objects
+        # by their amino acid sequence
+        protein_sequences = collapse_translations(translations)
         # sort protein sequences before returning the top results
         protein_sequences = sort_protein_sequences(protein_sequences)
         return protein_sequences
 
-    def reads_generator_to_protein_sequences_generator(
+    def protein_sequences_for_variant_generator(
             self,
-            variant_and_overlapping_reads_generator,
+            variant_and_grouped_reads_generator,
             transcript_id_whitelist=None):
         """"
         Translates each coding variant in a collection to one or more
@@ -167,24 +168,26 @@ class Isovar(TranslationCreator):
 
         Parameters
         ----------
-        variant_and_overlapping_reads_generator : generator
-            Yields sequence of varcode.Variant objects paired with sequences
-            of AlleleRead objects that support that variant.
+        variants_to_reads_dict : OrderedDict
+            Dictionary of varcode.Variant objects mapping to GroupedAlleleReads
+            object.
 
         transcript_id_whitelist : set, optional
             If given, expected to be a set of transcript IDs which we should use
             for determining the reading frame around a variant. If omitted, then
             try to use all overlapping reference transcripts.
 
-        Yields pairs of a Variant and a list of ProteinSequence objects
+        A dictionary mapping from varcode.Variant to a list of ProteinSequence objects
         """
-        for (variant, overlapping_reads) in variant_and_overlapping_reads_generator:
+        result = OrderedDict()
+        for (variant, grouped_allele_reads) in variants_to_reads_dict.items():
             protein_sequences = \
-                self.protein_sequences_from_variant_and_overlapping_reads(
+                self.generate_protein_sequences(
                     variant=variant,
-                    overlapping_reads=overlapping_reads,
+                    grouped_allele_reads=grouped_allele_reads,
                     transcript_id_whitelist=transcript_id_whitelist)
-            yield variant, protein_sequences[:self.max_protein_sequences_per_variant]
+            result[variant] = protein_sequences[:self.max_protein_sequences_per_variant]
+        return result
 
     def process_variant(self, variant, alignment_file):
         """
@@ -195,3 +198,8 @@ class Isovar(TranslationCreator):
 
         Returns VariantResult
         """
+        grouped_allele_reads = GroupedAlleleReads.from_variant_and_allele_reads(
+            variant=variant,
+            allele_reads=allele_reads)
+
+        return VariantResult(variant, grouped_allele_reads, sorted_protein_sequences)

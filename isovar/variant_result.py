@@ -105,3 +105,31 @@ class VariantResult(ValueObject):
     def num_other_fragments(self):
         num_nonref = self.num_overlapping_fragments - self.num_ref_fragments
         return num_nonref - self.num_alt_fragments
+
+    def overlapping_transcripts(self, coding_only=True):
+        return {
+            t
+            for t in self.variant.transcripts
+            if not coding_only or t.is_protein_coding
+        }
+
+    def overlapping_transcript_ids(self, coding_only=True):
+        return {
+            t.id
+            for t in self.variant.transcripts
+            if not coding_only or t.is_protein_coding
+        }
+
+    def overlapping_genes(self, coding_only=True):
+        return {
+            g
+            for g in self.variant.genes
+            if not coding_only or g.is_protein_coding
+        }
+
+    def overlapping_gene_ids(self, coding_only=True):
+        return {
+            g.id
+            for g in self.variant.genes
+            if not coding_only or g.is_protein_coding
+        }
