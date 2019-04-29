@@ -29,7 +29,11 @@ from .default_parameters import (
     MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_ASSEMBLY,
-    MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
+    MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+    USE_SECONDARY_ALIGNMENTS,
+    USE_DUPLICATE_READS,
+    MIN_READ_MAPPING_QUALITY,
+    USE_SOFT_CLIPPED_BASES
 )
 from .protein_sequence import ProteinSequence
 from .protein_sequence_helpers import sort_protein_sequences
@@ -39,12 +43,13 @@ from .translation_helpers import collapse_translations
 from .translation_creator import TranslationCreator
 from .logging import get_logger
 from .grouped_allele_reads import GroupedAlleleReads
-from .variant_result import VariantResult
+from .isovar_result import IsovarResult
+from .read_collector import ReadCollector
 
 logger = get_logger(__name__)
 
 
-class Isovar(TranslationCreator):
+class Isovar(object):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
@@ -63,7 +68,11 @@ class Isovar(TranslationCreator):
             include_mismatches_after_variant=INCLUDE_MISMATCHES_AFTER_VARIANT,
             max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
             variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY,
-            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
+            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+            use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
+            use_duplicate_reads=USE_DUPLICATE_READS,
+            min_mapping_quality=MIN_READ_MAPPING_QUALITY,
+            use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES):
         """
         protein_sequence_length : int
             Try to translate protein sequences of this length, though sometimes
@@ -106,9 +115,26 @@ class Isovar(TranslationCreator):
         min_assembly_overlap_size : int
             Minimum number of nucleotides that two reads need to overlap before they
             can be merged into a single coding sequence.
+
+        use_secondary_alignments : bool
+            Use a read even when it's not the primary alignment at a locus
+
+        use_duplicate_reads : bool
+            Use a read even if it's been marked as a duplicate
+
+        min_mapping_quality : int
+            Minimum MAPQ (mapping quality) to use a read
+
+        use_soft_clipped_bases : bool
+            Include soft-clipped positions on a read which were ignored by the aligner
         """
-        TranslationCreator.__init__(
-            self=self,
+        self._read_collector = ReadCollector(
+            use_secondary_alignments=use_secondary_alignments,
+            use_duplicate_reads=use_duplicate_reads,
+            min_mapping_quality=min_mapping_quality,
+            use_soft_clipped_bases=use_soft_clipped_bases)
+
+        self._translation_creator = TranslationCreator(
             protein_sequence_length=protein_sequence_length,
             min_variant_sequence_coverage=min_variant_sequence_coverage,
             min_transcript_prefix_length=min_transcript_prefix_length,
@@ -116,6 +142,8 @@ class Isovar(TranslationCreator):
             include_mismatches_after_variant=include_mismatches_after_variant,
             variant_sequence_assembly=variant_sequence_assembly,
             min_assembly_overlap_size=min_assembly_overlap_size)
+
+
         self.min_alt_rna_fragments = min_alt_rna_fragments
         self.min_rna_vaf = min_rna_vaf
         self.min_alt_rna_reads = min_alt_rna_reads
@@ -202,4 +230,4 @@ class Isovar(TranslationCreator):
             variant=variant,
             allele_reads=allele_reads)
 
-        return VariantResult(variant, grouped_allele_reads, sorted_protein_sequences)
+        return IsovarResult(variant, grouped_allele_reads, sorted_protein_sequences)
