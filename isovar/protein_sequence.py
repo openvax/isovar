@@ -110,3 +110,71 @@ class ProteinSequence(TranslationKey):
             translations=translations,
             reads_supporting_protein_sequence=reads_supporting_protein_sequence,
             transcripts_supporting_protein_sequence=transcripts_supporting_protein_sequence)
+
+    @property
+    def num_supporting_fragments(self):
+        """
+        Number of unique read names used to construct the cDNA sequences from
+        which this protein sequence was translated.
+
+        Returns int
+        """
+        return len({r.name for r in self.reads_supporting_protein_sequence})
+
+    @property
+    def num_supporting_reads(self):
+        """
+        Number of reads used to construct the cDNA sequences from
+        which this protein sequence was translated.
+
+        Returns int
+        """
+        return len(self.reads_supporting_protein_sequence)
+
+    @property
+    def num_mismatches_before_variant(self):
+        """
+        Since a ProteinSequence may arise from multiple equivalent translations,
+        take the minimum mismatch score from all the translations.
+
+        Returns int
+        """
+        return min(t.number_mismatches_before_variant for t in self.translations)
+
+
+    @property
+    def num_mismatches_after_variant(self):
+        """
+        Since a ProteinSequence may arise from multiple equivalent translations,
+        take the minimum mismatch score from all the translations.
+
+        Returns int
+        """
+        return min(t.number_mismatches_after_variant for t in self.translations)
+
+    @property
+    def num_mismatches(self):
+        """
+        Add up the mismatches before and after the variant across all
+        translations used to create this ProteinSequence.
+
+        Returns int
+        """
+        return self.num_mismatches_before_variant + self.num_mismatches_after_variant
+
+    def ascending_sort_key(self):
+        """
+        Sort key function used to sort protein sequences lexicographically by these criteria:
+            - number of unique supporting fragments
+            - number of unique supporting reads (either 1 or 2 per fragment)
+            - minimum mismatch versus a supporting reference transcript before variant
+            - minimum mismatch versus a supporting reference transcript after variant
+            - number of supporting reference transcripts
+        """
+        return (
+            self.num_supporting_fragments,
+            self.num_supporting_reads,
+            self.num_mismatches_before_variant,
+            self.num_mismatches_after_variant,
+            self.num_supporting_transcripts,
+        )

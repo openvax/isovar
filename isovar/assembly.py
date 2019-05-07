@@ -57,6 +57,7 @@ def greedy_merge_helper(
     result = list(merged_variant_sequences.values()) + list(unmerged_variant_sequences)
     return result, merged_any
 
+
 def greedy_merge(
         variant_sequences,
         min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
@@ -74,6 +75,7 @@ def greedy_merge(
             variant_sequences,
             min_overlap_size=min_overlap_size)
     return variant_sequences
+
 
 def collapse_substrings(variant_sequences):
     """

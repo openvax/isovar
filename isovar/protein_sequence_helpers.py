@@ -28,21 +28,6 @@ from .translation import  Translation
 
 logger = get_logger(__name__)
 
-def protein_sequence_ascending_sort_key(protein_sequence):
-    """
-    Sort protein sequences lexicographically by these criteria:
-        - number of unique supporting reads
-        - minimum mismatch versus a supporting reference transcript before variant
-        - minimum mismatch versus a supporting reference transcript after variant
-        - number of supporting reference transcripts
-    """
-    return (
-        len(protein_sequence.alt_reads_supporting_protein_sequence),
-        min(t.number_mismatches_before_variant for t in protein_sequence.translations),
-        min(t.number_mismatches_after_variant for t in protein_sequence.translations),
-        len(protein_sequence.transcripts_supporting_protein_sequence)
-    )
-
 
 def collapse_translations(translations):
     """
@@ -86,5 +71,5 @@ def sort_protein_sequences(protein_sequences):
     return list(
         sorted(
             protein_sequences,
-            key=protein_sequence_ascending_sort_key,
+            key=ProteinSequence.ascending_sort_key,
             reverse=True))

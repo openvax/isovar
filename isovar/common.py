@@ -36,6 +36,7 @@ def groupby(xs, key_fn):
         result[key].append(x)
     return result
 
+
 def safediv(x, y):
     """
     Compute ratio between two fields safely, so that

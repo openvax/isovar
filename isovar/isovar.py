@@ -35,14 +35,12 @@ from .default_parameters import (
     MIN_READ_MAPPING_QUALITY,
     USE_SOFT_CLIPPED_BASES
 )
-from .protein_sequence import ProteinSequence
+
 from .protein_sequence_helpers import sort_protein_sequences
-from .common import groupby
-from .translation import Translation
 from .translation_helpers import collapse_translations
 from .translation_creator import TranslationCreator
 from .logging import get_logger
-from .grouped_allele_reads import GroupedAlleleReads
+
 from .isovar_result import IsovarResult
 from .read_collector import ReadCollector
 
