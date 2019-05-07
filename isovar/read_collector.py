@@ -541,7 +541,7 @@ class ReadCollector(object):
         alignment_file : pysam.AlignmentFile
             Aligned RNA reads
 
-        Returns OrderedDict mapping varcode.Variant to VariantSupport
+        Returns OrderedDict mapping varcode.Variant to GroupedAlleleReads
         """
         variant_to_support_dict = OrderedDict()
         for variant in variants:
@@ -549,6 +549,6 @@ class ReadCollector(object):
                 alignment_file=alignment_file,
                 variant=variant)
             variant_to_support_dict[variant] = \
-                    GroupedAlleleReads.from_variant_and_allele_reads(variant, allele_reads)
+                GroupedAlleleReads.from_variant_and_allele_reads(variant, allele_reads)
         return variant_to_support_dict
 

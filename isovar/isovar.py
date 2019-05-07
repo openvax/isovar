@@ -209,25 +209,48 @@ class Isovar(object):
         """
         result = OrderedDict()
         for (variant, grouped_allele_reads) in variants_to_reads_dict.items():
+
+            result[variant] = protein_sequences[:self.max_protein_sequences_per_variant]
+        return result
+
+    def process_variants(
+            self,
+            variants,
+            aligned_rna_reads,
+            transcript_id_whitelist=None):
+        """
+
+        Parameters
+        ----------
+        variants : varcode.VariantCollection
+            Somatic variants
+
+        aligned_rna_reads : pysam.AlignmentFile
+            Aligned tumor RNA reads
+
+        transcript_id_whitelist : set of str or None
+            Which transcripts should be considered when predicting DNA-only
+            coding effects of mutations and also when trying to establish a
+            reading frame for identified cDNA sequences.
+
+        Generator of IsovarResult objects, one for each variant.
+        The `protein_sequences` field of the IsovarVar result will be empty
+        if no sequences could be determined.
+        """
+
+        # create generator which returns (Variant, GroupedAlleleReads) pairs
+        variant_and_read_gen = \
+               self._read_collector.grouped_allele_reads_overlapping_variants(
+                   variants=variants,
+                   alignment_file=aligned_rna_reads)
+
+        for variant, grouped_allele_reads in  variant_and_read_gen:
             protein_sequences = \
                 self.generate_protein_sequences(
                     variant=variant,
                     grouped_allele_reads=grouped_allele_reads,
                     transcript_id_whitelist=transcript_id_whitelist)
-            result[variant] = protein_sequences[:self.max_protein_sequences_per_variant]
-        return result
-
-    def process_variant(self, variant, alignment_file):
-        """
-
-        Parameters
-        ----------
-        variant : varcode.Variant
-
-        Returns VariantResult
-        """
-        grouped_allele_reads = GroupedAlleleReads.from_variant_and_allele_reads(
-            variant=variant,
-            allele_reads=allele_reads)
-
-        return IsovarResult(variant, grouped_allele_reads, sorted_protein_sequences)
+            yield IsovarResult(
+                variant=variant,
+                grouped_allele_reads=grouped_allele_reads,
+                sorted_protein_sequences=sort_protein_sequences)

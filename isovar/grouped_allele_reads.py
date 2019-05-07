@@ -85,16 +85,25 @@ class GroupedAlleleReads(ValueObject):
         Parameters
         ----------
         trimmed_base1_start : int
+            Base-1 inclusive genomic position indicating start of variant,
+            trimmed to avoid any shared prefix between the ref and alt sequences
 
         trimmed_ref : str
+            Reference allele, trimmed to avoid any shared prefix with the alt
+            sequence.
 
         trimmed_alt : str
+            Alternate allele, trimmed to avoid any shared prefix with the ref
+            sequence.
 
         ref_reads : list of AlleleRead
+            Reads supporting the reference allele
 
         alt_reads : list of AlleleRead
+            Reads supporting the alt allele
 
         other_reads : list of AlleleRead
+            Reads supporting some allele other than ref or alt.
         """
         self.trimmed_base1_start = trimmed_base1_start
         self.trimmed_ref = trimmed_ref
