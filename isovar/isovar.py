@@ -180,6 +180,36 @@ class Isovar(object):
         protein_sequences = sort_protein_sequences(protein_sequences)
         return protein_sequences
 
+    def _predicted_effect(
+            self,
+            variant,
+            transcript_id_whitelist=None):
+        """
+        Find the best predicted effect for the given variant. If we have a
+        transcript whitelist (based on filtering bulk expression) then use
+        it to eliminate some of the effect predictions.
+
+        Parameters
+        ----------
+        variant : varcode.Variant
+        transcript_id_whitelist : set or None
+
+        Returns subclass of varcode.MutationEffect
+        """
+        # get the predicted coding effect from Varcode in case we want to filter 
+        # on mutations which we believe affect the coding sequence even without 
+        # looking at RNA reads directly
+        effects = variant.effects()
+        if transcript_id_whitelist:
+            filtered_effects = effects.filter(
+                lambda e: e.transcript_id in transcript_id_whitelist)
+            if len(filtered_effects) > 0:
+                # only drop effects if some are left with non-zero expression
+                # otherwise we can't ascribe any effect prediction to this
+                # variant
+                effects = filtered_effects
+        return effects.top_priority_effect()
+    
     def process_variants(
             self,
             variants,
@@ -212,14 +242,22 @@ class Isovar(object):
                alignment_file=aligned_rna_reads)
 
         for variant, grouped_allele_reads in  variant_and_read_gen:
+            # generate protein sequences by assembling variant reads
             protein_sequences = \
                 self.sorted_protein_sequences_for_variant(
                     variant=variant,
                     grouped_allele_reads=grouped_allele_reads,
                     transcript_id_whitelist=transcript_id_whitelist)
+
+            # if we're only keeping the top-k, get rid of the rest
             if self.max_protein_sequences_per_variant:
                 protein_sequences = protein_sequences[:self.max_protein_sequences_per_variant]
+
+            predicted_effect = self._predicted_effect(
+                variant=variant,
+                transcript_id_whitelist=transcript_id_whitelist)
             yield IsovarResult(
                 variant=variant,
+                predicted_effect=predicted_effect,
                 grouped_allele_reads=grouped_allele_reads,
                 protein_sequences=protein_sequences)

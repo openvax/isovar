@@ -35,12 +35,14 @@ class IsovarResult(ValueObject):
     """
     __slots__ = [
         "variant",
+        "predicted_effect",
         "grouped_allele_reads",
         "sorted_protein_sequences",
     ]
 
-    def __init__(self, variant, grouped_allele_reads, sorted_protein_sequences):
+    def __init__(self, variant, predicted_effect, grouped_allele_reads, sorted_protein_sequences):
         self.variant = variant
+        self.predicted_effect = predicted_effect
         self.grouped_allele_reads = grouped_allele_reads
         self.sorted_protein_sequences = sorted_protein_sequences
 
@@ -70,13 +72,43 @@ class IsovarResult(ValueObject):
         """
         d = OrderedDict([
             ("variant", self.variant.short_description),
-            ("variant_gene", ";".join(self.variant.gene_names)),
+            ("variant_gene", ";".join(self.variant.gene_names))
         ])
 
         # get all quantitative fields from this object
         for key in self.__dict__:
             if key.startswith("num_") or key.startswith("fraction_") or key.startswith("ratio_"):
                 d[key] = getattr(self, key)
+
+        effect = self.predicted_effect
+
+        ########################################################################
+        # predicted protein changes without looking at RNA reads
+        ########################################################################
+        d["predicted_effect"] = effect.short_description
+        d["predicted_effect_class"] = effect.__class__.__name__
+
+        # list of field names on varcode effect properties
+        effect_properties = [
+            "gene_name",
+            "gene_id",
+            "transcript_id",
+            "transcript_name",
+            "modifies_protein_sequence",
+            "original_protein_sequence",
+            "aa_mutation_start_offset",
+            "aa_mutation_end_offset",
+            "mutant_protein_sequence"
+        ]
+        for field_name in effect_properties:
+            # store effect fields with prefix 'predicted_effect_' and use
+            # getattr in case the field is not available for all effects
+            d["predicted_effect_%s" % field_name] = getattr(
+                effect,
+                field_name,
+                None)
+
+
 
         # get the top protein sequence, if one exists
         protein_sequence = self.top_protein_sequence
@@ -95,10 +127,7 @@ class IsovarResult(ValueObject):
             ("protein_sequence_num_supporting_fragments", "num_supporting_fragments"),
         ]
         for (name, protein_sequence_field) in protein_sequence_properties:
-            if protein_sequence is None:
-                d[name] = None
-            else:
-                d[name] = getattr(protein_sequence, protein_sequence_field)
+            d[name] = getattr(protein_sequence, protein_sequence_field, None)
         return d
 
     @property

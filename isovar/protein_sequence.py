@@ -139,7 +139,7 @@ class ProteinSequence(TranslationKey):
 
         Returns int
         """
-        return min(t.number_mismatches_before_variant for t in self.translations)
+        return min(t.num_mismatches_before_variant for t in self.translations)
 
     @property
     def num_mismatches_after_variant(self):
@@ -149,7 +149,7 @@ class ProteinSequence(TranslationKey):
 
         Returns int
         """
-        return min(t.number_mismatches_after_variant for t in self.translations)
+        return min(t.num_mismatches_after_variant for t in self.translations)
 
     @property
     def num_mismatches(self):

@@ -81,14 +81,9 @@ class Translation(TranslationKey):
         return (
             self.variant_orf.reference_cdna_sequence_before_variant)
 
-    @property
-    def number_mismatches(self):
-        """Only counting number of mismatches before the variant locus.
-        """
-        return self.number_mismatches_before_variant
 
     @property
-    def number_mismatches_before_variant(self):
+    def num_mismatches_before_variant(self):
         """
         Number of nucleotides in the variant cDNA sequence which
         don't match the ReferenceContext transcript sequence at
@@ -96,10 +91,10 @@ class Translation(TranslationKey):
 
         Returns int
         """
-        return self.variant_orf.number_mismatches_before_variant
+        return self.variant_orf.num_mismatches_before_variant
 
     @property
-    def number_mismatches_after_variant(self):
+    def num_mismatches_after_variant(self):
         """
         Number of nucleotides in the variant cDNA sequence which
         don't match the ReferenceContext transcript sequence at
@@ -107,7 +102,7 @@ class Translation(TranslationKey):
 
         Returns int
         """
-        return self.variant_orf.number_mismatches_after_variant
+        return self.variant_orf.num_mismatches_after_variant
 
     @property
     def cdna_sequence(self):

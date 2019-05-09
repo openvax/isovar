@@ -49,8 +49,8 @@ class VariantORF(ValueObject):
         "variant_cdna_interval_end",
         "reference_cdna_sequence_before_variant",
         "reference_cdna_sequence_after_variant",
-        "number_mismatches_before_variant",
-        "number_mismatches_after_variant"
+        "num_mismatches_before_variant",
+        "num_mismatches_after_variant"
     ]
 
     def __init__(
@@ -61,8 +61,8 @@ class VariantORF(ValueObject):
             variant_cdna_interval_end,
             reference_cdna_sequence_before_variant,
             reference_cdna_sequence_after_variant,
-            number_mismatches_before_variant,
-            number_mismatches_after_variant):
+            num_mismatches_before_variant,
+            num_mismatches_after_variant):
         self.cdna_sequence = cdna_sequence
         self.offset_to_first_complete_codon = offset_to_first_complete_codon
         self.variant_cdna_interval_start = variant_cdna_interval_start
@@ -71,8 +71,8 @@ class VariantORF(ValueObject):
             reference_cdna_sequence_before_variant)
         self.reference_cdna_sequence_after_variant = (
             reference_cdna_sequence_after_variant)
-        self.number_mismatches_before_variant = number_mismatches_before_variant
-        self.number_mismatches_after_variant = number_mismatches_after_variant
+        self.num_mismatches_before_variant = num_mismatches_before_variant
+        self.num_mismatches_after_variant = num_mismatches_after_variant
 
     @property
     def in_frame_cdna_sequence(self):
@@ -113,8 +113,10 @@ class VariantORF(ValueObject):
             reference_suffix,
             n_trimmed_from_reference)
 
-        n_mismatch_before_variant = count_mismatches_before_variant(reference_prefix, cdna_prefix)
-        n_mismatch_after_variant = count_mismatches_after_variant(reference_suffix, cdna_suffix)
+        n_mismatch_before_variant = count_mismatches_before_variant(
+            reference_prefix, cdna_prefix)
+        n_mismatch_after_variant = count_mismatches_after_variant(
+            reference_suffix, cdna_suffix)
 
         ref_codon_offset = reference_context.offset_to_first_complete_codon
 
@@ -136,8 +138,8 @@ class VariantORF(ValueObject):
             variant_cdna_interval_end=variant_interval_end,
             reference_cdna_sequence_before_variant=reference_prefix,
             reference_cdna_sequence_after_variant=reference_suffix,
-            number_mismatches_before_variant=n_mismatch_before_variant,
-            number_mismatches_after_variant=n_mismatch_after_variant)
+            num_mismatches_before_variant=n_mismatch_before_variant,
+            num_mismatches_after_variant=n_mismatch_after_variant)
 
 
 def trim_sequences(variant_sequence, reference_context):
