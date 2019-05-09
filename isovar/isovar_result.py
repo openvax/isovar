@@ -20,6 +20,9 @@ and any protein sequences which were successfully translated for it.
 
 from __future__ import print_function, division, absolute_import
 
+from collections import OrderedDict
+
+from .common import safediv
 from .value_object import  ValueObject
 
 
@@ -40,6 +43,63 @@ class IsovarResult(ValueObject):
         self.variant = variant
         self.grouped_allele_reads = grouped_allele_reads
         self.sorted_protein_sequences = sorted_protein_sequences
+
+    @property
+    def top_protein_sequence(self):
+        """
+        If any protein sequences were assembled for this variant then
+        return the best according to coverage, number of mismatches
+        relative to the reference, number of reference transcripts
+        which match sequence before the variant and protein
+        sequence length.
+
+        Returns ProteinSequence or None
+        """
+        if len(self.sorted_protein_sequences) > 0:
+            return self.sorted_protein_sequences[0]
+        else:
+            return None
+
+    def to_record(self):
+        """
+        Create an OrderedDict of essential information from
+        this IsovarResult to be used for building a DataFrame across
+        variants.
+
+        Returns OrderedDict
+        """
+        d = OrderedDict([
+            ("variant", self.variant.short_description),
+            ("variant_gene", ";".join(self.variant.gene_names)),
+        ])
+
+        # get all quantitative fields from this object
+        for key in self.__dict__:
+            if key.startswith("num_") or key.startswith("fraction_") or key.startswith("ratio_"):
+                d[key] = getattr(self, key)
+
+        # get the top protein sequence, if one exists
+        protein_sequence = self.top_protein_sequence
+
+        # list of names we want to use in the result dictionary,
+        # paired with names of fields on ProteinSequence
+        protein_sequence_properties = [
+            ("protein_sequence", "amino_acid"),
+            ("protein_sequence_mutation_start", "variant_aa_interval_start"),
+            ("protein_sequence_mutation_end", "variant_aa_interval_stop"),
+            ("protein_sequence_ends_with_stop_codon", "ends_with_stop_codon"),
+            ("protein_sequence_mismatches", "num_mismatches"),
+            ("protein_sequence_mismatches_before_variant", "num_mismatches_before_variant"),
+            ("protein_sequence_mismatches_after_variant", "num_mismatches_after_variant"),
+            ("protein_sequence_num_supporting_reads", "num_supporting_reads"),
+            ("protein_sequence_num_supporting_fragments", "num_supporting_fragments"),
+        ]
+        for (name, protein_sequence_field) in protein_sequence_properties:
+            if protein_sequence is None:
+                d[name] = None
+            else:
+                d[name] = getattr(protein_sequence, protein_sequence_field)
+        return d
 
     @property
     def ref_reads(self):
@@ -78,6 +138,13 @@ class IsovarResult(ValueObject):
         return {r.name for r in self.alt_reads}
 
     @property
+    def ref_and_alt_read_names(self):
+        """
+        Names of reads which support either the ref or alt alleles.
+        """
+        return self.ref_read_names.union(self.alt_read_names)
+
+    @property
     def other_read_names(self):
         """
         Names of other (non-alt, non-ref) reads at this locus.
@@ -107,13 +174,6 @@ class IsovarResult(ValueObject):
         return len(self.all_read_names)
 
     @property
-    def ref_and_alt_read_names(self):
-        """
-        Names of reads which support either the ref or alt alleles.
-        """
-        return self.ref_read_names.union(self.alt_read_names)
-
-    @property
     def num_ref_reads(self):
         """
         Number of reads which support the reference allele.
@@ -125,7 +185,6 @@ class IsovarResult(ValueObject):
         """
         Number of distinct fragments which support the reference allele.
         """
-
         return len(self.ref_read_names)
 
     @property
@@ -159,14 +218,89 @@ class IsovarResult(ValueObject):
         num_nonref = self.num_overlapping_fragments - self.num_ref_fragments
         return num_nonref - self.num_alt_fragments
 
-    def overlapping_transcripts(self, coding_only=True):
+    @property
+    def fraction_ref_reads(self):
+        """
+        Allelic fraction of the reference allele among all reads at this site.
+        """
+        return safediv(self.num_ref_reads, self.num_reads)
+
+    @property
+    def fraction_ref_fragments(self):
+        """
+        Allelic fraction of the reference allele among all fragments at this site.
+        """
+        return safediv(self.num_ref_fragments, self.num_fragments)
+
+    @property
+    def fraction_alt_reads(self):
+        """
+        Allelic fraction of the variant allele among all reads at this site.
+        """
+        return safediv(self.num_alt_reads, self.num_reads)
+
+    @property
+    def fraction_alt_fragments(self):
+        """
+        Allelic fraction of the variant allele among all fragments at this site.
+        """
+        return safediv(self.num_alt_fragments, self.num_fragments)
+
+    @property
+    def fraction_other_reads(self):
+        """
+        Allelic fraction of the "other" (non-ref, non-alt) alleles among all
+        reads at this site.
+        """
+        return safediv(self.num_other_reads, self.num_reads)
+
+    @property
+    def fraction_other_fragments(self):
+        """
+        Allelic fraction of the "other" (non-ref, non-alt) alleles among all
+        fragments at this site.
+        """
+        return safediv(self.num_other_fragments, self.num_fragments)
+
+    @property
+    def ratio_other_to_ref_reads(self):
+        """
+        Ratio of the number of reads which support alleles which are neither
+        ref/alt to the number of ref reads.
+        """
+        return safediv(self.num_other_reads, self.num_ref_reads)
+
+    @property
+    def ratio_other_to_ref_fragments(self):
+        """
+        Ratio of the number of fragments which support alleles which are neither
+        ref/alt to the number of ref fragments.
+        """
+        return safediv(self.num_other_fragments, self.num_ref_fragments)
+
+    @property
+    def ratio_other_to_alt_reads(self):
+        """
+        Ratio of the number of reads which support alleles which are neither
+        ref/alt to the number of alt reads.
+        """
+        return safediv(self.num_other_reads, self.num_alt_reads)
+
+    @property
+    def ratio_other_to_alt_fragments(self):
+        """
+        Ratio of the number of fragments which support alleles which are neither
+        ref/alt to the number of alt fragments.
+        """
+        return safediv(self.num_other_fragments, self.num_alt_fragments)
+
+    def overlapping_transcripts(self, only_coding=True):
         """
         Transcripts which this variant overlaps.
 
-
         Parameters
         ----------
-        coding_only : bool
+        only_coding : bool
             Only return transcripts which are annotated as coding for a
             protein (default=True)
 
@@ -175,16 +309,16 @@ class IsovarResult(ValueObject):
         return {
             t
             for t in self.variant.transcripts
-            if not coding_only or t.is_protein_coding
+            if not only_coding or t.is_protein_coding
         }
 
-    def overlapping_transcript_ids(self, coding_only=True):
+    def overlapping_transcript_ids(self, only_coding=True):
         """
         Transcript IDs which this variant overlaps.
 
         Parameters
         ----------
-        coding_only : bool
+        only_coding : bool
             Only return transcripts which are annotated as coding for a
             protein (default=True)
         Returns set of str
@@ -192,16 +326,16 @@ class IsovarResult(ValueObject):
         return {
             t.id
             for t in self.variant.transcripts
-            if not coding_only or t.is_protein_coding
+            if not only_coding or t.is_protein_coding
         }
 
-    def overlapping_genes(self, coding_only=True):
+    def overlapping_genes(self, only_coding=True):
         """
         Genes which this variant overlaps.
 
         Parameters
         ----------
-        coding_only : bool
+        only_coding : bool
             Only return genes which are annotated as coding for a
             protein (default=True)
 
@@ -210,16 +344,16 @@ class IsovarResult(ValueObject):
         return {
             g
             for g in self.variant.genes
-            if not coding_only or g.is_protein_coding
+            if not only_coding or g.is_protein_coding
         }
 
-    def overlapping_gene_ids(self, coding_only=True):
+    def overlapping_gene_ids(self, only_coding=True):
         """
         Gene IDs which this variant overlaps.
 
         Parameters
         ----------
-        coding_only : bool
+        only_coding : bool
             Only return genes which are annotated as coding for a
             protein (default=True)
 
@@ -228,5 +362,81 @@ class IsovarResult(ValueObject):
         return {
             g.id
             for g in self.variant.genes
-            if not coding_only or g.is_protein_coding
+            if not only_coding or g.is_protein_coding
         }
+
+    def transcripts_from_of_protein_sequences(self, protein_sequence_limit=None):
+        """
+        Ensembl transcript IDs of all transcripts which support the reading
+        frame used by protein sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        protein_sequence_limit : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of str
+        """
+        transcript_set = set([])
+        for p in self.sorted_protein_sequences[:protein_sequence_limit]:
+            transcript_set.update(p.transcript_ids_supporting_protein_sequence)
+        return sorted(transcript_set)
+
+    def transcripts_from_protein_sequences(self, protein_sequence_limit=None):
+        """
+        Ensembl transcripts which support the reading frame used by protein
+        sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        protein_sequence_limit : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of pyensembl.Transcript
+        """
+        genome = self.variant.genome
+        transcript_ids = self.transcript_ids_used_by_protein_sequences(
+            num_protein_sequences=protein_sequence_limit)
+        return [
+            genome.transcript_by_id(transcript_id)
+            for transcript_id in transcript_ids
+        ]
+
+    def genes_from_protein_sequences(self, protein_sequence_limit=None):
+        """
+        Ensembl genes which support the reading frame used by protein
+        sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        protein_sequence_limit : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of pyensembl.Gene
+        """
+        transcripts = self.transcripts_used_by_protein_sequences(
+            protein_sequence_limit=protein_sequence_limit)
+        genes = [t.gene for t in transcripts]
+        return sorted(genes)
+
+    def gene_ids_from_protein_sequences(self, protein_sequence_limit=None):
+        """
+        Ensembl genes IDs which support the reading frame used by protein
+        sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        protein_sequence_limit : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of str
+        """
+        return [
+            g.id
+            for g
+            in self.genes_from_protein_sequences(protein_sequence_limit=None)
+        ]

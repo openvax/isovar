@@ -29,6 +29,17 @@ from .translation import  Translation
 logger = get_logger(__name__)
 
 
+def sort_protein_sequences(protein_sequences):
+    """
+    Sort protein sequences in decreasing order of priority
+    """
+    return list(
+        sorted(
+            protein_sequences,
+            key=ProteinSequence.ascending_sort_key,
+            reverse=True))
+
+
 def collapse_translations(translations):
     """
     Convert a list of Translation objects into a (potentially smaller) list
@@ -57,19 +68,9 @@ def collapse_translations(translations):
         protein_sequence = ProteinSequence.from_translation_key(
             translation_key=key,
             translations=equivalent_translations,
-            transcripts_supporting_protein_sequence=group_transcript_ids,
+            transcripts_ids_supporting_protein_sequence=group_transcript_ids,
             gene=list(group_gene_names))
         logger.info("%s: protein sequence = %s" % (key, protein_sequence.amino_acids))
         protein_sequences.append(protein_sequence)
     return protein_sequences
 
-
-def sort_protein_sequences(protein_sequences):
-    """
-    Sort protein sequences in decreasing order of priority
-    """
-    return list(
-        sorted(
-            protein_sequences,
-            key=ProteinSequence.ascending_sort_key,
-            reverse=True))

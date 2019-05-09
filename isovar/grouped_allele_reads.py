@@ -111,18 +111,3 @@ class GroupedAlleleReads(ValueObject):
         self.ref_reads = ref_reads
         self.alt_reads = alt_reads
         self.other_reads = other_reads
-
-    def coverage_stats(self):
-        """
-        Create a CoverageStats object with counts of
-        the number of reads and distinct fragments covering
-        the ref, alt, and other alleles. This object can then
-        be used for further filtering.
-
-        Returns CoverageStats
-        """
-        return CoverageStats.from_reads(
-            ref_reads=self.ref_reads,
-            alt_reads=self.alt_reads,
-            other_reads=self.other_reads)
-

@@ -21,10 +21,7 @@ from .default_parameters import (
     INCLUDE_MISMATCHES_AFTER_VARIANT,
     PROTEIN_SEQUENCE_LENGTH,
     MAX_PROTEIN_SEQUENCES_PER_VARIANT,
-    MIN_ALT_RNA_READS,
-    MIN_ALT_RNA_FRAGMENTS,
-    MIN_RNA_VAF,
-    MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
+
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_ASSEMBLY,
     MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
@@ -35,52 +32,36 @@ from .default_parameters import (
 )
 
 from .protein_sequence_helpers import sort_protein_sequences, collapse_translations
-from .protein_sequence_creator import ProteinSequenceCreator
-from .read_collector import ReadCollector
+from .translation_creator import TranslationCreator
 from .logging import get_logger
-from .isovar_result import IsovarResult
+
+from .read_collector import ReadCollector
 
 logger = get_logger(__name__)
 
 
-class Isovar(object):
+class ProteinSequenceCreator(TranslationCreator):
     """
-    This is the main entrypoint into the Isovar library, which collects
-    RNA reads supporting variants and translates their coding sequence
-    into amino acid sequences.
+    Creates ProteinSequence objects for each variant by translating
+    cDNA into one or more Translation objects and then grouping them
+    by identical amino acid sequences.
     """
+
     def __init__(
             self,
             protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
-            min_alt_rna_fragments=MIN_ALT_RNA_FRAGMENTS,
-            min_rna_vaf=MIN_RNA_VAF,
-            min_alt_rna_reads=MIN_ALT_RNA_READS,
-            min_ratio_alt_to_other_rna_fragments=MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
             min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
             min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
             max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
             include_mismatches_after_variant=INCLUDE_MISMATCHES_AFTER_VARIANT,
             max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
             variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY,
-            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
-            use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-            use_duplicate_reads=USE_DUPLICATE_READS,
-            min_mapping_quality=MIN_READ_MAPPING_QUALITY,
-            use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES):
+            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
         """
         protein_sequence_length : int
             Try to translate protein sequences of this length, though sometimes
             we'll have to return something shorter (depending on the RNAseq data,
             and presence of stop codons).
-
-        min_alt_rna_reads : int
-            Drop variant sequences at loci with fewer than this number of reads
-            supporting the alt allele.
-
-        min_ratio_alt_to_other_nonref_reads : float
-            Drop variant sequences at loci where there is support for third/fourth
-            alleles in the RNA and the count for the alt allele is not at least
-            this number greater than the sum of other non-ref alleles.
 
         min_variant_sequence_coverage : int
             Trim variant sequences to positions supported by at least this number
@@ -109,18 +90,6 @@ class Isovar(object):
         min_assembly_overlap_size : int
             Minimum number of nucleotides that two reads need to overlap before they
             can be merged into a single coding sequence.
-
-        use_secondary_alignments : bool
-            Use a read even when it's not the primary alignment at a locus
-
-        use_duplicate_reads : bool
-            Use a read even if it's been marked as a duplicate
-
-        min_mapping_quality : int
-            Minimum MAPQ (mapping quality) to use a read
-
-        use_soft_clipped_bases : bool
-            Include soft-clipped positions on a read which were ignored by the aligner
         """
         TranslationCreator.__init__(
             self,
@@ -132,18 +101,8 @@ class Isovar(object):
             variant_sequence_assembly=variant_sequence_assembly,
             min_assembly_overlap_size=min_assembly_overlap_size)
 
-        self._read_collector = ReadCollector(
-            use_secondary_alignments=use_secondary_alignments,
-            use_duplicate_reads=use_duplicate_reads,
-            min_mapping_quality=min_mapping_quality,
-            use_soft_clipped_bases=use_soft_clipped_bases)
-
-        self.min_alt_rna_fragments = min_alt_rna_fragments
-        self.min_rna_vaf = min_rna_vaf
-        self.min_alt_rna_reads = min_alt_rna_reads
-        self.min_ratio_alt_to_other_rna_fragments = min_ratio_alt_to_other_rna_fragments
         self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
-    
+
     def sorted_protein_sequences_for_variant(
             self,
             variant,
@@ -180,38 +139,26 @@ class Isovar(object):
         protein_sequences = sort_protein_sequences(protein_sequences)
         return protein_sequences
 
-    def process_variants(
+    def variant_and_protein_sequences_generator(
             self,
-            variants,
-            aligned_rna_reads,
+            variant_and_reads_generator,
             transcript_id_whitelist=None):
         """
 
         Parameters
         ----------
-        variants : varcode.VariantCollection
-            Somatic variants
-
-        aligned_rna_reads : pysam.AlignmentFile
-            Aligned tumor RNA reads
+        variant_and_reads_generator : generator of (varcode.Variant, GroupedAlleleReads)
+            Generator which yields sequence of Variant objects paired with
+            their corresponding GroupedAlleleReads
 
         transcript_id_whitelist : set of str or None
             Which transcripts should be considered when predicting DNA-only
             coding effects of mutations and also when trying to establish a
             reading frame for identified cDNA sequences.
 
-        Generator of IsovarResult objects, one for each variant.
-        The `protein_sequences` field of the IsovarVar result will be empty
-        if no sequences could be determined.
+        Generates sequence of (varcode.Variant, ProteinSequence list) pairs.
         """
-
-        # create generator which returns (Variant, GroupedAlleleReads) pairs
-        variant_and_read_gen = \
-            self._read_collector.grouped_allele_reads_overlapping_variants(
-               variants=variants,
-               alignment_file=aligned_rna_reads)
-
-        for variant, grouped_allele_reads in  variant_and_read_gen:
+        for variant, grouped_allele_reads in variant_and_reads_generator:
             protein_sequences = \
                 self.sorted_protein_sequences_for_variant(
                     variant=variant,
@@ -219,7 +166,4 @@ class Isovar(object):
                     transcript_id_whitelist=transcript_id_whitelist)
             if self.max_protein_sequences_per_variant:
                 protein_sequences = protein_sequences[:self.max_protein_sequences_per_variant]
-            yield IsovarResult(
-                variant=variant,
-                grouped_allele_reads=grouped_allele_reads,
-                protein_sequences=protein_sequences)
+            yield variant, protein_sequences

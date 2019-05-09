@@ -33,6 +33,7 @@ from .variant_orf_helpers import match_variant_sequence_to_reference_context
 
 logger = get_logger(__name__)
 
+
 class TranslationCreator(object):
     """
     TranslationCreator is used to combine variant cDNA sequences from a BAM

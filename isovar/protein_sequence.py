@@ -43,7 +43,7 @@ class ProteinSequence(TranslationKey):
         "reads_supporting_protein_sequence",
         # IDs of reference transcripts used to establish the reading frame for
         # this protein sequence
-        "transcripts_supporting_protein_sequence",
+        "transcript_ids_supporting_protein_sequence",
     ]
 
     def __init__(
@@ -55,7 +55,7 @@ class ProteinSequence(TranslationKey):
             frameshift,
             translations,
             reads_supporting_protein_sequence,
-            transcripts_supporting_protein_sequence):
+            transcript_ids_supporting_protein_sequence):
         # fields of TranslationKey
         self.amino_acids = amino_acids
         self.variant_aa_interval_start = variant_aa_interval_start
@@ -66,7 +66,7 @@ class ProteinSequence(TranslationKey):
         # extra fields added by ProteinSequence
         self.translations = translations
         self.reads_supporting_protein_sequence = reads_supporting_protein_sequence
-        self.transcripts_supporting_protein_sequence = transcripts_supporting_protein_sequence
+        self.transcript_ids_supporting_protein_sequence = transcript_ids_supporting_protein_sequence
 
 
     @classmethod
@@ -96,7 +96,7 @@ class ProteinSequence(TranslationKey):
             translation_key,
             translations,
             reads_supporting_protein_sequence,
-            transcripts_supporting_protein_sequence):
+            transcript_ids_supporting_protein_sequence):
         """
         Create a ProteinSequence object from a TranslationKey, along with
         all the extra fields a ProteinSequence requires.
@@ -109,7 +109,7 @@ class ProteinSequence(TranslationKey):
             frameshift=translation_key.frameshift,
             translations=translations,
             reads_supporting_protein_sequence=reads_supporting_protein_sequence,
-            transcripts_supporting_protein_sequence=transcripts_supporting_protein_sequence)
+            transcript_ids_supporting_protein_sequence=transcript_ids_supporting_protein_sequence)
 
     @property
     def num_supporting_fragments(self):
@@ -141,7 +141,6 @@ class ProteinSequence(TranslationKey):
         """
         return min(t.number_mismatches_before_variant for t in self.translations)
 
-
     @property
     def num_mismatches_after_variant(self):
         """
@@ -162,6 +161,77 @@ class ProteinSequence(TranslationKey):
         """
         return self.num_mismatches_before_variant + self.num_mismatches_after_variant
 
+    def transcripts(self):
+        """
+        Ensembl transcript IDs of all transcripts which support the reading
+        frame used by Translation objects associated with this
+        ProteinSequence.
+
+        Returns list of str
+        """
+        transcript_set = set([])
+        for t in self.translations:
+            transcript_set.update(p.transcript_ids_supporting_protein_sequence)
+        return sorted(transcript_set)
+
+    def transcripts_from_protein_sequences(self, protein_sequence_limit=None):
+        """
+        Ensembl transcripts which support the reading frame used by protein
+        sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        protein_sequence_limit : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of pyensembl.Transcript
+        """
+        genome = self.variant.genome
+        transcript_ids = self.transcript_ids_used_by_protein_sequences(
+            num_protein_sequences=protein_sequence_limit)
+        return [
+            genome.transcript_by_id(transcript_id)
+            for transcript_id in transcript_ids
+        ]
+
+    def genes_from_protein_sequences(self, protein_sequence_limit=None):
+        """
+        Ensembl genes which support the reading frame used by protein
+        sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        protein_sequence_limit : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of pyensembl.Gene
+        """
+        transcripts = self.transcripts_used_by_protein_sequences(
+            protein_sequence_limit=protein_sequence_limit)
+        genes = [t.gene for t in transcripts]
+        return sorted(genes)
+
+    def gene_ids_from_protein_sequences(self, protein_sequence_limit=None):
+        """
+        Ensembl genes IDs which support the reading frame used by protein
+        sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        protein_sequence_limit : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of str
+        """
+        return [
+            g.id
+            for g
+            in self.genes_from_protein_sequences(protein_sequence_limit=None)
+        ]
+
     def ascending_sort_key(self):
         """
         Sort key function used to sort protein sequences lexicographically by these criteria:
@@ -170,11 +240,13 @@ class ProteinSequence(TranslationKey):
             - minimum mismatch versus a supporting reference transcript before variant
             - minimum mismatch versus a supporting reference transcript after variant
             - number of supporting reference transcripts
+            - all else being equal, prefer longer sequences
         """
         return (
             self.num_supporting_fragments,
             self.num_supporting_reads,
-            self.num_mismatches_before_variant,
-            self.num_mismatches_after_variant,
+            -self.num_mismatches_before_variant,
+            -self.num_mismatches_after_variant,
             self.num_supporting_transcripts,
+            len(self.amino_acids),
         )

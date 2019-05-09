@@ -22,7 +22,7 @@ from __future__ import print_function, division, absolute_import
 from collections import OrderedDict
 import numpy as np
 
-from .common import safediv
+
 from .value_object import ValueObject
 
 
@@ -70,90 +70,6 @@ class CoverageStats(ValueObject):
             n_other_reads=n_other_reads,
             n_other_fragments=n_other_fragments)
 
-    @property
-    def n_reads(self):
-        """
-        Total read coverage at this site.
-        """
-        return self.n_ref_reads + self.n_alt_reads + self.n_other_reads
-
-
-    @property
-    def n_fragments(self):
-        """
-        Number of fragments supporting reference allele.
-        """
-        return self.n_ref_fragments + self.n_alt_fragments + self.n_other_fragments
-
-
-    @property
-    def ref_read_fraction(self):
-        """
-        Allelic fraction of the reference allele among all reads at this site.
-        """
-        return self.n_ref_reads / self.n_reads
-
-
-    @property
-    def alt_fragment_fraction(self):
-        """
-        Allelic fraction of the reference allele among all fragments at this site.
-        """
-        return self.n_ref_fragments / self.n_fragments
-
-
-    @property
-    def alt_read_fraction(self):
-        """
-        Allelic fraction of the variant allele among all reads at this site.
-        """
-        return self.n_alt_reads / self.n_reads
-
-
-    @property
-    def alt_fragment_fraction(self):
-        """
-        Allelic fraction of the variant allele among all fragments at this site.
-        """
-        return self.n_alt_fragments / self.n_fragments
-
-
-    @property
-    def other_read_fraction(self):
-        """
-        Allelic fraction of the "other" (non-ref, non-alt) alleles among all
-        reads at this site.
-        """
-        return self.n_other_reads / self.n_reads
-
-
-    @property
-    def other_fragment_fraction(self):
-        """
-        Allelic fraction of the "other" (non-ref, non-alt) alleles among all
-        reads at this site.
-        """
-        return self.n_other_fragments / self.n_fragments
-
-
-    @property
-    def other_to_ref_read_ratio(self):
-        return safediv(self.n_other_reads, self.n_ref_reads)
-
-
-    @property
-    def other_to_alt_read_ratio(self):
-        return safediv(self.n_other_reads, self.n_alt_reads)
-
-
-    @property
-    def other_to_alt_fragment_ratio(self):
-        return safediv(self.n_other_reads, self.n_ref_reads)
-
-
-    @property
-    def other_to_ref_fragment_ratio(self):
-        return safediv(self.n_other_reads, self.n_ref_reads)
 
 
     # List of which properties get included in the result of stats()
@@ -165,7 +81,6 @@ class CoverageStats(ValueObject):
         "other_to_alt_fragment_ratio",
     ]
 
-
     def to_dict(self):
         """
         Returns OrderedDict containing all fields of thsi CoverageStats object.
@@ -174,7 +89,6 @@ class CoverageStats(ValueObject):
         for field in list(self.__slots__) + self._extra_dict_fields:
             result[field] = getattr(self, field)
         return result
-
 
     def create_dictionary_of_filter_results(
             self,
@@ -275,3 +189,19 @@ COVERAGE_FILTER_DEFAULT_VALUES = OrderedDict([
     ("max_ref_fragment_fraction", 1.0),
     ("max_other_read_fraction", 1.0),
     ("max_other_fragment_fraction", 1.0)])
+
+
+def coverage_stats(self):
+    """
+    Create a CoverageStats object with counts of
+    the number of reads and distinct fragments covering
+    the ref, alt, and other alleles. This object can then
+    be used for further filtering.
+
+    Returns CoverageStats
+    """
+    return CoverageStats.from_reads(
+        ref_reads=self.ref_reads,
+        alt_reads=self.alt_reads,
+        other_reads=self.other_reads)
+

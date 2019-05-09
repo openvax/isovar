@@ -30,13 +30,13 @@ logger = get_logger(__name__)
 
 class Translation(TranslationKey):
     """
-    Translated amino acid sequence of a VariantSequenceInReadingFrame for a
-    particular ReferenceContext and VariantSequence.
+    Translated amino acid sequence of a VariantORF for a particular
+    ReferenceContext and VariantSequence.
     """
     __slots__ = [
         "untrimmed_variant_sequence",
         "reference_context",
-        "variant_sequence_in_reading_frame"
+        "variant_orf"
     ]
 
     def __init__(
@@ -48,7 +48,7 @@ class Translation(TranslationKey):
             frameshift,
             untrimmed_variant_sequence,
             reference_context,
-            variant_sequence_in_reading_frame):
+            variant_orf):
         # TODO:
         #  get rid of untrimmed_variant_sequence by making
         #  VariantSequenceInReadingFrame keep track of its inputs
@@ -62,7 +62,7 @@ class Translation(TranslationKey):
         # required to match the reference
         self.untrimmed_variant_sequence = untrimmed_variant_sequence
         self.reference_context = reference_context
-        self.variant_sequence_in_reading_frame = variant_sequence_in_reading_frame
+        self.variant_orf = variant_orf
 
     @property
     def reads(self):
@@ -74,10 +74,12 @@ class Translation(TranslationKey):
 
     @property
     def reference_cdna_sequence_before_variant(self):
+        """
+
+        Returns str
+        """
         return (
-            self.
-            variant_sequence_in_reading_frame.
-            reference_cdna_sequence_before_variant)
+            self.variant_orf.reference_cdna_sequence_before_variant)
 
     @property
     def number_mismatches(self):
@@ -94,7 +96,7 @@ class Translation(TranslationKey):
 
         Returns int
         """
-        return self.variant_sequence_in_reading_frame.number_mismatches_before_variant
+        return self.variant_orf.number_mismatches_before_variant
 
     @property
     def number_mismatches_after_variant(self):
@@ -105,7 +107,7 @@ class Translation(TranslationKey):
 
         Returns int
         """
-        return self.variant_sequence_in_reading_frame.number_mismatches_after_variant
+        return self.variant_orf.number_mismatches_after_variant
 
     @property
     def cdna_sequence(self):
@@ -114,7 +116,7 @@ class Translation(TranslationKey):
 
         Returns str
         """
-        return self.variant_sequence_in_reading_frame.cdna_sequence
+        return self.variant_orf.cdna_sequence
 
     @property
     def offset_to_first_complete_codon(self):
@@ -123,21 +125,21 @@ class Translation(TranslationKey):
 
         Returns int in {0, 1, 2}
         """
-        return self.variant_sequence_in_reading_frame.offset_to_first_complete_codon
+        return self.variant_orf.offset_to_first_complete_codon
 
     @property
     def variant_cdna_interval_start(self):
         """
         Interbase start coordinate of variant interval in the cDNA sequence
         """
-        return self.variant_sequence_in_reading_frame.variant_cdna_interval_start
+        return self.variant_orf.variant_cdna_interval_start
 
     @property
     def variant_cdna_interval_end(self):
         """
         Interbase end coordinate of variant interval in the cDNA sequence
         """
-        return self.variant_sequence_in_reading_frame.variant_cdna_interval_end
+        return self.variant_orf.variant_cdna_interval_end
 
     def as_translation_key(self):
         """
