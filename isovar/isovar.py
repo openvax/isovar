@@ -16,11 +16,19 @@
 from __future__ import print_function, division, absolute_import
 
 from .default_parameters import (
-    MIN_ALT_RNA_READS,
-    MIN_ALT_RNA_FRAGMENTS,
-    MIN_RNA_VAF,
-    MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
-
+    MIN_NUM_RNA_ALT_READS,
+    MIN_NUM_RNA_ALT_FRAGMENTS,
+    MIN_FRACTION_RNA_ALT_READS,
+    MIN_FRACTION_RNA_ALT_FRAGMENTS,
+    MAX_NUM_RNA_REF_READS,
+    MAX_NUM_RNA_REF_FRAGMENTS,
+    MAX_FRACTION_RNA_REF_READS,
+    MAX_FRACTION_RNA_REF_FRAGMENTS,
+    MAX_NUM_RNA_OTHER_READS,
+    MAX_NUM_RNA_OTHER_FRAGMENTS,
+    MAX_FRACTION_RNA_OTHER_READS,
+    MAX_FRACTION_RNA_OTHER_FRAGMENTS,
+    MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS,
 )
 
 from .protein_sequence_helpers import sort_protein_sequences, collapse_translations
@@ -61,19 +69,6 @@ class Isovar(ValueObject):
         if protein_sequence_creator is None:
             self.protein_sequence_creator = ProteinSequenceCreator()
 
-    def apply_filters(
-            self,
-            min_num_alt_fragments=MIN_ALT_RNA_FRAGMENTS,
-            min_num_alt_reads=MIN_ALT_RNA_READS,
-            min_fraction_alt_fragments=MIN_FRACTION_ALT_FRAGMENTS,
-            min_fraction_alt_reads=MIN_FRACTION_ALT_READS,
-            max_num_other_fragments=MAX_OTHER_FRAGMENTS,
-            max_num_other_reads=MAX_OTHER_VAF,
-            max_other_reads=MAX_OTHER_READS,
-            min_ratio_alt_to_other_rna_fragments=MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS):
-
-        ):
-    
     def sorted_protein_sequences_for_variant(
             self,
             variant,
@@ -109,20 +104,40 @@ class Isovar(ValueObject):
         # sort protein sequences before returning the top results
         protein_sequences = sort_protein_sequences(protein_sequences)
         return protein_sequences
-    
+
+    def apply_filters(
+            self,
+            result_generator,
+            min_num_alt_fragments=MIN_NUM_RNA_ALT_FRAGMENTS,
+            min_num_alt_reads=MIN_NUM_RNA_ALT_READS,
+            min_num_fraction_alt_fragments=MIN_NUM_RNA_ALT_FRAGMENTS,
+            max_num_ref_fragments=MAX_NUM_RNA_REF_FRAGMENTS,
+            max_num_ref_reads=MAX_NUM_RNA_REF_READS,
+            max_fraction_ref_fragments=MAX_FRACTION_RNA_REF_FRAGMENTS,
+            max_fraction_ref_reads=MAX_FRACTION_RNA_REF_READS,
+            max_other_fragments=MAX_NUM_RNA_OTHER_FRAGMENTS,
+            max_other_reads=MAX_NUM_RNA_OTHER_READS,
+            MAX_FRACTION_RNA_OTHER_READS,
+            MAX_FRACTION_RNA_OTHER_FRAGMENTS,
+            MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS,
+
+
     def process_variants(
             self,
             variants,
-            aligned_rna_reads,
+            alignment_file,
             transcript_id_whitelist=None):
         """
+        Main entry-point into Isovar, which attempts to translate each
+        variant in a protein sequence using supporting reads from the
+        alignment_file.
 
         Parameters
         ----------
         variants : varcode.VariantCollection
             Somatic variants
 
-        aligned_rna_reads : pysam.AlignmentFile
+        alignment_file : pysam.AlignmentFile
             Aligned tumor RNA reads
 
         transcript_id_whitelist : set of str or None
@@ -137,9 +152,9 @@ class Isovar(ValueObject):
 
         # create generator which returns (Variant, ReadEvidence) pairs
         read_evidence_gen = \
-            self._read_collector.read_evidence_generator(
+            self.read_collector.read_evidence_generator(
                variants=variants,
-               alignment_file=aligned_rna_reads)
+               alignment_file=alignment_file)
 
         for variant, read_evidence in read_evidence_gen:
             # generate protein sequences by assembling variant reads

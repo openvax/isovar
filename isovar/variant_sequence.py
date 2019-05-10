@@ -27,7 +27,7 @@ class VariantSequence(ValueObject):
     """
     Representation of a cDNA sequence containing a mutation
     """
-    
+
     __slots__ = [
         # nucleotides before a variant
         "prefix",
