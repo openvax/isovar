@@ -137,7 +137,7 @@ class IsovarResult(ValueObject):
         # list of names we want to use in the result dictionary,
         # paired with names of fields on ProteinSequence
         protein_sequence_properties = [
-            ("protein_sequence", "amino_acid"),
+            ("protein_sequence", "amino_acids"),
             ("protein_sequence_mutation_start", "variant_aa_interval_start"),
             ("protein_sequence_mutation_end", "variant_aa_interval_stop"),
             ("protein_sequence_ends_with_stop_codon", "ends_with_stop_codon"),
@@ -209,14 +209,14 @@ class IsovarResult(ValueObject):
         return self.ref_read_names.union(self.alt_read_names).union(self.other_read_names)
 
     @property
-    def num_reads(self):
+    def num_total_reads(self):
         """
-        Total number of reads at this locus.
+        Total number of reads at this locus, regardless of allele.
         """
         return self.num_ref_reads + self.num_alt_reads + self.num_other_nonref_reads
 
     @property
-    def num_fragments(self):
+    def num_total_fragments(self):
         """
         Total number of distinct fragments at this locus, which also corresponds
         to the total number of read names.

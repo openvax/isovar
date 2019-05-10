@@ -15,22 +15,6 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .default_parameters import (
-    MIN_NUM_RNA_ALT_READS,
-    MIN_NUM_RNA_ALT_FRAGMENTS,
-    MIN_FRACTION_RNA_ALT_READS,
-    MIN_FRACTION_RNA_ALT_FRAGMENTS,
-    MAX_NUM_RNA_REF_READS,
-    MAX_NUM_RNA_REF_FRAGMENTS,
-    MAX_FRACTION_RNA_REF_READS,
-    MAX_FRACTION_RNA_REF_FRAGMENTS,
-    MAX_NUM_RNA_OTHER_READS,
-    MAX_NUM_RNA_OTHER_FRAGMENTS,
-    MAX_FRACTION_RNA_OTHER_READS,
-    MAX_FRACTION_RNA_OTHER_FRAGMENTS,
-    MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS,
-)
-
 from .protein_sequence_helpers import sort_protein_sequences, collapse_translations
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
@@ -104,23 +88,6 @@ class Isovar(ValueObject):
         # sort protein sequences before returning the top results
         protein_sequences = sort_protein_sequences(protein_sequences)
         return protein_sequences
-
-    def apply_filters(
-            self,
-            result_generator,
-            min_num_alt_fragments=MIN_NUM_RNA_ALT_FRAGMENTS,
-            min_num_alt_reads=MIN_NUM_RNA_ALT_READS,
-            min_num_fraction_alt_fragments=MIN_NUM_RNA_ALT_FRAGMENTS,
-            max_num_ref_fragments=MAX_NUM_RNA_REF_FRAGMENTS,
-            max_num_ref_reads=MAX_NUM_RNA_REF_READS,
-            max_fraction_ref_fragments=MAX_FRACTION_RNA_REF_FRAGMENTS,
-            max_fraction_ref_reads=MAX_FRACTION_RNA_REF_READS,
-            max_other_fragments=MAX_NUM_RNA_OTHER_FRAGMENTS,
-            max_other_reads=MAX_NUM_RNA_OTHER_READS,
-            MAX_FRACTION_RNA_OTHER_READS,
-            MAX_FRACTION_RNA_OTHER_FRAGMENTS,
-            MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS,
-
 
     def process_variants(
             self,

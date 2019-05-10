@@ -21,7 +21,7 @@ they support the reference, somatic allele, or some other allele.
 from __future__ import print_function, division, absolute_import
 
 from .allele_read_helpers import split_reads_into_ref_alt_other
-from .coverage_stats import CoverageStats
+from .filtering import CoverageStats
 from .variant_helpers import trim_variant
 from .value_object import ValueObject
 
