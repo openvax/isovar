@@ -53,42 +53,6 @@ class Isovar(ValueObject):
         if protein_sequence_creator is None:
             self.protein_sequence_creator = ProteinSequenceCreator()
 
-    def sorted_protein_sequences_for_variant(
-            self,
-            variant,
-            read_evidence,
-            transcript_id_whitelist=None):
-        """"
-        Translates a coding variant and its overlapping RNA reads into Translation
-        objects, which are aggregated into ProteinSequence objects by their
-        amino acid sequence (when they have equivalent coding sequences).
-
-        Parameters
-        ----------
-        variant : varcode.Variant
-
-        read_evidence : ReadEvidence object
-
-        transcript_id_whitelist : set, optional
-            If given, expected to be a set of transcript IDs which we should use
-            for determining the reading frame around a variant. If omitted, then
-            try to use all overlapping reference transcripts.
-
-        Returns a list of ProteinSequence objects
-        """
-        translations = self.translate_variant_reads(
-            variant=variant,
-            variant_reads=read_evidence.alt_reads,
-            transcript_id_whitelist=transcript_id_whitelist)
-
-        # group distinct cDNA translations into ProteinSequence objects
-        # by their amino acid sequence
-        protein_sequences = collapse_translations(translations)
-
-        # sort protein sequences before returning the top results
-        protein_sequences = sort_protein_sequences(protein_sequences)
-        return protein_sequences
-
     def process_variants(
             self,
             variants,

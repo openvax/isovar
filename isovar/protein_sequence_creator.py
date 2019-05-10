@@ -307,10 +307,11 @@ class ProteinSequenceCreator(ValueObject):
                     transcript_id_whitelist=transcript_id_whitelist)
                 yield variant, translations
 
+
     def sorted_protein_sequences_for_variant(
             self,
             variant,
-            supporting_alt_reads,
+            read_evidence,
             transcript_id_whitelist=None):
         """"
         Translates a coding variant and its overlapping RNA reads into Translation
@@ -321,8 +322,7 @@ class ProteinSequenceCreator(ValueObject):
         ----------
         variant : varcode.Variant
 
-        supporting_alt_reads : list of AlleleRead
-            RNA reads which support the mutation in `variant`
+        read_evidence : ReadEvidence object
 
         transcript_id_whitelist : set, optional
             If given, expected to be a set of transcript IDs which we should use
@@ -333,7 +333,7 @@ class ProteinSequenceCreator(ValueObject):
         """
         translations = self.translate_variant_reads(
             variant=variant,
-            variant_reads=supporting_alt_reads,
+            variant_reads=read_evidence.alt_reads,
             transcript_id_whitelist=transcript_id_whitelist)
 
         # group distinct cDNA translations into ProteinSequence objects
@@ -343,7 +343,7 @@ class ProteinSequenceCreator(ValueObject):
         # sort protein sequences before returning the top results
         protein_sequences = sort_protein_sequences(protein_sequences)
         return protein_sequences
-
+    
     def variant_and_protein_sequences_generator(
             self,
             read_evidence_generator,
@@ -367,7 +367,7 @@ class ProteinSequenceCreator(ValueObject):
             protein_sequences = \
                 self.sorted_protein_sequences_for_variant(
                     variant=variant,
-                    supporting_alt_reads=read_evidence.alt_reads,
+                    supporting_alt_reads=read_evidence,
                     transcript_id_whitelist=transcript_id_whitelist)
             if self.max_protein_sequences_per_variant:
                 protein_sequences = protein_sequences[:self.max_protein_sequences_per_variant]
