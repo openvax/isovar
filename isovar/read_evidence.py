@@ -26,7 +26,7 @@ from .variant_helpers import trim_variant
 from .value_object import ValueObject
 
 
-class GroupedAlleleReads(ValueObject):
+class ReadEvidence(ValueObject):
     """
     This class represents the reads at a variant locus partitioned
     by allele (ref/alt/other) relative to a variant.

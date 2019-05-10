@@ -36,14 +36,14 @@ class IsovarResult(ValueObject):
     __slots__ = [
         "variant",
         "transcript_id_whitelist",
-        "grouped_allele_reads",
+        "read_evidence",
         "sorted_protein_sequences",
     ]
 
-    def __init__(self, variant, transcript_id_whitelist, grouped_allele_reads, sorted_protein_sequences):
+    def __init__(self, variant, read_evidence, sorted_protein_sequences, transcript_id_whitelist):
         self.variant = variant
         self.transcript_id_whitelist = transcript_id_whitelist
-        self.grouped_allele_reads = grouped_allele_reads
+        self.read_evidence = read_evidence
         self.sorted_protein_sequences = sorted_protein_sequences
 
     def top_varcode_effect(self):
@@ -156,14 +156,14 @@ class IsovarResult(ValueObject):
         """
         AlleleRead objects at this locus which support the reference allele
         """
-        return self.grouped_allele_reads.ref_reads
+        return self.read_evidence.ref_reads
 
     @property
     def alt_reads(self):
         """
         AlleleRead objects at this locus which support the mutant allele
         """
-        return self.grouped_allele_reads.alt_reads
+        return self.read_evidence.alt_reads
 
     @property
     def other_reads(self):
@@ -171,7 +171,7 @@ class IsovarResult(ValueObject):
         AlleleRead objects at this locus which support some allele other than
         either the reference or alternate.
         """
-        return self.grouped_allele_reads.other_reads
+        return self.read_evidence.other_reads
 
     @property
     def ref_read_names(self):

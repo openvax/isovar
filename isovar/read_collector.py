@@ -28,7 +28,7 @@ from .locus_read import LocusRead
 from .logging import get_logger
 from .allele_read_helpers import allele_reads_from_locus_reads
 from .variant_helpers import trim_variant
-from .grouped_allele_reads import GroupedAlleleReads
+from .read_evidence import ReadEvidence
 
 logger = get_logger(__name__)
 
@@ -502,13 +502,13 @@ class ReadCollector(object):
                 alignment_file=alignment_file,
                 variant=variant))
 
-    def grouped_allele_reads_overlapping_variant(
+    def gather_read_evidence(
             self,
             variant,
             alignment_file):
         """
         Find reads in the given SAM/BAM file which overlap the given variant and
-        return them as a GroupedAlleleReads object, which splits the reads into
+        return them as a ReadEvidence object, which splits the reads into
         ref/alt/other groups.
 
         Parameters
@@ -518,21 +518,17 @@ class ReadCollector(object):
         alignment_file : pysam.AlignmentFile
             Aligned RNA reads
 
-        Returns GroupedAlleleReads
+        Returns ReadEvidence
         """
         allele_reads = self.allele_reads_overlapping_variant(
             variant=variant,
             alignment_file=alignment_file)
-        return GroupedAlleleReads.from_variant_and_allele_reads(
+        return ReadEvidence.from_variant_and_allele_reads(
             variant,
             allele_reads)
 
-    def grouped_allele_reads_overlapping_variants(self, variants, alignment_file):
+    def read_evidence_generator(self, variants, alignment_file):
         """
-        Created an ordered dictionary of variants, each mapped
-        to a GroupedAlleleReads object which contains separate lists
-        of AlleleReads for the ref/alt/other alleles of each variant.
-    
         Parameters
         ----------
         variants : varcode.VariantCollection
@@ -541,14 +537,10 @@ class ReadCollector(object):
         alignment_file : pysam.AlignmentFile
             Aligned RNA reads
 
-        Returns OrderedDict mapping varcode.Variant to GroupedAlleleReads
+        Generates ssequence of (varcode.Variant, ReadEvidence) pairs
         """
-        variant_to_support_dict = OrderedDict()
         for variant in variants:
-            allele_reads = self.allele_reads_overlapping_variant(
-                alignment_file=alignment_file,
-                variant=variant)
-            variant_to_support_dict[variant] = \
-                GroupedAlleleReads.from_variant_and_allele_reads(variant, allele_reads)
-        return variant_to_support_dict
-
+            read_evidence = self.gather_read_evidence(
+                variant=variant,
+                alignment_file=alignment_file)
+            yield variant, read_evidence

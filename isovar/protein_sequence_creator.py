@@ -310,7 +310,7 @@ class ProteinSequenceCreator(ValueObject):
     def sorted_protein_sequences_for_variant(
             self,
             variant,
-            grouped_allele_reads,
+            supporting_alt_reads,
             transcript_id_whitelist=None):
         """"
         Translates a coding variant and its overlapping RNA reads into Translation
@@ -321,7 +321,8 @@ class ProteinSequenceCreator(ValueObject):
         ----------
         variant : varcode.Variant
 
-        grouped_allele_reads : GroupedAlleleReads object
+        supporting_alt_reads : list of AlleleRead
+            RNA reads which support the mutation in `variant`
 
         transcript_id_whitelist : set, optional
             If given, expected to be a set of transcript IDs which we should use
@@ -332,7 +333,7 @@ class ProteinSequenceCreator(ValueObject):
         """
         translations = self.translate_variant_reads(
             variant=variant,
-            variant_reads=grouped_allele_reads.alt_reads,
+            variant_reads=supporting_alt_reads,
             transcript_id_whitelist=transcript_id_whitelist)
 
         # group distinct cDNA translations into ProteinSequence objects
@@ -345,15 +346,15 @@ class ProteinSequenceCreator(ValueObject):
 
     def variant_and_protein_sequences_generator(
             self,
-            variant_and_reads_generator,
+            read_evidence_generator,
             transcript_id_whitelist=None):
         """
 
         Parameters
         ----------
-        variant_and_reads_generator : generator of (varcode.Variant, GroupedAlleleReads)
+        read_evidence_generator : generator of (varcode.Variant, ReadEvidence)
             Generator which yields sequence of Variant objects paired with
-            their corresponding GroupedAlleleReads
+            their corresponding ReadEvidence
 
         transcript_id_whitelist : set of str or None
             Which transcripts should be considered when predicting DNA-only
@@ -362,11 +363,11 @@ class ProteinSequenceCreator(ValueObject):
 
         Generates sequence of (varcode.Variant, ProteinSequence list) pairs.
         """
-        for variant, grouped_allele_reads in variant_and_reads_generator:
+        for variant, read_evidence in read_evidence_generator:
             protein_sequences = \
                 self.sorted_protein_sequences_for_variant(
                     variant=variant,
-                    grouped_allele_reads=grouped_allele_reads,
+                    supporting_alt_reads=read_evidence.alt_reads,
                     transcript_id_whitelist=transcript_id_whitelist)
             if self.max_protein_sequences_per_variant:
                 protein_sequences = protein_sequences[:self.max_protein_sequences_per_variant]

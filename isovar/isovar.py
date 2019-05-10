@@ -129,7 +129,7 @@ class Isovar(object):
     def sorted_protein_sequences_for_variant(
             self,
             variant,
-            grouped_allele_reads,
+            read_evidence,
             transcript_id_whitelist=None):
         """"
         Translates a coding variant and its overlapping RNA reads into Translation
@@ -140,7 +140,7 @@ class Isovar(object):
         ----------
         variant : varcode.Variant
 
-        grouped_allele_reads : GroupedAlleleReads object
+        read_evidence : ReadEvidence object
 
         transcript_id_whitelist : set, optional
             If given, expected to be a set of transcript IDs which we should use
@@ -151,7 +151,7 @@ class Isovar(object):
         """
         translations = self.translate_variant_reads(
             variant=variant,
-            variant_reads=grouped_allele_reads.alt_reads,
+            variant_reads=read_evidence.alt_reads,
             transcript_id_whitelist=transcript_id_whitelist)
 
         # group distinct cDNA translations into ProteinSequence objects
@@ -187,18 +187,18 @@ class Isovar(object):
         if no sequences could be determined.
         """
 
-        # create generator which returns (Variant, GroupedAlleleReads) pairs
-        variant_and_read_gen = \
-            self._read_collector.grouped_allele_reads_overlapping_variants(
+        # create generator which returns (Variant, ReadEvidence) pairs
+        read_evidence_gen = \
+            self._read_collector.read_evidence_generator(
                variants=variants,
                alignment_file=aligned_rna_reads)
 
-        for variant, grouped_allele_reads in  variant_and_read_gen:
+        for variant, read_evidence in read_evidence_gen:
             # generate protein sequences by assembling variant reads
             protein_sequences = \
                 self.sorted_protein_sequences_for_variant(
                     variant=variant,
-                    grouped_allele_reads=grouped_allele_reads,
+                    read_evidence=read_evidence,
                     transcript_id_whitelist=transcript_id_whitelist)
 
             # if we're only keeping the top-k, get rid of the rest
@@ -208,5 +208,5 @@ class Isovar(object):
             yield IsovarResult(
                 variant=variant,
                 transcript_id_whitelist=transcript_id_whitelist,
-                grouped_allele_reads=grouped_allele_reads,
+                read_evidence=read_evidence,
                 protein_sequences=protein_sequences)
