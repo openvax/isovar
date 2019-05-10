@@ -42,7 +42,6 @@ from .isovar_result import IsovarResult
 
 logger = get_logger(__name__)
 
-
 class Isovar(object):
     """
     This is the main entrypoint into the Isovar library, which collects
@@ -51,22 +50,13 @@ class Isovar(object):
     """
     def __init__(
             self,
-            protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
+            read_collector=None,
+            protein_sequence_creator=None,
             min_alt_rna_fragments=MIN_ALT_RNA_FRAGMENTS,
-            min_rna_vaf=MIN_RNA_VAF,
             min_alt_rna_reads=MIN_ALT_RNA_READS,
+            min_rna_vaf=MIN_RNA_VAF,
             min_ratio_alt_to_other_rna_fragments=MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
-            min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
-            min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
-            max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-            include_mismatches_after_variant=INCLUDE_MISMATCHES_AFTER_VARIANT,
-            max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
-            variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY,
-            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
-            use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-            use_duplicate_reads=USE_DUPLICATE_READS,
-            min_mapping_quality=MIN_READ_MAPPING_QUALITY,
-            use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES):
+            max_other_vaf=MAX_OTHER_VAF):
         """
         protein_sequence_length : int
             Try to translate protein sequences of this length, though sometimes
@@ -122,21 +112,13 @@ class Isovar(object):
         use_soft_clipped_bases : bool
             Include soft-clipped positions on a read which were ignored by the aligner
         """
-        TranslationCreator.__init__(
-            self,
-            protein_sequence_length=protein_sequence_length,
-            min_variant_sequence_coverage=min_variant_sequence_coverage,
-            min_transcript_prefix_length=min_transcript_prefix_length,
-            max_transcript_mismatches=max_transcript_mismatches,
-            include_mismatches_after_variant=include_mismatches_after_variant,
-            variant_sequence_assembly=variant_sequence_assembly,
-            min_assembly_overlap_size=min_assembly_overlap_size)
+        if read_collector is None:
+            read_collector = ReadCollector()
 
-        self._read_collector = ReadCollector(
-            use_secondary_alignments=use_secondary_alignments,
-            use_duplicate_reads=use_duplicate_reads,
-            min_mapping_quality=min_mapping_quality,
-            use_soft_clipped_bases=use_soft_clipped_bases)
+        self.read_collector = read_collector
+
+        if protein_sequence_creator is None:
+            self.protein_sequence_creator = ProteinSequenceCreator()
 
         self.min_alt_rna_fragments = min_alt_rna_fragments
         self.min_rna_vaf = min_rna_vaf
@@ -222,10 +204,6 @@ class Isovar(object):
             # if we're only keeping the top-k, get rid of the rest
             if self.max_protein_sequences_per_variant:
                 protein_sequences = protein_sequences[:self.max_protein_sequences_per_variant]
-
-            predicted_effect = self._predicted_effect(
-                variant=variant,
-                transcript_id_whitelist=transcript_id_whitelist)
 
             yield IsovarResult(
                 variant=variant,

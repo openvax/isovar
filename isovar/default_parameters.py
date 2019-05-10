@@ -87,7 +87,7 @@ MAX_REFERENCE_TRANSCRIPT_MISMATCHES = 2
 
 # whether to include mismatches after a variant locus toward the
 # MAX_REFERENCE_TRANSCRIPT_MISMATCHES count
-INCLUDE_MISMATCHES_AFTER_VARIANT = False
+COUNT_MISMATCHES_AFTER_VARIANT = False
 
 # number of amino acids / codons we're trying to translate
 PROTEIN_SEQUENCE_LENGTH = 20

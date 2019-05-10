@@ -33,10 +33,8 @@ logger = get_logger(__name__)
 
 class VariantSequenceCreator(object):
     """
-    VariantSequenceCreator is used to hold multiple options
-    related to assembling a set of AlleleReads into a smaller
-    set of VariantSequence objects based on overlap of read
-    sequences.
+    Assembler is used to assemble a set of AlleleReads into a smaller set of
+    VariantSequence objects based on overlap of read sequences.
     """
     def __init__(
             self,
