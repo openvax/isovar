@@ -16,22 +16,11 @@
 from __future__ import print_function, division, absolute_import
 
 from .default_parameters import (
-    MIN_TRANSCRIPT_PREFIX_LENGTH,
-    MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-    INCLUDE_MISMATCHES_AFTER_VARIANT,
-    PROTEIN_SEQUENCE_LENGTH,
-    MAX_PROTEIN_SEQUENCES_PER_VARIANT,
     MIN_ALT_RNA_READS,
     MIN_ALT_RNA_FRAGMENTS,
     MIN_RNA_VAF,
     MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
-    MIN_VARIANT_SEQUENCE_COVERAGE,
-    VARIANT_SEQUENCE_ASSEMBLY,
-    MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
-    USE_SECONDARY_ALIGNMENTS,
-    USE_DUPLICATE_READS,
-    MIN_READ_MAPPING_QUALITY,
-    USE_SOFT_CLIPPED_BASES
+
 )
 
 from .protein_sequence_helpers import sort_protein_sequences, collapse_translations
@@ -39,10 +28,11 @@ from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
 from .logging import get_logger
 from .isovar_result import IsovarResult
+from .value_object import ValueObject
 
 logger = get_logger(__name__)
 
-class Isovar(object):
+class Isovar(ValueObject):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
@@ -51,66 +41,17 @@ class Isovar(object):
     def __init__(
             self,
             read_collector=None,
-            protein_sequence_creator=None,
-            min_alt_rna_fragments=MIN_ALT_RNA_FRAGMENTS,
-            min_alt_rna_reads=MIN_ALT_RNA_READS,
-            min_rna_vaf=MIN_RNA_VAF,
-            min_ratio_alt_to_other_rna_fragments=MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
-            max_other_vaf=MAX_OTHER_VAF):
+            protein_sequence_creator=None):
+
         """
-        protein_sequence_length : int
-            Try to translate protein sequences of this length, though sometimes
-            we'll have to return something shorter (depending on the RNAseq data,
-            and presence of stop codons).
+        read_collector : ReadCollector or None
+            Object used to collect ReadEvidence for each variant, created
+            with default settings if not supplied.
 
-        min_alt_rna_reads : int
-            Drop variant sequences at loci with fewer than this number of reads
-            supporting the alt allele.
-
-        min_ratio_alt_to_other_nonref_reads : float
-            Drop variant sequences at loci where there is support for third/fourth
-            alleles in the RNA and the count for the alt allele is not at least
-            this number greater than the sum of other non-ref alleles.
-
-        min_variant_sequence_coverage : int
-            Trim variant sequences to positions supported by at least this number
-            of RNA reads.
-
-        min_transcript_prefix_length : int
-            Minimum number of bases we need to try matching between the reference
-            context and variant sequence.
-
-        max_transcript_mismatches : int
-            Don't try to determine the reading frame for a transcript if more
-            than this number of bases differ.
-
-        include_mismatches_after_variant : bool
-            Include mismatches after the variant locus in the count compared
-            against max_transcript_mismatches.
-
-        max_protein_sequences_per_variant : int
-            Number of protein sequences to return for each ProteinSequence
-
-        variant_sequence_assembly : bool
-            If True, then assemble variant cDNA sequences based on overlap of
-            RNA reads. If False, then variant cDNA sequences must be fully spanned
-            and contained within RNA reads.
-
-        min_assembly_overlap_size : int
-            Minimum number of nucleotides that two reads need to overlap before they
-            can be merged into a single coding sequence.
-
-        use_secondary_alignments : bool
-            Use a read even when it's not the primary alignment at a locus
-
-        use_duplicate_reads : bool
-            Use a read even if it's been marked as a duplicate
-
-        min_mapping_quality : int
-            Minimum MAPQ (mapping quality) to use a read
-
-        use_soft_clipped_bases : bool
-            Include soft-clipped positions on a read which were ignored by the aligner
+        protein_sequence_creator : ProteinSequenceCreator or None
+            Object used to turn (Variant, ReadEvidence) into one or more
+            ProteinSequence objects. Created with default settings if not
+            supplied.
         """
         if read_collector is None:
             read_collector = ReadCollector()
@@ -120,11 +61,18 @@ class Isovar(object):
         if protein_sequence_creator is None:
             self.protein_sequence_creator = ProteinSequenceCreator()
 
-        self.min_alt_rna_fragments = min_alt_rna_fragments
-        self.min_rna_vaf = min_rna_vaf
-        self.min_alt_rna_reads = min_alt_rna_reads
-        self.min_ratio_alt_to_other_rna_fragments = min_ratio_alt_to_other_rna_fragments
-        self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
+    def apply_filters(
+            self,
+            min_num_alt_fragments=MIN_ALT_RNA_FRAGMENTS,
+            min_num_alt_reads=MIN_ALT_RNA_READS,
+            min_fraction_alt_fragments=MIN_FRACTION_ALT_FRAGMENTS,
+            min_fraction_alt_reads=MIN_FRACTION_ALT_READS,
+            max_num_other_fragments=MAX_OTHER_FRAGMENTS,
+            max_num_other_reads=MAX_OTHER_VAF,
+            max_other_reads=MAX_OTHER_READS,
+            min_ratio_alt_to_other_rna_fragments=MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS):
+
+        ):
     
     def sorted_protein_sequences_for_variant(
             self,
