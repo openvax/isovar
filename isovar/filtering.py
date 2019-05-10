@@ -20,10 +20,6 @@ counts and fractions used to filter variants by RNA evidence.
 from __future__ import print_function, division, absolute_import
 
 import operator
-from collections import OrderedDict
-
-import numpy as np
-
 
 from collections import OrderedDict
 
@@ -118,7 +114,7 @@ def create_dictionary_of_filter_results(
 
 def apply_filters(
         result_generator,
-        filter_thresholds=DEFAULT_FILTER_THRESHOLDS)
+        filter_thresholds=DEFAULT_FILTER_THRESHOLDS):
     """
     Given a generator of IsovarResult objects and thresholds for various 
     filters, this function generates dictionaries of filter values for each
@@ -150,33 +146,16 @@ def apply_filters(
         yield (isovar_result, filter_dict, all_passed)
 
 
-def apply_filters(self, **kwargs):
+def split_by_filters(
+        result_generator,
+        filter_thresholds=DEFAULT_FILTER_THRESHOLDS):
     """
-    Apply dictionary of cutoff values to fields of this CoverageStats
-    object and return enough information to quickly determine
-    whether all filters passed and which, if any, failed.
-
-    Parameters
-    ----------
-    **kwargs : dict
-        Dictionary of filter names (e.g. "max_alt_reads") and
-        their corresponding cutoffs. The filter names can apply
-        to any filter of CoverageStats which either starts with
-        "n_" (like "n_alt_reads") or ends with "fraction"
-        (like "alt_fragment_fraction").
-
-    Returns
-    -------
-    A tuple with two elements:
-        - boolean indicating whether all filters passed
-        - list of names of which filters failed
     """
-    filter_name_to_value = self.create_dictionary_of_filter_results(**kwargs)
-    all_passed = True
-    failing_filters = []
-    for (filter_name, filter_value) in filter_name_to_value.items():
-        if not filter_value:
-            all_passed = False
-            failing_filters.append(filter_name)
-    return all_passed, failing_filters
-
+    passing_list = []
+    failing_list = []
+    for (r, d, p) in apply_filters(result_generator, filter_thresholds):
+        if p:
+            passing_list.append((r,d))
+        else:
+            failing_list.append((r, d))
+    return passing_list, failing_list

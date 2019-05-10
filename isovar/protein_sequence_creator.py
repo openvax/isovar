@@ -343,7 +343,7 @@ class ProteinSequenceCreator(ValueObject):
         # sort protein sequences before returning the top results
         protein_sequences = sort_protein_sequences(protein_sequences)
         return protein_sequences
-    
+
     def variant_and_protein_sequences_generator(
             self,
             read_evidence_generator,
