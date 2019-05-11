@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 # ReferenceContext
 # ----------------
 #
-# Includes all the fields of SequenceKeyWithReadingFrame in addition to which
+# Includes all the fields of ReferenceCodingSequenceKey in addition to which
 # variant we're examining and all transcripts overlapping that variant
 # which produced this particular sequence context and reading frame.
 #
@@ -126,7 +126,8 @@ def reference_contexts_for_variant(
     """
     overlapping_transcripts = reference_transcripts_for_variant(
         variant=variant,
-        transcript_id_whitelist=transcript_id_whitelist)
+        transcript_id_whitelist=transcript_id_whitelist,
+        only_coding=True)
 
     # dictionary mapping SequenceKeyWithReadingFrame keys to list of
     # transcript objects

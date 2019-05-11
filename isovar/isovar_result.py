@@ -35,37 +35,17 @@ class IsovarResult(ValueObject):
     """
     __slots__ = [
         "variant",
-        "transcript_id_whitelist",
+        "predicted_effect",
         "read_evidence",
         "sorted_protein_sequences",
     ]
 
-    def __init__(self, variant, read_evidence, sorted_protein_sequences, transcript_id_whitelist):
+    def __init__(self, variant, predicted_effect, read_evidence, sorted_protein_sequences):
         self.variant = variant
-        self.transcript_id_whitelist = transcript_id_whitelist
+        self.predicted_effect = predicted_effect
         self.read_evidence = read_evidence
         self.sorted_protein_sequences = sorted_protein_sequences
 
-    def top_varcode_effect(self):
-        """
-        Find the best predicted effect for the given variant. If we have a
-        transcript whitelist (based on filtering bulk expression) then use
-        it to eliminate some of the effect predictions.
-        Returns subclass of varcode.MutationEffect
-        """
-        # get the predicted coding effect from Varcode in case we want to filter
-        # on mutations which we believe affect the coding sequence even without
-        # looking at RNA reads directly
-        effects = self.variant.effects()
-        if self.transcript_id_whitelist:
-            filtered_effects = effects.filter(
-                lambda e: e.transcript_id in self.transcript_id_whitelist)
-            if len(filtered_effects) > 0:
-                # only drop effects if some are left with non-zero expression
-                # otherwise we can't ascribe any effect prediction to this
-                # variant
-                effects = filtered_effects
-        return effects.top_priority_effect()
 
     @property
     def top_protein_sequence(self):

@@ -97,8 +97,10 @@ def create_dictionary_of_filter_results(
         field_name = "_".join(parts[1:])
         if min_or_max == "min":
             comparison_fn = operator.ge
+            comparison_string = ">="
         elif min_or_max == "max":
             comparison_fn = operator.le
+            comparison_string = "<="
         else:
             raise ValueError(
                 "Invalid filter '%s', must start with 'min' or 'max'" % name)
@@ -109,8 +111,15 @@ def create_dictionary_of_filter_results(
                 "Invalid filter '%s' IsovarResult does not have property '%s'" % (
                     name,
                     field_name))
-        filter_values_dict[name] = comparison_fn(field_value, threshold)
+        filter_key_name = "%s(%s) %s %s(%s)" % (
+            field_name,
+            field_value,
+            comparison_string,
+            name,
+            threshold)
+        filter_values_dict[filter_key_name] = comparison_fn(field_value, threshold)
     return filter_values_dict
+
 
 def apply_filters(
         result_generator,
@@ -150,12 +159,27 @@ def split_by_filters(
         result_generator,
         filter_thresholds=DEFAULT_FILTER_THRESHOLDS):
     """
+    Split a series of IsovarResult objects into two lists, the first
+    is the results which passed all the filters, whereas the second
+    list is failing results. Each IsovarResult is paired with a dictionary
+    mapping each filter name to whether it passed or failed.
+
+    Parameters
+    ----------
+    result_generator : generator of IsovarResult
+
+    filter_thresholds : dict
+        Names such as "min_num_alt_reads" mapped to cutoffs. Everything
+        after "min_" or "max_" is expected to be a property of the IsovarResult
+        object.
     """
     passing_list = []
     failing_list = []
-    for (r, d, p) in apply_filters(result_generator, filter_thresholds):
-        if p:
-            passing_list.append((r,d))
+    for (isovar_result, filter_result_dict, all_passed) in apply_filters(
+            result_generator, filter_thresholds):
+        pair = (isovar_result, filter_result_dict)
+        if all_passed:
+            passing_list.append(pair)
         else:
-            failing_list.append((r, d))
+            failing_list.append(pair)
     return passing_list, failing_list

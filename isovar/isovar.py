@@ -15,7 +15,6 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .protein_sequence_helpers import sort_protein_sequences, collapse_translations
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
 from .logging import get_logger
@@ -23,6 +22,7 @@ from .isovar_result import IsovarResult
 from .value_object import ValueObject
 
 logger = get_logger(__name__)
+
 
 class Isovar(ValueObject):
     """
