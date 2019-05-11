@@ -15,7 +15,10 @@
 
 from __future__ import print_function, division, absolute_import
 
+from six import string_types
 import pandas as pd
+from varcode import load_vcf
+from pysam import AlignmentFile
 
 from .filtering import DEFAULT_FILTER_THRESHOLDS, apply_filters
 from .protein_sequence_creator import ProteinSequenceCreator
@@ -36,7 +39,8 @@ class Isovar(ValueObject):
     def __init__(
             self,
             read_collector=None,
-            protein_sequence_creator=None):
+            protein_sequence_creator=None,
+            filter_thresholds=DEFAULT_FILTER_THRESHOLDS):
 
         """
         read_collector : ReadCollector or None
@@ -47,6 +51,12 @@ class Isovar(ValueObject):
             Object used to turn (Variant, ReadEvidence) into one or more
             ProteinSequence objects. Created with default settings if not
             supplied.
+
+        filter_thresholds : dict or OrderedDict
+            Dictionary whose entries have names like "min_num_alt_reads"
+            mapping to a numerical threshold value. In general, the keys
+            must start with either "min_" or "max_" followed by a property
+            of the IsovarResult class.
         """
         if read_collector is None:
             read_collector = ReadCollector()
@@ -56,7 +66,9 @@ class Isovar(ValueObject):
         if protein_sequence_creator is None:
             self.protein_sequence_creator = ProteinSequenceCreator()
 
-    def process_variants(
+        self.filter_thresholds = filter_thresholds
+
+    def generate_isovar_results_without_filtering(
             self,
             variants,
             alignment_file,
@@ -83,6 +95,10 @@ class Isovar(ValueObject):
         The `protein_sequences` field of the IsovarVar result will be empty
         if no sequences could be determined.
         """
+        if isinstance(variants, string_types):
+            variants = load_vcf(variants)
+        if isinstance(alignment_file, string_types):
+            alignment_file = AlignmentFile(alignment_file)
 
         # create generator which returns (Variant, ReadEvidence) pairs
         read_evidence_gen = \
@@ -108,29 +124,24 @@ class Isovar(ValueObject):
                 read_evidence=read_evidence,
                 protein_sequences=protein_sequences)
 
-
     def create_dataframe(
             self,
             variants,
             alignment_file,
-            transcript_id_whitelist=None,
-            filter_thresholds=DEFAULT_FILTER_THRESHOLDS):
+            transcript_id_whitelist=None):
         """
         Collect read evidence for every variant, predict effect on protein
         sequence (without taking into account RNA reads) and attempt to
         assemble and translate mutant protein sequences from RNA reads.
         Flatten all the information into a pandas DataFrame. Filter each row
-        using the thesholds in the `filter_thresholds` dictionary, whose
-        entries have names like "min_num_alt_reads" following the grammar
-        "{min|max}_{IsovarResult property". Rows which pass all filters have
-        True values in the "pass" column.
+        using the thesholds in the `filter_thresholds`. Rows which pass all
+        filters have True values in the "pass" column.
 
         Parameters
         ----------
         variants
         alignment_file
         transcript_id_whitelist
-        filter_thresholds : dict or OrderedDict
 
         Returns pandas.DataFrame
         """
@@ -140,11 +151,11 @@ class Isovar(ValueObject):
             transcript_id_whitelist=transcript_id_whitelist)
         records = []
         for (isovar_result, filter_dict, all_pass) in apply_filters(
-                    result_gen, filter_thresholds=filter_thresholds):
+                    result_gen, filter_thresholds=self.filter_thresholds):
             record = isovar_result.to_record()
             record["pass"] = all_pass
             for (filter_name, filter_result) in filter_dict.items():
                 record["filter:%s" % filter_name] = filter_result
             records.append(records)
-        return pd.DataFrame(records)
+        return pd.DataFrame.from_records(records)
 
