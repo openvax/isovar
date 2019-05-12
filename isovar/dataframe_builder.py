@@ -129,6 +129,15 @@ class DataFrameBuilder(object):
         self.columns_dict = OrderedDict(columns_list)
 
     def add(self, variant, element):
+        """
+        Add one row to the DataFrame
+
+        Parameters
+        ----------
+        variant : varcode.Variant
+
+        element : must have type self.element_class
+        """
         if self.variant_columns:
             assert isinstance(variant, Variant)
             self.columns_dict["chr"].append(variant.contig)

@@ -14,6 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+import pandas as pd
 from .allele_counts import AlleleCount, count_alleles_at_variant_locus
 from .allele_read import AlleleRead
 from .common import list_to_string
@@ -75,7 +76,7 @@ def allele_counts_dataframe(variant_and_allele_reads_generator):
     df_builder = DataFrameBuilder(
         AlleleCount,
         extra_column_fns={
-            "gene": lambda variant, _: ";".join(variant.gene_names),
+            "gene": lambda v, _: ";".join(v.gene_names),
         })
     for variant, allele_reads in variant_and_allele_reads_generator:
         counts = count_alleles_at_variant_locus(variant, allele_reads)
@@ -94,7 +95,7 @@ def allele_reads_to_dataframe(variants_and_allele_reads):
     df_builder = DataFrameBuilder(
         AlleleRead,
         extra_column_fns={
-            "gene": lambda variant, _: ";".join(variant.gene_names),
+            "gene": lambda v, _: ";".join(v.gene_names),
         })
     for variant, allele_reads in variants_and_allele_reads:
         df_builder.add_many(variant, allele_reads)
@@ -199,3 +200,19 @@ def translations_generator_to_dataframe(translations_generator):
             "untrimmed_variant_sequence_read_count": (
                 lambda _, t: len(t.untrimmed_variant_sequence.reads)),
         })
+
+
+def isovar_results_to_dataframe(isovar_results):
+    """
+    Create a DataFrame from a sequence of IsovarResult objects.
+
+    Parameters
+    ----------
+    isovar_results : list or generator of IsovarResult
+
+    Returns pandas.DataFrame
+    """
+    records = []
+    for isovar_result in isovar_results:
+        records.append(isovar_result.to_record())
+    return pd.DataFrame()

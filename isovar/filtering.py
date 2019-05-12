@@ -62,63 +62,7 @@ DEFAULT_FILTER_THRESHOLDS =  OrderedDict([
     ("min_ratio_alt_to_other_fragments", MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS)
 ])
 
-def create_dictionary_of_filter_results(
-        isovar_result,
-        filter_thresholds):
-    """
-    Creates a dictionary whose keys are named of different
-    filter conditions and values are booleans, where True
-    indicates whether this set of coverage stats passes
-    the filter and False indicates that it failed.
 
-    Parameters
-    ----------
-    isovar_result : IsovarResult
-
-    filter_thresholds : dict or OrderedDict
-        Every argument is supposed to be something like "max_alt_reads"
-        where the first three characters are "min" or "max" and the
-        rest of the name is either a field of IsovarResult or
-        a numeric field like "num_alt_reads". The name of each filter
-        maps to a cutoff value. Filters starting with "max"
-        require that the corresponding field on CoverageStats
-        is <= cutoff, whereas filters starting with
-        "min" require >= cutoff.
-
-    Returns
-    -------
-    Dictionary of filter names mapped to boolean value indicating
-    whether this locus passed the filter.
-    """
-    filter_values_dict = OrderedDict()
-    for name, threshold in filter_thresholds.items():
-        parts = name.split("_")
-        min_or_max = parts[0]
-        field_name = "_".join(parts[1:])
-        if min_or_max == "min":
-            comparison_fn = operator.ge
-            comparison_string = ">="
-        elif min_or_max == "max":
-            comparison_fn = operator.le
-            comparison_string = "<="
-        else:
-            raise ValueError(
-                "Invalid filter '%s', must start with 'min' or 'max'" % name)
-        if hasattr(isovar_result, field_name):
-            field_value = getattr(isovar_result, field_name)
-        else:
-            raise ValueError(
-                "Invalid filter '%s' IsovarResult does not have property '%s'" % (
-                    name,
-                    field_name))
-        filter_key_name = "%s(%s) %s %s(%s)" % (
-            field_name,
-            field_value,
-            comparison_string,
-            name,
-            threshold)
-        filter_values_dict[filter_key_name] = comparison_fn(field_value, threshold)
-    return filter_values_dict
 
 
 def apply_filters(

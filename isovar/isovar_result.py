@@ -20,6 +20,7 @@ and any protein sequences which were successfully translated for it.
 
 from __future__ import print_function, division, absolute_import
 
+import operator
 from collections import OrderedDict
 
 from .common import safediv
@@ -38,14 +39,131 @@ class IsovarResult(ValueObject):
         "predicted_effect",
         "read_evidence",
         "sorted_protein_sequences",
+        "filter_values_dict",
     ]
 
-    def __init__(self, variant, predicted_effect, read_evidence, sorted_protein_sequences):
+    def __init__(
+            self,
+            variant,
+            predicted_effect,
+            read_evidence,
+            sorted_protein_sequences=None,
+            filter_values_dict=None):
         self.variant = variant
         self.predicted_effect = predicted_effect
         self.read_evidence = read_evidence
-        self.sorted_protein_sequences = sorted_protein_sequences
 
+        if self.sorted_protein_sequences is None:
+            self.sorted_protein_sequences = []
+        else:
+            self.sorted_protein_sequences = sorted_protein_sequences
+        if filter_values_dict is None:
+            self.filter_values_dict = OrderedDict()
+        else:
+            self.filter_values_dict = filter_values_dict
+
+    def apply_filters(self, filter_thresholds):
+        """
+        Creates a dictionary whose keys are named of different
+        filter conditions and values are booleans, where True
+        indicates whether this set of coverage stats passes
+        the filter and False indicates that it failed.
+
+        Parameters
+        ----------
+        filter_thresholds : dict or OrderedDict
+            Every argument is supposed to be something like "max_alt_reads"
+            where the first three characters are "min" or "max" and the
+            rest of the name is either a field of IsovarResult or
+            a numeric field like "num_alt_reads". The name of each filter
+            maps to a cutoff value. Filters starting with "max"
+            require that the corresponding field on CoverageStats
+            is <= cutoff, whereas filters starting with
+            "min" require >= cutoff.
+
+        Returns
+        -------
+        Dictionary of filter names mapped to boolean value indicating
+        whether this locus passed the filter.
+        """
+        filter_values_dict = OrderedDict()
+        for name, threshold in filter_thresholds.items():
+            parts = name.split("_")
+            min_or_max = parts[0]
+            field_name = "_".join(parts[1:])
+            if min_or_max == "min":
+                comparison_fn = operator.ge
+            elif min_or_max == "max":
+                comparison_fn = operator.le
+            else:
+                raise ValueError(
+                    "Invalid filter '%s', must start with 'min' or 'max'" % name)
+            if hasattr(self, field_name):
+                field_value = getattr(self., field_name)
+            else:
+                raise ValueError(
+                    "Invalid filter '%s' IsovarResult does not have property '%s'" % (
+                        name,
+                        field_name))
+            filter_values_dict[name] = comparison_fn(field_value, threshold)
+        return filter_values_dict
+
+    def to_dict(self):
+        """
+        Dictionary representation of fields used to construct this IsovarResult
+
+        Returns dict
+        """
+        return {
+            k: getattr(self, k)
+            for k in self.__slots__
+
+        }
+
+    def clone_with_new_field(self, **kwargs):
+        """
+        Create a copy of this IsovarResult object including any new
+        parameters in `kwargs`.
+
+        Returns IsovarResult
+        """
+        for (k, v) in self.to_dict():
+            if k not in kwargs:
+                kwargs[k] = v
+        return IsovarResult(**kwargs)
+
+    def clone_with_extra_filters(self, filter_thresholds):
+        """
+        Applies filters to properties of this IsovarResult and then creates
+        a copy with an updated filter_values_dict field.
+
+        Parameters
+        ----------
+        filter_thresholds : dict or OrderedDict
+            Dictionary mapping filter names (e.g. "max_fraction_ref_reads) to
+            thresholds.
+
+        Returns IsovarResult
+        """
+        # first clone filter values which might already exist
+        combined_filter_value_dict = OrderedDict()
+        for k, v in self.filter_values_dict.items():
+            combined_filter_value_dict[k] = v
+        for k,v in self.apply_filters(filter_thresholds):
+            combined_filter_value_dict[k] = v
+        return self.clone_with_new_field(
+            filter_values_dict=combined_filter_value_dict)
+
+    @property
+    def passes_all_filters(self):
+        """
+        Does this IsovarResult have True for all the filter values in
+        self.filter_values_dict?
+        """
+        if len(self.filter_values_dict) == 0:
+            return True
+        else:
+            return all(list(self.filter_values_dict.values()))
 
     @property
     def top_protein_sequence(self):
@@ -110,6 +228,13 @@ class IsovarResult(ValueObject):
                 None)
 
         ########################################################################
+        # filters
+        ########################################################################
+        for filter_name, filter_value in self.filter_values_dict.items():
+            d["filter:%s" % filter_name] = filter_value
+        d["pass"] = self.passes_all_filters
+
+        ########################################################################
         # get the top protein sequence, if one exists
         ########################################################################
         protein_sequence = self.top_protein_sequence
@@ -129,6 +254,8 @@ class IsovarResult(ValueObject):
         ]
         for (name, protein_sequence_field) in protein_sequence_properties:
             d[name] = getattr(protein_sequence, protein_sequence_field, None)
+
+
         return d
 
     @property
