@@ -19,12 +19,13 @@ from .variant_orf import VariantORF
 
 logger = get_logger(__name__)
 
+
 def match_variant_sequence_to_reference_context(
         variant_sequence,
         reference_context,
         min_transcript_prefix_length,
         max_transcript_mismatches,
-        include_mismatches_after_variant=False,
+        count_mismatches_after_variant=False,
         max_trimming_attempts=2):
     """
     Iteratively trim low-coverage subsequences of a variant sequence
@@ -50,7 +51,7 @@ def match_variant_sequence_to_reference_context(
         Maximum number of nucleotide differences between reference transcript
         sequence and the variant sequence.
 
-    include_mismatches_after_variant : bool
+    count_mismatches_after_variant : bool
         Set to true if the number of mismatches after the variant locus should
         count toward the total max_transcript_mismatches, which by default
         only counts mismatches before the variant locus.
@@ -61,7 +62,7 @@ def match_variant_sequence_to_reference_context(
 
     Returns VariantORF or None
     """
-    variant_sequence_in_reading_frame = None
+    variant_orf = None
 
     # if we can't get the variant sequence to match this reference
     # context then keep trimming it by coverage until either
@@ -83,31 +84,31 @@ def match_variant_sequence_to_reference_context(
                 i + 1)
             return None
 
-        variant_sequence_in_reading_frame = \
+        variant_orf = \
             VariantORF.from_variant_sequence_and_reference_context(
                 variant_sequence=variant_sequence,
                 reference_context=reference_context)
 
-        if variant_sequence_in_reading_frame is None:
+        if variant_orf is None:
             return None
 
         n_mismatch_before_variant = (
-            variant_sequence_in_reading_frame.number_mismatches_before_variant)
+            variant_orf.num_mismatches_before_variant)
         n_mismatch_after_variant = (
-            variant_sequence_in_reading_frame.number_mismatches_after_variant)
+            variant_orf.num_mismatches_after_variant)
 
         logger.info("Iter #%d/%d: %s" % (
             i + 1,
             max_trimming_attempts + 1,
-            variant_sequence_in_reading_frame))
+            variant_orf))
 
         total_mismatches = n_mismatch_before_variant
-        if include_mismatches_after_variant:
+        if count_mismatches_after_variant:
             total_mismatches += n_mismatch_after_variant
         if total_mismatches <= max_transcript_mismatches:
             # if we got a variant sequence + reading frame with sufficiently
             # few mismatches then call it a day
-            return variant_sequence_in_reading_frame
+            return variant_orf
 
         logger.info(
             ("Too many mismatches (%d) between variant sequence %s and "

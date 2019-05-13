@@ -68,28 +68,6 @@ class ProteinSequence(TranslationKey):
         self.reads_supporting_protein_sequence = reads_supporting_protein_sequence
         self.transcript_ids_supporting_protein_sequence = transcript_ids_supporting_protein_sequence
 
-
-    @classmethod
-    def _summarize_translations(cls, translations):
-        """
-        Summarize a collection of Translation objects into three values:
-            1) List of unique reads supporting underlying variant sequences
-            2) Set of unique transcript names for establishing reading frames of the
-               translations.
-            3) Set of unique gene names for all transcripts used by translations.
-        """
-        read_name_to_reads = {}
-        gene_names = set([])
-        transcript_ids = set([])
-        for translation in translations:
-            for read in translation.reads:
-                read_name_to_reads[read.name] = read
-            for transcript in translation.reference_context.transcripts:
-                transcript_ids.add(transcript.id)
-                gene_names.add(transcript.gene.name)
-        unique_reads = list(read_name_to_reads.values())
-        return unique_reads, transcript_ids, gene_names
-
     @classmethod
     def from_translation_key(
             cls,
@@ -239,7 +217,6 @@ class ProteinSequence(TranslationKey):
             - number of unique supporting reads (either 1 or 2 per fragment)
             - minimum mismatch versus a supporting reference transcript before variant
             - minimum mismatch versus a supporting reference transcript after variant
-            - number of supporting reference transcripts
             - all else being equal, prefer longer sequences
         """
         return (
@@ -247,6 +224,5 @@ class ProteinSequence(TranslationKey):
             self.num_supporting_reads,
             -self.num_mismatches_before_variant,
             -self.num_mismatches_after_variant,
-            self.num_supporting_transcripts,
             len(self.amino_acids),
         )

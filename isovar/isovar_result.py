@@ -53,10 +53,11 @@ class IsovarResult(ValueObject):
         self.predicted_effect = predicted_effect
         self.read_evidence = read_evidence
 
-        if self.sorted_protein_sequences is None:
+        if sorted_protein_sequences is None:
             self.sorted_protein_sequences = []
         else:
             self.sorted_protein_sequences = sorted_protein_sequences
+
         if filter_values_dict is None:
             self.filter_values_dict = OrderedDict()
         else:
@@ -99,8 +100,9 @@ class IsovarResult(ValueObject):
                 raise ValueError(
                     "Invalid filter '%s', must start with 'min' or 'max'" % name)
             if hasattr(self, field_name):
-                field_value = getattr(self., field_name)
+                field_value = getattr(self, field_name)
             else:
+                print(self)
                 raise ValueError(
                     "Invalid filter '%s' IsovarResult does not have property '%s'" % (
                         name,
@@ -127,7 +129,7 @@ class IsovarResult(ValueObject):
 
         Returns IsovarResult
         """
-        for (k, v) in self.to_dict():
+        for (k, v) in self.to_dict().items():
             if k not in kwargs:
                 kwargs[k] = v
         return IsovarResult(**kwargs)
@@ -149,7 +151,7 @@ class IsovarResult(ValueObject):
         combined_filter_value_dict = OrderedDict()
         for k, v in self.filter_values_dict.items():
             combined_filter_value_dict[k] = v
-        for k,v in self.apply_filters(filter_thresholds):
+        for k,v in self.apply_filters(filter_thresholds).items():
             combined_filter_value_dict[k] = v
         return self.clone_with_new_field(
             filter_values_dict=combined_filter_value_dict)
@@ -195,14 +197,14 @@ class IsovarResult(ValueObject):
         ])
 
         # get all quantitative fields from this object
-        for key in self.__dict__:
+        for key in dir(self):
             if key.startswith("num_") or key.startswith("fraction_") or key.startswith("ratio_"):
                 d[key] = getattr(self, key)
 
         ########################################################################
         # predicted protein changes without looking at RNA reads
         ########################################################################
-        effect = self.top_varcode_effect()
+        effect = self.predicted_effect
 
         d["predicted_effect"] = effect.short_description
         d["predicted_effect_class"] = effect.__class__.__name__
@@ -255,201 +257,7 @@ class IsovarResult(ValueObject):
         for (name, protein_sequence_field) in protein_sequence_properties:
             d[name] = getattr(protein_sequence, protein_sequence_field, None)
 
-
         return d
-
-    @property
-    def ref_reads(self):
-        """
-        AlleleRead objects at this locus which support the reference allele
-        """
-        return self.read_evidence.ref_reads
-
-    @property
-    def alt_reads(self):
-        """
-        AlleleRead objects at this locus which support the mutant allele
-        """
-        return self.read_evidence.alt_reads
-
-    @property
-    def other_reads(self):
-        """
-        AlleleRead objects at this locus which support some allele other than
-        either the reference or alternate.
-        """
-        return self.read_evidence.other_reads
-
-    @property
-    def ref_read_names(self):
-        """
-        Names of reference reads at this locus.
-        """
-        return {r.name for r in self.ref_reads}
-
-    @property
-    def alt_read_names(self):
-        """
-        Names of alt reads at this locus.
-        """
-        return {r.name for r in self.alt_reads}
-
-    @property
-    def ref_and_alt_read_names(self):
-        """
-        Names of reads which support either the ref or alt alleles.
-        """
-        return self.ref_read_names.union(self.alt_read_names)
-
-    @property
-    def other_read_names(self):
-        """
-        Names of other (non-alt, non-ref) reads at this locus.
-        """
-        return {r.name for r in self.other_reads}
-
-    @property
-    def all_read_names(self):
-        """
-        Names of all reads at this locus.
-        """
-        return self.ref_read_names.union(self.alt_read_names).union(self.other_read_names)
-
-    @property
-    def num_total_reads(self):
-        """
-        Total number of reads at this locus, regardless of allele.
-        """
-        return self.num_ref_reads + self.num_alt_reads + self.num_other_nonref_reads
-
-    @property
-    def num_total_fragments(self):
-        """
-        Total number of distinct fragments at this locus, which also corresponds
-        to the total number of read names.
-        """
-        return len(self.all_read_names)
-
-    @property
-    def num_ref_reads(self):
-        """
-        Number of reads which support the reference allele.
-        """
-        return len(self.ref_reads)
-
-    @property
-    def num_ref_fragments(self):
-        """
-        Number of distinct fragments which support the reference allele.
-        """
-        return len(self.ref_read_names)
-
-    @property
-    def num_alt_reads(self):
-        """
-        Number of reads which support the alt allele.
-        """
-        return len(self.alt_reads)
-
-    @property
-    def num_alt_fragments(self):
-        """
-        Number of distinct fragments which support the alt allele.
-        """
-        return len(self.alt_read_names)
-
-    @property
-    def num_other_reads(self):
-        """
-        Number of reads which support neither the reference nor alt alleles.
-        """
-        num_nonref = self.num_overlapping_reads - self.num_ref_reads
-        return num_nonref - self.num_alt_reads
-
-    @property
-    def num_other_fragments(self):
-        """
-        Number of distinct fragments which support neither the reference nor
-        alt alleles.
-        """
-        num_nonref = self.num_overlapping_fragments - self.num_ref_fragments
-        return num_nonref - self.num_alt_fragments
-
-    @property
-    def fraction_ref_reads(self):
-        """
-        Allelic fraction of the reference allele among all reads at this site.
-        """
-        return safediv(self.num_ref_reads, self.num_reads)
-
-    @property
-    def fraction_ref_fragments(self):
-        """
-        Allelic fraction of the reference allele among all fragments at this site.
-        """
-        return safediv(self.num_ref_fragments, self.num_fragments)
-
-    @property
-    def fraction_alt_reads(self):
-        """
-        Allelic fraction of the variant allele among all reads at this site.
-        """
-        return safediv(self.num_alt_reads, self.num_reads)
-
-    @property
-    def fraction_alt_fragments(self):
-        """
-        Allelic fraction of the variant allele among all fragments at this site.
-        """
-        return safediv(self.num_alt_fragments, self.num_fragments)
-
-    @property
-    def fraction_other_reads(self):
-        """
-        Allelic fraction of the "other" (non-ref, non-alt) alleles among all
-        reads at this site.
-        """
-        return safediv(self.num_other_reads, self.num_reads)
-
-    @property
-    def fraction_other_fragments(self):
-        """
-        Allelic fraction of the "other" (non-ref, non-alt) alleles among all
-        fragments at this site.
-        """
-        return safediv(self.num_other_fragments, self.num_fragments)
-
-    @property
-    def ratio_other_to_ref_reads(self):
-        """
-        Ratio of the number of reads which support alleles which are neither
-        ref/alt to the number of ref reads.
-        """
-        return safediv(self.num_other_reads, self.num_ref_reads)
-
-    @property
-    def ratio_other_to_ref_fragments(self):
-        """
-        Ratio of the number of fragments which support alleles which are neither
-        ref/alt to the number of ref fragments.
-        """
-        return safediv(self.num_other_fragments, self.num_ref_fragments)
-
-    @property
-    def ratio_other_to_alt_reads(self):
-        """
-        Ratio of the number of reads which support alleles which are neither
-        ref/alt to the number of alt reads.
-        """
-        return safediv(self.num_other_reads, self.num_alt_reads)
-
-    @property
-    def ratio_other_to_alt_fragments(self):
-        """
-        Ratio of the number of fragments which support alleles which are neither
-        ref/alt to the number of alt fragments.
-        """
-        return safediv(self.num_other_fragments, self.num_alt_fragments)
 
     def overlapping_transcripts(self, only_coding=True):
         """
@@ -597,3 +405,225 @@ class IsovarResult(ValueObject):
             for g
             in self.genes_from_protein_sequences(protein_sequence_limit=None)
         ]
+
+    @property
+    def ref_reads(self):
+        """
+        AlleleRead objects at this locus which support the reference allele
+        """
+        return self.read_evidence.ref_reads
+
+    @property
+    def alt_reads(self):
+        """
+        AlleleRead objects at this locus which support the mutant allele
+        """
+        return self.read_evidence.alt_reads
+
+    @property
+    def other_reads(self):
+        """
+        AlleleRead objects at this locus which support some allele other than
+        either the reference or alternate.
+        """
+        return self.read_evidence.other_reads
+
+    @property
+    def ref_read_names(self):
+        """
+        Names of reference reads at this locus.
+        """
+        return {r.name for r in self.ref_reads}
+
+    @property
+    def alt_read_names(self):
+        """
+        Names of alt reads at this locus.
+        """
+        return {r.name for r in self.alt_reads}
+
+    @property
+    def ref_and_alt_read_names(self):
+        """
+        Names of reads which support either the ref or alt alleles.
+        """
+        return self.ref_read_names.union(self.alt_read_names)
+
+    @property
+    def other_read_names(self):
+        """
+        Names of other (non-alt, non-ref) reads at this locus.
+        """
+        return {r.name for r in self.other_reads}
+
+    @property
+    def all_read_names(self):
+        """
+        Names of all reads at this locus.
+        """
+        return self.ref_read_names.union(self.alt_read_names).union(self.other_read_names)
+
+    @property
+    def num_total_reads(self):
+        """
+        Total number of reads at this locus, regardless of allele.
+        """
+        return self.num_ref_reads + self.num_alt_reads + self.num_other_reads
+
+    @property
+    def num_total_fragments(self):
+        """
+        Total number of distinct fragments at this locus, which also corresponds
+        to the total number of read names.
+        """
+        return len(self.all_read_names)
+
+    @property
+    def num_ref_reads(self):
+        """
+        Number of reads which support the reference allele.
+        """
+        return len(self.ref_reads)
+
+    @property
+    def num_ref_fragments(self):
+        """
+        Number of distinct fragments which support the reference allele.
+        """
+        return len(self.ref_read_names)
+
+    @property
+    def num_alt_reads(self):
+        """
+        Number of reads which support the alt allele.
+        """
+        return len(self.alt_reads)
+
+    @property
+    def num_alt_fragments(self):
+        """
+        Number of distinct fragments which support the alt allele.
+        """
+        return len(self.alt_read_names)
+
+    @property
+    def num_other_reads(self):
+        """
+        Number of reads which support neither the reference nor alt alleles.
+        """
+        return len(self.other_reads)
+
+    @property
+    def num_other_fragments(self):
+        """
+        Number of distinct fragments which support neither the reference nor
+        alt alleles.
+        """
+        return len(self.other_read_names)
+
+    @property
+    def fraction_ref_reads(self):
+        """
+        Allelic fraction of the reference allele among all reads at this site.
+        """
+        return safediv(self.num_ref_reads, self.num_total_reads)
+
+    @property
+    def fraction_ref_fragments(self):
+        """
+        Allelic fraction of the reference allele among all fragments at this site.
+        """
+        return safediv(self.num_ref_fragments, self.num_total_fragments)
+
+    @property
+    def fraction_alt_reads(self):
+        """
+        Allelic fraction of the variant allele among all reads at this site.
+        """
+        return safediv(self.num_alt_reads, self.num_total_reads)
+
+    @property
+    def fraction_alt_fragments(self):
+        """
+        Allelic fraction of the variant allele among all fragments at this site.
+        """
+        return safediv(self.num_alt_fragments, self.num_total_fragments)
+
+    @property
+    def fraction_other_reads(self):
+        """
+        Allelic fraction of the "other" (non-ref, non-alt) alleles among all
+        reads at this site.
+        """
+        return safediv(self.num_other_reads, self.num_total_reads)
+
+    @property
+    def fraction_other_fragments(self):
+        """
+        Allelic fraction of the "other" (non-ref, non-alt) alleles among all
+        fragments at this site.
+        """
+        return safediv(self.num_other_fragments, self.num_total_fragments)
+
+    @property
+    def ratio_other_to_ref_reads(self):
+        """
+        Ratio of the number of reads which support alleles which are neither
+        ref/alt to the number of ref reads.
+        """
+        return safediv(self.num_other_reads, self.num_ref_reads)
+
+    @property
+    def ratio_other_to_ref_fragments(self):
+        """
+        Ratio of the number of fragments which support alleles which are neither
+        ref/alt to the number of ref fragments.
+        """
+        return safediv(self.num_other_fragments, self.num_ref_fragments)
+
+    @property
+    def ratio_other_to_alt_reads(self):
+        """
+        Ratio of the number of reads which support alleles which are neither
+        ref/alt to the number of alt reads.
+        """
+        return safediv(self.num_other_reads, self.num_alt_reads)
+
+    @property
+    def ratio_other_to_alt_fragments(self):
+        """
+        Ratio of the number of fragments which support alleles which are neither
+        ref/alt to the number of alt fragments.
+        """
+        return safediv(self.num_other_fragments, self.num_alt_fragments)
+
+    @property
+    def ratio_ref_to_other_reads(self):
+        """
+        Ratio of the number of reference reads to non-ref/non-alt reads
+        """
+        return safediv(self.num_ref_reads, self.num_other_reads)
+
+    @property
+    def ratio_ref_to_other_fragments(self):
+        """
+        Ratio of the number of reference fragments to non-ref/non-alt fragments
+        """
+        return safediv(self.num_ref_fragments, self.num_other_fragments)
+
+    @property
+    def ratio_alt_to_other_reads(self):
+        """
+        Ratio of alt allele reads to non-ref/non-alt reads
+        """
+        return safediv(self.num_alt_reads, self.num_other_reads)
+
+    @property
+    def ratio_alt_to_other_fragments(self):
+        """
+        Ratio of the number of fragments which support the alt allele
+        to the number of non-alt/non-ref allele fragments.
+        """
+        return safediv(self.num_alt_fragments, self.num_other_fragments)
+
+

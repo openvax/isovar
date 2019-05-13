@@ -131,23 +131,23 @@ class ProteinSequenceCreator(ValueObject):
             mismatches between the RNA and reference transcript sequences exceeds
             given threshold.
             """
-            variant_sequence_in_reading_frame = match_variant_sequence_to_reference_context(
+            variant_orf = match_variant_sequence_to_reference_context(
                 variant_sequence,
                 reference_context,
                 min_transcript_prefix_length=self.min_transcript_prefix_length,
                 max_transcript_mismatches=self.max_transcript_mismatches,
-                include_mismatches_after_variant=self.include_mismatches_after_variant)
+                count_mismatches_after_variant=self.count_mismatches_after_variant)
 
-            if variant_sequence_in_reading_frame is None:
+            if variant_orf is None:
                 logger.info("Unable to determine reading frame for %s", variant_sequence)
                 return None
 
-            cdna_sequence = variant_sequence_in_reading_frame.cdna_sequence
-            cdna_codon_offset = variant_sequence_in_reading_frame.offset_to_first_complete_codon
+            cdna_sequence = variant_orf.cdna_sequence
+            cdna_codon_offset = variant_orf.offset_to_first_complete_codon
 
             # get the offsets into the cDNA sequence which pick out the variant nucleotides
-            cdna_variant_start_offset = variant_sequence_in_reading_frame.variant_cdna_interval_start
-            cdna_variant_end_offset = variant_sequence_in_reading_frame.variant_cdna_interval_end
+            cdna_variant_start_offset = variant_orf.variant_cdna_interval_start
+            cdna_variant_end_offset = variant_orf.variant_cdna_interval_end
 
             # TODO: determine if the first codon is the start codon of a
             # transcript, for now any of the unusual start codons like CTG
@@ -193,7 +193,7 @@ class ProteinSequenceCreator(ValueObject):
                 variant_aa_interval_end=variant_aa_interval_end,
                 untrimmed_variant_sequence=variant_sequence,
                 reference_context=reference_context,
-                variant_sequence_in_reading_frame=variant_sequence_in_reading_frame)
+                variant_orf=variant_orf)
 
     def all_pairs_translations(
             self,

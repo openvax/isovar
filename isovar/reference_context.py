@@ -15,7 +15,7 @@
 from __future__ import print_function, division, absolute_import
 from collections import OrderedDict, defaultdict
 
-from .effect_prediction import reference_transcripts_for_variant
+from .effect_prediction import reference_coding_transcripts_for_variant
 from .reference_coding_sequence_key import ReferenceCodingSequenceKey
 from .logging import get_logger
 
@@ -124,23 +124,22 @@ def reference_contexts_for_variant(
     Returns list of ReferenceContext objects, sorted by maximum length of
     coding sequence of any supporting transcripts.
     """
-    overlapping_transcripts = reference_transcripts_for_variant(
+    overlapping_transcripts = reference_coding_transcripts_for_variant(
         variant=variant,
-        transcript_id_whitelist=transcript_id_whitelist,
-        only_coding=True)
+        transcript_id_whitelist=transcript_id_whitelist)
 
     # dictionary mapping SequenceKeyWithReadingFrame keys to list of
     # transcript objects
     sequence_groups = defaultdict(list)
 
     for transcript in overlapping_transcripts:
-        sequence_key_with_reading_frame = \
+        reference_coding_sequence_key = \
             ReferenceCodingSequenceKey.from_variant_and_transcript(
                 variant=variant,
                 transcript=transcript,
                 context_size=context_size)
-        if sequence_key_with_reading_frame is not None:
-            sequence_groups[sequence_key_with_reading_frame].append(transcript)
+        if reference_coding_sequence_key is not None:
+            sequence_groups[reference_coding_sequence_key].append(transcript)
 
     reference_contexts = [
         ReferenceContext.from_reference_coding_sequence_key(

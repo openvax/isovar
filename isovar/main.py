@@ -16,18 +16,56 @@
 from __future__ import print_function, division, absolute_import
 
 from six import string_types
-import pandas as pd
 from varcode import load_vcf
 from pysam import AlignmentFile
+from collections import OrderedDict
 
-from .filtering import DEFAULT_FILTER_THRESHOLDS, apply_filters
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
 from .logging import get_logger
 from .isovar_result import IsovarResult
-from .value_object import ValueObject
+from .default_parameters import (
+    MIN_NUM_RNA_ALT_READS,
+    MIN_NUM_RNA_ALT_FRAGMENTS,
+    MIN_FRACTION_RNA_ALT_READS,
+    MIN_FRACTION_RNA_ALT_FRAGMENTS,
+    MAX_NUM_RNA_REF_READS,
+    MAX_NUM_RNA_REF_FRAGMENTS,
+    MAX_FRACTION_RNA_REF_READS,
+    MAX_FRACTION_RNA_REF_FRAGMENTS,
+    MAX_NUM_RNA_OTHER_READS,
+    MAX_NUM_RNA_OTHER_FRAGMENTS,
+    MAX_FRACTION_RNA_OTHER_READS,
+    MAX_FRACTION_RNA_OTHER_FRAGMENTS,
+    MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS,
+)
+from .effect_prediction import top_varcode_effect
 
 logger = get_logger(__name__)
+
+
+DEFAULT_FILTER_THRESHOLDS =  OrderedDict([
+    # alt allele
+    ("min_num_alt_reads", MIN_NUM_RNA_ALT_READS),
+    ("min_num_alt_fragments", MIN_NUM_RNA_ALT_FRAGMENTS),
+    ("min_fraction_alt_reads", MIN_FRACTION_RNA_ALT_READS),
+    ("min_fraction_alt_fragments", MIN_FRACTION_RNA_ALT_FRAGMENTS),
+
+    # ref allele coverage and VAF
+    ("max_num_ref_reads", MAX_NUM_RNA_REF_READS),
+    ("max_num_ref_fragments", MAX_NUM_RNA_REF_FRAGMENTS),
+    ("max_fraction_ref_reads", MAX_FRACTION_RNA_REF_READS),
+    ("max_fraction_ref_fragments", MAX_FRACTION_RNA_REF_FRAGMENTS),
+
+    # other alleles
+    ("max_num_other_reads", MAX_NUM_RNA_OTHER_READS),
+    ("max_num_other_fragments", MAX_NUM_RNA_OTHER_FRAGMENTS),
+    ("max_fraction_other_reads", MAX_FRACTION_RNA_OTHER_READS),
+    ("max_fraction_other_fragments", MAX_FRACTION_RNA_OTHER_FRAGMENTS),
+
+    # misc. filters
+    ("min_ratio_alt_to_other_fragments", MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS)
+])
 
 
 def run_isovar(
@@ -102,12 +140,14 @@ def run_isovar(
                 variant=variant,
                 read_evidence=read_evidence,
                 transcript_id_whitelist=transcript_id_whitelist)
-
+        predicted_effect = top_varcode_effect(
+            variant=variant,
+            transcript_id_whitelist=transcript_id_whitelist)
         isovar_result =  IsovarResult(
             variant=variant,
-            transcript_id_whitelist=transcript_id_whitelist,
+            predicted_effect=predicted_effect,
             read_evidence=read_evidence,
-            protein_sequences=protein_sequences)
+            sorted_protein_sequences=protein_sequences)
         isovar_result = isovar_result.clone_with_extra_filters(filter_thresholds)
         yield isovar_result
 

@@ -91,6 +91,7 @@ class VariantORF(ValueObject):
         Combines a VariantSequence with the reading frame implied by a
         ReferenceContext, reverse complementing if necessary and finding the
         offset to the first complete codon in the cDNA sequence.
+
         Parameters
         ----------
         variant_sequence : VariantSequence
