@@ -45,12 +45,11 @@ def translations_generator_from_args(args):
     read_evidence_generator = read_evidence_generator_from_args(args)
     protein_sequence_creator = ProteinSequenceCreator(
         protein_sequence_length=args.protein_sequence_length,
-        min_alt_rna_reads=args.min_alt_rna_reads,
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,
         variant_sequence_assembly=args.variant_sequence_assembly,
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        include_mismatches_after_variant=args.include_mismatches_after_variant)
+        count_mismatches_after_variant=args.count_mismatches_after_variant)
     return protein_sequence_creator.translate_variants(read_evidence_generator)
 
 

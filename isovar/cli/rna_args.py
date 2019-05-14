@@ -25,7 +25,7 @@ from varcode.cli import make_variants_parser, variant_collection_from_args
 from ..default_parameters import MIN_READ_MAPPING_QUALITY
 
 from ..read_collector import ReadCollector
-from ..dataframe_helpers import allele_reads_to_dataframe
+from ..dataframe_helpers import allele_reads_to_dataframe, read_evidence_generator_to_dataframe
 
 
 def add_rna_args(
@@ -103,7 +103,7 @@ def read_collector_from_args(args):
 
 def read_evidence_generator_from_args(args):
     """
-    Creates a generator of (Variant, ReadEvidence pairs) from parsed
+    Creates a generator of (Variant, ReadEvidence) pairs from parsed
     arguments.
     """
     variants = variant_collection_from_args(args)
@@ -114,8 +114,27 @@ def read_evidence_generator_from_args(args):
         alignment_file=samfile)
 
 
+def variant_reads_generator_from_args(args):
+    """
+    Creates a generator of (Variant, list of AlleleRead) from parsed
+    arguments, where all AlleleRead objects must have alleles matching
+    the variant.
+    """
+    for variant, read_evidence in read_evidence_generator_from_args(args):
+        yield variant, read_evidence.alt_reads
+
+
 def read_evidence_dataframe_from_args(args):
     """
     Collect ReadEvidence for each variant and turn them into a DataFrame
     """
-    return allele_reads_to_dataframe(read_evidence_generator_from_args(args))
+    return read_evidence_generator_to_dataframe(
+        read_evidence_generator_from_args(args))
+
+
+def variants_reads_dataframe_from_args(args):
+    """
+    Collect variant reads for each variant and turn them into a DataFrame
+    """
+    return allele_reads_to_dataframe(
+        read_evidence_generator_from_args(args))

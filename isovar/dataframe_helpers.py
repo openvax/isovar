@@ -14,7 +14,10 @@
 
 from __future__ import print_function, division, absolute_import
 
+from collections import OrderedDict
+
 import pandas as pd
+
 from .allele_read import AlleleRead
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
@@ -178,6 +181,7 @@ def translations_generator_to_dataframe(translations_generator):
             "untrimmed_variant_sequence_read_count": (
                 lambda _, t: len(t.untrimmed_variant_sequence.reads)),
         })
+
 
 def read_evidence_generator_to_dataframe(read_evidence_generator):
     """

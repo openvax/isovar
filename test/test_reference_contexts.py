@@ -36,7 +36,7 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
     # first calling without a transcript ID white to see if we get back
     # multiple contexts
     reference_contexts_gen = \
-        variant_and_reference_contexts_generator(
+        reference_contexts_generator(
             variants=variant_collection,
             context_size=10,
             transcript_id_whitelist=None)
@@ -90,7 +90,7 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
 def test_variants_to_reference_contexts_dataframe():
     variants = load_vcf("data/b16.f10/b16.vcf")
     assert len(variants) > 0
-    gen = variant_and_reference_contexts_generator(variants, context_size=10)
+    gen = reference_contexts_generator(variants, context_size=10)
     df = variants_to_reference_contexts_dataframe(gen)
     print(df)
     groups = df.groupby(["chr", "pos", "ref", "alt"])
