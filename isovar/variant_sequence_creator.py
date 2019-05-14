@@ -159,9 +159,9 @@ class VariantSequenceCreator(object):
         variant_sequences.sort(key=lambda vs: -len(vs.reads))
         return variant_sequences
 
-    def reads_generator_to_sequences_generator(self, variant_and_reads_generator):
+    def sequences_from_alt_reads_generator(self, variant_and_reads_generator):
         """
-        For each (variant, reads) pair in the input generator,
+        For each (variant, [AlleleRead]) pair in the input generator,
         collapse the reads into a list of VariantSequence objects.
 
         Parameters
@@ -179,3 +179,16 @@ class VariantSequenceCreator(object):
                 variant=variant,
                 reads=variant_reads)
             yield variant, variant_sequences
+
+    def sequences_from_read_evidence_generator(
+            self, variant_and_read_evidence_generator):
+        """
+        Given a generator of (Variant, ReadEvidence) pairs, generate a
+        sequence of (Variant, [VariantSequence]) pairs.
+        """
+        reads_gen = (
+            (variant, read_evidence.alt_reads)
+            for (variant, read_evidence) in
+            variant_and_read_evidence_generator
+        )
+        return self.sequences_from_alt_reads_generator(reads_gen)

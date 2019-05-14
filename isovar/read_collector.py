@@ -567,3 +567,26 @@ class ReadCollector(object):
                 variant=variant,
                 alignment_file=alignment_file)
             yield variant, read_evidence
+
+    def alt_reads_generator(self, variants, alignment_file):
+        """
+        Consumes a generator of varcode.Variant objects, collects read evidence
+        for each variant from the alignment_file, extracts alt reads, and
+        generates a sequence of (Variant, [AlleleRead]) pairs, where the
+        second element is a list of AlleleRead objects which support the
+        alt allele from the variant.
+
+        Parameters
+        ----------
+        variants : varcode.VariantCollection
+            Variants which will be the keys of the result
+
+        alignment_file : pysam.AlignmentFile
+            Aligned RNA reads
+
+        Generates sequence of (varcode.Variant, [AlleleRead]) pairs
+        """
+        for variant, read_evidence in self.variant_and_read_evidence_generator(
+                variants=variants,
+                alignment_file=alignment_file):
+            yield variant, read_evidence.alt_reads

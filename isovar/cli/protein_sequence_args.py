@@ -19,7 +19,7 @@ from ..default_parameters import MAX_PROTEIN_SEQUENCES_PER_VARIANT
 from ..main import ProteinSequenceCreator
 from ..dataframe_helpers import protein_sequences_generator_to_dataframe
 
-from .rna_args import overlapping_reads_generator_from_args
+from .rna_args import read_evidence_generator_from_args
 from .translation_args import make_translation_arg_parser
 
 

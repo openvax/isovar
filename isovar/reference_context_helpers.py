@@ -66,7 +66,7 @@ def reference_contexts_for_variant(
     return reference_contexts
 
 
-def variant_and_reference_contexts_generator(
+def reference_contexts_generator(
         variants,
         context_size,
         transcript_id_whitelist=None):
@@ -88,10 +88,9 @@ def variant_and_reference_contexts_generator(
     to list of ReferenceContext objects for each variant is sorted by
     max coding sequence length of any transcript.
     """
-    result = OrderedDict()
     for variant in variants:
-        result[variant] = reference_contexts_for_variant(
+        reference_contexts = reference_contexts_for_variant(
             variant=variant,
             context_size=context_size,
             transcript_id_whitelist=transcript_id_whitelist)
-    return result
+        yield variant, reference_contexts

@@ -17,6 +17,7 @@ from __future__ import print_function, division, absolute_import
 from collections import defaultdict
 import numpy as np
 
+
 def list_to_string(list_of_anything, sep=";"):
     """
     Helper function used for building the fields of a printable dataframe

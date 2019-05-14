@@ -7,11 +7,11 @@ from nose.tools import eq_
 
 from testing_helpers import load_bam
 
-from isovar.allele_read_helpers import reads_supporting_variant
+from isovar import ReadCollector
 
 
 def test_partition_variant_reads_snv():
-    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
+    alignment_file = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 65857041
     ref = "G"
@@ -22,17 +22,18 @@ def test_partition_variant_reads_snv():
         ref=ref,
         alt=alt,
         ensembl=ensembl_grch38)
-    variant_reads = reads_supporting_variant(
-        samfile=samfile,
-        chromosome=chromosome,
+    read_collector = ReadCollector()
+    read_evidence = read_collector.read_evidence_for_variant(
+        alignment_file=alignment_file,
         variant=variant)
-    assert len(variant_reads) > 1
-    for variant_read in variant_reads:
+    alt_reads = read_evidence.alt_reads
+    assert len(alt_reads) > 1
+    for variant_read in alt_reads:
         eq_(variant_read.allele, alt)
 
 
 def test_partition_variant_reads_deletion():
-    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
+    alignment_file = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 70091490
     ref = "TTGTAGATGCTGCCTCTCC"
@@ -43,12 +44,12 @@ def test_partition_variant_reads_deletion():
         ref=ref,
         alt=alt,
         ensembl=ensembl_grch38)
-    variant_reads = reads_supporting_variant(
-        samfile=samfile,
-        chromosome=chromosome,
+    read_collector = ReadCollector()
+    read_evidence = read_collector.read_evidence_for_variant(
+        alignment_file=alignment_file,
         variant=variant)
-    assert len(variant_reads) > 1
-    for variant_read in variant_reads:
+    assert len(read_evidence.alt_reads) > 1
+    for variant_read in read_evidence.alt_reads:
         eq_(variant_read.allele, alt)
 
 if __name__ == "__main__":

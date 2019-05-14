@@ -15,7 +15,6 @@
 from __future__ import print_function, division, absolute_import
 
 import pandas as pd
-from .allele_counts import AlleleCount, count_alleles_at_variant_locus
 from .allele_read import AlleleRead
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
@@ -23,7 +22,7 @@ from .locus_read import LocusRead
 from .protein_sequence import ProteinSequence
 from .read_collector import ReadCollector
 from .read_evidence import ReadEvidence
-from .reference_context import reference_contexts_for_variants, ReferenceContext
+from .reference_context import ReferenceContext
 from .translation import Translation
 from .variant_sequence import VariantSequence
 
@@ -69,20 +68,14 @@ def protein_sequences_generator_to_dataframe(variant_and_protein_sequences_gener
             gene=lambda x: ";".join(x)))
 
 
-def allele_counts_dataframe(variant_and_allele_reads_generator):
+def allele_counts_dataframe(read_evidence_generator):
     """
     Creates a DataFrame containing number of reads supporting the
     ref vs. alt alleles for each variant.
     """
-    df_builder = DataFrameBuilder(
-        AlleleCount,
-        extra_column_fns={
-            "gene": lambda v, _: ";".join(v.gene_names),
-        })
-    for variant, allele_reads in variant_and_allele_reads_generator:
-        counts = count_alleles_at_variant_locus(variant, allele_reads)
-        df_builder.add(variant, counts)
-    return df_builder.to_dataframe()
+    return dataframe_from_generator(
+        element_class=ReadEvidence,
+        variant_and_elements_generator=read_evidence_generator)
 
 
 def allele_reads_to_dataframe(variants_and_allele_reads):

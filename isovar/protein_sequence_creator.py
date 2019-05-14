@@ -31,7 +31,7 @@ from .protein_sequence_helpers import (
     sort_protein_sequences,
     group_equivalent_translations
 )
-from .reference_context import reference_contexts_for_variant
+from .reference_context_helpers import reference_contexts_for_variant
 from .translation import Translation
 from .translation_helpers import find_mutant_amino_acid_interval
 from .value_object import ValueObject
@@ -346,7 +346,7 @@ class ProteinSequenceCreator(ValueObject):
         protein_sequences = sort_protein_sequences(protein_sequences)
         return protein_sequences
 
-    def variant_and_protein_sequences_generator(
+    def protein_sequences_from_read_evidence_generator(
             self,
             read_evidence_generator,
             transcript_id_whitelist=None):

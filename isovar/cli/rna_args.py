@@ -24,7 +24,7 @@ from varcode.cli import make_variants_parser, variant_collection_from_args
 
 from ..default_parameters import MIN_READ_MAPPING_QUALITY
 
-from ..read_collector import  ReadCollector
+from ..read_collector import ReadCollector
 from ..dataframe_helpers import allele_reads_to_dataframe
 
 
