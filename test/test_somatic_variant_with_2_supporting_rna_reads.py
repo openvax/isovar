@@ -18,19 +18,19 @@ def test_somatic_variant_with_2_supporting_rna_reads():
     read_creator = ReadCollector()
     normal_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
-        alignments=normal_reads)
+        alignment_file=normal_reads)
     eq_(len(normal_sample_variant_reads), 0)
     print(normal_sample_variant_reads)
 
     tumor_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
-        alignments=tumor_reads)
+        alignment_file=tumor_reads)
     print(tumor_sample_variant_reads)
     eq_(len(tumor_sample_variant_reads), 8)
 
     rna_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
-        alignments=rna_reads)
+        alignment_file=rna_reads)
     print(rna_sample_variant_reads)
     eq_(len(rna_sample_variant_reads), 2)
     # Arun went through the hassle of pulling out the exact read names

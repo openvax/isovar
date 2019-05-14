@@ -3,8 +3,8 @@ from __future__ import print_function, division, absolute_import
 from nose.tools import eq_
 from varcode import Variant
 
-from isovar.variant_sequence import (
-    reads_to_variant_sequences,
+from isovar import (
+    VariantSequenceCreator,
     VariantSequence
 )
 from isovar.allele_read import AlleleRead
@@ -23,13 +23,12 @@ def test_sequence_counts_snv():
     variant = Variant(chromosome, base1_location, ref, alt, grch38)
     read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
-        alignments=samfile,
+        alignment_file=samfile,
         variant=variant)
-
-    variant_sequences = reads_to_variant_sequences(
+    variant_sequence_creator = VariantSequenceCreator(preferred_sequence_length=61)
+    variant_sequences = variant_sequence_creator.reads_to_variant_sequences(
         variant=variant,
-        reads=variant_reads,
-        preferred_sequence_length=61)
+        reads=variant_reads)
     assert len(variant_sequences) == 1
     for variant_sequence in variant_sequences:
         print(variant_sequence)

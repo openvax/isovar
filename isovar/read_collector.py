@@ -527,6 +527,25 @@ class ReadCollector(object):
             variant,
             allele_reads)
 
+    def allele_reads_supporting_variant(self, variant, alignment_file):
+        """
+        Gather AlleleRead objects which contain the same allele as the variant.
+
+        Parameters
+        ----------
+        variants : varcode.VariantCollection
+            Variants which will be the keys of the result
+
+        alignment_file : pysam.AlignmentFile
+            Aligned RNA reads
+
+        Returns list of AlleleRead
+        """
+        read_evidence = self.gather_read_evidence(
+            variant=variant,
+            alignment_file=alignment_file)
+        return read_evidence.alt_reads
+
     def read_evidence_generator(self, variants, alignment_file):
         """
         Parameters
@@ -537,7 +556,7 @@ class ReadCollector(object):
         alignment_file : pysam.AlignmentFile
             Aligned RNA reads
 
-        Generates ssequence of (varcode.Variant, ReadEvidence) pairs
+        Generates sequence of (varcode.Variant, ReadEvidence) pairs
         """
         for variant in variants:
             read_evidence = self.gather_read_evidence(

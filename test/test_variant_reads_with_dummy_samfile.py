@@ -31,7 +31,7 @@ def test_partitioned_read_sequences_snv():
     read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
-        alignments=samfile)
+        alignment_file=samfile)
     print(variant_reads)
     assert len(variant_reads) == 1
     variant_read = variant_reads[0]
@@ -64,7 +64,7 @@ def test_partitioned_read_sequences_insertion():
     read_creator = ReadCollector()
 
     variant_reads = read_creator.allele_reads_supporting_variant(
-        alignments=samfile,
+        alignment_file=samfile,
         variant=variant)
     print(variant_reads)
     assert len(variant_reads) == 1
@@ -96,7 +96,7 @@ def test_partitioned_read_sequences_deletion():
     samfile = DummySamFile(reads=[read])
     read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
-        alignments=samfile,
+        alignment_file=samfile,
         variant=variant)
     print(variant_reads)
     assert len(variant_reads) == 1
