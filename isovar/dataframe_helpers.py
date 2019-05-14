@@ -217,4 +217,4 @@ def isovar_results_to_dataframe(isovar_results):
     records = []
     for isovar_result in isovar_results:
         records.append(isovar_result.to_record())
-    return pd.DataFrame()
+    return pd.DataFrame.from_records(records)
