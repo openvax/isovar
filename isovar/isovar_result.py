@@ -23,6 +23,8 @@ from __future__ import print_function, division, absolute_import
 import operator
 from collections import OrderedDict
 
+from cached_property import cached_property
+
 from .common import safediv
 from .value_object import  ValueObject
 
@@ -156,7 +158,7 @@ class IsovarResult(ValueObject):
         return self.clone_with_new_field(
             filter_values_dict=combined_filter_value_dict)
 
-    @property
+    @cached_property
     def passes_all_filters(self):
         """
         Does this IsovarResult have True for all the filter values in
@@ -167,7 +169,7 @@ class IsovarResult(ValueObject):
         else:
             return all(list(self.filter_values_dict.values()))
 
-    @property
+    @cached_property
     def top_protein_sequence(self):
         """
         If any protein sequences were assembled for this variant then
@@ -403,24 +405,25 @@ class IsovarResult(ValueObject):
         return [
             g.id
             for g
-            in self.genes_from_protein_sequences(protein_sequence_limit=None)
+            in self.genes_from_protein_sequences(
+                protein_sequence_limit=protein_sequence_limit)
         ]
 
-    @property
+    @cached_property
     def ref_reads(self):
         """
         AlleleRead objects at this locus which support the reference allele
         """
         return self.read_evidence.ref_reads
 
-    @property
+    @cached_property
     def alt_reads(self):
         """
         AlleleRead objects at this locus which support the mutant allele
         """
         return self.read_evidence.alt_reads
 
-    @property
+    @cached_property
     def other_reads(self):
         """
         AlleleRead objects at this locus which support some allele other than
@@ -428,49 +431,49 @@ class IsovarResult(ValueObject):
         """
         return self.read_evidence.other_reads
 
-    @property
+    @cached_property
     def ref_read_names(self):
         """
         Names of reference reads at this locus.
         """
         return {r.name for r in self.ref_reads}
 
-    @property
+    @cached_property
     def alt_read_names(self):
         """
         Names of alt reads at this locus.
         """
         return {r.name for r in self.alt_reads}
 
-    @property
+    @cached_property
     def ref_and_alt_read_names(self):
         """
         Names of reads which support either the ref or alt alleles.
         """
         return self.ref_read_names.union(self.alt_read_names)
 
-    @property
+    @cached_property
     def other_read_names(self):
         """
         Names of other (non-alt, non-ref) reads at this locus.
         """
         return {r.name for r in self.other_reads}
 
-    @property
+    @cached_property
     def all_read_names(self):
         """
         Names of all reads at this locus.
         """
         return self.ref_read_names.union(self.alt_read_names).union(self.other_read_names)
 
-    @property
+    @cached_property
     def num_total_reads(self):
         """
         Total number of reads at this locus, regardless of allele.
         """
         return self.num_ref_reads + self.num_alt_reads + self.num_other_reads
 
-    @property
+    @cached_property
     def num_total_fragments(self):
         """
         Total number of distinct fragments at this locus, which also corresponds
@@ -478,42 +481,42 @@ class IsovarResult(ValueObject):
         """
         return len(self.all_read_names)
 
-    @property
+    @cached_property
     def num_ref_reads(self):
         """
         Number of reads which support the reference allele.
         """
         return len(self.ref_reads)
 
-    @property
+    @cached_property
     def num_ref_fragments(self):
         """
         Number of distinct fragments which support the reference allele.
         """
         return len(self.ref_read_names)
 
-    @property
+    @cached_property
     def num_alt_reads(self):
         """
         Number of reads which support the alt allele.
         """
         return len(self.alt_reads)
 
-    @property
+    @cached_property
     def num_alt_fragments(self):
         """
         Number of distinct fragments which support the alt allele.
         """
         return len(self.alt_read_names)
 
-    @property
+    @cached_property
     def num_other_reads(self):
         """
         Number of reads which support neither the reference nor alt alleles.
         """
         return len(self.other_reads)
 
-    @property
+    @cached_property
     def num_other_fragments(self):
         """
         Number of distinct fragments which support neither the reference nor
@@ -521,35 +524,35 @@ class IsovarResult(ValueObject):
         """
         return len(self.other_read_names)
 
-    @property
+    @cached_property
     def fraction_ref_reads(self):
         """
         Allelic fraction of the reference allele among all reads at this site.
         """
         return safediv(self.num_ref_reads, self.num_total_reads)
 
-    @property
+    @cached_property
     def fraction_ref_fragments(self):
         """
         Allelic fraction of the reference allele among all fragments at this site.
         """
         return safediv(self.num_ref_fragments, self.num_total_fragments)
 
-    @property
+    @cached_property
     def fraction_alt_reads(self):
         """
         Allelic fraction of the variant allele among all reads at this site.
         """
         return safediv(self.num_alt_reads, self.num_total_reads)
 
-    @property
+    @cached_property
     def fraction_alt_fragments(self):
         """
         Allelic fraction of the variant allele among all fragments at this site.
         """
         return safediv(self.num_alt_fragments, self.num_total_fragments)
 
-    @property
+    @cached_property
     def fraction_other_reads(self):
         """
         Allelic fraction of the "other" (non-ref, non-alt) alleles among all
@@ -557,7 +560,7 @@ class IsovarResult(ValueObject):
         """
         return safediv(self.num_other_reads, self.num_total_reads)
 
-    @property
+    @cached_property
     def fraction_other_fragments(self):
         """
         Allelic fraction of the "other" (non-ref, non-alt) alleles among all
@@ -565,7 +568,7 @@ class IsovarResult(ValueObject):
         """
         return safediv(self.num_other_fragments, self.num_total_fragments)
 
-    @property
+    @cached_property
     def ratio_other_to_ref_reads(self):
         """
         Ratio of the number of reads which support alleles which are neither
@@ -573,7 +576,7 @@ class IsovarResult(ValueObject):
         """
         return safediv(self.num_other_reads, self.num_ref_reads)
 
-    @property
+    @cached_property
     def ratio_other_to_ref_fragments(self):
         """
         Ratio of the number of fragments which support alleles which are neither
@@ -581,7 +584,7 @@ class IsovarResult(ValueObject):
         """
         return safediv(self.num_other_fragments, self.num_ref_fragments)
 
-    @property
+    @cached_property
     def ratio_other_to_alt_reads(self):
         """
         Ratio of the number of reads which support alleles which are neither
@@ -589,7 +592,7 @@ class IsovarResult(ValueObject):
         """
         return safediv(self.num_other_reads, self.num_alt_reads)
 
-    @property
+    @cached_property
     def ratio_other_to_alt_fragments(self):
         """
         Ratio of the number of fragments which support alleles which are neither
@@ -597,28 +600,28 @@ class IsovarResult(ValueObject):
         """
         return safediv(self.num_other_fragments, self.num_alt_fragments)
 
-    @property
+    @cached_property
     def ratio_ref_to_other_reads(self):
         """
         Ratio of the number of reference reads to non-ref/non-alt reads
         """
         return safediv(self.num_ref_reads, self.num_other_reads)
 
-    @property
+    @cached_property
     def ratio_ref_to_other_fragments(self):
         """
         Ratio of the number of reference fragments to non-ref/non-alt fragments
         """
         return safediv(self.num_ref_fragments, self.num_other_fragments)
 
-    @property
+    @cached_property
     def ratio_alt_to_other_reads(self):
         """
         Ratio of alt allele reads to non-ref/non-alt reads
         """
         return safediv(self.num_alt_reads, self.num_other_reads)
 
-    @property
+    @cached_property
     def ratio_alt_to_other_fragments(self):
         """
         Ratio of the number of fragments which support the alt allele

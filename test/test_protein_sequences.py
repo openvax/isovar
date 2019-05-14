@@ -34,7 +34,7 @@ def make_dummy_translation(
         variant_cdna_interval_end=9,
         variant_aa_interval_start=1,
         variant_aa_interval_end=2,
-        number_mismatches=1):
+        num_mismatches=1):
     varseq_in_orf = VariantORF(
         cdna_sequence=cdna_sequence,
         offset_to_first_complete_codon=offset_to_first_complete_codon,
@@ -42,10 +42,10 @@ def make_dummy_translation(
         variant_cdna_interval_end=variant_cdna_interval_end,
         reference_cdna_sequence_before_variant=cdna_sequence[:variant_cdna_interval_start],
         reference_cdna_sequence_after_variant=cdna_sequence[variant_cdna_interval_end:],
-        number_mismatches_before_variant=number_mismatches,
-        number_mismatches_after_variant=0)
+        num_mismatches_before_variant=num_mismatches,
+        num_mismatches_after_variant=0)
     return Translation(
-        variant_sequence_in_reading_frame=varseq_in_orf,
+        variant_orf=varseq_in_orf,
         amino_acids=amino_acids,
         variant_aa_interval_start=variant_aa_interval_start,
         variant_aa_interval_end=variant_aa_interval_end,
@@ -69,7 +69,7 @@ def make_dummy_protein_sequence(
         variant_cdna_interval_end=9,
         variant_aa_interval_start=1,
         variant_aa_interval_end=2,
-        number_mismatches=1):
+        num_mismatches=1):
     """
     Creates ProteinSequence object with None filled in for most fields
     """
@@ -104,6 +104,15 @@ def make_dummy_protein_sequence(
         variant_aa_interval_end=variant_aa_interval_end,
         ends_with_stop_codon=translation.ends_with_stop_codon,
         frameshift=translation.frameshift)
+
+ amino_acids,
+            variant_aa_interval_start,
+            variant_aa_interval_end,
+            ends_with_stop_codon,
+            frameshift,
+            translations,
+            reads_supporting_protein_sequence,
+            transcript_ids_supporting_protein_sequence
 
 
 def test_sort_protein_sequences():
@@ -205,6 +214,7 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
     # if we set the minimum quality to 256
     variants = load_vcf("data/b16.f10/b16.vcf")
     samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
+
     allele_reads_generator = reads_overlapping_variants(
         variants=variants,
         samfile=samfile,

@@ -20,7 +20,11 @@ associated with its supporting (and non-supporting but overlapping) RNA reads.
 
 from __future__ import print_function, division, absolute_import
 
-from .translation import TranslationKey
+from cached_property import cached_property
+
+from .common import groupby
+from .translation_key import TranslationKey
+from .translation import Translation
 from .logging import get_logger
 
 logger = get_logger(__name__)
@@ -38,58 +42,91 @@ class ProteinSequence(TranslationKey):
         # list of all the Translation objects which support this distinct
         # amino acid sequence
         "translations",
-        # AlleleRead objects used to construct coding sequence used
-        # to create this ProteinSequence
-        "reads_supporting_protein_sequence",
-        # IDs of reference transcripts used to establish the reading frame for
-        # this protein sequence
-        "transcript_ids_supporting_protein_sequence",
     ]
 
     def __init__(
             self,
-            amino_acids,
-            variant_aa_interval_start,
-            variant_aa_interval_end,
-            ends_with_stop_codon,
-            frameshift,
-            translations,
-            reads_supporting_protein_sequence,
-            transcript_ids_supporting_protein_sequence):
-        # fields of TranslationKey
-        self.amino_acids = amino_acids
-        self.variant_aa_interval_start = variant_aa_interval_start
-        self.variant_aa_interval_end = variant_aa_interval_end
-        self.ends_with_stop_codon = ends_with_stop_codon
-        self.frameshift = frameshift
+            translations):
+        """
+        Initialize fields of ProteinSequence. Fields inherited from TranslationKey
+        (e.g. frameshift, ends_with_stop_codon, &c) are inferred from the
+        translation objects which must all have the same values for these
+        fields.
 
-        # extra fields added by ProteinSequence
+        Parameters
+        ----------
+        translations : list of Translation
+            Equivalent translations which might have different cDNA sequences
+            but agree in their amino acid sequences.
+        """
+        if len(translations) == 0:
+            raise ValueError("Cannot create ProteinSequence without at least one Translation")
+
         self.translations = translations
-        self.reads_supporting_protein_sequence = reads_supporting_protein_sequence
-        self.transcript_ids_supporting_protein_sequence = transcript_ids_supporting_protein_sequence
+
+        # fill in fields inherited from TranslationKey by taking value
+        # from first Translation iobject and then check to make sure
+        # other translations are consistent with this
+        first_translation = translations[0]
+        for field_name in TranslationKey.__slots__:
+            field_value = getattr(first_translation, field_name)
+            setattr(self, field_name, field_value)
+            # check other translations to make sure they have the same value
+            # for this field
+            for other_translation in translations[1:]:
+                other_translation_field_value = getattr(other_translation, field_name)
+                if other_translation_field_value != field_value:
+                    raise ValueError(
+                        "All translations must have same value %s=%s but got %s" % (
+                            field_name,
+                            field_value,
+                            other_translation_field_value))
 
     @classmethod
-    def from_translation_key(
-            cls,
-            translation_key,
-            translations,
-            reads_supporting_protein_sequence,
-            transcript_ids_supporting_protein_sequence):
+    def protein_sequences_from_translations(cls, translations):
         """
-        Create a ProteinSequence object from a TranslationKey, along with
-        all the extra fields a ProteinSequence requires.
-        """
-        return cls(
-            amino_acids=translation_key.amino_acids,
-            variant_aa_interval_start=translation_key.variant_aa_interval_start,
-            variant_aa_interval_end=translation_key.variant_aa_interval_end,
-            ends_with_stop_codon=translation_key.ends_with_stop_codon,
-            frameshift=translation_key.frameshift,
-            translations=translations,
-            reads_supporting_protein_sequence=reads_supporting_protein_sequence,
-            transcript_ids_supporting_protein_sequence=transcript_ids_supporting_protein_sequence)
+        Convert a list of Translation objects into a (potentially smaller) list
+        of ProteinSequence objects by grouping the
+        equivalent amino acid sequences.
 
-    @property
+        Parameters
+        ----------
+        translations : list of Translation objects
+
+        Returns list of ProteinSequence objects
+        """
+        protein_sequences = []
+        translation_groups = groupby(
+                translations,
+                key_fn=Translation.as_translation_key)
+        for equivalent_translations in translation_groups.values():
+            protein_sequences.append( ProteinSequence(equivalent_translations))
+        return protein_sequences
+
+    @cached_property
+    def reads_supporting_protein_sequence(self):
+        """
+        Reads used to create cDNA coding sequence for any Translation
+        associated with this ProteinSequence.
+
+        Returns set of AlleleRead
+        """
+        read_set = set([])
+        for translation in self.translations:
+            read_set.update(translation.reads)
+        return read_set
+
+    @cached_property
+    def read_names_supporting_protein_sequence(self):
+        """
+        Names of reads used to create cDNA coding sequence for any Translation
+        associated with this ProteinSequence.
+
+        Returns set of str
+        """
+        return {r.name for r in self.reads_supporting_protein_sequence}
+
+    @cached_property
     def num_supporting_fragments(self):
         """
         Number of unique read names used to construct the cDNA sequences from
@@ -99,7 +136,7 @@ class ProteinSequence(TranslationKey):
         """
         return len({r.name for r in self.reads_supporting_protein_sequence})
 
-    @property
+    @cached_property
     def num_supporting_reads(self):
         """
         Number of reads used to construct the cDNA sequences from
@@ -109,7 +146,7 @@ class ProteinSequence(TranslationKey):
         """
         return len(self.reads_supporting_protein_sequence)
 
-    @property
+    @cached_property
     def num_mismatches_before_variant(self):
         """
         Since a ProteinSequence may arise from multiple equivalent translations,
@@ -119,7 +156,7 @@ class ProteinSequence(TranslationKey):
         """
         return min(t.num_mismatches_before_variant for t in self.translations)
 
-    @property
+    @cached_property
     def num_mismatches_after_variant(self):
         """
         Since a ProteinSequence may arise from multiple equivalent translations,
@@ -129,7 +166,7 @@ class ProteinSequence(TranslationKey):
         """
         return min(t.num_mismatches_after_variant for t in self.translations)
 
-    @property
+    @cached_property
     def num_mismatches(self):
         """
         Add up the mismatches before and after the variant across all
@@ -139,7 +176,8 @@ class ProteinSequence(TranslationKey):
         """
         return self.num_mismatches_before_variant + self.num_mismatches_after_variant
 
-    def transcripts(self):
+    @cached_property
+    def transcript_ids(self):
         """
         Ensembl transcript IDs of all transcripts which support the reading
         frame used by Translation objects associated with this
@@ -147,68 +185,50 @@ class ProteinSequence(TranslationKey):
 
         Returns list of str
         """
-        transcript_set = set([])
-        for t in self.translations:
-            transcript_set.update(t.transcript_ids_supporting_protein_sequence)
-        return sorted(transcript_set)
+        transcript_id_set = {
+            transcript.id
+            for transcript in self.transcripts
+        }
+        return sorted(transcript_id_set)
 
-    def transcripts_from_protein_sequences(self, protein_sequence_limit=None):
+    @cached_property
+    def transcripts(self):
         """
-        Ensembl transcripts which support the reading frame used by protein
-        sequences in this IsovarResult.
-
-        Parameters
-        ----------
-        protein_sequence_limit : int or None
-            If supplied then only consider the top protein sequences up to
-            this number.
+        Ensembl transcripts which support the reading frame used by
+        Translation objects in this ProteinSequence.
 
         Returns list of pyensembl.Transcript
         """
-        genome = self.variant.genome
-        transcript_ids = self.transcript_ids_used_by_protein_sequences(
-            num_protein_sequences=protein_sequence_limit)
-        return [
-            genome.transcript_by_id(transcript_id)
-            for transcript_id in transcript_ids
-        ]
+        transcript_set = set([])
+        for translation in self.translations:
+            transcript_set.update(translation.reference_context.transcripts)
+        return sorted(transcript_set)
 
-    def genes_from_protein_sequences(self, protein_sequence_limit=None):
+    @cached_property
+    def genes(self):
         """
-        Ensembl genes which support the reading frame used by protein
-        sequences in this IsovarResult.
-
-        Parameters
-        ----------
-        protein_sequence_limit : int or None
-            If supplied then only consider the top protein sequences up to
-            this number.
+        Ensembl genes which support the reading frame used by Translation
+        objects associated with this ProteinSequence.
 
         Returns list of pyensembl.Gene
         """
-        transcripts = self.transcripts_used_by_protein_sequences(
-            protein_sequence_limit=protein_sequence_limit)
-        genes = [t.gene for t in transcripts]
+        transcripts = self.transcripts
+        genes = {t.gene for t in transcripts}
         return sorted(genes)
 
-    def gene_ids_from_protein_sequences(self, protein_sequence_limit=None):
+    @cached_property
+    def gene_ids(self):
         """
-        Ensembl genes IDs which support the reading frame used by protein
-        sequences in this IsovarResult.
-
-        Parameters
-        ----------
-        protein_sequence_limit : int or None
-            If supplied then only consider the top protein sequences up to
-            this number.
+        Ensembl genes IDs which support the reading frame used by
+        Translation objects used in this ProteinSequence.
 
         Returns list of str
         """
-        return [
+        return {
             g.id
             for g
             in self.genes_from_protein_sequences(protein_sequence_limit=None)
-        ]
+        }
 
     def ascending_sort_key(self):
         """

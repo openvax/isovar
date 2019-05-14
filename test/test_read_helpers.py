@@ -1,6 +1,8 @@
 from __future__ import print_function, division, absolute_import
 
-from isovar.allele_read_helpers import reads_supporting_variant, group_unique_sequences
+from isovar import ReadCollector
+from isovar.allele_read_helpers import  group_unique_sequences
+
 from varcode import Variant
 
 from testing_helpers import load_bam
@@ -18,9 +20,9 @@ def test_group_unique_sequences():
         start=base1_location,
         ref=ref, alt=alt,
         ensembl=grch38)
-    variant_reads = reads_supporting_variant(
-        samfile=samfile,
-        chromosome=chromosome,
+    read_collector = ReadCollector()
+    variant_reads = read_collector.allele_reads_supporting_variant(
+        alignment_file=samfile,
         variant=variant)
     print("%d variant reads: %s" % (
         len(variant_reads), variant_reads))

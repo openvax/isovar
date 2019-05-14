@@ -502,7 +502,7 @@ class ReadCollector(object):
                 alignment_file=alignment_file,
                 variant=variant))
 
-    def gather_read_evidence(
+    def read_evidence_for_variant(
             self,
             variant,
             alignment_file):
@@ -533,7 +533,7 @@ class ReadCollector(object):
 
         Parameters
         ----------
-        variants : varcode.VariantCollection
+        variant : varcode.VariantCollection
             Variants which will be the keys of the result
 
         alignment_file : pysam.AlignmentFile
@@ -541,13 +541,17 @@ class ReadCollector(object):
 
         Returns list of AlleleRead
         """
-        read_evidence = self.gather_read_evidence(
+        read_evidence = self.read_evidence_for_variant(
             variant=variant,
             alignment_file=alignment_file)
         return read_evidence.alt_reads
 
     def read_evidence_generator(self, variants, alignment_file):
         """
+        Consumes a generator of varcode.Variant objects, collects read evidence
+        for each variant from the alignment_file, and generates a sequence
+        of (Variant, ReadEvidence) pairs.
+
         Parameters
         ----------
         variants : varcode.VariantCollection
@@ -559,7 +563,7 @@ class ReadCollector(object):
         Generates sequence of (varcode.Variant, ReadEvidence) pairs
         """
         for variant in variants:
-            read_evidence = self.gather_read_evidence(
+            read_evidence = self.read_evidence_for_variant(
                 variant=variant,
                 alignment_file=alignment_file)
             yield variant, read_evidence

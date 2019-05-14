@@ -307,7 +307,6 @@ class ProteinSequenceCreator(ValueObject):
                     transcript_id_whitelist=transcript_id_whitelist)
                 yield variant, translations
 
-
     def sorted_protein_sequences_for_variant(
             self,
             variant,

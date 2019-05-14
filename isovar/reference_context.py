@@ -34,6 +34,11 @@ logger = get_logger(__name__)
 ##########################
 
 class ReferenceContext(ReferenceCodingSequenceKey):
+    """
+    Representation of the sequence preceding a variant and its associated
+    reading frame.
+    """
+
     # additional fields on top of slots for ReferenceCodingSequenceKey
     __slots__ = ["variant", "transcripts"]
 
