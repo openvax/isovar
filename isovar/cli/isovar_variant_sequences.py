@@ -36,6 +36,10 @@ parser = add_output_args(
 
 
 def variant_sequences_generator_from_args(args):
+    """
+    Use parsed commandline arguments to load variants and RNA reads and
+    generate a sequence of (Variant, list of VariantSequence) pairs.
+    """
     read_evidence_generator = read_evidence_generator_from_args(args)
     variant_sequence_creator = VariantSequenceCreator(
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,

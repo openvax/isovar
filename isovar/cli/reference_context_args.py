@@ -53,6 +53,7 @@ def make_reference_context_arg_parser(**kwargs):
     add_reference_context_args(parser)
     return parser
 
+
 def reference_contexts_dataframe_from_args(args):
     """
     Generate a DataFrame for variants and their associated reference contexts
