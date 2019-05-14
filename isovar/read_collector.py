@@ -382,6 +382,7 @@ class ReadCollector(object):
         -------
         str or None
         """
+        print(variant_chromosome_name, valid_chromosome_names)
         # I imagine the conversation went like this:
         # A: "Hey, I have an awesome idea"
         # B: "What's up?"

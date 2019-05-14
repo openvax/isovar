@@ -6,7 +6,7 @@ from isovar.locus_read import LocusRead
 from isovar.dataframe_helpers import locus_reads_dataframe
 from isovar.read_collector import ReadCollector
 
-from mock_read_data import DummySamFile, make_read
+from mock_objects import MockAlignmentFile, make_pysam_read
 from testing_helpers import assert_equal_fields, load_bam, data_path
 
 
@@ -24,12 +24,14 @@ def test_locus_reads_snv():
         alt="G",
         normalize_contig_name=False)
 
-    pysam_read = make_read(
+    pysam_read = make_pysam_read(
         seq="ACCGTG",
         cigar="6M",
         mdtag="3G2")
 
-    samfile = DummySamFile(reads=[pysam_read])
+    samfile = MockAlignmentFile(
+        references=("chromosome",),
+        reads=[pysam_read])
     read_creator = ReadCollector()
     reads = read_creator.get_locus_reads(samfile, "chromosome", variant.start - 1, variant.start)
     print(reads)
@@ -59,9 +61,11 @@ def test_locus_reads_insertion():
     variant = Variant(
         "chromosome", 4, ref="T", alt="TG", normalize_contig_name=False)
 
-    pysam_read = make_read(seq="ACCTGTG", cigar="4M1I2M", mdtag="6")
+    pysam_read = make_pysam_read(seq="ACCTGTG", cigar="4M1I2M", mdtag="6")
 
-    samfile = DummySamFile(reads=[pysam_read])
+    samfile = MockAlignmentFile(
+        references={"chromosome"},
+        reads=[pysam_read])
     read_creator = ReadCollector()
     reads = read_creator.get_locus_reads(
         samfile,
@@ -100,9 +104,11 @@ def test_locus_reads_deletion():
     variant = Variant(
         "chromosome", 4, ref="TT", alt="T", normalize_contig_name=False)
     print(variant)
-    pysam_read = make_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
+    pysam_read = make_pysam_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
-    samfile = DummySamFile(reads=[pysam_read])
+    samfile = MockAlignmentFile(
+        references={"chromosome"},
+        reads=[pysam_read])
     read_creator = ReadCollector()
     reads = read_creator.get_locus_reads(
         samfile,
@@ -134,9 +140,11 @@ def test_locus_reads_substitution_longer():
     variant = Variant(
         "chromosome", 2, ref="C", alt="GG", normalize_contig_name=False)
     print(variant)
-    pysam_read = make_read(seq="AGGCTTG", cigar="2M1I4M", mdtag="1C4")
+    pysam_read = make_pysam_read(seq="AGGCTTG", cigar="2M1I4M", mdtag="1C4")
 
-    samfile = DummySamFile(reads=[pysam_read])
+    samfile = MockAlignmentFile(
+        references={"chromosome"},
+        reads=[pysam_read])
     read_creator = ReadCollector()
     reads = read_creator.get_locus_reads(
         samfile,
@@ -167,9 +175,11 @@ def test_locus_reads_substitution_shorter():
     variant = Variant(
         "chromosome", 2, ref="CC", alt="G", normalize_contig_name=False)
     print(variant)
-    pysam_read = make_read(seq="AGTTG", cigar="2M1D3M", mdtag="1C^C4")
+    pysam_read = make_pysam_read(seq="AGTTG", cigar="2M1D3M", mdtag="1C^C4")
 
-    samfile = DummySamFile(reads=[pysam_read])
+    samfile = MockAlignmentFile(
+        references={"chromosome"},
+        reads=[pysam_read])
     read_creator = ReadCollector()
     reads = read_creator.get_locus_reads(
         samfile,
