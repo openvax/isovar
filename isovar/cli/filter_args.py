@@ -18,6 +18,8 @@ Common command-line arguments for filtering Isovar results
 
 from __future__ import print_function, division, absolute_import
 
+from collections import OrderedDict
+
 from ..default_parameters import (
     MIN_NUM_RNA_ALT_FRAGMENTS,
     MIN_NUM_RNA_ALT_READS,
@@ -66,3 +68,16 @@ def add_filter_args(parser):
     return filter_group
 
 
+def filter_threshold_dict_from_args(args):
+    """
+    Convert names of filters from external CLI options to more
+    consistent naming scheme of {min|max}_{Isovar property}.
+
+    Returns OrderedDict
+    """
+    d = OrderedDict()
+    d["min_ratio_alt_to_other_fragments"] = args.min_ratio_alt_to_other_fragments
+    d["min_fraction_alt_fragments"] = args.min_alt_rna_fraction
+    d["min_num_alt_fragments"] = args.min_alt_rna_fragments
+    d["min_num_alt_reads"] = args.min_alt_rna_reads
+    return d

@@ -32,7 +32,7 @@ from .protein_sequence_args import (
     protein_sequence_creator_from_args
 )
 from .output_args import add_output_args, write_dataframe
-from .filter_args import add_filter_args
+from .filter_args import add_filter_args, filter_threshold_dict_from_args
 from .rna_args import read_collector_from_args, alignment_file_from_args
 
 logger = get_logger(__name__)
@@ -51,13 +51,14 @@ def run(args=None):
     variants = variant_collection_from_args(args)
     read_collector = read_collector_from_args(args)
     alignment_file = alignment_file_from_args(args)
-    protein_sequences_creator = protein_sequence_creator_from_args(args)
+    protein_sequence_creator = protein_sequence_creator_from_args(args)
+    filter_thresholds = filter_threshold_dict_from_args(args)
     isovar_results = run_isovar(
         variants=variants,
         alignment_file=alignment_file,
         read_collector=read_collector,
-        protein_sequences_creator=protein_sequences_creator,
-        filter_thresholds={})
+        protein_sequence_creator=protein_sequence_creator,
+        filter_thresholds=filter_thresholds)
     df = isovar_results_to_dataframe(isovar_results)
     logger.info(df)
     write_dataframe(df, args)
