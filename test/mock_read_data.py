@@ -13,6 +13,13 @@ class DummySamFile(object):
     def fetch(self, *args, **kwargs):
         return self.reads
 
+    @property
+    def references(self):
+        return list({r.reference_id for r in self.reads})
+
+    @property
+    def filename(self):
+        return "MOCK-READS.bam"
 
 def make_read(
         seq,

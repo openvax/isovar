@@ -4,7 +4,7 @@ from nose.tools import eq_
 from testing_helpers import load_bam, load_vcf, data_path
 from varcode import VariantCollection
 
-from isovar.allele_read_helpers import reads_overlapping_variants
+from isovar.read_collector import ReadCollector
 from isovar.cli.protein_sequence_args import (
     protein_sequences_dataframe_from_args,
     make_protein_sequences_arg_parser,
@@ -161,8 +161,8 @@ def variants_to_protein_sequences_dataframe(
     combined_variants = VariantCollection(
         list(expressed_variants) + list(not_expressed_variants))
     samfile = load_bam(tumor_rna_bam)
-
-    allele_reads_generator = reads_overlapping_variants(
+    read_collector = ReadCollector()
+    read_evidence_gen = read_collector.read_evidence_generator(
         variants=combined_variants,
         samfile=samfile,
         min_mapping_quality=min_mapping_quality)
@@ -170,8 +170,8 @@ def variants_to_protein_sequences_dataframe(
     creator = ProteinSequenceCreator(
         max_protein_sequences_per_variant=max_protein_sequences_per_variant,
         variant_sequence_assembly=variant_sequence_assembly)
-    protein_sequences_generator = creator.reads_generator_to_protein_sequences_generator(
-        allele_reads_generator,)
+    protein_sequences_generator = creator.variant_and_protein_sequences_generator(
+        read_evidence_gen,)
     df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
     return df, expressed_variants, combined_variants
 
