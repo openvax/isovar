@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,18 +38,19 @@ def add_protein_sequence_args(parser):
         default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
     return protein_sequence_group
 
+
 def protein_sequence_creator_from_args(args):
     """
     Create ProteinSequenceCreator instance from parsed commandline arguments
     """
     return ProteinSequenceCreator(
         protein_sequence_length=args.protein_sequence_length,
-        min_alt_rna_reads=args.min_alt_rna_reads,
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,
         min_transcript_prefix_length=args.min_transcript_prefix_length,
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
         max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
         variant_sequence_assembly=args.variant_sequence_assembly)
+
 
 def make_protein_sequences_arg_parser(**kwargs):
     """
@@ -70,12 +71,22 @@ def make_protein_sequences_arg_parser(**kwargs):
 
 
 def protein_sequences_generator_from_args(args):
-    allele_reads_generator = overlapping_reads_generator_from_args(args)
+    """
+    Uses parsed commandline arguments to load variants and aligned
+    reads and uses them to generate sequence (Variant, list of ProteinSequence)
+    pairs.
+    """
+    read_evidence_generator = read_evidence_generator_from_args(args)
     protein_sequence_creator = protein_sequence_creator_from_args(args)
-    return protein_sequence_creator.reads_generator_to_protein_sequences_generator(
-        allele_reads_generator)
+    return protein_sequence_creator.protein_sequences_from_read_evidence_generator(
+        read_evidence_generator)
 
 
 def protein_sequences_dataframe_from_args(args):
+    """
+    Use parsed commandline arguments to load variants, aligned RNA reads,
+    create protein sequences for each variant and generate a DataFrame
+    for them all.
+    """
     protein_sequences_generator = protein_sequences_generator_from_args(args)
     return protein_sequences_generator_to_dataframe(protein_sequences_generator)

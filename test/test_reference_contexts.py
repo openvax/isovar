@@ -5,7 +5,7 @@ from varcode import Variant, VariantCollection
 from nose.tools import eq_
 
 from isovar.reference_context import ReferenceContext
-from isovar.reference_context_helpers import variant_and_reference_contexts_generator
+from isovar.reference_context_helpers import reference_contexts_generator
 
 from isovar.dataframe_helpers import variants_to_reference_contexts_dataframe
 
@@ -56,7 +56,7 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
             reference_contexts)
 
     reference_context_dict_single_transcript = \
-        dict(variant_and_reference_contexts_generator(
+        dict(reference_contexts_generator(
             variants=variant_collection,
             context_size=10,
             transcript_id_whitelist={tp53_001.id}))
