@@ -22,9 +22,9 @@ def test_allele_count_dataframe():
     df = allele_counts_dataframe([(variant, read_evidence)])
     assert len(df) == 1, "Wrong number of rows in DataFrame: %s" % (df,)
     row = df.iloc[0]
-    eq_(row.num_ref, 2)
-    eq_(row.num_alt, 1)
-    eq_(row.num_other, 0)
+    eq_(row.num_ref_reads, 2)
+    eq_(row.num_alt_reads, 1)
+    eq_(row.num_other_reads, 0)
 
 
 if __name__ == "__main__":

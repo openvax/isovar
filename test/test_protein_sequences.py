@@ -14,7 +14,7 @@ from isovar.protein_sequence import ProteinSequence
 from isovar.main import ProteinSequenceCreator
 from isovar.protein_sequence_helpers import sort_protein_sequences
 from isovar.translation import Translation
-from isovar.reference_context import ReferenceContext
+
 from isovar.variant_orf import VariantORF
 
 
@@ -26,6 +26,20 @@ from isovar.variant_orf import VariantORF
 #   total_transcripts
 #   gene
 
+class MockAlleleRead(object):
+    def __init__(self, name="mock-read"):
+        self.name = name
+
+class MockVariantSequence(object):
+    def __init__(self, n_reads):
+        self.n_reads = n_reads
+
+    @property
+    def reads(self):
+        return [MockAlleleRead("mock-read-%d" % i) for i in range(self.n_reads)]
+
+class MockReferenceContext(object):
+    pass
 
 def make_dummy_translation(
         amino_acids="MKHW",  # ATG=M|AAA=K|CAC=H|TGG=W
@@ -35,7 +49,8 @@ def make_dummy_translation(
         variant_cdna_interval_end=9,
         variant_aa_interval_start=1,
         variant_aa_interval_end=2,
-        num_mismatches=1):
+        num_mismatches=1,
+        n_variant_reads=1):
     """
     Create mock Translation object with minimal information needed to
     get used successfully by ProteinSequence.
@@ -57,8 +72,8 @@ def make_dummy_translation(
         variant_aa_interval_end=variant_aa_interval_end,
         frameshift=False,
         ends_with_stop_codon=False,
-        untrimmed_variant_sequence=None,
-        reference_context=None)
+        untrimmed_variant_sequence=MockVariantSequence(n_reads=n_variant_reads),
+        reference_context=MockReferenceContext())
 
 
 def make_dummy_protein_sequence(
@@ -101,7 +116,8 @@ def make_dummy_protein_sequence(
         variant_cdna_interval_end=variant_cdna_interval_end,
         variant_aa_interval_start=variant_aa_interval_start,
         variant_aa_interval_end=variant_aa_interval_end,
-        num_mismatches=num_mismatches)
+        num_mismatches=num_mismatches,
+        n_variant_reads=n_total_variant_reads)
 
     return ProteinSequence(
         translations=[translation] * n_translations)
@@ -113,32 +129,23 @@ def test_sort_protein_sequences():
         n_supporting_reference_transcripts=2,
         n_total_variant_sequences=3,
         n_total_variant_reads=100,
-        n_total_reference_transcripts=5)
+        n_total_reference_transcripts=2)
 
-    protseq_most_reference_transcripts = make_dummy_protein_sequence(
-        n_supporting_variant_reads=40,
-        n_supporting_variant_sequences=1,
-        n_supporting_reference_transcripts=3,
-        n_total_variant_sequences=3,
-        n_total_variant_reads=100,
-        n_total_reference_transcripts=5)
 
-    protseq_fewest_reads_or_transcripts = make_dummy_protein_sequence(
+    protseq_fewest_reads = make_dummy_protein_sequence(
         n_supporting_variant_reads=10,
         n_supporting_variant_sequences=1,
         n_supporting_reference_transcripts=1,
         n_total_variant_sequences=3,
         n_total_variant_reads=100,
-        n_total_reference_transcripts=5)
+        n_total_reference_transcripts=1)
     unsorted_protein_sequences = [
-        protseq_fewest_reads_or_transcripts,
+        protseq_fewest_reads,
         protseq_most_reads,
-        protseq_most_reference_transcripts
     ]
     expected_order = [
         protseq_most_reads,
-        protseq_most_reference_transcripts,
-        protseq_fewest_reads_or_transcripts,
+        protseq_fewest_reads,
     ]
     eq_(sort_protein_sequences(unsorted_protein_sequences), expected_order)
 
@@ -204,15 +211,17 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
     # if we set the minimum quality to 256
     variants = load_vcf("data/b16.f10/b16.vcf")
     alignment_file = load_bam("data/b16.f10/b16.combined.sorted.bam")
-    read_collector = ReadCollector()
+    read_collector = ReadCollector(min_mapping_quality=256)
     read_evidence_gen = read_collector.read_evidence_generator(
         variants=variants,
         alignment_file=alignment_file)
 
     creator = ProteinSequenceCreator(
-        max_protein_sequences_per_variant=1)
-    protein_sequences_generator = creator.protein_sequences_from_read_evidence_generator(read_evidence_gen)
-    df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
+        max_protein_sequences_per_variant=1,)
+    protein_sequences_generator = creator.protein_sequences_from_read_evidence_generator(
+        read_evidence_gen)
+    df = protein_sequences_generator_to_dataframe(
+        protein_sequences_generator)
     print(df)
     eq_(
         len(df),
