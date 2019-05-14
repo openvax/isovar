@@ -139,7 +139,10 @@ class DataFrameBuilder(object):
         element : must have type self.element_class
         """
         if self.variant_columns:
-            assert isinstance(variant, Variant)
+            assert isinstance(variant, Variant), \
+                "Expected %s : %s to be a Variant" % (
+                    variant,
+                    type(variant))
             self.columns_dict["chr"].append(variant.contig)
             self.columns_dict["pos"].append(variant.original_start)
             self.columns_dict["ref"].append(variant.original_ref)
@@ -147,7 +150,9 @@ class DataFrameBuilder(object):
         else:
             assert variant is None
 
-        assert isinstance(element, self.element_class)
+        assert isinstance(element, self.element_class), \
+            "Expected %s : %s to have type %s" % (
+                element, type(element), self.element_class)
 
         for name in self.original_field_names:
             value = getattr(element, name)

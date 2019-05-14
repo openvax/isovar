@@ -33,14 +33,14 @@ def add_rna_args(
         min_mapping_quality_default=MIN_READ_MAPPING_QUALITY):
     """
     Extends an ArgumentParser instance with the following commandline arguments:
-        --rna-reads
+        --bam
         --min-mapping-quality
         --use-duplicate-reads
         --drop-secondary-alignments
     """
     rna_group = parser.add_argument_group("RNA")
     rna_group.add_argument(
-        "--rna-reads",
+        "--bam",
         required=True,
         help="BAM file containing RNAseq reads")
 

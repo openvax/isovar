@@ -14,8 +14,6 @@
 
 from __future__ import print_function, division, absolute_import
 
-from collections import OrderedDict
-
 import pandas as pd
 
 from .allele_read import AlleleRead
@@ -54,8 +52,11 @@ def dataframe_from_generator(
     pandas.DataFrame
     """
     builder = DataFrameBuilder(element_class, **kwargs)
-    for variant, elements in variant_and_elements_generator:
-        builder.add_many(variant, elements)
+    for variant, x in variant_and_elements_generator:
+        if isinstance(x, (list, tuple)):
+            builder.add_many(variant, x)
+        else:
+            builder.add(variant, x)
     return builder.to_dataframe()
 
 
@@ -67,8 +68,8 @@ def protein_sequences_generator_to_dataframe(variant_and_protein_sequences_gener
     return dataframe_from_generator(
         element_class=ProteinSequence,
         variant_and_elements_generator=variant_and_protein_sequences_generator,
-        converters=dict(
-            gene=lambda x: ";".join(x)))
+        extra_column_fns=dict(
+            gene=lambda _, x: ";".join(x.gene_names)))
 
 
 def allele_counts_dataframe(read_evidence_generator):
@@ -78,7 +79,18 @@ def allele_counts_dataframe(read_evidence_generator):
     """
     return dataframe_from_generator(
         element_class=ReadEvidence,
-        variant_and_elements_generator=read_evidence_generator)
+        variant_and_elements_generator=read_evidence_generator,
+        # DataFrameBuilder will take the length of these fields' values
+        rename_dict={
+            "ref_reads": "num_ref_reads",
+            "alt_reads": "num_alt_reads",
+            "other_reads": "num_other_reads",
+        },
+        extra_column_fns={
+            "num_ref_fragments": lambda _, x: len(x.ref_read_names),
+            "num_alt_fragments": lambda _, x: len(x.alt_read_names),
+            "num_other_fragments": lambda _, x: len(x.other_read_names)
+        })
 
 
 def allele_reads_to_dataframe(variants_and_allele_reads):
@@ -170,8 +182,8 @@ def translations_generator_to_dataframe(translations_generator):
         exclude=[],
         converters={
             "untrimmed_variant_sequence": lambda vs: vs.sequence,
-            "variant_sequence_in_reading_frame": (
-                lambda vs: vs.in_frame_cdna_sequence),
+            "variant_orf": (
+                lambda variant_orf: variant_orf.in_frame_cdna_sequence),
             "reference_context": (
                 lambda rc: ";".join([
                     transcript.name for

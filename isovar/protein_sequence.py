@@ -20,8 +20,6 @@ associated with its supporting (and non-supporting but overlapping) RNA reads.
 
 from __future__ import print_function, division, absolute_import
 
-from cached_property import cached_property
-
 from .translation_key import TranslationKey
 from .translation import Translation
 from .logging import get_logger
@@ -79,7 +77,7 @@ class ProteinSequence(TranslationKey):
                             field_value,
                             other_translation_field_value))
 
-    @cached_property
+    @property
     def supporting_reads(self):
         """
         Reads used to create cDNA coding sequence for any Translation
@@ -92,7 +90,7 @@ class ProteinSequence(TranslationKey):
             read_set.update(translation.reads)
         return read_set
 
-    @cached_property
+    @property
     def read_names_supporting_protein_sequence(self):
         """
         Names of reads used to create cDNA coding sequence for any Translation
@@ -102,7 +100,7 @@ class ProteinSequence(TranslationKey):
         """
         return {r.name for r in self.supporting_reads}
 
-    @cached_property
+    @property
     def num_supporting_fragments(self):
         """
         Number of unique read names used to construct the cDNA sequences from
@@ -112,7 +110,7 @@ class ProteinSequence(TranslationKey):
         """
         return len({r.name for r in self.supporting_reads})
 
-    @cached_property
+    @property
     def num_supporting_reads(self):
         """
         Number of reads used to construct the cDNA sequences from
@@ -122,7 +120,7 @@ class ProteinSequence(TranslationKey):
         """
         return len(self.supporting_reads)
 
-    @cached_property
+    @property
     def num_mismatches_before_variant(self):
         """
         Since a ProteinSequence may arise from multiple equivalent translations,
@@ -132,7 +130,7 @@ class ProteinSequence(TranslationKey):
         """
         return min(t.num_mismatches_before_variant for t in self.translations)
 
-    @cached_property
+    @property
     def num_mismatches_after_variant(self):
         """
         Since a ProteinSequence may arise from multiple equivalent translations,
@@ -142,7 +140,7 @@ class ProteinSequence(TranslationKey):
         """
         return min(t.num_mismatches_after_variant for t in self.translations)
 
-    @cached_property
+    @property
     def num_mismatches(self):
         """
         Add up the mismatches before and after the variant across all
@@ -152,7 +150,34 @@ class ProteinSequence(TranslationKey):
         """
         return self.num_mismatches_before_variant + self.num_mismatches_after_variant
 
-    @cached_property
+    @property
+    def transcripts(self):
+        """
+        Ensembl transcripts which support the reading frame used by
+        Translation objects in this ProteinSequence.
+
+        Returns list of pyensembl.Transcript
+        """
+        transcript_set = set([])
+        for translation in self.translations:
+            transcript_set.update(translation.reference_context.transcripts)
+        return sorted(transcript_set)
+
+    @property
+    def transcript_names(self):
+        """
+        Ensembl transcript names which support the reading frame used by
+        Translation objects used in this ProteinSequence.
+
+        Returns list of str
+        """
+        return sorted({
+            t.name
+            for t
+            in self.transcripts
+        })
+
+    @property
     def transcript_ids(self):
         """
         Ensembl transcript IDs of all transcripts which support the reading
@@ -167,20 +192,7 @@ class ProteinSequence(TranslationKey):
         }
         return sorted(transcript_id_set)
 
-    @cached_property
-    def transcripts(self):
-        """
-        Ensembl transcripts which support the reading frame used by
-        Translation objects in this ProteinSequence.
-
-        Returns list of pyensembl.Transcript
-        """
-        transcript_set = set([])
-        for translation in self.translations:
-            transcript_set.update(translation.reference_context.transcripts)
-        return sorted(transcript_set)
-
-    @cached_property
+    @property
     def genes(self):
         """
         Ensembl genes which support the reading frame used by Translation
@@ -192,7 +204,33 @@ class ProteinSequence(TranslationKey):
         genes = {t.gene for t in transcripts}
         return sorted(genes)
 
-    @cached_property
+    @property
+    def gene_names(self):
+        """
+        Ensembl genes names which support the reading frame used by
+        Translation objects used in this ProteinSequence.
+
+        Returns list of str
+        """
+        return sorted({
+            g.name
+            for g
+            in self.genes
+        })
+
+    @property
+    def gene_name(self):
+        """
+        Return gene name if only one gene is being used to determine the
+        reading from to translate this ProteinSequence, or in the very
+        unlikely case that multiple genes are being used, concatenate their
+        names with a semi-colon separator.
+
+        Returns str
+        """
+        return ";".join(self.gene_names)
+
+    @property
     def gene_ids(self):
         """
         Ensembl genes IDs which support the reading frame used by
@@ -203,7 +241,7 @@ class ProteinSequence(TranslationKey):
         return {
             g.id
             for g
-            in self.genes_from_protein_sequences(protein_sequence_limit=None)
+            in self.genes
         }
 
     def ascending_sort_key(self):

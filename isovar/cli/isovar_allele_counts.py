@@ -19,10 +19,9 @@ Prints number of reads supporting ref, alt, and other alleles at variant loci.
 from __future__ import print_function, division, absolute_import
 import sys
 
-from ..dataframe_helpers import allele_counts_dataframe
 from ..logging import get_logger
 
-from .rna_args import make_rna_reads_arg_parser, overlapping_reads_generator_from_args
+from .rna_args import make_rna_reads_arg_parser, read_evidence_dataframe_from_args
 from .output_args import add_output_args, write_dataframe
 
 
@@ -40,9 +39,8 @@ def run(args=None):
         args = sys.argv[1:]
     args = parser.parse_args(args)
     logger.info(args)
-    variants_and_allele_reads_generator = overlapping_reads_generator_from_args(args)
-    allele_counts_df = allele_counts_dataframe(variants_and_allele_reads_generator)
-    logger.info(allele_counts_df)
+    df = read_evidence_dataframe_from_args(args)
+    logger.info(df)
     write_dataframe(
-        df=allele_counts_df,
+        df=df,
         args=args)

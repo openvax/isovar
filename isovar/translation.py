@@ -58,8 +58,7 @@ class Translation(TranslationKey):
         self.ends_with_stop_codon = ends_with_stop_codon
         self.frameshift = frameshift
         # this variant sequence might differ from the one
-        # in variant_sequence_in_reading_frame due to trimming
-        # required to match the reference
+        # in variant_orf due to trimming required to match the reference
         self.untrimmed_variant_sequence = untrimmed_variant_sequence
         self.reference_context = reference_context
         self.variant_orf = variant_orf

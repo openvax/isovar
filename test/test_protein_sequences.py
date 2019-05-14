@@ -36,6 +36,10 @@ def make_dummy_translation(
         variant_aa_interval_start=1,
         variant_aa_interval_end=2,
         num_mismatches=1):
+    """
+    Create mock Translation object with minimal information needed to
+    get used successfully by ProteinSequence.
+    """
     varseq_in_orf = VariantORF(
         cdna_sequence=cdna_sequence,
         offset_to_first_complete_codon=offset_to_first_complete_codon,
@@ -165,8 +169,8 @@ def variants_to_protein_sequences_dataframe(
     creator = ProteinSequenceCreator(
         max_protein_sequences_per_variant=max_protein_sequences_per_variant,
         variant_sequence_assembly=variant_sequence_assembly)
-    protein_sequences_generator = creator.variant_and_protein_sequences_generator(
-        read_evidence_gen,)
+    protein_sequences_generator = \
+        creator.protein_sequences_from_read_evidence_generator(read_evidence_gen)
     df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
     return df, expressed_variants, combined_variants
 
@@ -207,7 +211,7 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
 
     creator = ProteinSequenceCreator(
         max_protein_sequences_per_variant=1)
-    protein_sequences_generator = creator.variant_and_protein_sequences_generator(read_evidence_gen)
+    protein_sequences_generator = creator.protein_sequences_from_read_evidence_generator(read_evidence_gen)
     df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
     print(df)
     eq_(

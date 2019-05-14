@@ -29,20 +29,13 @@ from .common import safediv
 from .value_object import  ValueObject
 
 
-class IsovarResult(ValueObject):
+class IsovarResult(object):
     """
     This object represents all information gathered about a variant,
     which includes the AlleleReads supporting any allele at this variant's
     locus and any protein sequences generated from an alt-allele cDNA
     assembly.
     """
-    __slots__ = [
-        "variant",
-        "predicted_effect",
-        "read_evidence",
-        "sorted_protein_sequences",
-        "filter_values_dict",
-    ]
 
     def __init__(
             self,
@@ -112,17 +105,36 @@ class IsovarResult(ValueObject):
             filter_values_dict[name] = comparison_fn(field_value, threshold)
         return filter_values_dict
 
+    @property
+    def fields(self):
+        return [
+            "variant",
+            "predicted_effect",
+            "read_evidence",
+            "sorted_protein_sequences",
+            "filter_values_dict"
+        ]
+
+    def __str__(self):
+        field_strings = ["%s=%s" % (k, v) for (k, v) in self.to_dict()]
+        return "%s(%s)" % (
+            self.__class__.__name,
+            ", ".join(field_strings)
+        )
+
+    def __repr__(self):
+        return str(self)
+
     def to_dict(self):
         """
         Dictionary representation of fields used to construct this IsovarResult
 
         Returns dict
         """
-        return {
-            k: getattr(self, k)
-            for k in self.__slots__
-
-        }
+        return OrderedDict([
+            (k, getattr(self, k))
+            for k in self.fields
+        ])
 
     def clone_with_new_field(self, **kwargs):
         """
@@ -332,64 +344,57 @@ class IsovarResult(ValueObject):
             if not only_coding or g.is_protein_coding
         }
 
-    def transcripts_from_of_protein_sequences(self, protein_sequence_limit=None):
+    def transcripts(self, max_protein_sequences=None):
         """
         Ensembl transcript IDs of all transcripts which support the reading
         frame used by protein sequences in this IsovarResult.
 
         Parameters
         ----------
-        protein_sequence_limit : int or None
-            If supplied then only consider the top protein sequences up to
-            this number.
-
-        Returns list of str
-        """
-        transcript_set = set([])
-        for p in self.sorted_protein_sequences[:protein_sequence_limit]:
-            transcript_set.update(p.transcript_ids_supporting_protein_sequence)
-        return sorted(transcript_set)
-
-    def transcripts_from_protein_sequences(self, protein_sequence_limit=None):
-        """
-        Ensembl transcripts which support the reading frame used by protein
-        sequences in this IsovarResult.
-
-        Parameters
-        ----------
-        protein_sequence_limit : int or None
+        max_protein_sequences : int or None
             If supplied then only consider the top protein sequences up to
             this number.
 
         Returns list of pyensembl.Transcript
         """
-        genome = self.variant.genome
-        transcript_ids = self.transcript_ids_used_by_protein_sequences(
-            num_protein_sequences=protein_sequence_limit)
-        return [
-            genome.transcript_by_id(transcript_id)
-            for transcript_id in transcript_ids
-        ]
+        transcript_set = set([])
+        for p in self.sorted_protein_sequences[:max_protein_sequences]:
+            transcript_set.update(p.transcripts)
+        return sorted(transcript_set)
 
-    def genes_from_protein_sequences(self, protein_sequence_limit=None):
+    def transcript_ids(self, max_protein_sequences=None):
+        """
+        Ensembl transcripts IDs which support the reading frame used by protein
+        sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        max_protein_sequences : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of str
+        """
+        return sorted({t.id for t in self.transcripts(max_protein_sequences)})
+
+    def genes(self, max_protein_sequences=None):
         """
         Ensembl genes which support the reading frame used by protein
         sequences in this IsovarResult.
 
         Parameters
         ----------
-        protein_sequence_limit : int or None
+        max_protein_sequences : int or None
             If supplied then only consider the top protein sequences up to
             this number.
 
         Returns list of pyensembl.Gene
         """
-        transcripts = self.transcripts_used_by_protein_sequences(
-            protein_sequence_limit=protein_sequence_limit)
+        transcripts = self.transcripts_used_by_protein_sequences(max_protein_sequences)
         genes = [t.gene for t in transcripts]
         return sorted(genes)
 
-    def gene_ids_from_protein_sequences(self, protein_sequence_limit=None):
+    def gene_ids_from_protein_sequences(self, max_protein_sequences=None):
         """
         Ensembl genes IDs which support the reading frame used by protein
         sequences in this IsovarResult.
@@ -402,12 +407,13 @@ class IsovarResult(ValueObject):
 
         Returns list of str
         """
-        return [
+        return sorted({
             g.id
             for g
-            in self.genes_from_protein_sequences(
-                protein_sequence_limit=protein_sequence_limit)
-        ]
+            in
+            self.genes_from_protein_sequences(
+                max_protein_sequences=max_protein_sequences)
+        })
 
     @cached_property
     def ref_reads(self):

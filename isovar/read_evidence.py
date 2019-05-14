@@ -110,3 +110,30 @@ class ReadEvidence(ValueObject):
         self.ref_reads = ref_reads
         self.alt_reads = alt_reads
         self.other_reads = other_reads
+
+    @property
+    def ref_read_names(self):
+        """
+        Names of reads which match the ref allele
+
+        Returns set of str
+        """
+        return {r.name for r in self.ref_reads}
+
+    @property
+    def alt_read_names(self):
+        """
+        Names of reads which match the alt allele
+
+        Returns set of str
+        """
+        return {r.name for r in self.alt_reads}
+
+    @property
+    def other_read_names(self):
+        """
+        Names of reads which match non-ref/non-alt alleles
+
+        Returns set of str
+        """
+        return {r.name for r in self.other_reads}
