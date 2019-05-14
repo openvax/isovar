@@ -22,7 +22,6 @@ from __future__ import print_function, division, absolute_import
 
 from cached_property import cached_property
 
-from .common import groupby
 from .translation_key import TranslationKey
 from .translation import Translation
 from .logging import get_logger
@@ -44,9 +43,7 @@ class ProteinSequence(TranslationKey):
         "translations",
     ]
 
-    def __init__(
-            self,
-            translations):
+    def __init__(self, translations):
         """
         Initialize fields of ProteinSequence. Fields inherited from TranslationKey
         (e.g. frameshift, ends_with_stop_codon, &c) are inferred from the
@@ -82,29 +79,8 @@ class ProteinSequence(TranslationKey):
                             field_value,
                             other_translation_field_value))
 
-    @classmethod
-    def protein_sequences_from_translations(cls, translations):
-        """
-        Convert a list of Translation objects into a (potentially smaller) list
-        of ProteinSequence objects by grouping the
-        equivalent amino acid sequences.
-
-        Parameters
-        ----------
-        translations : list of Translation objects
-
-        Returns list of ProteinSequence objects
-        """
-        protein_sequences = []
-        translation_groups = groupby(
-                translations,
-                key_fn=Translation.as_translation_key)
-        for equivalent_translations in translation_groups.values():
-            protein_sequences.append( ProteinSequence(equivalent_translations))
-        return protein_sequences
-
     @cached_property
-    def reads_supporting_protein_sequence(self):
+    def supporting_reads(self):
         """
         Reads used to create cDNA coding sequence for any Translation
         associated with this ProteinSequence.
@@ -124,7 +100,7 @@ class ProteinSequence(TranslationKey):
 
         Returns set of str
         """
-        return {r.name for r in self.reads_supporting_protein_sequence}
+        return {r.name for r in self.supporting_reads}
 
     @cached_property
     def num_supporting_fragments(self):
@@ -134,7 +110,7 @@ class ProteinSequence(TranslationKey):
 
         Returns int
         """
-        return len({r.name for r in self.reads_supporting_protein_sequence})
+        return len({r.name for r in self.supporting_reads})
 
     @cached_property
     def num_supporting_reads(self):
@@ -144,7 +120,7 @@ class ProteinSequence(TranslationKey):
 
         Returns int
         """
-        return len(self.reads_supporting_protein_sequence)
+        return len(self.supporting_reads)
 
     @cached_property
     def num_mismatches_before_variant(self):

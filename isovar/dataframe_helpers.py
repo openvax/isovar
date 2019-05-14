@@ -22,6 +22,7 @@ from .dataframe_builder import DataFrameBuilder
 from .locus_read import LocusRead
 from .protein_sequence import ProteinSequence
 from .read_collector import ReadCollector
+from .read_evidence import ReadEvidence
 from .reference_context import reference_contexts_for_variants, ReferenceContext
 from .translation import Translation
 from .variant_sequence import VariantSequence
@@ -124,23 +125,10 @@ def locus_reads_dataframe(alignments, chromosome, base0_start, base0_end, *args,
 
 
 def variants_to_reference_contexts_dataframe(
-        variants,
-        context_size,
-        transcript_id_whitelist=None):
+        variant_and_reference_contexts_generator):
     """
-    Given a collection of variants, find all reference sequence contexts
-    around each variant.
-
-    Parameters
-    ----------
-    variants : varcode.VariantCollection
-
-    context_size : int
-        Max of nucleotides to include to the left and right of the variant
-        in the context sequence.
-
-    transcript_id_whitelist : set, optional
-        If given, then only consider transcripts whose IDs are in this set.
+    Given a generator of (Variant, [ReferenceContext]) pairs, create a
+    DataFrame.
 
     Returns a DataFrame with {"chr", "pos", "ref", "alt"} columns for variants,
     as well as all the fields of ReferenceContext.
@@ -153,10 +141,7 @@ def variants_to_reference_contexts_dataframe(
         extra_column_fns={
             "gene": lambda variant, _: ";".join(variant.gene_names),
         })
-    for variant, reference_contexts in reference_contexts_for_variants(
-            variants=variants,
-            context_size=context_size,
-            transcript_id_whitelist=transcript_id_whitelist).items():
+    for variant, reference_contexts in variant_and_reference_contexts_generator:
         df_builder.add_many(variant, reference_contexts)
     return df_builder.to_dataframe()
 
@@ -200,6 +185,14 @@ def translations_generator_to_dataframe(translations_generator):
             "untrimmed_variant_sequence_read_count": (
                 lambda _, t: len(t.untrimmed_variant_sequence.reads)),
         })
+
+def read_evidence_generator_to_dataframe(read_evidence_generator):
+    """
+    Create a DataFrame from generator of (Variant, ReadEvidence) pairs.
+    """
+    return dataframe_from_generator(
+        element_class=ReadEvidence,
+        variant_and_elements_generator=read_evidence_generator)
 
 
 def isovar_results_to_dataframe(isovar_results):

@@ -24,7 +24,7 @@ from __future__ import print_function, division, absolute_import
 from .common import groupby
 from .logging import get_logger
 from .protein_sequence import ProteinSequence
-from .translation import  Translation
+from .translation import Translation
 
 logger = get_logger(__name__)
 
@@ -40,3 +40,22 @@ def sort_protein_sequences(protein_sequences):
             reverse=True))
 
 
+def group_equivalent_translations(translations):
+    """
+    Convert a list of Translation objects into a (potentially smaller) list
+    of ProteinSequence objects by grouping the
+    equivalent amino acid sequences.
+
+    Parameters
+    ----------
+    translations : list of Translation objects
+
+    Returns list of ProteinSequence objects
+    """
+    protein_sequences = []
+    translation_groups = groupby(
+        translations,
+        key_fn=Translation.as_translation_key)
+    for equivalent_translations in translation_groups.values():
+        protein_sequences.append(ProteinSequence(equivalent_translations))
+    return protein_sequences

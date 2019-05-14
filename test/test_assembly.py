@@ -19,7 +19,7 @@ from testing_helpers import load_bam
 
 
 def test_assemble_transcript_fragments_snv():
-    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
+    alignment_file = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 65857041
     ref = "G"
@@ -33,7 +33,7 @@ def test_assemble_transcript_fragments_snv():
     read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
-        alignments=samfile)
+        alignment_file=alignment_file)
 
     sequences = iterative_overlap_assembly(
         initial_variant_sequences_from_reads(variant_reads),

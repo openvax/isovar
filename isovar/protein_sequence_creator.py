@@ -27,7 +27,10 @@ from .default_parameters import (
 )
 
 from .genetic_code import translate_cdna
-from .protein_sequence_helpers import sort_protein_sequences, collapse_translations
+from .protein_sequence_helpers import (
+    sort_protein_sequences,
+    group_equivalent_translations
+)
 from .reference_context import reference_contexts_for_variant
 from .translation import Translation
 from .translation_helpers import find_mutant_amino_acid_interval
@@ -279,7 +282,7 @@ class ProteinSequenceCreator(ValueObject):
 
     def translate_variants(
                 self,
-                variants_with_supporting_reads,
+                variants_with_read_evidence_generator,
                 transcript_id_whitelist=None):
             """
             Translates each coding variant in a collection to one or more protein
@@ -288,9 +291,9 @@ class ProteinSequenceCreator(ValueObject):
 
             Parameters
             ----------
-            variants_with_supporting_reads : sequence or generator
+            variants_with_read_evidence_generator : sequence or generator
                 Each item of this sequence should be a pair containing a varcode.Variant
-                and a list of AlleleRead objects supporting that variant.
+                and a ReadEvidence object
 
             transcript_id_whitelist : set, optional
                 If given, expected to be a set of transcript IDs which we should use
@@ -300,10 +303,10 @@ class ProteinSequenceCreator(ValueObject):
             Yields pairs of a Variant and a sequence of all its candidate
             Translation objects.
             """
-            for variant, variant_reads in variants_with_supporting_reads:
+            for variant, read_evidence in variants_with_read_evidence_generator:
                 translations = self.translate_variant_reads(
                     variant=variant,
-                    variant_reads=variant_reads,
+                    variant_reads=read_evidence.alt_reads,
                     transcript_id_whitelist=transcript_id_whitelist)
                 yield variant, translations
 
@@ -337,7 +340,7 @@ class ProteinSequenceCreator(ValueObject):
 
         # group distinct cDNA translations into ProteinSequence objects
         # by their amino acid sequence
-        protein_sequences = collapse_translations(translations)
+        protein_sequences = group_equivalent_translations(translations)
 
         # sort protein sequences before returning the top results
         protein_sequences = sort_protein_sequences(protein_sequences)
@@ -366,7 +369,7 @@ class ProteinSequenceCreator(ValueObject):
             protein_sequences = \
                 self.sorted_protein_sequences_for_variant(
                     variant=variant,
-                    supporting_alt_reads=read_evidence,
+                    read_evidence=read_evidence,
                     transcript_id_whitelist=transcript_id_whitelist)
             if self.max_protein_sequences_per_variant:
                 protein_sequences = protein_sequences[:self.max_protein_sequences_per_variant]

@@ -4,10 +4,9 @@ from varcode import Variant, VariantCollection
 
 from nose.tools import eq_
 
-from isovar.reference_context import (
-    reference_contexts_for_variants,
-    ReferenceContext,
-)
+from isovar.reference_context import ReferenceContext
+from isovar.reference_context_helpers import variant_and_reference_contexts_generator
+
 from isovar.dataframe_helpers import variants_to_reference_contexts_dataframe
 
 from testing_helpers import load_vcf
@@ -36,17 +35,19 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
 
     # first calling without a transcript ID white to see if we get back
     # multiple contexts
-    reference_context_dict_many_transcripts = \
-        reference_contexts_for_variants(
+    reference_contexts_gen = \
+        variant_and_reference_contexts_generator(
             variants=variant_collection,
             context_size=10,
             transcript_id_whitelist=None)
 
-    assert len(reference_context_dict_many_transcripts) == 1, \
-        "Dictionary should have only one variant but got %d keys" % (
-            len(reference_context_dict_many_transcripts),)
+    reference_contexts_dict = dict(reference_contexts_gen)
 
-    reference_contexts = reference_context_dict_many_transcripts[tp53_substitution]
+    assert len(reference_contexts_dict) == 1, \
+        "Dictionary should have only one variant but got %d keys" % (
+            len(reference_contexts_dict),)
+
+    reference_contexts = reference_contexts_dict[tp53_substitution]
 
     assert len(reference_contexts) > 1, \
         "Expected multiple reference contexts for %s but got %d: %s" % (
@@ -55,10 +56,10 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
             reference_contexts)
 
     reference_context_dict_single_transcript = \
-        reference_contexts_for_variants(
+        dict(variant_and_reference_contexts_generator(
             variants=variant_collection,
             context_size=10,
-            transcript_id_whitelist={tp53_001.id})
+            transcript_id_whitelist={tp53_001.id}))
 
     # still only expect one variant key
     eq_(len(reference_context_dict_single_transcript), 1)
@@ -89,7 +90,8 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
 def test_variants_to_reference_contexts_dataframe():
     variants = load_vcf("data/b16.f10/b16.vcf")
     assert len(variants) > 0
-    df = variants_to_reference_contexts_dataframe(variants, context_size=10)
+    gen = variant_and_reference_contexts_generator(variants, context_size=10)
+    df = variants_to_reference_contexts_dataframe(gen)
     print(df)
     groups = df.groupby(["chr", "pos", "ref", "alt"])
     # make sure we have at least one reference context for each

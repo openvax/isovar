@@ -22,13 +22,8 @@ from pysam import AlignmentFile
 
 from varcode.cli import make_variants_parser, variant_collection_from_args
 
-from ..default_parameters import (
-    MIN_READ_MAPPING_QUALITY,
-    MIN_ALT_RNA_READS,
-    MIN_ALT_RNA_FRAGMENTS,
-    MIN_RNA_VAF,
-    MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS
-)
+from ..default_parameters import MIN_READ_MAPPING_QUALITY
+
 from ..read_collector import  ReadCollector
 from ..dataframe_helpers import allele_reads_to_dataframe
 
@@ -38,15 +33,14 @@ def add_rna_args(
         min_mapping_quality_default=MIN_READ_MAPPING_QUALITY):
     """
     Extends an ArgumentParser instance with the following commandline arguments:
-        --bam
-        --min-reads
+        --rna-reads
         --min-mapping-quality
         --use-duplicate-reads
         --drop-secondary-alignments
     """
     rna_group = parser.add_argument_group("RNA")
     rna_group.add_argument(
-        "--bam",
+        "--rna-reads",
         required=True,
         help="BAM file containing RNAseq reads")
 
@@ -72,39 +66,6 @@ def add_rna_args(
             "By default, secondary alignments are included in reads, "
             "use this option to instead only use primary alignments."))
 
-    rna_group.add_argument(
-        "--min-alt-rna-reads",
-        type=int,
-        default=MIN_ALT_RNA_READS,
-        help="Minimum number of reads supporting variant allele (default %(default)s)")
-
-    rna_group.add_argument(
-        "--min-alt-rna-fragments",
-        type=int,
-        default=MIN_ALT_RNA_FRAGMENTS,
-        help=(
-            "Minimum number of fragments supporting variant allele (default %(default)s). "
-            "Note that this option is the same as --min-alt-rna-reads for single-end "
-            "sequencing."))
-
-    rna_group.add_argument(
-        "--min-rna_vaf",
-        type=float,
-        default=MIN_RNA_VAF,
-        help=(
-            "Minimum ratio of fragments supporting variant allele to total RNA fragments "
-            "(default %(default)s)."))
-
-    rna_group.add_argument(
-        "--min-ratio-alt-to-other-nonref-fragments",
-        type=float,
-        default=MIN_RATIO_ALT_TO_OTHER_NONREF_RNA_FRAGMENTS,
-        help=(
-            "At loci where alleles other than the ref and a single alt are supported, "
-            "this parameter controls how many more times fragments supporting "
-            "the variant allele are required relative to other non-reference "
-            "alleles (default %(default)s)."))
-
     return rna_group
 
 
@@ -123,34 +84,38 @@ def make_rna_reads_arg_parser(**kwargs):
     return parser
 
 
-def samfile_from_args(args):
+def alignment_file_from_args(args):
+    """
+    Use parsed arguments to load a file of aligned RNA reads.
+    """
     return AlignmentFile(args.bam)
 
-def read_creator_from_args(args):
+
+def read_collector_from_args(args):
+    """
+    Use parsed arguments to create a ReadCollector object
+    """
     return ReadCollector(
         min_mapping_quality=args.min_mapping_quality,
         use_duplicate_reads=args.use_duplicate_reads,
         use_secondary_alignments=not args.drop_secondary_alignments)
 
-def overlapping_reads_generator_from_args(args):
+
+def read_evidence_generator_from_args(args):
+    """
+    Creates a generator of (Variant, ReadEvidence pairs) from parsed
+    arguments.
+    """
     variants = variant_collection_from_args(args)
-    samfile = samfile_from_args(args)
-    read_creator = read_creator_from_args(args)
-    return read_creator.allele_reads_overlapping_variants(
+    samfile = alignment_file_from_args(args)
+    read_creator = read_collector_from_args(args)
+    return read_creator.read_evidence_generator(
         variants=variants,
-        alignments=samfile)
-
-def allele_reads_dataframe_from_args(args):
-    return allele_reads_to_dataframe(overlapping_reads_generator_from_args(args))
-
-def supporting_reads_generator_from_args(args):
-    variants = variant_collection_from_args(args)
-    samfile = samfile_from_args(args)
-    read_creator = read_creator_from_args(args)
-    return read_creator.allele_reads_supporting_variants(
-        variants=variants,
-        alignments=samfile)
+        alignment_file=samfile)
 
 
-def variant_reads_dataframe_from_args(args):
-    return allele_reads_to_dataframe(supporting_reads_generator_from_args(args))
+def read_evidence_dataframe_from_args(args):
+    """
+    Collect ReadEvidence for each variant and turn them into a DataFrame
+    """
+    return allele_reads_to_dataframe(read_evidence_generator_from_args(args))

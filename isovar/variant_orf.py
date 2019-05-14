@@ -20,7 +20,7 @@ translations.
 
 from __future__ import print_function, division, absolute_import
 
-from six.moves import range, zip
+from six.moves import zip
 
 from .dna import reverse_complement_dna
 from .logging import get_logger
@@ -286,4 +286,3 @@ def compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon)
         frame = n_nucleotides_trimmed_after_first_codon % 3
         return (3 - frame) % 3
-

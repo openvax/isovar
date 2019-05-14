@@ -61,8 +61,7 @@ def predicted_effects_for_variant(
             logger.info(
                 "Skipping transcript %s for variant %s because it's not in whitelist",
                 transcript.name,
-                variant,
-                len(transcript_id_whitelist))
+                variant)
             continue
         effects.append(variant.effect_on_transcript(transcript))
 

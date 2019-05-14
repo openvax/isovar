@@ -14,6 +14,7 @@ from isovar.protein_sequence import ProteinSequence
 from isovar.main import ProteinSequenceCreator
 from isovar.protein_sequence_helpers import sort_protein_sequences
 from isovar.translation import Translation
+from isovar.reference_context import ReferenceContext
 from isovar.variant_orf import VariantORF
 
 
@@ -44,6 +45,7 @@ def make_dummy_translation(
         reference_cdna_sequence_after_variant=cdna_sequence[variant_cdna_interval_end:],
         num_mismatches_before_variant=num_mismatches,
         num_mismatches_after_variant=0)
+
     return Translation(
         variant_orf=varseq_in_orf,
         amino_acids=amino_acids,
@@ -62,7 +64,6 @@ def make_dummy_protein_sequence(
         n_total_variant_sequences=None,
         n_total_variant_reads=None,
         n_total_reference_transcripts=None,
-        gene=["TP53"],
         amino_acids="MKHW",  # ATG=M|AAA=K|CAC=H|TGG=W
         cdna_sequence="CCCATGAAACACTGGTAG",
         variant_cdna_interval_start=8,  # assuming variant was AAC>AAA
@@ -88,32 +89,18 @@ def make_dummy_protein_sequence(
 
     n_translations = n_total_reference_transcripts * n_total_variant_sequences
 
-    translation = make_dummy_translation()
-
-    return ProteinSequence(
-        translations=[translation] * n_translations,
-        overlapping_reads=[None] * n_total_variant_reads,
-        ref_reads=[],
-        alt_reads=[None] * n_total_variant_reads,
-        alt_reads_supporting_protein_sequence=[None] * n_supporting_variant_reads,
-        transcripts_supporting_protein_sequence=[None] * n_supporting_reference_transcripts,
-        transcripts_overlapping_variant=[None] * n_supporting_reference_transcripts,
-        gene=gene,
+    translation = make_dummy_translation(
         amino_acids=amino_acids,
+        cdna_sequence=cdna_sequence,
+        offset_to_first_complete_codon=3,
+        variant_cdna_interval_start=variant_cdna_interval_start,  # assuming variant was AAC>AAA
+        variant_cdna_interval_end=variant_cdna_interval_end,
         variant_aa_interval_start=variant_aa_interval_start,
         variant_aa_interval_end=variant_aa_interval_end,
-        ends_with_stop_codon=translation.ends_with_stop_codon,
-        frameshift=translation.frameshift)
+        num_mismatches=num_mismatches)
 
- amino_acids,
-            variant_aa_interval_start,
-            variant_aa_interval_end,
-            ends_with_stop_codon,
-            frameshift,
-            translations,
-            reads_supporting_protein_sequence,
-            transcript_ids_supporting_protein_sequence
-
+    return ProteinSequence(
+        translations=[translation] * n_translations)
 
 def test_sort_protein_sequences():
     protseq_most_reads = make_dummy_protein_sequence(
@@ -169,12 +156,11 @@ def variants_to_protein_sequences_dataframe(
 
     combined_variants = VariantCollection(
         list(expressed_variants) + list(not_expressed_variants))
-    samfile = load_bam(tumor_rna_bam)
-    read_collector = ReadCollector()
+    alignment_file = load_bam(tumor_rna_bam)
+    read_collector = ReadCollector(min_mapping_quality=min_mapping_quality)
     read_evidence_gen = read_collector.read_evidence_generator(
         variants=combined_variants,
-        samfile=samfile,
-        min_mapping_quality=min_mapping_quality)
+        alignment_file=alignment_file)
 
     creator = ProteinSequenceCreator(
         max_protein_sequences_per_variant=max_protein_sequences_per_variant,
@@ -213,16 +199,15 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
     # since the B16 BAM has all MAPQ=255 values then all the reads should get dropped
     # if we set the minimum quality to 256
     variants = load_vcf("data/b16.f10/b16.vcf")
-    samfile = load_bam("data/b16.f10/b16.combined.sorted.bam")
-
-    allele_reads_generator = reads_overlapping_variants(
+    alignment_file = load_bam("data/b16.f10/b16.combined.sorted.bam")
+    read_collector = ReadCollector()
+    read_evidence_gen = read_collector.read_evidence_generator(
         variants=variants,
-        samfile=samfile,
-        min_mapping_quality=256)
+        alignment_file=alignment_file)
+
     creator = ProteinSequenceCreator(
         max_protein_sequences_per_variant=1)
-    protein_sequences_generator = creator.reads_generator_to_protein_sequences_generator(
-        allele_reads_generator,)
+    protein_sequences_generator = creator.variant_and_protein_sequences_generator(read_evidence_gen)
     df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
     print(df)
     eq_(

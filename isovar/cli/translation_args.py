@@ -22,7 +22,7 @@ from __future__ import print_function, division, absolute_import
 from ..default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
-    INCLUDE_MISMATCHES_AFTER_VARIANT,
+    COUNT_MISMATCHES_AFTER_VARIANT,
     PROTEIN_SEQUENCE_LENGTH,
 )
 from .variant_sequences_args import make_variant_sequences_arg_parser
@@ -46,9 +46,9 @@ def add_translation_args(parser):
             " reference sequence before a candidate reading frame is ignored."))
 
     translation_group.add_argument(
-        "--include-mismatches-after-variant",
+        "--count-mismatches-after-variant",
         action="store_true",
-        default=INCLUDE_MISMATCHES_AFTER_VARIANT,
+        default=COUNT_MISMATCHES_AFTER_VARIANT,
         help="If true, mismatches after the variant locus will count toward the "
              "--max-reference-transcript-mismatches filter.")
 

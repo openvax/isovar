@@ -51,7 +51,7 @@ class Translation(TranslationKey):
             variant_orf):
         # TODO:
         #  get rid of untrimmed_variant_sequence by making
-        #  VariantSequenceInReadingFrame keep track of its inputs
+        #  VariantORF keep track of its inputs
         self.amino_acids = amino_acids
         self.variant_aa_interval_start = variant_aa_interval_start
         self.variant_aa_interval_end = variant_aa_interval_end
