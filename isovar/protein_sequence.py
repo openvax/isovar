@@ -149,7 +149,7 @@ class ProteinSequence(TranslationKey):
         """
         transcript_set = set([])
         for t in self.translations:
-            transcript_set.update(p.transcript_ids_supporting_protein_sequence)
+            transcript_set.update(t.transcript_ids_supporting_protein_sequence)
         return sorted(transcript_set)
 
     def transcripts_from_protein_sequences(self, protein_sequence_limit=None):
