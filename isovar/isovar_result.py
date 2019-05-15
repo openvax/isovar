@@ -113,7 +113,15 @@ class IsovarResult(object):
         """
         d = OrderedDict([
             ("variant", self.variant.short_description),
-            ("variant_gene", ";".join(self.variant.gene_names))
+            ("overlapping_gene_names",
+                ";".join(self.overlapping_gene_names(only_coding=False))),
+            ("overlapping_gene_ids",
+                ";".join(self.overlapping_gene_ids(only_coding=False))),
+            ("overlapping_coding_gene_names",
+             ";".join(self.overlapping_gene_names(only_coding=True))),
+            ("overlapping_coding_gene_ids",
+             ";".join(self.overlapping_gene_ids(only_coding=True))),
+
         ])
 
         # get all quantitative fields from this object
@@ -166,10 +174,17 @@ class IsovarResult(object):
             ("protein_sequence_mismatches_after_variant", "num_mismatches_after_variant"),
             ("protein_sequence_num_supporting_reads", "num_supporting_reads"),
             ("protein_sequence_num_supporting_fragments", "num_supporting_fragments"),
+            ("protein_sequence_gene_names", "gene_names"),
+            ("protein_sequence_gene_ids", "gene_ids"),
+            ("protein_sequence_transcript_names", "transcript_names"),
+            ("protein_sequence_transcript_ids", "transcript_ids"),
         ]
         for (name, protein_sequence_field) in protein_sequence_properties:
-            d[name] = getattr(protein_sequence, protein_sequence_field, None)
-
+            value = getattr(protein_sequence, protein_sequence_field, None)
+            if isinstance(value, (list, set, tuple)):
+                value = ";".join(value)
+            d[name] = value
+        d["trimmed_predicted_mutant_protein_sequence"] = self.trimmed_varcode_sequence
         d["protein_sequence_matches_predicted_effect"] = self.protein_sequence_matches_predicted_effect
 
         ########################################################################
@@ -362,7 +377,7 @@ class IsovarResult(object):
         if e.mutant_protein_sequence is None:
             return None
         n_before = p.variant_aa_interval_start
-        n_after = len(p.amino_acids) - p.variant_aa_interval_stop + 1
+        n_after = len(p.amino_acids) - p.variant_aa_interval_end
         return e.mutant_protein_sequence[
              e.aa_mutation_start_offset - n_before:
              e.aa_mutation_start_offset + len(e.aa_alt) + n_after]
@@ -570,13 +585,30 @@ class IsovarResult(object):
             Only return genes which are annotated as coding for a
             protein (default=True)
 
-        Returns set of pyensembl.Gene objects
+        Returns list of pyensembl.Gene objects
         """
-        return {
+        return sorted({
             g
             for g in self.variant.genes
             if not only_coding or g.is_protein_coding
-        }
+        })
+
+    def overlapping_gene_names(self, only_coding=True):
+        """
+        Names of genes which this variant overlaps.
+
+        Parameters
+        ----------
+        only_coding : bool
+           Only return genes which are annotated as coding for a
+           protein (default=True)
+
+        Returns list of str
+        """
+        return [
+            g.name for g in self.overlapping_genes(only_coding=only_coding)
+        ]
+
 
     def overlapping_gene_ids(self, only_coding=True):
         """

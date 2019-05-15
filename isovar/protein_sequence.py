@@ -171,11 +171,11 @@ class ProteinSequence(TranslationKey):
 
         Returns list of str
         """
-        return sorted({
+        return [
             t.name
             for t
             in self.transcripts
-        })
+        ]
 
     @property
     def transcript_ids(self):
@@ -186,11 +186,10 @@ class ProteinSequence(TranslationKey):
 
         Returns list of str
         """
-        transcript_id_set = {
+        return [
             transcript.id
             for transcript in self.transcripts
-        }
-        return sorted(transcript_id_set)
+        ]
 
     @property
     def genes(self):
@@ -212,11 +211,11 @@ class ProteinSequence(TranslationKey):
 
         Returns list of str
         """
-        return sorted({
+        return [
             g.name
             for g
             in self.genes
-        })
+        ]
 
     @property
     def gene_name(self):
@@ -238,11 +237,7 @@ class ProteinSequence(TranslationKey):
 
         Returns list of str
         """
-        return {
-            g.id
-            for g
-            in self.genes
-        }
+        return [g.id for g in self.genes]
 
     def ascending_sort_key(self):
         """
