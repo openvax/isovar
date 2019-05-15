@@ -345,6 +345,39 @@ class IsovarResult(object):
             return None
 
     @cached_property
+    def trimmed_varcode_sequence(self):
+        """
+        Trim the predicted mutant protein sequence from Varcode
+        to match the length of the protein subsequence assembled from RNA.
+
+        Returns str or None
+        """
+        p = self.top_protein_sequence
+        e = self.predicted_effect
+        if e is None or p is None:
+            return None
+        if e.mutant_protein_sequence is None:
+            return None
+        n_before = p.variant_aa_interval_start
+        n_after = len(p.amino_acids) - p.variant_aa_interval_stop + 1
+        return e.mutant_protein_sequence[
+             e.aa_mutation_start_offset - n_before:
+             e.aa_mutation_start_offset + len(e.aa_alt) + n_after]
+
+    @cached_property
+    def protein_sequence_matches_predicted_effect(self):
+        """
+        Does the top protein sequence translated from RNA reads
+        match the predicted protein change determined by Varcode?
+
+        Returns bool
+        """
+        varcode_sequence = self.trimmed_varcode_sequence
+        if varcode_sequence is None:
+            return None
+        return self.top_protein_sequence.amino_acids == varcode_sequence
+
+    @cached_property
     def num_protein_sequences(self):
         """
         Number of distinct protein sequences which were translated from
