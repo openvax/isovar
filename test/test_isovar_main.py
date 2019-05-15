@@ -1,4 +1,5 @@
 from isovar import run_isovar, isovar_results_to_dataframe
+from nose.tools import eq_
 
 def test_isovar_main_to_dataframe():
     results = run_isovar(
@@ -6,3 +7,7 @@ def test_isovar_main_to_dataframe():
         alignment_file="data/b16.f10/b16.combined.sorted.bam")
     df = isovar_results_to_dataframe(results)
     print(df)
+    eq_(len(df), 4)
+    # B16 test data has 2/4 variants with enough coverage
+    # to translate protein sequences
+    eq_(df["pass"].sum(), 2)

@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2019. Mount Sinai School of Medicine
+# Copyright (c) 2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ from collections import OrderedDict
 from cached_property import cached_property
 
 from .common import safediv
-from .value_object import  ValueObject
 
 
 class IsovarResult(object):
@@ -40,73 +39,29 @@ class IsovarResult(object):
     def __init__(
             self,
             variant,
-            predicted_effect,
             read_evidence,
+            predicted_effect,
             sorted_protein_sequences=None,
             filter_values_dict=None):
         self.variant = variant
-        self.predicted_effect = predicted_effect
         self.read_evidence = read_evidence
+        self.predicted_effect = predicted_effect
 
         if sorted_protein_sequences is None:
-            self.sorted_protein_sequences = []
-        else:
-            self.sorted_protein_sequences = sorted_protein_sequences
+            sorted_protein_sequences = []
+
+        self.sorted_protein_sequences = sorted_protein_sequences
 
         if filter_values_dict is None:
             self.filter_values_dict = OrderedDict()
         else:
             self.filter_values_dict = filter_values_dict
 
-    def apply_filters(self, filter_thresholds):
-        """
-        Creates a dictionary whose keys are named of different
-        filter conditions and values are booleans, where True
-        indicates whether this set of coverage stats passes
-        the filter and False indicates that it failed.
-
-        Parameters
-        ----------
-        filter_thresholds : dict or OrderedDict
-            Every argument is supposed to be something like "max_alt_reads"
-            where the first three characters are "min" or "max" and the
-            rest of the name is either a field of IsovarResult or
-            a numeric field like "num_alt_reads". The name of each filter
-            maps to a cutoff value. Filters starting with "max"
-            require that the corresponding field on CoverageStats
-            is <= cutoff, whereas filters starting with
-            "min" require >= cutoff.
-
-        Returns
-        -------
-        Dictionary of filter names mapped to boolean value indicating
-        whether this locus passed the filter.
-        """
-        filter_values_dict = OrderedDict()
-        for name, threshold in filter_thresholds.items():
-            parts = name.split("_")
-            min_or_max = parts[0]
-            field_name = "_".join(parts[1:])
-            if min_or_max == "min":
-                comparison_fn = operator.ge
-            elif min_or_max == "max":
-                comparison_fn = operator.le
-            else:
-                raise ValueError(
-                    "Invalid filter '%s', must start with 'min' or 'max'" % name)
-            if hasattr(self, field_name):
-                field_value = getattr(self, field_name)
-            else:
-                print(self)
-                raise ValueError(
-                    "Invalid filter '%s' IsovarResult does not have property '%s'" % (
-                        name,
-                        field_name))
-            filter_values_dict[name] = comparison_fn(field_value, threshold)
-        return filter_values_dict
-
     @property
     def fields(self):
+        """
+        List of field names used to construct an IsovarResult instance.
+        """
         return [
             "variant",
             "predicted_effect",
@@ -147,55 +102,6 @@ class IsovarResult(object):
             if k not in kwargs:
                 kwargs[k] = v
         return IsovarResult(**kwargs)
-
-    def clone_with_extra_filters(self, filter_thresholds):
-        """
-        Applies filters to properties of this IsovarResult and then creates
-        a copy with an updated filter_values_dict field.
-
-        Parameters
-        ----------
-        filter_thresholds : dict or OrderedDict
-            Dictionary mapping filter names (e.g. "max_fraction_ref_reads) to
-            thresholds.
-
-        Returns IsovarResult
-        """
-        # first clone filter values which might already exist
-        combined_filter_value_dict = OrderedDict()
-        for k, v in self.filter_values_dict.items():
-            combined_filter_value_dict[k] = v
-        for k,v in self.apply_filters(filter_thresholds).items():
-            combined_filter_value_dict[k] = v
-        return self.clone_with_new_field(
-            filter_values_dict=combined_filter_value_dict)
-
-    @cached_property
-    def passes_all_filters(self):
-        """
-        Does this IsovarResult have True for all the filter values in
-        self.filter_values_dict?
-        """
-        if len(self.filter_values_dict) == 0:
-            return True
-        else:
-            return all(list(self.filter_values_dict.values()))
-
-    @cached_property
-    def top_protein_sequence(self):
-        """
-        If any protein sequences were assembled for this variant then
-        return the best according to coverage, number of mismatches
-        relative to the reference, number of reference transcripts
-        which match sequence before the variant and protein
-        sequence length.
-
-        Returns ProteinSequence or None
-        """
-        if len(self.sorted_protein_sequences) > 0:
-            return self.sorted_protein_sequences[0]
-        else:
-            return None
 
     def to_record(self):
         """
@@ -242,14 +148,6 @@ class IsovarResult(object):
                 effect,
                 field_name,
                 None)
-
-        ########################################################################
-        # filters
-        ########################################################################
-        for filter_name, filter_value in self.filter_values_dict.items():
-            d["filter:%s" % filter_name] = filter_value
-        d["pass"] = self.passes_all_filters
-
         ########################################################################
         # get the top protein sequence, if one exists
         ########################################################################
@@ -271,7 +169,307 @@ class IsovarResult(object):
         for (name, protein_sequence_field) in protein_sequence_properties:
             d[name] = getattr(protein_sequence, protein_sequence_field, None)
 
+        ########################################################################
+        # filters
+        ########################################################################
+        for filter_name, filter_value in self.filter_values_dict.items():
+            d["filter:%s" % filter_name] = filter_value
+        d["pass"] = self.passes_all_filters
+
         return d
+
+    def _apply_threshold_filters(self, filter_thresholds):
+        """
+        Helper method used by apply_filters
+
+        Parameters
+        ----------
+        filter_thresholds : dict or OrderedDict
+            Every argument is supposed to be something like "max_alt_reads"
+            where the first three characters are "min" or "max" and the
+            rest of the name is either a field of IsovarResult or
+            a numeric field like "num_alt_reads". The name of each filter
+            maps to a cutoff value. Filters starting with "max"
+            require that the corresponding field on CoverageStats
+            is <= cutoff, whereas filters starting with
+            "min" require >= cutoff.
+
+        Returns OrderedDict
+        """
+        filter_values_dict = OrderedDict()
+        for name, threshold in filter_thresholds.items():
+            parts = name.split("_")
+            min_or_max = parts[0]
+            field_name = "_".join(parts[1:])
+            if min_or_max == "min":
+                comparison_fn = operator.ge
+            elif min_or_max == "max":
+                comparison_fn = operator.le
+            else:
+                raise ValueError(
+                    "Invalid filter '%s', must start with 'min' or 'max'" % name)
+            if hasattr(self, field_name):
+                field_value = getattr(self, field_name)
+            else:
+                print(self)
+                raise ValueError(
+                    "Invalid filter '%s' IsovarResult does not have property '%s'" % (
+                        name,
+                        field_name))
+            filter_values_dict[name] = comparison_fn(field_value, threshold)
+        return filter_values_dict
+
+    def _apply_boolean_filters(self, filter_flags):
+        """
+        Helper function used by apply_filters.
+
+        Parameters
+        ----------
+        filter_flags : list of str
+            Every element should be a boolean property of IsovarResult
+            or "not_" and the name of a property to be negated.
+
+        Returns OrderedDict
+        """
+        filter_values = OrderedDict()
+        for boolean_filter_name in filter_flags:
+            if boolean_filter_name.startswith("not_"):
+                boolean_field_name = boolean_filter_name[4:]
+                negate = True
+            else:
+                boolean_field_name = boolean_filter_name
+                negate = False
+            if hasattr(self, boolean_field_name):
+                field_value = getattr(self, boolean_field_name)
+            else:
+                raise ValueError(
+                    "IsovarResult does not have field name '%s'" % boolean_field_name)
+            if field_value not in {True, False}:
+                raise ValueError("Expected filter '%s' to be boolean but got %s" % (
+                    boolean_filter_name,
+                    field_value))
+            filter_values[boolean_filter_name] = (
+                not field_value if negate else field_value
+            )
+        return filter_values
+
+    def apply_filters(
+            self,
+            filter_thresholds,
+            filter_flags=[]):
+        """
+        Creates a dictionary whose keys are named of different
+        filter conditions and values are booleans, where True
+        indicates whether this set of coverage stats passes
+        the filter and False indicates that it failed.
+
+        Parameters
+        ----------
+        filter_thresholds : dict or OrderedDict
+            Every argument is supposed to be something like "max_alt_reads"
+            where the first three characters are "min" or "max" and the
+            rest of the name is either a field of IsovarResult or
+            a numeric field like "num_alt_reads". The name of each filter
+            maps to a cutoff value. Filters starting with "max"
+            require that the corresponding field on CoverageStats
+            is <= cutoff, whereas filters starting with
+            "min" require >= cutoff.
+
+        filter_flags : list of str
+            Every element should be a boolean property of IsovarResult
+            or "not_" and the name of a property to be negated.
+
+        Returns
+        -------
+        Dictionary of filter names mapped to boolean value indicating
+        whether this locus passed the filter.
+        """
+        filter_values_dict = self._apply_boolean_filters(filter_flags)
+        filter_values_dict.update(
+            self._apply_threshold_filters(filter_thresholds))
+        return filter_values_dict
+
+    def clone_with_extra_filters(
+            self,
+            filter_thresholds,
+            filter_flags):
+        """
+        Applies filters to properties of this IsovarResult and then creates
+        a copy with an updated filter_values_dict field.
+
+        Parameters
+        ----------
+        filter_thresholds : dict or OrderedDict
+            Dictionary mapping filter names (e.g. "max_fraction_ref_reads) to
+            thresholds.
+
+        filter_flags : list
+            List of boolean field names of IsovarResult or strings
+            such as "not_{IsovarResult field}".
+
+        Returns IsovarResult
+        """
+        # first clone filter values which might already exist
+        combined_filter_value_dict = OrderedDict(self.filter_values_dict.items())
+        combined_filter_value_dict.update(self.apply_filters(
+            filter_thresholds=filter_thresholds,
+            filter_flags=filter_flags))
+        return self.clone_with_new_field(
+            filter_values_dict=combined_filter_value_dict)
+
+    @cached_property
+    def passes_all_filters(self):
+        """
+        Does this IsovarResult have True for all the filter values in
+        self.filter_values_dict?
+        """
+        if len(self.filter_values_dict) == 0:
+            return True
+        else:
+            return all(list(self.filter_values_dict.values()))
+
+    @cached_property
+    def top_protein_sequence(self):
+        """
+        If any protein sequences were assembled for this variant then
+        return the best according to coverage, number of mismatches
+        relative to the reference, number of reference transcripts
+        which match sequence before the variant and protein
+        sequence length.
+
+        Returns ProteinSequence or None
+        """
+        if len(self.sorted_protein_sequences) > 0:
+            return self.sorted_protein_sequences[0]
+        else:
+            return None
+
+    @cached_property
+    def num_protein_sequences(self):
+        """
+        Number of distinct protein sequences which were translated from
+        assembled RNA reads.
+
+        Returns int
+        """
+        return list(self.sorted_protein_sequences)
+
+    def transcripts_from_protein_sequences(self, max_num_protein_sequences=None):
+        """
+        Ensembl transcript IDs of all transcripts which support the reading
+        frame used by protein sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        max_num_protein_sequences : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of pyensembl.Transcript
+        """
+        transcript_set = set([])
+        for p in self.sorted_protein_sequences[:max_num_protein_sequences]:
+            transcript_set.update(p.transcripts)
+        return sorted(transcript_set)
+
+    def transcript_ids_from_protein_sequences(self, max_num_protein_sequences=None):
+        """
+        Ensembl transcripts IDs which support the reading frame used by protein
+        sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        max_num_protein_sequences : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of str
+        """
+        return sorted({t.id for t in self.transcripts_from_protein_sequences(
+            max_num_protein_sequences=max_num_protein_sequences)})
+
+    @cached_property
+    def num_transcripts_from_protein_sequences(self):
+        """
+        Number of genes used by any translated protein sequence associated
+        with this IsovarResult.
+
+        Returns int
+        """
+        return len(self.transcript_ids_from_protein_sequences(
+            max_num_protein_sequences=None))
+
+    @cached_property
+    def num_transcripts_from_top_protein_sequence(self):
+        """
+        Number of genes used by any translated protein sequence associated
+        with this IsovarResult.
+
+        Returns int
+        """
+        return len(self.transcript_ids_from_protein_sequences(
+            max_num_protein_sequences=1))
+
+    def genes_from_protein_sequences(self, max_num_protein_sequences=None):
+        """
+        Ensembl genes which support the reading frame used by protein
+        sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        max_num_protein_sequences : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of pyensembl.Gene
+        """
+        transcripts = self.transcripts_from_protein_sequences(
+            max_num_protein_sequences=max_num_protein_sequences)
+        genes = [t.gene for t in transcripts]
+        return sorted(genes)
+
+    def gene_ids_from_protein_sequences(self, max_num_protein_sequences=None):
+        """
+        Ensembl genes IDs which support the reading frame used by protein
+        sequences in this IsovarResult.
+
+        Parameters
+        ----------
+        max_num_protein_sequences : int or None
+            If supplied then only consider the top protein sequences up to
+            this number.
+
+        Returns list of str
+        """
+        return sorted({
+            g.id
+            for g
+            in
+            self.genes_from_protein_sequences(
+                max_num_protein_sequences=max_num_protein_sequences)
+        })
+
+    @cached_property
+    def num_genes_from_protein_sequences(self):
+        """
+        Number of genes used by any translated protein sequence associated
+        with this IsovarResult.
+
+        Returns int
+        """
+        return len(self.gene_ids_from_protein_sequences(
+            max_num_protein_sequences=None))
+
+    @cached_property
+    def num_genes_from_top_protein_sequence(self):
+        """
+        Number of genes used by any translated protein sequence associated
+        with this IsovarResult.
+
+        Returns int
+        """
+        return len(self.gene_ids_from_protein_sequences(
+            max_num_protein_sequences=1))
 
     def overlapping_transcripts(self, only_coding=True):
         """
@@ -307,6 +505,24 @@ class IsovarResult(object):
             for t in self.variant.transcripts
             if not only_coding or t.is_protein_coding
         }
+
+    @cached_property
+    def num_overlapping_transcripts(self):
+        """
+        Number of transcripts overlapped by the variant
+
+        Returns int
+        """
+        return len(self.overlapping_transcript_ids(only_coding=False))
+
+    @cached_property
+    def num_overlapping_coding_transcripts(self):
+        """
+        Number of coding transcripts overlapped by the variant
+
+        Returns int
+        """
+        return len(self.overlapping_transcript_ids(only_coding=True))
 
     def overlapping_genes(self, only_coding=True):
         """
@@ -344,76 +560,23 @@ class IsovarResult(object):
             if not only_coding or g.is_protein_coding
         }
 
-    def transcripts(self, max_protein_sequences=None):
+    @cached_property
+    def num_overlapping_genes(self):
         """
-        Ensembl transcript IDs of all transcripts which support the reading
-        frame used by protein sequences in this IsovarResult.
+        Number of genes overlapped by the variant
 
-        Parameters
-        ----------
-        max_protein_sequences : int or None
-            If supplied then only consider the top protein sequences up to
-            this number.
-
-        Returns list of pyensembl.Transcript
+        Returns int
         """
-        transcript_set = set([])
-        for p in self.sorted_protein_sequences[:max_protein_sequences]:
-            transcript_set.update(p.transcripts)
-        return sorted(transcript_set)
+        return len(self.overlapping_gene_ids(only_coding=False))
 
-    def transcript_ids(self, max_protein_sequences=None):
+    @cached_property
+    def num_overlapping_coding_transcripts(self):
         """
-        Ensembl transcripts IDs which support the reading frame used by protein
-        sequences in this IsovarResult.
+        Number of coding genes overlapped by the variant
 
-        Parameters
-        ----------
-        max_protein_sequences : int or None
-            If supplied then only consider the top protein sequences up to
-            this number.
-
-        Returns list of str
+        Returns int
         """
-        return sorted({t.id for t in self.transcripts(max_protein_sequences)})
-
-    def genes(self, max_protein_sequences=None):
-        """
-        Ensembl genes which support the reading frame used by protein
-        sequences in this IsovarResult.
-
-        Parameters
-        ----------
-        max_protein_sequences : int or None
-            If supplied then only consider the top protein sequences up to
-            this number.
-
-        Returns list of pyensembl.Gene
-        """
-        transcripts = self.transcripts_used_by_protein_sequences(max_protein_sequences)
-        genes = [t.gene for t in transcripts]
-        return sorted(genes)
-
-    def gene_ids_from_protein_sequences(self, max_protein_sequences=None):
-        """
-        Ensembl genes IDs which support the reading frame used by protein
-        sequences in this IsovarResult.
-
-        Parameters
-        ----------
-        protein_sequence_limit : int or None
-            If supplied then only consider the top protein sequences up to
-            this number.
-
-        Returns list of str
-        """
-        return sorted({
-            g.id
-            for g
-            in
-            self.genes_from_protein_sequences(
-                max_protein_sequences=max_protein_sequences)
-        })
+        return len(self.overlapping_gene_ids(only_coding=True))
 
     @cached_property
     def ref_reads(self):

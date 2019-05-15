@@ -54,9 +54,9 @@ def predicted_effects_for_variant(
     """
     effects = []
     for transcript in variant.transcripts:
-        if only_coding_transcripts:
-            if not (transcript.complete and transcript.is_protein_coding):
-                continue
+        if (only_coding_transcripts and not (
+                transcript.complete and transcript.is_protein_coding)):
+            continue
         if transcript_id_whitelist and transcript.id not in transcript_id_whitelist:
             logger.info(
                 "Skipping transcript %s for variant %s because it's not in whitelist",

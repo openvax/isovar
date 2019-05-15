@@ -74,7 +74,8 @@ def run_isovar(
         transcript_id_whitelist=None,
         read_collector=None,
         protein_sequence_creator=None,
-        filter_thresholds=DEFAULT_FILTER_THRESHOLDS):
+        filter_thresholds=DEFAULT_FILTER_THRESHOLDS,
+        filter_flags=[]):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
@@ -110,6 +111,11 @@ def run_isovar(
         mapping to a numerical threshold value. In general, the keys
         must start with either "min_" or "max_" followed by a property
         of the IsovarResult class.
+
+    filter_flags : list of str
+        List of boolean fields of IsovarResult used for filtering,
+        they can also be negated by prepending "not_",
+        such as "not_has_protein_sequence".
 
     Generator of IsovarResult objects, one for each variant. The
     `protein_sequences` field of the IsovarVar result will be empty
@@ -148,6 +154,8 @@ def run_isovar(
             predicted_effect=predicted_effect,
             read_evidence=read_evidence,
             sorted_protein_sequences=protein_sequences)
-        isovar_result = isovar_result.clone_with_extra_filters(filter_thresholds)
+        isovar_result = isovar_result.clone_with_extra_filters(
+            filter_thresholds=filter_thresholds,
+            filter_flags=filter_flags)
         yield isovar_result
 
