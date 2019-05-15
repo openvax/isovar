@@ -609,7 +609,6 @@ class IsovarResult(object):
             g.name for g in self.overlapping_genes(only_coding=only_coding)
         ]
 
-
     def overlapping_gene_ids(self, only_coding=True):
         """
         Gene IDs which this variant overlaps.
@@ -638,7 +637,7 @@ class IsovarResult(object):
         return len(self.overlapping_gene_ids(only_coding=False))
 
     @cached_property
-    def num_overlapping_coding_transcripts(self):
+    def num_overlapping_coding_genes(self):
         """
         Number of coding genes overlapped by the variant
 

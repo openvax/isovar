@@ -11,3 +11,4 @@ def test_isovar_main_to_dataframe():
     # B16 test data has 2/4 variants with enough coverage
     # to translate protein sequences
     eq_(df["pass"].sum(), 2)
+
