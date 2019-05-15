@@ -148,6 +148,7 @@ class IsovarResult(object):
                 effect,
                 field_name,
                 None)
+
         ########################################################################
         # get the top protein sequence, if one exists
         ########################################################################
@@ -168,6 +169,8 @@ class IsovarResult(object):
         ]
         for (name, protein_sequence_field) in protein_sequence_properties:
             d[name] = getattr(protein_sequence, protein_sequence_field, None)
+
+        d["protein_sequence_matches_predicted_effect"] = self.protein_sequence_matches_predicted_effect
 
         ########################################################################
         # filters
@@ -385,7 +388,7 @@ class IsovarResult(object):
 
         Returns int
         """
-        return list(self.sorted_protein_sequences)
+        return len(self.sorted_protein_sequences)
 
     def transcripts_from_protein_sequences(self, max_num_protein_sequences=None):
         """
