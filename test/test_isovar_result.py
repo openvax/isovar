@@ -1,11 +1,12 @@
 from isovar import run_isovar
 from isovar import ProteinSequence
 from varcode import Variant
+from testing_helpers import data_path
 
 def test_isovar_result_property_types():
     for result in run_isovar(
-            variants="data/b16.f10/b16.vcf",
-            alignment_file="data/b16.f10/b16.combined.sorted.bam"):
+            variants=data_path("data/b16.f10/b16.vcf"),
+            alignment_file=data_path("data/b16.f10/b16.combined.sorted.bam")):
         # variant
         assert type(result.variant) is Variant
 
