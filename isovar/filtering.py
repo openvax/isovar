@@ -143,8 +143,8 @@ def evaluate_filters(
 
 def apply_filters(
         isovar_result,
-        filter_thresholds,
-        filter_flags):
+        filter_thresholds={},
+        filter_flags=[]):
     """
     Given an IsovarResult object, evaluates given filters
     for each object, and returns a copy of the IsovarResult with new fiter
