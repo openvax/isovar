@@ -25,7 +25,7 @@ from collections import OrderedDict
 from cached_property import cached_property
 
 from .common import safediv
-
+from .alignment import alignment_score
 
 class IsovarResult(object):
     """
@@ -168,11 +168,6 @@ class IsovarResult(object):
             ("protein_sequence_mutation_start", "variant_aa_interval_start"),
             ("protein_sequence_mutation_end", "variant_aa_interval_stop"),
             ("protein_sequence_ends_with_stop_codon", "ends_with_stop_codon"),
-            ("protein_sequence_mismatches", "num_mismatches"),
-            ("protein_sequence_mismatches_before_variant", "num_mismatches_before_variant"),
-            ("protein_sequence_mismatches_after_variant", "num_mismatches_after_variant"),
-            ("protein_sequence_num_supporting_reads", "num_supporting_reads"),
-            ("protein_sequence_num_supporting_fragments", "num_supporting_fragments"),
             ("protein_sequence_gene_names", "gene_names"),
             ("protein_sequence_gene_ids", "gene_ids"),
             ("protein_sequence_transcript_names", "transcript_names"),
@@ -183,7 +178,9 @@ class IsovarResult(object):
             if isinstance(value, (list, set, tuple)):
                 value = ";".join(value)
             d[name] = value
-        d["trimmed_predicted_mutant_protein_sequence"] = self.trimmed_varcode_sequence
+
+        d["trimmed_predicted_mutant_protein_sequence"] = self.trimmed_predicted_mutant_protein_sequence
+        d["trimmed_reference_protein_sequence"] = self.trimmed_reference_protein_sequence
         d["protein_sequence_matches_predicted_effect"] = self.protein_sequence_matches_predicted_effect
 
         ########################################################################
@@ -224,7 +221,97 @@ class IsovarResult(object):
             return None
 
     @cached_property
-    def trimmed_varcode_sequence(self):
+    def num_cdna_mismatches_in_top_protein_sequence(self):
+        """
+        How many nucleotide positions aside from the variant location don't
+        match the reference transcript sequence in the cDNA sequence used
+        to translate the top protein sequence. When multiple cDNA sequences
+        were used then take the min across them.
+
+        Returns int
+        """
+        if self.top_protein_sequence is None:
+            return None
+        return self.top_protein_sequence.num_mismatches
+
+    @cached_property
+    def num_cdna_mismatches_before_variant_in_top_protein_sequence(self):
+        """
+        How many nucleotide positions before the variant location don't
+        match the reference transcript sequence in the cDNA sequence used
+        to translate the top protein sequence. When multiple cDNA sequences
+        were used then take the min across them.
+
+        Returns int
+        """
+        if self.top_protein_sequence is None:
+            return None
+        return self.top_protein_sequence.num_mismatches_before_variant
+
+    @cached_property
+    def num_cdna_mismatches_after_variant_in_top_protein_sequence(self):
+        """
+        How many nucleotide positions after the variant location don't
+        match the reference transcript sequence in the cDNA sequence used
+        to translate the top protein sequence. When multiple cDNA sequences
+        were used then take the min across them.
+
+        Returns int
+        """
+        if self.top_protein_sequence is None:
+            return None
+        return self.top_protein_sequence.num_mismatches_after_variant
+
+    @cached_property
+    def num_reads_supporting_top_protein_sequence(self):
+        """
+        How many reads support the assembled protein sequence?
+
+        Returns int
+        """
+        if self.top_protein_sequence is None:
+            return 0
+        return self.top_protein_sequence.num_supporting_reads
+
+    @cached_property
+    def num_fragments_supporting_top_protein_sequence(self):
+        """
+        How many fragments (unique read names) support the assembled
+        protein sequence?
+
+        Returns int
+        """
+        if self.top_protein_sequence is None:
+            return 0
+        return self.top_protein_sequence.num_supporting_fragments
+
+    @cached_property
+    def num_translations_for_top_protein_sequence(self):
+        """
+        How many distinct translations were used to create the top
+        protein sequence? These can arise either from different cDNA sequences
+        or different reading frames.
+
+        Returns int
+        """
+        if self.top_protein_sequence is None:
+            return 0
+        return len(self.top_protein_sequence.translations)
+
+    @cached_property
+    def num_cdna_sequences_for_top_protein_sequence(self):
+        """
+        How many distinct cDNA sequences were used to create the top
+        protein sequence?
+
+        Returns int
+        """
+        if self.top_protein_sequence is None:
+            return 0
+        return self.top_protein_sequence.num_cdna_sequences
+
+    @cached_property
+    def trimmed_predicted_mutant_protein_sequence(self):
         """
         Trim the predicted mutant protein sequence from Varcode
         to match the length of the protein subsequence assembled from RNA.
@@ -237,11 +324,37 @@ class IsovarResult(object):
             return None
         if e.mutant_protein_sequence is None:
             return None
-        n_before = p.variant_aa_interval_start
-        n_after = len(p.amino_acids) - p.variant_aa_interval_end
+        if e.aa_mutation_start_offset is None:
+            return None
+        n_before_mutation = p.variant_aa_interval_start
+        n_after_mutation = len(p.amino_acids) - p.variant_aa_interval_end
         return e.mutant_protein_sequence[
-             e.aa_mutation_start_offset - n_before:
-             e.aa_mutation_start_offset + len(e.aa_alt) + n_after]
+             e.aa_mutation_start_offset - n_before_mutation:
+             e.aa_mutation_start_offset + len(e.aa_alt) + n_after_mutation]
+
+    @cached_property
+    def trimmed_reference_protein_sequence(self):
+        """
+        Trim the reference protein sequence from the top Varcode effect
+        to match the length of the protein sequence assembled from RNA.
+
+        Returns str
+        """
+        p = self.top_protein_sequence
+        e = self.predicted_effect
+        if e is None or p is None:
+            return None
+        if e.original_protein_sequence is None:
+            return None
+        if e.aa_mutation_start_offset is None:
+            return None
+        n_before_mutation = p.variant_aa_interval_start
+        n_total = len(p.amino_acids)
+        start_index_in_original_protein = (
+               e.aa_mutation_start_offset - n_before_mutation)
+        return e.original_protein_sequence[
+               start_index_in_original_protein:
+               start_index_in_original_protein + n_total]
 
     @cached_property
     def num_amino_acid_mismatches_from_predicted_effect(self):
@@ -254,33 +367,19 @@ class IsovarResult(object):
 
         Returns int
         """
-        varcode_sequence = self.trimmed_varcode_sequence
-        if varcode_sequence is None:
+        predicted_sequence = self.trimmed_predicted_mutant_protein_sequence
+        if predicted_sequence is None:
             return None
 
-        protein_sequence = self.top_protein_sequence
-        if protein_sequence is None:
+        protein_sequence_object = self.top_protein_sequence
+        if protein_sequence_object is None:
             return None
+        assembled_protein_sequence = protein_sequence_object.amino_acids
 
-        n_varcode = len(varcode_sequence)
-        n_isovar = len(protein_sequence)
-        if n_varcode > n_isovar:
-            longer = varcode_sequence
-            shorter = protein_sequence
-        else:
-            longer = protein_sequence
-            shorter = varcode_sequence
-        length_difference = len(longer) - len(shorter)
-        best_alignment_score = len(longer)
-        for start_offset in range(length_difference + 1):
-            # truncate the longer sequence to be the same length
-            # as the shorter one
-            truncated = longer[start_offset:start_offset + len(shorter)]
-            n_mismatches = sum([a != b for (a, b) in zip(shorter, truncated)])
-            alignment_score = length_difference + n_mismatches
-            if alignment_score < best_alignment_score:
-                best_alignment_score = alignment_score
-        return best_alignment_score
+        return alignment_score(
+            assembled_protein_sequence,
+            predicted_sequence)
+
 
     @cached_property
     def protein_sequence_matches_predicted_effect(self):

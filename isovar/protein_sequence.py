@@ -242,6 +242,25 @@ class ProteinSequence(TranslationKey):
         """
         return [g.id for g in self.genes]
 
+    @property
+    def cdna_sequences(self):
+        """
+        Distinct cDNA sequences used to create this protein sequence.
+
+        Returns set of str
+        """
+        return {t.cdna_sequence for t in self.translations}
+
+    @property
+    def num_cdna_sequences(self):
+        """
+        Number of distinct cDNA sequences used to translate this protein
+        sequence.
+
+        Returns int
+        """
+        return len(self.cdna_sequences)
+
     def ascending_sort_key(self):
         """
         Sort key function used to sort protein sequences lexicographically by these criteria:
