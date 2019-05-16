@@ -20,7 +20,6 @@ and any protein sequences which were successfully translated for it.
 
 from __future__ import print_function, division, absolute_import
 
-import operator
 from collections import OrderedDict
 
 from cached_property import cached_property
@@ -42,7 +41,7 @@ class IsovarResult(object):
             read_evidence,
             predicted_effect,
             sorted_protein_sequences=None,
-            filter_values_dict=None):
+            filter_values=None):
         self.variant = variant
         self.read_evidence = read_evidence
         self.predicted_effect = predicted_effect
@@ -52,10 +51,10 @@ class IsovarResult(object):
 
         self.sorted_protein_sequences = sorted_protein_sequences
 
-        if filter_values_dict is None:
-            self.filter_values_dict = OrderedDict()
+        if filter_values is None:
+            self.filter_values = OrderedDict()
         else:
-            self.filter_values_dict = filter_values_dict
+            self.filter_values = filter_values
 
     @property
     def fields(self):
@@ -67,7 +66,7 @@ class IsovarResult(object):
             "predicted_effect",
             "read_evidence",
             "sorted_protein_sequences",
-            "filter_values_dict"
+            "filter_values"
         ]
 
     def __str__(self):
@@ -91,7 +90,7 @@ class IsovarResult(object):
             for k in self.fields
         ])
 
-    def clone_with_new_field(self, **kwargs):
+    def clone_with_updates(self, **kwargs):
         """
         Create a copy of this IsovarResult object including any new
         parameters in `kwargs`.
@@ -190,161 +189,23 @@ class IsovarResult(object):
         ########################################################################
         # filters
         ########################################################################
-        for filter_name, filter_value in self.filter_values_dict.items():
+        for filter_name, filter_value in self.filter_values.items():
             d["filter:%s" % filter_name] = filter_value
         d["pass"] = self.passes_all_filters
 
         return d
 
-    def _apply_threshold_filters(self, filter_thresholds):
-        """
-        Helper method used by apply_filters
-
-        Parameters
-        ----------
-        filter_thresholds : dict or OrderedDict
-            Every argument is supposed to be something like "max_alt_reads"
-            where the first three characters are "min" or "max" and the
-            rest of the name is either a field of IsovarResult or
-            a numeric field like "num_alt_reads". The name of each filter
-            maps to a cutoff value. Filters starting with "max"
-            require that the corresponding field on CoverageStats
-            is <= cutoff, whereas filters starting with
-            "min" require >= cutoff.
-
-        Returns OrderedDict
-        """
-        filter_values_dict = OrderedDict()
-        for name, threshold in filter_thresholds.items():
-            parts = name.split("_")
-            min_or_max = parts[0]
-            field_name = "_".join(parts[1:])
-            if min_or_max == "min":
-                comparison_fn = operator.ge
-            elif min_or_max == "max":
-                comparison_fn = operator.le
-            else:
-                raise ValueError(
-                    "Invalid filter '%s', must start with 'min' or 'max'" % name)
-            if hasattr(self, field_name):
-                field_value = getattr(self, field_name)
-            else:
-                print(self)
-                raise ValueError(
-                    "Invalid filter '%s' IsovarResult does not have property '%s'" % (
-                        name,
-                        field_name))
-            filter_values_dict[name] = comparison_fn(field_value, threshold)
-        return filter_values_dict
-
-    def _apply_boolean_filters(self, filter_flags):
-        """
-        Helper function used by apply_filters.
-
-        Parameters
-        ----------
-        filter_flags : list of str
-            Every element should be a boolean property of IsovarResult
-            or "not_" and the name of a property to be negated.
-
-        Returns OrderedDict
-        """
-        filter_values = OrderedDict()
-        for boolean_filter_name in filter_flags:
-            if boolean_filter_name.startswith("not_"):
-                boolean_field_name = boolean_filter_name[4:]
-                negate = True
-            else:
-                boolean_field_name = boolean_filter_name
-                negate = False
-            if hasattr(self, boolean_field_name):
-                field_value = getattr(self, boolean_field_name)
-            else:
-                raise ValueError(
-                    "IsovarResult does not have field name '%s'" % boolean_field_name)
-            if field_value not in {True, False}:
-                raise ValueError("Expected filter '%s' to be boolean but got %s" % (
-                    boolean_filter_name,
-                    field_value))
-            filter_values[boolean_filter_name] = (
-                not field_value if negate else field_value
-            )
-        return filter_values
-
-    def apply_filters(
-            self,
-            filter_thresholds,
-            filter_flags=[]):
-        """
-        Creates a dictionary whose keys are named of different
-        filter conditions and values are booleans, where True
-        indicates whether this set of coverage stats passes
-        the filter and False indicates that it failed.
-
-        Parameters
-        ----------
-        filter_thresholds : dict or OrderedDict
-            Every argument is supposed to be something like "max_alt_reads"
-            where the first three characters are "min" or "max" and the
-            rest of the name is either a field of IsovarResult or
-            a numeric field like "num_alt_reads". The name of each filter
-            maps to a cutoff value. Filters starting with "max"
-            require that the corresponding field on CoverageStats
-            is <= cutoff, whereas filters starting with
-            "min" require >= cutoff.
-
-        filter_flags : list of str
-            Every element should be a boolean property of IsovarResult
-            or "not_" and the name of a property to be negated.
-
-        Returns
-        -------
-        Dictionary of filter names mapped to boolean value indicating
-        whether this locus passed the filter.
-        """
-        filter_values_dict = self._apply_boolean_filters(filter_flags)
-        filter_values_dict.update(
-            self._apply_threshold_filters(filter_thresholds))
-        return filter_values_dict
-
-    def clone_with_extra_filters(
-            self,
-            filter_thresholds,
-            filter_flags):
-        """
-        Applies filters to properties of this IsovarResult and then creates
-        a copy with an updated filter_values_dict field.
-
-        Parameters
-        ----------
-        filter_thresholds : dict or OrderedDict
-            Dictionary mapping filter names (e.g. "max_fraction_ref_reads) to
-            thresholds.
-
-        filter_flags : list
-            List of boolean field names of IsovarResult or strings
-            such as "not_{IsovarResult field}".
-
-        Returns IsovarResult
-        """
-        # first clone filter values which might already exist
-        combined_filter_value_dict = OrderedDict(self.filter_values_dict.items())
-        combined_filter_value_dict.update(self.apply_filters(
-            filter_thresholds=filter_thresholds,
-            filter_flags=filter_flags))
-        return self.clone_with_new_field(
-            filter_values_dict=combined_filter_value_dict)
 
     @cached_property
     def passes_all_filters(self):
         """
         Does this IsovarResult have True for all the filter values in
-        self.filter_values_dict?
+        self.filter_values?
         """
-        if len(self.filter_values_dict) == 0:
+        if len(self.filter_values) == 0:
             return True
         else:
-            return all(list(self.filter_values_dict.values()))
+            return all(list(self.filter_values.values()))
 
     @cached_property
     def top_protein_sequence(self):
@@ -383,6 +244,45 @@ class IsovarResult(object):
              e.aa_mutation_start_offset + len(e.aa_alt) + n_after]
 
     @cached_property
+    def num_amino_acid_mismatches_from_predicted_effect(self):
+        """
+        Compute the number of mismatches between the mutant protein sequence
+        predicted by Varcode and the best supported sequence translated
+        from assembled RNA reads by Isovar. We're not allowing any
+        insertions or deletions in the middle of the sequences but do
+        allow a shorter sequence to start anywhere within a longer one.
+
+        Returns int
+        """
+        varcode_sequence = self.trimmed_varcode_sequence
+        if varcode_sequence is None:
+            return None
+
+        protein_sequence = self.top_protein_sequence
+        if protein_sequence is None:
+            return None
+
+        n_varcode = len(varcode_sequence)
+        n_isovar = len(protein_sequence)
+        if n_varcode > n_isovar:
+            longer = varcode_sequence
+            shorter = protein_sequence
+        else:
+            longer = protein_sequence
+            shorter = varcode_sequence
+        length_difference = len(longer) - len(shorter)
+        best_alignment_score = len(longer)
+        for start_offset in range(length_difference + 1):
+            # truncate the longer sequence to be the same length
+            # as the shorter one
+            truncated = longer[start_offset:start_offset + len(shorter)]
+            n_mismatches = sum([a != b for (a, b) in zip(shorter, truncated)])
+            alignment_score = length_difference + n_mismatches
+            if alignment_score < best_alignment_score:
+                best_alignment_score = alignment_score
+        return best_alignment_score
+
+    @cached_property
     def protein_sequence_matches_predicted_effect(self):
         """
         Does the top protein sequence translated from RNA reads
@@ -390,10 +290,7 @@ class IsovarResult(object):
 
         Returns bool
         """
-        varcode_sequence = self.trimmed_varcode_sequence
-        if varcode_sequence is None:
-            return None
-        return self.top_protein_sequence.amino_acids == varcode_sequence
+        return self.num_amino_acid_mismatches_from_predicted_effect == 0
 
     @cached_property
     def num_protein_sequences(self):

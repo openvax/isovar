@@ -40,6 +40,7 @@ from .default_parameters import (
     MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS,
 )
 from .effect_prediction import top_varcode_effect
+from .filtering import apply_filters
 
 logger = get_logger(__name__)
 
@@ -154,7 +155,8 @@ def run_isovar(
             predicted_effect=predicted_effect,
             read_evidence=read_evidence,
             sorted_protein_sequences=protein_sequences)
-        isovar_result = isovar_result.clone_with_extra_filters(
+        isovar_result = apply_filters(
+            isovar_result,
             filter_thresholds=filter_thresholds,
             filter_flags=filter_flags)
         yield isovar_result
