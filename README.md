@@ -39,22 +39,6 @@ $ isovar  \
     --output isovar-results.csv
 ```
 
-This generates a CSV file (*isovar-results.csv*) with one row per variant and ~100 different columns.
-
-```
-  chr       pos ref alt                      amino_acids  \
-0  22  46931060   A   C   FGVEAVDHGWPSMSSGSSWRASRGPPPPPR
-
-   variant_aa_interval_start  variant_aa_interval_end ends_with_stop_codon  \
-0                         16                       17                False
-
-  frameshift  translations_count  supporting_variant_reads_count  \
-0      False                   1                               1
-
-   total_variant_reads  supporting_transcripts_count  total_transcripts     gene
-0                  130                             2                  2   CELSR1
-```
-
 ## Python Example
 
 ```python
@@ -64,6 +48,13 @@ from isovar import run_isovar
 isovar_results = run_isovar(
     variants="cancer-mutations.vcf",
     alignment_file="")
+    
+# this code traverses every variant and prints the number
+# of RNA reads which support the alt allele for variants
+# which had a successfully assembled/translated protein sequence
+for isovar_result in isovar_results:
+    if isovar_result.top_protein_sequence is not None:
+        print(isovar_result.num_alt_fragments)
 ```
 
 ## Organization and Algorithmic Design
@@ -71,7 +62,7 @@ isovar_results = run_isovar(
 The inputs to Isovar are one or more somatic variant call (VCF) files, along with a BAM file 
 containing aligned tumor RNA reads. 
 
-* [`LocusRead`](https://github.com/openvax/isovar/blob/master/isovar/locus_read.py): Isovar examines each variant locus and extracts reads overlapping that locus, 
+* [LocusRead](https://github.com/openvax/isovar/blob/master/isovar/locus_read.py): Isovar examines each variant locus and extracts reads overlapping that locus, 
 represented by `LocusRead`. The `LocusRead` representation allows filtering  based
 on quality and alignment criteria (e.g. MAPQ > 0) which are thrown away in later stages
 of Isovar. 
@@ -94,21 +85,19 @@ Overlapping `AlleleRead`s containing the same mutation are assembled into a long
 sequence. The `VariantSequence` object represents this candidate coding sequence, as well
 as all the `AlleleRead` objects which were used to create it.
 
-* [ReferenceContext](): To determine the reading frame in which to translate a `VariantSequence`, Isovar
+* [ReferenceContext](https://github.com/openvax/isovar/blob/master/isovar/reference_context.py): To determine the reading frame in which to translate a `VariantSequence`, Isovar
 looks at all Ensembl annotated transcripts overlapping the locus and collapses them
  into one or more `ReferenceContext` object. Each `ReferenceContext` represents the 
  cDNA sequence upstream of the variant locus and in which of the {0, +1, +2} reading frames
   it is translated. 
 
-* [Translation](): Use the reading frame from a `ReferenceContext` to translate a `VariantSequence` 
+* [Translation](https://github.com/openvax/isovar/blob/master/isovar/translation.py): Use the reading frame from a `ReferenceContext` to translate a `VariantSequence` 
 into a protein fragment, represented by `Translation`.
 
-* [ProteinSequence]():
+* [ProteinSequence](https://github.com/openvax/isovar/blob/master/isovar/protein_sequence.py):
 Multiple distinct variant sequences and reference contexts can generate the same translations, so we aggregate those equivalent `Translation` objects into a `ProteinSequence`.
 
-* [IsovarResult](): Since we may not want to deal with *every* possible translation of *every* distinct sequence detected around a variant, Isovar sorts the variant sequences by the number of supporting reads and the reference contexts in order of protein length and a configurable number of translated protein fragments can be kept from this ordering.
-
-
+* [IsovarResult](https://github.com/openvax/isovar/blob/master/isovar/isovar_result.py): Since a single variant locus might have reads which assemble into multiple incompatible coding sequences, an `IsovarResult` represents a variant and one or more `ProteinSequence` objects which are associated with it. We typically don't want to deal with *every* possible translation of *every* distinct sequence detected around a variant, so the protein sequences are sorted by their number of supporting fragments and the best protein sequence is made easy to access. The `IsovarResult` object also has many informative properties such `num_alt_fragments`, `fraction_ref_reads`, &c.  
 
 
 
@@ -126,11 +115,29 @@ assembly algorithm then a 100bp read will only be able to determine 33 amino aci
 
 ## Other Commandline Tools
 
-* `isovar-protein-sequences`
-* `isovar-allele-counts`
-* `isovar-allele-reads`
-* `isovar-translations`
-* `isovar-reference-contexts`
-* `isovar-variant-reads`
-* `isovar-variant-sequences`
+* `isovar-protein-sequences --vcf variants.vcf --bam rna.bam`
 
+All protein sequences which can be assembled from RNA reads for any of the given variants.
+
+* `isovar-allele-counts --vcf variants.vcf --bam rna.bam`
+
+Counts of reads and fragments supporting the *ref*, *alt*, and *other* alleles at all given variant locations.
+
+* `isovar-allele-reads --vcf variants.vcf --bam rna.bam`
+
+Sequences of all reads overlapping any of the given variants. 
+ 
+* `isovar-translations --vcf variants.vcf --bam rna.bam`
+
+All possible translations of any assembled cDNA sequence containing any of the given variants in the reference frame of any matching transcript.
+* `isovar-reference-contexts --vcf variants.vcf`
+
+Shows all candidate reference contexts (sequence and reading frame) before each variant, derived from overlapping reference coding transcripts. 
+
+* `isovar-variant-reads --vcf variants.vcf --bam rna.bam`
+
+Like `isovar-allele-reads` but limited only to reads which support the *alt* allele.
+
+* `isovar-variant-sequences --vcf variants.vcf --bam rna.bam`
+
+Shows all assembled cDNA coding sequences supporting any of the given variants. 
