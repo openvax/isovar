@@ -25,7 +25,7 @@ from collections import OrderedDict
 from cached_property import cached_property
 
 from .common import safediv
-from .alignment import alignment_score
+from .alignment_score import alignment_score
 
 class IsovarResult(object):
     """
