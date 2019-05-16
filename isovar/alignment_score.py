@@ -37,8 +37,17 @@ def alignment_score(a, b, min_subsequence_length=1):
         Only consider subsequences which are at least this long.
     Returns int
     """
+
     n_a = len(a)
     n_b = len(b)
+
+    # swap a and b if a is longer since the loops below expect the first
+    # sequence to be shorter. This happens because any subsequence of `a`
+    # is expected to be of a length that can be found within `b`
+    if n_a > n_b:
+        a, b = b, a
+        n_a, n_b = n_b, n_a
+
     # compare all subsequences of a and b and count the number of mismatches
     # between
     best_score = n_a + n_b
@@ -60,7 +69,7 @@ def alignment_score(a, b, min_subsequence_length=1):
             n_trimmed_a = n_a - n_subseq_a
             # consider all subsequences of the second string of the same length
             # as the subsequence extracted from the first string
-            for start_b in range(n_b - min_subsequence_length + 1):
+            for start_b in range(n_b - n_subseq_a + 1):
                 subseq_b = b[start_b:start_b + n_subseq_a]
                 n_subseq_b = len(subseq_b)
                 assert n_subseq_a == n_subseq_b

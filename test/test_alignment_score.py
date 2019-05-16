@@ -16,8 +16,12 @@ def test_alignment_score_strings_of_different_length():
 def test_alignment_score_totally_different_strings():
     eq_(alignment_score("", "a"), 1)
     eq_(alignment_score("", "ab"), 2)
-    eq_(alignment_score("WUZZLE", "HEAVY"), 5)
-    eq_(alignment_score("DOG", "CATCATCAT"), 12)
+    eq_(alignment_score("WUZZLE", "HEAVY"), 6)
+    eq_(alignment_score("DOG", "CATCATCAT"), 9)
+    eq_(alignment_score("a", ""), 1)
+    eq_(alignment_score("ab", ""), 2)
+    eq_(alignment_score("WUZZLE", "HEAVY"), 6)
+    eq_(alignment_score("CATCATCAT", "DOG"), 9)
 
 
 def test_alignment_min_subsequence_length():
