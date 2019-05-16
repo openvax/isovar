@@ -58,8 +58,10 @@ before_script:
     --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCm38.87/
 script:
   - >
-    nosetests test --with-coverage --cover-package=isovar &&
-    nosetests openvax-integration-tests/test
+    nosetests test --with-coverage --cover-package=isovar
+  # removing integration tests until Vaxrank is updated to use new API
+  # &&
+  # nosetests openvax-integration-tests/test
 after_success:
   coveralls
 deploy:
