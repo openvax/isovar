@@ -209,12 +209,6 @@ class ReadCollector(object):
                 reference_position_before_insertion)
             read_base0_after_insertion = base0_reference_positions_dict.get(
                 reference_position_after_insertion)
-            print("[%d:%d)" % (base0_start_inclusive, base0_end_exclusive))
-            print(sequence)
-            print(base0_reference_positions)
-            print("ref", reference_position_before_insertion, reference_position_after_insertion)
-
-            print("read", read_base0_before_insertion, read_base0_after_insertion)
 
             if read_base0_before_insertion is None:
                 logger.warning("Cannot use read '%s' because reference position %d is not mapped" % (
@@ -382,7 +376,6 @@ class ReadCollector(object):
         -------
         str or None
         """
-        print(variant_chromosome_name, valid_chromosome_names)
         # I imagine the conversation went like this:
         # A: "Hey, I have an awesome idea"
         # B: "What's up?"

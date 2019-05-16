@@ -170,7 +170,7 @@ def apply_filters(
 
     Returns IsovarResult
     """
-    filter_values = OrderedDict(isovar_result.filter_values_dict.items())
+    filter_values = OrderedDict(isovar_result.filter_values.items())
     new_filter_values = evaluate_filters(
         isovar_result,
         filter_thresholds=filter_thresholds,

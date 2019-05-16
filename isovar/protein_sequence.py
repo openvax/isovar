@@ -77,6 +77,9 @@ class ProteinSequence(TranslationKey):
                             field_value,
                             other_translation_field_value))
 
+    def __len__(self):
+        return len(self.amino_acids)
+
     @property
     def supporting_reads(self):
         """
