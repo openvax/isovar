@@ -362,7 +362,7 @@ class ReadCollector(object):
         return reads
 
     @staticmethod
-    def _infer_chromosome_name(_, variant_chromosome_name, valid_chromosome_names):
+    def _infer_chromosome_name(variant_chromosome_name, valid_chromosome_names):
         """
         In case the variant is using an hg19 reference name and the alignment
         was against b37 (or vice versa) we have to check whether adding or removing

@@ -3,6 +3,7 @@ from isovar import ProteinSequence
 from varcode import Variant
 from testing_helpers import data_path
 
+
 def test_isovar_result_property_types():
     for result in run_isovar(
             variants=data_path("data/b16.f10/b16.vcf"),
