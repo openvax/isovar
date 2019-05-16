@@ -344,9 +344,9 @@ class ReadCollector(object):
             base0_end_exclusive)
         reads = []
         for aligned_segment in alignment_file.fetch(
-                contig=chromosome,
-                start=base0_start_inclusive,
-                stop=base0_end_exclusive):
+                chromosome,
+                base0_start_inclusive,
+                base0_end_exclusive):
             read = self.locus_read_from_pysam_aligned_segment(
                 aligned_segment,
                 base0_start_inclusive=base0_start_inclusive,
