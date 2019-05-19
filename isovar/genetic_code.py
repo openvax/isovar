@@ -22,6 +22,10 @@ amino acid each DNA triplet is translated into.
 
 
 class GeneticCode(object):
+    """
+    Represents distinct translation tables to go from cDNA triplets to amino
+    acids.
+    """
     def __init__(self, name, start_codons, stop_codons, codon_table):
         self.name = name
         self.start_codons = set(start_codons)

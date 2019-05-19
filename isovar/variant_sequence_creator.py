@@ -14,7 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .allele_read_helpers import filter_non_alt_reads_for_variant, get_single_allele_from_reads
+from .allele_read_helpers import get_single_allele_from_reads
 from .assembly import iterative_overlap_assembly
 from .default_parameters import (
     MIN_VARIANT_SEQUENCE_COVERAGE,
@@ -81,12 +81,14 @@ class VariantSequenceCreator(object):
         variant : varcode.Variant
 
         reads : list of AlleleRead objects
-            Should all support the same variant allele nucleotides.
+            Reads which support the variant allele
 
-        Returns a collection of VariantSequence objects
+        Returns
+        -------
+        list of VariantSequence
         """
-        # just in case variant_reads is a generator, convert it to a list
-        variant_reads = list(filter_non_alt_reads_for_variant(variant, reads))
+        # convert to list in case it's a generator
+        variant_reads = list(reads)
 
         if len(variant_reads) == 0:
             return []
@@ -121,12 +123,14 @@ class VariantSequenceCreator(object):
             # this is a tricky parameter to set correctly:
             # by how many bases should two sequences overlap before
             # we merge, currently defaulting to either half the non-variant
-            # nucleotides or 30 (whichever is smaller)
+            # nucleotides or the specified min_assembly_overlap_size
+            # (whichever is smaller)
+            min_overlap_size = min(
+                self.min_assembly_overlap_size,
+                n_surrounding_nucleotides // 2)
             variant_sequences = iterative_overlap_assembly(
                 variant_sequences,
-                min_overlap_size=min(
-                    self.min_assembly_overlap_size,
-                    n_surrounding_nucleotides // 2))
+                min_overlap_size=min_overlap_size)
 
         if variant_sequences:
             logger.info(
@@ -168,16 +172,16 @@ class VariantSequenceCreator(object):
         ----------
         variant_and_reads_generator : generator
             Sequence of Variant objects paired with a list of reads which
-            overlap that variant.
+            support that variant.
 
         Yields pairs with the following fields:
             - Variant
             - list of VariantSequence objects
         """
-        for variant, variant_reads in variant_and_reads_generator:
+        for variant, reads in variant_and_reads_generator:
             variant_sequences = self.reads_to_variant_sequences(
                 variant=variant,
-                reads=variant_reads)
+                reads=reads)
             yield variant, variant_sequences
 
     def sequences_from_read_evidence_generator(

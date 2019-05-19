@@ -35,25 +35,6 @@ def group_reads_by_allele(allele_reads):
     return groupby(allele_reads, lambda read: read.allele)
 
 
-def filter_non_alt_reads_for_variant(variant, allele_reads):
-    """
-    Given a variant and an unfiltered collection of AlleleRead objects,
-    return only the AlleleRead object which match the alt allele of the variant.
-    """
-    _, _, alt = trim_variant(variant)
-    return [read for read in allele_reads if read.allele == alt]
-
-
-def filter_non_alt_reads_for_variants(variants_and_allele_reads_sequence):
-    """
-    Given a sequence of variants paired with all of their overlapping reads,
-    yields a sequence of variants paired only with reads which contain their
-    mutated nucleotide sequence.
-    """
-    for variant, allele_reads in variants_and_allele_reads_sequence:
-        yield variant, filter_non_alt_reads_for_variant(variant, allele_reads)
-
-
 def get_single_allele_from_reads(allele_reads):
     """
     Given a sequence of AlleleRead objects, which are expected to all have

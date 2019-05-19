@@ -34,8 +34,26 @@ index_to_dna_nucleotide = {i: c for (i, c) in enumerate(dna_nucleotides)}
 
 
 def complement_dna(seq):
+    """
+    Convert every A->T, T->A, C->G, G->C in a DNA sequence
+
+    Parameters
+    ----------
+    seq : str
+
+    Returns str
+    """
     return "".join(dna_complement_dictionary[nt] for nt in seq)
 
 
 def reverse_complement_dna(seq):
+    """
+    Reverse complement of a DNA sequence
+
+    Parameters
+    ----------
+    seq : str
+
+    Returns str
+    """
     return complement_dna(seq)[::-1]

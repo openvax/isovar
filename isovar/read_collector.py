@@ -15,9 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 from six import integer_types
-from collections import OrderedDict
 
-from .allele_read_helpers import filter_non_alt_reads_for_variant
 from .default_parameters import (
     USE_SECONDARY_ALIGNMENTS,
     USE_DUPLICATE_READS,

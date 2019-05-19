@@ -40,7 +40,7 @@ logger = get_logger(__name__)
 parser = make_protein_sequences_arg_parser()
 parser = add_output_args(
     parser,
-    filename="isovar-result.csv")
+    filename="isovar-results.csv")
 add_filter_args(parser)
 
 def run(args=None):

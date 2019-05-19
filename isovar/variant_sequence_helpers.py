@@ -26,6 +26,7 @@ from .variant_sequence import VariantSequence
 
 logger = get_logger(__name__)
 
+
 def initial_variant_sequences_from_reads(
         variant_reads,
         max_nucleotides_before_variant=None,
@@ -42,6 +43,10 @@ def initial_variant_sequences_from_reads(
     max_nucleotides_before_variant : int or None
 
     max_nucleotides_after_variant : int or None
+
+    Returns
+    -------
+    list of VariantSequence
     """
     unique_sequence_groups = group_unique_sequences(
         variant_reads,
@@ -163,6 +168,7 @@ def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
         n_total,
         min_variant_sequence_coverage)
     return collapsed_variant_sequences
+
 
 def filter_variant_sequences(
         variant_sequences,
