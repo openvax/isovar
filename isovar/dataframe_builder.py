@@ -198,5 +198,12 @@ class DataFrameBuilder(object):
                 "Mismatch between lengths of columns: %s" % (column_lengths_dict,))
 
     def to_dataframe(self):
+        """
+        Creates dataframe from accumulated rows
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
         self._check_column_lengths()
         return pd.DataFrame(self.columns_dict)

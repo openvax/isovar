@@ -24,6 +24,14 @@ def trim_N_nucleotides(prefix, suffix):
     """
     Drop all occurrences of 'N' from prefix and suffix nucleotide strings
     by trimming.
+
+    Parameters
+    ----------
+    prefix : str
+
+    suffix : str
+
+    Returns str
     """
     if 'N' in prefix:
         # trim prefix to exclude all occurrences of N

@@ -53,7 +53,9 @@ def find_mutant_amino_acid_interval(
     n_amino_acids : int
         Number of translated amino acids
 
-    Returns tuple with three fields:
+    Returns
+    -------
+    tuple with three fields:
         1) Start offset for interval of mutant amino acids in translated sequence
         2) End offset for interval of mutant amino acids in translated sequence
         3) Boolean flag indicating whether the variant was a frameshift.

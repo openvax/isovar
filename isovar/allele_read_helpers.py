@@ -21,7 +21,6 @@ from collections import defaultdict
 
 from .common import groupby
 from .logging import get_logger
-from .variant_helpers import trim_variant
 from .allele_read import AlleleRead
 
 logger = get_logger(__name__)
@@ -73,25 +72,6 @@ def group_unique_sequences(
         key = (prefix, allele, suffix)
         groups[key].add(r)
     return groups
-
-
-def count_unique_sequences(
-        allele_reads,
-        max_prefix_size=None,
-        max_suffix_size=None):
-    """
-    Given a list of AlleleRead objects, extracts all unique
-    (prefix, allele, suffix) sequences and associate each with the number
-    of reads that contain that sequence.
-    """
-    groups = group_unique_sequences(
-        allele_reads,
-        max_prefix_size=max_prefix_size,
-        max_suffix_size=max_suffix_size)
-    return {
-        seq_tuple: len(read_names)
-        for (seq_tuple, read_names) in groups.items()
-    }
 
 
 def allele_reads_from_locus_reads(locus_reads):
