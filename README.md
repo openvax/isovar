@@ -332,9 +332,8 @@ assembly algorithm then a 100bp read will only be able to determine 33 amino aci
 <dt>isovar-protein-sequences --vcf variants.vcf --bam rna.bam</dt>
 <dd>All protein sequences which can be assembled from RNA reads for any of the given variants.</dd>
 
-
 <dt>isovar-allele-counts --vcf variants.vcf --bam rna.bam</dt>
-<dd>Counts of reads and fragments supporting the *ref*, *alt*, and *other* alleles at all given variant locations.</dd>
+<dd>Counts of reads and fragments supporting the ref, alt, and other alleles at all given variant locations.</dd>
 
 <dt>isovar-allele-reads --vcf variants.vcf --bam rna.bam</dt>
 <dd>Sequences of all reads overlapping any of the given variants.</dd>
@@ -346,7 +345,8 @@ assembly algorithm then a 100bp read will only be able to determine 33 amino aci
 <dd>Shows all candidate reference contexts (sequence and reading frame) before each variant, derived from overlapping reference coding transcripts.</dd>
 
 <dt>isovar-variant-reads --vcf variants.vcf --bam rna.bam</dt>
-<dd>Like `isovar-allele-reads` but limited only to reads which support the *alt* allele.</dd>
+<dd>Like the isovar-allele-reads command but limited only to reads which support the alt allele.</dd>
 
 <dt>isovar-variant-sequences --vcf variants.vcf --bam rna.bam</dt>
 <dd>Shows all assembled cDNA coding sequences supporting any of the given variants.</dd>
+</dl>
