@@ -11,8 +11,8 @@
 # Isovar
 
 * [Overview](#overview)
-* [Python Usage](#python-usage)
-* [Commandline Usage](#commandline-usage)
+* [Python API](#python-api)
+* [Commandline](#commandline)
 * [Design and Organization](#design-and-organization)
 * [Other Isovar Commandline Tools](#other-isovar-commandline-tools)
 * [Sequencing Recommendations](#sequencing-recommendations)
@@ -37,7 +37,7 @@ The assembled coding sequences may incorporate proximal
 (germline and somatic) variants, along with any splicing alterations 
 which occur due to modified splice signals.
 
-## Python Usage
+## Python API
 
 In the example below, `isovar.run_isovar` returns a list of `isovar.IsovarResult` objects. 
 Each of these objects corresponds to a single input variant and contains all of the information about the RNA evidence at that variant's location and any mutant protein sequences which were assembled for the variant.
@@ -174,7 +174,7 @@ If a result collection is flattened into a DataFrame then each filter is include
 It's also possible to filter on boolean properties (without numerical thresholds) by passing `filter_flags` to `run_isovar`. These boolean
 properties can be further negated by prepending 'not_' to the property name, so that both `'protein_sequence_matches_predicted_effect'` and `'not_protein_sequence_matches_predicted_effect'` are valid names for `filter_flags`.
 
-## Commandline Usage
+## Commandline 
 
 Basic example:
 
