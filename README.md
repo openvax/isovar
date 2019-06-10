@@ -312,6 +312,10 @@ $ isovar  \
 
 ## Internal Design
 
+Diagram:
+
+![](isovar_design.png)
+
 The inputs to Isovar are one or more somatic variant call (VCF) files, along with a BAM file 
 containing aligned tumor RNA reads. The following objects are used to aggregate information within Isovar:
 
@@ -352,7 +356,6 @@ Multiple distinct variant sequences and reference contexts can generate the same
 
 * [IsovarResult](https://github.com/openvax/isovar/blob/master/isovar/isovar_result.py): Since a single variant locus might have reads which assemble into multiple incompatible coding sequences, an `IsovarResult` represents a variant and one or more `ProteinSequence` objects which are associated with it. We typically don't want to deal with *every* possible translation of *every* distinct sequence detected around a variant, so the protein sequences are sorted by their number of supporting fragments and the best protein sequence is made easy to access. The `IsovarResult` object also has many informative properties such `num_alt_fragments`, `fraction_ref_reads`, &c.  
 
-![](isovar_design.png)
 
 ## Other Isovar Commandline Tools
 
