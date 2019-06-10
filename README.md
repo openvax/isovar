@@ -9,6 +9,15 @@
 </a>
 
 # Isovar
+
+* [Overview](#overview)
+* [Python Usage](#python-usage)
+* [Commandline Usage](#commandline-usage)
+* [Design and Organization](#design-and-organization)
+* [Other Isovar Commandline Tools](#other-isovar-commandline-tools)
+* [Sequencing Recommendations](#sequencing-recommendations)
+
+## Overview
 Isovar determines mutant protein subsequences around mutations from cancer RNAseq data.
 
 Isovar works by:
