@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 
 class ReadCollector(object):
     """
-    ReadCreator holds options related to extracting reads from SAM/BAM alignment files
+    ReadCollector holds options related to extracting reads from SAM/BAM alignment files
     and provides methods for different ways to create LocusRead objects.
     """
     def __init__(

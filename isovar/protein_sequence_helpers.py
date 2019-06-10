@@ -43,8 +43,7 @@ def sort_protein_sequences(protein_sequences):
 def group_equivalent_translations(translations):
     """
     Convert a list of Translation objects into a (potentially smaller) list
-    of ProteinSequence objects by grouping the
-    equivalent amino acid sequences.
+    of ProteinSequence objects by grouping the equivalent amino acid sequences.
 
     Parameters
     ----------
