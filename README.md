@@ -68,7 +68,6 @@ df =  isovar_results_to_dataframe(
 ```
 
 
-
 ### Python API options for collecting RNA reads
 
 To change how Isovar collects and filters RNA reads you can create
@@ -133,6 +132,38 @@ isovar_results = run_isovar(
     alignment_file="tumor-rna.bam",
     protein_sequence_creator=protein_sequence_creator)
 ```
+
+### Python API for filtering results
+
+You can filter a collection of `IsovarResult` objects by any of their numerical properties using the `filter_thresholds` option
+of the `run_isovar` function. The value expected for this argument is a dictionary whose keys have named like `'min_fraction_ref_reads'` or `'max_num_alt_fragments'`  and whose values are numerical thresholds.
+Everything after the `'min_'` or `'max_'` at the start of a key is expected to be the name of a property of `IsovarResult`. 
+Many of the commonly accessed properties regarding RNA read evidence follow the pattern: 
+```
+{num|fraction}_{ref|alt|other}_{reads|fragments} 
+```
+
+For example, in the following code the results are filtered to have 10 or more alt reads supporting a variant and no more than 25% of the fragments supporting an allele other than the ref or alt.
+```python
+from isovar import run_isovar
+
+isovar_results = run_isovar(
+    variants="cancer-mutations.vcf",
+    alignment_file="tumor-rna.bam",
+    filter_thresholds={"min_num_alt_reads": 10, "max_fraction_other_fragments": 0.25})    
+
+for isovar_result in isovar_results:
+    # print each variant and whether it passed both filters
+    print(isovar_result.variant, isovar_result.passes_all_filters)
+```
+
+A variant which fails one or more filters is not excluded from the result collection but it has `False` values in its corresponding 
+`filter_values` dictionary property and will have a `False` value for the `passes_all_filters` property. 
+
+If a result collection is flattened into a DataFrame then each filter is included as a column. 
+
+It's also possible to filter on boolean properties (without numerical thresholds) by passing `filter_flags` to `run_isovar`. These boolean
+properties can be further negated by prepending 'not_' to the property name, so that both `'protein_sequence_matches_predicted_effect'` and `'not_protein_sequence_matches_predicted_effect'` are valid names for `filter_flags`.
 
 ## Commandline Usage
 
