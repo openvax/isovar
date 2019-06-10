@@ -44,12 +44,16 @@ isovar_results = run_isovar(
 # of RNA reads which support the alt allele for variants
 # which had a successfully assembled/translated protein sequence
 for isovar_result in isovar_results:
+    # if any protein sequences were assembled from RNA
+    # then the one with most supporting reads can be
+    # accessed from a property called `top_protein_sequence`.
     if isovar_result.top_protein_sequence is not None:
-        print(isovar_result.num_alt_fragments)
+        # print number of distinct fragments supporting the
+        # the variant allele for this mutation
+        print(isovar_result.variant, isovar_result.num_alt_fragments)
     
 ```
 
-Creating a DataFrame from Isovar results:
 
 ## Python Usage
 
