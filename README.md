@@ -312,8 +312,6 @@ $ isovar  \
 
 ## Internal Design
 
-Diagram:
-
 ![](isovar_design.png)
 
 The inputs to Isovar are one or more somatic variant call (VCF) files, along with a BAM file 
