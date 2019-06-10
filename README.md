@@ -329,29 +329,24 @@ assembly algorithm then a 100bp read will only be able to determine 33 amino aci
 ## Other Isovar Commandline Tools
 
 <dl>
-<dt>`isovar-protein-sequences --vcf variants.vcf --bam rna.bam`</dt>
+<dt>isovar-protein-sequences --vcf variants.vcf --bam rna.bam</dt>
 <dd>All protein sequences which can be assembled from RNA reads for any of the given variants.</dd>
-</dl>
 
-* `isovar-allele-counts --vcf variants.vcf --bam rna.bam`
 
-Counts of reads and fragments supporting the *ref*, *alt*, and *other* alleles at all given variant locations.
+<dt>isovar-allele-counts --vcf variants.vcf --bam rna.bam</dt>
+<dd>Counts of reads and fragments supporting the *ref*, *alt*, and *other* alleles at all given variant locations.</dd>
 
-* `isovar-allele-reads --vcf variants.vcf --bam rna.bam`
-
-Sequences of all reads overlapping any of the given variants. 
+<dt>isovar-allele-reads --vcf variants.vcf --bam rna.bam</dt>
+<dd>Sequences of all reads overlapping any of the given variants.</dd>
  
-* `isovar-translations --vcf variants.vcf --bam rna.bam`
+<dt>isovar-translations --vcf variants.vcf --bam rna.bam</dt>
+<dd>All possible translations of any assembled cDNA sequence containing any of the given variants in the reference frame of any matching transcript.</dd>
 
-All possible translations of any assembled cDNA sequence containing any of the given variants in the reference frame of any matching transcript.
-* `isovar-reference-contexts --vcf variants.vcf`
+<dt>isovar-reference-contexts --vcf variants.vcf</dt>
+<dd>Shows all candidate reference contexts (sequence and reading frame) before each variant, derived from overlapping reference coding transcripts.</dd>
 
-Shows all candidate reference contexts (sequence and reading frame) before each variant, derived from overlapping reference coding transcripts. 
+<dt>isovar-variant-reads --vcf variants.vcf --bam rna.bam</dt>
+<dd>Like `isovar-allele-reads` but limited only to reads which support the *alt* allele.</dd>
 
-* `isovar-variant-reads --vcf variants.vcf --bam rna.bam`
-
-Like `isovar-allele-reads` but limited only to reads which support the *alt* allele.
-
-* `isovar-variant-sequences --vcf variants.vcf --bam rna.bam`
-
-Shows all assembled cDNA coding sequences supporting any of the given variants. 
+<dt>isovar-variant-sequences --vcf variants.vcf --bam rna.bam</dt>
+<dd>Shows all assembled cDNA coding sequences supporting any of the given variants.</dd>
