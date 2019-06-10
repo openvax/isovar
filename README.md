@@ -314,18 +314,6 @@ Multiple distinct variant sequences and reference contexts can generate the same
 
 
 
-## Sequencing Recommendations
-
-Isovar works best with high quality / high coverage mRNA sequence data. 
-This means that you will get best results from >100M paired-end reads sequenced on an 
-Illumina HiSeq from a library enriched with poly-A capture. The number of reads varies 
-depending on degree of RNA degradation and tumor purity. The read length will determine 
-the longest protein sequence you can recover, since Isovar's cDNA assembly only 
-considers reads that overlap a variant. With 100bp reads you will be able to assemble
-at most 199bp of sequence around a somatic single nucleotide variant, and consequently 
-only be to determine 66 amino acids from the protein sequence. If you disable the cDNA 
-assembly algorithm then a 100bp read will only be able to determine 33 amino acids.
-
 ## Other Isovar Commandline Tools
 
 <dl>
@@ -350,3 +338,15 @@ assembly algorithm then a 100bp read will only be able to determine 33 amino aci
 <dt>isovar-variant-sequences --vcf variants.vcf --bam rna.bam</dt>
 <dd>Shows all assembled cDNA coding sequences supporting any of the given variants.</dd>
 </dl>
+
+## Sequencing Recommendations
+
+Isovar works best with high quality / high coverage mRNA sequence data. 
+This means that you will get best results from >100M paired-end reads sequenced on an 
+Illumina HiSeq from a library enriched with poly-A capture. The number of reads varies 
+depending on degree of RNA degradation and tumor purity. The read length will determine 
+the longest protein sequence you can recover, since Isovar's cDNA assembly only 
+considers reads that overlap a variant. With 100bp reads you will be able to assemble
+at most 199bp of sequence around a somatic single nucleotide variant, and consequently 
+only be to determine 66 amino acids from the protein sequence. If you disable the cDNA 
+assembly algorithm then a 100bp read will only be able to determine 33 amino acids.
