@@ -328,8 +328,10 @@ assembly algorithm then a 100bp read will only be able to determine 33 amino aci
 
 ## Other Isovar Commandline Tools
 
-`isovar-protein-sequences --vcf variants.vcf --bam rna.bam`
-: All protein sequences which can be assembled from RNA reads for any of the given variants.
+<dl>
+<dt>`isovar-protein-sequences --vcf variants.vcf --bam rna.bam`</dt>
+<dd>All protein sequences which can be assembled from RNA reads for any of the given variants.</dd>
+</dl>
 
 * `isovar-allele-counts --vcf variants.vcf --bam rna.bam`
 
