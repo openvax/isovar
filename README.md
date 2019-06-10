@@ -13,7 +13,7 @@
 * [Overview](#overview)
 * [Python API](#python-api)
 * [Commandline](#commandline)
-* [Design and Organization](#design-and-organization)
+* [Internal Design](#internal-design)
 * [Other Isovar Commandline Tools](#other-isovar-commandline-tools)
 * [Sequencing Recommendations](#sequencing-recommendations)
 
@@ -310,7 +310,7 @@ $ isovar  \
 
 
 
-##  Design and Organization
+## Internal Design
 
 The inputs to Isovar are one or more somatic variant call (VCF) files, along with a BAM file 
 containing aligned tumor RNA reads. The following objects are used to aggregate information within Isovar:
