@@ -30,7 +30,8 @@ which occur due to modified splice signals.
 
 ## Python Usage
 
-Basic example:
+In the example below, `isovar.run_isovar` returns a list of `isovar.IsovarResult` objects. 
+Each of these objects corresponds to a single input variant and contains all of the information about the RNA evidence at that variant's location and any mutant protein sequences which were assembled for the variant.
 
 ```python
 
@@ -54,10 +55,7 @@ for isovar_result in isovar_results:
     
 ```
 
-
-## Python Usage
-
-Basic example:
+A collection of `IsovarResult` objects can also be flattened into a Pandas DataFrame:
 
 ```python
 
@@ -67,18 +65,18 @@ df =  isovar_results_to_dataframe(
         run_isovar(
             variants="cancer-mutations.vcf",
             alignment_file="tumor-rna.bam"))
-
-# filter DataFrame to only include rows which passed all default filters
-df_passed = df[df["pass"]]
 ```
 
-### Python API options for collecting and filtering RNA reads
+
+
+### Python API options for collecting RNA reads
 
 To change how Isovar collects and filters RNA reads you can create
 your own instance of the `isovar.ReadCollector` class and pass it to `run_isovar`.
 ```python
 from isovar import run_isovar, ReadCollector
 
+# create a custom ReadCollector to change options for how RNA reads are processed
 read_collector = ReadCollector(
     use_duplicate_reads=True,
     use_secondary_alignments=True, 
@@ -88,7 +86,8 @@ isovar_results = run_isovar(
     variants="cancer-mutations.vcf",
     alignment_file="tumor-rna.bam",
     read_collector=read_collector)
-```
+
+````
 
 
 ### Python API options for coding sequence assembly and translation
@@ -101,6 +100,8 @@ own instance of the `isovar.ProteinSequenceCreator` class and pass it to `run_is
 ```python
 from isovar import run_isovar, ProteinSequenceCreator
 
+# create a custom ProteinSequenceCreator to change options for how
+# protein sequences are assembled from RNA reads
 protein_sequence_creator = ProteinSequenceCreator(
     # number of amino acids we're aiming for, coding sequences
     # might still give us a shorter sequence due to an early stop 
