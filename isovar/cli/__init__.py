@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,4 +15,9 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .main_args import
+from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
+
+__all__ = [
+    "make_isovar_arg_parser",
+    "run_isovar_from_parsed_args"
+]
