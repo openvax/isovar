@@ -26,20 +26,21 @@ from .protein_sequence_args import (
     make_protein_sequences_arg_parser,
     protein_sequence_creator_from_args
 )
-from .output_args import add_output_args, write_dataframe
 from .filter_args import add_filter_args, filter_threshold_dict_from_args
 from .rna_args import read_collector_from_args, alignment_file_from_args
 
-def make_isovar_arg_parser(output_filename="isovar-results.csv"):
+def make_isovar_arg_parser():
+    """
+    Create argument parser with all options required to run Isovar
+    """
     parser = make_protein_sequences_arg_parser()
     add_filter_args(parser)
-    if output_filename:
-        parser = add_output_args(
-            parser,
-            filename="isovar-results.csv")
     return parser
 
 def run_isovar_from_parsed_args(args):
+    """
+    Extract parameters from parsed arguments and use them to run Isovar
+    """
     variants = variant_collection_from_args(args)
     read_collector = read_collector_from_args(args)
     alignment_file = alignment_file_from_args(args)
