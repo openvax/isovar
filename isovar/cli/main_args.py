@@ -29,11 +29,16 @@ from .protein_sequence_args import (
 from .filter_args import add_filter_args, filter_threshold_dict_from_args
 from .rna_args import read_collector_from_args, alignment_file_from_args
 
-def make_isovar_arg_parser():
+def make_isovar_arg_parser(**kwargs):
     """
     Create argument parser with all options required to run Isovar
+
+    Parameters
+    ----------
+    **kwargs : dict
+        Passed directly to argparse.ArgumentParser
     """
-    parser = make_protein_sequences_arg_parser()
+    parser = make_protein_sequences_arg_parser(**kwargs)
     add_filter_args(parser)
     return parser
 
