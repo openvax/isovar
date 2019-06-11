@@ -21,45 +21,25 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 
-from varcode.cli import variant_collection_from_args
+
 
 from ..logging import get_logger
-from ..main import run_isovar
 from ..dataframe_helpers import isovar_results_to_dataframe
 
-from .protein_sequence_args import (
-    make_protein_sequences_arg_parser,
-    protein_sequence_creator_from_args
-)
-from .output_args import add_output_args, write_dataframe
-from .filter_args import add_filter_args, filter_threshold_dict_from_args
-from .rna_args import read_collector_from_args, alignment_file_from_args
+
+from .main_args import run_isovar_from_parsed_args, make_isovar_arg_parser
+from .output_args import write_dataframe
+
 
 logger = get_logger(__name__)
-
-parser = make_protein_sequences_arg_parser()
-parser = add_output_args(
-    parser,
-    filename="isovar-results.csv")
-add_filter_args(parser)
 
 def run(args=None):
     if args is None:
         args = sys.argv[1:]
+    parser = make_isovar_arg_parser()
     args = parser.parse_args(args)
     logger.info(args)
-    variants = variant_collection_from_args(args)
-    read_collector = read_collector_from_args(args)
-    alignment_file = alignment_file_from_args(args)
-    protein_sequence_creator = protein_sequence_creator_from_args(args)
-    filter_thresholds = filter_threshold_dict_from_args(args)
-    isovar_results = run_isovar(
-        variants=variants,
-        alignment_file=alignment_file,
-        read_collector=read_collector,
-        protein_sequence_creator=protein_sequence_creator,
-        filter_thresholds=filter_thresholds)
+    isovar_results = run_isovar_from_parsed_args(args)
     df = isovar_results_to_dataframe(isovar_results)
     logger.info(df)
     write_dataframe(df, args)
-
