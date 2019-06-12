@@ -14,8 +14,18 @@
 
 from __future__ import print_function, division, absolute_import
 
+"""
+GeneticCode objects contain the rules for translating cDNA into a protein
+sequence: the set of valid start and stop codons, as well as which
+amino acid each DNA triplet is translated into.
+"""
+
 
 class GeneticCode(object):
+    """
+    Represents distinct translation tables to go from cDNA triplets to amino
+    acids.
+    """
     def __init__(self, name, start_codons, stop_codons, codon_table):
         self.name = name
         self.start_codons = set(start_codons)

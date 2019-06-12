@@ -38,6 +38,10 @@ def add_output_args(
 
 
 def write_dataframe(df, args):
+    """
+    Write a DataFrame to location specified in commandline arguments,
+    optionally filtered by specific columns
+    """
     assert len(args.output) > 0
     if args.output_columns is not None and len(args.output_columns) > 0:
         valid_columns = set(df.columns)

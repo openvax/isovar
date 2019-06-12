@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019 Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -129,8 +129,20 @@ class DataFrameBuilder(object):
         self.columns_dict = OrderedDict(columns_list)
 
     def add(self, variant, element):
+        """
+        Add one row to the DataFrame
+
+        Parameters
+        ----------
+        variant : varcode.Variant
+
+        element : must have type self.element_class
+        """
         if self.variant_columns:
-            assert isinstance(variant, Variant)
+            assert isinstance(variant, Variant), \
+                "Expected %s : %s to be a Variant" % (
+                    variant,
+                    type(variant))
             self.columns_dict["chr"].append(variant.contig)
             self.columns_dict["pos"].append(variant.original_start)
             self.columns_dict["ref"].append(variant.original_ref)
@@ -138,7 +150,9 @@ class DataFrameBuilder(object):
         else:
             assert variant is None
 
-        assert isinstance(element, self.element_class)
+        assert isinstance(element, self.element_class), \
+            "Expected %s : %s to have type %s" % (
+                element, type(element), self.element_class)
 
         for name in self.original_field_names:
             value = getattr(element, name)
@@ -149,6 +163,8 @@ class DataFrameBuilder(object):
 
             if isinstance(value, COLLECTION_TYPES) and self.convert_collections_to_size:
                 value = len(value)
+            elif value is None:
+                value = None
             elif not isinstance(value, VALID_ELEMENT_TYPES):
                 raise ValueError(
                     "Please provider converter for field '%s' : %s to make a scalar or string" % (
@@ -182,15 +198,12 @@ class DataFrameBuilder(object):
                 "Mismatch between lengths of columns: %s" % (column_lengths_dict,))
 
     def to_dataframe(self):
+        """
+        Creates dataframe from accumulated rows
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
         self._check_column_lengths()
         return pd.DataFrame(self.columns_dict)
-
-
-def dataframe_from_generator(
-        element_class,
-        variant_and_elements_generator,
-        **kwargs):
-    builder = DataFrameBuilder(element_class, **kwargs)
-    for variant, elements in variant_and_elements_generator:
-        builder.add_many(variant, elements)
-    return builder.to_dataframe()

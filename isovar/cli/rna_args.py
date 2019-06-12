@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Common command-line arguments for all Isovar commands which use RNA
+"""
 
 from __future__ import print_function, division, absolute_import
 
@@ -20,8 +23,9 @@ from pysam import AlignmentFile
 from varcode.cli import make_variants_parser, variant_collection_from_args
 
 from ..default_parameters import MIN_READ_MAPPING_QUALITY
-from ..allele_reads import reads_overlapping_variants, reads_to_dataframe
-from ..variant_reads import reads_supporting_variants
+
+from ..read_collector import ReadCollector
+from ..dataframe_helpers import allele_reads_to_dataframe, read_evidence_generator_to_dataframe
 
 
 def add_rna_args(
@@ -30,7 +34,6 @@ def add_rna_args(
     """
     Extends an ArgumentParser instance with the following commandline arguments:
         --bam
-        --min-reads
         --min-mapping-quality
         --use-duplicate-reads
         --drop-secondary-alignments
@@ -50,12 +53,19 @@ def add_rna_args(
     rna_group.add_argument(
         "--use-duplicate-reads",
         default=False,
-        action="store_true")
+        action="store_true",
+        help=(
+            "By default, reads which have been marked as duplicates are excluded."
+            "Use this option to include duplicate reads."))
 
     rna_group.add_argument(
         "--drop-secondary-alignments",
         default=False,
-        action="store_true")
+        action="store_true",
+        help=(
+            "By default, secondary alignments are included in reads, "
+            "use this option to instead only use primary alignments."))
+
     return rna_group
 
 
@@ -74,35 +84,57 @@ def make_rna_reads_arg_parser(**kwargs):
     return parser
 
 
-def samfile_from_args(args):
+def alignment_file_from_args(args):
+    """
+    Use parsed arguments to load a file of aligned RNA reads.
+    """
     return AlignmentFile(args.bam)
 
 
-def allele_reads_generator_from_args(args):
-    variants = variant_collection_from_args(args)
-    samfile = samfile_from_args(args)
-    return reads_overlapping_variants(
-        variants=variants,
-        samfile=samfile,
+def read_collector_from_args(args):
+    """
+    Use parsed arguments to create a ReadCollector object
+    """
+    return ReadCollector(
+        min_mapping_quality=args.min_mapping_quality,
         use_duplicate_reads=args.use_duplicate_reads,
-        use_secondary_alignments=not args.drop_secondary_alignments,
-        min_mapping_quality=args.min_mapping_quality)
+        use_secondary_alignments=not args.drop_secondary_alignments)
 
 
-def allele_reads_dataframe_from_args(args):
-    return reads_to_dataframe(allele_reads_generator_from_args(args))
+def read_evidence_generator_from_args(args):
+    """
+    Creates a generator of (Variant, ReadEvidence) pairs from parsed
+    arguments.
+    """
+    variants = variant_collection_from_args(args)
+    samfile = alignment_file_from_args(args)
+    read_creator = read_collector_from_args(args)
+    return read_creator.read_evidence_generator(
+        variants=variants,
+        alignment_file=samfile)
 
 
 def variant_reads_generator_from_args(args):
-    variants = variant_collection_from_args(args)
-    samfile = samfile_from_args(args)
-    return reads_supporting_variants(
-        variants=variants,
-        samfile=samfile,
-        use_duplicate_reads=args.use_duplicate_reads,
-        use_secondary_alignments=not args.drop_secondary_alignments,
-        min_mapping_quality=args.min_mapping_quality)
+    """
+    Creates a generator of (Variant, list of AlleleRead) from parsed
+    arguments, where all AlleleRead objects must have alleles matching
+    the variant.
+    """
+    for variant, read_evidence in read_evidence_generator_from_args(args):
+        yield variant, read_evidence.alt_reads
 
 
-def variant_reads_dataframe_from_args(args):
-    return reads_to_dataframe(variant_reads_generator_from_args(args))
+def read_evidence_dataframe_from_args(args):
+    """
+    Collect ReadEvidence for each variant and turn them into a DataFrame
+    """
+    return read_evidence_generator_to_dataframe(
+        read_evidence_generator_from_args(args))
+
+
+def variants_reads_dataframe_from_args(args):
+    """
+    Collect variant reads for each variant and turn them into a DataFrame
+    """
+    return allele_reads_to_dataframe(
+        read_evidence_generator_from_args(args))

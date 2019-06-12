@@ -1,19 +1,4 @@
-# Copyright (c) 2016-2018. Mount Sinai School of Medicine
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from __future__ import absolute_import, print_function, division
-
 
 from nose.tools import eq_
 from isovar.cli.protein_sequence_args import (
@@ -44,6 +29,7 @@ def check_mutant_amino_acids(variant, protein_sequence, expected_amino_acids=Non
             protein_sequence.variant_aa_interval_start,
             protein_sequence.variant_aa_interval_end))
 
+
 def test_mutant_amino_acids_in_mm10_chrX_8125624_refC_altA_pS460I():
     # there are two co-occurring variants in the RNAseq data but since
     # they don't happen in the same codon then we're considering the Varcode
@@ -60,6 +46,7 @@ def test_mutant_amino_acids_in_mm10_chrX_8125624_refC_altA_pS460I():
     for variant, protein_sequences in protein_sequences_generator_from_args(args):
         protein_sequence = protein_sequences[0]
         check_mutant_amino_acids(variant, protein_sequence)
+
 
 def test_mutant_amino_acids_in_mm10_chr9_82927102_refG_altT_pT441H():
     # the variant chr9:82927102 G>T occurs right next to T>G so the varcode

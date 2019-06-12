@@ -1,16 +1,18 @@
+from __future__ import print_function, division, absolute_import
+
 from nose.tools import eq_
 from varcode import Variant
-from isovar.variant_sequence_in_reading_frame import (
+
+from isovar.variant_orf import (
     compute_offset_to_first_complete_codon,
-    match_variant_sequence_to_reference_context,
-    VariantSequenceInReadingFrame,
+    VariantORF,
 )
-from isovar.variant_sequences import VariantSequence
+from isovar.variant_orf_helpers import match_variant_sequence_to_reference_context
+from isovar.variant_sequence import VariantSequence
 from isovar.reference_coding_sequence_key import ReferenceCodingSequenceKey
 from isovar.reference_context import ReferenceContext
-from isovar.allele_reads import AlleleRead
+from isovar.allele_read import AlleleRead
 from isovar.dna import reverse_complement_dna
-
 
 def test_compute_offset_to_first_complete_codon_no_trimming():
     # if nothing gets trimmed from the reference sequence, then
@@ -161,16 +163,16 @@ def make_inputs_for_tp53_201_variant(
         transcripts=[transcript])
     assert isinstance(reference_context, ReferenceContext)
 
-    expected = VariantSequenceInReadingFrame(
+    expected = VariantORF(
         cdna_sequence=cdna_prefix[-prefix_length:] + cdna_alt + cdna_suffix,
         offset_to_first_complete_codon=prefix_length % 3,
         variant_cdna_interval_start=prefix_length,
         variant_cdna_interval_end=prefix_length + 1,
         reference_cdna_sequence_before_variant="ATG"[-prefix_length:],
         reference_cdna_sequence_after_variant="AGGAGCCGCAGTCAGAT"[:reference_context_size],
-        number_mismatches_before_variant=mismatches_before_variant,
-        number_mismatches_after_variant=mismatches_after_variant)
-    assert isinstance(expected, VariantSequenceInReadingFrame)
+        num_mismatches_before_variant=mismatches_before_variant,
+        num_mismatches_after_variant=mismatches_after_variant)
+    assert isinstance(expected, VariantORF)
 
     return variant_sequence, reference_context, expected
 
@@ -308,7 +310,7 @@ def test_match_variant_sequence_to_reference_context_include_mismatches_after_va
         reference_context=reference_context,
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0,
-        include_mismatches_after_variant=False)
+        count_mismatches_after_variant=False)
     # should have a result, since we're not counting mismatches after the variant
     eq_(expected, result)
 
@@ -318,5 +320,5 @@ def test_match_variant_sequence_to_reference_context_include_mismatches_after_va
         reference_context=reference_context,
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0,
-        include_mismatches_after_variant=True)
+        count_mismatches_after_variant=True)
     eq_(None, result)

@@ -19,8 +19,9 @@ from isovar.reference_coding_sequence_key import (
     ReferenceCodingSequenceKey,
 )
 from varcode import Variant
-from pyensembl import ensembl_grch38
 from nose.tools import eq_
+
+from genomes_for_testing import grch38
 
 
 def test_reading_frame_to_offset():
@@ -35,8 +36,8 @@ def test_sequence_key_with_reading_frame_substitution_with_five_prime_utr():
     # strand we have to take the reverse complement of the variant which turns
     # it into CTC>GGG
     tp53_substitution = Variant(
-        "17", 7676589, "CTC", "GGG", ensembl_grch38)
-    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+        "17", 7676589, "CTC", "GGG", grch38)
+    tp53_001 = grch38.transcripts_by_name("TP53-001")[0]
 
     # Sequence of TP53 around second codon with 10 context nucleotides:
     # In [51]: t.sequence[193-10:193+13]
@@ -65,14 +66,15 @@ def test_sequence_key_with_reading_frame_substitution_with_five_prime_utr():
         amino_acids_before_variant="M")
     eq_(result, expected)
 
+
 def test_sequence_key_with_reading_frame_deletion_with_five_prime_utr():
     # Delete second codon of TP53-001, the surrounding context
     # includes nucleotides from the 5' UTR. Since TP53 is on the negative
     # strand we have to take the reverse complement of the variant which turns
     # it into 'CTC'>''
     tp53_deletion = Variant(
-        "17", 7676589, "CTC", "", ensembl_grch38)
-    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+        "17", 7676589, "CTC", "", grch38)
+    tp53_001 = grch38.transcripts_by_name("TP53-001")[0]
 
     # Sequence of TP53 around second codon with 10 context nucleotides:
     # In [51]: t.sequence[193-10:193+13]
@@ -109,9 +111,9 @@ def test_sequence_key_with_reading_frame_insertion():
     # the negative strand we have to take the reverse complement of the variant
     # which turns it into 'CTC'>'CTCA'
     tp53_insertion = Variant(
-        "17", 7676586, "CTC", "CTCA", ensembl_grch38)
+        "17", 7676586, "CTC", "CTCA", grch38)
 
-    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+    tp53_001 = grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around boundary of 2nd/3rd codons
     # with 10 context nucleotides:
     #   last 4 nt of 5' UTR: TGCC
@@ -140,14 +142,15 @@ def test_sequence_key_with_reading_frame_insertion():
         amino_acids_before_variant="ME")
     eq_(result, expected)
 
+
 def test_reference_coding_sequence_key_insertion_inside_start_codon():
     # insert nucleotide "C" in the middle of the start codon of TP53-001,
     # keeping only 1 nucleotide of context. In the reverse complement this
     # becomes 'T'>'TG'
     tp53_insertion = Variant(
-        "17", 7676592, "T", "TG", ensembl_grch38)
+        "17", 7676592, "T", "TG", grch38)
 
-    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+    tp53_001 = grch38.transcripts_by_name("TP53-001")[0]
 
     result = ReferenceCodingSequenceKey.from_variant_and_transcript(
         variant=tp53_insertion,
@@ -155,11 +158,12 @@ def test_reference_coding_sequence_key_insertion_inside_start_codon():
         context_size=1)
     assert result is None, "Expected result to be None when variant affects start codon"
 
+
 def test_sequence_key_with_reading_frame_insertion_before_start_codon():
     # insert nucleotide "T" before of the start codon of TP53-001,
-    tp53_insertion = Variant("17", 7676593, "C", "CT", ensembl_grch38)
+    tp53_insertion = Variant("17", 7676593, "C", "CT", grch38)
 
-    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+    tp53_001 = grch38.transcripts_by_name("TP53-001")[0]
 
     result = ReferenceCodingSequenceKey.from_variant_and_transcript(
         variant=tp53_insertion,
@@ -173,10 +177,9 @@ def test_sequence_key_with_reading_frame_insertion_context_6nt_contains_start():
     # but in this test we're going to only keep enough context to see
     # the start codon but none of the 5' UTR. In the reverse complement this
     # variant becomes CTC>CTCA
-    tp53_insertion = Variant(
-        "17", 7676586, "CTC", "CTCA", ensembl_grch38)
+    tp53_insertion = Variant("17", 7676586, "CTC", "CTCA", grch38)
 
-    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+    tp53_001 = grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around boundary of 2nd/3rd codons
     # with 6 context nucleotides:
     #   start codon: ATG (translates to M)
@@ -210,9 +213,9 @@ def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
     # the start codon but does "overlap" it. In the reverse complement
     # this variant becomes CTC>CTCA
     tp53_insertion = Variant(
-        "17", 7676586, "CTC", "CTCA", ensembl_grch38)
+        "17", 7676586, "CTC", "CTCA", grch38)
 
-    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+    tp53_001 = grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around boundary of 2nd/3rd codons
     # with 6 context nucleotides:
     #   last two nt of start codon: TG
@@ -246,9 +249,9 @@ def test_sequence_key_with_reading_frame_insertion_context_3nt_no_start():
     # complement this variant becomes CTC>CTCA.
 
     tp53_insertion = Variant(
-        "17", 7676586, "CTC", "CTCA", ensembl_grch38)
+        "17", 7676586, "CTC", "CTCA", grch38)
 
-    tp53_001 = ensembl_grch38.transcripts_by_name("TP53-001")[0]
+    tp53_001 = grch38.transcripts_by_name("TP53-001")[0]
     # Sequence of TP53 around boundary of 2nd/3rd codons
     # with 6 context nucleotides:
     #   2nd codon: GAG (translates to E)
@@ -300,6 +303,7 @@ def test_reference_sequence_key_hash_and_equality_same_objects():
     eq_(repr(rcsk1), repr(rcsk2))
     eq_(hash(rcsk1), hash(rcsk2))
 
+
 def test_reference_sequence_key_hash_and_equality_different_objects():
     rcsk1 = ReferenceCodingSequenceKey(
         strand="-",
@@ -327,6 +331,7 @@ def test_reference_sequence_key_hash_and_equality_different_objects():
     assert repr(rcsk1) != repr(rcsk_different_strand)
     assert hash(rcsk1) != hash(rcsk_different_strand)
 
+
 def test_reference_coding_sequence_key_around_TP53_201_variant():
     # TP53-201 is an isoform of TP53 which seems to lack untranslated
     # regions so the sequence is:
@@ -336,7 +341,7 @@ def test_reference_coding_sequence_key_around_TP53_201_variant():
 
     # we're assuming a variant
     # chr17. 7,676,591 C>T which changes GAG (E) > AAG (K)
-    variant = Variant("chr17", 7676591, "C", "T", "GRCh38")
+    variant = Variant("chr17", 7676591, "C", "T", grch38)
 
     # TP53-201
     transcript = variant.ensembl.transcripts_by_name("TP53-201")[0]

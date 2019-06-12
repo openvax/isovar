@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,10 @@
 from __future__ import print_function, division, absolute_import
 
 from ..default_parameters import MAX_PROTEIN_SEQUENCES_PER_VARIANT
-from ..protein_sequences import (
-    protein_sequences_generator_to_dataframe,
-    reads_generator_to_protein_sequences_generator
-)
+from ..main import ProteinSequenceCreator
+from ..dataframe_helpers import protein_sequences_generator_to_dataframe
 
-from .rna_args import allele_reads_generator_from_args
+from .rna_args import read_evidence_generator_from_args
 from .translation_args import make_translation_arg_parser
 
 
@@ -39,6 +37,19 @@ def add_protein_sequence_args(parser):
         type=int,
         default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
     return protein_sequence_group
+
+
+def protein_sequence_creator_from_args(args):
+    """
+    Create ProteinSequenceCreator instance from parsed commandline arguments
+    """
+    return ProteinSequenceCreator(
+        protein_sequence_length=args.protein_sequence_length,
+        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
+        min_transcript_prefix_length=args.min_transcript_prefix_length,
+        max_transcript_mismatches=args.max_reference_transcript_mismatches,
+        max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
+        variant_sequence_assembly=args.variant_sequence_assembly)
 
 
 def make_protein_sequences_arg_parser(**kwargs):
@@ -60,18 +71,22 @@ def make_protein_sequences_arg_parser(**kwargs):
 
 
 def protein_sequences_generator_from_args(args):
-    allele_reads_generator = allele_reads_generator_from_args(args)
-    return reads_generator_to_protein_sequences_generator(
-        allele_reads_generator,
-        protein_sequence_length=args.protein_sequence_length,
-        min_alt_rna_reads=args.min_alt_rna_reads,
-        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
-        min_transcript_prefix_length=args.min_transcript_prefix_length,
-        max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
-        variant_sequence_assembly=args.variant_sequence_assembly)
+    """
+    Uses parsed commandline arguments to load variants and aligned
+    reads and uses them to generate sequence (Variant, list of ProteinSequence)
+    pairs.
+    """
+    read_evidence_generator = read_evidence_generator_from_args(args)
+    protein_sequence_creator = protein_sequence_creator_from_args(args)
+    return protein_sequence_creator.protein_sequences_from_read_evidence_generator(
+        read_evidence_generator)
 
 
 def protein_sequences_dataframe_from_args(args):
+    """
+    Use parsed commandline arguments to load variants, aligned RNA reads,
+    create protein sequences for each variant and generate a DataFrame
+    for them all.
+    """
     protein_sequences_generator = protein_sequences_generator_from_args(args)
     return protein_sequences_generator_to_dataframe(protein_sequences_generator)

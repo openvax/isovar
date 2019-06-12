@@ -15,13 +15,15 @@
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple, OrderedDict
 from nose.tools import eq_
-from isovar.dataframe_builder import DataFrameBuilder
 from varcode import Variant
 import pandas as pd
+
+from isovar.dataframe_builder import DataFrameBuilder
 
 TestClass = namedtuple("TestClass", "a b c")
 test_obj = TestClass(a=1, b="s", c=3.0)
 test_variant = Variant("X", 10, "CC", "C")
+
 
 def check_same_dataframes(df, expected):
     eq_(len(df.columns), len(expected.columns))
@@ -47,6 +49,7 @@ def test_dataframe_builder():
     ]))
     check_same_dataframes(df, expected)
 
+
 def test_dataframe_builder_rename():
     df_builder = DataFrameBuilder(
         TestClass,
@@ -63,6 +66,7 @@ def test_dataframe_builder_rename():
         ("C", [test_obj.c]),
     ]))
     check_same_dataframes(df, expected)
+
 
 def test_dataframe_rename_and_converters():
     df_builder = DataFrameBuilder(
@@ -81,6 +85,7 @@ def test_dataframe_rename_and_converters():
         ("C", [int(test_obj.c)]),
     ]))
     check_same_dataframes(df, expected)
+
 
 def test_dataframe_rename_and_converters_and_exclude():
     df_builder = DataFrameBuilder(

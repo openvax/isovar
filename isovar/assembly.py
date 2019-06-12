@@ -42,7 +42,7 @@ def greedy_merge_helper(
         # arguments if sequence1 is on the right of sequence2
         for j in range(i + 1, len(variant_sequences)):
             sequence2 = variant_sequences[j]
-            combined = sequence1.combine(sequence2)
+            combined = sequence1.combine(sequence2, min_overlap_size=min_overlap_size)
             if combined is None:
                 continue
             if combined.sequence in merged_variant_sequences:
@@ -56,6 +56,7 @@ def greedy_merge_helper(
             merged_any = True
     result = list(merged_variant_sequences.values()) + list(unmerged_variant_sequences)
     return result, merged_any
+
 
 def greedy_merge(
         variant_sequences,
@@ -74,6 +75,7 @@ def greedy_merge(
             variant_sequences,
             min_overlap_size=min_overlap_size)
     return variant_sequences
+
 
 def collapse_substrings(variant_sequences):
     """
@@ -114,6 +116,7 @@ def collapse_substrings(variant_sequences):
             extra_reads_from_substrings[variant_sequence])
         for variant_sequence in result_list
     ]
+
 
 def iterative_overlap_assembly(
         variant_sequences,

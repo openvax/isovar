@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +14,12 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .value_object import ValueObject
-from .dna import reverse_complement_dna
-from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 from .logging import get_logger
+from .value_object import ValueObject
+from .variant_helpers import (
+    interbase_range_affected_by_variant_on_transcript,
+    variant_matches_reference_sequence
+)
 
 logger = get_logger(__name__)
 
@@ -126,13 +128,3 @@ class ReferenceSequenceKey(ValueObject):
             sequence_before_variant_locus=reference_cdna_before_variant,
             sequence_at_variant_locus=reference_cdna_at_variant,
             sequence_after_variant_locus=reference_cdna_after_variant)
-
-
-def variant_matches_reference_sequence(variant, ref_seq_on_transcript, strand):
-    """
-    Make sure that reference nucleotides we expect to see on the reference
-    transcript from a variant are the same ones we encounter.
-    """
-    if strand == "-":
-        ref_seq_on_transcript = reverse_complement_dna(ref_seq_on_transcript)
-    return ref_seq_on_transcript == variant.ref

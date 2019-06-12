@@ -25,16 +25,8 @@ try:
     with open(readme_path, 'r') as f:
         readme_markdown = f.read()
 except:
-    logging.warn("Failed to load %s" % readme_path)
+    logging.warning("Failed to load %s" % readme_path)
     readme_markdown = ""
-
-try:
-    import pypandoc
-    readme_restructured = pypandoc.convert(readme_markdown, to='rst', format='md')
-except:
-    readme_restructured = readme_markdown
-    logging.warn("Conversion of long_description from MD to RST failed")
-    pass
 
 
 with open('isovar/__init__.py', 'r') as f:
@@ -50,10 +42,10 @@ if __name__ == '__main__':
     setup(
         name='isovar',
         version=version,
-        description="Assemble transcript sequences fragments around variants",
+        description="Determine mutant protein sequences from RN using assembly around variants",
         author="Alex Rubinsteyn, Arman Aksoy, Julia Kodysh",
         author_email="alex.rubinsteyn@mssm.edu",
-        url="https://github.com/hammerlab/isovar",
+        url="https://github.com/openvax/isovar",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
         classifiers=[
             'Development Status :: 4 - Beta',
@@ -66,16 +58,19 @@ if __name__ == '__main__':
         ],
         install_requires=[
             'six',
-            'pysam==0.9.0',
+            'pysam>=0.15.2,<=0.16.0',
             'pandas',
-            'varcode>=0.5.9',
+            'varcode>=0.9.0',
             'pyensembl>=1.5.0',
+            'cached_property>=1.5.1',
         ],
-        long_description=readme_restructured,
+        long_description=readme_markdown,
+        long_description_content_type='text/markdown',
         packages=find_packages(),
         package_data={'isovar': ['logging.conf']},
         entry_points={
             'console_scripts': [
+                'isovar=isovar.cli.isovar_main:run',
                 'isovar-protein-sequences=isovar.cli.isovar_protein_sequences:run',
                 "isovar-translations=isovar.cli.isovar_translations:run",
                 "isovar-reference-contexts=isovar.cli.isovar_reference_contexts:run",

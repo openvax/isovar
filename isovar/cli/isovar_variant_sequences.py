@@ -13,15 +13,16 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+
 import sys
 
 from ..logging import get_logger
 
-from ..variant_sequences import (
-    reads_generator_to_sequences_generator,
-    variant_sequences_generator_to_dataframe
-)
-from .rna_args import allele_reads_generator_from_args
+from ..variant_sequence_creator import VariantSequenceCreator
+from ..dataframe_helpers import variant_sequences_generator_to_dataframe
+
+
+from .rna_args import read_evidence_generator_from_args
 from .variant_sequences_args import make_variant_sequences_arg_parser
 from .output_args import add_output_args, write_dataframe
 
@@ -35,14 +36,16 @@ parser = add_output_args(
 
 
 def variant_sequences_generator_from_args(args):
-    allele_reads_generator = allele_reads_generator_from_args(args)
-    return reads_generator_to_sequences_generator(
-        allele_reads_generator,
-        min_alt_rna_reads=args.min_alt_rna_reads,
+    """
+    Use parsed commandline arguments to load variants and RNA reads and
+    generate a sequence of (Variant, list of VariantSequence) pairs.
+    """
+    read_evidence_generator = read_evidence_generator_from_args(args)
+    variant_sequence_creator = VariantSequenceCreator(
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,
         preferred_sequence_length=args.variant_sequence_length,
         variant_sequence_assembly=args.variant_sequence_assembly)
-
+    return variant_sequence_creator.sequences_from_read_evidence_generator(read_evidence_generator)
 
 def variant_sequences_dataframe_from_args(args):
     variant_sequences_generator = variant_sequences_generator_from_args(args)

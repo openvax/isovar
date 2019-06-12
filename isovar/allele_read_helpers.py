@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,13 +13,25 @@
 # limitations under the License.
 
 """
-Helper functions for working with RNA reads
+Functions for filtering, grouping, and summarizing collections of
+AlleleRead objects.
 """
 
-from __future__ import print_function, division, absolute_import
 from collections import defaultdict
 
 from .common import groupby
+from .logging import get_logger
+from .allele_read import AlleleRead
+
+logger = get_logger(__name__)
+
+
+def group_reads_by_allele(allele_reads):
+    """
+    Returns dictionary mapping each allele's nucleotide sequence to a list of
+    supporting AlleleRead objects.
+    """
+    return groupby(allele_reads, lambda read: read.allele)
 
 
 def get_single_allele_from_reads(allele_reads):
@@ -37,10 +49,6 @@ def get_single_allele_from_reads(allele_reads):
         raise ValueError("Expected all AlleleRead objects to have same allele '%s', got %s" % (
             seq, allele_reads))
     return seq
-
-
-def make_prefix_suffix_pairs(allele_reads):
-    return [(r.prefix, r.suffix) for r in allele_reads]
 
 
 def group_unique_sequences(
@@ -66,28 +74,46 @@ def group_unique_sequences(
     return groups
 
 
-def count_unique_sequences(
-        allele_reads,
-        max_prefix_size=None,
-        max_suffix_size=None):
+def allele_reads_from_locus_reads(locus_reads):
     """
-    Given a list of AlleleRead objects, extracts all unique
-    (prefix, allele, suffix) sequences and associate each with the number
-    of reads that contain that sequence.
+    Attempt to convert each LocusRead object to an AlleleRead and return
+    the successfully converted objects.
+
+    Parameters
+    ----------
+    locus_reads : list of LocusRead
+
+    Returns list of AlleleRead
+    -------
+
     """
-    groups = group_unique_sequences(
-        allele_reads,
-        max_prefix_size=max_prefix_size,
-        max_suffix_size=max_suffix_size)
-    return {
-        seq_tuple: len(read_names)
-        for (seq_tuple, read_names) in groups.items()
-    }
+    allele_reads = []
+    for locus_read in locus_reads:
+        allele_read = AlleleRead.from_locus_read(locus_read)
+        if allele_read is None:
+            continue
+        else:
+            allele_reads.append(allele_read)
+    return allele_reads
 
 
-def group_reads_by_allele(allele_reads):
+def split_reads_into_ref_alt_other(ref, alt, overlapping_reads):
     """
-    Returns dictionary mapping each allele's nucleotide sequence to a list of
-    supporting AlleleRead objects.
+    Returns three lists of AlleleRead objects
+        - reads which support the reference allele
+        - reads which support the variant's alt allele
+        - reads which support other alleles
     """
-    return groupby(allele_reads, lambda read: read.allele)
+    # convert to list in case it's a generator since
+    # we want to traverse the sequence repeatedly
+    overlapping_reads = list(overlapping_reads)
+
+    reads_grouped_by_allele = group_reads_by_allele(overlapping_reads)
+    ref_reads = reads_grouped_by_allele.get(ref, [])
+    alt_reads = reads_grouped_by_allele.get(alt, [])
+    other_reads = []
+    for allele, allele_reads in reads_grouped_by_allele.items():
+        if allele in {ref, alt}:
+            continue
+        other_reads.extend(allele_reads)
+    return ref_reads, alt_reads, other_reads

@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2018. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,11 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+
+"""
+This module implements basic DNA functionality in Python strings to
+to avoid having to depend on a bigger library such as BioPython.
+"""
 
 dna_complement_dictionary = {
     "A": "T",
@@ -29,8 +34,26 @@ index_to_dna_nucleotide = {i: c for (i, c) in enumerate(dna_nucleotides)}
 
 
 def complement_dna(seq):
+    """
+    Convert every A->T, T->A, C->G, G->C in a DNA sequence
+
+    Parameters
+    ----------
+    seq : str
+
+    Returns str
+    """
     return "".join(dna_complement_dictionary[nt] for nt in seq)
 
 
 def reverse_complement_dna(seq):
+    """
+    Reverse complement of a DNA sequence
+
+    Parameters
+    ----------
+    seq : str
+
+    Returns str
+    """
     return complement_dna(seq)[::-1]

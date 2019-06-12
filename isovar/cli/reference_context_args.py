@@ -19,8 +19,9 @@ from varcode.cli.variant_args import (
     variant_collection_from_args
 )
 
+from ..reference_context_helpers import reference_contexts_generator
 from ..default_parameters import CDNA_CONTEXT_SIZE
-from ..reference_context import variants_to_reference_contexts_dataframe
+from ..dataframe_helpers import variants_to_reference_contexts_dataframe
 
 
 def add_reference_context_args(parser):
@@ -54,7 +55,12 @@ def make_reference_context_arg_parser(**kwargs):
 
 
 def reference_contexts_dataframe_from_args(args):
+    """
+    Generate a DataFrame for variants and their associated reference contexts
+    loaded based on parsed commandline arguments.
+    """
     variants = variant_collection_from_args(args)
-    return variants_to_reference_contexts_dataframe(
+    reference_context_gen = reference_contexts_generator(
         variants=variants,
         context_size=args.context_size)
+    return variants_to_reference_contexts_dataframe(reference_context_gen)

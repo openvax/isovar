@@ -1,29 +1,17 @@
-# Copyright (c) 2016-2018. Mount Sinai School of Medicine
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from __future__ import print_function, division, absolute_import
 
 from nose.tools import eq_
 from varcode import Variant
-from isovar.variant_sequences import (
-    reads_to_variant_sequences,
+
+from isovar import (
+    VariantSequenceCreator,
     VariantSequence
 )
-from isovar.variant_reads import reads_supporting_variant
-from isovar.allele_reads import AlleleRead
+from isovar.allele_read import AlleleRead
+from isovar.read_collector import ReadCollector
 
 from testing_helpers import load_bam
+from genomes_for_testing import grch38
 
 
 def test_sequence_counts_snv():
@@ -32,17 +20,15 @@ def test_sequence_counts_snv():
     base1_location = 65857041
     ref = "G"
     alt = "C"
-    variant = Variant(chromosome, base1_location, ref, alt)
-
-    variant_reads = reads_supporting_variant(
-        samfile=samfile,
-        chromosome=chromosome,
+    variant = Variant(chromosome, base1_location, ref, alt, grch38)
+    read_creator = ReadCollector()
+    variant_reads = read_creator.allele_reads_supporting_variant(
+        alignment_file=samfile,
         variant=variant)
-
-    variant_sequences = reads_to_variant_sequences(
+    variant_sequence_creator = VariantSequenceCreator(preferred_sequence_length=61)
+    variant_sequences = variant_sequence_creator.reads_to_variant_sequences(
         variant=variant,
-        reads=variant_reads,
-        preferred_sequence_length=61)
+        reads=variant_reads)
     assert len(variant_sequences) == 1
     for variant_sequence in variant_sequences:
         print(variant_sequence)

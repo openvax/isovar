@@ -11,7 +11,7 @@ from isovar.cli.isovar_protein_sequences import run as isovar_protein_sequences
 from isovar.cli.isovar_reference_contexts import run as isovar_reference_contexts
 from isovar.cli.isovar_variant_reads import run as isovar_variant_reads
 from isovar.cli.isovar_variant_sequences import run as isovar_variant_sequences
-
+from isovar.cli.isovar_main import run as isovar_main
 
 vcf_args = [
     "--vcf",
@@ -64,3 +64,6 @@ def test_cli_variant_reads():
 
 def test_cli_variant_sequences():
     run_cli_fn(isovar_variant_sequences)
+
+def test_cli_main():
+    run_cli_fn(isovar_main)

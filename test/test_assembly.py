@@ -1,26 +1,10 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from __future__ import print_function, division, absolute_import
 from time import time
 
-from isovar.variant_reads import reads_supporting_variant
-from isovar.variant_sequences import (
-    initial_variant_sequences_from_reads,
-    VariantSequence
-)
-from isovar.allele_reads import AlleleRead
+from isovar.read_collector import ReadCollector
+from isovar.variant_sequence import VariantSequence
+from isovar.variant_sequence_helpers import initial_variant_sequences_from_reads
+from isovar.allele_read import AlleleRead
 from isovar.assembly import (
     iterative_overlap_assembly,
     greedy_merge,
@@ -33,8 +17,9 @@ from nose.tools import eq_
 
 from testing_helpers import load_bam
 
+
 def test_assemble_transcript_fragments_snv():
-    samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
+    alignment_file = load_bam("data/cancer-wgs-primary.chr12.bam")
     chromosome = "chr12"
     base1_location = 65857041
     ref = "G"
@@ -45,10 +30,10 @@ def test_assemble_transcript_fragments_snv():
         ref=ref,
         alt=alt,
         ensembl=ensembl_grch38)
-    variant_reads = reads_supporting_variant(
+    read_creator = ReadCollector()
+    variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
-        samfile=samfile,
-        chromosome=chromosome,)
+        alignment_file=alignment_file)
 
     sequences = iterative_overlap_assembly(
         initial_variant_sequences_from_reads(variant_reads),
@@ -70,6 +55,7 @@ def test_assemble_transcript_fragments_snv():
             assert len(s) > max_read_length, \
                 "Expected assembled sequences to be longer than read length (%d)" % (
                     max_read_length,)
+
 
 def test_assembly_of_simple_sequence_from_mock_reads():
     # Read sequences:
@@ -120,6 +106,7 @@ def test_assembly_of_simple_sequence_from_mock_reads():
         # all 4/4 reads
         expected_mean_coverage = (2 * 1 + 2 * 3 + 10 * 4) / 14
         eq_(assembled_variant_sequence.mean_coverage(), expected_mean_coverage)
+
 
 def test_collapse_substrings():
     # AAA|C|GGG
@@ -175,6 +162,7 @@ def test_assembly_of_many_subsequences():
     result_decoy = results[1]
     eq_(result_decoy.sequence, decoy.sequence)
 
+
 def test_assembly_time():
     original_prefix = "ACTGAACCTTGGAAACCCTTTGGG"
     original_allele = "CCCTTT"
@@ -205,6 +193,7 @@ def test_assembly_time():
     assert t_elapsed < 0.1, \
         "Expected assembly of 400 sequences to take less than 100ms: %0.4fms" % (
             t_elapsed * 1000,)
+
 
 def test_assembly_unrelated_sequences():
     # 2 overlapping sequences, 1 with a different suffix,
@@ -252,8 +241,10 @@ def test_assembly_unrelated_sequences():
     eq_(3, count_singleton)
     eq_(1, count_multiple)
 
+
 def test_assembly_no_sequences():
     eq_(iterative_overlap_assembly([]), [])
+
 
 def test_assembly_1_sequence():
     vs = VariantSequence(
