@@ -52,25 +52,37 @@ def predicted_effects_for_variant(
 
     Returns a varcode.EffectCollection object
     """
-    effects = []
-    for transcript in variant.transcripts:
+    effects = variant.effects(raise_on_error=False)
+
+    # effects filtered by allowed transcripts
+    effects_filtered_by_transcript = []
+
+    for effect in effects:
+        has_transcript = hasattr(effect, 'transcript') and effect.transcript is not None
+        transcript = getattr(effect, 'transcript', None)
+
         if (only_coding_transcripts and not (
-                transcript.complete and transcript.is_protein_coding)):
+                has_transcript and
+                transcript.complete and
+                transcript.is_protein_coding)):
             continue
-        if transcript_id_whitelist and transcript.id not in transcript_id_whitelist:
+        elif transcript_id_whitelist and not has_transcript:
+            continue
+        elif transcript_id_whitelist and transcript.id not in transcript_id_whitelist:
             logger.info(
                 "Skipping transcript %s for variant %s because it's not in whitelist",
                 transcript.name,
                 variant)
             continue
-        effects.append(variant.effect_on_transcript(transcript))
+        effects_filtered_by_transcript.append(effect)
 
-    effects = EffectCollection(effects)
+    effects = effects.clone_with_new_elements(effects_filtered_by_transcript)
 
     n_total_effects = len(effects)
     logger.info("Predicted total %d effects for variant %s" % (
         n_total_effects,
         variant))
+
     if drop_silent_and_noncoding:
         nonsynonymous_coding_effects = effects.drop_silent_and_noncoding()
         logger.info(
@@ -92,7 +104,7 @@ def predicted_effects_for_variant(
             len(effects_with_mut_sequence),
             variant,
             effects_with_mut_sequence)
-        effects = effects_with_mut_sequence
+        effects = effects.clone_with_new_elements(effects_with_mut_sequence)
     return effects
 
 
