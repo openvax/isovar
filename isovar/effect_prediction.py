@@ -52,25 +52,37 @@ def predicted_effects_for_variant(
 
     Returns a varcode.EffectCollection object
     """
-    effects = []
-    for transcript in variant.transcripts:
+    effects = variant.effects(raise_on_error=False)
+
+    # effects filtered by allowed transcripts
+    effects_filtered_by_transcript = []
+
+    for effect in effects:
+        has_transcript = hasattr(effect, 'transcript') and effect.transcript is not None
+        transcript = getattr(effect, 'transcript', None)
+
         if (only_coding_transcripts and not (
-                transcript.complete and transcript.is_protein_coding)):
+                has_transcript and
+                transcript.complete and
+                transcript.is_protein_coding)):
             continue
-        if transcript_id_whitelist and transcript.id not in transcript_id_whitelist:
+        elif transcript_id_whitelist and not has_transcript:
+            continue
+        elif transcript_id_whitelist and transcript.id not in transcript_id_whitelist:
             logger.info(
                 "Skipping transcript %s for variant %s because it's not in whitelist",
                 transcript.name,
                 variant)
             continue
-        effects.append(variant.effect_on_transcript(transcript))
+        effects_filtered_by_transcript.append(effect)
 
-    effects = EffectCollection(effects)
+    effects = effects.clone_with_new_elements(effects_filtered_by_transcript)
 
     n_total_effects = len(effects)
     logger.info("Predicted total %d effects for variant %s" % (
         n_total_effects,
         variant))
+
     if drop_silent_and_noncoding:
         nonsynonymous_coding_effects = effects.drop_silent_and_noncoding()
         logger.info(
@@ -84,7 +96,7 @@ def predicted_effects_for_variant(
     if require_mutant_protein_sequence:
         effects_with_mut_sequence = [
             effect
-            for effect in nonsynonymous_coding_effects
+            for effect in effects
             if effect.mutant_protein_sequence is not None
         ]
         logger.info(
@@ -92,7 +104,7 @@ def predicted_effects_for_variant(
             len(effects_with_mut_sequence),
             variant,
             effects_with_mut_sequence)
-        effects = effects_with_mut_sequence
+        effects = effects.clone_with_new_elements(effects_with_mut_sequence)
     return effects
 
 
@@ -121,7 +133,8 @@ def top_varcode_effect(variant, transcript_id_whitelist=None):
 
 def reference_coding_transcripts_for_variant(
         variant,
-        transcript_id_whitelist=None):
+        transcript_id_whitelist=None,
+        drop_silent_and_noncoding=False):
     """
     For a given variant, find all the transcripts which overlap the
     variant and for which it has a predictable effect on the amino acid
@@ -131,7 +144,7 @@ def reference_coding_transcripts_for_variant(
         variant=variant,
         transcript_id_whitelist=transcript_id_whitelist,
         only_coding_transcripts=True,
-        drop_silent_and_noncoding=True,
+        drop_silent_and_noncoding=drop_silent_and_noncoding,
         require_mutant_protein_sequence=True)
     return [effect.transcript for effect in predicted_effects]
 
