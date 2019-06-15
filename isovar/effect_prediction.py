@@ -96,7 +96,7 @@ def predicted_effects_for_variant(
     if require_mutant_protein_sequence:
         effects_with_mut_sequence = [
             effect
-            for effect in nonsynonymous_coding_effects
+            for effect in effects
             if effect.mutant_protein_sequence is not None
         ]
         logger.info(
@@ -133,7 +133,8 @@ def top_varcode_effect(variant, transcript_id_whitelist=None):
 
 def reference_coding_transcripts_for_variant(
         variant,
-        transcript_id_whitelist=None):
+        transcript_id_whitelist=None,
+        drop_silent_and_noncoding=False):
     """
     For a given variant, find all the transcripts which overlap the
     variant and for which it has a predictable effect on the amino acid
@@ -143,7 +144,7 @@ def reference_coding_transcripts_for_variant(
         variant=variant,
         transcript_id_whitelist=transcript_id_whitelist,
         only_coding_transcripts=True,
-        drop_silent_and_noncoding=True,
+        drop_silent_and_noncoding=drop_silent_and_noncoding,
         require_mutant_protein_sequence=True)
     return [effect.transcript for effect in predicted_effects]
 
