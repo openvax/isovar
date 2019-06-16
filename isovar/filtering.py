@@ -92,7 +92,9 @@ def evaluate_boolean_filters(isovar_result, filter_flags):
         else:
             raise ValueError(
                 "IsovarResult does not have field name '%s'" % boolean_field_name)
-        if field_value not in {True, False}:
+        if field_value is None:
+            field_value = False
+        elif field_value not in {True, False}:
             raise ValueError("Expected filter '%s' to be boolean but got %s" % (
                 boolean_filter_name,
                 field_value))

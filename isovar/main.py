@@ -69,8 +69,9 @@ DEFAULT_FILTER_THRESHOLDS =  OrderedDict([
 ])
 
 DEFAULT_FILTER_FLAGS = [
+    "predicted_effect_modifies_protein_sequence",
+    "has_mutant_protein_sequence_from_rna",
     "protein_sequence_contains_mutation",
-    "predicted_effect_modifies_protein_sequence"
 ]
 
 def run_isovar(

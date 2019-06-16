@@ -254,7 +254,7 @@ class IsovarResult(object):
         int or None
         """
         if self.has_mutant_protein_sequence_from_rna:
-            return self.top_protein_sequence.variant_aa_interval_stop
+            return self.top_protein_sequence.variant_aa_interval_end
         else:
             return None
 
@@ -369,6 +369,7 @@ class IsovarResult(object):
         """
         p = self.top_protein_sequence
         e = self.predicted_effect
+
         if e is None or p is None:
             return None
         if e.mutant_protein_sequence is None:
@@ -457,6 +458,7 @@ class IsovarResult(object):
         protein_sequence_object = self.top_protein_sequence
         if protein_sequence_object is None:
             return None
+
         assembled_protein_sequence = protein_sequence_object.amino_acids
 
         return alignment_score(
@@ -471,7 +473,10 @@ class IsovarResult(object):
 
         Returns bool
         """
-        return self.num_amino_acid_mismatches_from_predicted_effect == 0
+        n_mismatches = self.num_amino_acid_mismatches_from_predicted_effect
+        if n_mismatches is None:
+            return None
+        return n_mismatches == 0
 
 
     @cached_property
@@ -499,32 +504,15 @@ class IsovarResult(object):
             original_sequence)
 
     @cached_property
-    def protein_sequence_matches_reference(self):
-        """
-        Does the top protein sequence translated from RNA reads
-        match the reference protein sequence?
-
-        Returns bool
-        """
-        return self.num_amino_acid_mismatches_from_reference == 0
-
-    @cached_property
-    def protein_sequence_different_from_reference(self):
-        """
-        Does the top protein sequence translated from RNA reads
-        differ from the reference?
-
-        Returns bool
-        """
-        return not self.protein_sequence_matches_reference
-
-    @cached_property
     def protein_sequence_contains_mutation(self):
         """
         Does the protein sequence assembled from RNA contain a mutation?
 
         Returns bool
         """
+        if not self.has_mutant_protein_sequence_from_rna:
+            return None
+
         # if the sequence is the same as the reference then the genomic
         # variant must have been silent, or maybe was made silent by adjacent
         # phased variants.
@@ -537,6 +525,31 @@ class IsovarResult(object):
         if start_idx is None or stop_idx is None:
             return False
         return start_idx != stop_idx or self.variant.is_deletion
+
+    @cached_property
+    def protein_sequence_matches_reference(self):
+        """
+        Does the top protein sequence translated from RNA reads
+        match the reference protein sequence?
+
+        Returns bool
+        """
+        n_mismatches = self.num_amino_acid_mismatches_from_reference
+        if n_mismatches is None:
+            return None
+        return n_mismatches == 0
+
+    @cached_property
+    def protein_sequence_different_from_reference(self):
+        """
+        Does the top protein sequence translated from RNA reads
+        differ from the reference?
+
+        Returns bool
+        """
+        if self.protein_sequence_matches_reference is None:
+            return None
+        return not self.protein_sequence_matches_reference
 
     @cached_property
     def num_protein_sequences(self):
