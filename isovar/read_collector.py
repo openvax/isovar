@@ -209,14 +209,8 @@ class ReadCollector(object):
                 reference_position_after_insertion)
 
             if read_base0_before_insertion is None:
-                logger.warning("Cannot use read '%s' because reference position %d is not mapped" % (
-                    name,
-                    reference_position_before_insertion))
                 return None
             elif read_base0_after_insertion is None:
-                logger.warning("Cannot use read '%s' because reference position %d is not mapped" % (
-                    name,
-                    reference_position_after_insertion))
                 return None
             elif read_base0_after_insertion - read_base0_after_insertion == 1:
                 read_base0_start_inclusive = read_base0_end_exclusive = read_base0_before_insertion + 1
@@ -254,16 +248,11 @@ class ReadCollector(object):
                         reference_base0_position_before_locus]
                     read_base0_start_inclusive = read_base0_position_before_locus + 1
                 else:
-                    logger.warning(
-                        "Cannot use read '%s' because neither reference positions %d or %d are mapped" % (
-                            name,
-                            base0_start_inclusive,
-                            reference_base0_position_before_locus))
                     return None
 
             read_base0_end_exclusive = base0_reference_positions_dict.get(base0_end_exclusive)
             if read_base0_end_exclusive is None:
-                # if exclusve last index of reference interval doesn't have a corresponding
+                # if exclusive last index of reference interval doesn't have a corresponding
                 # base position then try getting the base position of the reference
                 # position before it and then adding one
                 reference_base0_end_inclusive = base0_end_exclusive - 1
@@ -272,11 +261,6 @@ class ReadCollector(object):
                         reference_base0_end_inclusive]
                     read_base0_end_exclusive = read_base0_end_inclusive + 1
                 else:
-                    logger.warning(
-                        "Cannot use read '%s' because neither reference positions %d or %d are mapped" % (
-                            name,
-                            base0_end_exclusive,
-                            reference_base0_end_inclusive))
                     return None
 
 
