@@ -196,7 +196,7 @@ class IsovarResult(object):
         ########################################################################
         for filter_name, filter_value in self.filter_values.items():
             d["filter:%s" % filter_name] = filter_value
-        d["passes_all_filters"] = self.passes_all_filters
+        d["pass"] = d["passes_all_filters"] = self.passes_all_filters
 
         return d
 
