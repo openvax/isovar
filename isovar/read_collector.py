@@ -255,7 +255,7 @@ class ReadCollector(object):
                     read_base0_start_inclusive = read_base0_position_before_locus + 1
                 else:
                     logger.warning(
-                        "Cannot use read '%s' because neither reference positions %d or %d are not mapped" % (
+                        "Cannot use read '%s' because neither reference positions %d or %d are mapped" % (
                             name,
                             base0_start_inclusive,
                             reference_base0_position_before_locus))
@@ -273,7 +273,7 @@ class ReadCollector(object):
                     read_base0_end_exclusive = read_base0_end_inclusive + 1
                 else:
                     logger.warning(
-                        "Cannot use read '%s' because neither reference positions %d or %d are not mapped" % (
+                        "Cannot use read '%s' because neither reference positions %d or %d are mapped" % (
                             name,
                             base0_end_exclusive,
                             reference_base0_end_inclusive))
