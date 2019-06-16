@@ -50,7 +50,7 @@ def protein_sequence_creator_from_args(args):
         max_transcript_mismatches=args.max_reference_transcript_mismatches,
         max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
         variant_sequence_assembly=args.variant_sequence_assembly,
-        reference_context_size=args.context_size)
+        reference_context_size=args.reference_context_size)
 
 
 def make_protein_sequences_arg_parser(**kwargs):
