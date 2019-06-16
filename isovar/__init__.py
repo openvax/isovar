@@ -14,7 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 
 
 from .allele_read import AlleleRead

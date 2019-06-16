@@ -31,7 +31,7 @@ def add_reference_context_args(parser):
     """
     reference_context_group = parser.add_argument_group("Reference Transcripts")
     parser.add_argument(
-        "--context-size",
+        "--reference-context-size",
         default=CDNA_CONTEXT_SIZE,
         type=int)
     return reference_context_group
@@ -62,5 +62,5 @@ def reference_contexts_dataframe_from_args(args):
     variants = variant_collection_from_args(args)
     reference_context_gen = reference_contexts_generator(
         variants=variants,
-        context_size=args.context_size)
+        context_size=args.reference_context_size)
     return variants_to_reference_contexts_dataframe(reference_context_gen)

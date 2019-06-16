@@ -24,6 +24,7 @@ from .default_parameters import (
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_ASSEMBLY,
     MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+    CDNA_CONTEXT_SIZE,
 )
 
 from .genetic_code import translate_cdna
@@ -61,7 +62,8 @@ class ProteinSequenceCreator(ValueObject):
             count_mismatches_after_variant=COUNT_MISMATCHES_AFTER_VARIANT,
             max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
             variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY,
-            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
+            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+            reference_context_size=CDNA_CONTEXT_SIZE):
         """
         protein_sequence_length : int
             Try to translate protein sequences of this length, though sometimes
@@ -95,6 +97,10 @@ class ProteinSequenceCreator(ValueObject):
         min_assembly_overlap_size : int
             Minimum number of nucleotides that two reads need to overlap before they
             can be merged into a single coding sequence.
+
+        reference_context_size : int
+            Number of nucleotides before variant to use to match assembled
+            coding sequences to reference transcripts.
         """
         self.protein_sequence_length = protein_sequence_length
         self.min_variant_sequence_coverage = min_variant_sequence_coverage
@@ -103,6 +109,7 @@ class ProteinSequenceCreator(ValueObject):
         self.count_mismatches_after_variant = count_mismatches_after_variant
         self.variant_sequence_assembly = variant_sequence_assembly
         self.min_assembly_overlap_size = min_assembly_overlap_size
+        self.reference_context_size = reference_context_size
 
         # Adding an extra codon to the desired RNA sequence length in case we
         # need to clip nucleotides at the start/end of the sequence
@@ -255,6 +262,15 @@ class ProteinSequenceCreator(ValueObject):
             logger.info("No supporting reads for variant %s", variant)
             return []
 
+        reference_contexts = reference_contexts_for_variant(
+            variant,
+            context_size=self.reference_context_size,
+            transcript_id_whitelist=transcript_id_whitelist)
+
+        if len(reference_contexts) == 0:
+            logger.info("Could not determine reference context for variant %s", variant)
+            return []
+
         variant_sequences = self._variant_sequence_creator.reads_to_variant_sequences(
             variant=variant,
             reads=variant_reads)
@@ -262,20 +278,6 @@ class ProteinSequenceCreator(ValueObject):
         if not variant_sequences:
             logger.info("No spanning cDNA sequences for variant %s", variant)
             return []
-
-        # try translating the variant sequences from the same set of
-        # ReferenceContext objects, which requires using the longest
-        # context_size to be compatible with all of the sequences. Some
-        # sequences maybe have fewer nucleotides than this before the variant
-        # and will thus have to be trimmed.
-        context_size = max(
-            len(variant_sequence.prefix)
-            for variant_sequence in variant_sequences)
-
-        reference_contexts = reference_contexts_for_variant(
-            variant,
-            context_size=context_size,
-            transcript_id_whitelist=transcript_id_whitelist)
 
         return self.all_pairs_translations(
             variant_sequences=variant_sequences,

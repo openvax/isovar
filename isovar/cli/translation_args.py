@@ -26,7 +26,7 @@ from ..default_parameters import (
     PROTEIN_SEQUENCE_LENGTH,
 )
 from .variant_sequences_args import make_variant_sequences_arg_parser
-
+from .reference_context_args import add_reference_context_args
 
 def add_translation_args(parser):
     translation_group = parser.add_argument_group(
@@ -79,5 +79,6 @@ def make_translation_arg_parser(**kwargs):
     in this module.
     """
     parser = make_variant_sequences_arg_parser(**kwargs)
+    add_reference_context_args(parser)
     add_translation_args(parser)
     return parser
