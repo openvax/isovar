@@ -152,9 +152,10 @@ class ProteinSequenceCreator(ValueObject):
             cdna_variant_start_offset = variant_orf.variant_cdna_interval_start
             cdna_variant_end_offset = variant_orf.variant_cdna_interval_end
 
-            # TODO: determine if the first codon is the start codon of a
-            # transcript, for now any of the unusual start codons like CTG
-            # will translate to leucine instead of methionine.
+            # TODO:
+            #  determine if the first codon is the start codon of a
+            #  transcript, for now any of the unusual start codons like CTG
+            #  will translate to leucine instead of methionine.
             variant_amino_acids, ends_with_stop_codon = translate_cdna(
                 cdna_sequence[cdna_codon_offset:],
                 first_codon_is_start=False,

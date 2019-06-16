@@ -68,7 +68,10 @@ DEFAULT_FILTER_THRESHOLDS =  OrderedDict([
     ("min_ratio_alt_to_other_fragments", MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS)
 ])
 
-DEFAULT_FILTER_FLAGS = ["protein_sequence_contains_mutation"]
+DEFAULT_FILTER_FLAGS = [
+    "protein_sequence_contains_mutation",
+    "predicted_effect_modifies_protein_sequence"
+]
 
 def run_isovar(
         variants,
