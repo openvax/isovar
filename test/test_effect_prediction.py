@@ -20,12 +20,12 @@ def test_reference_coding_transcripts_outside_of_gene():
     transcripts_without_drop = \
         reference_coding_transcripts_for_variant(
             intergenic_variant,
-            drop_silent_and_noncoding=False)
+            only_coding_effects=False)
     eq_(len(transcripts_without_drop), 0)
 
     transcripts_with_drop = \
         reference_coding_transcripts_for_variant(
             intergenic_variant,
-            drop_silent_and_noncoding=True)
+            only_coding_effects=True)
     eq_(len(transcripts_with_drop), 0)
 

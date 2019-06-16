@@ -68,6 +68,11 @@ DEFAULT_FILTER_THRESHOLDS =  OrderedDict([
     ("min_ratio_alt_to_other_fragments", MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS)
 ])
 
+DEFAULT_FILTER_FLAGS = [
+    "predicted_effect_modifies_protein_sequence",
+    "has_mutant_protein_sequence_from_rna",
+    "protein_sequence_contains_mutation",
+]
 
 def run_isovar(
         variants,
@@ -76,7 +81,7 @@ def run_isovar(
         read_collector=None,
         protein_sequence_creator=None,
         filter_thresholds=DEFAULT_FILTER_THRESHOLDS,
-        filter_flags=[]):
+        filter_flags=DEFAULT_FILTER_FLAGS):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence

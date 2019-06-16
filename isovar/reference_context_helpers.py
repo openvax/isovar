@@ -14,7 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 
 
 from .effect_prediction import reference_coding_transcripts_for_variant

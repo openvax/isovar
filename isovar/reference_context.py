@@ -13,8 +13,6 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-from collections import OrderedDict, defaultdict
-
 
 from .reference_coding_sequence_key import ReferenceCodingSequenceKey
 from .logging import get_logger

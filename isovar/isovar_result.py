@@ -128,6 +128,11 @@ class IsovarResult(object):
             if key.startswith("num_") or key.startswith("fraction_") or key.startswith("ratio_"):
                 d[key] = getattr(self, key)
 
+        # get all boolean properties that start with "has_"
+        for key in dir(self):
+            if key.startswith("has_"):
+                d[key] = getattr(self, key)
+
         ########################################################################
         # predicted protein changes without looking at RNA reads
         ########################################################################
@@ -135,6 +140,8 @@ class IsovarResult(object):
 
         d["predicted_effect"] = effect.short_description
         d["predicted_effect_class"] = effect.__class__.__name__
+        d["predicted_effect_modifies_protein_sequence"] = \
+            self.predicted_effect_modifies_protein_sequence
 
         # list of field names on varcode effect properties
         effect_properties = [
@@ -165,8 +172,6 @@ class IsovarResult(object):
         # paired with names of fields on ProteinSequence
         protein_sequence_properties = [
             ("protein_sequence", "amino_acids"),
-            ("protein_sequence_mutation_start", "variant_aa_interval_start"),
-            ("protein_sequence_mutation_end", "variant_aa_interval_stop"),
             ("protein_sequence_ends_with_stop_codon", "ends_with_stop_codon"),
             ("protein_sequence_gene_names", "gene_names"),
             ("protein_sequence_gene_ids", "gene_ids"),
@@ -178,10 +183,13 @@ class IsovarResult(object):
             if isinstance(value, (list, set, tuple)):
                 value = ";".join(value)
             d[name] = value
+        d["protein_sequence_mutation_start"] = self.protein_sequence_mutation_start
+        d["protein_sequence_mutation_end"] = self.protein_sequence_mutation_end
 
         d["trimmed_predicted_mutant_protein_sequence"] = self.trimmed_predicted_mutant_protein_sequence
         d["trimmed_reference_protein_sequence"] = self.trimmed_reference_protein_sequence
-        d["protein_sequence_matches_predicted_effect"] = self.protein_sequence_matches_predicted_effect
+        d["protein_sequence_contains_mutation"] = self.protein_sequence_contains_mutation
+        d["protein_sequence_matches_predicted_mutation_effect"] = self.protein_sequence_matches_predicted_mutation_effect
 
         ########################################################################
         # filters
@@ -219,6 +227,47 @@ class IsovarResult(object):
             return self.sorted_protein_sequences[0]
         else:
             return None
+
+    @cached_property
+    def protein_sequence_mutation_start(self):
+        """
+        Interbase start coordinate for mutated amino acids in top protein
+        sequence.
+
+        Returns
+        -------
+        int or None
+        """
+        if self.has_mutant_protein_sequence_from_rna:
+            return self.top_protein_sequence.variant_aa_interval_start
+        else:
+            return None
+
+    @cached_property
+    def protein_sequence_mutation_end(self):
+        """
+        Interbase end coordinate for mutated amino acids in top protein
+        sequence.
+
+        Returns
+        -------
+        int or None
+        """
+        if self.has_mutant_protein_sequence_from_rna:
+            return self.top_protein_sequence.variant_aa_interval_end
+        else:
+            return None
+
+    @cached_property
+    def predicted_effect_modifies_protein_sequence(self):
+        """
+        Does the predicted effect change the protein sequence?
+
+        Returns bool
+        """
+        if self.predicted_effect is None:
+            return None
+        return self.predicted_effect.modifies_protein_sequence
 
     @cached_property
     def num_cdna_mismatches_in_top_protein_sequence(self):
@@ -286,7 +335,7 @@ class IsovarResult(object):
         return self.top_protein_sequence.num_supporting_fragments
 
     @cached_property
-    def num_translations_for_top_protein_sequence(self):
+    def num_translations_from_top_protein_sequence(self):
         """
         How many distinct translations were used to create the top
         protein sequence? These can arise either from different cDNA sequences
@@ -299,7 +348,7 @@ class IsovarResult(object):
         return len(self.top_protein_sequence.translations)
 
     @cached_property
-    def num_cdna_sequences_for_top_protein_sequence(self):
+    def num_cdna_sequences_from_top_protein_sequence(self):
         """
         How many distinct cDNA sequences were used to create the top
         protein sequence?
@@ -320,6 +369,7 @@ class IsovarResult(object):
         """
         p = self.top_protein_sequence
         e = self.predicted_effect
+
         if e is None or p is None:
             return None
         if e.mutant_protein_sequence is None:
@@ -331,6 +381,40 @@ class IsovarResult(object):
         return e.mutant_protein_sequence[
              e.aa_mutation_start_offset - n_before_mutation:
              e.aa_mutation_start_offset + len(e.aa_alt) + n_after_mutation]
+
+    @cached_property
+    def has_mutant_protein_sequence_from_rna(self):
+        """
+        Does this IsovarResult have an associated protein sequence
+        determined from RNA reads?
+
+        Returns bool
+        """
+        return self.top_protein_sequence is not None
+
+    @cached_property
+    def has_reference_protein_sequence_from_predicted_effect(self):
+        """
+        Does the variant for this IsovarResult affect a protein
+        whose reference sequence can be determined?
+
+        Returns bool
+        """
+        if self.predicted_effect is None:
+            return False
+        return self.predicted_effect.original_protein_sequence is not None
+
+    @cached_property
+    def has_mutant_protein_sequence_from_predicted_effect(self):
+        """
+        Does the variant for this IsovarResult have a predicted
+        mutant protein sequence?
+
+        Returns bool
+        """
+        if self.predicted_effect is None:
+            return False
+        return self.predicted_effect.mutant_protein_sequence is not None
 
     @cached_property
     def trimmed_reference_protein_sequence(self):
@@ -374,22 +458,98 @@ class IsovarResult(object):
         protein_sequence_object = self.top_protein_sequence
         if protein_sequence_object is None:
             return None
+
         assembled_protein_sequence = protein_sequence_object.amino_acids
 
         return alignment_score(
             assembled_protein_sequence,
             predicted_sequence)
 
-
     @cached_property
-    def protein_sequence_matches_predicted_effect(self):
+    def protein_sequence_matches_predicted_mutation_effect(self):
         """
         Does the top protein sequence translated from RNA reads
         match the predicted protein change determined by Varcode?
 
         Returns bool
         """
-        return self.num_amino_acid_mismatches_from_predicted_effect == 0
+        n_mismatches = self.num_amino_acid_mismatches_from_predicted_effect
+        if n_mismatches is None:
+            return None
+        return n_mismatches == 0
+
+
+    @cached_property
+    def num_amino_acid_mismatches_from_reference(self):
+        """
+        Compute the number of mismatches between the original protein sequence
+        and the best supported sequence translated from assembled RNA reads by
+        Isovar. We're not allowing any insertions or deletions in the middle of
+        the sequences but do allow a shorter sequence to start anywhere
+        within a longer one.
+
+        Returns int
+        """
+        original_sequence = self.trimmed_reference_protein_sequence
+        if original_sequence is None:
+            return None
+
+        protein_sequence_object = self.top_protein_sequence
+        if protein_sequence_object is None:
+            return None
+        assembled_protein_sequence = protein_sequence_object.amino_acids
+
+        return alignment_score(
+            assembled_protein_sequence,
+            original_sequence)
+
+    @cached_property
+    def protein_sequence_contains_mutation(self):
+        """
+        Does the protein sequence assembled from RNA contain a mutation?
+
+        Returns bool
+        """
+        if not self.has_mutant_protein_sequence_from_rna:
+            return None
+
+        # if the sequence is the same as the reference then the genomic
+        # variant must have been silent, or maybe was made silent by adjacent
+        # phased variants.
+        if self.protein_sequence_matches_reference:
+            return False
+
+        start_idx  = self.protein_sequence_mutation_start
+        stop_idx = self.protein_sequence_mutation_end
+
+        if start_idx is None or stop_idx is None:
+            return False
+        return start_idx != stop_idx or self.variant.is_deletion
+
+    @cached_property
+    def protein_sequence_matches_reference(self):
+        """
+        Does the top protein sequence translated from RNA reads
+        match the reference protein sequence?
+
+        Returns bool
+        """
+        n_mismatches = self.num_amino_acid_mismatches_from_reference
+        if n_mismatches is None:
+            return None
+        return n_mismatches == 0
+
+    @cached_property
+    def protein_sequence_different_from_reference(self):
+        """
+        Does the top protein sequence translated from RNA reads
+        differ from the reference?
+
+        Returns bool
+        """
+        if self.protein_sequence_matches_reference is None:
+            return None
+        return not self.protein_sequence_matches_reference
 
     @cached_property
     def num_protein_sequences(self):

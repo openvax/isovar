@@ -3,6 +3,8 @@ from isovar import ProteinSequence
 from varcode import Variant
 from testing_helpers import data_path
 
+from nose.tools import eq_
+
 
 def test_isovar_result_property_types():
     for result in run_isovar(
@@ -54,3 +56,25 @@ def test_isovar_result_property_types():
         # this property aggregates all filters
         assert result.passes_all_filters in {True, False}
 
+        assert type(result.protein_sequence_mutation_start) in (int, type(None))
+        assert type(result.protein_sequence_mutation_end) in (int, type(None))
+
+
+def test_isovar_result_nonsyn_variants():
+    for result in run_isovar(
+            variants=data_path("data/b16.f10/b16.vcf"),
+            alignment_file=data_path("data/b16.f10/b16.combined.sorted.bam")):
+        print(result.variant)
+        print(result.predicted_effect)
+        if result.has_mutant_protein_sequence_from_rna:
+            assert result.num_amino_acid_mismatches_from_predicted_effect is not None
+            assert result.num_amino_acid_mismatches_from_reference is not None
+            assert result.num_amino_acid_mismatches_from_reference > 0
+            eq_(result.protein_sequence_matches_reference, False)
+            eq_(result.protein_sequence_contains_mutation, True)
+        else:
+            assert result.num_amino_acid_mismatches_from_predicted_effect is None
+            assert result.num_amino_acid_mismatches_from_reference is None
+            assert result.protein_sequence_matches_predicted_mutation_effect is None
+            assert result.protein_sequence_matches_reference is None
+            assert result.protein_sequence_contains_mutation is None
