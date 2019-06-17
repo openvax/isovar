@@ -17,15 +17,8 @@ def test_top_effect_outside_of_gene():
 
 
 def test_reference_coding_transcripts_outside_of_gene():
-    transcripts_without_drop = \
+    transcripts = \
         reference_coding_transcripts_for_variant(
-            intergenic_variant,
-            only_coding_effects=False)
-    eq_(len(transcripts_without_drop), 0)
-
-    transcripts_with_drop = \
-        reference_coding_transcripts_for_variant(
-            intergenic_variant,
-            only_coding_effects=True)
-    eq_(len(transcripts_with_drop), 0)
+            intergenic_variant)
+    eq_(len(transcripts), 0)
 

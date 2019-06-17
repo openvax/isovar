@@ -261,6 +261,34 @@ class ProteinSequence(TranslationKey):
         """
         return len(self.cdna_sequences)
 
+    @property
+    def mutation_start(self):
+        """
+        Starting interbase index of mutation in protein sequence
+
+        Differs from variant_aa_interval_start by trimming index to never
+        exceed sequence length.
+
+        Returns int
+        """
+        return min(len(self.amino_acids),  self.variant_aa_interval_start)
+
+    @property
+    def mutation_end(self):
+        """
+        Ending interbase index of mutation in protein sequence
+
+        Differs from variant_aa_interval_end by trimming index to never
+        exceed sequence length.
+
+        Returns int
+        """
+        return min(len(self.amino_acids), self.variant_aa_interval_end)
+
+    @property
+    def num_mutant_amino_acids(self):
+        return self.mutation_end - self.mutation_start
+
     def ascending_sort_key(self):
         """
         Sort key function used to sort protein sequences lexicographically by these criteria:

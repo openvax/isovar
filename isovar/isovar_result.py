@@ -185,6 +185,8 @@ class IsovarResult(object):
             d[name] = value
         d["protein_sequence_mutation_start"] = self.protein_sequence_mutation_start
         d["protein_sequence_mutation_end"] = self.protein_sequence_mutation_end
+        d["num_mutant_amino_acids_in_protein_sequence"] = \
+            self.num_mutant_amino_acids_in_protein_sequence
 
         d["trimmed_predicted_mutant_protein_sequence"] = self.trimmed_predicted_mutant_protein_sequence
         d["trimmed_reference_protein_sequence"] = self.trimmed_reference_protein_sequence
@@ -196,8 +198,7 @@ class IsovarResult(object):
         ########################################################################
         for filter_name, filter_value in self.filter_values.items():
             d["filter:%s" % filter_name] = filter_value
-        d["pass"] = d["passes_all_filters"] = self.passes_all_filters
-
+        d["passes_all_filters"] = self.passes_all_filters
         return d
 
 
@@ -239,7 +240,7 @@ class IsovarResult(object):
         int or None
         """
         if self.has_mutant_protein_sequence_from_rna:
-            return self.top_protein_sequence.variant_aa_interval_start
+            return self.top_protein_sequence.mutation_start
         else:
             return None
 
@@ -254,7 +255,7 @@ class IsovarResult(object):
         int or None
         """
         if self.has_mutant_protein_sequence_from_rna:
-            return self.top_protein_sequence.variant_aa_interval_end
+            return self.top_protein_sequence.mutation_end
         else:
             return None
 
@@ -376,8 +377,8 @@ class IsovarResult(object):
             return None
         if e.aa_mutation_start_offset is None:
             return None
-        n_before_mutation = p.variant_aa_interval_start
-        n_after_mutation = len(p.amino_acids) - p.variant_aa_interval_end
+        n_before_mutation = p.mutation_start
+        n_after_mutation = len(p.amino_acids) - p.mutation_end
         return e.mutant_protein_sequence[
              e.aa_mutation_start_offset - n_before_mutation:
              e.aa_mutation_start_offset + len(e.aa_alt) + n_after_mutation]
@@ -432,7 +433,7 @@ class IsovarResult(object):
             return None
         if e.aa_mutation_start_offset is None:
             return None
-        n_before_mutation = p.variant_aa_interval_start
+        n_before_mutation = p.mutation_start
         n_total = len(p.amino_acids)
         start_index_in_original_protein = (
                e.aa_mutation_start_offset - n_before_mutation)
@@ -525,6 +526,20 @@ class IsovarResult(object):
         if start_idx is None or stop_idx is None:
             return False
         return start_idx != stop_idx or self.variant.is_deletion
+
+    @cached_property
+    def num_mutant_amino_acids_in_protein_sequence(self):
+        """
+        Number of amino acids modified by mutation in the top protein sequence
+        from RNA.
+
+        Returns
+        -------
+        int or None
+        """
+        if self.top_protein_sequence is None:
+            return None
+        return self.top_protein_sequence.num_mutant_amino_acids
 
     @cached_property
     def protein_sequence_matches_reference(self):

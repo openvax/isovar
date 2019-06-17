@@ -11,5 +11,5 @@ def test_isovar_main_to_dataframe():
     eq_(len(df), 4)
     # B16 test data has 2/4 variants with enough coverage
     # to translate protein sequences
-    eq_(df["pass"].sum(), 2)
+    eq_(df["passes_all_filters"].sum(), 2)
 

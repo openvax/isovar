@@ -145,8 +145,7 @@ def top_varcode_effect(variant, transcript_id_whitelist=None):
 
 def reference_coding_transcripts_for_variant(
         variant,
-        transcript_id_whitelist=None,
-        only_coding_effects=True):
+        transcript_id_whitelist=None):
     """
     For a given variant, find all the transcripts which overlap the
     variant and for which it has a predictable effect on the amino acid
@@ -157,9 +156,6 @@ def reference_coding_transcripts_for_variant(
     variant : varcode.Variant
 
     transcript_id_whitelist : set or None
-
-    only_coding_effects : bool
-        Exclude non-coding effects such as intronic
     """
     predicted_effects = predicted_effects_for_variant(
         variant=variant,

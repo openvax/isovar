@@ -1,4 +1,4 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ VARIANT_SEQUENCE_LENGTH = 90
 # number of nucleotides to the left and right of a variant to extract,
 # usually gets adjusted for variant length but some functions take this
 # parameter directly
-CDNA_CONTEXT_SIZE = VARIANT_SEQUENCE_LENGTH // 2
+CDNA_CONTEXT_SIZE = 25
 
 # minimum number of reads supporting each nucleotide of a
 # variant coding sequence
