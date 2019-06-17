@@ -38,9 +38,11 @@ from .default_parameters import (
     MAX_FRACTION_RNA_OTHER_READS,
     MAX_FRACTION_RNA_OTHER_FRAGMENTS,
     MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS,
+    MIN_SHARED_FRAGMENTS_FOR_PHASING
 )
 from .effect_prediction import top_varcode_effect
 from .filtering import apply_filters
+from .phasing import find_phased_variants
 
 logger = get_logger(__name__)
 
@@ -81,7 +83,8 @@ def run_isovar(
         read_collector=None,
         protein_sequence_creator=None,
         filter_thresholds=DEFAULT_FILTER_THRESHOLDS,
-        filter_flags=DEFAULT_FILTER_FLAGS):
+        filter_flags=DEFAULT_FILTER_FLAGS,
+        min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
@@ -145,6 +148,7 @@ def run_isovar(
            variants=variants,
            alignment_file=alignment_file)
 
+    results = []
     for variant, read_evidence in read_evidence_gen:
         # generate protein sequences by assembling variant reads
         protein_sequences = \
@@ -155,7 +159,7 @@ def run_isovar(
         predicted_effect = top_varcode_effect(
             variant=variant,
             transcript_id_whitelist=transcript_id_whitelist)
-        isovar_result =  IsovarResult(
+        isovar_result = IsovarResult(
             variant=variant,
             predicted_effect=predicted_effect,
             read_evidence=read_evidence,
@@ -164,5 +168,6 @@ def run_isovar(
             isovar_result,
             filter_thresholds=filter_thresholds,
             filter_flags=filter_flags)
-        yield isovar_result
-
+        results.append(isovar_result)
+    results = find_phased_variants(results)
+    return results

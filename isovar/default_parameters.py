@@ -136,3 +136,7 @@ MAX_FRACTION_RNA_OTHER_FRAGMENTS = 0.5
 # to be at least this many times greater than the total counts for the
 # third and fourth alleles.
 MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS = 3.0
+
+# number of RNA fragments shared between two assembled protein sequences
+# before we say that their variants are phased
+MIN_SHARED_FRAGMENTS_FOR_PHASING = 2

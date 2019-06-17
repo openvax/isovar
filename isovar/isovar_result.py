@@ -41,7 +41,24 @@ class IsovarResult(object):
             read_evidence,
             predicted_effect,
             sorted_protein_sequences=None,
-            filter_values=None):
+            filter_values=None,
+            phased_variants=None):
+        """
+
+        Parameters
+        ----------
+        variant : varcode.Variant
+
+        read_evidence : ReadEvidence
+
+        predicted_effect : varcode effect
+
+        sorted_protein_sequences : list of ProteinSequence
+
+        filter_values : OrderedDict
+
+        phased_variants : set of varcode.Variant
+        """
         self.variant = variant
         self.read_evidence = read_evidence
         self.predicted_effect = predicted_effect
@@ -55,6 +72,10 @@ class IsovarResult(object):
             self.filter_values = OrderedDict()
         else:
             self.filter_values = filter_values
+
+        if phased_variants is None:
+            phased_variants = set()
+        self.phased_variants = phased_variants
 
     @property
     def fields(self):
@@ -1037,3 +1058,12 @@ class IsovarResult(object):
         return safediv(self.num_alt_fragments, self.num_other_fragments)
 
 
+    @cached_property
+    def num_phased_variants(self):
+        """
+        Number of variants explicitly phased with the variant in this
+        IsovarResult.
+
+        Returns int
+        """
+        return len(self.phased_variants)
