@@ -43,6 +43,7 @@ install:
   # TODO: change pysam version in integration tests to 0.15.2
   # - git clone https://github.com/openvax/openvax-integration-tests.git
   # - pip install -r openvax-integration-tests/requirements.txt --ignore-installed
+  - pip install mhcflurry
   - mhcflurry-downloads fetch models_class1_minimal
   - export MHCFLURRY_DEFAULT_CLASS1_MODELS="$(mhcflurry-downloads path models_class1_minimal)/models"
 before_script:
