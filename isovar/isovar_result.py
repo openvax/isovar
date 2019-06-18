@@ -128,6 +128,7 @@ class IsovarResult(object):
             elif other_value is None and my_value is not None:
                 return False
             elif my_value != other_value:
+                return False
         return True
 
     def __repr__(self):
