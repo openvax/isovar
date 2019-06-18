@@ -85,14 +85,14 @@ class ReadCollector(object):
         -------
         LocusRead or None
         """
-        if not isinstance(base0_start_inclusive, integer_types):
-            raise TypeError("Expected base0_start_inclusive to be an integer but got %s" % (
-                type(base0_start_inclusive),))
-        if not isinstance(base0_end_exclusive, integer_types):
-            raise TypeError("Expected base0_end_exclusive to be an integer but got %s" % (
-                type(base0_end_exclusive),))
+        if pysam_aligned_segment.is_secondary and not self.use_secondary_alignments:
+            return None
+
+        if pysam_aligned_segment.is_duplicate and not self.use_duplicate_reads:
+            return None
 
         name = pysam_aligned_segment.query_name
+
         if name is None:
             logger.warn(
                 "Read missing name at position %d",
@@ -102,14 +102,6 @@ class ReadCollector(object):
         if pysam_aligned_segment.is_unmapped:
             logger.warn(
                 "How did we get unmapped read '%s' in a pileup?", name)
-            return None
-
-        if pysam_aligned_segment.is_secondary and not self.use_secondary_alignments:
-            logger.debug("Skipping secondary alignment of read '%s'", name)
-            return None
-
-        if pysam_aligned_segment.is_duplicate and not self.use_duplicate_reads:
-            logger.debug("Skipping duplicate read '%s'", name)
             return None
 
         mapping_quality = pysam_aligned_segment.mapping_quality
@@ -126,6 +118,7 @@ class ReadCollector(object):
             return None
 
         sequence = pysam_aligned_segment.query_sequence
+
         if sequence is None:
             logger.warn("Skipping read '%s' due to missing sequence" % name)
             return None
@@ -148,7 +141,8 @@ class ReadCollector(object):
         # within the read. The returned list will thus be of the same
         # length as the read.
 
-        base0_reference_positions = pysam_aligned_segment.get_reference_positions(full_length=True)
+        base0_reference_positions = \
+            pysam_aligned_segment.get_reference_positions(full_length=True)
 
         if len(base0_reference_positions) != len(base_qualities):
             logger.warn(
@@ -158,20 +152,14 @@ class ReadCollector(object):
                     len(base_qualities)))
             return None
 
-        base0_reference_positions_dict = {
-            base0_reference_pos: base0_read_pos
-            for (base0_read_pos, base0_reference_pos)
-            in enumerate(base0_reference_positions)
-            if base0_reference_pos is not None
-        }
-
         reference_interval_size = base0_end_exclusive - base0_start_inclusive
         if reference_interval_size < 0:
             raise ValueError("Unexpected interval start after interval end")
 
-        # TODO: Consider how to handle variants before splice sites, where
-        # the bases before or after on the genome will not be mapped on the
-        # read
+        # TODO:
+        #  Consider how to handle variants before splice sites, where
+        #  the bases before or after on the genome will not be mapped on the
+        #  read
         #
         # we have a dictionary mapping base-1 reference positions to base-0
         # read indices and we need to use that to convert the reference
@@ -203,16 +191,20 @@ class ReadCollector(object):
             # going to allow the start/end to be None.
             reference_position_before_insertion = base0_start_inclusive - 1
             reference_position_after_insertion = base0_start_inclusive
-            read_base0_before_insertion = base0_reference_positions_dict.get(
-                reference_position_before_insertion)
-            read_base0_after_insertion = base0_reference_positions_dict.get(
-                reference_position_after_insertion)
+            if reference_position_before_insertion in base0_reference_positions:
+                read_base0_before_insertion = \
+                    base0_reference_positions.index(
+                        reference_position_before_insertion)
+            else:
+                return None
 
-            if read_base0_before_insertion is None:
+            if reference_position_after_insertion in base0_reference_positions:
+                read_base0_after_insertion = base0_reference_positions.index(
+                    reference_position_after_insertion)
+            else:
                 return None
-            elif read_base0_after_insertion is None:
-                return None
-            elif read_base0_after_insertion - read_base0_after_insertion == 1:
+
+            if read_base0_after_insertion - read_base0_after_insertion == 1:
                 read_base0_start_inclusive = read_base0_end_exclusive = read_base0_before_insertion + 1
             else:
                 read_base0_start_inclusive = read_base0_before_insertion + 1
@@ -238,31 +230,29 @@ class ReadCollector(object):
             # figure out which read indices correspond to base0_start_inclusive and
             # base0_end_exclusive but this would fail if base0_end_exclusive is
             # after the end the end of the read.
-            read_base0_start_inclusive = base0_reference_positions_dict.get(base0_start_inclusive)
-            if read_base0_start_inclusive is None:
+            if base0_start_inclusive in base0_reference_positions:
+                read_base0_start_inclusive = base0_reference_positions.index(base0_start_inclusive)
+            elif base0_start_inclusive - 1 in base0_reference_positions:
                 # if first base of reference locus isn't mapped, try getting the base
                 # before it and then adding one to its corresponding base index
-                reference_base0_position_before_locus = base0_start_inclusive - 1
-                if reference_base0_position_before_locus in base0_reference_positions_dict:
-                    read_base0_position_before_locus = base0_reference_positions_dict[
-                        reference_base0_position_before_locus]
-                    read_base0_start_inclusive = read_base0_position_before_locus + 1
-                else:
-                    return None
+                read_base0_position_before_locus = \
+                    base0_reference_positions.index(base0_start_inclusive - 1)
+                read_base0_start_inclusive = read_base0_position_before_locus + 1
+            else:
+                return None
 
-            read_base0_end_exclusive = base0_reference_positions_dict.get(base0_end_exclusive)
-            if read_base0_end_exclusive is None:
+            if base0_end_exclusive in base0_reference_positions:
+                read_base0_end_exclusive = \
+                    base0_reference_positions.index(base0_end_exclusive)
+            elif (base0_end_exclusive - 1) in base0_reference_positions:
                 # if exclusive last index of reference interval doesn't have a corresponding
                 # base position then try getting the base position of the reference
                 # position before it and then adding one
-                reference_base0_end_inclusive = base0_end_exclusive - 1
-                if reference_base0_end_inclusive in base0_reference_positions_dict:
-                    read_base0_end_inclusive = base0_reference_positions_dict[
-                        reference_base0_end_inclusive]
-                    read_base0_end_exclusive = read_base0_end_inclusive + 1
-                else:
-                    return None
-
+                read_base0_end_inclusive = \
+                    base0_reference_positions.index(base0_end_exclusive - 1)
+                read_base0_end_exclusive = read_base0_end_inclusive + 1
+            else:
+                return None
 
         if isinstance(sequence, bytes):
             sequence = sequence.decode('ascii')

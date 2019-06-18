@@ -19,6 +19,7 @@ from six import string_types
 from varcode import load_vcf
 from pysam import AlignmentFile
 from collections import OrderedDict
+from psutil import cpu_count
 
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
@@ -42,7 +43,7 @@ from .default_parameters import (
 )
 from .effect_prediction import top_varcode_effect
 from .filtering import apply_filters
-from .phasing import find_phased_variants
+from .phasing import annotate_phased_variants
 
 logger = get_logger(__name__)
 
@@ -84,7 +85,8 @@ def run_isovar(
         protein_sequence_creator=None,
         filter_thresholds=DEFAULT_FILTER_THRESHOLDS,
         filter_flags=DEFAULT_FILTER_FLAGS,
-        min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING):
+        min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
+        decompression_threads=cpu_count()):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
@@ -126,6 +128,10 @@ def run_isovar(
         they can also be negated by prepending "not_",
         such as "not_has_protein_sequence".
 
+    decompress_threads : int
+        Number of threads used by htslib to decompress BAM/CRAM
+        files.
+
     Generator of IsovarResult objects, one for each variant. The
     `protein_sequences` field of the IsovarVar result will be empty
     if no sequences could be determined.
@@ -134,7 +140,9 @@ def run_isovar(
         variants = load_vcf(variants)
 
     if isinstance(alignment_file, string_types):
-        alignment_file = AlignmentFile(alignment_file)
+        alignment_file = AlignmentFile(
+            alignment_file,
+            threads=decompression_threads)
 
     if read_collector is None:
         read_collector = ReadCollector()
@@ -169,5 +177,7 @@ def run_isovar(
             filter_thresholds=filter_thresholds,
             filter_flags=filter_flags)
         results.append(isovar_result)
-    results = find_phased_variants(results)
+    results = annotate_phased_variants(
+        results,
+        min_shared_fragments_for_phasing)
     return results

@@ -63,6 +63,7 @@ if __name__ == '__main__':
             'varcode>=0.9.0',
             'pyensembl>=1.5.0',
             'cached_property>=1.5.1',
+            'psutil',
         ],
         long_description=readme_markdown,
         long_description_content_type='text/markdown',
