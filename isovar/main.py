@@ -19,7 +19,6 @@ from six import string_types
 from varcode import load_vcf
 from pysam import AlignmentFile
 from collections import OrderedDict
-from psutil import cpu_count
 
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
@@ -86,7 +85,7 @@ def run_isovar(
         filter_thresholds=DEFAULT_FILTER_THRESHOLDS,
         filter_flags=DEFAULT_FILTER_FLAGS,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
-        decompression_threads=cpu_count()):
+        decompression_threads=1):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
