@@ -121,10 +121,15 @@ class IsovarResult(object):
 
     def __eq__(self, other):
         for field_name in self.fields:
-            if getattr(self, field_name) != getattr(other, field_name):
+            my_value = getattr(self, field_name)
+            other_value = getattr(other, field_name)
+            if my_value is None and other_value is not None:
                 return False
+            elif other_value is None and my_value is not None:
+                return False
+            elif my_value != other_value:
         return True
-    
+
     def __repr__(self):
         return str(self)
 
