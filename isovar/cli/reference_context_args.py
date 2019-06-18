@@ -30,7 +30,7 @@ def add_reference_context_args(parser):
         --context-size
     """
     reference_context_group = parser.add_argument_group("Reference Transcripts")
-    parser.add_argument(
+    reference_context_group.add_argument(
         "--reference-context-size",
         default=CDNA_CONTEXT_SIZE,
         type=int)

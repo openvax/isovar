@@ -19,6 +19,7 @@ Common command-line arguments for all Isovar commands which use RNA
 from __future__ import print_function, division, absolute_import
 
 from pysam import AlignmentFile
+from psutil import cpu_count
 
 from varcode.cli import make_variants_parser, variant_collection_from_args
 
@@ -66,6 +67,11 @@ def add_rna_args(
             "By default, secondary alignments are included in reads, "
             "use this option to instead only use primary alignments."))
 
+    rna_group.add_argument(
+        "--num-rna-decompression-threads",
+        help="Number of threads to use for decompression of BAM/CRAM files",
+        default=cpu_count())
+
     return rna_group
 
 
@@ -88,7 +94,9 @@ def alignment_file_from_args(args):
     """
     Use parsed arguments to load a file of aligned RNA reads.
     """
-    return AlignmentFile(args.bam)
+    return AlignmentFile(
+        args.bam,
+        threads=args.num_rna_decompression_threads)
 
 
 def read_collector_from_args(args):
