@@ -34,14 +34,16 @@ install:
   - source activate test-environment
   # install pysam from conda because I'm having trouble installing Cython
   # for Python 3 on Travis
-  - conda install -c bioconda pysam=0.9.0
+  - conda install -c bioconda pysam=0.15.2
   - pip install pypandoc
   - pip install -r requirements.txt --ignore-installed
   - pip install .
   - pip install coveralls
   # install openvax-integration-tests repo and download mhcflurry
-  - git clone https://github.com/openvax/openvax-integration-tests.git
-  - pip install -r openvax-integration-tests/requirements.txt --ignore-installed
+  # TODO: change pysam version in integration tests to 0.15.2
+  # - git clone https://github.com/openvax/openvax-integration-tests.git
+  # - pip install -r openvax-integration-tests/requirements.txt --ignore-installed
+  - pip install mhcflurry
   - mhcflurry-downloads fetch models_class1_minimal
   - export MHCFLURRY_DEFAULT_CLASS1_MODELS="$(mhcflurry-downloads path models_class1_minimal)/models"
 before_script:
