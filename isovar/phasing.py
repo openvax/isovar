@@ -19,7 +19,7 @@ from collections import defaultdict, Counter
 from .default_parameters import MIN_SHARED_FRAGMENTS_FOR_PHASING
 
 
-def find_phased_variants(
+def annotate_phased_variants(
         unphased_isovar_results,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING):
     """

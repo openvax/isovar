@@ -113,7 +113,6 @@ def read_evidence_generator_from_args(args):
         variants=variants,
         alignment_file=samfile)
 
-
 def variant_reads_generator_from_args(args):
     """
     Creates a generator of (Variant, list of AlleleRead) from parsed

@@ -91,18 +91,17 @@ class ReadCollector(object):
         if pysam_aligned_segment.is_duplicate and not self.use_duplicate_reads:
             return None
 
-
-        if pysam_aligned_segment.is_unmapped:
-            logger.warn(
-                "How did we get unmapped read '%s' in a pileup?", name)
-            return None
-
         name = pysam_aligned_segment.query_name
 
         if name is None:
             logger.warn(
                 "Read missing name at position %d",
                 base0_start_inclusive + 1)
+            return None
+
+        if pysam_aligned_segment.is_unmapped:
+            logger.warn(
+                "How did we get unmapped read '%s' in a pileup?", name)
             return None
 
         mapping_quality = pysam_aligned_segment.mapping_quality
