@@ -42,22 +42,34 @@ class IsovarResult(object):
             predicted_effect,
             sorted_protein_sequences=None,
             filter_values=None,
-            phased_variants=None):
+            phased_variants_in_supporting_reads=None,
+            phased_variants_in_protein_sequence=None):
         """
-
         Parameters
         ----------
         variant : varcode.Variant
+            Somatic mutation.
 
         read_evidence : ReadEvidence
+            Reads grouped by allele at the locus of this variant.
 
         predicted_effect : varcode effect
+            Top predicted impact on protein sequence from DNA.
 
         sorted_protein_sequences : list of ProteinSequence
+            Protein sequences sorted by degree of support.
 
         filter_values : OrderedDict
+            Dictionary from names of filters to whether this IsovarResult
+            passed that filter. 
 
-        phased_variants : set of varcode.Variant
+        phased_variants_in_supporting_reads : set of varcode.Variant
+            Other somatic variants which occur in the alt reads supporting the 
+            variant associated with this IsovarResult.
+
+        phased_variants_in_protein_sequence : set of varcode.Variant
+            Other somatic variants which occur in the reads used to construct
+            the top protein sequence associated with this IsovarResult.
         """
         self.variant = variant
         self.read_evidence = read_evidence
@@ -73,9 +85,17 @@ class IsovarResult(object):
         else:
             self.filter_values = filter_values
 
-        if phased_variants is None:
-            phased_variants = set()
-        self.phased_variants = phased_variants
+        if phased_variants_in_supporting_reads is None:
+            self.phased_variants_in_supporting_reads = set()
+        else:
+            self.phased_variants_in_supporting_reads = \
+                phased_variants_in_supporting_reads
+
+        if phased_variants_in_protein_sequence is None:
+            self.phased_variants_in_protein_sequence = set()
+        else:
+            self.phased_variants_in_protein_sequence = \
+                phased_variants_in_protein_sequence
 
     @property
     def fields(self):
@@ -87,7 +107,9 @@ class IsovarResult(object):
             "predicted_effect",
             "read_evidence",
             "sorted_protein_sequences",
-            "filter_values"
+            "filter_values",
+            "phased_variants_in_supporting_reads",
+            "phased_variants_in_protein_sequence",
         ]
 
     def __str__(self):
@@ -122,6 +144,14 @@ class IsovarResult(object):
             if k not in kwargs:
                 kwargs[k] = v
         return IsovarResult(**kwargs)
+
+    def clone(self):
+        """
+        Make a copy of this IsovarResult without updating any fields.
+
+        Returns IsovarResult
+        """
+        return self.clone_with_updates()
 
     def to_record(self):
         """
@@ -1059,11 +1089,23 @@ class IsovarResult(object):
 
 
     @cached_property
-    def num_phased_variants(self):
+    def num_phased_variants_from_reads(self):
         """
         Number of variants explicitly phased with the variant in this
-        IsovarResult.
+        IsovarResult by shared RNA fragments.
 
         Returns int
         """
-        return len(self.phased_variants)
+        return len(self.phased_variants_in_supporting_reads)
+
+    @cached_property
+    def num_phased_variants_in_protein_sequence(self):
+        """
+        Number of variants explicitly phased with the variant in this
+        IsovarResult by shared RNA fragments which were used to create
+        the top protein sequences for this variant and whatever it
+        gets phased with.
+
+        Returns int
+        """
+        return len(self.phased_variants_in_protein_sequence)

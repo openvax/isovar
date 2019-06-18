@@ -68,6 +68,7 @@ def add_rna_args(
 
     rna_group.add_argument(
         "--num-rna-decompression-threads",
+        type=int,
         help=(
             "Number of threads to use for decompression of BAM/CRAM files "
             "(default %(default)s)."),
