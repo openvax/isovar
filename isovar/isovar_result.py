@@ -113,12 +113,18 @@ class IsovarResult(object):
         ]
 
     def __str__(self):
-        field_strings = ["%s=%s" % (k, v) for (k, v) in self.to_dict()]
+        field_strings = ["%s=%s" % (k, v) for (k, v) in self.to_dict().items()]
         return "%s(%s)" % (
-            self.__class__.__name,
+            self.__class__.__name__,
             ", ".join(field_strings)
         )
 
+    def __eq__(self, other):
+        for field_name in self.fields:
+            if getattr(self, field_name) != getattr(other, field_name):
+                return False
+        return True
+    
     def __repr__(self):
         return str(self)
 

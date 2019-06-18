@@ -148,10 +148,12 @@ def annotate_phased_variants(
     for isovar_result in unphased_isovar_results:
         variant = isovar_result.variant
         phased_variants_in_supporting_reads = threshold_phased_variant_counts(
-            phasing_counts_from_supporting_reads[variant])
+            phasing_counts_from_supporting_reads[variant],
+            min_count=min_shared_fragments_for_phasing)
         phased_variants_in_protein_sequence = \
             threshold_phased_variant_counts(
-                phasing_counts_from_protein_sequences[variant])
+                phasing_counts_from_protein_sequences[variant],
+                min_count=min_shared_fragments_for_phasing)
         results_with_phasing.append(
             isovar_result.clone_with_updates(
                 phased_variants_in_supporting_reads=phased_variants_in_supporting_reads,
