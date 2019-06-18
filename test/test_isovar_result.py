@@ -3,7 +3,7 @@ from isovar import ProteinSequence
 from varcode import Variant
 from testing_helpers import data_path
 
-from nose.tools import eq_, assert_not_equals
+from nose.tools import eq_
 
 
 def test_isovar_result_property_types():
@@ -92,7 +92,7 @@ def test_isovar_result_clone_with_updates():
             variants=data_path("data/b16.f10/b16.vcf"),
             alignment_file=data_path("data/b16.f10/b16.combined.sorted.bam")):
         result2 = result.clone_with_updates(variant=None)
-        assert_not_equals(result, result2)
+        assert result != result2
 
 
 def test_isovar_result_str():
