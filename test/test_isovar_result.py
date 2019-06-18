@@ -78,3 +78,28 @@ def test_isovar_result_nonsyn_variants():
             assert result.protein_sequence_matches_predicted_mutation_effect is None
             assert result.protein_sequence_matches_reference is None
             assert result.protein_sequence_contains_mutation is None
+
+
+def test_isovar_result_clone():
+    for result in run_isovar(
+            variants=data_path("data/b16.f10/b16.vcf"),
+            alignment_file=data_path("data/b16.f10/b16.combined.sorted.bam")):
+        result2 = result.clone()
+        eq_(result, result2)
+
+def test_isovar_result_clone_with_updates():
+    for result in run_isovar(
+            variants=data_path("data/b16.f10/b16.vcf"),
+            alignment_file=data_path("data/b16.f10/b16.combined.sorted.bam")):
+        result2 = result.clone_with_updates(variant=None)
+        assert result != result2
+
+
+def test_isovar_result_str():
+    for result in run_isovar(
+            variants=data_path("data/b16.f10/b16.vcf"),
+            alignment_file=data_path("data/b16.f10/b16.combined.sorted.bam")):
+        s = str(result)
+        assert len(s) > 0
+        assert s.startswith("IsovarResult(")
+        assert s.endswith(")")

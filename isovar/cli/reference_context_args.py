@@ -32,8 +32,11 @@ def add_reference_context_args(parser):
     reference_context_group = parser.add_argument_group("Reference Transcripts")
     reference_context_group.add_argument(
         "--reference-context-size",
+        type=int,
         default=CDNA_CONTEXT_SIZE,
-        type=int)
+        help=(
+            "Number of nucleotides used to match assembled sequence to "
+            "reference transcript to establish reading frame."))
     return reference_context_group
 
 

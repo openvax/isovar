@@ -100,9 +100,13 @@ class VariantORF(ValueObject):
 
         Returns a VariantORF object
         """
-        (cdna_prefix, cdna_alt, cdna_suffix,
-            reference_prefix, reference_suffix, n_trimmed_from_reference) = trim_sequences(
-                variant_sequence, reference_context)
+        (cdna_prefix,
+         cdna_alt,
+         cdna_suffix,
+         reference_prefix,
+         reference_suffix,
+         n_trimmed_from_reference) = \
+            trim_sequences(variant_sequence, reference_context)
 
         logger.info(
             ("cdna_predix='%s', cdna_alt='%s', cdna_suffix='%s', "

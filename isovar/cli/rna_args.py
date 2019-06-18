@@ -19,7 +19,6 @@ Common command-line arguments for all Isovar commands which use RNA
 from __future__ import print_function, division, absolute_import
 
 from pysam import AlignmentFile
-from psutil import cpu_count
 
 from varcode.cli import make_variants_parser, variant_collection_from_args
 
@@ -69,8 +68,11 @@ def add_rna_args(
 
     rna_group.add_argument(
         "--num-rna-decompression-threads",
-        help="Number of threads to use for decompression of BAM/CRAM files",
-        default=cpu_count())
+        type=int,
+        help=(
+            "Number of threads to use for decompression of BAM/CRAM files "
+            "(default %(default)s)."),
+        default=1)
 
     return rna_group
 
