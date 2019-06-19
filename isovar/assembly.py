@@ -17,6 +17,7 @@ from __future__ import print_function, division, absolute_import
 from collections import defaultdict
 
 from six.moves import range
+import numpy as np
 
 from .default_parameters import MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
 from .logging import get_logger
@@ -69,11 +70,31 @@ def greedy_merge(
     returned VariantSequence object will contain reads which
     only partially overlap the full sequence.
     """
-    merged_any = True
-    while merged_any:
+    keep_going = True
+    while keep_going:
+        # reduce the number of inputs to the merge algorithm by first collapsing
+        # shorter sequences onto the longer sequences which contain them
+        n_before_collapse = len(variant_sequences)
+        variant_sequences = collapse_substrings(variant_sequences)
+        n_after_collapse = len(variant_sequences)
+        logger.info(
+            "Collapsed %d -> %d sequences",
+            n_before_collapse,
+            n_after_collapse)
+        if n_after_collapse == 1:
+            return variant_sequences
+
+        collapsed_any = n_after_collapse < n_before_collapse
         variant_sequences, merged_any = greedy_merge_helper(
             variant_sequences,
             min_overlap_size=min_overlap_size)
+        logger.info("Merged %d -> %d sequences",
+            n_after_collapse,
+            len(variant_sequences))
+        if len(variant_sequences) == 1:
+            return variant_sequences
+
+        keep_going = (collapsed_any or merged_any)
     return variant_sequences
 
 
@@ -117,6 +138,44 @@ def collapse_substrings(variant_sequences):
         for variant_sequence in result_list
     ]
 
+def select_representative_subset(variant_sequences, k=50):
+    """
+    Choose a subset of VariantSequences with roughly all prefix lengths
+    represented.
+
+    Parameters
+    ----------
+    variant_sequences : list of VariantSequence
+
+    k : int
+
+    Returns two list of VariantSequence
+    """
+    n = len(variant_sequences)
+    if n <= k:
+        return variant_sequences, []
+
+    sorted_variant_sequences = sorted(
+        variant_sequences,
+        key=lambda x: len(x.prefix))
+
+    indices = np.linspace(
+        start=0,
+        stop=len(sorted_variant_sequences) - 1,
+        num=k,
+        dtype=int)
+
+    selected = [
+        sorted_variant_sequences[i]
+        for i in indices
+    ]
+    index_set = set(indices)
+    not_selected = [
+        seq
+        for i, seq in enumerate(variant_sequences)
+        if i not in index_set
+    ]
+    return selected, not_selected
 
 def iterative_overlap_assembly(
         variant_sequences,
@@ -132,16 +191,16 @@ def iterative_overlap_assembly(
         # if we don't have at least two sequences to start with then
         # skip the whole mess below
         return variant_sequences
-
-    # reduce the number of inputs to the merge algorithm by first collapsing
-    # shorter sequences onto the longer sequences which contain them
-    n_before_collapse = len(variant_sequences)
-    variant_sequences = collapse_substrings(variant_sequences)
-    n_after_collapse = len(variant_sequences)
-    logger.info(
-        "Collapsed %d -> %d sequences",
-        n_before_collapse,
-        n_after_collapse)
+    elif len(variant_sequences) > 50:
+        subset, remaining = select_representative_subset(
+            variant_sequences,
+            k=50)
+        logger.info("Assembling representative set of %d/%d sequences",
+            len(subset),
+            len(variant_sequences))
+        assembled_subset = greedy_merge(subset, min_overlap_size)
+        variant_sequences = assembled_subset + remaining
+        logger.info("Running assembly on full set of sequences")
 
     merged_variant_sequences = greedy_merge(variant_sequences, min_overlap_size)
     return list(sorted(
