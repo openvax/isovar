@@ -62,8 +62,6 @@ def match_variant_sequence_to_reference_context(
 
     Returns VariantORF or None
     """
-    variant_orf = None
-
     # if we can't get the variant sequence to match this reference
     # context then keep trimming it by coverage until either
     for i in range(max_trimming_attempts + 1):
@@ -97,10 +95,11 @@ def match_variant_sequence_to_reference_context(
         n_mismatch_after_variant = (
             variant_orf.num_mismatches_after_variant)
 
-        logger.info("Iter #%d/%d: %s" % (
+        logger.info("Iter #%d/%d: %s (len=%d)" % (
             i + 1,
             max_trimming_attempts + 1,
-            variant_orf))
+            variant_orf,
+            len(variant_orf.cdna_sequence)))
 
         total_mismatches = n_mismatch_before_variant
         if count_mismatches_after_variant:

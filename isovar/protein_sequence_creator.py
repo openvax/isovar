@@ -127,84 +127,112 @@ class ProteinSequenceCreator(ValueObject):
                 self,
                 variant_sequence,
                 reference_context):
-            """
-            Attempt to translate a single VariantSequence using the reading frame
-            from a single ReferenceContext.
+        """
+        Attempt to translate a single VariantSequence using the reading frame
+        from a single ReferenceContext.
 
-            Parameters
-            ----------
-            variant_sequence : VariantSequence
+        Parameters
+        ----------
+        variant_sequence : VariantSequence
 
-            reference_context : ReferenceContext
+        reference_context : ReferenceContext
 
-            Returns either a Translation object or None if the number of
-            mismatches between the RNA and reference transcript sequences exceeds
-            given threshold.
-            """
-            variant_orf = match_variant_sequence_to_reference_context(
+        Returns either a Translation object or None if the number of
+        mismatches between the RNA and reference transcript sequences exceeds
+        given threshold.
+        """
+
+        logger.info(
+            "Full mutant cDNA sequence: %s (len=%d)",
+            variant_sequence.sequence,
+            len(variant_sequence))
+        variant_orf = match_variant_sequence_to_reference_context(
+            variant_sequence,
+            reference_context,
+            min_transcript_prefix_length=self.min_transcript_prefix_length,
+            max_transcript_mismatches=self.max_transcript_mismatches,
+            count_mismatches_after_variant=self.count_mismatches_after_variant)
+
+        if variant_orf is None:
+            logger.info("Unable to determine reading frame for %s", variant_sequence)
+            return None
+
+        cdna_sequence = variant_orf.cdna_sequence
+        cdna_codon_offset = variant_orf.offset_to_first_complete_codon
+        logger.info(
+            "Untrimmed cDNA sequence: %s, offset to first codon = %d, len=%d",
+            cdna_sequence,
+            cdna_codon_offset,
+            len(cdna_sequence))
+        # get the offsets into the cDNA sequence which pick out the variant nucleotides
+        cdna_variant_start_offset = variant_orf.variant_cdna_interval_start
+        cdna_variant_end_offset = variant_orf.variant_cdna_interval_end
+
+        in_frame_cdna_sequence = cdna_sequence[cdna_codon_offset:]
+        logger.info("Translating '%s' (len=%d, expected AA length=%d)",
+            in_frame_cdna_sequence,
+            len(in_frame_cdna_sequence),
+            len(in_frame_cdna_sequence) // 3)
+        # TODO:
+        #  determine if the first codon is the start codon of a
+        #  transcript, for now any of the unusual start codons like CTG
+        #  will translate to leucine instead of methionine
+        variant_amino_acids, ends_with_stop_codon = translate_cdna(
+            in_frame_cdna_sequence,
+            first_codon_is_start=False,
+            mitochondrial=reference_context.mitochondrial)
+        logger.info("Mutant amino acids: %s, ends_with_stop=%s, len=%d" % (
+            variant_amino_acids,
+            ends_with_stop_codon,
+            len(variant_amino_acids)))
+        variant_aa_interval_start, variant_aa_interval_end, frameshift = \
+            find_mutant_amino_acid_interval(
+                cdna_sequence=cdna_sequence,
+                cdna_first_codon_offset=cdna_codon_offset,
+                cdna_variant_start_offset=cdna_variant_start_offset,
+                cdna_variant_end_offset=cdna_variant_end_offset,
+                n_ref=len(reference_context.sequence_at_variant_locus),
+                n_amino_acids=len(variant_amino_acids))
+
+        if self.protein_sequence_length:
+            if len(variant_amino_acids) > self.protein_sequence_length:
+                if self.protein_sequence_length <= variant_aa_interval_start:
+                    logger.warn(
+                        ("Truncating amino acid sequence %s "
+                         "to only %d elements loses all variant residues"),
+                        variant_amino_acids,
+                        self.protein_sequence_length)
+                    return None
+                else:
+                    # if the protein is too long then shorten it, which implies
+                    # we're no longer stopping due to a stop codon and that the variant
+                    # amino acids might need a new stop index
+                    variant_amino_acids = variant_amino_acids[:self.protein_sequence_length]
+                    variant_aa_interval_end = min(
+                        variant_aa_interval_end,
+                        self.protein_sequence_length)
+                    ends_with_stop_codon = False
+
+        translation = Translation(
+            amino_acids=variant_amino_acids,
+            frameshift=frameshift,
+            ends_with_stop_codon=ends_with_stop_codon,
+            variant_aa_interval_start=variant_aa_interval_start,
+            variant_aa_interval_end=variant_aa_interval_end,
+            untrimmed_variant_sequence=variant_sequence,
+            reference_context=reference_context,
+            variant_orf=variant_orf)
+
+        logger.info(
+            ("Translation from:"
+             "\n-- cDNA = %s"
+             "\n-- context = %s"
+             "\n-- translation = %s") % (
                 variant_sequence,
                 reference_context,
-                min_transcript_prefix_length=self.min_transcript_prefix_length,
-                max_transcript_mismatches=self.max_transcript_mismatches,
-                count_mismatches_after_variant=self.count_mismatches_after_variant)
+                translation))
 
-            if variant_orf is None:
-                logger.info("Unable to determine reading frame for %s", variant_sequence)
-                return None
-
-            cdna_sequence = variant_orf.cdna_sequence
-            cdna_codon_offset = variant_orf.offset_to_first_complete_codon
-
-            # get the offsets into the cDNA sequence which pick out the variant nucleotides
-            cdna_variant_start_offset = variant_orf.variant_cdna_interval_start
-            cdna_variant_end_offset = variant_orf.variant_cdna_interval_end
-
-            # TODO:
-            #  determine if the first codon is the start codon of a
-            #  transcript, for now any of the unusual start codons like CTG
-            #  will translate to leucine instead of methionine.
-            variant_amino_acids, ends_with_stop_codon = translate_cdna(
-                cdna_sequence[cdna_codon_offset:],
-                first_codon_is_start=False,
-                mitochondrial=reference_context.mitochondrial)
-
-            variant_aa_interval_start, variant_aa_interval_end, frameshift = \
-                find_mutant_amino_acid_interval(
-                    cdna_sequence=cdna_sequence,
-                    cdna_first_codon_offset=cdna_codon_offset,
-                    cdna_variant_start_offset=cdna_variant_start_offset,
-                    cdna_variant_end_offset=cdna_variant_end_offset,
-                    n_ref=len(reference_context.sequence_at_variant_locus),
-                    n_amino_acids=len(variant_amino_acids))
-
-            if self.protein_sequence_length:
-                if len(variant_amino_acids) > self.protein_sequence_length:
-                    if self.protein_sequence_length <= variant_aa_interval_start:
-                        logger.warn(
-                            ("Truncating amino acid sequence %s "
-                             "to only %d elements loses all variant residues"),
-                            variant_amino_acids,
-                            self.protein_sequence_length)
-                        return None
-                    else:
-                        # if the protein is too long then shorten it, which implies
-                        # we're no longer stopping due to a stop codon and that the variant
-                        # amino acids might need a new stop index
-                        variant_amino_acids = variant_amino_acids[:self.protein_sequence_length]
-                        variant_aa_interval_end = min(
-                            variant_aa_interval_end,
-                            self.protein_sequence_length)
-                        ends_with_stop_codon = False
-
-            return Translation(
-                amino_acids=variant_amino_acids,
-                frameshift=frameshift,
-                ends_with_stop_codon=ends_with_stop_codon,
-                variant_aa_interval_start=variant_aa_interval_start,
-                variant_aa_interval_end=variant_aa_interval_end,
-                untrimmed_variant_sequence=variant_sequence,
-                reference_context=reference_context,
-                variant_orf=variant_orf)
+        return translation
 
     def all_pairs_translations(
             self,
@@ -264,9 +292,9 @@ class ProteinSequenceCreator(ValueObject):
 
         reference_contexts = reference_contexts_for_variant(
             variant,
-            context_size=min(
+            context_size=max(
                 self.reference_context_size,
-                self._cdna_sequence_length // 2 - 1),
+                self._cdna_sequence_length),
             transcript_id_whitelist=transcript_id_whitelist)
 
         if len(reference_contexts) == 0:

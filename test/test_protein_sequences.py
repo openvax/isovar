@@ -130,7 +130,7 @@ def test_protein_sequence_creator_protein_length():
     alignment_file = load_bam("data/b16.f10/b16.combined.sorted.bam")
     read_collector = ReadCollector()
 
-    for desired_length in [10, 12, 14, 16]:
+    for desired_length in [21, 15, 10]:
         creator = ProteinSequenceCreator(
             max_protein_sequences_per_variant=1,
             protein_sequence_length=desired_length)
