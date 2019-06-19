@@ -104,6 +104,7 @@ class ReadCollector(object):
                 "How did we get unmapped read '%s' in a pileup?", name)
             return None
 
+
         mapping_quality = pysam_aligned_segment.mapping_quality
 
         if self.min_mapping_quality > 0 and (mapping_quality is None):
@@ -135,12 +136,12 @@ class ReadCollector(object):
                     len(sequence),
                     len(base_qualities)))
             return None
+
         # By default, AlignedSegment.get_reference_positions only returns base-1 positions
         # from the reference that are within the alignment. If full_length is set,
         # None values will be included for any soft-clipped or unaligned positions
         # within the read. The returned list will thus be of the same
         # length as the read.
-
         base0_reference_positions = \
             pysam_aligned_segment.get_reference_positions(full_length=True)
 
@@ -315,10 +316,24 @@ class ReadCollector(object):
             base0_start_inclusive,
             base0_end_exclusive)
         reads = []
+        total_count = 0
+        # check overlap against wider overlap to make sure we don't miss
+        # any reads
+        base0_pos_before_start = base0_start_inclusive - 1
+        base0_pos_after_end = base0_end_exclusive + 1
         for aligned_segment in alignment_file.fetch(
                 chromosome,
                 base0_start_inclusive,
                 base0_end_exclusive):
+            total_count += 1
+            # we get a significant speed up if we skip reads that have spliced
+            # out the entire interval of interest. this is redundant with the
+            # attempt to find mapping positions in
+            #   self.locus_read_from_pysam_aligned_segment
+            # but we do it here to skip the function call overhead for loci
+            # where ~1M reads are mapped
+            if aligned_segment.get_overlap(base0_pos_before_start, base0_pos_after_end) == 0:
+                continue
             read = self.locus_read_from_pysam_aligned_segment(
                 aligned_segment,
                 base0_start_inclusive=base0_start_inclusive,
@@ -326,8 +341,9 @@ class ReadCollector(object):
             if read is not None:
                 reads.append(read)
         logger.info(
-            "Found %d reads overlapping locus %s:%d-%d",
+            "Kept %d/%d reads overlapping locus %s:%d-%d",
             len(reads),
+            total_count,
             chromosome,
             base0_start_inclusive,
             base0_end_exclusive)
@@ -408,7 +424,7 @@ class ReadCollector(object):
             return []
 
         logger.info(
-            "Gathering variant reads for variant %s (with gene names %s)",
+            "Gathering reads for variant %s (with gene names %s)",
             variant,
             variant.gene_names)
 

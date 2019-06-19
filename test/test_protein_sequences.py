@@ -125,6 +125,29 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
         "Expected 0 entries, got %d: %s" % (len(df), df))
 
 
+def test_protein_sequence_creator_protein_length():
+    variants = load_vcf("data/b16.f10/b16.vcf")
+    alignment_file = load_bam("data/b16.f10/b16.combined.sorted.bam")
+    read_collector = ReadCollector()
+
+    for desired_length in [10, 12, 14, 16]:
+        creator = ProteinSequenceCreator(
+            max_protein_sequences_per_variant=1,
+            protein_sequence_length=desired_length)
+        read_evidence_gen = read_collector.read_evidence_generator(
+            variants=variants,
+            alignment_file=alignment_file)
+        protein_sequences_generator = creator.protein_sequences_from_read_evidence_generator(
+           read_evidence_gen)
+        df = protein_sequences_generator_to_dataframe(protein_sequences_generator)
+        print(df)
+        protein_sequences = df["amino_acids"]
+        print(protein_sequences)
+        protein_sequence_lengths = protein_sequences.str.len()
+        assert (protein_sequence_lengths == desired_length).all(), (
+            protein_sequence_lengths,)
+
+
 def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
     expressed_variants = load_vcf("data/b16.f10/b16.expressed.vcf")
     parser = make_protein_sequences_arg_parser()

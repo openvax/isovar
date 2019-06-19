@@ -78,7 +78,7 @@ def match_variant_sequence_to_reference_context(
         )
         if variant_sequence_too_short:
             logger.info(
-                "Variant sequence %s shorter than min allowed %d (iter=%d)",
+                "Prefix of variant sequence %s shorter than min allowed %d (iter=%d)",
                 variant_sequence,
                 min_transcript_prefix_length,
                 i + 1)

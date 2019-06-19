@@ -264,7 +264,9 @@ class ProteinSequenceCreator(ValueObject):
 
         reference_contexts = reference_contexts_for_variant(
             variant,
-            context_size=self.reference_context_size,
+            context_size=min(
+                self.reference_context_size,
+                self._cdna_sequence_length // 2 - 1),
             transcript_id_whitelist=transcript_id_whitelist)
 
         if len(reference_contexts) == 0:
