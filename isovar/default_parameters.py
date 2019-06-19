@@ -51,11 +51,6 @@ USE_SECONDARY_ALIGNMENTS = True
 # number of nucleotides to extract from RNAseq reads around each variant
 VARIANT_SEQUENCE_LENGTH = 90
 
-# number of nucleotides to the left and right of a variant to extract,
-# usually gets adjusted for variant length but some functions take this
-# parameter directly
-CDNA_CONTEXT_SIZE = 25
-
 # minimum number of reads supporting each nucleotide of a
 # variant coding sequence
 MIN_VARIANT_SEQUENCE_COVERAGE = 2

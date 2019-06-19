@@ -24,7 +24,6 @@ from .default_parameters import (
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_ASSEMBLY,
     MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
-    CDNA_CONTEXT_SIZE,
 )
 
 from .genetic_code import translate_cdna
@@ -62,8 +61,7 @@ class ProteinSequenceCreator(ValueObject):
             count_mismatches_after_variant=COUNT_MISMATCHES_AFTER_VARIANT,
             max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
             variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY,
-            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
-            reference_context_size=CDNA_CONTEXT_SIZE):
+            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
         """
         protein_sequence_length : int
             Try to translate protein sequences of this length, though sometimes
@@ -97,10 +95,6 @@ class ProteinSequenceCreator(ValueObject):
         min_assembly_overlap_size : int
             Minimum number of nucleotides that two reads need to overlap before they
             can be merged into a single coding sequence.
-
-        reference_context_size : int
-            Number of nucleotides before variant to use to match assembled
-            coding sequences to reference transcripts.
         """
         self.protein_sequence_length = protein_sequence_length
         self.min_variant_sequence_coverage = min_variant_sequence_coverage
@@ -109,7 +103,6 @@ class ProteinSequenceCreator(ValueObject):
         self.count_mismatches_after_variant = count_mismatches_after_variant
         self.variant_sequence_assembly = variant_sequence_assembly
         self.min_assembly_overlap_size = min_assembly_overlap_size
-        self.reference_context_size = reference_context_size
 
         # Adding an extra codon to the desired RNA sequence length in case we
         # need to clip nucleotides at the start/end of the sequence
@@ -292,9 +285,7 @@ class ProteinSequenceCreator(ValueObject):
 
         reference_contexts = reference_contexts_for_variant(
             variant,
-            context_size=max(
-                self.reference_context_size,
-                self._cdna_sequence_length),
+            context_size=self._cdna_sequence_length,
             transcript_id_whitelist=transcript_id_whitelist)
 
         if len(reference_contexts) == 0:
