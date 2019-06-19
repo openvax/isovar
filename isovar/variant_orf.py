@@ -177,7 +177,7 @@ def trim_sequences(variant_sequence, reference_context):
            same length as the variant prefix.
         5) Reference sequence after the variant locus, untrimmed.
         6) Number of nucleotides trimmed from the reference sequence, used
-           later for adjustint offset to first complete codon.
+           later for adjusting offset to first complete codon.
     """
     cdna_prefix = variant_sequence.prefix
     cdna_alt = variant_sequence.alt
@@ -219,7 +219,7 @@ def trim_sequences(variant_sequence, reference_context):
         cdna_suffix,
         reference_sequence_before_variant,
         reference_sequence_after_variant,
-        n_trimmed_from_reference
+        n_trimmed_from_reference,
     )
 
 

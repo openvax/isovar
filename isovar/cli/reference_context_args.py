@@ -20,7 +20,6 @@ from varcode.cli.variant_args import (
 )
 
 from ..reference_context_helpers import reference_contexts_generator
-from ..default_parameters import CDNA_CONTEXT_SIZE
 from ..dataframe_helpers import variants_to_reference_contexts_dataframe
 
 
@@ -33,7 +32,7 @@ def add_reference_context_args(parser):
     reference_context_group.add_argument(
         "--reference-context-size",
         type=int,
-        default=CDNA_CONTEXT_SIZE,
+        default=30,
         help=(
             "Number of nucleotides used to match assembled sequence to "
             "reference transcript to establish reading frame."))

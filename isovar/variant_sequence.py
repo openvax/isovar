@@ -51,6 +51,22 @@ class VariantSequence(ValueObject):
     def __len__(self):
         return len(self.sequence)
 
+    def __str__(self):
+        return (
+            "VariantSequence("
+            "prefix='%s', alt='%s', "
+            "suffix='%s', sequence='%s', "
+            "reads=<%d AlleleRead object%s>)") % (
+                self.prefix,
+                self.alt,
+                self.suffix,
+                self.sequence,
+                len(self.reads),
+                "s" if len(self.reads) == 0 or len(self.reads) > 1 else "")
+
+    def __repr__(self):
+        return str(self)
+
     @property
     def read_names(self):
         """
