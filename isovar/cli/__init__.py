@@ -16,8 +16,12 @@
 from __future__ import print_function, division, absolute_import
 
 from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
+from .protein_sequence_args import protein_sequence_creator_from_args
+from .rna_args import read_collector_from_args
 
 __all__ = [
     "make_isovar_arg_parser",
-    "run_isovar_from_parsed_args"
+    "run_isovar_from_parsed_args",
+    "protein_sequence_creator_from_args",
+    "read_collector_from_args",
 ]
