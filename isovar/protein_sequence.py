@@ -41,31 +41,82 @@ class ProteinSequence(TranslationKey):
         "translations",
     ]
 
-    def __init__(self, translations):
+    def __init__(
+            self,
+            amino_acids,
+            contains_mutation,
+            variant_aa_interval_start,
+            variant_aa_interval_end,
+            ends_with_stop_codon,
+            frameshift,
+            translations):
         """
-        Initialize fields of ProteinSequence. Fields inherited from TranslationKey
-        (e.g. frameshift, ends_with_stop_codon, &c) are inferred from the
-        translation objects which must all have the same values for these
-        fields.
+        Parameters
+        ----------
+        amino_acids : str
+            Amino acid sequence
+
+        contains_mutation : bool
+            Does the amino acid sequence contain a mutation?
+
+        mutant_interval_start : int
+            Start of half-open interval for variant amino acids
+            in the translated sequence
+
+        mutant_interval_end : int
+            End of half-open interval for variant amino acids
+            in the translated sequence
+
+        ends_with_stop_codon : bool
+            Did the amino acid sequence end due to a stop codon or did we
+            just run out of sequence context around the variant?
+
+        frameshift : bool
+            Was the variant a frameshift relative to the reference sequence?
+
+        translations : list of Translation
+            Translation objects corresponding to each coding sequence + reading
+            frame used to determine this ProteinSequence
+        """
+        TranslationKey.__init__(
+            self=self,
+            amino_acids=amino_acids,
+            variant_aa_interval_start=variant_aa_interval_start,
+            variant_aa_interval_end=variant_aa_interval_end,
+            ends_with_stop_codon=ends_with_stop_codon,
+            frameshift=frameshift)
+        self.translations = translations
+
+    @classmethod
+    def from_translations(cls, translations):
+        """
+        Create ProteinSequence from list of Translation objects.
+        Fields inherited from TranslationKey (e.g. frameshift,
+        ends_with_stop_codon, &c) are inferred from the translation objects
+        which must all have the same values for these fields.
 
         Parameters
         ----------
         translations : list of Translation
             Equivalent translations which might have different cDNA sequences
             but agree in their amino acid sequences.
+
+        Returns
+        -------
+        ProteinSequence
         """
         if len(translations) == 0:
-            raise ValueError("Cannot create ProteinSequence without at least one Translation")
-
-        self.translations = translations
+            raise ValueError(
+                "Cannot create ProteinSequence without at least one Translation")
 
         # fill in fields inherited from TranslationKey by taking value
         # from first Translation iobject and then check to make sure
         # other translations are consistent with this
         first_translation = translations[0]
+        kwargs = {"translations": translations}
         for field_name in TranslationKey.__slots__:
             field_value = getattr(first_translation, field_name)
-            setattr(self, field_name, field_value)
+            kwargs[field_name] = field_value
             # check other translations to make sure they have the same value
             # for this field
             for other_translation in translations[1:]:
@@ -76,6 +127,7 @@ class ProteinSequence(TranslationKey):
                             field_name,
                             field_value,
                             other_translation_field_value))
+        return ProteinSequence(**kwargs)
 
     def __len__(self):
         return len(self.amino_acids)
@@ -305,3 +357,64 @@ class ProteinSequence(TranslationKey):
             -self.num_mismatches_after_variant,
             len(self.amino_acids),
         )
+
+    def subsequence(self, start_idx, end_idx):
+        """
+        Create a ProteinSequence object covering a subsequence of this
+        object's `amino_acids` string.
+
+        Parameters
+        ----------
+        start_idx : int or None
+            Base 0 (inclusive) start index of subsequence
+
+        end_idx : int or None
+            Base 0 (exclusive) end index of subsequence
+
+        Returns
+        -------
+        ProteinSequence
+        """
+
+        return ProteinSequence(
+            amino_acids=amino_acids,
+            contains_mutation=adjusted_contains_mutation,
+            variant_aa_interval_start=adjusted_variant_aa_interval_start,
+            variant_aa_interval_end=adjusted_variant_aa_interval_end,
+            ends_with_stop_codon=adjusted_ends_with_stop_coding,
+            frameshift=adjusted_frameshift,
+            translations):
+        # half-open interval coordinates for variant amino acids
+        # in the translated sequence
+        "variant_aa_interval_start",
+        "variant_aa_interval_end",
+        # did the amino acid sequence end due to a stop codon or did we
+        # just run out of sequence context around the variant?
+        "ends_with_stop_codon",
+        # was the variant a frameshift relative to the reference sequence?
+        "frameshift"
+    ])
+
+        subsequence_end_offset = subsequence_start_offset + subsequence_length
+        amino_acids = self.amino_acids[
+                      subsequence_start_offset:subsequence_end_offset]
+        mutant_amino_acid_start_offset = max(
+            0,
+            self.mutant_amino_acid_start_offset - subsequence_start_offset)
+        mutant_amino_acid_end_offset = min(
+            len(amino_acids),
+            max(
+                0,
+                self.mutant_amino_acid_end_offset - subsequence_start_offset))
+        n_supporting_reads = self.n_alt_reads_supporting_protein_sequence
+        subsequence_mutant_protein_fragment = MutantProteinFragment(
+            variant=self.variant,
+            gene_name=self.gene_name,
+            amino_acids=amino_acids,
+            mutant_amino_acid_start_offset=mutant_amino_acid_start_offset,
+            mutant_amino_acid_end_offset=mutant_amino_acid_end_offset,
+            n_overlapping_reads=self.n_overlapping_reads,
+            n_ref_reads=self.n_ref_reads,
+            n_alt_reads=self.n_alt_reads,
+            n_alt_reads_supporting_protein_sequence=n_supporting_reads,
+            supporting_reference_transcripts=self.supporting_reference_transcripts)

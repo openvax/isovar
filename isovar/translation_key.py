@@ -38,6 +38,8 @@ class TranslationKey(ValueObject):
         # translated sequence of a variant sequence in the ORF established
         # by a reference context
         "amino_acids",
+        # is there a mutation in the amino acid sequence?
+        "contains_mutation",
         # half-open interval coordinates for variant amino acids
         # in the translated sequence
         "variant_aa_interval_start",

@@ -189,25 +189,20 @@ class ProteinSequenceCreator(ValueObject):
 
         if self.protein_sequence_length:
             if len(variant_amino_acids) > self.protein_sequence_length:
-                if self.protein_sequence_length <= variant_aa_interval_start:
-                    logger.warn(
-                        ("Truncating amino acid sequence %s "
-                         "to only %d elements loses all variant residues"),
-                        variant_amino_acids,
-                        self.protein_sequence_length)
-                    return None
-                else:
-                    # if the protein is too long then shorten it, which implies
-                    # we're no longer stopping due to a stop codon and that the variant
-                    # amino acids might need a new stop index
-                    variant_amino_acids = variant_amino_acids[:self.protein_sequence_length]
-                    variant_aa_interval_end = min(
-                        variant_aa_interval_end,
-                        self.protein_sequence_length)
-                    ends_with_stop_codon = False
+                # if the protein is too long then shorten it, which implies
+                # we're no longer stopping due to a stop codon and that the variant
+                # amino acids might need a new stop index
+                variant_amino_acids = variant_amino_acids[:self.protein_sequence_length]
+                variant_aa_interval_end = min(
+                    variant_aa_interval_end,
+                    self.protein_sequence_length)
+                ends_with_stop_codon = False
+
+        contains_mutation = len(variant_amino_acids) > variant_aa_interval_start
 
         translation = Translation(
             amino_acids=variant_amino_acids,
+            contains_mutation=contains_mutation,
             frameshift=frameshift,
             ends_with_stop_codon=ends_with_stop_codon,
             variant_aa_interval_start=variant_aa_interval_start,

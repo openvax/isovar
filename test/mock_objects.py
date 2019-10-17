@@ -86,6 +86,7 @@ def make_dummy_translation(
     return Translation(
         variant_orf=varseq_in_orf,
         amino_acids=amino_acids,
+        contains_mutation=True,
         variant_aa_interval_start=variant_aa_interval_start,
         variant_aa_interval_end=variant_aa_interval_end,
         frameshift=False,
