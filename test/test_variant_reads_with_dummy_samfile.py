@@ -17,7 +17,7 @@ def test_partitioned_read_sequences_snv():
     to be "ACCTTG"
     """
     # chr1_seq = "ACCTTG"
-    chromosome = "chromosome"
+    chromosome = "1"
     location = 4
     ref = "T"
     alt = "G"
@@ -58,7 +58,7 @@ def test_partitioned_read_sequences_insertion():
     and the variant sequence is "ACCTGTG"
     """
     # chr1_seq = "ACCTTG"
-    chromosome = "chromosome"
+    chromosome = "1"
     location = 4
     ref = "T"
     alt = "TG"
@@ -96,7 +96,7 @@ def test_partitioned_read_sequences_deletion():
     be "ACCTTG"
     """
     # chr1_seq = "ACCTTG"
-    chromosome = "chromosome"
+    chromosome = "1"
     location = 4
     ref = "TT"
     alt = "T"

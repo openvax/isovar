@@ -23,6 +23,7 @@ from __future__ import print_function, division, absolute_import
 from .translation_key import TranslationKey
 from .translation import Translation
 from .logging import get_logger
+from .value_object import ValueObject
 
 logger = get_logger(__name__)
 
@@ -78,15 +79,17 @@ class ProteinSequence(TranslationKey):
             Translation objects corresponding to each coding sequence + reading
             frame used to determine this ProteinSequence
         """
-        TranslationKey.__init__(
+        # get ValueObject to initialize all of the fields specified in the
+        # __slots__ field of both this object and TranslationKey
+        ValueObject.__init__(
             self=self,
             amino_acids=amino_acids,
             contains_mutation=contains_mutation,
             mutation_start_idx=mutation_start_idx,
             mutation_end_idx=mutation_end_idx,
             ends_with_stop_codon=ends_with_stop_codon,
-            frameshift=frameshift)
-        self.translations = translations
+            frameshift=frameshift,
+            translations=translations)
 
 
     @classmethod

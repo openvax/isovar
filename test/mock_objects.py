@@ -138,5 +138,4 @@ def make_dummy_protein_sequence(
         num_mismatches=num_mismatches,
         n_variant_reads=n_total_variant_reads)
 
-    return ProteinSequence(
-        translations=[translation] * n_translations)
+    return ProteinSequence.from_translations([translation] * n_translations)
