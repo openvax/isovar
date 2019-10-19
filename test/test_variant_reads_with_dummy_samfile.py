@@ -28,7 +28,7 @@ def test_partitioned_read_sequences_snv():
         ref,
         alt,
         grch38,
-        normalize_contig_name=False)
+        normalize_contig_names=False)
 
     read = make_pysam_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
 
@@ -63,7 +63,7 @@ def test_partitioned_read_sequences_insertion():
     ref = "T"
     alt = "TG"
     variant = Variant(
-        chromosome, location, ref, alt, grch38, normalize_contig_name=False)
+        chromosome, location, ref, alt, grch38, normalize_contig_names=False)
 
     read = make_pysam_read(
         seq=b"ACCTGTG",
@@ -101,7 +101,7 @@ def test_partitioned_read_sequences_deletion():
     ref = "TT"
     alt = "T"
     variant = Variant(
-        chromosome, location, ref, alt, grch38, normalize_contig_name=False)
+        chromosome, location, ref, alt, grch38, normalize_contig_names=False)
 
     read = make_pysam_read(
         seq="ACCTG",

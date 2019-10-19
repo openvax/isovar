@@ -20,7 +20,7 @@ def test_sequence_counts_snv():
     base1_location = 65857041
     ref = "G"
     alt = "C"
-    variant = Variant(chromosome, base1_location, ref, alt, grch38)
+    variant = Variant(chromosome, base1_location, ref, alt, "hg38")
     read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
         alignment_file=samfile,

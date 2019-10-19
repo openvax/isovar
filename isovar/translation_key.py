@@ -42,8 +42,8 @@ class TranslationKey(ValueObject):
         "contains_mutation",
         # half-open interval coordinates for variant amino acids
         # in the translated sequence
-        "variant_aa_interval_start",
-        "variant_aa_interval_end",
+        "mutation_start_idx",
+        "mutation_end_idx",
         # did the amino acid sequence end due to a stop codon or did we
         # just run out of sequence context around the variant?
         "ends_with_stop_codon",

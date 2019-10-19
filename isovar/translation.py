@@ -43,8 +43,8 @@ class Translation(TranslationKey):
             self,
             amino_acids,
             contains_mutation,
-            variant_aa_interval_start,
-            variant_aa_interval_end,
+            mutation_start_idx,
+            mutation_end_idx,
             ends_with_stop_codon,
             frameshift,
             untrimmed_variant_sequence,
@@ -79,8 +79,8 @@ class Translation(TranslationKey):
         #  VariantORF keep track of its inputs
         self.amino_acids = amino_acids
         self.contains_mutation = contains_mutation
-        self.variant_aa_interval_start = variant_aa_interval_start
-        self.variant_aa_interval_end = variant_aa_interval_end
+        self.mutation_start_idx = mutation_start_idx
+        self.mutation_end_idx = mutation_end_idx
         self.ends_with_stop_codon = ends_with_stop_codon
         self.frameshift = frameshift
         # this variant sequence might differ from the one

@@ -56,5 +56,5 @@ def group_equivalent_translations(translations):
         translations,
         key_fn=Translation.as_translation_key)
     for equivalent_translations in translation_groups.values():
-        protein_sequences.append(ProteinSequence(equivalent_translations))
+        protein_sequences.append(ProteinSequence.from_translations(equivalent_translations))
     return protein_sequences

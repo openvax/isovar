@@ -178,7 +178,7 @@ class ProteinSequenceCreator(ValueObject):
             variant_amino_acids,
             ends_with_stop_codon,
             len(variant_amino_acids)))
-        variant_aa_interval_start, variant_aa_interval_end, frameshift = \
+        mutation_start_idx, mutation_end_idx, frameshift = \
             find_mutant_amino_acid_interval(
                 cdna_sequence=cdna_sequence,
                 cdna_first_codon_offset=cdna_codon_offset,
@@ -193,20 +193,20 @@ class ProteinSequenceCreator(ValueObject):
                 # we're no longer stopping due to a stop codon and that the variant
                 # amino acids might need a new stop index
                 variant_amino_acids = variant_amino_acids[:self.protein_sequence_length]
-                variant_aa_interval_end = min(
-                    variant_aa_interval_end,
+                mutation_end_idx = min(
+                    mutation_end_idx,
                     self.protein_sequence_length)
                 ends_with_stop_codon = False
 
-        contains_mutation = len(variant_amino_acids) > variant_aa_interval_start
+        contains_mutation = len(variant_amino_acids) > mutation_start_idx
 
         translation = Translation(
             amino_acids=variant_amino_acids,
             contains_mutation=contains_mutation,
             frameshift=frameshift,
             ends_with_stop_codon=ends_with_stop_codon,
-            variant_aa_interval_start=variant_aa_interval_start,
-            variant_aa_interval_end=variant_aa_interval_end,
+            mutation_start_idx=mutation_start_idx,
+            mutation_end_idx=mutation_end_idx,
             untrimmed_variant_sequence=variant_sequence,
             reference_context=reference_context,
             variant_orf=variant_orf)

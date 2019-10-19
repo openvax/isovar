@@ -45,8 +45,8 @@ class ProteinSequence(TranslationKey):
             self,
             amino_acids,
             contains_mutation,
-            variant_aa_interval_start,
-            variant_aa_interval_end,
+            mutation_start_idx,
+            mutation_end_idx,
             ends_with_stop_codon,
             frameshift,
             translations):
@@ -59,11 +59,11 @@ class ProteinSequence(TranslationKey):
         contains_mutation : bool
             Does the amino acid sequence contain a mutation?
 
-        mutant_interval_start : int
+        mutation_start_idx : int
             Start of half-open interval for variant amino acids
             in the translated sequence
 
-        mutant_interval_end : int
+        mutation_end_idx : int
             End of half-open interval for variant amino acids
             in the translated sequence
 
@@ -81,11 +81,13 @@ class ProteinSequence(TranslationKey):
         TranslationKey.__init__(
             self=self,
             amino_acids=amino_acids,
-            variant_aa_interval_start=variant_aa_interval_start,
-            variant_aa_interval_end=variant_aa_interval_end,
+            contains_mutation=contains_mutation,
+            mutation_start_idx=mutation_start_idx,
+            mutation_end_idx=mutation_end_idx,
             ends_with_stop_codon=ends_with_stop_codon,
             frameshift=frameshift)
         self.translations = translations
+
 
     @classmethod
     def from_translations(cls, translations):
@@ -113,6 +115,7 @@ class ProteinSequence(TranslationKey):
         # from first Translation iobject and then check to make sure
         # other translations are consistent with this
         first_translation = translations[0]
+
         kwargs = {"translations": translations}
         for field_name in TranslationKey.__slots__:
             field_value = getattr(first_translation, field_name)
@@ -358,6 +361,7 @@ class ProteinSequence(TranslationKey):
             len(self.amino_acids),
         )
 
+
     def subsequence(self, start_idx, end_idx):
         """
         Create a ProteinSequence object covering a subsequence of this
@@ -375,46 +379,47 @@ class ProteinSequence(TranslationKey):
         -------
         ProteinSequence
         """
+        old_length = len(self)
+        (start_idx, end_idx, stride) = \
+            slice(start_idx, end_idx).indices(old_length)
+        if stride != 1:
+            raise ValueError("Unexpected stride: %s" % stride)
 
+        amino_acids = self.amino_acids[start_idx:end_idx]
+        new_length = len(amino_acids)
+        # if we lose amino acids from the end of the sequence then it
+        # can't end with a stop codon anymore
+        ends_with_stop_codon = (
+            self.ends_with_stop_codon and
+            end_idx == old_length
+        )
+
+        # When the mutation interval overlaps with the subsequence
+        # we need to subtract off the new start index and clip the end
+        # index. If the mutation is to the left of the new subsequence
+        # then the start/end will be be clipped to 0. If the mutation is
+        # to the right of the new subsequence then the start/end will both
+        # be clipped to the subsequence length
+        mutation_start_idx = max(0, self.mutation_start_idx - start_idx)
+        mutation_end_idx = min(
+            new_length, self.mutation_end_idx - start_idx)
+        # number of mutant amino acids in the new subsequence
+        num_mutant_aa = mutation_end_idx - mutation_start_idx
+        # a deletion is considered a mutant sequence if the amino acids to
+        # the left and right of it are both present
+        deletion = (num_mutant_aa == 0) and (0 < start_idx < new_length)
+        contains_mutation = self.contains_mutation and (
+            (num_mutant_aa > 0) or deletion
+        )
+        # if the right side of the sequence came from a frameshift then
+        # we still consider this a frameshift as long as some mutant
+        # amino acids are present
+        frameshift = self.frameshift and contains_mutation
         return ProteinSequence(
             amino_acids=amino_acids,
-            contains_mutation=adjusted_contains_mutation,
-            variant_aa_interval_start=adjusted_variant_aa_interval_start,
-            variant_aa_interval_end=adjusted_variant_aa_interval_end,
-            ends_with_stop_codon=adjusted_ends_with_stop_coding,
-            frameshift=adjusted_frameshift,
-            translations):
-        # half-open interval coordinates for variant amino acids
-        # in the translated sequence
-        "variant_aa_interval_start",
-        "variant_aa_interval_end",
-        # did the amino acid sequence end due to a stop codon or did we
-        # just run out of sequence context around the variant?
-        "ends_with_stop_codon",
-        # was the variant a frameshift relative to the reference sequence?
-        "frameshift"
-    ])
-
-        subsequence_end_offset = subsequence_start_offset + subsequence_length
-        amino_acids = self.amino_acids[
-                      subsequence_start_offset:subsequence_end_offset]
-        mutant_amino_acid_start_offset = max(
-            0,
-            self.mutant_amino_acid_start_offset - subsequence_start_offset)
-        mutant_amino_acid_end_offset = min(
-            len(amino_acids),
-            max(
-                0,
-                self.mutant_amino_acid_end_offset - subsequence_start_offset))
-        n_supporting_reads = self.n_alt_reads_supporting_protein_sequence
-        subsequence_mutant_protein_fragment = MutantProteinFragment(
-            variant=self.variant,
-            gene_name=self.gene_name,
-            amino_acids=amino_acids,
-            mutant_amino_acid_start_offset=mutant_amino_acid_start_offset,
-            mutant_amino_acid_end_offset=mutant_amino_acid_end_offset,
-            n_overlapping_reads=self.n_overlapping_reads,
-            n_ref_reads=self.n_ref_reads,
-            n_alt_reads=self.n_alt_reads,
-            n_alt_reads_supporting_protein_sequence=n_supporting_reads,
-            supporting_reference_transcripts=self.supporting_reference_transcripts)
+            contains_mutation=contains_mutation,
+            mutation_start_idx=mutation_start_idx,
+            mutation_end_idx=mutation_end_idx,
+            ends_with_stop_codon=ends_with_stop_codon,
+            frameshift=frameshift,
+            translations=self.translations)
