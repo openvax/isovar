@@ -18,11 +18,10 @@ def test_locus_reads_snv():
     """
     # chr1_seq = "ACCTTG"
     variant = Variant(
-        "chromosome",
+        "1",
         4,
         ref="T",
-        alt="G",
-        normalize_contig_name=False)
+        alt="G")
 
     pysam_read = make_pysam_read(
         seq="ACCGTG",
@@ -58,8 +57,7 @@ def test_locus_reads_insertion():
     where the sequence for chr1 is assumed to be "ACCTTG"
     and the variant sequence is "ACCTGTG"
     """
-    variant = Variant(
-        "chromosome", 4, ref="T", alt="TG", normalize_contig_name=False)
+    variant = Variant("1", 4, ref="T", alt="TG")
 
     pysam_read = make_pysam_read(seq="ACCTGTG", cigar="4M1I2M", mdtag="6")
 
@@ -101,9 +99,7 @@ def test_locus_reads_deletion():
     """
     # normalization of this variant will turn it into the deletion of
     # "T" at base-1 position 5
-    variant = Variant(
-        "chromosome", 4, ref="TT", alt="T", normalize_contig_name=False)
-    print(variant)
+    variant = Variant("1", 4, ref="TT", alt="T")
     pysam_read = make_pysam_read(seq="ACCTG", cigar="4M1D1M", mdtag="4^T1")
 
     samfile = MockAlignmentFile(
@@ -137,8 +133,7 @@ def test_locus_reads_substitution_longer():
     # test C>GG subsitution at second nucleotide of reference sequence "ACCTTG",
     # the alignment is interpreted as a C>G variant followed by an insertion of
     # another G
-    variant = Variant(
-        "chromosome", 2, ref="C", alt="GG", normalize_contig_name=False)
+    variant = Variant("1", 2, ref="C", alt="GG")
     print(variant)
     pysam_read = make_pysam_read(seq="AGGCTTG", cigar="2M1I4M", mdtag="1C4")
 
@@ -172,8 +167,7 @@ def test_locus_reads_substitution_shorter():
     # test CC>G subsitution at 2nd and 3rd nucleotides of reference sequence
     # "ACCTTG", for which the alignment is interpreted as a C>G variant
     # followed by the deletion of a C
-    variant = Variant(
-        "chromosome", 2, ref="CC", alt="G", normalize_contig_name=False)
+    variant = Variant("1", 2, ref="CC", alt="G")
     print(variant)
     pysam_read = make_pysam_read(seq="AGTTG", cigar="2M1D3M", mdtag="1C^C4")
 

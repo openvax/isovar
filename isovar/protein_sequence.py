@@ -364,6 +364,45 @@ class ProteinSequence(TranslationKey):
             len(self.amino_acids),
         )
 
+    @property
+    def num_mutant_amino_acids(self):
+        """
+        Number of mutant amino acids contained in this sequence.
+
+        Returns
+        -------
+        int
+        """
+        return self.mutation_end_idx - self.mutation_start_idx
+
+    @property
+    def contains_deletion(self):
+        """
+        Returns True if this protein sequence contains the residues before
+        and after a deletion.
+
+        Returns
+        -------
+        bool
+        """
+        # deletions are represented by a mutation interval with the same start/end
+        # but to have some sequence before and after the start/end have to be greater
+        # than 0 and less than the length of the sequence
+        # Example:
+        #
+        # -0-1-2-3-4-5-6-7
+        # -S-I-I-N-F-E-K-L
+        #
+        # ^ start/end = 0, only see residue after
+        #
+        # ----^ start/end = 2, deletion occured between two I residues
+        #
+        # ----------------^ start/end = 8, only see residue before
+        return (
+                self.contains_mutation and
+                (self.num_mutant_amino_acids == 0) and
+                (0 < self.mutation_start_idx < len(self))
+        )
 
     def subsequence(self, start_idx, end_idx):
         """
