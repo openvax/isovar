@@ -59,11 +59,11 @@ class Translation(TranslationKey):
         contains_mutation : bool
             Does the amino acid sequence contain a mutation?
 
-        mutant_interval_start : int
+        mutation_start_idx : int
             Start of half-open interval for variant amino acids
             in the translated sequence
 
-        mutant_interval_end : int
+        mutation_end_idx : int
             End of half-open interval for variant amino acids
             in the translated sequence
 
@@ -73,10 +73,18 @@ class Translation(TranslationKey):
 
         frameshift : bool
             Was the variant a frameshift relative to the reference sequence?
+
+        untrimmed_variant_sequence : VariantSequence
+
+        reference_context : ReferenceContext
+
+        variant_orf : VariantORF
         """
+
         # TODO:
         #  get rid of untrimmed_variant_sequence by making
         #  VariantORF keep track of its inputs
+
         self.amino_acids = amino_acids
         self.contains_mutation = contains_mutation
         self.mutation_start_idx = mutation_start_idx
