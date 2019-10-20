@@ -412,9 +412,15 @@ class ProteinSequence(TranslationKey):
         """
         old_length = len(self)
 
+        start_idx, end_idx = normalize_base0_range_indices(
+            start_idx=start_idx,
+            end_idx=end_idx,
+            sequence_length=old_length)
 
         amino_acids = self.amino_acids[start_idx:end_idx]
+
         new_length = len(amino_acids)
+
         # if we lose amino acids from the end of the sequence then it
         # can't end with a stop codon anymore
         ends_with_stop_codon = (
@@ -428,13 +434,16 @@ class ProteinSequence(TranslationKey):
         # then the start/end will be be clipped to 0. If the mutation is
         # to the right of the new subsequence then the start/end will both
         # be clipped to the subsequence length
-        mutation_start_idx = max(0, self.mutation_start_idx - start_idx)
-        mutation_end_idx = min(new_length, self.mutation_end_idx - start_idx)
+        mutation_start_idx = \
+            min(new_length, max(0, self.mutation_start_idx - start_idx))
+        mutation_end_idx = \
+            min(new_length, max(0, self.mutation_end_idx - start_idx))
+
         # number of mutant amino acids in the new subsequence
         num_mutant_aa = mutation_end_idx - mutation_start_idx
         # a deletion is considered a mutant sequence if the amino acids to
         # the left and right of it are both present
-        deletion = (num_mutant_aa == 0) and (0 < start_idx < new_length)
+        deletion = (num_mutant_aa == 0) and (0 < mutation_start_idx < new_length)
         contains_mutation = self.contains_mutation and (
             (num_mutant_aa > 0) or deletion
         )
