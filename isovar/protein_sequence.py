@@ -20,6 +20,7 @@ associated with its supporting (and non-supporting but overlapping) RNA reads.
 
 from __future__ import print_function, division, absolute_import
 
+from .common import normalize_base0_range_indices
 from .translation_key import TranslationKey
 from .translation import Translation
 from .logging import get_logger
@@ -79,6 +80,11 @@ class ProteinSequence(TranslationKey):
             Translation objects corresponding to each coding sequence + reading
             frame used to determine this ProteinSequence
         """
+        mutation_start_idx, mutation_end_idx = \
+            normalize_base0_range_indices(
+                mutation_start_idx,
+                mutation_end_idx,
+                len(amino_acids))
         # get ValueObject to initialize all of the fields specified in the
         # __slots__ field of both this object and TranslationKey
         ValueObject.__init__(
@@ -319,34 +325,6 @@ class ProteinSequence(TranslationKey):
         """
         return len(self.cdna_sequences)
 
-    @property
-    def mutation_start(self):
-        """
-        Starting interbase index of mutation in protein sequence
-
-        Differs from variant_aa_interval_start by trimming index to never
-        exceed sequence length.
-
-        Returns int
-        """
-        return min(len(self.amino_acids),  self.variant_aa_interval_start)
-
-    @property
-    def mutation_end(self):
-        """
-        Ending interbase index of mutation in protein sequence
-
-        Differs from variant_aa_interval_end by trimming index to never
-        exceed sequence length.
-
-        Returns int
-        """
-        return min(len(self.amino_acids), self.variant_aa_interval_end)
-
-    @property
-    def num_mutant_amino_acids(self):
-        return self.mutation_end - self.mutation_start
-
     def ascending_sort_key(self):
         """
         Sort key function used to sort protein sequences lexicographically by these criteria:
@@ -385,19 +363,19 @@ class ProteinSequence(TranslationKey):
         -------
         bool
         """
-        # deletions are represented by a mutation interval with the same start/end
+        #
+        # Deletions are represented by a mutation interval with the same start/end
         # but to have some sequence before and after the start/end have to be greater
         # than 0 and less than the length of the sequence
         # Example:
         #
-        # -0-1-2-3-4-5-6-7
-        # -S-I-I-N-F-E-K-L
+        #    -0-1-2-3-4-5-6-7
+        #    -S-I-I-N-F-E-K-L
         #
-        # ^ start/end = 0, only see residue after
+        #    ^ start/end = 0, only see residue after
+        #    ----^ start/end = 2, deletion occured between two 'I' residues
+        #    ----------------^ start/end = 8, only see residue before
         #
-        # ----^ start/end = 2, deletion occured between two I residues
-        #
-        # ----------------^ start/end = 8, only see residue before
         return (
                 self.contains_mutation and
                 (self.num_mutant_amino_acids == 0) and
@@ -422,10 +400,7 @@ class ProteinSequence(TranslationKey):
         ProteinSequence
         """
         old_length = len(self)
-        (start_idx, end_idx, stride) = \
-            slice(start_idx, end_idx).indices(old_length)
-        if stride != 1:
-            raise ValueError("Unexpected stride: %s" % stride)
+
 
         amino_acids = self.amino_acids[start_idx:end_idx]
         new_length = len(amino_acids)
@@ -443,8 +418,7 @@ class ProteinSequence(TranslationKey):
         # to the right of the new subsequence then the start/end will both
         # be clipped to the subsequence length
         mutation_start_idx = max(0, self.mutation_start_idx - start_idx)
-        mutation_end_idx = min(
-            new_length, self.mutation_end_idx - start_idx)
+        mutation_end_idx = min(new_length, self.mutation_end_idx - start_idx)
         # number of mutant amino acids in the new subsequence
         num_mutant_aa = mutation_end_idx - mutation_start_idx
         # a deletion is considered a mutant sequence if the amino acids to

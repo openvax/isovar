@@ -246,15 +246,19 @@ class IsovarResult(object):
             if isinstance(value, (list, set, tuple)):
                 value = ";".join(value)
             d[name] = value
-        d["protein_sequence_mutation_start"] = self.protein_sequence_mutation_start
-        d["protein_sequence_mutation_end"] = self.protein_sequence_mutation_end
+        d["protein_sequence_mutation_start_idx"] = \
+            self.protein_sequence_mutation_start_idx
+        d["protein_sequence_mutation_end_idx"] = \
+            self.protein_sequence_mutation_end_idx
         d["num_mutant_amino_acids_in_protein_sequence"] = \
             self.num_mutant_amino_acids_in_protein_sequence
 
         d["trimmed_predicted_mutant_protein_sequence"] = self.trimmed_predicted_mutant_protein_sequence
         d["trimmed_reference_protein_sequence"] = self.trimmed_reference_protein_sequence
         d["protein_sequence_contains_mutation"] = self.protein_sequence_contains_mutation
-        d["protein_sequence_matches_predicted_mutation_effect"] = self.protein_sequence_matches_predicted_mutation_effect
+        d["protein_sequence_contains_deletion"] = self.protein_sequence_contains_deletion
+        d["protein_sequence_matches_predicted_mutation_effect"] = \
+            self.protein_sequence_matches_predicted_mutation_effect
 
         ########################################################################
         # filters
@@ -293,7 +297,7 @@ class IsovarResult(object):
             return None
 
     @cached_property
-    def protein_sequence_mutation_start(self):
+    def protein_sequence_mutation_start_idx(self):
         """
         Interbase start coordinate for mutated amino acids in top protein
         sequence.
@@ -303,12 +307,12 @@ class IsovarResult(object):
         int or None
         """
         if self.has_mutant_protein_sequence_from_rna:
-            return self.top_protein_sequence.mutation_start
+            return self.top_protein_sequence.mutation_start_idx
         else:
             return None
 
     @cached_property
-    def protein_sequence_mutation_end(self):
+    def protein_sequence_mutation_end_idx(self):
         """
         Interbase end coordinate for mutated amino acids in top protein
         sequence.
@@ -318,7 +322,7 @@ class IsovarResult(object):
         int or None
         """
         if self.has_mutant_protein_sequence_from_rna:
-            return self.top_protein_sequence.mutation_end
+            return self.top_protein_sequence.mutation_end_idx
         else:
             return None
 
@@ -440,8 +444,8 @@ class IsovarResult(object):
             return None
         if e.aa_mutation_start_offset is None:
             return None
-        n_before_mutation = p.mutation_start
-        n_after_mutation = len(p.amino_acids) - p.mutation_end
+        n_before_mutation = p.mutation_start_idx
+        n_after_mutation = len(p.amino_acids) - p.mutation_end_idx
         return e.mutant_protein_sequence[
              e.aa_mutation_start_offset - n_before_mutation:
              e.aa_mutation_start_offset + len(e.aa_alt) + n_after_mutation]
@@ -496,7 +500,7 @@ class IsovarResult(object):
             return None
         if e.aa_mutation_start_offset is None:
             return None
-        n_before_mutation = p.mutation_start
+        n_before_mutation = p.mutation_start_idx
         n_total = len(p.amino_acids)
         start_index_in_original_protein = (
                e.aa_mutation_start_offset - n_before_mutation)
@@ -574,21 +578,21 @@ class IsovarResult(object):
 
         Returns bool
         """
-        if not self.has_mutant_protein_sequence_from_rna:
+        if self.top_protein_sequence is None:
             return None
+        return self.top_protein_sequence.contains_mutation
 
-        # if the sequence is the same as the reference then the genomic
-        # variant must have been silent, or maybe was made silent by adjacent
-        # phased variants.
-        if self.protein_sequence_matches_reference:
-            return False
+    @cached_property
+    def protein_sequence_contains_deletion(self):
+        """
+        Does the protein sequence assembled from RNA span both sides of a
+        deletion mutation?
 
-        start_idx  = self.protein_sequence_mutation_start
-        stop_idx = self.protein_sequence_mutation_end
-
-        if start_idx is None or stop_idx is None:
-            return False
-        return start_idx != stop_idx or self.variant.is_deletion
+        Returns bool
+        """
+        if self.top_protein_sequence is None:
+            return None
+        return self.top_protein_sequence.contains_deletion
 
     @cached_property
     def num_mutant_amino_acids_in_protein_sequence(self):

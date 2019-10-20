@@ -20,7 +20,7 @@ from testing_helpers import load_bam
 
 def test_assemble_transcript_fragments_snv():
     alignment_file = load_bam("data/cancer-wgs-primary.chr12.bam")
-    chromosome = "chr12"
+    chromosome = "12"
     base1_location = 65857041
     ref = "G"
     alt = "C"
