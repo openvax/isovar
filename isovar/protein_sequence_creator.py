@@ -198,7 +198,12 @@ class ProteinSequenceCreator(ValueObject):
                     self.protein_sequence_length)
                 ends_with_stop_codon = False
 
-        contains_mutation = len(amino_acids) > mutation_start_idx
+        if mutation_end_idx == mutation_start_idx:
+            # a deletion only counts as mutated if the amino acids on
+            # either side are in the sequence
+            contains_mutation = (0 < mutation_start_idx < len(amino_acids))
+        else:
+            contains_mutation = len(amino_acids) > mutation_start_idx
 
         translation = Translation(
             amino_acids=amino_acids,
