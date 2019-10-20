@@ -28,6 +28,7 @@ def test_protein_sequence_num_mutant_amino_acids():
         frameshift=False,
         translations=[])
     eq_(p.num_mutant_amino_acids, 1)
+    eq_(p.num_mutant_amino_acids, len(p.mutant_amino_acids))
 
 
 def test_protein_sequence_num_mutant_amino_acids_deletion():
@@ -42,6 +43,43 @@ def test_protein_sequence_num_mutant_amino_acids_deletion():
         frameshift=False,
         translations=[])
     eq_(p.num_mutant_amino_acids, 0)
+    eq_(p.num_mutant_amino_acids, len(p.mutant_amino_acids))
+
+def test_protein_subsequence_overlaps_mutation():
+    # testing that we got the correct properties for case where "SIINFEKL" was
+    # mutated into "SIINFEQL" and then sliced to keep just "FEQL"
+    p = ProteinSequence(
+        amino_acids="SIINFEQL",
+        contains_mutation=True,
+        mutation_start_idx=len("SIINFE"),
+        mutation_end_idx=len("SIINFEQ"),
+        ends_with_stop_codon=True,
+        frameshift=False,
+        translations=[])
+    p2 = p.subsequence(len("SIIN"), None)
+    eq_(p2.amino_acids, "FEQL")
+    eq_(p2.contains_mutation, True)
+    eq_(p2.contains_deletion, False)
+    eq_(p2.num_mutant_amino_acids, 1)
+    eq_(p2.mutant_amino_acids, "Q")
+
+def test_protein_subsequence_does_not_overlap_mutation():
+    # testing that we got the correct properties for case where "SIINFEKL" was
+    # mutated into "SIINFEQL" and then sliced to keep just "FEQL"
+    p = ProteinSequence(
+        amino_acids="SIINFEQL",
+        contains_mutation=True,
+        mutation_start_idx=len("SIINFE"),
+        mutation_end_idx=len("SIINFEQ"),
+        ends_with_stop_codon=True,
+        frameshift=False,
+        translations=[])
+    p2 = p.subsequence(0, len("SIIN"))
+    eq_(p2.amino_acids, "SIIN")
+    eq_(p2.contains_mutation, False)
+    eq_(p2.contains_deletion, False)
+    eq_(p2.num_mutant_amino_acids, 0)
+    eq_(p2.mutant_amino_acids, "")
 
 def test_sort_protein_sequences():
     protseq_most_reads = make_dummy_protein_sequence(

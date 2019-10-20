@@ -377,10 +377,21 @@ class ProteinSequence(TranslationKey):
         #    ----------------^ start/end = 8, only see residue before
         #
         return (
-                self.contains_mutation and
-                (self.num_mutant_amino_acids == 0) and
-                (0 < self.mutation_start_idx < len(self))
+            self.contains_mutation and
+            (self.num_mutant_amino_acids == 0) and
+            (0 < self.mutation_start_idx < len(self))
         )
+
+    @property
+    def mutant_amino_acids(self):
+        """
+        Amino acid substring which contains only mutated residues.
+
+        Returns
+        -------
+        str
+        """
+        return self.amino_acids[self.mutation_start_idx:self.mutation_end_idx]
 
     def subsequence(self, start_idx, end_idx):
         """
