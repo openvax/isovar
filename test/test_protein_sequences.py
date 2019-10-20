@@ -13,10 +13,35 @@ from isovar.cli.protein_sequence_args import (
 )
 from isovar.dataframe_helpers import protein_sequences_generator_to_dataframe
 from isovar.main import ProteinSequenceCreator
+from isovar.protein_sequence import ProteinSequence
 from isovar.protein_sequence_helpers import sort_protein_sequences
 
+def test_protein_sequence_num_mutant_amino_acids():
+    # testing that we got the correct number of amino acids (1)
+    # where "SIINFEKL" was mutated into "SIINFEQL"
+    p = ProteinSequence(
+        amino_acids="SIINFEQL",
+        contains_mutation=True,
+        mutation_start_idx=len("SIINFE"),
+        mutation_end_idx=len("SIINFEQ"),
+        ends_with_stop_codon=True,
+        frameshift=False,
+        translations=[])
+    eq_(p.num_mutant_amino_acids, 1)
 
 
+def test_protein_sequence_num_mutant_amino_acids_deletion():
+    # testing that we got the correct number of amino acids (0)
+    # where "SIINFEKL" was mutated into "SIINFEL"
+    p = ProteinSequence(
+        amino_acids="SIINFEL",
+        contains_mutation=True,
+        mutation_start_idx=len("SIINFE"),
+        mutation_end_idx=len("SIINFE"),
+        ends_with_stop_codon=True,
+        frameshift=False,
+        translations=[])
+    eq_(p.num_mutant_amino_acids, 0)
 
 def test_sort_protein_sequences():
     protseq_most_reads = make_dummy_protein_sequence(
