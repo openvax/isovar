@@ -88,7 +88,7 @@ class ProteinSequence(TranslationKey):
         # get ValueObject to initialize all of the fields specified in the
         # __slots__ field of both this object and TranslationKey
         ValueObject.__init__(
-            self=self,
+            self,
             amino_acids=amino_acids,
             contains_mutation=contains_mutation,
             mutation_start_idx=mutation_start_idx,
