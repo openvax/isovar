@@ -60,3 +60,30 @@ def safediv(x, y):
         return np.inf
     else:
         return x / y
+
+
+def normalize_base0_range_indices(start_idx, end_idx, sequence_length):
+    """
+    Given interbase start/end indices which may be negative or None, convert
+    them into a non-negative integer range in a way that matches the indexing
+    semantics of Python lists.
+
+    Parameters
+    ----------
+    start_idx : int or None
+        Base 0 start index. Negative values indicate offset from
+        end of sequence, None indicates start of sequence.
+
+    end_idx : int or None
+        Base 0 end index. Negative values indicate offset from
+        end of sequence, None indicates start of sequence.
+
+    Returns
+    -------
+    Tuple of (int, int)
+    """
+    (start_idx, end_idx, stride) = \
+        slice(start_idx, end_idx).indices(sequence_length)
+    if stride != 1:
+        raise ValueError("Unexpected stride: %s" % stride)
+    return (start_idx, end_idx)

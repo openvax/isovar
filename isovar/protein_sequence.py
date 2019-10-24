@@ -20,9 +20,11 @@ associated with its supporting (and non-supporting but overlapping) RNA reads.
 
 from __future__ import print_function, division, absolute_import
 
+from .common import normalize_base0_range_indices
 from .translation_key import TranslationKey
 from .translation import Translation
 from .logging import get_logger
+from .value_object import ValueObject
 
 logger = get_logger(__name__)
 
@@ -41,31 +43,92 @@ class ProteinSequence(TranslationKey):
         "translations",
     ]
 
-    def __init__(self, translations):
+    def __init__(
+            self,
+            amino_acids,
+            contains_mutation,
+            mutation_start_idx,
+            mutation_end_idx,
+            ends_with_stop_codon,
+            frameshift,
+            translations):
         """
-        Initialize fields of ProteinSequence. Fields inherited from TranslationKey
-        (e.g. frameshift, ends_with_stop_codon, &c) are inferred from the
-        translation objects which must all have the same values for these
-        fields.
+        Parameters
+        ----------
+        amino_acids : str
+            Amino acid sequence
+
+        contains_mutation : bool
+            Does the amino acid sequence contain a mutation?
+
+        mutation_start_idx : int
+            Start of half-open interval for variant amino acids
+            in the translated sequence
+
+        mutation_end_idx : int
+            End of half-open interval for variant amino acids
+            in the translated sequence
+
+        ends_with_stop_codon : bool
+            Did the amino acid sequence end due to a stop codon or did we
+            just run out of sequence context around the variant?
+
+        frameshift : bool
+            Was the variant a frameshift relative to the reference sequence?
+
+        translations : list of Translation
+            Translation objects corresponding to each coding sequence + reading
+            frame used to determine this ProteinSequence
+        """
+        mutation_start_idx, mutation_end_idx = \
+            normalize_base0_range_indices(
+                mutation_start_idx,
+                mutation_end_idx,
+                len(amino_acids))
+        # get ValueObject to initialize all of the fields specified in the
+        # __slots__ field of both this object and TranslationKey
+        ValueObject.__init__(
+            self,
+            amino_acids=amino_acids,
+            contains_mutation=contains_mutation,
+            mutation_start_idx=mutation_start_idx,
+            mutation_end_idx=mutation_end_idx,
+            ends_with_stop_codon=ends_with_stop_codon,
+            frameshift=frameshift,
+            translations=translations)
+
+
+    @classmethod
+    def from_translations(cls, translations):
+        """
+        Create ProteinSequence from list of Translation objects.
+        Fields inherited from TranslationKey (e.g. frameshift,
+        ends_with_stop_codon, &c) are inferred from the translation objects
+        which must all have the same values for these fields.
 
         Parameters
         ----------
         translations : list of Translation
             Equivalent translations which might have different cDNA sequences
             but agree in their amino acid sequences.
+
+        Returns
+        -------
+        ProteinSequence
         """
         if len(translations) == 0:
-            raise ValueError("Cannot create ProteinSequence without at least one Translation")
-
-        self.translations = translations
+            raise ValueError(
+                "Cannot create ProteinSequence without at least one Translation")
 
         # fill in fields inherited from TranslationKey by taking value
         # from first Translation iobject and then check to make sure
         # other translations are consistent with this
         first_translation = translations[0]
+
+        kwargs = {"translations": translations}
         for field_name in TranslationKey.__slots__:
             field_value = getattr(first_translation, field_name)
-            setattr(self, field_name, field_value)
+            kwargs[field_name] = field_value
             # check other translations to make sure they have the same value
             # for this field
             for other_translation in translations[1:]:
@@ -76,6 +139,7 @@ class ProteinSequence(TranslationKey):
                             field_name,
                             field_value,
                             other_translation_field_value))
+        return ProteinSequence(**kwargs)
 
     def __len__(self):
         return len(self.amino_acids)
@@ -261,34 +325,6 @@ class ProteinSequence(TranslationKey):
         """
         return len(self.cdna_sequences)
 
-    @property
-    def mutation_start(self):
-        """
-        Starting interbase index of mutation in protein sequence
-
-        Differs from variant_aa_interval_start by trimming index to never
-        exceed sequence length.
-
-        Returns int
-        """
-        return min(len(self.amino_acids),  self.variant_aa_interval_start)
-
-    @property
-    def mutation_end(self):
-        """
-        Ending interbase index of mutation in protein sequence
-
-        Differs from variant_aa_interval_end by trimming index to never
-        exceed sequence length.
-
-        Returns int
-        """
-        return min(len(self.amino_acids), self.variant_aa_interval_end)
-
-    @property
-    def num_mutant_amino_acids(self):
-        return self.mutation_end - self.mutation_start
-
     def ascending_sort_key(self):
         """
         Sort key function used to sort protein sequences lexicographically by these criteria:
@@ -305,3 +341,121 @@ class ProteinSequence(TranslationKey):
             -self.num_mismatches_after_variant,
             len(self.amino_acids),
         )
+
+    @property
+    def num_mutant_amino_acids(self):
+        """
+        Number of mutant amino acids contained in this sequence.
+
+        Returns
+        -------
+        int
+        """
+        return self.mutation_end_idx - self.mutation_start_idx
+
+    @property
+    def contains_deletion(self):
+        """
+        Returns True if this protein sequence contains the residues before
+        and after a deletion.
+
+        Returns
+        -------
+        bool
+        """
+        #
+        # Deletions are represented by a mutation interval with the same start/end
+        # but to have some sequence before and after the start/end have to be greater
+        # than 0 and less than the length of the sequence
+        # Example:
+        #
+        #    -0-1-2-3-4-5-6-7
+        #    -S-I-I-N-F-E-K-L
+        #
+        #    ^ start/end = 0, only see residue after
+        #    ----^ start/end = 2, deletion occured between two 'I' residues
+        #    ----------------^ start/end = 8, only see residue before
+        #
+        return (
+            self.contains_mutation and
+            (self.num_mutant_amino_acids == 0) and
+            (0 < self.mutation_start_idx < len(self))
+        )
+
+    @property
+    def mutant_amino_acids(self):
+        """
+        Amino acid substring which contains only mutated residues.
+
+        Returns
+        -------
+        str
+        """
+        return self.amino_acids[self.mutation_start_idx:self.mutation_end_idx]
+
+    def subsequence(self, start_idx, end_idx):
+        """
+        Create a ProteinSequence object covering a subsequence of this
+        object's `amino_acids` string.
+
+        Parameters
+        ----------
+        start_idx : int or None
+            Base 0 (inclusive) start index of subsequence
+
+        end_idx : int or None
+            Base 0 (exclusive) end index of subsequence
+
+        Returns
+        -------
+        ProteinSequence
+        """
+        old_length = len(self)
+
+        start_idx, end_idx = normalize_base0_range_indices(
+            start_idx=start_idx,
+            end_idx=end_idx,
+            sequence_length=old_length)
+
+        amino_acids = self.amino_acids[start_idx:end_idx]
+
+        new_length = len(amino_acids)
+
+        # if we lose amino acids from the end of the sequence then it
+        # can't end with a stop codon anymore
+        ends_with_stop_codon = (
+            self.ends_with_stop_codon and
+            end_idx == old_length
+        )
+
+        # When the mutation interval overlaps with the subsequence
+        # we need to subtract off the new start index and clip the end
+        # index. If the mutation is to the left of the new subsequence
+        # then the start/end will be be clipped to 0. If the mutation is
+        # to the right of the new subsequence then the start/end will both
+        # be clipped to the subsequence length
+        mutation_start_idx = \
+            min(new_length, max(0, self.mutation_start_idx - start_idx))
+        mutation_end_idx = \
+            min(new_length, max(0, self.mutation_end_idx - start_idx))
+
+        # number of mutant amino acids in the new subsequence
+        num_mutant_aa = mutation_end_idx - mutation_start_idx
+        # a deletion is considered a mutant sequence if the amino acids to
+        # the left and right of it are both present
+        deletion = (num_mutant_aa == 0) and (0 < mutation_start_idx < new_length)
+        contains_mutation = self.contains_mutation and (
+            (num_mutant_aa > 0) or deletion
+        )
+        # if the right side of the sequence came from a frameshift then
+        # we still consider this a frameshift as long as some mutant
+        # amino acids are present
+        frameshift = self.frameshift and contains_mutation
+        return ProteinSequence(
+            amino_acids=amino_acids,
+            contains_mutation=contains_mutation,
+            mutation_start_idx=mutation_start_idx,
+            mutation_end_idx=mutation_end_idx,
+            ends_with_stop_codon=ends_with_stop_codon,
+            frameshift=frameshift,
+            translations=self.translations)

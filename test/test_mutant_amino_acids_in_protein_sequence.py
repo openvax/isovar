@@ -17,8 +17,8 @@ def check_mutant_amino_acids(variant, protein_sequence, expected_amino_acids=Non
         # of the mutant amino acid sequence right
         expected_amino_acids = predicted_effect.aa_alt
     isovar_mutant_amino_acids = protein_sequence.amino_acids[
-        protein_sequence.variant_aa_interval_start:
-        protein_sequence.variant_aa_interval_end]
+        protein_sequence.mutation_start_idx:
+        protein_sequence.mutation_end_idx]
 
     eq_(expected_amino_acids, isovar_mutant_amino_acids,
         "Expected amino acids '%s' for %s but got '%s' from isovar in '%s' %d:%d" % (
@@ -26,8 +26,8 @@ def check_mutant_amino_acids(variant, protein_sequence, expected_amino_acids=Non
             predicted_effect,
             isovar_mutant_amino_acids,
             protein_sequence.amino_acids,
-            protein_sequence.variant_aa_interval_start,
-            protein_sequence.variant_aa_interval_end))
+            protein_sequence.mutation_start_idx,
+            protein_sequence.mutation_end_idx))
 
 
 def test_mutant_amino_acids_in_mm10_chrX_8125624_refC_altA_pS460I():

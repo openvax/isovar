@@ -86,8 +86,9 @@ def make_dummy_translation(
     return Translation(
         variant_orf=varseq_in_orf,
         amino_acids=amino_acids,
-        variant_aa_interval_start=variant_aa_interval_start,
-        variant_aa_interval_end=variant_aa_interval_end,
+        contains_mutation=True,
+        mutation_start_idx=variant_aa_interval_start,
+        mutation_end_idx=variant_aa_interval_end,
         frameshift=False,
         ends_with_stop_codon=False,
         untrimmed_variant_sequence=MockVariantSequence(n_reads=n_variant_reads),
@@ -137,5 +138,4 @@ def make_dummy_protein_sequence(
         num_mismatches=num_mismatches,
         n_variant_reads=n_total_variant_reads)
 
-    return ProteinSequence(
-        translations=[translation] * n_translations)
+    return ProteinSequence.from_translations([translation] * n_translations)

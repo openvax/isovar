@@ -42,19 +42,53 @@ class Translation(TranslationKey):
     def __init__(
             self,
             amino_acids,
-            variant_aa_interval_start,
-            variant_aa_interval_end,
+            contains_mutation,
+            mutation_start_idx,
+            mutation_end_idx,
             ends_with_stop_codon,
             frameshift,
             untrimmed_variant_sequence,
             reference_context,
             variant_orf):
+        """
+        Parameters
+        ----------
+        amino_acids : str
+            Amino acid sequence
+
+        contains_mutation : bool
+            Does the amino acid sequence contain a mutation?
+
+        mutation_start_idx : int
+            Start of half-open interval for variant amino acids
+            in the translated sequence
+
+        mutation_end_idx : int
+            End of half-open interval for variant amino acids
+            in the translated sequence
+
+        ends_with_stop_codon : bool
+            Did the amino acid sequence end due to a stop codon or did we
+            just run out of sequence context around the variant?
+
+        frameshift : bool
+            Was the variant a frameshift relative to the reference sequence?
+
+        untrimmed_variant_sequence : VariantSequence
+
+        reference_context : ReferenceContext
+
+        variant_orf : VariantORF
+        """
+
         # TODO:
         #  get rid of untrimmed_variant_sequence by making
         #  VariantORF keep track of its inputs
+
         self.amino_acids = amino_acids
-        self.variant_aa_interval_start = variant_aa_interval_start
-        self.variant_aa_interval_end = variant_aa_interval_end
+        self.contains_mutation = contains_mutation
+        self.mutation_start_idx = mutation_start_idx
+        self.mutation_end_idx = mutation_end_idx
         self.ends_with_stop_codon = ends_with_stop_codon
         self.frameshift = frameshift
         # this variant sequence might differ from the one
@@ -77,8 +111,7 @@ class Translation(TranslationKey):
 
         Returns str
         """
-        return (
-            self.variant_orf.reference_cdna_sequence_before_variant)
+        return self.variant_orf.reference_cdna_sequence_before_variant
 
 
     @property

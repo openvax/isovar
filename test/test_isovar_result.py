@@ -56,8 +56,8 @@ def test_isovar_result_property_types():
         # this property aggregates all filters
         assert result.passes_all_filters in {True, False}
 
-        assert type(result.protein_sequence_mutation_start) in (int, type(None))
-        assert type(result.protein_sequence_mutation_end) in (int, type(None))
+        assert type(result.protein_sequence_mutation_start_idx) in (int, type(None))
+        assert type(result.protein_sequence_mutation_end_idx) in (int, type(None))
 
 
 def test_isovar_result_nonsyn_variants():

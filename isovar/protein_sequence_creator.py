@@ -170,48 +170,48 @@ class ProteinSequenceCreator(ValueObject):
         #  determine if the first codon is the start codon of a
         #  transcript, for now any of the unusual start codons like CTG
         #  will translate to leucine instead of methionine
-        variant_amino_acids, ends_with_stop_codon = translate_cdna(
+        amino_acids, ends_with_stop_codon = translate_cdna(
             in_frame_cdna_sequence,
             first_codon_is_start=False,
             mitochondrial=reference_context.mitochondrial)
-        logger.info("Mutant amino acids: %s, ends_with_stop=%s, len=%d" % (
-            variant_amino_acids,
+        logger.info("Translated amino acids: %s, ends_with_stop=%s, len=%d" % (
+            amino_acids,
             ends_with_stop_codon,
-            len(variant_amino_acids)))
-        variant_aa_interval_start, variant_aa_interval_end, frameshift = \
+            len(amino_acids)))
+        mutation_start_idx, mutation_end_idx, frameshift = \
             find_mutant_amino_acid_interval(
                 cdna_sequence=cdna_sequence,
                 cdna_first_codon_offset=cdna_codon_offset,
                 cdna_variant_start_offset=cdna_variant_start_offset,
                 cdna_variant_end_offset=cdna_variant_end_offset,
                 n_ref=len(reference_context.sequence_at_variant_locus),
-                n_amino_acids=len(variant_amino_acids))
+                n_amino_acids=len(amino_acids))
 
         if self.protein_sequence_length:
-            if len(variant_amino_acids) > self.protein_sequence_length:
-                if self.protein_sequence_length <= variant_aa_interval_start:
-                    logger.warn(
-                        ("Truncating amino acid sequence %s "
-                         "to only %d elements loses all variant residues"),
-                        variant_amino_acids,
-                        self.protein_sequence_length)
-                    return None
-                else:
-                    # if the protein is too long then shorten it, which implies
-                    # we're no longer stopping due to a stop codon and that the variant
-                    # amino acids might need a new stop index
-                    variant_amino_acids = variant_amino_acids[:self.protein_sequence_length]
-                    variant_aa_interval_end = min(
-                        variant_aa_interval_end,
-                        self.protein_sequence_length)
-                    ends_with_stop_codon = False
+            if len(amino_acids) > self.protein_sequence_length:
+                # if the protein is too long then shorten it, which implies
+                # we're no longer stopping due to a stop codon and that the variant
+                # amino acids might need a new stop index
+                amino_acids = amino_acids[:self.protein_sequence_length]
+                mutation_end_idx = min(
+                    mutation_end_idx,
+                    self.protein_sequence_length)
+                ends_with_stop_codon = False
+
+        if mutation_end_idx == mutation_start_idx:
+            # a deletion only counts as mutated if the amino acids on
+            # either side are in the sequence
+            contains_mutation = (0 < mutation_start_idx < len(amino_acids))
+        else:
+            contains_mutation = len(amino_acids) > mutation_start_idx
 
         translation = Translation(
-            amino_acids=variant_amino_acids,
+            amino_acids=amino_acids,
+            contains_mutation=contains_mutation,
             frameshift=frameshift,
             ends_with_stop_codon=ends_with_stop_codon,
-            variant_aa_interval_start=variant_aa_interval_start,
-            variant_aa_interval_end=variant_aa_interval_end,
+            mutation_start_idx=mutation_start_idx,
+            mutation_end_idx=mutation_end_idx,
             untrimmed_variant_sequence=variant_sequence,
             reference_context=reference_context,
             variant_orf=variant_orf)
