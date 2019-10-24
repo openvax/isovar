@@ -111,8 +111,7 @@ class Translation(TranslationKey):
 
         Returns str
         """
-        return (
-            self.variant_orf.reference_cdna_sequence_before_variant)
+        return self.variant_orf.reference_cdna_sequence_before_variant
 
 
     @property
