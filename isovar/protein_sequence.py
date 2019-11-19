@@ -85,17 +85,15 @@ class ProteinSequence(TranslationKey):
                 mutation_start_idx,
                 mutation_end_idx,
                 len(amino_acids))
-        # get ValueObject to initialize all of the fields specified in the
-        # __slots__ field of both this object and TranslationKey
-        ValueObject.__init__(
+        TranslationKey.__init__(
             self,
             amino_acids=amino_acids,
             contains_mutation=contains_mutation,
             mutation_start_idx=mutation_start_idx,
             mutation_end_idx=mutation_end_idx,
             ends_with_stop_codon=ends_with_stop_codon,
-            frameshift=frameshift,
-            translations=translations)
+            frameshift=frameshift)
+        self.translations = translations
 
 
     @classmethod
@@ -459,3 +457,44 @@ class ProteinSequence(TranslationKey):
             ends_with_stop_codon=ends_with_stop_codon,
             frameshift=frameshift,
             translations=self.translations)
+
+    def predicted_mutation_effects_for_supporting_transcripts(self):
+        """
+        If we didn't determine the mutant coding sequence from RNA assembly
+        what would the predicted mutation effect of this
+
+        Returns
+        -------
+        list of varcode.MutationEffect
+        """
+        effects = [
+            self.variant.effect_on_transcript(t) for t in
+            self.supporting_reference_transcripts
+        ]
+        predicted_effect = top_priority_effect(effects)
+        return predicted_effect
+
+    def global_start_pos(self):
+        # position of mutation start relative to the full amino acid sequence
+        global_mutation_start_pos = self.predicted_effect.aa_mutation_start_offset
+        if global_mutation_start_pos is None:
+            logger.error('Could not find mutation start pos for variant %s',
+                         self.variant)
+            return -1
+
+        # get the global position of the mutant protein fragment: shift left by the amount of
+        # the relative mutant start position
+        return (
+                global_mutation_start_pos - self.mutant_amino_acid_start_offset
+        )
+
+    """
+    full_reference_protein_sequence = (
+                protein_fragment.predicted_effect().original_protein_sequence
+            )
+            global_epitope_start_pos = (
+                protein_fragment.global_start_pos() + peptide_start_offset
+            )
+            wt_peptide = full_reference_protein_sequence[
+                global_epitope_start_pos:global_epitope_start_pos + peptide_length]
+    """
