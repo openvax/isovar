@@ -24,7 +24,6 @@ from .common import normalize_base0_range_indices
 from .translation_key import TranslationKey
 from .translation import Translation
 from .logging import get_logger
-from .value_object import ValueObject
 
 logger = get_logger(__name__)
 
