@@ -25,6 +25,8 @@ from .translation_key import TranslationKey
 from .translation import Translation
 from .logging import get_logger
 
+from varcode.effects import top_priority_effect
+
 logger = get_logger(__name__)
 
 
@@ -460,21 +462,33 @@ class ProteinSequence(TranslationKey):
     def predicted_mutation_effects_for_supporting_transcripts(self):
         """
         If we didn't determine the mutant coding sequence from RNA assembly
-        what would the predicted mutation effect of this
+        what would the possible predicted mutation effects be?
 
         Returns
         -------
         list of varcode.MutationEffect
         """
-        effects = [
+        return [
             self.variant.effect_on_transcript(t) for t in
             self.supporting_reference_transcripts
         ]
-        predicted_effect = top_priority_effect(effects)
-        return predicted_effect
+
+    def top_predicted_mutation_effect_for_supporting_transcripts(self):
+        """
+        Which predicted effect on supporting transcript has the
+        highest priority?
+
+        Returns
+        -------
+        varcode.MutationEffect
+        """
+        return top_priority_effect(
+            self.predicted_mutation_effects_for_supporting_transcripts())
 
     def global_start_pos(self):
         # position of mutation start relative to the full amino acid sequence
+        predicted_effect = \
+            self.top_predicted_mutation_effect_for_supporting_transcripts()
         global_mutation_start_pos = self.predicted_effect.aa_mutation_start_offset
         if global_mutation_start_pos is None:
             logger.error('Could not find mutation start pos for variant %s',
