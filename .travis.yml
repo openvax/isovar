@@ -25,17 +25,17 @@ before_install:
 install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-      nose numpy scipy pandas pandoc mkl tensorflow pip cython
+      nose numpy scipy pandas mkl tensorflow pip cython
   - source activate test-environment
   # install pysam from conda because I'm having trouble installing Cython
   # for Python 3 on Travis
-  - conda install -c bioconda pysam=0.15.2
-  - pip install pypandoc
+  - conda install -c bioconda pysam
   - pip install -r requirements.txt --ignore-installed
   - pip install .
   - pip install coveralls
+  # TODO: RE-ENABLE INTEGRATION TESTS
   # install openvax-integration-tests repo and download mhcflurry
-  # TODO: change pysam version in integration tests to 0.15.2
+  # TODO: does pysam version in integration tests match?
   # - git clone https://github.com/openvax/openvax-integration-tests.git
   # - pip install -r openvax-integration-tests/requirements.txt --ignore-installed
   - pip install mhcflurry
