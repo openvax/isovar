@@ -281,6 +281,31 @@ class IsovarResult(object):
             return all(list(self.filter_values.values()))
 
     @cached_property
+    def top_gene_name(self):
+        """
+        If there is a single best gene name associated with this IsovarResult's
+        mutation, then return that gene name. Otherwise return all overlapping
+        gene names.
+
+        Returns
+        -------
+        str
+        """
+        if self.top_protein_sequence is not None:
+            return self.top_protein_sequence.gene_name
+
+        # if no protein sequence was determined from the RNA,
+        # see if the top predicted effect is associated with a gene
+        gene_name = getattr(self.predicted_effect, "gene_name", None)
+        if gene_name:
+            return gene_name
+        else:
+            # if nothing about the gene can be guessed from the predicted
+            # effect, then use all overlapping gene names
+            return ";".join(
+                self.overlapping_gene_names(only_coding=False))
+
+    @cached_property
     def top_protein_sequence(self):
         """
         If any protein sequences were assembled for this variant then
