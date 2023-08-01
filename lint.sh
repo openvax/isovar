@@ -10,6 +10,6 @@ set -o errexit
 find . -name '*.py' \
   | xargs pylint \
   --errors-only \
-  --disable=print-statement,unsubscriptable-object,not-an-iterable,no-member,invalid-unary-operand-type
+  --disable=unsubscriptable-object,not-an-iterable,no-member,invalid-unary-operand-type
 
 echo 'Passes pylint check'

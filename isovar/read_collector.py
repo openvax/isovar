@@ -34,12 +34,14 @@ class ReadCollector(object):
     ReadCollector holds options related to extracting reads from SAM/BAM alignment files
     and provides methods for different ways to create LocusRead objects.
     """
+
     def __init__(
-            self,
-            use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
-            use_duplicate_reads=USE_DUPLICATE_READS,
-            min_mapping_quality=MIN_READ_MAPPING_QUALITY,
-            use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES):
+        self,
+        use_secondary_alignments=USE_SECONDARY_ALIGNMENTS,
+        use_duplicate_reads=USE_DUPLICATE_READS,
+        min_mapping_quality=MIN_READ_MAPPING_QUALITY,
+        use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES,
+    ):
         """
         Parameters
         ----------
@@ -61,10 +63,8 @@ class ReadCollector(object):
         self.use_soft_clipped_bases = use_soft_clipped_bases
 
     def locus_read_from_pysam_aligned_segment(
-            self,
-            pysam_aligned_segment,
-            base0_start_inclusive,
-            base0_end_exclusive):
+        self, pysam_aligned_segment, base0_start_inclusive, base0_end_exclusive
+    ):
         """
         Create LocusRead from pysam.AlignedSegment object and the start/end indices
         of the locus of interest. If any essential fields of the aligned segment
@@ -92,16 +92,12 @@ class ReadCollector(object):
         name = pysam_aligned_segment.query_name
 
         if name is None:
-            logger.warn(
-                "Read missing name at position %d",
-                base0_start_inclusive + 1)
+            logger.warn("Read missing name at position %d", base0_start_inclusive + 1)
             return None
 
         if pysam_aligned_segment.is_unmapped:
-            logger.warn(
-                "How did we get unmapped read '%s' in a pileup?", name)
+            logger.warn("How did we get unmapped read '%s' in a pileup?", name)
             return None
-
 
         mapping_quality = pysam_aligned_segment.mapping_quality
 
@@ -113,7 +109,8 @@ class ReadCollector(object):
                 "Skipping read '%s' due to low MAPQ: %d < %d",
                 name,
                 mapping_quality,
-                self.min_mapping_quality)
+                self.min_mapping_quality,
+            )
             return None
 
         sequence = pysam_aligned_segment.query_sequence
@@ -129,10 +126,9 @@ class ReadCollector(object):
             return None
         elif len(base_qualities) != len(sequence):
             logger.warn(
-                "Skipping read '%s' due to mismatch in length of sequence (%d) and qualities (%d)" % (
-                    name,
-                    len(sequence),
-                    len(base_qualities)))
+                "Skipping read '%s' due to mismatch in length of sequence (%d) and qualities (%d)"
+                % (name, len(sequence), len(base_qualities))
+            )
             return None
 
         # By default, AlignedSegment.get_reference_positions only returns base-1 positions
@@ -140,15 +136,15 @@ class ReadCollector(object):
         # None values will be included for any soft-clipped or unaligned positions
         # within the read. The returned list will thus be of the same
         # length as the read.
-        base0_reference_positions = \
-            pysam_aligned_segment.get_reference_positions(full_length=True)
+        base0_reference_positions = pysam_aligned_segment.get_reference_positions(
+            full_length=True
+        )
 
         if len(base0_reference_positions) != len(base_qualities):
             logger.warn(
-                "Skipping read '%s' due to mismatch in length of positions (%d) and qualities (%d)" % (
-                    name,
-                    len(base0_reference_positions),
-                    len(base_qualities)))
+                "Skipping read '%s' due to mismatch in length of positions (%d) and qualities (%d)"
+                % (name, len(base0_reference_positions), len(base_qualities))
+            )
             return None
 
         reference_interval_size = base0_end_exclusive - base0_start_inclusive
@@ -191,20 +187,23 @@ class ReadCollector(object):
             reference_position_before_insertion = base0_start_inclusive - 1
             reference_position_after_insertion = base0_start_inclusive
             if reference_position_before_insertion in base0_reference_positions:
-                read_base0_before_insertion = \
-                    base0_reference_positions.index(
-                        reference_position_before_insertion)
+                read_base0_before_insertion = base0_reference_positions.index(
+                    reference_position_before_insertion
+                )
             else:
                 return None
 
             if reference_position_after_insertion in base0_reference_positions:
                 read_base0_after_insertion = base0_reference_positions.index(
-                    reference_position_after_insertion)
+                    reference_position_after_insertion
+                )
             else:
                 return None
 
             if read_base0_after_insertion - read_base0_after_insertion == 1:
-                read_base0_start_inclusive = read_base0_end_exclusive = read_base0_before_insertion + 1
+                read_base0_start_inclusive = read_base0_end_exclusive = (
+                    read_base0_before_insertion + 1
+                )
             else:
                 read_base0_start_inclusive = read_base0_before_insertion + 1
                 read_base0_end_exclusive = read_base0_after_insertion
@@ -230,31 +229,36 @@ class ReadCollector(object):
             # base0_end_exclusive but this would fail if base0_end_exclusive is
             # after the end the end of the read.
             if base0_start_inclusive in base0_reference_positions:
-                read_base0_start_inclusive = base0_reference_positions.index(base0_start_inclusive)
+                read_base0_start_inclusive = base0_reference_positions.index(
+                    base0_start_inclusive
+                )
             elif base0_start_inclusive - 1 in base0_reference_positions:
                 # if first base of reference locus isn't mapped, try getting the base
                 # before it and then adding one to its corresponding base index
-                read_base0_position_before_locus = \
-                    base0_reference_positions.index(base0_start_inclusive - 1)
+                read_base0_position_before_locus = base0_reference_positions.index(
+                    base0_start_inclusive - 1
+                )
                 read_base0_start_inclusive = read_base0_position_before_locus + 1
             else:
                 return None
 
             if base0_end_exclusive in base0_reference_positions:
-                read_base0_end_exclusive = \
-                    base0_reference_positions.index(base0_end_exclusive)
+                read_base0_end_exclusive = base0_reference_positions.index(
+                    base0_end_exclusive
+                )
             elif (base0_end_exclusive - 1) in base0_reference_positions:
                 # if exclusive last index of reference interval doesn't have a corresponding
                 # base position then try getting the base position of the reference
                 # position before it and then adding one
-                read_base0_end_inclusive = \
-                    base0_reference_positions.index(base0_end_exclusive - 1)
+                read_base0_end_inclusive = base0_reference_positions.index(
+                    base0_end_exclusive - 1
+                )
                 read_base0_end_exclusive = read_base0_end_inclusive + 1
             else:
                 return None
 
         if isinstance(sequence, bytes):
-            sequence = sequence.decode('ascii')
+            sequence = sequence.decode("ascii")
 
         if not self.use_soft_clipped_bases:
             # if we're not allowing soft clipped based then
@@ -266,8 +270,11 @@ class ReadCollector(object):
             aligned_subsequence_end = pysam_aligned_segment.query_alignment_end
             sequence = sequence[aligned_subsequence_start:aligned_subsequence_end]
             base0_reference_positions = base0_reference_positions[
-                aligned_subsequence_start:aligned_subsequence_end]
-            base_qualities = base_qualities[aligned_subsequence_start:aligned_subsequence_end]
+                aligned_subsequence_start:aligned_subsequence_end
+            ]
+            base_qualities = base_qualities[
+                aligned_subsequence_start:aligned_subsequence_end
+            ]
             if read_base0_start_inclusive is not None:
                 read_base0_start_inclusive -= aligned_subsequence_start
             if read_base0_end_exclusive is not None:
@@ -280,14 +287,12 @@ class ReadCollector(object):
             reference_base0_start_inclusive=base0_start_inclusive,
             reference_base0_end_exclusive=base0_end_exclusive,
             read_base0_start_inclusive=read_base0_start_inclusive,
-            read_base0_end_exclusive=read_base0_end_exclusive)
+            read_base0_end_exclusive=read_base0_end_exclusive,
+        )
 
     def get_locus_reads(
-            self,
-            alignment_file,
-            chromosome,
-            base0_start_inclusive,
-            base0_end_exclusive):
+        self, alignment_file, chromosome, base0_start_inclusive, base0_end_exclusive
+    ):
         """
         Create LocusRead objects for reads which overlap the given chromosome,
         start, and end positions. The actual work to figure out if what's between
@@ -312,7 +317,8 @@ class ReadCollector(object):
             "Gathering reads at locus %s:%d-%d",
             chromosome,
             base0_start_inclusive,
-            base0_end_exclusive)
+            base0_end_exclusive,
+        )
         reads = []
         total_count = 0
         # check overlap against wider overlap to make sure we don't miss
@@ -320,9 +326,8 @@ class ReadCollector(object):
         base0_pos_before_start = base0_start_inclusive - 1
         base0_pos_after_end = base0_end_exclusive + 1
         for aligned_segment in alignment_file.fetch(
-                chromosome,
-                base0_start_inclusive,
-                base0_end_exclusive):
+            chromosome, base0_pos_before_start, base0_pos_after_end
+        ):
             total_count += 1
             # we get a significant speed up if we skip reads that have spliced
             # out the entire interval of interest. this is redundant with the
@@ -330,12 +335,16 @@ class ReadCollector(object):
             #   self.locus_read_from_pysam_aligned_segment
             # but we do it here to skip the function call overhead for loci
             # where ~1M reads are mapped
-            if aligned_segment.get_overlap(base0_pos_before_start, base0_pos_after_end) == 0:
+            if (
+                aligned_segment.get_overlap(base0_pos_before_start, base0_pos_after_end)
+                == 0
+            ):
                 continue
             read = self.locus_read_from_pysam_aligned_segment(
                 aligned_segment,
                 base0_start_inclusive=base0_start_inclusive,
-                base0_end_exclusive=base0_end_exclusive)
+                base0_end_exclusive=base0_end_exclusive,
+            )
             if read is not None:
                 reads.append(read)
         logger.info(
@@ -344,7 +353,8 @@ class ReadCollector(object):
             total_count,
             chromosome,
             base0_start_inclusive,
-            base0_end_exclusive)
+            base0_end_exclusive,
+        )
         return reads
 
     @staticmethod
@@ -383,11 +393,7 @@ class ReadCollector(object):
                 return candidate
         return None
 
-    def locus_reads_overlapping_variant(
-            self,
-            alignment_file,
-            variant,
-            chromosome=None):
+    def locus_reads_overlapping_variant(self, alignment_file, variant, chromosome=None):
         """
         Find reads in the given SAM/BAM file which overlap the given variant and
         return them as a list of LocusRead objects.
@@ -409,7 +415,8 @@ class ReadCollector(object):
             # found in read alignments
             chromosome = self._infer_chromosome_name(
                 variant_chromosome_name=variant.contig,
-                valid_chromosome_names=set(alignment_file.references))
+                valid_chromosome_names=set(alignment_file.references),
+            )
 
         if chromosome is None:
             # failed to infer a chromsome name for this variant which
@@ -418,13 +425,15 @@ class ReadCollector(object):
                 "Chromosome '%s' from variant %s not in alignment file %s",
                 variant.contig,
                 variant,
-                alignment_file.filename)
+                alignment_file.filename,
+            )
             return []
 
         logger.info(
             "Gathering reads for variant %s (with gene names %s)",
             variant,
-            variant.gene_names)
+            variant.gene_names,
+        )
 
         base1_position, ref, alt = trim_variant(variant)
 
@@ -459,12 +468,10 @@ class ReadCollector(object):
             alignment_file=alignment_file,
             chromosome=chromosome,
             base0_start_inclusive=base0_start_inclusive,
-            base0_end_exclusive=base0_end_exclusive)
+            base0_end_exclusive=base0_end_exclusive,
+        )
 
-    def allele_reads_overlapping_variant(
-            self,
-            variant,
-            alignment_file):
+    def allele_reads_overlapping_variant(self, variant, alignment_file):
         """
         Find reads in the given SAM/BAM file which overlap the given variant and
         return them as a list of AlleleRead objects.
@@ -480,13 +487,11 @@ class ReadCollector(object):
         """
         return allele_reads_from_locus_reads(
             self.locus_reads_overlapping_variant(
-                alignment_file=alignment_file,
-                variant=variant))
+                alignment_file=alignment_file, variant=variant
+            )
+        )
 
-    def read_evidence_for_variant(
-            self,
-            variant,
-            alignment_file):
+    def read_evidence_for_variant(self, variant, alignment_file):
         """
         Find reads in the given SAM/BAM file which overlap the given variant and
         return them as a ReadEvidence object, which splits the reads into
@@ -502,11 +507,9 @@ class ReadCollector(object):
         Returns ReadEvidence
         """
         allele_reads = self.allele_reads_overlapping_variant(
-            variant=variant,
-            alignment_file=alignment_file)
-        return ReadEvidence.from_variant_and_allele_reads(
-            variant,
-            allele_reads)
+            variant=variant, alignment_file=alignment_file
+        )
+        return ReadEvidence.from_variant_and_allele_reads(variant, allele_reads)
 
     def allele_reads_supporting_variant(self, variant, alignment_file):
         """
@@ -523,8 +526,8 @@ class ReadCollector(object):
         Returns list of AlleleRead
         """
         read_evidence = self.read_evidence_for_variant(
-            variant=variant,
-            alignment_file=alignment_file)
+            variant=variant, alignment_file=alignment_file
+        )
         return read_evidence.alt_reads
 
     def read_evidence_generator(self, variants, alignment_file):
@@ -545,6 +548,6 @@ class ReadCollector(object):
         """
         for variant in variants:
             read_evidence = self.read_evidence_for_variant(
-                variant=variant,
-                alignment_file=alignment_file)
+                variant=variant, alignment_file=alignment_file
+            )
             yield variant, read_evidence
