@@ -12,7 +12,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 
 
 from .allele_read import AlleleRead

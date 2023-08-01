@@ -1,17 +1,16 @@
-sudo: false  # Use container-based infrastructure
+sudo: false # Use container-based infrastructure
 language: python
 python:
-  - "3.6"
   - "3.7"
+  - "3.8"
 cache:
   pip: true
   # cache directory used for Ensembl downloads of GTF and FASTA files
   # along with the indexed db of intervals and ID mappings and pickles
   # of sequence dictionaries
   directories:
-  - $HOME/.cache/pyensembl/
+    - $HOME/.cache/pyensembl/
 before_install:
-  # download different versions of mini-conda for py2 vs. py3
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
@@ -24,8 +23,8 @@ before_install:
   - python --version
 install:
   - >
-      conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-      nose numpy scipy pandas mkl tensorflow pip cython
+    conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    pytest numpy scipy pandas pip cython
   - source activate test-environment
   # install pysam from conda because I'm having trouble installing Cython
   # for Python 3 on Travis
@@ -38,16 +37,16 @@ install:
   # TODO: does pysam version in integration tests match?
   # - git clone https://github.com/openvax/openvax-integration-tests.git
   # - pip install -r openvax-integration-tests/requirements.txt --ignore-installed
-  - pip install mhcflurry
-  - mhcflurry-downloads fetch models_class1_minimal
-  - export MHCFLURRY_DEFAULT_CLASS1_MODELS="$(mhcflurry-downloads path models_class1_minimal)/models"
+  # - pip install mhcflurry
+  # - mhcflurry-downloads fetch models_class1_minimal
+  # - export MHCFLURRY_DEFAULT_CLASS1_MODELS="$(mhcflurry-downloads path models_class1_minimal)/models"
 before_script:
   - ./lint.sh
   - >
-      pyensembl install
-      --release 75
-      --species human
-      --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh37.75/
+    pyensembl install
+    --release 75
+    --species human
+    --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh37.75/
   - >
     pyensembl install
     --release 87
@@ -59,13 +58,11 @@ before_script:
     --species mouse
     --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCm38.87/
 script:
-  - >
-    nosetests test --with-coverage --cover-package=isovar
+  - ./test.sh
   # removing integration tests until Vaxrank is updated to use new API
   # &&
   # nosetests openvax-integration-tests/test
-after_success:
-  coveralls
+after_success: coveralls
 deploy:
   provider: pypi
   user: openvax
@@ -74,4 +71,4 @@ deploy:
     secure: "Y2r18QlWv6fCTwGUDB2zcbuaiY9V+wmQ6T95OYPMYB8g2KiaI/J8qvebd1GVIQN0YMUQ7nx0B0PWaAE8HZtBrWVoiQjR0PScQqOLLG+xFrfL5eOAkPppuHD6c7O/5Q02Pe6ZbqjdMaVbX5FOHj+dQhQHmcb1+CwIlnorBAEJovb7wSlDXYM9QupzXGKE+NT3Pn/FClu4nyTq2S4LC+9TMS3I6G1t+PvUR8ikeeldEj+0My0TppC0gGfNyRnKXt1Ly/DgRKBaYZgxfYaAK33SPIyXMxDDWXh8m4Fqud1vBObrYkWRfxk79Efla70kCiy6zGGAaNXH4++NI5JWobZ06RF7gq4zQQRe/RUi3rWuuvDAxsJvUjuxH0vEqTm4dKz5+nUoEuv4yXKNPwaB6PVh7Cz/wI28kZHDPyGDCujN1g90441SIBOIeKoRCcGXixmGB5EUmSZbJ9UoQgXZccssrJG3tixTmHaJkcync9YuTvzvywnqnnqeNAcpSiK1cwvQZ7yPLbCqy1gBw4P3KTjz2Rr3Qs/5D6DrQShW2ToX84eX9mULK+XLBNt55jcRR8Pi/aZMeFvEzvGa6ZhRPtUTXDar6AA8p1t7VPsdtnzTMzhSllEtUuxtftegeBp08s1ejE75hA1nYC70NjvkVlI45sHwUKdJNgWFT/Sm60ySlsQ="
   on:
     branch: master
-    condition: $TRAVIS_PYTHON_VERSION = "3.6"
+    condition: $TRAVIS_PYTHON_VERSION = "3.7"
