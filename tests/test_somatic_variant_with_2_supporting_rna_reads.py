@@ -1,12 +1,12 @@
 from __future__ import print_function, division, absolute_import
 
 from varcode import Variant
-from testing_helpers import load_bam
-from nose.tools import eq_
+
 
 from isovar.read_collector import ReadCollector
-
-from genomes_for_testing import grch38
+from .genomes_for_testing import grch38
+from .testing_helpers import load_bam
+from .common import eq_ 
 
 
 def test_somatic_variant_with_2_supporting_rna_reads():

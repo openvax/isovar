@@ -1,7 +1,15 @@
-from __future__ import print_function, division, absolute_import
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-from nose.tools import eq_
-from testing_helpers import load_bam, load_vcf, data_path
 from mock_objects import make_dummy_protein_sequence
 
 from varcode import VariantCollection
@@ -15,6 +23,9 @@ from isovar.dataframe_helpers import protein_sequences_generator_to_dataframe
 from isovar.main import ProteinSequenceCreator
 from isovar.protein_sequence import ProteinSequence
 from isovar.protein_sequence_helpers import sort_protein_sequences
+from .common import eq_
+from .testing_helpers import load_bam, load_vcf, data_path
+
 
 def test_protein_sequence_substitution():
     # testing that we got the correct properties in the case

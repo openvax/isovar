@@ -1,11 +1,12 @@
 from __future__ import print_function, division, absolute_import
 
 from varcode import Variant
-from nose.tools import eq_
+from .common import eq_ 
+
 
 from isovar.reference_sequence_key import ReferenceSequenceKey
 
-from genomes_for_testing import grch38, grcm38
+from .genomes_for_testing import grch38, grcm38
 
 
 def test_sequence_key_for_variant_on_transcript_substitution():

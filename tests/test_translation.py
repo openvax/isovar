@@ -1,11 +1,8 @@
-from __future__ import print_function, division, absolute_import
 
 
 from isovar import ProteinSequenceCreator, ReadCollector
-
-from nose.tools import eq_
-
-from testing_helpers import load_bam, load_vcf
+from .common import eq_ 
+from .testing_helpers import load_bam, load_vcf
 
 
 def test_translate_variant_collection():

@@ -1,4 +1,3 @@
-from __future__ import print_function, division, absolute_import
 
 from isovar.variant_helpers import (
     trim_variant_fields,
@@ -6,10 +5,10 @@ from isovar.variant_helpers import (
     base0_interval_for_variant,
     interbase_range_affected_by_variant_on_transcript
 )
-from nose.tools import eq_
+from .common import eq_ 
 from varcode import Variant
 
-from genomes_for_testing import grch38
+from .genomes_for_testing import grch38
 
 def test_trim_variant_substitution():
     loc, ref, alt = trim_variant(Variant("chr1", 10, "C", "G", grch38))

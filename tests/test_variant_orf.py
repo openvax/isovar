@@ -1,6 +1,4 @@
-from __future__ import print_function, division, absolute_import
-
-from nose.tools import eq_
+from .common import eq_ 
 from varcode import Variant
 
 from isovar.variant_orf import (

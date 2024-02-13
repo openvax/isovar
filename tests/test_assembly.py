@@ -1,4 +1,3 @@
-from __future__ import print_function, division, absolute_import
 from time import time
 
 from isovar.read_collector import ReadCollector
@@ -13,9 +12,9 @@ from isovar.assembly import (
 
 from pyensembl import ensembl_grch38
 from varcode import Variant
-from nose.tools import eq_
 
-from testing_helpers import load_bam
+from .common import eq_ 
+from .testing_helpers import load_bam
 
 
 def test_assemble_transcript_fragments_snv():

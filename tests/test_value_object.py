@@ -1,7 +1,5 @@
-from __future__ import print_function, division, absolute_import
-
 from isovar.value_object import ValueObject
-from nose.tools import eq_
+from .common import eq_ 
 
 
 def test_no_fields_unless_specified():

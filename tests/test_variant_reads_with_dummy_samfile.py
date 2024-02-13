@@ -1,13 +1,12 @@
-from __future__ import print_function, division, absolute_import
 
-from nose.tools import eq_
+from .common import eq_ 
 from varcode import Variant
 
 from isovar.allele_read import AlleleRead
 from isovar.read_collector import ReadCollector
 
 from mock_objects import MockAlignmentFile, make_pysam_read
-from genomes_for_testing import grch38
+from .genomes_for_testing import grch38
 
 
 def test_partitioned_read_sequences_snv():

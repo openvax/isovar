@@ -1,5 +1,3 @@
-# Copyright (c) 2016. Mount Sinai School of Medicine
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -12,16 +10,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
 
 from isovar.reference_coding_sequence_key import (
     reading_frame_to_offset,
     ReferenceCodingSequenceKey,
 )
 from varcode import Variant
-from nose.tools import eq_
-
-from genomes_for_testing import grch38
+from .common import eq_
+from .genomes_for_testing import grch38
 
 
 def test_reading_frame_to_offset():

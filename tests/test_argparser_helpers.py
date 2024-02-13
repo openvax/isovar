@@ -1,4 +1,4 @@
-from nose.tools import eq_
+from .common import eq_
 from isovar.cli.rna_args import make_rna_reads_arg_parser
 from isovar.cli.reference_context_args import add_reference_context_args
 from isovar.cli.protein_sequence_args import add_protein_sequence_args
