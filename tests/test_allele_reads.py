@@ -15,7 +15,7 @@ from isovar.locus_read import LocusRead
 from isovar.read_collector import ReadCollector
 from varcode import Variant
 
-from mock_objects import MockAlignmentFile, make_pysam_read
+from .mock_objects import MockAlignmentFile, make_pysam_read
 from .testing_helpers import assert_equal_fields
 from .common import eq_
 

@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mock_objects import make_dummy_protein_sequence
-
 from varcode import VariantCollection
 
 from isovar.read_collector import ReadCollector
@@ -23,8 +21,10 @@ from isovar.dataframe_helpers import protein_sequences_generator_to_dataframe
 from isovar.main import ProteinSequenceCreator
 from isovar.protein_sequence import ProteinSequence
 from isovar.protein_sequence_helpers import sort_protein_sequences
+
 from .common import eq_
 from .testing_helpers import load_bam, load_vcf, data_path
+from .mock_objects import make_dummy_protein_sequence
 
 
 def test_protein_sequence_substitution():

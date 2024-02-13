@@ -13,12 +13,12 @@
 from pyensembl import ensembl_grch38
 
 from varcode import Variant
-from .common import eq_
 
-from .testing_helpers import load_bam
 
 from isovar import ReadCollector
 
+from .common import eq_
+from .testing_helpers import load_bam
 
 def test_partition_variant_reads_snv():
     alignment_file = load_bam("data/cancer-wgs-primary.chr12.bam")

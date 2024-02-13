@@ -1,4 +1,15 @@
-from .common import eq_ 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from varcode import Variant
 
 from isovar.variant_orf import (
@@ -11,6 +22,8 @@ from isovar.reference_coding_sequence_key import ReferenceCodingSequenceKey
 from isovar.reference_context import ReferenceContext
 from isovar.allele_read import AlleleRead
 from isovar.dna import reverse_complement_dna
+
+from .common import eq_ 
 
 def test_compute_offset_to_first_complete_codon_no_trimming():
     # if nothing gets trimmed from the reference sequence, then

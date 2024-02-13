@@ -13,8 +13,8 @@
 from isovar import run_isovar
 from isovar import ProteinSequence
 from varcode import Variant
-from .testing_helpers import data_path
 
+from .testing_helpers import data_path
 from .common import eq_
 
 

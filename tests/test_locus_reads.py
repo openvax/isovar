@@ -11,13 +11,13 @@
 # limitations under the License.
 
 from varcode import Variant
+
 from isovar.locus_read import LocusRead
 from isovar.dataframe_helpers import locus_reads_dataframe
 from isovar.read_collector import ReadCollector
 
-from mock_objects import MockAlignmentFile, make_pysam_read
+from .mock_objects import MockAlignmentFile, make_pysam_read
 from .testing_helpers import assert_equal_fields, load_bam, data_path
-
 from .common import eq_
 
 def test_locus_reads_snv():
