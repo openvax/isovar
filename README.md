@@ -1,6 +1,4 @@
-<a href="https://travis-ci.org/openvax/isovar">
-    <img src="https://travis-ci.org/openvax/isovar.svg?branch=master" alt="Build Status" />
-</a>
+[![Tests](https://github.com/openvax/isovar/actions/workflows/tests.yml/badge.svg)](https://github.com/openvax/isovar/actions/workflows/tests.yml)
 <a href="https://coveralls.io/github/openvax/isovar?branch=master">
     <img src="https://coveralls.io/repos/openvax/isovar/badge.svg?branch=master&service=github" alt="Coverage Status" />
 </a>
