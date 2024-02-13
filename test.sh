@@ -1,2 +1,2 @@
-pytest --cov=isovar/ --cov-report=term-missing test
+pytest --cov=isovar/ --cov-report=term-missing tests
 
