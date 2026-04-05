@@ -16,10 +16,6 @@ the reading frames of annotated reference transcripts to create candidate
 translations.
 """
 
-from __future__ import print_function, division, absolute_import
-
-from six.moves import zip
-
 from .dna import reverse_complement_dna
 from .logging import get_logger
 from .value_object import ValueObject

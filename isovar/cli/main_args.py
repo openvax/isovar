@@ -14,8 +14,6 @@
 Create parser and run Isovar from parsed args
 """
 
-from __future__ import print_function, division, absolute_import
-
 from varcode.cli import variant_collection_from_args
 
 from ..main import run_isovar

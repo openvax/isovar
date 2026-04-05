@@ -15,9 +15,6 @@ Common helper functions for writing CSV output files, shared by all
 the CLI commands
 """
 
-from __future__ import print_function, division, absolute_import
-
-
 def add_output_args(
         parser,
         filename="output.csv",

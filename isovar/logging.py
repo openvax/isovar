@@ -11,8 +11,6 @@
 # limitations under the License.
 
 
-from __future__ import print_function, division, absolute_import
-
 import logging
 import logging.config
 import pkg_resources

@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
-
 """
 Gathered all the default function parameters in a single module, so that these
 values can be easily shared between modules and also between commandline

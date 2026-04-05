@@ -14,9 +14,6 @@
 Helper functions for normalizing and working with genomic variants
 """
 
-from __future__ import print_function, division, absolute_import
-
-from six.moves import range
 from .logging import get_logger
 from .dna import reverse_complement_dna
 

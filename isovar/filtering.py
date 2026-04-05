@@ -14,8 +14,6 @@
 Functions used to annotate IsovarResult objects with filters.
 """
 
-from __future__ import print_function, division, absolute_import
-
 from collections import OrderedDict
 import operator
 

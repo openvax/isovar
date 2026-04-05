@@ -10,10 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
 from itertools import chain
-from six import add_metaclass, string_types
-from six.moves import zip
 
 
 class MetaclassCollectSlots(type):
@@ -37,8 +34,7 @@ class MetaclassCollectSlots(type):
                 for cls in inherited_class_order))
 
 
-@add_metaclass(MetaclassCollectSlots)
-class ValueObject(object):
+class ValueObject(metaclass=MetaclassCollectSlots):
     """
     Base class for objects which define their fields
     via __slots__ to decrease memory footporint and
@@ -73,7 +69,7 @@ class ValueObject(object):
         field_strings = []
         for name, value in zip(self._fields, self._values):
             format_string = (
-                "%s='%s'" if isinstance(value, string_types) else "%s=%s")
+                "%s='%s'" if isinstance(value, str) else "%s=%s")
             field_strings.append(format_string % (name, value))
         return "%s(%s)" % (
             self.__class__.__name__,

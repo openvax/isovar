@@ -14,7 +14,6 @@
 Prints names and sequences of reads supporting a given set of variants.
 """
 
-from __future__ import print_function, division, absolute_import
 import sys
 
 from ..logging import get_logger

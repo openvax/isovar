@@ -10,14 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
 from collections import OrderedDict
-from six import integer_types, text_type, binary_type
 
 from varcode import Variant
 import pandas as pd
 
-VALID_ELEMENT_TYPES = integer_types + (text_type, binary_type, float, bool)
+VALID_ELEMENT_TYPES = (int, str, bytes, float, bool)
 
 # values of these types are automatically converted to their size or length
 # unless some other conversion function is provided

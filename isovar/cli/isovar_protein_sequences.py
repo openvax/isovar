@@ -16,7 +16,6 @@ RNAseq BAM from the same sample. Combine synonymous translations and assign
 a read count to each protein sequence.
 """
 
-from __future__ import print_function, division, absolute_import
 import sys
 
 

@@ -18,11 +18,9 @@ IsovarResult is a collection of all information gathered about a variant
 and any protein sequences which were successfully translated for it.
 """
 
-from __future__ import print_function, division, absolute_import
-
 from collections import OrderedDict
 
-from cached_property import cached_property
+from functools import cached_property
 
 from .common import safediv
 from .alignment_score import alignment_score

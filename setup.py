@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import (absolute_import,)
-
 import os
 import logging
 import re
@@ -56,13 +54,12 @@ if __name__ == '__main__':
             'Programming Language :: Python',
             'Topic :: Scientific/Engineering :: Bio-Informatics',
         ],
+        python_requires='>=3.9',
         install_requires=[
-            'six',
             'pysam>=0.15.2',
             'pandas',
             'varcode>=0.9.0',
             'pyensembl>=1.5.0',
-            'cached_property>=1.5.1',
             'psutil',
         ],
         long_description=readme_markdown,

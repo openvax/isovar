@@ -16,8 +16,6 @@ ProteinSequence is a representation of a translated coding sequence,
 associated with its supporting (and non-supporting but overlapping) RNA reads.
 """
 
-from __future__ import print_function, division, absolute_import
-
 from .common import normalize_base0_range_indices
 from .translation_key import TranslationKey
 from .translation import Translation

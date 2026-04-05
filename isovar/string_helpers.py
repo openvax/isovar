@@ -11,8 +11,6 @@
 # limitations under the License.
 
 
-from __future__ import print_function, division, absolute_import
-
 from .logging import get_logger
 
 logger = get_logger(__name__)

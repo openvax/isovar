@@ -10,11 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
-
 from collections import defaultdict
-
-from six.moves import range
 
 from .default_parameters import MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
 from .logging import get_logger

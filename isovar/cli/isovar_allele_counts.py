@@ -14,7 +14,6 @@
 Prints number of reads supporting ref, alt, and other alleles at variant loci.
 """
 
-from __future__ import print_function, division, absolute_import
 import sys
 
 from ..logging import get_logger

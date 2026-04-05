@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
-
 """
 GeneticCode objects contain the rules for translating cDNA into a protein
 sequence: the set of valid start and stop codons, as well as which

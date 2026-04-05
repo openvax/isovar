@@ -16,8 +16,6 @@ a variant locus which includes offsets into the read sequence & qualities
 for extracting variant nucleotides.
 """
 
-from __future__ import print_function, division, absolute_import
-
 from .value_object import ValueObject
 
 

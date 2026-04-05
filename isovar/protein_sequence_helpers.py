@@ -17,8 +17,6 @@ this module aggregates equivalent Translation objects into a single
 ProteinSequence.
 """
 
-from __future__ import print_function, division, absolute_import
-
 from .common import groupby
 from .logging import get_logger
 from .protein_sequence import ProteinSequence

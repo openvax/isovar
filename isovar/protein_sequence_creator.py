@@ -11,8 +11,6 @@
 # limitations under the License.
 
 
-from __future__ import print_function, division, absolute_import
-
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
