@@ -15,8 +15,6 @@ Primary Isovar command, used to collect information about variants,
 the RNA reads which overlap and protein sequences which can be constructed
 from reads that support the variant.
 """
-from __future__ import print_function, division, absolute_import
-
 import sys
 
 

@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
-
 from .allele_read_helpers import get_single_allele_from_reads
 from .assembly import iterative_overlap_assembly
 from .default_parameters import (

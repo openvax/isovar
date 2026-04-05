@@ -15,7 +15,6 @@ Translate each non-synonymous coding variants into possible mutant protein
 sequences using an RNAseq BAM from the same tissuie.
 """
 
-from __future__ import print_function, division, absolute_import
 import sys
 
 from ..logging import get_logger

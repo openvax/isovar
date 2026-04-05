@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
-
 """
 This module implements basic DNA functionality in Python strings to
 to avoid having to depend on a bigger library such as BioPython.

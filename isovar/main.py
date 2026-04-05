@@ -11,9 +11,6 @@
 # limitations under the License.
 
 
-from __future__ import print_function, division, absolute_import
-
-from six import string_types
 from varcode import load_vcf
 from pysam import AlignmentFile
 from collections import OrderedDict
@@ -133,10 +130,10 @@ def run_isovar(
     `protein_sequences` field of the IsovarVar result will be empty
     if no sequences could be determined.
     """
-    if isinstance(variants, string_types):
+    if isinstance(variants, str):
         variants = load_vcf(variants)
 
-    if isinstance(alignment_file, string_types):
+    if isinstance(alignment_file, str):
         alignment_file = AlignmentFile(
             alignment_file,
             threads=decompression_threads)

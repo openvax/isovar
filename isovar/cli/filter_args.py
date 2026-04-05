@@ -14,8 +14,6 @@
 Common command-line arguments for filtering Isovar results
 """
 
-from __future__ import print_function, division, absolute_import
-
 from collections import OrderedDict
 
 from ..default_parameters import (

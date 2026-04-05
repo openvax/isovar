@@ -10,10 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
-
-from six import integer_types
-
 from .default_parameters import (
     USE_SECONDARY_ALIGNMENTS,
     USE_DUPLICATE_READS,

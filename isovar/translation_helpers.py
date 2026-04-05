@@ -16,8 +16,6 @@ Helper functions used for creating translating a variant's cDNA sequence
 into a particular reading frame.
 """
 
-from __future__ import print_function, division, absolute_import
-
 import math
 
 def find_mutant_amino_acid_interval(

@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
-
 from collections import defaultdict, Counter
 
 from .default_parameters import MIN_SHARED_FRAGMENTS_FOR_PHASING

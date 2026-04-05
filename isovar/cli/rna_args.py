@@ -14,8 +14,6 @@
 Common command-line arguments for all Isovar commands which use RNA
 """
 
-from __future__ import print_function, division, absolute_import
-
 from pysam import AlignmentFile
 
 from varcode.cli import make_variants_parser, variant_collection_from_args

@@ -11,8 +11,6 @@
 # limitations under the License.
 
 
-from __future__ import print_function, division, absolute_import
-
 from ..default_parameters import MAX_PROTEIN_SEQUENCES_PER_VARIANT
 from ..main import ProteinSequenceCreator
 from ..dataframe_helpers import protein_sequences_generator_to_dataframe

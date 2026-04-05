@@ -15,9 +15,6 @@
 Sequence alignment helpers
 """
 
-from __future__ import print_function, division, absolute_import
-
-
 def alignment_score(a, b, min_subsequence_length=1):
     """
     Number of mismatches between all two input sequences, allows

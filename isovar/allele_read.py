@@ -15,7 +15,6 @@ Reads overlapping a locus of interest split into prefix,
 allele (ref, alt, or otherwise), and suffix portions
 """
 
-from __future__ import print_function, division, absolute_import
 import logging
 
 from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
