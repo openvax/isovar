@@ -18,7 +18,7 @@ associated with its supporting (and non-supporting but overlapping) RNA reads.
 
 from .common import normalize_base0_range_indices
 from .translation_key import TranslationKey
-from .translation import Translation
+from .translation import Translation  # noqa: F401
 from .logging import get_logger
 from .value_object import ValueObject
 
