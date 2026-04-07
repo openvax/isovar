@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isovar"
+requires-python = ">=3.9"
+authors = [{name="Alex Rubinsteyn"}, {name="Arman Aksoy"}, {name="Julia Kodysh"}]
+description = "Determine mutant protein sequences from RNA using assembly around variants"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+readme = "README.md"
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools.dynamic]
+version = {attr = "isovar.__version__"}
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+include = ["isovar", "isovar.*"]
+
+[tool.setuptools.package-data]
+isovar = ["logging.conf"]
+
+[project.urls]
+"Homepage" = "https://github.com/openvax/isovar"
+"Bug Tracker" = "https://github.com/openvax/isovar/issues"
+
+[project.scripts]
+isovar = "isovar.cli.isovar_main:run"
+isovar-protein-sequences = "isovar.cli.isovar_protein_sequences:run"
+isovar-translations = "isovar.cli.isovar_translations:run"
+isovar-reference-contexts = "isovar.cli.isovar_reference_contexts:run"
+isovar-allele-reads = "isovar.cli.isovar_allele_reads:run"
+isovar-allele-counts = "isovar.cli.isovar_allele_counts:run"
+isovar-variant-reads = "isovar.cli.isovar_variant_reads:run"
+isovar-variant-sequences = "isovar.cli.isovar_variant_sequences:run"
