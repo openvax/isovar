@@ -11,7 +11,7 @@
 # limitations under the License.
 
 from collections import namedtuple, OrderedDict
-from nose.tools import eq_
+from .common import eq_
 from varcode import Variant
 import pandas as pd
 

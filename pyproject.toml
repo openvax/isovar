@@ -42,3 +42,11 @@ isovar-allele-reads = "isovar.cli.isovar_allele_reads:run"
 isovar-allele-counts = "isovar.cli.isovar_allele_counts:run"
 isovar-variant-reads = "isovar.cli.isovar_variant_reads:run"
 isovar-variant-sequences = "isovar.cli.isovar_variant_sequences:run"
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["F821", "E501", "F841", "E731", "E741", "E722", "E721"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"test*/*" = ["F401"]
