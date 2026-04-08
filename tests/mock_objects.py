@@ -49,8 +49,8 @@ def make_pysam_read(
     read.mapq = mapq
     read.reference_start = reference_start
     read.reference_id = reference_id
-    qualities_string = pysam.qualities_to_qualitystring([baseq] * len(seq))
-    read.qual = qualities_string.encode("ascii")
+    qual = pysam.qualities_to_qualitystring([baseq] * len(seq))
+    read.qual = qual if isinstance(qual, bytes) else qual.encode("ascii")
     return read
 
 
