@@ -93,6 +93,8 @@ class AlleleRead(ValueObject):
             logger.debug(
                 "Skipping read '%s', found N nucleotides at variant locus",
                 read_name)
+            return None
+
         prefix = convert_from_bytes_if_necessary(sequence[:read_base0_start_inclusive])
         suffix = convert_from_bytes_if_necessary(sequence[read_base0_end_exclusive:])
 
