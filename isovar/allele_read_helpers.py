@@ -15,7 +15,7 @@ Functions for filtering, grouping, and summarizing collections of
 AlleleRead objects.
 """
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from .common import groupby
 from .logging import get_logger
@@ -34,19 +34,38 @@ def group_reads_by_allele(allele_reads):
 
 def get_single_allele_from_reads(allele_reads):
     """
-    Given a sequence of AlleleRead objects, which are expected to all have
-    the same allele, return that allele.
+    Given a sequence of AlleleRead objects which are expected to all have
+    the same allele, return that allele and the reads supporting it.
+
+    If reads carry different alleles (e.g. from indel representation
+    ambiguity or subclonal mixtures), the most common allele is returned
+    along with only the reads that match it. A warning is logged about
+    the discarded minority alleles.
+
+    Returns (allele_string, list_of_matching_reads)
     """
     allele_reads = list(allele_reads)
 
     if len(allele_reads) == 0:
         raise ValueError("Expected non-empty list of AlleleRead objects")
 
-    seq = allele_reads[0].allele
-    if any(read.allele != seq for read in allele_reads):
-        raise ValueError("Expected all AlleleRead objects to have same allele '%s', got %s" % (
-            seq, allele_reads))
-    return seq
+    allele_counts = Counter(read.allele for read in allele_reads)
+    most_common_allele = allele_counts.most_common(1)[0][0]
+
+    if len(allele_counts) > 1:
+        logger.warning(
+            "Expected all reads to have same allele but found %d distinct "
+            "alleles: %s. Using most common allele '%s' (%d/%d reads).",
+            len(allele_counts),
+            dict(allele_counts),
+            most_common_allele,
+            allele_counts[most_common_allele],
+            len(allele_reads))
+        allele_reads = [
+            r for r in allele_reads if r.allele == most_common_allele
+        ]
+
+    return most_common_allele, allele_reads
 
 
 def group_unique_sequences(
