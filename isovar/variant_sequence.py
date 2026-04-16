@@ -34,7 +34,9 @@ class VariantSequence(ValueObject):
         # since we often want to look at prefix+alt+suffix, let's cache it
         "sequence",
         # reads which were used to determine this sequences
-        "reads"
+        "reads",
+        # lazily computed coverage array (not part of value identity)
+        "_coverage_cache",
     ]
 
     def __init__(self, prefix, alt, suffix, reads):
@@ -43,6 +45,7 @@ class VariantSequence(ValueObject):
         self.suffix = suffix
         self.sequence = prefix + alt + suffix
         self.reads = frozenset(reads)
+        self._coverage_cache = None
 
     def __len__(self):
         return len(self.sequence)
@@ -194,8 +197,11 @@ class VariantSequence(ValueObject):
     def coverage(self):
         """
         Returns NumPy array indicating number of reads covering each
-        nucleotides of this sequence.
+        nucleotides of this sequence. Result is cached since
+        VariantSequence is immutable after construction.
         """
+        if self._coverage_cache is not None:
+            return self._coverage_cache
         variant_start_index, variant_end_index = self.variant_indices()
         n_nucleotides = len(self)
         coverage_array = np.zeros(n_nucleotides, dtype="int32")
@@ -203,6 +209,7 @@ class VariantSequence(ValueObject):
             coverage_array[
                 max(0, variant_start_index - len(read.prefix)):
                 min(n_nucleotides, variant_end_index + len(read.suffix))] += 1
+        self._coverage_cache = coverage_array
         return coverage_array
 
     def min_coverage(self):
@@ -264,4 +271,11 @@ class VariantSequence(ValueObject):
             alt=self.alt,
             suffix=self.suffix[:last_covered_index - variant_end_index + 1],
             reads=self.reads)
+
+
+# _coverage_cache is an internal cache slot, not part of value identity —
+# exclude it from _fields so it doesn't affect __eq__, __hash__, or __str__.
+VariantSequence._fields = tuple(
+    f for f in VariantSequence._fields if f != "_coverage_cache"
+)
 
