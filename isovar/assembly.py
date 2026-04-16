@@ -130,23 +130,34 @@ def collapse_substrings(variant_sequences):
     ]
 
 
+DEFAULT_MAX_ASSEMBLY_SEQUENCES = 1000
+
+
 def iterative_overlap_assembly(
         variant_sequences,
-        min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
+        min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+        max_assembly_sequences=DEFAULT_MAX_ASSEMBLY_SEQUENCES):
     """
     Assembles longer sequences from reads centered on a variant by
-    between merging all pairs of overlapping sequences and collapsing
+    merging all pairs of overlapping sequences and collapsing
     shorter sequences onto every longer sequence which contains them.
+
+    Parameters
+    ----------
+    variant_sequences : list of VariantSequence
+
+    min_overlap_size : int
+
+    max_assembly_sequences : int or None
+        If the number of input sequences exceeds this threshold after
+        substring collapse, skip the O(n^2)-per-round greedy merge and
+        return sequences sorted by read support. Set to None to disable.
 
     Returns a list of variant sequences, sorted by decreasing read support.
     """
     if len(variant_sequences) <= 1:
-        # if we don't have at least two sequences to start with then
-        # skip the whole mess below
         return variant_sequences
 
-    # reduce the number of inputs to the merge algorithm by first collapsing
-    # shorter sequences onto the longer sequences which contain them
     n_before_collapse = len(variant_sequences)
     variant_sequences = collapse_substrings(variant_sequences)
     n_after_collapse = len(variant_sequences)
@@ -155,7 +166,16 @@ def iterative_overlap_assembly(
         n_before_collapse,
         n_after_collapse)
 
-    merged_variant_sequences = greedy_merge(variant_sequences, min_overlap_size)
+    if (max_assembly_sequences is not None
+            and n_after_collapse > max_assembly_sequences):
+        logger.warning(
+            "Too many variant sequences (%d > %d) for greedy assembly; "
+            "skipping merge and returning sequences sorted by read support",
+            n_after_collapse,
+            max_assembly_sequences)
+    else:
+        variant_sequences = greedy_merge(variant_sequences, min_overlap_size)
+
     return list(sorted(
-        merged_variant_sequences,
+        variant_sequences,
         key=lambda seq: -len(seq.reads)))
