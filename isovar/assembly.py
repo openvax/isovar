@@ -22,34 +22,51 @@ def greedy_merge_helper(
         variant_sequences,
         min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
     """
+    Score all valid pairwise merges by overlap size and greedily accept
+    the best non-conflicting merges (each sequence participates in at most
+    one merge per round). This makes the output deterministic regardless
+    of input order.
+
     Returns a list of merged VariantSequence objects, and True if any
     were successfully merged.
     """
-    merged_variant_sequences = {}
-    merged_any = False
-
-    # here we'll keep track of sequences that haven't been merged yet, and add them in at the end
-    unmerged_variant_sequences = set(variant_sequences)
+    candidates = []
     for i in range(len(variant_sequences)):
-        sequence1 = variant_sequences[i]
-        # it works to loop over the triangle (i+1 onwards) because combine() tries flipping the
-        # arguments if sequence1 is on the right of sequence2
         for j in range(i + 1, len(variant_sequences)):
-            sequence2 = variant_sequences[j]
-            combined = sequence1.combine(sequence2, min_overlap_size=min_overlap_size)
-            if combined is None:
-                continue
-            if combined.sequence in merged_variant_sequences:
-                existing = merged_variant_sequences[combined.sequence]
-                # the existing VariantSequence and the newly merged
-                # VariantSequence should differ only in which reads support them
-                combined = combined.add_reads(existing.reads)
-            merged_variant_sequences[combined.sequence] = combined
-            unmerged_variant_sequences.discard(sequence1)
-            unmerged_variant_sequences.discard(sequence2)
-            merged_any = True
-    result = list(merged_variant_sequences.values()) + list(unmerged_variant_sequences)
-    return result, merged_any
+            combined = variant_sequences[i].combine(
+                variant_sequences[j], min_overlap_size=min_overlap_size)
+            if combined is not None:
+                overlap = (
+                    len(variant_sequences[i])
+                    + len(variant_sequences[j])
+                    - len(combined))
+                candidates.append((overlap, len(combined.reads), i, j, combined))
+
+    if not candidates:
+        return list(variant_sequences), False
+
+    # largest overlap first, then most reads, then indices for determinism
+    candidates.sort(key=lambda c: (-c[0], -c[1], c[2], c[3]))
+
+    used = set()
+    merged_variant_sequences = {}
+    for overlap, n_reads, i, j, combined in candidates:
+        if i in used or j in used:
+            continue
+        used.add(i)
+        used.add(j)
+        if combined.sequence in merged_variant_sequences:
+            existing = merged_variant_sequences[combined.sequence]
+            combined = combined.add_reads(existing.reads)
+        merged_variant_sequences[combined.sequence] = combined
+
+    unmerged = [
+        variant_sequences[k]
+        for k in range(len(variant_sequences))
+        if k not in used
+    ]
+    result = list(merged_variant_sequences.values()) + unmerged
+    return result, True
 
 
 def greedy_merge(
