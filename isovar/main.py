@@ -122,13 +122,15 @@ def run_isovar(
         they can also be negated by prepending "not_",
         such as "not_has_protein_sequence".
 
-    decompress_threads : int
+    decompression_threads : int
         Number of threads used by htslib to decompress BAM/CRAM
         files.
 
-    Generator of IsovarResult objects, one for each variant. The
-    `protein_sequences` field of the IsovarVar result will be empty
-    if no sequences could be determined.
+    Returns
+    -------
+    list of IsovarResult
+        One per variant. The `protein_sequences` field will be empty
+        if no sequences could be determined.
     """
     if filter_thresholds is None:
         filter_thresholds = OrderedDict(DEFAULT_FILTER_THRESHOLDS)

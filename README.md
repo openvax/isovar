@@ -170,7 +170,7 @@ A variant which fails one or more filters is not excluded from the result collec
 If a result collection is flattened into a DataFrame then each filter is included as a column. 
 
 It's also possible to filter on boolean properties (without numerical thresholds) by passing `filter_flags` to `run_isovar`. These boolean
-properties can be further negated by prepending 'not_' to the property name, so that both `'protein_sequence_matches_predicted_effect'` and `'not_protein_sequence_matches_predicted_effect'` are valid names for `filter_flags`.
+properties can be further negated by prepending 'not_' to the property name, so that both `'protein_sequence_matches_predicted_mutation_effect'` and `'not_protein_sequence_matches_predicted_mutation_effect'` are valid names for `filter_flags`.
 
 ## Commandline 
 
