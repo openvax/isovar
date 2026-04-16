@@ -33,6 +33,7 @@ def add_rna_args(
         --min-mapping-quality
         --use-duplicate-reads
         --drop-secondary-alignments
+        --use-soft-clipped-bases
     """
     rna_group = parser.add_argument_group("RNA")
     rna_group.add_argument(
@@ -61,6 +62,14 @@ def add_rna_args(
         help=(
             "By default, secondary alignments are included in reads, "
             "use this option to instead only use primary alignments."))
+
+    rna_group.add_argument(
+        "--use-soft-clipped-bases",
+        default=False,
+        action="store_true",
+        help=(
+            "By default, soft-clipped bases at the ends of reads are excluded. "
+            "Use this option to include them."))
 
     rna_group.add_argument(
         "--num-rna-decompression-threads",
@@ -104,7 +113,8 @@ def read_collector_from_args(args):
     return ReadCollector(
         min_mapping_quality=args.min_mapping_quality,
         use_duplicate_reads=args.use_duplicate_reads,
-        use_secondary_alignments=not args.drop_secondary_alignments)
+        use_secondary_alignments=not args.drop_secondary_alignments,
+        use_soft_clipped_bases=args.use_soft_clipped_bases)
 
 
 def read_evidence_generator_from_args(args):
