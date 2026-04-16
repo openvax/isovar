@@ -49,8 +49,8 @@ class DataFrameBuilder(object):
             named '_fields' which is a list of field names.
 
         exclude : set
-            Field names from element_class which should be used as columns for
-            the DataFrame we're building
+            Field names from element_class which should be omitted from the
+            DataFrame we're building
 
         converters : dict
             Dictionary of names mapping to functions. These functions will be

@@ -55,7 +55,7 @@ class LocusRead(ValueObject):
             cDNA sequence
 
         reference_positions : list of (int or None)
-            For every base in the sequence, which base-1 reference position
+            For every base in the sequence, which base-0 reference position
             does it map to, or None if the read base is an insertion or soft-clipped
 
         quality_scores : array of int
