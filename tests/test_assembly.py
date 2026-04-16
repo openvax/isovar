@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import random
 from time import time
 
 from isovar.read_collector import ReadCollector
@@ -25,7 +26,7 @@ from isovar.assembly import (
 from pyensembl import ensembl_grch38
 from varcode import Variant
 
-from .common import eq_ 
+from .common import eq_
 from .testing_helpers import load_bam
 
 
@@ -330,3 +331,94 @@ def test_assembly_1_sequence():
         suffix="GGG",
         reads={"1"})
     eq_(iterative_overlap_assembly([vs]), [vs])
+
+
+def test_greedy_merge_deterministic_across_input_orders():
+    """
+    Verify that greedy_merge produces the same assembled sequences
+    regardless of input order. Regression test for #153, also covers #148.
+    """
+    variant_sequences = [
+        VariantSequence(prefix="AAAAAA", alt="CC", suffix="TTTT", reads={"r1"}),
+        VariantSequence(prefix="AAAA", alt="CC", suffix="TTTTGG", reads={"r2"}),
+        VariantSequence(prefix="GGAAAAAA", alt="CC", suffix="TT", reads={"r3"}),
+        VariantSequence(prefix="AAA", alt="CC", suffix="TTTTGGCC", reads={"r4"}),
+        VariantSequence(prefix="CCGGAAAAAA", alt="CC", suffix="T", reads={"r5"}),
+    ]
+
+    reference_result = greedy_merge(variant_sequences, min_overlap_size=1)
+    reference_sequences = sorted(r.sequence for r in reference_result)
+    reference_all_reads = set().union(*(r.reads for r in reference_result))
+
+    rng = random.Random(42)
+    for trial in range(20):
+        shuffled = list(variant_sequences)
+        rng.shuffle(shuffled)
+        result = greedy_merge(shuffled, min_overlap_size=1)
+        result_sequences = sorted(r.sequence for r in result)
+        result_all_reads = set().union(*(r.reads for r in result))
+        assert result_sequences == reference_sequences, \
+            "Trial %d: different sequences from shuffled input.\nRef: %s\nGot: %s" % (
+                trial, reference_sequences, result_sequences)
+        assert result_all_reads == reference_all_reads, \
+            "Trial %d: different reads from shuffled input.\nRef: %s\nGot: %s" % (
+                trial, reference_all_reads, result_all_reads)
+
+
+def test_greedy_merge_prefers_larger_overlap():
+    """
+    When a sequence could merge with two partners, the larger overlap
+    should be chosen. This tests the sorting logic in greedy_merge_helper.
+    """
+    # A overlaps B by 3 bases, A overlaps C by 6 bases.
+    # A should merge with C (larger overlap) not B.
+    vs_a = VariantSequence(prefix="AAAAAA", alt="X", suffix="TTTTTT", reads={"a"})
+    vs_b = VariantSequence(prefix="AAA", alt="X", suffix="TTTTTTGGGGGG", reads={"b"})
+    vs_c = VariantSequence(prefix="AAAAAA", alt="X", suffix="TTTTTTCCCCCC", reads={"c"})
+
+    result = greedy_merge([vs_a, vs_b, vs_c], min_overlap_size=1)
+
+    # A+C should merge (overlap = 6+6+1=13 bases out of 13+13=26)
+    # leaving B unmerged (or merging in a subsequent round if compatible)
+    merged_reads = set()
+    for r in result:
+        merged_reads.update(r.reads)
+    assert merged_reads == {"a", "b", "c"}, \
+        "All reads should be accounted for, got %s" % merged_reads
+
+    # The longest assembled sequence should contain C's long suffix
+    longest = max(result, key=len)
+    assert "CCCCCC" in longest.sequence, \
+        "Expected the larger overlap (with C's CCCCCC suffix) to be preferred"
+
+
+def test_iterative_assembly_deterministic_across_input_orders():
+    """
+    End-to-end test: iterative_overlap_assembly should produce
+    identical results regardless of input ordering.
+    """
+    original_prefix = "ACTGAACCTTGG"
+    original_allele = "CC"
+    original_suffix = "GGAAGGAAGGAA"
+
+    subsequences = [
+        VariantSequence(
+            prefix=original_prefix[i:],
+            alt=original_allele,
+            suffix=original_suffix[:-j] if j > 0 else original_suffix,
+            reads={str(i) + "_" + str(j)})
+        for i in range(6)
+        for j in range(6)
+    ]
+
+    reference = iterative_overlap_assembly(subsequences, min_overlap_size=2)
+    reference_sequences = sorted(r.sequence for r in reference)
+
+    rng = random.Random(123)
+    for trial in range(10):
+        shuffled = list(subsequences)
+        rng.shuffle(shuffled)
+        result = iterative_overlap_assembly(shuffled, min_overlap_size=2)
+        result_sequences = sorted(r.sequence for r in result)
+        assert result_sequences == reference_sequences, \
+            "Trial %d: different assembly from shuffled input" % trial
