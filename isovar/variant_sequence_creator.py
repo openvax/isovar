@@ -89,7 +89,7 @@ class VariantSequenceCreator(object):
         if len(variant_reads) == 0:
             return []
 
-        alt_seq = get_single_allele_from_reads(variant_reads)
+        alt_seq, variant_reads = get_single_allele_from_reads(variant_reads)
 
         # the number of context nucleotides on either side of the variant
         # is half the desired length (minus the number of variant nucleotides)

@@ -11,10 +11,12 @@
 # limitations under the License.
 
 from isovar import ReadCollector
-from isovar.allele_read_helpers import  group_unique_sequences
+from isovar.allele_read import AlleleRead
+from isovar.allele_read_helpers import group_unique_sequences, get_single_allele_from_reads
 
 from varcode import Variant
 
+from .common import eq_
 from .testing_helpers import load_bam
 
 
@@ -45,3 +47,32 @@ def test_group_unique_sequences():
     # there are some redundant reads, so we expect that the number of
     # unique entries should be less than the total read partitions
     assert len(variant_reads) > len(groups)
+
+
+def test_get_single_allele_from_reads_uniform():
+    reads = [
+        AlleleRead(prefix="AA", allele="G", suffix="TT", name="r1"),
+        AlleleRead(prefix="AA", allele="G", suffix="TT", name="r2"),
+    ]
+    allele, filtered_reads = get_single_allele_from_reads(reads)
+    eq_(allele, "G")
+    eq_(len(filtered_reads), 2)
+
+
+def test_get_single_allele_from_reads_mixed_uses_most_common():
+    reads = [
+        AlleleRead(prefix="AA", allele="G", suffix="TT", name="r1"),
+        AlleleRead(prefix="AA", allele="G", suffix="TT", name="r2"),
+        AlleleRead(prefix="AA", allele="G", suffix="TT", name="r3"),
+        AlleleRead(prefix="AA", allele="C", suffix="TT", name="r4"),
+    ]
+    allele, filtered_reads = get_single_allele_from_reads(reads)
+    eq_(allele, "G")
+    eq_(len(filtered_reads), 3)
+    assert all(r.allele == "G" for r in filtered_reads)
+
+
+def test_get_single_allele_from_reads_empty_raises():
+    import pytest
+    with pytest.raises(ValueError):
+        get_single_allele_from_reads([])
