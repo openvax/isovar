@@ -97,10 +97,11 @@ def collapse_substrings(variant_sequences):
             key=lambda seq: -len(seq)):
         found_superstring = False
         for long_variant_sequence in result_list:
-            found_superstring = long_variant_sequence.contains(short_variant_sequence)
-            if found_superstring:
+            if long_variant_sequence.contains(short_variant_sequence):
                 extra_reads_from_substrings[long_variant_sequence].update(
                     short_variant_sequence.reads)
+                found_superstring = True
+                break
         if not found_superstring:
             result_list.append(short_variant_sequence)
     # add to each VariantSequence the reads it absorbed from dropped substrings

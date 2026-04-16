@@ -135,6 +135,72 @@ def test_collapse_substrings():
     assert vs_unrelated in results, "Expected %s to be in %s" % (vs_unrelated, results)
 
 
+def test_collapse_substrings_absorbed_sequence_not_reappended():
+    # Regression test for issue #130.
+    # A shorter sequence is contained in one longer result (vs_long1) but NOT
+    # in another longer result (vs_long2). Before the fix, the inner loop
+    # continued past the containment match and `found_superstring` got
+    # overwritten to False, causing the absorbed short sequence to be
+    # *also* appended to result_list (double counting its reads).
+    vs_long1 = VariantSequence(
+        prefix="AAA", alt="C", suffix="GGG", reads={"L1"})   # AAA|C|GGG
+    vs_long2 = VariantSequence(
+        prefix="AAA", alt="C", suffix="TTT", reads={"L2"})   # AAA|C|TTT
+    vs_short = VariantSequence(
+        prefix="AA", alt="C", suffix="GG", reads={"S"})      # AA|C|GG
+    # Sanity-check the containment relationships the bug depends on:
+    assert vs_long1.contains(vs_short)
+    assert not vs_long2.contains(vs_short)
+
+    # Pass long1 first so that after length-sort it ends up before long2 in
+    # result_list. The bug then manifested when iterating short's superstring
+    # candidates: long1 matched, long2 did not, and `found_superstring` was
+    # clobbered by the last iteration.
+    results = collapse_substrings([vs_long1, vs_long2, vs_short])
+
+    assert len(results) == 2, \
+        "Expected short sequence to be absorbed into long1 and not reappended, got %d: %s" % (
+            len(results), results)
+
+    # The surviving long1 should have absorbed short's reads.
+    long1_in_results = [r for r in results if r.suffix == "GGG"]
+    assert len(long1_in_results) == 1
+    assert long1_in_results[0].reads == frozenset({"L1", "S"}), \
+        "Expected long1 to carry both L1 and S reads, got %s" % (long1_in_results[0].reads,)
+
+    # long2 should be unchanged (not carrying short's reads).
+    long2_in_results = [r for r in results if r.suffix == "TTT"]
+    assert len(long2_in_results) == 1
+    assert long2_in_results[0].reads == frozenset({"L2"})
+
+    # And short should not have reappeared as a standalone entry.
+    assert not any(r.prefix == "AA" and r.suffix == "GG" for r in results), \
+        "Short sequence should have been absorbed, not reappended: %s" % (results,)
+
+
+def test_collapse_substrings_absorbs_into_first_only():
+    # If a short sequence is contained in TWO longer sequences, we should
+    # only absorb it into one (the first encountered). Otherwise the same
+    # reads would be counted in both supersets.
+    vs_long1 = VariantSequence(
+        prefix="AAA", alt="C", suffix="GGG", reads={"L1"})
+    vs_long2 = VariantSequence(
+        prefix="TAA", alt="C", suffix="GGG", reads={"L2"})
+    vs_short = VariantSequence(
+        prefix="AA", alt="C", suffix="GG", reads={"S"})
+    assert vs_long1.contains(vs_short)
+    assert vs_long2.contains(vs_short)
+
+    results = collapse_substrings([vs_long1, vs_long2, vs_short])
+    eq_(len(results), 2)
+
+    # Exactly one of the two longer sequences should carry the short read.
+    n_carrying_short = sum(1 for r in results if "S" in r.reads)
+    eq_(n_carrying_short, 1,
+        "Short read 'S' should only be absorbed into one longer sequence, got %d: %s" % (
+            n_carrying_short, results))
+
+
 def test_assembly_of_many_subsequences():
     original_prefix = "ACTGAACCTTGGAAACCCTTTGGG"
     original_allele = "CCCTTT"
