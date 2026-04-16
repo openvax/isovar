@@ -199,7 +199,7 @@ class ReadCollector(object):
             else:
                 return None
 
-            if read_base0_after_insertion - read_base0_after_insertion == 1:
+            if read_base0_after_insertion - read_base0_before_insertion == 1:
                 read_base0_start_inclusive = read_base0_end_exclusive = (
                     read_base0_before_insertion + 1
                 )
