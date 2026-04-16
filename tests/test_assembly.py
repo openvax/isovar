@@ -422,3 +422,61 @@ def test_iterative_assembly_deterministic_across_input_orders():
         result_sequences = sorted(r.sequence for r in result)
         assert result_sequences == reference_sequences, \
             "Trial %d: different assembly from shuffled input" % trial
+
+
+def test_assembly_circuit_breaker_skips_merge():
+    """
+    When the number of sequences after collapse exceeds
+    max_assembly_sequences, the greedy merge is skipped and sequences
+    are returned sorted by read support.
+    """
+    # Use distinct prefixes so collapse_substrings can't fold them
+    prefixes = ["GAT", "CTA", "AGC", "TCA", "GCG"]
+    variant_sequences = [
+        VariantSequence(
+            prefix=p, alt="X", suffix="TTT",
+            reads={"%s_%d" % (p, k) for k in range(i + 1)})
+        for i, p in enumerate(prefixes)
+    ]
+
+    result = iterative_overlap_assembly(
+        variant_sequences,
+        min_overlap_size=1,
+        max_assembly_sequences=3)
+
+    eq_(len(result), 5, "All 5 sequences should be returned (no merge)")
+    read_counts = [len(r.reads) for r in result]
+    assert read_counts == sorted(read_counts, reverse=True), \
+        "Results should be sorted by decreasing read count, got %s" % read_counts
+
+
+def test_assembly_circuit_breaker_disabled_with_none():
+    """max_assembly_sequences=None disables the circuit breaker."""
+    variant_sequences = [
+        VariantSequence(prefix="A" * 5, alt="CC", suffix="T" * 5, reads={"r1"}),
+        VariantSequence(prefix="A" * 5, alt="CC", suffix="T" * 5 + "G", reads={"r2"}),
+    ]
+    result = iterative_overlap_assembly(
+        variant_sequences,
+        min_overlap_size=1,
+        max_assembly_sequences=None)
+    # Should merge normally despite any threshold
+    eq_(len(result), 1)
+
+
+def test_assembly_circuit_breaker_not_triggered_under_threshold():
+    """
+    When the sequence count is under the threshold, greedy merge proceeds
+    normally (same as no circuit breaker).
+    """
+    variant_sequences = [
+        VariantSequence(prefix="AAAA", alt="CC", suffix="TTTT", reads={"r1"}),
+        VariantSequence(prefix="AA", alt="CC", suffix="TTTTGG", reads={"r2"}),
+    ]
+    result_with_breaker = iterative_overlap_assembly(
+        variant_sequences, min_overlap_size=1, max_assembly_sequences=100)
+    result_without_breaker = iterative_overlap_assembly(
+        variant_sequences, min_overlap_size=1, max_assembly_sequences=None)
+    eq_(len(result_with_breaker), len(result_without_breaker))
+    for r1, r2 in zip(result_with_breaker, result_without_breaker):
+        eq_(r1.sequence, r2.sequence)
