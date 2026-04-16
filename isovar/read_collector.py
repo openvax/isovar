@@ -97,9 +97,12 @@ class ReadCollector(object):
 
         mapping_quality = pysam_aligned_segment.mapping_quality
 
-        if self.min_mapping_quality > 0 and (mapping_quality is None):
-            logger.debug("Skipping read '%s' due to missing MAPQ" % name)
-            return None
+        if mapping_quality is None:
+            if self.min_mapping_quality > 0:
+                logger.debug("Skipping read '%s' due to missing MAPQ" % name)
+                return None
+            else:
+                mapping_quality = 0
         elif mapping_quality < self.min_mapping_quality:
             logger.debug(
                 "Skipping read '%s' due to low MAPQ: %d < %d",
