@@ -148,7 +148,7 @@ class VariantSequence(ValueObject):
         then returns None.
         """
         if other_sequence.alt != self.alt:
-            logger.warn(
+            logger.warning(
                 "Cannot combine %s and %s with mismatching alt sequences",
                 self,
                 other_sequence)

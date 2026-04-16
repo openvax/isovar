@@ -68,7 +68,7 @@ class ReferenceSequenceKey(ValueObject):
         full_transcript_sequence = transcript.sequence
 
         if full_transcript_sequence is None:
-            logger.warn(
+            logger.warning(
                 "Expected transcript %s (overlapping %s) to have sequence",
                 transcript.name,
                 variant)
@@ -88,7 +88,7 @@ class ReferenceSequenceKey(ValueObject):
                 variant=variant,
                 strand=transcript.strand,
                 ref_seq_on_transcript=reference_cdna_at_variant):
-            logger.warn(
+            logger.warning(
                 "Variant %s doesn't match reference sequence on transcript %s: "
                 "may span splice junction",
                 variant,
@@ -97,7 +97,7 @@ class ReferenceSequenceKey(ValueObject):
 
         if len(full_transcript_sequence) < 6:
             # need at least 6 nucleotides for a start and stop codon
-            logger.warn(
+            logger.warning(
                 "Sequence of %s (overlapping %s) too short: %d",
                 transcript,
                 variant,
