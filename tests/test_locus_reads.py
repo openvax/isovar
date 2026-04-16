@@ -297,3 +297,50 @@ def test_locus_read_none_mapq_with_min_mapping_quality_nonzero():
         "Expected read with mapping_quality=None to be skipped when "
         "min_mapping_quality=1, but it was accepted"
     )
+
+
+def test_locus_read_insertion_locus_no_insertion_in_read():
+    """
+    When an insertion variant is queried (reference_interval_size == 0) but the
+    read does NOT carry the insertion, the read positions flanking the locus
+    should be adjacent (differ by 1) and the returned LocusRead should have
+    an empty read interval (start == end).
+
+    Regression test for GitHub issue #126 — previously the code compared
+    read_base0_after_insertion to itself instead of read_base0_before_insertion,
+    making the adjacent-positions branch dead.
+    """
+    # Reference: ACCTTG (positions 0-5). Insertion locus between pos 3 and 4.
+    # This read has NO insertion — reference positions are contiguous.
+    pysam_read = make_pysam_read(seq="ACCTTG", cigar="6M", mdtag="6")
+    read_collector = ReadCollector()
+    result = read_collector.locus_read_from_pysam_aligned_segment(
+        pysam_read,
+        base0_start_inclusive=4,
+        base0_end_exclusive=4,
+    )
+    assert result is not None, "Read without insertion should still be returned"
+    eq_(result.read_base0_start_inclusive, 4)
+    eq_(result.read_base0_end_exclusive, 4)
+
+
+def test_locus_read_insertion_locus_with_insertion_in_read():
+    """
+    When an insertion variant is queried (reference_interval_size == 0) and the
+    read DOES carry the insertion, the returned LocusRead should have a
+    non-empty read interval spanning the inserted bases.
+
+    Companion to the test above to verify the else-branch still works.
+    """
+    # Reference: ACCTTG. Insertion of G between pos 3 and 4.
+    # Read: ACCTGTG — 4M1I2M — positions [0,1,2,3,None,4,5]
+    pysam_read = make_pysam_read(seq="ACCTGTG", cigar="4M1I2M", mdtag="6")
+    read_collector = ReadCollector()
+    result = read_collector.locus_read_from_pysam_aligned_segment(
+        pysam_read,
+        base0_start_inclusive=4,
+        base0_end_exclusive=4,
+    )
+    assert result is not None, "Read with insertion should be returned"
+    eq_(result.read_base0_start_inclusive, 4)
+    eq_(result.read_base0_end_exclusive, 5)
