@@ -243,3 +243,24 @@ def test_variant_sequence_len():
         suffix="TT",
         reads=[])
     eq_(len(vs), 5)
+
+
+def test_variant_sequence_coverage_is_cached():
+    reads = [
+        AlleleRead(prefix="AA", allele="C", suffix="TT", name="r1"),
+        AlleleRead(prefix="A", allele="C", suffix="TT", name="r2"),
+    ]
+    vs = VariantSequence(prefix="AA", alt="C", suffix="TT", reads=reads)
+    first_call = vs.coverage()
+    second_call = vs.coverage()
+    assert first_call is second_call, \
+        "coverage() should return the same cached array on repeated calls"
+
+
+def test_variant_sequence_coverage_cache_excluded_from_equality():
+    reads = [AlleleRead(prefix="AA", allele="C", suffix="TT", name="r1")]
+    vs1 = VariantSequence(prefix="AA", alt="C", suffix="TT", reads=reads)
+    vs2 = VariantSequence(prefix="AA", alt="C", suffix="TT", reads=reads)
+    vs1.coverage()
+    eq_(vs1, vs2, "Cached coverage should not affect equality")
+    eq_(hash(vs1), hash(vs2), "Cached coverage should not affect hash")
