@@ -32,10 +32,10 @@ class DataFrameBuilder(object):
             self,
             element_class,
             field_names=None,
-            exclude=set([]),
-            converters={},
-            rename_dict={},
-            extra_column_fns={},
+            exclude=None,
+            converters=None,
+            rename_dict=None,
+            extra_column_fns=None,
             variant_columns=True,
             convert_collections_to_size=True):
         """
@@ -77,6 +77,14 @@ class DataFrameBuilder(object):
             then collection values cause a runtime error.
         """
         self.element_class = element_class
+        if exclude is None:
+            exclude = set()
+        if converters is None:
+            converters = {}
+        if rename_dict is None:
+            rename_dict = {}
+        if extra_column_fns is None:
+            extra_column_fns = {}
         self.rename_dict = rename_dict
         self.converters = converters
         self.variant_columns = variant_columns

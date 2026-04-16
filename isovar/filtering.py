@@ -103,7 +103,7 @@ def evaluate_boolean_filters(isovar_result, filter_flags):
 def evaluate_filters(
         isovar_result,
         filter_thresholds,
-        filter_flags=[]):
+        filter_flags=None):
     """
     Creates a dictionary whose keys are named of different
     filter conditions and values are booleans, where True
@@ -133,6 +133,8 @@ def evaluate_filters(
     Dictionary of filter names mapped to boolean value indicating
     whether this locus passed the filter.
     """
+    if filter_flags is None:
+        filter_flags = []
     filter_values_dict = evaluate_boolean_filters(isovar_result, filter_flags)
     filter_values_dict.update(
         evaluate_threshold_filters(isovar_result, filter_thresholds))
@@ -141,8 +143,8 @@ def evaluate_filters(
 
 def apply_filters(
         isovar_result,
-        filter_thresholds={},
-        filter_flags=[]):
+        filter_thresholds=None,
+        filter_flags=None):
     """
     Given an IsovarResult object, evaluates given filters
     for each object, and returns a copy of the IsovarResult with new fiter
@@ -168,6 +170,10 @@ def apply_filters(
 
     Returns IsovarResult
     """
+    if filter_thresholds is None:
+        filter_thresholds = {}
+    if filter_flags is None:
+        filter_flags = []
     filter_values = OrderedDict(isovar_result.filter_values.items())
     new_filter_values = evaluate_filters(
         isovar_result,

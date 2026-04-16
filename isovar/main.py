@@ -77,8 +77,8 @@ def run_isovar(
         transcript_id_whitelist=None,
         read_collector=None,
         protein_sequence_creator=None,
-        filter_thresholds=DEFAULT_FILTER_THRESHOLDS,
-        filter_flags=DEFAULT_FILTER_FLAGS,
+        filter_thresholds=None,
+        filter_flags=None,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
         decompression_threads=1):
     """
@@ -130,6 +130,12 @@ def run_isovar(
     `protein_sequences` field of the IsovarVar result will be empty
     if no sequences could be determined.
     """
+    if filter_thresholds is None:
+        filter_thresholds = OrderedDict(DEFAULT_FILTER_THRESHOLDS)
+
+    if filter_flags is None:
+        filter_flags = list(DEFAULT_FILTER_FLAGS)
+
     if isinstance(variants, str):
         variants = load_vcf(variants)
 
