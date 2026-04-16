@@ -287,6 +287,90 @@ def test_protein_sequence_creator_protein_length():
             protein_sequence_lengths,)
 
 
+class _StubEvidence:
+    # Bare-bones stand-in for ReadEvidence used in the cap-regression tests
+    # below. `translate_variant_reads` is stubbed out, so the content of
+    # `alt_reads` only has to be non-empty to avoid the early-return path.
+    alt_reads = ["stub-read"]
+
+
+def _translations_with_distinct_amino_acids(amino_acid_strings):
+    # Each amino-acid string must differ so that group_equivalent_translations
+    # produces one ProteinSequence per input string.
+    from .mock_objects import make_dummy_translation
+    return [
+        make_dummy_translation(amino_acids=aa)
+        for aa in amino_acid_strings
+    ]
+
+
+def test_sorted_protein_sequences_respects_max_per_variant_cap():
+    # Regression test for issue #132: ProteinSequenceCreator's
+    # max_protein_sequences_per_variant was silently ignored by
+    # sorted_protein_sequences_for_variant (and therefore by run_isovar).
+    class CappedStubCreator(ProteinSequenceCreator):
+        def translate_variant_reads(
+                self, variant, variant_reads, transcript_id_whitelist=None):
+            return _translations_with_distinct_amino_acids(
+                ["MKHW", "MKHY", "MKHF", "MKHL", "MKHI"])
+
+    creator = CappedStubCreator(max_protein_sequences_per_variant=2)
+    result = creator.sorted_protein_sequences_for_variant(
+        variant=None, read_evidence=_StubEvidence())
+    eq_(len(result), 2,
+        "Expected cap of 2 to trim 5 distinct protein sequences to 2, got %d" % (
+            len(result),))
+
+
+def test_sorted_protein_sequences_no_cap_returns_all():
+    # When max_protein_sequences_per_variant is None (or 0), no cap is
+    # applied and all distinct protein sequences are returned.
+    class UncappedStubCreator(ProteinSequenceCreator):
+        def translate_variant_reads(
+                self, variant, variant_reads, transcript_id_whitelist=None):
+            return _translations_with_distinct_amino_acids(
+                ["MKHW", "MKHY", "MKHF"])
+
+    creator = UncappedStubCreator(max_protein_sequences_per_variant=None)
+    result = creator.sorted_protein_sequences_for_variant(
+        variant=None, read_evidence=_StubEvidence())
+    eq_(len(result), 3,
+        "Expected all 3 distinct protein sequences with no cap, got %d" % (
+            len(result),))
+
+
+def test_run_isovar_respects_max_protein_sequences_per_variant():
+    # Integration test: run_isovar feeds protein_sequence_creator into
+    # sorted_protein_sequences_for_variant, so setting a cap on the creator
+    # must cap the number of sequences per IsovarResult.
+    from isovar import run_isovar, ProteinSequenceCreator as _RealCreator
+
+    class CappedStubCreator(_RealCreator):
+        def translate_variant_reads(
+                self, variant, variant_reads, transcript_id_whitelist=None):
+            if not variant_reads:
+                return []
+            return _translations_with_distinct_amino_acids(
+                ["MKHW", "MKHY", "MKHF", "MKHL"])
+
+    # any variant with coverage in the B16 test BAM triggers translation
+    results = run_isovar(
+        variants=data_path("data/b16.f10/b16.vcf"),
+        alignment_file=data_path("data/b16.f10/b16.combined.sorted.bam"),
+        protein_sequence_creator=CappedStubCreator(
+            max_protein_sequences_per_variant=1))
+
+    # At least one variant should have some protein sequences after stubbing.
+    any_with_protein = [r for r in results if r.sorted_protein_sequences]
+    assert len(any_with_protein) > 0, \
+        "Expected at least one IsovarResult with a protein sequence"
+
+    for r in any_with_protein:
+        assert len(r.sorted_protein_sequences) <= 1, \
+            "Cap of 1 should limit sorted_protein_sequences to ≤1 entry, got %d for %s" % (
+                len(r.sorted_protein_sequences), r.variant)
+
+
 def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
     expressed_variants = load_vcf("data/b16.f10/b16.expressed.vcf")
     parser = make_protein_sequences_arg_parser()
