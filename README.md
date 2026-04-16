@@ -389,3 +389,11 @@ considers reads that overlap a variant. With 100bp reads you will be able to ass
 at most 199bp of sequence around a somatic single nucleotide variant, and consequently 
 only be to determine 66 amino acids from the protein sequence. If you disable the cDNA 
 assembly algorithm then a 100bp read will only be able to determine 33 amino acids.
+
+**Note on long-read and error-prone data:** Isovar's cDNA assembly algorithm requires 
+exact sequence matches when detecting overlaps between reads. This is well-suited for 
+Illumina short reads (~0.1% error rate) but will produce fragmented or incomplete 
+assemblies with long-read technologies (PacBio, Oxford Nanopore) that have higher 
+indel error rates. The coverage-trimming step also assumes that read coverage decreases 
+monotonically away from the variant locus, which may not hold for reads spanning 
+splice junctions.

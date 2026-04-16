@@ -10,6 +10,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+VariantSequence represents an assembled cDNA sequence containing a mutation.
+
+Note on coverage trimming: trim_by_coverage() assumes that read coverage
+drops off monotonically away from the variant locus. This is generally true
+for short Illumina reads centered on a variant, but can be violated by
+reads spanning splice junctions or by uneven fragment sizes, which may
+create coverage "valleys". When the assumption fails, the trimmed interval
+may include positions with sub-threshold coverage (if the valley is
+interior) or the entire sequence may be discarded (if a variant base falls
+below the threshold).
+"""
+
 import numpy as np
 
 
