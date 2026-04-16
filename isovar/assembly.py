@@ -10,6 +10,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Greedy overlap assembly of VariantSequence objects.
+
+This module assembles short cDNA sequences (centered on a variant locus) into
+longer contiguous sequences by iteratively merging pairs with the largest
+overlaps.
+
+Assumptions / limitations:
+
+- **Exact sequence match**: overlap detection requires exact prefix/suffix
+  containment (str.endswith / str.startswith). A single sequencing error in
+  the flanking sequence prevents a merge. This is suitable for Illumina
+  short reads (~0.1% error rate) but will produce fragmented assemblies
+  with long-read technologies (PacBio/ONT, ~5-10% indel error rate).
+
+- **Shared alt allele**: all input VariantSequence objects must carry the
+  same alt allele string. Reads with different alleles at the variant locus
+  should be separated before assembly.
+"""
+
 from collections import defaultdict
 
 from .default_parameters import MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
