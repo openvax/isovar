@@ -364,6 +364,9 @@ class ProteinSequenceCreator(ValueObject):
 
         # sort protein sequences before returning the top results
         protein_sequences = sort_protein_sequences(protein_sequences)
+
+        if self.max_protein_sequences_per_variant:
+            protein_sequences = protein_sequences[:self.max_protein_sequences_per_variant]
         return protein_sequences
 
     def protein_sequences_from_read_evidence_generator(
@@ -391,6 +394,4 @@ class ProteinSequenceCreator(ValueObject):
                     variant=variant,
                     read_evidence=read_evidence,
                     transcript_id_whitelist=transcript_id_whitelist)
-            if self.max_protein_sequences_per_variant:
-                protein_sequences = protein_sequences[:self.max_protein_sequences_per_variant]
             yield variant, protein_sequences
