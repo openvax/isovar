@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest.mock import MagicMock
+
 from varcode import Variant
 
 from isovar.locus_read import LocusRead
@@ -235,3 +237,63 @@ def test_locus_reads_dataframe():
         base0_end=45802539)
     print(df)
     eq_(len(df), n_reads_expected)
+
+
+def _make_mock_pysam_read_with_none_mapq():
+    """
+    Create a mock pysam read whose mapping_quality is None.
+
+    pysam.AlignedSegment does not allow setting mapping_quality to None
+    directly, so we use a MagicMock instead.
+    """
+    real_read = make_pysam_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
+    mock_read = MagicMock()
+    mock_read.query_name = real_read.query_name
+    mock_read.query_sequence = real_read.query_sequence
+    mock_read.query_qualities = real_read.query_qualities
+    mock_read.is_secondary = False
+    mock_read.is_duplicate = False
+    mock_read.is_unmapped = False
+    mock_read.get_reference_positions.return_value = list(range(6))
+    mock_read.mapping_quality = None
+    return mock_read
+
+
+def test_locus_read_none_mapq_with_min_mapping_quality_zero():
+    """
+    When min_mapping_quality=0, a read with mapping_quality=None should NOT
+    be skipped (0 means accept everything). The None should be treated as 0.
+
+    Regression test for GitHub issue #127.
+    """
+    mock_read = _make_mock_pysam_read_with_none_mapq()
+    read_collector = ReadCollector(min_mapping_quality=0)
+    result = read_collector.locus_read_from_pysam_aligned_segment(
+        mock_read,
+        base0_start_inclusive=3,
+        base0_end_exclusive=4,
+    )
+    assert result is not None, (
+        "Expected read with mapping_quality=None to be accepted when "
+        "min_mapping_quality=0, but it was skipped"
+    )
+
+
+def test_locus_read_none_mapq_with_min_mapping_quality_nonzero():
+    """
+    When min_mapping_quality > 0, a read with mapping_quality=None should
+    be skipped.
+
+    Regression test for GitHub issue #127.
+    """
+    mock_read = _make_mock_pysam_read_with_none_mapq()
+    read_collector = ReadCollector(min_mapping_quality=1)
+    result = read_collector.locus_read_from_pysam_aligned_segment(
+        mock_read,
+        base0_start_inclusive=3,
+        base0_end_exclusive=4,
+    )
+    assert result is None, (
+        "Expected read with mapping_quality=None to be skipped when "
+        "min_mapping_quality=1, but it was accepted"
+    )
