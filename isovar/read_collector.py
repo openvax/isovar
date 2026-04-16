@@ -88,11 +88,11 @@ class ReadCollector(object):
         name = pysam_aligned_segment.query_name
 
         if name is None:
-            logger.warn("Read missing name at position %d", base0_start_inclusive + 1)
+            logger.warning("Read missing name at position %d", base0_start_inclusive + 1)
             return None
 
         if pysam_aligned_segment.is_unmapped:
-            logger.warn("How did we get unmapped read '%s' in a pileup?", name)
+            logger.warning("How did we get unmapped read '%s' in a pileup?", name)
             return None
 
         mapping_quality = pysam_aligned_segment.mapping_quality
@@ -115,16 +115,16 @@ class ReadCollector(object):
         sequence = pysam_aligned_segment.query_sequence
 
         if sequence is None:
-            logger.warn("Skipping read '%s' due to missing sequence" % name)
+            logger.warning("Skipping read '%s' due to missing sequence" % name)
             return None
 
         base_qualities = pysam_aligned_segment.query_qualities
 
         if base_qualities is None:
-            logger.warn("Skipping read '%s' due to missing base qualities" % name)
+            logger.warning("Skipping read '%s' due to missing base qualities" % name)
             return None
         elif len(base_qualities) != len(sequence):
-            logger.warn(
+            logger.warning(
                 "Skipping read '%s' due to mismatch in length of sequence (%d) and qualities (%d)"
                 % (name, len(sequence), len(base_qualities))
             )
@@ -140,7 +140,7 @@ class ReadCollector(object):
         )
 
         if len(base0_reference_positions) != len(base_qualities):
-            logger.warn(
+            logger.warning(
                 "Skipping read '%s' due to mismatch in length of positions (%d) and qualities (%d)"
                 % (name, len(base0_reference_positions), len(base_qualities))
             )
