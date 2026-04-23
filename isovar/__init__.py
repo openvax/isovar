@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.4.24"
+__version__ = "1.5.0"
 
 
 from .allele_read import AlleleRead
@@ -25,6 +25,7 @@ from .read_evidence import ReadEvidence
 from .variant_orf import VariantORF
 from .variant_sequence import VariantSequence
 from .variant_sequence_creator import VariantSequenceCreator
+from .varcode_adapter import VarcodeAdapter
 
 
 __all__ = [
@@ -40,4 +41,5 @@ __all__ = [
     "VariantORF",
     "VariantSequence",
     "VariantSequenceCreator",
+    "VarcodeAdapter",
 ]
