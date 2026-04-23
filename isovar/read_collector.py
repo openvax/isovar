@@ -146,6 +146,12 @@ class ReadCollector(object):
             )
             return None
 
+        reference_position_to_read_position = {
+            ref_pos: read_pos
+            for read_pos, ref_pos in enumerate(base0_reference_positions)
+            if ref_pos is not None
+        }
+
         reference_interval_size = base0_end_exclusive - base0_start_inclusive
         if reference_interval_size < 0:
             raise ValueError("Unexpected interval start after interval end")
@@ -185,18 +191,16 @@ class ReadCollector(object):
             # going to allow the start/end to be None.
             reference_position_before_insertion = base0_start_inclusive - 1
             reference_position_after_insertion = base0_start_inclusive
-            if reference_position_before_insertion in base0_reference_positions:
-                read_base0_before_insertion = base0_reference_positions.index(
-                    reference_position_before_insertion
-                )
-            else:
+            read_base0_before_insertion = reference_position_to_read_position.get(
+                reference_position_before_insertion
+            )
+            if read_base0_before_insertion is None:
                 return None
 
-            if reference_position_after_insertion in base0_reference_positions:
-                read_base0_after_insertion = base0_reference_positions.index(
-                    reference_position_after_insertion
-                )
-            else:
+            read_base0_after_insertion = reference_position_to_read_position.get(
+                reference_position_after_insertion
+            )
+            if read_base0_after_insertion is None:
                 return None
 
             if read_base0_after_insertion - read_base0_before_insertion == 1:
@@ -227,31 +231,31 @@ class ReadCollector(object):
             # figure out which read indices correspond to base0_start_inclusive and
             # base0_end_exclusive but this would fail if base0_end_exclusive is
             # after the end the end of the read.
-            if base0_start_inclusive in base0_reference_positions:
-                read_base0_start_inclusive = base0_reference_positions.index(
+            if base0_start_inclusive in reference_position_to_read_position:
+                read_base0_start_inclusive = reference_position_to_read_position[
                     base0_start_inclusive
-                )
-            elif base0_start_inclusive - 1 in base0_reference_positions:
+                ]
+            elif base0_start_inclusive - 1 in reference_position_to_read_position:
                 # if first base of reference locus isn't mapped, try getting the base
                 # before it and then adding one to its corresponding base index
-                read_base0_position_before_locus = base0_reference_positions.index(
+                read_base0_position_before_locus = reference_position_to_read_position[
                     base0_start_inclusive - 1
-                )
+                ]
                 read_base0_start_inclusive = read_base0_position_before_locus + 1
             else:
                 return None
 
-            if base0_end_exclusive in base0_reference_positions:
-                read_base0_end_exclusive = base0_reference_positions.index(
+            if base0_end_exclusive in reference_position_to_read_position:
+                read_base0_end_exclusive = reference_position_to_read_position[
                     base0_end_exclusive
-                )
-            elif (base0_end_exclusive - 1) in base0_reference_positions:
+                ]
+            elif (base0_end_exclusive - 1) in reference_position_to_read_position:
                 # if exclusive last index of reference interval doesn't have a corresponding
                 # base position then try getting the base position of the reference
                 # position before it and then adding one
-                read_base0_end_inclusive = base0_reference_positions.index(
+                read_base0_end_inclusive = reference_position_to_read_position[
                     base0_end_exclusive - 1
-                )
+                ]
                 read_base0_end_exclusive = read_base0_end_inclusive + 1
             else:
                 return None
