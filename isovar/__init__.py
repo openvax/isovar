@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.5.1"
+__version__ = "1.5.2"
 
 
 from .allele_read import AlleleRead
@@ -18,6 +18,7 @@ from .dataframe_helpers import isovar_results_to_dataframe
 from .isovar_result import IsovarResult
 from .locus_read import LocusRead
 from .main import run_isovar
+from .phase_group import PhaseGroup
 from .protein_sequence import ProteinSequence
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
@@ -32,6 +33,7 @@ __all__ = [
     "run_isovar",
     "isovar_results_to_dataframe",
     "AlleleRead",
+    "PhaseGroup",
     "IsovarResult",
     "LocusRead",
     "ProteinSequence",
