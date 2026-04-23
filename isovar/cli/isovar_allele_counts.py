@@ -18,7 +18,7 @@ import sys
 
 from ..logging import get_logger
 
-from .rna_args import make_rna_reads_arg_parser, read_evidence_dataframe_from_args
+from .rna_args import make_rna_reads_arg_parser, allele_counts_dataframe_from_args
 from .output_args import add_output_args, write_dataframe
 
 
@@ -28,7 +28,7 @@ parser = make_rna_reads_arg_parser()
 parser = add_output_args(
     parser,
     filename="isovar-allele-counts-result.csv",
-    description="Name of CSV file which contains read sequences")
+    description="Name of CSV file which contains read and fragment counts")
 
 
 def run(args=None):
@@ -36,7 +36,7 @@ def run(args=None):
         args = sys.argv[1:]
     args = parser.parse_args(args)
     logger.info(args)
-    df = read_evidence_dataframe_from_args(args)
+    df = allele_counts_dataframe_from_args(args)
     logger.info(df)
     write_dataframe(
         df=df,

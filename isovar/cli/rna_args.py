@@ -21,7 +21,11 @@ from varcode.cli import make_variants_parser, variant_collection_from_args
 from ..default_parameters import MIN_READ_MAPPING_QUALITY
 
 from ..read_collector import ReadCollector
-from ..dataframe_helpers import allele_reads_to_dataframe, read_evidence_generator_to_dataframe
+from ..dataframe_helpers import (
+    allele_counts_dataframe,
+    allele_reads_to_dataframe,
+    read_evidence_generator_to_dataframe,
+)
 
 
 def add_rna_args(
@@ -157,6 +161,15 @@ def read_evidence_dataframe_from_args(args):
     Collect ReadEvidence for each variant and turn them into a DataFrame
     """
     return read_evidence_generator_to_dataframe(
+        read_evidence_generator_from_args(args))
+
+
+def allele_counts_dataframe_from_args(args):
+    """
+    Collect read and fragment counts for each variant and turn them into a
+    DataFrame.
+    """
+    return allele_counts_dataframe(
         read_evidence_generator_from_args(args))
 
 
