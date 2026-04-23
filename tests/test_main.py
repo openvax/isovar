@@ -14,6 +14,7 @@ from isovar import run_isovar, isovar_results_to_dataframe
 from .common import eq_
 from .testing_helpers import data_path
 
+
 def test_isovar_main_to_dataframe():
     results = run_isovar(
         variants=data_path("data/b16.f10/b16.vcf"),
@@ -25,3 +26,11 @@ def test_isovar_main_to_dataframe():
     # to translate protein sequences
     eq_(df["passes_all_filters"].sum(), 2)
 
+
+def test_run_isovar_docstring_uses_current_filter_api_names():
+    doc = run_isovar.__doc__
+    assert doc is not None
+    assert "filter_values field" in doc
+    assert "filter_values_dict" not in doc
+    assert '"not_has_mutant_protein_sequence_from_rna"' in doc
+    assert '"not_has_protein_sequence"' not in doc
