@@ -80,13 +80,16 @@ class IsovarResult(object):
         phase_group_from_supporting_reads : PhaseGroup or None
             Explicit phasing component inferred from all RNA reads supporting
             this variant. This group may contain variants which are only
-            transitively connected through other variants.
+            transitively connected through other variants. Read-only groups do
+            not necessarily carry assembled cDNA or transcript metadata.
 
         phase_group_from_protein_sequence : PhaseGroup or None
             Explicit phasing component inferred from reads used to construct the
             top protein sequence for this variant. This group may contain
             variants which are only transitively connected through other
-            variants.
+            variants. When available, this group also carries directly observed
+            cDNA, protein, and transcript metadata from the assembled protein
+            sequences in the group.
         """
         self.variant = variant
         self.read_evidence = read_evidence

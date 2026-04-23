@@ -82,6 +82,22 @@ def create_variant_to_protein_sequence_read_names_dict(isovar_results):
     return variant_to_read_names
 
 
+def create_variant_to_top_protein_sequence_dict(isovar_results):
+    """
+    Create dictionary from variant to its top translated protein sequence.
+
+    Variants without an assembled protein sequence are mapped to None.
+    """
+    return {
+        isovar_result.variant: (
+            isovar_result.top_protein_sequence
+            if isovar_result.has_mutant_protein_sequence_from_rna
+            else None
+        )
+        for isovar_result in isovar_results
+    }
+
+
 def compute_phasing_counts(variant_to_read_names_dict):
     """
 
@@ -132,9 +148,14 @@ def threshold_phased_variant_counts(counts_dict, min_count):
 
 def create_phase_groups(
         variant_to_read_names_dict,
-        min_shared_fragments_for_phasing):
+        min_shared_fragments_for_phasing,
+        variant_to_top_protein_sequence_dict=None):
     """
     Group variants into connected components of the phasing graph.
+
+    If top translated protein sequences are provided then each resulting
+    PhaseGroup is also annotated with directly observed cDNA, protein, and
+    transcript metadata from those assemblies.
 
     Returns
     -------
@@ -178,10 +199,36 @@ def create_phase_groups(
             for read_name, read_variants in read_names_to_variants.items()
             if len(component.intersection(read_variants)) >= 2
         }
+
+        if variant_to_top_protein_sequence_dict is None:
+            cdna_sequences = ()
+            mutant_protein_sequences = ()
+            transcript_ids = ()
+            transcript_names = ()
+        else:
+            cdna_sequences = set()
+            mutant_protein_sequences = set()
+            transcript_ids = set()
+            transcript_names = set()
+            for grouped_variant in component:
+                protein_sequence = variant_to_top_protein_sequence_dict.get(
+                    grouped_variant
+                )
+                if protein_sequence is None:
+                    continue
+                cdna_sequences.update(protein_sequence.cdna_sequences)
+                mutant_protein_sequences.add(protein_sequence.amino_acids)
+                transcript_ids.update(protein_sequence.transcript_ids)
+                transcript_names.update(protein_sequence.transcript_names)
+
         phase_group = PhaseGroup(
             somatic_variants=tuple(sorted(component, key=_variant_sort_key)),
             germline_variants=(),
             supporting_read_names=supporting_read_names,
+            cdna_sequences=tuple(sorted(cdna_sequences)),
+            mutant_protein_sequences=tuple(sorted(mutant_protein_sequences)),
+            transcript_ids=tuple(sorted(transcript_ids)),
+            transcript_names=tuple(sorted(transcript_names)),
         )
         for grouped_variant in component:
             variant_to_phase_group[grouped_variant] = phase_group
@@ -225,6 +272,8 @@ def annotate_phased_variants(
         create_variant_to_protein_sequence_read_names_dict(
             unphased_isovar_results),
         min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
+        variant_to_top_protein_sequence_dict=create_variant_to_top_protein_sequence_dict(
+            unphased_isovar_results),
     )
 
     results_with_phasing = []
