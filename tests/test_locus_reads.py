@@ -21,6 +21,7 @@ from isovar.read_collector import ReadCollector
 from .mock_objects import MockAlignmentFile, make_pysam_read
 from .testing_helpers import assert_equal_fields, load_bam, data_path
 from .common import eq_
+from .genomes_for_testing import grch38
 
 
 class TrackingReferencePositions(list):
@@ -454,3 +455,66 @@ def test_locus_read_insertion_locus_with_insertion_at_end_of_read():
     assert result is not None, "Insertion at the end of a read should be kept"
     eq_(result.read_base0_start_inclusive, 1)
     eq_(result.read_base0_end_exclusive, 2)
+
+
+def test_locus_read_left_aligns_equivalent_homopolymer_insertion():
+    """
+    A read whose insertion is aligned to the right within a homopolymer should
+    still be rewritten to the canonical left-aligned read interval for the
+    queried variant.
+
+    Regression test for GitHub issue #79.
+    """
+    variant = Variant(
+        "1",
+        1,
+        "A",
+        "AA",
+        grch38,
+        normalize_contig_names=False,
+    )
+    pysam_read = make_pysam_read(
+        seq="AAAA",
+        cigar="2M1I1M",
+        mdtag="3",
+        reference_start=0,
+    )
+    read_collector = ReadCollector()
+    reads = read_collector.locus_reads_overlapping_variant(
+        MockAlignmentFile(references=("1",), reads=[pysam_read]),
+        variant,
+        chromosome="1",
+    )
+    assert len(reads) == 1
+    eq_(reads[0].read_base0_start_inclusive, 1)
+    eq_(reads[0].read_base0_end_exclusive, 2)
+
+
+def test_locus_read_left_aligns_equivalent_homopolymer_deletion():
+    """
+    A deletion aligned to the right within a homopolymer should also be
+    rewritten to the canonical left-aligned query interval.
+    """
+    variant = Variant(
+        "1",
+        1,
+        "AA",
+        "A",
+        grch38,
+        normalize_contig_names=False,
+    )
+    pysam_read = make_pysam_read(
+        seq="AAA",
+        cigar="2M1D1M",
+        mdtag="2^A1",
+        reference_start=0,
+    )
+    read_collector = ReadCollector()
+    reads = read_collector.locus_reads_overlapping_variant(
+        MockAlignmentFile(references=("1",), reads=[pysam_read]),
+        variant,
+        chromosome="1",
+    )
+    assert len(reads) == 1
+    eq_(reads[0].read_base0_start_inclusive, 1)
+    eq_(reads[0].read_base0_end_exclusive, 1)

@@ -75,17 +75,8 @@ class AlleleRead(ValueObject):
 
         insertion = (n_ref_bases == 0)
 
-        if insertion:
-            # insertions require a sequence of non-aligned bases
-            # followed by the subsequence reference position
-            for read_index in range(read_base0_start_inclusive, read_base0_end_exclusive):
-                # all the inserted nucleotides should *not* align to the reference
-                if reference_positions[read_index] is not None:
-                    logger.debug(
-                        "Skipping read '%s', inserted nucleotides shouldn't map to reference",
-                        read_name)
-                    return None
-
+        # ReadCollector may canonicalize equivalent indels to a logical query
+        # interval even when the aligner placed the indel elsewhere in a repeat.
         nucleotides_at_variant_locus = convert_from_bytes_if_necessary(
             sequence[read_base0_start_inclusive:read_base0_end_exclusive])
 
