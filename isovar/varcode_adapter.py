@@ -15,19 +15,15 @@ Adapter from IsovarResult collections to varcode's IsovarAssemblyProvider.
 
 This is intentionally conservative: it exposes transcript-keyed assembled
 contigs from existing Translation objects and surfaces already-known phased RNA
-variants on those contigs. It does not yet discover germline SNPs or unexplained
-contig edits directly from the assembled cDNA sequence.
+variants on those contigs. It surfaces transcript-relative edits observed in
+the assembled cDNA, but it does not yet discover germline SNPs as separate
+known variants.
 """
 
-from collections import namedtuple
-
-from .dna import reverse_complement_dna
-from .variant_helpers import interbase_range_affected_by_variant_on_transcript
-
-
-TrimmedVariant = namedtuple(
-    "TrimmedVariant",
-    ["start", "ref", "alt", "is_insertion"])
+from .transcript_edit_helpers import (
+    categorize_transcript_assembly_edits_from_translation,
+    transcript_assembly_edit_sort_key,
+)
 
 
 class VarcodeAdapter(object):
@@ -71,37 +67,6 @@ class VarcodeAdapter(object):
             self._transcript_key(transcript),
         ))
 
-    @staticmethod
-    def _trimmed_variant_from_result(result):
-        ref = result.read_evidence.trimmed_ref
-        alt = result.read_evidence.trimmed_alt
-        return TrimmedVariant(
-            start=result.read_evidence.trimmed_base1_start,
-            ref=ref,
-            alt=alt,
-            is_insertion=len(ref) == 0 and len(alt) > 0)
-
-    def _transcript_edit(self, result, transcript):
-        from varcode.mutant_transcript import TranscriptEdit
-
-        trimmed_variant = self._trimmed_variant_from_result(result)
-        try:
-            cdna_start, cdna_end = interbase_range_affected_by_variant_on_transcript(
-                trimmed_variant,
-                transcript)
-        except ValueError:
-            return None
-
-        alt_bases = trimmed_variant.alt
-        if getattr(transcript, "strand", None) == "-":
-            alt_bases = reverse_complement_dna(alt_bases)
-
-        return TranscriptEdit(
-            cdna_start=cdna_start,
-            cdna_end=cdna_end,
-            alt_bases=alt_bases,
-            source_variant=result.variant)
-
     def has_contig(self, variant, transcript):
         return self._entry(variant, transcript) is not None
 
@@ -125,8 +90,15 @@ class VarcodeAdapter(object):
 
         from varcode.mutant_transcript import MutantTranscript
 
-        result, translation, matched_transcript = entry
-        transcript_edit = self._transcript_edit(result, matched_transcript)
+        _, translation, matched_transcript = entry
+        categorized_edits = categorize_transcript_assembly_edits_from_translation(
+            translation,
+            matched_transcript,
+        )
+        transcript_assembly_edits = []
+        for category in ("known_somatic", "known_germline", "unexplained"):
+            transcript_assembly_edits.extend(categorized_edits[category])
+        transcript_assembly_edits.sort(key=transcript_assembly_edit_sort_key)
         evidence = {
             "num_supporting_reads": sum(
                 getattr(read, "source_read_count", 1)
@@ -138,7 +110,10 @@ class VarcodeAdapter(object):
             "num_cdna_mismatches_after_variant": (
                 translation.num_mismatches_after_variant),
         }
-        edits = (transcript_edit,) if transcript_edit is not None else ()
+        edits = tuple(
+            transcript_assembly_edit.edit
+            for transcript_assembly_edit in transcript_assembly_edits
+        )
         return MutantTranscript(
             reference_transcript=matched_transcript,
             edits=edits,

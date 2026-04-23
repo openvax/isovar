@@ -17,6 +17,10 @@ associated with its supporting (and non-supporting but overlapping) RNA reads.
 """
 
 from .common import normalize_base0_range_indices
+from .transcript_edit_helpers import (
+    categorize_transcript_assembly_edits_from_translation,
+    transcript_assembly_edit_sort_key,
+)
 from .translation_key import TranslationKey
 from .translation import Translation  # noqa: F401
 from .logging import get_logger
@@ -257,6 +261,54 @@ class ProteinSequence(TranslationKey):
             transcript.id
             for transcript in self.transcripts
         ]
+
+    def _transcript_assembly_edits_by_category(self):
+        categorized_edits = {
+            "known_somatic": set(),
+            "known_germline": set(),
+            "unexplained": set(),
+        }
+        for translation in self.translations:
+            for transcript in translation.reference_context.transcripts:
+                translation_edits = (
+                    categorize_transcript_assembly_edits_from_translation(
+                        translation,
+                        transcript,
+                    )
+                )
+                for category, edits in translation_edits.items():
+                    categorized_edits[category].update(edits)
+        return {
+            category: tuple(sorted(
+                edits,
+                key=transcript_assembly_edit_sort_key,
+            ))
+            for category, edits in categorized_edits.items()
+        }
+
+    @property
+    def known_somatic_transcript_edits(self):
+        """
+        Transcript-relative edits from known somatic variants observed in the
+        supporting assemblies for this protein sequence.
+        """
+        return self._transcript_assembly_edits_by_category()["known_somatic"]
+
+    @property
+    def known_germline_transcript_edits(self):
+        """
+        Transcript-relative edits from known germline variants observed in the
+        supporting assemblies for this protein sequence.
+        """
+        return self._transcript_assembly_edits_by_category()["known_germline"]
+
+    @property
+    def unexplained_transcript_edits(self):
+        """
+        Transcript-relative edits observed in the supporting assemblies which
+        are not yet matched to a known input variant.
+        """
+        return self._transcript_assembly_edits_by_category()["unexplained"]
 
     @property
     def genes(self):

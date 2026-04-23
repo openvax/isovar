@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.5.3"
+__version__ = "1.5.4"
 
 
 from .allele_read import AlleleRead
@@ -23,6 +23,7 @@ from .protein_sequence import ProteinSequence
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
 from .read_evidence import ReadEvidence
+from .transcript_assembly_edit import TranscriptAssemblyEdit
 from .variant_orf import VariantORF
 from .variant_sequence import VariantSequence
 from .variant_sequence_creator import VariantSequenceCreator
@@ -40,6 +41,7 @@ __all__ = [
     "ProteinSequenceCreator",
     "ReadCollector",
     "ReadEvidence",
+    "TranscriptAssemblyEdit",
     "VariantORF",
     "VariantSequence",
     "VariantSequenceCreator",
