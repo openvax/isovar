@@ -322,7 +322,7 @@ class ReadCollector(object):
         total_count = 0
         # check overlap against wider overlap to make sure we don't miss
         # any reads
-        base0_pos_before_start = base0_start_inclusive - 1
+        base0_pos_before_start = max(0, base0_start_inclusive - 1)
         base0_pos_after_end = base0_end_exclusive + 1
         for aligned_segment in alignment_file.fetch(
             chromosome, base0_pos_before_start, base0_pos_after_end
