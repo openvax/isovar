@@ -28,15 +28,36 @@ class PhaseGroup(ValueObject):
 
     Germline variants are not populated yet, but the field is included so the
     public model can grow into that use case without changing shape again.
+
+    Some phase groups are backed by translated Isovar assemblies. In those
+    cases the group can also carry directly observed cDNA, protein, and
+    transcript metadata from the supporting assemblies. Read-only phasing groups
+    leave those fields empty.
     """
 
     __slots__ = [
         "somatic_variants",
         "germline_variants",
         "supporting_read_names",
+        "cdna_sequences",
+        "mutant_protein_sequences",
+        "transcript_ids",
+        "transcript_names",
     ]
 
-    def __init__(self, somatic_variants, germline_variants=(), supporting_read_names=()):
+    def __init__(
+            self,
+            somatic_variants,
+            germline_variants=(),
+            supporting_read_names=(),
+            cdna_sequences=(),
+            mutant_protein_sequences=(),
+            transcript_ids=(),
+            transcript_names=()):
         self.somatic_variants = tuple(somatic_variants)
         self.germline_variants = tuple(germline_variants)
         self.supporting_read_names = frozenset(supporting_read_names)
+        self.cdna_sequences = tuple(cdna_sequences)
+        self.mutant_protein_sequences = tuple(mutant_protein_sequences)
+        self.transcript_ids = tuple(transcript_ids)
+        self.transcript_names = tuple(transcript_names)
