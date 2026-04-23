@@ -13,6 +13,7 @@
 import tempfile
 from os import remove
 from os.path import getsize, exists
+import pandas as pd
 
 from .testing_helpers import data_path
 
@@ -24,6 +25,10 @@ from isovar.cli.isovar_reference_contexts import run as isovar_reference_context
 from isovar.cli.isovar_variant_reads import run as isovar_variant_reads
 from isovar.cli.isovar_variant_sequences import run as isovar_variant_sequences
 from isovar.cli.isovar_main import run as isovar_main
+from isovar.cli.rna_args import (
+    make_rna_reads_arg_parser,
+    variants_reads_dataframe_from_args,
+)
 
 vcf_args = [
     "--vcf",
@@ -36,7 +41,7 @@ args_with_bam = vcf_args + [
 ]
 
 
-def run_cli_fn(fn, include_bam_in_args=True):
+def run_cli_fn(fn, include_bam_in_args=True, return_dataframe=False):
     with tempfile.NamedTemporaryFile(delete=False) as f:
         output_path = f.name
     assert not exists(output_path) == 0
@@ -47,7 +52,11 @@ def run_cli_fn(fn, include_bam_in_args=True):
         args = vcf_args + output_args
     fn(args)
     assert getsize(output_path) > 0
+    if return_dataframe:
+        df = pd.read_csv(output_path)
     remove(output_path)
+    if return_dataframe:
+        return df
 
 
 def test_cli_allele_counts():
@@ -55,7 +64,10 @@ def test_cli_allele_counts():
 
 
 def test_cli_allele_reads():
-    run_cli_fn(isovar_allele_reads)
+    df = run_cli_fn(isovar_allele_reads, return_dataframe=True)
+    assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
+    assert "ref_reads" not in df.columns
+    assert len(df) == 293
 
 
 def test_cli_reference_contexts():
@@ -71,7 +83,10 @@ def test_cli_translations():
 
 
 def test_cli_variant_reads():
-    run_cli_fn(isovar_variant_reads)
+    df = run_cli_fn(isovar_variant_reads, return_dataframe=True)
+    assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
+    assert "ref_reads" not in df.columns
+    assert len(df) == 42
 
 
 def test_cli_variant_sequences():
@@ -79,3 +94,10 @@ def test_cli_variant_sequences():
 
 def test_cli_main():
     run_cli_fn(isovar_main)
+
+
+def test_variant_reads_dataframe_helper():
+    args = make_rna_reads_arg_parser().parse_args(args_with_bam)
+    df = variants_reads_dataframe_from_args(args)
+    assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
+    assert len(df) == 42

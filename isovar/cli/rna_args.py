@@ -139,6 +139,19 @@ def variant_reads_generator_from_args(args):
         yield variant, read_evidence.alt_reads
 
 
+def allele_reads_generator_from_args(args):
+    """
+    Creates a generator of (Variant, list of AlleleRead) from parsed
+    arguments, including all reads at each variant locus.
+    """
+    for variant, read_evidence in read_evidence_generator_from_args(args):
+        yield variant, (
+            list(read_evidence.ref_reads)
+            + list(read_evidence.alt_reads)
+            + list(read_evidence.other_reads)
+        )
+
+
 def read_evidence_dataframe_from_args(args):
     """
     Collect ReadEvidence for each variant and turn them into a DataFrame
@@ -147,9 +160,25 @@ def read_evidence_dataframe_from_args(args):
         read_evidence_generator_from_args(args))
 
 
+def allele_reads_dataframe_from_args(args):
+    """
+    Collect all allele reads for each variant and turn them into a DataFrame.
+    """
+    return allele_reads_to_dataframe(
+        allele_reads_generator_from_args(args))
+
+
+def variant_reads_dataframe_from_args(args):
+    """
+    Collect alt-supporting reads for each variant and turn them into a
+    DataFrame.
+    """
+    return allele_reads_to_dataframe(
+        variant_reads_generator_from_args(args))
+
+
 def variants_reads_dataframe_from_args(args):
     """
     Collect variant reads for each variant and turn them into a DataFrame
     """
-    return allele_reads_to_dataframe(
-        read_evidence_generator_from_args(args))
+    return variant_reads_dataframe_from_args(args)
