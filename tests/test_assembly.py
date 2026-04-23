@@ -20,6 +20,7 @@ from isovar.allele_read import AlleleRead
 from isovar.assembly import (
     iterative_overlap_assembly,
     greedy_merge,
+    greedy_merge_helper,
     collapse_substrings
 )
 
@@ -363,6 +364,36 @@ def test_greedy_merge_deterministic_across_input_orders():
         assert result_all_reads == reference_all_reads, \
             "Trial %d: different reads from shuffled input.\nRef: %s\nGot: %s" % (
                 trial, reference_all_reads, result_all_reads)
+
+
+def test_greedy_merge_helper_skips_impossible_pairs(monkeypatch):
+    variant_sequences = [
+        VariantSequence(prefix="AAAAAA", alt="X", suffix="AAAAAA", reads={"a"}),
+        VariantSequence(prefix="CCCCCC", alt="X", suffix="CCCCCC", reads={"c"}),
+        VariantSequence(prefix="GGGGGG", alt="X", suffix="GGGGGG", reads={"g"}),
+        VariantSequence(prefix="TTTTTT", alt="X", suffix="TTTTTT", reads={"t"}),
+    ]
+
+    combine_call_count = 0
+    original_combine = VariantSequence.combine
+
+    def counting_combine(self, other_sequence, min_overlap_size=1):
+        nonlocal combine_call_count
+        combine_call_count += 1
+        return original_combine(
+            self,
+            other_sequence,
+            min_overlap_size=min_overlap_size)
+
+    monkeypatch.setattr(VariantSequence, "combine", counting_combine)
+
+    result, merged_any = greedy_merge_helper(
+        variant_sequences,
+        min_overlap_size=3)
+
+    eq_(combine_call_count, 0)
+    eq_(merged_any, False)
+    eq_(result, variant_sequences)
 
 
 def test_greedy_merge_prefers_larger_overlap():
