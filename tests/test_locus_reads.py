@@ -239,6 +239,24 @@ def test_locus_reads_dataframe():
     eq_(len(df), n_reads_expected)
 
 
+def test_locus_reads_clamps_fetch_start_at_contig_boundary():
+    """
+    Querying a locus at the first aligned base of a contig should not widen the
+    fetch interval to a negative start coordinate.
+
+    Regression test for GitHub issue #161.
+    """
+    samfile = load_bam("data/primary.chr1.bam")
+    read_creator = ReadCollector()
+    reads = read_creator.get_locus_reads(
+        samfile,
+        "chr1",
+        base0_start_inclusive=0,
+        base0_end_exclusive=1,
+    )
+    assert isinstance(reads, list)
+
+
 def _make_mock_pysam_read_with_none_mapq():
     """
     Create a mock pysam read whose mapping_quality is None.
