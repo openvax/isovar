@@ -22,6 +22,21 @@ from .mock_objects import MockAlignmentFile, make_pysam_read
 from .testing_helpers import assert_equal_fields, load_bam, data_path
 from .common import eq_
 
+
+class TrackingReferencePositions(list):
+    """
+    Count linear index scans over reference positions.
+    """
+
+    def __init__(self, values):
+        super().__init__(values)
+        self.index_calls = 0
+
+    def index(self, *args, **kwargs):
+        self.index_calls += 1
+        return super().index(*args, **kwargs)
+
+
 def test_locus_reads_snv():
     """
     test_partitioned_read_sequences_snv : Test that read gets correctly
@@ -255,6 +270,39 @@ def test_locus_reads_clamps_fetch_start_at_contig_boundary():
         base0_end_exclusive=1,
     )
     assert isinstance(reads, list)
+
+
+def test_locus_read_avoids_linear_index_scans_over_reference_positions():
+    """
+    Regression test for GitHub issue #163.
+
+    Converting the read/reference overlap interval should use a single
+    reference-position lookup table instead of repeated linear `list.index`
+    scans over the read's reference positions.
+    """
+    real_read = make_pysam_read(seq="ACCGTG", cigar="6M", mdtag="3G2")
+    tracking_positions = TrackingReferencePositions([0, 1, 2, 3, 4, 5])
+
+    mock_read = MagicMock()
+    mock_read.query_name = real_read.query_name
+    mock_read.query_sequence = real_read.query_sequence
+    mock_read.query_qualities = real_read.query_qualities
+    mock_read.query_alignment_start = real_read.query_alignment_start
+    mock_read.query_alignment_end = real_read.query_alignment_end
+    mock_read.is_secondary = False
+    mock_read.is_duplicate = False
+    mock_read.is_unmapped = False
+    mock_read.mapping_quality = real_read.mapping_quality
+    mock_read.get_reference_positions.return_value = tracking_positions
+
+    read_collector = ReadCollector()
+    result = read_collector.locus_read_from_pysam_aligned_segment(
+        mock_read,
+        base0_start_inclusive=3,
+        base0_end_exclusive=4,
+    )
+    assert result is not None
+    eq_(tracking_positions.index_calls, 0)
 
 
 def _make_mock_pysam_read_with_none_mapq():
