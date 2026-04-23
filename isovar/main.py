@@ -87,7 +87,7 @@ def run_isovar(
     into amino acid sequences. Collects both the read evidence and
     protein sequences into IsovarResult objects. The values of any filters
     which are supplied in the filter_thresholds argument are attached to
-    each IsovarResult's filter_values_dict field.
+    each IsovarResult's filter_values field.
 
     Parameters
     ----------
@@ -120,7 +120,7 @@ def run_isovar(
     filter_flags : list of str
         List of boolean fields of IsovarResult used for filtering,
         they can also be negated by prepending "not_",
-        such as "not_has_protein_sequence".
+        such as "not_has_mutant_protein_sequence_from_rna".
 
     decompression_threads : int
         Number of threads used by htslib to decompress BAM/CRAM
