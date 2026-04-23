@@ -133,3 +133,164 @@ def test_partitioned_read_sequences_deletion():
         allele="",
         suffix="G")
     eq_(variant_read, expected)
+
+
+def test_read_evidence_counts_snv_reads_at_read_boundaries():
+    """
+    Reads whose SNV locus is the first or last aligned base should still be
+    counted.
+
+    Regression test for GitHub issue #55.
+    """
+    chromosome = "1"
+    variant = Variant(
+        chromosome,
+        4,
+        "T",
+        "G",
+        grch38,
+        normalize_contig_names=False)
+
+    reads = [
+        make_pysam_read(
+            seq="GAAA",
+            cigar="4M",
+            mdtag="0T3",
+            name="alt-start",
+            reference_start=3),
+        make_pysam_read(
+            seq="TAAA",
+            cigar="4M",
+            mdtag="4",
+            name="ref-start",
+            reference_start=3),
+        make_pysam_read(
+            seq="AAAG",
+            cigar="4M",
+            mdtag="3T0",
+            name="alt-end",
+            reference_start=0),
+        make_pysam_read(
+            seq="AAAT",
+            cigar="4M",
+            mdtag="4",
+            name="ref-end",
+            reference_start=0),
+    ]
+
+    read_creator = ReadCollector()
+    read_evidence = read_creator.read_evidence_for_variant(
+        variant=variant,
+        alignment_file=MockAlignmentFile(references=(chromosome,), reads=reads))
+
+    eq_(read_evidence.alt_read_names, {"alt-start", "alt-end"})
+    eq_(read_evidence.ref_read_names, {"ref-start", "ref-end"})
+
+
+def test_read_evidence_counts_insertion_reads_at_read_boundaries():
+    """
+    Insertion-supporting reads that begin or end at the insertion locus should
+    be counted as alt reads instead of being dropped.
+
+    Regression test for GitHub issue #49. Also serves as an indel-count
+    regression for GitHub issue #23.
+    """
+    chromosome = "1"
+    variant = Variant(
+        chromosome,
+        3,
+        "A",
+        "AG",
+        grch38,
+        normalize_contig_names=False)
+
+    reads = [
+        make_pysam_read(
+            seq="GT",
+            cigar="1I1M",
+            mdtag="1",
+            name="alt-start",
+            reference_start=3),
+        make_pysam_read(
+            seq="T",
+            cigar="1M",
+            mdtag="1",
+            name="ref-start",
+            reference_start=3),
+        make_pysam_read(
+            seq="AG",
+            cigar="1M1I",
+            mdtag="1",
+            name="alt-end",
+            reference_start=2),
+        make_pysam_read(
+            seq="A",
+            cigar="1M",
+            mdtag="1",
+            name="ref-end",
+            reference_start=2),
+    ]
+
+    read_creator = ReadCollector()
+    read_evidence = read_creator.read_evidence_for_variant(
+        variant=variant,
+        alignment_file=MockAlignmentFile(references=(chromosome,), reads=reads))
+
+    eq_(read_evidence.alt_read_names, {"alt-start", "alt-end"})
+    eq_(read_evidence.ref_read_names, {"ref-start", "ref-end"})
+
+
+def test_partitioned_read_sequences_snv_at_last_exonic_base_before_splice():
+    """
+    A variant on the last nucleotide of an exon should still be recovered from
+    a spliced read.
+
+    Regression test for GitHub issue #24.
+    """
+    chromosome = "1"
+    variant = Variant(
+        chromosome,
+        4,
+        "T",
+        "G",
+        grch38,
+        normalize_contig_names=False)
+    read = make_pysam_read(
+        seq="ACCGTGGA",
+        cigar="4M100N4M",
+        name="splice-before",
+        reference_start=0)
+    read_creator = ReadCollector()
+    variant_reads = read_creator.allele_reads_supporting_variant(
+        variant=variant,
+        alignment_file=MockAlignmentFile(references=(chromosome,), reads=[read]))
+    assert len(variant_reads) == 1
+    eq_(variant_reads[0].allele, "G")
+
+
+def test_partitioned_read_sequences_snv_at_first_exonic_base_after_splice():
+    """
+    A variant on the first nucleotide of an exon should still be recovered from
+    a spliced read.
+
+    Regression test for GitHub issue #24.
+    """
+    chromosome = "1"
+    variant = Variant(
+        chromosome,
+        105,
+        "T",
+        "G",
+        grch38,
+        normalize_contig_names=False)
+    read = make_pysam_read(
+        seq="ACCTGGGA",
+        cigar="4M100N4M",
+        name="splice-after",
+        reference_start=0)
+    read_creator = ReadCollector()
+    variant_reads = read_creator.allele_reads_supporting_variant(
+        variant=variant,
+        alignment_file=MockAlignmentFile(references=(chromosome,), reads=[read]))
+    assert len(variant_reads) == 1
+    eq_(variant_reads[0].allele, "G")

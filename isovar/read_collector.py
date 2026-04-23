@@ -152,6 +152,9 @@ class ReadCollector(object):
             if ref_pos is not None
         }
 
+        aligned_subsequence_start = pysam_aligned_segment.query_alignment_start
+        aligned_subsequence_end = pysam_aligned_segment.query_alignment_end
+
         reference_interval_size = base0_end_exclusive - base0_start_inclusive
         if reference_interval_size < 0:
             raise ValueError("Unexpected interval start after interval end")
@@ -194,16 +197,22 @@ class ReadCollector(object):
             read_base0_before_insertion = reference_position_to_read_position.get(
                 reference_position_before_insertion
             )
-            if read_base0_before_insertion is None:
-                return None
-
             read_base0_after_insertion = reference_position_to_read_position.get(
                 reference_position_after_insertion
             )
-            if read_base0_after_insertion is None:
-                return None
 
-            if read_base0_after_insertion - read_base0_before_insertion == 1:
+            if (
+                read_base0_before_insertion is None
+                and read_base0_after_insertion is None
+            ):
+                return None
+            elif read_base0_before_insertion is None:
+                read_base0_start_inclusive = aligned_subsequence_start
+                read_base0_end_exclusive = read_base0_after_insertion
+            elif read_base0_after_insertion is None:
+                read_base0_start_inclusive = read_base0_before_insertion + 1
+                read_base0_end_exclusive = aligned_subsequence_end
+            elif read_base0_after_insertion - read_base0_before_insertion == 1:
                 read_base0_start_inclusive = read_base0_end_exclusive = (
                     read_base0_before_insertion + 1
                 )
@@ -269,8 +278,6 @@ class ReadCollector(object):
             # than the sequence, qualities, and alignment positions
             # we've extracted, so slice through those to get rid of
             # soft-clipped ends of the read
-            aligned_subsequence_start = pysam_aligned_segment.query_alignment_start
-            aligned_subsequence_end = pysam_aligned_segment.query_alignment_end
             sequence = sequence[aligned_subsequence_start:aligned_subsequence_end]
             base0_reference_positions = base0_reference_positions[
                 aligned_subsequence_start:aligned_subsequence_end

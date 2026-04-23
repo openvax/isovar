@@ -77,7 +77,7 @@ def test_cli_allele_reads():
     df = run_cli_fn(isovar_allele_reads, return_dataframe=True)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert "ref_reads" not in df.columns
-    assert len(df) == 293
+    assert len(df) == 294
 
 
 def test_cli_reference_contexts():
