@@ -76,7 +76,11 @@ def allele_counts_dataframe(read_evidence_generator):
     return dataframe_from_generator(
         element_class=ReadEvidence,
         variant_and_elements_generator=read_evidence_generator,
-        # DataFrameBuilder will take the length of these fields' values
+        converters={
+            "ref_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
+            "alt_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
+            "other_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
+        },
         rename_dict={
             "ref_reads": "num_ref_reads",
             "alt_reads": "num_alt_reads",
@@ -99,6 +103,7 @@ def allele_reads_to_dataframe(variants_and_allele_reads):
     """
     df_builder = DataFrameBuilder(
         AlleleRead,
+        exclude={"source_read_count"},
         extra_column_fns={
             "gene": lambda v, _: ";".join(v.gene_names),
         })
@@ -116,6 +121,7 @@ def locus_reads_dataframe(alignments, chromosome, base0_start, base0_end, *args,
     """
     df_builder = DataFrameBuilder(
         LocusRead,
+        exclude={"source_read_count"},
         variant_columns=False,
         converters={
             "reference_positions": list_to_string,
@@ -187,7 +193,10 @@ def translations_generator_to_dataframe(translations_generator):
         },
         extra_column_fns={
             "untrimmed_variant_sequence_read_count": (
-                lambda _, t: len(t.untrimmed_variant_sequence.reads)),
+                lambda _, t: sum(
+                    getattr(read, "source_read_count", 1)
+                    for read in t.untrimmed_variant_sequence.reads
+                )),
         })
 
 
@@ -197,7 +206,12 @@ def read_evidence_generator_to_dataframe(read_evidence_generator):
     """
     return dataframe_from_generator(
         element_class=ReadEvidence,
-        variant_and_elements_generator=read_evidence_generator)
+        variant_and_elements_generator=read_evidence_generator,
+        converters={
+            "ref_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
+            "alt_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
+            "other_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
+        })
 
 
 def isovar_results_to_dataframe(isovar_results):

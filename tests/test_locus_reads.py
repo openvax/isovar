@@ -242,6 +242,15 @@ def test_locus_reads_dataframe():
     n_reads_expected -= 1
 
     print("Found %d sequences in %s" % (n_reads_expected, sam_path_single_variant))
+    read_collector = ReadCollector(merge_overlapping_fragments=True)
+    reads = read_collector.get_locus_reads(
+        sam_all_variants,
+        "chr4",
+        45802538,
+        45802539,
+    )
+    eq_(sum(read.source_read_count for read in reads), n_reads_expected)
+
     df = locus_reads_dataframe(
         alignments=sam_all_variants,
         chromosome="chr4",
@@ -249,6 +258,41 @@ def test_locus_reads_dataframe():
         base0_end=45802539)
     print(df)
     eq_(len(df), n_reads_expected)
+
+
+def test_get_locus_reads_merges_overlapping_paired_reads():
+    """
+    Overlapping paired-end reads from the same fragment should collapse into a
+    single longer LocusRead while retaining the raw source read count.
+
+    Regression test for GitHub issue #59.
+    """
+    left_mate = make_pysam_read(
+        seq="ACCGTG",
+        cigar="6M",
+        name="fragment-1",
+        reference_start=0,
+    )
+    right_mate = make_pysam_read(
+        seq="CGTGAA",
+        cigar="6M",
+        name="fragment-1",
+        reference_start=2,
+    )
+    read_collector = ReadCollector(merge_overlapping_fragments=True)
+    reads = read_collector.get_locus_reads(
+        MockAlignmentFile(references=("chromosome",), reads=[left_mate, right_mate]),
+        "chromosome",
+        base0_start_inclusive=3,
+        base0_end_exclusive=4,
+    )
+    eq_(len(reads), 1)
+    merged_read = reads[0]
+    eq_(merged_read.sequence, "ACCGTGAA")
+    eq_(merged_read.reference_positions, list(range(8)))
+    eq_(merged_read.read_base0_start_inclusive, 3)
+    eq_(merged_read.read_base0_end_exclusive, 4)
+    eq_(merged_read.source_read_count, 2)
 
 
 def test_locus_reads_clamps_fetch_start_at_contig_boundary():
