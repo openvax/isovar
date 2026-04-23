@@ -58,8 +58,205 @@ class ReadCollector(object):
         self.min_mapping_quality = min_mapping_quality
         self.use_soft_clipped_bases = use_soft_clipped_bases
 
+    @staticmethod
+    def _previous_fully_aligned_pair_index(aligned_pairs, start_index):
+        """
+        Find the previous aligned-pair entry which maps both a query and
+        reference position.
+        """
+        while start_index >= 0:
+            query_pos, ref_pos, _ = aligned_pairs[start_index]
+            if query_pos is not None and ref_pos is not None:
+                return start_index
+            start_index -= 1
+        return None
+
+    @classmethod
+    def _iter_left_aligned_indel_events(
+        cls,
+        aligned_pairs,
+        base1_start,
+        ref,
+        alt,
+        read_start,
+        read_end,
+        previous_aligned_index,
+    ):
+        """
+        Yield the queried indel and each successive one-base left shift within
+        the local alignment.
+
+        The query interval is shifted in lockstep with the indel representation
+        so that downstream AlleleRead objects see the same canonical split for
+        every equivalent alignment of the same indel.
+        """
+        ref = ref.upper()
+        alt = alt.upper()
+
+        while True:
+            yield base1_start, ref, alt, read_start, read_end
+
+            if previous_aligned_index is None or base1_start <= 1:
+                break
+
+            _, _, previous_ref_base = aligned_pairs[previous_aligned_index]
+            if previous_ref_base is None:
+                break
+
+            previous_ref_base = previous_ref_base.upper()
+            longer_allele = alt if len(alt) > len(ref) else ref
+            if len(longer_allele) == 0 or previous_ref_base != longer_allele[-1]:
+                break
+
+            if len(alt) > len(ref):
+                alt = previous_ref_base + alt[:-1]
+            else:
+                ref = previous_ref_base + ref[:-1]
+
+            base1_start -= 1
+            read_start -= 1
+            read_end -= 1
+            previous_aligned_index = cls._previous_fully_aligned_pair_index(
+                aligned_pairs,
+                previous_aligned_index - 1,
+            )
+
+    @classmethod
+    def _left_aligned_indel_interval_for_variant(
+        cls,
+        pysam_aligned_segment,
+        trimmed_base1_start,
+        trimmed_ref,
+        trimmed_alt,
+    ):
+        """
+        If the read contains an equivalent indel aligned to the right of the
+        queried variant locus, return the canonical read interval for the
+        left-aligned representation of that indel.
+        """
+        is_insertion = len(trimmed_ref) == 0 and len(trimmed_alt) > 0
+        is_deletion = len(trimmed_alt) == 0 and len(trimmed_ref) > 0
+        if not (is_insertion or is_deletion):
+            return None
+
+        try:
+            aligned_pairs = pysam_aligned_segment.get_aligned_pairs(
+                matches_only=False,
+                with_seq=True,
+            )
+        except ValueError:
+            logger.debug(
+                "Skipping indel left-alignment for read '%s' because the alignment "
+                "does not expose reference bases (for example, missing MD tag)",
+                pysam_aligned_segment.query_name,
+            )
+            return None
+
+        query_sequence = pysam_aligned_segment.query_sequence
+        if query_sequence is None:
+            return None
+        if isinstance(query_sequence, bytes):
+            query_sequence = query_sequence.decode("ascii")
+
+        i = 0
+        while i < len(aligned_pairs):
+            query_pos, ref_pos, ref_base = aligned_pairs[i]
+
+            if is_insertion and query_pos is not None and ref_pos is None:
+                j = i
+                while (
+                    j < len(aligned_pairs)
+                    and aligned_pairs[j][0] is not None
+                    and aligned_pairs[j][1] is None
+                ):
+                    j += 1
+
+                previous_aligned_index = cls._previous_fully_aligned_pair_index(
+                    aligned_pairs,
+                    i - 1,
+                )
+                if previous_aligned_index is not None:
+                    previous_query_pos, previous_ref_pos, _ = aligned_pairs[
+                        previous_aligned_index
+                    ]
+                    inserted_sequence = query_sequence[query_pos:aligned_pairs[j - 1][0] + 1]
+                    for (
+                        normalized_base1_start,
+                        normalized_ref,
+                        normalized_alt,
+                        normalized_read_start,
+                        normalized_read_end,
+                    ) in cls._iter_left_aligned_indel_events(
+                        aligned_pairs=aligned_pairs,
+                        base1_start=previous_ref_pos + 1,
+                        ref="",
+                        alt=inserted_sequence,
+                        read_start=query_pos,
+                        read_end=aligned_pairs[j - 1][0] + 1,
+                        previous_aligned_index=previous_aligned_index,
+                    ):
+                        if (
+                            normalized_base1_start == trimmed_base1_start
+                            and normalized_ref == trimmed_ref
+                            and normalized_alt == trimmed_alt.upper()
+                        ):
+                            return normalized_read_start, normalized_read_end
+                i = j
+                continue
+
+            if is_deletion and query_pos is None and ref_pos is not None:
+                j = i
+                while (
+                    j < len(aligned_pairs)
+                    and aligned_pairs[j][0] is None
+                    and aligned_pairs[j][1] is not None
+                ):
+                    j += 1
+
+                previous_aligned_index = cls._previous_fully_aligned_pair_index(
+                    aligned_pairs,
+                    i - 1,
+                )
+                if previous_aligned_index is not None:
+                    previous_query_pos, _, _ = aligned_pairs[previous_aligned_index]
+                    deleted_sequence = "".join(
+                        aligned_pairs[k][2].upper() for k in range(i, j)
+                    )
+                    for (
+                        normalized_base1_start,
+                        normalized_ref,
+                        normalized_alt,
+                        normalized_read_start,
+                        normalized_read_end,
+                    ) in cls._iter_left_aligned_indel_events(
+                        aligned_pairs=aligned_pairs,
+                        base1_start=ref_pos + 1,
+                        ref=deleted_sequence,
+                        alt="",
+                        read_start=previous_query_pos + 1,
+                        read_end=previous_query_pos + 1,
+                        previous_aligned_index=previous_aligned_index,
+                    ):
+                        if (
+                            normalized_base1_start == trimmed_base1_start
+                            and normalized_ref == trimmed_ref.upper()
+                            and normalized_alt == trimmed_alt
+                        ):
+                            return normalized_read_start, normalized_read_end
+                i = j
+                continue
+
+            i += 1
+        return None
+
     def locus_read_from_pysam_aligned_segment(
-        self, pysam_aligned_segment, base0_start_inclusive, base0_end_exclusive
+        self,
+        pysam_aligned_segment,
+        base0_start_inclusive,
+        base0_end_exclusive,
+        trimmed_base1_start=None,
+        trimmed_ref=None,
+        trimmed_alt=None,
     ):
         """
         Create LocusRead from pysam.AlignedSegment object and the start/end indices
@@ -159,6 +356,19 @@ class ReadCollector(object):
         if reference_interval_size < 0:
             raise ValueError("Unexpected interval start after interval end")
 
+        normalized_indel_interval = None
+        if (
+            trimmed_base1_start is not None
+            and trimmed_ref is not None
+            and trimmed_alt is not None
+        ):
+            normalized_indel_interval = self._left_aligned_indel_interval_for_variant(
+                pysam_aligned_segment=pysam_aligned_segment,
+                trimmed_base1_start=trimmed_base1_start,
+                trimmed_ref=trimmed_ref,
+                trimmed_alt=trimmed_alt,
+            )
+
         # TODO:
         #  Consider how to handle variants before splice sites, where
         #  the bases before or after on the genome will not be mapped on the
@@ -167,7 +377,11 @@ class ReadCollector(object):
         # we have a dictionary mapping base-1 reference positions to base-0
         # read indices and we need to use that to convert the reference
         # half-open interval into a half-open interval on the read.
-        if reference_interval_size == 0:
+        if normalized_indel_interval is not None:
+            read_base0_start_inclusive, read_base0_end_exclusive = (
+                normalized_indel_interval
+            )
+        elif reference_interval_size == 0:
             # Reference interval is between two bases but read may contain
             # insertion.
             #
@@ -301,7 +515,14 @@ class ReadCollector(object):
         )
 
     def get_locus_reads(
-        self, alignment_file, chromosome, base0_start_inclusive, base0_end_exclusive
+        self,
+        alignment_file,
+        chromosome,
+        base0_start_inclusive,
+        base0_end_exclusive,
+        trimmed_base1_start=None,
+        trimmed_ref=None,
+        trimmed_alt=None,
     ):
         """
         Create LocusRead objects for reads which overlap the given chromosome,
@@ -354,6 +575,9 @@ class ReadCollector(object):
                 aligned_segment,
                 base0_start_inclusive=base0_start_inclusive,
                 base0_end_exclusive=base0_end_exclusive,
+                trimmed_base1_start=trimmed_base1_start,
+                trimmed_ref=trimmed_ref,
+                trimmed_alt=trimmed_alt,
             )
             if read is not None:
                 reads.append(read)
@@ -479,6 +703,9 @@ class ReadCollector(object):
             chromosome=chromosome,
             base0_start_inclusive=base0_start_inclusive,
             base0_end_exclusive=base0_end_exclusive,
+            trimmed_base1_start=base1_position,
+            trimmed_ref=ref,
+            trimmed_alt=alt,
         )
 
     def allele_reads_overlapping_variant(self, variant, alignment_file):

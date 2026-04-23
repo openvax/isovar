@@ -294,3 +294,63 @@ def test_partitioned_read_sequences_snv_at_first_exonic_base_after_splice():
         alignment_file=MockAlignmentFile(references=(chromosome,), reads=[read]))
     assert len(variant_reads) == 1
     eq_(variant_reads[0].allele, "G")
+
+
+def test_partitioned_read_sequences_left_align_homopolymer_insertion():
+    """
+    A read whose insertion is aligned to the right within a homopolymer should
+    still count as supporting the left-aligned insertion variant.
+
+    Regression test for GitHub issue #79.
+    """
+    chromosome = "1"
+    variant = Variant(
+        chromosome,
+        1,
+        "A",
+        "AA",
+        grch38,
+        normalize_contig_names=False,
+    )
+    read = make_pysam_read(
+        seq="AAAA",
+        cigar="2M1I1M",
+        mdtag="3",
+        reference_start=0,
+    )
+    read_creator = ReadCollector()
+    read_evidence = read_creator.read_evidence_for_variant(
+        variant=variant,
+        alignment_file=MockAlignmentFile(references=(chromosome,), reads=[read]),
+    )
+    eq_(read_evidence.alt_read_names, {"dummy"})
+    eq_(read_evidence.ref_read_names, set())
+
+
+def test_partitioned_read_sequences_left_align_homopolymer_deletion():
+    """
+    A read whose deletion is aligned to the right within a homopolymer should
+    still count as supporting the left-aligned deletion variant.
+    """
+    chromosome = "1"
+    variant = Variant(
+        chromosome,
+        1,
+        "AA",
+        "A",
+        grch38,
+        normalize_contig_names=False,
+    )
+    read = make_pysam_read(
+        seq="AAA",
+        cigar="2M1D1M",
+        mdtag="2^A1",
+        reference_start=0,
+    )
+    read_creator = ReadCollector()
+    read_evidence = read_creator.read_evidence_for_variant(
+        variant=variant,
+        alignment_file=MockAlignmentFile(references=(chromosome,), reads=[read]),
+    )
+    eq_(read_evidence.alt_read_names, {"dummy"})
+    eq_(read_evidence.ref_read_names, set())
