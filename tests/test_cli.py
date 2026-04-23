@@ -26,6 +26,7 @@ from isovar.cli.isovar_variant_reads import run as isovar_variant_reads
 from isovar.cli.isovar_variant_sequences import run as isovar_variant_sequences
 from isovar.cli.isovar_main import run as isovar_main
 from isovar.cli.rna_args import (
+    allele_counts_dataframe_from_args,
     make_rna_reads_arg_parser,
     variants_reads_dataframe_from_args,
 )
@@ -60,7 +61,16 @@ def run_cli_fn(fn, include_bam_in_args=True, return_dataframe=False):
 
 
 def test_cli_allele_counts():
-    run_cli_fn(isovar_allele_counts)
+    df = run_cli_fn(isovar_allele_counts, return_dataframe=True)
+    args = make_rna_reads_arg_parser().parse_args(args_with_bam)
+    expected_df = allele_counts_dataframe_from_args(args)
+    assert list(df.columns) == list(expected_df.columns)
+    assert "ref_reads" not in df.columns
+    assert len(df) == 4
+    assert df[["num_ref_reads", "num_alt_reads", "num_other_reads"]].to_dict(orient="records") == \
+        expected_df[["num_ref_reads", "num_alt_reads", "num_other_reads"]].to_dict(orient="records")
+    assert df[["num_ref_fragments", "num_alt_fragments", "num_other_fragments"]].to_dict(orient="records") == \
+        expected_df[["num_ref_fragments", "num_alt_fragments", "num_other_fragments"]].to_dict(orient="records")
 
 
 def test_cli_allele_reads():
