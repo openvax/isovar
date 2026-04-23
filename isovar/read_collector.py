@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import defaultdict
+
 from .default_parameters import (
     USE_SECONDARY_ALIGNMENTS,
     USE_DUPLICATE_READS,
@@ -37,6 +39,7 @@ class ReadCollector(object):
         use_duplicate_reads=USE_DUPLICATE_READS,
         min_mapping_quality=MIN_READ_MAPPING_QUALITY,
         use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES,
+        merge_overlapping_fragments=False,
     ):
         """
         Parameters
@@ -52,11 +55,17 @@ class ReadCollector(object):
 
         use_soft_clipped_bases : bool
             Include soft-clipped positions on a read which were ignored by the aligner
+
+        merge_overlapping_fragments : bool
+            Merge overlapping paired-end reads from the same fragment into one
+            fragment-level sequence while preserving the raw alignment count in
+            `source_read_count`.
         """
         self.use_secondary_alignments = use_secondary_alignments
         self.use_duplicate_reads = use_duplicate_reads
         self.min_mapping_quality = min_mapping_quality
         self.use_soft_clipped_bases = use_soft_clipped_bases
+        self.merge_overlapping_fragments = merge_overlapping_fragments
 
     @staticmethod
     def _previous_fully_aligned_pair_index(aligned_pairs, start_index):
@@ -512,7 +521,216 @@ class ReadCollector(object):
             reference_base0_end_exclusive=base0_end_exclusive,
             read_base0_start_inclusive=read_base0_start_inclusive,
             read_base0_end_exclusive=read_base0_end_exclusive,
+            source_read_count=1,
         )
+
+    @staticmethod
+    def _locus_read_sort_key(locus_read):
+        mapped_reference_positions = [
+            ref_pos for ref_pos in locus_read.reference_positions if ref_pos is not None
+        ]
+        if mapped_reference_positions:
+            return (
+                mapped_reference_positions[0],
+                mapped_reference_positions[-1],
+                len(locus_read.sequence),
+            )
+        return (float("inf"), float("inf"), len(locus_read.sequence))
+
+    @staticmethod
+    def _base_tokens_from_locus_read(locus_read):
+        sequence = locus_read.sequence
+        reference_positions = locus_read.reference_positions
+        quality_scores = list(locus_read.quality_scores)
+        index_to_key = {}
+        tokens = []
+
+        i = 0
+        n = len(sequence)
+        while i < n:
+            reference_position = reference_positions[i]
+            if reference_position is not None:
+                key = (2 * reference_position, 0)
+                tokens.append((key, reference_position, sequence[i], quality_scores[i]))
+                index_to_key[i] = key
+                i += 1
+                continue
+
+            j = i
+            while j < n and reference_positions[j] is None:
+                j += 1
+
+            previous_reference_position = None
+            for k in range(i - 1, -1, -1):
+                if reference_positions[k] is not None:
+                    previous_reference_position = reference_positions[k]
+                    break
+
+            next_reference_position = None
+            for k in range(j, n):
+                if reference_positions[k] is not None:
+                    next_reference_position = reference_positions[k]
+                    break
+
+            if previous_reference_position is None and next_reference_position is None:
+                return None, None
+
+            if previous_reference_position is None:
+                anchor = 2 * next_reference_position - 1
+            else:
+                anchor = 2 * previous_reference_position + 1
+
+            for offset, k in enumerate(range(i, j)):
+                key = (anchor, offset)
+                tokens.append((key, None, sequence[k], quality_scores[k]))
+                index_to_key[k] = key
+            i = j
+
+        return tokens, index_to_key
+
+    @staticmethod
+    def _translate_read_interval(locus_read, index_to_key, merged_index_by_key):
+        start = locus_read.read_base0_start_inclusive
+        end = locus_read.read_base0_end_exclusive
+
+        if start is None or end is None:
+            return None
+
+        if start < end:
+            merged_indices = [
+                merged_index_by_key[index_to_key[i]]
+                for i in range(start, end)
+            ]
+            return min(merged_indices), max(merged_indices) + 1
+
+        if start == 0:
+            boundary = 0
+        elif start == len(locus_read.sequence):
+            boundary = len(merged_index_by_key)
+        else:
+            boundary = merged_index_by_key[index_to_key[start]]
+        return boundary, boundary
+
+    @classmethod
+    def _merge_locus_read_pair(cls, first, second):
+        if (
+            first.name != second.name
+            or first.reference_base0_start_inclusive != second.reference_base0_start_inclusive
+            or first.reference_base0_end_exclusive != second.reference_base0_end_exclusive
+        ):
+            return None
+
+        first_tokens, first_index_to_key = cls._base_tokens_from_locus_read(first)
+        second_tokens, second_index_to_key = cls._base_tokens_from_locus_read(second)
+        if first_tokens is None or second_tokens is None:
+            return None
+
+        overlapping_keys = {key for key, _, _, _ in first_tokens}.intersection(
+            key for key, _, _, _ in second_tokens
+        )
+        if not overlapping_keys:
+            return None
+
+        merged_tokens = {}
+        for token in first_tokens + second_tokens:
+            key, reference_position, base, quality_score = token
+            existing = merged_tokens.get(key)
+            if existing is None:
+                merged_tokens[key] = token
+                continue
+
+            _, existing_reference_position, existing_base, existing_quality_score = existing
+            if existing_reference_position != reference_position:
+                return None
+
+            if base == existing_base:
+                merged_tokens[key] = (
+                    key,
+                    reference_position,
+                    base,
+                    max(existing_quality_score, quality_score),
+                )
+            elif quality_score > existing_quality_score:
+                merged_tokens[key] = token
+            elif quality_score == existing_quality_score:
+                return None
+
+        merged_sequence = []
+        merged_reference_positions = []
+        merged_quality_scores = []
+        merged_index_by_key = {}
+
+        for merged_index, key in enumerate(sorted(merged_tokens)):
+            _, reference_position, base, quality_score = merged_tokens[key]
+            merged_sequence.append(base)
+            merged_reference_positions.append(reference_position)
+            merged_quality_scores.append(quality_score)
+            merged_index_by_key[key] = merged_index
+
+        translated_intervals = [
+            translated_interval
+            for translated_interval in [
+                cls._translate_read_interval(first, first_index_to_key, merged_index_by_key),
+                cls._translate_read_interval(second, second_index_to_key, merged_index_by_key),
+            ]
+            if translated_interval is not None
+        ]
+        if not translated_intervals:
+            return None
+
+        non_empty_intervals = [
+            interval for interval in translated_intervals if interval[0] != interval[1]
+        ]
+        if non_empty_intervals:
+            read_base0_start_inclusive = min(start for start, _ in non_empty_intervals)
+            read_base0_end_exclusive = max(end for _, end in non_empty_intervals)
+        else:
+            read_base0_start_inclusive = read_base0_end_exclusive = translated_intervals[0][0]
+
+        return LocusRead(
+            name=first.name,
+            sequence="".join(merged_sequence),
+            reference_positions=merged_reference_positions,
+            quality_scores=merged_quality_scores,
+            reference_base0_start_inclusive=first.reference_base0_start_inclusive,
+            reference_base0_end_exclusive=first.reference_base0_end_exclusive,
+            read_base0_start_inclusive=read_base0_start_inclusive,
+            read_base0_end_exclusive=read_base0_end_exclusive,
+            source_read_count=first.source_read_count + second.source_read_count,
+        )
+
+    @classmethod
+    def _merge_overlapping_locus_reads(cls, reads):
+        grouped_reads = defaultdict(list)
+        for read in reads:
+            grouped_reads[read.name].append(read)
+
+        merged_reads = []
+        for grouped_read_list in grouped_reads.values():
+            pending_reads = sorted(grouped_read_list, key=cls._locus_read_sort_key)
+            changed = True
+            while changed and len(pending_reads) > 1:
+                changed = False
+                next_round = []
+                used = [False] * len(pending_reads)
+                for i, read in enumerate(pending_reads):
+                    if used[i]:
+                        continue
+                    merged_read = read
+                    for j in range(i + 1, len(pending_reads)):
+                        if used[j]:
+                            continue
+                        candidate = cls._merge_locus_read_pair(merged_read, pending_reads[j])
+                        if candidate is None:
+                            continue
+                        merged_read = candidate
+                        used[j] = True
+                        changed = True
+                    used[i] = True
+                    next_round.append(merged_read)
+                pending_reads = sorted(next_round, key=cls._locus_read_sort_key)
+            merged_reads.extend(pending_reads)
+        return merged_reads
 
     def get_locus_reads(
         self,
@@ -529,6 +747,12 @@ class ReadCollector(object):
         start, and end positions. The actual work to figure out if what's between
         those positions matches a variant happens later when LocusRead objects are
         converted to AlleleRead objects.
+
+        If `merge_overlapping_fragments` is enabled then overlapping paired-end
+        reads from the same fragment are conservatively merged so downstream
+        assembly sees one fragment-spanning sequence instead of double-counting
+        the overlap. The raw number of source alignments is retained on each
+        merged LocusRead via `source_read_count`.
 
         Parameters
         ----------
@@ -589,7 +813,15 @@ class ReadCollector(object):
             base0_start_inclusive,
             base0_end_exclusive,
         )
-        return reads
+        if not self.merge_overlapping_fragments:
+            return reads
+
+        merged_reads = self._merge_overlapping_locus_reads(reads)
+        logger.info(
+            "Merged overlapping paired reads into %d locus reads",
+            len(merged_reads),
+        )
+        return merged_reads
 
     @staticmethod
     def _infer_chromosome_name(variant_chromosome_name, valid_chromosome_names):

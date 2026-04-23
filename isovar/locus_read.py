@@ -23,12 +23,17 @@ class LocusRead(ValueObject):
     """
     Minimal set of information extracted from SAM/BAM alignment file at a particular
     locus to later figure out the allele at this locus.
+
+    Overlapping paired-end reads from the same fragment may be merged into a
+    single LocusRead. In that case `source_read_count` records how many raw
+    alignments were collapsed into this fragment-level view.
     """
     __slots__ = [
         "name",
         "sequence",
         "reference_positions",
         "quality_scores",
+        "source_read_count",
         "reference_base0_start_inclusive",
         "reference_base0_end_exclusive",
         "read_base0_start_inclusive",
@@ -44,7 +49,8 @@ class LocusRead(ValueObject):
             reference_base0_start_inclusive,
             reference_base0_end_exclusive,
             read_base0_start_inclusive,
-            read_base0_end_exclusive):
+            read_base0_end_exclusive,
+            source_read_count=1):
         """
         Parameters
         ----------
@@ -60,6 +66,11 @@ class LocusRead(ValueObject):
 
         quality_scores : array of int
             Base qualities for every character in the sequence
+
+        source_read_count : int
+            Number of raw reads represented by this LocusRead. Usually 1, but
+            overlapping paired-end mates from the same fragment may be merged
+            into a single LocusRead while keeping this count.
 
         reference_base0_start_inclusive : int
             Start index of reference locus which is overlapped
@@ -134,9 +145,8 @@ class LocusRead(ValueObject):
         self.sequence = sequence
         self.reference_positions = reference_positions
         self.quality_scores = quality_scores
+        self.source_read_count = source_read_count
         self.reference_base0_start_inclusive = reference_base0_start_inclusive
         self.reference_base0_end_exclusive = reference_base0_end_exclusive
         self.read_base0_start_inclusive = read_base0_start_inclusive
         self.read_base0_end_exclusive = read_base0_end_exclusive
-
-

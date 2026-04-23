@@ -25,6 +25,11 @@ from functools import cached_property
 from .common import safediv
 from .alignment_score import alignment_score
 
+
+def _sum_source_read_count(reads):
+    return sum(getattr(read, "source_read_count", 1) for read in reads)
+
+
 class IsovarResult(object):
     """
     This object represents all information gathered about a variant,
@@ -983,7 +988,7 @@ class IsovarResult(object):
         """
         Number of reads which support the reference allele.
         """
-        return len(self.ref_reads)
+        return _sum_source_read_count(self.ref_reads)
 
     @cached_property
     def num_ref_fragments(self):
@@ -997,7 +1002,7 @@ class IsovarResult(object):
         """
         Number of reads which support the alt allele.
         """
-        return len(self.alt_reads)
+        return _sum_source_read_count(self.alt_reads)
 
     @cached_property
     def num_alt_fragments(self):
@@ -1011,7 +1016,7 @@ class IsovarResult(object):
         """
         Number of reads which support neither the reference nor alt alleles.
         """
-        return len(self.other_reads)
+        return _sum_source_read_count(self.other_reads)
 
     @cached_property
     def num_other_fragments(self):

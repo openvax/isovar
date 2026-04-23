@@ -128,7 +128,10 @@ class VarcodeAdapter(object):
         result, translation, matched_transcript = entry
         transcript_edit = self._transcript_edit(result, matched_transcript)
         evidence = {
-            "num_supporting_reads": len(translation.reads),
+            "num_supporting_reads": sum(
+                getattr(read, "source_read_count", 1)
+                for read in translation.reads
+            ),
             "num_supporting_fragments": len({read.name for read in translation.reads}),
             "num_cdna_mismatches_before_variant": (
                 translation.num_mismatches_before_variant),

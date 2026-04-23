@@ -25,6 +25,10 @@ from .value_object import ValueObject
 logger = get_logger(__name__)
 
 
+def _sum_source_read_count(reads):
+    return sum(getattr(read, "source_read_count", 1) for read in reads)
+
+
 class ProteinSequence(TranslationKey):
     """
     Translated amino acid sequence aggregated across possibly multiple
@@ -181,7 +185,7 @@ class ProteinSequence(TranslationKey):
 
         Returns int
         """
-        return len(self.supporting_reads)
+        return _sum_source_read_count(self.supporting_reads)
 
     @property
     def num_mismatches_before_variant(self):

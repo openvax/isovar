@@ -147,7 +147,7 @@ def run_isovar(
             threads=decompression_threads)
 
     if read_collector is None:
-        read_collector = ReadCollector()
+        read_collector = ReadCollector(merge_overlapping_fragments=True)
 
     if protein_sequence_creator is None:
         protein_sequence_creator = ProteinSequenceCreator()

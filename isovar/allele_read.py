@@ -28,15 +28,20 @@ class AlleleRead(ValueObject):
     Extremely simplified representation of a read at a locus: just the allele
     at the locus and sequence before/after. We're ignoring the base qualities
     and any additional information about splicing, clipping or alignment.
-    """
-    __slots__ = ["prefix", "allele", "suffix", "name", "sequence"]
 
-    def __init__(self, prefix, allele, suffix, name):
+    When overlapping mates from the same fragment are merged upstream,
+    `source_read_count` retains the number of raw reads represented by this
+    fragment-level allele observation.
+    """
+    __slots__ = ["prefix", "allele", "suffix", "name", "sequence", "source_read_count"]
+
+    def __init__(self, prefix, allele, suffix, name, source_read_count=1):
         self.prefix = prefix
         self.allele = allele
         self.suffix = suffix
         self.name = name
         self.sequence = prefix + allele + suffix
+        self.source_read_count = source_read_count
 
     def __len__(self):
         return len(self.sequence)
@@ -95,4 +100,5 @@ class AlleleRead(ValueObject):
             prefix,
             nucleotides_at_variant_locus,
             suffix,
-            name=read_name)
+            name=read_name,
+            source_read_count=locus_read.source_read_count)
