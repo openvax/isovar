@@ -30,9 +30,9 @@ class PhaseGroup(ValueObject):
     public model can grow into that use case without changing shape again.
 
     Some phase groups are backed by translated Isovar assemblies. In those
-    cases the group can also carry directly observed cDNA, protein, and
-    transcript metadata from the supporting assemblies. Read-only phasing groups
-    leave those fields empty.
+    cases the group can also carry directly observed cDNA, protein, transcript,
+    and transcript-edit metadata from the supporting assemblies. Read-only
+    phasing groups leave those fields empty.
     """
 
     __slots__ = [
@@ -43,6 +43,9 @@ class PhaseGroup(ValueObject):
         "mutant_protein_sequences",
         "transcript_ids",
         "transcript_names",
+        "known_somatic_transcript_edits",
+        "known_germline_transcript_edits",
+        "unexplained_transcript_edits",
     ]
 
     def __init__(
@@ -53,7 +56,10 @@ class PhaseGroup(ValueObject):
             cdna_sequences=(),
             mutant_protein_sequences=(),
             transcript_ids=(),
-            transcript_names=()):
+            transcript_names=(),
+            known_somatic_transcript_edits=(),
+            known_germline_transcript_edits=(),
+            unexplained_transcript_edits=()):
         self.somatic_variants = tuple(somatic_variants)
         self.germline_variants = tuple(germline_variants)
         self.supporting_read_names = frozenset(supporting_read_names)
@@ -61,3 +67,8 @@ class PhaseGroup(ValueObject):
         self.mutant_protein_sequences = tuple(mutant_protein_sequences)
         self.transcript_ids = tuple(transcript_ids)
         self.transcript_names = tuple(transcript_names)
+        self.known_somatic_transcript_edits = tuple(
+            known_somatic_transcript_edits)
+        self.known_germline_transcript_edits = tuple(
+            known_germline_transcript_edits)
+        self.unexplained_transcript_edits = tuple(unexplained_transcript_edits)

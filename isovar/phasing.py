@@ -14,6 +14,7 @@ from collections import defaultdict, Counter
 
 from .default_parameters import MIN_SHARED_FRAGMENTS_FOR_PHASING
 from .phase_group import PhaseGroup
+from .transcript_edit_helpers import transcript_assembly_edit_sort_key
 
 
 def _variant_sort_key(variant):
@@ -205,21 +206,54 @@ def create_phase_groups(
             mutant_protein_sequences = ()
             transcript_ids = ()
             transcript_names = ()
+            known_somatic_transcript_edits = ()
+            known_germline_transcript_edits = ()
+            unexplained_transcript_edits = ()
         else:
             cdna_sequences = set()
             mutant_protein_sequences = set()
             transcript_ids = set()
             transcript_names = set()
+            known_somatic_transcript_edits = set()
+            known_germline_transcript_edits = set()
+            unexplained_transcript_edits = set()
             for grouped_variant in component:
                 protein_sequence = variant_to_top_protein_sequence_dict.get(
                     grouped_variant
                 )
                 if protein_sequence is None:
                     continue
+                if hasattr(protein_sequence, "_transcript_assembly_edits_by_category"):
+                    categorized_edits = (
+                        protein_sequence._transcript_assembly_edits_by_category())
+                else:
+                    categorized_edits = {
+                        "known_somatic": getattr(
+                            protein_sequence,
+                            "known_somatic_transcript_edits",
+                            (),
+                        ),
+                        "known_germline": getattr(
+                            protein_sequence,
+                            "known_germline_transcript_edits",
+                            (),
+                        ),
+                        "unexplained": getattr(
+                            protein_sequence,
+                            "unexplained_transcript_edits",
+                            (),
+                        ),
+                    }
                 cdna_sequences.update(protein_sequence.cdna_sequences)
                 mutant_protein_sequences.add(protein_sequence.amino_acids)
                 transcript_ids.update(protein_sequence.transcript_ids)
                 transcript_names.update(protein_sequence.transcript_names)
+                known_somatic_transcript_edits.update(
+                    categorized_edits["known_somatic"])
+                known_germline_transcript_edits.update(
+                    categorized_edits["known_germline"])
+                unexplained_transcript_edits.update(
+                    categorized_edits["unexplained"])
 
         phase_group = PhaseGroup(
             somatic_variants=tuple(sorted(component, key=_variant_sort_key)),
@@ -229,6 +263,18 @@ def create_phase_groups(
             mutant_protein_sequences=tuple(sorted(mutant_protein_sequences)),
             transcript_ids=tuple(sorted(transcript_ids)),
             transcript_names=tuple(sorted(transcript_names)),
+            known_somatic_transcript_edits=tuple(sorted(
+                known_somatic_transcript_edits,
+                key=transcript_assembly_edit_sort_key,
+            )),
+            known_germline_transcript_edits=tuple(sorted(
+                known_germline_transcript_edits,
+                key=transcript_assembly_edit_sort_key,
+            )),
+            unexplained_transcript_edits=tuple(sorted(
+                unexplained_transcript_edits,
+                key=transcript_assembly_edit_sort_key,
+            )),
         )
         for grouped_variant in component:
             variant_to_phase_group[grouped_variant] = phase_group

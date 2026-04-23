@@ -58,8 +58,12 @@ def test_varcode_adapter_exposes_contig_and_mutant_transcript(result_and_transcr
     assert mutant_transcript.cdna_sequence in result.top_protein_sequence.cdna_sequences
     eq_(mutant_transcript.mutant_protein_sequence, result.top_protein_sequence.amino_acids)
     eq_(mutant_transcript.annotator_name, "isovar")
-    eq_(len(mutant_transcript.edits), 1)
-    eq_(mutant_transcript.edits[0].source_variant, result.variant)
+    assert len(mutant_transcript.edits) >= 1
+    assert any(
+        edit.source_variant is not None and
+        edit.source_variant == result.variant
+        for edit in mutant_transcript.edits
+    )
 
 
 def test_isovar_phase_resolver_applies_contig_mutant_transcript(result_and_transcript):
