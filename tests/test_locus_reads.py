@@ -235,13 +235,9 @@ def test_locus_reads_dataframe():
         for line in f:
             if line.startswith("HWI"):
                 n_reads_expected += 1
-    # we know from inspecting the file that *one* of the reads overlapping this
-    # variant has a CIGAR string of N at the location before and thus we'll
-    # be missing that read.
-    #
-    # TODO: figure out what to do when the variant nucleotide is at the start or
-    # end of an exon, since that won't have mapping positions on both its left
-    # and right
+    # We know from inspecting the file that one fetched read is spliced across
+    # this locus and therefore does not actually overlap the queried interval.
+    # The widened fetch window pulls it in, and get_overlap() correctly drops it.
     n_reads_expected -= 1
 
     print("Found %d sequences in %s" % (n_reads_expected, sam_path_single_variant))
@@ -410,3 +406,51 @@ def test_locus_read_insertion_locus_with_insertion_in_read():
     assert result is not None, "Read with insertion should be returned"
     eq_(result.read_base0_start_inclusive, 4)
     eq_(result.read_base0_end_exclusive, 5)
+
+
+def test_locus_read_insertion_locus_with_insertion_at_start_of_read():
+    """
+    An insertion-supporting read can begin at the insertion locus and still
+    provide a non-empty inserted interval.
+
+    Regression test for GitHub issue #49.
+    """
+    pysam_read = make_pysam_read(
+        seq="GT",
+        cigar="1I1M",
+        mdtag="1",
+        reference_start=3,
+    )
+    read_collector = ReadCollector()
+    result = read_collector.locus_read_from_pysam_aligned_segment(
+        pysam_read,
+        base0_start_inclusive=3,
+        base0_end_exclusive=3,
+    )
+    assert result is not None, "Insertion at the start of a read should be kept"
+    eq_(result.read_base0_start_inclusive, 0)
+    eq_(result.read_base0_end_exclusive, 1)
+
+
+def test_locus_read_insertion_locus_with_insertion_at_end_of_read():
+    """
+    An insertion-supporting read can end at the insertion locus and still
+    provide a non-empty inserted interval.
+
+    Regression test for GitHub issue #49.
+    """
+    pysam_read = make_pysam_read(
+        seq="AG",
+        cigar="1M1I",
+        mdtag="1",
+        reference_start=2,
+    )
+    read_collector = ReadCollector()
+    result = read_collector.locus_read_from_pysam_aligned_segment(
+        pysam_read,
+        base0_start_inclusive=3,
+        base0_end_exclusive=3,
+    )
+    assert result is not None, "Insertion at the end of a read should be kept"
+    eq_(result.read_base0_start_inclusive, 1)
+    eq_(result.read_base0_end_exclusive, 2)
