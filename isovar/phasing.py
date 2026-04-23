@@ -13,6 +13,28 @@
 from collections import defaultdict, Counter
 
 from .default_parameters import MIN_SHARED_FRAGMENTS_FOR_PHASING
+from .phase_group import PhaseGroup
+
+
+def _variant_sort_key(variant):
+    return (
+        variant.contig,
+        variant.start,
+        variant.ref,
+        variant.alt,
+    )
+
+
+def create_read_names_to_variants_dict(variant_to_read_names_dict):
+    """
+    Invert a variant -> read-name mapping into read-name -> variants.
+    """
+    read_names_to_variants = defaultdict(set)
+
+    for variant, read_names in variant_to_read_names_dict.items():
+        for read_name in read_names:
+            read_names_to_variants[read_name].add(variant)
+    return read_names_to_variants
 
 
 def create_variant_to_alt_read_names_dict(isovar_results):
@@ -72,11 +94,9 @@ def compute_phasing_counts(variant_to_read_names_dict):
     -------
     Dictionary from variant to Counter(Variant)
     """
-    read_names_to_variants = defaultdict(set)
-
-    for variant, read_names in variant_to_read_names_dict.items():
-        for read_name in read_names:
-            read_names_to_variants[read_name].add(variant)
+    read_names_to_variants = create_read_names_to_variants_dict(
+        variant_to_read_names_dict
+    )
 
     # now count up how many reads are shared between pairs of variants
     phasing_counts = defaultdict(Counter)
@@ -110,6 +130,64 @@ def threshold_phased_variant_counts(counts_dict, min_count):
     }
 
 
+def create_phase_groups(
+        variant_to_read_names_dict,
+        min_shared_fragments_for_phasing):
+    """
+    Group variants into connected components of the phasing graph.
+
+    Returns
+    -------
+    dict
+        Mapping from variant to PhaseGroup. Variants without phased partners are
+        omitted.
+    """
+    phasing_counts = compute_phasing_counts(variant_to_read_names_dict)
+    phased_neighbors = {
+        variant: threshold_phased_variant_counts(
+            phasing_counts[variant],
+            min_count=min_shared_fragments_for_phasing)
+        for variant in variant_to_read_names_dict
+    }
+
+    read_names_to_variants = create_read_names_to_variants_dict(
+        variant_to_read_names_dict
+    )
+
+    visited = set()
+    variant_to_phase_group = {}
+    for variant in sorted(variant_to_read_names_dict, key=_variant_sort_key):
+        if variant in visited:
+            continue
+
+        component = set()
+        pending = [variant]
+        while pending:
+            current_variant = pending.pop()
+            if current_variant in component:
+                continue
+            component.add(current_variant)
+            visited.add(current_variant)
+            pending.extend(phased_neighbors.get(current_variant, set()) - component)
+
+        if len(component) <= 1:
+            continue
+
+        supporting_read_names = {
+            read_name
+            for read_name, read_variants in read_names_to_variants.items()
+            if len(component.intersection(read_variants)) >= 2
+        }
+        phase_group = PhaseGroup(
+            somatic_variants=tuple(sorted(component, key=_variant_sort_key)),
+            germline_variants=(),
+            supporting_read_names=supporting_read_names,
+        )
+        for grouped_variant in component:
+            variant_to_phase_group[grouped_variant] = phase_group
+    return variant_to_phase_group
+
+
 def annotate_phased_variants(
         unphased_isovar_results,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING):
@@ -129,29 +207,48 @@ def annotate_phased_variants(
     list of IsovarResult
     """
 
-    # create dictionary counting how often each variant co-occurs with others
-    # in any reads supporting those variants
     phasing_counts_from_supporting_reads = compute_phasing_counts(
-        create_variant_to_alt_read_names_dict(unphased_isovar_results))
+        create_variant_to_alt_read_names_dict(unphased_isovar_results)
+    )
 
-    # create dictionary counting how often each variant co-occurs with others
-    # in any reads used to construct their protein sequences
+    phase_groups_from_supporting_reads = create_phase_groups(
+        create_variant_to_alt_read_names_dict(unphased_isovar_results),
+        min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
+    )
+
     phasing_counts_from_protein_sequences = compute_phasing_counts(
         create_variant_to_protein_sequence_read_names_dict(
-            unphased_isovar_results))
+            unphased_isovar_results)
+    )
+
+    phase_groups_from_protein_sequences = create_phase_groups(
+        create_variant_to_protein_sequence_read_names_dict(
+            unphased_isovar_results),
+        min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
+    )
 
     results_with_phasing = []
     for isovar_result in unphased_isovar_results:
         variant = isovar_result.variant
+        phase_group_from_supporting_reads = phase_groups_from_supporting_reads.get(
+            variant
+        )
         phased_variants_in_supporting_reads = threshold_phased_variant_counts(
             phasing_counts_from_supporting_reads[variant],
-            min_count=min_shared_fragments_for_phasing)
-        phased_variants_in_protein_sequence = \
-            threshold_phased_variant_counts(
-                phasing_counts_from_protein_sequences[variant],
-                min_count=min_shared_fragments_for_phasing)
+            min_count=min_shared_fragments_for_phasing,
+        )
+
+        phase_group_from_protein_sequence = phase_groups_from_protein_sequences.get(
+            variant
+        )
+        phased_variants_in_protein_sequence = threshold_phased_variant_counts(
+            phasing_counts_from_protein_sequences[variant],
+            min_count=min_shared_fragments_for_phasing,
+        )
         results_with_phasing.append(
             isovar_result.clone_with_updates(
+                phase_group_from_supporting_reads=phase_group_from_supporting_reads,
+                phase_group_from_protein_sequence=phase_group_from_protein_sequence,
                 phased_variants_in_supporting_reads=phased_variants_in_supporting_reads,
                 phased_variants_in_protein_sequence=phased_variants_in_protein_sequence))
     return results_with_phasing

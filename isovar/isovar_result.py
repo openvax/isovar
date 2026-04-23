@@ -46,7 +46,9 @@ class IsovarResult(object):
             sorted_protein_sequences=None,
             filter_values=None,
             phased_variants_in_supporting_reads=None,
-            phased_variants_in_protein_sequence=None):
+            phased_variants_in_protein_sequence=None,
+            phase_group_from_supporting_reads=None,
+            phase_group_from_protein_sequence=None):
         """
         Parameters
         ----------
@@ -67,12 +69,24 @@ class IsovarResult(object):
             passed that filter. 
 
         phased_variants_in_supporting_reads : set of varcode.Variant
-            Other somatic variants which occur in the alt reads supporting the 
-            variant associated with this IsovarResult.
+            Other somatic variants which directly share enough alt-read support
+            with the variant associated with this IsovarResult.
 
         phased_variants_in_protein_sequence : set of varcode.Variant
-            Other somatic variants which occur in the reads used to construct
-            the top protein sequence associated with this IsovarResult.
+            Other somatic variants which directly share enough protein-
+            sequence-supporting reads with the variant associated with this
+            IsovarResult.
+
+        phase_group_from_supporting_reads : PhaseGroup or None
+            Explicit phasing component inferred from all RNA reads supporting
+            this variant. This group may contain variants which are only
+            transitively connected through other variants.
+
+        phase_group_from_protein_sequence : PhaseGroup or None
+            Explicit phasing component inferred from reads used to construct the
+            top protein sequence for this variant. This group may contain
+            variants which are only transitively connected through other
+            variants.
         """
         self.variant = variant
         self.read_evidence = read_evidence
@@ -100,6 +114,9 @@ class IsovarResult(object):
             self.phased_variants_in_protein_sequence = \
                 phased_variants_in_protein_sequence
 
+        self.phase_group_from_supporting_reads = phase_group_from_supporting_reads
+        self.phase_group_from_protein_sequence = phase_group_from_protein_sequence
+
     @property
     def fields(self):
         """
@@ -113,6 +130,8 @@ class IsovarResult(object):
             "filter_values",
             "phased_variants_in_supporting_reads",
             "phased_variants_in_protein_sequence",
+            "phase_group_from_supporting_reads",
+            "phase_group_from_protein_sequence",
         ]
 
     def __str__(self):
