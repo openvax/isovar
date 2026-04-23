@@ -37,6 +37,62 @@ from .logging import get_logger
 
 logger = get_logger(__name__)
 
+DEFAULT_ASSEMBLY_KMER_SIZE = 15
+
+
+def _sequence_kmers(sequence, k):
+    return {
+        sequence[i:i + k]
+        for i in range(len(sequence) - k + 1)
+    }
+
+
+def _greedy_merge_candidate_pairs(
+        variant_sequences,
+        min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+        max_kmer_size=DEFAULT_ASSEMBLY_KMER_SIZE):
+    """
+    Use an exact k-mer index to skip obviously impossible pairwise comparisons.
+
+    Any truly mergeable pair must share at least one exact k-mer whose length
+    is no greater than the overlap threshold and no greater than the shortest
+    eligible sequence. Final merge eligibility is still decided by
+    VariantSequence.combine.
+    """
+    if len(variant_sequences) < 2:
+        return []
+
+    eligible_lengths = [
+        len(variant_sequence)
+        for variant_sequence in variant_sequences
+        if len(variant_sequence) >= min_overlap_size
+    ]
+    if not eligible_lengths:
+        return []
+
+    k = max(1, min(max_kmer_size, min_overlap_size, min(eligible_lengths)))
+    kmer_to_indices = defaultdict(set)
+    sequence_kmers = []
+
+    for i, variant_sequence in enumerate(variant_sequences):
+        if len(variant_sequence) < min_overlap_size:
+            kmers = ()
+        else:
+            kmers = tuple(_sequence_kmers(variant_sequence.sequence, k))
+            for kmer in kmers:
+                kmer_to_indices[kmer].add(i)
+        sequence_kmers.append(kmers)
+
+    candidate_pairs = set()
+    for i, kmers in enumerate(sequence_kmers):
+        candidate_indices = set()
+        for kmer in kmers:
+            candidate_indices.update(kmer_to_indices[kmer])
+        for j in candidate_indices:
+            if j > i:
+                candidate_pairs.add((i, j))
+    return sorted(candidate_pairs)
+
 
 def greedy_merge_helper(
         variant_sequences,
@@ -51,16 +107,17 @@ def greedy_merge_helper(
     were successfully merged.
     """
     candidates = []
-    for i in range(len(variant_sequences)):
-        for j in range(i + 1, len(variant_sequences)):
-            combined = variant_sequences[i].combine(
-                variant_sequences[j], min_overlap_size=min_overlap_size)
-            if combined is not None:
-                overlap = (
-                    len(variant_sequences[i])
-                    + len(variant_sequences[j])
-                    - len(combined))
-                candidates.append((overlap, len(combined.reads), i, j, combined))
+    for i, j in _greedy_merge_candidate_pairs(
+            variant_sequences,
+            min_overlap_size=min_overlap_size):
+        combined = variant_sequences[i].combine(
+            variant_sequences[j], min_overlap_size=min_overlap_size)
+        if combined is not None:
+            overlap = (
+                len(variant_sequences[i])
+                + len(variant_sequences[j])
+                - len(combined))
+            candidates.append((overlap, len(combined.reads), i, j, combined))
 
     if not candidates:
         return list(variant_sequences), False
