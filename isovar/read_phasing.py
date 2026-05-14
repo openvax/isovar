@@ -80,8 +80,7 @@ class IsovarReadPhasing(object):
         ----------
         isovar_results : Iterable[IsovarResult]
             Results from a finished Isovar run (e.g. the output of
-            ``run_isovar``). The iterable is consumed once. If the
-            same variant appears more than once, the last entry wins.
+            ``run_isovar``). The iterable is consumed once.
         """
         self._by_variant = {
             result.variant: result

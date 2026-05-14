@@ -12,15 +12,17 @@
 
 import doctest
 
+import pytest
 from varcode import Variant
 
 import isovar.read_phasing
-from isovar import IsovarReadPhasing
+from isovar import IsovarReadPhasing, run_isovar
 from isovar.allele_read import AlleleRead
 from isovar.isovar_result import IsovarResult
 from isovar.read_evidence import ReadEvidence
 
 from .common import eq_
+from .testing_helpers import data_path
 
 
 def _make_result(variant, alt_read_names, phased_partners=()):
@@ -118,3 +120,59 @@ def test_partners_in_cis_is_deterministically_ordered():
             phased_partners={later, earlier, other_chrom}),
     ])
     eq_(phasing.partners_in_cis(anchor), (earlier, later, other_chrom))
+
+
+# ---- end-to-end test against the b16 RNA fixture -------------------------
+#
+# Runs the full Isovar pipeline on the same b16 BAM/VCF used by
+# tests/test_varcode_adapter.py. The b16 fixture is small (a handful of
+# variants), so partner sets may be empty -- the structural assertions
+# below pass either way and would still catch a regression where the
+# adapter drops, fabricates, or misroutes phasing data.
+
+
+@pytest.fixture(scope="module")
+def b16_results():
+    return run_isovar(
+        variants=data_path("data/b16.f10/b16.vcf"),
+        alignment_file=data_path("data/b16.f10/b16.combined.sorted.bam"))
+
+
+def test_b16_has_evidence_matches_alt_fragment_count(b16_results):
+    phasing = IsovarReadPhasing(b16_results)
+    # `has_evidence` is defined as `num_alt_fragments > 0`; verify it
+    # against the real IsovarResult.num_alt_fragments rather than the
+    # adapter's internal state.
+    for result in b16_results:
+        eq_(
+            phasing.has_evidence(result.variant),
+            result.num_alt_fragments > 0)
+
+
+def test_b16_partners_are_subset_of_input_variants(b16_results):
+    phasing = IsovarReadPhasing(b16_results)
+    input_variants = {result.variant for result in b16_results}
+    for result in b16_results:
+        for partner in phasing.partners_in_cis(result.variant):
+            assert partner in input_variants, (
+                "partner %s not present in the input result set" % (partner,))
+
+
+def test_b16_partners_match_phased_variants_field(b16_results):
+    phasing = IsovarReadPhasing(b16_results)
+    for result in b16_results:
+        eq_(
+            set(phasing.partners_in_cis(result.variant)),
+            set(result.phased_variants_in_supporting_reads))
+
+
+def test_b16_phasing_is_symmetric(b16_results):
+    # Symmetry is the contract we promise in the module docstring; this
+    # is the integration-level check that it holds end-to-end against
+    # real data.
+    phasing = IsovarReadPhasing(b16_results)
+    for result in b16_results:
+        for partner in phasing.partners_in_cis(result.variant):
+            assert result.variant in phasing.partners_in_cis(partner), (
+                "asymmetric phasing: %s -> %s but not back" % (
+                    result.variant, partner))
