@@ -19,6 +19,7 @@ import isovar.read_phasing
 from isovar import IsovarReadPhasing, run_isovar
 from isovar.allele_read import AlleleRead
 from isovar.isovar_result import IsovarResult
+from isovar.phasing import annotate_phased_variants
 from isovar.read_evidence import ReadEvidence
 
 from .common import eq_
@@ -122,13 +123,17 @@ def test_partners_in_cis_is_deterministically_ordered():
     eq_(phasing.partners_in_cis(anchor), (earlier, later, other_chrom))
 
 
-# ---- end-to-end test against the b16 RNA fixture -------------------------
+# ---- pipeline smoke tests against the b16 RNA fixture --------------------
 #
 # Runs the full Isovar pipeline on the same b16 BAM/VCF used by
-# tests/test_varcode_adapter.py. The b16 fixture is small (a handful of
-# variants), so partner sets may be empty -- the structural assertions
-# below pass either way and would still catch a regression where the
-# adapter drops, fabricates, or misroutes phasing data.
+# tests/test_varcode_adapter.py and feeds the results through
+# IsovarReadPhasing. The b16 fixture has four variants on four different
+# chromosomes, so no two variants are ever co-observed on the same read
+# -- every result's partner set is empty. These tests therefore verify
+# wiring (the adapter consumes real `run_isovar` output without errors
+# and routes the fields it claims to route), not non-empty-partner
+# behavior. The non-empty-partner path is exercised by the hand-rolled
+# tests above and the annotate_phased_variants integration test below.
 
 
 @pytest.fixture(scope="module")
@@ -176,3 +181,67 @@ def test_b16_phasing_is_symmetric(b16_results):
             assert result.variant in phasing.partners_in_cis(partner), (
                 "asymmetric phasing: %s -> %s but not back" % (
                     result.variant, partner))
+
+
+# ---- integration against the real upstream phasing logic -----------------
+#
+# `annotate_phased_variants` is the function `run_isovar` uses to
+# populate `phased_variants_in_supporting_reads`. The b16 fixture
+# doesn't produce co-phased variants, so to verify
+# IsovarReadPhasing against the real upstream logic we hand-roll
+# IsovarResult objects with overlapping read names, run them through
+# `annotate_phased_variants`, and then exercise the adapter on the
+# annotated output. This catches drift if either the upstream phasing
+# rules or the adapter's interpretation of the field changes.
+
+
+def test_adapter_consistent_with_annotate_phased_variants():
+    v1 = Variant("1", 10, "A", "C", normalize_contig_names=False)
+    v2 = Variant("1", 20, "G", "T", normalize_contig_names=False)
+    v3 = Variant("1", 30, "T", "A", normalize_contig_names=False)
+    # v1 & v2 share reads r12a, r12b; v2 & v3 share read r23.
+    # No reads bridge v1 to v3 directly.
+    annotated = annotate_phased_variants(
+        [
+            _make_result(v1, alt_read_names={"r12a", "r12b"}),
+            _make_result(v2, alt_read_names={"r12a", "r12b", "r23"}),
+            _make_result(v3, alt_read_names={"r23"}),
+        ],
+        min_shared_fragments_for_phasing=1,
+    )
+    phasing = IsovarReadPhasing(annotated)
+
+    # Adapter must expose every partner that the upstream pipeline
+    # populated, with no additions or omissions.
+    for result in annotated:
+        eq_(
+            set(phasing.partners_in_cis(result.variant)),
+            set(result.phased_variants_in_supporting_reads))
+
+    # Spot-check the expected topology: v2 is partnered with both v1
+    # and v3; v1 and v3 partner only with v2 (not with each other,
+    # since no read spans v1 -> v3).
+    eq_(set(phasing.partners_in_cis(v1)), {v2})
+    eq_(set(phasing.partners_in_cis(v2)), {v1, v3})
+    eq_(set(phasing.partners_in_cis(v3)), {v2})
+
+    # All three have evidence.
+    for v in (v1, v2, v3):
+        assert phasing.has_evidence(v)
+
+
+def test_adapter_respects_min_shared_fragments_threshold():
+    v1 = Variant("1", 10, "A", "C", normalize_contig_names=False)
+    v2 = Variant("1", 20, "G", "T", normalize_contig_names=False)
+    # Only one read bridges v1 and v2 -- below the threshold of 2.
+    annotated = annotate_phased_variants(
+        [
+            _make_result(v1, alt_read_names={"r12", "r1only"}),
+            _make_result(v2, alt_read_names={"r12", "r2only"}),
+        ],
+        min_shared_fragments_for_phasing=2,
+    )
+    phasing = IsovarReadPhasing(annotated)
+    # Threshold filters out the single shared read, so no partners.
+    eq_(phasing.partners_in_cis(v1), ())
+    eq_(phasing.partners_in_cis(v2), ())
