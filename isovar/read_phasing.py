@@ -14,11 +14,17 @@
 Adapter that exposes Isovar's per-variant RNA-read co-occurrence as a
 narrow read-phasing interface.
 
-Distinct from :class:`isovar.VarcodeAdapter`, which implements varcode's
-full ``IsovarAssemblyProvider`` protocol (assembled contigs +
-reference-keyed mutant transcripts). This adapter answers only the
-phasing question: "are these two variants observed on the same RNA
-reads?" -- derived from
+Satisfies varcode's ``ReadPhasingSource`` Protocol
+(``has_evidence(variant)`` + ``partners_in_cis(variant)``; see
+openvax/varcode#378 and openvax/varcode#379) and plugs directly into
+``varcode.ReadPhaseResolver``. The companion ``MutantTranscriptSource``
+concern (assembled-cDNA-derived mutant transcripts) is intentionally
+not covered here -- it's a separate axis, served by
+:class:`isovar.VarcodeAdapter` today and slated for a focused
+``IsovarMutantTranscript`` class per openvax/isovar#184.
+
+Answers only the phasing question: "are these two variants observed on
+the same RNA reads?" -- derived from
 :attr:`isovar.IsovarResult.phased_variants_in_supporting_reads`.
 
 Contract
