@@ -233,7 +233,12 @@ def test_adapter_consistent_with_annotate_phased_variants():
         assert phasing.has_evidence(v)
 
 
-def test_adapter_respects_min_shared_fragments_threshold():
+def test_threshold_filter_propagates_through_adapter():
+    # The adapter is passive: it surfaces whatever
+    # annotate_phased_variants populated. This test asserts that when
+    # the upstream threshold filters out a sub-threshold pair, the
+    # adapter reports them as un-partnered (i.e. the filter
+    # propagates rather than being silently undone).
     v1 = Variant("1", 10, "A", "C", normalize_contig_names=False)
     v2 = Variant("1", 20, "G", "T", normalize_contig_names=False)
     # Only one read bridges v1 and v2 -- below the threshold of 2.
@@ -245,7 +250,6 @@ def test_adapter_respects_min_shared_fragments_threshold():
         min_shared_fragments_for_phasing=2,
     )
     phasing = IsovarReadPhasing(annotated)
-    # Threshold filters out the single shared read, so no partners.
     eq_(phasing.partners_in_cis(v1), ())
     eq_(phasing.partners_in_cis(v2), ())
 

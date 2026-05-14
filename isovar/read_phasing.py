@@ -42,6 +42,16 @@ both directions with the same minimum, so
 ``v2 in phasing.partners_in_cis(v1)`` implies
 ``v1 in phasing.partners_in_cis(v2)`` whenever both variants are in the
 input set.
+
+``partners_in_cis`` and ``has_evidence`` answer independent questions and
+are not cross-checked: ``partners_in_cis`` returns
+``phased_variants_in_supporting_reads`` as-is from the input results, so
+a caller constructing inputs by hand could observe ``has_evidence(v)``
+return ``False`` while ``partners_in_cis(v)`` returns a non-empty tuple.
+Outputs from ``run_isovar``/``annotate_phased_variants`` never exhibit
+this -- the upstream pipeline only populates partners for variants that
+have shared supporting reads, which implies positive alt-fragment counts
+on both sides.
 """
 
 
