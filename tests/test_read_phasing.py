@@ -20,9 +20,12 @@ from isovar import IsovarReadPhasing, run_isovar
 from isovar.allele_read import AlleleRead
 from isovar.isovar_result import IsovarResult
 from isovar.phasing import annotate_phased_variants
+from isovar.read_collector import ReadCollector
 from isovar.read_evidence import ReadEvidence
 
 from .common import eq_
+from .genomes_for_testing import grcm38
+from .mock_objects import MockAlignmentFile, make_pysam_read
 from .testing_helpers import data_path
 
 
@@ -245,3 +248,106 @@ def test_adapter_respects_min_shared_fragments_threshold():
     # Threshold filters out the single shared read, so no partners.
     eq_(phasing.partners_in_cis(v1), ())
     eq_(phasing.partners_in_cis(v2), ())
+
+
+# ---- synthetic somatic + germline phasing scenario -----------------------
+#
+# Builds a synthetic mini-BAM in-memory and walks the full
+# ReadCollector -> annotate_phased_variants -> IsovarReadPhasing
+# stack. The scenario mirrors the canonical motivating use case for
+# openvax/isovar#182 / openvax/varcode#268: a somatic SNV whose codon
+# overlaps a germline SNP, where reading direction alone can't tell
+# whether the two variants are in cis or trans -- only RNA-read
+# co-occurrence can.
+#
+# Imagined locus (mouse, b16-adjacent): chr1:1-10 reference is
+# `ACCTTGATCG`. A somatic SNV sits at chr1:4 (T>G), and an imagined
+# germline SNP sits at chr1:8 (T>A). The reads below are the kind of
+# RNA fragments Isovar's read collector would harvest from a tumor
+# BAM at this locus.
+#
+#   ref       :  A C C T T G A T C G
+#   pos (1-based) 1 2 3 4 5 6 7 8 9 10
+#   somatic@4 :        ^                      T>G
+#   germline@8:                    ^          T>A
+#
+# Three reads carry both alts (cis evidence), two carry only the
+# somatic alt, two carry only the germline alt. After phasing with
+# the default min_shared_fragments threshold of 2, the somatic and
+# germline calls should be reported as partners.
+
+
+def test_synthetic_somatic_and_germline_phased_on_rna_reads():
+    chromosome = "1"
+    somatic = Variant(
+        chromosome, 4, "T", "G", grcm38, normalize_contig_names=False)
+    germline = Variant(
+        chromosome, 8, "T", "A", grcm38, normalize_contig_names=False)
+
+    # Reads cover positions 1-10 (reference_start=0, 10M cigar). The
+    # MD tag encodes mismatches relative to the assumed reference
+    # `ACCTTGATCG`:
+    #   * both alts:    ACCGTGAACG -> mismatches at 0-based 3 and 7 -> MD=3T3T2
+    #   * somatic only: ACCGTGATCG -> mismatch at 0-based 3        -> MD=3T6
+    #   * germline only: ACCTTGAACG -> mismatch at 0-based 7        -> MD=7T2
+    def both_alts(name):
+        return make_pysam_read(
+            seq="ACCGTGAACG", cigar="10M", mdtag="3T3T2",
+            name=name, reference_start=0)
+
+    def somatic_only(name):
+        return make_pysam_read(
+            seq="ACCGTGATCG", cigar="10M", mdtag="3T6",
+            name=name, reference_start=0)
+
+    def germline_only(name):
+        return make_pysam_read(
+            seq="ACCTTGAACG", cigar="10M", mdtag="7T2",
+            name=name, reference_start=0)
+
+    reads = [
+        both_alts("frag-both-1"),
+        both_alts("frag-both-2"),
+        both_alts("frag-both-3"),
+        somatic_only("frag-somatic-1"),
+        somatic_only("frag-somatic-2"),
+        germline_only("frag-germline-1"),
+        germline_only("frag-germline-2"),
+    ]
+    samfile = MockAlignmentFile(references=(chromosome,), reads=reads)
+    collector = ReadCollector()
+
+    somatic_evidence = collector.read_evidence_for_variant(
+        variant=somatic, alignment_file=samfile)
+    germline_evidence = collector.read_evidence_for_variant(
+        variant=germline, alignment_file=samfile)
+
+    # Sanity-check the synthetic-data construction itself before
+    # exercising the adapter -- if the read collector doesn't pick
+    # the alts up as expected, downstream assertions would be
+    # misleading.
+    eq_(
+        somatic_evidence.alt_read_names,
+        {"frag-both-1", "frag-both-2", "frag-both-3",
+         "frag-somatic-1", "frag-somatic-2"})
+    eq_(
+        germline_evidence.alt_read_names,
+        {"frag-both-1", "frag-both-2", "frag-both-3",
+         "frag-germline-1", "frag-germline-2"})
+
+    annotated = annotate_phased_variants([
+        IsovarResult(
+            variant=somatic,
+            read_evidence=somatic_evidence,
+            predicted_effect=None),
+        IsovarResult(
+            variant=germline,
+            read_evidence=germline_evidence,
+            predicted_effect=None),
+    ])
+    phasing = IsovarReadPhasing(annotated)
+
+    assert phasing.has_evidence(somatic)
+    assert phasing.has_evidence(germline)
+    eq_(phasing.partners_in_cis(somatic), (germline,))
+    eq_(phasing.partners_in_cis(germline), (somatic,))
