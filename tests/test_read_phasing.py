@@ -10,8 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import doctest
+
 from varcode import Variant
 
+import isovar.read_phasing
 from isovar import IsovarReadPhasing
 from isovar.allele_read import AlleleRead
 from isovar.isovar_result import IsovarResult
@@ -83,6 +86,24 @@ def test_partners_in_cis_empty_for_unknown_variant():
     unknown = Variant("2", 50, "A", "G", normalize_contig_names=False)
     phasing = IsovarReadPhasing([_make_result(v, alt_read_names={"r1"})])
     eq_(phasing.partners_in_cis(unknown), ())
+
+
+def test_repr_includes_variant_count():
+    v1 = Variant("1", 10, "A", "C", normalize_contig_names=False)
+    v2 = Variant("1", 11, "G", "T", normalize_contig_names=False)
+    phasing = IsovarReadPhasing([
+        _make_result(v1, alt_read_names={"r1"}),
+        _make_result(v2, alt_read_names={"r2"}),
+    ])
+    assert repr(phasing) == "IsovarReadPhasing(2 variants)"
+
+
+def test_docstring_examples_run():
+    results = doctest.testmod(isovar.read_phasing, verbose=False)
+    assert results.failed == 0, (
+        "doctest failures in isovar.read_phasing: %d/%d" % (
+            results.failed, results.attempted))
+    assert results.attempted > 0, "no doctest examples were collected"
 
 
 def test_partners_in_cis_is_deterministically_ordered():

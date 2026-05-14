@@ -18,28 +18,60 @@ Distinct from :class:`isovar.VarcodeAdapter`, which implements varcode's
 full ``IsovarAssemblyProvider`` protocol (assembled contigs +
 reference-keyed mutant transcripts). This adapter answers only the
 phasing question: "are these two variants observed on the same RNA
-reads?" — derived from
+reads?" -- derived from
 :attr:`isovar.IsovarResult.phased_variants_in_supporting_reads`.
+
+Contract
+--------
+``IsovarReadPhasing`` reads exactly three attributes from each element
+of its input iterable:
+
+* ``variant`` -- a hashable identity used as the index key.
+* ``num_alt_fragments`` -- int; non-zero means
+  :meth:`IsovarReadPhasing.has_evidence` returns ``True``.
+* ``phased_variants_in_supporting_reads`` -- iterable of variants
+  co-observed on supporting RNA reads.
+
+Any object exposing those three attributes is a valid input; the
+adapter is intentionally duck-typed so tests, mocks, and alternative
+RNA-phasing producers (e.g. long-read tools) can target the same shape.
+
+Co-occurrence symmetry is inherited from the underlying field: Isovar's
+``compute_phasing_counts`` builds counts symmetrically and thresholds
+both directions with the same minimum, so
+``v2 in phasing.partners_in_cis(v1)`` implies
+``v1 in phasing.partners_in_cis(v2)`` whenever both variants are in the
+input set.
 """
 
 
 class IsovarReadPhasing(object):
     """
-    Indexes a collection of IsovarResult objects by variant and answers
-    read-phasing queries via Isovar's per-variant
+    Index a collection of IsovarResult-shaped objects by variant and
+    answer RNA-read phasing queries from
     ``phased_variants_in_supporting_reads``.
 
-    Example
-    -------
-    >>> from isovar import run_isovar, IsovarReadPhasing
-    >>> results = run_isovar(
-    ...     variants="tumor.vcf",
-    ...     alignment_file="tumor.rna.bam")
+    Examples
+    --------
+    >>> from types import SimpleNamespace
+    >>> from varcode import Variant
+    >>> v1 = Variant("1", 10, "A", "C", normalize_contig_names=False)
+    >>> v2 = Variant("1", 11, "G", "T", normalize_contig_names=False)
+    >>> results = [
+    ...     SimpleNamespace(
+    ...         variant=v1,
+    ...         num_alt_fragments=3,
+    ...         phased_variants_in_supporting_reads={v2}),
+    ...     SimpleNamespace(
+    ...         variant=v2,
+    ...         num_alt_fragments=2,
+    ...         phased_variants_in_supporting_reads={v1}),
+    ... ]
     >>> phasing = IsovarReadPhasing(results)
-    >>> phasing.has_evidence(some_variant)
+    >>> phasing.has_evidence(v1)
     True
-    >>> phasing.partners_in_cis(some_variant)
-    (Variant(...), ...)
+    >>> phasing.partners_in_cis(v1) == (v2,)
+    True
     """
 
     def __init__(self, isovar_results):
@@ -48,20 +80,24 @@ class IsovarReadPhasing(object):
         ----------
         isovar_results : Iterable[IsovarResult]
             Results from a finished Isovar run (e.g. the output of
-            ``run_isovar``). The iterable is consumed once.
+            ``run_isovar``). The iterable is consumed once. If the
+            same variant appears more than once, the last entry wins.
         """
         self._by_variant = {
             result.variant: result
             for result in isovar_results
         }
 
+    def __repr__(self):
+        return "IsovarReadPhasing(%d variants)" % len(self._by_variant)
+
     def has_evidence(self, variant):
         """
         True iff Isovar saw at least one alt-supporting RNA fragment
         for ``variant``.
 
-        Returns False both when the variant was not in the input set
-        and when it was present but had no alt fragments.
+        Returns ``False`` both when the variant was not in the input
+        set and when it was present but had no alt fragments.
         """
         result = self._by_variant.get(variant)
         return result is not None and result.num_alt_fragments > 0
@@ -78,8 +114,9 @@ class IsovarReadPhasing(object):
         result = self._by_variant.get(variant)
         if result is None:
             return ()
-        partners = result.phased_variants_in_supporting_reads
-        return tuple(sorted(partners, key=_variant_sort_key))
+        return tuple(sorted(
+            result.phased_variants_in_supporting_reads,
+            key=_variant_sort_key))
 
 
 def _variant_sort_key(variant):
