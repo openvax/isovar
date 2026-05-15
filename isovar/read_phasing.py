@@ -58,8 +58,10 @@ have shared supporting reads, which implies positive alt-fragment counts
 on both sides.
 """
 
+from .isovar_result_provider import IsovarResultProvider
 
-class IsovarReadPhasing(object):
+
+class IsovarReadPhasing(IsovarResultProvider):
     """
     Index a collection of IsovarResult-shaped objects by variant and
     answer RNA-read phasing queries from
@@ -88,7 +90,7 @@ class IsovarReadPhasing(object):
     True
     """
 
-    def __init__(self, isovar_results):
+    def __init__(self, isovar_results, *args, **kwargs):
         """
         Parameters
         ----------
@@ -96,6 +98,8 @@ class IsovarReadPhasing(object):
             Results from a finished Isovar run (e.g. the output of
             ``run_isovar``). The iterable is consumed once.
         """
+        isovar_results = tuple(isovar_results)
+        super().__init__(isovar_results, *args, **kwargs)
         self._by_variant = {
             result.variant: result
             for result in isovar_results

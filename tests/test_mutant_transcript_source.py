@@ -29,9 +29,7 @@ from .testing_helpers import data_path
 
 
 class IsovarReadEvidence(IsovarReadPhasing, IsovarMutantTranscript):
-    def __init__(self, isovar_results):
-        IsovarReadPhasing.__init__(self, isovar_results)
-        IsovarMutantTranscript.__init__(self, isovar_results)
+    pass
 
 
 @pytest.fixture(scope="module")
@@ -64,6 +62,15 @@ def test_composed_isovar_source_satisfies_read_phase_resolver_protocols(
     source = IsovarReadEvidence(results)
     assert isinstance(source, ReadPhasingSource)
     assert isinstance(source, MutantTranscriptSource)
+
+
+def test_composed_isovar_source_initializes_both_provider_indexes(
+        result_and_transcript):
+    results, result, transcript = result_and_transcript
+    source = IsovarReadEvidence(results)
+
+    assert source.has_evidence(result.variant)
+    assert source.mutant_transcript(result.variant, transcript) is not None
 
 
 def test_isovar_mutant_transcript_exposes_observed_transcript(result_and_transcript):

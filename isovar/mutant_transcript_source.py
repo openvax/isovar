@@ -14,20 +14,23 @@
 Adapter from IsovarResult collections to varcode's MutantTranscriptSource.
 """
 
+from .isovar_result_provider import IsovarResultProvider
 from .transcript_edit_helpers import (
     categorize_transcript_assembly_edits_from_translation,
     transcript_assembly_edit_sort_key,
 )
 
 
-class IsovarMutantTranscript(object):
+class IsovarMutantTranscript(IsovarResultProvider):
     """
     Present observed Isovar assemblies through varcode's
     MutantTranscriptSource protocol without changing run_isovar's
     existing return type.
     """
 
-    def __init__(self, isovar_results):
+    def __init__(self, isovar_results, *args, **kwargs):
+        isovar_results = tuple(isovar_results)
+        super().__init__(isovar_results, *args, **kwargs)
         self._entries_by_variant_and_transcript = {}
         for result in isovar_results:
             for protein_sequence in result.sorted_protein_sequences:
