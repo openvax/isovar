@@ -15,7 +15,7 @@ from types import SimpleNamespace
 
 from varcode import Variant
 
-from isovar import ProteinSequence, VarcodeAdapter
+from isovar import IsovarMutantTranscript, ProteinSequence
 from isovar.allele_read import AlleleRead
 from isovar.isovar_result import IsovarResult
 from isovar.read_evidence import ReadEvidence
@@ -182,14 +182,14 @@ def test_protein_sequence_exposes_deduplicated_transcript_assembly_edits():
     )
 
 
-def test_varcode_adapter_mutant_transcript_includes_unexplained_edits():
+def test_isovar_mutant_transcript_includes_unexplained_edits():
     variant = Variant("1", 105, "A", "G", normalize_contig_names=False)
     transcript = DummyTranscript(id="tx-1", name="TX1")
     translation = make_translation(variant, transcript)
     protein_sequence = ProteinSequence.from_translations([translation])
-    provider = VarcodeAdapter([make_isovar_result(variant, protein_sequence)])
+    source = IsovarMutantTranscript([make_isovar_result(variant, protein_sequence)])
 
-    mutant_transcript = provider.mutant_transcript(variant, transcript)
+    mutant_transcript = source.mutant_transcript(variant, transcript)
 
     assert mutant_transcript is not None
     eq_(

@@ -129,7 +129,7 @@ def test_partners_in_cis_is_deterministically_ordered():
 # ---- pipeline smoke tests against the b16 RNA fixture --------------------
 #
 # Runs the full Isovar pipeline on the same b16 BAM/VCF used by
-# tests/test_varcode_adapter.py and feeds the results through
+# tests/test_mutant_transcript_source.py and feeds the results through
 # IsovarReadPhasing. The b16 fixture has four variants on four different
 # chromosomes, so no two variants are ever co-observed on the same read
 # -- every result's partner set is empty. These tests therefore verify

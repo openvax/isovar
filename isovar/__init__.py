@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.6.0"
+__version__ = "1.7.0"
 
 
 from .allele_read import AlleleRead
@@ -18,6 +18,7 @@ from .dataframe_helpers import isovar_results_to_dataframe
 from .isovar_result import IsovarResult
 from .locus_read import LocusRead
 from .main import run_isovar
+from .mutant_transcript_source import IsovarMutantTranscript
 from .phase_group import PhaseGroup
 from .protein_sequence import ProteinSequence
 from .protein_sequence_creator import ProteinSequenceCreator
@@ -28,7 +29,6 @@ from .transcript_assembly_edit import TranscriptAssemblyEdit
 from .variant_orf import VariantORF
 from .variant_sequence import VariantSequence
 from .variant_sequence_creator import VariantSequenceCreator
-from .varcode_adapter import VarcodeAdapter
 
 
 __all__ = [
@@ -36,6 +36,7 @@ __all__ = [
     "isovar_results_to_dataframe",
     "AlleleRead",
     "PhaseGroup",
+    "IsovarMutantTranscript",
     "IsovarReadPhasing",
     "IsovarResult",
     "LocusRead",
@@ -47,5 +48,4 @@ __all__ = [
     "VariantORF",
     "VariantSequence",
     "VariantSequenceCreator",
-    "VarcodeAdapter",
 ]

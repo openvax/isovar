@@ -11,13 +11,7 @@
 # limitations under the License.
 
 """
-Adapter from IsovarResult collections to varcode's IsovarAssemblyProvider.
-
-This is intentionally conservative: it exposes transcript-keyed assembled
-contigs from existing Translation objects and surfaces already-known phased RNA
-variants on those contigs. It surfaces transcript-relative edits observed in
-the assembled cDNA, but it does not yet discover germline SNPs as separate
-known variants.
+Adapter from IsovarResult collections to varcode's MutantTranscriptSource.
 """
 
 from .transcript_edit_helpers import (
@@ -26,10 +20,11 @@ from .transcript_edit_helpers import (
 )
 
 
-class VarcodeAdapter(object):
+class IsovarMutantTranscript(object):
     """
-    Present IsovarResult objects through varcode's IsovarAssemblyProvider
-    protocol without changing run_isovar's existing return type.
+    Present observed Isovar assemblies through varcode's
+    MutantTranscriptSource protocol without changing run_isovar's
+    existing return type.
     """
 
     def __init__(self, isovar_results):
@@ -41,7 +36,6 @@ class VarcodeAdapter(object):
                         key = (result.variant, self._transcript_key(transcript))
                         if key not in self._entries_by_variant_and_transcript:
                             self._entries_by_variant_and_transcript[key] = (
-                                result,
                                 translation,
                                 transcript,
                             )
@@ -49,15 +43,6 @@ class VarcodeAdapter(object):
     @staticmethod
     def _transcript_key(transcript):
         return getattr(transcript, "id", transcript)
-
-    @staticmethod
-    def _variant_sort_key(variant):
-        return (
-            variant.contig,
-            variant.start,
-            variant.ref,
-            variant.alt,
-        )
 
     def _entry(self, variant, transcript):
         if transcript is None:
@@ -67,22 +52,6 @@ class VarcodeAdapter(object):
             self._transcript_key(transcript),
         ))
 
-    def has_contig(self, variant, transcript):
-        return self._entry(variant, transcript) is not None
-
-    def variants_in_contig(self, variant, transcript):
-        entry = self._entry(variant, transcript)
-        if entry is None:
-            return ()
-
-        result, _, _ = entry
-        variants = [
-            phased_variant
-            for phased_variant in result.phased_variants_in_protein_sequence
-            if self.has_contig(phased_variant, transcript)
-        ]
-        return tuple(sorted(variants, key=self._variant_sort_key))
-
     def mutant_transcript(self, variant, transcript):
         entry = self._entry(variant, transcript)
         if entry is None:
@@ -90,7 +59,7 @@ class VarcodeAdapter(object):
 
         from varcode.mutant_transcript import MutantTranscript
 
-        _, translation, matched_transcript = entry
+        translation, matched_transcript = entry
         categorized_edits = categorize_transcript_assembly_edits_from_translation(
             translation,
             matched_transcript,
