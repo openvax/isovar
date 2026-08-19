@@ -10,14 +10,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from importlib import resources
-import logging
-import logging.config
+import subprocess
+import sys
 
 
-def get_logger(name):
-    config_resource = resources.files("isovar").joinpath("logging.conf")
-    with resources.as_file(config_resource) as config_path:
-        logging.config.fileConfig(config_path)
-    return logging.getLogger(name)
+def test_import_isovar_does_not_use_pkg_resources():
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-W",
+            "error:pkg_resources is deprecated as an API:UserWarning",
+            "-c",
+            (
+                "import sys\n"
+                "import isovar\n"
+                "assert 'pkg_resources' not in sys.modules\n"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
