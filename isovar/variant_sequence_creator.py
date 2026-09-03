@@ -70,7 +70,7 @@ class VariantSequenceCreator(object):
         """
         Collapse variant-supporting RNA reads into consensus sequences of
         approximately the preferred length (may differ at the ends of transcripts),
-        filter consensus sequences by length and number of supporting RNA reads.
+        and trim consensus sequences to the requested RNA read coverage.
 
         Parameters
         ----------
@@ -145,13 +145,13 @@ class VariantSequenceCreator(object):
 
         if variant_sequences:
             logger.info(
-                ("After coverage & length filtering: %d variant sequences "
+                ("After coverage filtering: %d variant sequences "
                  "(min length=%d, max length=%d)"),
                 len(variant_sequences),
                 min(len(s) for s in variant_sequences),
                 max(len(s) for s in variant_sequences))
         else:
-            logger.info("After coverage & length filtering: 0 variant sequences")
+            logger.info("After coverage filtering: 0 variant sequences")
             return []
 
         # sort VariantSequence objects by decreasing order of supporting read
