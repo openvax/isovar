@@ -20,6 +20,7 @@ from isovar import (
 from isovar.allele_read import AlleleRead
 from isovar.read_collector import ReadCollector
 from isovar.variant_sequence_helpers import (
+    filter_variant_sequences,
     filter_variant_sequences_by_length,
     trim_variant_sequences,
 )
@@ -360,3 +361,79 @@ def test_trim_variant_sequences_drops_sequences_without_coverage():
     eq_(trimmed, [covered])
     assert all(len(s) > 0 for s in trimmed), \
         "trim_variant_sequences should not return empty sequences"
+
+
+# Deletions legitimately carry an empty alt allele (see read_collector.py,
+# where is_deletion is defined as len(trimmed_alt) == 0). It is therefore
+# always wrong to identify a useless "degenerate" sequence by an empty alt;
+# the test has to be total sequence length. The tests below pin that down at
+# every stage which discards sequences, since a guard written against alt
+# would silently drop every deletion in a run while looking perfectly
+# reasonable in review.
+
+def test_trim_variant_sequences_keeps_deletion_sequences():
+    deletion = _variant_sequence("A" * 20, "", "T" * 20, 3, "deletion")
+    trimmed = trim_variant_sequences([deletion], min_variant_sequence_coverage=2)
+    eq_(trimmed, [deletion])
+    eq_(trimmed[0].alt, "")
+
+
+def test_trim_variant_sequences_distinguishes_deletion_from_degenerate():
+    # both have an empty alt; only the one whose bases lack coverage should go
+    covered_deletion = _variant_sequence("A" * 20, "", "T" * 20, 3, "covered")
+    uncovered_deletion = _variant_sequence("G" * 20, "", "C" * 20, 1, "uncovered")
+    trimmed = trim_variant_sequences(
+        [covered_deletion, uncovered_deletion],
+        min_variant_sequence_coverage=2)
+    eq_(trimmed, [covered_deletion])
+
+
+def test_filter_by_length_distinguishes_deletion_from_degenerate_sequence():
+    # a deletion and a degenerate sequence both have an empty alt, so only
+    # total length can tell them apart. The deletion is shorter and better
+    # supported, so it should be rescued; the empty one never should be,
+    # despite claiming the most fragments of all.
+    long_sequence = _variant_sequence("G" * 30, "", "T" * 30, 2, "long")
+    short_deletion = _variant_sequence("A" * 20, "", "T" * 20, 7, "deletion")
+    degenerate = VariantSequence(
+        prefix="",
+        alt="",
+        suffix="",
+        reads=[
+            AlleleRead(prefix="A", allele="", suffix="T", name="degenerate_%d" % i)
+            for i in range(14)
+        ])
+    kept = filter_variant_sequences_by_length(
+        [long_sequence, short_deletion, degenerate],
+        preferred_sequence_length=61)
+    eq_(set(kept), {long_sequence, short_deletion})
+
+
+def test_filter_variant_sequences_keeps_well_supported_deletion():
+    # trimming and length filtering together, on a deletion whose best
+    # supported sequence is not its longest
+    long_sequence = _variant_sequence("G" * 30, "", "T" * 30, 2, "long")
+    short_deletion = _variant_sequence("A" * 20, "", "T" * 20, 7, "deletion")
+    kept = filter_variant_sequences(
+        [long_sequence, short_deletion],
+        preferred_sequence_length=61,
+        min_variant_sequence_coverage=2)
+    eq_(set(kept), {long_sequence, short_deletion})
+    assert all(s.alt == "" for s in kept)
+
+
+def test_reads_to_variant_sequences_keeps_deletion():
+    # end to end through the creator: a deletion supported by well covered
+    # reads must survive assembly, trimming and length filtering
+    variant = Variant("chr12", 65857041, "G", "", grch38)
+    prefix, suffix = "A" * 30, "T" * 30
+    reads = [
+        AlleleRead(prefix=prefix, allele="", suffix=suffix, name="deletion_%d" % i)
+        for i in range(4)
+    ]
+    creator = VariantSequenceCreator(preferred_sequence_length=61)
+    variant_sequences = creator.reads_to_variant_sequences(
+        variant=variant, reads=reads)
+    eq_(len(variant_sequences), 1)
+    eq_(variant_sequences[0].alt, "")
+    eq_(variant_sequences[0].sequence, prefix + suffix)
