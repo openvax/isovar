@@ -19,7 +19,10 @@ from isovar import (
 )
 from isovar.allele_read import AlleleRead
 from isovar.read_collector import ReadCollector
-from isovar.variant_sequence_helpers import filter_variant_sequences_by_length
+from isovar.variant_sequence_helpers import (
+    filter_variant_sequences_by_length,
+    trim_variant_sequences,
+)
 
 from .testing_helpers import load_bam
 from .genomes_for_testing import grch38
@@ -344,3 +347,16 @@ def test_filter_by_length_keeps_deletion_sequences():
         [deletion, longer_deletion],
         preferred_sequence_length=61)
     eq_(set(kept), {deletion, longer_deletion})
+
+
+def test_trim_variant_sequences_drops_sequences_without_coverage():
+    # one fragment can't meet a 2x coverage threshold, so trimming leaves an
+    # empty sequence which should be discarded rather than passed along
+    uncovered = _variant_sequence("A" * 20, "C", "T" * 20, 1, "uncovered")
+    covered = _variant_sequence("G" * 20, "C", "T" * 20, 3, "covered")
+    trimmed = trim_variant_sequences(
+        [uncovered, covered],
+        min_variant_sequence_coverage=2)
+    eq_(trimmed, [covered])
+    assert all(len(s) > 0 for s in trimmed), \
+        "trim_variant_sequences should not return empty sequences"

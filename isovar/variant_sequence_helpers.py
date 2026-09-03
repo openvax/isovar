@@ -193,9 +193,18 @@ def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
     Returns list of VariantSequence
     """
     n_total = len(variant_sequences)
+    # when no base of a sequence has sufficient coverage, trim_by_coverage
+    # returns an empty sequence which still carries every one of the original
+    # reads. Those sequences are useless downstream and their read counts are
+    # actively misleading when comparing candidates by support, so drop them
+    # here rather than relying on a later length filter to sweep them up.
     trimmed_variant_sequences = [
-        variant_sequence.trim_by_coverage(min_variant_sequence_coverage)
-        for variant_sequence in variant_sequences
+        trimmed
+        for trimmed in (
+            variant_sequence.trim_by_coverage(min_variant_sequence_coverage)
+            for variant_sequence in variant_sequences
+        )
+        if len(trimmed) > 0
     ]
     collapsed_variant_sequences = collapse_substrings(trimmed_variant_sequences)
     n_after_trimming = len(collapsed_variant_sequences)
