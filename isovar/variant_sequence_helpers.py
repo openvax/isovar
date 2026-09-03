@@ -99,6 +99,25 @@ def filter_variant_sequences_by_length(
         variant_sequences,
         preferred_sequence_length):
     """
+    Drop variant sequences shorter than the longest one we managed to
+    construct (capped at preferred_sequence_length), except for shorter
+    sequences with strictly better fragment support.
+
+    Length on its own is a poor way to choose between candidates once the
+    requested sequence is longer than a single read, since assembled length
+    then reflects how far a chain of overlapping reads happened to extend
+    rather than how well supported that chain is. A long sequence built from
+    two reads can evict a shorter one built from ten.
+
+    Isovar's actual preference order is spelled out by
+    ProteinSequence.ascending_sort_key: supporting fragments, then supporting
+    reads, then mismatches against the reference transcript, and only then
+    length as a tie-break. We can't apply all of it here because mismatch
+    counts don't exist until a VariantSequence has been matched against a
+    ReferenceContext. So instead of committing to length at this stage, keep
+    any better-supported shorter candidate and let the downstream ranking in
+    protein_sequence_helpers.sort_protein_sequences decide.
+
     Parameters
     ----------
     variant_sequences : list of VariantSequence
@@ -124,10 +143,24 @@ def filter_variant_sequences_by_length(
         max_observed_sequence_length,
         preferred_sequence_length)
 
-    variant_sequences = [
+    long_enough = [
         s for s in variant_sequences
         if len(s.sequence) >= min_required_sequence_length
     ]
+    # number of distinct fragments (not reads) behind the best long sequence,
+    # matching the unit used by ProteinSequence.num_supporting_fragments
+    best_long_support = max(len(s.read_names) for s in long_enough)
+    # a zero length sequence can't be rescued no matter how many reads it
+    # claims, since trim_by_coverage hands back all of the original reads
+    # along with an empty sequence
+    better_supported = [
+        s for s in variant_sequences
+        if len(s.sequence) < min_required_sequence_length
+        and len(s.sequence) > 0
+        and len(s.read_names) > best_long_support
+    ]
+    variant_sequences = long_enough + better_supported
+
     n_dropped = n_total - len(variant_sequences)
     if n_dropped > 0:
         logger.info(
@@ -135,6 +168,14 @@ def filter_variant_sequences_by_length(
             n_dropped,
             n_total,
             min_required_sequence_length)
+    for s in better_supported:
+        logger.info(
+            ("Keeping variant sequence shorter than %d (len=%d) since its %d "
+             "supporting fragments beat the %d supporting the longest sequence"),
+            min_required_sequence_length,
+            len(s.sequence),
+            len(s.read_names),
+            best_long_support)
     return variant_sequences
 
 
