@@ -22,8 +22,11 @@ from isovar.reference_coding_sequence_key import ReferenceCodingSequenceKey
 from isovar.reference_context import ReferenceContext
 from isovar.allele_read import AlleleRead
 from isovar.dna import reverse_complement_dna
+from isovar.protein_sequence_creator import ProteinSequenceCreator
+from isovar.variant_sequence_helpers import filter_variant_sequences
 
 from .common import eq_ 
+from .genomes_for_testing import grch38
 
 def test_compute_offset_to_first_complete_codon_no_trimming():
     # if nothing gets trimmed from the reference sequence, then
@@ -186,6 +189,105 @@ def make_inputs_for_tp53_201_variant(
     assert isinstance(expected, VariantORF)
 
     return variant_sequence, reference_context, expected
+
+
+def test_filter_variant_sequences_defers_reference_compatibility():
+    """
+    A longer assembly can be unusable even when it has greater read support.
+
+    Reference compatibility is unavailable during variant-sequence filtering,
+    so the shorter compatible candidate must reach the translation stage.
+    """
+    base_sequence, reference_context, _ = make_inputs_for_tp53_201_variant()
+
+    def with_support(suffix, n_fragments, name_prefix):
+        reads = [
+            AlleleRead(
+                prefix=base_sequence.prefix,
+                allele=base_sequence.alt,
+                suffix=suffix,
+                name="%s_%d" % (name_prefix, i))
+            for i in range(n_fragments)
+        ]
+        return VariantSequence(
+            prefix=base_sequence.prefix,
+            alt=base_sequence.alt,
+            suffix=suffix,
+            reads=reads)
+
+    compatible_short = with_support(
+        suffix=base_sequence.suffix,
+        n_fragments=3,
+        name_prefix="compatible")
+    # TP53-201 is on the negative strand. Prepending GGG to the genomic
+    # suffix makes the three cDNA bases before the variant CCC instead of ATG,
+    # exceeding max_transcript_mismatches=2 after length normalization.
+    incompatible_long = with_support(
+        suffix="GGG" + base_sequence.suffix,
+        n_fragments=4,
+        name_prefix="incompatible")
+
+    filtered = filter_variant_sequences(
+        variant_sequences=[compatible_short, incompatible_long],
+        preferred_sequence_length=len(incompatible_long),
+        min_variant_sequence_coverage=2)
+
+    creator = ProteinSequenceCreator(
+        protein_sequence_length=20,
+        min_transcript_prefix_length=3,
+        max_transcript_mismatches=2)
+    translations = creator.all_pairs_translations(
+        variant_sequences=filtered,
+        reference_contexts=[reference_context])
+
+    eq_(set(filtered), {compatible_short, incompatible_long})
+    eq_(len(translations), 1)
+    eq_(translations[0].untrimmed_variant_sequence, compatible_short)
+
+
+def test_protein_sequence_creator_translates_coding_deletion():
+    """
+    Pin deletion handling through assembly, reference matching, and translation.
+    """
+    variant = Variant("17", 7676589, "CTC", "", grch38)
+    transcript = grch38.transcripts_by_name("TP53-001")[0]
+    protein_sequence_length = 10
+    context_size = (protein_sequence_length + 1) * 3
+    reference_key = ReferenceCodingSequenceKey.from_variant_and_transcript(
+        variant=variant,
+        transcript=transcript,
+        context_size=context_size)
+
+    # AlleleRead sequences use the positive genomic strand, whereas TP53 is
+    # transcribed from the negative strand.
+    prefix = reverse_complement_dna(
+        reference_key.sequence_after_variant_locus)
+    suffix = reverse_complement_dna(
+        reference_key.sequence_before_variant_locus)
+    reads = [
+        AlleleRead(
+            prefix=prefix,
+            allele="",
+            suffix=suffix,
+            name="deletion_%d" % i)
+        for i in range(4)
+    ]
+
+    creator = ProteinSequenceCreator(
+        protein_sequence_length=protein_sequence_length,
+        min_variant_sequence_coverage=2)
+    translations = creator.translate_variant_reads(
+        variant=variant,
+        variant_reads=reads,
+        transcript_id_whitelist={transcript.id})
+
+    eq_(len(translations), 1)
+    translation = translations[0]
+    eq_(translation.amino_acids, "MEPQSD")
+    eq_(translation.contains_mutation, True)
+    eq_(translation.mutation_start_idx, 1)
+    eq_(translation.mutation_end_idx, 1)
+    eq_(translation.untrimmed_variant_sequence.alt, "")
 
 
 def test_match_variant_sequence_to_reference_context_exact_match():

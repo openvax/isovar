@@ -99,43 +99,46 @@ def filter_variant_sequences_by_length(
         variant_sequences,
         preferred_sequence_length):
     """
+    Retain nonempty variant sequences for downstream translation.
+
+    This function historically dropped every sequence shorter than the
+    longest observed sequence (capped at ``preferred_sequence_length``). That
+    decision cannot be made safely before translation: a longer sequence may
+    fail to match every reference context, raw read counts are only the second
+    part of the downstream support ordering, and multiple cDNA sequences may
+    be grouped into one protein sequence whose combined support beats every
+    individual candidate.
+
+    Keep the legacy function name and ``preferred_sequence_length`` argument
+    for API compatibility, but defer all candidate ranking until after
+    reference matching and translation. Remove zero-length sequences here as
+    a defense in depth; ``trim_variant_sequences`` normally removes them where
+    they are produced.
+
     Parameters
     ----------
     variant_sequences : list of VariantSequence
 
     preferred_sequence_length : int
-        If we get some sequences which are at least this long and others
-        which are shorter, then drop the shorter ones.
+        Retained for API compatibility. Initial sequence construction already
+        uses this value to bound assembled sequence length.
 
     Returns
     -------
     list of VariantSequence
     """
     n_total = len(variant_sequences)
-    if n_total == 0:
-        return []
-    # since we might have gotten some shorter fragments,
-    # keep only the longest spanning sequence
-    max_observed_sequence_length = max(len(s) for s in variant_sequences)
-
-    # if we get back a sequence that's longer than the preferred length
-    # then that doesn't mean we should necessarily drop the other sequences
-    min_required_sequence_length = min(
-        max_observed_sequence_length,
-        preferred_sequence_length)
-
-    variant_sequences = [
+    nonempty_variant_sequences = [
         s for s in variant_sequences
-        if len(s.sequence) >= min_required_sequence_length
+        if len(s) > 0
     ]
-    n_dropped = n_total - len(variant_sequences)
+    n_dropped = n_total - len(nonempty_variant_sequences)
     if n_dropped > 0:
         logger.info(
-            "Dropped %d/%d variant sequences shorter than %d",
+            "Dropped %d/%d empty variant sequences before translation",
             n_dropped,
-            n_total,
-            min_required_sequence_length)
-    return variant_sequences
+            n_total)
+    return nonempty_variant_sequences
 
 
 def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
@@ -152,9 +155,18 @@ def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
     Returns list of VariantSequence
     """
     n_total = len(variant_sequences)
+    # when no base of a sequence has sufficient coverage, trim_by_coverage
+    # returns an empty sequence which still carries every one of the original
+    # reads. Those sequences are useless downstream and their read counts are
+    # actively misleading when comparing candidates by support, so drop them
+    # here rather than relying on a later validity check to sweep them up.
     trimmed_variant_sequences = [
-        variant_sequence.trim_by_coverage(min_variant_sequence_coverage)
-        for variant_sequence in variant_sequences
+        trimmed
+        for trimmed in (
+            variant_sequence.trim_by_coverage(min_variant_sequence_coverage)
+            for variant_sequence in variant_sequences
+        )
+        if len(trimmed) > 0
     ]
     collapsed_variant_sequences = collapse_substrings(trimmed_variant_sequences)
     n_after_trimming = len(collapsed_variant_sequences)
@@ -171,8 +183,12 @@ def filter_variant_sequences(
         preferred_sequence_length,
         min_variant_sequence_coverage):
     """
-    Drop variant sequences which are shorter than request or don't have
-    enough supporting reads.
+    Trim variant sequences to the requested coverage and discard any which
+    contain no usable sequence afterward.
+
+    Candidate ranking is deliberately deferred until after reference matching
+    and translation, when transcript mismatches and aggregate protein support
+    are available.
 
     Parameters
     ----------
@@ -190,4 +206,3 @@ def filter_variant_sequences(
     return filter_variant_sequences_by_length(
         variant_sequences=variant_sequences,
         preferred_sequence_length=preferred_sequence_length)
-

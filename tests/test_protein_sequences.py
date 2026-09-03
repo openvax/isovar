@@ -12,6 +12,7 @@
 
 from varcode import VariantCollection
 
+from isovar.allele_read import AlleleRead
 from isovar.read_collector import ReadCollector
 from isovar.cli.protein_sequence_args import (
     protein_sequences_dataframe_from_args,
@@ -20,11 +21,56 @@ from isovar.cli.protein_sequence_args import (
 from isovar.dataframe_helpers import protein_sequences_generator_to_dataframe
 from isovar.main import ProteinSequenceCreator
 from isovar.protein_sequence import ProteinSequence
-from isovar.protein_sequence_helpers import sort_protein_sequences
+from isovar.protein_sequence_helpers import (
+    group_equivalent_translations,
+    sort_protein_sequences,
+)
+from isovar.translation import Translation
+from isovar.variant_orf import VariantORF
+from isovar.variant_sequence import VariantSequence
 
 from .common import eq_
 from .testing_helpers import load_bam, load_vcf, data_path
 from .mock_objects import make_dummy_protein_sequence
+
+
+def _translation_with_reads(amino_acids, reads, cdna_sequence):
+    variant_sequence = VariantSequence(
+        prefix="AAA",
+        alt="C",
+        suffix="TTT",
+        reads=reads)
+    variant_orf = VariantORF(
+        cdna_sequence=cdna_sequence,
+        offset_to_first_complete_codon=0,
+        variant_cdna_interval_start=3,
+        variant_cdna_interval_end=4,
+        reference_cdna_sequence_before_variant="AAA",
+        reference_cdna_sequence_after_variant="TTT",
+        num_mismatches_before_variant=0,
+        num_mismatches_after_variant=0)
+    return Translation(
+        amino_acids=amino_acids,
+        contains_mutation=True,
+        mutation_start_idx=1,
+        mutation_end_idx=2,
+        ends_with_stop_codon=False,
+        frameshift=False,
+        untrimmed_variant_sequence=variant_sequence,
+        reference_context=None,
+        variant_orf=variant_orf)
+
+
+def _reads(name_prefix, n_fragments, source_read_count=1):
+    return [
+        AlleleRead(
+            prefix="AAA",
+            allele="C",
+            suffix="TTT",
+            name="%s_%d" % (name_prefix, i),
+            source_read_count=source_read_count)
+        for i in range(n_fragments)
+    ]
 
 
 def test_protein_sequence_substitution():
@@ -183,6 +229,57 @@ def test_sort_protein_sequences():
         protseq_fewest_reads,
     ]
     eq_(sort_protein_sequences(unsorted_protein_sequences), expected_order)
+
+
+def test_sort_protein_sequences_uses_raw_reads_before_length():
+    short_translation = _translation_with_reads(
+        amino_acids="MKH",
+        reads=_reads("short", n_fragments=3, source_read_count=2),
+        cdna_sequence="ATGAAACAC")
+    long_translation = _translation_with_reads(
+        amino_acids="MKHW",
+        reads=_reads("long", n_fragments=3, source_read_count=1),
+        cdna_sequence="ATGAAACACTGG")
+    short_protein = ProteinSequence.from_translations([short_translation])
+    long_protein = ProteinSequence.from_translations([long_translation])
+
+    sorted_proteins = sort_protein_sequences([long_protein, short_protein])
+
+    eq_(short_protein.num_supporting_fragments, 3)
+    eq_(long_protein.num_supporting_fragments, 3)
+    eq_(short_protein.num_supporting_reads, 6)
+    eq_(long_protein.num_supporting_reads, 3)
+    eq_(sorted_proteins, [short_protein, long_protein])
+
+
+def test_grouped_protein_support_can_beat_each_individual_cdna_sequence():
+    short_translation_1 = _translation_with_reads(
+        amino_acids="MKH",
+        reads=_reads("short_1", n_fragments=2),
+        cdna_sequence="ATGAAACAC")
+    # A synonymous final codon makes this a distinct cDNA translation of the
+    # same protein, supported by a disjoint set of fragments.
+    short_translation_2 = _translation_with_reads(
+        amino_acids="MKH",
+        reads=_reads("short_2", n_fragments=2),
+        cdna_sequence="ATGAAACAT")
+    long_translation = _translation_with_reads(
+        amino_acids="MKHW",
+        reads=_reads("long", n_fragments=3),
+        cdna_sequence="ATGAAACACTGG")
+
+    proteins = group_equivalent_translations([
+        short_translation_1,
+        short_translation_2,
+        long_translation,
+    ])
+    sorted_proteins = sort_protein_sequences(proteins)
+
+    eq_(len(proteins), 2)
+    eq_(sorted_proteins[0].amino_acids, "MKH")
+    eq_(sorted_proteins[0].num_supporting_fragments, 4)
+    eq_(sorted_proteins[1].amino_acids, "MKHW")
+    eq_(sorted_proteins[1].num_supporting_fragments, 3)
 
 
 def variants_to_protein_sequences_dataframe(
