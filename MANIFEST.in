@@ -1,2 +1,4 @@
 include deploy.sh
+include lint.sh
 include release_upload.py
+include test.sh
