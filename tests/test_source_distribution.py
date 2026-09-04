@@ -25,12 +25,15 @@ ROOT_FILES = (
     "MANIFEST.in",
     "README.md",
     "deploy.sh",
+    "lint.sh",
     "pyproject.toml",
     "release_upload.py",
     "requirements.txt",
+    "test.sh",
 )
 RELEASE_TESTS = (
     "test_deploy_script.py",
+    "test_gate_scripts.py",
     "test_release_upload.py",
 )
 
@@ -73,9 +76,13 @@ def test_sdist_contains_release_tooling_required_by_release_tests(tmp_path):
     with tarfile.open(archives[0], "r:gz") as archive:
         root = archive.getnames()[0].split("/", 1)[0]
         names = set(archive.getnames())
-        assert "%s/deploy.sh" % root in names
+        release_scripts = ("deploy.sh", "lint.sh", "test.sh")
+        for script_name in release_scripts:
+            assert "%s/%s" % (root, script_name) in names
         assert "%s/release_upload.py" % root in names
         assert "%s/tests/test_deploy_script.py" % root in names
+        assert "%s/tests/test_gate_scripts.py" % root in names
         assert "%s/tests/test_release_upload.py" % root in names
-        deploy_info = archive.getmember("%s/deploy.sh" % root)
-        assert deploy_info.mode & stat.S_IXUSR
+        for script_name in release_scripts:
+            script_info = archive.getmember("%s/%s" % (root, script_name))
+            assert script_info.mode & stat.S_IXUSR

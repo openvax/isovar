@@ -18,6 +18,33 @@ TEST_SH_MAX="${TEST_SH_MAX:-0}"
 
 log() { printf '[test.sh] %s\n' "$*" >&2; }
 
+resolve_python() {
+    local candidate
+    local resolved_python
+    if [[ -n "${PYTHON:-}" ]]; then
+        candidate="${PYTHON}"
+    elif [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then
+        candidate="${VIRTUAL_ENV}/bin/python"
+    elif [[ -x ".venv/bin/python" ]]; then
+        candidate=".venv/bin/python"
+    else
+        candidate="python3"
+    fi
+
+    if ! resolved_python="$(command -v "${candidate}" 2>/dev/null)" || \
+        [[ ! -f "${resolved_python}" || ! -x "${resolved_python}" ]]; then
+        log "Python interpreter not found or not executable: ${candidate}"
+        exit 1
+    fi
+    if [[ "${resolved_python}" != /* ]]; then
+        resolved_python="${PWD}/${resolved_python#./}"
+    fi
+    PYTHON="${resolved_python}"
+    export PYTHON
+}
+
+resolve_python
+
 case "$(uname -s)" in
     Darwin) OS=macos ;;
     Linux)  OS=linux ;;
@@ -96,13 +123,14 @@ if (( TEST_SH_MAX > 0 && WORKERS > TEST_SH_MAX )); then WORKERS=$TEST_SH_MAX; fi
 if (( WORKERS < TEST_SH_MIN )); then WORKERS=$TEST_SH_MIN; fi
 
 XDIST_FLAGS=()
-if python -c "import xdist" 2>/dev/null; then
+if "${PYTHON}" -c "import xdist" 2>/dev/null; then
     XDIST_FLAGS=(-n "$WORKERS")
-    log "platform=${OS} cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${PER_WORKER_GB}GB"
+    log "python=${PYTHON} platform=${OS} cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${PER_WORKER_GB}GB"
     log "workers=${WORKERS} → exec pytest -n ${WORKERS} --cov=isovar/ --cov-report=term-missing tests $*"
 else
-    log "platform=${OS} cpus=${CPUS} (pytest-xdist not installed; running serial)"
+    log "python=${PYTHON} platform=${OS} cpus=${CPUS} (pytest-xdist not installed; running serial)"
     log "→ exec pytest --cov=isovar/ --cov-report=term-missing tests $*"
 fi
 
-exec pytest "${XDIST_FLAGS[@]}" --cov=isovar/ --cov-report=term-missing tests "$@"
+exec "${PYTHON}" -m pytest \
+    "${XDIST_FLAGS[@]}" --cov=isovar/ --cov-report=term-missing tests "$@"

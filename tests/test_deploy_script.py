@@ -48,7 +48,8 @@ def _release_repo(tmp_path):
     package_dir.mkdir(parents=True)
     shutil.copy(source_root / "deploy.sh", repo / "deploy.sh")
     (package_dir / "__init__.py").write_text('__version__ = "1.7.2"\n')
-    (repo / ".gitignore").write_text("__pycache__/\nbuild/\ndist/\n")
+    (repo / ".gitignore").write_text(
+        "__pycache__/\n.venv/\nbuild/\ndist/\n")
     for script_name, output in (("lint.sh", "lint-gate"), ("test.sh", "test-gate")):
         script = repo / script_name
         script.write_text("#!/bin/sh\necho %s\n" % output)
@@ -79,8 +80,29 @@ def _deploy(repo, *args, env_updates=None):
             del env[name]
     env["PYTHON"] = sys.executable
     if env_updates:
-        env.update(env_updates)
+        for name, value in env_updates.items():
+            if value is None:
+                env.pop(name, None)
+            else:
+                env[name] = value
     return _run(["bash", "deploy.sh"] + list(args), cwd=repo, env=env)
+
+
+def _python_symlink(path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.symlink_to(sys.executable)
+    return path
+
+
+def _record_gate_pythons(repo):
+    for script_name in ("lint.sh", "test.sh"):
+        script = repo / script_name
+        script.write_text(
+            "#!/bin/sh\nprintf '%s\\n' \"$PYTHON\" >> \"$GATE_PYTHON_LOG\"\n")
+        script.chmod(0o755)
+    _git(repo, "add", "lint.sh", "test.sh")
+    _git(repo, "commit", "-m", "Record gate interpreters")
+    _git(repo, "push", "origin", "main")
 
 
 def _fake_release_python(tmp_path):
@@ -126,6 +148,138 @@ def test_deploy_dry_run_validates_without_mutating(tmp_path):
         '__version__ = "1.7.2"\n'
     assert _git(repo, "rev-list", "--count", "HEAD").stdout.strip() == "1"
     assert _git(repo, "status", "--porcelain").stdout == ""
+
+
+def test_deploy_explicit_python_overrides_virtualenv_and_repo_venv(tmp_path):
+    repo = _release_repo(tmp_path)
+    _record_gate_pythons(repo)
+    explicit_python = _python_symlink(tmp_path / "explicit python")
+    active_venv = tmp_path / "active-venv"
+    _python_symlink(active_venv / "bin" / "python")
+    _python_symlink(repo / ".venv" / "bin" / "python")
+    gate_log = tmp_path / "gate-python.log"
+
+    result = _deploy(
+        repo,
+        "--dry-run",
+        env_updates={
+            "PYTHON": str(explicit_python),
+            "VIRTUAL_ENV": str(active_venv),
+            "GATE_PYTHON_LOG": str(gate_log),
+        })
+
+    assert result.returncode == 0, result.stderr
+    assert gate_log.read_text().splitlines() == [
+        str(explicit_python),
+        str(explicit_python),
+    ]
+
+
+def test_deploy_active_virtualenv_overrides_repo_venv(tmp_path):
+    repo = _release_repo(tmp_path)
+    _record_gate_pythons(repo)
+    active_python = _python_symlink(
+        tmp_path / "active-venv" / "bin" / "python")
+    _python_symlink(repo / ".venv" / "bin" / "python")
+    gate_log = tmp_path / "gate-python.log"
+
+    result = _deploy(
+        repo,
+        "--dry-run",
+        env_updates={
+            "PYTHON": None,
+            "VIRTUAL_ENV": str(active_python.parents[1]),
+            "GATE_PYTHON_LOG": str(gate_log),
+        })
+
+    assert result.returncode == 0, result.stderr
+    assert gate_log.read_text().splitlines() == [
+        str(active_python),
+        str(active_python),
+    ]
+
+
+def test_deploy_repo_venv_overrides_path_python(tmp_path):
+    repo = _release_repo(tmp_path)
+    _record_gate_pythons(repo)
+    repo_python = _python_symlink(repo / ".venv" / "bin" / "python")
+    path_bin = tmp_path / "path-bin"
+    _python_symlink(path_bin / "python3")
+    gate_log = tmp_path / "gate-python.log"
+
+    result = _deploy(
+        repo,
+        "--dry-run",
+        env_updates={
+            "PYTHON": None,
+            "VIRTUAL_ENV": None,
+            "PATH": "%s%s%s" % (
+                path_bin,
+                os.pathsep,
+                os.environ["PATH"],
+            ),
+            "GATE_PYTHON_LOG": str(gate_log),
+        })
+
+    assert result.returncode == 0, result.stderr
+    assert gate_log.read_text().splitlines() == [
+        str(repo_python),
+        str(repo_python),
+    ]
+
+
+def test_deploy_falls_back_to_python3_from_path(tmp_path):
+    repo = _release_repo(tmp_path)
+    _record_gate_pythons(repo)
+    path_bin = tmp_path / "path-bin"
+    path_python = _python_symlink(path_bin / "python3")
+    gate_log = tmp_path / "gate-python.log"
+
+    result = _deploy(
+        repo,
+        "--dry-run",
+        env_updates={
+            "PYTHON": None,
+            "VIRTUAL_ENV": None,
+            "PATH": "%s%s%s" % (
+                path_bin,
+                os.pathsep,
+                os.environ["PATH"],
+            ),
+            "GATE_PYTHON_LOG": str(gate_log),
+        })
+
+    assert result.returncode == 0, result.stderr
+    assert gate_log.read_text().splitlines() == [
+        str(path_python),
+        str(path_python),
+    ]
+
+
+@pytest.mark.parametrize("invalid_python_kind", [
+    "missing",
+    "not-executable",
+    "directory",
+])
+def test_deploy_rejects_invalid_explicit_python_without_fallback(
+        tmp_path,
+        invalid_python_kind):
+    repo = _release_repo(tmp_path)
+    invalid_python = tmp_path / "invalid-python"
+    if invalid_python_kind == "not-executable":
+        invalid_python.write_text("#!/bin/sh\nexit 0\n")
+    elif invalid_python_kind == "directory":
+        invalid_python.mkdir()
+
+    result = _deploy(
+        repo,
+        "--dry-run",
+        env_updates={"PYTHON": str(invalid_python)})
+
+    assert result.returncode == 1
+    assert "Python interpreter not found or not executable" in result.stderr
+    assert str(invalid_python) in result.stderr
+    assert "lint-gate" not in result.stdout
 
 
 def test_deploy_rejects_non_release_branch_before_gates(tmp_path):
