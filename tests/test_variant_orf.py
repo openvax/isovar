@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 from varcode import Variant
 
 from isovar.variant_orf import (
@@ -23,6 +24,7 @@ from isovar.reference_context import ReferenceContext
 from isovar.allele_read import AlleleRead
 from isovar.dna import reverse_complement_dna
 from isovar.protein_sequence_creator import ProteinSequenceCreator
+from isovar.variant_sequence_creator import VariantSequenceCreator
 from isovar.variant_sequence_helpers import filter_variant_sequences
 
 from .common import eq_ 
@@ -243,6 +245,80 @@ def test_filter_variant_sequences_defers_reference_compatibility():
     eq_(set(filtered), {compatible_short, incompatible_long})
     eq_(len(translations), 1)
     eq_(translations[0].untrimmed_variant_sequence, compatible_short)
+
+
+@pytest.mark.parametrize("strand", ["+", "-"])
+@pytest.mark.parametrize("variant_sequence_assembly", [True, False])
+def test_nested_assemblies_reach_reference_matching_independently(
+        strand,
+        variant_sequence_assembly):
+    """Regression test for #198 through sequence creation and translation."""
+    variant = Variant("1", 100, "G", "C", "GRCh38")
+    cdna_prefixes = ("AAA", "GGGAAA", "CCCGGGAAA", "TTTCCCGGGAAA")
+    if strand == "+":
+        genomic_prefixes = cdna_prefixes
+        genomic_suffixes = ("A" * 8,) * len(cdna_prefixes)
+    else:
+        genomic_prefixes = ("T" * 8,) * len(cdna_prefixes)
+        genomic_suffixes = tuple(
+            reverse_complement_dna(prefix) for prefix in cdna_prefixes)
+    reads = [
+        AlleleRead(
+            prefix=prefix,
+            allele=variant.alt,
+            suffix=suffix,
+            name="%s_%s_%d" % (strand, cdna_prefix, i))
+        for cdna_prefix, prefix, suffix in zip(
+            cdna_prefixes, genomic_prefixes, genomic_suffixes)
+        for i in range(2)
+    ]
+    reference_context = ReferenceContext(
+        strand=strand,
+        sequence_before_variant_locus="A" * len(cdna_prefixes[-1]),
+        sequence_at_variant_locus=(
+            variant.ref if strand == "+"
+            else reverse_complement_dna(variant.ref)),
+        sequence_after_variant_locus="A" * 8,
+        offset_to_first_complete_codon=0,
+        contains_start_codon=False,
+        overlaps_start_codon=False,
+        contains_five_prime_utr=False,
+        amino_acids_before_variant="",
+        variant=variant,
+        transcripts=())
+
+    sequence_creator = VariantSequenceCreator(
+        min_variant_sequence_coverage=2,
+        # VariantSequenceCreator divides this budget approximately equally
+        # between both sides of the variant. Leave enough room for the full
+        # longest prefix so this test exercises assembly rather than clipping.
+        preferred_sequence_length=len(cdna_prefixes[-1]) * 2 + 1,
+        variant_sequence_assembly=variant_sequence_assembly,
+        min_assembly_overlap_size=1)
+    variant_sequences = sequence_creator.reads_to_variant_sequences(
+        variant=variant,
+        reads=reads)
+    protein_creator = ProteinSequenceCreator(
+        protein_sequence_length=8,
+        min_variant_sequence_coverage=2,
+        min_transcript_prefix_length=3,
+        max_transcript_mismatches=2)
+    translations = protein_creator.all_pairs_translations(
+        variant_sequences=variant_sequences,
+        reference_contexts=[reference_context])
+
+    if strand == "+":
+        observed_candidates = {sequence.prefix for sequence in variant_sequences}
+        compatible_sequence = "AAA"
+    else:
+        observed_candidates = {sequence.suffix for sequence in variant_sequences}
+        compatible_sequence = reverse_complement_dna("AAA")
+    eq_(observed_candidates,
+        set(genomic_prefixes if strand == "+" else genomic_suffixes))
+    eq_(len(translations), 1)
+    translated_sequence = translations[0].untrimmed_variant_sequence
+    eq_(translated_sequence.prefix if strand == "+" else translated_sequence.suffix,
+        compatible_sequence)
 
 
 def test_protein_sequence_creator_translates_coding_deletion():

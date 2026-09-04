@@ -468,6 +468,49 @@ def test_trim_variant_sequences_distinguishes_deletion_from_degenerate():
     eq_(trimmed, [covered_deletion])
 
 
+def test_trim_variant_sequences_preserves_supported_substrings():
+    shorter = _variant_sequence("AA", "C", "GG", 2, "shorter")
+    longer = _variant_sequence("AAA", "C", "GGG", 2, "longer")
+
+    trimmed = trim_variant_sequences(
+        [longer, shorter],
+        min_variant_sequence_coverage=2)
+
+    eq_(set(trimmed), {longer, shorter})
+
+
+def test_trim_variant_sequences_merges_only_exact_trimmed_duplicates():
+    long_read = AlleleRead(
+        prefix="TAA", allele="C", suffix="GG", name="long")
+    inner_read = AlleleRead(
+        prefix="AA", allele="C", suffix="GG", name="inner")
+    already_trimmed_reads = [
+        AlleleRead(
+            prefix="AA", allele="C", suffix="GG", name="exact_%d" % i)
+        for i in range(2)
+    ]
+    needs_trimming = VariantSequence(
+        prefix="TAA",
+        alt="C",
+        suffix="GG",
+        reads={long_read, inner_read})
+    already_trimmed = VariantSequence(
+        prefix="AA",
+        alt="C",
+        suffix="GG",
+        reads=already_trimmed_reads)
+
+    trimmed = trim_variant_sequences(
+        [needs_trimming, already_trimmed],
+        min_variant_sequence_coverage=2)
+
+    eq_(len(trimmed), 1)
+    eq_((trimmed[0].prefix, trimmed[0].alt, trimmed[0].suffix),
+        ("AA", "C", "GG"))
+    eq_(trimmed[0].reads,
+        {long_read, inner_read}.union(already_trimmed_reads))
+
+
 def test_filter_by_length_distinguishes_deletion_from_degenerate_sequence():
     # a deletion and a degenerate sequence both have an empty alt, so only
     # total length can tell them apart. The deletion is shorter and better

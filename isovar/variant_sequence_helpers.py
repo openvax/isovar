@@ -16,7 +16,7 @@ from reads overlapping a variant locus.
 """
 
 from .allele_read_helpers import group_unique_sequences
-from .assembly import collapse_substrings
+from .assembly import merge_identical_sequences
 from .logging import get_logger
 from .variant_sequence import VariantSequence
 
@@ -143,8 +143,10 @@ def filter_variant_sequences_by_length(
 
 def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
     """
-    Trim VariantSequences to desired coverage and then combine any
-    subsequences which get generated.
+    Trim VariantSequences to desired coverage and combine exact duplicates.
+
+    Contained but non-identical candidates remain separate because reference
+    compatibility is not known at this stage.
 
     Parameters
     ----------
@@ -168,14 +170,15 @@ def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
         )
         if len(trimmed) > 0
     ]
-    collapsed_variant_sequences = collapse_substrings(trimmed_variant_sequences)
-    n_after_trimming = len(collapsed_variant_sequences)
+    trimmed_variant_sequences = merge_identical_sequences(
+        trimmed_variant_sequences)
+    n_after_trimming = len(trimmed_variant_sequences)
     logger.info(
         "Kept %d/%d variant sequences after read coverage trimming to >=%dx",
         n_after_trimming,
         n_total,
         min_variant_sequence_coverage)
-    return collapsed_variant_sequences
+    return trimmed_variant_sequences
 
 
 def filter_variant_sequences(

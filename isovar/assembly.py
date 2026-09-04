@@ -132,10 +132,11 @@ def greedy_merge_helper(
             continue
         used.add(i)
         used.add(j)
-        if combined.sequence in merged_variant_sequences:
-            existing = merged_variant_sequences[combined.sequence]
+        combined_key = (combined.prefix, combined.alt, combined.suffix)
+        if combined_key in merged_variant_sequences:
+            existing = merged_variant_sequences[combined_key]
             combined = combined.add_reads(existing.reads)
-        merged_variant_sequences[combined.sequence] = combined
+        merged_variant_sequences[combined_key] = combined
 
     unmerged = [
         variant_sequences[k]
@@ -148,20 +149,41 @@ def greedy_merge_helper(
 
 def greedy_merge(
         variant_sequences,
-        min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
+        min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+        preserve_intermediate_candidates=False):
     """
     Greedily merge overlapping sequences into longer sequences.
 
     Accepts a collection of VariantSequence objects and returns another
     collection of elongated variant sequences. The reads field of the
     returned VariantSequence object will contain reads which
-    only partially overlap the full sequence.
+    only partially overlap the full sequence. When
+    ``preserve_intermediate_candidates`` is true, the result also contains
+    the input and every intermediate assembly candidate, with reads from
+    exact duplicates combined.
     """
+    variant_sequences = list(variant_sequences)
+    intermediate_candidates = {}
+
+    def preserve_candidates(candidates):
+        for candidate in candidates:
+            key = (candidate.prefix, candidate.alt, candidate.suffix)
+            if key in intermediate_candidates:
+                candidate = intermediate_candidates[key].add_reads(
+                    candidate.reads)
+            intermediate_candidates[key] = candidate
+
+    if preserve_intermediate_candidates:
+        preserve_candidates(variant_sequences)
     merged_any = True
     while merged_any:
         variant_sequences, merged_any = greedy_merge_helper(
             variant_sequences,
             min_overlap_size=min_overlap_size)
+        if preserve_intermediate_candidates and merged_any:
+            preserve_candidates(variant_sequences)
+    if preserve_intermediate_candidates:
+        return list(intermediate_candidates.values())
     return variant_sequences
 
 
@@ -207,13 +229,36 @@ def collapse_substrings(variant_sequences):
     ]
 
 
+def merge_identical_sequences(variant_sequences):
+    """Union reads for exact candidates without discarding substrings.
+
+    Distinct prefix/alt/suffix triples must remain distinct until transcript
+    compatibility is known. Exact duplicates, including duplicates created by
+    coverage trimming or retained assembly history, carry no extra sequence
+    information and can be combined safely.
+    """
+    sequences_by_parts = {}
+    for variant_sequence in variant_sequences:
+        key = (
+            variant_sequence.prefix,
+            variant_sequence.alt,
+            variant_sequence.suffix,
+        )
+        if key in sequences_by_parts:
+            variant_sequence = sequences_by_parts[key].add_reads(
+                variant_sequence.reads)
+        sequences_by_parts[key] = variant_sequence
+    return list(sequences_by_parts.values())
+
+
 DEFAULT_MAX_ASSEMBLY_SEQUENCES = 1000
 
 
 def iterative_overlap_assembly(
         variant_sequences,
         min_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
-        max_assembly_sequences=DEFAULT_MAX_ASSEMBLY_SEQUENCES):
+        max_assembly_sequences=DEFAULT_MAX_ASSEMBLY_SEQUENCES,
+        preserve_candidate_sequences=False):
     """
     Assembles longer sequences from reads centered on a variant by
     merging all pairs of overlapping sequences and collapsing
@@ -230,11 +275,19 @@ def iterative_overlap_assembly(
         substring collapse, skip the O(n^2)-per-round greedy merge and
         return sequences sorted by read support. Set to None to disable.
 
+    preserve_candidate_sequences : bool
+        Return the input and intermediate sequences as well as final assembled
+        sequences. Translation pipelines must enable this: a contained or
+        intermediate candidate can match a reference transcript even when its
+        longer assembly cannot. Exact duplicate candidates are still merged.
+
     Returns a list of variant sequences, sorted by decreasing read support.
     """
+    variant_sequences = list(variant_sequences)
     if len(variant_sequences) <= 1:
         return variant_sequences
 
+    input_variant_sequences = variant_sequences
     n_before_collapse = len(variant_sequences)
     variant_sequences = collapse_substrings(variant_sequences)
     n_after_collapse = len(variant_sequences)
@@ -251,8 +304,20 @@ def iterative_overlap_assembly(
             n_after_collapse,
             max_assembly_sequences)
     else:
-        variant_sequences = greedy_merge(variant_sequences, min_overlap_size)
+        variant_sequences = greedy_merge(
+            variant_sequences,
+            min_overlap_size,
+            preserve_intermediate_candidates=preserve_candidate_sequences)
+
+    if preserve_candidate_sequences:
+        variant_sequences = merge_identical_sequences(
+            input_variant_sequences + variant_sequences)
 
     return list(sorted(
         variant_sequences,
-        key=lambda seq: -len(seq.reads)))
+        key=lambda seq: (
+            -len(seq.reads),
+            seq.prefix,
+            seq.alt,
+            seq.suffix,
+        )))
