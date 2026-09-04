@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import random
+from itertools import permutations
 from time import time
 
 from isovar.read_collector import ReadCollector
@@ -21,7 +22,8 @@ from isovar.assembly import (
     iterative_overlap_assembly,
     greedy_merge,
     greedy_merge_helper,
-    collapse_substrings
+    collapse_substrings,
+    merge_identical_sequences,
 )
 
 from pyensembl import ensembl_grch38
@@ -201,6 +203,108 @@ def test_collapse_substrings_absorbs_into_first_only():
     eq_(n_carrying_short, 1,
         "Short read 'S' should only be absorbed into one longer sequence, got %d: %s" % (
             n_carrying_short, results))
+
+
+def test_merge_identical_sequences_preserves_distinct_substrings():
+    longer = VariantSequence(
+        prefix="AAA", alt="C", suffix="GGG", reads={"long"})
+    shorter = VariantSequence(
+        prefix="AA", alt="C", suffix="GG", reads={"short"})
+    duplicate_longer = VariantSequence(
+        prefix="AAA", alt="C", suffix="GGG", reads={"duplicate"})
+    first_variant_position = VariantSequence(
+        prefix="T", alt="C", suffix="CG", reads={"first-position"})
+    second_variant_position = VariantSequence(
+        prefix="TC", alt="C", suffix="G", reads={"second-position"})
+
+    results = merge_identical_sequences([
+        longer,
+        shorter,
+        duplicate_longer,
+        first_variant_position,
+        second_variant_position,
+    ])
+
+    eq_(first_variant_position.sequence, second_variant_position.sequence)
+    eq_(len(results), 4)
+    by_parts = {
+        (result.prefix, result.alt, result.suffix): result
+        for result in results
+    }
+    eq_(by_parts[(longer.prefix, longer.alt, longer.suffix)].reads,
+        {"long", "duplicate"})
+    eq_(by_parts[(shorter.prefix, shorter.alt, shorter.suffix)].reads,
+        {"short"})
+    eq_(by_parts[("T", "C", "CG")].reads, {"first-position"})
+    eq_(by_parts[("TC", "C", "G")].reads, {"second-position"})
+
+
+def test_greedy_merge_helper_preserves_distinct_variant_positions():
+    # Both accepted pairs assemble the same full bases (TCCG), but place the
+    # variant C at different positions. They are not interchangeable cDNA
+    # candidates and therefore must not be deduplicated by ``sequence`` alone.
+    candidates = [
+        VariantSequence("T", alt="C", suffix="", reads={"left-1"}),
+        VariantSequence("", alt="C", suffix="CG", reads={"right-1"}),
+        VariantSequence("TC", alt="C", suffix="", reads={"left-2"}),
+        VariantSequence("", alt="C", suffix="G", reads={"right-2"}),
+    ]
+
+    results, merged_any = greedy_merge_helper(candidates, min_overlap_size=1)
+
+    assert merged_any
+    eq_(len(results), 2)
+    eq_({(result.prefix, result.alt, result.suffix) for result in results},
+        {("T", "C", "CG"), ("TC", "C", "G")})
+
+
+def test_candidate_preserving_assembly_keeps_nested_sequences():
+    prefixes = ("AAA", "GGGAAA", "CCCGGGAAA", "TTTCCCGGGAAA")
+    candidates = [
+        VariantSequence(prefix, alt="C", suffix="AAAA", reads={prefix})
+        for prefix in prefixes
+    ]
+
+    expected = None
+    # Exercise both the normal merge path and the assembly-size safety cutoff.
+    for max_assembly_sequences in (None, 0):
+        for ordered_candidates in permutations(candidates):
+            results = iterative_overlap_assembly(
+                ordered_candidates,
+                min_overlap_size=1,
+                max_assembly_sequences=max_assembly_sequences,
+                preserve_candidate_sequences=True)
+            observed = {
+                (result.prefix, result.alt, result.suffix): result.reads
+                for result in results
+            }
+            if expected is None:
+                expected = observed
+            eq_(observed, expected)
+
+    eq_({parts[0] for parts in expected}, set(prefixes))
+    eq_(expected[(prefixes[-1], "C", "AAAA")], set(prefixes))
+
+
+def test_greedy_merge_preserves_generator_inputs_and_intermediate_candidates():
+    candidates = [
+        VariantSequence("AAAA", alt="C", suffix="G", reads={"left"}),
+        VariantSequence("AA", alt="C", suffix="GGG", reads={"middle"}),
+        VariantSequence("A", alt="C", suffix="GGGGG", reads={"right"}),
+    ]
+
+    results = greedy_merge(
+        (candidate for candidate in candidates),
+        min_overlap_size=1,
+        preserve_intermediate_candidates=True)
+    by_parts = {
+        (result.prefix, result.alt, result.suffix): result.reads
+        for result in results
+    }
+
+    eq_(len(by_parts), 5)
+    eq_(by_parts[("AA", "C", "GGGGG")], {"middle", "right"})
+    eq_(by_parts[("AAAA", "C", "GGGGG")], {"left", "middle", "right"})
 
 
 def test_assembly_of_many_subsequences():

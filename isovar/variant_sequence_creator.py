@@ -29,8 +29,9 @@ logger = get_logger(__name__)
 
 class VariantSequenceCreator(object):
     """
-    Assembler is used to assemble a set of AlleleReads into a smaller set of
-    VariantSequence objects based on overlap of read sequences.
+    Assemble AlleleReads into candidate VariantSequence objects based on
+    overlap, retaining independently supported contained candidates for
+    reference matching.
     """
     def __init__(
             self,
@@ -126,7 +127,8 @@ class VariantSequenceCreator(object):
                 n_surrounding_nucleotides // 2)
             variant_sequences = iterative_overlap_assembly(
                 variant_sequences,
-                min_overlap_size=min_overlap_size)
+                min_overlap_size=min_overlap_size,
+                preserve_candidate_sequences=True)
 
         if variant_sequences:
             logger.info(
