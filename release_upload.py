@@ -13,6 +13,7 @@
 """Bounded, idempotent PyPI uploads for isovar releases."""
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -29,6 +30,8 @@ PYPI_JSON_BASE_URL = "https://pypi.org/pypi"
 DEFAULT_UPLOAD_TIMEOUT_SECONDS = 60.0
 DEFAULT_VERIFY_TIMEOUT_SECONDS = 30.0
 DEFAULT_VERIFY_POLL_SECONDS = 1.0
+SHA256_HEX_LENGTH = 64
+HASH_READ_SIZE_BYTES = 1024 * 1024
 
 
 class ReleaseUploadError(RuntimeError):
@@ -44,12 +47,37 @@ def expected_release_filenames(project, version):
     })
 
 
-def pypi_release_filenames(
+def sha256_file(path):
+    """Return the hexadecimal SHA-256 digest of a file."""
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as file_handle:
+        while True:
+            chunk = file_handle.read(HASH_READ_SIZE_BYTES)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _validated_sha256(value, context):
+    """Normalize a SHA-256 value or fail closed on malformed metadata."""
+    if not isinstance(value, str):
+        raise ReleaseUploadError("Missing SHA-256 digest for %s" % context)
+    normalized = value.lower()
+    if (len(normalized) != SHA256_HEX_LENGTH or
+            any(character not in "0123456789abcdef" for character in normalized)):
+        raise ReleaseUploadError(
+            "Invalid SHA-256 digest for %s: %r" % (context, value)
+        )
+    return normalized
+
+
+def pypi_release_digests(
         project,
         version,
         json_base_url=PYPI_JSON_BASE_URL,
         request_timeout_seconds=10.0):
-    """Return the filenames published for one release in PyPI metadata."""
+    """Return a filename-to-SHA-256 map from PyPI release metadata."""
     url = "%s/%s/json?cache_bust=%s" % (
         json_base_url.rstrip("/"),
         quote(project, safe=""),
@@ -60,10 +88,47 @@ def pypi_release_filenames(
             payload = json.load(response)
     except HTTPError as error:
         if error.code == 404:
-            return frozenset()
+            return {}
         raise
+    if not isinstance(payload, dict):
+        raise ReleaseUploadError(
+            "Invalid PyPI release metadata for %s %s" % (project, version)
+        )
     releases = payload.get("releases", {})
-    return frozenset(item["filename"] for item in releases.get(version, ()))
+    if not isinstance(releases, dict):
+        raise ReleaseUploadError(
+            "Invalid PyPI release metadata for %s %s" % (project, version)
+        )
+    release_items = releases.get(version, ())
+    if not isinstance(release_items, (list, tuple)):
+        raise ReleaseUploadError(
+            "Invalid PyPI release metadata for %s %s" % (project, version)
+        )
+    result = {}
+    for item in release_items:
+        try:
+            filename = item["filename"]
+            sha256 = item["digests"]["sha256"]
+        except (KeyError, TypeError) as error:
+            raise ReleaseUploadError(
+                "Invalid PyPI artifact metadata for %s %s" % (project, version)
+            ) from error
+        if not isinstance(filename, str) or not filename:
+            raise ReleaseUploadError(
+                "Invalid PyPI artifact filename for %s %s: %r" % (
+                    project,
+                    version,
+                    filename,
+                )
+            )
+        sha256 = _validated_sha256(sha256, "PyPI artifact %s" % filename)
+        previous = result.get(filename)
+        if previous is not None and previous != sha256:
+            raise ReleaseUploadError(
+                "Conflicting PyPI SHA-256 digests for %s" % filename
+            )
+        result[filename] = sha256
+    return result
 
 
 def upload_distribution(
@@ -85,16 +150,44 @@ def upload_distribution(
     subprocess.run(command, check=True, timeout=timeout_seconds)
 
 
+def _published_file_matches(filename, expected_sha256, published_digests):
+    """Return true for an exact file, false if absent, and fail if different."""
+    expected_sha256 = _validated_sha256(
+        expected_sha256,
+        "local artifact %s" % filename,
+    )
+    if filename not in published_digests:
+        return False
+    actual_sha256 = _validated_sha256(
+        published_digests[filename],
+        "PyPI artifact %s" % filename,
+    )
+    if actual_sha256 != expected_sha256:
+        raise ReleaseUploadError(
+            "PyPI SHA-256 mismatch for %s: local=%s, pypi=%s" % (
+                filename,
+                expected_sha256,
+                actual_sha256,
+            )
+        )
+    return True
+
+
 def wait_for_release_file(
         filename,
-        fetch_release_filenames,
+        expected_sha256,
+        fetch_release_digests,
         timeout_seconds=DEFAULT_VERIFY_TIMEOUT_SECONDS,
         poll_seconds=DEFAULT_VERIFY_POLL_SECONDS):
-    """Poll release metadata until ``filename`` is visible or time expires."""
+    """Poll until ``filename`` is visible with the expected SHA-256 digest."""
     deadline = time.monotonic() + timeout_seconds
     while True:
         try:
-            if filename in set(fetch_release_filenames()):
+            published = dict(fetch_release_digests())
+            if _published_file_matches(
+                    filename,
+                    expected_sha256,
+                    published):
                 return True
         except (json.JSONDecodeError, OSError, URLError):
             # PyPI metadata can transiently fail while its release view is
@@ -106,10 +199,22 @@ def wait_for_release_file(
         time.sleep(min(poll_seconds, remaining))
 
 
+def _matching_release_filenames(expected_digests, published_digests):
+    """Return exact matches and fail if any expected filename has new bytes."""
+    matching = set()
+    for filename, expected_sha256 in expected_digests.items():
+        if _published_file_matches(
+                filename,
+                expected_sha256,
+                published_digests):
+            matching.add(filename)
+    return frozenset(matching)
+
+
 def publish_release(
         distribution_paths,
         expected_filenames,
-        fetch_release_filenames,
+        fetch_release_digests,
         upload_file,
         verify_timeout_seconds=DEFAULT_VERIFY_TIMEOUT_SECONDS,
         verify_poll_seconds=DEFAULT_VERIFY_POLL_SECONDS):
@@ -118,7 +223,7 @@ def publish_release(
     A timeout or nonzero Twine exit is ambiguous: the server may have accepted
     the immutable file before the client lost its response. Verify server state
     after every attempt and consider a file published only when its exact name
-    appears in PyPI metadata.
+    appears in PyPI metadata with the exact local SHA-256 digest.
     """
     distribution_paths = tuple(distribution_paths)
     paths_by_name = {
@@ -136,10 +241,24 @@ def publish_release(
             )
         )
 
-    published = frozenset(fetch_release_filenames())
+    try:
+        expected_digests = {
+            filename: sha256_file(paths_by_name[filename])
+            for filename in sorted(expected)
+        }
+    except OSError as error:
+        raise ReleaseUploadError(
+            "Could not hash release artifact: %s" % error
+        ) from error
+
     for filename in sorted(expected):
-        if filename in published:
-            print("Already published: %s" % filename)
+        published_digests = dict(fetch_release_digests())
+        matching = _matching_release_filenames(
+            expected_digests,
+            published_digests,
+        )
+        if filename in matching:
+            print("Already published with matching SHA-256: %s" % filename)
             continue
 
         upload_error = None
@@ -150,7 +269,8 @@ def publish_release(
 
         if not wait_for_release_file(
                 filename,
-                fetch_release_filenames,
+                expected_digests[filename],
+                fetch_release_digests,
                 timeout_seconds=verify_timeout_seconds,
                 poll_seconds=verify_poll_seconds):
             message = "PyPI did not publish %s after the upload attempt" % filename
@@ -161,15 +281,18 @@ def publish_release(
             print("Reconciled ambiguous upload from PyPI state: %s" % filename)
         else:
             print("Published: %s" % filename)
-        published = frozenset(fetch_release_filenames())
 
-    published = frozenset(fetch_release_filenames())
-    missing = expected - published
+    published_digests = dict(fetch_release_digests())
+    matching = _matching_release_filenames(
+        expected_digests,
+        published_digests,
+    )
+    missing = expected - matching
     if missing:
         raise ReleaseUploadError(
             "PyPI release is missing expected files: %s" % sorted(missing)
         )
-    return published
+    return published_digests
 
 
 def main(argv=None):
@@ -200,8 +323,8 @@ def main(argv=None):
 
     expected = expected_release_filenames(args.project, args.version)
 
-    def fetch_release_filenames():
-        return pypi_release_filenames(
+    def fetch_release_digests():
+        return pypi_release_digests(
             args.project,
             args.version,
             json_base_url=args.json_base_url,
@@ -218,13 +341,13 @@ def main(argv=None):
     published = publish_release(
         args.distributions,
         expected_filenames=expected,
-        fetch_release_filenames=fetch_release_filenames,
+        fetch_release_digests=fetch_release_digests,
         upload_file=upload_file,
         verify_timeout_seconds=args.verify_timeout_seconds,
     )
     print(
         "Verified PyPI release files: %s" %
-        ", ".join(sorted(expected & published))
+        ", ".join(sorted(expected & set(published)))
     )
     return 0
 
