@@ -40,8 +40,8 @@ def match_variant_sequence_to_reference_context(
         metadata.
 
     min_transcript_prefix_length : int
-        Minimum number of nucleotides we try to match against a reference
-        transcript.
+        Minimum shared prefix length after RNA and reference context are
+        normalized to the same length in transcript orientation.
 
     max_transcript_mismatches : int
         Maximum number of nucleotide differences between reference transcript
@@ -64,16 +64,18 @@ def match_variant_sequence_to_reference_context(
         # check the reverse-complemented prefix if the reference context is
         # on the negative strand since variant sequence is aligned to
         # genomic DNA (positive strand)
-        variant_sequence_too_short = (
-            (reference_context.strand == "+" and
-                len(variant_sequence.prefix) < min_transcript_prefix_length) or
-            (reference_context.strand == "-" and
-                len(variant_sequence.suffix) < min_transcript_prefix_length)
-        )
-        if variant_sequence_too_short:
+        variant_prefix_length = len(
+            variant_sequence.suffix if reference_context.strand == "-"
+            else variant_sequence.prefix)
+        # VariantORF trims both prefixes to their common length. Checking only
+        # the RNA length would let short reference contexts bypass the minimum.
+        shared_prefix_length = min(
+            variant_prefix_length,
+            len(reference_context.sequence_before_variant_locus))
+        if shared_prefix_length < min_transcript_prefix_length:
             logger.info(
-                "Prefix of variant sequence %s shorter than min allowed %d (iter=%d)",
-                variant_sequence,
+                "Shared RNA/reference prefix length %d shorter than min allowed %d (iter=%d)",
+                shared_prefix_length,
                 min_transcript_prefix_length,
                 i + 1)
             return None

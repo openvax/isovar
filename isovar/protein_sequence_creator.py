@@ -108,7 +108,8 @@ class ProteinSequenceCreator(ValueObject):
             min_variant_sequence_coverage=self.min_variant_sequence_coverage,
             preferred_sequence_length=self._cdna_sequence_length,
             variant_sequence_assembly=self.variant_sequence_assembly,
-            min_assembly_overlap_size=self.min_assembly_overlap_size)
+            min_assembly_overlap_size=self.min_assembly_overlap_size,
+            min_flanking_sequence_length=self.min_transcript_prefix_length)
 
         self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
 
@@ -281,7 +282,7 @@ class ProteinSequenceCreator(ValueObject):
 
         reference_contexts = reference_contexts_for_variant(
             variant,
-            context_size=self._cdna_sequence_length,
+            context_size=max(self._cdna_sequence_length, self.min_transcript_prefix_length),
             transcript_id_whitelist=transcript_id_whitelist)
 
         if len(reference_contexts) == 0:

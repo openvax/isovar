@@ -76,15 +76,23 @@ def group_unique_sequences(
     Given a list of AlleleRead objects, extracts all unique
     (prefix, allele, suffix) sequences and associate each with a list
     of reads that contained that sequence.
+
+    Flank limits are non-negative lengths: None leaves a flank unbounded,
+    while zero removes it. Trimming always retains the bases nearest the
+    variant and never modifies the allele itself.
     """
+    for name, limit in (("max_prefix_size", max_prefix_size),
+                        ("max_suffix_size", max_suffix_size)):
+        if limit is not None and limit < 0:
+            raise ValueError("%s must be non-negative or None" % name)
     groups = defaultdict(set)
     for r in allele_reads:
         prefix = r.prefix
         allele = r.allele
         suffix = r.suffix
-        if max_prefix_size and len(prefix) > max_prefix_size:
-            prefix = prefix[-max_prefix_size:]
-        if max_suffix_size and len(suffix) > max_suffix_size:
+        if max_prefix_size is not None and len(prefix) > max_prefix_size:
+            prefix = prefix[len(prefix) - max_prefix_size:]
+        if max_suffix_size is not None and len(suffix) > max_suffix_size:
             suffix = suffix[:max_suffix_size]
         key = (prefix, allele, suffix)
         groups[key].add(r)

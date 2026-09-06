@@ -38,7 +38,8 @@ class VariantSequenceCreator(object):
             min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
             preferred_sequence_length=VARIANT_SEQUENCE_LENGTH,
             variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY,
-            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
+            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+            min_flanking_sequence_length=0):
         """
         Parameters
         ----------
@@ -47,8 +48,9 @@ class VariantSequenceCreator(object):
             variant cDNA sequence
 
         preferred_sequence_length : int
-            Total number of nucleotides in the assembled sequences, including
-            variant nucleotides.
+            Preferred total number of nucleotides, including the alternate
+            allele. The allele and required flanking context may exceed this
+            budget; neither is discarded to meet a preferred output length.
 
         variant_sequence_assembly : bool
             Construct variant sequences by merging overlapping reads. If False
@@ -58,11 +60,22 @@ class VariantSequenceCreator(object):
             Minimum number of nucleotides shared by two sequences before they
             can be merged into a single VariantSequence object.
 
+        min_flanking_sequence_length : int
+            Minimum desired context on each side of the variant, retained
+            when available even if the preferred total length is exceeded.
+            Both genomic sides are needed since transcript strand is not yet
+            known. This does not pad reads or invent missing sequence.
+
         """
+        if preferred_sequence_length < 0:
+            raise ValueError("preferred_sequence_length must be non-negative")
+        if min_flanking_sequence_length < 0:
+            raise ValueError("min_flanking_sequence_length must be non-negative")
         self.min_variant_sequence_coverage = min_variant_sequence_coverage
         self.preferred_sequence_length = preferred_sequence_length
         self.variant_sequence_assembly = variant_sequence_assembly
         self.min_assembly_overlap_size = min_assembly_overlap_size
+        self.min_flanking_sequence_length = min_flanking_sequence_length
 
     def reads_to_variant_sequences(
             self,
@@ -96,7 +109,12 @@ class VariantSequenceCreator(object):
         # is half the desired length (minus the number of variant nucleotides)
         n_alt_nucleotides = len(alt_seq)
 
-        n_surrounding_nucleotides = self.preferred_sequence_length - n_alt_nucleotides
+        # The alternate allele may consume or exceed the preferred budget.
+        # Still retain the context needed for reference matching on either
+        # strand, and never pass negative flank limits to sequence slicing.
+        n_surrounding_nucleotides = max(
+            self.preferred_sequence_length - n_alt_nucleotides,
+            2 * self.min_flanking_sequence_length)
         max_nucleotides_after_variant = n_surrounding_nucleotides // 2
 
         # if the number of nucleotides we need isn't divisible by 2 then
@@ -124,7 +142,7 @@ class VariantSequenceCreator(object):
             # (whichever is smaller)
             min_overlap_size = min(
                 self.min_assembly_overlap_size,
-                n_surrounding_nucleotides // 2)
+                max(1, n_surrounding_nucleotides // 2))
             variant_sequences = iterative_overlap_assembly(
                 variant_sequences,
                 min_overlap_size=min_overlap_size,
