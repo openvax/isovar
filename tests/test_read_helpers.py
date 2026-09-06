@@ -15,6 +15,7 @@ from isovar.allele_read import AlleleRead
 from isovar.allele_read_helpers import group_unique_sequences, get_single_allele_from_reads
 
 from varcode import Variant
+import pytest
 
 from .common import eq_
 from .testing_helpers import load_bam
@@ -76,3 +77,28 @@ def test_get_single_allele_from_reads_empty_raises():
     import pytest
     with pytest.raises(ValueError):
         get_single_allele_from_reads([])
+
+
+@pytest.mark.parametrize("prefix_limit", [None, 0, 1, 2, 3, 4, 10])
+@pytest.mark.parametrize("suffix_limit", [None, 0, 1, 2, 3, 4, 10])
+@pytest.mark.parametrize("alt", ["", "C", "CTG"])
+def test_flank_limits_are_explicit_and_anchor_preserving(prefix_limit, suffix_limit, alt):
+    read = AlleleRead(prefix="ACG", allele=alt, suffix="TGA", name="read")
+    groups = group_unique_sequences([read], prefix_limit, suffix_limit)
+    expected_prefix = "".join(
+        base for i, base in enumerate(read.prefix)
+        if prefix_limit is None or len(read.prefix) - i <= prefix_limit)
+    expected_suffix = "".join(
+        base for i, base in enumerate(read.suffix)
+        if suffix_limit is None or i < suffix_limit)
+    assert groups == {(expected_prefix, alt, expected_suffix): {read}}
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"max_prefix_size": -1}, {"max_suffix_size": -1},
+    {"max_prefix_size": -20}, {"max_suffix_size": -20},
+])
+@pytest.mark.parametrize("reads", [[], [AlleleRead("ACG", "C", "TGA", "read")]])
+def test_negative_flank_limits_are_rejected(kwargs, reads):
+    with pytest.raises(ValueError, match="non-negative"):
+        group_unique_sequences(reads, **kwargs)
