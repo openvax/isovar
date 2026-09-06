@@ -46,12 +46,19 @@ def test_sequence_counts_snv():
     variant_sequences = variant_sequence_creator.reads_to_variant_sequences(
         variant=variant,
         reads=variant_reads)
-    assert len(variant_sequences) == 1
+    # Fourteen compatible read-spanned candidates have >=2x shared coverage.
+    # Previously only the longest exact-read group survived: the shorter
+    # candidates lost the other reads which also supported their bases.
+    assert len(variant_sequences) == 14
+    longest = max(variant_sequences, key=len)
+    eq_(len(longest.prefix), 30)
+    eq_(len(longest.suffix), 30)
     for variant_sequence in variant_sequences:
         print(variant_sequence)
         eq_(variant_sequence.alt, alt)
-        eq_(len(variant_sequence.prefix), 30)
-        eq_(len(variant_sequence.suffix), 30)
+        assert longest.contains(variant_sequence)
+        assert variant_sequence.min_coverage() >= 2
+        eq_(len(variant_sequence.reads), 19)
         eq_(
             variant_sequence.prefix + variant_sequence.alt + variant_sequence.suffix,
             variant_sequence.sequence)
@@ -476,7 +483,10 @@ def test_trim_variant_sequences_preserves_supported_substrings():
         [longer, shorter],
         min_variant_sequence_coverage=2)
 
-    eq_(set(trimmed), {longer, shorter})
+    eq_(set(trimmed), {
+        longer.add_reads(shorter.reads),
+        shorter.add_reads(longer.reads),
+    })
 
 
 def test_trim_variant_sequences_merges_only_exact_trimmed_duplicates():

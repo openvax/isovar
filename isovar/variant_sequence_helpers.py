@@ -141,12 +141,47 @@ def filter_variant_sequences_by_length(
     return nonempty_variant_sequences
 
 
+def _variant_sequences_with_shared_read_support(variant_sequences, read_groups):
+    """Assign compatible original reads to each retained candidate.
+
+    Compatibility is checked against the reads themselves, not transitively
+    through other candidates: a short core can match two conflicting longer
+    branches without either branch supporting the other. Overhangs outside a
+    candidate are irrelevant, and coverage still uses each read's real bounds.
+    No sequence is extended or invented here. Reads may support more than one
+    alternative; downstream aggregation deduplicates them by set union.
+    """
+    result = []
+    for sequence in variant_sequences:
+        supporting_reads = set()
+        for (prefix, alt, suffix), group in read_groups.items():
+            overlap_size = (
+                min(len(prefix), len(sequence.prefix)) + len(alt)
+                + min(len(suffix), len(sequence.suffix)))
+            if (alt == sequence.alt
+                    and overlap_size > 0
+                    and (prefix.endswith(sequence.prefix) or sequence.prefix.endswith(prefix))
+                    and (suffix.startswith(sequence.suffix) or sequence.suffix.startswith(suffix))):
+                supporting_reads.update(group)
+        if supporting_reads == sequence.reads:
+            result.append(sequence)
+        else:
+            result.append(VariantSequence(
+                prefix=sequence.prefix,
+                alt=sequence.alt,
+                suffix=sequence.suffix,
+                reads=supporting_reads))
+    return result
+
+
 def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
     """
     Trim VariantSequences to desired coverage and combine exact duplicates.
 
     Contained but non-identical candidates remain separate because reference
-    compatibility is not known at this stage.
+    compatibility is not known at this stage. Reconcile their compatible read
+    support before applying the coverage threshold, including when overlap
+    assembly is disabled.
 
     Parameters
     ----------
@@ -157,6 +192,15 @@ def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
     Returns list of VariantSequence
     """
     n_total = len(variant_sequences)
+    variant_sequences = merge_identical_sequences(
+        sequence for sequence in variant_sequences if len(sequence) > 0)
+    reads = {read for sequence in variant_sequences for read in sequence.reads}
+    # Compare once per distinct read sequence, rather than once per fragment
+    # or per appearance in the retained assembly history. Keep this original
+    # pool even when some of its candidates are discarded below.
+    read_groups = group_unique_sequences(reads)
+    variant_sequences = _variant_sequences_with_shared_read_support(
+        variant_sequences, read_groups)
     # when no base of a sequence has sufficient coverage, trim_by_coverage
     # returns an empty sequence which still carries every one of the original
     # reads. Those sequences are useless downstream and their read counts are
@@ -172,6 +216,11 @@ def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
     ]
     trimmed_variant_sequences = merge_identical_sequences(
         trimmed_variant_sequences)
+    # Removing low-coverage overhangs can make previously conflicting reads
+    # compatible. Recount against the original pool without extending the
+    # trimmed sequences or introducing another round of candidate generation.
+    trimmed_variant_sequences = _variant_sequences_with_shared_read_support(
+        trimmed_variant_sequences, read_groups)
     n_after_trimming = len(trimmed_variant_sequences)
     logger.info(
         "Kept %d/%d variant sequences after read coverage trimming to >=%dx",

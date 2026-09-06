@@ -40,6 +40,11 @@ logger = get_logger(__name__)
 DEFAULT_ASSEMBLY_KMER_SIZE = 15
 
 
+def _sequence_key(sequence):
+    """Canonical identity, including the position of the variant."""
+    return sequence.prefix, sequence.alt, sequence.suffix
+
+
 def _sequence_kmers(sequence, k):
     return {
         sequence[i:i + k]
@@ -106,6 +111,11 @@ def greedy_merge_helper(
     Returns a list of merged VariantSequence objects, and True if any
     were successfully merged.
     """
+    # Canonical indices make equal-score tie breaks independent of read/input
+    # order. Merge identical candidates first so splitting their read sets
+    # between duplicate entries cannot change their support score.
+    variant_sequences = sorted(
+        merge_identical_sequences(variant_sequences), key=_sequence_key)
     candidates = []
     for i, j in _greedy_merge_candidate_pairs(
             variant_sequences,
@@ -122,7 +132,7 @@ def greedy_merge_helper(
     if not candidates:
         return list(variant_sequences), False
 
-    # largest overlap first, then most reads, then indices for determinism
+    # Largest overlap first, then most reads, then canonical sequence indices.
     candidates.sort(key=lambda c: (-c[0], -c[1], c[2], c[3]))
 
     used = set()
@@ -132,7 +142,7 @@ def greedy_merge_helper(
             continue
         used.add(i)
         used.add(j)
-        combined_key = (combined.prefix, combined.alt, combined.suffix)
+        combined_key = _sequence_key(combined)
         if combined_key in merged_variant_sequences:
             existing = merged_variant_sequences[combined_key]
             combined = combined.add_reads(existing.reads)
@@ -167,7 +177,7 @@ def greedy_merge(
 
     def preserve_candidates(candidates):
         for candidate in candidates:
-            key = (candidate.prefix, candidate.alt, candidate.suffix)
+            key = _sequence_key(candidate)
             if key in intermediate_candidates:
                 candidate = intermediate_candidates[key].add_reads(
                     candidate.reads)
@@ -183,7 +193,7 @@ def greedy_merge(
         if preserve_intermediate_candidates and merged_any:
             preserve_candidates(variant_sequences)
     if preserve_intermediate_candidates:
-        return list(intermediate_candidates.values())
+        return sorted(intermediate_candidates.values(), key=_sequence_key)
     return variant_sequences
 
 
@@ -198,6 +208,7 @@ def collapse_substrings(variant_sequences):
 
     Returns a (potentially shorter) list without any contained subsequences.
     """
+    variant_sequences = merge_identical_sequences(variant_sequences)
     if len(variant_sequences) <= 1:
         # if we don't have at least two VariantSequences then just
         # return your input
@@ -207,10 +218,11 @@ def collapse_substrings(variant_sequences):
     # they absorb from substring VariantSequences
     extra_reads_from_substrings = defaultdict(set)
     result_list = []
-    # sort by longest to shortest total length
+    # Longest first, with content-based ties so an ambiguous contained read
+    # is always assigned to the same parent regardless of input order.
     for short_variant_sequence in sorted(
             variant_sequences,
-            key=lambda seq: -len(seq)):
+            key=lambda seq: (-len(seq), _sequence_key(seq))):
         found_superstring = False
         for long_variant_sequence in result_list:
             if long_variant_sequence.contains(short_variant_sequence):
@@ -239,11 +251,7 @@ def merge_identical_sequences(variant_sequences):
     """
     sequences_by_parts = {}
     for variant_sequence in variant_sequences:
-        key = (
-            variant_sequence.prefix,
-            variant_sequence.alt,
-            variant_sequence.suffix,
-        )
+        key = _sequence_key(variant_sequence)
         if key in sequences_by_parts:
             variant_sequence = sequences_by_parts[key].add_reads(
                 variant_sequence.reads)
