@@ -14,6 +14,8 @@ import random
 from itertools import permutations
 from time import time
 
+import pytest
+
 from isovar.read_collector import ReadCollector
 from isovar.variant_sequence import VariantSequence
 from isovar.variant_sequence_helpers import initial_variant_sequences_from_reads
@@ -468,6 +470,55 @@ def test_greedy_merge_deterministic_across_input_orders():
         assert result_all_reads == reference_all_reads, \
             "Trial %d: different reads from shuffled input.\nRef: %s\nGot: %s" % (
                 trial, reference_all_reads, result_all_reads)
+
+
+@pytest.mark.parametrize("assemble", [greedy_merge, iterative_overlap_assembly])
+def test_equal_score_competing_merges_are_deterministic(assemble):
+    candidates = [
+        VariantSequence("AAA", "C", "", {"left"}),
+        VariantSequence("AA", "C", "GG", {"right_g"}),
+        VariantSequence("AA", "C", "TT", {"right_t"}),
+    ]
+    expected = None
+    for ordered in permutations(candidates):
+        result = assemble(ordered, min_overlap_size=1)
+        observed = [(s.prefix, s.alt, s.suffix, s.reads) for s in result]
+        if expected is None:
+            expected = observed
+        assert observed == expected
+    assert any(s[0] == "AAA" and len(s[2]) == 2 for s in expected)
+
+
+def test_equal_length_substring_parents_have_deterministic_support():
+    candidates = [
+        VariantSequence("AAA", "C", "GGG", {"left"}),
+        VariantSequence("TAA", "C", "GGG", {"right"}),
+        VariantSequence("AA", "C", "GG", {"core"}),
+        # Duplicate triples must also pool their support deterministically.
+        VariantSequence("AAA", "C", "GGG", {"left_duplicate"}),
+    ]
+    expected = None
+    for ordered in permutations(candidates):
+        result = collapse_substrings(ordered)
+        observed = [(s.prefix, s.alt, s.suffix, s.reads) for s in result]
+        if expected is None:
+            expected = observed
+        assert observed == expected
+    assert len(expected) == 2
+    assert set().union(*(s[3] for s in expected)) == {
+        "left", "right", "core", "left_duplicate"}
+
+
+def test_duplicate_candidate_read_partitions_do_not_change_merge_choice():
+    left = VariantSequence("AAA", "C", "", {"left"})
+    right_g = VariantSequence("AA", "C", "GG", {"g1", "g2"})
+    right_t = VariantSequence("AA", "C", "TT", {"t1", "t2"})
+    expected = greedy_merge([left, right_g, right_t], min_overlap_size=1)
+    split = [left, right_t,
+             VariantSequence("AA", "C", "GG", {"g1"}),
+             VariantSequence("AA", "C", "GG", {"g2"})]
+    for ordered in permutations(split):
+        assert greedy_merge(ordered, min_overlap_size=1) == expected
 
 
 def test_greedy_merge_helper_skips_impossible_pairs(monkeypatch):

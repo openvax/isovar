@@ -30,8 +30,8 @@ logger = get_logger(__name__)
 class VariantSequenceCreator(object):
     """
     Assemble AlleleReads into candidate VariantSequence objects based on
-    overlap, retaining independently supported contained candidates for
-    reference matching.
+    overlap, retaining contained candidates with their compatible read
+    support for reference matching.
     """
     def __init__(
             self,
@@ -156,9 +156,10 @@ class VariantSequenceCreator(object):
             logger.info("After coverage filtering: 0 variant sequences")
             return []
 
-        # sort VariantSequence objects by decreasing order of supporting read
-        # counts
-        variant_sequences.sort(key=lambda vs: -len(vs.reads))
+        # Sort by decreasing read support, with content-based ties even when
+        # overlap assembly is disabled.
+        variant_sequences.sort(key=lambda vs: (
+            -len(vs.reads), vs.prefix, vs.alt, vs.suffix))
         return variant_sequences
 
     def sequences_from_alt_reads_generator(self, variant_and_reads_generator):

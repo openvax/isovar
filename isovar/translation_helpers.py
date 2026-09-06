@@ -16,7 +16,6 @@ Helper functions used for creating translating a variant's cDNA sequence
 into a particular reading frame.
 """
 
-import math
 
 def find_mutant_amino_acid_interval(
         cdna_sequence,
@@ -72,7 +71,6 @@ def find_mutant_amino_acid_interval(
 
     frame_of_variant_nucleotides = n_coding_nucleotides_before_variant % 3
     frameshift = abs(n_ref - n_alt) % 3 != 0
-    indel = n_ref != n_alt
 
     variant_aa_interval_start = n_complete_prefix_codons
 
@@ -83,31 +81,12 @@ def find_mutant_amino_acid_interval(
         # TODO: what if the first k amino acids are synonymous with the reference sequence?
         variant_aa_interval_end = n_amino_acids
     else:
-        n_alt_codons = int(math.ceil(n_alt / 3.0))
-        if indel:
-            # We need to adjust the number of affected codons by whether the
-            # variant is aligned with codon boundaries, since in-frame indels
-            # may still be split across multiple codons.
-            #
-            # Example of in-frame deletion of 3 nucleotides which leaves
-            # 0 variant codons in the sequence (interval = 1:1)
-            #   ref = CCC|AAA|GGG|TTT
-            #   alt = CCC|GGG|TTT
-            #
-            # Example of in-frame deletion of 3 nucleotides which leaves
-            # 1 variant codon in the sequence (interval = 1:2)
-            #   ref = CCC|AAA|GGG|TTT
-            #   alt = CCC|AGG|TTT
-            #
-            # Example of in-frame insertion of 3 nucleotides which
-            # yields two variant codons:
-            #   ref = CCC|AAA|GGG|TTT
-            #   alt = CTT|TCC|AAA|GGG|TTT
-            extra_affected_codon = int(frame_of_variant_nucleotides != 0)
-            variant_aa_interval_end = (
-                variant_aa_interval_start + n_alt_codons + extra_affected_codon)
-        else:
-            # if the variant is a simple substitution then it only affects
-            # as many codons as are in the alternate sequence
-            variant_aa_interval_end = variant_aa_interval_start + n_alt_codons
+        # Count codons from the start of the first affected codon, not from
+        # the first alternate base. Substitutions can cross codon boundaries
+        # too (ATG|AAA -> ATT|CCA changes two amino acids for GAA -> TCC).
+        # This also handles in-frame delins without overcounting a codon.
+        # For pure deletions, a codon-aligned junction has zero width; an
+        # off-boundary junction joins partial codons into one affected codon.
+        n_affected_codons = (frame_of_variant_nucleotides + n_alt + 2) // 3
+        variant_aa_interval_end = variant_aa_interval_start + n_affected_codons
     return variant_aa_interval_start, variant_aa_interval_end, frameshift

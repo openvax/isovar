@@ -24,6 +24,7 @@ from isovar.reference_context import ReferenceContext
 from isovar.allele_read import AlleleRead
 from isovar.dna import reverse_complement_dna
 from isovar.protein_sequence_creator import ProteinSequenceCreator
+from isovar.protein_sequence_helpers import group_equivalent_translations
 from isovar.variant_sequence_creator import VariantSequenceCreator
 from isovar.variant_sequence_helpers import filter_variant_sequences
 
@@ -315,10 +316,20 @@ def test_nested_assemblies_reach_reference_matching_independently(
         compatible_sequence = reverse_complement_dna("AAA")
     eq_(observed_candidates,
         set(genomic_prefixes if strand == "+" else genomic_suffixes))
-    eq_(len(translations), 1)
-    translated_sequence = translations[0].untrimmed_variant_sequence
+    # Shared support also allows two longer candidates to trim down to the
+    # same compatible core. The original shortest candidate must still reach
+    # translation independently, and grouping must not multiply its support.
+    eq_(len(translations), 3)
+    translated_sequence, = [
+        translation.untrimmed_variant_sequence for translation in translations
+        if (translation.untrimmed_variant_sequence.prefix if strand == "+" else
+            translation.untrimmed_variant_sequence.suffix) == compatible_sequence
+    ]
     eq_(translated_sequence.prefix if strand == "+" else translated_sequence.suffix,
         compatible_sequence)
+    protein_sequence, = group_equivalent_translations(translations)
+    eq_(protein_sequence.num_supporting_fragments, 8)
+    eq_(protein_sequence.num_supporting_reads, 8)
 
 
 def test_protein_sequence_creator_translates_coding_deletion():
