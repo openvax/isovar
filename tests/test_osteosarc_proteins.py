@@ -107,7 +107,9 @@ def test_reference_edits_reproduce_reported_protein_changes(record):
 ])
 def test_protein_oracle_detects_corrupted_translation(protein_cases, attribute, value):
     variant, evidence, expected = protein_cases["ont_t1", "PIP5K1A"]
-    translation = ProteinSequenceCreator().translate_variant_reads(variant, evidence.alt_reads)[0]
+    translation = ProteinSequenceCreator(protein_sequence_length=20).translate_variant_reads(
+        variant, evidence.alt_reads)[0]
+    assert check_translation(translation, expected, 20)["matches_expected"]
     corrupt = copy.copy(translation)
     setattr(corrupt, attribute, value)
     with pytest.raises(AssertionError):
@@ -116,7 +118,10 @@ def test_protein_oracle_detects_corrupted_translation(protein_cases, attribute, 
 
 def test_protein_oracle_detects_wrong_reading_frame(protein_cases):
     variant, evidence, expected = protein_cases["ont_t1", "PIP5K1A"]
-    corrupt = copy.copy(ProteinSequenceCreator().translate_variant_reads(variant, evidence.alt_reads)[0])
+    translation = ProteinSequenceCreator(protein_sequence_length=20).translate_variant_reads(
+        variant, evidence.alt_reads)[0]
+    assert check_translation(translation, expected, 20)["matches_expected"]
+    corrupt = copy.copy(translation)
     corrupt.variant_orf = copy.copy(corrupt.variant_orf)
     corrupt.variant_orf.offset_to_first_complete_codon = (corrupt.offset_to_first_complete_codon + 1) % 3
     with pytest.raises(AssertionError):
@@ -168,16 +173,69 @@ def test_subset_reference_does_not_poison_full_grch38_contig_validation(protein_
 
 def test_full_region_snapshot_validates_proteins_without_calling_no_alt_a_failure():
     report = json.loads((DATA / "sample_audit.json").read_text())
-    assert report["schema_version"] == 2
+    assert report["schema_version"] == 3
     supported = 0
     for row in report["rows"]:
         for mode in ("primary_only", "defaults"):
             result = row[mode]
             assert result["status"] == "ok"
-            for key in ("protein_default", "protein_coverage1"):
+            for key in ("protein_default", "protein_coverage1", "protein_support20", "protein_balanced95"):
                 protein = result[key]
                 assert protein["status"] == "ok"
                 assert protein["outcome"] == ("expected_top_protein" if result["counts"]["alt"] else "no_alt_reads")
+                if key != "protein_support20":
+                    assert protein["target_protein_length"] == 49
+                    assert protein["peptide_length"] == 25
+                    for top in protein["top_proteins"]:
+                        assert top["fraction_of_best_candidate_support"] >= protein["min_support_fraction"]
+                        assert top["mutation_containing_peptide_windows"] >= 0
+            assert result["protein_context"]["status"] == "ok"
             if mode == "primary_only" and result["counts"]["alt"]:
                 supported += 1
     assert supported == 9
+
+
+@pytest.mark.parametrize("sample", MANIFEST["datasets"])
+@pytest.mark.parametrize("gene", [r["gene"] for r in SELECTION["variants"]])
+@pytest.mark.parametrize("fraction", [0.9, 0.95, 1.0])
+def test_real_rna_balanced_selection_respects_budget_and_independent_oracle(protein_cases, sample, gene, fraction):
+    variant, evidence, expected = protein_cases[sample, gene]
+    result = audit.protein_result(variant, evidence, expected, min_protein_sequence_support_fraction=fraction)
+    assert result["status"] == "ok", result
+    assert result["preference"] == "balanced"
+    assert result["target_protein_length"] == 49
+    assert result["candidate_context_lengths"] == [20, 25, 29, 33, 37, 41, 45, 49]
+    for top in result["top_proteins"]:
+        assert top["matches_expected"], result
+        assert top["fraction_of_best_candidate_support"] >= fraction
+        assert top["supporting_read_names"] <= len(evidence.alt_read_names)
+
+
+def test_full_region_dync1h1_context_and_support_tradeoffs():
+    report = json.loads((DATA / "sample_audit.json").read_text())
+    expected = {
+        "bulk_star_t0": {"protein_support20": (9, 121, 0), "protein_default": (47, 111, 23),
+                         "protein_balanced95": (35, 115, 11), "protein_context": (47, 111, 23)},
+        "ont_t1": {"protein_support20": (20, 766, 0), "protein_default": (33, 692, 9),
+                   "protein_balanced95": (25, 744, 1), "protein_context": (49, 516, 25)},
+    }
+    for row in report["rows"]:
+        if row["variant"]["gene"] != "DYNC1H1":
+            continue
+        for key, values in expected[row["sample"]].items():
+            top, = row["primary_only"][key]["top_proteins"]
+            assert top["matches_expected"]
+            assert (len(top["amino_acids"]), top["supporting_read_names"],
+                    top["mutation_containing_peptide_windows"]) == values
+
+
+def test_full_region_context_first_can_select_weak_discordant_rna():
+    report = json.loads((DATA / "sample_audit.json").read_text())
+    row, = [r for r in report["rows"] if r["sample"] == "ont_t1" and r["variant"]["gene"] == "H1-2"]
+    balanced, = row["primary_only"]["protein_default"]["top_proteins"]
+    context, = row["primary_only"]["protein_context"]["top_proteins"]
+    assert balanced["matches_expected"]
+    assert balanced["fraction_of_best_candidate_support"] >= .9
+    assert len(context["amino_acids"]) == 49
+    assert context["supporting_read_names"] == 6
+    assert not context["matches_expected"]

@@ -16,7 +16,7 @@ from ..main import ProteinSequenceCreator
 from ..dataframe_helpers import protein_sequences_generator_to_dataframe
 
 from .rna_args import read_evidence_generator_from_args
-from .translation_args import make_translation_arg_parser
+from .translation_args import make_translation_arg_parser, protein_sequence_creator_kwargs_from_args
 
 
 def add_protein_sequence_args(parser):
@@ -40,12 +40,8 @@ def protein_sequence_creator_from_args(args):
     Create ProteinSequenceCreator instance from parsed commandline arguments
     """
     return ProteinSequenceCreator(
-        protein_sequence_length=args.protein_sequence_length,
-        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
-        min_transcript_prefix_length=args.min_transcript_prefix_length,
-        max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        max_protein_sequences_per_variant=args.max_protein_sequences_per_variant,
-        variant_sequence_assembly=args.variant_sequence_assembly)
+        **protein_sequence_creator_kwargs_from_args(args),
+        max_protein_sequences_per_variant=args.max_protein_sequences_per_variant)
 
 
 def make_protein_sequences_arg_parser(**kwargs):

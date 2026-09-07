@@ -11,11 +11,15 @@
 # limitations under the License.
 
 
+from numbers import Integral
+
 from .default_parameters import (
     MIN_TRANSCRIPT_PREFIX_LENGTH,
     MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
     COUNT_MISMATCHES_AFTER_VARIANT,
-    PROTEIN_SEQUENCE_LENGTH,
+    PROTEIN_CONTEXT_PEPTIDE_LENGTH,
+    PROTEIN_SEQUENCE_PREFERENCE,
+    MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION,
     MAX_PROTEIN_SEQUENCES_PER_VARIANT,
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_ASSEMBLY,
@@ -25,7 +29,8 @@ from .default_parameters import (
 from .genetic_code import translate_cdna
 from .protein_sequence_helpers import (
     sort_protein_sequences,
-    group_equivalent_translations
+    group_equivalent_translations,
+    validate_protein_sequence_preference,
 )
 from .reference_context_helpers import reference_contexts_for_variant
 from .translation import Translation
@@ -50,19 +55,23 @@ class ProteinSequenceCreator(ValueObject):
 
     def __init__(
             self,
-            protein_sequence_length=PROTEIN_SEQUENCE_LENGTH,
+            protein_sequence_length=None,
             min_variant_sequence_coverage=MIN_VARIANT_SEQUENCE_COVERAGE,
             min_transcript_prefix_length=MIN_TRANSCRIPT_PREFIX_LENGTH,
             max_transcript_mismatches=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
             count_mismatches_after_variant=COUNT_MISMATCHES_AFTER_VARIANT,
             max_protein_sequences_per_variant=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
             variant_sequence_assembly=VARIANT_SEQUENCE_ASSEMBLY,
-            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE):
+            min_assembly_overlap_size=MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+            protein_sequence_preference=PROTEIN_SEQUENCE_PREFERENCE,
+            protein_context_peptide_length=PROTEIN_CONTEXT_PEPTIDE_LENGTH,
+            min_protein_sequence_support_fraction=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION):
         """
         protein_sequence_length : int
             Try to translate protein sequences of this length, though sometimes
             we'll have to return something shorter (depending on the RNAseq data,
-            and presence of stop codons).
+            and presence of stop codons). None chooses 2 * peptide length - 1:
+            49 aa for a single changed residue and every overlapping 25mer.
 
         min_variant_sequence_coverage : int
             Trim variant sequences to positions supported by at least this number
@@ -91,7 +100,34 @@ class ProteinSequenceCreator(ValueObject):
         min_assembly_overlap_size : int
             Minimum number of nucleotides that two reads need to overlap before they
             can be merged into a single coding sequence.
+
+        protein_sequence_preference : str
+            balanced (default) maximizes mutation-containing peptide windows
+            within the support budget. support uses the historical single-scale
+            support-first algorithm. context maximizes windows without that
+            relative budget; it can select substantially weaker RNA evidence.
+
+        protein_context_peptide_length : int
+            Length of vaccine peptides for evaluating available context. This
+            counts sequence windows, not predicted binders or immunogenicity.
+
+        min_protein_sequence_support_fraction : float
+            In balanced mode, retain at least this fraction of the best mutant
+            candidate's compatible read-name support (default 0.9). Total allele
+            support is retained separately in ReadEvidence. This is a selection
+            tolerance, not a confidence probability. Absolute RNA filters remain.
         """
+        validate_protein_sequence_preference(
+            protein_sequence_preference, protein_context_peptide_length,
+            min_protein_sequence_support_fraction)
+        if protein_sequence_length is None:
+            protein_sequence_length = 2 * protein_context_peptide_length - 1
+        if (isinstance(protein_sequence_length, bool)
+                or not isinstance(protein_sequence_length, Integral) or protein_sequence_length < 0):
+            raise ValueError("protein_sequence_length must be a non-negative integer or None")
+        self.protein_sequence_preference = protein_sequence_preference
+        self.protein_context_peptide_length = protein_context_peptide_length
+        self.min_protein_sequence_support_fraction = min_protein_sequence_support_fraction
         self.protein_sequence_length = protein_sequence_length
         self.min_variant_sequence_coverage = min_variant_sequence_coverage
         self.min_transcript_prefix_length = min_transcript_prefix_length
@@ -100,18 +136,56 @@ class ProteinSequenceCreator(ValueObject):
         self.variant_sequence_assembly = variant_sequence_assembly
         self.min_assembly_overlap_size = min_assembly_overlap_size
 
-        # Adding an extra codon to the desired RNA sequence length in case we
-        # need to clip nucleotides at the start/end of the sequence
-        self._cdna_sequence_length = (self.protein_sequence_length + 1) * 3
+        # Two extra bases suffice for a partial leading codon and center odd
+        # SNV windows in every phase. Preserve the old budget in support mode.
+        extra_bases = 3 if protein_sequence_preference == "support" else 2
+        self._cdna_sequence_length = self.protein_sequence_length * 3 + extra_bases
+        self._variant_sequence_creator = self._make_variant_sequence_creator(self._cdna_sequence_length)
+        self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
 
-        self._variant_sequence_creator = VariantSequenceCreator(
+    def _make_variant_sequence_creator(self, cdna_length):
+        return VariantSequenceCreator(
             min_variant_sequence_coverage=self.min_variant_sequence_coverage,
-            preferred_sequence_length=self._cdna_sequence_length,
+            preferred_sequence_length=cdna_length,
             variant_sequence_assembly=self.variant_sequence_assembly,
             min_assembly_overlap_size=self.min_assembly_overlap_size,
             min_flanking_sequence_length=self.min_transcript_prefix_length)
 
-        self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
+    def candidate_context_lengths(self):
+        """A bounded ladder keeps short-context support available for ranking."""
+        target, peptide = self.protein_sequence_length, self.protein_context_peptide_length
+        if self.protein_sequence_preference == "support" or target <= peptide:
+            return [target]
+        # Six increments at most, plus the 20-aa fallback and peptide length.
+        # Default 25/49: 20,25,29,33,37,41,45,49. No unbounded repeated passes.
+        step = max(1, (target - peptide + 5) // 6)
+        return sorted({min(20, target), peptide, target, *range(peptide, target, step)})
+
+    def variant_sequences_from_reads(self, variant, reads):
+        """Retain multiple context sizes; merge only identical RNA sequences.
+
+        A shorter context may match the reference when longer noisy flanks do
+        not. Supporting reads are set unions of the same original objects,
+        never duplicated counts or incompatible extensions of a short sequence.
+        """
+        reads = list(reads)
+        if not reads:
+            return []
+        if self.protein_sequence_preference == "support":
+            # Preserve the original single-scale candidate order as well as
+            # its extraction budget (protein support ties are stable).
+            return self._variant_sequence_creator.reads_to_variant_sequences(variant, reads)
+        sequences = {}
+        for length in self.candidate_context_lengths():
+            creator = (self._variant_sequence_creator if length == self.protein_sequence_length
+                       else self._make_variant_sequence_creator(3 * length + 2))
+            for sequence in creator.reads_to_variant_sequences(variant, reads):
+                key = (sequence.prefix, sequence.alt, sequence.suffix)
+                if key in sequences:
+                    sequences[key] = sequences[key].add_reads(sequence.reads)
+                else:
+                    sequences[key] = sequence
+        return [sequences[key] for key in sorted(sequences)]
 
     def translation_from_variant_sequence_and_reference_context(
                 self,
@@ -276,6 +350,7 @@ class ProteinSequenceCreator(ValueObject):
 
         Returns list of Translation objects
         """
+        variant_reads = list(variant_reads)
         if len(variant_reads) == 0:
             logger.info("No supporting reads for variant %s", variant)
             return []
@@ -289,7 +364,7 @@ class ProteinSequenceCreator(ValueObject):
             logger.info("Could not determine reference context for variant %s", variant)
             return []
 
-        variant_sequences = self._variant_sequence_creator.reads_to_variant_sequences(
+        variant_sequences = self.variant_sequences_from_reads(
             variant=variant,
             reads=variant_reads)
 
@@ -364,7 +439,11 @@ class ProteinSequenceCreator(ValueObject):
         protein_sequences = group_equivalent_translations(translations)
 
         # sort protein sequences before returning the top results
-        protein_sequences = sort_protein_sequences(protein_sequences)
+        protein_sequences = sort_protein_sequences(
+            protein_sequences,
+            preference=self.protein_sequence_preference,
+            peptide_length=self.protein_context_peptide_length,
+            min_support_fraction=self.min_protein_sequence_support_fraction)
 
         if self.max_protein_sequences_per_variant:
             protein_sequences = protein_sequences[:self.max_protein_sequences_per_variant]

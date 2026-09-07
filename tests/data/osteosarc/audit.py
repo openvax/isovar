@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT))
 from isovar import __version__  # noqa: E402
 from isovar.read_collector import ReadCollector  # noqa: E402
 from isovar.protein_sequence_creator import ProteinSequenceCreator  # noqa: E402
+from isovar.protein_sequence_helpers import group_equivalent_translations, mutant_peptide_window_count  # noqa: E402
 from isovar.reference_context_helpers import reference_contexts_for_variant  # noqa: E402
 from isovar.variant_sequence_creator import VariantSequenceCreator  # noqa: E402
 from tests.real_rna_helpers import cigar_observation  # noqa: E402
@@ -57,11 +58,16 @@ def sequence_result(variant, alt_reads, coverage):
             "lengths": sorted({len(s) for s in sequences})}
 
 
-def protein_result(variant, evidence, expected, coverage=2):
+def protein_result(variant, evidence, expected, coverage=2, **creator_options):
     """Exercise the public protein pipeline; retain failures at their stage."""
-    creator = ProteinSequenceCreator(min_variant_sequence_coverage=coverage)
+    creator = ProteinSequenceCreator(min_variant_sequence_coverage=coverage, **creator_options)
     whitelist = {expected["transcript_id"]}
     result = {"status": "ok", "min_coverage": coverage,
+              "preference": creator.protein_sequence_preference,
+              "target_protein_length": creator.protein_sequence_length,
+              "peptide_length": creator.protein_context_peptide_length,
+              "min_support_fraction": creator.min_protein_sequence_support_fraction,
+              "candidate_context_lengths": creator.candidate_context_lengths(),
               "transcript_version": expected["transcript_version"],
               "protein_version": expected["protein_version"],
               "strand": expected["strand"],
@@ -70,7 +76,7 @@ def protein_result(variant, evidence, expected, coverage=2):
               "expected_mutant_protein_sha256": sha256(expected["mutant_protein"].encode()).hexdigest()}
     stage = "protein_sequence_creation"
     try:
-        sequences = creator._variant_sequence_creator.reads_to_variant_sequences(variant, evidence.alt_reads)
+        sequences = creator.variant_sequences_from_reads(variant, evidence.alt_reads)
         result["rna_candidate_count"] = len(sequences)
         stage = "reference_matching"
         contexts = reference_contexts_for_variant(variant, creator._cdna_sequence_length, whitelist)
@@ -81,6 +87,9 @@ def protein_result(variant, evidence, expected, coverage=2):
         stage = "protein_validation"
         checks = [check_translation(t, expected, creator.protein_sequence_length) for t in translations]
         result["expected_matching_translation_count"] = sum(c["matches_expected"] for c in checks)
+        candidates = group_equivalent_translations(translations)
+        best_support = max((p.num_supporting_fragments for p in candidates if p.contains_mutation), default=0)
+        result["best_candidate_read_names"] = best_support
         stage = "protein_ranking"
         proteins = creator.sorted_protein_sequences_for_variant(variant, evidence, whitelist)
         stage = "protein_validation"
@@ -94,6 +103,9 @@ def protein_result(variant, evidence, expected, coverage=2):
                 "contains_mutation": protein.contains_mutation, "frameshift": protein.frameshift,
                 "ends_with_stop_codon": protein.ends_with_stop_codon,
                 "supporting_read_names": protein.num_supporting_fragments,
+                "fraction_of_best_candidate_support": protein.num_supporting_fragments / best_support if best_support else None,
+                "mutation_containing_peptide_windows": mutant_peptide_window_count(
+                    protein, creator.protein_context_peptide_length),
                 "matches_expected": all(c["matches_expected"] for c in top_checks),
                 "expected_amino_acids": sorted({c["expected_amino_acids"] for c in top_checks}),
                 "protein_starts_1based": sorted({c["protein_start_1based"] for c in top_checks}),
@@ -130,6 +142,13 @@ def isovar_result(bam, variant, expected=None):
     if expected is not None:
         result["protein_default"] = protein_result(variant, evidence, expected)
         result["protein_coverage1"] = protein_result(variant, evidence, expected, coverage=1)
+        # Frozen algorithmic comparison, not the current default.
+        result["protein_support20"] = protein_result(
+            variant, evidence, expected, protein_sequence_length=20, protein_sequence_preference="support")
+        result["protein_balanced95"] = protein_result(
+            variant, evidence, expected, min_protein_sequence_support_fraction=0.95)
+        result["protein_context"] = protein_result(
+            variant, evidence, expected, protein_sequence_preference="context")
     return result
 
 
@@ -184,7 +203,7 @@ def build_report(source_dir):
         if sha256(source.read_bytes()).hexdigest() != data["source_sam_sha256"]:
             raise ValueError(f"Original regional source checksum mismatch: {source.name}")
     report = {
-        "schema_version": 2,
+        "schema_version": 3,
         "software": {"isovar": __version__, "python": platform.python_version(),
                      "pysam": pysam.__version__, "samtools": pysam.__samtools_version__,
                      "pyensembl": version("pyensembl"), "varcode": version("varcode")},
