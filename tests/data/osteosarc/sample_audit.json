@@ -1,10 +1,12 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "software": {
     "isovar": "1.7.12",
     "python": "3.12.6",
     "pysam": "0.24.0",
-    "samtools": "1.23.1"
+    "samtools": "1.23.1",
+    "pyensembl": "2.9.0",
+    "varcode": "5.0.6"
   },
   "read_collection_defaults": {
     "use_secondary_alignments": true,
@@ -19,6 +21,52 @@
     "variant_sequence_assembly": false,
     "min_assembly_overlap_size": 30,
     "min_flanking_sequence_length": 0
+  },
+  "protein_validation": {
+    "scope": "one pinned transcript per variant; nominated edit only; not vaccine construct validation",
+    "reference_manifest": {
+      "assembly": "GRCh38",
+      "ensembl_release": 87,
+      "transcripts": {
+        "PIP5K1A": "ENST00000368888",
+        "MAP2": "ENST00000360351",
+        "H1-2": "ENST00000343677",
+        "EXOC4": "ENST00000253861",
+        "GTF3C5": "ENST00000372108",
+        "DYNC1H1": "ENST00000360184"
+      },
+      "files": {
+        "reference.gtf.gz": {
+          "source_url": "https://ftp.ensembl.org/pub/release-87/gtf/homo_sapiens/Homo_sapiens.GRCh38.87.gtf.gz",
+          "source_sha256": "9e8643982742980f81277865b5a1d543a02fa2bfe889acffaf797436950d9ebe",
+          "subset_sha256": "9815129901258827a20376b3f629c8a0e9b5432b995d4fa5767cb35a8d20fae6",
+          "uncompressed_sha256": "45c4ccf4d02aef1293402f1886cfe9b840085a11269107ed3d7cf0d49e883d63"
+        },
+        "reference.cdna.fa.gz": {
+          "source_url": "https://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz",
+          "source_sha256": "9d77df788bc30aa86d6aa8d4b8d5bbe9d9c2a0ae6c0a8eda600524685aa11875",
+          "subset_sha256": "680cc56c2646b12e45102ba114f24b76ec49b22f74e4835ebdc4d6136b7249c9",
+          "uncompressed_sha256": "cc31da0c6855b035a7356edd1c8eab2a04a00219046b9192192ccd47924f3d37"
+        },
+        "reference.pep.fa.gz": {
+          "source_url": "https://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/pep/Homo_sapiens.GRCh38.pep.all.fa.gz",
+          "source_sha256": "d873c199d5dbf20869db3f2cbd6ac726259215d91c2782f9f1ddcad4bb117cf9",
+          "subset_sha256": "77aaf87ed41f94ab6031796117d3b5f1cc09445af48db6b524f00be79f6149d4",
+          "uncompressed_sha256": "ca9939bea492e2964e8b4b2d0c862a0f2c2bb50e40b4ceded4ec579351f3c6aa"
+        }
+      }
+    },
+    "defaults": {
+      "protein_sequence_length": 20,
+      "min_variant_sequence_coverage": 2,
+      "min_transcript_prefix_length": 10,
+      "max_transcript_mismatches": 2,
+      "count_mismatches_after_variant": false,
+      "variant_sequence_assembly": false,
+      "min_assembly_overlap_size": 30,
+      "max_protein_sequences_per_variant": 1
+    },
+    "reference_dataset_identity": "GRCh38-osteosarc-six-transcript-subset"
   },
   "primary_exclude_flags": 3328,
   "sources": {
@@ -79,6 +127,38 @@
           "candidate_count": 0,
           "represented_read_names": 0,
           "lengths": []
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
         }
       },
       "defaults": {
@@ -102,6 +182,38 @@
           "candidate_count": 0,
           "represented_read_names": 0,
           "lengths": []
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
         }
       }
     },
@@ -150,6 +262,38 @@
           "candidate_count": 0,
           "represented_read_names": 0,
           "lengths": []
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
         }
       },
       "defaults": {
@@ -173,6 +317,38 @@
           "candidate_count": 0,
           "represented_read_names": 0,
           "lengths": []
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
         }
       }
     },
@@ -231,6 +407,76 @@
             89,
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 1,
+          "reference_context_count": 1,
+          "translation_count": 1,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "KSAAKAVKPKVVKPKKAAPK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 21,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KSAAKAVKPKVVKPKKAAPK"
+              ],
+              "protein_starts_1based": [
+                187
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 1,
+          "reference_context_count": 1,
+          "translation_count": 1,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "KSAAKAVKPKVVKPKKAAPK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 21,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KSAAKAVKPKVVKPKKAAPK"
+              ],
+              "protein_starts_1based": [
+                187
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       },
       "defaults": {
@@ -265,6 +511,76 @@
             89,
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 1,
+          "reference_context_count": 1,
+          "translation_count": 1,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "KSAAKAVKPKVVKPKKAAPK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 25,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KSAAKAVKPKVVKPKKAAPK"
+              ],
+              "protein_starts_1based": [
+                187
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 1,
+          "reference_context_count": 1,
+          "translation_count": 1,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "KSAAKAVKPKVVKPKKAAPK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 25,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KSAAKAVKPKVVKPKKAAPK"
+              ],
+              "protein_starts_1based": [
+                187
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       }
     },
@@ -362,6 +678,76 @@
             87,
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 17,
+          "reference_context_count": 1,
+          "translation_count": 14,
+          "expected_matching_translation_count": 14,
+          "top_proteins": [
+            {
+              "amino_acids": "TLSTIDDVEDRENEK",
+              "mutation_interval": [
+                4,
+                5
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 34,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "TLSTIDDVEDRENEK"
+              ],
+              "protein_starts_1based": [
+                30
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 20,
+          "reference_context_count": 1,
+          "translation_count": 17,
+          "expected_matching_translation_count": 14,
+          "top_proteins": [
+            {
+              "amino_acids": "TLSTIDDVEDRENEK",
+              "mutation_interval": [
+                4,
+                5
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 34,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "TLSTIDDVEDRENEK"
+              ],
+              "protein_starts_1based": [
+                30
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       },
       "defaults": {
@@ -434,6 +820,76 @@
             87,
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 17,
+          "reference_context_count": 1,
+          "translation_count": 14,
+          "expected_matching_translation_count": 14,
+          "top_proteins": [
+            {
+              "amino_acids": "TLSTIDDVEDRENEK",
+              "mutation_interval": [
+                4,
+                5
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 34,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "TLSTIDDVEDRENEK"
+              ],
+              "protein_starts_1based": [
+                30
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 20,
+          "reference_context_count": 1,
+          "translation_count": 17,
+          "expected_matching_translation_count": 14,
+          "top_proteins": [
+            {
+              "amino_acids": "TLSTIDDVEDRENEK",
+              "mutation_interval": [
+                4,
+                5
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 34,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "TLSTIDDVEDRENEK"
+              ],
+              "protein_starts_1based": [
+                30
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       }
     },
@@ -488,6 +944,76 @@
             88,
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 1,
+          "reference_context_count": 1,
+          "translation_count": 1,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "YESGEDEEDEEEEEDFKPSD",
+              "mutation_interval": [
+                10,
+                10
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 7,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "YESGEDEEDEEEEEDFKPSD"
+              ],
+              "protein_starts_1based": [
+                489
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 1,
+          "reference_context_count": 1,
+          "translation_count": 1,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "YESGEDEEDEEEEEDFKPSD",
+              "mutation_interval": [
+                10,
+                10
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 7,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "YESGEDEEDEEEEEDFKPSD"
+              ],
+              "protein_starts_1based": [
+                489
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       },
       "defaults": {
@@ -517,6 +1043,76 @@
             88,
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 1,
+          "reference_context_count": 1,
+          "translation_count": 1,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "YESGEDEEDEEEEEDFKPSD",
+              "mutation_interval": [
+                10,
+                10
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 7,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "YESGEDEEDEEEEEDFKPSD"
+              ],
+              "protein_starts_1based": [
+                489
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 1,
+          "reference_context_count": 1,
+          "translation_count": 1,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "YESGEDEEDEEEEEDFKPSD",
+              "mutation_interval": [
+                10,
+                10
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 7,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "YESGEDEEDEEEEEDFKPSD"
+              ],
+              "protein_starts_1based": [
+                489
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       }
     },
@@ -634,6 +1230,76 @@
             88,
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 32,
+          "reference_context_count": 1,
+          "translation_count": 29,
+          "expected_matching_translation_count": 28,
+          "top_proteins": [
+            {
+              "amino_acids": "KRFHATISF",
+              "mutation_interval": [
+                6,
+                7
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 121,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KRFHATISF"
+              ],
+              "protein_starts_1based": [
+                308
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 35,
+          "reference_context_count": 1,
+          "translation_count": 32,
+          "expected_matching_translation_count": 29,
+          "top_proteins": [
+            {
+              "amino_acids": "LKHGKRFHATISF",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 120,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LKHGKRFHATISF"
+              ],
+              "protein_starts_1based": [
+                304
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       },
       "defaults": {
@@ -726,6 +1392,76 @@
             88,
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 32,
+          "reference_context_count": 1,
+          "translation_count": 29,
+          "expected_matching_translation_count": 28,
+          "top_proteins": [
+            {
+              "amino_acids": "KRFHATISF",
+              "mutation_interval": [
+                6,
+                7
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 121,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KRFHATISF"
+              ],
+              "protein_starts_1based": [
+                308
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 35,
+          "reference_context_count": 1,
+          "translation_count": 32,
+          "expected_matching_translation_count": 29,
+          "top_proteins": [
+            {
+              "amino_acids": "LKHGKRFHATISF",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 120,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LKHGKRFHATISF"
+              ],
+              "protein_starts_1based": [
+                304
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       }
     },
@@ -754,22 +1490,198 @@
         }
       },
       "primary_only": {
-        "status": "error",
-        "stage": "read_evidence",
-        "error": {
-          "type": "AttributeError",
-          "message": "'NoneType' object has no attribute 'upper'"
+        "status": "ok",
+        "counts": {
+          "ref": 36,
+          "alt": 3,
+          "other": 0
         },
-        "counts": null
+        "alt_read_names": 3,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 1,
+          "represented_read_names": 2,
+          "lengths": [
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 2,
+          "represented_read_names": 3,
+          "lengths": [
+            90
+          ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 1,
+          "reference_context_count": 1,
+          "translation_count": 1,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "RSGSSFSRRAAPVATPALLT",
+              "mutation_interval": [
+                10,
+                20
+              ],
+              "contains_mutation": true,
+              "frameshift": true,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 2,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "RSGSSFSRRAAPVATPALLT"
+              ],
+              "protein_starts_1based": [
+                464
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 2,
+          "reference_context_count": 1,
+          "translation_count": 2,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "RSGSSFSRRAAPVATPALLT",
+              "mutation_interval": [
+                10,
+                20
+              ],
+              "contains_mutation": true,
+              "frameshift": true,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 2,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "RSGSSFSRRAAPVATPALLT"
+              ],
+              "protein_starts_1based": [
+                464
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        }
       },
       "defaults": {
-        "status": "error",
-        "stage": "read_evidence",
-        "error": {
-          "type": "AttributeError",
-          "message": "'NoneType' object has no attribute 'upper'"
+        "status": "ok",
+        "counts": {
+          "ref": 36,
+          "alt": 3,
+          "other": 0
         },
-        "counts": null
+        "alt_read_names": 3,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 1,
+          "represented_read_names": 2,
+          "lengths": [
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 2,
+          "represented_read_names": 3,
+          "lengths": [
+            90
+          ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 1,
+          "reference_context_count": 1,
+          "translation_count": 1,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "RSGSSFSRRAAPVATPALLT",
+              "mutation_interval": [
+                10,
+                20
+              ],
+              "contains_mutation": true,
+              "frameshift": true,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 2,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "RSGSSFSRRAAPVATPALLT"
+              ],
+              "protein_starts_1based": [
+                464
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 2,
+          "reference_context_count": 1,
+          "translation_count": 2,
+          "expected_matching_translation_count": 1,
+          "top_proteins": [
+            {
+              "amino_acids": "RSGSSFSRRAAPVATPALLT",
+              "mutation_interval": [
+                10,
+                20
+              ],
+              "contains_mutation": true,
+              "frameshift": true,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 2,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "RSGSSFSRRAAPVATPALLT"
+              ],
+              "protein_starts_1based": [
+                464
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        }
       }
     },
     {
@@ -817,6 +1729,38 @@
           "candidate_count": 0,
           "represented_read_names": 0,
           "lengths": []
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
         }
       },
       "defaults": {
@@ -840,6 +1784,38 @@
           "candidate_count": 0,
           "represented_read_names": 0,
           "lengths": []
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
         }
       }
     },
@@ -868,22 +1844,202 @@
         }
       },
       "primary_only": {
-        "status": "error",
-        "stage": "read_evidence",
-        "error": {
-          "type": "AttributeError",
-          "message": "'NoneType' object has no attribute 'upper'"
+        "status": "ok",
+        "counts": {
+          "ref": 3174,
+          "alt": 738,
+          "other": 134
         },
-        "counts": null
+        "alt_read_names": 738,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 26,
+          "represented_read_names": 626,
+          "lengths": [
+            80,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 145,
+          "represented_read_names": 738,
+          "lengths": [
+            80,
+            90
+          ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 16,
+          "reference_context_count": 1,
+          "translation_count": 15,
+          "expected_matching_translation_count": 4,
+          "top_proteins": [
+            {
+              "amino_acids": "KSAAKAVKPKVVKPKKAAPK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 628,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KSAAKAVKPKVVKPKKAAPK"
+              ],
+              "protein_starts_1based": [
+                187
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 87,
+          "reference_context_count": 1,
+          "translation_count": 79,
+          "expected_matching_translation_count": 14,
+          "top_proteins": [
+            {
+              "amino_acids": "KSAAKAVKPKVVKPKKAAPK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 638,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KSAAKAVKPKVVKPKKAAPK"
+              ],
+              "protein_starts_1based": [
+                187
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        }
       },
       "defaults": {
-        "status": "error",
-        "stage": "read_evidence",
-        "error": {
-          "type": "AttributeError",
-          "message": "'NoneType' object has no attribute 'upper'"
+        "status": "ok",
+        "counts": {
+          "ref": 3190,
+          "alt": 740,
+          "other": 136
         },
-        "counts": null
+        "alt_read_names": 740,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 26,
+          "represented_read_names": 628,
+          "lengths": [
+            80,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 145,
+          "represented_read_names": 740,
+          "lengths": [
+            80,
+            90
+          ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 16,
+          "reference_context_count": 1,
+          "translation_count": 15,
+          "expected_matching_translation_count": 4,
+          "top_proteins": [
+            {
+              "amino_acids": "KSAAKAVKPKVVKPKKAAPK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 630,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KSAAKAVKPKVVKPKKAAPK"
+              ],
+              "protein_starts_1based": [
+                187
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 87,
+          "reference_context_count": 1,
+          "translation_count": 79,
+          "expected_matching_translation_count": 14,
+          "top_proteins": [
+            {
+              "amino_acids": "KSAAKAVKPKVVKPKKAAPK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 640,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KSAAKAVKPKVVKPKKAAPK"
+              ],
+              "protein_starts_1based": [
+                187
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        }
       }
     },
     {
@@ -935,6 +2091,76 @@
           "lengths": [
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 3,
+          "reference_context_count": 1,
+          "translation_count": 3,
+          "expected_matching_translation_count": 3,
+          "top_proteins": [
+            {
+              "amino_acids": "LISVIRTLSTIDDVEDRENE",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 102,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LISVIRTLSTIDDVEDRENE"
+              ],
+              "protein_starts_1based": [
+                24
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 31,
+          "reference_context_count": 1,
+          "translation_count": 21,
+          "expected_matching_translation_count": 8,
+          "top_proteins": [
+            {
+              "amino_acids": "LISVIRTLSTIDDVEDRENE",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 107,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LISVIRTLSTIDDVEDRENE"
+              ],
+              "protein_starts_1based": [
+                24
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       },
       "defaults": {
@@ -962,6 +2188,76 @@
           "lengths": [
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 3,
+          "reference_context_count": 1,
+          "translation_count": 3,
+          "expected_matching_translation_count": 3,
+          "top_proteins": [
+            {
+              "amino_acids": "LISVIRTLSTIDDVEDRENE",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 102,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LISVIRTLSTIDDVEDRENE"
+              ],
+              "protein_starts_1based": [
+                24
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 32,
+          "reference_context_count": 1,
+          "translation_count": 21,
+          "expected_matching_translation_count": 8,
+          "top_proteins": [
+            {
+              "amino_acids": "LISVIRTLSTIDDVEDRENE",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 107,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LISVIRTLSTIDDVEDRENE"
+              ],
+              "protein_starts_1based": [
+                24
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       }
     },
@@ -990,22 +2286,210 @@
         }
       },
       "primary_only": {
-        "status": "error",
-        "stage": "read_evidence",
-        "error": {
-          "type": "AttributeError",
-          "message": "'NoneType' object has no attribute 'upper'"
+        "status": "ok",
+        "counts": {
+          "ref": 302,
+          "alt": 117,
+          "other": 20
         },
-        "counts": null
+        "alt_read_names": 117,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 10,
+          "represented_read_names": 102,
+          "lengths": [
+            72,
+            73,
+            80,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 29,
+          "represented_read_names": 117,
+          "lengths": [
+            72,
+            73,
+            80,
+            90
+          ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 7,
+          "reference_context_count": 1,
+          "translation_count": 5,
+          "expected_matching_translation_count": 3,
+          "top_proteins": [
+            {
+              "amino_acids": "ESGEDEEDEEEEEDFKPSD",
+              "mutation_interval": [
+                9,
+                9
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 94,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "ESGEDEEDEEEEEDFKPSD"
+              ],
+              "protein_starts_1based": [
+                490
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 22,
+          "reference_context_count": 1,
+          "translation_count": 10,
+          "expected_matching_translation_count": 4,
+          "top_proteins": [
+            {
+              "amino_acids": "YESGEDEEDEEEEEDFKPSD",
+              "mutation_interval": [
+                10,
+                10
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 94,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "YESGEDEEDEEEEEDFKPSD"
+              ],
+              "protein_starts_1based": [
+                489
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        }
       },
       "defaults": {
-        "status": "error",
-        "stage": "read_evidence",
-        "error": {
-          "type": "AttributeError",
-          "message": "'NoneType' object has no attribute 'upper'"
+        "status": "ok",
+        "counts": {
+          "ref": 302,
+          "alt": 117,
+          "other": 20
         },
-        "counts": null
+        "alt_read_names": 117,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 10,
+          "represented_read_names": 102,
+          "lengths": [
+            72,
+            73,
+            80,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 29,
+          "represented_read_names": 117,
+          "lengths": [
+            72,
+            73,
+            80,
+            90
+          ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 7,
+          "reference_context_count": 1,
+          "translation_count": 5,
+          "expected_matching_translation_count": 3,
+          "top_proteins": [
+            {
+              "amino_acids": "ESGEDEEDEEEEEDFKPSD",
+              "mutation_interval": [
+                9,
+                9
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 94,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "ESGEDEEDEEEEEDFKPSD"
+              ],
+              "protein_starts_1based": [
+                490
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 22,
+          "reference_context_count": 1,
+          "translation_count": 10,
+          "expected_matching_translation_count": 4,
+          "top_proteins": [
+            {
+              "amino_acids": "YESGEDEEDEEEEEDFKPSD",
+              "mutation_interval": [
+                10,
+                10
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 94,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "YESGEDEEDEEEEEDFKPSD"
+              ],
+              "protein_starts_1based": [
+                489
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        }
       }
     },
     {
@@ -1064,6 +2548,76 @@
             73,
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 27,
+          "reference_context_count": 1,
+          "translation_count": 26,
+          "expected_matching_translation_count": 15,
+          "top_proteins": [
+            {
+              "amino_acids": "LKHGKRFHATISFDTDTGLK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 766,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LKHGKRFHATISFDTDTGLK"
+              ],
+              "protein_starts_1based": [
+                304
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 119,
+          "reference_context_count": 1,
+          "translation_count": 94,
+          "expected_matching_translation_count": 29,
+          "top_proteins": [
+            {
+              "amino_acids": "LKHGKRFHATISFDTDTGLK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 775,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LKHGKRFHATISFDTDTGLK"
+              ],
+              "protein_starts_1based": [
+                304
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       },
       "defaults": {
@@ -1098,6 +2652,76 @@
             73,
             90
           ]
+        },
+        "protein_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 27,
+          "reference_context_count": 1,
+          "translation_count": 26,
+          "expected_matching_translation_count": 15,
+          "top_proteins": [
+            {
+              "amino_acids": "LKHGKRFHATISFDTDTGLK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 767,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LKHGKRFHATISFDTDTGLK"
+              ],
+              "protein_starts_1based": [
+                304
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 119,
+          "reference_context_count": 1,
+          "translation_count": 94,
+          "expected_matching_translation_count": 29,
+          "top_proteins": [
+            {
+              "amino_acids": "LKHGKRFHATISFDTDTGLK",
+              "mutation_interval": [
+                10,
+                11
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 776,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LKHGKRFHATISFDTDTGLK"
+              ],
+              "protein_starts_1based": [
+                304
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
         }
       }
     }

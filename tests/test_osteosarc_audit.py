@@ -78,20 +78,15 @@ def fixture_results(tmp_path_factory):
 
 
 @pytest.mark.parametrize("name", MANIFEST["datasets"])
-def test_audit_completes_other_loci_when_real_spliced_deletions_crash(name, fixture_results):
+def test_audit_completes_all_loci_including_real_spliced_deletions(name, fixture_results):
     rows = fixture_results[name]
     assert len(rows) == 6
     for row in rows:
-        crashing = name == "ont_t1" and row["variant"]["gene"] in ("PIP5K1A", "H1-2", "GTF3C5")
         for mode in ("primary_only", "defaults"):
             result = row[mode]
-            assert result["status"] == ("error" if crashing else "ok")
-            if crashing:
-                # This pins the report of #217, not a claim of correct Isovar
-                # handling. Update this expectation when #217 is fixed.
-                assert result["counts"] is None
-                assert result["stage"] == "read_evidence"
-                assert result["error"] == {"type": "AttributeError", "message": "'NoneType' object has no attribute 'upper'"}
+            assert result["status"] == "ok"
+            if name == "ont_t1" and row["variant"]["gene"] in ("PIP5K1A", "H1-2", "GTF3C5"):
+                assert result["counts"]["alt"] >= 3
 
 
 @pytest.mark.parametrize("name", MANIFEST["datasets"])
