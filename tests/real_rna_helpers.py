@@ -20,7 +20,7 @@ def cigar_observation(read, variant):
     anchor qualities, which are NOT a probability of the indel being correct.
     """
     pos, ref, alt = variant["pos"], variant["ref"], variant["alt"]
-    if read.is_unmapped or read.query_sequence is None:
+    if read.is_unmapped or read.query_sequence is None or read.reference_name != variant["chrom"]:
         return None
     reference_to_query = {}
     skips = []
