@@ -139,7 +139,7 @@ Numbers in parentheses are supporting **read names**, not molecule counts.
 All nine supported combinations also return expected top peptides with
 unfiltered read-inclusion defaults and in the coverage-1 diagnostic.
 Coverage 1 can change the selected window: bulk DYNC1H1 becomes
-`LKHGKRFHATISF` (12 aa, 120 names), and ONT GTF3C5 gains its leading Y.
+`LKHGKRFHATISF` (13 aa, 120 names), and ONT GTF3C5 gains its leading Y.
 
 ### What this does NOT establish
 
@@ -148,6 +148,15 @@ Coverage 1 can change the selected window: bulk DYNC1H1 becomes
   is 19 aa. None ends at a stop codon. The available compatible RNA context
   and support-based ranking limit these windows. A downstream vaccine
   workflow needing longer flanks must check length explicitly.
+  **For bulk DYNC1H1, longer evidence actually exists:** requesting all
+  ranked proteins yields the expected 20-aa `LKHGKRFHATISFDTDTGLK` with
+  116 supporting names, but it ranks 14th behind the 9-aa window's 121
+  names. Both have zero reference mismatches. Support ranks before length,
+  and default top-one output hides the longer result. Even requesting 40 aa
+  leaves the same 9-aa window first. This is not absence of longer RNA
+  evidence; it is a concrete instance of the short-output problem tracked
+  in [#90](https://github.com/openvax/isovar/issues/90). Ranking is unchanged
+  in this splice-fix PR.
 - **Not every translation matches the single-edit expectation.** At
   default coverage the ONT H1-2 translations have 4/15 matching windows,
   GTF3C5 3/5 and DYNC1H1 15/26; bulk DYNC1H1 has 28/29. Their top-ranked
