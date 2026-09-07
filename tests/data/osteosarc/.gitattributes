@@ -1,3 +1,4 @@
 # An empty final VAF field is a meaningful trailing tab in the source TSV.
 source_variant_counts.tsv whitespace=-blank-at-eol
 manifest.json linguist-generated=true
+sample_audit.json linguist-generated=true

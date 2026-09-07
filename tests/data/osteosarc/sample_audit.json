@@ -1,0 +1,1105 @@
+{
+  "schema_version": 1,
+  "software": {
+    "isovar": "1.7.12",
+    "python": "3.12.6",
+    "pysam": "0.24.0",
+    "samtools": "1.23.1"
+  },
+  "read_collection_defaults": {
+    "use_secondary_alignments": true,
+    "use_duplicate_reads": false,
+    "min_mapping_quality": 1,
+    "use_soft_clipped_bases": false,
+    "merge_overlapping_fragments": false
+  },
+  "sequence_creation_defaults": {
+    "min_variant_sequence_coverage": 2,
+    "preferred_sequence_length": 90,
+    "variant_sequence_assembly": false,
+    "min_assembly_overlap_size": 30,
+    "min_flanking_sequence_length": 0
+  },
+  "primary_exclude_flags": 3328,
+  "sources": {
+    "bulk_star_t0": {
+      "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/rna-seq/reprocessed/BG003082/BG003082.Aligned.sortedByCoord.out.md.bam",
+      "sha256": "5e6761a743f2ef8218dc2925a645f8c8d1d2b0631c0008a97dcc51c386cac500",
+      "region_records": 6239
+    },
+    "ont_t1": {
+      "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T1_sclrs_ONT/IPISRC044_T1_sclrs_ONT/IPISRC044_T1_sclrs_ONT_dedup/IPISRC044_T1_sclrs_ONT_dedup.bam",
+      "sha256": "34531283e394f732798a9cdfc78598781ee7e72d8b9f6c6d2b742e4af873d66a",
+      "region_records": 8615
+    }
+  },
+  "rows": [
+    {
+      "sample": "bulk_star_t0",
+      "variant": {
+        "variant_id": "PIP5K1A-chr1-151242178",
+        "gene": "PIP5K1A",
+        "chrom": "chr1",
+        "pos": 151242178,
+        "ref": "AG",
+        "alt": "A",
+        "protein_change": "p.Gly474fs"
+      },
+      "independent": {
+        "counts": {
+          "ref": 115,
+          "alt": 0,
+          "other": 0
+        },
+        "alt_quality_retention": {
+          "0": 0,
+          "10": 0,
+          "20": 0,
+          "30": 0
+        }
+      },
+      "primary_only": {
+        "status": "ok",
+        "counts": {
+          "ref": 116,
+          "alt": 0,
+          "other": 0
+        },
+        "alt_read_names": 0,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        }
+      },
+      "defaults": {
+        "status": "ok",
+        "counts": {
+          "ref": 130,
+          "alt": 0,
+          "other": 0
+        },
+        "alt_read_names": 0,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        }
+      }
+    },
+    {
+      "sample": "bulk_star_t0",
+      "variant": {
+        "variant_id": "MAP2-chr2-209694768",
+        "gene": "MAP2",
+        "chrom": "chr2",
+        "pos": 209694768,
+        "ref": "CCTGGGCTACTGTGTGTTCAATA",
+        "alt": "C",
+        "protein_change": "p.Leu867fs"
+      },
+      "independent": {
+        "counts": {
+          "ref": 5,
+          "alt": 0,
+          "other": 2
+        },
+        "alt_quality_retention": {
+          "0": 0,
+          "10": 0,
+          "20": 0,
+          "30": 0
+        }
+      },
+      "primary_only": {
+        "status": "ok",
+        "counts": {
+          "ref": 6,
+          "alt": 0,
+          "other": 2
+        },
+        "alt_read_names": 0,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        }
+      },
+      "defaults": {
+        "status": "ok",
+        "counts": {
+          "ref": 6,
+          "alt": 0,
+          "other": 2
+        },
+        "alt_read_names": 0,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        }
+      }
+    },
+    {
+      "sample": "bulk_star_t0",
+      "variant": {
+        "variant_id": "H1_2-chr6-26055824",
+        "gene": "H1-2",
+        "chrom": "chr6",
+        "pos": 26055824,
+        "ref": "ACCTTGGGCTTAGCGG",
+        "alt": "A",
+        "protein_change": "p.Ala197_Lys201del"
+      },
+      "independent": {
+        "counts": {
+          "ref": 328,
+          "alt": 30,
+          "other": 46
+        },
+        "alt_quality_retention": {
+          "0": 30,
+          "10": 30,
+          "20": 30,
+          "30": 30
+        }
+      },
+      "primary_only": {
+        "status": "ok",
+        "counts": {
+          "ref": 328,
+          "alt": 30,
+          "other": 46
+        },
+        "alt_read_names": 21,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 4,
+          "represented_read_names": 21,
+          "lengths": [
+            84,
+            87,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 7,
+          "represented_read_names": 21,
+          "lengths": [
+            84,
+            87,
+            88,
+            89,
+            90
+          ]
+        }
+      },
+      "defaults": {
+        "status": "ok",
+        "counts": {
+          "ref": 332,
+          "alt": 35,
+          "other": 65
+        },
+        "alt_read_names": 25,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 5,
+          "represented_read_names": 25,
+          "lengths": [
+            84,
+            87,
+            89,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 8,
+          "represented_read_names": 25,
+          "lengths": [
+            84,
+            87,
+            88,
+            89,
+            90
+          ]
+        }
+      }
+    },
+    {
+      "sample": "bulk_star_t0",
+      "variant": {
+        "variant_id": "EXOC4-chr7-133274996",
+        "gene": "EXOC4",
+        "chrom": "chr7",
+        "pos": 133274996,
+        "ref": "G",
+        "alt": "T",
+        "protein_change": "p.Ser34Ile"
+      },
+      "independent": {
+        "counts": {
+          "ref": 225,
+          "alt": 64,
+          "other": 0
+        },
+        "alt_quality_retention": {
+          "0": 64,
+          "10": 64,
+          "20": 63,
+          "30": 62
+        }
+      },
+      "primary_only": {
+        "status": "ok",
+        "counts": {
+          "ref": 225,
+          "alt": 64,
+          "other": 0
+        },
+        "alt_read_names": 35,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 24,
+          "represented_read_names": 35,
+          "lengths": [
+            47,
+            48,
+            49,
+            55,
+            57,
+            58,
+            59,
+            60,
+            65,
+            68,
+            69,
+            71,
+            72,
+            73,
+            74,
+            76,
+            77,
+            78,
+            80,
+            84,
+            86,
+            87,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 28,
+          "represented_read_names": 35,
+          "lengths": [
+            47,
+            48,
+            49,
+            55,
+            57,
+            58,
+            59,
+            60,
+            65,
+            68,
+            69,
+            71,
+            72,
+            73,
+            74,
+            76,
+            77,
+            78,
+            79,
+            80,
+            84,
+            86,
+            87,
+            90
+          ]
+        }
+      },
+      "defaults": {
+        "status": "ok",
+        "counts": {
+          "ref": 249,
+          "alt": 64,
+          "other": 0
+        },
+        "alt_read_names": 35,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 24,
+          "represented_read_names": 35,
+          "lengths": [
+            47,
+            48,
+            49,
+            55,
+            57,
+            58,
+            59,
+            60,
+            65,
+            68,
+            69,
+            71,
+            72,
+            73,
+            74,
+            76,
+            77,
+            78,
+            80,
+            84,
+            86,
+            87,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 28,
+          "represented_read_names": 35,
+          "lengths": [
+            47,
+            48,
+            49,
+            55,
+            57,
+            58,
+            59,
+            60,
+            65,
+            68,
+            69,
+            71,
+            72,
+            73,
+            74,
+            76,
+            77,
+            78,
+            79,
+            80,
+            84,
+            86,
+            87,
+            90
+          ]
+        }
+      }
+    },
+    {
+      "sample": "bulk_star_t0",
+      "variant": {
+        "variant_id": "GTF3C5-chr9-133057893",
+        "gene": "GTF3C5",
+        "chrom": "chr9",
+        "pos": 133057893,
+        "ref": "GGAGGAGGAGGAA",
+        "alt": "G",
+        "protein_change": "p.Glu503_Glu506del"
+      },
+      "independent": {
+        "counts": {
+          "ref": 35,
+          "alt": 10,
+          "other": 6
+        },
+        "alt_quality_retention": {
+          "0": 10,
+          "10": 10,
+          "20": 10,
+          "30": 10
+        }
+      },
+      "primary_only": {
+        "status": "ok",
+        "counts": {
+          "ref": 35,
+          "alt": 10,
+          "other": 6
+        },
+        "alt_read_names": 7,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 2,
+          "represented_read_names": 7,
+          "lengths": [
+            88,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 2,
+          "represented_read_names": 7,
+          "lengths": [
+            88,
+            90
+          ]
+        }
+      },
+      "defaults": {
+        "status": "ok",
+        "counts": {
+          "ref": 35,
+          "alt": 10,
+          "other": 6
+        },
+        "alt_read_names": 7,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 2,
+          "represented_read_names": 7,
+          "lengths": [
+            88,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 2,
+          "represented_read_names": 7,
+          "lengths": [
+            88,
+            90
+          ]
+        }
+      }
+    },
+    {
+      "sample": "bulk_star_t0",
+      "variant": {
+        "variant_id": "DYNC1H1-chr14-101980529",
+        "gene": "DYNC1H1",
+        "chrom": "chr14",
+        "pos": 101980529,
+        "ref": "G",
+        "alt": "A",
+        "protein_change": "p.Val314Ile"
+      },
+      "independent": {
+        "counts": {
+          "ref": 237,
+          "alt": 177,
+          "other": 1
+        },
+        "alt_quality_retention": {
+          "0": 177,
+          "10": 177,
+          "20": 174,
+          "30": 159
+        }
+      },
+      "primary_only": {
+        "status": "ok",
+        "counts": {
+          "ref": 237,
+          "alt": 177,
+          "other": 1
+        },
+        "alt_read_names": 122,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 46,
+          "represented_read_names": 122,
+          "lengths": [
+            28,
+            39,
+            48,
+            49,
+            50,
+            52,
+            53,
+            54,
+            55,
+            58,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            74,
+            75,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            86,
+            88,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 52,
+          "represented_read_names": 122,
+          "lengths": [
+            48,
+            49,
+            50,
+            52,
+            53,
+            54,
+            58,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            74,
+            75,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            86,
+            88,
+            90
+          ]
+        }
+      },
+      "defaults": {
+        "status": "ok",
+        "counts": {
+          "ref": 239,
+          "alt": 177,
+          "other": 1
+        },
+        "alt_read_names": 122,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 46,
+          "represented_read_names": 122,
+          "lengths": [
+            28,
+            39,
+            48,
+            49,
+            50,
+            52,
+            53,
+            54,
+            55,
+            58,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            74,
+            75,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            86,
+            88,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 52,
+          "represented_read_names": 122,
+          "lengths": [
+            48,
+            49,
+            50,
+            52,
+            53,
+            54,
+            58,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            74,
+            75,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            86,
+            88,
+            90
+          ]
+        }
+      }
+    },
+    {
+      "sample": "ont_t1",
+      "variant": {
+        "variant_id": "PIP5K1A-chr1-151242178",
+        "gene": "PIP5K1A",
+        "chrom": "chr1",
+        "pos": 151242178,
+        "ref": "AG",
+        "alt": "A",
+        "protein_change": "p.Gly474fs"
+      },
+      "independent": {
+        "counts": {
+          "ref": 36,
+          "alt": 3,
+          "other": 0
+        },
+        "alt_quality_retention": {
+          "0": 3,
+          "10": 3,
+          "20": 3,
+          "30": 3
+        }
+      },
+      "primary_only": {
+        "status": "error",
+        "stage": "read_evidence",
+        "error": {
+          "type": "AttributeError",
+          "message": "'NoneType' object has no attribute 'upper'"
+        },
+        "counts": null
+      },
+      "defaults": {
+        "status": "error",
+        "stage": "read_evidence",
+        "error": {
+          "type": "AttributeError",
+          "message": "'NoneType' object has no attribute 'upper'"
+        },
+        "counts": null
+      }
+    },
+    {
+      "sample": "ont_t1",
+      "variant": {
+        "variant_id": "MAP2-chr2-209694768",
+        "gene": "MAP2",
+        "chrom": "chr2",
+        "pos": 209694768,
+        "ref": "CCTGGGCTACTGTGTGTTCAATA",
+        "alt": "C",
+        "protein_change": "p.Leu867fs"
+      },
+      "independent": {
+        "counts": {
+          "ref": 2,
+          "alt": 0,
+          "other": 0
+        },
+        "alt_quality_retention": {
+          "0": 0,
+          "10": 0,
+          "20": 0,
+          "30": 0
+        }
+      },
+      "primary_only": {
+        "status": "ok",
+        "counts": {
+          "ref": 2,
+          "alt": 0,
+          "other": 0
+        },
+        "alt_read_names": 0,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        }
+      },
+      "defaults": {
+        "status": "ok",
+        "counts": {
+          "ref": 2,
+          "alt": 0,
+          "other": 0
+        },
+        "alt_read_names": 0,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 0,
+          "represented_read_names": 0,
+          "lengths": []
+        }
+      }
+    },
+    {
+      "sample": "ont_t1",
+      "variant": {
+        "variant_id": "H1_2-chr6-26055824",
+        "gene": "H1-2",
+        "chrom": "chr6",
+        "pos": 26055824,
+        "ref": "ACCTTGGGCTTAGCGG",
+        "alt": "A",
+        "protein_change": "p.Ala197_Lys201del"
+      },
+      "independent": {
+        "counts": {
+          "ref": 3174,
+          "alt": 738,
+          "other": 132
+        },
+        "alt_quality_retention": {
+          "0": 738,
+          "10": 736,
+          "20": 721,
+          "30": 687
+        }
+      },
+      "primary_only": {
+        "status": "error",
+        "stage": "read_evidence",
+        "error": {
+          "type": "AttributeError",
+          "message": "'NoneType' object has no attribute 'upper'"
+        },
+        "counts": null
+      },
+      "defaults": {
+        "status": "error",
+        "stage": "read_evidence",
+        "error": {
+          "type": "AttributeError",
+          "message": "'NoneType' object has no attribute 'upper'"
+        },
+        "counts": null
+      }
+    },
+    {
+      "sample": "ont_t1",
+      "variant": {
+        "variant_id": "EXOC4-chr7-133274996",
+        "gene": "EXOC4",
+        "chrom": "chr7",
+        "pos": 133274996,
+        "ref": "G",
+        "alt": "T",
+        "protein_change": "p.Ser34Ile"
+      },
+      "independent": {
+        "counts": {
+          "ref": 893,
+          "alt": 130,
+          "other": 3
+        },
+        "alt_quality_retention": {
+          "0": 130,
+          "10": 126,
+          "20": 121,
+          "30": 101
+        }
+      },
+      "primary_only": {
+        "status": "ok",
+        "counts": {
+          "ref": 893,
+          "alt": 130,
+          "other": 3
+        },
+        "alt_read_names": 130,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 5,
+          "represented_read_names": 93,
+          "lengths": [
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 42,
+          "represented_read_names": 130,
+          "lengths": [
+            90
+          ]
+        }
+      },
+      "defaults": {
+        "status": "ok",
+        "counts": {
+          "ref": 907,
+          "alt": 131,
+          "other": 3
+        },
+        "alt_read_names": 131,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 5,
+          "represented_read_names": 93,
+          "lengths": [
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 43,
+          "represented_read_names": 131,
+          "lengths": [
+            90
+          ]
+        }
+      }
+    },
+    {
+      "sample": "ont_t1",
+      "variant": {
+        "variant_id": "GTF3C5-chr9-133057893",
+        "gene": "GTF3C5",
+        "chrom": "chr9",
+        "pos": 133057893,
+        "ref": "GGAGGAGGAGGAA",
+        "alt": "G",
+        "protein_change": "p.Glu503_Glu506del"
+      },
+      "independent": {
+        "counts": {
+          "ref": 292,
+          "alt": 117,
+          "other": 19
+        },
+        "alt_quality_retention": {
+          "0": 117,
+          "10": 117,
+          "20": 116,
+          "30": 110
+        }
+      },
+      "primary_only": {
+        "status": "error",
+        "stage": "read_evidence",
+        "error": {
+          "type": "AttributeError",
+          "message": "'NoneType' object has no attribute 'upper'"
+        },
+        "counts": null
+      },
+      "defaults": {
+        "status": "error",
+        "stage": "read_evidence",
+        "error": {
+          "type": "AttributeError",
+          "message": "'NoneType' object has no attribute 'upper'"
+        },
+        "counts": null
+      }
+    },
+    {
+      "sample": "ont_t1",
+      "variant": {
+        "variant_id": "DYNC1H1-chr14-101980529",
+        "gene": "DYNC1H1",
+        "chrom": "chr14",
+        "pos": 101980529,
+        "ref": "G",
+        "alt": "A",
+        "protein_change": "p.Val314Ile"
+      },
+      "independent": {
+        "counts": {
+          "ref": 1945,
+          "alt": 886,
+          "other": 2
+        },
+        "alt_quality_retention": {
+          "0": 886,
+          "10": 875,
+          "20": 855,
+          "30": 825
+        }
+      },
+      "primary_only": {
+        "status": "ok",
+        "counts": {
+          "ref": 1945,
+          "alt": 886,
+          "other": 2
+        },
+        "alt_read_names": 886,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 26,
+          "represented_read_names": 788,
+          "lengths": [
+            65,
+            69,
+            70,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 163,
+          "represented_read_names": 886,
+          "lengths": [
+            65,
+            69,
+            70,
+            73,
+            90
+          ]
+        }
+      },
+      "defaults": {
+        "status": "ok",
+        "counts": {
+          "ref": 1949,
+          "alt": 887,
+          "other": 3
+        },
+        "alt_read_names": 887,
+        "sequence_creation_default": {
+          "status": "ok",
+          "min_coverage": 2,
+          "candidate_count": 26,
+          "represented_read_names": 789,
+          "lengths": [
+            65,
+            69,
+            70,
+            90
+          ]
+        },
+        "sequence_creation_coverage1": {
+          "status": "ok",
+          "min_coverage": 1,
+          "candidate_count": 163,
+          "represented_read_names": 887,
+          "lengths": [
+            65,
+            69,
+            70,
+            73,
+            90
+          ]
+        }
+      }
+    }
+  ]
+}

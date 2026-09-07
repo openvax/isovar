@@ -7,6 +7,10 @@ germline/alignment-edge-case examples in `../real_rna`; no reads, qualities,
 CIGARs, names, headers or tags were synthesized or edited. No production
 base-quality, weighting, translation or clinical policy is changed here.
 
+See [the sample-by-sample Isovar audit](SAMPLE_AUDIT.md) for actual
+ref/alt/other outputs, full-region counts, failure states and sequence-stage
+filtering, with a reproducible machine-readable report.
+
 ## Sources and reuse
 
 Sid Sijbrandij's osteosarcoma dataset was accessed on 2026-09-07 from
