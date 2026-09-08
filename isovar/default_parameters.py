@@ -63,8 +63,12 @@ MAX_REFERENCE_TRANSCRIPT_MISMATCHES = 2
 # MAX_REFERENCE_TRANSCRIPT_MISMATCHES count
 COUNT_MISMATCHES_AFTER_VARIANT = False
 
-# number of amino acids / codons we're trying to translate
-PROTEIN_SEQUENCE_LENGTH = 20
+# A centered single-residue mutation with 24 residues on either side covers
+# every mutation-containing 25mer (2 * 25 - 1 = 49 residues).
+PROTEIN_CONTEXT_PEPTIDE_LENGTH = 25
+PROTEIN_SEQUENCE_LENGTH = 2 * PROTEIN_CONTEXT_PEPTIDE_LENGTH - 1
+PROTEIN_SEQUENCE_PREFERENCE = "balanced"
+MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION = 0.85
 
 # number of protein sequences we want to return per variant
 MAX_PROTEIN_SEQUENCES_PER_VARIANT = 1

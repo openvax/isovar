@@ -24,10 +24,6 @@ DATASETS = MANIFEST["datasets"]
 CASES = [(name, v) for name, data in DATASETS.items() for v in data["variants"]]
 
 
-class SpliceSkipReportedAsAllele(AssertionError):
-    """Only this known bug, not missing/broken fixture data, may xfail."""
-
-
 @pytest.fixture(scope="module")
 def alignments(tmp_path_factory):
     """Generate disposable BAM indexes locally; no network/genome downloads."""
@@ -205,8 +201,6 @@ def test_real_overlapping_mates_preserve_fragment_names_and_source_counts(alignm
 
 
 @pytest.mark.parametrize("name", DATASETS)
-@pytest.mark.xfail(strict=True, raises=SpliceSkipReportedAsAllele,
-                   reason="https://github.com/openvax/isovar/issues/215: CIGAR N can become deletion evidence")
 def test_real_splice_skip_is_not_deletion_evidence(name, alignments):
     # Negative probe at a real splice junction, NOT a claimed DNA variant.
     with pysam.AlignmentFile(alignments[name]) as bam:
@@ -221,8 +215,7 @@ def test_real_splice_skip_is_not_deletion_evidence(name, alignments):
                     anchors = read.get_reference_positions()
                     if pos - 1 in anchors and pos + length in anchors:
                         result = ReadCollector().locus_read_from_pysam_aligned_segment(read, pos, pos + length)
-                        if result is not None:
-                            raise SpliceSkipReportedAsAllele((read.query_name, pos, pos + length))
+                        assert result is None, (read.query_name, pos, pos + length)
                         return
                 if op in (0, 2, 3, 7, 8):
                     pos += length

@@ -53,7 +53,7 @@ isovar_results = run_isovar(
 # which had a successfully assembled/translated protein sequence
 for isovar_result in isovar_results:
     # if any protein sequences were assembled from RNA
-    # then the one with most supporting reads can be
+    # then the one preferred by the context/support policy can be
     # accessed from a property called `top_protein_sequence`.
     if isovar_result.top_protein_sequence is not None:
         # print number of distinct fragments supporting the
@@ -74,6 +74,26 @@ df =  isovar_results_to_dataframe(
             alignment_file="tumor-rna.bam"))
 ```
 
+
+### RNA support versus vaccine context
+
+Isovar 1.8.0 derives its context target from desired peptide size **K: 2*K-1**
+(15mers → 29 aa; 25mers → 49 aa; 30mers → 59 aa). For a centered single-residue
+mutation this includes every mutation-containing Kmer. The default
+`balanced` policy maximizes actual mutation-overlapping windows among
+candidates retaining at least 85% of the best candidate's compatible
+read-name support, with an independent absolute floor of two read objects
+at each retained RNA base. Both thresholds are configurable. Actual context
+adapts to RNA support and coverage; protein boundaries and stops can also
+produce shorter output. This is not 85% of per-base depth.
+
+This is a configurable selection tolerance, not a confidence estimate.
+Allele counts are unchanged, and no reference sequence is used to fill
+missing RNA. See [context selection and configuration](PROTEIN_SELECTION.md)
+for support-first/context-first alternatives and the
+[original tumor-RNA audit](tests/data/osteosarc/SAMPLE_AUDIT.md) for real
+sequence comparisons. Vaxrank's explicit context-length request remains
+respected; its coordinated default change is tracked separately.
 
 ### Python API options for collecting RNA reads
 
@@ -251,6 +271,16 @@ $ isovar  \
 ### Commandline options for translating cDNA to protein sequence
 ```
   --protein-sequence-length PROTEIN_SEQUENCE_LENGTH
+                        Explicit context target; default 2*K-1 (49 for K=25).
+
+  --protein-context-peptide-length PROTEIN_CONTEXT_PEPTIDE_LENGTH
+                        Peptide length K for evaluating mutant windows (25).
+
+  --protein-sequence-preference {balanced,support,context}
+                        Default balanced: useful context within support budget.
+
+  --min-protein-sequence-support-fraction MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION
+                        Compatible-name retention (0.85, not per-base depth).
   
   --max-reference-transcript-mismatches MAX_REFERENCE_TRANSCRIPT_MISMATCHES
                         Maximum number of mismatches between variant sequence
@@ -350,7 +380,7 @@ into a protein fragment, represented by `Translation`.
 * [ProteinSequence](https://github.com/openvax/isovar/blob/master/isovar/protein_sequence.py):
 Multiple distinct variant sequences and reference contexts can generate the same translations, so we aggregate those equivalent `Translation` objects into a `ProteinSequence`.
 
-* [IsovarResult](https://github.com/openvax/isovar/blob/master/isovar/isovar_result.py): Since a single variant locus might have reads which assemble into multiple incompatible coding sequences, an `IsovarResult` represents a variant and one or more `ProteinSequence` objects which are associated with it. We typically don't want to deal with *every* possible translation of *every* distinct sequence detected around a variant, so the protein sequences are sorted by their number of supporting fragments and the best protein sequence is made easy to access. The `IsovarResult` object also has many informative properties such `num_alt_fragments`, `fraction_ref_reads`, &c.  
+* [IsovarResult](https://github.com/openvax/isovar/blob/master/isovar/isovar_result.py): Since a single variant locus might have reads which assemble into multiple incompatible coding sequences, an `IsovarResult` represents a variant and one or more `ProteinSequence` objects which are associated with it. Protein sequences are ranked by the configured context/support preference and the top sequence is made easy to access. Allele-support properties such as `num_alt_fragments` and `fraction_ref_reads` remain separate from the selected protein's compatible support.
 
 
 ## Other Isovar Commandline Tools

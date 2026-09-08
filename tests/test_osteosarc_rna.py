@@ -10,7 +10,6 @@ import gzip
 from hashlib import sha256
 import json
 from pathlib import Path
-import traceback
 from types import SimpleNamespace
 
 import pysam
@@ -32,15 +31,6 @@ CASES = [pytest.param(name, v, id=f"{name}-{v['gene']}")
 SNPS = [pytest.param(name, v, id=f"{name}-{v['gene']}")
         for name, data in DATASETS.items() for v in data["variants"]
         if len(v["ref"]) == len(v["alt"]) == 1]
-
-
-class MissingSpliceReferenceBase(AssertionError):
-    """Only the documented normalization crash may count as an expected failure."""
-
-
-SPLICE_NORMALIZATION_BUG = pytest.mark.xfail(
-    strict=True, raises=MissingSpliceReferenceBase,
-    reason="https://github.com/openvax/isovar/issues/217: CIGAR N has no reference base to normalize")
 
 
 def variant_object(record):
@@ -124,9 +114,7 @@ def test_osteosarc_snp_partition_matches_independent_evidence(name, record, min_
 
 @pytest.mark.parametrize("name,gene", [
     ("bulk_star_t0", "H1-2"), ("bulk_star_t0", "GTF3C5"),
-    pytest.param("ont_t1", "H1-2", marks=SPLICE_NORMALIZATION_BUG),
-    pytest.param("ont_t1", "GTF3C5", marks=SPLICE_NORMALIZATION_BUG),
-    pytest.param("ont_t1", "PIP5K1A", marks=SPLICE_NORMALIZATION_BUG),
+    ("ont_t1", "H1-2"), ("ont_t1", "GTF3C5"), ("ont_t1", "PIP5K1A"),
 ])
 def test_osteosarc_cancer_deletion_support_reaches_sequence_creation(name, gene, alignments):
     record = next(v for v in DATASETS[name]["variants"] if v["gene"] == gene)
@@ -134,14 +122,7 @@ def test_osteosarc_cancer_deletion_support_reaches_sequence_creation(name, gene,
     assert len(direct_alt_names) >= 2
     variant = variant_object(record)
     with pysam.AlignmentFile(alignments[name]) as bam:
-        try:
-            evidence = ReadCollector(use_secondary_alignments=False).read_evidence_for_variant(variant, bam)
-        except AttributeError as error:
-            frames = [frame.f_code.co_name for frame, _ in traceback.walk_tb(error.__traceback__)]
-            if (str(error) == "'NoneType' object has no attribute 'upper'"
-                    and "_left_aligned_indel_interval_for_variant" in frames):
-                raise MissingSpliceReferenceBase(gene) from error
-            raise
+        evidence = ReadCollector(use_secondary_alignments=False).read_evidence_for_variant(variant, bam)
     assert direct_alt_names <= {r.name for r in evidence.alt_reads}
     sequences = VariantSequenceCreator(min_variant_sequence_coverage=1,
                                        variant_sequence_assembly=False).reads_to_variant_sequences(variant, evidence.alt_reads)

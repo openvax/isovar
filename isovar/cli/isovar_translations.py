@@ -21,7 +21,7 @@ from ..logging import get_logger
 from ..protein_sequence_creator import ProteinSequenceCreator
 from ..dataframe_helpers import translations_generator_to_dataframe
 
-from .translation_args import make_translation_arg_parser
+from .translation_args import make_translation_arg_parser, protein_sequence_creator_kwargs_from_args
 from .rna_args import read_evidence_generator_from_args
 from .output_args import add_output_args, write_dataframe
 
@@ -40,13 +40,7 @@ def translations_generator_from_args(args):
     are (varcode.Variant, [Translation])
     """
     read_evidence_generator = read_evidence_generator_from_args(args)
-    protein_sequence_creator = ProteinSequenceCreator(
-        protein_sequence_length=args.protein_sequence_length,
-        min_variant_sequence_coverage=args.min_variant_sequence_coverage,
-        variant_sequence_assembly=args.variant_sequence_assembly,
-        min_transcript_prefix_length=args.min_transcript_prefix_length,
-        max_transcript_mismatches=args.max_reference_transcript_mismatches,
-        count_mismatches_after_variant=args.count_mismatches_after_variant)
+    protein_sequence_creator = ProteinSequenceCreator(**protein_sequence_creator_kwargs_from_args(args))
     return protein_sequence_creator.translate_variants(read_evidence_generator)
 
 

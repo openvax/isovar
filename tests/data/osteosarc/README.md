@@ -5,7 +5,13 @@ BostonGene bulk tumor RNA aligned with STAR, and 242 from UCSF nanopore
 single-cell long-read tumor RNA aligned with minimap2. These complement the
 germline/alignment-edge-case examples in `../real_rna`; no reads, qualities,
 CIGARs, names, headers or tags were synthesized or edited. No production
-base-quality, weighting, translation or clinical policy is changed here.
+base-quality, weighting or clinical policy is changed here. The accompanying
+1.8.0 PR fixes spliced-indel extraction and adds configurable RNA-supported
+protein context selection; see [the policy](../../../PROTEIN_SELECTION.md).
+
+See [the sample-by-sample Isovar audit](SAMPLE_AUDIT.md) for actual
+ref/alt/other outputs, full-region counts, failure states and sequence-stage
+filtering, with a reproducible machine-readable report.
 
 ## Sources and reuse
 
@@ -140,11 +146,46 @@ Compare generated `.sam.gz`, `manifest.json`, `source_variant_counts.tsv`,
 The tests cover integrity, chromosome identity, exact allele/query-quality
 extraction, indexed SNP partitioning at several MAPQ thresholds, low-BQ
 cancer alleles, preserved aligner/cell/UMI metadata, source allele definitions,
-and deletion-to-sequence creation. Real ONT deletions expose a **new crash**:
+and deletion-to-sequence creation. Real ONT deletions exposed
 [isovar #217](https://github.com/openvax/isovar/issues/217), where normalization
-calls `.upper()` on the missing reference base of a CIGAR N. Three strict
-expected failures recognize only that specific failure path; unrelated
-errors or bad fixtures still fail. This is separate from the false-deletion
-splice-skip bug [#215](https://github.com/openvax/isovar/issues/215). Both must
-be fixed before describing spliced indel handling as robust. These fixtures
-are not end-to-end translation, somatic calling or clinical validation.
+called `.upper()` on the missing reference base of a CIGAR N. The regression
+tests now require successful collection and RNA reconstruction, with no
+expected-failure markers. CIGAR-aware normalization also fixes the separate
+splice-skip-as-deletion bug [#215](https://github.com/openvax/isovar/issues/215).
+
+`test_osteosarc_proteins.py` additionally exercises transcript matching,
+translation and final protein grouping/ranking using the original reads and
+six offline, pinned Ensembl 87 transcript models. Original GTF/cDNA/peptide
+subsets and their source URLs/hashes are in `protein_reference/`. The
+independent oracle maps genomic coordinates using raw exon intervals, edits
+the cDNA (reverse-complementing H1-2), and translates with NCBI table 1.
+It first checks every unedited cDNA against the original Ensembl peptide.
+No Isovar/Varcode protein prediction supplies expected amino-acid sequences.
+
+The partial annotation has the explicit dataset identity
+`GRCh38-osteosarc-six-transcript-subset`; all genomic coordinates remain
+GRCh38. Calling the partial dataset simply GRCh38 exposed
+[Varcode #402](https://github.com/openvax/varcode/issues/402): its global
+contig cache can then reject valid chromosomes in later full-GRCh38 analyses.
+The fixture's distinct identity prevents contamination without clearing or
+patching global caches; the general upstream bug remains open.
+
+The three original archives were also checked against Ensembl's published
+release-87 `CHECKSUMS` files: BSD sum/block pairs are cDNA **31257/62549**,
+peptide **36123/13504**, and GTF **01148/44663**. The fixture manifest records
+stronger SHA256 hashes of those source archives and the extracted subsets.
+
+To regenerate the reference subset from the three original Ensembl archives:
+
+```sh
+python tests/data/osteosarc/protein_references.py /path/to/ensembl87 /tmp/new-protein-reference
+python -m pytest tests/test_spliced_indels.py tests/test_osteosarc_proteins.py -q
+```
+
+Compare both compressed and uncompressed checksums in the manifest. The
+selected transcripts reproduce the source protein-change labels, including
+equivalent junction placements in the GTF3C5 glutamate repeat. This checks
+local expressed peptide windows for a specified transcript/allele, not every
+isoform, full-length RNA reconstruction, vaccine constructs, somatic calling
+or clinical efficacy. The full-region results and limitations are in
+[SAMPLE_AUDIT.md](SAMPLE_AUDIT.md).

@@ -11,6 +11,7 @@
 # limitations under the License.
 
 from collections import defaultdict
+from itertools import groupby
 
 from .default_parameters import (
     USE_SECONDARY_ALIGNMENTS,
@@ -68,32 +69,17 @@ class ReadCollector(object):
         self.merge_overlapping_fragments = merge_overlapping_fragments
 
     @staticmethod
-    def _previous_fully_aligned_pair_index(aligned_pairs, start_index):
-        """
-        Find the previous aligned-pair entry which maps both a query and
-        reference position.
-        """
-        while start_index >= 0:
-            query_pos, ref_pos, _ = aligned_pairs[start_index]
-            if query_pos is not None and ref_pos is not None:
-                return start_index
-            start_index -= 1
-        return None
-
-    @classmethod
     def _iter_left_aligned_indel_events(
-        cls,
-        aligned_pairs,
+        preceding_reference,
         base1_start,
         ref,
         alt,
         read_start,
         read_end,
-        previous_aligned_index,
     ):
         """
-        Yield the queried indel and each successive one-base left shift within
-        the local alignment.
+        Yield an indel and its left shifts within the immediately preceding
+        contiguous aligned block. Never jump across another CIGAR event.
 
         The query interval is shifted in lockstep with the indel representation
         so that downstream AlleleRead objects see the same canonical split for
@@ -102,17 +88,10 @@ class ReadCollector(object):
         ref = ref.upper()
         alt = alt.upper()
 
-        while True:
-            yield base1_start, ref, alt, read_start, read_end
-
-            if previous_aligned_index is None or base1_start <= 1:
+        yield base1_start, ref, alt, read_start, read_end
+        for previous_ref_base in reversed(preceding_reference):
+            if base1_start <= 1:
                 break
-
-            _, _, previous_ref_base = aligned_pairs[previous_aligned_index]
-            if previous_ref_base is None:
-                break
-
-            previous_ref_base = previous_ref_base.upper()
             longer_allele = alt if len(alt) > len(ref) else ref
             if len(longer_allele) == 0 or previous_ref_base != longer_allele[-1]:
                 break
@@ -125,10 +104,7 @@ class ReadCollector(object):
             base1_start -= 1
             read_start -= 1
             read_end -= 1
-            previous_aligned_index = cls._previous_fully_aligned_pair_index(
-                aligned_pairs,
-                previous_aligned_index - 1,
-            )
+            yield base1_start, ref, alt, read_start, read_end
 
     @classmethod
     def _left_aligned_indel_interval_for_variant(
@@ -148,11 +124,17 @@ class ReadCollector(object):
         if not (is_insertion or is_deletion):
             return None
 
+        read = pysam_aligned_segment
+        query_sequence = read.query_sequence
+        if query_sequence is None:
+            return None
+        if isinstance(query_sequence, bytes):
+            query_sequence = query_sequence.decode("ascii")
+        # MD describes M/=/X and D, but not N. Reconstructing this compact
+        # reference avoids expanding potentially megabase introns into pairs
+        # and keeps unavailable intronic bases out of deletion sequences.
         try:
-            aligned_pairs = pysam_aligned_segment.get_aligned_pairs(
-                matches_only=False,
-                with_seq=True,
-            )
+            reference_sequence = read.get_reference_sequence().upper()
         except ValueError:
             logger.debug(
                 "Skipping indel left-alignment for read '%s' because the alignment "
@@ -161,102 +143,59 @@ class ReadCollector(object):
             )
             return None
 
-        query_sequence = pysam_aligned_segment.query_sequence
-        if query_sequence is None:
+        cigar = read.cigartuples or []
+        if len(reference_sequence) != sum(n for op, n in cigar if op in (0, 2, 7, 8)):
+            logger.debug("Skipping indel normalization for inconsistent MD/CIGAR on '%s'", read.query_name)
             return None
-        if isinstance(query_sequence, bytes):
-            query_sequence = query_sequence.decode("ascii")
-
-        i = 0
-        while i < len(aligned_pairs):
-            query_pos, ref_pos, ref_base = aligned_pairs[i]
-
-            if is_insertion and query_pos is not None and ref_pos is None:
-                j = i
-                while (
-                    j < len(aligned_pairs)
-                    and aligned_pairs[j][0] is not None
-                    and aligned_pairs[j][1] is None
-                ):
-                    j += 1
-
-                previous_aligned_index = cls._previous_fully_aligned_pair_index(
-                    aligned_pairs,
-                    i - 1,
-                )
-                if previous_aligned_index is not None:
-                    previous_query_pos, previous_ref_pos, _ = aligned_pairs[
-                        previous_aligned_index
-                    ]
-                    inserted_sequence = query_sequence[query_pos:aligned_pairs[j - 1][0] + 1]
-                    for (
-                        normalized_base1_start,
-                        normalized_ref,
-                        normalized_alt,
-                        normalized_read_start,
-                        normalized_read_end,
-                    ) in cls._iter_left_aligned_indel_events(
-                        aligned_pairs=aligned_pairs,
-                        base1_start=previous_ref_pos + 1,
-                        ref="",
-                        alt=inserted_sequence,
-                        read_start=query_pos,
-                        read_end=aligned_pairs[j - 1][0] + 1,
-                        previous_aligned_index=previous_aligned_index,
-                    ):
-                        if (
-                            normalized_base1_start == trimmed_base1_start
-                            and normalized_ref == trimmed_ref
-                            and normalized_alt == trimmed_alt.upper()
-                        ):
-                            return normalized_read_start, normalized_read_end
-                i = j
+        query_pos, ref_pos, md_pos = 0, read.reference_start, 0
+        preceding_reference = ""
+        # Adjacent identical operations are legal and describe one event.
+        for operation, group in groupby(cigar, key=lambda pair: pair[0]):
+            length = sum(n for _, n in group)
+            if operation in (0, 7, 8):
+                preceding_reference += reference_sequence[md_pos:md_pos + length]
+                query_pos += length
+                ref_pos += length
+                md_pos += length
                 continue
-
-            if is_deletion and query_pos is None and ref_pos is not None:
-                j = i
-                while (
-                    j < len(aligned_pairs)
-                    and aligned_pairs[j][0] is None
-                    and aligned_pairs[j][1] is not None
-                ):
-                    j += 1
-
-                previous_aligned_index = cls._previous_fully_aligned_pair_index(
-                    aligned_pairs,
-                    i - 1,
-                )
-                if previous_aligned_index is not None:
-                    previous_query_pos, _, _ = aligned_pairs[previous_aligned_index]
-                    deleted_sequence = "".join(
-                        aligned_pairs[k][2].upper() for k in range(i, j)
-                    )
-                    for (
-                        normalized_base1_start,
-                        normalized_ref,
-                        normalized_alt,
-                        normalized_read_start,
-                        normalized_read_end,
-                    ) in cls._iter_left_aligned_indel_events(
-                        aligned_pairs=aligned_pairs,
-                        base1_start=ref_pos + 1,
-                        ref=deleted_sequence,
-                        alt="",
-                        read_start=previous_query_pos + 1,
-                        read_end=previous_query_pos + 1,
-                        previous_aligned_index=previous_aligned_index,
-                    ):
-                        if (
-                            normalized_base1_start == trimmed_base1_start
-                            and normalized_ref == trimmed_ref.upper()
-                            and normalized_alt == trimmed_alt
-                        ):
-                            return normalized_read_start, normalized_read_end
-                i = j
-                continue
-
-            i += 1
+            if (is_insertion and operation == 1) or (is_deletion and operation == 2):
+                event_ref = reference_sequence[md_pos:md_pos + length] if operation == 2 else ""
+                event_alt = query_sequence[query_pos:query_pos + length] if operation == 1 else ""
+                for position, ref, alt, start, end in cls._iter_left_aligned_indel_events(
+                        preceding_reference=preceding_reference,
+                        base1_start=ref_pos + (operation == 2), ref=event_ref, alt=event_alt,
+                        read_start=query_pos, read_end=query_pos + (length if operation == 1 else 0)):
+                    if (position == trimmed_base1_start and ref == trimmed_ref.upper()
+                            and alt == trimmed_alt.upper()):
+                        return start, end
+            # N, I, D, S, H and P all break the contiguous shifting context.
+            preceding_reference = ""
+            if operation in (1, 4):
+                query_pos += length
+            elif operation == 2:
+                ref_pos += length
+                md_pos += length
+            elif operation == 3:
+                ref_pos += length
         return None
+
+    @staticmethod
+    def _interval_overlaps_reference_skip(read, start, end):
+        """Reject skipped reference bases, without rejecting unrelated splices.
+
+        An insertion has an empty interval and needs the two neighboring
+        reference positions; its boundary must not be in or touch an intron.
+        Nonempty intervals may end immediately before or start after a skip.
+        """
+        pos = read.reference_start
+        for operation, length in read.cigartuples or []:
+            if operation == 3:
+                if (start == end and pos <= start <= pos + length) or (
+                        start < end and start < pos + length and end > pos):
+                    return True
+            if operation in (0, 2, 3, 7, 8):
+                pos += length
+        return False
 
     def locus_read_from_pysam_aligned_segment(
         self,
@@ -299,6 +238,10 @@ class ReadCollector(object):
 
         if pysam_aligned_segment.is_unmapped:
             logger.warning("How did we get unmapped read '%s' in a pileup?", name)
+            return None
+
+        if self._interval_overlaps_reference_skip(
+                pysam_aligned_segment, base0_start_inclusive, base0_end_exclusive):
             return None
 
         mapping_quality = pysam_aligned_segment.mapping_quality

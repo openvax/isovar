@@ -37,7 +37,8 @@ def test_long_alternates_retain_required_context(strand, assembly, replacement, 
     monkeypatch.setattr(
         "isovar.protein_sequence_creator.reference_contexts_for_variant",
         lambda *args, **kwargs: [context])
-    creator = ProteinSequenceCreator(variant_sequence_assembly=assembly)
+    # Keep the original 20-aa budget: larger defaults would hide #212.
+    creator = ProteinSequenceCreator(protein_sequence_length=20, variant_sequence_assembly=assembly)
 
     translation, = creator.translate_variant_reads(variant, reads)
 
@@ -69,7 +70,7 @@ def test_long_insertion_respects_custom_context_minimum(strand, minimum, missing
     monkeypatch.setattr(
         "isovar.protein_sequence_creator.reference_contexts_for_variant",
         lambda *args, **kwargs: [context])
-    creator = ProteinSequenceCreator(min_transcript_prefix_length=minimum)
+    creator = ProteinSequenceCreator(protein_sequence_length=20, min_transcript_prefix_length=minimum)
     translations = creator.translate_variant_reads(variant, reads)
 
     if missing_context:
@@ -134,7 +135,8 @@ def test_reference_lookup_budget_is_not_smaller_than_matching_minimum(monkeypatc
     monkeypatch.setattr("isovar.protein_sequence_creator.reference_contexts_for_variant", lookup)
     variant = Variant("1", 100, "G", "C", "GRCh38")
     read = _read("A" * 80, "C", "G" * 80, "read", "+")
-    ProteinSequenceCreator(min_transcript_prefix_length=70).translate_variant_reads(variant, [read])
+    ProteinSequenceCreator(protein_sequence_length=20, min_transcript_prefix_length=70).translate_variant_reads(
+        variant, [read])
     assert len(seen) == 1
     assert seen[0] >= 70
 

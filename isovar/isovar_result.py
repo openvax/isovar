@@ -334,10 +334,10 @@ class IsovarResult(object):
     def top_protein_sequence(self):
         """
         If any protein sequences were assembled for this variant then
-        return the best according to coverage, number of mismatches
-        relative to the reference, number of reference transcripts
-        which match sequence before the variant and protein
-        sequence length.
+        return the first according to the configured protein selection
+        policy. By default this balances mutation-containing peptide
+        context with compatible RNA support; it is not necessarily the
+        candidate with the highest read-name count.
 
         Returns ProteinSequence or None
         """
@@ -562,7 +562,7 @@ class IsovarResult(object):
     def num_amino_acid_mismatches_from_predicted_effect(self):
         """
         Compute the number of mismatches between the mutant protein sequence
-        predicted by Varcode and the best supported sequence translated
+        predicted by Varcode and the top-ranked sequence translated
         from assembled RNA reads by Isovar. We're not allowing any
         insertions or deletions in the middle of the sequences but do
         allow a shorter sequence to start anywhere within a longer one.
@@ -601,7 +601,7 @@ class IsovarResult(object):
     def num_amino_acid_mismatches_from_reference(self):
         """
         Compute the number of mismatches between the original protein sequence
-        and the best supported sequence translated from assembled RNA reads by
+        and the top-ranked sequence translated from assembled RNA reads by
         Isovar. We're not allowing any insertions or deletions in the middle of
         the sequences but do allow a shorter sequence to start anywhere
         within a longer one.

@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from numbers import Integral
+
 from .allele_read_helpers import get_single_allele_from_reads
 from .assembly import iterative_overlap_assembly
 from .default_parameters import (
@@ -67,6 +69,9 @@ class VariantSequenceCreator(object):
             known. This does not pad reads or invent missing sequence.
 
         """
+        if (isinstance(min_variant_sequence_coverage, bool)
+                or not isinstance(min_variant_sequence_coverage, Integral) or min_variant_sequence_coverage < 0):
+            raise ValueError("min_variant_sequence_coverage must be a non-negative integer")
         if preferred_sequence_length < 0:
             raise ValueError("preferred_sequence_length must be non-negative")
         if min_flanking_sequence_length < 0:

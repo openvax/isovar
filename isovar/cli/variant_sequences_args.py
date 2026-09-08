@@ -28,7 +28,8 @@ def add_variant_sequence_args(
         "--min-variant-sequence-coverage",
         type=int,
         default=MIN_VARIANT_SEQUENCE_COVERAGE,
-        help="Minimum number of reads supporting a variant sequence (default %(default)s)")
+        help="Minimum RNA read objects covering every retained cDNA base (default %(default)s). "
+             "An absolute floor, independent of the protein read-name support fraction.")
 
     rna_sequence_group.add_argument(
         "--disable-variant-sequence-assembly",
