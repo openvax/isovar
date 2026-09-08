@@ -71,14 +71,20 @@ difference, not biological change.
 
 The protein pipeline is exercised from collected alternate reads through
 RNA sequence creation, transcript matching, translation, grouping and
-ranking. The new default targets **49 aa for 25mer design**, with coverage 2,
+ranking. The context target is **2*K-1 for desired peptide size K**, not a
+fixed 49 aa: 15mers target 29 aa, 25mers 49 aa, and 30mers 59 aa. Actual
+selected length adapts to available RNA and both support controls. Defaults
+use K=25 and a hard absolute coverage floor of 2 RNA read objects per base,
 minimum reference prefix 10, maximum prefix mismatches 2, no overlap
-assembly and top-one output. Among candidates retaining at least **90% of
+assembly and top-one output. Among candidates retaining at least **85% of
 the best mutant candidate's compatible read-name support**, it maximizes
 the number of full mutation-containing 25mer placements. If none is
 available within budget, it prefers useful partial context without quietly
 lowering the threshold. Read-name support is not confidence or evidence
-that every name spans the complete peptide.
+that every name spans the complete peptide. The 85% fraction applies to
+compatible names, **not minimum per-base depth**; `--min-variant-sequence-coverage`
+controls the independent absolute floor. Setting it to 5 means every
+retained RNA base must have at least five read objects covering it.
 
 A bounded RNA-context ladder (20, 25, 29, 33, 37, 41, 45, 49 aa targets)
 keeps shorter reference-matching candidates available when long noisy
@@ -145,15 +151,16 @@ Numbers in parentheses are supporting **read names**, not molecule counts.
 | --- | --- | --- |
 | PIP5K1A | No alt reads | `VFKKIPLKPSPSKKFRSGSSFSRRAAPVATPALLTSHRSLGNTRHK` (2) |
 | MAP2 | No alt reads | No alt reads |
-| H1-2 | `SPKKAKVAKPKKAAKSAAKAVKPKVVKPKKAAPKKK` (21) | `KKAAKSAAKAVKPKVVKPKKAAPKKK` (569) |
-| EXOC4 | `YRSTVSKSKDPSGLLISVIRTLSTIDDVEDRENEKGRLEEAYEKCDRDL` (32) | `GLLISVIRTLSTIDDVEDRENEKGR` (97) |
-| GTF3C5 | `FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME` (7) | `KEQLTYESGEDEEDEEEEEDFKPSDGSEN` (90) |
-| DYNC1H1 | `RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD` (111) | `LLTLDILKHGKRFHATISFDTDTGLKQALETVN` (692) |
+| H1-2 | `SPKKAKVAKPKKAAKSAAKAVKPKVVKPKKAAPKKK` (21) | `VAKPKKAAKSAAKAVKPKVVKPKKAAPKKK` (539) |
+| EXOC4 | `YRSTVSKSKDPSGLLISVIRTLSTIDDVEDRENEKGRLEEAYEKCDRDL` (32) | `PSGLLISVIRTLSTIDDVEDRENEKGRLE` (89) |
+| GTF3C5 | `AKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMETEILDYV` (6) | `SSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDG` (81) |
+| DYNC1H1 | `RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD` (111) | `EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY` (666) |
 
 All nine supported combinations also return expected top peptides with
 unfiltered read-inclusion defaults and in the coverage-1 diagnostic.
-Coverage 1 retains these selected amino-acid sequences but can change
-their supporting names (ONT H1-2 583, EXOC4 101, DYNC1H1 702).
+Coverage 1 can change selected amino-acid sequences and supporting names:
+ONT H1-2 becomes 32 aa/554 names, GTF3C5 37 aa/80 names, while EXOC4 and
+DYNC1H1 retain their sequences with 93 and 679 names respectively.
 
 ### Context versus retained support
 
@@ -164,10 +171,10 @@ Each entry is **length / selected names / best candidate names / valid
 | --- | ---: | ---: |
 | PIP5K1A | No alt | 46 / 2 / 2 / 21 |
 | MAP2 | No alt | No alt |
-| H1-2 | 36 / 21 / 21 / 12 | 26 / 569 / 631 / 2 |
-| EXOC4 | 49 / 32 / 34 / 25 | 25 / 97 / 102 / 1 |
-| GTF3C5 | 42 / 7 / 7 / 17 | 29 / 90 / 94 / 5 |
-| DYNC1H1 | 47 / 111 / 121 / 23 | 33 / 692 / 767 / 9 |
+| H1-2 | 36 / 21 / 21 / 12 | 30 / 539 / 631 / 6 |
+| EXOC4 | 49 / 32 / 34 / 25 | 29 / 89 / 102 / 5 |
+| GTF3C5 | 45 / 6 / 7 / 21 | 34 / 81 / 94 / 10 |
+| DYNC1H1 | 47 / 111 / 121 / 23 | 37 / 666 / 767 / 13 |
 
 49 aa is sufficient for all 25 placements **only for a centered
 single-residue mutation**. A mutation-free window is never counted. Pure
@@ -185,7 +192,8 @@ we must not simply assign their support to a longer conflicting sequence.
 | --- | ---: | ---: |
 | Historical support-first, explicit target 20 | 9 / 121 / 0 | 20 / 766 / 0 |
 | Balanced, retain 95%, target 49 | 35 / 115 / 11 | 25 / 744 / 1 |
-| Balanced, retain 90%, target 49 (default) | 47 / 111 / 23 | 33 / 692 / 9 |
+| Balanced, retain 90%, target 49 | 47 / 111 / 23 | 33 / 692 / 9 |
+| Balanced, retain 85%, target 49 (default) | 47 / 111 / 23 | 37 / 666 / 13 |
 | Context-first, target 49 | 47 / 111 / 23 | 49 / 516 / 25 |
 
 All those DYNC1H1 sequences match their independently expected windows.
@@ -193,7 +201,7 @@ The 49-aa ONT context-first sequence is
 `EKRESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD`.
 The old 20-aa and new fallback RNA budgets differ by one base, hence ONT's
 766 historical names versus the new ladder's best 767. The default bulk
-47-aa window retains 91.7% of candidate support, ONT's 33 aa 90.2%; these
+47-aa window retains 91.7% of candidate support, ONT's 37 aa 86.8%; these
 are not fractions of every alternate alignment or calibrated confidence.
 
 **Context-first is intentionally not the default.** ONT H1-2 then selects
@@ -203,20 +211,52 @@ RNA still passes the independent frame/translation checks; this is weak,
 discordant RNA context, not proof of an additional tumor mutation. Its
 reported outcome is `different_top_protein`, not silently called validated.
 
-All five policies/diagnostics are explicit in JSON: `protein_default`,
-`protein_coverage1`, `protein_support20`, `protein_balanced95`, and
-`protein_context`. The relative threshold never changes allele counts or
+All six policies/diagnostics are explicit in JSON: `protein_default` (85%),
+`protein_coverage1`, `protein_support20`, `protein_balanced90`,
+`protein_balanced95`, and `protein_context`. The relative threshold never changes allele counts or
 the absolute sequence/reference filters. Vaxrank still explicitly requests
 35 aa; [vaxrank #415](https://github.com/openvax/vaxrank/issues/415) tracks
 coordinating its default request. Its current padding value 12 requests
 49 aa for 25mers. Actual final vaccine-selection validation remains
 [vaxrank #414](https://github.com/openvax/vaxrank/issues/414).
 
+### Desired peptide size and absolute coverage: DYNC1H1 sweep
+
+At 85% compatible-name retention, the primary full-region results are:
+
+| Desired peptide K | Derived target | Per-base floor | Bulk length / names | ONT length / names |
+| ---: | ---: | ---: | ---: | ---: |
+| 15 | 29 | 2 | 29 / 114 | 29 / 724 |
+| 15 | 29 | 5 | 29 / 114 | 29 / 701 |
+| 15 | 29 | 10 | 29 / 114 | 29 / 695 |
+| 25 | 49 | 2 | 47 / 111 | 37 / 666 |
+| 25 | 49 | 5 | 47 / 111 | 33 / 669 |
+| 25 | 49 | 10 | 47 / 111 | 33 / 669 |
+| 30 | 59 | 2 | 49 / 112 | 35 / 673 |
+| 30 | 59 | 5 | 49 / 112 | 36 / 651 |
+| 30 | 59 | 10 | 49 / 112 | 36 / 651 |
+
+Every selected sequence matches its independent expectation; every retained
+RNA candidate meets its absolute floor. The actual minimum per-base depths
+of coding-RNA candidates contributing to each protein are recorded in
+`retained_cdna_min_coverages`, separately from the grouped protein's union
+of compatible read names. For example, the bulk 47-aa result has retained
+RNA minima 50/51, not 111. ONT's 37-aa result has RNA minima 2/3/13/629:
+different, sometimes synonymous coding-RNA candidates can yield the same
+protein window. Raising the floor removes or trims those with sparse tails.
+
+A stronger floor can also change the candidate pool and the best-support
+baseline, so selected length is not necessarily monotone: ONT's K=30 result
+changes from 35 to 36 aa when the floor rises from 2 to 5. No depth floor
+is bypassed. These 18 checks are stored as `protein_adaptive_sweep` under
+the primary-only DYNC1H1 results; the offline small-fixture tests exercise
+the same grid without substituting their counts for full-region evidence.
+
 ### What this does NOT establish
 
 - **Alt support does not guarantee the requested peptide length.** All
   nine positive cases now yield at least one valid 25mer under balanced
-  90%, but ONT H1-2 falls back to 20 aa under the stricter 95% policy.
+  85%, but ONT H1-2 falls back to 20 aa under the stricter 95% policy.
   Other samples can lack any eligible full window. This addresses the
   demonstrated ranking limitation in [#90](https://github.com/openvax/isovar/issues/90),
   not every possible cause of short output. There is no reference padding.

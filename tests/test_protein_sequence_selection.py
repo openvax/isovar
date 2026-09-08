@@ -14,6 +14,7 @@ from isovar.protein_sequence_creator import ProteinSequenceCreator
 from isovar.protein_sequence_helpers import mutant_peptide_window_count, sort_protein_sequences
 from isovar.read_evidence import ReadEvidence
 from isovar.variant_sequence import VariantSequence
+from isovar.variant_sequence_creator import VariantSequenceCreator
 
 from .test_protein_sequences import _reads, _translation_with_reads
 from .test_translation_regressions import _context, _genomic_allele, _read
@@ -75,8 +76,8 @@ def test_support_context_tradeoff(preference, fraction, expected_length):
 
 
 def test_budget_boundary_and_raw_alignment_counts_do_not_inflate_support():
-    short, boundary, weak = protein(9, 100), protein(25, 90), protein(49, 89, source_read_count=10)
-    assert weak.num_supporting_fragments == 89
+    short, boundary, weak = protein(9, 100), protein(25, 85), protein(49, 84, source_read_count=10)
+    assert weak.num_supporting_fragments == 84
     ranked = sort_protein_sequences([weak, short, boundary], "balanced")
     assert ranked == [boundary, short, weak]
     assert sort_protein_sequences([weak, short, boundary], "context")[0] is weak
@@ -98,7 +99,7 @@ def test_nonmutant_candidates_neither_win_nor_set_support_budget():
 
 
 def test_partial_context_is_preferred_only_within_budget():
-    short, partial, weak = protein(9, 100), protein(24, 90), protein(25, 89)
+    short, partial, weak = protein(9, 100), protein(24, 85), protein(25, 84)
     assert sort_protein_sequences([weak, short, partial], "balanced") == [partial, short, weak]
 
 
@@ -139,6 +140,18 @@ def test_invalid_context_lengths(value):
         ProteinSequenceCreator(protein_sequence_length=value)
 
 
+@pytest.mark.parametrize("floor", [-1, 2.5, 2.0, True, "5", None, float("nan"), float("inf")])
+@pytest.mark.parametrize("creator_class", [ProteinSequenceCreator, VariantSequenceCreator])
+def test_invalid_absolute_coverage_floors_are_rejected_early(floor, creator_class):
+    with pytest.raises(ValueError, match="min_variant_sequence_coverage must be a non-negative integer"):
+        creator_class(min_variant_sequence_coverage=floor)
+
+
+def test_explicit_zero_absolute_floor_remains_supported():
+    assert ProteinSequenceCreator(min_variant_sequence_coverage=0).min_variant_sequence_coverage == 0
+    assert VariantSequenceCreator(min_variant_sequence_coverage=0).min_variant_sequence_coverage == 0
+
+
 @pytest.mark.parametrize("value", ["longest", None, "BALANCED", 1])
 def test_invalid_preference(value):
     with pytest.raises(ValueError, match="preference"):
@@ -150,7 +163,7 @@ def test_automatic_context_target(peptide):
     creator = ProteinSequenceCreator(protein_context_peptide_length=peptide)
     assert creator.protein_sequence_length == 2 * peptide - 1
     assert creator.protein_sequence_preference == "balanced"
-    assert creator.min_protein_sequence_support_fraction == .9
+    assert creator.min_protein_sequence_support_fraction == .85
     assert ProteinSequenceCreator(protein_sequence_length=35,
                                   protein_context_peptide_length=peptide).protein_sequence_length == 35
 
@@ -178,23 +191,24 @@ def test_context_ladder_is_bounded_and_includes_requested_target():
 @pytest.mark.parametrize("strand", ["+", "-"])
 @pytest.mark.parametrize("phase", [0, 1, 2])
 @pytest.mark.parametrize("assembly", [False, True])
-def test_default_centers_single_residue_in_every_codon_phase(strand, phase, assembly, monkeypatch):
+@pytest.mark.parametrize("peptide_length", [9, 15, 25, 30, 40])
+def test_default_centers_single_residue_in_every_codon_phase(strand, phase, assembly, peptide_length, monkeypatch):
     variant = Variant("1", 100, _genomic_allele("G", strand), _genomic_allele("C", strand), "GRCh38")
     prefix, suffix = "ACG" * 40 + "A" * phase, "G" * 120
     reads = [_read(prefix, "C", suffix, str(i), strand) for i in range(3)]
     context = _context(variant, strand, prefix, suffix)
     monkeypatch.setattr("isovar.protein_sequence_creator.reference_contexts_for_variant", lambda *a, **k: [context])
-    creator = ProteinSequenceCreator(variant_sequence_assembly=assembly)
+    creator = ProteinSequenceCreator(variant_sequence_assembly=assembly, protein_context_peptide_length=peptide_length)
     evidence = ReadEvidence(ref_reads=[], alt_reads=reads, other_reads=[],
                             trimmed_base1_start=100, trimmed_ref=variant.ref, trimmed_alt=variant.alt)
     top, = creator.sorted_protein_sequences_for_variant(variant, evidence)
-    assert len(top) == 49
-    assert (top.mutation_start_idx, top.mutation_end_idx) == (24, 25)
-    assert mutant_peptide_window_count(top, 25) == 25
+    assert len(top) == 2 * peptide_length - 1
+    assert (top.mutation_start_idx, top.mutation_end_idx) == (peptide_length - 1, peptide_length)
+    assert mutant_peptide_window_count(top, peptide_length) == peptide_length
     assert top.num_supporting_fragments == 3
     assert not top.frameshift
     assert not top.ends_with_stop_codon
-    assert top.amino_acids[24] == ("R", "T", "N")[phase]  # CGG / ACG / AAC
+    assert top.amino_acids[peptide_length - 1] == ("R", "T", "N")[phase]  # CGG / ACG / AAC
     # The same read objects support multiple contexts without multiplication.
     assert top.supporting_reads == set(reads)
 
@@ -270,14 +284,57 @@ def test_output_cap_applies_after_new_ranking(monkeypatch):
         None, evidence)) == 2
 
 
+@pytest.mark.parametrize("strand", ["+", "-"])
+@pytest.mark.parametrize("peptide_length", [15, 25, 30])
+@pytest.mark.parametrize("floor", [2, 3, 5, 101])
+def test_adaptive_context_obeys_absolute_floor_despite_high_compatible_support(
+        strand, peptide_length, floor, monkeypatch):
+    """100 compatible names must not make a twice-covered tail look deep."""
+    variant = Variant("1", 100, _genomic_allele("G", strand), _genomic_allele("C", strand), "GRCh38")
+    prefix, suffix = "ACG" * 40 + "AA", "G" * 120
+    reads = [_read(prefix, "C", suffix, str(i), strand) for i in range(2)]
+    reads += [_read(prefix[-38:], "C", suffix[:38], str(i), strand) for i in range(2, 100)]
+    context = _context(variant, strand, prefix, suffix)
+    monkeypatch.setattr("isovar.protein_sequence_creator.reference_contexts_for_variant", lambda *a, **k: [context])
+    creator = ProteinSequenceCreator(protein_context_peptide_length=peptide_length,
+                                     min_variant_sequence_coverage=floor)
+    evidence = ReadEvidence(ref_reads=[], alt_reads=reads, other_reads=[],
+                            trimmed_base1_start=100, trimmed_ref=variant.ref, trimmed_alt=variant.alt)
+    proteins = creator.sorted_protein_sequences_for_variant(variant, evidence)
+    if floor > 100:
+        assert proteins == []
+        return
+    top, = proteins
+    assert top.num_supporting_fragments == 100
+    assert len(top) == (2 * peptide_length - 1 if floor == 2 else 25)
+    assert all(t.untrimmed_variant_sequence.min_coverage() >= floor for t in top.translations)
+    assert len(evidence.alt_reads) == len(evidence.alt_read_names) == 100
+    # K=30/floor=5 genuinely has no full 30mer; never pad or relax the floor.
+    assert mutant_peptide_window_count(top, peptide_length) == max(0, len(top) - peptide_length + 1)
+
+
 def parse_args(*options):
     return make_protein_sequences_arg_parser().parse_args(["--vcf", "dummy.vcf", "--bam", "dummy.bam", *options])
+
+
+@pytest.mark.parametrize("peptide_length", [15, 25, 30])
+@pytest.mark.parametrize("floor", [2, 5, 10])
+def test_cli_adaptive_context_and_both_support_controls(peptide_length, floor):
+    creator = protein_sequence_creator_from_args(parse_args(
+        "--protein-context-peptide-length", str(peptide_length),
+        "--min-variant-sequence-coverage", str(floor),
+        "--min-protein-sequence-support-fraction", ".85"))
+    assert creator.protein_sequence_length == 2 * peptide_length - 1
+    assert creator.min_variant_sequence_coverage == floor
+    assert creator.min_protein_sequence_support_fraction == .85
 
 
 def test_cli_defaults_and_explicit_preferences():
     creator = protein_sequence_creator_from_args(parse_args())
     assert creator.protein_sequence_length == 49
     assert creator.protein_context_peptide_length == 25
+    assert creator.min_protein_sequence_support_fraction == .85
+    assert creator.min_variant_sequence_coverage == 2
     creator = protein_sequence_creator_from_args(parse_args(
         "--protein-context-peptide-length", "30", "--protein-sequence-preference", "context",
         "--min-protein-sequence-support-fraction", ".8", "--count-mismatches-after-variant"))

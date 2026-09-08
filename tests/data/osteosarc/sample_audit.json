@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "software": {
     "isovar": "1.8.0",
     "python": "3.12.6",
@@ -59,7 +59,7 @@
     "defaults": {
       "protein_sequence_preference": "balanced",
       "protein_context_peptide_length": 25,
-      "min_protein_sequence_support_fraction": 0.9,
+      "min_protein_sequence_support_fraction": 0.85,
       "protein_sequence_length": 49,
       "min_variant_sequence_coverage": 2,
       "min_transcript_prefix_length": 10,
@@ -137,7 +137,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -168,7 +168,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -199,7 +199,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -248,13 +248,44 @@
           "top_proteins": [],
           "outcome": "no_alt_reads"
         },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "best_candidate_read_names": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
         "protein_context": {
           "status": "ok",
           "min_coverage": 2,
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -308,7 +339,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -339,7 +370,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -370,7 +401,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -419,13 +450,44 @@
           "top_proteins": [],
           "outcome": "no_alt_reads"
         },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "best_candidate_read_names": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
         "protein_context": {
           "status": "ok",
           "min_coverage": 2,
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -504,7 +566,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -535,7 +597,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -566,7 +628,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -615,13 +677,44 @@
           "top_proteins": [],
           "outcome": "no_alt_reads"
         },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "best_candidate_read_names": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
         "protein_context": {
           "status": "ok",
           "min_coverage": 2,
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -675,7 +768,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -706,7 +799,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -737,7 +830,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -786,13 +879,44 @@
           "top_proteins": [],
           "outcome": "no_alt_reads"
         },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "best_candidate_read_names": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
         "protein_context": {
           "status": "ok",
           "min_coverage": 2,
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -881,7 +1005,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -914,6 +1038,12 @@
               "frameshift": false,
               "ends_with_stop_codon": true,
               "supporting_read_names": 21,
+              "retained_cdna_min_coverages": [
+                2,
+                8,
+                9,
+                12
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 12,
               "matches_expected": true,
@@ -933,7 +1063,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -966,6 +1096,13 @@
               "frameshift": false,
               "ends_with_stop_codon": true,
               "supporting_read_names": 21,
+              "retained_cdna_min_coverages": [
+                1,
+                2,
+                8,
+                9,
+                12
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 12,
               "matches_expected": true,
@@ -985,7 +1122,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -1011,6 +1148,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 21,
+              "retained_cdna_min_coverages": [
+                23
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -1063,6 +1203,12 @@
               "frameshift": false,
               "ends_with_stop_codon": true,
               "supporting_read_names": 21,
+              "retained_cdna_min_coverages": [
+                2,
+                8,
+                9,
+                12
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 12,
               "matches_expected": true,
@@ -1076,10 +1222,10 @@
           ],
           "outcome": "expected_top_protein"
         },
-        "protein_context": {
+        "protein_balanced90": {
           "status": "ok",
           "min_coverage": 2,
-          "preference": "context",
+          "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
           "min_support_fraction": 0.9,
@@ -1115,6 +1261,70 @@
               "frameshift": false,
               "ends_with_stop_codon": true,
               "supporting_read_names": 21,
+              "retained_cdna_min_coverages": [
+                2,
+                8,
+                9,
+                12
+              ],
+              "fraction_of_best_candidate_support": 1.0,
+              "mutation_containing_peptide_windows": 12,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "SPKKAKVAKPKKAAKSAAKAVKPKVVKPKKAAPKKK"
+              ],
+              "protein_starts_1based": [
+                173
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_context": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "context",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.85,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 70,
+          "reference_context_count": 1,
+          "translation_count": 70,
+          "expected_matching_translation_count": 70,
+          "best_candidate_read_names": 21,
+          "top_proteins": [
+            {
+              "amino_acids": "SPKKAKVAKPKKAAKSAAKAVKPKVVKPKKAAPKKK",
+              "mutation_interval": [
+                24,
+                25
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": true,
+              "supporting_read_names": 21,
+              "retained_cdna_min_coverages": [
+                2,
+                8,
+                9,
+                12
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 12,
               "matches_expected": true,
@@ -1168,7 +1378,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -1201,6 +1411,11 @@
               "frameshift": false,
               "ends_with_stop_codon": true,
               "supporting_read_names": 25,
+              "retained_cdna_min_coverages": [
+                2,
+                9,
+                12
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 12,
               "matches_expected": true,
@@ -1220,7 +1435,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -1253,6 +1468,12 @@
               "frameshift": false,
               "ends_with_stop_codon": true,
               "supporting_read_names": 25,
+              "retained_cdna_min_coverages": [
+                1,
+                2,
+                9,
+                12
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 12,
               "matches_expected": true,
@@ -1272,7 +1493,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -1298,6 +1519,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 25,
+              "retained_cdna_min_coverages": [
+                27
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -1350,6 +1574,11 @@
               "frameshift": false,
               "ends_with_stop_codon": true,
               "supporting_read_names": 25,
+              "retained_cdna_min_coverages": [
+                2,
+                9,
+                12
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 12,
               "matches_expected": true,
@@ -1363,10 +1592,10 @@
           ],
           "outcome": "expected_top_protein"
         },
-        "protein_context": {
+        "protein_balanced90": {
           "status": "ok",
           "min_coverage": 2,
-          "preference": "context",
+          "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
           "min_support_fraction": 0.9,
@@ -1402,6 +1631,68 @@
               "frameshift": false,
               "ends_with_stop_codon": true,
               "supporting_read_names": 25,
+              "retained_cdna_min_coverages": [
+                2,
+                9,
+                12
+              ],
+              "fraction_of_best_candidate_support": 1.0,
+              "mutation_containing_peptide_windows": 12,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "SPKKAKVAKPKKAAKSAAKAVKPKVVKPKKAAPKKK"
+              ],
+              "protein_starts_1based": [
+                173
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_context": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "context",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.85,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 80,
+          "reference_context_count": 1,
+          "translation_count": 80,
+          "expected_matching_translation_count": 80,
+          "best_candidate_read_names": 25,
+          "top_proteins": [
+            {
+              "amino_acids": "SPKKAKVAKPKKAAKSAAKAVKPKVVKPKKAAPKKK",
+              "mutation_interval": [
+                24,
+                25
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": true,
+              "supporting_read_names": 25,
+              "retained_cdna_min_coverages": [
+                2,
+                9,
+                12
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 12,
               "matches_expected": true,
@@ -1518,7 +1809,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -1551,6 +1842,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 32,
+              "retained_cdna_min_coverages": [
+                8
+              ],
               "fraction_of_best_candidate_support": 0.9411764705882353,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": true,
@@ -1570,7 +1864,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -1603,6 +1897,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 32,
+              "retained_cdna_min_coverages": [
+                8
+              ],
               "fraction_of_best_candidate_support": 0.9411764705882353,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": true,
@@ -1622,7 +1919,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -1648,6 +1945,13 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 34,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                38,
+                43,
+                44
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -1700,6 +2004,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 33,
+              "retained_cdna_min_coverages": [
+                12
+              ],
               "fraction_of_best_candidate_support": 0.9705882352941176,
               "mutation_containing_peptide_windows": 19,
               "matches_expected": true,
@@ -1713,10 +2020,10 @@
           ],
           "outcome": "expected_top_protein"
         },
-        "protein_context": {
+        "protein_balanced90": {
           "status": "ok",
           "min_coverage": 2,
-          "preference": "context",
+          "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
           "min_support_fraction": 0.9,
@@ -1752,6 +2059,64 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 32,
+              "retained_cdna_min_coverages": [
+                8
+              ],
+              "fraction_of_best_candidate_support": 0.9411764705882353,
+              "mutation_containing_peptide_windows": 25,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "YRSTVSKSKDPSGLLISVIRTLSTIDDVEDRENEKGRLEEAYEKCDRDL"
+              ],
+              "protein_starts_1based": [
+                10
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_context": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "context",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.85,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 215,
+          "reference_context_count": 1,
+          "translation_count": 191,
+          "expected_matching_translation_count": 191,
+          "best_candidate_read_names": 34,
+          "top_proteins": [
+            {
+              "amino_acids": "YRSTVSKSKDPSGLLISVIRTLSTIDDVEDRENEKGRLEEAYEKCDRDL",
+              "mutation_interval": [
+                24,
+                25
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 32,
+              "retained_cdna_min_coverages": [
+                8
+              ],
               "fraction_of_best_candidate_support": 0.9411764705882353,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": true,
@@ -1843,7 +2208,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -1876,6 +2241,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 32,
+              "retained_cdna_min_coverages": [
+                8
+              ],
               "fraction_of_best_candidate_support": 0.9411764705882353,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": true,
@@ -1895,7 +2263,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -1928,6 +2296,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 32,
+              "retained_cdna_min_coverages": [
+                8
+              ],
               "fraction_of_best_candidate_support": 0.9411764705882353,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": true,
@@ -1947,7 +2318,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -1973,6 +2344,13 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 34,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                38,
+                43,
+                44
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -2025,6 +2403,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 33,
+              "retained_cdna_min_coverages": [
+                12
+              ],
               "fraction_of_best_candidate_support": 0.9705882352941176,
               "mutation_containing_peptide_windows": 19,
               "matches_expected": true,
@@ -2038,10 +2419,10 @@
           ],
           "outcome": "expected_top_protein"
         },
-        "protein_context": {
+        "protein_balanced90": {
           "status": "ok",
           "min_coverage": 2,
-          "preference": "context",
+          "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
           "min_support_fraction": 0.9,
@@ -2077,6 +2458,64 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 32,
+              "retained_cdna_min_coverages": [
+                8
+              ],
+              "fraction_of_best_candidate_support": 0.9411764705882353,
+              "mutation_containing_peptide_windows": 25,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "YRSTVSKSKDPSGLLISVIRTLSTIDDVEDRENEKGRLEEAYEKCDRDL"
+              ],
+              "protein_starts_1based": [
+                10
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_context": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "context",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.85,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 215,
+          "reference_context_count": 1,
+          "translation_count": 191,
+          "expected_matching_translation_count": 191,
+          "best_candidate_read_names": 34,
+          "top_proteins": [
+            {
+              "amino_acids": "YRSTVSKSKDPSGLLISVIRTLSTIDDVEDRENEKGRLEEAYEKCDRDL",
+              "mutation_interval": [
+                24,
+                25
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 32,
+              "retained_cdna_min_coverages": [
+                8
+              ],
               "fraction_of_best_candidate_support": 0.9411764705882353,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": true,
@@ -2150,7 +2589,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -2174,23 +2613,26 @@
           "best_candidate_read_names": 7,
           "top_proteins": [
             {
-              "amino_acids": "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME",
+              "amino_acids": "AKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMETEILDYV",
               "mutation_interval": [
-                25,
-                25
+                21,
+                21
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 7,
-              "fraction_of_best_candidate_support": 1.0,
-              "mutation_containing_peptide_windows": 17,
+              "supporting_read_names": 6,
+              "retained_cdna_min_coverages": [
+                3
+              ],
+              "fraction_of_best_candidate_support": 0.8571428571428571,
+              "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
               "expected_amino_acids": [
-                "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME"
+                "AKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMETEILDYV"
               ],
               "protein_starts_1based": [
-                474
+                478
               ]
             }
           ],
@@ -2202,7 +2644,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -2226,23 +2668,26 @@
           "best_candidate_read_names": 7,
           "top_proteins": [
             {
-              "amino_acids": "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME",
+              "amino_acids": "AKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMETEILDYV",
               "mutation_interval": [
-                25,
-                25
+                21,
+                21
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 7,
-              "fraction_of_best_candidate_support": 1.0,
-              "mutation_containing_peptide_windows": 17,
+              "supporting_read_names": 6,
+              "retained_cdna_min_coverages": [
+                3
+              ],
+              "fraction_of_best_candidate_support": 0.8571428571428571,
+              "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
               "expected_amino_acids": [
-                "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME"
+                "AKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMETEILDYV"
               ],
               "protein_starts_1based": [
-                474
+                478
               ]
             }
           ],
@@ -2254,7 +2699,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -2280,6 +2725,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 7,
+              "retained_cdna_min_coverages": [
+                9
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -2332,6 +2780,66 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 7,
+              "retained_cdna_min_coverages": [
+                4,
+                5
+              ],
+              "fraction_of_best_candidate_support": 1.0,
+              "mutation_containing_peptide_windows": 17,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME"
+              ],
+              "protein_starts_1based": [
+                474
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 28,
+          "reference_context_count": 1,
+          "translation_count": 28,
+          "expected_matching_translation_count": 28,
+          "best_candidate_read_names": 7,
+          "top_proteins": [
+            {
+              "amino_acids": "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME",
+              "mutation_interval": [
+                25,
+                25
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 7,
+              "retained_cdna_min_coverages": [
+                4,
+                5
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 17,
               "matches_expected": true,
@@ -2351,7 +2859,7 @@
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -2384,6 +2892,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 6,
+              "retained_cdna_min_coverages": [
+                3
+              ],
               "fraction_of_best_candidate_support": 0.8571428571428571,
               "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
@@ -2432,7 +2943,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -2456,23 +2967,26 @@
           "best_candidate_read_names": 7,
           "top_proteins": [
             {
-              "amino_acids": "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME",
+              "amino_acids": "AKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMETEILDYV",
               "mutation_interval": [
-                25,
-                25
+                21,
+                21
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 7,
-              "fraction_of_best_candidate_support": 1.0,
-              "mutation_containing_peptide_windows": 17,
+              "supporting_read_names": 6,
+              "retained_cdna_min_coverages": [
+                3
+              ],
+              "fraction_of_best_candidate_support": 0.8571428571428571,
+              "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
               "expected_amino_acids": [
-                "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME"
+                "AKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMETEILDYV"
               ],
               "protein_starts_1based": [
-                474
+                478
               ]
             }
           ],
@@ -2484,7 +2998,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -2508,23 +3022,26 @@
           "best_candidate_read_names": 7,
           "top_proteins": [
             {
-              "amino_acids": "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME",
+              "amino_acids": "AKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMETEILDYV",
               "mutation_interval": [
-                25,
-                25
+                21,
+                21
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 7,
-              "fraction_of_best_candidate_support": 1.0,
-              "mutation_containing_peptide_windows": 17,
+              "supporting_read_names": 6,
+              "retained_cdna_min_coverages": [
+                3
+              ],
+              "fraction_of_best_candidate_support": 0.8571428571428571,
+              "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
               "expected_amino_acids": [
-                "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME"
+                "AKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMETEILDYV"
               ],
               "protein_starts_1based": [
-                474
+                478
               ]
             }
           ],
@@ -2536,7 +3053,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -2562,6 +3079,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 7,
+              "retained_cdna_min_coverages": [
+                9
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -2614,6 +3134,66 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 7,
+              "retained_cdna_min_coverages": [
+                4,
+                5
+              ],
+              "fraction_of_best_candidate_support": 1.0,
+              "mutation_containing_peptide_windows": 17,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME"
+              ],
+              "protein_starts_1based": [
+                474
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 28,
+          "reference_context_count": 1,
+          "translation_count": 28,
+          "expected_matching_translation_count": 28,
+          "best_candidate_read_names": 7,
+          "top_proteins": [
+            {
+              "amino_acids": "FSSSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEME",
+              "mutation_interval": [
+                25,
+                25
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 7,
+              "retained_cdna_min_coverages": [
+                4,
+                5
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 17,
               "matches_expected": true,
@@ -2633,7 +3213,7 @@
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -2666,6 +3246,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 6,
+              "retained_cdna_min_coverages": [
+                3
+              ],
               "fraction_of_best_candidate_support": 0.8571428571428571,
               "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
@@ -2802,7 +3385,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -2835,6 +3418,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 111,
+              "retained_cdna_min_coverages": [
+                50,
+                51
+              ],
               "fraction_of_best_candidate_support": 0.9173553719008265,
               "mutation_containing_peptide_windows": 23,
               "matches_expected": true,
@@ -2854,7 +3441,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -2887,6 +3474,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 111,
+              "retained_cdna_min_coverages": [
+                50,
+                51
+              ],
               "fraction_of_best_candidate_support": 0.925,
               "mutation_containing_peptide_windows": 23,
               "matches_expected": true,
@@ -2906,7 +3497,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -2932,6 +3523,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 121,
+              "retained_cdna_min_coverages": [
+                124
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -2984,6 +3578,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 115,
+              "retained_cdna_min_coverages": [
+                45
+              ],
               "fraction_of_best_candidate_support": 0.9504132231404959,
               "mutation_containing_peptide_windows": 11,
               "matches_expected": true,
@@ -2997,10 +3594,10 @@
           ],
           "outcome": "expected_top_protein"
         },
-        "protein_context": {
+        "protein_balanced90": {
           "status": "ok",
           "min_coverage": 2,
-          "preference": "context",
+          "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
           "min_support_fraction": 0.9,
@@ -3036,6 +3633,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 111,
+              "retained_cdna_min_coverages": [
+                50,
+                51
+              ],
               "fraction_of_best_candidate_support": 0.9173553719008265,
               "mutation_containing_peptide_windows": 23,
               "matches_expected": true,
@@ -3048,7 +3649,563 @@
             }
           ],
           "outcome": "expected_top_protein"
-        }
+        },
+        "protein_context": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "context",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.85,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 404,
+          "reference_context_count": 1,
+          "translation_count": 377,
+          "expected_matching_translation_count": 368,
+          "best_candidate_read_names": 121,
+          "top_proteins": [
+            {
+              "amino_acids": "RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD",
+              "mutation_interval": [
+                22,
+                23
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 111,
+              "retained_cdna_min_coverages": [
+                50,
+                51
+              ],
+              "fraction_of_best_candidate_support": 0.9173553719008265,
+              "mutation_containing_peptide_windows": 23,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD"
+              ],
+              "protein_starts_1based": [
+                292
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_adaptive_sweep": [
+          {
+            "status": "ok",
+            "min_coverage": 2,
+            "preference": "balanced",
+            "target_protein_length": 29,
+            "peptide_length": 15,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              15,
+              18,
+              20,
+              21,
+              24,
+              27,
+              29
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 239,
+            "reference_context_count": 1,
+            "translation_count": 217,
+            "expected_matching_translation_count": 211,
+            "best_candidate_read_names": 121,
+            "top_proteins": [
+              {
+                "amino_acids": "TLDILKHGKRFHATISFDTDTGLKQALET",
+                "mutation_interval": [
+                  14,
+                  15
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 114,
+                "retained_cdna_min_coverages": [
+                  67,
+                  69
+                ],
+                "fraction_of_best_candidate_support": 0.9421487603305785,
+                "mutation_containing_peptide_windows": 15,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "TLDILKHGKRFHATISFDTDTGLKQALET"
+                ],
+                "protein_starts_1based": [
+                  300
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 5,
+            "preference": "balanced",
+            "target_protein_length": 29,
+            "peptide_length": 15,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              15,
+              18,
+              20,
+              21,
+              24,
+              27,
+              29
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 227,
+            "reference_context_count": 1,
+            "translation_count": 206,
+            "expected_matching_translation_count": 206,
+            "best_candidate_read_names": 121,
+            "top_proteins": [
+              {
+                "amino_acids": "TLDILKHGKRFHATISFDTDTGLKQALET",
+                "mutation_interval": [
+                  14,
+                  15
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 114,
+                "retained_cdna_min_coverages": [
+                  67,
+                  69
+                ],
+                "fraction_of_best_candidate_support": 0.9421487603305785,
+                "mutation_containing_peptide_windows": 15,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "TLDILKHGKRFHATISFDTDTGLKQALET"
+                ],
+                "protein_starts_1based": [
+                  300
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 10,
+            "preference": "balanced",
+            "target_protein_length": 29,
+            "peptide_length": 15,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              15,
+              18,
+              20,
+              21,
+              24,
+              27,
+              29
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 228,
+            "reference_context_count": 1,
+            "translation_count": 206,
+            "expected_matching_translation_count": 206,
+            "best_candidate_read_names": 121,
+            "top_proteins": [
+              {
+                "amino_acids": "TLDILKHGKRFHATISFDTDTGLKQALET",
+                "mutation_interval": [
+                  14,
+                  15
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 114,
+                "retained_cdna_min_coverages": [
+                  67,
+                  69
+                ],
+                "fraction_of_best_candidate_support": 0.9421487603305785,
+                "mutation_containing_peptide_windows": 15,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "TLDILKHGKRFHATISFDTDTGLKQALET"
+                ],
+                "protein_starts_1based": [
+                  300
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 2,
+            "preference": "balanced",
+            "target_protein_length": 49,
+            "peptide_length": 25,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              25,
+              29,
+              33,
+              37,
+              41,
+              45,
+              49
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 404,
+            "reference_context_count": 1,
+            "translation_count": 377,
+            "expected_matching_translation_count": 368,
+            "best_candidate_read_names": 121,
+            "top_proteins": [
+              {
+                "amino_acids": "RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD",
+                "mutation_interval": [
+                  22,
+                  23
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 111,
+                "retained_cdna_min_coverages": [
+                  50,
+                  51
+                ],
+                "fraction_of_best_candidate_support": 0.9173553719008265,
+                "mutation_containing_peptide_windows": 23,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD"
+                ],
+                "protein_starts_1based": [
+                  292
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 5,
+            "preference": "balanced",
+            "target_protein_length": 49,
+            "peptide_length": 25,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              25,
+              29,
+              33,
+              37,
+              41,
+              45,
+              49
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 388,
+            "reference_context_count": 1,
+            "translation_count": 361,
+            "expected_matching_translation_count": 361,
+            "best_candidate_read_names": 121,
+            "top_proteins": [
+              {
+                "amino_acids": "RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD",
+                "mutation_interval": [
+                  22,
+                  23
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 111,
+                "retained_cdna_min_coverages": [
+                  50,
+                  51
+                ],
+                "fraction_of_best_candidate_support": 0.9173553719008265,
+                "mutation_containing_peptide_windows": 23,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD"
+                ],
+                "protein_starts_1based": [
+                  292
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 10,
+            "preference": "balanced",
+            "target_protein_length": 49,
+            "peptide_length": 25,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              25,
+              29,
+              33,
+              37,
+              41,
+              45,
+              49
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 389,
+            "reference_context_count": 1,
+            "translation_count": 362,
+            "expected_matching_translation_count": 362,
+            "best_candidate_read_names": 121,
+            "top_proteins": [
+              {
+                "amino_acids": "RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD",
+                "mutation_interval": [
+                  22,
+                  23
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 111,
+                "retained_cdna_min_coverages": [
+                  50,
+                  51
+                ],
+                "fraction_of_best_candidate_support": 0.9173553719008265,
+                "mutation_containing_peptide_windows": 23,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD"
+                ],
+                "protein_starts_1based": [
+                  292
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 2,
+            "preference": "balanced",
+            "target_protein_length": 59,
+            "peptide_length": 30,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              30,
+              35,
+              40,
+              45,
+              50,
+              55,
+              59
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 430,
+            "reference_context_count": 1,
+            "translation_count": 403,
+            "expected_matching_translation_count": 394,
+            "best_candidate_read_names": 121,
+            "top_proteins": [
+              {
+                "amino_acids": "YRIQEKRESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNP",
+                "mutation_interval": [
+                  28,
+                  29
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 112,
+                "retained_cdna_min_coverages": [
+                  44
+                ],
+                "fraction_of_best_candidate_support": 0.9256198347107438,
+                "mutation_containing_peptide_windows": 20,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "YRIQEKRESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNP"
+                ],
+                "protein_starts_1based": [
+                  286
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 5,
+            "preference": "balanced",
+            "target_protein_length": 59,
+            "peptide_length": 30,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              30,
+              35,
+              40,
+              45,
+              50,
+              55,
+              59
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 414,
+            "reference_context_count": 1,
+            "translation_count": 388,
+            "expected_matching_translation_count": 388,
+            "best_candidate_read_names": 121,
+            "top_proteins": [
+              {
+                "amino_acids": "YRIQEKRESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNP",
+                "mutation_interval": [
+                  28,
+                  29
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 112,
+                "retained_cdna_min_coverages": [
+                  44
+                ],
+                "fraction_of_best_candidate_support": 0.9256198347107438,
+                "mutation_containing_peptide_windows": 20,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "YRIQEKRESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNP"
+                ],
+                "protein_starts_1based": [
+                  286
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 10,
+            "preference": "balanced",
+            "target_protein_length": 59,
+            "peptide_length": 30,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              30,
+              35,
+              40,
+              45,
+              50,
+              55,
+              59
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 415,
+            "reference_context_count": 1,
+            "translation_count": 388,
+            "expected_matching_translation_count": 388,
+            "best_candidate_read_names": 121,
+            "top_proteins": [
+              {
+                "amino_acids": "YRIQEKRESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNP",
+                "mutation_interval": [
+                  28,
+                  29
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 112,
+                "retained_cdna_min_coverages": [
+                  44
+                ],
+                "fraction_of_best_candidate_support": 0.9256198347107438,
+                "mutation_containing_peptide_windows": 20,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "YRIQEKRESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNP"
+                ],
+                "protein_starts_1based": [
+                  286
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          }
+        ]
       },
       "defaults": {
         "status": "ok",
@@ -3147,7 +4304,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -3180,6 +4337,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 111,
+              "retained_cdna_min_coverages": [
+                50,
+                51
+              ],
               "fraction_of_best_candidate_support": 0.9173553719008265,
               "mutation_containing_peptide_windows": 23,
               "matches_expected": true,
@@ -3199,7 +4360,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -3232,6 +4393,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 111,
+              "retained_cdna_min_coverages": [
+                50,
+                51
+              ],
               "fraction_of_best_candidate_support": 0.925,
               "mutation_containing_peptide_windows": 23,
               "matches_expected": true,
@@ -3251,7 +4416,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -3277,6 +4442,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 121,
+              "retained_cdna_min_coverages": [
+                124
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -3329,6 +4497,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 115,
+              "retained_cdna_min_coverages": [
+                45
+              ],
               "fraction_of_best_candidate_support": 0.9504132231404959,
               "mutation_containing_peptide_windows": 11,
               "matches_expected": true,
@@ -3342,10 +4513,10 @@
           ],
           "outcome": "expected_top_protein"
         },
-        "protein_context": {
+        "protein_balanced90": {
           "status": "ok",
           "min_coverage": 2,
-          "preference": "context",
+          "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
           "min_support_fraction": 0.9,
@@ -3381,6 +4552,66 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 111,
+              "retained_cdna_min_coverages": [
+                50,
+                51
+              ],
+              "fraction_of_best_candidate_support": 0.9173553719008265,
+              "mutation_containing_peptide_windows": 23,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD"
+              ],
+              "protein_starts_1based": [
+                292
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_context": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "context",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.85,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 404,
+          "reference_context_count": 1,
+          "translation_count": 377,
+          "expected_matching_translation_count": 368,
+          "best_candidate_read_names": 121,
+          "top_proteins": [
+            {
+              "amino_acids": "RESPEVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDYNPLMKD",
+              "mutation_interval": [
+                22,
+                23
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 111,
+              "retained_cdna_min_coverages": [
+                50,
+                51
+              ],
               "fraction_of_best_candidate_support": 0.9173553719008265,
               "mutation_containing_peptide_windows": 23,
               "matches_expected": true,
@@ -3452,7 +4683,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -3485,6 +4716,9 @@
               "frameshift": true,
               "ends_with_stop_codon": true,
               "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
@@ -3504,7 +4738,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -3537,6 +4771,9 @@
               "frameshift": true,
               "ends_with_stop_codon": true,
               "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
@@ -3556,7 +4793,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -3582,6 +4819,9 @@
               "frameshift": true,
               "ends_with_stop_codon": false,
               "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -3634,6 +4874,9 @@
               "frameshift": true,
               "ends_with_stop_codon": true,
               "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
@@ -3647,10 +4890,10 @@
           ],
           "outcome": "expected_top_protein"
         },
-        "protein_context": {
+        "protein_balanced90": {
           "status": "ok",
           "min_coverage": 2,
-          "preference": "context",
+          "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
           "min_support_fraction": 0.9,
@@ -3686,6 +4929,64 @@
               "frameshift": true,
               "ends_with_stop_codon": true,
               "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
+              "fraction_of_best_candidate_support": 1.0,
+              "mutation_containing_peptide_windows": 21,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "VFKKIPLKPSPSKKFRSGSSFSRRAAPVATPALLTSHRSLGNTRHK"
+              ],
+              "protein_starts_1based": [
+                449
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_context": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "context",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.85,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 8,
+          "reference_context_count": 1,
+          "translation_count": 8,
+          "expected_matching_translation_count": 8,
+          "best_candidate_read_names": 2,
+          "top_proteins": [
+            {
+              "amino_acids": "VFKKIPLKPSPSKKFRSGSSFSRRAAPVATPALLTSHRSLGNTRHK",
+              "mutation_interval": [
+                25,
+                46
+              ],
+              "contains_mutation": true,
+              "frameshift": true,
+              "ends_with_stop_codon": true,
+              "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
@@ -3732,7 +5033,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -3765,6 +5066,9 @@
               "frameshift": true,
               "ends_with_stop_codon": true,
               "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
@@ -3784,7 +5088,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -3817,6 +5121,9 @@
               "frameshift": true,
               "ends_with_stop_codon": true,
               "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
@@ -3836,7 +5143,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -3862,6 +5169,9 @@
               "frameshift": true,
               "ends_with_stop_codon": false,
               "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -3914,6 +5224,9 @@
               "frameshift": true,
               "ends_with_stop_codon": true,
               "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
@@ -3927,10 +5240,10 @@
           ],
           "outcome": "expected_top_protein"
         },
-        "protein_context": {
+        "protein_balanced90": {
           "status": "ok",
           "min_coverage": 2,
-          "preference": "context",
+          "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
           "min_support_fraction": 0.9,
@@ -3966,6 +5279,64 @@
               "frameshift": true,
               "ends_with_stop_codon": true,
               "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
+              "fraction_of_best_candidate_support": 1.0,
+              "mutation_containing_peptide_windows": 21,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "VFKKIPLKPSPSKKFRSGSSFSRRAAPVATPALLTSHRSLGNTRHK"
+              ],
+              "protein_starts_1based": [
+                449
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_context": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "context",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.85,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000368888.8",
+          "protein_version": "ENSP00000357883.4",
+          "strand": "+",
+          "reference_protein_length": 562,
+          "expected_mutant_protein_length": 494,
+          "expected_mutant_protein_sha256": "87074bf689bf8c3a9839b9a3364b361669467901531b2be31252cd88050830fc",
+          "rna_candidate_count": 8,
+          "reference_context_count": 1,
+          "translation_count": 8,
+          "expected_matching_translation_count": 8,
+          "best_candidate_read_names": 2,
+          "top_proteins": [
+            {
+              "amino_acids": "VFKKIPLKPSPSKKFRSGSSFSRRAAPVATPALLTSHRSLGNTRHK",
+              "mutation_interval": [
+                25,
+                46
+              ],
+              "contains_mutation": true,
+              "frameshift": true,
+              "ends_with_stop_codon": true,
+              "supporting_read_names": 2,
+              "retained_cdna_min_coverages": [
+                2
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 21,
               "matches_expected": true,
@@ -4033,7 +5404,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4064,7 +5435,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4095,7 +5466,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -4144,13 +5515,44 @@
           "top_proteins": [],
           "outcome": "no_alt_reads"
         },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "best_candidate_read_names": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
         "protein_context": {
           "status": "ok",
           "min_coverage": 2,
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4204,7 +5606,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4235,7 +5637,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4266,7 +5668,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -4315,13 +5717,44 @@
           "top_proteins": [],
           "outcome": "no_alt_reads"
         },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000360351.8",
+          "protein_version": "ENSP00000353508.4",
+          "strand": "+",
+          "reference_protein_length": 1827,
+          "expected_mutant_protein_length": 906,
+          "expected_mutant_protein_sha256": "9e2b1813ce2fe5c5577e6281bbfce1590e49edb5444c0531a12401ba3f7d527d",
+          "rna_candidate_count": 0,
+          "reference_context_count": 1,
+          "translation_count": 0,
+          "expected_matching_translation_count": 0,
+          "best_candidate_read_names": 0,
+          "top_proteins": [],
+          "outcome": "no_alt_reads"
+        },
         "protein_context": {
           "status": "ok",
           "min_coverage": 2,
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4406,7 +5839,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4430,23 +5863,26 @@
           "best_candidate_read_names": 631,
           "top_proteins": [
             {
-              "amino_acids": "KKAAKSAAKAVKPKVVKPKKAAPKKK",
+              "amino_acids": "VAKPKKAAKSAAKAVKPKVVKPKKAAPKKK",
               "mutation_interval": [
-                14,
-                15
+                18,
+                19
               ],
               "contains_mutation": true,
               "frameshift": false,
-              "ends_with_stop_codon": true,
-              "supporting_read_names": 569,
-              "fraction_of_best_candidate_support": 0.901743264659271,
-              "mutation_containing_peptide_windows": 2,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 539,
+              "retained_cdna_min_coverages": [
+                539
+              ],
+              "fraction_of_best_candidate_support": 0.8541996830427893,
+              "mutation_containing_peptide_windows": 6,
               "matches_expected": true,
               "expected_amino_acids": [
-                "KKAAKSAAKAVKPKVVKPKKAAPKKK"
+                "VAKPKKAAKSAAKAVKPKVVKPKKAAPKKK"
               ],
               "protein_starts_1based": [
-                183
+                179
               ]
             }
           ],
@@ -4458,7 +5894,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4482,23 +5918,30 @@
           "best_candidate_read_names": 639,
           "top_proteins": [
             {
-              "amino_acids": "KKAAKSAAKAVKPKVVKPKKAAPKKK",
+              "amino_acids": "AKVAKPKKAAKSAAKAVKPKVVKPKKAAPKKK",
               "mutation_interval": [
-                14,
-                15
+                20,
+                21
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": true,
-              "supporting_read_names": 583,
-              "fraction_of_best_candidate_support": 0.9123630672926447,
-              "mutation_containing_peptide_windows": 2,
+              "supporting_read_names": 554,
+              "retained_cdna_min_coverages": [
+                1,
+                2,
+                3,
+                5,
+                486
+              ],
+              "fraction_of_best_candidate_support": 0.86697965571205,
+              "mutation_containing_peptide_windows": 8,
               "matches_expected": true,
               "expected_amino_acids": [
-                "KKAAKSAAKAVKPKVVKPKKAAPKKK"
+                "AKVAKPKKAAKSAAKAVKPKVVKPKKAAPKKK"
               ],
               "protein_starts_1based": [
-                183
+                177
               ]
             }
           ],
@@ -4510,7 +5953,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -4536,6 +5979,11 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 628,
+              "retained_cdna_min_coverages": [
+                2,
+                9,
+                615
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -4588,6 +6036,11 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 631,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                624
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -4601,13 +6054,72 @@
           ],
           "outcome": "expected_top_protein"
         },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 211,
+          "reference_context_count": 1,
+          "translation_count": 175,
+          "expected_matching_translation_count": 67,
+          "best_candidate_read_names": 631,
+          "top_proteins": [
+            {
+              "amino_acids": "KKAAKSAAKAVKPKVVKPKKAAPKKK",
+              "mutation_interval": [
+                14,
+                15
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": true,
+              "supporting_read_names": 569,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                4,
+                6,
+                549
+              ],
+              "fraction_of_best_candidate_support": 0.901743264659271,
+              "mutation_containing_peptide_windows": 2,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KKAAKSAAKAVKPKVVKPKKAAPKKK"
+              ],
+              "protein_starts_1based": [
+                183
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
         "protein_context": {
           "status": "ok",
           "min_coverage": 2,
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4640,6 +6152,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 6,
+              "retained_cdna_min_coverages": [
+                6
+              ],
               "fraction_of_best_candidate_support": 0.009508716323296355,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": false,
@@ -4688,7 +6203,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4712,23 +6227,26 @@
           "best_candidate_read_names": 633,
           "top_proteins": [
             {
-              "amino_acids": "KKAAKSAAKAVKPKVVKPKKAAPKKK",
+              "amino_acids": "VAKPKKAAKSAAKAVKPKVVKPKKAAPKKK",
               "mutation_interval": [
-                14,
-                15
+                18,
+                19
               ],
               "contains_mutation": true,
               "frameshift": false,
-              "ends_with_stop_codon": true,
-              "supporting_read_names": 571,
-              "fraction_of_best_candidate_support": 0.9020537124802528,
-              "mutation_containing_peptide_windows": 2,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 541,
+              "retained_cdna_min_coverages": [
+                541
+              ],
+              "fraction_of_best_candidate_support": 0.8546603475513428,
+              "mutation_containing_peptide_windows": 6,
               "matches_expected": true,
               "expected_amino_acids": [
-                "KKAAKSAAKAVKPKVVKPKKAAPKKK"
+                "VAKPKKAAKSAAKAVKPKVVKPKKAAPKKK"
               ],
               "protein_starts_1based": [
-                183
+                179
               ]
             }
           ],
@@ -4740,7 +6258,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4764,23 +6282,30 @@
           "best_candidate_read_names": 641,
           "top_proteins": [
             {
-              "amino_acids": "KKAAKSAAKAVKPKVVKPKKAAPKKK",
+              "amino_acids": "AKVAKPKKAAKSAAKAVKPKVVKPKKAAPKKK",
               "mutation_interval": [
-                14,
-                15
+                20,
+                21
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": true,
-              "supporting_read_names": 585,
-              "fraction_of_best_candidate_support": 0.9126365054602185,
-              "mutation_containing_peptide_windows": 2,
+              "supporting_read_names": 556,
+              "retained_cdna_min_coverages": [
+                1,
+                2,
+                3,
+                5,
+                488
+              ],
+              "fraction_of_best_candidate_support": 0.8673946957878315,
+              "mutation_containing_peptide_windows": 8,
               "matches_expected": true,
               "expected_amino_acids": [
-                "KKAAKSAAKAVKPKVVKPKKAAPKKK"
+                "AKVAKPKKAAKSAAKAVKPKVVKPKKAAPKKK"
               ],
               "protein_starts_1based": [
-                183
+                177
               ]
             }
           ],
@@ -4792,7 +6317,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -4818,6 +6343,11 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 630,
+              "retained_cdna_min_coverages": [
+                2,
+                9,
+                617
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -4870,6 +6400,11 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 633,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                626
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -4883,13 +6418,72 @@
           ],
           "outcome": "expected_top_protein"
         },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000343677.3",
+          "protein_version": "ENSP00000339566.2",
+          "strand": "-",
+          "reference_protein_length": 213,
+          "expected_mutant_protein_length": 208,
+          "expected_mutant_protein_sha256": "2708bb8155aa1a223a5dd8c907c0978ab192a9b420b1943e2414431e49ca4da2",
+          "rna_candidate_count": 211,
+          "reference_context_count": 1,
+          "translation_count": 175,
+          "expected_matching_translation_count": 67,
+          "best_candidate_read_names": 633,
+          "top_proteins": [
+            {
+              "amino_acids": "KKAAKSAAKAVKPKVVKPKKAAPKKK",
+              "mutation_interval": [
+                14,
+                15
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": true,
+              "supporting_read_names": 571,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                4,
+                6,
+                551
+              ],
+              "fraction_of_best_candidate_support": 0.9020537124802528,
+              "mutation_containing_peptide_windows": 2,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KKAAKSAAKAVKPKVVKPKKAAPKKK"
+              ],
+              "protein_starts_1based": [
+                183
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
         "protein_context": {
           "status": "ok",
           "min_coverage": 2,
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -4922,6 +6516,9 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 6,
+              "retained_cdna_min_coverages": [
+                6
+              ],
               "fraction_of_best_candidate_support": 0.009478672985781991,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": false,
@@ -4993,7 +6590,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5017,23 +6614,28 @@
           "best_candidate_read_names": 102,
           "top_proteins": [
             {
-              "amino_acids": "GLLISVIRTLSTIDDVEDRENEKGR",
+              "amino_acids": "PSGLLISVIRTLSTIDDVEDRENEKGRLE",
               "mutation_interval": [
-                12,
-                13
+                14,
+                15
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 97,
-              "fraction_of_best_candidate_support": 0.9509803921568627,
-              "mutation_containing_peptide_windows": 1,
+              "supporting_read_names": 89,
+              "retained_cdna_min_coverages": [
+                2,
+                6,
+                81
+              ],
+              "fraction_of_best_candidate_support": 0.8725490196078431,
+              "mutation_containing_peptide_windows": 5,
               "matches_expected": true,
               "expected_amino_acids": [
-                "GLLISVIRTLSTIDDVEDRENEKGR"
+                "PSGLLISVIRTLSTIDDVEDRENEKGRLE"
               ],
               "protein_starts_1based": [
-                22
+                20
               ]
             }
           ],
@@ -5045,7 +6647,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5069,23 +6671,29 @@
           "best_candidate_read_names": 107,
           "top_proteins": [
             {
-              "amino_acids": "GLLISVIRTLSTIDDVEDRENEKGR",
+              "amino_acids": "PSGLLISVIRTLSTIDDVEDRENEKGRLE",
               "mutation_interval": [
-                12,
-                13
+                14,
+                15
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 101,
-              "fraction_of_best_candidate_support": 0.9439252336448598,
-              "mutation_containing_peptide_windows": 1,
+              "supporting_read_names": 93,
+              "retained_cdna_min_coverages": [
+                1,
+                2,
+                6,
+                81
+              ],
+              "fraction_of_best_candidate_support": 0.8691588785046729,
+              "mutation_containing_peptide_windows": 5,
               "matches_expected": true,
               "expected_amino_acids": [
-                "GLLISVIRTLSTIDDVEDRENEKGR"
+                "PSGLLISVIRTLSTIDDVEDRENEKGRLE"
               ],
               "protein_starts_1based": [
-                22
+                20
               ]
             }
           ],
@@ -5097,7 +6705,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -5123,6 +6731,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 102,
+              "retained_cdna_min_coverages": [
+                2,
+                98
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -5175,6 +6787,66 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 97,
+              "retained_cdna_min_coverages": [
+                2,
+                95
+              ],
+              "fraction_of_best_candidate_support": 0.9509803921568627,
+              "mutation_containing_peptide_windows": 1,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "GLLISVIRTLSTIDDVEDRENEKGR"
+              ],
+              "protein_starts_1based": [
+                22
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 39,
+          "reference_context_count": 1,
+          "translation_count": 29,
+          "expected_matching_translation_count": 21,
+          "best_candidate_read_names": 102,
+          "top_proteins": [
+            {
+              "amino_acids": "GLLISVIRTLSTIDDVEDRENEKGR",
+              "mutation_interval": [
+                12,
+                13
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 97,
+              "retained_cdna_min_coverages": [
+                2,
+                95
+              ],
               "fraction_of_best_candidate_support": 0.9509803921568627,
               "mutation_containing_peptide_windows": 1,
               "matches_expected": true,
@@ -5194,7 +6866,7 @@
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5227,6 +6899,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 63,
+              "retained_cdna_min_coverages": [
+                2,
+                60
+              ],
               "fraction_of_best_candidate_support": 0.6176470588235294,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": true,
@@ -5273,7 +6949,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5297,23 +6973,28 @@
           "best_candidate_read_names": 102,
           "top_proteins": [
             {
-              "amino_acids": "GLLISVIRTLSTIDDVEDRENEKGR",
+              "amino_acids": "PSGLLISVIRTLSTIDDVEDRENEKGRLE",
               "mutation_interval": [
-                12,
-                13
+                14,
+                15
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 97,
-              "fraction_of_best_candidate_support": 0.9509803921568627,
-              "mutation_containing_peptide_windows": 1,
+              "supporting_read_names": 89,
+              "retained_cdna_min_coverages": [
+                2,
+                6,
+                81
+              ],
+              "fraction_of_best_candidate_support": 0.8725490196078431,
+              "mutation_containing_peptide_windows": 5,
               "matches_expected": true,
               "expected_amino_acids": [
-                "GLLISVIRTLSTIDDVEDRENEKGR"
+                "PSGLLISVIRTLSTIDDVEDRENEKGRLE"
               ],
               "protein_starts_1based": [
-                22
+                20
               ]
             }
           ],
@@ -5325,7 +7006,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5349,23 +7030,29 @@
           "best_candidate_read_names": 107,
           "top_proteins": [
             {
-              "amino_acids": "GLLISVIRTLSTIDDVEDRENEKGR",
+              "amino_acids": "PSGLLISVIRTLSTIDDVEDRENEKGRLE",
               "mutation_interval": [
-                12,
-                13
+                14,
+                15
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 101,
-              "fraction_of_best_candidate_support": 0.9439252336448598,
-              "mutation_containing_peptide_windows": 1,
+              "supporting_read_names": 93,
+              "retained_cdna_min_coverages": [
+                1,
+                2,
+                6,
+                81
+              ],
+              "fraction_of_best_candidate_support": 0.8691588785046729,
+              "mutation_containing_peptide_windows": 5,
               "matches_expected": true,
               "expected_amino_acids": [
-                "GLLISVIRTLSTIDDVEDRENEKGR"
+                "PSGLLISVIRTLSTIDDVEDRENEKGRLE"
               ],
               "protein_starts_1based": [
-                22
+                20
               ]
             }
           ],
@@ -5377,7 +7064,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -5403,6 +7090,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 102,
+              "retained_cdna_min_coverages": [
+                2,
+                98
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -5455,6 +7146,66 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 97,
+              "retained_cdna_min_coverages": [
+                2,
+                95
+              ],
+              "fraction_of_best_candidate_support": 0.9509803921568627,
+              "mutation_containing_peptide_windows": 1,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "GLLISVIRTLSTIDDVEDRENEKGR"
+              ],
+              "protein_starts_1based": [
+                22
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000253861.4",
+          "protein_version": "ENSP00000253861.4",
+          "strand": "+",
+          "reference_protein_length": 974,
+          "expected_mutant_protein_length": 974,
+          "expected_mutant_protein_sha256": "fbdf08790b584b804e634d6195f5c4141fdfe93406891f45268e4771ed3c73ad",
+          "rna_candidate_count": 39,
+          "reference_context_count": 1,
+          "translation_count": 29,
+          "expected_matching_translation_count": 21,
+          "best_candidate_read_names": 102,
+          "top_proteins": [
+            {
+              "amino_acids": "GLLISVIRTLSTIDDVEDRENEKGR",
+              "mutation_interval": [
+                12,
+                13
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 97,
+              "retained_cdna_min_coverages": [
+                2,
+                95
+              ],
               "fraction_of_best_candidate_support": 0.9509803921568627,
               "mutation_containing_peptide_windows": 1,
               "matches_expected": true,
@@ -5474,7 +7225,7 @@
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5507,6 +7258,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 63,
+              "retained_cdna_min_coverages": [
+                2,
+                60
+              ],
               "fraction_of_best_candidate_support": 0.6176470588235294,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": true,
@@ -5584,7 +7339,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5608,23 +7363,26 @@
           "best_candidate_read_names": 94,
           "top_proteins": [
             {
-              "amino_acids": "KEQLTYESGEDEEDEEEEEDFKPSDGSEN",
+              "amino_acids": "SSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDG",
               "mutation_interval": [
-                15,
-                15
+                23,
+                23
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 90,
-              "fraction_of_best_candidate_support": 0.9574468085106383,
-              "mutation_containing_peptide_windows": 5,
+              "supporting_read_names": 81,
+              "retained_cdna_min_coverages": [
+                78
+              ],
+              "fraction_of_best_candidate_support": 0.8617021276595744,
+              "mutation_containing_peptide_windows": 10,
               "matches_expected": true,
               "expected_amino_acids": [
-                "KEQLTYESGEDEEDEEEEEDFKPSDGSEN"
+                "SSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDG"
               ],
               "protein_starts_1based": [
-                484
+                476
               ]
             }
           ],
@@ -5636,7 +7394,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5660,23 +7418,28 @@
           "best_candidate_read_names": 94,
           "top_proteins": [
             {
-              "amino_acids": "KEQLTYESGEDEEDEEEEEDFKPSDGSEN",
+              "amino_acids": "ADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMET",
               "mutation_interval": [
-                15,
-                15
+                19,
+                19
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 90,
-              "fraction_of_best_candidate_support": 0.9574468085106383,
-              "mutation_containing_peptide_windows": 5,
+              "supporting_read_names": 80,
+              "retained_cdna_min_coverages": [
+                1,
+                2,
+                73
+              ],
+              "fraction_of_best_candidate_support": 0.851063829787234,
+              "mutation_containing_peptide_windows": 13,
               "matches_expected": true,
               "expected_amino_acids": [
-                "KEQLTYESGEDEEDEEEEEDFKPSDGSEN"
+                "ADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMET"
               ],
               "protein_starts_1based": [
-                484
+                480
               ]
             }
           ],
@@ -5688,7 +7451,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -5714,6 +7477,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 94,
+              "retained_cdna_min_coverages": [
+                92,
+                94
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -5766,6 +7533,66 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 90,
+              "retained_cdna_min_coverages": [
+                2,
+                84
+              ],
+              "fraction_of_best_candidate_support": 0.9574468085106383,
+              "mutation_containing_peptide_windows": 5,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KEQLTYESGEDEEDEEEEEDFKPSDGSEN"
+              ],
+              "protein_starts_1based": [
+                484
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 86,
+          "reference_context_count": 1,
+          "translation_count": 70,
+          "expected_matching_translation_count": 55,
+          "best_candidate_read_names": 94,
+          "top_proteins": [
+            {
+              "amino_acids": "KEQLTYESGEDEEDEEEEEDFKPSDGSEN",
+              "mutation_interval": [
+                15,
+                15
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 90,
+              "retained_cdna_min_coverages": [
+                2,
+                84
+              ],
               "fraction_of_best_candidate_support": 0.9574468085106383,
               "mutation_containing_peptide_windows": 5,
               "matches_expected": true,
@@ -5785,7 +7612,7 @@
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5818,6 +7645,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 65,
+              "retained_cdna_min_coverages": [
+                2,
+                60
+              ],
               "fraction_of_best_candidate_support": 0.6914893617021277,
               "mutation_containing_peptide_windows": 24,
               "matches_expected": true,
@@ -5870,7 +7701,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5894,23 +7725,26 @@
           "best_candidate_read_names": 94,
           "top_proteins": [
             {
-              "amino_acids": "KEQLTYESGEDEEDEEEEEDFKPSDGSEN",
+              "amino_acids": "SSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDG",
               "mutation_interval": [
-                15,
-                15
+                23,
+                23
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 90,
-              "fraction_of_best_candidate_support": 0.9574468085106383,
-              "mutation_containing_peptide_windows": 5,
+              "supporting_read_names": 81,
+              "retained_cdna_min_coverages": [
+                78
+              ],
+              "fraction_of_best_candidate_support": 0.8617021276595744,
+              "mutation_containing_peptide_windows": 10,
               "matches_expected": true,
               "expected_amino_acids": [
-                "KEQLTYESGEDEEDEEEEEDFKPSDGSEN"
+                "SSAKADGGKEQLTYESGEDEEDEEEEEDFKPSDG"
               ],
               "protein_starts_1based": [
-                484
+                476
               ]
             }
           ],
@@ -5922,7 +7756,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -5946,23 +7780,28 @@
           "best_candidate_read_names": 94,
           "top_proteins": [
             {
-              "amino_acids": "KEQLTYESGEDEEDEEEEEDFKPSDGSEN",
+              "amino_acids": "ADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMET",
               "mutation_interval": [
-                15,
-                15
+                19,
+                19
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 90,
-              "fraction_of_best_candidate_support": 0.9574468085106383,
-              "mutation_containing_peptide_windows": 5,
+              "supporting_read_names": 80,
+              "retained_cdna_min_coverages": [
+                1,
+                2,
+                73
+              ],
+              "fraction_of_best_candidate_support": 0.851063829787234,
+              "mutation_containing_peptide_windows": 13,
               "matches_expected": true,
               "expected_amino_acids": [
-                "KEQLTYESGEDEEDEEEEEDFKPSDGSEN"
+                "ADGGKEQLTYESGEDEEDEEEEEDFKPSDGSENEMET"
               ],
               "protein_starts_1based": [
-                484
+                480
               ]
             }
           ],
@@ -5974,7 +7813,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -6000,6 +7839,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 94,
+              "retained_cdna_min_coverages": [
+                92,
+                94
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -6052,6 +7895,66 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 90,
+              "retained_cdna_min_coverages": [
+                2,
+                84
+              ],
+              "fraction_of_best_candidate_support": 0.9574468085106383,
+              "mutation_containing_peptide_windows": 5,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "KEQLTYESGEDEEDEEEEEDFKPSDGSEN"
+              ],
+              "protein_starts_1based": [
+                484
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000372108.9",
+          "protein_version": "ENSP00000361180.5",
+          "strand": "+",
+          "reference_protein_length": 526,
+          "expected_mutant_protein_length": 522,
+          "expected_mutant_protein_sha256": "6ed9ee4c68cec393c1843eb0264ff3d995287009c7380bf7afe89d6b9d7768f0",
+          "rna_candidate_count": 86,
+          "reference_context_count": 1,
+          "translation_count": 70,
+          "expected_matching_translation_count": 55,
+          "best_candidate_read_names": 94,
+          "top_proteins": [
+            {
+              "amino_acids": "KEQLTYESGEDEEDEEEEEDFKPSDGSEN",
+              "mutation_interval": [
+                15,
+                15
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 90,
+              "retained_cdna_min_coverages": [
+                2,
+                84
+              ],
               "fraction_of_best_candidate_support": 0.9574468085106383,
               "mutation_containing_peptide_windows": 5,
               "matches_expected": true,
@@ -6071,7 +7974,7 @@
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -6104,6 +8007,10 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 65,
+              "retained_cdna_min_coverages": [
+                2,
+                60
+              ],
               "fraction_of_best_candidate_support": 0.6914893617021277,
               "mutation_containing_peptide_windows": 24,
               "matches_expected": true,
@@ -6182,7 +8089,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -6206,23 +8113,29 @@
           "best_candidate_read_names": 767,
           "top_proteins": [
             {
-              "amino_acids": "LLTLDILKHGKRFHATISFDTDTGLKQALETVN",
+              "amino_acids": "EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY",
               "mutation_interval": [
-                16,
-                17
+                18,
+                19
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 692,
-              "fraction_of_best_candidate_support": 0.9022164276401564,
-              "mutation_containing_peptide_windows": 9,
+              "supporting_read_names": 666,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                13,
+                629
+              ],
+              "fraction_of_best_candidate_support": 0.8683181225554107,
+              "mutation_containing_peptide_windows": 13,
               "matches_expected": true,
               "expected_amino_acids": [
-                "LLTLDILKHGKRFHATISFDTDTGLKQALETVN"
+                "EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY"
               ],
               "protein_starts_1based": [
-                298
+                296
               ]
             }
           ],
@@ -6234,7 +8147,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -6258,23 +8171,30 @@
           "best_candidate_read_names": 775,
           "top_proteins": [
             {
-              "amino_acids": "LLTLDILKHGKRFHATISFDTDTGLKQALETVN",
+              "amino_acids": "EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY",
               "mutation_interval": [
-                16,
-                17
+                18,
+                19
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 702,
-              "fraction_of_best_candidate_support": 0.9058064516129032,
-              "mutation_containing_peptide_windows": 9,
+              "supporting_read_names": 679,
+              "retained_cdna_min_coverages": [
+                1,
+                2,
+                3,
+                13,
+                629
+              ],
+              "fraction_of_best_candidate_support": 0.8761290322580645,
+              "mutation_containing_peptide_windows": 13,
               "matches_expected": true,
               "expected_amino_acids": [
-                "LLTLDILKHGKRFHATISFDTDTGLKQALETVN"
+                "EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY"
               ],
               "protein_starts_1based": [
-                298
+                296
               ]
             }
           ],
@@ -6286,7 +8206,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -6312,6 +8232,12 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 766,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                4,
+                738
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -6364,6 +8290,12 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 744,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                4,
+                721
+              ],
               "fraction_of_best_candidate_support": 0.970013037809648,
               "mutation_containing_peptide_windows": 1,
               "matches_expected": true,
@@ -6377,13 +8309,71 @@
           ],
           "outcome": "expected_top_protein"
         },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 255,
+          "reference_context_count": 1,
+          "translation_count": 247,
+          "expected_matching_translation_count": 136,
+          "best_candidate_read_names": 767,
+          "top_proteins": [
+            {
+              "amino_acids": "LLTLDILKHGKRFHATISFDTDTGLKQALETVN",
+              "mutation_interval": [
+                16,
+                17
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 692,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                4,
+                666
+              ],
+              "fraction_of_best_candidate_support": 0.9022164276401564,
+              "mutation_containing_peptide_windows": 9,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LLTLDILKHGKRFHATISFDTDTGLKQALETVN"
+              ],
+              "protein_starts_1based": [
+                298
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
         "protein_context": {
           "status": "ok",
           "min_coverage": 2,
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -6416,6 +8406,12 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 516,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                4,
+                497
+              ],
               "fraction_of_best_candidate_support": 0.6727509778357236,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": true,
@@ -6428,7 +8424,517 @@
             }
           ],
           "outcome": "expected_top_protein"
-        }
+        },
+        "protein_adaptive_sweep": [
+          {
+            "status": "ok",
+            "min_coverage": 2,
+            "preference": "balanced",
+            "target_protein_length": 29,
+            "peptide_length": 15,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              15,
+              18,
+              20,
+              21,
+              24,
+              27,
+              29
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 166,
+            "reference_context_count": 1,
+            "translation_count": 159,
+            "expected_matching_translation_count": 88,
+            "best_candidate_read_names": 807,
+            "top_proteins": [
+              {
+                "amino_acids": "TLDILKHGKRFHATISFDTDTGLKQALET",
+                "mutation_interval": [
+                  14,
+                  15
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 724,
+                "retained_cdna_min_coverages": [
+                  2,
+                  3,
+                  4,
+                  6,
+                  692
+                ],
+                "fraction_of_best_candidate_support": 0.8971499380421314,
+                "mutation_containing_peptide_windows": 15,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "TLDILKHGKRFHATISFDTDTGLKQALET"
+                ],
+                "protein_starts_1based": [
+                  300
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 5,
+            "preference": "balanced",
+            "target_protein_length": 29,
+            "peptide_length": 15,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              15,
+              18,
+              20,
+              21,
+              24,
+              27,
+              29
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 33,
+            "reference_context_count": 1,
+            "translation_count": 33,
+            "expected_matching_translation_count": 33,
+            "best_candidate_read_names": 795,
+            "top_proteins": [
+              {
+                "amino_acids": "TLDILKHGKRFHATISFDTDTGLKQALET",
+                "mutation_interval": [
+                  14,
+                  15
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 701,
+                "retained_cdna_min_coverages": [
+                  6,
+                  692
+                ],
+                "fraction_of_best_candidate_support": 0.8817610062893082,
+                "mutation_containing_peptide_windows": 15,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "TLDILKHGKRFHATISFDTDTGLKQALET"
+                ],
+                "protein_starts_1based": [
+                  300
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 10,
+            "preference": "balanced",
+            "target_protein_length": 29,
+            "peptide_length": 15,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              15,
+              18,
+              20,
+              21,
+              24,
+              27,
+              29
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 29,
+            "reference_context_count": 1,
+            "translation_count": 29,
+            "expected_matching_translation_count": 29,
+            "best_candidate_read_names": 794,
+            "top_proteins": [
+              {
+                "amino_acids": "TLDILKHGKRFHATISFDTDTGLKQALET",
+                "mutation_interval": [
+                  14,
+                  15
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 695,
+                "retained_cdna_min_coverages": [
+                  692
+                ],
+                "fraction_of_best_candidate_support": 0.8753148614609572,
+                "mutation_containing_peptide_windows": 15,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "TLDILKHGKRFHATISFDTDTGLKQALET"
+                ],
+                "protein_starts_1based": [
+                  300
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 2,
+            "preference": "balanced",
+            "target_protein_length": 49,
+            "peptide_length": 25,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              25,
+              29,
+              33,
+              37,
+              41,
+              45,
+              49
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 255,
+            "reference_context_count": 1,
+            "translation_count": 247,
+            "expected_matching_translation_count": 136,
+            "best_candidate_read_names": 767,
+            "top_proteins": [
+              {
+                "amino_acids": "EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY",
+                "mutation_interval": [
+                  18,
+                  19
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 666,
+                "retained_cdna_min_coverages": [
+                  2,
+                  3,
+                  13,
+                  629
+                ],
+                "fraction_of_best_candidate_support": 0.8683181225554107,
+                "mutation_containing_peptide_windows": 13,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY"
+                ],
+                "protein_starts_1based": [
+                  296
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 5,
+            "preference": "balanced",
+            "target_protein_length": 49,
+            "peptide_length": 25,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              25,
+              29,
+              33,
+              37,
+              41,
+              45,
+              49
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 41,
+            "reference_context_count": 1,
+            "translation_count": 41,
+            "expected_matching_translation_count": 41,
+            "best_candidate_read_names": 765,
+            "top_proteins": [
+              {
+                "amino_acids": "LLTLDILKHGKRFHATISFDTDTGLKQALETVN",
+                "mutation_interval": [
+                  16,
+                  17
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 669,
+                "retained_cdna_min_coverages": [
+                  666
+                ],
+                "fraction_of_best_candidate_support": 0.8745098039215686,
+                "mutation_containing_peptide_windows": 9,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "LLTLDILKHGKRFHATISFDTDTGLKQALETVN"
+                ],
+                "protein_starts_1based": [
+                  298
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 10,
+            "preference": "balanced",
+            "target_protein_length": 49,
+            "peptide_length": 25,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              25,
+              29,
+              33,
+              37,
+              41,
+              45,
+              49
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 35,
+            "reference_context_count": 1,
+            "translation_count": 35,
+            "expected_matching_translation_count": 35,
+            "best_candidate_read_names": 765,
+            "top_proteins": [
+              {
+                "amino_acids": "LLTLDILKHGKRFHATISFDTDTGLKQALETVN",
+                "mutation_interval": [
+                  16,
+                  17
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 669,
+                "retained_cdna_min_coverages": [
+                  666
+                ],
+                "fraction_of_best_candidate_support": 0.8745098039215686,
+                "mutation_containing_peptide_windows": 9,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "LLTLDILKHGKRFHATISFDTDTGLKQALETVN"
+                ],
+                "protein_starts_1based": [
+                  298
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 2,
+            "preference": "balanced",
+            "target_protein_length": 59,
+            "peptide_length": 30,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              30,
+              35,
+              40,
+              45,
+              50,
+              55,
+              59
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 277,
+            "reference_context_count": 1,
+            "translation_count": 269,
+            "expected_matching_translation_count": 139,
+            "best_candidate_read_names": 767,
+            "top_proteins": [
+              {
+                "amino_acids": "VLLTLDILKHGKRFHATISFDTDTGLKQALETVND",
+                "mutation_interval": [
+                  17,
+                  18
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 673,
+                "retained_cdna_min_coverages": [
+                  2,
+                  4,
+                  654
+                ],
+                "fraction_of_best_candidate_support": 0.877444589308996,
+                "mutation_containing_peptide_windows": 6,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "VLLTLDILKHGKRFHATISFDTDTGLKQALETVND"
+                ],
+                "protein_starts_1based": [
+                  297
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 5,
+            "preference": "balanced",
+            "target_protein_length": 59,
+            "peptide_length": 30,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              30,
+              35,
+              40,
+              45,
+              50,
+              55,
+              59
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 45,
+            "reference_context_count": 1,
+            "translation_count": 45,
+            "expected_matching_translation_count": 44,
+            "best_candidate_read_names": 765,
+            "top_proteins": [
+              {
+                "amino_acids": "HGKRFHATISFDTDTGLKQALETVNDYNPLMKDFPL",
+                "mutation_interval": [
+                  8,
+                  9
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 651,
+                "retained_cdna_min_coverages": [
+                  6,
+                  7,
+                  14,
+                  648,
+                  651
+                ],
+                "fraction_of_best_candidate_support": 0.8509803921568627,
+                "mutation_containing_peptide_windows": 7,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "HGKRFHATISFDTDTGLKQALETVNDYNPLMKDFPL"
+                ],
+                "protein_starts_1based": [
+                  306
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          },
+          {
+            "status": "ok",
+            "min_coverage": 10,
+            "preference": "balanced",
+            "target_protein_length": 59,
+            "peptide_length": 30,
+            "min_support_fraction": 0.85,
+            "candidate_context_lengths": [
+              20,
+              30,
+              35,
+              40,
+              45,
+              50,
+              55,
+              59
+            ],
+            "transcript_version": "ENST00000360184.8",
+            "protein_version": "ENSP00000348965.4",
+            "strand": "+",
+            "reference_protein_length": 4646,
+            "expected_mutant_protein_length": 4646,
+            "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+            "rna_candidate_count": 35,
+            "reference_context_count": 1,
+            "translation_count": 35,
+            "expected_matching_translation_count": 35,
+            "best_candidate_read_names": 765,
+            "top_proteins": [
+              {
+                "amino_acids": "HGKRFHATISFDTDTGLKQALETVNDYNPLMKDFPL",
+                "mutation_interval": [
+                  8,
+                  9
+                ],
+                "contains_mutation": true,
+                "frameshift": false,
+                "ends_with_stop_codon": false,
+                "supporting_read_names": 651,
+                "retained_cdna_min_coverages": [
+                  14,
+                  648,
+                  651
+                ],
+                "fraction_of_best_candidate_support": 0.8509803921568627,
+                "mutation_containing_peptide_windows": 7,
+                "matches_expected": true,
+                "expected_amino_acids": [
+                  "HGKRFHATISFDTDTGLKQALETVNDYNPLMKDFPL"
+                ],
+                "protein_starts_1based": [
+                  306
+                ]
+              }
+            ],
+            "outcome": "expected_top_protein"
+          }
+        ]
       },
       "defaults": {
         "status": "ok",
@@ -6469,7 +8975,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -6493,23 +8999,29 @@
           "best_candidate_read_names": 768,
           "top_proteins": [
             {
-              "amino_acids": "LLTLDILKHGKRFHATISFDTDTGLKQALETVN",
+              "amino_acids": "EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY",
               "mutation_interval": [
-                16,
-                17
+                18,
+                19
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 692,
-              "fraction_of_best_candidate_support": 0.9010416666666666,
-              "mutation_containing_peptide_windows": 9,
+              "supporting_read_names": 666,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                13,
+                629
+              ],
+              "fraction_of_best_candidate_support": 0.8671875,
+              "mutation_containing_peptide_windows": 13,
               "matches_expected": true,
               "expected_amino_acids": [
-                "LLTLDILKHGKRFHATISFDTDTGLKQALETVN"
+                "EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY"
               ],
               "protein_starts_1based": [
-                298
+                296
               ]
             }
           ],
@@ -6521,7 +9033,7 @@
           "preference": "balanced",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -6545,23 +9057,30 @@
           "best_candidate_read_names": 776,
           "top_proteins": [
             {
-              "amino_acids": "LLTLDILKHGKRFHATISFDTDTGLKQALETVN",
+              "amino_acids": "EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY",
               "mutation_interval": [
-                16,
-                17
+                18,
+                19
               ],
               "contains_mutation": true,
               "frameshift": false,
               "ends_with_stop_codon": false,
-              "supporting_read_names": 702,
-              "fraction_of_best_candidate_support": 0.904639175257732,
-              "mutation_containing_peptide_windows": 9,
+              "supporting_read_names": 679,
+              "retained_cdna_min_coverages": [
+                1,
+                2,
+                3,
+                13,
+                629
+              ],
+              "fraction_of_best_candidate_support": 0.875,
+              "mutation_containing_peptide_windows": 13,
               "matches_expected": true,
               "expected_amino_acids": [
-                "LLTLDILKHGKRFHATISFDTDTGLKQALETVN"
+                "EVLLTLDILKHGKRFHATISFDTDTGLKQALETVNDY"
               ],
               "protein_starts_1based": [
-                298
+                296
               ]
             }
           ],
@@ -6573,7 +9092,7 @@
           "preference": "support",
           "target_protein_length": 20,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20
           ],
@@ -6599,6 +9118,12 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 767,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                4,
+                739
+              ],
               "fraction_of_best_candidate_support": 1.0,
               "mutation_containing_peptide_windows": 0,
               "matches_expected": true,
@@ -6651,6 +9176,12 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 745,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                4,
+                722
+              ],
               "fraction_of_best_candidate_support": 0.9700520833333334,
               "mutation_containing_peptide_windows": 1,
               "matches_expected": true,
@@ -6664,13 +9195,71 @@
           ],
           "outcome": "expected_top_protein"
         },
+        "protein_balanced90": {
+          "status": "ok",
+          "min_coverage": 2,
+          "preference": "balanced",
+          "target_protein_length": 49,
+          "peptide_length": 25,
+          "min_support_fraction": 0.9,
+          "candidate_context_lengths": [
+            20,
+            25,
+            29,
+            33,
+            37,
+            41,
+            45,
+            49
+          ],
+          "transcript_version": "ENST00000360184.8",
+          "protein_version": "ENSP00000348965.4",
+          "strand": "+",
+          "reference_protein_length": 4646,
+          "expected_mutant_protein_length": 4646,
+          "expected_mutant_protein_sha256": "1f5e53693ce8abbc3ac693a75a4905f5e0ce73f8572732d28dd960f94eba52ff",
+          "rna_candidate_count": 255,
+          "reference_context_count": 1,
+          "translation_count": 247,
+          "expected_matching_translation_count": 136,
+          "best_candidate_read_names": 768,
+          "top_proteins": [
+            {
+              "amino_acids": "LLTLDILKHGKRFHATISFDTDTGLKQALETVN",
+              "mutation_interval": [
+                16,
+                17
+              ],
+              "contains_mutation": true,
+              "frameshift": false,
+              "ends_with_stop_codon": false,
+              "supporting_read_names": 692,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                4,
+                666
+              ],
+              "fraction_of_best_candidate_support": 0.9010416666666666,
+              "mutation_containing_peptide_windows": 9,
+              "matches_expected": true,
+              "expected_amino_acids": [
+                "LLTLDILKHGKRFHATISFDTDTGLKQALETVN"
+              ],
+              "protein_starts_1based": [
+                298
+              ]
+            }
+          ],
+          "outcome": "expected_top_protein"
+        },
         "protein_context": {
           "status": "ok",
           "min_coverage": 2,
           "preference": "context",
           "target_protein_length": 49,
           "peptide_length": 25,
-          "min_support_fraction": 0.9,
+          "min_support_fraction": 0.85,
           "candidate_context_lengths": [
             20,
             25,
@@ -6703,6 +9292,12 @@
               "frameshift": false,
               "ends_with_stop_codon": false,
               "supporting_read_names": 516,
+              "retained_cdna_min_coverages": [
+                2,
+                3,
+                4,
+                497
+              ],
               "fraction_of_best_candidate_support": 0.671875,
               "mutation_containing_peptide_windows": 25,
               "matches_expected": true,

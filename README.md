@@ -77,12 +77,15 @@ df =  isovar_results_to_dataframe(
 
 ### RNA support versus vaccine context
 
-Isovar 1.8.0 targets **49 aa for 25mer design**: for a centered single-residue
-mutation, this includes all 25 mutation-containing 25mers. The default
+Isovar 1.8.0 derives its context target from desired peptide size **K: 2*K-1**
+(15mers → 29 aa; 25mers → 49 aa; 30mers → 59 aa). For a centered single-residue
+mutation this includes every mutation-containing Kmer. The default
 `balanced` policy maximizes actual mutation-overlapping windows among
-candidates retaining at least 90% of the best candidate's compatible
-read-name support. Shorter contexts remain available; insufficient RNA,
-protein boundaries and stops can still produce shorter output.
+candidates retaining at least 85% of the best candidate's compatible
+read-name support, with an independent absolute floor of two read objects
+at each retained RNA base. Both thresholds are configurable. Actual context
+adapts to RNA support and coverage; protein boundaries and stops can also
+produce shorter output. This is not 85% of per-base depth.
 
 This is a configurable selection tolerance, not a confidence estimate.
 Allele counts are unchanged, and no reference sequence is used to fill
@@ -277,7 +280,7 @@ $ isovar  \
                         Default balanced: useful context within support budget.
 
   --min-protein-sequence-support-fraction MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION
-                        Balanced support-retention fraction (0.9, not confidence).
+                        Compatible-name retention (0.85, not per-base depth).
   
   --max-reference-transcript-mismatches MAX_REFERENCE_TRANSCRIPT_MISMATCHES
                         Maximum number of mismatches between variant sequence

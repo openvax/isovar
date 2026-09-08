@@ -173,13 +173,13 @@ def test_subset_reference_does_not_poison_full_grch38_contig_validation(protein_
 
 def test_full_region_snapshot_validates_proteins_without_calling_no_alt_a_failure():
     report = json.loads((DATA / "sample_audit.json").read_text())
-    assert report["schema_version"] == 3
+    assert report["schema_version"] == 4
     supported = 0
     for row in report["rows"]:
         for mode in ("primary_only", "defaults"):
             result = row[mode]
             assert result["status"] == "ok"
-            for key in ("protein_default", "protein_coverage1", "protein_support20", "protein_balanced95"):
+            for key in ("protein_default", "protein_coverage1", "protein_support20", "protein_balanced95", "protein_balanced90"):
                 protein = result[key]
                 assert protein["status"] == "ok"
                 assert protein["outcome"] == ("expected_top_protein" if result["counts"]["alt"] else "no_alt_reads")
@@ -189,6 +189,7 @@ def test_full_region_snapshot_validates_proteins_without_calling_no_alt_a_failur
                     for top in protein["top_proteins"]:
                         assert top["fraction_of_best_candidate_support"] >= protein["min_support_fraction"]
                         assert top["mutation_containing_peptide_windows"] >= 0
+                        assert min(top["retained_cdna_min_coverages"]) >= protein["min_coverage"]
             assert result["protein_context"]["status"] == "ok"
             if mode == "primary_only" and result["counts"]["alt"]:
                 supported += 1
@@ -197,7 +198,7 @@ def test_full_region_snapshot_validates_proteins_without_calling_no_alt_a_failur
 
 @pytest.mark.parametrize("sample", MANIFEST["datasets"])
 @pytest.mark.parametrize("gene", [r["gene"] for r in SELECTION["variants"]])
-@pytest.mark.parametrize("fraction", [0.9, 0.95, 1.0])
+@pytest.mark.parametrize("fraction", [0.85, 0.9, 0.95, 1.0])
 def test_real_rna_balanced_selection_respects_budget_and_independent_oracle(protein_cases, sample, gene, fraction):
     variant, evidence, expected = protein_cases[sample, gene]
     result = audit.protein_result(variant, evidence, expected, min_protein_sequence_support_fraction=fraction)
@@ -216,7 +217,7 @@ def test_full_region_dync1h1_context_and_support_tradeoffs():
     expected = {
         "bulk_star_t0": {"protein_support20": (9, 121, 0), "protein_default": (47, 111, 23),
                          "protein_balanced95": (35, 115, 11), "protein_context": (47, 111, 23)},
-        "ont_t1": {"protein_support20": (20, 766, 0), "protein_default": (33, 692, 9),
+        "ont_t1": {"protein_support20": (20, 766, 0), "protein_default": (37, 666, 13),
                    "protein_balanced95": (25, 744, 1), "protein_context": (49, 516, 25)},
     }
     for row in report["rows"]:
@@ -235,7 +236,47 @@ def test_full_region_context_first_can_select_weak_discordant_rna():
     balanced, = row["primary_only"]["protein_default"]["top_proteins"]
     context, = row["primary_only"]["protein_context"]["top_proteins"]
     assert balanced["matches_expected"]
-    assert balanced["fraction_of_best_candidate_support"] >= .9
+    assert balanced["fraction_of_best_candidate_support"] >= .85
     assert len(context["amino_acids"]) == 49
     assert context["supporting_read_names"] == 6
     assert not context["matches_expected"]
+
+
+@pytest.mark.parametrize("sample", MANIFEST["datasets"])
+@pytest.mark.parametrize("peptide", [15, 25, 30])
+@pytest.mark.parametrize("floor", [2, 5, 10])
+def test_real_dync1h1_adapts_to_peptide_size_and_coverage_floor(protein_cases, sample, peptide, floor):
+    variant, evidence, expected = protein_cases[sample, "DYNC1H1"]
+    result = audit.protein_result(variant, evidence, expected, coverage=floor,
+                                 protein_context_peptide_length=peptide)
+    assert result["status"] == "ok", result
+    assert result["target_protein_length"] == 2 * peptide - 1
+    assert result["peptide_length"] == peptide
+    assert result["min_support_fraction"] == .85
+    for top in result["top_proteins"]:
+        assert top["matches_expected"], result
+        assert top["fraction_of_best_candidate_support"] >= .85
+        assert min(top["retained_cdna_min_coverages"]) >= floor
+    if not result["top_proteins"]:
+        # A selected fixture with too few reads must not bypass the floor.
+        assert result["outcome"] in ("no_rna_candidate", "no_translation")
+
+
+def test_full_region_adaptive_sweep_records_both_support_metrics():
+    report = json.loads((DATA / "sample_audit.json").read_text())
+    for row in report["rows"]:
+        if row["variant"]["gene"] != "DYNC1H1":
+            continue
+        sweep = row["primary_only"]["protein_adaptive_sweep"]
+        assert {(r["peptide_length"], r["min_coverage"]) for r in sweep} == {
+            (p, c) for p in (15, 25, 30) for c in (2, 5, 10)}
+        for result in sweep:
+            assert result["outcome"] == "expected_top_protein"
+            assert result["target_protein_length"] == 2 * result["peptide_length"] - 1
+            top, = result["top_proteins"]
+            assert min(top["retained_cdna_min_coverages"]) >= result["min_coverage"]
+            assert top["fraction_of_best_candidate_support"] >= .85
+        if row["sample"] == "ont_t1":
+            p25 = {r["min_coverage"]: r["top_proteins"][0] for r in sweep if r["peptide_length"] == 25}
+            assert len(p25[2]["amino_acids"]) == 37
+            assert len(p25[5]["amino_acids"]) == 33

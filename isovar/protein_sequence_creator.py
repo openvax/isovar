@@ -75,7 +75,10 @@ class ProteinSequenceCreator(ValueObject):
 
         min_variant_sequence_coverage : int
             Trim variant sequences to positions supported by at least this number
-            of RNA reads.
+            of RNA read objects (default 2). This absolute per-base floor is
+            independent of the relative compatible read-name support budget.
+            Raising it may shorten context or leave no mutant sequence; the
+            protein selection policy never lowers it to meet a length target.
 
         min_transcript_prefix_length : int
             Minimum number of bases we need to try matching between the reference
@@ -113,7 +116,8 @@ class ProteinSequenceCreator(ValueObject):
 
         min_protein_sequence_support_fraction : float
             In balanced mode, retain at least this fraction of the best mutant
-            candidate's compatible read-name support (default 0.9). Total allele
+            candidate's compatible read-name support (default 0.85). This is
+            not a fraction of minimum per-base coverage. Total allele
             support is retained separately in ReadEvidence. This is a selection
             tolerance, not a confidence probability. Absolute RNA filters remain.
         """

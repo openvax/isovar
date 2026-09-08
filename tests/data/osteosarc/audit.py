@@ -103,6 +103,11 @@ def protein_result(variant, evidence, expected, coverage=2, **creator_options):
                 "contains_mutation": protein.contains_mutation, "frameshift": protein.frameshift,
                 "ends_with_stop_codon": protein.ends_with_stop_codon,
                 "supporting_read_names": protein.num_supporting_fragments,
+                # Individual retained coding-RNA haplotypes may be synonymous.
+                # Keep their minimum per-base depths distinct from the union
+                # of compatible names supporting the grouped protein.
+                "retained_cdna_min_coverages": sorted({
+                    int(t.untrimmed_variant_sequence.min_coverage()) for t in protein.translations}),
                 "fraction_of_best_candidate_support": protein.num_supporting_fragments / best_support if best_support else None,
                 "mutation_containing_peptide_windows": mutant_peptide_window_count(
                     protein, creator.protein_context_peptide_length),
@@ -123,7 +128,7 @@ def protein_result(variant, evidence, expected, coverage=2, **creator_options):
     return result
 
 
-def isovar_result(bam, variant, expected=None):
+def isovar_result(bam, variant, expected=None, context_sweep=False):
     """Isolate locus failures; never skip an offending read within Isovar."""
     try:
         evidence = ReadCollector().read_evidence_for_variant(variant, bam)
@@ -147,8 +152,15 @@ def isovar_result(bam, variant, expected=None):
             variant, evidence, expected, protein_sequence_length=20, protein_sequence_preference="support")
         result["protein_balanced95"] = protein_result(
             variant, evidence, expected, min_protein_sequence_support_fraction=0.95)
+        result["protein_balanced90"] = protein_result(
+            variant, evidence, expected, min_protein_sequence_support_fraction=0.90)
         result["protein_context"] = protein_result(
             variant, evidence, expected, protein_sequence_preference="context")
+        if context_sweep:
+            result["protein_adaptive_sweep"] = [
+                protein_result(variant, evidence, expected, coverage=floor,
+                               protein_context_peptide_length=peptide_length)
+                for peptide_length in (15, 25, 30) for floor in (2, 5, 10)]
     return result
 
 
@@ -188,7 +200,9 @@ def audit_alignment(name, full_bam, primary_bam, variants, genome=None, referenc
         row = {"sample": name, "variant": record, "independent": independent_result(reads, record)}
         for mode, path in (("primary_only", primary_bam), ("defaults", full_bam)):
             with pysam.AlignmentFile(path) as bam:
-                row[mode] = isovar_result(bam, variant, expected)
+                row[mode] = isovar_result(
+                    bam, variant, expected,
+                    context_sweep=mode == "primary_only" and record["gene"] == "DYNC1H1")
         rows.append(row)
     return rows
 
@@ -203,7 +217,7 @@ def build_report(source_dir):
         if sha256(source.read_bytes()).hexdigest() != data["source_sam_sha256"]:
             raise ValueError(f"Original regional source checksum mismatch: {source.name}")
     report = {
-        "schema_version": 3,
+        "schema_version": 4,
         "software": {"isovar": __version__, "python": platform.python_version(),
                      "pysam": pysam.__version__, "samtools": pysam.__samtools_version__,
                      "pyensembl": version("pyensembl"), "varcode": version("varcode")},

@@ -46,7 +46,8 @@ def add_translation_args(parser):
     translation_group.add_argument(
         "--min-protein-sequence-support-fraction", type=float,
         default=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION,
-        help="Balanced preference: minimum fraction of best candidate's read-name support (default 0.9, not confidence).")
+        help="Balanced: fraction of best candidate's compatible read-name support (default 0.85, not per-base depth). "
+             "Use --min-variant-sequence-coverage for the independent absolute per-base floor.")
 
     translation_group.add_argument(
         "--max-reference-transcript-mismatches",

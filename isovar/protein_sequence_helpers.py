@@ -20,6 +20,7 @@ ProteinSequence.
 from numbers import Integral, Real
 
 from .common import groupby
+from .default_parameters import PROTEIN_CONTEXT_PEPTIDE_LENGTH, MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION
 from .logging import get_logger
 from .protein_sequence import ProteinSequence
 from .translation import Translation
@@ -55,8 +56,8 @@ def mutant_peptide_window_count(protein_sequence, peptide_length):
     return max(0, last_start - first_start + 1)
 
 
-def sort_protein_sequences(protein_sequences, preference="support", peptide_length=25,
-                          min_support_fraction=0.9):
+def sort_protein_sequences(protein_sequences, preference="support", peptide_length=PROTEIN_CONTEXT_PEPTIDE_LENGTH,
+                          min_support_fraction=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION):
     """
     Sort candidates without dropping reads or changing their support counts.
 

@@ -7,7 +7,10 @@ there is no reference padding. The PR is left open for review.
 
 ## Default and alternatives
 
-- Default peptide size: 25 aa; default translated context target: 49 aa.
+- The context target is **derived from desired peptide size K: 2*K-1**, not
+  fixed at 49. Thus 15mers target 29 aa, 25mers target 49 aa, and 30mers
+  target 59 aa. K defaults to 25; actual output adapts to RNA support and
+  per-base coverage, and may be shorter than either target or peptide size.
   For a single substituted residue, 24 aa on each side includes all 25
   mutation-containing 25-mers. Length without mutation position is not
   sufficient. Count only windows intersecting the mutant interval, or
@@ -19,12 +22,18 @@ there is no reference padding. The PR is left open for review.
   giving 24 junction-spanning 25mers, not 25. The default 49 is a bounded
   target, not a promise of complete context for every frameshift or MNV.
 - Default preference: `balanced`. Among mutant candidates retaining at
-  least 90% of the best candidate's compatible read-name support, maximize
+  least 85% of the best candidate's compatible read-name support, maximize
   the number of mutation-containing peptide windows. If none reaches the
   requested peptide length, favor useful partial context within that same
   support budget; never claim a full vaccine window or relax the budget.
   Use existing support/mismatch ordering to break ties. The fraction is a
   configurable engineering tolerance, not a biological confidence estimate.
+- Independently require **at least 2 RNA read objects at every retained
+  cDNA base** by default, using `min_variant_sequence_coverage`. This is a
+  configurable absolute coverage floor, not a fraction of candidate support.
+  A high count of short compatible reads cannot rescue sparsely covered
+  flanks below this floor. If the variant cannot meet the floor, return no
+  usable mutant sequence rather than silently lowering it.
 - Alternatives: `support` preserves the existing support-first single-scale
   algorithm (explicit length 20 reproduces the prior policy); `context`
   prioritizes useful peptide windows without the relative support budget.
@@ -54,7 +63,8 @@ from isovar import ProteinSequenceCreator, run_isovar
 creator = ProteinSequenceCreator(
     protein_context_peptide_length=25,              # auto target: 49 aa
     protein_sequence_preference="balanced",         # or support / context
-    min_protein_sequence_support_fraction=0.90,
+    min_protein_sequence_support_fraction=0.85,      # compatible names
+    min_variant_sequence_coverage=2,                # absolute per-base floor
 )
 results = run_isovar("variants.vcf", "rna.bam", protein_sequence_creator=creator)
 ```
@@ -64,11 +74,15 @@ Equivalent CLI options (defaults shown):
 ```text
 --protein-context-peptide-length 25
 --protein-sequence-preference balanced
---min-protein-sequence-support-fraction 0.9
+--min-protein-sequence-support-fraction 0.85
+--min-variant-sequence-coverage 2
 ```
 
-Use `--min-protein-sequence-support-fraction 0.95` to prioritize retention
-more strongly. `--protein-sequence-preference context` removes the relative
+For example, use `--protein-context-peptide-length 30
+--min-protein-sequence-support-fraction 0.85 --min-variant-sequence-coverage 5`
+to target 59 aa for 30mers, retain 85% of candidate support, and stay above
+5-read coverage at every retained RNA base. Use fraction 0.90 or 0.95 to
+prioritize relative retention more strongly. `--protein-sequence-preference context` removes the relative
 budget; it can select weak, discordant RNA haplotypes and is not recommended
 as an evidence-confidence shortcut. `--protein-sequence-length 20
 --protein-sequence-preference support` restores the historical extraction
@@ -83,6 +97,25 @@ and mutation overlap. Lowering the relative budget is explicit; it never
 relaxes minimum coverage or reference-matching filters. Compatible support
 can include reads spanning only part of a candidate, so it is not a count
 of independently observed full-length vaccine peptides.
+
+### What the two thresholds mean
+
+These are two separate requirements:
+
+1. Candidate-compatible read names / best candidate-compatible read names
+   must be at least the configured fraction (default 0.85).
+2. Every retained cDNA base must meet the absolute read-object coverage floor
+   (default 2; explicitly set 0 to disable that floor).
+
+**85% does not mean 85% of per-base depth or of all alternate reads.**
+For example, 100 reads can support a short central region while only two
+extend into the flanks. A floor of five trims those flanks even though all
+100 names are compatible with the longer candidate. Paired mates may share
+a name, and overlapping-mate merging changes the objects counted for
+coverage. Neither measure is automatically an independent molecule count.
+When synonymous coding-RNA haplotypes group into one protein, compatible
+names are unioned; the per-base floor still applies to each retained RNA
+sequence. The audit records both measures explicitly.
 
 ## Integration and verification
 
