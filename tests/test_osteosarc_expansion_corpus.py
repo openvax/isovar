@@ -4,6 +4,7 @@ from collections import Counter
 from copy import deepcopy
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 import pysam
 import pytest
@@ -13,6 +14,7 @@ from tests.data.osteosarc.expansion.inventory import digest
 from tests.data.osteosarc.expansion.references import apply_variant, load_reference, reference_genome, translate
 from tests.data.osteosarc.expansion.runner import audit_mode, independent_counts, PRIMARY_EXCLUDE_FLAGS
 from tests.real_rna_helpers import record_digest
+from tests.test_shared_support_index import exhaustive_support
 
 
 CORPUS = Path(__file__).parent / "data/osteosarc/expansion/corpus"
@@ -97,6 +99,26 @@ def test_uncapped_ranking_capture_preserves_exact_public_default(case, cohort_re
     assert actual["proteins"] == uncapped[:1]
     if record["variant_id"] == "DYNC1H1-chr14-102030200":
         assert len(uncapped) > 1  # The test must really exercise hidden alternatives.
+
+
+@pytest.mark.parametrize("case", CASES, ids=lambda c: c["case_id"])
+@pytest.mark.parametrize("mode", ["defaults", "primary_only"])
+def test_all_original_read_rankings_match_exhaustive_support(case, mode, cohort_references):
+    """Compare EVERY ranked window, not just the one returned by default."""
+    manifest, models, genome = cohort_references[case["reference"]]
+    record = case["variant"]
+    contig = "MT" if record["chrom"] == "chrM" else record["chrom"].removeprefix("chr")
+    variant = Variant(contig, record["pos"], record["ref"], record["alt"], ensembl=genome)
+    expected = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}
+    path = CORPUS / case["bam" if mode == "defaults" else "primary_bam"]
+    actual = audit_mode(path, variant, expected, capture_all_ranked=True)
+    with patch("isovar.variant_sequence_helpers._variant_sequences_with_shared_read_support", exhaustive_support):
+        baseline = audit_mode(path, variant, expected, capture_all_ranked=True)
+    for result in (actual, baseline):
+        assert result["status"] == "ok"
+        for protein in result["uncapped_ranked_proteins"]:
+            protein["checks"].sort(key=lambda c: json.dumps(c, sort_keys=True))
+    assert canonical_result(actual) == canonical_result(baseline)
 
 
 def test_every_original_reference_model_independently_translates(cohort_references):

@@ -217,11 +217,17 @@ class VariantSequence(ValueObject):
             return self._coverage_cache
         variant_start_index, variant_end_index = self.variant_indices()
         n_nucleotides = len(self)
-        coverage_array = np.zeros(n_nucleotides, dtype="int32")
+        # Accumulate interval boundaries once per original read, then sum
+        # once across the sequence. Repeated full-span reads no longer each
+        # update an entire NumPy slice. Coverage still counts allele objects,
+        # not names or source_read_count, exactly as before.
+        boundaries = [0] * (n_nucleotides + 1)
         for read in self.reads:
-            coverage_array[
-                max(0, variant_start_index - len(read.prefix)):
-                min(n_nucleotides, variant_end_index + len(read.suffix))] += 1
+            start = max(0, variant_start_index - len(read.prefix))
+            end = min(n_nucleotides, variant_end_index + len(read.suffix))
+            boundaries[start] += 1
+            boundaries[end] -= 1
+        coverage_array = np.cumsum(boundaries, dtype="int32")[:-1]
         self._coverage_cache = coverage_array
         return coverage_array
 
@@ -248,8 +254,7 @@ class VariantSequence(ValueObject):
         which are overlapped by fewer reads than specified.
         """
         read_count_array = self.coverage()
-        logger.info("Coverage: %s (len=%d)" % (
-            read_count_array, len(read_count_array)))
+        logger.info("Coverage: %s (len=%d)", read_count_array, len(read_count_array))
         sufficient_coverage_mask = read_count_array >= min_reads
         sufficient_coverage_indices = np.argwhere(sufficient_coverage_mask)
         if len(sufficient_coverage_indices) == 0:
@@ -279,11 +284,15 @@ class VariantSequence(ValueObject):
             logger.debug("Some variant bases in %s don't have coverage >= %d" % (
                 self, min_reads))
             return VariantSequence(prefix="", alt="", suffix="", reads=self.reads)
-        return VariantSequence(
+        trimmed = VariantSequence(
             prefix=self.prefix[first_covered_index:],
             alt=self.alt,
             suffix=self.suffix[:last_covered_index - variant_end_index + 1],
             reads=self.reads)
+        # The retained interval has the same original reads and coverage.
+        # Copy so callers cannot mutate the parent through this array.
+        trimmed._coverage_cache = read_count_array[first_covered_index:last_covered_index + 1].copy()
+        return trimmed
 
 
 # _coverage_cache is an internal cache slot, not part of value identity —
@@ -291,4 +300,3 @@ class VariantSequence(ValueObject):
 VariantSequence._fields = tuple(
     f for f in VariantSequence._fields if f != "_coverage_cache"
 )
-
