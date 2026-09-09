@@ -1,7 +1,11 @@
 """Performance evidence must fail closed on changed inputs or incomplete runs."""
 
 from copy import deepcopy
+import gzip
 import json
+import logging
+from pathlib import Path
+import shutil
 from types import SimpleNamespace
 
 import pytest
@@ -43,6 +47,100 @@ def test_measurement_phases_are_separate_and_keep_failures(tmp_path):
     assert json.loads((tmp_path / "production.json").read_text())["status"] == "ok"
     assert json.loads((tmp_path / "validation.json").read_text())["status"] == "interrupted"
     assert set(measurements) == {"production", "validation"}
+
+
+@pytest.fixture
+def benchmark_inputs(tmp_path):
+    """Stage original offline fixtures in the benchmark's acquisition layout."""
+    corpus = Path(__file__).parent / "data/osteosarc/expansion/corpus"
+    cases = json.loads((corpus / "manifest.json").read_text())["cases"]
+    destination = tmp_path / "inputs"
+    shutil.copytree(corpus / "references/GRCh38", destination / "reference-GRCh38")
+
+    def prepare(variant_id, mode="defaults"):
+        case = next(c for c in cases if c["variant"]["variant_id"] == variant_id and c["reference"] == "GRCh38")
+        source = destination / "alignments" / case["source_id"]
+        source.mkdir(parents=True)
+        for suffix in ("", ".bai"):
+            name = case["bam"] + suffix
+            assert benchmark.digest(corpus / name) == case["files"][name]
+            shutil.copyfile(corpus / name, source / ("regions-GRCh38.bam" + suffix))
+        write_json(source / "regions-GRCh38.json", dict(bam_sha256=case["files"][case["bam"]]))
+        write_json(destination / "inventory-GRCh38-validated.json", dict(variants=[case["variant"]]))
+        return case, SimpleNamespace(destination=destination, source_id=case["source_id"],
+                                     variant_id=variant_id, mode=mode, output=tmp_path / "run",
+                                     timeout=60, profile=False)
+
+    disabled = logging.root.manager.disable
+    try:
+        yield prepare
+    finally:
+        logging.disable(disabled)
+
+
+@pytest.mark.parametrize("variant_id", [
+    "ABCF2-chr7-151218156",  # Alternate evidence, but no RNA candidate.
+    "ADGRF5-chr6-46856758",  # No alternate reads; ranking is never entered.
+    "DYNC1H1-chr14-102030200",  # Positive control with multiple ranked proteins.
+])
+@pytest.mark.parametrize("mode", ["defaults", "primary_only"])
+def test_benchmark_compares_real_empty_and_nonempty_results(tmp_path, benchmark_inputs, variant_id, mode):
+    case, args = benchmark_inputs(variant_id, mode)
+    entries = []
+    for label in ("before", "after"):
+        args.output = tmp_path / label
+        benchmark.run(args)
+        result = json.loads((args.output / "result.json").read_text())
+        with gzip.open(args.output / "proteins.json.gz", "rt") as handle:
+            proteins = json.load(handle)
+        assert result["status"] == result["validation_status"] == "ok"
+        assert result["counts"] == case[mode]["counts"]
+        assert result["public_protein_count"] == len(case[mode]["proteins"])
+        assert result["checked_protein_count"] == len(proteins)
+        if case[mode]["proteins"]:
+            assert result["checked_protein_count"] > result["public_protein_count"]
+            assert all(p["validation_status"] == "ok" for p in proteins)
+        else:
+            assert result["checked_protein_count"] == 0
+            assert result["rna_sha256"] == benchmark.rna_fingerprint([])
+            assert result["trace"].get("rna_candidate_count", 0) == 0
+        entries.append(f"{label}={args.output}")
+    comparison = performance_report.collect_benchmarks(entries, ["before=after"])
+    assert comparison["comparisons"] == [dict(before="before", after="after", exact_rna_and_ranked_proteins=True)]
+
+
+@pytest.mark.parametrize("checked_count", [0, 1])
+@pytest.mark.parametrize("error_type", [benchmark.AuditTimeout, ValueError])
+def test_benchmark_retains_checked_count_on_validation_interruption(
+        benchmark_inputs, monkeypatch, checked_count, error_type):
+    _, args = benchmark_inputs("DYNC1H1-chr14-102030200")
+    original_check = benchmark.protein_check
+    completed = 0
+
+    def interrupted_check(*args, **kwargs):
+        nonlocal completed
+        if completed == checked_count:
+            raise error_type("injected validation interruption")
+        result = original_check(*args, **kwargs)
+        completed += 1
+        return result
+
+    monkeypatch.setattr(benchmark, "protein_check", interrupted_check)
+    if error_type is ValueError:
+        with pytest.raises(ValueError, match="injected validation interruption"):
+            benchmark.run(args)
+    else:
+        benchmark.run(args)
+    result = json.loads((args.output / "result.json").read_text())
+    assert result["status"] == ("error" if error_type is ValueError else "resource_limit")
+    assert result["trace"]["stage"] == "independent_protein_validation"
+    assert result["checked_protein_count"] == completed == checked_count
+    assert "validation_status" not in result
+    assert not (args.output / "proteins.json.gz").exists()
+    assert json.loads((args.output / "production.json").read_text())["status"] == "ok"
+    assert json.loads((args.output / "validation.json").read_text())["status"] == "interrupted"
+    with pytest.raises(ValueError, match="Incomplete comparison"):
+        performance_report.collect_benchmarks([f"interrupted={args.output}"], ["interrupted=interrupted"])
 
 
 def benchmark_pair(tmp_path):

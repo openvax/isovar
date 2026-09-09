@@ -154,6 +154,7 @@ def run(args):
         result["public_protein_count"] = len(public_result.sorted_protein_sequences)
         result["rna_sha256"] = rna_fingerprint(getattr(creator, "rna_sequences", []))
         checked = []
+        result["checked_protein_count"] = 0
         trace["stage"] = "independent_protein_validation"
         with measure("validation", output, measurements, args.timeout, args.profile):
             for protein in creator.uncapped_ranked or []:
