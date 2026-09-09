@@ -262,6 +262,16 @@ def test_uncapped_capture_restores_public_limit_on_exception(monkeypatch):
     assert creator.max_protein_sequences_per_variant == 1
 
 
+def test_absent_optional_distribution_metadata_does_not_abort_audit(monkeypatch):
+    from tests.data.osteosarc.expansion import runner
+
+    def missing(package):
+        raise runner.PackageNotFoundError(package)
+
+    monkeypatch.setattr(runner, "version", missing)
+    assert runner.installed_version("biopython") is None
+
+
 @pytest.mark.parametrize("cigar,position,expected", [
     ("20M", 109, (100, 120)),
     ("10M10000N10M", 10111, (10110, 10120)),

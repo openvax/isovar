@@ -9,7 +9,7 @@ from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from contextlib import contextmanager
 from hashlib import sha256
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 import json
 import logging
 import math
@@ -36,6 +36,14 @@ from tests.real_rna_helpers import cigar_observation  # noqa: E402
 
 
 PRIMARY_EXCLUDE_FLAGS = 256 | 1024 | 2048
+
+
+def installed_version(package):
+    """Record unavailable distribution metadata without inventing a version."""
+    try:
+        return version(package)
+    except PackageNotFoundError:
+        return None
 
 
 class AuditTimeout(TimeoutError):
@@ -277,7 +285,7 @@ def audit_identity(inventory_path, reference_dir, timeout=None):
         sources={str(p.relative_to(ROOT)): digest(p) for p in paths},
         inventory_sha256=digest(inventory_path), reference_manifest_sha256=digest(reference_dir / "manifest.json"),
         software=dict(isovar=__version__, python=platform.python_version(), pysam=pysam.__version__,
-                      dependencies={name: version(name) for name in ("varcode", "pyensembl", "numpy", "biopython")}),
+                      dependencies={name: installed_version(name) for name in ("varcode", "pyensembl", "numpy", "biopython")}),
         time_limit_seconds_per_mode=timeout,
         ranking_capture="observe all pre-cap ranked proteins; return exactly the configured public cap",
         settings=dict(read_collector=vars(ReadCollector(merge_overlapping_fragments=True)),

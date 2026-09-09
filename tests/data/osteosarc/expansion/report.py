@@ -198,6 +198,12 @@ def collect(destination, audit_names, allow_incomplete=False):
         raise ValueError(f"{len(incomplete)} rows have unfinished audit/acquisition; use --allow-incomplete only for diagnostics")
     payload = dict(schema_version=1, variants=variants, sources=sources, rows=rows, audit_runs=runs,
                    support_names_encoding="Each row has a sorted supporting_read_name_table; each protein indexes its exact subset",
+                   native_variant_inventories={name: dict(sha256=digest(destination / name),
+                                                         variants=json.loads((destination / name).read_text())["variants"])
+                                               for name in ("inventory-GRCh38-validated.json", "inventory-GRCh37-validated.json",
+                                                            "inventory-GRCh37-hg19MT-validated.json")},
+                   reference_manifests={name: json.loads((destination / name / "manifest.json").read_text())
+                                        for name in ("reference-GRCh38", "reference-GRCh37-v2", "reference-GRCh37-cegat")},
                    summary=summarize(rows, variants), source_metadata=metadata,
                    inventory_metadata={k: v for k, v in inventory.items() if k not in ("variants", "alignments")},
                    inputs={n: digest(destination / n) for n in ("inventory-live-v2.json", "source-metadata.json", "bams.json",
@@ -220,8 +226,9 @@ def markdown(payload):
              "## Default-path outcomes", "", "| Outcome | Source/variant rows |", "|---|---:|"]
     lines += [f"| {name} | {count} |" for name, count in sorted(outcomes.items())]
     lines += ["", "## Per-variant coverage", "",
-              "Each count is the number of RNA products with that result; one product can represent pooled donors or a duplicate processing.", "",
-              "| Variant | Products with counts | With alt | With ranked protein | With any expected protein | With mutant 25-mer |",
+              "These columns describe the default-returned protein, not hidden uncapped alternatives. Each count is the number of RNA products "
+              "with that result; one product can represent pooled donors or a duplicate processing.", "",
+              "| Variant | Products with counts | With alt | With default protein | Expected default | With mutant 25-mer |",
               "|---|---:|---:|---:|---:|---:|"]
     for item in payload["summary"]:
         d = item["defaults"]
@@ -242,6 +249,61 @@ def markdown(payload):
     return "\n".join(lines)
 
 
+def source_markdown(payload):
+    grouped = defaultdict(list)
+    for row in payload["rows"]:
+        grouped[row["source_id"]].append(row)
+    lines = ["# RNA product coverage", "",
+             "All numbers count variant loci among the 44 vaccine entries, not read totals or independent patients. "
+             "`Protein` means a default-returned RNA window, including explicitly recorded single-edit differences; "
+             "it does not establish vaccine eligibility. Exact ref/alt/other counts and sequences are in `matrix.json.gz`.", "",
+             "A dash means no completed counts, not zero alternate evidence. Source labels are upstream claims. Uncatalogued paths are shortened here only; full keys, conflicting timepoint "
+             "claims, pooled attribution, read groups and source URLs remain in the matrix.", ""]
+    sources = [s for s in payload["sources"] if s["scope"] == "rna_candidate"]
+    for title, subset in (("Catalogue RNA products", [s for s in sources if "category" in s]),
+                          ("Additional discovered RNA products", [s for s in sources if "category" not in s])):
+        lines += [f"## {title}", "", "| Product ID | Source label/path | Assembly | Counted | Alt | Protein | Timeout | Unavailable loci |",
+                  "|---|---|---|---:|---:|---:|---:|---|"]
+        for source in subset:
+            rows = grouped[source["source_id"]]
+            modes = [r.get("defaults", {}) for r in rows]
+            counted = sum(m.get("counts") is not None for m in modes)
+            alt = sum(bool(m.get("counts") and m["counts"]["reads"]["alt"]) for m in modes)
+            proteins = sum(bool(m.get("proteins")) for m in modes)
+            timeouts = sum(m.get("outcome") == "audit_timeout" for m in modes)
+            unavailable = Counter(m.get("outcome", "error") for m in modes if m.get("counts") is None)
+            unavailable_text = "; ".join(f"{k}: {v}" for k, v in sorted(unavailable.items())) or "none"
+            label = source["name"].replace("|", "\\|").replace("\n", " ")
+            if len(label) > 110:
+                label = label[:45] + "…" + label[-60:]
+            assembly = source.get("header", {}).get("assembly") or "unmapped/unresolved"
+            lines.append(f"| {source['source_id']} | {label} | {assembly} | {counted} | {alt if counted else '—'} | "
+                         f"{proteins if counted else '—'} | {timeouts} | {unavailable_text} |")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def counts_index(payload):
+    """Small lossless count/outcome projection for routine offline matrix tests."""
+    rows = []
+    for row in payload["rows"]:
+        item = {key: row[key] for key in ("source_id", "variant_id", "status", "native_variant", "normalized_variant") if key in row}
+        item["independent_primary"] = row.get("independent_primary")
+        for mode in ("defaults", "primary_only"):
+            value = row.get(mode, {})
+            item[mode] = {key: value[key] for key in ("status", "outcome", "counts", "stages", "error",
+                                                     "uncapped_validation_status") if key in value}
+            item[mode].update(returned_protein_count=len(value.get("proteins", [])),
+                              uncapped_protein_count=len(value.get("uncapped_ranked_proteins", [])),
+                              returned_validation_errors=sum(p["validation_status"] != "ok" for p in value.get("proteins", [])),
+                              uncapped_validation_errors=sum(p["validation_status"] != "ok" for p in value.get("uncapped_ranked_proteins", [])))
+        rows.append(item)
+    return dict(rows=rows, source_ids=sorted({r["source_id"] for r in rows}),
+                variant_ids=[v["variant_id"] for v in payload["variants"]], summary=payload["summary"],
+                sources=payload["sources"], native_variant_inventories=payload["native_variant_inventories"],
+                reference_manifests=payload["reference_manifests"], audit_runs=payload["audit_runs"])
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("destination", type=Path)
@@ -252,8 +314,11 @@ if __name__ == "__main__":
     payload = collect(args.destination, args.audit, args.allow_incomplete)
     args.output.mkdir(parents=True, exist_ok=False)
     write_compressed(args.output / "matrix.json.gz", payload)
+    write_compressed(args.output / "counts-index.json.gz", counts_index(payload))
     with (args.output / "SUMMARY.md").open("x") as handle:
         handle.write(markdown(payload))
+    with (args.output / "SOURCE_SUMMARY.md").open("x") as handle:
+        handle.write(source_markdown(payload))
     write_json(args.output / "manifest.json", dict(files={p.name: digest(p) for p in sorted(args.output.iterdir())},
                inputs=payload["inputs"], row_count=len(payload["rows"]), incomplete_row_count=payload["incomplete_row_count"],
                generator_sources={p.name: digest(p) for p in sorted(Path(__file__).parent.glob("*.py"))}))

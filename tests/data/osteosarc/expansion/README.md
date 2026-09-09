@@ -6,6 +6,32 @@ set. Vaccine inclusion chooses the cohort; it does not establish correctness.
 The public sequencing data are CC0 according to the
 [AWS registry](https://registry.opendata.aws/sid-osteosarc/).
 
+## Results at a glance
+
+The [variant summary](audit/SUMMARY.md) and [source summary](audit/SOURCE_SUMMARY.md)
+cover 7,216 cells (44 variants × 164 RNA products), with completed Isovar counts
+for 6,202. The other cells explicitly record failed acquisition (442), missing
+indexes (220), or unmapped intermediates (352). Five high-depth mitochondrial
+cells retain read counts but time out in both modes: nine mode-level timeouts
+are during RNA-sequence creation, and one is during independent validation
+after Isovar produced 4,154 translations. A missing validated report window
+in that last case does not mean Isovar produced no protein.
+
+There is callable alternate evidence for 43 variants and a default protein
+window for 39, somewhere among the products. Default outputs contain 749
+reference-plus-edit matches and 16 correctly translated RNA differences.
+Across completed default-input and primary-only modes, all 83,913 recorded pre-cap ranked windows
+pass independent frame/translation/interval/stop checks; these are repeated
+window observations across products and settings, **not** independent proteins.
+
+ABCF2, MAP2, MYO15B and MYO9A have alternate evidence but no RNA candidate under
+the default coverage requirements. Most have only one allele-read object;
+two MYO9A mate alignments can become one object. Counting two alignments is not
+proof of two compatible cDNA sequences. ADGRF5 has no callable alternate evidence
+in the audited products. NR2F2 has evidence only in the native GRCh37 CeGaT
+product, with additional RNA differences. No variant's source-vaccine inclusion
+is treated as proof that Isovar ought to reconstruct an expected peptide.
+
 ## Scope and source identities
 
 The pinned [variant index](https://osteosarc.com/variants/) contains 44
@@ -251,3 +277,10 @@ is deterministic; fresh timed runs may complete additional protein work on
 faster hardware. Compare completed counts/sequences and preserve resource
 limits as separate outcomes. Full downloaded RNA stays out of the repository;
 only small original-read fixtures and the compressed audit report are kept.
+
+The recorded numerical/protein run source bytes match commit
+`122e4a9cb68d1f2f91e9f4f9332af5a499a28eeb` (65 files verified against per-run
+SHA256). Reporting/projection changes and optional distribution-metadata
+handling are separately pinned in the report-generator manifest. The
+`counts-index.json.gz` projection supports routine full-matrix integrity/state
+tests without loading millions of support-name indices in each CI worker.
