@@ -1,0 +1,2023 @@
+{
+  "comparisons": [
+    {
+      "after": "final_t3",
+      "before": "baseline_t3",
+      "exact_rna_and_ranked_proteins": true
+    },
+    {
+      "after": "final_t1",
+      "before": "baseline_t1",
+      "exact_rna_and_ranked_proteins": true
+    },
+    {
+      "after": "final_dync",
+      "before": "baseline_dync",
+      "exact_rna_and_ranked_proteins": true
+    },
+    {
+      "after": "final_del",
+      "before": "baseline_del",
+      "exact_rna_and_ranked_proteins": true
+    },
+    {
+      "after": "final_bulk",
+      "before": "baseline_bulk",
+      "exact_rna_and_ranked_proteins": true
+    }
+  ],
+  "runs": {
+    "baseline_bulk": {
+      "artifacts": {
+        "identity.json": "26764abe2a7fc0d5c5b56aeb57706c449590be95dff68abb13c8248e0cfa67e5",
+        "production.json": "3d344a5676a5a1422b9760ca4d36c7157df6b7d458886d26ccced58a37ad8283",
+        "proteins.json.gz": "671285f7c520a19b3aa15bd2b21dd99770f042857fc8ed43457b9cb660cd015c",
+        "result.json": "7b074ad1a45c117f894be982e2242a739f7c471a2769711331e7e41c30a5b7f4",
+        "validation.json": "907a848d889e82990351e363dfc9126e3de7baa0c69804f77b973540d182cf2d"
+      },
+      "identity": {
+        "input_bam_sha256": "79da2651c583352e3e1f50987a01389a19798a90f005cbc2fde5ea802c28f378",
+        "input_index_sha256": "1c39ac74c227c86069d5d36f85a3e3392802348091452be343e9588707511306",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.1",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "ed45205f69a9df114a0eb1a86f775de3c8b3242340a581833d4fc1ef37a92819",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "79da2651c583352e3e1f50987a01389a19798a90f005cbc2fde5ea802c28f378",
+        "source_files": {
+          "isovar/__init__.py": "db51631cc1c098e4462706fd02cbb67293157f7c2319290062ab9039ab511aa3",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "e0ba70fbfb45f0e27f0907cb9aa90289cfb8e5140c9d523f15cded154578e924",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "dbbbbd8ec5a7a3ea2a38958509f140a2d4d43a212fcdf7a713298e6c9727c582",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "d92f40f56543536b9404d26f7f414ca261a2e9ff21d0917a9cd74b504ccb5268",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "1b66c15da594a3ef",
+        "timeout_seconds_per_phase": 180.0,
+        "variant_id": "DYNC1H1-chr14-102030200"
+      },
+      "measurements": {
+        "production": {
+          "process_peak_rss_bytes": 200130560,
+          "status": "ok",
+          "wall_seconds": 0.06433049961924553
+        },
+        "validation": {
+          "process_peak_rss_bytes": 200130560,
+          "status": "ok",
+          "wall_seconds": 0.0025897501036524773
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 112,
+        "counts": {
+          "all_template_names": 448,
+          "read_objects": {
+            "alt": 42,
+            "other": 0,
+            "ref": 410
+          },
+          "reads": {
+            "alt": 50,
+            "other": 0,
+            "ref": 517
+          },
+          "template_names": {
+            "alt": 42,
+            "other": 0,
+            "ref": 408
+          }
+        },
+        "proteins_sha256": "59782d0a53a0076142962b742422df3b67c3315d42d0460f574839437320744c",
+        "public_protein_count": 1,
+        "rna_sha256": "d2b5c67e09b67f9c30b7747b7c1df6f3693b88382a29c7f8024e122e20697db7",
+        "status": "ok",
+        "trace": {
+          "reference_context_count": 1,
+          "reference_matching_rejected": 8,
+          "rna_candidate_count": 141,
+          "stage": "independent_protein_validation",
+          "translation_count": 133,
+          "translations_with_mutation": 133
+        },
+        "validation_status": "ok"
+      }
+    },
+    "baseline_del": {
+      "artifacts": {
+        "identity.json": "d06262509b2cd284858870148ef85c8127760b3edd7cf7a650b1d513b8e18269",
+        "production.json": "031bcb1e7b31763d73a0eed98ad968a4cf3317022a38d36ee7f1ba70f7c5c401",
+        "proteins.json.gz": "c457ffa50bf61582c5b1629056848b8aa57cb3e30c03713237d4bd7e31ed3ba4",
+        "result.json": "dc8c7416bab1a4c109fd3c8f14cdeca1d2f97fd503b57719164594c3a8c179d7",
+        "validation.json": "1a7af070317f068609488b424c0561abd771f641a3e10d57fe5adf9c08ad8889"
+      },
+      "identity": {
+        "benchmark_sha256": "561cf7de4deb4188412efdba3527b0cacad8214b1a81c33f75a81b2bc78afdda",
+        "input_bam_sha256": "eb0eebd5ac4736114873f20f3aea7ecda1b670195dd5fd1bd8c1e365e620064c",
+        "input_index_sha256": "3172582f5a4b16f8222a03d8bf4b60546a5f2afa8401789c6ec1428fd2c0e562",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.1",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "4d60946567542a5cf7dadf53287dd588f8c75862bbac3fd2e44023bfcb0e2d74",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "eb0eebd5ac4736114873f20f3aea7ecda1b670195dd5fd1bd8c1e365e620064c",
+        "source_files": {
+          "isovar/__init__.py": "db51631cc1c098e4462706fd02cbb67293157f7c2319290062ab9039ab511aa3",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "e0ba70fbfb45f0e27f0907cb9aa90289cfb8e5140c9d523f15cded154578e924",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "dbbbbd8ec5a7a3ea2a38958509f140a2d4d43a212fcdf7a713298e6c9727c582",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "1120a096937e29e1",
+        "timeout_seconds_per_phase": 120.0,
+        "variant_id": "H1_2-chr6-26055824"
+      },
+      "measurements": {
+        "production": {
+          "process_peak_rss_bytes": 898056192,
+          "status": "ok",
+          "wall_seconds": 39.871355624869466
+        },
+        "validation": {
+          "process_peak_rss_bytes": 898056192,
+          "status": "ok",
+          "wall_seconds": 0.13072608364745975
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 384,
+        "counts": {
+          "all_template_names": 21439,
+          "read_objects": {
+            "alt": 3461,
+            "other": 721,
+            "ref": 17257
+          },
+          "reads": {
+            "alt": 3461,
+            "other": 721,
+            "ref": 17259
+          },
+          "template_names": {
+            "alt": 3461,
+            "other": 721,
+            "ref": 17257
+          }
+        },
+        "proteins_sha256": "c01ed590bb7dfeba4c4379e1834e39538709c1c4ef17fff66f0a9342e901f17b",
+        "public_protein_count": 1,
+        "rna_sha256": "46e9649c0e2adf408e53685093c92b49e9d6724d4d8983c5fc9381a33b737122",
+        "status": "ok",
+        "trace": {
+          "read_collection_peak_rss_bytes": 898056192,
+          "read_collection_seconds": 3.6963302502408624,
+          "reference_context_count": 1,
+          "reference_matching_rejected": 5,
+          "rna_candidate_count": 1059,
+          "stage": "independent_protein_validation",
+          "translation_count": 1054,
+          "translations_with_mutation": 1048,
+          "translations_without_mutation": 6
+        },
+        "validation_status": "ok"
+      }
+    },
+    "baseline_dync": {
+      "artifacts": {
+        "identity.json": "477c4dbd56c1512d68a58d50ef7e6badfdbb91562405a3fb07533b932f00d339",
+        "production.json": "00f69816a8ebbe48659ac53717fee9565d1869b57cffc74db0919385a62871c3",
+        "proteins.json.gz": "a0366d2295c7810e1f702db82fec23cabcc34580f1143cd1303ba0530560075f",
+        "result.json": "d8ebd48f0d6a243c8cce9f85f6bb7d835057a3e710414a78dc9d3fec5dfa6f45",
+        "validation.json": "3e1cd0c3bdfed696819114f3f3b007f951052748ba0be77c214b62fe0382dcb3"
+      },
+      "identity": {
+        "benchmark_sha256": "561cf7de4deb4188412efdba3527b0cacad8214b1a81c33f75a81b2bc78afdda",
+        "input_bam_sha256": "e3c2139d0afed2800e75da677a6b3238de03d000c7899780b4a0d2c061274ede",
+        "input_index_sha256": "6772f9ac8ad54e035425d3d734c350801767baf97bfddf9ada4503f2acd06d2c",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.1",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "3cb6e1de84429b8a0611dc723b44e247e828c94f8b6eee67f3c8af0813e90beb",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "e3c2139d0afed2800e75da677a6b3238de03d000c7899780b4a0d2c061274ede",
+        "source_files": {
+          "isovar/__init__.py": "db51631cc1c098e4462706fd02cbb67293157f7c2319290062ab9039ab511aa3",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "e0ba70fbfb45f0e27f0907cb9aa90289cfb8e5140c9d523f15cded154578e924",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "dbbbbd8ec5a7a3ea2a38958509f140a2d4d43a212fcdf7a713298e6c9727c582",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "53f498a544883d51",
+        "timeout_seconds_per_phase": 120.0,
+        "variant_id": "DYNC1H1-chr14-101980529"
+      },
+      "measurements": {
+        "production": {
+          "process_peak_rss_bytes": 510607360,
+          "status": "ok",
+          "wall_seconds": 6.589661042205989
+        },
+        "validation": {
+          "process_peak_rss_bytes": 510607360,
+          "status": "ok",
+          "wall_seconds": 0.057436916045844555
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 241,
+        "counts": {
+          "all_template_names": 5007,
+          "read_objects": {
+            "alt": 1560,
+            "other": 8,
+            "ref": 3439
+          },
+          "reads": {
+            "alt": 1560,
+            "other": 8,
+            "ref": 3440
+          },
+          "template_names": {
+            "alt": 1560,
+            "other": 8,
+            "ref": 3439
+          }
+        },
+        "proteins_sha256": "15eb5d5815dedb3774c2e16d2b8197a07218f78c22749d9520f078c0efe7bf8c",
+        "public_protein_count": 1,
+        "rna_sha256": "7abf339846851227dd249394861602db4b6560a8886ff04f115e512b03ca9ec2",
+        "status": "ok",
+        "trace": {
+          "read_collection_peak_rss_bytes": 510607360,
+          "read_collection_seconds": 1.165277583990246,
+          "reference_context_count": 1,
+          "reference_matching_rejected": 8,
+          "rna_candidate_count": 450,
+          "stage": "independent_protein_validation",
+          "translation_count": 442,
+          "translations_with_mutation": 442
+        },
+        "validation_status": "ok"
+      }
+    },
+    "baseline_profile_t1": {
+      "artifacts": {
+        "identity.json": "f0ef82732e2087bbc5f954620450b9b868eaca4bdf3ea948f15ac7cb955fa63a",
+        "measurements.json": "3729e24a539980a1319b24113e47096e3d297fce92693633a0bc7a2b18c4f8a5",
+        "production.prof": "e6652370168010c775979c2827b3c89e86b778596ce2334de47d7c21bc4930d0",
+        "production.txt": "ea56564fe74ebe88f420118cbfe0a27a39a6d19bc599f0fab53c2c2f8abbb332",
+        "result.json": "4067c8898447cea3456bbfcd73991a4b768a339dc9c6f743ca09d5a697d2785a"
+      },
+      "identity": {
+        "input_bam_sha256": "e3c2139d0afed2800e75da677a6b3238de03d000c7899780b4a0d2c061274ede",
+        "input_index_sha256": "6772f9ac8ad54e035425d3d734c350801767baf97bfddf9ada4503f2acd06d2c",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.1",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": true,
+        "python": "3.12.6",
+        "receipt_sha256": "3cb6e1de84429b8a0611dc723b44e247e828c94f8b6eee67f3c8af0813e90beb",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "e3c2139d0afed2800e75da677a6b3238de03d000c7899780b4a0d2c061274ede",
+        "source_files": {
+          "isovar/__init__.py": "db51631cc1c098e4462706fd02cbb67293157f7c2319290062ab9039ab511aa3",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "e0ba70fbfb45f0e27f0907cb9aa90289cfb8e5140c9d523f15cded154578e924",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "dbbbbd8ec5a7a3ea2a38958509f140a2d4d43a212fcdf7a713298e6c9727c582",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "e283ce4739521526a6c82b08bb558250f099c5effa0126d0aeb89dc92a5523c4",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "53f498a544883d51",
+        "timeout_seconds_per_phase": 180.0,
+        "variant_id": "MT_ND5-chrM-12994"
+      },
+      "measurements": {
+        "production": {
+          "process_peak_rss_bytes": 1614331904,
+          "status": "interrupted",
+          "wall_seconds": 180.0054002907127
+        }
+      },
+      "profiles": {
+        "production": "         779706752 function calls (779204966 primitive calls) in 180.004 seconds\n\n   Ordered by: cumulative time\n   List reduced from 335 to 60 due to restriction <60>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000  180.004  180.004 main.py:74(run_isovar)\n        1    0.000    0.000  176.469  176.469 runner.py:107(sorted_protein_sequences_for_variant)\n        1    0.000    0.000  176.469  176.469 protein_sequence_creator.py:413(sorted_protein_sequences_for_variant)\n        1    0.000    0.000  176.469  176.469 protein_sequence_creator.py:332(translate_variant_reads)\n        1    0.000    0.000  176.467  176.467 benchmark.py:34(variant_sequences_from_reads)\n        1    0.000    0.000  176.467  176.467 runner.py:121(variant_sequences_from_reads)\n        1    0.021    0.021  176.467  176.467 protein_sequence_creator.py:168(variant_sequences_from_reads)\n        5    0.003    0.001  176.404   35.281 variant_sequence_creator.py:85(reads_to_variant_sequences)\n        5    0.067    0.013  175.959   35.192 variant_sequence_helpers.py:233(filter_variant_sequences)\n        5    0.028    0.006  175.892   35.178 variant_sequence_helpers.py:177(trim_variant_sequences)\n        9   85.776    9.531  164.603   18.289 variant_sequence_helpers.py:144(_variant_sequences_with_shared_read_support)\n125419217   24.952    0.000   24.952    0.000 {method 'endswith' of 'str' objects}\n408837850/408783676   23.016    0.000   23.027    0.000 {built-in method builtins.len}\n163035301   20.823    0.000   20.829    0.000 {built-in method builtins.min}\n     5542    0.006    0.000   10.454    0.002 variant_sequence_helpers.py:211(<genexpr>)\n     5538    0.085    0.000   10.448    0.002 variant_sequence.py:244(trim_by_coverage)\n 63256721    8.978    0.000    8.978    0.000 {method 'startswith' of 'str' objects}\n     5538    6.847    0.001    8.612    0.002 variant_sequence.py:210(coverage)\n        1    0.000    0.000    3.535    3.535 read_collector.py:945(read_evidence_generator)\n        1    0.000    0.000    3.535    3.535 runner.py:85(read_evidence_for_variant)\n        1    0.000    0.000    3.535    3.535 read_collector.py:906(read_evidence_for_variant)\n        1    0.224    0.224    3.525    3.525 read_collector.py:886(allele_reads_overlapping_variant)\n        1    0.001    0.001    3.205    3.205 read_collector.py:805(locus_reads_overlapping_variant)\n        1    0.291    0.291    3.204    3.204 read_collector.py:678(get_locus_reads)\n  7768803    2.311    0.000    2.311    0.000 {method 'update' of 'set' objects}\n    34147    0.155    0.000    2.222    0.000 runner.py:90(locus_read_from_pysam_aligned_segment)\n    34147    1.904    0.000    2.067    0.000 read_collector.py:200(locus_read_from_pysam_aligned_segment)\n     5538    0.013    0.000    1.643    0.000 arrayprint.py:1685(_array_str_implementation)\n     5538    0.017    0.000    1.629    0.000 arrayprint.py:605(array2string)\n     5538    0.011    0.000    1.581    0.000 arrayprint.py:550(wrapper)\n     5538    0.025    0.000    1.566    0.000 arrayprint.py:567(_array2string)\n     5538    0.005    0.000    1.295    0.000 arrayprint.py:828(_formatArray)\n453069/5538    0.404    0.000    1.290    0.000 arrayprint.py:837(recurser)\n        1    0.229    0.229    0.687    0.687 read_collector.py:645(_merge_overlapping_locus_reads)\n   166232    0.035    0.000    0.671    0.000 value_object.py:81(__hash__)\n       10    0.081    0.008    0.642    0.064 allele_read_helpers.py:71(group_unique_sequences)\n   166232    0.121    0.000    0.616    0.000 value_object.py:64(_values)\n   447531    0.199    0.000    0.579    0.000 arrayprint.py:801(_extendLine_pretty)\n  4178895    0.555    0.000    0.561    0.000 {built-in method builtins.max}\n   116358    0.026    0.000    0.552    0.000 {method 'add' of 'set' objects}\n  1163630    0.360    0.000    0.469    0.000 value_object.py:62(<genexpr>)\n        5    0.002    0.000    0.417    0.083 variant_sequence_helpers.py:26(initial_variant_sequences_from_reads)\n    34154    0.032    0.000    0.404    0.000 {built-in method builtins.sorted}\n        9    0.171    0.019    0.393    0.044 assembly.py:244(merge_identical_sequences)\n    34118    0.370    0.000    0.372    0.000 read_collector.py:470(_locus_read_sort_key)\n   447531    0.194    0.000    0.300    0.000 arrayprint.py:787(_extendLine)\n   447531    0.089    0.000    0.271    0.000 arrayprint.py:1297(__call__)\n     2904    0.019    0.000    0.261    0.000 variant_sequence.py:141(add_reads)\n     5538    0.019    0.000    0.245    0.000 arrayprint.py:496(_get_format_function)\n     2904    0.240    0.000    0.240    0.000 {method 'union' of 'frozenset' objects}\n     5538    0.006    0.000    0.216    0.000 arrayprint.py:454(<lambda>)\n     5538    0.040    0.000    0.209    0.000 arrayprint.py:1282(__init__)\n    19581    0.192    0.000    0.192    0.000 variant_sequence.py:55(__init__)\n   447531    0.182    0.000    0.182    0.000 {method 'format' of 'str' objects}\n    11076    0.110    0.000    0.156    0.000 fromnumeric.py:69(_wrapreduction)\n     5538    0.006    0.000    0.146    0.000 fromnumeric.py:3052(max)\n  1014061    0.112    0.000    0.112    0.000 {built-in method builtins.getattr}\n    34116    0.104    0.000    0.104    0.000 locus_read.py:43(__init__)\n        1    0.014    0.014    0.097    0.097 allele_read_helpers.py:102(allele_reads_from_locus_reads)\n    34026    0.044    0.000    0.080    0.000 allele_read.py:49(from_locus_read)\n\n\n"
+      },
+      "result": {
+        "counts": {
+          "all_template_names": 34025,
+          "read_objects": {
+            "alt": 11082,
+            "other": 50,
+            "ref": 22894
+          },
+          "reads": {
+            "alt": 11093,
+            "other": 50,
+            "ref": 22928
+          },
+          "template_names": {
+            "alt": 11081,
+            "other": 50,
+            "ref": 22894
+          }
+        },
+        "error": "Audit mode exceeded 180 seconds; #227 tracks high-depth matching",
+        "status": "resource_limit",
+        "trace": {
+          "stage": "rna_sequence_creation"
+        }
+      }
+    },
+    "baseline_profile_t3": {
+      "artifacts": {
+        "identity.json": "4d6fd268d5849d43d37626748abb11869e97e5f044fe388fcc35e168df7f0520",
+        "measurements.json": "7d8082b9352d71a050bce86cbe3ac130c43564c5b2215eede1fb6669194fc5d8",
+        "production.prof": "fda164c01fffcb1734457d41f8c2a6909976bc49f214a5e76a75088e1acf9782",
+        "production.txt": "e3d9786947b25fe4c0cf062dc63a02cec817e88e8a11cfcb7c0926f545588c39",
+        "result.json": "820d4e673a0df38da737837d33629e033865b8baa0171b1aa8b68832af8a2045"
+      },
+      "identity": {
+        "input_bam_sha256": "ff97dc43cc0c1de9d17c4ea9494cdb77459453104d8659b4d54e23b2f2fdbdcc",
+        "input_index_sha256": "c24573902d30618771c8e2111e2d9b0420b81640ec9a7dd716e45a2c755839b6",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.1",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": true,
+        "python": "3.12.6",
+        "receipt_sha256": "3a7b4d3b33c06a3b49bb1a1c2644f1e8552fb7fe14743dac2a92cedc7c9c6027",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "ff97dc43cc0c1de9d17c4ea9494cdb77459453104d8659b4d54e23b2f2fdbdcc",
+        "source_files": {
+          "isovar/__init__.py": "db51631cc1c098e4462706fd02cbb67293157f7c2319290062ab9039ab511aa3",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "e0ba70fbfb45f0e27f0907cb9aa90289cfb8e5140c9d523f15cded154578e924",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "dbbbbd8ec5a7a3ea2a38958509f140a2d4d43a212fcdf7a713298e6c9727c582",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "e283ce4739521526a6c82b08bb558250f099c5effa0126d0aeb89dc92a5523c4",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "62a9d3e67e1b564e",
+        "timeout_seconds_per_phase": 180.0,
+        "variant_id": "MT_ND5-chrM-12994"
+      },
+      "measurements": {
+        "production": {
+          "process_peak_rss_bytes": 5495406592,
+          "status": "interrupted",
+          "wall_seconds": 180.0060912920162
+        }
+      },
+      "profiles": {
+        "production": "         747760499 function calls (747601165 primitive calls) in 180.002 seconds\n\n   Ordered by: cumulative time\n   List reduced from 328 to 60 due to restriction <60>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000  180.002  180.002 main.py:74(run_isovar)\n        1    0.000    0.000  166.292  166.292 runner.py:107(sorted_protein_sequences_for_variant)\n        1    0.000    0.000  166.292  166.292 protein_sequence_creator.py:413(sorted_protein_sequences_for_variant)\n        1    0.000    0.000  166.292  166.292 protein_sequence_creator.py:332(translate_variant_reads)\n        1    0.000    0.000  166.290  166.290 benchmark.py:34(variant_sequences_from_reads)\n        1    0.000    0.000  166.290  166.290 runner.py:121(variant_sequences_from_reads)\n        1    0.001    0.001  166.290  166.290 protein_sequence_creator.py:168(variant_sequences_from_reads)\n        2    0.002    0.001  166.289   83.145 variant_sequence_creator.py:85(reads_to_variant_sequences)\n        2    0.016    0.008  165.884   82.942 variant_sequence_helpers.py:233(filter_variant_sequences)\n        2    0.016    0.008  165.868   82.934 variant_sequence_helpers.py:177(trim_variant_sequences)\n        3   84.161   28.054  161.644   53.881 variant_sequence_helpers.py:144(_variant_sequences_with_shared_read_support)\n126398680   25.691    0.000   25.691    0.000 {method 'endswith' of 'str' objects}\n395249998/395219428   22.643    0.000   22.646    0.000 {built-in method builtins.len}\n157691024   20.324    0.000   20.327    0.000 {built-in method builtins.min}\n        1    0.000    0.000   13.710   13.710 read_collector.py:945(read_evidence_generator)\n        1    0.000    0.000   13.710   13.710 runner.py:85(read_evidence_for_variant)\n        1    0.000    0.000   13.710   13.710 read_collector.py:906(read_evidence_for_variant)\n        1    0.938    0.938   13.682   13.682 read_collector.py:886(allele_reads_overlapping_variant)\n        1    0.001    0.001   12.421   12.421 read_collector.py:805(locus_reads_overlapping_variant)\n        1    0.892    0.892   12.420   12.420 read_collector.py:678(get_locus_reads)\n   105697    0.593    0.000    9.262    0.000 runner.py:90(locus_read_from_pysam_aligned_segment)\n   105697    7.825    0.000    8.669    0.000 read_collector.py:200(locus_read_from_pysam_aligned_segment)\n 56345764    8.170    0.000    8.170    0.000 {method 'startswith' of 'str' objects}\n     2120    0.001    0.000    3.574    0.002 variant_sequence_helpers.py:211(<genexpr>)\n     2119    0.016    0.000    3.573    0.002 variant_sequence.py:244(trim_by_coverage)\n     2119    2.475    0.001    3.083    0.001 variant_sequence.py:210(coverage)\n        1    0.700    0.700    2.254    2.254 read_collector.py:645(_merge_overlapping_locus_reads)\n   105560    0.120    0.000    1.531    0.000 {built-in method builtins.sorted}\n   105522    1.405    0.000    1.411    0.000 read_collector.py:470(_locus_read_sort_key)\n  3763069    1.111    0.000    1.111    0.000 {method 'update' of 'set' objects}\n   174782    0.034    0.000    0.678    0.000 value_object.py:81(__hash__)\n        4    0.074    0.019    0.649    0.162 allele_read_helpers.py:71(group_unique_sequences)\n   105522    0.645    0.000    0.645    0.000 locus_read.py:43(__init__)\n   174782    0.118    0.000    0.610    0.000 value_object.py:64(_values)\n   118639    0.028    0.000    0.565    0.000 {method 'add' of 'set' objects}\n  1223480    0.357    0.000    0.467    0.000 value_object.py:62(<genexpr>)\n     2119    0.002    0.000    0.444    0.000 arrayprint.py:1685(_array_str_implementation)\n     2119    0.004    0.000    0.441    0.000 arrayprint.py:605(array2string)\n     2119    0.003    0.000    0.417    0.000 arrayprint.py:550(wrapper)\n     2119    0.005    0.000    0.413    0.000 arrayprint.py:567(_array2string)\n        2    0.001    0.001    0.388    0.194 variant_sequence_helpers.py:26(initial_variant_sequences_from_reads)\n        1    0.052    0.052    0.323    0.323 allele_read_helpers.py:102(allele_reads_from_locus_reads)\n     2119    0.001    0.000    0.316    0.000 arrayprint.py:828(_formatArray)\n130802/2119    0.100    0.000    0.315    0.000 arrayprint.py:837(recurser)\n   105522    0.143    0.000    0.263    0.000 allele_read.py:49(from_locus_read)\n  1736904    0.202    0.000    0.206    0.000 {built-in method builtins.max}\n        3    0.079    0.026    0.184    0.061 assembly.py:244(merge_identical_sequences)\n   128683    0.050    0.000    0.144    0.000 arrayprint.py:801(_extendLine_pretty)\n   105697    0.114    0.000    0.114    0.000 read_collector.py:182(_interval_overlaps_reference_skip)\n     9621    0.112    0.000    0.112    0.000 variant_sequence.py:55(__init__)\n  1055104    0.111    0.000    0.111    0.000 {built-in method builtins.getattr}\n     1122    0.001    0.000    0.103    0.000 variant_sequence.py:141(add_reads)\n     1122    0.100    0.000    0.100    0.000 {method 'union' of 'frozenset' objects}\n     2119    0.005    0.000    0.091    0.000 arrayprint.py:496(_get_format_function)\n     2119    0.001    0.000    0.083    0.000 arrayprint.py:454(<lambda>)\n     2119    0.026    0.000    0.082    0.000 arrayprint.py:1282(__init__)\n   128683    0.048    0.000    0.075    0.000 arrayprint.py:787(_extendLine)\n   128683    0.020    0.000    0.062    0.000 arrayprint.py:1297(__call__)\n   105522    0.056    0.000    0.056    0.000 allele_read.py:38(__init__)\n   316566    0.034    0.000    0.053    0.000 string_helpers.py:51(convert_from_bytes_if_necessary)\n\n\n"
+      },
+      "result": {
+        "counts": {
+          "all_template_names": 105522,
+          "read_objects": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          },
+          "reads": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          },
+          "template_names": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          }
+        },
+        "error": "Audit mode exceeded 180 seconds; #227 tracks high-depth matching",
+        "status": "resource_limit",
+        "trace": {
+          "stage": "rna_sequence_creation"
+        }
+      }
+    },
+    "baseline_t1": {
+      "artifacts": {
+        "identity.json": "ea0646519486b3aee2bc174d2d815c81a63814193dd6aaba6bf5741f52da0b70",
+        "production.json": "fa01de84c4f011d9f6a7a230db5c87bbf1d6c2d18a0b8e9b2784f8287219db1a",
+        "proteins.json.gz": "3c21fbf1a3549b46bcf2749c6c0779a983f2cbe5dfa5cc2b811cc904a9501c76",
+        "result.json": "315e069609ed44884c31a299bcebd6fb4e84522dc5d905dd829a73d8492bcd1e",
+        "validation.json": "7f32f6388f3ad9974eafe1fb2d331d42606f6fa7159c6dbda3c31ea7e7b08fe7"
+      },
+      "identity": {
+        "input_bam_sha256": "d97b97dd7a9efca4bbc1923b497c906361e8a8e388cebf63072075e9281d66cc",
+        "input_index_sha256": "b530f45f147325786f5018bdb37a10a624ef2f07cdd7d1554075fd4995e004df",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.1",
+        "mode": "primary_only",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "3cb6e1de84429b8a0611dc723b44e247e828c94f8b6eee67f3c8af0813e90beb",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "e3c2139d0afed2800e75da677a6b3238de03d000c7899780b4a0d2c061274ede",
+        "source_files": {
+          "isovar/__init__.py": "db51631cc1c098e4462706fd02cbb67293157f7c2319290062ab9039ab511aa3",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "e0ba70fbfb45f0e27f0907cb9aa90289cfb8e5140c9d523f15cded154578e924",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "dbbbbd8ec5a7a3ea2a38958509f140a2d4d43a212fcdf7a713298e6c9727c582",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "d92f40f56543536b9404d26f7f414ca261a2e9ff21d0917a9cd74b504ccb5268",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "53f498a544883d51",
+        "timeout_seconds_per_phase": 300.0,
+        "variant_id": "MT_ND5-chrM-12994"
+      },
+      "measurements": {
+        "production": {
+          "process_peak_rss_bytes": 1609105408,
+          "status": "ok",
+          "wall_seconds": 165.274631915614
+        },
+        "validation": {
+          "process_peak_rss_bytes": 1609105408,
+          "status": "ok",
+          "wall_seconds": 1.9999720412306488
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 2006,
+        "counts": {
+          "all_template_names": 33800,
+          "read_objects": {
+            "alt": 11019,
+            "other": 49,
+            "ref": 22732
+          },
+          "reads": {
+            "alt": 11019,
+            "other": 49,
+            "ref": 22732
+          },
+          "template_names": {
+            "alt": 11019,
+            "other": 49,
+            "ref": 22732
+          }
+        },
+        "proteins_sha256": "f572ff24e9a456e2dd87a232856a59206867a19f36d78d01819065bfa7a8d80d",
+        "public_protein_count": 1,
+        "rna_sha256": "4990132dc00af75819ac8ba4eea234c48e5ccc9186353b6f2664ffa03eeafffd",
+        "status": "ok",
+        "trace": {
+          "reference_context_count": 1,
+          "reference_matching_rejected": 236,
+          "rna_candidate_count": 4390,
+          "stage": "independent_protein_validation",
+          "translation_count": 4154,
+          "translations_with_mutation": 4152,
+          "translations_without_mutation": 2
+        },
+        "validation_status": "ok"
+      }
+    },
+    "baseline_t3": {
+      "artifacts": {
+        "identity.json": "451bf70e485e0f7533abef1b7e69fb4508d6717c4cf53d3807268c2166368b41",
+        "production.json": "6448ce40b840eb1ea5ffcf178827421c403fb27930c2e3df3050424f2112f3f5",
+        "proteins.json.gz": "5f80b491ef0dd04404c35f2caa24a9b8556bb6de706ea9ee5442b94bb4b2924c",
+        "result.json": "a58e870568d8b31449fd1205e70aad3fe6769b994f42b4cff261645846654ce4",
+        "validation.json": "e413df7453b2b41fb050c81fcac95b6738320cf2df2f3104a7e417009e830f31"
+      },
+      "identity": {
+        "benchmark_sha256": "477eae63c5fa3472a6d4fbdf897fb4688d1d98a3bd9e333687d408b71d2815e7",
+        "input_bam_sha256": "ff97dc43cc0c1de9d17c4ea9494cdb77459453104d8659b4d54e23b2f2fdbdcc",
+        "input_index_sha256": "c24573902d30618771c8e2111e2d9b0420b81640ec9a7dd716e45a2c755839b6",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.1",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "3a7b4d3b33c06a3b49bb1a1c2644f1e8552fb7fe14743dac2a92cedc7c9c6027",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "ff97dc43cc0c1de9d17c4ea9494cdb77459453104d8659b4d54e23b2f2fdbdcc",
+        "source_files": {
+          "isovar/__init__.py": "db51631cc1c098e4462706fd02cbb67293157f7c2319290062ab9039ab511aa3",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "e0ba70fbfb45f0e27f0907cb9aa90289cfb8e5140c9d523f15cded154578e924",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "dbbbbd8ec5a7a3ea2a38958509f140a2d4d43a212fcdf7a713298e6c9727c582",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "62a9d3e67e1b564e",
+        "timeout_seconds_per_phase": 1800.0,
+        "variant_id": "MT_ND5-chrM-12994"
+      },
+      "measurements": {
+        "production": {
+          "process_peak_rss_bytes": 5250039808,
+          "status": "ok",
+          "wall_seconds": 1386.0054608746432
+        },
+        "validation": {
+          "process_peak_rss_bytes": 5250039808,
+          "status": "ok",
+          "wall_seconds": 16.55981529178098
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 2854,
+        "counts": {
+          "all_template_names": 105522,
+          "read_objects": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          },
+          "reads": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          },
+          "template_names": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          }
+        },
+        "proteins_sha256": "ba4a6d16be3f63658b6805bd68950c1845ed6662ed46c7e982b6f0a0156e8c7e",
+        "public_protein_count": 1,
+        "rna_sha256": "a546f7e5e6be8c7ca2486b43cbe5d2959139f312643aebc81e217e9751c1ce46",
+        "status": "ok",
+        "trace": {
+          "read_collection_peak_rss_bytes": 5250039808,
+          "read_collection_seconds": 50.62358362507075,
+          "reference_context_count": 1,
+          "reference_matching_rejected": 389,
+          "rna_candidate_count": 6567,
+          "stage": "independent_protein_validation",
+          "translation_count": 6178,
+          "translations_with_mutation": 6154,
+          "translations_without_mutation": 24
+        },
+        "validation_status": "ok"
+      }
+    },
+    "final_bulk": {
+      "artifacts": {
+        "identity.json": "4467e81720717b4c28aea108fa0fc163dc7ce2243e003205366e57b8c027516d",
+        "production.json": "5f56dbc4b5c10544c1c4cca65e14b18c3b0edc8ff84ec88c78cf6f22e3a92568",
+        "proteins.json.gz": "9b50cd6668d5e14be596757e5b6d7494c2748380bec137e349f6036fa018e568",
+        "result.json": "7b673a06b3628e90d71fc5eaf713abf2cc5fa174b8d338ddc3b79c374ac9b292",
+        "validation.json": "bdff324107b5b27586265891f72ee8709f0bfa531d6d4e5f3529bef1d37395cf"
+      },
+      "identity": {
+        "benchmark_sha256": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+        "input_bam_sha256": "79da2651c583352e3e1f50987a01389a19798a90f005cbc2fde5ea802c28f378",
+        "input_index_sha256": "1c39ac74c227c86069d5d36f85a3e3392802348091452be343e9588707511306",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.2",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "ed45205f69a9df114a0eb1a86f775de3c8b3242340a581833d4fc1ef37a92819",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "79da2651c583352e3e1f50987a01389a19798a90f005cbc2fde5ea802c28f378",
+        "source_files": {
+          "isovar/__init__.py": "1d7251e16bd4112cdb9126408855957d9a31da77183b87cab05b0ce7579408da",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "1d3521427f0fe04e3d3c70b365d69eb401ba82261877f02bc8f3ee581a664f10",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "4f5ef5d2e0bfc74c8910f0d996d839240737fa1be7d028ac0e4d158cccbad2f3",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/performance_report.py": "557e3ff0bc12740f35ce74ce4899dfd023538953e3ea259742b6b5e03e3f97dc",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "1b66c15da594a3ef",
+        "timeout_seconds_per_phase": 600.0,
+        "variant_id": "DYNC1H1-chr14-102030200"
+      },
+      "measurements": {
+        "production": {
+          "process_cpu_seconds": 0.04980399999999996,
+          "process_peak_rss_bytes": 196820992,
+          "status": "ok",
+          "wall_seconds": 0.09161283308640122
+        },
+        "validation": {
+          "process_cpu_seconds": 0.0025760000000000227,
+          "process_peak_rss_bytes": 196820992,
+          "status": "ok",
+          "wall_seconds": 0.0026190001517534256
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 112,
+        "counts": {
+          "all_template_names": 448,
+          "read_objects": {
+            "alt": 42,
+            "other": 0,
+            "ref": 410
+          },
+          "reads": {
+            "alt": 50,
+            "other": 0,
+            "ref": 517
+          },
+          "template_names": {
+            "alt": 42,
+            "other": 0,
+            "ref": 408
+          }
+        },
+        "proteins_sha256": "59782d0a53a0076142962b742422df3b67c3315d42d0460f574839437320744c",
+        "public_protein_count": 1,
+        "rna_sha256": "d2b5c67e09b67f9c30b7747b7c1df6f3693b88382a29c7f8024e122e20697db7",
+        "status": "ok",
+        "trace": {
+          "read_collection_cpu_seconds": 0.024754000000000054,
+          "read_collection_peak_rss_bytes": 196280320,
+          "read_collection_seconds": 0.039343375246971846,
+          "reference_context_count": 1,
+          "reference_matching_rejected": 8,
+          "rna_candidate_count": 141,
+          "stage": "independent_protein_validation",
+          "translation_count": 133,
+          "translations_with_mutation": 133
+        },
+        "validation_status": "ok"
+      }
+    },
+    "final_del": {
+      "artifacts": {
+        "identity.json": "e50ee54ef25cf686f769ecbb7cd33420c07c3f30a6690abc6c871613881e1cce",
+        "production.json": "7069c1ccfeeddbb8a39698f373c74e0eaaf91554641eb52c1167d66d3b299d67",
+        "proteins.json.gz": "4245680a311e38baecaa33ba81a65f4560ff77ab08ca1b786ff1d5adc8d7279a",
+        "result.json": "7403e803046c02b683579142ac118f990fce70cc597357ba5c25c19904addf04",
+        "validation.json": "23b6575284a7af07e4813455a4992a7a15b34eda7a659a9392de2320a2147f4a"
+      },
+      "identity": {
+        "benchmark_sha256": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+        "input_bam_sha256": "eb0eebd5ac4736114873f20f3aea7ecda1b670195dd5fd1bd8c1e365e620064c",
+        "input_index_sha256": "3172582f5a4b16f8222a03d8bf4b60546a5f2afa8401789c6ec1428fd2c0e562",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.2",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "4d60946567542a5cf7dadf53287dd588f8c75862bbac3fd2e44023bfcb0e2d74",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "eb0eebd5ac4736114873f20f3aea7ecda1b670195dd5fd1bd8c1e365e620064c",
+        "source_files": {
+          "isovar/__init__.py": "1d7251e16bd4112cdb9126408855957d9a31da77183b87cab05b0ce7579408da",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "1d3521427f0fe04e3d3c70b365d69eb401ba82261877f02bc8f3ee581a664f10",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "4f5ef5d2e0bfc74c8910f0d996d839240737fa1be7d028ac0e4d158cccbad2f3",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/performance_report.py": "557e3ff0bc12740f35ce74ce4899dfd023538953e3ea259742b6b5e03e3f97dc",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "1120a096937e29e1",
+        "timeout_seconds_per_phase": 600.0,
+        "variant_id": "H1_2-chr6-26055824"
+      },
+      "measurements": {
+        "production": {
+          "process_cpu_seconds": 2.290051,
+          "process_peak_rss_bytes": 896565248,
+          "status": "ok",
+          "wall_seconds": 3.4179887920618057
+        },
+        "validation": {
+          "process_cpu_seconds": 0.04538700000000029,
+          "process_peak_rss_bytes": 896565248,
+          "status": "ok",
+          "wall_seconds": 0.050638208631426096
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 384,
+        "counts": {
+          "all_template_names": 21439,
+          "read_objects": {
+            "alt": 3461,
+            "other": 721,
+            "ref": 17257
+          },
+          "reads": {
+            "alt": 3461,
+            "other": 721,
+            "ref": 17259
+          },
+          "template_names": {
+            "alt": 3461,
+            "other": 721,
+            "ref": 17257
+          }
+        },
+        "proteins_sha256": "c01ed590bb7dfeba4c4379e1834e39538709c1c4ef17fff66f0a9342e901f17b",
+        "public_protein_count": 1,
+        "rna_sha256": "46e9649c0e2adf408e53685093c92b49e9d6724d4d8983c5fc9381a33b737122",
+        "status": "ok",
+        "trace": {
+          "read_collection_cpu_seconds": 1.8197029999999998,
+          "read_collection_peak_rss_bytes": 896565248,
+          "read_collection_seconds": 2.777894166763872,
+          "reference_context_count": 1,
+          "reference_matching_rejected": 5,
+          "rna_candidate_count": 1059,
+          "stage": "independent_protein_validation",
+          "translation_count": 1054,
+          "translations_with_mutation": 1048,
+          "translations_without_mutation": 6
+        },
+        "validation_status": "ok"
+      }
+    },
+    "final_dync": {
+      "artifacts": {
+        "identity.json": "18db248b5ef01eb66c664b5c708e32ebda0f98ecf5d24c2b72a0da4c4a42e280",
+        "production.json": "b69664a3313b3c9484075b0e962141c4538514259abcb1c46012b3b2599b5eef",
+        "proteins.json.gz": "0dd822b80e65a87a26d76041d3628f30d9d7646ff8c097baabc9b7e7a88739bf",
+        "result.json": "91a47218b7693df328974b22d72e5003b96ffa40e2e7aa5a65bd2048ab3718c5",
+        "validation.json": "8e944a2ed0f9300956c9e6c12a5d45618513970df79ee4a4b9d803e4d69d5c31"
+      },
+      "identity": {
+        "benchmark_sha256": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+        "input_bam_sha256": "e3c2139d0afed2800e75da677a6b3238de03d000c7899780b4a0d2c061274ede",
+        "input_index_sha256": "6772f9ac8ad54e035425d3d734c350801767baf97bfddf9ada4503f2acd06d2c",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.2",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "3cb6e1de84429b8a0611dc723b44e247e828c94f8b6eee67f3c8af0813e90beb",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "e3c2139d0afed2800e75da677a6b3238de03d000c7899780b4a0d2c061274ede",
+        "source_files": {
+          "isovar/__init__.py": "1d7251e16bd4112cdb9126408855957d9a31da77183b87cab05b0ce7579408da",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "1d3521427f0fe04e3d3c70b365d69eb401ba82261877f02bc8f3ee581a664f10",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "4f5ef5d2e0bfc74c8910f0d996d839240737fa1be7d028ac0e4d158cccbad2f3",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/performance_report.py": "557e3ff0bc12740f35ce74ce4899dfd023538953e3ea259742b6b5e03e3f97dc",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "53f498a544883d51",
+        "timeout_seconds_per_phase": 600.0,
+        "variant_id": "DYNC1H1-chr14-101980529"
+      },
+      "measurements": {
+        "production": {
+          "process_cpu_seconds": 0.944147,
+          "process_peak_rss_bytes": 508280832,
+          "status": "ok",
+          "wall_seconds": 1.5043132081627846
+        },
+        "validation": {
+          "process_cpu_seconds": 0.018720999999999988,
+          "process_peak_rss_bytes": 508280832,
+          "status": "ok",
+          "wall_seconds": 0.01872245781123638
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 241,
+        "counts": {
+          "all_template_names": 5007,
+          "read_objects": {
+            "alt": 1560,
+            "other": 8,
+            "ref": 3439
+          },
+          "reads": {
+            "alt": 1560,
+            "other": 8,
+            "ref": 3440
+          },
+          "template_names": {
+            "alt": 1560,
+            "other": 8,
+            "ref": 3439
+          }
+        },
+        "proteins_sha256": "15eb5d5815dedb3774c2e16d2b8197a07218f78c22749d9520f078c0efe7bf8c",
+        "public_protein_count": 1,
+        "rna_sha256": "7abf339846851227dd249394861602db4b6560a8886ff04f115e512b03ca9ec2",
+        "status": "ok",
+        "trace": {
+          "read_collection_cpu_seconds": 0.755337,
+          "read_collection_peak_rss_bytes": 508280832,
+          "read_collection_seconds": 1.2383292089216411,
+          "reference_context_count": 1,
+          "reference_matching_rejected": 8,
+          "rna_candidate_count": 450,
+          "stage": "independent_protein_validation",
+          "translation_count": 442,
+          "translations_with_mutation": 442
+        },
+        "validation_status": "ok"
+      }
+    },
+    "final_t1": {
+      "artifacts": {
+        "identity.json": "056fb943e543d556048f0977ad689b2ddd7e26f2a478edc542e18dd331b4b329",
+        "production.json": "7c6e827d0aefc5cbbbb700ca9c1bb312a02c0be0a293cfb16eebcb5074717a4e",
+        "proteins.json.gz": "69ed08b2b6387c38f6e254f96d00c34a17ac63bdc2f9ca0f0b31e790d00aaecd",
+        "result.json": "a128896dbf1f1b3de58bfa36e64b14a357ac16c2b70cde6cf1dcd473edbd1b31",
+        "validation.json": "a4b59d99dd34b975d30c269c331a65a45b2e1e2db0f95fbe4eeb103f7f7f34ba"
+      },
+      "identity": {
+        "benchmark_sha256": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+        "input_bam_sha256": "d97b97dd7a9efca4bbc1923b497c906361e8a8e388cebf63072075e9281d66cc",
+        "input_index_sha256": "b530f45f147325786f5018bdb37a10a624ef2f07cdd7d1554075fd4995e004df",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.2",
+        "mode": "primary_only",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "3cb6e1de84429b8a0611dc723b44e247e828c94f8b6eee67f3c8af0813e90beb",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "e3c2139d0afed2800e75da677a6b3238de03d000c7899780b4a0d2c061274ede",
+        "source_files": {
+          "isovar/__init__.py": "1d7251e16bd4112cdb9126408855957d9a31da77183b87cab05b0ce7579408da",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "1d3521427f0fe04e3d3c70b365d69eb401ba82261877f02bc8f3ee581a664f10",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "4f5ef5d2e0bfc74c8910f0d996d839240737fa1be7d028ac0e4d158cccbad2f3",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/performance_report.py": "557e3ff0bc12740f35ce74ce4899dfd023538953e3ea259742b6b5e03e3f97dc",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "53f498a544883d51",
+        "timeout_seconds_per_phase": 600.0,
+        "variant_id": "MT_ND5-chrM-12994"
+      },
+      "measurements": {
+        "production": {
+          "process_cpu_seconds": 10.933834,
+          "process_peak_rss_bytes": 1609908224,
+          "status": "ok",
+          "wall_seconds": 14.600028374698013
+        },
+        "validation": {
+          "process_cpu_seconds": 2.274919999999998,
+          "process_peak_rss_bytes": 1609908224,
+          "status": "ok",
+          "wall_seconds": 2.625665708910674
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 2006,
+        "counts": {
+          "all_template_names": 33800,
+          "read_objects": {
+            "alt": 11019,
+            "other": 49,
+            "ref": 22732
+          },
+          "reads": {
+            "alt": 11019,
+            "other": 49,
+            "ref": 22732
+          },
+          "template_names": {
+            "alt": 11019,
+            "other": 49,
+            "ref": 22732
+          }
+        },
+        "proteins_sha256": "f572ff24e9a456e2dd87a232856a59206867a19f36d78d01819065bfa7a8d80d",
+        "public_protein_count": 1,
+        "rna_sha256": "4990132dc00af75819ac8ba4eea234c48e5ccc9186353b6f2664ffa03eeafffd",
+        "status": "ok",
+        "trace": {
+          "read_collection_cpu_seconds": 3.3810819999999997,
+          "read_collection_peak_rss_bytes": 1609908224,
+          "read_collection_seconds": 5.232068249955773,
+          "reference_context_count": 1,
+          "reference_matching_rejected": 236,
+          "rna_candidate_count": 4390,
+          "stage": "independent_protein_validation",
+          "translation_count": 4154,
+          "translations_with_mutation": 4152,
+          "translations_without_mutation": 2
+        },
+        "validation_status": "ok"
+      }
+    },
+    "final_t3": {
+      "artifacts": {
+        "identity.json": "4d11c84d6259651158fa5d85b1b6921e92949c76a26bfb2b61583a4ce45ec512",
+        "production.json": "26c475a850a48482511b38c5bde71f57229a105b439b9746b496fce95f42185a",
+        "proteins.json.gz": "1ceabfe929561f4422c1f86234de9856db4817a08df6ab399f5046a8e88cca0a",
+        "result.json": "cbe7c6fa2137e997ee3c7e5c7e0baec9c7582ad848c978d2e56f932562930512",
+        "validation.json": "e34caf0f303f3f8233a1402717e5b4260ebe018dcf939b17423b1fccc19dda3f"
+      },
+      "identity": {
+        "benchmark_sha256": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+        "input_bam_sha256": "ff97dc43cc0c1de9d17c4ea9494cdb77459453104d8659b4d54e23b2f2fdbdcc",
+        "input_index_sha256": "c24573902d30618771c8e2111e2d9b0420b81640ec9a7dd716e45a2c755839b6",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.2",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "3a7b4d3b33c06a3b49bb1a1c2644f1e8552fb7fe14743dac2a92cedc7c9c6027",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "ff97dc43cc0c1de9d17c4ea9494cdb77459453104d8659b4d54e23b2f2fdbdcc",
+        "source_files": {
+          "isovar/__init__.py": "1d7251e16bd4112cdb9126408855957d9a31da77183b87cab05b0ce7579408da",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "1d3521427f0fe04e3d3c70b365d69eb401ba82261877f02bc8f3ee581a664f10",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "4f5ef5d2e0bfc74c8910f0d996d839240737fa1be7d028ac0e4d158cccbad2f3",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/performance_report.py": "0ad4b413704af8cb6f7faa0906b7966d57e29c0b0e9222f15a52676227e191d2",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "62a9d3e67e1b564e",
+        "timeout_seconds_per_phase": 600.0,
+        "variant_id": "MT_ND5-chrM-12994"
+      },
+      "measurements": {
+        "production": {
+          "process_cpu_seconds": 46.916227,
+          "process_peak_rss_bytes": 5160714240,
+          "status": "ok",
+          "wall_seconds": 69.17943437490612
+        },
+        "validation": {
+          "process_cpu_seconds": 8.005490999999992,
+          "process_peak_rss_bytes": 5160714240,
+          "status": "ok",
+          "wall_seconds": 8.874015958048403
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 2854,
+        "counts": {
+          "all_template_names": 105522,
+          "read_objects": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          },
+          "reads": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          },
+          "template_names": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          }
+        },
+        "proteins_sha256": "ba4a6d16be3f63658b6805bd68950c1845ed6662ed46c7e982b6f0a0156e8c7e",
+        "public_protein_count": 1,
+        "rna_sha256": "a546f7e5e6be8c7ca2486b43cbe5d2959139f312643aebc81e217e9751c1ce46",
+        "status": "ok",
+        "trace": {
+          "read_collection_cpu_seconds": 19.037816,
+          "read_collection_peak_rss_bytes": 5160714240,
+          "read_collection_seconds": 29.600671000313014,
+          "reference_context_count": 1,
+          "reference_matching_rejected": 389,
+          "rna_candidate_count": 6567,
+          "stage": "independent_protein_validation",
+          "translation_count": 6178,
+          "translations_with_mutation": 6154,
+          "translations_without_mutation": 24
+        },
+        "validation_status": "ok"
+      }
+    },
+    "final_t3_tagged": {
+      "artifacts": {
+        "identity.json": "caee7eb779cde63ea2ee9795b53c369a5acbb97c53859f9b648557e3819a88bc",
+        "production.json": "ce06f9d70b7f2418d1a37d7127bfe771e69e777a25a0597d52fcbb510eb9ac0a",
+        "proteins.json.gz": "e074b06f2425bc0ba4c99a1f80eadb61f18a457e87557b34e81ee192bed9221f",
+        "result.json": "755f56f547e9acec1e7858f7be1a85a0b14f6c48cdbc324ebaf18ca230652efa",
+        "validation.json": "58a5c33467ccc15df1753af58891dd7436813c3690d2a8f031cddd571525d793"
+      },
+      "identity": {
+        "benchmark_sha256": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+        "input_bam_sha256": "d0f93b3a5158ae4516d2ca5a0bdbf29ef69c20c16568f532d5754182c1f51fbb",
+        "input_index_sha256": "cce08ce60bff991323de16951528ee3d552793880d3d3141eb44b5c1c205f277",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.2",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "d35f4d8b1a3f1da41149c15ad2bc61bc1275826216cc3e08bfa627c94614ddf6",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "d0f93b3a5158ae4516d2ca5a0bdbf29ef69c20c16568f532d5754182c1f51fbb",
+        "source_files": {
+          "isovar/__init__.py": "1d7251e16bd4112cdb9126408855957d9a31da77183b87cab05b0ce7579408da",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "1d3521427f0fe04e3d3c70b365d69eb401ba82261877f02bc8f3ee581a664f10",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "4f5ef5d2e0bfc74c8910f0d996d839240737fa1be7d028ac0e4d158cccbad2f3",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "c37fd83c4fa40bde035de470b69581e874c94973b79dac6421ced3af0b620b60",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/performance_report.py": "0ad4b413704af8cb6f7faa0906b7966d57e29c0b0e9222f15a52676227e191d2",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "58c4d68e5f7e55b5",
+        "timeout_seconds_per_phase": 600.0,
+        "variant_id": "MT_ND5-chrM-12994"
+      },
+      "measurements": {
+        "production": {
+          "process_cpu_seconds": 95.01842900000001,
+          "process_peak_rss_bytes": 9790160896,
+          "status": "ok",
+          "wall_seconds": 113.1030164998956
+        },
+        "validation": {
+          "process_cpu_seconds": 20.454827999999992,
+          "process_peak_rss_bytes": 9790160896,
+          "status": "ok",
+          "wall_seconds": 24.491138000041246
+        }
+      },
+      "profiles": {},
+      "result": {
+        "checked_protein_count": 4351,
+        "counts": {
+          "all_template_names": 199751,
+          "read_objects": {
+            "alt": 55385,
+            "other": 323,
+            "ref": 144059
+          },
+          "reads": {
+            "alt": 55429,
+            "other": 324,
+            "ref": 144150
+          },
+          "template_names": {
+            "alt": 55383,
+            "other": 323,
+            "ref": 144045
+          }
+        },
+        "proteins_sha256": "ce0dd801c420c23f08ae65a173e5fcd0c027e213bf718ec0c021bf5c300baf01",
+        "public_protein_count": 1,
+        "rna_sha256": "1c747182b06cb8a9612c61f4717bd52fe67897e65b8c6957074b9e890e650709",
+        "status": "ok",
+        "trace": {
+          "read_collection_cpu_seconds": 30.488639,
+          "read_collection_peak_rss_bytes": 9790160896,
+          "read_collection_seconds": 35.57061458285898,
+          "reference_context_count": 1,
+          "reference_matching_rejected": 795,
+          "rna_candidate_count": 10855,
+          "stage": "independent_protein_validation",
+          "translation_count": 10060,
+          "translations_with_mutation": 10023,
+          "translations_without_mutation": 37
+        },
+        "validation_status": "ok"
+      }
+    },
+    "index_profile_t1": {
+      "artifacts": {
+        "identity.json": "3bcef95f9889b691631ec8ca95040fb29f513a071aa0cf5e0a50a359cf5ae2bb",
+        "production.json": "71bc216591521682517324ee66405f819cfb122a95a46cf214ecb63c9466ff05",
+        "production.prof": "b96f7c83675c1c53059462129c813ffdd4383d1ade70d518316af05ed04a6fab",
+        "production.txt": "6ffd575d69a5a75436d69c2a1a1a4a5de020e2a3eb4a2d1f092099914edea76e",
+        "proteins.json.gz": "fcfae4042c0722b9771dcb1e36c66808f70aeb66f5344d09837c731f22e2d0ed",
+        "result.json": "eb164d63295799fdfc4d5046d9092864ce08d79c0e600b1a4e584a9bd43ea70e",
+        "validation.json": "b83435a8ade7ca4d57ac900ef86ce7d64b891cdd0cae179956b10554bb5fb82c",
+        "validation.prof": "6320aac272a9349361246560ba69ebb990ff9971fcae5c703d95f2f56111b579",
+        "validation.txt": "cd0d273047d65f26efc75977ec19a743d6c518f1d1c01a78db804bbfc86c53c0"
+      },
+      "identity": {
+        "input_bam_sha256": "e3c2139d0afed2800e75da677a6b3238de03d000c7899780b4a0d2c061274ede",
+        "input_index_sha256": "6772f9ac8ad54e035425d3d734c350801767baf97bfddf9ada4503f2acd06d2c",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.1",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": true,
+        "python": "3.12.6",
+        "receipt_sha256": "3cb6e1de84429b8a0611dc723b44e247e828c94f8b6eee67f3c8af0813e90beb",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "e3c2139d0afed2800e75da677a6b3238de03d000c7899780b4a0d2c061274ede",
+        "source_files": {
+          "isovar/__init__.py": "db51631cc1c098e4462706fd02cbb67293157f7c2319290062ab9039ab511aa3",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "e0ba70fbfb45f0e27f0907cb9aa90289cfb8e5140c9d523f15cded154578e924",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "f9d00c9cb5d167c0bd4643ed3cf0198749bb82e103721da856371b90b4b95cd5",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "d92f40f56543536b9404d26f7f414ca261a2e9ff21d0917a9cd74b504ccb5268",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "53f498a544883d51",
+        "timeout_seconds_per_phase": 180.0,
+        "variant_id": "MT_ND5-chrM-12994"
+      },
+      "measurements": {
+        "production": {
+          "process_peak_rss_bytes": 1570340864,
+          "status": "ok",
+          "wall_seconds": 48.79686458269134
+        },
+        "validation": {
+          "process_peak_rss_bytes": 1570340864,
+          "status": "ok",
+          "wall_seconds": 3.4132296252064407
+        }
+      },
+      "profiles": {
+        "production": "         95753990 function calls (93959753 primitive calls) in 48.795 seconds\n\n   Ordered by: cumulative time\n   List reduced from 477 to 60 due to restriction <60>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.005    0.005   48.795   48.795 main.py:74(run_isovar)\n        1    0.000    0.000   44.111   44.111 runner.py:107(sorted_protein_sequences_for_variant)\n        1    0.000    0.000   44.111   44.111 protein_sequence_creator.py:413(sorted_protein_sequences_for_variant)\n        1    0.000    0.000   40.318   40.318 protein_sequence_creator.py:332(translate_variant_reads)\n        1    0.000    0.000   38.364   38.364 benchmark.py:34(variant_sequences_from_reads)\n        1    0.000    0.000   38.364   38.364 runner.py:121(variant_sequences_from_reads)\n        1    0.093    0.093   38.363   38.363 protein_sequence_creator.py:168(variant_sequences_from_reads)\n        8    0.022    0.003   37.900    4.738 variant_sequence_creator.py:85(reads_to_variant_sequences)\n        8    0.154    0.019   36.896    4.612 variant_sequence_helpers.py:298(filter_variant_sequences)\n        8    0.055    0.007   36.735    4.592 variant_sequence_helpers.py:242(trim_variant_sequences)\n    15521    0.260    0.000   28.944    0.002 variant_sequence.py:244(trim_by_coverage)\n    14532    0.015    0.000   28.332    0.002 variant_sequence_helpers.py:276(<genexpr>)\n    16518   17.721    0.001   22.153    0.001 variant_sequence.py:210(coverage)\n       16    2.649    0.166    6.800    0.425 variant_sequence_helpers.py:186(_variant_sequences_with_shared_read_support)\n    15521    0.042    0.000    6.573    0.000 arrayprint.py:1685(_array_str_implementation)\n    15521    0.063    0.000    6.529    0.000 arrayprint.py:605(array2string)\n    15521    0.045    0.000    6.350    0.000 arrayprint.py:550(wrapper)\n    15521    0.076    0.000    6.288    0.000 arrayprint.py:567(_array2string)\n    15521    0.044    0.000    5.092    0.000 arrayprint.py:828(_formatArray)\n1679751/15521    1.621    0.000    5.048    0.000 arrayprint.py:837(recurser)\n        2    0.000    0.000    4.589    2.295 read_collector.py:945(read_evidence_generator)\n        1    0.000    0.000    4.589    4.589 runner.py:85(read_evidence_for_variant)\n        1    0.000    0.000    4.589    4.589 read_collector.py:906(read_evidence_for_variant)\n        1    0.244    0.244    4.580    4.580 read_collector.py:886(allele_reads_overlapping_variant)\n        1    0.001    0.001    4.230    4.230 read_collector.py:805(locus_reads_overlapping_variant)\n        1    0.527    0.527    4.229    4.229 read_collector.py:678(get_locus_reads)\n        1    0.000    0.000    3.312    3.312 protein_sequence_helpers.py:59(sort_protein_sequences)\n    34233    0.071    0.000    3.226    0.000 {built-in method builtins.sorted}\n    34147    0.189    0.000    2.781    0.000 runner.py:90(locus_read_from_pysam_aligned_segment)\n     2022    0.006    0.000    2.706    0.001 protein_sequence_helpers.py:76(key)\n    34147    2.373    0.000    2.593    0.000 read_collector.py:200(locus_read_from_pysam_aligned_segment)\n34377665/34256177    2.341    0.000    2.367    0.000 {built-in method builtins.len}\n  1664230    0.709    0.000    2.210    0.000 arrayprint.py:801(_extendLine_pretty)\n 10768617    1.409    0.000    2.033    0.000 {built-in method builtins.max}\n     6064    1.501    0.000    1.988    0.000 protein_sequence.py:174(num_supporting_fragments)\n        1    0.000    0.000    1.952    1.952 runner.py:128(all_pairs_translations)\n        1    0.009    0.009    1.952    1.952 protein_sequence_creator.py:305(all_pairs_translations)\n     4455    0.012    0.000    1.942    0.000 runner.py:136(translation_from_variant_sequence_and_reference_context)\n     2022    0.003    0.000    1.934    0.001 protein_sequence.py:380(ascending_sort_key)\n     4455    0.047    0.000    1.929    0.000 protein_sequence_creator.py:194(translation_from_variant_sequence_and_reference_context)\n    38622    0.726    0.000    1.794    0.000 variant_sequence_helpers.py:166(compatible_ranges)\n    51065    0.358    0.000    1.600    0.000 {built-in method builtins.sum}\n 10727209    1.485    0.000    1.500    0.000 {built-in method builtins.min}\n  1561442    1.492    0.000    1.492    0.000 {method 'update' of 'set' objects}\n   294261    0.260    0.000    1.401    0.000 value_object.py:64(_values)\n     4455    0.048    0.000    1.401    0.000 variant_orf_helpers.py:19(match_variant_sequence_to_reference_context)\n   272204    0.067    0.000    1.342    0.000 value_object.py:81(__hash__)\n     2022    0.077    0.000    1.288    0.001 protein_sequence.py:184(num_supporting_reads)\n  1664230    0.782    0.000    1.179    0.000 arrayprint.py:787(_extendLine)\n    15521    0.068    0.000    1.114    0.000 arrayprint.py:496(_get_format_function)\n  1664230    0.334    0.000    1.091    0.000 arrayprint.py:1297(__call__)\n  2164091    0.794    0.000    1.088    0.000 value_object.py:62(<genexpr>)\n     2022    0.002    0.000    1.069    0.001 protein_sequence.py:32(_sum_source_read_count)\n    15521    0.018    0.000    1.008    0.000 arrayprint.py:454(<lambda>)\n    15521    0.080    0.000    0.990    0.000 arrayprint.py:1282(__init__)\n     7722    0.064    0.000    0.978    0.000 variant_sequence.py:141(add_reads)\n        1    0.395    0.395    0.916    0.916 read_collector.py:645(_merge_overlapping_locus_reads)\n       16    0.279    0.017    0.907    0.057 assembly.py:244(merge_identical_sequences)\n        8    0.005    0.001    0.902    0.113 variant_sequence_helpers.py:29(initial_variant_sequences_from_reads)\n     7722    0.897    0.000    0.897    0.000 {method 'union' of 'frozenset' objects}\n\n\n",
+        "validation": "         7557031 function calls (7557029 primitive calls) in 3.411 seconds\n\n   Ordered by: cumulative time\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n     2022    0.073    0.000    3.410    0.002 runner.py:156(protein_check)\n     2022    0.047    0.000    1.228    0.001 protein_sequence.py:184(num_supporting_reads)\n     2022    0.002    0.000    1.015    0.001 protein_sequence.py:32(_sum_source_read_count)\n     2022    0.206    0.000    1.013    0.001 {built-in method builtins.sum}\n     4044    0.856    0.000    0.856    0.000 {built-in method builtins.sorted}\n  3428319    0.536    0.000    0.807    0.000 protein_sequence.py:33(<genexpr>)\n     2022    0.475    0.000    0.610    0.000 protein_sequence.py:174(num_supporting_fragments)\n     6066    0.009    0.000    0.439    0.000 protein_sequence.py:151(supporting_reads)\n     2022    0.290    0.000    0.429    0.000 protein_sequence.py:164(read_names_supporting_protein_sequence)\n    12636    0.424    0.000    0.424    0.000 {method 'update' of 'set' objects}\n  3426298    0.271    0.000    0.271    0.000 {built-in method builtins.getattr}\n     4212    0.021    0.000    0.158    0.000 references.py:87(check_translation)\n     8424    0.076    0.000    0.134    0.000 references.py:33(translate)\n     4212    0.006    0.000    0.035    0.000 variant_sequence.py:228(min_coverage)\n   253896    0.030    0.000    0.030    0.000 {method 'get' of 'dict' objects}\n     4212    0.005    0.000    0.028    0.000 fromnumeric.py:3190(min)\n   259653    0.025    0.000    0.025    0.000 {method 'append' of 'list' objects}\n     4212    0.007    0.000    0.024    0.000 fromnumeric.py:69(_wrapreduction)\n     4212    0.016    0.000    0.016    0.000 {method 'reduce' of 'numpy.ufunc' objects}\n     2022    0.003    0.000    0.012    0.000 protein_sequence_helpers.py:41(mutant_peptide_window_count)\n     4047    0.002    0.000    0.007    0.000 {built-in method builtins.isinstance}\n    12636    0.006    0.000    0.006    0.000 translation.py:96(reads)\n    41782    0.005    0.000    0.005    0.000 {built-in method builtins.len}\n     2022    0.001    0.000    0.004    0.000 <frozen abc>:117(__instancecheck__)\n     8424    0.004    0.000    0.004    0.000 transcript.py:61(id)\n     2022    0.002    0.000    0.004    0.000 {built-in method _abc._abc_instancecheck}\n     4044    0.002    0.000    0.003    0.000 {built-in method builtins.all}\n     8424    0.003    0.000    0.003    0.000 {method 'join' of 'str' objects}\n     2022    0.000    0.000    0.002    0.000 <frozen abc>:121(__subclasscheck__)\n     2022    0.002    0.000    0.002    0.000 {built-in method _abc._abc_subclasscheck}\n     6232    0.001    0.000    0.001    0.000 {built-in method builtins.min}\n     4040    0.001    0.000    0.001    0.000 {built-in method builtins.max}\n     5861    0.001    0.000    0.001    0.000 runner.py:179(<genexpr>)\n     6234    0.001    0.000    0.001    0.000 runner.py:178(<genexpr>)\n     4212    0.001    0.000    0.001    0.000 {method 'items' of 'dict' objects}\n     4212    0.001    0.000    0.001    0.000 variant_sequence.py:210(coverage)\n     4212    0.000    0.000    0.000    0.000 fromnumeric.py:3185(_min_dispatcher)\n      3/2    0.000    0.000    0.000    0.000 {built-in method builtins.next}\n        2    0.000    0.000    0.000    0.000 runner.py:53(time_limit)\n        1    0.000    0.000    0.000    0.000 contextlib.py:132(__enter__)\n      2/1    0.000    0.000    0.000    0.000 contextlib.py:141(__exit__)\n        1    0.000    0.000    0.000    0.000 benchmark.py:44(measure)\n        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}\n        2    0.000    0.000    0.000    0.000 signal.py:56(signal)\n        1    0.000    0.000    0.000    0.000 signal.py:62(getsignal)\n        1    0.000    0.000    0.000    0.000 contextlib.py:299(helper)\n        3    0.000    0.000    0.000    0.000 signal.py:24(_int_to_enum)\n        4    0.000    0.000    0.000    0.000 signal.py:36(_enum_to_int)\n        1    0.000    0.000    0.000    0.000 contextlib.py:104(__init__)\n        2    0.000    0.000    0.000    0.000 {built-in method _signal.setitimer}\n        2    0.000    0.000    0.000    0.000 enum.py:726(__call__)\n        2    0.000    0.000    0.000    0.000 {built-in method _signal.signal}\n        1    0.000    0.000    0.000    0.000 {built-in method _signal.getitimer}\n        2    0.000    0.000    0.000    0.000 enum.py:1129(__new__)\n        1    0.000    0.000    0.000    0.000 {built-in method _signal.getsignal}\n        1    0.000    0.000    0.000    0.000 {built-in method math.isfinite}\n\n\n"
+      },
+      "result": {
+        "checked_protein_count": 2022,
+        "counts": {
+          "all_template_names": 34025,
+          "read_objects": {
+            "alt": 11082,
+            "other": 50,
+            "ref": 22894
+          },
+          "reads": {
+            "alt": 11093,
+            "other": 50,
+            "ref": 22928
+          },
+          "template_names": {
+            "alt": 11081,
+            "other": 50,
+            "ref": 22894
+          }
+        },
+        "proteins_sha256": "9852a4da5f6f1ce431ca93f6c9e8cbbfdc43ef422bd1c14d070f7d0d76319c8f",
+        "public_protein_count": 1,
+        "rna_sha256": "2314adf928d070f22ea5d88c86b35ed8b9cd51b9d0e2bc5d4a97f771b3dde69c",
+        "status": "ok",
+        "trace": {
+          "reference_context_count": 1,
+          "reference_matching_rejected": 243,
+          "rna_candidate_count": 4455,
+          "stage": "independent_protein_validation",
+          "translation_count": 4212,
+          "translations_with_mutation": 4210,
+          "translations_without_mutation": 2
+        },
+        "validation_status": "ok"
+      }
+    },
+    "interval_coverage_timeout": {
+      "artifacts": {
+        "identity.json": "8d81a9cf858846d39fba337150beb402fb5c239820f3deb69ef88598f767edf5",
+        "production.json": "48530072809216e020c9e7e2cab012ab447c9a79b4dffdfa87fe11b3061de385",
+        "result.json": "452e7cd322e95e945c35ff1a4f86b03211409a25e6318ad99daaef4f942e12d7"
+      },
+      "identity": {
+        "benchmark_sha256": "561cf7de4deb4188412efdba3527b0cacad8214b1a81c33f75a81b2bc78afdda",
+        "input_bam_sha256": "ff97dc43cc0c1de9d17c4ea9494cdb77459453104d8659b4d54e23b2f2fdbdcc",
+        "input_index_sha256": "c24573902d30618771c8e2111e2d9b0420b81640ec9a7dd716e45a2c755839b6",
+        "inventory_sha256": "05c1284749aa33fc49ae059e021becedf36429a805e7976a742aa6194428748a",
+        "isovar": "1.8.2",
+        "mode": "defaults",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "profile": false,
+        "python": "3.12.6",
+        "receipt_sha256": "3a7b4d3b33c06a3b49bb1a1c2644f1e8552fb7fe14743dac2a92cedc7c9c6027",
+        "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+        "source_bam_sha256": "ff97dc43cc0c1de9d17c4ea9494cdb77459453104d8659b4d54e23b2f2fdbdcc",
+        "source_files": {
+          "isovar/__init__.py": "1d7251e16bd4112cdb9126408855957d9a31da77183b87cab05b0ce7579408da",
+          "isovar/alignment_score.py": "210023766c31bab979295e0c5a967ad00886cd0017d6cca475445dafeff231d5",
+          "isovar/allele_read.py": "ed7b0b23b1925ab8b7ee869ef19a04fa75aedcc4cf324e76b927e5ad444a3016",
+          "isovar/allele_read_helpers.py": "3cabf591d15465fd7f50a72c7dda3c66e8b17314da8ed2fc91e4d7b27247e597",
+          "isovar/assembly.py": "4b7a91fa1ddd829fb0f03dafc899bccf49a0ece7f69c86cd21b2e646d36f2e9b",
+          "isovar/common.py": "09ea218168a986f0eb93cf5dc366499fbccdd628066f9fafd916c51774e66466",
+          "isovar/dataframe_builder.py": "a20c34b0f28c311208e67b9a7e0adde0dfa74963ffbe4fa29a079f610a22c146",
+          "isovar/dataframe_helpers.py": "d75b6828db3b2c6f5436a5681af12f50a7a9da9a4ec2a64f7d8d4c2657802f5b",
+          "isovar/default_parameters.py": "56686a431d65caf96045b3e1152ffb873b2323a522ddd72c90b0ea9f5bedcb6f",
+          "isovar/dna.py": "072ab8193c03764958ed4e44682a401498a447ff68b37178d0ac9c1082f0b6ad",
+          "isovar/effect_prediction.py": "84e2ad6458ab77bea6420e73b7ba3360ae43cc9a196ae3dcea5efebac35990d5",
+          "isovar/filtering.py": "ce8bba8f26c02af3ea714997fdefce2f1e8f9583e827ff74464178997008cb43",
+          "isovar/genetic_code.py": "933b0717422c41a14335af1085f6311a5ca8d6eba3953106c4a806eab1fad068",
+          "isovar/isovar_result.py": "2747012647b4986d99e1339b23975dc20533cd6a34e2abaf58aab039261ec1af",
+          "isovar/isovar_result_provider.py": "b8f587485030b6dad860735c199fcbbbf7426111167620ab0cb483ef574e83a0",
+          "isovar/locus_read.py": "56373ffe2d671af67c3b7a61e7b9658e8d658c0e1598f5127ffdefea1f491221",
+          "isovar/logging.py": "b3cc3ddff6ff6e56ee7a463c79cf9ef34ea2a5dea44d728cc1da436bc66bc5dc",
+          "isovar/main.py": "60ae45a5c6823ef4643539393b1a19aa4dacc6cf5fca79259d87a723b1821b4d",
+          "isovar/mutant_transcript_source.py": "320894a946234b37eac872863a744120662fd293b6a5560cfd00a6646876d58f",
+          "isovar/phase_group.py": "2b5b810da2444f0847a8cf71e612bff9726f5a7862e957e4906c3a5afbc2f7d0",
+          "isovar/phasing.py": "14d2d8931c8dfedbe73a210e597f8bc2c5671db98b7196cc851df53c60bcb7c0",
+          "isovar/protein_sequence.py": "4d529b851e43dbbb0a4d507f28cf769fb775a026a3a6218ecf1033df3bc2b537",
+          "isovar/protein_sequence_creator.py": "248c015e755d58140734001a1063e2418c5f41a92fca7de5df897642b44e1743",
+          "isovar/protein_sequence_helpers.py": "4dec3bed7a78edb4d097bfb2eca40216f90eac0495a00de51ef6498cb36893a3",
+          "isovar/read_collector.py": "605984e8d6bb62c6fa9232ecf6fae0acd40371f085d71ef0a39a552218682df9",
+          "isovar/read_evidence.py": "3731e4ea7f6bbcad55a928917415fcf6d2356cee34d227bbb469c1f3a1382ff6",
+          "isovar/read_phasing.py": "7681d26b6d167e803d8ed920414fb6eb543adb73258e88d52915dcaafd690bf6",
+          "isovar/reference_coding_sequence_key.py": "6aadb779dfd47320f3984fe336fc16d6952b62671a9c9b80df676454a61047d2",
+          "isovar/reference_context.py": "6e37502e1809d987e33c8fb945b9761baa21dfad465908a386c292e12c9e6713",
+          "isovar/reference_context_helpers.py": "cef8ee167eab44f5d97a29509bb889759659cf3da1437c24abb59b7133e84f74",
+          "isovar/reference_sequence_key.py": "68c32c162bdfdd723d6f5c082d5764581df495703706f446697da2857df0d243",
+          "isovar/string_helpers.py": "892a0288b9842e5d8df72d8864ee3da57ee9b3ca4b4444b3bc0784211681ba46",
+          "isovar/transcript_assembly_edit.py": "746f19222c8acc29fbc6814c9de61bc2d52788ce5cd290d4118fd62a27a28660",
+          "isovar/transcript_edit_helpers.py": "76dbe530d02bc6bb3a74b9416980275abd394ae24aa7ec19b86feb864213b10a",
+          "isovar/translation.py": "a4dca5f0ccc78ccf5e164d76f5c38b051a1446aab718513c8e9192dcfd4f8a82",
+          "isovar/translation_helpers.py": "5d2bbc3ea45d975d996d6018ac53712a3dc81d129348ed450f265505c6b4f029",
+          "isovar/translation_key.py": "756a3c6fb449bd4234465550621ffe16c362699d25a765855e39ec8466886b15",
+          "isovar/value_object.py": "71e9aab7d2edbad6b7a40e658c00be9508f6e0ffeb74f022da94ee2f321dd27f",
+          "isovar/variant_helpers.py": "d20092caa334877267aa71bccc236e02cb9d1ad837eb21125dd6a9b9defe88ce",
+          "isovar/variant_orf.py": "9614ed6431ab4ff2f99572f9dd16a7d565cd1986285986556f7ba323f930ce89",
+          "isovar/variant_orf_helpers.py": "9f6d2cfd0b2bedec282267ff728bc9fb69b114c85c62b1fadc47b883d8418f93",
+          "isovar/variant_sequence.py": "600d297f89caed66982adc71160dceb97b1e614c5992edd9ac2372fdb5a9cccb",
+          "isovar/variant_sequence_creator.py": "5b48a03965a6ca75b551152e4a58c1cad41f3907a6996487cc5dae6e7e228b19",
+          "isovar/variant_sequence_helpers.py": "f9d00c9cb5d167c0bd4643ed3cf0198749bb82e103721da856371b90b4b95cd5",
+          "tests/data/osteosarc/expansion/acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+          "tests/data/osteosarc/expansion/benchmark.py": "561cf7de4deb4188412efdba3527b0cacad8214b1a81c33f75a81b2bc78afdda",
+          "tests/data/osteosarc/expansion/cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+          "tests/data/osteosarc/expansion/discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+          "tests/data/osteosarc/expansion/fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+          "tests/data/osteosarc/expansion/inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+          "tests/data/osteosarc/expansion/liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+          "tests/data/osteosarc/expansion/metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+          "tests/data/osteosarc/expansion/mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+          "tests/data/osteosarc/expansion/performance_report.py": "a37350cf52978f3362fcb0a46032877080d180713d1b1ff6632f0e1691889ef0",
+          "tests/data/osteosarc/expansion/references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+          "tests/data/osteosarc/expansion/report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+          "tests/data/osteosarc/expansion/runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+          "tests/data/osteosarc/expansion/stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+        },
+        "source_id": "62a9d3e67e1b564e",
+        "timeout_seconds_per_phase": 120.0,
+        "variant_id": "MT_ND5-chrM-12994"
+      },
+      "measurements": {
+        "production": {
+          "process_peak_rss_bytes": 4384112640,
+          "status": "interrupted",
+          "wall_seconds": 120.00770037481561
+        }
+      },
+      "profiles": {},
+      "result": {
+        "counts": {
+          "all_template_names": 105522,
+          "read_objects": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          },
+          "reads": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          },
+          "template_names": {
+            "alt": 29130,
+            "other": 173,
+            "ref": 76219
+          }
+        },
+        "error": "Audit mode exceeded 120 seconds; #227 tracks high-depth matching",
+        "status": "resource_limit",
+        "trace": {
+          "read_collection_peak_rss_bytes": 4384112640,
+          "read_collection_seconds": 52.31259891623631,
+          "stage": "rna_sequence_creation"
+        }
+      }
+    }
+  }
+}
