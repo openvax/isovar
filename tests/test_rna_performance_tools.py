@@ -187,6 +187,69 @@ def test_collection_benchmark_preserves_original_evidence(benchmark_inputs, vari
     assert not collection_benchmark.tracemalloc.is_tracing()
 
 
+def test_collection_benchmark_records_real_empty_bam_results(benchmark_inputs):
+    import pysam
+
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = False
+    source = args.destination / "alignments" / args.source_id
+    bam = source / "regions-GRCh38.bam"
+    with pysam.AlignmentFile(bam) as handle:
+        header = handle.header
+    # Only this test's staged copy becomes an empty, still-indexed BAM.
+    with pysam.AlignmentFile(bam, "wb", header=header):
+        pass
+    pysam.index(str(bam))
+    (source / "regions-GRCh38.json").write_text(json.dumps(dict(bam_sha256=benchmark.digest(bam))))
+    collection_benchmark.run(args)
+    result = json.loads((args.output / "result.json").read_text())
+    assert result["status"] == "ok"
+    assert result["locus_read_count"] == result["allele_read_count"] == 0
+    assert result["locus_reads_sha256"] == result["allele_reads_sha256"] == collection_benchmark.read_fingerprint([])
+    assert result["counts"]["reads"] == dict(ref=0, alt=0, other=0)
+
+
+def test_collection_profiler_stops_tracing_before_snapshot_analysis(benchmark_inputs, monkeypatch):
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = True
+    take_snapshot = collection_benchmark.tracemalloc.take_snapshot
+    analyzed = []
+
+    def observed_snapshot():
+        assert collection_benchmark.tracemalloc.is_tracing()
+        snapshot = take_snapshot()
+
+        class ObservedSnapshot:
+            def statistics(self, key):
+                assert not collection_benchmark.tracemalloc.is_tracing()
+                analyzed.append(key)
+                return snapshot.statistics(key)
+
+        return ObservedSnapshot()
+
+    monkeypatch.setattr(collection_benchmark.tracemalloc, "take_snapshot", observed_snapshot)
+    collection_benchmark.run(args)
+    assert analyzed == ["lineno"]
+
+
+def test_collection_profiler_records_errors_and_restores_tracing(benchmark_inputs, monkeypatch):
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = True
+
+    def fail(*args, **kwargs):
+        assert collection_benchmark.tracemalloc.is_tracing()
+        raise ValueError("injected collection failure")
+
+    monkeypatch.setattr(collection_benchmark.ReadCollector, "get_locus_reads", fail)
+    with pytest.raises(ValueError, match="injected collection failure"):
+        collection_benchmark.run(args)
+    assert not collection_benchmark.tracemalloc.is_tracing()
+    result = json.loads((args.output / "result.json").read_text())
+    assert result["status"] == "error"
+    assert "injected collection failure" in result["error"]
+    assert "counts" not in result  # An incomplete collection is not zero evidence.
+
+
 @pytest.mark.parametrize("timeout", [0, -1, float("inf"), float("nan"), 1801])
 def test_collection_benchmark_rejects_invalid_timeout(timeout):
     with pytest.raises(ValueError, match="finite timeout"):
