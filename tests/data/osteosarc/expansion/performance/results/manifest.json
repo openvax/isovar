@@ -1,0 +1,9 @@
+{
+  "files": {
+    "benchmarks.json": "bb261dcf98851bba5b7bab4df4dec7dc2e2222e8370df90532c07ae3f49d8ed3",
+    "reruns.json.gz": "ea0ef654b75c83f57ce15b9b5d70f514b86eb9df1b52337a0bcf5a880c149a09"
+  },
+  "generator_sha256": "557e3ff0bc12740f35ce74ce4899dfd023538953e3ea259742b6b5e03e3f97dc",
+  "recovered_mitochondrial_modes": 10,
+  "unchanged_nuclear_rows": 215
+}
