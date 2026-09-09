@@ -81,3 +81,90 @@ def test_benchmark_comparison_rejects_changed_or_incomplete_evidence(tmp_path, f
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError):
         performance_report.collect_benchmarks(entries, ["before=after"])
+
+
+@pytest.mark.parametrize("n_names", [0, 1, 7, 8, 9, 31, 100])
+def test_support_bitsets_round_trip_without_modifying_input(n_names):
+    names = [f"read-{i:03d}" for i in range(n_names)]
+    proteins = [dict(supporting_read_names=names[::step], checks=[2, 1]) for step in (1, 2, 3)]
+    row = dict(defaults=dict(proteins=proteins[:1], uncapped_ranked_proteins=proteins),
+               primary_only=dict(proteins=proteins[1:]))
+    untouched = deepcopy(row)
+    packed = performance_report.pack_support_names(row)
+    assert row == untouched
+    for mode in ("defaults", "primary_only"):
+        for field in row[mode]:
+            for original, protein in zip(row[mode][field], packed[mode][field]):
+                assert performance_report.supporting_read_names(packed, protein) == original["supporting_read_names"]
+                assert protein["checks"] == [1, 2]
+
+
+@pytest.mark.parametrize("changed,value", [("bits", ""), ("bits", "Ag=="), ("bits", "!invalid!"),
+                                          ("names", ["different"]), ("encoding", "unknown")])
+def test_support_bitsets_reject_corruption(changed, value):
+    row = dict(defaults=dict(proteins=[dict(supporting_read_names=["original"], checks=[])]), primary_only={})
+    packed = performance_report.pack_support_names(row)
+    protein = packed["defaults"]["proteins"][0]
+    if changed == "bits":
+        protein["supporting_read_name_bits"] = value
+    elif changed == "names":
+        packed["supporting_read_name_table"] = value
+    else:
+        packed["support_encoding"] = value
+    with pytest.raises(ValueError):
+        performance_report.supporting_read_names(packed, protein)
+
+
+def rerun_inputs(tmp_path, monkeypatch):
+    monkeypatch.setattr(performance_report, "SOURCE_IDS", ["source"])
+    audit, baseline = tmp_path / "audit", tmp_path / "baseline"
+    for directory in (audit, baseline):
+        (directory / "source").mkdir(parents=True)
+    write_json(audit / "source/run.json", {})
+    protein = dict(supporting_read_names=["original"], checks=[dict(status="ok")])
+    mode = dict(status="ok", outcome="expected_top_protein", counts={"alt": 2},
+                uncapped_validation_status="ok", proteins=[protein], uncapped_ranked_proteins=[protein])
+    for variant_id in [performance_report.MT_VARIANT, *(f"nuclear-{i}" for i in range(43))]:
+        current = dict(variant_id=variant_id, source_id="source", software="new",
+                       defaults=deepcopy(mode), primary_only=deepcopy(mode), source_bam_sha256="bam")
+        previous = deepcopy(current)
+        previous["software"] = "old"
+        if variant_id == performance_report.MT_VARIANT:
+            for m in ("defaults", "primary_only"):
+                previous[m].update(status="resource_limit", outcome="audit_timeout")
+        write_json(audit / f"source/{variant_id}.json", current)
+        write_json(baseline / f"source/{variant_id}.json", previous)
+    return audit, baseline
+
+
+def test_rerun_packaging_keeps_full_support_and_checks_all_controls(tmp_path, monkeypatch):
+    result = performance_report.collect_reruns(*rerun_inputs(tmp_path, monkeypatch))
+    assert result["unchanged_nuclear_rows"] == 43
+    assert result["unchanged_nuclear_modes"] == 86
+    assert result["recovered_mitochondrial_modes"] == 2
+    assert len(result["checkpoints"]) == 44
+    row, = result["rows"]
+    assert performance_report.supporting_read_names(row, row["defaults"]["proteins"][0]) == ["original"]
+
+
+@pytest.mark.parametrize("change", ["counts", "timeout", "validation", "empty", "input", "nuclear"])
+def test_rerun_packaging_rejects_missing_or_changed_evidence(tmp_path, monkeypatch, change):
+    audit, baseline = rerun_inputs(tmp_path, monkeypatch)
+    variant_id = "nuclear-0" if change == "nuclear" else performance_report.MT_VARIANT
+    path = audit / f"source/{variant_id}.json"
+    row = json.loads(path.read_text())
+    if change == "counts":
+        row["defaults"]["counts"] = {"alt": 1}
+    elif change == "timeout":
+        row["defaults"]["status"] = "resource_limit"
+    elif change == "validation":
+        row["defaults"]["uncapped_validation_status"] = "error"
+    elif change == "empty":
+        row["defaults"]["proteins"] = []
+    elif change == "input":
+        row["source_bam_sha256"] = "different"
+    else:
+        row["defaults"]["proteins"][0]["supporting_read_names"] = ["different"]
+    path.write_text(json.dumps(row))
+    with pytest.raises(ValueError):
+        performance_report.collect_reruns(audit, baseline)
