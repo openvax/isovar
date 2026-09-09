@@ -72,9 +72,9 @@ def predicted_effects_for_variant(
             transcript.is_protein_coding)
         if only_coding_transcripts and not transcript_is_coding:
             continue
-        elif transcript_id_whitelist and not has_transcript:
+        elif transcript_id_whitelist is not None and not has_transcript:
             continue
-        elif transcript_id_whitelist and transcript.id not in transcript_id_whitelist:
+        elif transcript_id_whitelist is not None and transcript.id not in transcript_id_whitelist:
             logger.info(
                 "Skipping transcript %s for variant %s because it's not in whitelist",
                 transcript.name,
@@ -160,4 +160,3 @@ def reference_coding_transcripts_for_variant(
         only_coding_effects=True,
         require_mutant_protein_sequence=False)
     return [effect.transcript for effect in predicted_effects]
-

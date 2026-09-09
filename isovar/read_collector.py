@@ -769,9 +769,11 @@ class ReadCollector(object):
     @staticmethod
     def _infer_chromosome_name(variant_chromosome_name, valid_chromosome_names):
         """
-        In case the variant is using an hg19 reference name and the alignment
-        was against b37 (or vice versa) we have to check whether adding or removing
-        the prefix "chr" is necessary.
+        Resolve a contig label, preferring an exact match to a unique alias.
+
+        This does not establish reference-sequence or assembly equivalence.
+        In particular, mitochondrial references can differ in both length
+        and sequence despite using M/MT/chrM/chrMT labels.
         Parameters
         ----------
         variant_chromosome_name : str
@@ -781,26 +783,24 @@ class ReadCollector(object):
         Returns
         -------
         str or None
+            Matching BAM name, or None if no candidate exists.
+
+        Raises
+        ------
+        ValueError
+            More than one alias exists and there is no exact match.
         """
-        # I imagine the conversation went like this:
-        # A: "Hey, I have an awesome idea"
-        # B: "What's up?"
-        # A: "Let's make two nearly identical reference genomes"
-        # B: "But...that sounds like it might confuse people."
-        # A: "Nah, it's cool, we'll give the chromosomes different prefixes!"
-        # B: "OK, sounds like a good idea."
-        candidate_names = {variant_chromosome_name}
-        if variant_chromosome_name.startswith("chr"):
-            candidate_names.add(variant_chromosome_name[3:])
-        else:
-            candidate_names.add("chr" + variant_chromosome_name)
-        for candidate in list(candidate_names):
-            candidate_names.add(candidate.lower())
-            candidate_names.add(candidate.upper())
-        for candidate in candidate_names:
-            if candidate in valid_chromosome_names:
-                return candidate
-        return None
+        if variant_chromosome_name in valid_chromosome_names:
+            return variant_chromosome_name
+        unprefixed = variant_chromosome_name.lower().removeprefix("chr")
+        candidate_names = {unprefixed, "chr" + unprefixed}
+        if unprefixed in ("m", "mt"):
+            candidate_names.update(("m", "mt", "chrm", "chrmt"))
+        matches = {name for name in valid_chromosome_names if name.lower() in candidate_names}
+        if len(matches) > 1:
+            raise ValueError("Ambiguous alignment contig aliases for %r: %s" % (
+                variant_chromosome_name, ", ".join(sorted(matches))))
+        return next(iter(matches), None)
 
     def locus_reads_overlapping_variant(self, alignment_file, variant, chromosome=None):
         """

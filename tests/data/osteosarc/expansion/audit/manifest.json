@@ -1,0 +1,30 @@
+{
+  "files": {
+    "SOURCE_SUMMARY.md": "5770285dd0612827032a8275494a2da3e38ebd227664c9702023417f2128555f",
+    "SUMMARY.md": "119474d91bb2184ed79a6c8b427331179b4eb9335832af6a9169dc7f4b3853d9",
+    "counts-index.json.gz": "c6e1723611f0acd30cf315b0ed5ebb35279a54d34d0f444cc10fc32557549af4",
+    "matrix.json.gz": "3c8b0446b0e7df95772bc07b691ceaa184b913e0e0040b9507505997be1566a8"
+  },
+  "generator_sources": {
+    "acquire.py": "8d1f6e2acd02b2eced96be2ca765cee2a995f4601a807c04a5f0d7b445dda52c",
+    "cegat_reference.py": "1cedf34d4f4fc5d6ddafc837a9f968d5ac3a691fd355edcb73837655036d5875",
+    "discover.py": "32907a89a91bc07f58c41152a45fd6ac89b8308d7cb08b97b0366e6b5fc2ab4e",
+    "fixtures.py": "22f30692b72eea4a523f0a48f67f4677019c614acc66be68a238a663bfe0b22d",
+    "inventory.py": "dc66ebd0e3199a442fa7d59343f1d32bde063b8d8128bf006404bf3366a363af",
+    "liftover.py": "8bb2f6627bd0f0cffc31f534140a6b0326c547417360e3341544353dae72e287",
+    "metadata.py": "7a10e8151e8e0b1d77f241e004faaf7d516b3e4af41459f4d7edcb5ec72ff8b5",
+    "mitochondrial.py": "8fa9b4cc6f38d5aa1eb9be0485975bebff3fc138033f546685c749538fed453b",
+    "references.py": "f864d21ceab44f72186354efa52130f94e56c4b979954408aed0cfa3fa094a23",
+    "report.py": "fb633ed4c9e11a27c050542f712b5fe231c7cf76a65f81a8dc5bce1c67025f3e",
+    "runner.py": "57386e64b110824bb635ca36c3928867d75ebd5ef801926af85a70787269851f",
+    "stress.py": "8bf856051cefb463494bde270675a564c028aaa55cd186709a5fead285637120"
+  },
+  "incomplete_row_count": 0,
+  "inputs": {
+    "bams.json": "88518bc3f9b0e9a7e6fffe13f6c5506e8f781a7287962eee20e412259313360e",
+    "inventory-live-v2.json": "2c5c106212aa35428b204134589c09468a51de8b87055f6a2d81b01e0eb1d470",
+    "mitochondrial-diagnostics.json": "51555cb3f5db0c9deeaa5d785d138ac472f2fbff8a6e8755002d9eb7bb8925d2",
+    "source-metadata.json": "7388e6ff017bab224cde7f2f8e2f6c1de81f187e135aee40be22bc59a07b7632"
+  },
+  "row_count": 7216
+}

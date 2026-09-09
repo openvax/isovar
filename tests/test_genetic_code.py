@@ -10,6 +10,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from itertools import product
+
+import pytest
+
 from isovar.genetic_code import translate_cdna
 from .common import eq_
 from .genomes_for_testing import grch38
@@ -48,3 +52,28 @@ def test_mitochondrial_MTND5_translation_from_cdna():
         mitochondrial=True)
     assert ends_with_stop_codon
     eq_(amino_acids, mtnd5_001.protein_sequence)
+
+
+# Independent published TCAG-order strings, not derived from Isovar tables.
+CODONS = ["".join(bases) for bases in product("TCAG", repeat=3)]
+NCBI_TABLE_1 = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"
+NCBI_TABLE_2 = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSS**VVVVAAAADDEEGGGG"
+
+
+@pytest.mark.parametrize("mitochondrial,assignments", [(False, NCBI_TABLE_1), (True, NCBI_TABLE_2)])
+@pytest.mark.parametrize("index", range(64))
+def test_every_nuclear_and_mitochondrial_codon(index, mitochondrial, assignments):
+    aa = assignments[index]
+    assert translate_cdna(CODONS[index], mitochondrial=mitochondrial) == (("", True) if aa == "*" else (aa, False))
+
+
+@pytest.mark.parametrize("stop", ["AGA", "AGG", "TAA", "TAG"])
+def test_mitochondrial_termination_does_not_translate_downstream_codons(stop):
+    assert translate_cdna("ATG" + stop + "GCT", mitochondrial=True) == ("M", True)
+
+
+@pytest.mark.parametrize("start", ["ATT", "ATC", "ATA", "ATG", "GTG"])
+def test_mitochondrial_initiation_does_not_change_elongation(start):
+    internal = NCBI_TABLE_2[CODONS.index(start)]
+    assert translate_cdna(start + start, mitochondrial=True, first_codon_is_start=True) == ("M" + internal, False)
+    assert translate_cdna(start + start, mitochondrial=True, first_codon_is_start=False) == (internal * 2, False)

@@ -1,0 +1,76 @@
+{
+  "assembly": "GRCh38",
+  "dataset_identity": "GRCh38-osteosarc-vaccine-cohort-ensembl87",
+  "ensembl_release": 87,
+  "files": {
+    "models.json.gz": "42282344e3ab6e1c2727d0ca9aae5b0e973087eaf06f4b56c1ebb80c8ad892a6",
+    "reference.cdna.fa.gz": "3f58d3977b56d607b15f1644e1e03f8fea616ab68b4c94e373e79387fe604457",
+    "reference.gtf.gz": "ca74b8a359880bcc44310eec294cf7e77f08d7a17e5102caf0ea2f0c0293e2fb",
+    "reference.pep.fa.gz": "464bbe26cdcabee2eb800500b2083ab2ffed5f47d2ba2853ed88d21949707453"
+  },
+  "scope": "all independently validated complete coding models at the pinned variant loci; explicit model exclusions",
+  "sources": {
+    "cdna": {
+      "filename": "Homo_sapiens.GRCh38.cdna.all.fa.gz",
+      "sha256": "9d77df788bc30aa86d6aa8d4b8d5bbe9d9c2a0ae6c0a8eda600524685aa11875",
+      "url": "https://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz"
+    },
+    "gtf": {
+      "filename": "Homo_sapiens.GRCh38.87.gtf.gz",
+      "sha256": "9e8643982742980f81277865b5a1d543a02fa2bfe889acffaf797436950d9ebe",
+      "url": "https://ftp.ensembl.org/pub/release-87/gtf/homo_sapiens/Homo_sapiens.GRCh38.87.gtf.gz"
+    },
+    "pep": {
+      "filename": "Homo_sapiens.GRCh38.pep.all.fa.gz",
+      "sha256": "d873c199d5dbf20869db3f2cbd6ac726259215d91c2782f9f1ddcad4bb117cf9",
+      "url": "https://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/pep/Homo_sapiens.GRCh38.pep.all.fa.gz"
+    }
+  },
+  "transcript_count": 24,
+  "unavailable_transcripts": {
+    "ENST00000535299": "incomplete_or_noncoding_reference_model",
+    "ENST00000543548": "incomplete_or_noncoding_reference_model"
+  },
+  "variant_transcript_gaps": {
+    "ACSL6-chr5-131988563": {
+      "ENST00000296869": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000357096": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000379240": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000379244": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000379246": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000379255": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000379264": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000413683": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000430403": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000434099": "Position 131988563 is outside the pinned transcript exons"
+    },
+    "EPPK1-chr8-143870409": {},
+    "KTN1-chr14-55627965": {
+      "ENST00000554567": "Variant is outside the annotated coding region"
+    },
+    "NTF3-chr12-5494381-compound": {}
+  },
+  "variant_transcripts": {
+    "ACSL6-chr5-131988563": [
+      "ENST00000431707",
+      "ENST00000543479"
+    ],
+    "EPPK1-chr8-143870409": [
+      "ENST00000568225",
+      "ENST00000615648"
+    ],
+    "KTN1-chr14-55627965": [
+      "ENST00000395308",
+      "ENST00000395309",
+      "ENST00000395311",
+      "ENST00000395314",
+      "ENST00000413890",
+      "ENST00000438792",
+      "ENST00000459737"
+    ],
+    "NTF3-chr12-5494381-compound": [
+      "ENST00000331010",
+      "ENST00000423158"
+    ]
+  }
+}

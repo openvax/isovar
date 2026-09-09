@@ -178,11 +178,13 @@ standard_genetic_code_with_extra_start_codons = standard_genetic_code.copy(
 
 vertebrate_mitochondrial_genetic_code = standard_genetic_code.copy(
     name="verterbrate-mitochondrial",
-    # "For thirty years AGA and AGG were considered terminators instead
-    #  of coding for arginine. However, Temperley (2010) has recently shown
-    #  that human mitochondria use only UAA and UAG stop codons."
-    # (http://mitomap.org/bin/view.pl/MITOMAP/HumanMitoCode)
-    stop_codons={'TAA', 'TAG'},
+    # NCBI translation table 2. AGA/AGG termination is supported by direct
+    # direct mtRF1 termination experiments (2023):
+    # https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG2
+    # https://pubmed.ncbi.nlm.nih.gov/37141370/
+    # A historical frameshift hypothesis never justified translating these
+    # codons as ordinary arginine during mitochondrial elongation.
+    stop_codons={'TAA', 'TAG', 'AGA', 'AGG'},
     # "AUU codes for isoleucine during elongation but can code for
     #  methionine for initiation (ND2) See Fearnley & Walker (1987) and
     #  Peabody (1989)."
@@ -191,7 +193,7 @@ vertebrate_mitochondrial_genetic_code = standard_genetic_code.copy(
     # "UGA codes for tryptophan instead of termination and AUA codes for
     #  methionine instead of isoleucine."
     # (http://mitomap.org/bin/view.pl/MITOMAP/HumanMitoCode)
-    codon_table_changes={'TGA': 'W', 'ATA': 'M'},
+    codon_table_changes={'TGA': 'W', 'ATA': 'M', 'AGA': '*', 'AGG': '*'},
 )
 
 
