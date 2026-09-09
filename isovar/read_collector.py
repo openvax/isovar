@@ -11,6 +11,7 @@
 # limitations under the License.
 
 from collections import defaultdict
+from functools import lru_cache
 from itertools import groupby
 
 from .default_parameters import (
@@ -719,6 +720,15 @@ class ReadCollector(object):
         )
         reads = []
         total_count = 0
+
+        @lru_cache(maxsize=65536)
+        def shared_reference_position(position):
+            # Deep reads repeat the same coordinates millions of times. Share
+            # only immutable integers, not the lists or any read evidence.
+            # Bound the per-call cache for sparse/widely spliced inputs; it is
+            # discarded when collection finishes, including on exceptions.
+            return position
+
         # check overlap against wider overlap to make sure we don't miss
         # any reads
         base0_pos_before_start = max(0, base0_start_inclusive - 1)
@@ -747,6 +757,12 @@ class ReadCollector(object):
                 trimmed_alt=trimmed_alt,
             )
             if read is not None:
+                positions = read.reference_positions
+                if type(positions) is list:
+                    # Keep the original list object, and leave custom sequence
+                    # types / non-builtin coordinate objects from hooks alone.
+                    positions[:] = [shared_reference_position(p) if type(p) is int else p
+                                    for p in positions]
                 reads.append(read)
         logger.info(
             "Kept %d/%d reads overlapping locus %s:%d-%d",
