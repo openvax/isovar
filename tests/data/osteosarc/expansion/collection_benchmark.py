@@ -80,7 +80,12 @@ def run(args):
             if args.allocations:
                 current, peak = tracemalloc.get_traced_memory()
                 overhead = tracemalloc.get_tracemalloc_memory()
-                stats = tracemalloc.take_snapshot().statistics("lineno")
+                snapshot = tracemalloc.take_snapshot()
+                # Stop tracking before aggregating millions of trace entries:
+                # the analysis itself is not a collection allocation, and
+                # keeping tracer bookkeeping alive can exhaust host memory.
+                tracemalloc.stop()
+                stats = snapshot.statistics("lineno")
                 allocations = dict(
                     stage="before_mate_merging", locus_read_count=len(reads),
                     query_bases=sum(len(r.sequence) for r in reads),
@@ -89,7 +94,6 @@ def run(args):
                     locations=[dict(location=str(s.traceback), bytes=s.size, count=s.count) for s in stats[:25]])
                 write_json(output / "allocations.json", allocations)
                 print(json.dumps(allocations, sort_keys=True), flush=True)
-                tracemalloc.stop()
             return super()._merge_overlapping_locus_reads(reads)
 
     disabled = logging.root.manager.disable

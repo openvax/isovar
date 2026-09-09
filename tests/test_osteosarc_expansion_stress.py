@@ -26,6 +26,28 @@ def stress_reference(tmp_path_factory):
     return manifest, models, reference_genome(DIRECTORY / "reference", tmp_path_factory.mktemp("stress-reference"))
 
 
+@pytest.mark.parametrize("order", [("stress", "cohort"), ("cohort", "stress")])
+def test_reference_subset_identities_are_distinct_and_annotation_order_independent(tmp_path, order):
+    cohort = DIRECTORY.parent / "corpus"
+    cohort_cases = json.loads((cohort / "manifest.json").read_text())["cases"]
+    datasets = dict(stress=(DIRECTORY / "reference", CASES[0]["variant"]),
+                    cohort=(cohort / "references/GRCh38", cohort_cases[0]["variant"]))
+    identities = {}
+    for name in order:
+        directory, record = datasets[name]
+        manifest, _ = load_reference(directory)
+        checksum = digest(directory / "manifest.json")
+        genome = reference_genome(directory, tmp_path / name)
+        identities[name] = genome.reference_name
+        assert genome.reference_name == manifest["dataset_identity"] + "-" + checksum[:16]
+        variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], ensembl=genome)
+        assert record["gene"] in variant.gene_names
+        assert digest(directory / "manifest.json") == checksum
+    assert identities["stress"] != identities["cohort"]
+    directory, _ = datasets[order[0]]
+    assert reference_genome(directory, tmp_path / "another-cache").reference_name == identities[order[0]]
+
+
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["case_id"])
 def test_stress_original_records_and_independent_cigar(case):
     for name, checksum in case["files"].items():

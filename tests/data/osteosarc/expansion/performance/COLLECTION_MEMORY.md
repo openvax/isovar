@@ -46,3 +46,14 @@ custom coordinate objects and sequence types returned by subclass hooks are
 left untouched. Cache eviction affects sharing only, never values or evidence.
 The cache is local to one call, not persistent collector state. No streaming
 API, compressed coordinate type, hook bypass, or mate-merging change is needed.
+
+## Validation follow-up (#233)
+
+Full-suite scheduling exposed an existing fixture-identity collision: the
+24-transcript stress subset and 131-transcript cohort declared the same
+assembly/release dataset label. Varcode's name-keyed contig cache
+(openvax/varcode#402) could then reject valid chr6/chr7 queries depending on
+which dataset ran first. The offline reference loader now appends the pinned
+manifest digest to its runtime dataset name. Original assets/manifests remain
+unchanged; both loading orders and genuine gene lookups are tested. This
+repairs Isovar's ambiguous fixture identity, not Varcode's general cache.

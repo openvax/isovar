@@ -138,8 +138,12 @@ def reference_genome(directory, cache):
 
     directory = Path(directory)
     manifest, _ = load_reference(directory)
+    # The stress and full-cohort subsets can share an assembly/release label
+    # but expose different contigs. Give their pinned datasets distinct names
+    # (Isovar #233; Varcode's name-keyed contig cache is tracked in #402).
+    dataset_identity = manifest["dataset_identity"] + "-" + digest(directory / "manifest.json")[:16]
     genome = Genome(
-        reference_name=manifest["dataset_identity"], annotation_name="osteosarc-vaccine-cohort",
+        reference_name=dataset_identity, annotation_name="osteosarc-vaccine-cohort",
         annotation_version=manifest["ensembl_release"], gtf_path_or_url=str(directory / "reference.gtf.gz"),
         transcript_fasta_paths_or_urls=[str(directory / "reference.cdna.fa.gz")],
         protein_fasta_paths_or_urls=[str(directory / "reference.pep.fa.gz")],
