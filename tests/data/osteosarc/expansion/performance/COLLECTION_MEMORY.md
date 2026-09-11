@@ -21,8 +21,9 @@ small checked-in fixtures. RSS below is the process high-water at return from
 | Bulk 2024 / DYNC1H1 chr14:102030200 | 452 | 0.143 | 0.140 | 0.022 | 0.026 |
 
 This is a memory/CPU tradeoff, not a speedup. The deepest collection peaks
-fall by about 70%, while collection CPU rises roughly 43–49% on these deep
-inputs. Absolute bulk differences are tiny. Wall times on this shared macOS
+fall by about 70%, while collection CPU rises about 36–50% on the deep MT-ND5
+inputs and 56–70% on the two long-read nuclear loci. Absolute bulk differences
+are tiny. Wall times on this shared macOS
 ARM64/Python 3.12.6 host vary with load; the full records retain both wall and
 CPU time, plus post-collection work and whole-process peak RSS. Allocation-
 instrumented runs must not be substituted for these ordinary measurements.
@@ -154,18 +155,26 @@ attempt during the disk-full condition was likewise discarded and rerun.
 
 Every run records the SHA-256 of the `collection_benchmark.py` that produced
 it, and the report requires both sides of a pair to match, along with the
-source BAM and acquisition receipt. The eight ordinary pairs and the
-interrupted profile ran the script from commit `c165e9c` (`a3ced87f…`). The
-instrumented T1 pair ran commit `1e47bd6` (`c2f7cd30…`), whose only change
-stops tracing before snapshot aggregation inside the `--allocations` branch,
-so it cannot affect uninstrumented runs. CI pins both digests. After review the
-shipped script was tightened further: one time limit now also bounds
-post-collection fingerprinting and conversion, a completed result is recorded
-in a single step so an interrupted run never carries counts, and the locus
-interval comes from Isovar's own helper. None of these changes alter a
+source BAM and acquisition receipt. It also rejects a pair whose runs imported
+identical Isovar sources. The eight ordinary pairs and the interrupted profile
+ran the script from commit `c165e9c` (`a3ced87f…`). The instrumented T1 pair
+ran commit `1e47bd6` (`c2f7cd30…`), whose only change stops tracing before
+snapshot aggregation inside the `--allocations` branch, so it cannot affect
+uninstrumented runs. CI pins both digests. After review the shipped script was
+tightened further: one time limit now also bounds post-collection
+fingerprinting and conversion, a completed result is recorded in a single step
+so an interrupted run never carries counts, a failure to write that record no
+longer hides the run's own error, the regional BAM is hashed once, and the
+locus interval comes from Isovar's own helper. None of these changes alter a
 completed run's measured fields, but fresh runs record a new digest and cannot
-be paired with the recorded runs. Remaining fingerprint and variant
-construction gaps are tracked in #237.
+be paired with the recorded runs.
+
+The recorded final runs also pin the Isovar sources they measured. After
+review, `read_collector.py` gained documentation plus a guard that returns hook
+results without coordinates untouched, and `locus_read.py` gained
+documentation. Neither changes how a `LocusRead` is collected or shared, but
+the shipped digests of those two files now differ from the recorded final
+runs. Remaining fingerprint and variant construction gaps are tracked in #237.
 
 ## Reproduction
 

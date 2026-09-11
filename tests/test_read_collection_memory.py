@@ -176,8 +176,27 @@ def test_custom_integer_objects_from_hooks_keep_their_type_and_identity():
     assert all(r.reference_positions[0] is p and type(p) is Coordinate for r, p in zip(reads, originals))
 
 
-def test_coordinate_cache_is_bounded_and_does_not_survive_collection(monkeypatch):
-    caches, sizes = [], []
+def test_hook_reads_without_coordinates_are_returned_untouched():
+    class LightweightRead:
+        __slots__ = ("name",)
+
+        def __init__(self, name):
+            self.name = name
+
+    class LightweightCollector(ReadCollector):
+        def locus_read_from_pysam_aligned_segment(self, segment, *args, **kwargs):
+            return LightweightRead(segment.query_name)
+
+    reads = LightweightCollector(merge_overlapping_fragments=False).get_locus_reads(
+        repeated_reads(), "1", 10005, 10006)
+    assert [type(r) for r in reads] == [LightweightRead] * 3
+    assert [r.name for r in reads] == ["read-0", "read-1", "read-2"]
+
+
+@pytest.fixture
+def coordinate_caches(monkeypatch):
+    """Weak references to every coordinate cache the collector creates."""
+    caches = []
 
     def observed_cache(**options):
         def decorate(function):
@@ -186,13 +205,19 @@ def test_coordinate_cache_is_bounded_and_does_not_survive_collection(monkeypatch
             return wrapped
         return decorate
 
+    monkeypatch.setattr(collector_module, "lru_cache", observed_cache)
+    return caches
+
+
+def test_coordinate_cache_is_bounded_and_does_not_survive_collection(coordinate_caches):
+    caches, sizes = coordinate_caches, []
+
     class ObservedCollector(ReadCollector):
         @classmethod
         def _merge_overlapping_locus_reads(cls, reads):
             sizes.append(caches[-1]().cache_info())
             return super()._merge_overlapping_locus_reads(reads)
 
-    monkeypatch.setattr(collector_module, "lru_cache", observed_cache)
     collector = ObservedCollector(merge_overlapping_fragments=True)
     length = 65540
     sam = repeated_reads(n=2, length=length)
@@ -204,15 +229,8 @@ def test_coordinate_cache_is_bounded_and_does_not_survive_collection(monkeypatch
     assert collector.__dict__ == ReadCollector(merge_overlapping_fragments=True).__dict__
 
 
-def test_coordinate_cache_is_released_after_a_conversion_error(monkeypatch):
-    caches = []
-
-    def observed_cache(**options):
-        def decorate(function):
-            wrapped = lru_cache(**options)(function)
-            caches.append(weakref.ref(wrapped))
-            return wrapped
-        return decorate
+def test_coordinate_cache_is_released_after_a_conversion_error(coordinate_caches):
+    caches = coordinate_caches
 
     class FailingCollector(ReadCollector):
         def locus_read_from_pysam_aligned_segment(self, read, *args, **kwargs):
@@ -221,7 +239,6 @@ def test_coordinate_cache_is_released_after_a_conversion_error(monkeypatch):
                 raise ValueError("conversion failure")
             return super().locus_read_from_pysam_aligned_segment(read, *args, **kwargs)
 
-    monkeypatch.setattr(collector_module, "lru_cache", observed_cache)
     with pytest.raises(ValueError, match="conversion failure"):
         FailingCollector().get_locus_reads(repeated_reads(), "1", 10005, 10006)
     gc.collect()

@@ -12,6 +12,7 @@ import logging
 import math
 from pathlib import Path
 import platform
+import sys
 import time
 import tracemalloc
 
@@ -58,8 +59,10 @@ def run(args):
     original_sha = digest(bam)
     if original_sha != json.loads(receipt.read_text())["bam_sha256"]:
         raise ValueError("Regional BAM checksum mismatch")
+    input_sha = original_sha  # Hash each multi-GB regional BAM only once.
     if args.mode == "primary_only":
         bam = primary_alignment(bam, original_sha)
+        input_sha = digest(bam)
     inventory = destination / "inventory-GRCh38-validated.json"
     record = next(r for r in json.loads(inventory.read_text())["variants"] if r["variant_id"] == args.variant_id)
     variant = Variant(record["chrom"], record["pos"], record["ref"], record["alt"])
@@ -68,7 +71,7 @@ def run(args):
     root = Path(isovar.__file__).resolve().parent.parent
     identity = dict(
         source_id=args.source_id, variant_id=args.variant_id, mode=args.mode,
-        source_bam_sha256=original_sha, input_bam_sha256=digest(bam),
+        source_bam_sha256=original_sha, input_bam_sha256=input_sha,
         input_index_sha256=digest(str(bam) + ".bai"), receipt_sha256=digest(receipt),
         inventory_sha256=digest(inventory), benchmark_sha256=digest(__file__),
         source_files={str(p.relative_to(root)): digest(p) for p in sorted((root / "isovar").glob("*.py"))},
@@ -142,7 +145,14 @@ def run(args):
         if args.allocations and tracemalloc.is_tracing():
             tracemalloc.stop()
         logging.disable(disabled)
-        write_json(output / "result.json", result)
+        try:
+            write_json(output / "result.json", result)
+        except OSError:
+            # A full disk must not hide the run's own error or lose its record:
+            # keep the record in the log, and re-raise only if nothing else is.
+            print(json.dumps(result, sort_keys=True), file=sys.stderr, flush=True)
+            if result["status"] != "error":
+                raise
     print(json.dumps(result, sort_keys=True), flush=True)
 
 

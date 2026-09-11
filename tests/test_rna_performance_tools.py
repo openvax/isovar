@@ -294,6 +294,32 @@ def test_collection_timeout_bounds_post_collection_work(benchmark_inputs, monkey
     assert signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0)
 
 
+@pytest.mark.parametrize("collection_fails", [True, False])
+def test_collection_record_write_failure_never_hides_the_outcome(
+        benchmark_inputs, monkeypatch, capsys, collection_fails):
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = False
+    write_json = collection_benchmark.write_json
+
+    def disk_full(path, value):
+        if path.name == "result.json":
+            raise OSError(28, "No space left on device")
+        return write_json(path, value)
+
+    def fail(*args, **kwargs):
+        raise ValueError("injected collection failure")
+
+    monkeypatch.setattr(collection_benchmark, "write_json", disk_full)
+    if collection_fails:
+        monkeypatch.setattr(collection_benchmark.ReadCollector, "get_locus_reads", fail)
+    with pytest.raises(ValueError if collection_fails else OSError):
+        collection_benchmark.run(args)
+    assert not (args.output / "result.json").exists()
+    record = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    assert record["status"] == ("error" if collection_fails else "ok")
+    assert ("counts" in record) is not collection_fails
+
+
 @pytest.mark.parametrize("timeout", [0, -1, float("inf"), float("nan"), 1801])
 def test_collection_benchmark_rejects_invalid_timeout(timeout):
     with pytest.raises(ValueError, match="finite timeout"):
@@ -329,7 +355,7 @@ def collection_pair(tmp_path):
     for label in ("before", "after"):
         directory = tmp_path / label
         directory.mkdir()
-        write_json(directory / "identity.json", identity)
+        write_json(directory / "identity.json", dict(identity, source_files={"isovar/read_collector.py": label}))
         write_json(directory / "result.json", result)
         entries.append(f"{label}={directory}")
         directories.append(directory)
@@ -341,6 +367,16 @@ def test_collection_comparison_accepts_complete_empty_results(tmp_path):
     result = collection_report.collect_runs(entries, ["before=after"])
     assert result["comparisons"] == [dict(before="before", after="after", exact_locus_and_allele_reads=True,
                                           allocation_instrumented=False)]
+
+
+def test_collection_comparison_rejects_runs_of_identical_sources(tmp_path):
+    entries, directories = collection_pair(tmp_path)
+    for pair in ("after=after", "before=before"):
+        with pytest.raises(ValueError, match="identical Isovar sources"):
+            collection_report.collect_runs(entries, [pair])
+    (directories[1] / "identity.json").write_text((directories[0] / "identity.json").read_text())
+    with pytest.raises(ValueError, match="identical Isovar sources"):
+        collection_report.collect_runs(entries, ["before=after"])
 
 
 @pytest.mark.parametrize("filename,key,value", [

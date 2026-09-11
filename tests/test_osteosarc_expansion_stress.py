@@ -27,7 +27,10 @@ def stress_reference(tmp_path_factory):
 
 
 @pytest.mark.parametrize("order", [("stress", "cohort"), ("cohort", "stress")])
-def test_reference_subset_identities_are_distinct_and_annotation_order_independent(tmp_path, order):
+def test_reference_subset_identities_are_distinct_and_annotation_order_independent(tmp_path, monkeypatch, order):
+    # Start from an empty process-wide Varcode contig cache (openvax/varcode#402)
+    # so earlier tests cannot pre-populate a superset that hides a collision.
+    monkeypatch.setattr(Variant, "_reference_name_to_valid_contig_names", {})
     cohort = DIRECTORY.parent / "corpus"
     cohort_cases = json.loads((cohort / "manifest.json").read_text())["cases"]
     datasets = dict(stress=(DIRECTORY / "reference", CASES[0]["variant"]),

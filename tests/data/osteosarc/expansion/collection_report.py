@@ -30,6 +30,9 @@ def collect_runs(entries, comparisons):
                     "merge_overlapping_fragments", "allocation_instrumented"):
             if left["identity"][key] != right["identity"][key]:
                 raise ValueError(f"Different collection inputs/instrumentation: {pair} {key}")
+        if left["identity"]["source_files"] == right["identity"]["source_files"]:
+            # Includes a run paired with itself: no implementation change is compared.
+            raise ValueError(f"Comparison runs imported identical Isovar sources: {pair}")
         if any(run["result"]["status"] != "ok" for run in (left, right)):
             raise ValueError(f"Incomplete collection comparison: {pair}")
         for key in ("locus_reads_sha256", "allele_reads_sha256", "locus_read_count", "allele_read_count", "counts"):

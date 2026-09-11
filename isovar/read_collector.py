@@ -721,8 +721,9 @@ class ReadCollector(object):
         object identity of equal coordinates changes. Subclasses that override
         `locus_read_from_pysam_aligned_segment` and retain a reference to the
         returned list will observe its integers substituted after this method
-        returns. Lists built by such a hook from a non-builtin sequence type,
-        and coordinate objects that are not exactly `int`, are left untouched.
+        returns. Hook results whose `reference_positions` is missing or not
+        exactly a `list`, and coordinates that are not exactly `int`, are left
+        untouched.
 
         Returns a sequence of ReadAtLocus objects
         """
@@ -771,7 +772,8 @@ class ReadCollector(object):
                 trimmed_alt=trimmed_alt,
             )
             if read is not None:
-                positions = read.reference_positions
+                # Hooks may return read-like objects without coordinates.
+                positions = getattr(read, "reference_positions", None)
                 if type(positions) is list:
                     # Keep the original list object, and leave custom sequence
                     # types / non-builtin coordinate objects from hooks alone.
