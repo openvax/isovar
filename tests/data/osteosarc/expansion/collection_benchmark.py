@@ -34,12 +34,20 @@ take_snapshot = tracemalloc.take_snapshot
 
 
 def read_fingerprint(reads):
-    """Hash every field in every original object, preserving order/multiplicity."""
+    """Hash every field in every original object, preserving order/multiplicity.
+
+    Sequence-valued fields also record their container type: JSON writes a list,
+    a tuple and an array identically, which would hide a representation change.
+    """
     checksum = sha256()
     for read in reads:
-        values = {name: getattr(read, name) for name in read._fields}
-        if "quality_scores" in values:
-            values["quality_scores"] = list(values["quality_scores"])
+        values = {}
+        for name in read._fields:
+            value = getattr(read, name)
+            if not isinstance(value, (str, int, float, type(None))):
+                values[name + "_container"] = type(value).__name__
+                value = list(value)
+            values[name] = value
         checksum.update(json.dumps(values, sort_keys=True, separators=(",", ":")).encode() + b"\n")
     return checksum.hexdigest()
 

@@ -1,5 +1,6 @@
 """Performance evidence must fail closed on changed inputs or incomplete runs."""
 
+from array import array
 from copy import deepcopy
 import gzip
 import json
@@ -342,6 +343,19 @@ def test_collection_fingerprint_preserves_all_fields_and_order():
         assert collection_benchmark.read_fingerprint([changed]) != baseline
         assert collection_benchmark.read_fingerprint([read, changed]) != collection_benchmark.read_fingerprint([changed, read])
     assert collection_benchmark.read_fingerprint([read, read]) != baseline
+
+
+@pytest.mark.parametrize("field,container", [
+    ("reference_positions", tuple), ("quality_scores", tuple), ("quality_scores", lambda v: array("B", v)),
+], ids=["positions-tuple", "qualities-tuple", "qualities-array"])
+def test_collection_fingerprint_detects_sequence_container_changes(field, container):
+    from isovar.locus_read import LocusRead
+
+    read = LocusRead("read", "ACG", [10000, None, 10001], [30, 0, 40], 10001, 10001, 1, 2)
+    changed = deepcopy(read)
+    setattr(changed, field, container(getattr(read, field)))
+    assert list(getattr(changed, field)) == list(getattr(read, field))
+    assert collection_benchmark.read_fingerprint([changed]) != collection_benchmark.read_fingerprint([read])
 
 
 def collection_pair(tmp_path):
