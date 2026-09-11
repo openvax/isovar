@@ -11,6 +11,7 @@
 # limitations under the License.
 
 from collections import defaultdict
+from functools import lru_cache
 from itertools import groupby
 
 from .default_parameters import (
@@ -709,6 +710,21 @@ class ReadCollector(object):
         base0_end_exclusive : int
             End of genomic interval, base 0 and exclusive
 
+        Notes
+        -----
+        Deep loci repeat the same reference coordinate on millions of reads, so
+        before a read is returned the built-in integers in its
+        `reference_positions` list are replaced, in place, with shared equal
+        integers drawn from a cache local to this call. Coordinate values,
+        order and length are unchanged and each read keeps its own list object,
+        so equality, evidence and mutation of one read stay unaffected; only
+        object identity of equal coordinates changes. Subclasses that override
+        `locus_read_from_pysam_aligned_segment` and retain a reference to the
+        returned list will observe its integers substituted after this method
+        returns. Hook results whose `reference_positions` is missing or not
+        exactly a `list`, and coordinates that are not exactly `int`, are left
+        untouched.
+
         Returns a sequence of ReadAtLocus objects
         """
         logger.debug(
@@ -719,6 +735,15 @@ class ReadCollector(object):
         )
         reads = []
         total_count = 0
+
+        @lru_cache(maxsize=65536)
+        def shared_reference_position(position):
+            # Deep reads repeat the same coordinates millions of times. Share
+            # only immutable integers, not the lists or any read evidence.
+            # Bound the per-call cache for sparse/widely spliced inputs; it is
+            # discarded when collection finishes, including on exceptions.
+            return position
+
         # check overlap against wider overlap to make sure we don't miss
         # any reads
         base0_pos_before_start = max(0, base0_start_inclusive - 1)
@@ -747,6 +772,13 @@ class ReadCollector(object):
                 trimmed_alt=trimmed_alt,
             )
             if read is not None:
+                # Hooks may return read-like objects without coordinates.
+                positions = getattr(read, "reference_positions", None)
+                if type(positions) is list:
+                    # Keep the original list object, and leave custom sequence
+                    # types / non-builtin coordinate objects from hooks alone.
+                    positions[:] = [shared_reference_position(p) if type(p) is int else p
+                                    for p in positions]
                 reads.append(read)
         logger.info(
             "Kept %d/%d reads overlapping locus %s:%d-%d",

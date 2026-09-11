@@ -12,7 +12,7 @@ import pytest
 
 from isovar.allele_read import AlleleRead
 from isovar.variant_sequence import VariantSequence
-from tests.data.osteosarc.expansion import benchmark, performance_report
+from tests.data.osteosarc.expansion import benchmark, collection_benchmark, collection_report, performance_report
 from tests.data.osteosarc.expansion.inventory import write_json
 
 
@@ -156,6 +156,247 @@ def benchmark_pair(tmp_path):
         write_json(directory / "production.json", dict(wall_seconds=1))
     entries = [f"{p.name}={p}" for p in directories]
     return entries, directories
+
+
+@pytest.mark.parametrize("variant_id", ["ABCF2-chr7-151218156", "DYNC1H1-chr14-102030200"])
+@pytest.mark.parametrize("mode", ["defaults", "primary_only"])
+@pytest.mark.parametrize("allocations", [False, True])
+def test_collection_benchmark_preserves_original_evidence(benchmark_inputs, variant_id, mode, allocations):
+    case, args = benchmark_inputs(variant_id, mode)
+    args.allocations = allocations
+    collection_benchmark.run(args)
+    result = json.loads((args.output / "result.json").read_text())
+    identity = json.loads((args.output / "identity.json").read_text())
+    assert identity["allocation_instrumented"] is allocations
+    assert result["status"] == "ok"
+    assert result["counts"] == case[mode]["counts"]
+    assert result["locus_read_count"] >= result["allele_read_count"]
+    assert result["allele_read_count"] == sum(result["counts"]["read_objects"].values())
+    for key in ("locus_reads_sha256", "allele_reads_sha256"):
+        assert len(result[key]) == 64
+    for key in ("locus_collection_wall_seconds", "locus_collection_cpu_seconds",
+                "locus_collection_peak_rss_bytes", "post_collection_wall_seconds", "whole_process_peak_rss_bytes"):
+        assert result[key] >= 0
+    assert (args.output / "allocations.json").exists() is allocations
+    if allocations:
+        profile = json.loads((args.output / "allocations.json").read_text())
+        assert profile["stage"] == "before_mate_merging"
+        assert profile["locus_read_count"] >= result["locus_read_count"]
+        assert profile["traced_peak_bytes"] >= profile["traced_current_bytes"] > 0
+        assert profile["locations"]
+    assert not collection_benchmark.tracemalloc.is_tracing()
+
+
+def test_collection_benchmark_records_real_empty_bam_results(benchmark_inputs):
+    import pysam
+
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = False
+    source = args.destination / "alignments" / args.source_id
+    bam = source / "regions-GRCh38.bam"
+    with pysam.AlignmentFile(bam) as handle:
+        header = handle.header
+    # Only this test's staged copy becomes an empty, still-indexed BAM.
+    with pysam.AlignmentFile(bam, "wb", header=header):
+        pass
+    pysam.index(str(bam))
+    (source / "regions-GRCh38.json").write_text(json.dumps(dict(bam_sha256=benchmark.digest(bam))))
+    collection_benchmark.run(args)
+    result = json.loads((args.output / "result.json").read_text())
+    assert result["status"] == "ok"
+    assert result["locus_read_count"] == result["allele_read_count"] == 0
+    assert result["locus_reads_sha256"] == result["allele_reads_sha256"] == collection_benchmark.read_fingerprint([])
+    assert result["counts"]["reads"] == dict(ref=0, alt=0, other=0)
+
+
+def test_collection_profiler_stops_tracing_before_snapshot_analysis(benchmark_inputs, monkeypatch):
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = True
+    take_snapshot = collection_benchmark.take_snapshot
+    analyzed = []
+
+    def observed_snapshot():
+        assert collection_benchmark.tracemalloc.is_tracing()
+        # Only the benchmark's own name is patched, never the stdlib module.
+        assert collection_benchmark.tracemalloc.take_snapshot is take_snapshot
+        snapshot = take_snapshot()
+
+        class ObservedSnapshot:
+            def statistics(self, key):
+                assert not collection_benchmark.tracemalloc.is_tracing()
+                analyzed.append(key)
+                return snapshot.statistics(key)
+
+        return ObservedSnapshot()
+
+    monkeypatch.setattr(collection_benchmark, "take_snapshot", observed_snapshot)
+    collection_benchmark.run(args)
+    assert analyzed == ["lineno"]
+
+
+def test_collection_profiler_records_errors_and_restores_tracing(benchmark_inputs, monkeypatch):
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = True
+
+    def fail(*args, **kwargs):
+        assert collection_benchmark.tracemalloc.is_tracing()
+        raise ValueError("injected collection failure")
+
+    monkeypatch.setattr(collection_benchmark.ReadCollector, "get_locus_reads", fail)
+    with pytest.raises(ValueError, match="injected collection failure"):
+        collection_benchmark.run(args)
+    assert not collection_benchmark.tracemalloc.is_tracing()
+    result = json.loads((args.output / "result.json").read_text())
+    assert result["status"] == "error"
+    assert "injected collection failure" in result["error"]
+    assert "counts" not in result  # An incomplete collection is not zero evidence.
+
+
+def test_collection_error_after_counts_leaves_no_partial_evidence(benchmark_inputs, monkeypatch):
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = False
+    peak_rss_bytes = collection_benchmark.peak_rss_bytes
+    calls = []
+
+    def fail_after_counts():
+        calls.append(None)
+        if len(calls) == 2:  # The final whole-process peak, after counts exist.
+            raise KeyboardInterrupt
+        return peak_rss_bytes()
+
+    monkeypatch.setattr(collection_benchmark, "peak_rss_bytes", fail_after_counts)
+    with pytest.raises(KeyboardInterrupt):
+        collection_benchmark.run(args)
+    assert len(calls) == 2
+    result = json.loads((args.output / "result.json").read_text())
+    assert result == dict(status="error", error="KeyboardInterrupt: ")
+
+
+def test_collection_timeout_bounds_post_collection_work(benchmark_inputs, monkeypatch):
+    import signal
+
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = False
+    stages = []
+
+    def bounded(name, function):
+        def wrapped(*args, **kwargs):
+            assert signal.getitimer(signal.ITIMER_REAL)[0] > 0, f"{name} ran without a time limit"
+            stages.append(name)
+            return function(*args, **kwargs)
+        return wrapped
+
+    for name in ("read_fingerprint", "allele_reads_from_locus_reads", "counts_from_evidence"):
+        monkeypatch.setattr(collection_benchmark, name, bounded(name, getattr(collection_benchmark, name)))
+    collection_benchmark.run(args)
+    assert stages == ["read_fingerprint", "allele_reads_from_locus_reads", "read_fingerprint",
+                      "counts_from_evidence"]
+    assert signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0)
+
+
+@pytest.mark.parametrize("collection_fails", [True, False])
+def test_collection_record_write_failure_never_hides_the_outcome(
+        benchmark_inputs, monkeypatch, capsys, collection_fails):
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = False
+    write_json = collection_benchmark.write_json
+
+    def disk_full(path, value):
+        if path.name == "result.json":
+            raise OSError(28, "No space left on device")
+        return write_json(path, value)
+
+    def fail(*args, **kwargs):
+        raise ValueError("injected collection failure")
+
+    monkeypatch.setattr(collection_benchmark, "write_json", disk_full)
+    if collection_fails:
+        monkeypatch.setattr(collection_benchmark.ReadCollector, "get_locus_reads", fail)
+    with pytest.raises(ValueError if collection_fails else OSError):
+        collection_benchmark.run(args)
+    assert not (args.output / "result.json").exists()
+    record = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    assert record["status"] == ("error" if collection_fails else "ok")
+    assert ("counts" in record) is not collection_fails
+
+
+@pytest.mark.parametrize("timeout", [0, -1, float("inf"), float("nan"), 1801])
+def test_collection_benchmark_rejects_invalid_timeout(timeout):
+    with pytest.raises(ValueError, match="finite timeout"):
+        collection_benchmark.run(SimpleNamespace(timeout=timeout))
+
+
+def test_collection_fingerprint_preserves_all_fields_and_order():
+    from isovar.locus_read import LocusRead
+
+    read = LocusRead("read", "ACG", [10000, None, 10001], [30, 0, 40], 10001, 10001, 1, 2)
+    baseline = collection_benchmark.read_fingerprint([read])
+    assert collection_benchmark.read_fingerprint([deepcopy(read)]) == baseline
+    changes = dict(name="other", sequence="ATG", reference_positions=[10000, 10001, 10002],
+                   quality_scores=[31, 0, 40], source_read_count=2, reference_base0_start_inclusive=10000,
+                   reference_base0_end_exclusive=10002, read_base0_start_inclusive=0, read_base0_end_exclusive=3)
+    assert set(changes) == set(read._fields)
+    for field, value in changes.items():
+        changed = deepcopy(read)
+        setattr(changed, field, value)
+        assert collection_benchmark.read_fingerprint([changed]) != baseline
+        assert collection_benchmark.read_fingerprint([read, changed]) != collection_benchmark.read_fingerprint([changed, read])
+    assert collection_benchmark.read_fingerprint([read, read]) != baseline
+
+
+def collection_pair(tmp_path):
+    identity = dict(source_bam_sha256="source", receipt_sha256="receipt", input_bam_sha256="bam",
+                    input_index_sha256="index", inventory_sha256="inventory", benchmark_sha256="benchmark",
+                    variant_id="variant", mode="defaults", merge_overlapping_fragments=True,
+                    allocation_instrumented=False)
+    result = dict(status="ok", locus_reads_sha256="locus", allele_reads_sha256="alleles",
+                  locus_read_count=0, allele_read_count=0, counts={"alt": 0})
+    entries, directories = [], []
+    for label in ("before", "after"):
+        directory = tmp_path / label
+        directory.mkdir()
+        write_json(directory / "identity.json", dict(identity, source_files={"isovar/read_collector.py": label}))
+        write_json(directory / "result.json", result)
+        entries.append(f"{label}={directory}")
+        directories.append(directory)
+    return entries, directories
+
+
+def test_collection_comparison_accepts_complete_empty_results(tmp_path):
+    entries, _ = collection_pair(tmp_path)
+    result = collection_report.collect_runs(entries, ["before=after"])
+    assert result["comparisons"] == [dict(before="before", after="after", exact_locus_and_allele_reads=True,
+                                          allocation_instrumented=False)]
+
+
+def test_collection_comparison_rejects_runs_of_identical_sources(tmp_path):
+    entries, directories = collection_pair(tmp_path)
+    for pair in ("after=after", "before=before"):
+        with pytest.raises(ValueError, match="identical Isovar sources"):
+            collection_report.collect_runs(entries, [pair])
+    (directories[1] / "identity.json").write_text((directories[0] / "identity.json").read_text())
+    with pytest.raises(ValueError, match="identical Isovar sources"):
+        collection_report.collect_runs(entries, ["before=after"])
+
+
+@pytest.mark.parametrize("filename,key,value", [
+    ("identity", "source_bam_sha256", "different"), ("identity", "receipt_sha256", "different"),
+    ("identity", "input_bam_sha256", "different"), ("identity", "input_index_sha256", "different"),
+    ("identity", "inventory_sha256", "different"), ("identity", "benchmark_sha256", "different"),
+    ("identity", "variant_id", "different"),
+    ("identity", "mode", "primary_only"), ("identity", "merge_overlapping_fragments", False),
+    ("identity", "allocation_instrumented", True), ("result", "status", "error"),
+    ("result", "locus_reads_sha256", "different"), ("result", "allele_reads_sha256", "different"),
+    ("result", "locus_read_count", 1), ("result", "allele_read_count", 1), ("result", "counts", {"alt": 1}),
+])
+def test_collection_comparison_rejects_changed_or_incomplete_results(tmp_path, filename, key, value):
+    entries, directories = collection_pair(tmp_path)
+    path = directories[1] / (filename + ".json")
+    row = json.loads(path.read_text())
+    row[key] = value
+    path.write_text(json.dumps(row))
+    with pytest.raises(ValueError):
+        collection_report.collect_runs(entries, ["before=after"])
 
 
 def test_benchmark_comparison_validates_complete_outputs(tmp_path):
