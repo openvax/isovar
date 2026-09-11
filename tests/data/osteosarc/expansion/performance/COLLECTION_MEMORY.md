@@ -112,6 +112,8 @@ custom coordinate objects and sequence types returned by subclass hooks are
 left untouched. Cache eviction affects sharing only, never values or evidence.
 The cache is local to one call, not persistent collector state. No streaming
 API, compressed coordinate type, hook bypass, or mate-merging change is needed.
+Isovar 1.8.4 replaced this LRU with a per-call dict; the design, comparison and
+fresh full-depth measurements are in [`COORDINATE_SHARING.md`](COORDINATE_SHARING.md).
 
 Known limitation (#234): reads arrive in coordinate order, so a locus whose
 distinct coordinates exceed the 65,536-entry bound evicts entries the next read
@@ -119,6 +121,7 @@ needs. Ultra-long-read loci would then get little or no sharing while still
 paying for cache lookups. No recorded locus reaches that bound: the long-read
 DYNC1H1 and H1-2 collections above still fall by about 50% and 61%. Replacing
 the LRU changes the measured mechanism, so it requires re-running this evidence.
+Isovar 1.8.4 resolves this limitation, and that re-run is recorded separately.
 
 ## Validation follow-up (#233)
 
