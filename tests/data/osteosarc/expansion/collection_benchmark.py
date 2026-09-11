@@ -22,10 +22,14 @@ import isovar
 from isovar.allele_read_helpers import allele_reads_from_locus_reads
 from isovar.read_collector import ReadCollector
 from isovar.read_evidence import ReadEvidence
-from isovar.variant_helpers import trim_variant
+from isovar.variant_helpers import base0_interval_for_variant_fields, trim_variant
 from tests.data.osteosarc.expansion.benchmark import peak_rss_bytes
 from tests.data.osteosarc.expansion.inventory import digest, write_json
 from tests.data.osteosarc.expansion.runner import counts_from_evidence, primary_alignment, time_limit
+
+# Patch this module-level name in tests: rebinding tracemalloc.take_snapshot on
+# the stdlib module would replace it for every other test in the process.
+take_snapshot = tracemalloc.take_snapshot
 
 
 def read_fingerprint(reads):
@@ -60,7 +64,7 @@ def run(args):
     record = next(r for r in json.loads(inventory.read_text())["variants"] if r["variant_id"] == args.variant_id)
     variant = Variant(record["chrom"], record["pos"], record["ref"], record["alt"])
     position, ref, alt = trim_variant(variant)
-    start = position - 1 if ref else position
+    base0_start, base0_end = base0_interval_for_variant_fields(position, ref, alt)
     root = Path(isovar.__file__).resolve().parent.parent
     identity = dict(
         source_id=args.source_id, variant_id=args.variant_id, mode=args.mode,
@@ -80,7 +84,7 @@ def run(args):
             if args.allocations:
                 current, peak = tracemalloc.get_traced_memory()
                 overhead = tracemalloc.get_tracemalloc_memory()
-                snapshot = tracemalloc.take_snapshot()
+                snapshot = take_snapshot()
                 # Stop tracking before aggregating millions of trace entries:
                 # the analysis itself is not a collection allocation, and
                 # keeping tracer bookkeeping alive can exhaust host memory.
@@ -103,26 +107,34 @@ def run(args):
     try:
         if args.allocations:
             tracemalloc.start(1)
-        with time_limit(args.timeout), pysam.AlignmentFile(bam) as handle:
-            chromosome = ReadCollector._infer_chromosome_name(record["chrom"], handle.references)
-            if chromosome is None:
-                raise ValueError("Variant contig not present in source BAM")
-            reads = ProfiledCollector(merge_overlapping_fragments=True).get_locus_reads(
-                handle, chromosome, start, start + len(ref), position, ref, alt)
-        result.update(
-            locus_collection_wall_seconds=time.perf_counter() - collection_started,
-            locus_collection_cpu_seconds=time.process_time() - cpu_started,
-            locus_collection_peak_rss_bytes=peak_rss_bytes(), locus_read_count=len(reads))
-        # Fingerprinting and conversion are explicit post-collection work, not
-        # part of the collection measurement. The whole-process peak follows.
-        post_started = time.perf_counter()
-        result["locus_reads_sha256"] = read_fingerprint(reads)
-        allele_reads = allele_reads_from_locus_reads(reads)
-        result["allele_reads_sha256"] = read_fingerprint(allele_reads)
-        result["allele_read_count"] = len(allele_reads)
-        result["counts"] = counts_from_evidence(ReadEvidence.from_variant_and_allele_reads(variant, allele_reads))
-        result.update(status="ok", post_collection_wall_seconds=time.perf_counter() - post_started,
-                      whole_process_peak_rss_bytes=peak_rss_bytes())
+        # One budget bounds collection and the post-collection work after it;
+        # fingerprinting and conversion are themselves unbounded on deep loci.
+        with time_limit(args.timeout):
+            with pysam.AlignmentFile(bam) as handle:
+                chromosome = ReadCollector._infer_chromosome_name(record["chrom"], handle.references)
+                if chromosome is None:
+                    raise ValueError("Variant contig not present in source BAM")
+                reads = ProfiledCollector(merge_overlapping_fragments=True).get_locus_reads(
+                    handle, chromosome, base0_start, base0_end, position, ref, alt)
+            completed = dict(
+                locus_collection_wall_seconds=time.perf_counter() - collection_started,
+                locus_collection_cpu_seconds=time.process_time() - cpu_started,
+                locus_collection_peak_rss_bytes=peak_rss_bytes(), locus_read_count=len(reads))
+            # Fingerprinting and conversion are explicit post-collection work,
+            # not part of the collection measurement. The whole-process peak
+            # follows.
+            post_started = time.perf_counter()
+            completed["locus_reads_sha256"] = read_fingerprint(reads)
+            allele_reads = allele_reads_from_locus_reads(reads)
+            completed["allele_reads_sha256"] = read_fingerprint(allele_reads)
+            completed["allele_read_count"] = len(allele_reads)
+            completed["counts"] = counts_from_evidence(
+                ReadEvidence.from_variant_and_allele_reads(variant, allele_reads))
+            completed.update(post_collection_wall_seconds=time.perf_counter() - post_started,
+                             whole_process_peak_rss_bytes=peak_rss_bytes())
+        # Record completed evidence in one step: an interruption at any earlier
+        # point leaves an error record with no counts, never partial evidence.
+        result.update(completed, status="ok")
     except BaseException as error:
         result.update(status="error", error=f"{type(error).__name__}: {error}")
         raise

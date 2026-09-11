@@ -710,6 +710,20 @@ class ReadCollector(object):
         base0_end_exclusive : int
             End of genomic interval, base 0 and exclusive
 
+        Notes
+        -----
+        Deep loci repeat the same reference coordinate on millions of reads, so
+        before a read is returned the built-in integers in its
+        `reference_positions` list are replaced, in place, with shared equal
+        integers drawn from a cache local to this call. Coordinate values,
+        order and length are unchanged and each read keeps its own list object,
+        so equality, evidence and mutation of one read stay unaffected; only
+        object identity of equal coordinates changes. Subclasses that override
+        `locus_read_from_pysam_aligned_segment` and retain a reference to the
+        returned list will observe its integers substituted after this method
+        returns. Lists built by such a hook from a non-builtin sequence type,
+        and coordinate objects that are not exactly `int`, are left untouched.
+
         Returns a sequence of ReadAtLocus objects
         """
         logger.debug(

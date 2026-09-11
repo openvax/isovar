@@ -23,7 +23,10 @@ def collect_runs(entries, comparisons):
     for pair in comparisons:
         before, after = pair.split("=", 1)
         left, right = runs[before], runs[after]
-        for key in ("input_bam_sha256", "input_index_sha256", "inventory_sha256", "variant_id", "mode",
+        # Pin the measuring script and original acquisition as well as inputs:
+        # runs from different benchmark versions are not a valid comparison.
+        for key in ("source_bam_sha256", "receipt_sha256", "input_bam_sha256", "input_index_sha256",
+                    "inventory_sha256", "benchmark_sha256", "variant_id", "mode",
                     "merge_overlapping_fragments", "allocation_instrumented"):
             if left["identity"][key] != right["identity"][key]:
                 raise ValueError(f"Different collection inputs/instrumentation: {pair} {key}")
@@ -51,5 +54,6 @@ if __name__ == "__main__":
     output.mkdir(parents=True, exist_ok=False)
     write_json(output / "collection.json", collection)
     write_json(output / "pipeline.json", pipeline)
-    write_json(output / "manifest.json", dict(files={name: digest(output / name)
-                                                   for name in ("collection.json", "pipeline.json")}))
+    write_json(output / "manifest.json", dict(
+        files={name: digest(output / name) for name in ("collection.json", "pipeline.json")},
+        generator_sha256=digest(__file__)))

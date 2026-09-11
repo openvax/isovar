@@ -112,6 +112,13 @@ left untouched. Cache eviction affects sharing only, never values or evidence.
 The cache is local to one call, not persistent collector state. No streaming
 API, compressed coordinate type, hook bypass, or mate-merging change is needed.
 
+Known limitation (#234): reads arrive in coordinate order, so a locus whose
+distinct coordinates exceed the 65,536-entry bound evicts entries the next read
+needs. Ultra-long-read loci would then get little or no sharing while still
+paying for cache lookups. No recorded locus reaches that bound: the long-read
+DYNC1H1 and H1-2 collections above still fall by about 50% and 61%. Replacing
+the LRU changes the measured mechanism, so it requires re-running this evidence.
+
 ## Validation follow-up (#233)
 
 Full-suite scheduling exposed an existing fixture-identity collision: the
@@ -122,6 +129,7 @@ which dataset ran first. The offline reference loader now appends the pinned
 manifest digest to its runtime dataset name. Original assets/manifests remain
 unchanged; both loading orders and genuine gene lookups are tested. This
 repairs Isovar's ambiguous fixture identity, not Varcode's general cache.
+Moving the other offline reference names onto the same identity is #236.
 
 ## Evidence and interrupted attempts
 
@@ -143,6 +151,21 @@ It has no inferred counts or completion fingerprint. Its paired initial
 baseline remains as an unpaired observation. No source or partial output was
 deleted; fresh directories were used for all successful retries. A full test
 attempt during the disk-full condition was likewise discarded and rerun.
+
+Every run records the SHA-256 of the `collection_benchmark.py` that produced
+it, and the report requires both sides of a pair to match, along with the
+source BAM and acquisition receipt. The eight ordinary pairs and the
+interrupted profile ran the script from commit `c165e9c` (`a3ced87f…`). The
+instrumented T1 pair ran commit `1e47bd6` (`c2f7cd30…`), whose only change
+stops tracing before snapshot aggregation inside the `--allocations` branch,
+so it cannot affect uninstrumented runs. CI pins both digests. After review the
+shipped script was tightened further: one time limit now also bounds
+post-collection fingerprinting and conversion, a completed result is recorded
+in a single step so an interrupted run never carries counts, and the locus
+interval comes from Isovar's own helper. None of these changes alter a
+completed run's measured fields, but fresh runs record a new digest and cannot
+be paired with the recorded runs. Remaining fingerprint and variant
+construction gaps are tracked in #237.
 
 ## Reproduction
 
@@ -187,4 +210,7 @@ label=/absolute/run/directory`, and each completed pair as
 baseline_label=final_label`. `--output` must be a new directory. Comparisons
 fail on changed evidence, inputs or incomplete runs; an error record must
 never be paired as a successful empty result. Repackaging the same run
-directories must reproduce the checked-in JSON and manifest byte for byte.
+directories must reproduce the checked-in JSON and manifest byte for byte. The
+manifest pins the report generator's own digest, and CI checks it against the
+shipped `collection_report.py`, so a validator change must be repackaged or
+re-pinned in the same commit.

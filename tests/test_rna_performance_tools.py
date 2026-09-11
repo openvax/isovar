@@ -212,11 +212,13 @@ def test_collection_benchmark_records_real_empty_bam_results(benchmark_inputs):
 def test_collection_profiler_stops_tracing_before_snapshot_analysis(benchmark_inputs, monkeypatch):
     _, args = benchmark_inputs("ABCF2-chr7-151218156")
     args.allocations = True
-    take_snapshot = collection_benchmark.tracemalloc.take_snapshot
+    take_snapshot = collection_benchmark.take_snapshot
     analyzed = []
 
     def observed_snapshot():
         assert collection_benchmark.tracemalloc.is_tracing()
+        # Only the benchmark's own name is patched, never the stdlib module.
+        assert collection_benchmark.tracemalloc.take_snapshot is take_snapshot
         snapshot = take_snapshot()
 
         class ObservedSnapshot:
@@ -227,7 +229,7 @@ def test_collection_profiler_stops_tracing_before_snapshot_analysis(benchmark_in
 
         return ObservedSnapshot()
 
-    monkeypatch.setattr(collection_benchmark.tracemalloc, "take_snapshot", observed_snapshot)
+    monkeypatch.setattr(collection_benchmark, "take_snapshot", observed_snapshot)
     collection_benchmark.run(args)
     assert analyzed == ["lineno"]
 
@@ -248,6 +250,48 @@ def test_collection_profiler_records_errors_and_restores_tracing(benchmark_input
     assert result["status"] == "error"
     assert "injected collection failure" in result["error"]
     assert "counts" not in result  # An incomplete collection is not zero evidence.
+
+
+def test_collection_error_after_counts_leaves_no_partial_evidence(benchmark_inputs, monkeypatch):
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = False
+    peak_rss_bytes = collection_benchmark.peak_rss_bytes
+    calls = []
+
+    def fail_after_counts():
+        calls.append(None)
+        if len(calls) == 2:  # The final whole-process peak, after counts exist.
+            raise KeyboardInterrupt
+        return peak_rss_bytes()
+
+    monkeypatch.setattr(collection_benchmark, "peak_rss_bytes", fail_after_counts)
+    with pytest.raises(KeyboardInterrupt):
+        collection_benchmark.run(args)
+    assert len(calls) == 2
+    result = json.loads((args.output / "result.json").read_text())
+    assert result == dict(status="error", error="KeyboardInterrupt: ")
+
+
+def test_collection_timeout_bounds_post_collection_work(benchmark_inputs, monkeypatch):
+    import signal
+
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = False
+    stages = []
+
+    def bounded(name, function):
+        def wrapped(*args, **kwargs):
+            assert signal.getitimer(signal.ITIMER_REAL)[0] > 0, f"{name} ran without a time limit"
+            stages.append(name)
+            return function(*args, **kwargs)
+        return wrapped
+
+    for name in ("read_fingerprint", "allele_reads_from_locus_reads", "counts_from_evidence"):
+        monkeypatch.setattr(collection_benchmark, name, bounded(name, getattr(collection_benchmark, name)))
+    collection_benchmark.run(args)
+    assert stages == ["read_fingerprint", "allele_reads_from_locus_reads", "read_fingerprint",
+                      "counts_from_evidence"]
+    assert signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0)
 
 
 @pytest.mark.parametrize("timeout", [0, -1, float("inf"), float("nan"), 1801])
@@ -275,7 +319,8 @@ def test_collection_fingerprint_preserves_all_fields_and_order():
 
 
 def collection_pair(tmp_path):
-    identity = dict(input_bam_sha256="bam", input_index_sha256="index", inventory_sha256="inventory",
+    identity = dict(source_bam_sha256="source", receipt_sha256="receipt", input_bam_sha256="bam",
+                    input_index_sha256="index", inventory_sha256="inventory", benchmark_sha256="benchmark",
                     variant_id="variant", mode="defaults", merge_overlapping_fragments=True,
                     allocation_instrumented=False)
     result = dict(status="ok", locus_reads_sha256="locus", allele_reads_sha256="alleles",
@@ -299,8 +344,10 @@ def test_collection_comparison_accepts_complete_empty_results(tmp_path):
 
 
 @pytest.mark.parametrize("filename,key,value", [
+    ("identity", "source_bam_sha256", "different"), ("identity", "receipt_sha256", "different"),
     ("identity", "input_bam_sha256", "different"), ("identity", "input_index_sha256", "different"),
-    ("identity", "inventory_sha256", "different"), ("identity", "variant_id", "different"),
+    ("identity", "inventory_sha256", "different"), ("identity", "benchmark_sha256", "different"),
+    ("identity", "variant_id", "different"),
     ("identity", "mode", "primary_only"), ("identity", "merge_overlapping_fragments", False),
     ("identity", "allocation_instrumented", True), ("result", "status", "error"),
     ("result", "locus_reads_sha256", "different"), ("result", "allele_reads_sha256", "different"),

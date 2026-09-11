@@ -18,7 +18,13 @@ from tests.mock_objects import MockAlignmentFile, make_pysam_read
 
 
 class UnsharedCollector(ReadCollector):
-    """Frozen 1.8.2 collection loop, omitting only logging (not evidence logic)."""
+    """Frozen copy of the Isovar 1.8.2 collection loop, omitting only logging.
+
+    This is the differential baseline, not a mirror of the current collector.
+    Do not edit it to follow later ``ReadCollector.get_locus_reads`` changes:
+    a mismatch against it means collection behavior changed relative to 1.8.2,
+    and must be reviewed as such rather than hidden by updating this copy.
+    """
 
     def get_locus_reads(self, alignment_file, chromosome, base0_start_inclusive,
                         base0_end_exclusive, trimmed_base1_start=None, trimmed_ref=None, trimmed_alt=None):
@@ -37,6 +43,15 @@ class UnsharedCollector(ReadCollector):
         return self._merge_overlapping_locus_reads(reads) if self.merge_overlapping_fragments else reads
 
 
+def test_frozen_182_baseline_loop_is_unchanged():
+    """Editing the baseline must be a deliberate, reviewed change to this pin."""
+    import hashlib
+    import inspect
+
+    source = inspect.getsource(UnsharedCollector.get_locus_reads)
+    assert hashlib.sha256(source.encode()).hexdigest() == "1265dd36850d3bc525328201947ed2013b7df6f83b3b0b7fe58aedaeef0626af"
+
+
 def assert_same_reads(left, right):
     assert type(left) is type(right) is list
     assert left == right  # ValueObject compares every field and class, in order.
@@ -52,18 +67,17 @@ CASES = json.loads((CORPUS / "manifest.json").read_text())["cases"]
 @pytest.mark.parametrize("merge", [False, True])
 def test_original_locus_and_allele_reads_match_182(case, mode, merge):
     from varcode import Variant
-    from isovar.variant_helpers import trim_variant
+    from isovar.variant_helpers import base0_interval_for_variant_fields, trim_variant
 
     record = case["variant"]
-    variant = Variant(record["chrom"], record["pos"], record["ref"], record["alt"])
-    position, ref, alt = trim_variant(variant)
-    start = position - 1 if ref else position
+    position, ref, alt = trim_variant(Variant(record["chrom"], record["pos"], record["ref"], record["alt"]))
+    start, end = base0_interval_for_variant_fields(position, ref, alt)
     results = []
     for cls in (UnsharedCollector, ReadCollector):
         with pysam.AlignmentFile(CORPUS / case["bam" if mode == "defaults" else "primary_bam"]) as bam:
             chromosome = cls._infer_chromosome_name(record["chrom"], bam.references)
             results.append(cls(merge_overlapping_fragments=merge).get_locus_reads(
-                bam, chromosome, start, start + len(ref), position, ref, alt))
+                bam, chromosome, start, end, position, ref, alt))
     assert_same_reads(*results)
 
 

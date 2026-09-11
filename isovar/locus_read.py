@@ -64,6 +64,13 @@ class LocusRead(ValueObject):
             For every base in the sequence, which base-0 reference position
             does it map to, or None if the read base is an insertion or soft-clipped
 
+            `ReadCollector.get_locus_reads` replaces the built-in integers in
+            this list with shared equal integers before returning the read, so
+            equal coordinates on different reads of the same collection call
+            may be the same object. Values, order and length are unchanged, the
+            list object itself is preserved, and each read keeps its own list,
+            so mutating one read's coordinates never affects another.
+
         quality_scores : array of int
             Base qualities for every character in the sequence
 
