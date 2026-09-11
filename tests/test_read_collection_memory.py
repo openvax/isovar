@@ -1,19 +1,15 @@
-"""Exact collection comparisons and bounded, non-aliasing coordinate sharing."""
+"""Exact collection comparisons and per-call, non-aliasing coordinate sharing."""
 
-from functools import lru_cache
-import gc
 import json
 from pathlib import Path
 import random
 from types import SimpleNamespace
-import weakref
 
 import pysam
 import pytest
 
 from isovar.allele_read_helpers import allele_reads_from_locus_reads
 from isovar.read_collector import ReadCollector
-import isovar.read_collector as collector_module
 from tests.mock_objects import MockAlignmentFile, make_pysam_read
 
 
@@ -193,56 +189,46 @@ def test_hook_reads_without_coordinates_are_returned_untouched():
     assert [r.name for r in reads] == ["read-0", "read-1", "read-2"]
 
 
-@pytest.fixture
-def coordinate_caches(monkeypatch):
-    """Weak references to every coordinate cache the collector creates."""
-    caches = []
-
-    def observed_cache(**options):
-        def decorate(function):
-            wrapped = lru_cache(**options)(function)
-            caches.append(weakref.ref(wrapped))
-            return wrapped
-        return decorate
-
-    monkeypatch.setattr(collector_module, "lru_cache", observed_cache)
-    return caches
-
-
-def test_coordinate_cache_is_bounded_and_does_not_survive_collection(coordinate_caches):
-    caches, sizes = coordinate_caches, []
-
-    class ObservedCollector(ReadCollector):
-        @classmethod
-        def _merge_overlapping_locus_reads(cls, reads):
-            sizes.append(caches[-1]().cache_info())
-            return super()._merge_overlapping_locus_reads(reads)
-
-    collector = ObservedCollector(merge_overlapping_fragments=True)
-    length = 65540
-    sam = repeated_reads(n=2, length=length)
-    result = collector.get_locus_reads(sam, "1", 10005, 10006)
-    assert_same_reads(result, UnsharedCollector(merge_overlapping_fragments=True).get_locus_reads(
+def test_reads_longer_than_the_former_lru_bound_still_share_coordinates():
+    # Isovar 1.8.3 shared coordinates through a 65,536-entry LRU cache. Reads
+    # arrive in coordinate order, so once a locus exceeded the bound each lookup
+    # evicted an entry the next read needed and nothing was shared (#234).
+    length = 70000
+    sam = MockAlignmentFile(["1"], [make_pysam_read(
+        "A" * length, f"{length}M", name=f"read-{i}", reference_start=10000 + i) for i in range(3)])
+    reads = ReadCollector(merge_overlapping_fragments=False).get_locus_reads(sam, "1", 10005, 10006)
+    assert_same_reads(reads, UnsharedCollector(merge_overlapping_fragments=False).get_locus_reads(
         sam, "1", 10005, 10006))
-    assert sizes[0].currsize == sizes[0].maxsize == 65536
-    assert len(caches) == 1 and caches[0]() is None
-    assert collector.__dict__ == ReadCollector(merge_overlapping_fragments=True).__dict__
+    assert len(reads) == 3
+    first_seen = {}
+    for read in reads:
+        for position in read.reference_positions:
+            assert first_seen.setdefault(position, position) is position
+    assert len(first_seen) == length + 2
 
 
-def test_coordinate_cache_is_released_after_a_conversion_error(coordinate_caches):
-    caches = coordinate_caches
+def test_coordinate_sharing_is_local_to_each_call_even_after_an_error():
+    class_attributes = set(vars(ReadCollector))
+    converted = []
 
     class FailingCollector(ReadCollector):
         def locus_read_from_pysam_aligned_segment(self, read, *args, **kwargs):
             if read.query_name == "read-1":
-                assert caches[-1]().cache_info().currsize == 20
                 raise ValueError("conversion failure")
-            return super().locus_read_from_pysam_aligned_segment(read, *args, **kwargs)
+            locus_read = super().locus_read_from_pysam_aligned_segment(read, *args, **kwargs)
+            converted.append(locus_read)
+            return locus_read
 
+    collector = FailingCollector(merge_overlapping_fragments=True)
     with pytest.raises(ValueError, match="conversion failure"):
-        FailingCollector().get_locus_reads(repeated_reads(), "1", 10005, 10006)
-    gc.collect()
-    assert len(caches) == 1 and caches[0]() is None
+        collector.get_locus_reads(repeated_reads(), "1", 10005, 10006)
+    assert len(converted) == 1
+    later = ReadCollector().get_locus_reads(repeated_reads(), "1", 10005, 10006)
+    for read in later:
+        assert read.reference_positions == converted[0].reference_positions
+        assert all(a is not b for a, b in zip(read.reference_positions, converted[0].reference_positions))
+    assert collector.__dict__ == FailingCollector(merge_overlapping_fragments=True).__dict__
+    assert set(vars(ReadCollector)) == class_attributes
 
 
 def test_public_evidence_path_still_calls_each_existing_subclass_hook():
