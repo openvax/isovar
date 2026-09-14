@@ -158,7 +158,7 @@ def test_custom_position_sequences_from_hooks_are_not_modified(positions_type):
 
 
 def test_custom_integer_objects_from_hooks_keep_their_type_and_identity():
-    class Coordinate(int):
+    class IntSubclass(int):
         pass
 
     originals = []
@@ -166,12 +166,12 @@ def test_custom_integer_objects_from_hooks_keep_their_type_and_identity():
     class CustomCollector(ReadCollector):
         def locus_read_from_pysam_aligned_segment(self, *args, **kwargs):
             read = super().locus_read_from_pysam_aligned_segment(*args, **kwargs)
-            read.reference_positions[0] = Coordinate(read.reference_positions[0])
+            read.reference_positions[0] = IntSubclass(read.reference_positions[0])
             originals.append(read.reference_positions[0])
             return read
 
     reads = CustomCollector().get_locus_reads(repeated_reads(), "1", 10005, 10006)
-    assert all(r.reference_positions[0] is p and type(p) is Coordinate for r, p in zip(reads, originals))
+    assert all(r.reference_positions[0] is p and type(p) is IntSubclass for r, p in zip(reads, originals))
 
 
 def test_hook_reads_without_coordinates_are_returned_untouched():

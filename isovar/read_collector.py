@@ -279,11 +279,10 @@ class ReadCollector(object):
             )
             return None
 
-        # By default, AlignedSegment.get_reference_positions only returns base-1 positions
-        # from the reference that are within the alignment. If full_length is set,
-        # None values will be included for any soft-clipped or unaligned positions
-        # within the read. The returned list will thus be of the same
-        # length as the read.
+        # By default, AlignedSegment.get_reference_positions returns only the
+        # 0-based reference positions aligned to read bases. If full_length is
+        # set, None values are included for soft-clipped or unaligned read
+        # positions, so the returned list has the same length as the read.
         base0_reference_positions = pysam_aligned_segment.get_reference_positions(
             full_length=True
         )

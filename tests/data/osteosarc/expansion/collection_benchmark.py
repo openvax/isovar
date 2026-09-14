@@ -45,8 +45,8 @@ def fingerprint_fields(read):
 
     JSON writes a list, a tuple and an array identically, and an int subclass as
     a plain number, so types are recorded beside values: container types, array
-    typecodes, and the element types of other sequences. Mappings keep their
-    values, and unordered or ambiguously keyed collections fail closed.
+    typecodes, and each element type at its sequence position. Mappings keep
+    their values, and unordered or ambiguously keyed collections fail closed.
     """
     values = {}
     for name in read._fields:
@@ -68,7 +68,7 @@ def fingerprint_fields(read):
             if isinstance(value, array):
                 values[name + "_typecode"] = value.typecode
             else:
-                values[name + "_element_types"] = sorted(map(qualified_name, set(map(type, value))))
+                values[name + "_element_types"] = [qualified_name(type(element)) for element in value]
             values[name] = list(value)
     return values
 

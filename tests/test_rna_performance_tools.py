@@ -358,16 +358,17 @@ def test_collection_fingerprint_detects_sequence_container_changes(field, contai
     assert collection_benchmark.read_fingerprint([changed]) != collection_benchmark.read_fingerprint([read])
 
 
-class Coordinate(int):
+class IntSubclass(int):
     pass
 
 
 @pytest.mark.parametrize("field,original,changed", [
     ("name", {"a": 1}, {"a": 2}),
     ("quality_scores", array("B", [30, 0, 40]), array("i", [30, 0, 40])),
-    ("reference_positions", [10000, None, 10001], [Coordinate(10000), None, 10001]),
-    ("source_read_count", 1, Coordinate(1)),
-], ids=["mapping-values", "array-typecode", "element-type", "scalar-subclass"])
+    ("reference_positions", [10000, None, 10001], [IntSubclass(10000), None, 10001]),
+    ("reference_positions", [IntSubclass(10000), None, 10001], [10000, None, IntSubclass(10001)]),
+    ("source_read_count", 1, IntSubclass(1)),
+], ids=["mapping-values", "array-typecode", "element-type", "element-type-position", "scalar-subclass"])
 def test_collection_fingerprint_detects_value_and_representation_changes(field, original, changed):
     from isovar.locus_read import LocusRead
 
