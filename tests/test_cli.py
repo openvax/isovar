@@ -28,7 +28,7 @@ from isovar.cli.isovar_main import run as isovar_main
 from isovar.cli.rna_args import (
     allele_counts_dataframe_from_args,
     make_rna_reads_arg_parser,
-    variants_reads_dataframe_from_args,
+    variant_reads_dataframe_from_args,
 )
 
 vcf_args = [
@@ -108,6 +108,6 @@ def test_cli_main():
 
 def test_variant_reads_dataframe_helper():
     args = make_rna_reads_arg_parser().parse_args(args_with_bam)
-    df = variants_reads_dataframe_from_args(args)
+    df = variant_reads_dataframe_from_args(args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert len(df) == 42

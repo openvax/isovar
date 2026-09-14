@@ -65,41 +65,6 @@ def initial_variant_sequences_from_reads(
     ]
 
 
-def filter_variant_sequences_by_read_support(
-        variant_sequences,
-        min_variant_sequence_coverage):
-    """
-    Filter VariantSequences to only keep those with at least the desired
-    level of coverage.
-
-    Parameters
-    ----------
-    variant_sequences : list of VariantSequence
-
-    min_variant_sequence_coverage : int
-        Minimum number of reads which must cover each
-        base of a VariantSequence
-
-    Returns
-    -------
-    list of VariantSequence
-    """
-    n_total = len(variant_sequences)
-    variant_sequences = [
-        s
-        for s in variant_sequences
-        if s.min_coverage() >= min_variant_sequence_coverage
-    ]
-    n_dropped = n_total - len(variant_sequences)
-    if n_dropped > 0:
-        logger.info(
-            "Dropped %d/%d variant sequences less than %d supporting reads",
-            n_dropped,
-            n_total,
-            min_variant_sequence_coverage)
-    return variant_sequences
-
-
 def filter_variant_sequences_by_length(
         variant_sequences,
         preferred_sequence_length):
