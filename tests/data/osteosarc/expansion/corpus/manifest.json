@@ -853,10 +853,10 @@
         "stages": {
           "reference_context_count": 1,
           "reference_matching_rejected": 16,
-          "rna_candidate_count": 49,
+          "rna_candidate_count": 51,
           "stage": "independent_protein_validation",
-          "translation_count": 33,
-          "translations_with_mutation": 33
+          "translation_count": 35,
+          "translations_with_mutation": 35
         },
         "status": "ok"
       },
@@ -1004,10 +1004,10 @@
         "stages": {
           "reference_context_count": 1,
           "reference_matching_rejected": 16,
-          "rna_candidate_count": 49,
+          "rna_candidate_count": 51,
           "stage": "independent_protein_validation",
-          "translation_count": 33,
-          "translations_with_mutation": 33
+          "translation_count": 35,
+          "translations_with_mutation": 35
         },
         "status": "ok"
       },
@@ -5376,59 +5376,59 @@
         "passes_all_filters": true,
         "proteins": [
           {
-            "amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+            "amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
             "checks": [
               {
-                "expected_amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+                "expected_amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
                 "expected_stop": false,
-                "frame": 2,
+                "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 1115,
+                "protein_start_1based": 1106,
                 "protein_version": "ENSP00000253811.7",
                 "status": "ok",
                 "transcript_version": "ENST00000253811.10"
               },
               {
-                "expected_amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+                "expected_amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
                 "expected_stop": false,
-                "frame": 2,
+                "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 1159,
+                "protein_start_1based": 1150,
                 "protein_version": "ENSP00000373706.4",
                 "status": "ok",
                 "transcript_version": "ENST00000389054.7"
               },
               {
-                "expected_amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+                "expected_amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
                 "expected_stop": false,
-                "frame": 2,
+                "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 1150,
+                "protein_start_1based": 1141,
                 "protein_version": "ENSP00000373709.6",
                 "status": "ok",
                 "transcript_version": "ENST00000389057.9"
               },
               {
-                "expected_amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+                "expected_amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
                 "expected_stop": false,
-                "frame": 2,
+                "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 1159,
+                "protein_start_1based": 1150,
                 "protein_version": "ENSP00000381565.5",
                 "status": "ok",
                 "transcript_version": "ENST00000398557.8"
               },
               {
-                "expected_amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+                "expected_amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
                 "expected_stop": false,
-                "frame": 2,
+                "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 1150,
+                "protein_start_1based": 1141,
                 "protein_version": "ENSP00000428268.2",
                 "status": "ok",
                 "transcript_version": "ENST00000518047.5"
@@ -5437,15 +5437,15 @@
             "contains_mutation": true,
             "ends_with_stop_codon": false,
             "frameshift": false,
-            "length": 40,
+            "length": 49,
             "matches_expected": true,
-            "mutation_containing_peptide_windows": 16,
+            "mutation_containing_peptide_windows": 25,
             "mutation_interval": [
-              15,
-              16
+              24,
+              25
             ],
             "retained_cdna_min_coverages": [
-              5
+              3
             ],
             "supporting_read_names": [
               "A01231:888:HGH32DSXC:1:2414:24089:23703",
@@ -5460,21 +5460,20 @@
               "A01231:888:HGH32DSXC:4:1139:8332:12696",
               "A01231:888:HGH32DSXC:4:1218:7365:16063",
               "A01231:888:HGH32DSXC:4:1344:1985:25410",
-              "A01231:888:HGH32DSXC:4:1625:3703:10316",
               "A01231:888:HGH32DSXC:4:2659:28167:5274"
             ],
-            "supporting_reads": 21,
-            "supporting_template_names": 14,
+            "supporting_reads": 20,
+            "supporting_template_names": 13,
             "validation_status": "ok"
           }
         ],
         "stages": {
           "reference_context_count": 1,
           "reference_matching_rejected": 8,
-          "rna_candidate_count": 71,
+          "rna_candidate_count": 76,
           "stage": "independent_protein_validation",
-          "translation_count": 63,
-          "translations_with_mutation": 63
+          "translation_count": 68,
+          "translations_with_mutation": 68
         },
         "status": "ok"
       },
@@ -5561,59 +5560,59 @@
         "passes_all_filters": true,
         "proteins": [
           {
-            "amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+            "amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
             "checks": [
               {
-                "expected_amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+                "expected_amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
                 "expected_stop": false,
-                "frame": 2,
+                "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 1115,
+                "protein_start_1based": 1106,
                 "protein_version": "ENSP00000253811.7",
                 "status": "ok",
                 "transcript_version": "ENST00000253811.10"
               },
               {
-                "expected_amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+                "expected_amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
                 "expected_stop": false,
-                "frame": 2,
+                "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 1159,
+                "protein_start_1based": 1150,
                 "protein_version": "ENSP00000373706.4",
                 "status": "ok",
                 "transcript_version": "ENST00000389054.7"
               },
               {
-                "expected_amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+                "expected_amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
                 "expected_stop": false,
-                "frame": 2,
+                "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 1150,
+                "protein_start_1based": 1141,
                 "protein_version": "ENSP00000373709.6",
                 "status": "ok",
                 "transcript_version": "ENST00000389057.9"
               },
               {
-                "expected_amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+                "expected_amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
                 "expected_stop": false,
-                "frame": 2,
+                "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 1159,
+                "protein_start_1based": 1150,
                 "protein_version": "ENSP00000381565.5",
                 "status": "ok",
                 "transcript_version": "ENST00000398557.8"
               },
               {
-                "expected_amino_acids": "EEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
+                "expected_amino_acids": "KENQKRRETEEKMRRAKLAKEKAENERLEKQQKREQLIDMNAEGDETGV",
                 "expected_stop": false,
-                "frame": 2,
+                "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 1150,
+                "protein_start_1based": 1141,
                 "protein_version": "ENSP00000428268.2",
                 "status": "ok",
                 "transcript_version": "ENST00000518047.5"
@@ -5622,15 +5621,15 @@
             "contains_mutation": true,
             "ends_with_stop_codon": false,
             "frameshift": false,
-            "length": 40,
+            "length": 49,
             "matches_expected": true,
-            "mutation_containing_peptide_windows": 16,
+            "mutation_containing_peptide_windows": 25,
             "mutation_interval": [
-              15,
-              16
+              24,
+              25
             ],
             "retained_cdna_min_coverages": [
-              5
+              3
             ],
             "supporting_read_names": [
               "A01231:888:HGH32DSXC:1:2414:24089:23703",
@@ -5645,21 +5644,20 @@
               "A01231:888:HGH32DSXC:4:1139:8332:12696",
               "A01231:888:HGH32DSXC:4:1218:7365:16063",
               "A01231:888:HGH32DSXC:4:1344:1985:25410",
-              "A01231:888:HGH32DSXC:4:1625:3703:10316",
               "A01231:888:HGH32DSXC:4:2659:28167:5274"
             ],
-            "supporting_reads": 21,
-            "supporting_template_names": 14,
+            "supporting_reads": 20,
+            "supporting_template_names": 13,
             "validation_status": "ok"
           }
         ],
         "stages": {
           "reference_context_count": 1,
           "reference_matching_rejected": 8,
-          "rna_candidate_count": 71,
+          "rna_candidate_count": 76,
           "stage": "independent_protein_validation",
-          "translation_count": 63,
-          "translations_with_mutation": 63
+          "translation_count": 68,
+          "translations_with_mutation": 68
         },
         "status": "ok"
       },
@@ -6765,15 +6763,15 @@
         "passes_all_filters": true,
         "proteins": [
           {
-            "amino_acids": "VKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
+            "amino_acids": "MVKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
             "checks": [
               {
-                "expected_amino_acids": "VKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
+                "expected_amino_acids": "MVKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
                 "expected_stop": false,
                 "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 3244,
+                "protein_start_1based": 3243,
                 "protein_version": "ENSP00000348965.4",
                 "status": "ok",
                 "transcript_version": "ENST00000360184.8"
@@ -6782,12 +6780,12 @@
             "contains_mutation": true,
             "ends_with_stop_codon": false,
             "frameshift": false,
-            "length": 48,
+            "length": 49,
             "matches_expected": true,
-            "mutation_containing_peptide_windows": 24,
+            "mutation_containing_peptide_windows": 25,
             "mutation_interval": [
-              23,
-              24
+              24,
+              25
             ],
             "retained_cdna_min_coverages": [
               11
@@ -6834,10 +6832,10 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 123,
+          "rna_candidate_count": 124,
           "stage": "independent_protein_validation",
-          "translation_count": 123,
-          "translations_with_mutation": 123
+          "translation_count": 124,
+          "translations_with_mutation": 124
         },
         "status": "ok"
       },
@@ -6924,15 +6922,15 @@
         "passes_all_filters": true,
         "proteins": [
           {
-            "amino_acids": "VKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
+            "amino_acids": "MVKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
             "checks": [
               {
-                "expected_amino_acids": "VKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
+                "expected_amino_acids": "MVKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
                 "expected_stop": false,
                 "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 3244,
+                "protein_start_1based": 3243,
                 "protein_version": "ENSP00000348965.4",
                 "status": "ok",
                 "transcript_version": "ENST00000360184.8"
@@ -6941,12 +6939,12 @@
             "contains_mutation": true,
             "ends_with_stop_codon": false,
             "frameshift": false,
-            "length": 48,
+            "length": 49,
             "matches_expected": true,
-            "mutation_containing_peptide_windows": 24,
+            "mutation_containing_peptide_windows": 25,
             "mutation_interval": [
-              23,
-              24
+              24,
+              25
             ],
             "retained_cdna_min_coverages": [
               11
@@ -6993,10 +6991,10 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 123,
+          "rna_candidate_count": 124,
           "stage": "independent_protein_validation",
-          "translation_count": 123,
-          "translations_with_mutation": 123
+          "translation_count": 124,
+          "translations_with_mutation": 124
         },
         "status": "ok"
       },
@@ -9732,10 +9730,10 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 37,
+          "rna_candidate_count": 38,
           "stage": "independent_protein_validation",
-          "translation_count": 37,
-          "translations_with_mutation": 37
+          "translation_count": 38,
+          "translations_with_mutation": 38
         },
         "status": "ok"
       },
@@ -9879,10 +9877,10 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 37,
+          "rna_candidate_count": 38,
           "stage": "independent_protein_validation",
-          "translation_count": 37,
-          "translations_with_mutation": 37
+          "translation_count": 38,
+          "translations_with_mutation": 38
         },
         "status": "ok"
       },
@@ -14850,7 +14848,7 @@
       "bam": "25-NAV2-chr11-20080142-8fda918141cedf55.bam",
       "case_id": "25-NAV2-chr11-20080142-8fda918141cedf55",
       "defaults": {
-        "all_ranked_match_expected": true,
+        "all_ranked_match_expected": false,
         "counts": {
           "all_template_names": 32,
           "read_objects": {
@@ -14887,14 +14885,14 @@
           "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": true
         },
-        "outcome": "expected_top_protein",
+        "outcome": "different_top_protein",
         "passes_all_filters": true,
         "proteins": [
           {
-            "amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+            "amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWV",
             "checks": [
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWV",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
@@ -14905,7 +14903,7 @@
                 "transcript_version": "ENST00000527559.6"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWV",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
@@ -14916,7 +14914,7 @@
                 "transcript_version": "ENST00000540292.5"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWV",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
@@ -14927,7 +14925,7 @@
                 "transcript_version": "ENST00000396085.5"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWV",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
@@ -14938,33 +14936,33 @@
                 "transcript_version": "ENST00000396087.7"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWL",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
-                "matches_expected": true,
+                "matches_expected": false,
                 "protein_start_1based": 1729,
                 "protein_version": "ENSP00000309577.6",
                 "status": "ok",
                 "transcript_version": "ENST00000349880.8"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWL",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
-                "matches_expected": true,
+                "matches_expected": false,
                 "protein_start_1based": 1665,
                 "protein_version": "ENSP00000353871.4",
                 "status": "ok",
                 "transcript_version": "ENST00000360655.8"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWL",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
-                "matches_expected": true,
+                "matches_expected": false,
                 "protein_start_1based": 793,
                 "protein_version": "ENSP00000437316.1",
                 "status": "ok",
@@ -14974,15 +14972,15 @@
             "contains_mutation": true,
             "ends_with_stop_codon": false,
             "frameshift": false,
-            "length": 47,
-            "matches_expected": true,
-            "mutation_containing_peptide_windows": 23,
+            "length": 48,
+            "matches_expected": false,
+            "mutation_containing_peptide_windows": 24,
             "mutation_interval": [
               24,
               25
             ],
             "retained_cdna_min_coverages": [
-              6
+              2
             ],
             "supporting_read_names": [
               "LH00306:228:22KJT5LT4:7:1150:7676:5440",
@@ -15007,10 +15005,10 @@
         ],
         "stages": {
           "reference_context_count": 3,
-          "rna_candidate_count": 54,
+          "rna_candidate_count": 55,
           "stage": "independent_protein_validation",
-          "translation_count": 162,
-          "translations_with_mutation": 162
+          "translation_count": 165,
+          "translations_with_mutation": 165
         },
         "status": "ok"
       },
@@ -15058,7 +15056,7 @@
       },
       "primary_bam": "25-NAV2-chr11-20080142-8fda918141cedf55.primary.bam",
       "primary_only": {
-        "all_ranked_match_expected": true,
+        "all_ranked_match_expected": false,
         "counts": {
           "all_template_names": 32,
           "read_objects": {
@@ -15095,14 +15093,14 @@
           "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": true
         },
-        "outcome": "expected_top_protein",
+        "outcome": "different_top_protein",
         "passes_all_filters": true,
         "proteins": [
           {
-            "amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+            "amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWV",
             "checks": [
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWV",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
@@ -15113,7 +15111,7 @@
                 "transcript_version": "ENST00000527559.6"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWV",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
@@ -15124,7 +15122,7 @@
                 "transcript_version": "ENST00000540292.5"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWV",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
@@ -15135,7 +15133,7 @@
                 "transcript_version": "ENST00000396085.5"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWV",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
@@ -15146,33 +15144,33 @@
                 "transcript_version": "ENST00000396087.7"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWL",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
-                "matches_expected": true,
+                "matches_expected": false,
                 "protein_start_1based": 1729,
                 "protein_version": "ENSP00000309577.6",
                 "status": "ok",
                 "transcript_version": "ENST00000349880.8"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWL",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
-                "matches_expected": true,
+                "matches_expected": false,
                 "protein_start_1based": 1665,
                 "protein_version": "ENSP00000353871.4",
                 "status": "ok",
                 "transcript_version": "ENST00000360655.8"
               },
               {
-                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNW",
+                "expected_amino_acids": "GTAQSADLRIRRQHSSDSVSSINSVTSHSSVGSNIESDSKKKKRKNWL",
                 "expected_stop": false,
                 "frame": 1,
                 "genetic_code": 1,
-                "matches_expected": true,
+                "matches_expected": false,
                 "protein_start_1based": 793,
                 "protein_version": "ENSP00000437316.1",
                 "status": "ok",
@@ -15182,15 +15180,15 @@
             "contains_mutation": true,
             "ends_with_stop_codon": false,
             "frameshift": false,
-            "length": 47,
-            "matches_expected": true,
-            "mutation_containing_peptide_windows": 23,
+            "length": 48,
+            "matches_expected": false,
+            "mutation_containing_peptide_windows": 24,
             "mutation_interval": [
               24,
               25
             ],
             "retained_cdna_min_coverages": [
-              6
+              2
             ],
             "supporting_read_names": [
               "LH00306:228:22KJT5LT4:7:1150:7676:5440",
@@ -15215,10 +15213,10 @@
         ],
         "stages": {
           "reference_context_count": 3,
-          "rna_candidate_count": 54,
+          "rna_candidate_count": 55,
           "stage": "independent_protein_validation",
-          "translation_count": 162,
-          "translations_with_mutation": 162
+          "translation_count": 165,
+          "translations_with_mutation": 165
         },
         "status": "ok"
       },
@@ -21004,10 +21002,10 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 111,
+          "rna_candidate_count": 114,
           "stage": "independent_protein_validation",
-          "translation_count": 111,
-          "translations_with_mutation": 111
+          "translation_count": 114,
+          "translations_with_mutation": 114
         },
         "status": "ok"
       },
@@ -21177,10 +21175,10 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 111,
+          "rna_candidate_count": 114,
           "stage": "independent_protein_validation",
-          "translation_count": 111,
-          "translations_with_mutation": 111
+          "translation_count": 114,
+          "translations_with_mutation": 114
         },
         "status": "ok"
       },
@@ -22500,15 +22498,15 @@
         "passes_all_filters": true,
         "proteins": [
           {
-            "amino_acids": "SSWSLLDTPGEVVQISCGPHDLLWAHSGRDRPWSGK",
+            "amino_acids": "DTPGEVVQISCGPHDLLWAHSGRDRPWSGKESTGAIP",
             "checks": [
               {
-                "expected_amino_acids": "SSWSLLDTPGEVVQISCGPHDLLWAHSGRDRPWSGK",
+                "expected_amino_acids": "DTPGEVVQISCGPHDLLWAHSGRDRPWSGKESTGAIP",
                 "expected_stop": false,
                 "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 234,
+                "protein_start_1based": 240,
                 "protein_version": "ENSP00000404923.2",
                 "status": "ok",
                 "transcript_version": "ENST00000447648.6"
@@ -22517,15 +22515,15 @@
             "contains_mutation": true,
             "ends_with_stop_codon": false,
             "frameshift": true,
-            "length": 36,
+            "length": 37,
             "matches_expected": true,
-            "mutation_containing_peptide_windows": 12,
+            "mutation_containing_peptide_windows": 13,
             "mutation_interval": [
-              24,
-              36
+              18,
+              37
             ],
             "retained_cdna_min_coverages": [
-              8
+              5
             ],
             "supporting_read_names": [
               "LH00306:228:22KJT5LT4:7:1128:4577:13663",
@@ -22550,10 +22548,10 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 38,
+          "rna_candidate_count": 44,
           "stage": "independent_protein_validation",
-          "translation_count": 38,
-          "translations_with_mutation": 38
+          "translation_count": 44,
+          "translations_with_mutation": 44
         },
         "status": "ok"
       },
@@ -22640,15 +22638,15 @@
         "passes_all_filters": true,
         "proteins": [
           {
-            "amino_acids": "SSWSLLDTPGEVVQISCGPHDLLWAHSGRDRPWSGK",
+            "amino_acids": "DTPGEVVQISCGPHDLLWAHSGRDRPWSGKESTGAIP",
             "checks": [
               {
-                "expected_amino_acids": "SSWSLLDTPGEVVQISCGPHDLLWAHSGRDRPWSGK",
+                "expected_amino_acids": "DTPGEVVQISCGPHDLLWAHSGRDRPWSGKESTGAIP",
                 "expected_stop": false,
                 "frame": 0,
                 "genetic_code": 1,
                 "matches_expected": true,
-                "protein_start_1based": 234,
+                "protein_start_1based": 240,
                 "protein_version": "ENSP00000404923.2",
                 "status": "ok",
                 "transcript_version": "ENST00000447648.6"
@@ -22657,15 +22655,15 @@
             "contains_mutation": true,
             "ends_with_stop_codon": false,
             "frameshift": true,
-            "length": 36,
+            "length": 37,
             "matches_expected": true,
-            "mutation_containing_peptide_windows": 12,
+            "mutation_containing_peptide_windows": 13,
             "mutation_interval": [
-              24,
-              36
+              18,
+              37
             ],
             "retained_cdna_min_coverages": [
-              8
+              5
             ],
             "supporting_read_names": [
               "LH00306:228:22KJT5LT4:7:1128:4577:13663",
@@ -22690,10 +22688,10 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 38,
+          "rna_candidate_count": 44,
           "stage": "independent_protein_validation",
-          "translation_count": 38,
-          "translations_with_mutation": 38
+          "translation_count": 44,
+          "translations_with_mutation": 44
         },
         "status": "ok"
       },
@@ -28190,10 +28188,10 @@
         "stages": {
           "reference_context_count": 1,
           "reference_matching_rejected": 8,
-          "rna_candidate_count": 106,
+          "rna_candidate_count": 109,
           "stage": "independent_protein_validation",
-          "translation_count": 98,
-          "translations_with_mutation": 98
+          "translation_count": 101,
+          "translations_with_mutation": 101
         },
         "status": "ok"
       },
@@ -28336,10 +28334,10 @@
         "stages": {
           "reference_context_count": 1,
           "reference_matching_rejected": 8,
-          "rna_candidate_count": 106,
+          "rna_candidate_count": 109,
           "stage": "independent_protein_validation",
-          "translation_count": 98,
-          "translations_with_mutation": 98
+          "translation_count": 101,
+          "translations_with_mutation": 101
         },
         "status": "ok"
       },

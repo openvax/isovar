@@ -13,6 +13,7 @@
 
 from ..default_parameters import (
     MIN_VARIANT_SEQUENCE_COVERAGE,
+    VARIANT_SEQUENCE_ASSEMBLY,
     VARIANT_SEQUENCE_LENGTH,
 )
 from .rna_args import make_rna_reads_arg_parser
@@ -34,7 +35,7 @@ def add_variant_sequence_args(
     rna_sequence_group.add_argument(
         "--disable-variant-sequence-assembly",
         dest="variant_sequence_assembly",
-        default=True,
+        default=VARIANT_SEQUENCE_ASSEMBLY,
         action="store_false",
         help="Disable assemble variant cDNA sequence from overlapping reads")
 

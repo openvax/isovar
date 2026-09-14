@@ -76,7 +76,7 @@ MAX_PROTEIN_SEQUENCES_PER_VARIANT = 1
 # run overlap assembly algorithm to construct variant
 # sequences from multiple reads which only partially
 # overlap (rather than fully spanning a coding sequence)
-VARIANT_SEQUENCE_ASSEMBLY = False
+VARIANT_SEQUENCE_ASSEMBLY = True
 
 # Only merge variant cDNA sequences which at least share
 # this number of nucleotides. Should be sufficiently high

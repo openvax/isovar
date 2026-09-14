@@ -137,8 +137,8 @@ def test_corpus_scope_contains_every_vaccine_locus_and_explicit_negative_example
     outcomes = Counter(c["defaults"]["outcome"] for c in cohort)
     assert outcomes["no_alt_reads"] == 2
     assert outcomes["no_rna_candidate"] == 4
-    assert outcomes["different_top_protein"] == 1
-    assert outcomes["expected_top_protein"] == 37
+    assert outcomes["different_top_protein"] == 2
+    assert outcomes["expected_top_protein"] == 36
 
 
 def test_real_mitochondrial_window_requires_table_two(cohort_references):

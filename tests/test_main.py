@@ -10,7 +10,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from isovar import run_isovar, isovar_results_to_dataframe
+from isovar import ProteinSequenceCreator, run_isovar, isovar_results_to_dataframe
+from isovar.cli.variant_sequences_args import make_variant_sequences_arg_parser
+from isovar.variant_sequence_creator import VariantSequenceCreator
 from .common import eq_
 from .testing_helpers import data_path
 
@@ -34,3 +36,22 @@ def test_run_isovar_docstring_uses_current_filter_api_names():
     assert "filter_values_dict" not in doc
     assert '"not_has_mutant_protein_sequence_from_rna"' in doc
     assert '"not_has_protein_sequence"' not in doc
+
+
+def test_python_and_cli_enable_variant_sequence_assembly_by_default():
+    protein_creator = ProteinSequenceCreator()
+    variant_creator = VariantSequenceCreator()
+    cli_args = make_variant_sequences_arg_parser().parse_args(["--bam", "unused.bam"])
+
+    assert protein_creator.variant_sequence_assembly is True
+    assert variant_creator.variant_sequence_assembly is True
+    assert cli_args.variant_sequence_assembly is True
+
+
+def test_cli_can_disable_variant_sequence_assembly():
+    cli_args = make_variant_sequences_arg_parser().parse_args([
+        "--bam", "unused.bam",
+        "--disable-variant-sequence-assembly",
+    ])
+
+    assert cli_args.variant_sequence_assembly is False
