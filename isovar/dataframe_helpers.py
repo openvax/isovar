@@ -200,20 +200,6 @@ def translations_generator_to_dataframe(translations_generator):
         })
 
 
-def read_evidence_generator_to_dataframe(read_evidence_generator):
-    """
-    Create a DataFrame from generator of (Variant, ReadEvidence) pairs.
-    """
-    return dataframe_from_generator(
-        element_class=ReadEvidence,
-        variant_and_elements_generator=read_evidence_generator,
-        converters={
-            "ref_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
-            "alt_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
-            "other_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
-        })
-
-
 def isovar_results_to_dataframe(isovar_results):
     """
     Create a DataFrame from a sequence of IsovarResult objects.

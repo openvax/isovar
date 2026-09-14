@@ -24,7 +24,6 @@ from ..read_collector import ReadCollector
 from ..dataframe_helpers import (
     allele_counts_dataframe,
     allele_reads_to_dataframe,
-    read_evidence_generator_to_dataframe,
 )
 
 
@@ -156,14 +155,6 @@ def allele_reads_generator_from_args(args):
         )
 
 
-def read_evidence_dataframe_from_args(args):
-    """
-    Collect ReadEvidence for each variant and turn them into a DataFrame
-    """
-    return read_evidence_generator_to_dataframe(
-        read_evidence_generator_from_args(args))
-
-
 def allele_counts_dataframe_from_args(args):
     """
     Collect read and fragment counts for each variant and turn them into a
@@ -188,10 +179,3 @@ def variant_reads_dataframe_from_args(args):
     """
     return allele_reads_to_dataframe(
         variant_reads_generator_from_args(args))
-
-
-def variants_reads_dataframe_from_args(args):
-    """
-    Collect variant reads for each variant and turn them into a DataFrame
-    """
-    return variant_reads_dataframe_from_args(args)
