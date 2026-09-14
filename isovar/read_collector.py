@@ -11,7 +11,6 @@
 # limitations under the License.
 
 from collections import defaultdict
-from functools import lru_cache
 from itertools import groupby
 
 from .default_parameters import (
@@ -280,11 +279,10 @@ class ReadCollector(object):
             )
             return None
 
-        # By default, AlignedSegment.get_reference_positions only returns base-1 positions
-        # from the reference that are within the alignment. If full_length is set,
-        # None values will be included for any soft-clipped or unaligned positions
-        # within the read. The returned list will thus be of the same
-        # length as the read.
+        # By default, AlignedSegment.get_reference_positions returns only the
+        # 0-based reference positions aligned to read bases. If full_length is
+        # set, None values are included for soft-clipped or unaligned read
+        # positions, so the returned list has the same length as the read.
         base0_reference_positions = pysam_aligned_segment.get_reference_positions(
             full_length=True
         )
@@ -735,14 +733,14 @@ class ReadCollector(object):
         )
         reads = []
         total_count = 0
-
-        @lru_cache(maxsize=65536)
-        def shared_reference_position(position):
-            # Deep reads repeat the same coordinates millions of times. Share
-            # only immutable integers, not the lists or any read evidence.
-            # Bound the per-call cache for sparse/widely spliced inputs; it is
-            # discarded when collection finishes, including on exceptions.
-            return position
+        # Deep reads repeat the same coordinates millions of times. Share only
+        # immutable integers, never lists or read evidence, through a cache
+        # local to this call. Every cached integer is already held by a read,
+        # so the cache adds only table slots, and its size is bounded by the
+        # reference span of reads at this locus. A fixed-size LRU cache shared
+        # nothing once that span exceeded its bound (#234).
+        shared_positions = {}
+        share_position = shared_positions.setdefault
 
         # check overlap against wider overlap to make sure we don't miss
         # any reads
@@ -777,7 +775,7 @@ class ReadCollector(object):
                 if type(positions) is list:
                     # Keep the original list object, and leave custom sequence
                     # types / non-builtin coordinate objects from hooks alone.
-                    positions[:] = [shared_reference_position(p) if type(p) is int else p
+                    positions[:] = [share_position(p, p) if type(p) is int else p
                                     for p in positions]
                 reads.append(read)
         logger.info(

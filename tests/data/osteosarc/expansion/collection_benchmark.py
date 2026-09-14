@@ -6,6 +6,8 @@ RNA/protein benchmarks use the separate existing ``benchmark`` command.
 """
 
 import argparse
+from array import array
+from collections.abc import Mapping
 from hashlib import sha256
 import json
 import logging
@@ -31,16 +33,52 @@ from tests.data.osteosarc.expansion.runner import counts_from_evidence, primary_
 # Patch this module-level name in tests: rebinding tracemalloc.take_snapshot on
 # the stdlib module would replace it for every other test in the process.
 take_snapshot = tracemalloc.take_snapshot
+BUILTIN_SCALARS = (str, int, float, bool, type(None))
+
+
+def qualified_name(kind):
+    return f"{kind.__module__}.{kind.__qualname__}"
+
+
+def fingerprint_fields(read):
+    """JSON-ready fields that keep every value and its representation explicit.
+
+    JSON writes a list, a tuple and an array identically, and an int subclass as
+    a plain number, so types are recorded beside values: container types, array
+    typecodes, and each element type at its sequence position. Mappings keep
+    their values, and unordered or ambiguously keyed collections fail closed.
+    """
+    values = {}
+    for name in read._fields:
+        value = getattr(read, name)
+        kind = type(value)
+        if kind in BUILTIN_SCALARS:
+            values[name] = value
+            continue
+        values[name + "_type"] = qualified_name(kind)
+        if isinstance(value, BUILTIN_SCALARS):
+            values[name] = value  # A scalar subclass, identified by its recorded type.
+        elif isinstance(value, (set, frozenset)):
+            raise TypeError(f"Cannot fingerprint unordered field {name!r}")
+        elif isinstance(value, Mapping):
+            if any(type(key) is not str for key in value):
+                raise TypeError(f"Cannot fingerprint mapping field {name!r} with non-string keys")
+            values[name] = dict(value)
+        else:
+            if isinstance(value, array):
+                values[name + "_typecode"] = value.typecode
+            else:
+                values[name + "_element_types"] = [qualified_name(type(element)) for element in value]
+            values[name] = list(value)
+    return values
 
 
 def read_fingerprint(reads):
     """Hash every field in every original object, preserving order/multiplicity."""
     checksum = sha256()
     for read in reads:
-        values = {name: getattr(read, name) for name in read._fields}
-        if "quality_scores" in values:
-            values["quality_scores"] = list(values["quality_scores"])
-        checksum.update(json.dumps(values, sort_keys=True, separators=(",", ":")).encode() + b"\n")
+        fields = json.dumps(fingerprint_fields(read), sort_keys=True, separators=(",", ":"))
+        checksum.update(fields.encode() + b"\n")
     return checksum.hexdigest()
 
 
