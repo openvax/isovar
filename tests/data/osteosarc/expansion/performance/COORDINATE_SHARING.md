@@ -16,30 +16,6 @@ the reads at that locus rather than by a fixed count. Coordinate values, order
 and list objects, hook calls, mate merging and evidence are unchanged. Only
 the mechanism that finds the shared integer differs.
 
-## Table size and when sharing pays
-
-The table holds one entry per distinct aligned coordinate at the locus. A
-CPython dict costs 42–56 bytes per entry at these sizes, and sharing saves the
-28 bytes of each duplicate integer it removes, so the table pays for itself
-once a coordinate recurs about 2.5 times on average. Unlike the 65,536-entry
-LRU it replaces, it has no fixed cap, so that trade-off is worth stating.
-
-At the deepest recorded locus, EXOC4 in the T3 tagged source, 2,370 reads make
-3,326,558 lookups over 46,702 distinct coordinates, an average multiplicity of
-71. Its table costs 2.0 MB and avoids about 92 MB of duplicate integers. In the
-scan below, 475 of 4,563 nuclear source/locus pairs fall below the break-even
-multiplicity, but their largest table is 0.25 MB: low multiplicity means few
-reads, which means few coordinates.
-
-The table cannot exceed the union of aligned positions of the reads overlapping
-the locus, which is at most twice the longest aligned reference span among
-them. For RNA that union is bounded by the exonic footprint of the transcripts
-at the locus, so a few MB even for the longest human transcripts. Reaching tens
-of MB needs DNA-scale aligned spans, which RNA alignments do not produce, and
-the read lists holding those coordinates would still be larger than the table.
-The regression test exercises 70,002 distinct coordinates, above the old cap;
-no packaged locus is that large.
-
 ## Corpus bound scan
 
 Before measuring, every nuclear inventory variant was collected from every
@@ -53,8 +29,47 @@ the whole mitochondrial genome has 16,569 positions.
 The recorded corpus therefore does not exhibit the zero-sharing case. The
 regression test `test_reads_longer_than_the_former_lru_bound_still_share_coordinates`
 reproduces it deterministically. The full-depth runs below measure the effect
-of the new mechanism on real data, including the near-bound EXOC4 locus. The
-scan is a diagnostic for choosing loci, not packaged evidence.
+of the new mechanism on real data, including the near-bound EXOC4 locus.
+
+The scan is packaged as
+[`coordinate-sharing-results/bound-scan.json.gz`](coordinate-sharing-results/bound-scan.json.gz),
+and CI checks the numbers quoted in this document against it. Its rows were
+produced on 2026-09-11 by the logic now committed as
+[`coordinate_scan.py`](../coordinate_scan.py), run inline before that script
+existed. By 2026-09-13 the full regional BAMs of 46 of the 134 scanned sources
+were no longer in the local cache, although their indexes and receipts
+remained. Re-running the committed scanner on the other 88 sources reproduced
+all 3,009 of their rows exactly, and the EXOC4 T3 tagged row matches the read
+count, inventory and source BAM digest of the packaged collection evidence.
+The remaining rows cannot be re-checked until those BAMs are acquired again.
+
+## Table size and when sharing pays
+
+The table holds one entry per distinct aligned coordinate at the locus. Unlike
+the 65,536-entry LRU it replaces, it has no fixed cap, so its cost is worth
+stating. Sharing saves the 28 bytes of each duplicate integer it removes. The
+table's own size depends on where it falls between dict resizes: the 47 scanned
+tables with 10,000 or more entries measure 27.1–56.4 bytes per entry. A table
+pays for itself when the duplicates it removes outweigh its size.
+
+At the deepest scanned locus, EXOC4 in the T3 tagged source, 2,370 reads make
+3,326,558 coordinate lookups over 46,702 distinct coordinates. Its table
+measures 2,621,528 bytes, 56.1 bytes per entry, and removes 91,835,968 bytes of
+duplicate integers. Of the 4,563 scanned nuclear source/locus pairs, 457 have a
+table larger than the duplicates it removes. The largest of those is 294,992
+bytes, at WWC1 in the T1 tagged source with 7 reads: a table only fails to pay
+where few reads overlap, and few reads carry few coordinates.
+
+Every entry is a coordinate that some read at the locus aligns to, so a table
+never has more entries than those reads have aligned bases, and its
+coordinates lie within the reads' reference spans, introns included. For
+spliced RNA, the distant coordinates fall on exons of transcripts spanning the
+locus, while unspliced and intronic reads add only positions within about a
+read length of it. A table of tens of MB would need hundreds of thousands of
+distinct aligned positions at one locus, and the read lists holding those
+positions use at least 36 bytes per distinct coordinate themselves. The
+regression test exercises 70,000 distinct coordinates, above the old cap; no
+scanned locus is that large.
 
 ## Results
 
@@ -83,7 +98,8 @@ pairs, by 3.6–15%, and is flat on T3 deduplicated primary-only; across all nin
 pairs it falls by about 9%. These are single observations per side, and the
 whole-pipeline collection stage below shows no clear difference, so this is not
 a speedup claim. Isovar 1.8.3 raised collection CPU by 36–70% over 1.8.2, and
-1.8.4 removes only the LRU bookkeeping, not the per-read list rebuild. Wall
+1.8.4 removes the LRU bookkeeping but still rebuilds each read's coordinate
+list after collection (#241). Wall
 times on this shared macOS ARM64 / Python 3.12.6 host vary with load: the T3
 deduplicated primary-only 1.8.4 run took 33% more wall time than its baseline
 at equal CPU.
@@ -126,29 +142,36 @@ before/after fingerprints and the frozen observations above without needing
 full-depth inputs or imposing machine-dependent timing gates.
 
 Baseline runs import a clean detached `v1.8.3` worktree and final runs import
-this branch. Both sides of every pair run the same `collection_benchmark.py`
-from this branch, so each pair shares one benchmark digest. That script now
-records sequence container types in its read fingerprints (#237), so these
-runs cannot be paired with the #229 records, and the 1.8.3 baselines were
-measured afresh on the same host in the same session. Each pair alternates
-which side runs first. Every run hashes its full input BAM before collection,
-so both sides start with the same file cache state.
+this branch at commit `1bab712`. Both sides of every collection pair run the
+same `collection_benchmark.py`, recorded as `6429ffaa…`, and both sides of every
+pipeline pair run the unchanged `benchmark.py`, recorded as `1492afb2…`. CI pins
+both recorded digests without freezing the shipped scripts. That version of
+`collection_benchmark.py` records sequence container types in its read
+fingerprints (#237), so these runs cannot be paired with the #229 records, and
+the 1.8.3 baselines were measured afresh on the same host in the same session.
+The shipped script has since made its fingerprints fail closed and record array
+typecodes and element types (#240), so fresh runs record a new digest and
+cannot be paired with these either. Each pair alternates which side runs
+first. Every run hashes its full input BAM before collection, so both sides
+start with the same file cache state.
 
 ## Reproduction
 
 Obtain the checksum-verified original region cache as described in the parent
-expansion README, and create a clean detached `v1.8.3` worktree. Run from a
-neutral working directory with `PYTHONPATH` pointing at the intended checkout,
-exactly as in [`COLLECTION_MEMORY.md`](COLLECTION_MEMORY.md), always invoking
-this branch's `collection_benchmark.py` by path:
+expansion README. Create a clean detached `v1.8.3` worktree for baselines and a
+checkout of commit `1bab712` for final runs. Run from a neutral working
+directory with `PYTHONPATH` pointing at the intended checkout, exactly as in
+[`COLLECTION_MEMORY.md`](COLLECTION_MEMORY.md), always invoking that commit's
+`collection_benchmark.py` by path, because the shipped script now fingerprints
+reads differently (#240):
 
 ```sh
 PYTHONPATH="$baseline_worktree" python \
-  "$repo/tests/data/osteosarc/expansion/collection_benchmark.py" \
+  "$final_checkout/tests/data/osteosarc/expansion/collection_benchmark.py" \
   --destination "$sources" --source-id 58c4d68e5f7e55b5 \
   --variant-id EXOC4-chr7-133274996 --output "$runs/baseline-t3exoc4"
-PYTHONPATH="$repo" python \
-  "$repo/tests/data/osteosarc/expansion/collection_benchmark.py" \
+PYTHONPATH="$final_checkout" python \
+  "$final_checkout/tests/data/osteosarc/expansion/collection_benchmark.py" \
   --destination "$sources" --source-id 58c4d68e5f7e55b5 \
   --variant-id EXOC4-chr7-133274996 --output "$runs/final-t3exoc4"
 ```
@@ -174,3 +197,13 @@ tests.data.osteosarc.expansion.collection_report`, passing each run as
 the pipeline runs as `--pipeline baseline_t3tagged=<dir>` and
 `--pipeline final_t3tagged=<dir>`, and each pair as a `--compare-collection` or
 `--compare-pipeline` argument. `--output` must be a new directory.
+
+Reproduce the bound scan with this branch's scanner and the clean `v1.8.3`
+worktree on `PYTHONPATH`. It needs the full regional BAM of every scanned
+source:
+
+```sh
+PYTHONPATH="$baseline_worktree" python \
+  "$repo/tests/data/osteosarc/expansion/coordinate_scan.py" \
+  --destination "$sources" --output "$runs/bound-scan.json.gz"
+```

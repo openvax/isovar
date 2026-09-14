@@ -1,8 +1,10 @@
 """Exact collection comparisons and per-call, non-aliasing coordinate sharing."""
 
+import gc
 import json
 from pathlib import Path
 import random
+import sys
 from types import SimpleNamespace
 
 import pysam
@@ -206,28 +208,44 @@ def test_reads_longer_than_the_former_lru_bound_still_share_coordinates():
     assert len(first_seen) == length
 
 
-def test_coordinate_sharing_is_local_to_each_call_even_after_an_error():
-    class_attributes = set(vars(ReadCollector))
+def assert_no_coordinate_table_survives(reads, holders):
+    """A surviving table would hold two more references to a shared coordinate.
+
+    Dicts holding only integers are not tracked by gc, so gc.get_referrers cannot
+    find such a table. Compare against a control integer held by as many lists.
+    """
+    gc.collect()
+    coordinate = reads[0].reference_positions[0]
+    control = int(str(coordinate))
+    control_holders = [[control] for _ in range(holders)]
+    assert coordinate is not control and len(control_holders) == holders
+    assert sys.getrefcount(coordinate) == sys.getrefcount(control)
+
+
+def test_coordinate_table_is_released_after_errors_and_success_on_the_same_collector():
+    fail = True
     converted = []
 
     class FailingCollector(ReadCollector):
         def locus_read_from_pysam_aligned_segment(self, read, *args, **kwargs):
-            if read.query_name == "read-1":
+            if fail and read.query_name == "read-1":
                 raise ValueError("conversion failure")
             locus_read = super().locus_read_from_pysam_aligned_segment(read, *args, **kwargs)
             converted.append(locus_read)
             return locus_read
 
-    collector = FailingCollector(merge_overlapping_fragments=True)
+    collector = FailingCollector(merge_overlapping_fragments=False)
     with pytest.raises(ValueError, match="conversion failure"):
         collector.get_locus_reads(repeated_reads(), "1", 10005, 10006)
     assert len(converted) == 1
-    later = ReadCollector().get_locus_reads(repeated_reads(), "1", 10005, 10006)
-    for read in later:
-        assert read.reference_positions == converted[0].reference_positions
-        assert all(a is not b for a, b in zip(read.reference_positions, converted[0].reference_positions))
-    assert collector.__dict__ == FailingCollector(merge_overlapping_fragments=True).__dict__
-    assert set(vars(ReadCollector)) == class_attributes
+    assert_no_coordinate_table_survives(converted, holders=1)
+
+    fail = False
+    later = collector.get_locus_reads(repeated_reads(), "1", 10005, 10006)
+    assert len(later) == 3
+    assert_no_coordinate_table_survives(later, holders=3)
+    assert all(a is not b for a, b in zip(later[0].reference_positions, converted[0].reference_positions))
+    assert collector.__dict__ == FailingCollector(merge_overlapping_fragments=False).__dict__
 
 
 def test_public_evidence_path_still_calls_each_existing_subclass_hook():

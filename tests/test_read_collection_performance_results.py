@@ -1,11 +1,11 @@
 """Audit the recorded full-depth #229 evidence without loading huge BAMs."""
 
-import json
 from pathlib import Path
 
 import pytest
 
-from tests.data.osteosarc.expansion.inventory import digest
+from tests.evidence_audit_helpers import (
+    COLLECTION_PAIR_IDENTITY_KEYS, COLLECTION_RESULT_KEYS, PIPELINE_RESULT_KEYS, changed_sources, load_pinned_package)
 
 
 EXPANSION = Path(__file__).parent / "data/osteosarc/expansion"
@@ -19,14 +19,7 @@ PROFILE_BENCHMARK_SHA256 = "c2f7cd30df297ff8dad2fb21ede72ee3d5fac23a6d2ff7452706
 
 @pytest.fixture(scope="module")
 def collection_evidence():
-    manifest = json.loads((RESULTS / "manifest.json").read_text())
-    assert set(manifest) == {"files", "generator_sha256"}
-    for name, checksum in manifest["files"].items():
-        assert digest(RESULTS / name) == checksum
-    # The shipped validator must be the one that reproduces this package; a
-    # validator change requires repackaging or re-pinning in the same commit.
-    assert manifest["generator_sha256"] == digest(EXPANSION / "collection_report.py")
-    return {name: json.loads((RESULTS / (name + ".json")).read_text()) for name in ("collection", "pipeline")}
+    return load_pinned_package(RESULTS, EXPANSION / "collection_report.py")
 
 
 def test_full_depth_locus_allele_and_evidence_comparisons_are_exact(collection_evidence):
@@ -41,17 +34,13 @@ def test_full_depth_locus_allele_and_evidence_comparisons_are_exact(collection_e
         assert before["identity"]["isovar"] == "1.8.2"
         assert after["identity"]["isovar"] == "1.8.3"
         assert before["result"]["status"] == after["result"]["status"] == "ok"
-        for key in ("source_bam_sha256", "receipt_sha256", "input_bam_sha256", "input_index_sha256",
-                    "inventory_sha256", "benchmark_sha256", "variant_id", "mode",
-                    "merge_overlapping_fragments", "allocation_instrumented"):
+        for key in COLLECTION_PAIR_IDENTITY_KEYS:
             assert before["identity"][key] == after["identity"][key]
         assert before["identity"]["benchmark_sha256"] == (
             PROFILE_BENCHMARK_SHA256 if comparison["allocation_instrumented"] else ORDINARY_BENCHMARK_SHA256)
-        for key in ("locus_reads_sha256", "allele_reads_sha256", "locus_read_count", "allele_read_count", "counts"):
+        for key in COLLECTION_RESULT_KEYS:
             assert before["result"][key] == after["result"][key]
-        changes = {p for p, sha in before["identity"]["source_files"].items()
-                   if after["identity"]["source_files"][p] != sha}
-        assert changes == {"isovar/__init__.py", "isovar/read_collector.py"}
+        assert changed_sources(before, after) == {"isovar/__init__.py", "isovar/read_collector.py"}
         modes.add(after["identity"]["mode"])
     assert modes == {"defaults", "primary_only"}
     # These assertions check the frozen observations, not machine-dependent
@@ -74,7 +63,7 @@ def test_full_pipeline_ranked_proteins_and_rna_are_unchanged(collection_evidence
         for run in (before, after):
             assert run["result"]["status"] == run["result"]["validation_status"] == "ok"
             assert all(m["status"] == "ok" for m in run["measurements"].values())
-        for key in ("rna_sha256", "proteins_sha256", "counts", "public_protein_count", "checked_protein_count"):
+        for key in PIPELINE_RESULT_KEYS:
             assert before["result"][key] == after["result"][key]
         label = comparison["after"].removeprefix("final_")
         assert after["result"]["checked_protein_count"] == expected_windows[label]

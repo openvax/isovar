@@ -358,6 +358,36 @@ def test_collection_fingerprint_detects_sequence_container_changes(field, contai
     assert collection_benchmark.read_fingerprint([changed]) != collection_benchmark.read_fingerprint([read])
 
 
+class Coordinate(int):
+    pass
+
+
+@pytest.mark.parametrize("field,original,changed", [
+    ("name", {"a": 1}, {"a": 2}),
+    ("quality_scores", array("B", [30, 0, 40]), array("i", [30, 0, 40])),
+    ("reference_positions", [10000, None, 10001], [Coordinate(10000), None, 10001]),
+    ("source_read_count", 1, Coordinate(1)),
+], ids=["mapping-values", "array-typecode", "element-type", "scalar-subclass"])
+def test_collection_fingerprint_detects_value_and_representation_changes(field, original, changed):
+    from isovar.locus_read import LocusRead
+
+    read = LocusRead("read", "ACG", [10000, None, 10001], [30, 0, 40], 10001, 10001, 1, 2)
+    before, after = deepcopy(read), deepcopy(read)
+    setattr(before, field, original)
+    setattr(after, field, changed)
+    assert collection_benchmark.read_fingerprint([before]) != collection_benchmark.read_fingerprint([after])
+
+
+@pytest.mark.parametrize("value", [{"x", "y"}, frozenset({1}), {1: "a"}], ids=["set", "frozenset", "int-keys"])
+def test_collection_fingerprint_fails_closed_on_unordered_or_ambiguous_fields(value):
+    from isovar.locus_read import LocusRead
+
+    read = LocusRead("read", "ACG", [10000, None, 10001], [30, 0, 40], 10001, 10001, 1, 2)
+    read.name = value
+    with pytest.raises(TypeError, match="Cannot fingerprint"):
+        collection_benchmark.read_fingerprint([read])
+
+
 def collection_pair(tmp_path):
     identity = dict(source_bam_sha256="source", receipt_sha256="receipt", input_bam_sha256="bam",
                     input_index_sha256="index", inventory_sha256="inventory", benchmark_sha256="benchmark",
