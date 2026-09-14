@@ -113,7 +113,7 @@ The public API's default settings are recorded in each run identity:
 - Missing base qualities are rejected. There is no new Q20 cutoff or
   probabilistic weighting in this PR; that work remains in #8/#26.
 - Balanced context, desired peptide length 25, context ceiling 49 amino acids,
-  support fraction 0.85 and minimum RNA-sequence coverage 2; assembly disabled;
+  support fraction 0.85 and minimum RNA-sequence coverage 2; assembly enabled;
   reference prefix at least 10 bases, at most two prefix mismatches.
 - Independently validated transcript whitelist, explicitly empty when no
   complete reference model exists. This is a documented isoform restriction,

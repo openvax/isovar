@@ -122,6 +122,11 @@ To change how Isovar assembles RNA reads into coding sequences, determines their
 reading frames, and groups translated amino acid sequences you can create your
 own instance of the `isovar.ProteinSequenceCreator` class and pass it to `run_isovar`.
 
+As of Isovar 1.9.0, overlap assembly is enabled by default in both the Python API
+and command-line tools. To preserve the earlier Python API behavior, pass
+`variant_sequence_assembly=False` to `ProteinSequenceCreator`; on the command
+line, use `--disable-variant-sequence-assembly`.
+
 
 ```python
 from isovar import run_isovar, ProteinSequenceCreator
@@ -147,7 +152,7 @@ protein_sequence_creator = ProteinSequenceCreator(
     # if more than one protein sequence can be assembled for a variant
     # then drop any beyond this number 
     max_protein_sequences_per_variant=1,
-    # if set to False then coding sequence will be derived from
+    # enabled by default; if set to False then coding sequence will be derived from
     # a single RNA read with the variant closest to its center
     variant_sequence_assembly=True,
     # how many nucleotides must two reads overlap before they are combined
