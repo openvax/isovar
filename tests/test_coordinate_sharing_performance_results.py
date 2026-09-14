@@ -12,6 +12,10 @@ EXPANSION = Path(__file__).parent / "data/osteosarc/expansion"
 RESULTS = EXPANSION / "performance/coordinate-sharing-results"
 COLLECTION_LABELS = {"t1", "t1primary", "t3dedup", "t3dedupprimary", "t3tagged", "ontdync", "ontdel", "bulk",
                      "t3exoc4", "profile_t1"}
+# Every recorded run must come from the measuring scripts this branch ships, so
+# that editing either one forces a re-run or a deliberate re-pin.
+COLLECTION_BENCHMARK_SHA256 = "6429ffaa26a01d3f28f6d5324ae123f33ac85ec26a050a49be414fb84c4c883e"
+PIPELINE_BENCHMARK_SHA256 = "1492afb2987b28f01ff3c864b4b97c9e7bde514cd93a3a91a1d0133ef9c3792e"
 
 
 @pytest.fixture(scope="module")
@@ -26,21 +30,41 @@ def evidence():
 
 
 def changed_isovar_sources(before, after):
-    return {path for path, checksum in before["identity"]["source_files"].items()
-            if path.startswith("isovar/") and after["identity"]["source_files"].get(path) != checksum}
+    left, right = before["identity"]["source_files"], after["identity"]["source_files"]
+    paths = {path for path in set(left) | set(right) if path.startswith("isovar/")}
+    return {path for path in paths if left.get(path) != right.get(path)}
+
+
+def test_every_run_used_the_shipped_measuring_scripts(evidence):
+    assert COLLECTION_BENCHMARK_SHA256 == digest(EXPANSION / "collection_benchmark.py")
+    assert PIPELINE_BENCHMARK_SHA256 == digest(EXPANSION / "benchmark.py")
+    for run in evidence["collection"]["runs"].values():
+        assert run["identity"]["benchmark_sha256"] == COLLECTION_BENCHMARK_SHA256
+    for run in evidence["pipeline"]["runs"].values():
+        assert run["identity"]["benchmark_sha256"] == PIPELINE_BENCHMARK_SHA256
 
 
 def test_per_call_sharing_preserves_every_full_depth_collection(evidence):
     data = evidence["collection"]
+    assert len(data["comparisons"]) == 10
+    assert len({c["after"] for c in data["comparisons"]}) == 10
+    assert sum(c["allocation_instrumented"] for c in data["comparisons"]) == 1
     assert {c["after"].removeprefix("final_") for c in data["comparisons"]} == COLLECTION_LABELS
+    modes = set()
     for comparison in data["comparisons"]:
         assert comparison["exact_locus_and_allele_reads"] is True
         before, after = (data["runs"][comparison[key]] for key in ("before", "after"))
         assert (before["identity"]["isovar"], after["identity"]["isovar"]) == ("1.8.3", "1.8.4")
-        assert before["identity"]["benchmark_sha256"] == after["identity"]["benchmark_sha256"]
+        assert before["result"]["status"] == after["result"]["status"] == "ok"
+        for key in ("source_bam_sha256", "receipt_sha256", "input_bam_sha256", "input_index_sha256",
+                    "inventory_sha256", "benchmark_sha256", "variant_id", "mode",
+                    "merge_overlapping_fragments", "allocation_instrumented"):
+            assert before["identity"][key] == after["identity"][key]
         assert changed_isovar_sources(before, after) == {"isovar/__init__.py", "isovar/read_collector.py"}
         for key in ("locus_reads_sha256", "allele_reads_sha256", "locus_read_count", "allele_read_count", "counts"):
             assert before["result"][key] == after["result"][key]
+        modes.add(after["identity"]["mode"])
+    assert modes == {"defaults", "primary_only"}
 
 
 def test_t3_tagged_pipeline_ranked_proteins_and_rna_are_unchanged(evidence):
@@ -68,7 +92,7 @@ def test_frozen_collection_observations_keep_memory_and_lower_total_cpu(evidence
     totals = dict(baseline=0.0, final=0.0)
     for label in COLLECTION_LABELS - {"profile_t1"}:
         before, after = (runs[f"{phase}_{label}"]["result"] for phase in ("baseline", "final"))
-        assert abs(after["locus_collection_peak_rss_bytes"] / before["locus_collection_peak_rss_bytes"] - 1) < 0.05
+        assert abs(after["locus_collection_peak_rss_bytes"] / before["locus_collection_peak_rss_bytes"] - 1) < 0.03
         totals["baseline"] += before["locus_collection_cpu_seconds"]
         totals["final"] += after["locus_collection_cpu_seconds"]
     assert totals["final"] < 0.95 * totals["baseline"]

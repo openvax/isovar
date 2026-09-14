@@ -194,8 +194,7 @@ def test_reads_longer_than_the_former_lru_bound_still_share_coordinates():
     # arrive in coordinate order, so once a locus exceeded the bound each lookup
     # evicted an entry the next read needed and nothing was shared (#234).
     length = 70000
-    sam = MockAlignmentFile(["1"], [make_pysam_read(
-        "A" * length, f"{length}M", name=f"read-{i}", reference_start=10000 + i) for i in range(3)])
+    sam = repeated_reads(n=3, length=length)
     reads = ReadCollector(merge_overlapping_fragments=False).get_locus_reads(sam, "1", 10005, 10006)
     assert_same_reads(reads, UnsharedCollector(merge_overlapping_fragments=False).get_locus_reads(
         sam, "1", 10005, 10006))
@@ -204,7 +203,7 @@ def test_reads_longer_than_the_former_lru_bound_still_share_coordinates():
     for read in reads:
         for position in read.reference_positions:
             assert first_seen.setdefault(position, position) is position
-    assert len(first_seen) == length + 2
+    assert len(first_seen) == length
 
 
 def test_coordinate_sharing_is_local_to_each_call_even_after_an_error():

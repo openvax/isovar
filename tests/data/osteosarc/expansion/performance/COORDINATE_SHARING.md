@@ -16,6 +16,30 @@ the reads at that locus rather than by a fixed count. Coordinate values, order
 and list objects, hook calls, mate merging and evidence are unchanged. Only
 the mechanism that finds the shared integer differs.
 
+## Table size and when sharing pays
+
+The table holds one entry per distinct aligned coordinate at the locus. A
+CPython dict costs 42–56 bytes per entry at these sizes, and sharing saves the
+28 bytes of each duplicate integer it removes, so the table pays for itself
+once a coordinate recurs about 2.5 times on average. Unlike the 65,536-entry
+LRU it replaces, it has no fixed cap, so that trade-off is worth stating.
+
+At the deepest recorded locus, EXOC4 in the T3 tagged source, 2,370 reads make
+3,326,558 lookups over 46,702 distinct coordinates, an average multiplicity of
+71. Its table costs 2.0 MB and avoids about 92 MB of duplicate integers. In the
+scan below, 475 of 4,563 nuclear source/locus pairs fall below the break-even
+multiplicity, but their largest table is 0.25 MB: low multiplicity means few
+reads, which means few coordinates.
+
+The table cannot exceed the union of aligned positions of the reads overlapping
+the locus, which is at most twice the longest aligned reference span among
+them. For RNA that union is bounded by the exonic footprint of the transcripts
+at the locus, so a few MB even for the longest human transcripts. Reaching tens
+of MB needs DNA-scale aligned spans, which RNA alignments do not produce, and
+the read lists holding those coordinates would still be larger than the table.
+The regression test exercises 70,002 distinct coordinates, above the old cap;
+no packaged locus is that large.
+
 ## Corpus bound scan
 
 Before measuring, every nuclear inventory variant was collected from every
@@ -55,7 +79,7 @@ decimal GB.
 
 Peak memory is unchanged: every pair is within 3%, as expected where the LRU
 already shared nearly every coordinate. Collection CPU falls on eight of nine
-pairs, by 4–15%, and is flat on T3 deduplicated primary-only; across all nine
+pairs, by 3.6–15%, and is flat on T3 deduplicated primary-only; across all nine
 pairs it falls by about 9%. These are single observations per side, and the
 whole-pipeline collection stage below shows no clear difference, so this is not
 a speedup claim. Isovar 1.8.3 raised collection CPU by 36–70% over 1.8.2, and
