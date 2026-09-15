@@ -117,16 +117,8 @@ class VariantSequenceCreator(object):
         # The alternate allele may consume or exceed the preferred budget.
         # Still retain the context needed for reference matching on either
         # strand, and never pass negative flank limits to sequence slicing.
-        n_surrounding_nucleotides = max(
-            self.preferred_sequence_length - n_alt_nucleotides,
-            2 * self.min_flanking_sequence_length)
-        max_nucleotides_after_variant = n_surrounding_nucleotides // 2
-
-        # if the number of nucleotides we need isn't divisible by 2 then
-        # prefer to have one more *before* the variant since we need the
-        # prefix sequence to match against reference transcripts
-        max_nucleotides_before_variant = (
-                n_surrounding_nucleotides - max_nucleotides_after_variant)
+        max_nucleotides_before_variant, max_nucleotides_after_variant = \
+            self.flanking_sequence_lengths(n_alt_nucleotides)
 
         variant_sequences = initial_variant_sequences_from_reads(
             variant_reads=variant_reads,
@@ -147,7 +139,9 @@ class VariantSequenceCreator(object):
             # (whichever is smaller)
             min_overlap_size = min(
                 self.min_assembly_overlap_size,
-                max(1, n_surrounding_nucleotides // 2))
+                max(1, (
+                    max_nucleotides_before_variant
+                    + max_nucleotides_after_variant) // 2))
             variant_sequences = iterative_overlap_assembly(
                 variant_sequences,
                 min_overlap_size=min_overlap_size,
@@ -184,6 +178,15 @@ class VariantSequenceCreator(object):
         variant_sequences.sort(key=lambda vs: (
             -len(vs.reads), vs.prefix, vs.alt, vs.suffix))
         return variant_sequences
+
+    def flanking_sequence_lengths(self, n_alt_nucleotides):
+        """Maximum genomic-side flanks entering a local assembly."""
+        n_surrounding_nucleotides = max(
+            self.preferred_sequence_length - n_alt_nucleotides,
+            2 * self.min_flanking_sequence_length)
+        max_after = n_surrounding_nucleotides // 2
+        # Prefer one extra prefix base when the available budget is odd.
+        return n_surrounding_nucleotides - max_after, max_after
 
     def sequences_from_alt_reads_generator(self, variant_and_reads_generator):
         """

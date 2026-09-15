@@ -11,6 +11,7 @@
 # limitations under the License.
 
 from itertools import permutations
+from types import SimpleNamespace
 
 import pytest
 from varcode import Variant
@@ -19,6 +20,7 @@ from isovar.allele_read import AlleleRead
 from isovar.dna import reverse_complement_dna
 from isovar.protein_sequence_creator import ProteinSequenceCreator
 from isovar.reference_context import ReferenceContext
+from isovar.variant_sequence import VariantSequence
 from isovar.variant_sequence_creator import VariantSequenceCreator
 
 
@@ -50,6 +52,37 @@ def _context(variant, strand, prefix, suffix):
         variant=variant,
         transcripts=(),
     )
+
+
+def test_translation_keeps_only_transcripts_compatible_with_rna_path(monkeypatch):
+    variant = Variant("1", 100, "G", "C", "GRCh38")
+    read = AlleleRead(
+        prefix="AAA",
+        allele="C",
+        suffix="TTT",
+        name="read",
+        compatible_transcript_ids={"compatible"})
+    sequence = VariantSequence("AAA", "C", "TTT", [read])
+    context = _context(variant, "+", "AAA", "TTT")
+    context.transcripts = (
+        SimpleNamespace(id="compatible"),
+        SimpleNamespace(id="other"))
+    observed = []
+
+    def record_context(self, variant_sequence, reference_context):
+        observed.append(tuple(t.id for t in reference_context.transcripts))
+        return reference_context
+
+    monkeypatch.setattr(
+        ProteinSequenceCreator,
+        "translation_from_variant_sequence_and_reference_context",
+        record_context)
+
+    result = ProteinSequenceCreator().all_pairs_translations(
+        [sequence], [context])
+
+    assert len(result) == 1
+    assert observed == [("compatible",)]
 
 
 @pytest.mark.parametrize("strand", ["+", "-"])

@@ -41,8 +41,13 @@ DEFAULT_ASSEMBLY_KMER_SIZE = 15
 
 
 def _sequence_key(sequence):
-    """Canonical identity, including the position of the variant."""
-    return sequence.prefix, sequence.alt, sequence.suffix
+    """Canonical identity, including variant position and transcript path."""
+    compatible_ids = sequence.compatible_transcript_ids
+    transcript_key = (
+        (0, ())
+        if compatible_ids is None
+        else (1, tuple(sorted(compatible_ids))))
+    return sequence.prefix, sequence.alt, sequence.suffix, transcript_key
 
 
 def _sequence_kmers(sequence, k):
@@ -225,7 +230,11 @@ def collapse_substrings(variant_sequences):
             key=lambda seq: (-len(seq), _sequence_key(seq))):
         found_superstring = False
         for long_variant_sequence in result_list:
-            if long_variant_sequence.contains(short_variant_sequence):
+            if (
+                long_variant_sequence.contains(short_variant_sequence)
+                and long_variant_sequence.can_add_reads_without_narrowing(
+                    short_variant_sequence.reads)
+            ):
                 extra_reads_from_substrings[long_variant_sequence].update(
                     short_variant_sequence.reads)
                 found_superstring = True
@@ -242,12 +251,14 @@ def collapse_substrings(variant_sequences):
 
 
 def merge_identical_sequences(variant_sequences):
-    """Union reads for exact candidates without discarding substrings.
+    """Union reads for exact candidates on the same transcript path.
 
     Distinct prefix/alt/suffix triples must remain distinct until transcript
     compatibility is known. Exact duplicates, including duplicates created by
     coverage trimming or retained assembly history, carry no extra sequence
-    information and can be combined safely.
+    information and can be combined safely. Identical cDNA on disjoint
+    transcript paths remains separate rather than manufacturing support for a
+    path no read group shares.
     """
     sequences_by_parts = {}
     for variant_sequence in variant_sequences:

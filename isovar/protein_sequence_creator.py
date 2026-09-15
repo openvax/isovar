@@ -33,6 +33,8 @@ from .protein_sequence_helpers import (
     validate_protein_sequence_preference,
 )
 from .reference_context_helpers import reference_contexts_for_variant
+from .reference_context import ReferenceContext
+from .transcript_compatibility import annotate_reads_with_transcript_compatibility
 from .translation import Translation
 from .translation_helpers import find_mutant_amino_acid_interval
 from .value_object import ValueObject
@@ -42,6 +44,17 @@ from .variant_orf_helpers import match_variant_sequence_to_reference_context
 from .logging import get_logger
 
 logger = get_logger(__name__)
+
+
+def _variant_sequence_key(sequence):
+    """Deterministic cDNA and transcript-path identity."""
+    transcript_ids = sequence.compatible_transcript_ids
+    return (
+        sequence.prefix,
+        sequence.alt,
+        sequence.suffix,
+        transcript_ids is not None,
+        tuple(sorted(transcript_ids or ())))
 
 
 class ProteinSequenceCreator(ValueObject):
@@ -165,7 +178,38 @@ class ProteinSequenceCreator(ValueObject):
         step = max(1, (target - peptide + 5) // 6)
         return sorted({min(20, target), peptide, target, *range(peptide, target, step)})
 
-    def variant_sequences_from_reads(self, variant, reads):
+    @staticmethod
+    def _transcript_read_groups(reads):
+        """Group transcript IDs which have exactly the same supporting reads."""
+        unclassified_indices = set()
+        indices_by_transcript = {}
+        for index, read in enumerate(reads):
+            transcript_ids = read.compatible_transcript_ids
+            if transcript_ids is None:
+                unclassified_indices.add(index)
+            else:
+                for transcript_id in transcript_ids:
+                    indices_by_transcript.setdefault(transcript_id, set()).add(index)
+        if not indices_by_transcript:
+            return None
+
+        transcript_ids_by_indices = {}
+        for transcript_id, indices in indices_by_transcript.items():
+            membership = frozenset(indices.union(unclassified_indices))
+            transcript_ids_by_indices.setdefault(membership, set()).add(transcript_id)
+
+        return [
+            (
+                frozenset(transcript_ids),
+                [
+                    reads[index].with_compatible_transcript_ids(transcript_ids)
+                    for index in sorted(indices)
+                ],
+            )
+            for indices, transcript_ids in transcript_ids_by_indices.items()
+        ]
+
+    def _variant_sequences_from_compatible_reads(self, variant, reads):
         """Retain multiple context sizes; merge only identical RNA sequences.
 
         A shorter context may match the reference when longer noisy flanks do
@@ -184,7 +228,25 @@ class ProteinSequenceCreator(ValueObject):
             creator = (self._variant_sequence_creator if length == self.protein_sequence_length
                        else self._make_variant_sequence_creator(3 * length + 2))
             for sequence in creator.reads_to_variant_sequences(variant, reads):
-                key = (sequence.prefix, sequence.alt, sequence.suffix)
+                key = _variant_sequence_key(sequence)
+                if key in sequences:
+                    sequences[key] = sequences[key].add_reads(sequence.reads)
+                else:
+                    sequences[key] = sequence
+        return [sequences[key] for key in sorted(sequences)]
+
+    def variant_sequences_from_reads(self, variant, reads):
+        """Assemble each distinct compatible-transcript read group once."""
+        reads = list(reads)
+        transcript_read_groups = self._transcript_read_groups(reads)
+        if transcript_read_groups is None:
+            return self._variant_sequences_from_compatible_reads(variant, reads)
+
+        sequences = {}
+        for _transcript_ids, compatible_reads in transcript_read_groups:
+            for sequence in self._variant_sequences_from_compatible_reads(
+                    variant, compatible_reads):
+                key = _variant_sequence_key(sequence)
                 if key in sequences:
                     sequences[key] = sequences[key].add_reads(sequence.reads)
                 else:
@@ -322,9 +384,23 @@ class ProteinSequenceCreator(ValueObject):
         translations = []
         for reference_context in reference_contexts:
             for variant_sequence in variant_sequences:
+                sequence_reference_context = reference_context
+                compatible_ids = variant_sequence.compatible_transcript_ids
+                if compatible_ids is not None:
+                    compatible_transcripts = tuple(
+                        transcript
+                        for transcript in reference_context.transcripts
+                        if transcript.id in compatible_ids)
+                    if not compatible_transcripts:
+                        continue
+                    if len(compatible_transcripts) != len(reference_context.transcripts):
+                        sequence_reference_context = ReferenceContext.from_reference_coding_sequence_key(
+                            reference_context,
+                            reference_context.variant,
+                            compatible_transcripts)
                 translation = self.translation_from_variant_sequence_and_reference_context(
                     variant_sequence=variant_sequence,
-                    reference_context=reference_context)
+                    reference_context=sequence_reference_context)
                 if translation is not None:
                     translations.append(translation)
         return translations
@@ -367,6 +443,33 @@ class ProteinSequenceCreator(ValueObject):
         if len(reference_contexts) == 0:
             logger.info("Could not determine reference context for variant %s", variant)
             return []
+
+        transcripts_by_id = {
+            transcript.id: transcript
+            for reference_context in reference_contexts
+            for transcript in reference_context.transcripts
+        }
+        if transcripts_by_id:
+            max_prefix_size, max_suffix_size = \
+                self._variant_sequence_creator.flanking_sequence_lengths(
+                    len(variant_reads[0].allele))
+            variant_reads = annotate_reads_with_transcript_compatibility(
+                variant_reads,
+                transcripts_by_id.values(),
+                max_prefix_size=max_prefix_size,
+                max_suffix_size=max_suffix_size)
+            n_incompatible_reads = sum(
+                not read.compatible_transcript_ids
+                for read in variant_reads)
+            if n_incompatible_reads:
+                logger.info(
+                    "Excluded %d/%d reads incompatible with every coding transcript path",
+                    n_incompatible_reads,
+                    len(variant_reads))
+                variant_reads = [
+                    read
+                    for read in variant_reads
+                    if read.compatible_transcript_ids]
 
         variant_sequences = self.variant_sequences_from_reads(
             variant=variant,

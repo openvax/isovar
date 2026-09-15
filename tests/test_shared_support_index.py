@@ -24,7 +24,20 @@ def exhaustive_support(sequences, read_groups):
             if (alt == sequence.alt and overlap > 0
                     and (prefix.endswith(sequence.prefix) or sequence.prefix.endswith(prefix))
                     and (suffix.startswith(sequence.suffix) or sequence.suffix.startswith(suffix))):
-                reads.update(group)
+                for read in group:
+                    transcript_ids = read.compatible_transcript_ids
+                    if (
+                        sequence.compatible_transcript_ids is None
+                        and transcript_ids is None
+                    ) or (
+                        sequence.compatible_transcript_ids is not None
+                        and (
+                            transcript_ids is None
+                            or sequence.compatible_transcript_ids.issubset(
+                                transcript_ids)
+                        )
+                    ):
+                        reads.add(read)
         result.append(VariantSequence(sequence.prefix, sequence.alt, sequence.suffix, reads))
     return result
 

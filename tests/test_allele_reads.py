@@ -61,6 +61,23 @@ def test_allele_read_from_locus_with_N_inside_multibase_allele_returns_none():
             allele_read,)
 
 
+def test_allele_read_preserves_compact_splice_path():
+    read = make_pysam_read(
+        seq="AAAACGGGG",
+        cigar="5M100N4M",
+        mdtag="9",
+        reference_start=100)
+    locus_read = ReadCollector().locus_read_from_pysam_aligned_segment(
+        read,
+        base0_start_inclusive=104,
+        base0_end_exclusive=105)
+
+    allele_read = AlleleRead.from_locus_read(locus_read)
+
+    eq_(allele_read.reference_blocks, ((0, 5, 100, 105), (5, 9, 205, 209)))
+    eq_(allele_read.splice_junctions, ((105, 205),))
+
+
 def test_allele_reads_with_N_at_locus_dropped_from_helpers():
     # allele_reads_from_locus_reads should silently drop reads with N at the
     # variant locus instead of emitting AlleleReads whose allele contains N.

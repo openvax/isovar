@@ -25,26 +25,98 @@ logger = logging.getLogger(__name__)
 
 class AlleleRead(ValueObject):
     """
-    Extremely simplified representation of a read at a locus: just the allele
-    at the locus and sequence before/after. We're ignoring the base qualities
-    and any additional information about splicing, clipping or alignment.
+    Compact representation of a read at a locus. In addition to its sequence,
+    it retains gapless genomic blocks and observed splice junctions so it can
+    be classified against annotated transcript paths before assembly.
 
     When overlapping mates from the same fragment are merged upstream,
     `source_read_count` retains the number of raw reads represented by this
     fragment-level allele observation.
     """
-    __slots__ = ["prefix", "allele", "suffix", "name", "sequence", "source_read_count"]
+    __slots__ = [
+        "prefix",
+        "allele",
+        "suffix",
+        "name",
+        "sequence",
+        "source_read_count",
+        "reference_blocks",
+        "splice_junctions",
+        "compatible_transcript_ids",
+    ]
 
-    def __init__(self, prefix, allele, suffix, name, source_read_count=1):
+    def __init__(
+            self,
+            prefix,
+            allele,
+            suffix,
+            name,
+            source_read_count=1,
+            reference_blocks=(),
+            splice_junctions=(),
+            compatible_transcript_ids=None):
         self.prefix = prefix
         self.allele = allele
         self.suffix = suffix
         self.name = name
         self.sequence = prefix + allele + suffix
         self.source_read_count = source_read_count
+        self.reference_blocks = tuple(reference_blocks)
+        self.splice_junctions = tuple(splice_junctions)
+        self.compatible_transcript_ids = (
+            None
+            if compatible_transcript_ids is None
+            else frozenset(compatible_transcript_ids))
 
     def __len__(self):
         return len(self.sequence)
+
+    def with_compatible_transcript_ids(self, transcript_ids):
+        """Return this observation classified against a transcript set."""
+        return AlleleRead(
+            prefix=self.prefix,
+            allele=self.allele,
+            suffix=self.suffix,
+            name=self.name,
+            source_read_count=self.source_read_count,
+            reference_blocks=self.reference_blocks,
+            splice_junctions=self.splice_junctions,
+            compatible_transcript_ids=transcript_ids)
+
+    @staticmethod
+    def _reference_blocks(reference_positions):
+        """Compress mappings into query/genomic 0-based half-open blocks."""
+        blocks = []
+        query_start = reference_start = previous = None
+        for query_position, position in enumerate(reference_positions):
+            if position is None:
+                if query_start is not None:
+                    blocks.append((
+                        query_start,
+                        query_position,
+                        reference_start,
+                        previous + 1))
+                    query_start = reference_start = previous = None
+            elif query_start is None:
+                query_start = query_position
+                reference_start = previous = position
+            elif position == previous + 1:
+                previous = position
+            else:
+                blocks.append((
+                    query_start,
+                    query_position,
+                    reference_start,
+                    previous + 1))
+                query_start = query_position
+                reference_start = previous = position
+        if query_start is not None:
+            blocks.append((
+                query_start,
+                len(reference_positions),
+                reference_start,
+                previous + 1))
+        return tuple(blocks)
 
     @classmethod
     def from_locus_read(cls, locus_read):
@@ -96,9 +168,38 @@ class AlleleRead(ValueObject):
 
         prefix, suffix = trim_N_nucleotides(prefix, suffix)
 
+        retained_start = read_base0_start_inclusive - len(prefix)
+        retained_end = read_base0_end_exclusive + len(suffix)
+        reference_blocks = cls._reference_blocks(
+            reference_positions[retained_start:retained_end])
+        observed_block_gaps = {
+            (left[3], right[2])
+            for left, right in zip(reference_blocks, reference_blocks[1:])
+        }
+        splice_junctions = tuple(
+            junction
+            for junction in locus_read.splice_junctions
+            if junction in observed_block_gaps)
+
         return AlleleRead(
             prefix,
             nucleotides_at_variant_locus,
             suffix,
             name=read_name,
-            source_read_count=locus_read.source_read_count)
+            source_read_count=locus_read.source_read_count,
+            reference_blocks=reference_blocks,
+            splice_junctions=splice_junctions)
+
+
+# Genomic path details and branch-local transcript classifications are
+# inference metadata, not distinct observations. Explicit assembly keys retain
+# compatible paths while set unions still count one physical read only once.
+AlleleRead._fields = tuple(
+    field
+    for field in AlleleRead._fields
+    if field not in {
+        "reference_blocks",
+        "splice_junctions",
+        "compatible_transcript_ids",
+    }
+)

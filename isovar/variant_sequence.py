@@ -48,6 +48,8 @@ class VariantSequence(ValueObject):
         "sequence",
         # reads which were used to determine this sequences
         "reads",
+        # intersection of classified transcript paths supporting this sequence
+        "compatible_transcript_ids",
         # lazily computed coverage array (not part of value identity)
         "_coverage_cache",
     ]
@@ -58,6 +60,15 @@ class VariantSequence(ValueObject):
         self.suffix = suffix
         self.sequence = prefix + alt + suffix
         self.reads = frozenset(reads)
+        transcript_sets = [
+            read.compatible_transcript_ids
+            for read in self.reads
+            if getattr(read, "compatible_transcript_ids", None) is not None
+        ]
+        self.compatible_transcript_ids = (
+            None
+            if not transcript_sets
+            else frozenset.intersection(*transcript_sets))
         self._coverage_cache = None
 
     def __len__(self):
@@ -154,6 +165,24 @@ class VariantSequence(ValueObject):
         else:
             return self
 
+    def transcript_compatible_with(self, other):
+        """Whether two candidates share at least one possible transcript."""
+        left = self.compatible_transcript_ids
+        right = other.compatible_transcript_ids
+        return left is None or right is None or bool(left.intersection(right))
+
+    def can_add_reads_without_narrowing(self, reads):
+        """Whether reads support every transcript currently possible here."""
+        compatible_ids = self.compatible_transcript_ids
+        if compatible_ids is None:
+            return all(
+                getattr(read, "compatible_transcript_ids", None) is None
+                for read in reads)
+        return all(
+            getattr(read, "compatible_transcript_ids", None) is None
+            or compatible_ids.issubset(read.compatible_transcript_ids)
+            for read in reads)
+
     def combine(self, other_sequence, min_overlap_size=1):
         """
         If this sequence is the prefix of another sequence, combine
@@ -168,6 +197,8 @@ class VariantSequence(ValueObject):
                 "Cannot combine %s and %s with mismatching alt sequences",
                 self,
                 other_sequence)
+            return None
+        elif not self.transcript_compatible_with(other_sequence):
             return None
         elif self.contains(other_sequence):
             if len(other_sequence) >= min_overlap_size:
@@ -295,8 +326,12 @@ class VariantSequence(ValueObject):
         return trimmed
 
 
-# _coverage_cache is an internal cache slot, not part of value identity —
-# exclude it from _fields so it doesn't affect __eq__, __hash__, or __str__.
+# _coverage_cache is an internal cache slot, not part of value identity.
+# Transcript compatibility is part of candidate identity even though it is
+# derived from reads: identical cDNA on different splice paths must stay
+# distinct through assembly.
 VariantSequence._fields = tuple(
-    f for f in VariantSequence._fields if f != "_coverage_cache"
+    f
+    for f in VariantSequence._fields
+    if f != "_coverage_cache"
 )

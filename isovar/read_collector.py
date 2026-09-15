@@ -197,6 +197,18 @@ class ReadCollector(object):
                 pos += length
         return False
 
+    @staticmethod
+    def _splice_junctions(read):
+        """Return CIGAR ``N`` intervals in 0-based half-open coordinates."""
+        reference_position = read.reference_start
+        junctions = []
+        for operation, length in read.cigartuples or ():
+            if operation == 3:
+                junctions.append((reference_position, reference_position + length))
+            if operation in (0, 2, 3, 7, 8):
+                reference_position += length
+        return tuple(junctions)
+
     def locus_read_from_pysam_aligned_segment(
         self,
         pysam_aligned_segment,
@@ -464,6 +476,7 @@ class ReadCollector(object):
             read_base0_start_inclusive=read_base0_start_inclusive,
             read_base0_end_exclusive=read_base0_end_exclusive,
             source_read_count=1,
+            splice_junctions=self._splice_junctions(pysam_aligned_segment),
         )
 
     @staticmethod
@@ -639,6 +652,8 @@ class ReadCollector(object):
             read_base0_start_inclusive=read_base0_start_inclusive,
             read_base0_end_exclusive=read_base0_end_exclusive,
             source_read_count=first.source_read_count + second.source_read_count,
+            splice_junctions=tuple(sorted(set(
+                first.splice_junctions + second.splice_junctions))),
         )
 
     @classmethod

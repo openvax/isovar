@@ -335,7 +335,8 @@ def test_collection_fingerprint_preserves_all_fields_and_order():
     assert collection_benchmark.read_fingerprint([deepcopy(read)]) == baseline
     changes = dict(name="other", sequence="ATG", reference_positions=[10000, 10001, 10002],
                    quality_scores=[31, 0, 40], source_read_count=2, reference_base0_start_inclusive=10000,
-                   reference_base0_end_exclusive=10002, read_base0_start_inclusive=0, read_base0_end_exclusive=3)
+                   reference_base0_end_exclusive=10002, read_base0_start_inclusive=0,
+                   read_base0_end_exclusive=3, splice_junctions=((10001, 10002),))
     assert set(changes) == set(read._fields)
     for field, value in changes.items():
         changed = deepcopy(read)

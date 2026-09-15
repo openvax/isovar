@@ -127,6 +127,13 @@ and command-line tools. To preserve the earlier Python API behavior, pass
 `variant_sequence_assembly=False` to `ProteinSequenceCreator`; on the command
 line, use `--disable-variant-sequence-assembly`.
 
+As of Isovar 1.10.0, BAM-derived reads retain their aligned exon blocks and
+splice junctions during protein creation. Each read remains compatible with a
+set of transcripts; overlapping reads are assembled within shared compatible
+paths, and the resulting cDNA is translated only against those transcripts.
+Evidence that ends before an isoform-distinguishing junction remains ambiguous
+and can support every compatible branch without being counted more than once.
+
 
 ```python
 from isovar import run_isovar, ProteinSequenceCreator
