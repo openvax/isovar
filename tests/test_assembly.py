@@ -17,6 +17,7 @@ from time import time
 import pytest
 
 from isovar.read_collector import ReadCollector
+from isovar.protein_sequence_creator import ProteinSequenceCreator
 from isovar.variant_sequence import VariantSequence
 from isovar.variant_sequence_helpers import initial_variant_sequences_from_reads
 from isovar.allele_read import AlleleRead
@@ -123,6 +124,112 @@ def test_assembly_of_simple_sequence_from_mock_reads():
         # all 4/4 reads
         expected_mean_coverage = (2 * 1 + 2 * 3 + 10 * 4) / 14
         eq_(assembled_variant_sequence.mean_coverage(), expected_mean_coverage)
+
+
+def test_assembly_intersects_compatible_transcripts():
+    left_read = AlleleRead(
+        prefix="GAAAAA",
+        allele="C",
+        suffix="TTTTT",
+        name="left",
+        compatible_transcript_ids={"T1", "T2"})
+    right_read = AlleleRead(
+        prefix="AAAAA",
+        allele="C",
+        suffix="TTTTTG",
+        name="right",
+        compatible_transcript_ids={"T2", "T3"})
+
+    assembled = greedy_merge(
+        initial_variant_sequences_from_reads([left_read, right_read]),
+        min_overlap_size=1)
+
+    eq_(len(assembled), 1)
+    eq_(assembled[0].compatible_transcript_ids, frozenset({"T2"}))
+
+
+def test_assembly_keeps_disjoint_transcript_paths_separate():
+    reads = [
+        AlleleRead(
+            prefix="GAAAAA",
+            allele="C",
+            suffix="TTTTT",
+            name="T1",
+            compatible_transcript_ids={"T1"}),
+        AlleleRead(
+            prefix="AAAAA",
+            allele="C",
+            suffix="TTTTTG",
+            name="T2",
+            compatible_transcript_ids={"T2"}),
+    ]
+
+    assembled = greedy_merge(
+        initial_variant_sequences_from_reads(reads),
+        min_overlap_size=1)
+
+    eq_(len(assembled), 2)
+    eq_(
+        {sequence.compatible_transcript_ids for sequence in assembled},
+        {frozenset({"T1"}), frozenset({"T2"})})
+
+
+def test_identical_sequences_on_disjoint_transcript_paths_stay_separate():
+    reads = [
+        AlleleRead("AAAA", "C", "TTTT", "T1", compatible_transcript_ids={"T1"}),
+        AlleleRead("AAAA", "C", "TTTT", "T2", compatible_transcript_ids={"T2"}),
+    ]
+
+    initial = initial_variant_sequences_from_reads(reads)
+
+    eq_(len(initial), 2)
+    eq_(len(merge_identical_sequences(initial)), 2)
+
+
+def test_assembly_preserves_both_transcript_branches_without_global_intersection():
+    ambiguous = AlleleRead(
+        "AAAAA", "C", "TTTTT", "both",
+        compatible_transcript_ids={"T1", "T2"})
+    t1 = AlleleRead(
+        "GAAAAA", "C", "TTTTT", "T1",
+        compatible_transcript_ids={"T1"})
+    t2 = AlleleRead(
+        "AAAAA", "C", "TTTTTG", "T2",
+        compatible_transcript_ids={"T2"})
+
+    assembled = ProteinSequenceCreator(
+        min_variant_sequence_coverage=1,
+        protein_sequence_preference="support",
+    ).variant_sequences_from_reads(None, [ambiguous, t1, t2])
+
+    assert any(
+        sequence.prefix == "GAAAAA"
+        and sequence.compatible_transcript_ids == {"T1"}
+        for sequence in assembled)
+    assert any(
+        sequence.suffix == "TTTTTG"
+        and sequence.compatible_transcript_ids == {"T2"}
+        for sequence in assembled)
+
+
+def test_ambiguous_read_is_not_counted_twice_across_transcript_branches():
+    ambiguous = AlleleRead(
+        "AAAAA", "C", "TTTTT", "both",
+        compatible_transcript_ids={"T1", "T2"})
+    t1 = AlleleRead(
+        "GAAAAA", "C", "TTTTT", "T1",
+        compatible_transcript_ids={"T1"})
+
+    groups = ProteinSequenceCreator._transcript_read_groups([ambiguous, t1])
+    ambiguous_copies = [
+        read
+        for _transcript_ids, reads in groups
+        for read in reads
+        if read.name == "both"
+    ]
+
+    eq_(len(ambiguous_copies), 2)
+    eq_(len(frozenset(ambiguous_copies)), 1)
 
 
 def test_collapse_substrings():

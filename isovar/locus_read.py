@@ -37,7 +37,8 @@ class LocusRead(ValueObject):
         "reference_base0_start_inclusive",
         "reference_base0_end_exclusive",
         "read_base0_start_inclusive",
-        "read_base0_end_exclusive"
+        "read_base0_end_exclusive",
+        "splice_junctions",
     ]
 
     def __init__(
@@ -50,7 +51,8 @@ class LocusRead(ValueObject):
             reference_base0_end_exclusive,
             read_base0_start_inclusive,
             read_base0_end_exclusive,
-            source_read_count=1):
+            source_read_count=1,
+            splice_junctions=()):
         """
         Parameters
         ----------
@@ -78,6 +80,10 @@ class LocusRead(ValueObject):
             Number of raw reads represented by this LocusRead. Usually 1, but
             overlapping paired-end mates from the same fragment may be merged
             into a single LocusRead while keeping this count.
+
+        splice_junctions : sequence of (int, int)
+            Reference skips from CIGAR ``N`` operations, represented as
+            0-based half-open genomic intervals ``(intron_start, intron_end)``.
 
         reference_base0_start_inclusive : int
             Start index of reference locus which is overlapped
@@ -157,3 +163,4 @@ class LocusRead(ValueObject):
         self.reference_base0_end_exclusive = reference_base0_end_exclusive
         self.read_base0_start_inclusive = read_base0_start_inclusive
         self.read_base0_end_exclusive = read_base0_end_exclusive
+        self.splice_junctions = tuple(splice_junctions)

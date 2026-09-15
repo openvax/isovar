@@ -28,6 +28,27 @@ from .variant_sequence import VariantSequence
 logger = get_logger(__name__)
 
 
+def _group_unique_sequences_and_transcript_paths(
+        allele_reads,
+        max_prefix_size=None,
+        max_suffix_size=None):
+    """Group identical cDNA observations without merging transcript paths."""
+    sequence_groups = group_unique_sequences(
+        allele_reads,
+        max_prefix_size=max_prefix_size,
+        max_suffix_size=max_suffix_size)
+    groups = defaultdict(set)
+    for (prefix, alt, suffix), reads in sequence_groups.items():
+        for read in reads:
+            groups[
+                prefix,
+                alt,
+                suffix,
+                read.compatible_transcript_ids,
+            ].add(read)
+    return groups
+
+
 def initial_variant_sequences_from_reads(
         variant_reads,
         max_nucleotides_before_variant=None,
@@ -49,7 +70,7 @@ def initial_variant_sequences_from_reads(
     -------
     list of VariantSequence
     """
-    unique_sequence_groups = group_unique_sequences(
+    unique_sequence_groups = _group_unique_sequences_and_transcript_paths(
         variant_reads,
         max_prefix_size=max_nucleotides_before_variant,
         max_suffix_size=max_nucleotides_after_variant)
@@ -60,7 +81,7 @@ def initial_variant_sequences_from_reads(
             alt=alt,
             suffix=suffix,
             reads=reads)
-        for ((prefix, alt, suffix), reads)
+        for ((prefix, alt, suffix, _compatible_transcript_ids), reads)
         in unique_sequence_groups.items()
     ]
 
@@ -157,7 +178,7 @@ class _FlankIndex:
     def __init__(self, groups, upstream):
         self.entries = sorted(
             ((prefix[::-1] if upstream else suffix, group_id)
-             for group_id, (prefix, suffix, reads) in enumerate(groups)))
+             for group_id, (prefix, suffix, reads, transcript_ids) in enumerate(groups)))
         self.words = [word for word, _ in self.entries]
         self.exact = {}
         for i, word in enumerate(self.words):
@@ -201,16 +222,33 @@ def _variant_sequences_with_shared_read_support(variant_sequences, read_groups):
         return []
     max_prefix = max(len(s.prefix) for s in variant_sequences)
     max_suffix = max(len(s.suffix) for s in variant_sequences)
+    normalized_read_groups = defaultdict(set)
+    for key, reads in read_groups.items():
+        if len(key) == 4:
+            normalized_read_groups[key].update(reads)
+            continue
+        prefix, alt, suffix = key
+        for read in reads:
+            normalized_read_groups[
+                prefix,
+                alt,
+                suffix,
+                getattr(read, "compatible_transcript_ids", None),
+            ].add(read)
     bounded_groups = defaultdict(set)
-    for (prefix, alt, suffix), reads in read_groups.items():
+    for (prefix, alt, suffix, transcript_ids), reads in normalized_read_groups.items():
         # Only index the observable context; retain the ORIGINAL read objects
         # and their real bounds for coverage. Distinct overhangs outside every
         # candidate can safely share an index entry, never a read identity.
-        key = (prefix[-max_prefix:] if max_prefix else "", alt, suffix[:max_suffix])
+        key = (
+            prefix[-max_prefix:] if max_prefix else "",
+            alt,
+            suffix[:max_suffix],
+            transcript_ids)
         bounded_groups[key].update(reads)
     by_allele = defaultdict(list)
-    for (prefix, alt, suffix), reads in bounded_groups.items():
-        by_allele[alt].append((prefix, suffix, reads))
+    for (prefix, alt, suffix, transcript_ids), reads in bounded_groups.items():
+        by_allele[alt].append((prefix, suffix, reads, transcript_ids))
     indexes = {alt: (_FlankIndex(groups, True), _FlankIndex(groups, False))
                for alt, groups in by_allele.items()}
     result = []
@@ -226,10 +264,22 @@ def _variant_sequences_with_shared_read_support(variant_sequences, read_groups):
             groups = by_allele[sequence.alt]
             for start, end in ranges:
                 for i in range(start, end):
-                    prefix, suffix, group = groups[index.entries[i][1]]
+                    prefix, suffix, group, transcript_ids = groups[index.entries[i][1]]
                     # The selective flank has already matched; check both
                     # here to keep the exact compatibility rule explicit.
-                    if ((sequence.alt or (prefix and sequence.prefix) or (suffix and sequence.suffix))
+                    path_supports_candidate = (
+                        sequence.compatible_transcript_ids is None
+                        and transcript_ids is None
+                    ) or (
+                        sequence.compatible_transcript_ids is not None
+                        and (
+                            transcript_ids is None
+                            or sequence.compatible_transcript_ids.issubset(
+                                transcript_ids)
+                        )
+                    )
+                    if (path_supports_candidate
+                            and (sequence.alt or (prefix and sequence.prefix) or (suffix and sequence.suffix))
                             and (prefix.endswith(sequence.prefix) or sequence.prefix.endswith(prefix))
                             and (suffix.startswith(sequence.suffix) or sequence.suffix.startswith(suffix))):
                         supporting_reads.update(group)
