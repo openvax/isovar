@@ -116,15 +116,34 @@ elif [[ "${1:-}" == "-m" && "${2:-}" == "pip" ]]; then
 elif [[ "${1:-}" == "-m" && "${2:-}" == "build" ]]; then
   version="$("${REAL_PYTHON}" -c \
     'import re; from pathlib import Path; print(re.search(r"__version__ = \\\"([^\\\"]+)\\\"", Path("isovar/__init__.py").read_text()).group(1))')"
-  mkdir -p dist
-  touch "dist/isovar-${version}-py3-none-any.whl"
-  touch "dist/isovar-${version}.tar.gz"
+  output=dist
+  previous=""
+  for argument in "$@"; do
+    if [[ "${previous}" == "--outdir" ]]; then output="${argument}"; fi
+    previous="${argument}"
+  done
+  mkdir -p "${output}"
+  touch "${output}/isovar-${version}-py3-none-any.whl"
+  touch "${output}/isovar-${version}.tar.gz"
+  if [[ -n "${RELEASE_COMMAND_LOG:-}" ]]; then echo build >> "${RELEASE_COMMAND_LOG}"; fi
   echo "built ${version}"
   exit 0
 elif [[ "${1:-}" == "-m" && "${2:-}" == "twine" ]]; then
   echo "twine-check"
   exit 0
 elif [[ "${1:-}" == "release_upload.py" ]]; then
+  manifest=""
+  previous=""
+  for argument in "$@"; do
+    if [[ "${previous}" == "--artifact-manifest" ]]; then manifest="${argument}"; fi
+    previous="${argument}"
+  done
+  printf '{}\n' > "${manifest}"
+  if [[ -n "${RELEASE_COMMAND_LOG:-}" ]]; then echo upload >> "${RELEASE_COMMAND_LOG}"; fi
+  if [[ -n "${FAIL_RELEASE_ONCE_MARKER:-}" && ! -e "${FAIL_RELEASE_ONCE_MARKER}" ]]; then
+    touch "${FAIL_RELEASE_ONCE_MARKER}"
+    exit 9
+  fi
   echo "release-upload $*"
   exit 0
 fi
@@ -447,6 +466,32 @@ def test_deploy_resumes_after_version_commit_push_fails(tmp_path):
     assert _git(repo, "rev-list", "--count", "HEAD").stdout.strip() == "2"
     assert '__version__ = "1.7.3"' in _git(
         repo, "show", "origin/main:isovar/__init__.py").stdout
+    assert "refs/tags/v1.7.3" in _git(
+        repo, "ls-remote", "--tags", "origin", "refs/tags/v1.7.3").stdout
+
+
+def test_deploy_reuses_exact_artifacts_after_upload_interruption(tmp_path):
+    repo = _release_repo(tmp_path)
+    fake_python = _fake_release_python(tmp_path)
+    command_log = tmp_path / "release-commands.log"
+    failure_marker = tmp_path / "release-failed-once"
+    environment = {
+        "PYTHON": str(fake_python),
+        "REAL_PYTHON": sys.executable,
+        "RELEASE_COMMAND_LOG": str(command_log),
+        "FAIL_RELEASE_ONCE_MARKER": str(failure_marker),
+    }
+
+    first_attempt = _deploy(repo, "1.7.3", env_updates=environment)
+    assert first_attempt.returncode == 9
+    assert command_log.read_text().splitlines() == ["build", "upload"]
+    assert (repo / "dist/release/manifest.json").is_file()
+
+    second_attempt = _deploy(repo, "1.7.3", env_updates=environment)
+    assert second_attempt.returncode == 0, second_attempt.stderr
+    assert "Reusing preserved release artifacts" in second_attempt.stdout
+    assert command_log.read_text().splitlines() == ["build", "upload", "upload"]
+    assert not (repo / "dist").exists()
     assert "refs/tags/v1.7.3" in _git(
         repo, "ls-remote", "--tags", "origin", "refs/tags/v1.7.3").stdout
 

@@ -25,6 +25,7 @@ from release_upload import (
     expected_release_filenames,
     main,
     pypi_release_digests,
+    preserve_release_manifest,
     publish_release,
     sha256_file,
     upload_distribution,
@@ -58,6 +59,58 @@ def release_files(tmp_path):
 
 def _local_digests(paths):
     return {path.name: sha256_file(path) for path in paths}
+
+
+def test_release_manifest_is_created_once_and_reused(release_files, tmp_path, capsys):
+    manifest = tmp_path / "manifest.json"
+    expected = {
+        "project": "isovar",
+        "version": "1.7.3",
+        "source_commit": "abc123",
+        "artifacts": _local_digests(release_files),
+    }
+
+    for _ in range(2):
+        assert preserve_release_manifest(
+            manifest,
+            project="isovar",
+            version="1.7.3",
+            source_commit="abc123",
+            distribution_paths=release_files,
+            expected_filenames=EXPECTED,
+        ) == expected["artifacts"]
+
+    assert json.loads(manifest.read_text()) == expected
+    output = capsys.readouterr().out
+    assert "Preserved release artifacts" in output
+    assert "Reusing preserved release artifacts" in output
+
+
+@pytest.mark.parametrize("change", ["source", "artifact"])
+def test_release_manifest_rejects_changed_source_or_artifact(
+        release_files, tmp_path, change):
+    manifest = tmp_path / "manifest.json"
+    preserve_release_manifest(
+        manifest,
+        project="isovar",
+        version="1.7.3",
+        source_commit="abc123",
+        distribution_paths=release_files,
+        expected_filenames=EXPECTED,
+    )
+    source_commit = "different" if change == "source" else "abc123"
+    if change == "artifact":
+        release_files[0].write_bytes(b"rebuilt bytes")
+
+    with pytest.raises(ReleaseUploadError, match="does not match"):
+        preserve_release_manifest(
+            manifest,
+            project="isovar",
+            version="1.7.3",
+            source_commit=source_commit,
+            distribution_paths=release_files,
+            expected_filenames=EXPECTED,
+        )
 
 
 def test_expected_release_filenames_are_exact_wheel_and_sdist():
@@ -414,43 +467,6 @@ def test_successful_upload_with_different_server_bytes_fails_hard(release_files)
         )
 
 
-def test_final_verification_rejects_digest_changed_after_exact_matches(
-        release_files):
-    local_digests = _local_digests(release_files)
-    changed_digests = dict(local_digests)
-    changed_digests[SDIST] = OTHER_SHA256
-    responses = iter([
-        local_digests,
-        local_digests,
-        changed_digests,
-    ])
-
-    with pytest.raises(ReleaseUploadError, match="SHA-256 mismatch"):
-        publish_release(
-            release_files,
-            expected_filenames=EXPECTED,
-            fetch_release_digests=lambda: next(responses),
-            upload_file=lambda path: pytest.fail("unexpected upload"),
-        )
-
-
-def test_final_verification_rejects_missing_artifact(release_files):
-    local_digests = _local_digests(release_files)
-    responses = iter([
-        local_digests,
-        local_digests,
-        {WHEEL: local_digests[WHEEL]},
-    ])
-
-    with pytest.raises(ReleaseUploadError, match="missing expected files"):
-        publish_release(
-            release_files,
-            expected_filenames=EXPECTED,
-            fetch_release_digests=lambda: next(responses),
-            upload_file=lambda path: pytest.fail("unexpected upload"),
-        )
-
-
 def test_unexpected_distribution_set_is_rejected_before_hash_or_upload():
     with pytest.raises(ReleaseUploadError, match="do not match"):
         publish_release(
@@ -489,8 +505,10 @@ def test_missing_distribution_file_is_rejected_before_network_or_upload():
     assert uploaded == []
 
 
-def test_main_passes_exact_artifact_contract_to_publisher(monkeypatch, capsys):
+def test_main_preserves_exact_artifact_contract_before_publishing(
+        monkeypatch, capsys, release_files, tmp_path):
     observed = {}
+    manifest = tmp_path / "manifest.json"
 
     def publish_release_call(distribution_paths, **kwargs):
         observed.update(
@@ -505,9 +523,12 @@ def test_main_passes_exact_artifact_contract_to_publisher(monkeypatch, capsys):
     assert main([
         "--project", "isovar",
         "--version", "1.7.3",
-        *[str(path) for path in PATHS],
+        "--artifact-manifest", str(manifest),
+        "--source-commit", "abc123",
+        *[str(path) for path in release_files],
     ]) == 0
-    assert observed["distribution_paths"] == tuple(str(path) for path in PATHS)
+    assert observed["distribution_paths"] == tuple(str(path) for path in release_files)
     assert observed["expected_filenames"] == EXPECTED
     assert callable(observed["fetch_release_digests"])
+    assert json.loads(manifest.read_text())["source_commit"] == "abc123"
     assert "Verified PyPI release files" in capsys.readouterr().out

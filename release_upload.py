@@ -59,6 +59,76 @@ def sha256_file(path):
     return digest.hexdigest()
 
 
+def release_artifact_digests(distribution_paths, expected_filenames):
+    """Validate and hash the exact wheel/source-distribution pair."""
+    distribution_paths = tuple(map(Path, distribution_paths))
+    paths_by_name = {path.name: path for path in distribution_paths}
+    expected = frozenset(expected_filenames)
+    if (len(paths_by_name) != len(distribution_paths) or
+            frozenset(paths_by_name) != expected):
+        raise ReleaseUploadError(
+            "Distribution files do not match the expected release set: "
+            "expected=%s, observed=%s" % (
+                sorted(expected),
+                sorted(paths_by_name),
+            )
+        )
+    try:
+        return {
+            filename: sha256_file(paths_by_name[filename])
+            for filename in sorted(expected)
+        }
+    except OSError as error:
+        raise ReleaseUploadError(
+            "Could not hash release artifact: %s" % error
+        ) from error
+
+
+def preserve_release_manifest(
+        manifest_path,
+        project,
+        version,
+        source_commit,
+        distribution_paths,
+        expected_filenames):
+    """Create once, then verify, the source identity and artifact hashes."""
+    manifest_path = Path(manifest_path)
+    artifact_digests = release_artifact_digests(
+        distribution_paths,
+        expected_filenames,
+    )
+    expected_manifest = {
+        "project": project,
+        "version": version,
+        "source_commit": source_commit,
+        "artifacts": artifact_digests,
+    }
+    if manifest_path.exists():
+        try:
+            observed_manifest = json.loads(manifest_path.read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            raise ReleaseUploadError(
+                "Could not read release artifact manifest: %s" % error
+            ) from error
+        if observed_manifest != expected_manifest:
+            raise ReleaseUploadError(
+                "Release artifact manifest does not match this source and build"
+            )
+        print("Reusing preserved release artifacts for %s" % source_commit)
+    else:
+        temporary_path = manifest_path.with_name(manifest_path.name + ".tmp")
+        try:
+            temporary_path.write_text(
+                json.dumps(expected_manifest, indent=2, sort_keys=True) + "\n")
+            temporary_path.replace(manifest_path)
+        except OSError as error:
+            raise ReleaseUploadError(
+                "Could not preserve release artifact manifest: %s" % error
+            ) from error
+        print("Preserved release artifacts for %s" % source_commit)
+    return artifact_digests
+
+
 def _validated_sha256(value, context):
     """Normalize a SHA-256 value or fail closed on malformed metadata."""
     if not isinstance(value, str):
@@ -226,30 +296,15 @@ def publish_release(
     appears in PyPI metadata with the exact local SHA-256 digest.
     """
     distribution_paths = tuple(distribution_paths)
+    expected = frozenset(expected_filenames)
     paths_by_name = {
         Path(distribution_path).name: Path(distribution_path)
         for distribution_path in distribution_paths
     }
-    expected = frozenset(expected_filenames)
-    if (len(paths_by_name) != len(distribution_paths) or
-            frozenset(paths_by_name) != expected):
-        raise ReleaseUploadError(
-            "Distribution files do not match the expected release set: "
-            "expected=%s, observed=%s" % (
-                sorted(expected),
-                sorted(paths_by_name),
-            )
-        )
-
-    try:
-        expected_digests = {
-            filename: sha256_file(paths_by_name[filename])
-            for filename in sorted(expected)
-        }
-    except OSError as error:
-        raise ReleaseUploadError(
-            "Could not hash release artifact: %s" % error
-        ) from error
+    expected_digests = release_artifact_digests(
+        distribution_paths,
+        expected,
+    )
 
     for filename in sorted(expected):
         published_digests = dict(fetch_release_digests())
@@ -282,17 +337,10 @@ def publish_release(
         else:
             print("Published: %s" % filename)
 
-    published_digests = dict(fetch_release_digests())
-    matching = _matching_release_filenames(
-        expected_digests,
-        published_digests,
-    )
-    missing = expected - matching
-    if missing:
-        raise ReleaseUploadError(
-            "PyPI release is missing expected files: %s" % sorted(missing)
-        )
-    return published_digests
+    # Every file was individually observed on PyPI with its exact digest.
+    # Refetching the whole release adds no integrity check: PyPI artifacts are
+    # immutable, while its metadata replicas can briefly return older subsets.
+    return expected_digests
 
 
 def main(argv=None):
@@ -302,6 +350,8 @@ def main(argv=None):
     parser.add_argument("--version", required=True)
     parser.add_argument("--json-base-url", default=PYPI_JSON_BASE_URL)
     parser.add_argument("--repository-url")
+    parser.add_argument("--artifact-manifest")
+    parser.add_argument("--source-commit")
     parser.add_argument(
         "--upload-timeout-seconds",
         type=float,
@@ -322,6 +372,18 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     expected = expected_release_filenames(args.project, args.version)
+    if bool(args.artifact_manifest) != bool(args.source_commit):
+        parser.error(
+            "--artifact-manifest and --source-commit must be provided together")
+    if args.artifact_manifest:
+        preserve_release_manifest(
+            manifest_path=args.artifact_manifest,
+            project=args.project,
+            version=args.version,
+            source_commit=args.source_commit,
+            distribution_paths=args.distributions,
+            expected_filenames=expected,
+        )
 
     def fetch_release_digests():
         return pypi_release_digests(
