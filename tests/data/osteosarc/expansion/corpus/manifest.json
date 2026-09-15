@@ -755,9 +755,9 @@
         "counts": {
           "all_template_names": 32,
           "read_objects": {
-            "alt": 16,
+            "alt": 17,
             "other": 0,
-            "ref": 16
+            "ref": 18
           },
           "reads": {
             "alt": 19,
@@ -841,20 +841,21 @@
               "A01231:888:HGH32DSXC:3:1501:5285:28275",
               "A01231:888:HGH32DSXC:3:1501:5303:28213",
               "A01231:888:HGH32DSXC:4:1472:27245:34053",
+              "A01231:888:HGH32DSXC:4:1638:31150:15139",
               "A01231:888:HGH32DSXC:4:2644:9959:12132"
             ],
-            "supporting_reads": 12,
-            "supporting_template_names": 11,
+            "supporting_reads": 13,
+            "supporting_template_names": 12,
             "validation_status": "ok"
           }
         ],
         "stages": {
           "reference_context_count": 1,
           "reference_matching_rejected": 16,
-          "rna_candidate_count": 50,
+          "rna_candidate_count": 56,
           "stage": "independent_protein_validation",
-          "translation_count": 34,
-          "translations_with_mutation": 34
+          "translation_count": 40,
+          "translations_with_mutation": 40
         },
         "status": "ok"
       },
@@ -904,7 +905,7 @@
         "counts": {
           "all_template_names": 32,
           "read_objects": {
-            "alt": 16,
+            "alt": 17,
             "other": 0,
             "ref": 16
           },
@@ -990,20 +991,21 @@
               "A01231:888:HGH32DSXC:3:1501:5285:28275",
               "A01231:888:HGH32DSXC:3:1501:5303:28213",
               "A01231:888:HGH32DSXC:4:1472:27245:34053",
+              "A01231:888:HGH32DSXC:4:1638:31150:15139",
               "A01231:888:HGH32DSXC:4:2644:9959:12132"
             ],
-            "supporting_reads": 12,
-            "supporting_template_names": 11,
+            "supporting_reads": 13,
+            "supporting_template_names": 12,
             "validation_status": "ok"
           }
         ],
         "stages": {
           "reference_context_count": 1,
           "reference_matching_rejected": 16,
-          "rna_candidate_count": 50,
+          "rna_candidate_count": 56,
           "stage": "independent_protein_validation",
-          "translation_count": 34,
-          "translations_with_mutation": 34
+          "translation_count": 40,
+          "translations_with_mutation": 40
         },
         "status": "ok"
       },
@@ -9632,7 +9634,7 @@
           "read_objects": {
             "alt": 10,
             "other": 1,
-            "ref": 19
+            "ref": 20
           },
           "reads": {
             "alt": 19,
@@ -14846,7 +14848,7 @@
         "counts": {
           "all_template_names": 32,
           "read_objects": {
-            "alt": 17,
+            "alt": 18,
             "other": 0,
             "ref": 16
           },
@@ -14943,10 +14945,10 @@
         ],
         "stages": {
           "reference_context_count": 3,
-          "rna_candidate_count": 78,
+          "rna_candidate_count": 94,
           "stage": "independent_protein_validation",
-          "translation_count": 110,
-          "translations_with_mutation": 110
+          "translation_count": 129,
+          "translations_with_mutation": 129
         },
         "status": "ok"
       },
@@ -14998,7 +15000,7 @@
         "counts": {
           "all_template_names": 32,
           "read_objects": {
-            "alt": 17,
+            "alt": 18,
             "other": 0,
             "ref": 16
           },
@@ -15095,10 +15097,10 @@
         ],
         "stages": {
           "reference_context_count": 3,
-          "rna_candidate_count": 78,
+          "rna_candidate_count": 94,
           "stage": "independent_protein_validation",
-          "translation_count": 110,
-          "translations_with_mutation": 110
+          "translation_count": 129,
+          "translations_with_mutation": 129
         },
         "status": "ok"
       },
@@ -17057,7 +17059,7 @@
           "read_objects": {
             "alt": 8,
             "other": 0,
-            "ref": 18
+            "ref": 20
           },
           "reads": {
             "alt": 13,
@@ -20690,7 +20692,7 @@
           "read_objects": {
             "alt": 42,
             "other": 0,
-            "ref": 16
+            "ref": 18
           },
           "reads": {
             "alt": 64,
@@ -22215,17 +22217,17 @@
         "counts": {
           "all_template_names": 34,
           "read_objects": {
-            "alt": 15,
+            "alt": 19,
             "other": 0,
             "ref": 20
           },
           "reads": {
-            "alt": 23,
+            "alt": 25,
             "other": 0,
-            "ref": 31
+            "ref": 29
           },
           "template_names": {
-            "alt": 15,
+            "alt": 17,
             "other": 0,
             "ref": 20
           }
@@ -22277,11 +22279,12 @@
               49
             ],
             "retained_cdna_min_coverages": [
-              3
+              6
             ],
             "supporting_read_names": [
               "LH00306:228:22KJT5LT4:7:1128:4577:13663",
               "LH00306:228:22KJT5LT4:7:1268:13907:7009",
+              "LH00306:228:22KJT5LT4:7:1269:29218:25416",
               "LH00306:228:22KJT5LT4:7:1319:39649:29212",
               "LH00306:228:22KJT5LT4:7:1349:31888:10735",
               "LH00306:228:22KJT5LT4:7:1349:8971:3732",
@@ -22289,21 +22292,23 @@
               "LH00306:228:22KJT5LT4:7:1435:37852:18118",
               "LH00306:228:22KJT5LT4:7:1479:25617:4754",
               "LH00306:228:22KJT5LT4:7:1479:25625:4768",
+              "LH00306:228:22KJT5LT4:7:2125:23043:13971",
               "LH00306:228:22KJT5LT4:7:2133:33393:27657",
               "LH00306:228:22KJT5LT4:7:2245:30318:28105",
-              "LH00306:228:22KJT5LT4:7:2346:36476:29520"
+              "LH00306:228:22KJT5LT4:7:2346:36476:29520",
+              "LH00306:228:22KJT5LT4:7:2477:41647:22810"
             ],
-            "supporting_reads": 18,
-            "supporting_template_names": 12,
+            "supporting_reads": 22,
+            "supporting_template_names": 15,
             "validation_status": "ok"
           }
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 39,
+          "rna_candidate_count": 53,
           "stage": "independent_protein_validation",
-          "translation_count": 39,
-          "translations_with_mutation": 39
+          "translation_count": 53,
+          "translations_with_mutation": 53
         },
         "status": "ok"
       },
@@ -22353,17 +22358,17 @@
         "counts": {
           "all_template_names": 34,
           "read_objects": {
-            "alt": 15,
+            "alt": 19,
             "other": 0,
             "ref": 20
           },
           "reads": {
-            "alt": 23,
+            "alt": 25,
             "other": 0,
-            "ref": 31
+            "ref": 29
           },
           "template_names": {
-            "alt": 15,
+            "alt": 17,
             "other": 0,
             "ref": 20
           }
@@ -22415,11 +22420,12 @@
               49
             ],
             "retained_cdna_min_coverages": [
-              3
+              6
             ],
             "supporting_read_names": [
               "LH00306:228:22KJT5LT4:7:1128:4577:13663",
               "LH00306:228:22KJT5LT4:7:1268:13907:7009",
+              "LH00306:228:22KJT5LT4:7:1269:29218:25416",
               "LH00306:228:22KJT5LT4:7:1319:39649:29212",
               "LH00306:228:22KJT5LT4:7:1349:31888:10735",
               "LH00306:228:22KJT5LT4:7:1349:8971:3732",
@@ -22427,21 +22433,23 @@
               "LH00306:228:22KJT5LT4:7:1435:37852:18118",
               "LH00306:228:22KJT5LT4:7:1479:25617:4754",
               "LH00306:228:22KJT5LT4:7:1479:25625:4768",
+              "LH00306:228:22KJT5LT4:7:2125:23043:13971",
               "LH00306:228:22KJT5LT4:7:2133:33393:27657",
               "LH00306:228:22KJT5LT4:7:2245:30318:28105",
-              "LH00306:228:22KJT5LT4:7:2346:36476:29520"
+              "LH00306:228:22KJT5LT4:7:2346:36476:29520",
+              "LH00306:228:22KJT5LT4:7:2477:41647:22810"
             ],
-            "supporting_reads": 18,
-            "supporting_template_names": 12,
+            "supporting_reads": 22,
+            "supporting_template_names": 15,
             "validation_status": "ok"
           }
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 39,
+          "rna_candidate_count": 53,
           "stage": "independent_protein_validation",
-          "translation_count": 39,
-          "translations_with_mutation": 39
+          "translation_count": 53,
+          "translations_with_mutation": 53
         },
         "status": "ok"
       },

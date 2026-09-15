@@ -16,6 +16,8 @@ values can be easily shared between modules and also between commandline
 arguments of different scripts.
 """
 
+from collections import OrderedDict
+
 # lowest mapping quality (MAPQ) value to allow for RNAseq reads
 # Rationale for a default value of 1:
 #   RNA aligners such as STAR typically reserve MAPQ=255 for unique alignments
@@ -44,6 +46,16 @@ USE_DUPLICATE_READS = False
 # use a read even at a location that isn't its primary alignment?
 USE_SECONDARY_ALIGNMENTS = True
 
+# Merge overlapping mates before assembly, retaining raw alignment counts.
+MERGE_OVERLAPPING_FRAGMENTS = True
+
+# htslib threads used to decompress BAM/CRAM input
+NUM_RNA_DECOMPRESSION_THREADS = 1
+
+# Context on each side of a variant for the reference-context inspection tool.
+# Protein creation derives its context size from the requested cDNA length.
+REFERENCE_CONTEXT_SIZE = 30
+
 # number of nucleotides to extract from RNAseq reads around each variant
 VARIANT_SEQUENCE_LENGTH = 90
 
@@ -66,7 +78,14 @@ COUNT_MISMATCHES_AFTER_VARIANT = False
 # A centered single-residue mutation with 24 residues on either side covers
 # every mutation-containing 25mer (2 * 25 - 1 = 49 residues).
 PROTEIN_CONTEXT_PEPTIDE_LENGTH = 25
-PROTEIN_SEQUENCE_LENGTH = 2 * PROTEIN_CONTEXT_PEPTIDE_LENGTH - 1
+
+
+def protein_sequence_length_for_peptide_length(peptide_length):
+    """Context covering every peptide window around a centered changed residue."""
+    return 2 * peptide_length - 1
+
+
+PROTEIN_SEQUENCE_LENGTH = protein_sequence_length_for_peptide_length(PROTEIN_CONTEXT_PEPTIDE_LENGTH)
 PROTEIN_SEQUENCE_PREFERENCE = "balanced"
 MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION = 0.85
 
@@ -135,3 +154,26 @@ MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS = 3.0
 # number of RNA fragments shared between two assembled protein sequences
 # before we say that their variants are phased
 MIN_SHARED_FRAGMENTS_FOR_PHASING = 2
+
+
+DEFAULT_FILTER_THRESHOLDS = OrderedDict([
+    ("min_num_alt_reads", MIN_NUM_RNA_ALT_READS),
+    ("min_num_alt_fragments", MIN_NUM_RNA_ALT_FRAGMENTS),
+    ("min_fraction_alt_reads", MIN_FRACTION_RNA_ALT_READS),
+    ("min_fraction_alt_fragments", MIN_FRACTION_RNA_ALT_FRAGMENTS),
+    ("max_num_ref_reads", MAX_NUM_RNA_REF_READS),
+    ("max_num_ref_fragments", MAX_NUM_RNA_REF_FRAGMENTS),
+    ("max_fraction_ref_reads", MAX_FRACTION_RNA_REF_READS),
+    ("max_fraction_ref_fragments", MAX_FRACTION_RNA_REF_FRAGMENTS),
+    ("max_num_other_reads", MAX_NUM_RNA_OTHER_READS),
+    ("max_num_other_fragments", MAX_NUM_RNA_OTHER_FRAGMENTS),
+    ("max_fraction_other_reads", MAX_FRACTION_RNA_OTHER_READS),
+    ("max_fraction_other_fragments", MAX_FRACTION_RNA_OTHER_FRAGMENTS),
+    ("min_ratio_alt_to_other_fragments", MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS),
+])
+
+DEFAULT_FILTER_FLAGS = [
+    "predicted_effect_modifies_protein_sequence",
+    "has_mutant_protein_sequence_from_rna",
+    "protein_sequence_contains_mutation",
+]

@@ -20,20 +20,10 @@ from .read_collector import ReadCollector
 from .logging import get_logger
 from .isovar_result import IsovarResult
 from .default_parameters import (
-    MIN_NUM_RNA_ALT_READS,
-    MIN_NUM_RNA_ALT_FRAGMENTS,
-    MIN_FRACTION_RNA_ALT_READS,
-    MIN_FRACTION_RNA_ALT_FRAGMENTS,
-    MAX_NUM_RNA_REF_READS,
-    MAX_NUM_RNA_REF_FRAGMENTS,
-    MAX_FRACTION_RNA_REF_READS,
-    MAX_FRACTION_RNA_REF_FRAGMENTS,
-    MAX_NUM_RNA_OTHER_READS,
-    MAX_NUM_RNA_OTHER_FRAGMENTS,
-    MAX_FRACTION_RNA_OTHER_READS,
-    MAX_FRACTION_RNA_OTHER_FRAGMENTS,
-    MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS,
-    MIN_SHARED_FRAGMENTS_FOR_PHASING
+    DEFAULT_FILTER_THRESHOLDS as DEFAULT_FILTER_THRESHOLDS,
+    DEFAULT_FILTER_FLAGS as DEFAULT_FILTER_FLAGS,
+    MIN_SHARED_FRAGMENTS_FOR_PHASING,
+    NUM_RNA_DECOMPRESSION_THREADS,
 )
 from .effect_prediction import top_varcode_effect
 from .filtering import apply_filters
@@ -41,35 +31,6 @@ from .phasing import annotate_phased_variants
 
 logger = get_logger(__name__)
 
-
-DEFAULT_FILTER_THRESHOLDS =  OrderedDict([
-    # alt allele
-    ("min_num_alt_reads", MIN_NUM_RNA_ALT_READS),
-    ("min_num_alt_fragments", MIN_NUM_RNA_ALT_FRAGMENTS),
-    ("min_fraction_alt_reads", MIN_FRACTION_RNA_ALT_READS),
-    ("min_fraction_alt_fragments", MIN_FRACTION_RNA_ALT_FRAGMENTS),
-
-    # ref allele coverage and VAF
-    ("max_num_ref_reads", MAX_NUM_RNA_REF_READS),
-    ("max_num_ref_fragments", MAX_NUM_RNA_REF_FRAGMENTS),
-    ("max_fraction_ref_reads", MAX_FRACTION_RNA_REF_READS),
-    ("max_fraction_ref_fragments", MAX_FRACTION_RNA_REF_FRAGMENTS),
-
-    # other alleles
-    ("max_num_other_reads", MAX_NUM_RNA_OTHER_READS),
-    ("max_num_other_fragments", MAX_NUM_RNA_OTHER_FRAGMENTS),
-    ("max_fraction_other_reads", MAX_FRACTION_RNA_OTHER_READS),
-    ("max_fraction_other_fragments", MAX_FRACTION_RNA_OTHER_FRAGMENTS),
-
-    # misc. filters
-    ("min_ratio_alt_to_other_fragments", MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS)
-])
-
-DEFAULT_FILTER_FLAGS = [
-    "predicted_effect_modifies_protein_sequence",
-    "has_mutant_protein_sequence_from_rna",
-    "protein_sequence_contains_mutation",
-]
 
 def run_isovar(
         variants,
@@ -80,7 +41,7 @@ def run_isovar(
         filter_thresholds=None,
         filter_flags=None,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
-        decompression_threads=1):
+        decompression_threads=NUM_RNA_DECOMPRESSION_THREADS):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
@@ -147,7 +108,7 @@ def run_isovar(
             threads=decompression_threads)
 
     if read_collector is None:
-        read_collector = ReadCollector(merge_overlapping_fragments=True)
+        read_collector = ReadCollector()
 
     if protein_sequence_creator is None:
         protein_sequence_creator = ProteinSequenceCreator()

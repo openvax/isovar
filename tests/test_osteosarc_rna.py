@@ -106,7 +106,8 @@ def test_osteosarc_snp_partition_matches_independent_evidence(name, record, min_
     expected = Counter((o["name"], o["allele"]) for o in record["observations"]
                        if not o["flag"] & (256 | 1024) and o["mapq"] >= min_mapq)
     with pysam.AlignmentFile(alignments[name]) as bam:
-        evidence = ReadCollector(min_mapping_quality=min_mapq, use_secondary_alignments=False).read_evidence_for_variant(
+        evidence = ReadCollector(min_mapping_quality=min_mapq, use_secondary_alignments=False,
+                                 merge_overlapping_fragments=False).read_evidence_for_variant(
             variant_object(record), bam)
     actual = Counter((r.name, r.allele) for r in evidence.ref_reads + evidence.alt_reads + evidence.other_reads)
     assert actual == expected

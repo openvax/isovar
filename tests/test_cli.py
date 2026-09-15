@@ -14,6 +14,7 @@ import tempfile
 from os import remove
 from os.path import getsize, exists
 import pandas as pd
+import pytest
 
 from .testing_helpers import data_path
 
@@ -25,6 +26,9 @@ from isovar.cli.isovar_reference_contexts import run as isovar_reference_context
 from isovar.cli.isovar_variant_reads import run as isovar_variant_reads
 from isovar.cli.isovar_variant_sequences import run as isovar_variant_sequences
 from isovar.cli.isovar_main import run as isovar_main
+from isovar.cli import isovar_reference_contexts as isovar_reference_contexts_module
+from isovar.cli import isovar_variant_reads as isovar_variant_reads_module
+from isovar.cli.input_validation import check_parsed_args
 from isovar.cli.rna_args import (
     allele_counts_dataframe_from_args,
     make_rna_reads_arg_parser,
@@ -42,7 +46,7 @@ args_with_bam = vcf_args + [
 ]
 
 
-def run_cli_fn(fn, include_bam_in_args=True, return_dataframe=False):
+def run_cli_fn(fn, include_bam_in_args=True, return_dataframe=False, extra_args=()):
     with tempfile.NamedTemporaryFile(delete=False) as f:
         output_path = f.name
     assert not exists(output_path) == 0
@@ -51,7 +55,7 @@ def run_cli_fn(fn, include_bam_in_args=True, return_dataframe=False):
         args = args_with_bam + output_args
     else:
         args = vcf_args + output_args
-    fn(args)
+    fn(args + list(extra_args))
     assert getsize(output_path) > 0
     if return_dataframe:
         df = pd.read_csv(output_path)
@@ -73,11 +77,14 @@ def test_cli_allele_counts():
         expected_df[["num_ref_fragments", "num_alt_fragments", "num_other_fragments"]].to_dict(orient="records")
 
 
-def test_cli_allele_reads():
-    df = run_cli_fn(isovar_allele_reads, return_dataframe=True)
+@pytest.mark.parametrize("extra_args,expected_count", [
+    ([], 274), (["--no-merge-overlapping-fragments"], 294),
+])
+def test_cli_allele_reads(extra_args, expected_count):
+    df = run_cli_fn(isovar_allele_reads, return_dataframe=True, extra_args=extra_args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert "ref_reads" not in df.columns
-    assert len(df) == 294
+    assert len(df) == expected_count
 
 
 def test_cli_reference_contexts():
@@ -92,11 +99,14 @@ def test_cli_translations():
     run_cli_fn(isovar_translations)
 
 
-def test_cli_variant_reads():
-    df = run_cli_fn(isovar_variant_reads, return_dataframe=True)
+@pytest.mark.parametrize("extra_args,expected_count", [
+    ([], 36), (["--no-merge-overlapping-fragments"], 42),
+])
+def test_cli_variant_reads(extra_args, expected_count):
+    df = run_cli_fn(isovar_variant_reads, return_dataframe=True, extra_args=extra_args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert "ref_reads" not in df.columns
-    assert len(df) == 42
+    assert len(df) == expected_count
 
 
 def test_cli_variant_sequences():
@@ -106,15 +116,17 @@ def test_cli_main():
     run_cli_fn(isovar_main)
 
 
-def test_variant_reads_dataframe_helper():
-    args = make_rna_reads_arg_parser().parse_args(args_with_bam)
+@pytest.mark.parametrize("extra_args,expected_count", [
+    ([], 36), (["--no-merge-overlapping-fragments"], 42),
+])
+def test_variant_reads_dataframe_helper(extra_args, expected_count):
+    args = make_rna_reads_arg_parser().parse_args(args_with_bam + extra_args)
     df = variants_reads_dataframe_from_args(args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
-    assert len(df) == 42
+    assert len(df) == expected_count
 
 
 def _cli_error_message(fn, args, capsys):
-    import pytest
     with pytest.raises(SystemExit) as exit_info:
         fn(args)
     assert exit_info.value.code == 2
@@ -124,7 +136,8 @@ def _cli_error_message(fn, args, capsys):
 def test_cli_missing_vcf_is_a_one_line_error(capsys):
     message = _cli_error_message(
         isovar_main,
-        ["--vcf", "missing.vcf", "--bam", args_with_bam[-1]],
+        ["--vcf", "missing.vcf",
+         "--bam", data_path("data/b16.f10/b16.combined.sorted.bam")],
         capsys)
     assert message.endswith("error: --vcf file not found: missing.vcf")
 
@@ -174,3 +187,48 @@ def test_cli_missing_output_directory_fails_before_running(capsys, tmp_path):
         isovar_main, args_with_bam + ["--output", output_path], capsys)
     assert message.endswith(
         "error: --output directory does not exist: %s" % (tmp_path / "missing-dir"))
+
+
+def _check_args(argv):
+    """
+    Validate a commandline without running it, so the remote-input cases
+    below never touch the network.
+    """
+    parser = isovar_variant_reads_module.parser
+    check_parsed_args(parser, parser.parse_args(argv))
+
+
+def test_cli_accepts_remote_vcf_and_bam_urls():
+    # htslib opens remote BAMs and varcode's load_vcf downloads HTTP(S)
+    # VCFs, so neither may be rejected for not being on the local disk
+    _check_args([
+        "--vcf", "https://example.com/variants.vcf",
+        "--bam", "https://example.com/rna.bam"])
+    _check_args([
+        "--vcf", "s3://bucket/variants.vcf",
+        "--bam", "s3://bucket/rna.bam"])
+
+
+def test_cli_windows_style_path_is_not_treated_as_a_url(capsys):
+    message = _cli_error_message(
+        isovar_variant_reads,
+        vcf_args + ["--bam", r"C:\rna\missing.bam"], capsys)
+    assert message.endswith(r"error: --bam file not found: C:\rna\missing.bam")
+
+
+def test_cli_output_path_expands_tilde(tmp_path, monkeypatch):
+    # pandas expands "~" when writing, so validation has to expand it too
+    monkeypatch.setenv("HOME", str(tmp_path))
+    _check_args(args_with_bam + ["--output", "~/isovar-results.csv"])
+
+
+def test_cli_genome_not_checked_when_only_maf_is_given(tmp_path):
+    # varcode ignores --genome for MAF files, since each row names its own
+    # reference, so an unresolvable name there must not be fatal
+    maf_path = tmp_path / "variants.maf"
+    maf_path.touch()
+    parser = isovar_reference_contexts_module.parser
+    args = parser.parse_args([
+        "--maf", str(maf_path),
+        "--genome", "not-a-genome"])
+    check_parsed_args(parser, args)
