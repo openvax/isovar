@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import ArgumentTypeError
+
 from varcode.cli.variant_args import (
     make_variants_parser,
     variant_collection_from_args
@@ -17,21 +19,29 @@ from varcode.cli.variant_args import (
 
 from ..reference_context_helpers import reference_contexts_generator
 from ..dataframe_helpers import variants_to_reference_contexts_dataframe
+from ..default_parameters import REFERENCE_CONTEXT_SIZE
+
+
+def _positive_context_size(value):
+    value = int(value)
+    if value < 1:
+        raise ArgumentTypeError("reference context size must be a positive integer")
+    return value
 
 
 def add_reference_context_args(parser):
     """
     Extends an ArgumentParser instance with the following commandline arguments:
-        --context-size
+        --reference-context-size
     """
     reference_context_group = parser.add_argument_group("Reference Transcripts")
     reference_context_group.add_argument(
         "--reference-context-size",
-        type=int,
-        default=30,
+        type=_positive_context_size,
+        default=REFERENCE_CONTEXT_SIZE,
         help=(
-            "Number of nucleotides used to match assembled sequence to "
-            "reference transcript to establish reading frame."))
+            "Maximum reference nucleotides on each side of the variant "
+            "in the exported contexts (default %(default)s)."))
     return reference_context_group
 
 
@@ -39,9 +49,6 @@ def make_reference_context_arg_parser(**kwargs):
     """
     Parameters
     ----------
-    add_context_size_arg : bool
-        If True then add a `--context-size` argument, which is otherwise
-        inferred from cDNA sequence length.
     **kwargs : dict
         Parameters passed directly to argparse.ArgumentParser.
 

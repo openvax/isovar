@@ -18,7 +18,14 @@ from pysam import AlignmentFile
 
 from varcode.cli import make_variants_parser, variant_collection_from_args
 
-from ..default_parameters import MIN_READ_MAPPING_QUALITY
+from ..default_parameters import (
+    MIN_READ_MAPPING_QUALITY,
+    USE_DUPLICATE_READS,
+    USE_SECONDARY_ALIGNMENTS,
+    USE_SOFT_CLIPPED_BASES,
+    MERGE_OVERLAPPING_FRAGMENTS,
+    NUM_RNA_DECOMPRESSION_THREADS,
+)
 
 from ..read_collector import ReadCollector
 from ..dataframe_helpers import (
@@ -38,6 +45,8 @@ def add_rna_args(
         --use-duplicate-reads
         --drop-secondary-alignments
         --use-soft-clipped-bases
+        --no-merge-overlapping-fragments
+        --num-rna-decompression-threads
     """
     rna_group = parser.add_argument_group("RNA")
     rna_group.add_argument(
@@ -53,27 +62,31 @@ def add_rna_args(
 
     rna_group.add_argument(
         "--use-duplicate-reads",
-        default=False,
+        default=USE_DUPLICATE_READS,
         action="store_true",
         help=(
-            "By default, reads which have been marked as duplicates are excluded."
-            "Use this option to include duplicate reads."))
+            "Include reads marked as duplicates (default %(default)s)."))
 
     rna_group.add_argument(
         "--drop-secondary-alignments",
-        default=False,
+        default=not USE_SECONDARY_ALIGNMENTS,
         action="store_true",
         help=(
-            "By default, secondary alignments are included in reads, "
-            "use this option to instead only use primary alignments."))
+            "Drop secondary alignments (default %(default)s)."))
 
     rna_group.add_argument(
         "--use-soft-clipped-bases",
-        default=False,
+        default=USE_SOFT_CLIPPED_BASES,
         action="store_true",
         help=(
-            "By default, soft-clipped bases at the ends of reads are excluded. "
-            "Use this option to include them."))
+            "Include soft-clipped bases at the ends of reads (default %(default)s)."))
+
+    rna_group.add_argument(
+        "--no-merge-overlapping-fragments",
+        dest="merge_overlapping_fragments",
+        action="store_false",
+        default=MERGE_OVERLAPPING_FRAGMENTS,
+        help="Keep overlapping mates as separate reads (merge by default: %(default)s).")
 
     rna_group.add_argument(
         "--num-rna-decompression-threads",
@@ -81,7 +94,7 @@ def add_rna_args(
         help=(
             "Number of threads to use for decompression of BAM/CRAM files "
             "(default %(default)s)."),
-        default=1)
+        default=NUM_RNA_DECOMPRESSION_THREADS)
 
     return rna_group
 
@@ -118,7 +131,9 @@ def read_collector_from_args(args):
         min_mapping_quality=args.min_mapping_quality,
         use_duplicate_reads=args.use_duplicate_reads,
         use_secondary_alignments=not args.drop_secondary_alignments,
-        use_soft_clipped_bases=args.use_soft_clipped_bases)
+        use_soft_clipped_bases=args.use_soft_clipped_bases,
+        merge_overlapping_fragments=getattr(
+            args, "merge_overlapping_fragments", MERGE_OVERLAPPING_FRAGMENTS))
 
 
 def read_evidence_generator_from_args(args):

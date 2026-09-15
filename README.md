@@ -216,137 +216,52 @@ $ isovar  \
     --output isovar-results.csv
 ```
 
-### Commandline options for loading variants
+Each command's `--help` lists its options and current defaults:
 
-###
-```
-  --vcf VCF             Genomic variants in VCF format
-  
-  --maf MAF             Genomic variants in TCGA's MAF format
-  
-  --variant CHR POS REF ALT
-                        Individual variant as 4 arguments giving chromsome,
-                        position, ref, and alt. Example: chr1 3848 C G. Use
-                        '.' to indicate empty alleles for insertions or
-                        deletions.
-  
-  --genome GENOME       What reference assembly your variant coordinates are
-                        using. Examples: 'hg19', 'GRCh38', or 'mm9'. This
-                        argument is ignored for MAF files, since each row
-                        includes the reference. For VCF files, this is used if
-                        specified, and otherwise is guessed from the header.
-                        For variants specfied on the commandline with
-                        --variant, this option is required.
-  
-  --download-reference-genome-data
-                        Automatically download genome reference data required
-                        for annotation using PyEnsembl. Otherwise you must
-                        first run 'pyensembl install' for the release/species
-                        corresponding to the genome used in your VCF.
-  
-  --json-variants JSON_VARIANTS
-                        Path to Varcode.VariantCollection object serialized as
-                        a JSON file.
-
+```sh
+isovar --help
+isovar-reference-contexts --help
 ```
 
-### Commandline options for loading aligned tumor RNA-seq reads
+For example, use only primary alignments, include soft-clipped bases, and
+require at least three read objects at every retained cDNA base:
 
-```
-  --bam BAM             BAM file containing RNAseq reads
-  
-  --min-mapping-quality MIN_MAPPING_QUALITY
-                        Minimum MAPQ value to allow for a read (default 1)
-  
-  --use-duplicate-reads
-                        By default, reads which have been marked as duplicates
-                        are excluded.Use this option to include duplicate
-                        reads.
-                        
-  --drop-secondary-alignments
-                        By default, secondary alignments are included in
-                        reads, use this option to instead only use primary
-                        alignments.
+```sh
+isovar --vcf somatic-variants.vcf --bam rnaseq.bam \
+    --drop-secondary-alignments --use-soft-clipped-bases \
+    --min-variant-sequence-coverage 3 --num-rna-decompression-threads 4 \
+    --output isovar-results.csv
 ```
 
-### Commandline options for coding sequence assembly
-```
-  --min-variant-sequence-coverage MIN_VARIANT_SEQUENCE_COVERAGE
-                        Minimum number of reads supporting a variant sequence
-                        (default 2)
-                        
-  --disable-variant-sequence-assembly
-                        Disable assemble variant cDNA sequence from
-                        overlapping reads
-```
+To export every candidate protein, use `--max-protein-sequences-per-variant 0`.
+The default keeps the top candidate for each variant. The standalone
+`isovar-variant-sequences` command accepts `--variant-sequence-length`
+to set its preferred cDNA length.
 
-### Commandline options for translating cDNA to protein sequence
-```
-  --protein-sequence-length PROTEIN_SEQUENCE_LENGTH
-                        Explicit context target; default 2*K-1 (49 for K=25).
+### Shared CLI and Python defaults
 
-  --protein-context-peptide-length PROTEIN_CONTEXT_PEPTIDE_LENGTH
-                        Peptide length K for evaluating mutant windows (25).
+Defaults are defined in [default_parameters.py](isovar/default_parameters.py).
+As of 1.11.0, CLI-created collectors and `ReadCollector()` merge overlapping
+mates, matching `run_isovar()`. Merged reads retain the number of contributing
+alignments in `source_read_count`. To keep mates separate, pass
+`--no-merge-overlapping-fragments` or
+`ReadCollector(merge_overlapping_fragments=False)`.
+Mates with conflicting alignment paths remain separate. For matching paths,
+the existing consensus rule resolves disagreeing bases by quality; this can
+change allele support as well as assembled sequences.
 
-  --protein-sequence-preference {balanced,support,context}
-                        Default balanced: useful context within support budget.
+The CLI now applies the complete default filter set used by `run_isovar()`,
+including read-level allele fractions and limits on other-allele support.
+This adds filter columns to CLI output and can change `passes_all_filters`.
+Explicit Python `filter_thresholds` dictionaries still replace the defaults;
+to override selected defaults, copy `DEFAULT_FILTER_THRESHOLDS` and update it.
+The existing imports from `isovar.main` remain supported.
 
-  --min-protein-sequence-support-fraction MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION
-                        Compatible-name retention (0.85, not per-base depth).
-  
-  --max-reference-transcript-mismatches MAX_REFERENCE_TRANSCRIPT_MISMATCHES
-                        Maximum number of mismatches between variant sequence
-                        reference sequence before a candidate reading frame is
-                        ignored.
-                        
-  --count-mismatches-after-variant
-                        If true, mismatches after the variant locus will count
-                        toward the --max-reference-transcript-mismatches
-                        filter.
-                        
-  --min-transcript-prefix-length MIN_TRANSCRIPT_PREFIX_LENGTH
-                        Number of nucleotides before the variant we try to
-                        match against a reference transcript. Values greater
-                        than zero exclude variants near the start codon of
-                        transcripts without 5' UTRs.
-                        
-  --max-protein-sequences-per-variant MAX_PROTEIN_SEQUENCES_PER_VARIANT
-
-```
-
-### Commandline options for filtering 
-
-```
-  --min-alt-rna-reads MIN_ALT_RNA_READS
-                        Minimum number of reads supporting variant allele
-                        (default 3)
-
-  --min-alt-rna-fragments MIN_ALT_RNA_FRAGMENTS
-                        Minimum number of fragments supporting variant allele
-                        (default 2). Note that this option is the same as
-                        --min-alt-rna-reads for single-end sequencing.
-
-  --min-alt-rna-fraction MIN_ALT_RNA_FRACTION
-                        Minimum ratio of fragments supporting variant allele
-                        to total RNA fragments (default 0.005).
-
-  --min-ratio-alt-to-other-fragments MIN_RATIO_ALT_TO_OTHER_FRAGMENTS
-                        At loci where alleles other than the ref and a single
-                        alt are supported, this parameter controls how many
-                        more times fragments supporting the variant allele are
-                        required relative to other non-reference alleles
-                        (default 3.0).
-```
-
-### Commandline options for writing an output CSV
-
-```
-  --output OUTPUT       Output CSV file
-  
-  --output-columns OUTPUT_COLUMNS [OUTPUT_COLUMNS ...]
-                        Subset of columns to write
-
-```
+`--reference-context-size` belongs only to `isovar-reference-contexts`,
+where it must be positive. Protein-producing commands now reject this
+previously ignored option. They derive reference context size from the requested
+cDNA length and minimum transcript prefix. Automatic protein length and
+Vaxrank's explicit peptide/context settings remain supported.
 
 
 
@@ -399,7 +314,7 @@ Multiple distinct variant sequences and reference contexts can generate the same
 
 <dl>
 <dt>isovar-protein-sequences --vcf variants.vcf --bam rna.bam</dt>
-<dd>All protein sequences which can be assembled from RNA reads for any of the given variants.</dd>
+<dd>Candidate protein sequences from RNA reads; keeps the top sequence per variant unless <code>--max-protein-sequences-per-variant 0</code> is supplied.</dd>
 
 <dt>isovar-allele-counts --vcf variants.vcf --bam rna.bam</dt>
 <dd>Counts of reads and fragments supporting the ref, alt, and other alleles at all given variant locations.</dd>

@@ -136,8 +136,11 @@ def isovar_result(bam, variant, expected=None, context_sweep=False):
         return dict(error_result(error, "read_evidence"), counts=None)
     result = {
         "status": "ok",
-        "counts": {"ref": len(evidence.ref_reads), "alt": len(evidence.alt_reads),
-                   "other": len(evidence.other_reads)},
+        "counts": {
+            allele: sum(getattr(read, "source_read_count", 1) for read in reads)
+            for allele, reads in (("ref", evidence.ref_reads), ("alt", evidence.alt_reads),
+                                  ("other", evidence.other_reads))
+        },
         "alt_read_names": len(evidence.alt_read_names),
         "sequence_creation_default": sequence_result(
             variant, evidence.alt_reads, VariantSequenceCreator().min_variant_sequence_coverage),

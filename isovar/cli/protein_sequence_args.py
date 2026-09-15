@@ -31,7 +31,8 @@ def add_protein_sequence_args(parser):
     protein_sequence_group.add_argument(
         "--max-protein-sequences-per-variant",
         type=int,
-        default=MAX_PROTEIN_SEQUENCES_PER_VARIANT)
+        default=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
+        help="Maximum protein sequences per variant; 0 keeps all (default %(default)s).")
     return protein_sequence_group
 
 

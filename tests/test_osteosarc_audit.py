@@ -53,6 +53,14 @@ def test_audit_genuine_empty_collection_is_success_not_exception(monkeypatch):
     assert result["sequence_creation_default"]["candidate_count"] == 0
 
 
+def test_audit_counts_source_alignments_in_merged_reads(monkeypatch):
+    evidence = SimpleNamespace(
+        ref_reads=[SimpleNamespace(source_read_count=2)],
+        alt_reads=[], other_reads=[], alt_read_names=set())
+    monkeypatch.setattr(audit.ReadCollector, "read_evidence_for_variant", lambda *a: evidence)
+    assert audit.isovar_result(None, None)["counts"] == {"ref": 2, "alt": 0, "other": 0}
+
+
 def test_audit_rejects_source_drift_before_producing_counts(tmp_path):
     (tmp_path / "bulk_star_t0.sam").write_text("not the pinned source\n")
     with pytest.raises(ValueError, match="checksum mismatch"):
