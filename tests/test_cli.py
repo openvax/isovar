@@ -111,3 +111,41 @@ def test_variant_reads_dataframe_helper():
     df = variants_reads_dataframe_from_args(args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert len(df) == 42
+
+
+def test_cli_help_describes_every_command_and_option(capsys):
+    import pytest
+    from isovar.cli import (
+        isovar_allele_counts,
+        isovar_allele_reads,
+        isovar_protein_sequences,
+        isovar_reference_contexts,
+        isovar_translations,
+        isovar_variant_reads,
+        isovar_variant_sequences,
+    )
+    from isovar.cli.main_args import make_isovar_arg_parser
+
+    parsers = [
+        module.parser
+        for module in (
+            isovar_allele_counts,
+            isovar_allele_reads,
+            isovar_protein_sequences,
+            isovar_reference_contexts,
+            isovar_translations,
+            isovar_variant_reads,
+            isovar_variant_sequences,
+        )
+    ]
+    parsers.append(make_isovar_arg_parser())
+    for parser in parsers[:-1]:
+        assert parser.description, parser.prog
+    for parser in parsers:
+        for action in parser._actions:
+            assert action.help, (parser.prog, action.option_strings)
+
+    with pytest.raises(SystemExit) as exit_info:
+        isovar_main(["--help"])
+    assert exit_info.value.code == 0
+    assert "Collect RNA evidence for each variant" in capsys.readouterr().out

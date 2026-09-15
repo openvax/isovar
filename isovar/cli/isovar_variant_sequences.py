@@ -24,7 +24,9 @@ from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
 
-parser = make_variant_sequences_arg_parser(add_sequence_length_arg=True)
+parser = make_variant_sequences_arg_parser(
+    add_sequence_length_arg=True,
+    description="Write the variant cDNA sequences assembled from alt-supporting RNA reads.")
 parser = add_output_args(
     parser,
     filename="isovar-variant-sequences-results.csv",

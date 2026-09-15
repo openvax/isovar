@@ -39,7 +39,8 @@ def add_translation_args(parser):
     translation_group.add_argument(
         "--protein-sequence-preference", choices=("balanced", "support", "context"),
         default=PROTEIN_SEQUENCE_PREFERENCE,
-        help="Balance vaccine context within an RNA support budget, prioritize support, or prioritize context.")
+        help="Balance vaccine context within an RNA support budget, prioritize support, "
+             "or prioritize context (default %(default)s).")
     translation_group.add_argument(
         "--protein-context-peptide-length", type=int, default=None,
         help="Peptide size for counting mutation-containing windows; default 25, or vaxrank's vaccine peptide size.")
@@ -54,15 +55,17 @@ def add_translation_args(parser):
         type=int,
         default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
         help=(
-            "Maximum number of mismatches between variant sequence"
-            " reference sequence before a candidate reading frame is ignored."))
+            "Maximum number of mismatches between the variant sequence and the "
+            "reference transcript before a candidate reading frame is ignored "
+            "(default %(default)s)."))
 
     translation_group.add_argument(
         "--count-mismatches-after-variant",
         action="store_true",
         default=COUNT_MISMATCHES_AFTER_VARIANT,
-        help="If true, mismatches after the variant locus will count toward the "
-             "--max-reference-transcript-mismatches filter.")
+        help="Also count mismatches after the variant locus toward the "
+             "reference transcript mismatch limit. By default only mismatches "
+             "before the variant count.")
 
     translation_group.add_argument(
         "--min-transcript-prefix-length",
@@ -71,7 +74,8 @@ def add_translation_args(parser):
         help=(
             "Number of nucleotides before the variant we try to match against "
             "a reference transcript. Values greater than zero exclude variants "
-            "near the start codon of transcripts without 5' UTRs."))
+            "near the start codon of transcripts without 5' UTRs "
+            "(default %(default)s)."))
 
     return translation_group
 

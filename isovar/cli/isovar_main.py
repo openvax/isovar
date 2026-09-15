@@ -31,7 +31,11 @@ logger = get_logger(__name__)
 def run(args=None):
     if args is None:
         args = sys.argv[1:]
-    parser = make_isovar_arg_parser()
+    parser = make_isovar_arg_parser(
+        description=(
+            "Collect RNA evidence for each variant and write one row per variant "
+            "with allele counts, the predicted effect, the top mutant protein "
+            "sequence and filter results."))
     parser = add_output_args(
         parser,
         filename="isovar-results.csv")

@@ -37,7 +37,8 @@ def add_variant_sequence_args(
         dest="variant_sequence_assembly",
         default=VARIANT_SEQUENCE_ASSEMBLY,
         action="store_false",
-        help="Disable assemble variant cDNA sequence from overlapping reads")
+        help="Don't assemble variant cDNA sequences from overlapping reads; "
+             "use only sequences fully spanned by a single read.")
 
     # when cDNA sequence length can be inferred from a protein length then
     # we may want to omit this arg
@@ -45,7 +46,9 @@ def add_variant_sequence_args(
         rna_sequence_group.add_argument(
             "--variant-sequence-length",
             default=VARIANT_SEQUENCE_LENGTH,
-            type=int)
+            type=int,
+            help="Preferred total length of each variant cDNA sequence in nucleotides, "
+                 "including the alt allele (default %(default)s).")
     return parser
 
 
@@ -54,7 +57,7 @@ def make_variant_sequences_arg_parser(add_sequence_length_arg=False, **kwargs):
     Parameters
     ----------
     add_sequence_length_arg : bool
-        If True then add the `--cdna-sequence-length` argument. This may be
+        If True then add the `--variant-sequence-length` argument. This may be
         omitted if the cDNA sequence length is inferred from a protein length.
 
     **kwargs : dict

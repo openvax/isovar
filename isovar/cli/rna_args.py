@@ -56,7 +56,7 @@ def add_rna_args(
         default=False,
         action="store_true",
         help=(
-            "By default, reads which have been marked as duplicates are excluded."
+            "By default, reads which have been marked as duplicates are excluded. "
             "Use this option to include duplicate reads."))
 
     rna_group.add_argument(

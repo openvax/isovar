@@ -29,7 +29,11 @@ from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
 
-parser = make_protein_sequences_arg_parser()
+parser = make_protein_sequences_arg_parser(
+    description=(
+        "Write mutant protein sequences assembled from RNA reads for each variant, "
+        "grouping equivalent translations. Only the top sequence per variant is "
+        "kept unless --max-protein-sequences-per-variant is raised."))
 parser = add_output_args(
     parser,
     filename="isovar-protein-sequences-result.csv")

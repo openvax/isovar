@@ -22,7 +22,7 @@ from ..dataframe_helpers import variants_to_reference_contexts_dataframe
 def add_reference_context_args(parser):
     """
     Extends an ArgumentParser instance with the following commandline arguments:
-        --context-size
+        --reference-context-size
     """
     reference_context_group = parser.add_argument_group("Reference Transcripts")
     reference_context_group.add_argument(
@@ -39,9 +39,6 @@ def make_reference_context_arg_parser(**kwargs):
     """
     Parameters
     ----------
-    add_context_size_arg : bool
-        If True then add a `--context-size` argument, which is otherwise
-        inferred from cDNA sequence length.
     **kwargs : dict
         Parameters passed directly to argparse.ArgumentParser.
 
