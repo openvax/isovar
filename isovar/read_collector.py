@@ -21,12 +21,66 @@ from .default_parameters import (
 )
 from .locus_read import LocusRead
 from .logging import get_logger
+from .allele_read import AlleleRead
 from .allele_read_helpers import allele_reads_from_locus_reads
 from .variant_helpers import trim_variant
 from .read_evidence import ReadEvidence
 
 logger = get_logger(__name__)
 
+
+class _CompactLocusRead(object):
+    """Internal locus read with aligned blocks instead of per-base positions."""
+    __slots__ = [
+        "name",
+        "sequence",
+        "reference_blocks",
+        "quality_scores",
+        "source_read_count",
+        "reference_base0_start_inclusive",
+        "reference_base0_end_exclusive",
+        "read_base0_start_inclusive",
+        "read_base0_end_exclusive",
+        "splice_junctions",
+    ]
+
+    def __init__(
+            self,
+            name,
+            sequence,
+            reference_blocks,
+            quality_scores,
+            reference_base0_start_inclusive,
+            reference_base0_end_exclusive,
+            read_base0_start_inclusive,
+            read_base0_end_exclusive,
+            source_read_count=1,
+            splice_junctions=()):
+        self.name = name
+        self.sequence = sequence
+        self.reference_blocks = tuple(reference_blocks)
+        self.quality_scores = quality_scores
+        self.source_read_count = source_read_count
+        self.reference_base0_start_inclusive = reference_base0_start_inclusive
+        self.reference_base0_end_exclusive = reference_base0_end_exclusive
+        self.read_base0_start_inclusive = read_base0_start_inclusive
+        self.read_base0_end_exclusive = read_base0_end_exclusive
+        self.splice_junctions = tuple(splice_junctions)
+
+    @classmethod
+    def from_locus_read(cls, read):
+        return cls(
+            name=read.name,
+            sequence=read.sequence,
+            reference_blocks=AlleleRead._reference_blocks(read.reference_positions),
+            quality_scores=read.quality_scores,
+            reference_base0_start_inclusive=read.reference_base0_start_inclusive,
+            reference_base0_end_exclusive=read.reference_base0_end_exclusive,
+            read_base0_start_inclusive=read.read_base0_start_inclusive,
+            read_base0_end_exclusive=read.read_base0_end_exclusive,
+            source_read_count=read.source_read_count,
+            splice_junctions=read.splice_junctions,
+        )
 
 class ReadCollector(object):
     """
@@ -481,6 +535,14 @@ class ReadCollector(object):
 
     @staticmethod
     def _locus_read_sort_key(locus_read):
+        if isinstance(locus_read, _CompactLocusRead):
+            if locus_read.reference_blocks:
+                return (
+                    locus_read.reference_blocks[0][2],
+                    locus_read.reference_blocks[-1][3] - 1,
+                    len(locus_read.sequence),
+                )
+            return (float("inf"), float("inf"), len(locus_read.sequence))
         mapped_reference_positions = [
             ref_pos for ref_pos in locus_read.reference_positions if ref_pos is not None
         ]
@@ -494,6 +556,9 @@ class ReadCollector(object):
 
     @staticmethod
     def _base_tokens_from_locus_read(locus_read):
+        if isinstance(locus_read, _CompactLocusRead):
+            return ReadCollector._base_tokens_from_compact_locus_read(locus_read)
+
         sequence = locus_read.sequence
         reference_positions = locus_read.reference_positions
         quality_scores = list(locus_read.quality_scores)
@@ -541,6 +606,53 @@ class ReadCollector(object):
                 index_to_key[k] = key
             i = j
 
+        return tokens, index_to_key
+
+    @staticmethod
+    def _base_tokens_from_compact_locus_read(locus_read):
+        """Tokenize aligned blocks without reconstructing a coordinate list."""
+        sequence = locus_read.sequence
+        quality_scores = locus_read.quality_scores
+        tokens = []
+        index_to_key = {}
+        query_position = 0
+        previous_reference_position = None
+
+        for query_start, query_end, reference_start, reference_end in (
+                locus_read.reference_blocks):
+            if query_position < query_start:
+                anchor = (
+                    2 * previous_reference_position + 1
+                    if previous_reference_position is not None
+                    else 2 * reference_start - 1)
+                for offset, index in enumerate(range(query_position, query_start)):
+                    key = (anchor, offset)
+                    tokens.append((
+                        key, None, sequence[index], quality_scores[index]))
+                    index_to_key[index] = key
+
+            for index, reference_position in zip(
+                    range(query_start, query_end),
+                    range(reference_start, reference_end)):
+                key = (2 * reference_position, 0)
+                tokens.append((
+                    key,
+                    reference_position,
+                    sequence[index],
+                    quality_scores[index],
+                ))
+                index_to_key[index] = key
+            query_position = query_end
+            previous_reference_position = reference_end - 1
+
+        if query_position < len(sequence):
+            if previous_reference_position is None:
+                return None, None
+            anchor = 2 * previous_reference_position + 1
+            for offset, index in enumerate(range(query_position, len(sequence))):
+                key = (anchor, offset)
+                tokens.append((key, None, sequence[index], quality_scores[index]))
+                index_to_key[index] = key
         return tokens, index_to_key
 
     @staticmethod
@@ -642,10 +754,9 @@ class ReadCollector(object):
         else:
             read_base0_start_inclusive = read_base0_end_exclusive = translated_intervals[0][0]
 
-        return LocusRead(
+        read_kwargs = dict(
             name=first.name,
             sequence="".join(merged_sequence),
-            reference_positions=merged_reference_positions,
             quality_scores=merged_quality_scores,
             reference_base0_start_inclusive=first.reference_base0_start_inclusive,
             reference_base0_end_exclusive=first.reference_base0_end_exclusive,
@@ -654,6 +765,16 @@ class ReadCollector(object):
             source_read_count=first.source_read_count + second.source_read_count,
             splice_junctions=tuple(sorted(set(
                 first.splice_junctions + second.splice_junctions))),
+        )
+        if isinstance(first, _CompactLocusRead) and isinstance(second, _CompactLocusRead):
+            return _CompactLocusRead(
+                reference_blocks=AlleleRead._reference_blocks(
+                    merged_reference_positions),
+                **read_kwargs,
+            )
+        return LocusRead(
+            reference_positions=merged_reference_positions,
+            **read_kwargs,
         )
 
     @classmethod
@@ -699,11 +820,37 @@ class ReadCollector(object):
         trimmed_ref=None,
         trimmed_alt=None,
     ):
+        """Return public, list-backed ``LocusRead`` objects for a locus.
+
+        Equal built-in coordinate integers are shared within this call, but
+        every read retains its own mutable ``reference_positions`` list. This
+        representation and the subclass conversion/merge hooks are preserved
+        for existing API consumers.
         """
-        Create LocusRead objects for reads which overlap the given chromosome,
-        start, and end positions. The actual work to figure out if what's between
-        those positions matches a variant happens later when LocusRead objects are
-        converted to AlleleRead objects.
+        return self._get_locus_reads(
+            alignment_file=alignment_file,
+            chromosome=chromosome,
+            base0_start_inclusive=base0_start_inclusive,
+            base0_end_exclusive=base0_end_exclusive,
+            trimmed_base1_start=trimmed_base1_start,
+            trimmed_ref=trimmed_ref,
+            trimmed_alt=trimmed_alt,
+            compact=False,
+        )
+
+    def _get_locus_reads(
+        self,
+        alignment_file,
+        chromosome,
+        base0_start_inclusive,
+        base0_end_exclusive,
+        trimmed_base1_start=None,
+        trimmed_ref=None,
+        trimmed_alt=None,
+        compact=False,
+    ):
+        """
+        Collect public LocusReads or compact internal equivalents.
 
         If `merge_overlapping_fragments` is enabled then overlapping paired-end
         reads from the same fragment are conservatively merged so downstream
@@ -723,22 +870,9 @@ class ReadCollector(object):
         base0_end_exclusive : int
             End of genomic interval, base 0 and exclusive
 
-        Notes
-        -----
-        Deep loci repeat the same reference coordinate on millions of reads, so
-        before a read is returned the built-in integers in its
-        `reference_positions` list are replaced, in place, with shared equal
-        integers drawn from a cache local to this call. Coordinate values,
-        order and length are unchanged and each read keeps its own list object,
-        so equality, evidence and mutation of one read stay unaffected; only
-        object identity of equal coordinates changes. Subclasses that override
-        `locus_read_from_pysam_aligned_segment` and retain a reference to the
-        returned list will observe its integers substituted after this method
-        returns. Hook results whose `reference_positions` is missing or not
-        exactly a `list`, and coordinates that are not exactly `int`, are left
-        untouched.
-
-        Returns a sequence of ReadAtLocus objects
+        The compact form is private and used only when public collection hooks
+        are unmodified. It drops each per-base coordinate list immediately after
+        converting it to a handful of aligned blocks.
         """
         logger.debug(
             "Gathering reads at locus %s:%d-%d",
@@ -754,8 +888,8 @@ class ReadCollector(object):
         # so the cache adds only table slots, and its size is bounded by the
         # reference span of reads at this locus. A fixed-size LRU cache shared
         # nothing once that span exceeded its bound (#234).
-        shared_positions = {}
-        share_position = shared_positions.setdefault
+        shared_positions = {} if not compact else None
+        share_position = shared_positions.setdefault if shared_positions is not None else None
 
         # check overlap against wider overlap to make sure we don't miss
         # any reads
@@ -785,13 +919,16 @@ class ReadCollector(object):
                 trimmed_alt=trimmed_alt,
             )
             if read is not None:
-                # Hooks may return read-like objects without coordinates.
-                positions = getattr(read, "reference_positions", None)
-                if type(positions) is list:
-                    # Keep the original list object, and leave custom sequence
-                    # types / non-builtin coordinate objects from hooks alone.
-                    positions[:] = [share_position(p, p) if type(p) is int else p
-                                    for p in positions]
+                if compact:
+                    read = _CompactLocusRead.from_locus_read(read)
+                else:
+                    # Hooks may return read-like objects without coordinates.
+                    positions = getattr(read, "reference_positions", None)
+                    if type(positions) is list:
+                        # Keep the original list object, and leave custom sequence
+                        # types / non-builtin coordinate objects from hooks alone.
+                        positions[:] = [share_position(p, p) if type(p) is int else p
+                                        for p in positions]
                 reads.append(read)
         logger.info(
             "Kept %d/%d reads overlapping locus %s:%d-%d",
@@ -848,6 +985,16 @@ class ReadCollector(object):
         return next(iter(matches), None)
 
     def locus_reads_overlapping_variant(self, alignment_file, variant, chromosome=None):
+        """Return public ``LocusRead`` objects overlapping a variant."""
+        return self._locus_reads_overlapping_variant(
+            alignment_file=alignment_file,
+            variant=variant,
+            chromosome=chromosome,
+            compact=False,
+        )
+
+    def _locus_reads_overlapping_variant(
+            self, alignment_file, variant, chromosome=None, compact=False):
         """
         Find reads in the given SAM/BAM file which overlap the given variant and
         return them as a list of LocusRead objects.
@@ -918,7 +1065,7 @@ class ReadCollector(object):
             base0_start_inclusive = base1_position - 1
             base0_end_exclusive = base0_start_inclusive + len(ref)
 
-        return self.get_locus_reads(
+        kwargs = dict(
             alignment_file=alignment_file,
             chromosome=chromosome,
             base0_start_inclusive=base0_start_inclusive,
@@ -926,6 +1073,21 @@ class ReadCollector(object):
             trimmed_base1_start=base1_position,
             trimmed_ref=ref,
             trimmed_alt=alt,
+        )
+        if compact:
+            return self._get_locus_reads(compact=True, **kwargs)
+        return self.get_locus_reads(**kwargs)
+
+    def _can_use_compact_evidence_path(self):
+        """Keep every subclass on the historical public hook path."""
+        return type(self) is ReadCollector and not any(
+            name in self.__dict__
+            for name in (
+                "locus_reads_overlapping_variant",
+                "get_locus_reads",
+                "locus_read_from_pysam_aligned_segment",
+                "_merge_overlapping_locus_reads",
+            )
         )
 
     def allele_reads_overlapping_variant(self, variant, alignment_file):
@@ -942,11 +1104,18 @@ class ReadCollector(object):
 
         Returns sequence of AlleleRead objects.
         """
-        return allele_reads_from_locus_reads(
-            self.locus_reads_overlapping_variant(
-                alignment_file=alignment_file, variant=variant
+        if self._can_use_compact_evidence_path():
+            locus_reads = self._locus_reads_overlapping_variant(
+                alignment_file=alignment_file,
+                variant=variant,
+                compact=True,
             )
-        )
+        else:
+            locus_reads = self.locus_reads_overlapping_variant(
+                alignment_file=alignment_file,
+                variant=variant,
+            )
+        return allele_reads_from_locus_reads(locus_reads)
 
     def read_evidence_for_variant(self, variant, alignment_file):
         """

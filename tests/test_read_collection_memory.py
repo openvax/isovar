@@ -11,6 +11,8 @@ import pysam
 import pytest
 
 from isovar.allele_read_helpers import allele_reads_from_locus_reads
+import isovar.read_collector as read_collector_module
+from isovar.locus_read import LocusRead
 from isovar.read_collector import ReadCollector
 from tests.mock_objects import MockAlignmentFile, make_pysam_read
 
@@ -276,6 +278,78 @@ def test_public_evidence_path_still_calls_each_existing_subclass_hook():
     assert calls == ["variant", "locus", "read-0", "read-1", "read-2", "merge"]
     assert len(result.ref_reads) == 3
     assert result.alt_reads == result.other_reads == []
+
+
+def test_stock_evidence_path_retains_blocks_not_per_base_coordinates(monkeypatch):
+    retained_locus_reads = []
+    convert = read_collector_module.allele_reads_from_locus_reads
+
+    def capture_and_convert(reads):
+        retained_locus_reads.extend(reads)
+        return convert(reads)
+
+    monkeypatch.setattr(
+        read_collector_module,
+        "allele_reads_from_locus_reads",
+        capture_and_convert,
+    )
+    variant = SimpleNamespace(contig="1", start=10006, ref="A", alt="C", gene_names=[])
+    evidence = ReadCollector().read_evidence_for_variant(variant, repeated_reads())
+
+    assert len(evidence.ref_reads) == len(retained_locus_reads) == 3
+    for read in retained_locus_reads:
+        assert not hasattr(read, "reference_positions")
+        assert read.reference_blocks == ((0, 20, 10000, 10020),)
+
+
+@pytest.mark.parametrize("reference_positions", [
+    [None, None, 100, 101],
+    [100, 101, None, None],
+    [100, None, None, 101],
+    [100, 102, 103, None, 200],
+    [None, None, None, None],
+])
+def test_compact_mate_merge_tokens_match_public_coordinates(reference_positions):
+    public_read = LocusRead(
+        name="fragment",
+        sequence="A" * len(reference_positions),
+        reference_positions=reference_positions,
+        quality_scores=[30] * len(reference_positions),
+        reference_base0_start_inclusive=100,
+        reference_base0_end_exclusive=101,
+        read_base0_start_inclusive=0,
+        read_base0_end_exclusive=len(reference_positions),
+    )
+    compact_read = read_collector_module._CompactLocusRead.from_locus_read(public_read)
+    assert ReadCollector._base_tokens_from_locus_read(compact_read) == (
+        ReadCollector._base_tokens_from_locus_read(public_read))
+
+
+class PublicEvidenceCollector(ReadCollector):
+    """Force the compatibility path by overriding one established hook."""
+
+    def locus_reads_overlapping_variant(self, *args, **kwargs):
+        return super().locus_reads_overlapping_variant(*args, **kwargs)
+
+
+@pytest.mark.parametrize("case", CASES, ids=lambda c: c["case_id"])
+@pytest.mark.parametrize("merge", [False, True])
+def test_compact_evidence_matches_public_subclass_path(case, merge):
+    record = case["variant"]
+    variant = SimpleNamespace(
+        contig=record["chrom"].removeprefix("chr"),
+        start=record["pos"],
+        ref=record["ref"],
+        alt=record["alt"],
+        gene_names=(),
+    )
+    results = []
+    for collector_class in (ReadCollector, PublicEvidenceCollector):
+        with pysam.AlignmentFile(CORPUS / case["bam"]) as bam:
+            results.append(collector_class(
+                merge_overlapping_fragments=merge,
+            ).read_evidence_for_variant(variant, bam))
+    assert results[0] == results[1]
 
 
 def test_separate_calls_do_not_share_a_persistent_coordinate_cache():
