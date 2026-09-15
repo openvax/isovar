@@ -5,9 +5,9 @@ BostonGene bulk tumor RNA aligned with STAR, and 242 from UCSF nanopore
 single-cell long-read tumor RNA aligned with minimap2. These complement the
 germline/alignment-edge-case examples in `../real_rna`; no reads, qualities,
 CIGARs, names, headers or tags were synthesized or edited. No production
-base-quality, weighting or clinical policy is changed here. The accompanying
-1.8.0 PR fixes spliced-indel extraction and adds configurable RNA-supported
-protein context selection; see [the policy](../../../PROTEIN_SELECTION.md).
+base-quality, weighting or clinical policy is changed here. Isovar 1.8.0 fixed
+spliced-indel extraction and added configurable RNA-supported protein
+context selection; see [the README](../../../README.md#protein-context-and-rna-support).
 
 See [the sample-by-sample Isovar audit](SAMPLE_AUDIT.md) for actual
 ref/alt/other outputs, full-region counts, failure states and sequence-stage

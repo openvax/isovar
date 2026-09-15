@@ -75,25 +75,66 @@ df =  isovar_results_to_dataframe(
 ```
 
 
-### RNA support versus vaccine context
+### Protein context and RNA support
 
-Isovar 1.8.0 derives its context target from desired peptide size **K: 2*K-1**
-(15mers → 29 aa; 25mers → 49 aa; 30mers → 59 aa). For a centered single-residue
-mutation this includes every mutation-containing Kmer. The default
-`balanced` policy maximizes actual mutation-overlapping windows among
-candidates retaining at least 85% of the best candidate's compatible
-read-name support, with an independent absolute floor of two read objects
-at each retained RNA base. Both thresholds are configurable. Actual context
-adapts to RNA support and coverage; protein boundaries and stops can also
-produce shorter output. This is not 85% of per-base depth.
+`ProteinSequenceCreator` targets `2*K-1` amino acids, where K is
+`protein_context_peptide_length` (default 25, so 49 aa). For a single changed
+residue this includes every K-mer containing the mutation. An explicit
+`protein_sequence_length` overrides the derived target. Output can still be
+shorter than the target, or than K, when RNA coverage, a stop codon or the
+transcript boundary limits it.
 
-This is a configurable selection tolerance, not a confidence estimate.
-Allele counts are unchanged, and no reference sequence is used to fill
-missing RNA. See [context selection and configuration](PROTEIN_SELECTION.md)
-for support-first/context-first alternatives and the
-[original tumor-RNA audit](tests/data/osteosarc/SAMPLE_AUDIT.md) for real
-sequence comparisons. Vaxrank's explicit context-length request remains
-respected; its coordinated default change is tracked separately.
+`protein_sequence_preference` chooses how candidate protein sequences are
+ranked:
+
+- `balanced` (default): among candidates retaining at least
+  `min_protein_sequence_support_fraction` (default 0.85) of the best
+  candidate's compatible read names, prefer the most mutation-containing
+  K-mer windows.
+- `support`: rank by read support at a single context length.
+- `context`: prefer the most mutation-containing windows with no support
+  budget. This can select weakly supported RNA haplotypes.
+
+For `balanced` and `context`, candidates are built at several context lengths
+(for K=25: 20, 25, 29, 33, 37, 41, 45 and 49 aa) so a shorter candidate that
+matches the reference is still available when longer flanks do not. Only
+identical RNA sequences are merged.
+
+Two thresholds apply independently:
+
+1. `min_protein_sequence_support_fraction` compares a candidate's compatible
+   read names to the best candidate's. It is not a fraction of per-base depth
+   or of all alt reads.
+2. `min_variant_sequence_coverage` (default 2) is an absolute floor on the
+   number of reads covering every retained cDNA base; 0 disables it. Selection
+   never lowers it to reach a length target.
+
+For example, 100 reads can support a short central region while only two
+extend into the flanks. With a coverage floor of 5 those flanks are trimmed,
+even though all 100 names are compatible with the longer candidate.
+Compatible reads may span only part of a candidate and paired mates share a
+name, so neither count is an independent molecule count, and neither threshold
+is a confidence estimate. Allele counts such as `num_alt_fragments` are not
+affected, and missing RNA is never filled in from the reference.
+
+```python
+from isovar import ProteinSequenceCreator, run_isovar
+
+creator = ProteinSequenceCreator(
+    protein_context_peptide_length=30,          # target 59 aa
+    protein_sequence_preference="balanced",
+    min_protein_sequence_support_fraction=0.85,
+    min_variant_sequence_coverage=5)
+results = run_isovar(
+    variants="cancer-mutations.vcf",
+    alignment_file="tumor-rna.bam",
+    protein_sequence_creator=creator)
+```
+
+The same options are available on the commandline. Set
+`--max-protein-sequences-per-variant 0` to keep every ranked candidate
+instead of only the top one. [SAMPLE_AUDIT.md](tests/data/osteosarc/SAMPLE_AUDIT.md)
+compares these preferences on real tumor RNA.
 
 ### Python API options for collecting RNA reads
 
@@ -112,8 +153,7 @@ isovar_results = run_isovar(
     variants="cancer-mutations.vcf",
     alignment_file="tumor-rna.bam",
     read_collector=read_collector)
-
-````
+```
 
 
 ### Python API options for coding sequence assembly and translation
