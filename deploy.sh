@@ -173,16 +173,30 @@ fi
 git push origin "${CURRENT_BRANCH}"
 
 "$PYTHON" -m pip install --upgrade build twine
-rm -rf dist build
-"$PYTHON" -m build
-"$PYTHON" -m twine check dist/*
+SOURCE_COMMIT="$(git rev-parse HEAD)"
+ARTIFACT_DIR="dist/release"
+ARTIFACT_MANIFEST="${ARTIFACT_DIR}/manifest.json"
+WHEEL="${ARTIFACT_DIR}/isovar-${VERSION}-py3-none-any.whl"
+SDIST="${ARTIFACT_DIR}/isovar-${VERSION}.tar.gz"
+
+if [[ -f "${ARTIFACT_MANIFEST}" ]]; then
+  echo "Reusing preserved release artifacts from ${ARTIFACT_DIR}."
+else
+  rm -rf "${ARTIFACT_DIR}" build
+  mkdir -p "${ARTIFACT_DIR}"
+  "$PYTHON" -m build --outdir "${ARTIFACT_DIR}"
+fi
+"$PYTHON" -m twine check "${WHEEL}" "${SDIST}"
 "$PYTHON" release_upload.py \
   --project isovar \
   --version "${VERSION}" \
-  dist/*
+  --artifact-manifest "${ARTIFACT_MANIFEST}" \
+  --source-commit "${SOURCE_COMMIT}" \
+  "${WHEEL}" "${SDIST}"
 
 if [[ "${LOCAL_TAG_EXISTS}" -eq 0 ]]; then
   git tag "${TAG}"
 fi
 git push origin "${TAG}"
+rm -rf dist build
 echo "Deployed isovar ${VERSION}: https://pypi.org/project/isovar/${VERSION}/"
