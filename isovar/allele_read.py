@@ -118,6 +118,24 @@ class AlleleRead(ValueObject):
                 previous + 1))
         return tuple(blocks)
 
+    @staticmethod
+    def _slice_reference_blocks(reference_blocks, start, end):
+        """Clip whole-read blocks to a query interval and rebase its offsets."""
+        clipped = []
+        for query_start, query_end, reference_start, _ in reference_blocks:
+            clipped_start = max(query_start, start)
+            clipped_end = min(query_end, end)
+            if clipped_start >= clipped_end:
+                continue
+            clipped_reference_start = reference_start + clipped_start - query_start
+            clipped.append((
+                clipped_start - start,
+                clipped_end - start,
+                clipped_reference_start,
+                clipped_reference_start + clipped_end - clipped_start,
+            ))
+        return tuple(clipped)
+
     @classmethod
     def from_locus_read(cls, locus_read):
         """
@@ -146,8 +164,6 @@ class AlleleRead(ValueObject):
                 reference_base0_end_exclusive)
             return None
 
-        reference_positions = locus_read.reference_positions
-
         n_ref_bases = reference_base0_end_exclusive - reference_base0_start_inclusive
 
         insertion = (n_ref_bases == 0)
@@ -170,8 +186,12 @@ class AlleleRead(ValueObject):
 
         retained_start = read_base0_start_inclusive - len(prefix)
         retained_end = read_base0_end_exclusive + len(suffix)
-        reference_blocks = cls._reference_blocks(
-            reference_positions[retained_start:retained_end])
+        if hasattr(locus_read, "reference_blocks"):
+            reference_blocks = cls._slice_reference_blocks(
+                locus_read.reference_blocks, retained_start, retained_end)
+        else:
+            reference_blocks = cls._reference_blocks(
+                locus_read.reference_positions[retained_start:retained_end])
         observed_block_gaps = {
             (left[3], right[2])
             for left, right in zip(reference_blocks, reference_blocks[1:])
