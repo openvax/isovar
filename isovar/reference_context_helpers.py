@@ -12,6 +12,7 @@
 
 from collections import defaultdict
 
+from .default_parameters import REFERENCE_CONTEXT_SIZE
 
 from .effect_prediction import reference_coding_transcripts_for_variant
 from .reference_context import ReferenceContext
@@ -20,7 +21,7 @@ from .reference_coding_sequence_key import ReferenceCodingSequenceKey
 
 def reference_contexts_for_variant(
         variant,
-        context_size,
+        context_size=REFERENCE_CONTEXT_SIZE,
         transcript_id_whitelist=None):
     """
     variant : varcode.Variant
@@ -64,7 +65,7 @@ def reference_contexts_for_variant(
 
 def reference_contexts_generator(
         variants,
-        context_size,
+        context_size=REFERENCE_CONTEXT_SIZE,
         transcript_id_whitelist=None):
     """
     Extract a set of reference contexts for each variant in the collection.

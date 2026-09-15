@@ -37,7 +37,7 @@ def test_somatic_variant_with_0_supporting_rna_reads():
         variant=variant,
         alignment_file=tumor_reads)
     print(tumor_sample_variant_reads)
-    eq_(len(tumor_sample_variant_reads), 5)
+    eq_(sum(r.source_read_count for r in tumor_sample_variant_reads), 5)
 
     rna_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,

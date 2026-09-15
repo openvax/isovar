@@ -98,7 +98,8 @@ def test_public_rna_snp_partition_matches_independent_cigar_counts(name, record,
     expected = Counter((obs["name"], obs["allele"]) for obs in record["observations"]
                        if not obs["flag"] & (256 | 1024) and obs["mapq"] >= min_mapq)
     with pysam.AlignmentFile(alignments[name]) as bam:
-        evidence = ReadCollector(min_mapping_quality=min_mapq, use_secondary_alignments=False).read_evidence_for_variant(
+        evidence = ReadCollector(min_mapping_quality=min_mapq, use_secondary_alignments=False,
+                                 merge_overlapping_fragments=False).read_evidence_for_variant(
             variant_from_record(record), bam)
     actual = Counter((r.name, r.allele) for r in evidence.ref_reads + evidence.alt_reads + evidence.other_reads)
     assert actual == expected
@@ -191,7 +192,7 @@ def test_real_overlapping_mates_preserve_fragment_names_and_source_counts(alignm
     # A genuine 26-base mate overlap outside the benchmark loci. This is a
     # fragment-assembly probe, not an assertion of a mutation at this position.
     with pysam.AlignmentFile(alignments["illumina_star"]) as bam:
-        raw = ReadCollector(use_secondary_alignments=False).get_locus_reads(bam, "chr4", 15560, 15561)
+        raw = ReadCollector(use_secondary_alignments=False, merge_overlapping_fragments=False).get_locus_reads(bam, "chr4", 15560, 15561)
         merged = ReadCollector(use_secondary_alignments=False, merge_overlapping_fragments=True).get_locus_reads(bam, "chr4", 15560, 15561)
     assert {r.name for r in raw} == {"SRR1258218.22918678"}
     assert {r.name for r in raw} == {r.name for r in merged}

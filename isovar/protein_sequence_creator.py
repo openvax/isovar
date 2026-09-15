@@ -24,6 +24,7 @@ from .default_parameters import (
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_ASSEMBLY,
     MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE,
+    protein_sequence_length_for_peptide_length,
 )
 
 from .genetic_code import translate_cdna
@@ -138,7 +139,7 @@ class ProteinSequenceCreator(ValueObject):
             protein_sequence_preference, protein_context_peptide_length,
             min_protein_sequence_support_fraction)
         if protein_sequence_length is None:
-            protein_sequence_length = 2 * protein_context_peptide_length - 1
+            protein_sequence_length = protein_sequence_length_for_peptide_length(protein_context_peptide_length)
         if (isinstance(protein_sequence_length, bool)
                 or not isinstance(protein_sequence_length, Integral) or protein_sequence_length < 0):
             raise ValueError("protein_sequence_length must be a non-negative integer or None")
