@@ -24,6 +24,7 @@ from ..dataframe_helpers import isovar_results_to_dataframe
 
 from .main_args import run_isovar_from_parsed_args, make_isovar_arg_parser
 
+from .input_validation import check_parsed_args
 from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
@@ -36,6 +37,7 @@ def run(args=None):
         parser,
         filename="isovar-results.csv")
     args = parser.parse_args(args)
+    check_parsed_args(parser, args)
     logger.info(args)
     isovar_results = run_isovar_from_parsed_args(args)
     df = isovar_results_to_dataframe(isovar_results)

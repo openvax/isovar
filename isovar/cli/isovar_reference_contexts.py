@@ -17,6 +17,7 @@ from .reference_context_args import (
     make_reference_context_arg_parser,
     reference_contexts_dataframe_from_args
 )
+from .input_validation import check_parsed_args
 from .output_args import add_output_args, write_dataframe
 
 
@@ -32,6 +33,7 @@ def run(args=None):
     if args is None:
         args = sys.argv[1:]
     args = parser.parse_args(args)
+    check_parsed_args(parser, args)
     reference_contexts_df = reference_contexts_dataframe_from_args(args)
     logger.info(reference_contexts_df)
     write_dataframe(reference_contexts_df, args)

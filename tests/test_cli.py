@@ -111,3 +111,66 @@ def test_variant_reads_dataframe_helper():
     df = variants_reads_dataframe_from_args(args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert len(df) == 42
+
+
+def _cli_error_message(fn, args, capsys):
+    import pytest
+    with pytest.raises(SystemExit) as exit_info:
+        fn(args)
+    assert exit_info.value.code == 2
+    return capsys.readouterr().err.strip().splitlines()[-1]
+
+
+def test_cli_missing_vcf_is_a_one_line_error(capsys):
+    message = _cli_error_message(
+        isovar_main,
+        ["--vcf", "missing.vcf", "--bam", args_with_bam[-1]],
+        capsys)
+    assert message.endswith("error: --vcf file not found: missing.vcf")
+
+
+def test_cli_missing_bam_is_a_one_line_error(capsys):
+    message = _cli_error_message(
+        isovar_allele_counts, vcf_args + ["--bam", "missing.bam"], capsys)
+    assert message.endswith("error: --bam file not found: missing.bam")
+
+
+def test_cli_unindexed_bam_is_a_one_line_error(capsys):
+    unindexed_bam = data_path("data/primary.chr1.unsorted.bam")
+    message = _cli_error_message(
+        isovar_variant_reads, vcf_args + ["--bam", unindexed_bam], capsys)
+    assert "must be a coordinate-sorted, indexed BAM or CRAM" in message
+
+
+def test_cli_sam_passed_as_bam_is_a_one_line_error(capsys):
+    sam_path = data_path("data/b16.f10/b16.combined.sam")
+    message = _cli_error_message(
+        isovar_allele_reads, vcf_args + ["--bam", sam_path], capsys)
+    assert "must be a coordinate-sorted, indexed BAM or CRAM" in message
+
+
+def test_cli_no_variants_is_a_one_line_error(capsys):
+    message = _cli_error_message(
+        isovar_reference_contexts, [], capsys)
+    assert message.endswith(
+        "error: no variants given; use --vcf, --maf, --variant or --json-variants")
+
+
+def test_cli_variant_without_genome_is_a_one_line_error(capsys):
+    message = _cli_error_message(
+        isovar_reference_contexts, ["--variant", "9", "82927102", "G", "T"], capsys)
+    assert message.endswith("error: --genome is required when using --variant")
+
+
+def test_cli_unknown_genome_is_a_one_line_error(capsys):
+    message = _cli_error_message(
+        isovar_reference_contexts, vcf_args + ["--genome", "not-a-genome"], capsys)
+    assert "error: --genome not-a-genome:" in message
+
+
+def test_cli_missing_output_directory_fails_before_running(capsys, tmp_path):
+    output_path = str(tmp_path / "missing-dir" / "out.csv")
+    message = _cli_error_message(
+        isovar_main, args_with_bam + ["--output", output_path], capsys)
+    assert message.endswith(
+        "error: --output directory does not exist: %s" % (tmp_path / "missing-dir"))
