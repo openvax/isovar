@@ -14,6 +14,7 @@ import tempfile
 from os import remove
 from os.path import getsize, exists
 import pandas as pd
+import pytest
 
 from .testing_helpers import data_path
 
@@ -25,11 +26,21 @@ from isovar.cli.isovar_reference_contexts import run as isovar_reference_context
 from isovar.cli.isovar_variant_reads import run as isovar_variant_reads
 from isovar.cli.isovar_variant_sequences import run as isovar_variant_sequences
 from isovar.cli.isovar_main import run as isovar_main
+from isovar.cli.main_args import make_isovar_arg_parser
 from isovar.cli.rna_args import (
     allele_counts_dataframe_from_args,
     make_rna_reads_arg_parser,
     variants_reads_dataframe_from_args,
 )
+
+# the modules themselves, for the parsers they build at import time
+from isovar.cli import isovar_allele_counts as isovar_allele_counts_module
+from isovar.cli import isovar_allele_reads as isovar_allele_reads_module
+from isovar.cli import isovar_protein_sequences as isovar_protein_sequences_module
+from isovar.cli import isovar_reference_contexts as isovar_reference_contexts_module
+from isovar.cli import isovar_translations as isovar_translations_module
+from isovar.cli import isovar_variant_reads as isovar_variant_reads_module
+from isovar.cli import isovar_variant_sequences as isovar_variant_sequences_module
 
 vcf_args = [
     "--vcf",
@@ -42,7 +53,7 @@ args_with_bam = vcf_args + [
 ]
 
 
-def run_cli_fn(fn, include_bam_in_args=True, return_dataframe=False):
+def run_cli_fn(fn, include_bam_in_args=True, return_dataframe=False, extra_args=()):
     with tempfile.NamedTemporaryFile(delete=False) as f:
         output_path = f.name
     assert not exists(output_path) == 0
@@ -51,7 +62,7 @@ def run_cli_fn(fn, include_bam_in_args=True, return_dataframe=False):
         args = args_with_bam + output_args
     else:
         args = vcf_args + output_args
-    fn(args)
+    fn(args + list(extra_args))
     assert getsize(output_path) > 0
     if return_dataframe:
         df = pd.read_csv(output_path)
@@ -73,11 +84,14 @@ def test_cli_allele_counts():
         expected_df[["num_ref_fragments", "num_alt_fragments", "num_other_fragments"]].to_dict(orient="records")
 
 
-def test_cli_allele_reads():
-    df = run_cli_fn(isovar_allele_reads, return_dataframe=True)
+@pytest.mark.parametrize("extra_args,expected_count", [
+    ([], 274), (["--no-merge-overlapping-fragments"], 294),
+])
+def test_cli_allele_reads(extra_args, expected_count):
+    df = run_cli_fn(isovar_allele_reads, return_dataframe=True, extra_args=extra_args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert "ref_reads" not in df.columns
-    assert len(df) == 294
+    assert len(df) == expected_count
 
 
 def test_cli_reference_contexts():
@@ -92,11 +106,14 @@ def test_cli_translations():
     run_cli_fn(isovar_translations)
 
 
-def test_cli_variant_reads():
-    df = run_cli_fn(isovar_variant_reads, return_dataframe=True)
+@pytest.mark.parametrize("extra_args,expected_count", [
+    ([], 36), (["--no-merge-overlapping-fragments"], 42),
+])
+def test_cli_variant_reads(extra_args, expected_count):
+    df = run_cli_fn(isovar_variant_reads, return_dataframe=True, extra_args=extra_args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert "ref_reads" not in df.columns
-    assert len(df) == 42
+    assert len(df) == expected_count
 
 
 def test_cli_variant_sequences():
@@ -106,46 +123,43 @@ def test_cli_main():
     run_cli_fn(isovar_main)
 
 
-def test_variant_reads_dataframe_helper():
-    args = make_rna_reads_arg_parser().parse_args(args_with_bam)
+@pytest.mark.parametrize("extra_args,expected_count", [
+    ([], 36), (["--no-merge-overlapping-fragments"], 42),
+])
+def test_variant_reads_dataframe_helper(extra_args, expected_count):
+    args = make_rna_reads_arg_parser().parse_args(args_with_bam + extra_args)
     df = variants_reads_dataframe_from_args(args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
-    assert len(df) == 42
+    assert len(df) == expected_count
 
 
 def test_cli_help_describes_every_command_and_option(capsys):
-    import pytest
-    from isovar.cli import (
-        isovar_allele_counts,
-        isovar_allele_reads,
-        isovar_protein_sequences,
-        isovar_reference_contexts,
-        isovar_translations,
-        isovar_variant_reads,
-        isovar_variant_sequences,
-    )
-    from isovar.cli.main_args import make_isovar_arg_parser
-
-    parsers = [
+    # the eight commands build their parsers at import time, except isovar-main
+    # which builds its own inside run(), so check that one separately
+    described_parsers = [
         module.parser
         for module in (
-            isovar_allele_counts,
-            isovar_allele_reads,
-            isovar_protein_sequences,
-            isovar_reference_contexts,
-            isovar_translations,
-            isovar_variant_reads,
-            isovar_variant_sequences,
+            isovar_allele_counts_module,
+            isovar_allele_reads_module,
+            isovar_protein_sequences_module,
+            isovar_reference_contexts_module,
+            isovar_translations_module,
+            isovar_variant_reads_module,
+            isovar_variant_sequences_module,
         )
     ]
-    parsers.append(make_isovar_arg_parser())
-    for parser in parsers[:-1]:
+    for parser in described_parsers:
         assert parser.description, parser.prog
-    for parser in parsers:
+
+    # argparse only exposes its actions through the private _actions list
+    for parser in described_parsers + [make_isovar_arg_parser()]:
         for action in parser._actions:
             assert action.help, (parser.prog, action.option_strings)
 
     with pytest.raises(SystemExit) as exit_info:
         isovar_main(["--help"])
     assert exit_info.value.code == 0
-    assert "Collect RNA evidence for each variant" in capsys.readouterr().out
+    # argparse wraps the description to the terminal width, so collapse
+    # whitespace before looking for the phrase
+    help_text = " ".join(capsys.readouterr().out.split())
+    assert "Collect RNA evidence for each variant" in help_text

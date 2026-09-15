@@ -21,10 +21,10 @@ from ..default_parameters import (
     COUNT_MISMATCHES_AFTER_VARIANT,
     PROTEIN_SEQUENCE_PREFERENCE,
     PROTEIN_CONTEXT_PEPTIDE_LENGTH,
+    PROTEIN_SEQUENCE_LENGTH,
     MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION,
 )
 from .variant_sequences_args import make_variant_sequences_arg_parser
-from .reference_context_args import add_reference_context_args
 
 def add_translation_args(parser):
     translation_group = parser.add_argument_group(
@@ -34,7 +34,8 @@ def add_translation_args(parser):
         "--protein-sequence-length",
         default=None,
         type=int,
-        help="Requested translated context length; default is 2 * protein-context-peptide-length - 1 (49).")
+        help="Requested translated context length; default is 2 * protein-context-peptide-length - 1 "
+             "(%s with the default peptide length)." % PROTEIN_SEQUENCE_LENGTH)
 
     translation_group.add_argument(
         "--protein-sequence-preference", choices=("balanced", "support", "context"),
@@ -43,11 +44,12 @@ def add_translation_args(parser):
              "or prioritize context (default %(default)s).")
     translation_group.add_argument(
         "--protein-context-peptide-length", type=int, default=None,
-        help="Peptide size for counting mutation-containing windows; default 25, or vaxrank's vaccine peptide size.")
+        help="Peptide size for counting mutation-containing windows; default %s, "
+             "or vaxrank's vaccine peptide size." % PROTEIN_CONTEXT_PEPTIDE_LENGTH)
     translation_group.add_argument(
         "--min-protein-sequence-support-fraction", type=float,
         default=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION,
-        help="Balanced: fraction of best candidate's compatible read-name support (default 0.85, not per-base depth). "
+        help="Balanced: fraction of best candidate's compatible read-name support (default %(default)s, not per-base depth). "
              "Use --min-variant-sequence-coverage for the independent absolute per-base floor.")
 
     translation_group.add_argument(
@@ -115,6 +117,5 @@ def make_translation_arg_parser(**kwargs):
     in this module.
     """
     parser = make_variant_sequences_arg_parser(**kwargs)
-    add_reference_context_args(parser)
     add_translation_args(parser)
     return parser

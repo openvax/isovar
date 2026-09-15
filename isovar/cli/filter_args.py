@@ -16,12 +16,7 @@ Common command-line arguments for filtering Isovar results
 
 from collections import OrderedDict
 
-from ..default_parameters import (
-    MIN_NUM_RNA_ALT_FRAGMENTS,
-    MIN_NUM_RNA_ALT_READS,
-    MIN_FRACTION_RNA_ALT_FRAGMENTS,
-    MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS
-)
+from ..default_parameters import DEFAULT_FILTER_THRESHOLDS
 
 def add_filter_args(parser):
     """
@@ -32,13 +27,13 @@ def add_filter_args(parser):
     filter_group.add_argument(
         "--min-alt-rna-reads",
         type=int,
-        default=MIN_NUM_RNA_ALT_READS,
+        default=DEFAULT_FILTER_THRESHOLDS["min_num_alt_reads"],
         help="Minimum number of reads supporting variant allele (default %(default)s)")
 
     filter_group.add_argument(
         "--min-alt-rna-fragments",
         type=int,
-        default=MIN_NUM_RNA_ALT_FRAGMENTS,
+        default=DEFAULT_FILTER_THRESHOLDS["min_num_alt_fragments"],
         help=(
             "Minimum number of fragments supporting variant allele (default %(default)s). "
             "Note that this option is the same as --min-alt-rna-reads for single-end "
@@ -47,7 +42,7 @@ def add_filter_args(parser):
     filter_group.add_argument(
         "--min-alt-rna-fraction",
         type=float,
-        default=MIN_FRACTION_RNA_ALT_FRAGMENTS,
+        default=DEFAULT_FILTER_THRESHOLDS["min_fraction_alt_fragments"],
         help=(
             "Minimum ratio of fragments supporting variant allele to total RNA fragments "
             "(default %(default)s)."))
@@ -55,7 +50,7 @@ def add_filter_args(parser):
     filter_group.add_argument(
         "--min-ratio-alt-to-other-fragments",
         type=float,
-        default=MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS,
+        default=DEFAULT_FILTER_THRESHOLDS["min_ratio_alt_to_other_fragments"],
         help=(
             "At loci where alleles other than the ref and a single alt are supported, "
             "this parameter controls how many more times fragments supporting "
@@ -66,12 +61,12 @@ def add_filter_args(parser):
 
 def filter_threshold_dict_from_args(args):
     """
-    Convert names of filters from external CLI options to more
-    consistent naming scheme of {min|max}_{Isovar property}.
+    Apply CLI overrides to a fresh copy of the Python API's default filters.
+    Names use the {min|max}_{Isovar property} convention.
 
     Returns OrderedDict
     """
-    d = OrderedDict()
+    d = OrderedDict(DEFAULT_FILTER_THRESHOLDS)
     d["min_ratio_alt_to_other_fragments"] = args.min_ratio_alt_to_other_fragments
     d["min_fraction_alt_fragments"] = args.min_alt_rna_fraction
     d["min_num_alt_fragments"] = args.min_alt_rna_fragments

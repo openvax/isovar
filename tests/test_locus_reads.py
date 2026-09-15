@@ -11,6 +11,7 @@
 # limitations under the License.
 
 from unittest.mock import MagicMock
+import pytest
 
 from varcode import Variant
 
@@ -255,7 +256,8 @@ def test_locus_reads_dataframe():
         alignments=sam_all_variants,
         chromosome="chr4",
         base0_start=45802538,
-        base0_end=45802539)
+        base0_end=45802539,
+        merge_overlapping_fragments=False)
     print(df)
     eq_(len(df), n_reads_expected)
 
@@ -293,6 +295,38 @@ def test_get_locus_reads_merges_overlapping_paired_reads():
     eq_(merged_read.read_base0_start_inclusive, 3)
     eq_(merged_read.read_base0_end_exclusive, 4)
     eq_(merged_read.source_read_count, 2)
+
+
+@pytest.mark.parametrize("compact", [False, True])
+@pytest.mark.parametrize("first_cigar,first_sequence,second_cigar,second_sequence", [
+    ("3M2D3M", "AAACCC", "8M", "AAATTCCC"),
+    ("3M2I3M", "AAATTCCC", "6M", "AAACCC"),
+    ("3M2N3M", "AAACCC", "8M", "AAATTCCC"),
+    ("3M2N3M", "AAACCC", "3M2D3M", "AAACCC"),
+])
+def test_mates_with_conflicting_alignment_paths_remain_separate(
+        compact, first_cigar, first_sequence, second_cigar, second_sequence):
+    reads = [
+        make_pysam_read(first_sequence, first_cigar, name="pair"),
+        make_pysam_read(second_sequence, second_cigar, name="pair"),
+    ]
+    collector = ReadCollector()
+    for order in (reads, reads[::-1]):
+        result = collector._get_locus_reads(
+            MockAlignmentFile(["1"], order), "1", 1, 2, compact=compact)
+        assert len(result) == 2
+        assert sorted(r.sequence for r in result) == sorted([first_sequence, second_sequence])
+        assert all(r.source_read_count == 1 for r in result)
+
+
+@pytest.mark.parametrize("cigar", ["3M2D3M", "3M2N3M", "3M2I3M"])
+def test_mates_with_matching_gapped_paths_merge(cigar):
+    sequence = "AAATTCCC" if "I" in cigar else "AAACCC"
+    reads = [make_pysam_read(sequence, cigar, name="pair") for _ in range(2)]
+    result = ReadCollector().get_locus_reads(MockAlignmentFile(["1"], reads), "1", 1, 2)
+    assert len(result) == 1
+    assert result[0].sequence == sequence
+    assert result[0].source_read_count == 2
 
 
 def test_locus_reads_clamps_fetch_start_at_contig_boundary():

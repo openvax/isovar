@@ -18,6 +18,7 @@ from .default_parameters import (
     USE_DUPLICATE_READS,
     MIN_READ_MAPPING_QUALITY,
     USE_SOFT_CLIPPED_BASES,
+    MERGE_OVERLAPPING_FRAGMENTS,
 )
 from .locus_read import LocusRead
 from .logging import get_logger
@@ -94,7 +95,7 @@ class ReadCollector(object):
         use_duplicate_reads=USE_DUPLICATE_READS,
         min_mapping_quality=MIN_READ_MAPPING_QUALITY,
         use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES,
-        merge_overlapping_fragments=False,
+        merge_overlapping_fragments=MERGE_OVERLAPPING_FRAGMENTS,
     ):
         """
         Parameters
@@ -692,11 +693,21 @@ class ReadCollector(object):
         if first_tokens is None or second_tokens is None:
             return None
 
-        overlapping_keys = {key for key, _, _, _ in first_tokens}.intersection(
-            key for key, _, _, _ in second_tokens
-        )
-        if not overlapping_keys:
+        first_keys = {key for key, _, _, _ in first_tokens}
+        second_keys = {key for key, _, _, _ in second_tokens}
+        if not first_keys.intersection(second_keys):
             return None
+
+        # Both reads must describe the same alignment path where they overlap.
+        # Unioning discordant paths can fill a deletion or invent an insertion.
+        overlap_start = max(min(first_keys), min(second_keys))
+        overlap_end = min(max(first_keys), max(second_keys))
+        if any(overlap_start <= key <= overlap_end for key in first_keys ^ second_keys):
+            return None
+        # A splice skip and a deletion can omit exactly the same base tokens.
+        for start, end in set(first.splice_junctions) ^ set(second.splice_junctions):
+            if overlap_start[0] <= 2 * (start - 1) and 2 * end <= overlap_end[0]:
+                return None
 
         merged_tokens = {}
         for token in first_tokens + second_tokens:
