@@ -17,6 +17,7 @@ translations.
 """
 
 from .dna import reverse_complement_dna
+from .aligned_reference_prefix import aligned_reference_prefix
 from .logging import get_logger
 from .value_object import ValueObject
 
@@ -31,10 +32,8 @@ class VariantORF(ValueObject):
     matching the cDNA sequence to a ReferenceContext.
     """
     __slots__ = [
-        # since the reference context and variant sequence may have
-        # different numbers of nucleotides before the variant, the cDNA prefix
-        # gets truncated to the shortest length. To avoid having to recompute
-        # that sequence again, let's just cache the full cDNA sequence we used
+        # RNA/reference prefixes share an aligned start, but can have different
+        # lengths across indels. Cache the full cDNA sequence we used
         # for translation here, along with an interval indicating which
         # nucleotides are from the variant of interest
         "cdna_sequence",
@@ -112,19 +111,23 @@ class VariantORF(ValueObject):
             reference_suffix,
             n_trimmed_from_reference)
 
-        n_mismatch_before_variant = count_mismatches_before_variant(
-            reference_prefix, cdna_prefix)
+        has_alignment = any(read.reference_blocks for read in variant_sequence.reads)
+        if has_alignment:
+            aligned = aligned_reference_prefix(variant_sequence, reference_context)
+            if aligned is None:
+                logger.info("Unable to establish an unambiguous aligned coding frame")
+                return None
+            (cdna_prefix, reference_prefix, offset_to_first_complete_codon,
+             n_mismatch_before_variant) = aligned
+        else:
+            n_mismatch_before_variant = count_mismatches_before_variant(
+                reference_prefix, cdna_prefix)
+            # Compatibility for manually constructed, sequence-only reads.
+            offset_to_first_complete_codon = compute_offset_to_first_complete_codon(
+                offset_to_first_complete_reference_codon=reference_context.offset_to_first_complete_codon,
+                n_trimmed_from_reference_sequence=n_trimmed_from_reference)
         n_mismatch_after_variant = count_mismatches_after_variant(
             reference_suffix, cdna_suffix)
-
-        ref_codon_offset = reference_context.offset_to_first_complete_codon
-
-        # ReferenceContext carries with an offset to the first complete codon
-        # in the reference sequence. This may need to be adjusted if the reference
-        # sequence is longer than the variant sequence (and thus needs to be trimmed)
-        offset_to_first_complete_codon = compute_offset_to_first_complete_codon(
-            offset_to_first_complete_reference_codon=ref_codon_offset,
-            n_trimmed_from_reference_sequence=n_trimmed_from_reference)
 
         cdna_sequence = cdna_prefix + cdna_alt + cdna_suffix
         variant_interval_start = len(cdna_prefix)

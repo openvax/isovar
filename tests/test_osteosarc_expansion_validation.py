@@ -56,7 +56,8 @@ def toy_translation():
                           offset_to_first_complete_codon=0)
     translation = SimpleNamespace(variant_orf=orf, frameshift=False, amino_acids="MEPGF",
                                   ends_with_stop_codon=True, mutation_start_idx=1, mutation_end_idx=2,
-                                  contains_mutation=True)
+                                  contains_mutation=True, untrimmed_variant_sequence=SimpleNamespace(reads=[
+                                      SimpleNamespace(prefix="ATG", reference_blocks=((0, 18, 99, 117),))]))
     return translation, expected
 
 
@@ -91,6 +92,13 @@ def test_independent_oracle_caps_sequence_and_clears_stop():
     observed, expected = toy_translation()
     observed.amino_acids, observed.ends_with_stop_codon = "MEP", False
     assert check_translation(observed, expected, 3)["matches_expected"]
+
+
+def test_independent_oracle_rejects_wrong_aligned_anchor():
+    observed, expected = toy_translation()
+    observed.untrimmed_variant_sequence.reads[0].reference_blocks = ((0, 18, 100, 118),)
+    with pytest.raises(AssertionError, match="left-anchor mismatch"):
+        check_translation(observed, expected, 49)
 
 
 def test_reference_mitochondrial_code_changes_translation():

@@ -23174,11 +23174,11 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "reference_matching_rejected": 3,
           "rna_candidate_count": 11,
           "stage": "independent_protein_validation",
-          "translation_count": 8,
-          "translations_with_mutation": 8
+          "translation_count": 11,
+          "translations_with_mutation": 8,
+          "translations_without_mutation": 3
         },
         "status": "ok"
       },

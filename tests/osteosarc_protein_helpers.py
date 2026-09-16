@@ -107,6 +107,31 @@ def expected_variant(record, reference):
                 mutant_has_stop=has_stop, frameshift=(len(ref) - len(alt)) % 3 != 0)
 
 
+def aligned_window_start(translation, expected):
+    """Independently verify the first RNA base against pinned exon coordinates.
+
+    Do not equate RNA length with reference length across an observed indel.
+    No production phase-transfer or genomic-to-transcript helper is used.
+    """
+    orf = translation.variant_orf
+    start = expected["variant_offset"] - len(orf.reference_cdna_sequence_before_variant)
+    assert orf.reference_cdna_sequence_before_variant == expected["cdna"][start:expected["variant_offset"]]
+    anchors = set()
+    reverse = expected["strand"] == "-"
+    for read in translation.untrimmed_variant_sequence.reads:
+        # RNA coordinate of the ORF's first retained base in this original read.
+        query = (len(read.suffix) - orf.variant_cdna_interval_start if reverse
+                 else len(read.prefix) - orf.variant_cdna_interval_start)
+        if reverse:
+            query = len(read.sequence) - 1 - query
+        for q0, q1, g0, _ in read.reference_blocks:
+            if q0 <= query < q1:
+                anchors.add(transcript_offset(expected["exons"], expected["strand"], g0 + query - q0 + 1))
+    if any(read.reference_blocks for read in translation.untrimmed_variant_sequence.reads):
+        assert anchors == {start}, "RNA/reference left-anchor mismatch"
+    return start
+
+
 def check_translation(translation, expected, protein_length):
     """Check frame, RNA translation, mutation interval and reference-only peptide.
 
@@ -116,10 +141,9 @@ def check_translation(translation, expected, protein_length):
     """
     orf = translation.variant_orf
     prefix = orf.variant_cdna_interval_start
-    window_start = expected["variant_offset"] - prefix
+    window_start = aligned_window_start(translation, expected)
     assert window_start >= expected["cds_start"]  # all six selected windows are coding
     frame = (expected["cds_start"] - window_start) % 3
-    assert len(orf.reference_cdna_sequence_before_variant) == prefix
     assert orf.offset_to_first_complete_codon == frame
     assert orf.cdna_sequence[prefix:orf.variant_cdna_interval_end] == expected["oriented_alt"]
     assert translation.frameshift == expected["frameshift"]
@@ -133,14 +157,12 @@ def check_translation(translation, expected, protein_length):
     assert (translation.amino_acids, translation.ends_with_stop_codon) == (actual_aa, actual_stop)
     # Independently locate codons touching the edit; a frame-preserving deletion
     # on a codon boundary marks the zero-width novel peptide junction.
-    mutation_start = (expected["variant_offset"] - expected["cds_start"]) // 3
     first_codon = (window_start + frame - expected["cds_start"]) // 3
-    local_start = mutation_start - first_codon
+    local_start = (prefix - frame) // 3
     if expected["frameshift"]:
         local_end = len(actual_aa)
     else:
-        edit_end = expected["variant_offset"] + len(expected["oriented_alt"])
-        local_end = (edit_end - expected["cds_start"] + 2) // 3 - first_codon
+        local_end = (prefix + len(expected["oriented_alt"]) - frame + 2) // 3
     assert translation.mutation_start_idx == local_start
     assert translation.mutation_end_idx == min(local_end, protein_length)
     assert translation.contains_mutation == (0 < local_start < len(actual_aa)
