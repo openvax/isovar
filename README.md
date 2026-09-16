@@ -312,6 +312,11 @@ Multiple distinct variant sequences and reference contexts can generate the same
 
 ## Other Isovar Commandline Tools
 
+`isovar-plot` renders white-background protein, read-overlap and local transcript
+figures as SVG and high-resolution PNG, in UTC date/time-stamped directories.
+Install `isovar[plot]`, then see the [plotting commands and reproducible osteosarc
+assembly examples](docs/visualization.md).
+
 <dl>
 <dt>isovar-protein-sequences --vcf variants.vcf --bam rna.bam</dt>
 <dd>Candidate protein sequences from RNA reads; keeps the top sequence per variant unless <code>--max-protein-sequences-per-variant 0</code> is supplied.</dd>

@@ -177,3 +177,10 @@ DEFAULT_FILTER_FLAGS = [
     "has_mutant_protein_sequence_from_rna",
     "protein_sequence_contains_mutation",
 ]
+
+# Static mutation-evidence figures; shared by the plotting API and CLI.
+PLOT_COMPARE_ASSEMBLY = False
+PLOT_DPI = 300
+PLOT_MAX_ROWS = 20
+PLOT_VIEW = "all"
+PLOT_OUTPUT_DIRECTORY = "isovar-figures"
