@@ -32,10 +32,15 @@ DELETION = (96875576, 96875579)
 EXCLUDED = 4 | 256 | 512 | 1024 | 2048
 
 
-def recount(source, reference, min_quality=20, min_mapq=20, flank=8):
-    """Exact anchored alleles, fragment counts and same-segment phase evidence."""
+def recount(source, reference, min_quality=20, min_mapq=20, flank=8,
+            focal_position=FOCAL, deletion_interval=DELETION):
+    """Exact anchored alleles, fragment counts and same-segment phase evidence.
+
+    ``min_quality=None`` is an explicitly unqualified sequence-only diagnostic,
+    not interchangeable with the default Q20 evidence (including missing QUAL).
+    """
     header = pysam.AlignmentHeader.from_text(source["header"])
-    lo, hi = DELETION[0] - flank, DELETION[1] + flank
+    lo, hi = deletion_interval[0] - flank, deletion_interval[1] + flank
     ref = reference["dna"][lo-reference["start"]:hi-reference["start"]].upper()
     assert ref[flank:flank+3] == "GTG"
     hypotheses = {ref: "reference", ref[:flank] + ref[flank+3:]: "deletion"}
@@ -43,18 +48,20 @@ def recount(source, reference, min_quality=20, min_mapq=20, flank=8):
     deletion_records = []
     for sam in source["records"]:
         read = pysam.AlignedSegment.fromstring(sam, header)
-        if read.flag & EXCLUDED or read.mapping_quality < min_mapq or read.query_qualities is None:
+        if (read.flag & EXCLUDED or read.mapping_quality < min_mapq or
+                (min_quality is not None and read.query_qualities is None)):
             continue
         coordinates = {g: q for q, g in read.get_aligned_pairs(matches_only=True)}
         key = (read.get_tag("RG") if read.has_tag("RG") else "", read.query_name)
-        q = coordinates.get(FOCAL)
+        q = coordinates.get(focal_position)
         focal = None
-        if q is not None and read.query_qualities[q] >= min_quality:
+        if q is not None and (min_quality is None or read.query_qualities[q] >= min_quality):
             base = read.query_sequence[q]
             focal = {"G": "reference", "T": "alternate"}.get(base, "other")
             states["focal"][key].add(focal)
         left, right = coordinates.get(lo), coordinates.get(hi - 1)
-        if left is None or right is None or min(read.query_qualities[left:right+1]) < min_quality:
+        if (left is None or right is None or (min_quality is not None and
+                min(read.query_qualities[left:right+1]) < min_quality)):
             continue
         observed = read.query_sequence[left:right+1]
         deletion = hypotheses.get(observed, "other")
@@ -67,7 +74,8 @@ def recount(source, reference, min_quality=20, min_mapq=20, flank=8):
                 start=read.reference_start, end=read.reference_end, cigar=read.cigarstring,
                 reverse=read.is_reverse, mate_start=read.next_reference_start,
                 query_start=left, query_end=right+1, sequence=observed,
-                minimum_quality=min(read.query_qualities[left:right+1]), focal=focal,
+                minimum_quality=(None if read.query_qualities is None else
+                                 min(read.query_qualities[left:right+1])), focal=focal,
                 sam_sha256=sha256(sam.encode()).hexdigest()))
     counts = {name: dict(sorted(Counter(
         next(iter(values)) if len(values) == 1 else "conflicting_template"

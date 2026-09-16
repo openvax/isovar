@@ -127,8 +127,15 @@ Existing read constructors remain supported with optional provenance fields.
 
 This can change counts, filtering and reconstructed context for multimapped
 reads; it does not establish independent molecules or perform UMI deduplication.
-Cross-variant phasing still uses bare names; read-group-safe phasing is tracked
-separately in [#282](https://github.com/openvax/isovar/issues/282).
+Since 1.17.1, cross-variant phasing also uses read-group-scoped fragment IDs
+([#282](https://github.com/openvax/isovar/issues/282)). Matching names in different
+read groups cannot create an edge; paired segments count as one fragment.
+Public read-name helpers and phase-group names remain strings for display, not
+unique evidence IDs. Caller-created reads without provenance retain name-only
+phasing with other legacy reads; they are not equated with collected reads.
+Joint compatibility of alternative placements in cross-variant phasing remains
+separate work ([#284](https://github.com/openvax/isovar/issues/284)); scoped
+fragment identity alone does not establish a consistent alignment hypothesis.
 
 ### Python API options for coding sequence assembly and translation
 

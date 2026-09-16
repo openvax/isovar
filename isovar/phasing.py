@@ -14,6 +14,7 @@ from collections import defaultdict, Counter
 
 from .default_parameters import MIN_SHARED_FRAGMENTS_FOR_PHASING
 from .phase_group import PhaseGroup
+from .read_identity import fragment_ids
 from .transcript_edit_helpers import transcript_assembly_edit_sort_key
 
 
@@ -105,7 +106,8 @@ def compute_phasing_counts(variant_to_read_names_dict):
     Parameters
     ----------
     variants_to_read_names : dict
-        Dictionary mapping varcode.Variant to set of read names
+        Dictionary mapping varcode.Variant to a set of hashable fragment IDs.
+        Plain read names remain supported for caller-provided legacy mappings.
 
     Returns
     -------
@@ -150,13 +152,18 @@ def threshold_phased_variant_counts(counts_dict, min_count):
 def create_phase_groups(
         variant_to_read_names_dict,
         min_shared_fragments_for_phasing,
-        variant_to_top_protein_sequence_dict=None):
+        variant_to_top_protein_sequence_dict=None,
+        read_names_by_id=None):
     """
     Group variants into connected components of the phasing graph.
 
     If top translated protein sequences are provided then each resulting
     PhaseGroup is also annotated with directly observed cDNA, protein, and
     transcript metadata from those assemblies.
+
+    ``read_names_by_id`` optionally maps scoped fragment IDs to display names.
+    Names are converted only after constructing the graph; public PhaseGroup
+    fields retain their existing string-based representation.
 
     Returns
     -------
@@ -196,7 +203,7 @@ def create_phase_groups(
             continue
 
         supporting_read_names = {
-            read_name
+            read_names_by_id[read_name] if read_names_by_id is not None else read_name
             for read_name, read_variants in read_names_to_variants.items()
             if len(component.intersection(read_variants)) >= 2
         }
@@ -281,13 +288,41 @@ def create_phase_groups(
     return variant_to_phase_group
 
 
+def _variant_fragment_support(isovar_results, protein=False):
+    """Keep evidence IDs for graph edges and original names for public output."""
+    by_variant, names_by_id = {}, {}
+    for result in isovar_results:
+        if protein:
+            if result.has_mutant_protein_sequence_from_rna:
+                sequence = result.top_protein_sequence
+                reads = getattr(sequence, "supporting_reads", None)
+                if reads is None:
+                    reads = sequence.read_names_supporting_protein_sequence
+            else:
+                reads = ()
+        else:
+            reads = getattr(result, "alt_reads", None)
+            if reads is None:
+                reads = result.alt_read_names
+        identities = set()
+        for read in reads:
+            keys = fragment_ids((read,))
+            identities.update(keys)
+            names_by_id.update((key, getattr(read, "name", read)) for key in keys)
+        by_variant[result.variant] = identities
+    return by_variant, names_by_id
+
+
 def annotate_phased_variants(
         unphased_isovar_results,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING):
     """
     Annotate IsovarResult objects with phasing information. Phasing
     is determined by looking at RNA fragments used for assembled protein
-    sequences and counting the number of shared fragments.
+    sequences and counting the number of shared fragments, scoped by SAM read
+    group. Public read-name sets remain display names, not evidence IDs. Legacy
+    caller-created objects without alignment metadata retain name-only phasing;
+    they are not equated with scoped collected fragments.
 
     Parameters
     ----------
@@ -300,24 +335,25 @@ def annotate_phased_variants(
     list of IsovarResult
     """
 
-    phasing_counts_from_supporting_reads = compute_phasing_counts(
-        create_variant_to_alt_read_names_dict(unphased_isovar_results)
-    )
+    supporting_ids, supporting_names = _variant_fragment_support(unphased_isovar_results)
+    protein_ids, protein_names = _variant_fragment_support(unphased_isovar_results, protein=True)
+
+    phasing_counts_from_supporting_reads = compute_phasing_counts(supporting_ids)
 
     phase_groups_from_supporting_reads = create_phase_groups(
-        create_variant_to_alt_read_names_dict(unphased_isovar_results),
+        supporting_ids,
         min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
+        read_names_by_id=supporting_names,
     )
 
     phasing_counts_from_protein_sequences = compute_phasing_counts(
-        create_variant_to_protein_sequence_read_names_dict(
-            unphased_isovar_results)
+        protein_ids
     )
 
     phase_groups_from_protein_sequences = create_phase_groups(
-        create_variant_to_protein_sequence_read_names_dict(
-            unphased_isovar_results),
+        protein_ids,
         min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
+        read_names_by_id=protein_names,
         variant_to_top_protein_sequence_dict=create_variant_to_top_protein_sequence_dict(
             unphased_isovar_results),
     )

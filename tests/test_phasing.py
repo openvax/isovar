@@ -10,12 +10,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 from varcode import Variant
 from varcode.mutant_transcript import TranscriptEdit
 
 from isovar.allele_read import AlleleRead
 from isovar.isovar_result import IsovarResult
-from isovar.phasing import annotate_phased_variants
+from isovar.phasing import (
+    annotate_phased_variants,
+    create_phase_groups,
+    create_variant_to_alt_read_names_dict,
+    create_variant_to_protein_sequence_read_names_dict,
+)
 from isovar.read_evidence import ReadEvidence
 from isovar.transcript_assembly_edit import TranscriptAssemblyEdit
 
@@ -240,3 +246,99 @@ def test_annotate_phased_variants_leaves_singletons_without_phase_group():
     assert result.phase_group_from_protein_sequence is None
     eq_(result.phased_variants_in_supporting_reads, set())
     eq_(result.phased_variants_in_protein_sequence, set())
+
+
+def scoped_result(position, groups, segments=(64,), protein_groups=None):
+    variant = Variant("1", position, "A", "C", normalize_contig_names=False)
+    result = make_isovar_result(variant, (), {"shared"})
+    reads = [AlleleRead(
+        prefix="A", allele="C", suffix="T", name="shared",
+        source_alignments=(((group, "shared", segment), (0, 0, "100M", False)),),
+    ) for group in groups for segment in segments]
+    result.read_evidence.alt_reads.extend(reads)
+    result.top_protein_sequence.supporting_reads = {
+        read for read in reads
+        if protein_groups is None or read.source_alignments[0][0][0] in protein_groups
+    }
+    return result
+
+
+@pytest.mark.parametrize("groups", [("a", "b"), ("", "a")])
+def test_different_read_groups_cannot_phase_identical_names(groups):
+    inputs = [scoped_result(10, [groups[0]]), scoped_result(20, [groups[1]])]
+    # Public helper contracts still expose unmodified strings, not scoped IDs.
+    for helper in (create_variant_to_alt_read_names_dict,
+                   create_variant_to_protein_sequence_read_names_dict):
+        assert list(helper(inputs).values()) == [{"shared"}, {"shared"}]
+    for result in annotate_phased_variants(inputs, min_shared_fragments_for_phasing=1):
+        assert result.alt_read_names == {"shared"}
+        assert not result.phased_variants_in_supporting_reads
+        assert not result.phased_variants_in_protein_sequence
+        assert result.phase_group_from_supporting_reads is None
+        assert result.phase_group_from_protein_sequence is None
+
+
+@pytest.mark.parametrize("group", ["a", ""])
+def test_complementary_mates_in_same_group_still_phase(group):
+    inputs = [scoped_result(10, [group], (64,)), scoped_result(20, [group], (128,))]
+    for result in annotate_phased_variants(inputs, min_shared_fragments_for_phasing=1):
+        assert result.phased_variants_in_supporting_reads == {
+            r.variant for r in inputs if r.variant != result.variant}
+        assert result.phased_variants_in_protein_sequence == result.phased_variants_in_supporting_reads
+        for phase_group in (result.phase_group_from_supporting_reads,
+                            result.phase_group_from_protein_sequence):
+            assert phase_group.supporting_read_names == frozenset({"shared"})
+
+
+def test_read_groups_count_separately_but_mates_and_duplicate_placements_do_not():
+    for groups, expected in [(["a"], False), (["a", "b"], True)]:
+        inputs = [scoped_result(pos, groups, (64, 128, 64)) for pos in (10, 20)]
+        for result in annotate_phased_variants(inputs, min_shared_fragments_for_phasing=2):
+            assert bool(result.phased_variants_in_supporting_reads) == expected
+            assert bool(result.phased_variants_in_protein_sequence) == expected
+            if expected:
+                assert result.phase_group_from_protein_sequence.supporting_read_names == {"shared"}
+
+
+def test_protein_phasing_uses_its_actual_subset_not_matching_alt_names():
+    inputs = [scoped_result(10, ["a", "b"], protein_groups=["a"]),
+              scoped_result(20, ["a", "b"], protein_groups=["b"])]
+    for result in annotate_phased_variants(inputs, min_shared_fragments_for_phasing=1):
+        assert result.phased_variants_in_supporting_reads
+        assert not result.phased_variants_in_protein_sequence
+        assert result.phase_group_from_protein_sequence is None
+
+
+def test_missing_metadata_does_not_match_a_collected_unscoped_read():
+    legacy = make_isovar_result(Variant("1", 10, "A", "C"), {"shared"}, {"shared"})
+    collected = scoped_result(20, [""])
+    for result in annotate_phased_variants([legacy, collected], min_shared_fragments_for_phasing=1):
+        assert not result.phased_variants_in_supporting_reads
+        assert not result.phased_variants_in_protein_sequence
+
+
+def test_public_phase_group_helper_still_accepts_plain_names():
+    variants = [Variant("1", pos, "A", "C") for pos in (10, 20)]
+    groups = create_phase_groups({v: {"shared"} for v in variants}, 1)
+    assert set(groups) == set(variants)
+    assert all(g.supporting_read_names == {"shared"} for g in groups.values())
+
+
+def test_read_collector_and_adapter_do_not_link_different_groups():
+    from isovar.read_collector import ReadCollector
+    from isovar.read_phasing import IsovarReadPhasing
+    from tests.mock_objects import MockAlignmentFile, make_pysam_read
+
+    records = []
+    for group, sequence in [("a", "ACCGTGATCG"), ("b", "ACCTTGAACG")]:
+        read = make_pysam_read(sequence, "10M", name="shared", reference_start=0)
+        read.set_tag("RG", group)
+        records.append(read)
+    bam = MockAlignmentFile(["1"], records)
+    variants = [Variant("1", 4, "T", "G"), Variant("1", 8, "T", "A")]
+    inputs = [IsovarResult(v, ReadCollector().read_evidence_for_variant(v, bam), None)
+              for v in variants]
+    results = annotate_phased_variants(inputs, min_shared_fragments_for_phasing=1)
+    adapter = IsovarReadPhasing(results)
+    assert all(r.num_alt_fragments == 1 and r.alt_read_names == {"shared"} for r in results)
+    assert all(adapter.has_evidence(v) and not adapter.partners_in_cis(v) for v in variants)
