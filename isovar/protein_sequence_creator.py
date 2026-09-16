@@ -239,7 +239,9 @@ class ProteinSequenceCreator(ValueObject):
 
     def variant_sequences_from_reads(self, variant, reads):
         """Assemble each distinct compatible-transcript read group once."""
-        require_literal_variant(variant)
+        # Sequence-only callers can assemble reads without a nominated variant.
+        if variant is not None:
+            require_literal_variant(variant)
         reads = list(reads)
         transcript_read_groups = self._transcript_read_groups(reads)
         if transcript_read_groups is None:
