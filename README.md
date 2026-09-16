@@ -133,9 +133,15 @@ read groups cannot create an edge; paired segments count as one fragment.
 Public read-name helpers and phase-group names remain strings for display, not
 unique evidence IDs. Caller-created reads without provenance retain name-only
 phasing with other legacy reads; they are not equated with collected reads.
-Joint compatibility of alternative placements in cross-variant phasing remains
-separate work ([#284](https://github.com/openvax/isovar/issues/284)); scoped
-fragment identity alone does not establish a consistent alignment hypothesis.
+Since 1.17.2, cross-variant phasing also requires compatible placements
+([#284](https://github.com/openvax/isovar/issues/284)): a shared fragment must have
+at least one compatible pair of observations, with no competing placements of
+the same segment. Complementary mates and variants on one spliced alignment
+still phase; incompatible alternatives cannot inflate thresholds or group
+support. Separate supplementary placements remain unphased because retained
+provenance does not establish a common chimeric path
+([#286](https://github.com/openvax/isovar/issues/286)). Groups remain connected
+pairwise evidence, not proof of one globally resolved haplotype.
 
 ### Python API options for coding sequence assembly and translation
 
