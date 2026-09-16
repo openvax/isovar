@@ -121,6 +121,16 @@ def test_utr_join_early_stop_and_no_acceptor_codon_are_explicit():
     assert reconstruct_fusion(fusion, refs, reads)["reasons"] == ["junction_after_donor_CDS:donor.1"]
 
 
+def test_incomplete_donor_codon_and_disrupted_start_do_not_claim_a_fusion_protein():
+    for partial in (10, 11):
+        result = reconstruct_fusion(*example(partial=partial))
+        assert result["translations"] == []
+        assert result["reasons"] == ["no_translated_donor_context:donor.1"]
+    result = reconstruct_fusion(*example(cut=1))
+    assert result["translations"] == []
+    assert result["reasons"] == ["fusion_disrupts_annotated_start:donor.1"]
+
+
 def test_duplicate_products_supplementary_records_and_mates_do_not_inflate_fragments():
     fusion, refs, reads = example()
     result = reconstruct_fusion(fusion, refs, reads + (replace(reads[0], source="processed-copy"),))

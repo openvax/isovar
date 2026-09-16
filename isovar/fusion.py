@@ -335,6 +335,12 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
             result["reasons"].append("junction_after_donor_CDS:" + reference.transcript_id)
             continue
         start = projected_start if projected_start >= 0 else projected_start % 3
+        if start >= fusion.junction_start:
+            result["reasons"].append("no_translated_donor_context:" + reference.transcript_id)
+            continue
+        if projected_start >= 0 and fusion.sequence[start:start + 3] not in standard_genetic_code.start_codons:
+            result["reasons"].append("fusion_disrupts_annotated_start:" + reference.transcript_id)
+            continue
         protein, stop = standard_genetic_code.translate(fusion.sequence[start:], first_codon_is_start=projected_start >= 0)
         coding_end = start + len(protein) * 3
         if coding_end <= fusion.junction_end:
