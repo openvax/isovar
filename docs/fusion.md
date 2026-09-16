@@ -9,6 +9,12 @@ from reference, select the longest ORF, or assemble a whole transcript.
 isovar fusion --input fusion.input.json --output fusion.result.json
 ```
 
+Add `--plot-dir figures/fusions` to save white-background individual PNG/SVG
+panels and a vector PDF in a fresh UTC-stamped directory (`--dpi` defaults to
+600). Junction RNA and local donor/acceptor annotation are separate panels;
+only justified translations receive protein panels. Full original inputs
+and model details should accompany published figures.
+
 The JSON input has three keys: `fusion`, `references`, and `reads`. These map
 directly to the public `FusionTranscript`, `FusionReference`, and `FusionRead`
 dataclasses. Nested mappings use `FusionBreakpoint` and `FusionBlock`.

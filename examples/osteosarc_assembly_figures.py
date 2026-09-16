@@ -76,6 +76,11 @@ def case_caption(case, data):
         summary += ("H1-2 is named HIST1H1C in the pinned Ensembl 87 annotation. This is a 15-nt in-frame "
                     "deletion, not a structural variant. Varcode's repeat-normalized deletion label differs from "
                     "the source label; the full mutant sequence is independently checked. ")
+    elif gene == "MAP2":
+        summary += ("The nominal 22-nt call must not be conflated with the separately observed compound haplotype: "
+                    "a 28-nt deletion plus two substitutions. Its local RNA sequence can align as 22D/2M/6D with "
+                    "a mismatch. This single nominal alternate object is not independent confirmation of an "
+                    "isolated 22-nt allele. See the separate MAP2 haplotype figures and anchored-sequence audit. ")
     if case["case_id"] in PAIR_CASE_IDS:
         summary += ("This is the complete acquired locus, not a selected read subset: " + case["case_id"] + ". "
                     "ONT and Illumina products are both catalogued T1, but are different processed libraries. "
