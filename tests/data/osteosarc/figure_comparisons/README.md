@@ -99,7 +99,8 @@ The selected CeGaT RNA example contains the focal GRCh37 chr15:96875528 G>T
 and a downstream deletion of GTG at chr15:96875577-96875579. A complete indexed
 query of chr15:96875200-96875850 was acquired separately from the original
 CeGaT blood-DNA (P116686_1), tumor-DNA (P116686_2), and tumor-RNA (P116686_3)
-products. The catalogue labels these T0 material collected December 16, 2022,
+products. The [pinned sample metadata](https://gitlab.com/slowkow/osteosarc.com/-/blob/deaf7290a5dfa9d8d7c8ab9da5d001f69fcc2d47/scripts/data/bam-metadata-consolidated.tsv)
+labels these T0 material collected December 16, 2022,
 sequenced March 22, 2023. DNA headers specify hg19 (normal chrY PAR masking is
 irrelevant here); RNA uses hg19. No coordinate liftover was used for counting.
 
@@ -134,7 +135,8 @@ counts at all three thresholds; `nr2f2-manifest.json` pins its SHA256.
 For explicit reacquisition, fetch each `SOURCES` BAM index (`.bai`, not
 `.bam.bai`), use `samtools view --no-PG -b -M -X URL INDEX
 chr15:96875200-96875850 -o SAMPLE.bam`, and save the UCSC response as
-`hg19-reference.json`. Then run:
+`hg19-reference.json`, and the pinned `METADATA_URL` table as
+`source-metadata.tsv`. Then run:
 
 ```sh
 python -m tests.data.osteosarc.figure_comparisons.nr2f2 \

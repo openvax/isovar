@@ -7,6 +7,7 @@ the URLs below; original records and hashes are retained in the offline pin.
 
 import argparse
 from collections import Counter, defaultdict
+import csv
 import gzip
 from hashlib import sha256
 import json
@@ -18,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[4]
 CORPUS = Path(__file__).parent / "corpus"
 BUCKET = "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/"
 REFERENCE_URL = "https://api.genome.ucsc.edu/getData/sequence?genome=hg19;chrom=chr15;start=96875510;end=96875600"
+METADATA_URL = ("https://gitlab.com/slowkow/osteosarc.com/-/raw/"
+                "deaf7290a5dfa9d8d7c8ab9da5d001f69fcc2d47/scripts/data/bam-metadata-consolidated.tsv")
 REGION = "chr15:96875200-96875850"
 SOURCES = {
     "normal": ("Blood DNA", "vendor/cegat/P116686_1_S000048/P116686_1.bam"),
@@ -80,10 +83,13 @@ def build(inputs, output):
     reference = json.loads((inputs / "hg19-reference.json").read_text())
     assert (reference["genome"], reference["chrom"], reference["start"], reference["end"]) == (
         "hg19", "chr15", 96875510, 96875600)
+    metadata_path = inputs / "source-metadata.tsv"
+    with metadata_path.open() as handle:
+        metadata = list(csv.DictReader(handle, delimiter="\t"))
     data = dict(reference=reference, reference_url=REFERENCE_URL, region=REGION,
                 focal=dict(position=FOCAL+1, ref="G", alt="T"),
                 deletion=dict(interval=list(DELETION), ref="GTG", alt=""),
-                metadata_url="https://osteosarc.com/bams/bams.json",
+                metadata_url=METADATA_URL, metadata_sha256=sha256(metadata_path.read_bytes()).hexdigest(),
                 sample="CeGaT T0, tissue collected 2022-12-16; sequenced 2023-03-22",
                 excluded_flags=EXCLUDED, sources={})
     for key, (label, path) in SOURCES.items():
@@ -93,6 +99,7 @@ def build(inputs, output):
             source = dict(label=label, url=BUCKET+path, index_url=BUCKET+path[:-4]+".bai",
                           regional_bam_sha256=sha256(bam_path.read_bytes()).hexdigest(),
                           header=str(bam.header), records=[r.to_string() for r in bam])
+        source["sample_metadata"], = [row for row in metadata if row["s3_path"] == path]
         source["audits"] = {
             "q20": recount(source, reference),
             "q30": recount(source, reference, min_quality=30),
