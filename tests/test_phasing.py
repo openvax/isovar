@@ -18,9 +18,12 @@ from isovar.allele_read import AlleleRead
 from isovar.isovar_result import IsovarResult
 from isovar.phasing import (
     annotate_phased_variants,
+    compute_phasing_counts,
     create_phase_groups,
+    create_read_names_to_variants_dict,
     create_variant_to_alt_read_names_dict,
     create_variant_to_protein_sequence_read_names_dict,
+    threshold_phased_variant_counts,
 )
 from isovar.read_evidence import ReadEvidence
 from isovar.transcript_assembly_edit import TranscriptAssemblyEdit
@@ -324,6 +327,41 @@ def test_public_phase_group_helper_still_accepts_plain_names():
     assert all(g.supporting_read_names == {"shared"} for g in groups.values())
 
 
+def test_public_phasing_helpers_preserve_scoped_ids_and_thresholds():
+    a, b, c = [Variant("1", pos, "A", "C") for pos in (10, 20, 30)]
+    first, second = ("rg1", "shared"), ("rg2", "shared")
+    mapping = {a: {first, second}, b: {first, second}, c: {second}}
+    assert create_read_names_to_variants_dict(mapping) == {first: {a, b}, second: {a, b, c}}
+    counts = compute_phasing_counts(mapping)
+    assert counts == {a: {b: 2, c: 1}, b: {a: 2, c: 1}, c: {a: 1, b: 1}}
+    assert threshold_phased_variant_counts(counts[a], 2) == {b}
+    groups = create_phase_groups(mapping, 2, read_names_by_id={first: "shared", second: "shared"})
+    assert set(groups) == {a, b}
+    assert groups[a] is groups[b]
+    assert groups[a].supporting_read_names == {"shared"}
+
+
+def test_phase_group_names_come_from_retained_edges_not_raw_cooccurrence():
+    a, b, c = [Variant("1", pos, "A", "C") for pos in (10, 20, 30)]
+    groups = create_phase_groups({
+        a: {"ab1", "ab2", "weak"},
+        b: {"ab1", "ab2", "bc1", "bc2"},
+        c: {"bc1", "bc2", "weak"},
+    }, 2)
+    assert groups[a] is groups[b] is groups[c]
+    assert groups[a].supporting_read_names == {"ab1", "ab2", "bc1", "bc2"}
+
+
+@pytest.mark.parametrize("placement", [(1, 0, "100M", False), (0, 1, "100M", False),
+                                       (0, 0, "50M1D50M", False), (0, 0, "100M", True)])
+def test_every_placement_coordinate_is_part_of_phasing_identity(placement):
+    inputs = [scoped_result(pos, ["a"]) for pos in (10, 20)]
+    other = AlleleRead("A", "C", "T", "shared", source_alignments=((("a", "shared", 64), placement),))
+    inputs[1].read_evidence.alt_reads[:] = [other]
+    inputs[1].top_protein_sequence.supporting_reads = {other}
+    assert_placement_phasing(inputs, 1, set())
+
+
 def test_read_collector_and_adapter_do_not_link_different_groups():
     from isovar.read_collector import ReadCollector
     from isovar.read_phasing import IsovarReadPhasing
@@ -342,3 +380,121 @@ def test_read_collector_and_adapter_do_not_link_different_groups():
     adapter = IsovarReadPhasing(results)
     assert all(r.num_alt_fragments == 1 and r.alt_read_names == {"shared"} for r in results)
     assert all(adapter.has_evidence(v) and not adapter.partners_in_cis(v) for v in variants)
+
+
+def placement_results(records, positions=(135, 235)):
+    """Collect real SAM placements; expose the same evidence at both layers."""
+    from isovar.read_collector import ReadCollector
+    from tests.mock_objects import MockAlignmentFile
+
+    bam = MockAlignmentFile(["1"], records)
+    results = []
+    for position in positions:
+        variant = Variant("1", position, "T", "A", genome="GRCh38")
+        evidence = ReadCollector().read_evidence_for_variant(variant, bam)
+        protein = DummyProteinSequence({r.name for r in evidence.alt_reads}, "K", (), (), ())
+        protein.supporting_reads = set(evidence.alt_reads)
+        results.append(IsovarResult(variant, evidence, None, sorted_protein_sequences=[protein]))
+    return results
+
+
+def assert_placement_phasing(inputs, threshold, expected_names):
+    from isovar.read_phasing import IsovarReadPhasing
+
+    results = annotate_phased_variants(inputs, min_shared_fragments_for_phasing=threshold)
+    for result in results:
+        expected_partners = ({r.variant for r in inputs if r.variant != result.variant}
+                             if expected_names else set())
+        assert result.phased_variants_in_supporting_reads == expected_partners
+        assert result.phased_variants_in_protein_sequence == expected_partners
+        assert set(IsovarReadPhasing(results).partners_in_cis(result.variant)) == expected_partners
+        for group in (result.phase_group_from_supporting_reads, result.phase_group_from_protein_sequence):
+            if expected_names:
+                assert group.supporting_read_names == expected_names
+            else:
+                assert group is None
+
+
+@pytest.mark.parametrize("flag", [0, 256, 2048, 256 | 2048])
+@pytest.mark.parametrize("n_fragments", [1, 2])
+def test_incompatible_placements_cannot_phase_variants(flag, n_fragments):
+    from tests.test_read_identity import record
+
+    records = [record(name, start, placement_flag, "a")
+               for name in ("template%d" % i for i in range(n_fragments))
+               for start, placement_flag in [(100, 0), (200, flag)]]
+    inputs = placement_results(records)
+    assert all(r.num_alt_fragments == n_fragments for r in inputs)
+    assert_placement_phasing(inputs, n_fragments, set())
+
+
+@pytest.mark.parametrize("flag", [0, 256, 2048])
+@pytest.mark.parametrize("spliced", [False, True])
+def test_same_linear_or_spliced_placement_still_phases(flag, spliced):
+    from tests.test_read_identity import record
+
+    read = record(flag=flag, group="a")
+    if spliced:
+        read.cigarstring = "30M70N30M"
+    inputs = placement_results([read], positions=(115, 215 if spliced else 145))
+    assert_placement_phasing(inputs, 1, {"template"})
+    assert_placement_phasing(inputs, 2, set())
+
+
+def test_separate_supplementary_placements_need_chimeric_path_evidence():
+    from tests.test_read_identity import record
+
+    first, second = record(group="a"), record(start=200, flag=2048, group="a")
+    first.cigarstring, second.cigarstring = "30M30S", "30S30M"
+    # Complementary query intervals alone do not establish a shared path.
+    inputs = placement_results([first, second], positions=(115, 215))
+    assert all(r.num_alt_fragments == 1 for r in inputs)
+    assert_placement_phasing(inputs, 1, set())
+
+
+def test_collected_complementary_mates_at_distinct_loci_still_phase():
+    from tests.test_read_identity import record
+
+    names = {"template1", "template2"}
+    records = [record(name, start, flag, "a") for name in names
+               for start, flag in [(100, 65), (200, 129)]]
+    assert_placement_phasing(placement_results(records), 2, names)
+
+
+def test_invalid_placements_neither_inflate_threshold_nor_group_names():
+    from tests.test_read_identity import record
+
+    records = [record("invalid", start, flag, "a")
+               for start, flag in [(100, 0), (200, 256)] for _ in range(2)]
+    records += [record("valid", start, flag, "a") for start, flag in [(100, 65), (200, 129)]]
+    inputs = placement_results(records)
+    assert_placement_phasing(inputs, 1, {"valid"})
+    assert_placement_phasing(inputs, 2, set())
+
+
+def test_phasing_checks_both_placements_in_a_merged_pair():
+    from tests.test_read_identity import record
+
+    inputs = placement_results([record(flag=65), record(start=118, flag=129),
+                                record(start=200, flag=129 | 256)])
+    assert len(inputs[0].alt_reads) == 1
+    assert len(inputs[0].alt_reads[0].source_alignments) == 2
+    assert_placement_phasing(inputs, 1, set())
+
+
+def test_phasing_accepts_a_compatible_alternative_not_the_union_of_all_placements():
+    from tests.test_read_identity import record
+
+    inputs = placement_results([record(), record(start=118, flag=256)], positions=(135, 175))
+    assert len(inputs[0].alt_reads) == 2
+    for ordered in (inputs, inputs[::-1]):
+        assert_placement_phasing(ordered, 1, {"template"})
+        assert_placement_phasing(ordered, 2, set())
+
+    # The protein only uses the incompatible placement at the first locus.
+    inputs[0].top_protein_sequence.supporting_reads = {
+        r for r in inputs[0].alt_reads if r.source_alignments[0][1][1] == 100}
+    for result in annotate_phased_variants(inputs, min_shared_fragments_for_phasing=1):
+        assert result.phased_variants_in_supporting_reads
+        assert not result.phased_variants_in_protein_sequence
+        assert result.phase_group_from_protein_sequence is None

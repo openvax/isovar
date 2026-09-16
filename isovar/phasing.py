@@ -11,10 +11,11 @@
 # limitations under the License.
 
 from collections import defaultdict, Counter
+from itertools import combinations
 
 from .default_parameters import MIN_SHARED_FRAGMENTS_FOR_PHASING
 from .phase_group import PhaseGroup
-from .read_identity import fragment_ids
+from .read_identity import alignment_constraints, compatible_alignments, fragment_ids
 from .transcript_edit_helpers import transcript_assembly_edit_sort_key
 
 
@@ -113,18 +114,11 @@ def compute_phasing_counts(variant_to_read_names_dict):
     -------
     Dictionary from variant to Counter(Variant)
     """
-    read_names_to_variants = create_read_names_to_variants_dict(
-        variant_to_read_names_dict
-    )
-
-    # now count up how many reads are shared between pairs of variants
-    phasing_counts = defaultdict(Counter)
-    for variant, read_names in variant_to_read_names_dict.items():
-        for read_name in read_names:
-            for other_variant in read_names_to_variants[read_name]:
-                if variant != other_variant:
-                    phasing_counts[variant][other_variant] += 1
-    return phasing_counts
+    support, _ = _phasing_support(variant_to_read_names_dict)
+    return defaultdict(Counter, {
+        variant: Counter({other: len(ids) for other, ids in neighbors.items()})
+        for variant, neighbors in support.items()
+    })
 
 def threshold_phased_variant_counts(counts_dict, min_count):
     """
@@ -171,21 +165,63 @@ def create_phase_groups(
         Mapping from variant to PhaseGroup. Variants without phased partners are
         omitted.
     """
-    phasing_counts = compute_phasing_counts(variant_to_read_names_dict)
-    phased_neighbors = {
-        variant: threshold_phased_variant_counts(
-            phasing_counts[variant],
-            min_count=min_shared_fragments_for_phasing)
-        for variant in variant_to_read_names_dict
-    }
+    return _phase_annotations(
+        variant_to_read_names_dict,
+        min_shared_fragments_for_phasing,
+        variant_to_top_protein_sequence_dict,
+        read_names_by_id)[1]
 
-    read_names_to_variants = create_read_names_to_variants_dict(
-        variant_to_read_names_dict
-    )
+
+def _phasing_support(variant_to_reads):
+    """Build pairwise edges from compatible observations, once per fragment.
+
+    Alternative observations are hypotheses, not simultaneous constraints.
+    A pair needs at least one jointly compatible choice. Reuse the assembly
+    rule: one placement per segment, allowing complementary mates. Separate
+    supplementary placements remain unphased: retained provenance does not
+    establish their membership in one chimeric path. A single spliced alignment
+    (CIGAR N) can still link variants across its exons.
+
+    Metadata-free reads/IDs retain legacy name-only semantics. Public names
+    are kept separately and never substituted for scoped evidence IDs.
+    """
+    observations = defaultdict(lambda: defaultdict(list))
+    names_by_id = {}
+    for variant, reads in variant_to_reads.items():
+        for read in reads:
+            constraints = alignment_constraints((read,))
+            for fragment in fragment_ids((read,)):
+                observations[fragment][variant].append((constraints, read))
+                names_by_id[fragment] = getattr(read, "name", read)
+    support = defaultdict(dict)
+    for fragment, by_variant in observations.items():
+        for (variant, reads), (other, other_reads) in combinations(by_variant.items(), 2):
+            if any(compatible_alignments(constraints, (other_read,))
+                   for constraints, _ in reads for _, other_read in other_reads):
+                shared = support[variant].setdefault(other, set())
+                shared.add(fragment)
+                support[other][variant] = shared
+    return support, names_by_id
+
+
+def _phase_annotations(
+        variant_to_reads,
+        min_shared_fragments_for_phasing,
+        variant_to_top_protein_sequence_dict=None,
+        read_names_by_id=None):
+    """Derive neighbors and groups from the same validated fragment edges."""
+    support, names_by_id = _phasing_support(variant_to_reads)
+    if read_names_by_id is not None:
+        names_by_id.update(read_names_by_id)
+    phased_neighbors = {
+        variant: {other for other, ids in support[variant].items()
+                  if len(ids) >= min_shared_fragments_for_phasing}
+        for variant in variant_to_reads
+    }
 
     visited = set()
     variant_to_phase_group = {}
-    for variant in sorted(variant_to_read_names_dict, key=_variant_sort_key):
+    for variant in sorted(variant_to_reads, key=_variant_sort_key):
         if variant in visited:
             continue
 
@@ -203,64 +239,38 @@ def create_phase_groups(
             continue
 
         supporting_read_names = {
-            read_names_by_id[read_name] if read_names_by_id is not None else read_name
-            for read_name, read_variants in read_names_to_variants.items()
-            if len(component.intersection(read_variants)) >= 2
+            names_by_id[fragment]
+            for grouped_variant in component
+            for other in phased_neighbors[grouped_variant]
+            for fragment in support[grouped_variant][other]
         }
 
-        if variant_to_top_protein_sequence_dict is None:
-            cdna_sequences = ()
-            mutant_protein_sequences = ()
-            transcript_ids = ()
-            transcript_names = ()
-            known_somatic_transcript_edits = ()
-            known_germline_transcript_edits = ()
-            unexplained_transcript_edits = ()
-        else:
-            cdna_sequences = set()
-            mutant_protein_sequences = set()
-            transcript_ids = set()
-            transcript_names = set()
-            known_somatic_transcript_edits = set()
-            known_germline_transcript_edits = set()
-            unexplained_transcript_edits = set()
-            for grouped_variant in component:
-                protein_sequence = variant_to_top_protein_sequence_dict.get(
-                    grouped_variant
-                )
-                if protein_sequence is None:
-                    continue
-                if hasattr(protein_sequence, "_transcript_assembly_edits_by_category"):
-                    categorized_edits = (
-                        protein_sequence._transcript_assembly_edits_by_category())
-                else:
-                    categorized_edits = {
-                        "known_somatic": getattr(
-                            protein_sequence,
-                            "known_somatic_transcript_edits",
-                            (),
-                        ),
-                        "known_germline": getattr(
-                            protein_sequence,
-                            "known_germline_transcript_edits",
-                            (),
-                        ),
-                        "unexplained": getattr(
-                            protein_sequence,
-                            "unexplained_transcript_edits",
-                            (),
-                        ),
-                    }
-                cdna_sequences.update(protein_sequence.cdna_sequences)
-                mutant_protein_sequences.add(protein_sequence.amino_acids)
-                transcript_ids.update(protein_sequence.transcript_ids)
-                transcript_names.update(protein_sequence.transcript_names)
-                known_somatic_transcript_edits.update(
-                    categorized_edits["known_somatic"])
-                known_germline_transcript_edits.update(
-                    categorized_edits["known_germline"])
-                unexplained_transcript_edits.update(
-                    categorized_edits["unexplained"])
+        cdna_sequences = set()
+        mutant_protein_sequences = set()
+        transcript_ids = set()
+        transcript_names = set()
+        known_somatic_transcript_edits = set()
+        known_germline_transcript_edits = set()
+        unexplained_transcript_edits = set()
+        for grouped_variant in component:
+            protein_sequence = (variant_to_top_protein_sequence_dict or {}).get(grouped_variant)
+            if protein_sequence is None:
+                continue
+            if hasattr(protein_sequence, "_transcript_assembly_edits_by_category"):
+                categorized_edits = protein_sequence._transcript_assembly_edits_by_category()
+            else:
+                categorized_edits = {
+                    "known_somatic": getattr(protein_sequence, "known_somatic_transcript_edits", ()),
+                    "known_germline": getattr(protein_sequence, "known_germline_transcript_edits", ()),
+                    "unexplained": getattr(protein_sequence, "unexplained_transcript_edits", ()),
+                }
+            cdna_sequences.update(protein_sequence.cdna_sequences)
+            mutant_protein_sequences.add(protein_sequence.amino_acids)
+            transcript_ids.update(protein_sequence.transcript_ids)
+            transcript_names.update(protein_sequence.transcript_names)
+            known_somatic_transcript_edits.update(categorized_edits["known_somatic"])
+            known_germline_transcript_edits.update(categorized_edits["known_germline"])
+            unexplained_transcript_edits.update(categorized_edits["unexplained"])
 
         phase_group = PhaseGroup(
             somatic_variants=tuple(sorted(component, key=_variant_sort_key)),
@@ -285,12 +295,12 @@ def create_phase_groups(
         )
         for grouped_variant in component:
             variant_to_phase_group[grouped_variant] = phase_group
-    return variant_to_phase_group
+    return phased_neighbors, variant_to_phase_group
 
 
-def _variant_fragment_support(isovar_results, protein=False):
-    """Keep evidence IDs for graph edges and original names for public output."""
-    by_variant, names_by_id = {}, {}
+def _variant_reads(isovar_results, protein=False):
+    """Retain placement evidence; accept names-only legacy result objects."""
+    by_variant = {}
     for result in isovar_results:
         if protein:
             if result.has_mutant_protein_sequence_from_rna:
@@ -304,13 +314,8 @@ def _variant_fragment_support(isovar_results, protein=False):
             reads = getattr(result, "alt_reads", None)
             if reads is None:
                 reads = result.alt_read_names
-        identities = set()
-        for read in reads:
-            keys = fragment_ids((read,))
-            identities.update(keys)
-            names_by_id.update((key, getattr(read, "name", read)) for key in keys)
-        by_variant[result.variant] = identities
-    return by_variant, names_by_id
+        by_variant[result.variant] = reads
+    return by_variant
 
 
 def annotate_phased_variants(
@@ -319,9 +324,10 @@ def annotate_phased_variants(
     """
     Annotate IsovarResult objects with phasing information. Phasing
     is determined by looking at RNA fragments used for assembled protein
-    sequences and counting the number of shared fragments, scoped by SAM read
-    group. Public read-name sets remain display names, not evidence IDs. Legacy
-    caller-created objects without alignment metadata retain name-only phasing;
+    sequences and counting the number of shared fragments with compatible
+    placements, scoped by SAM read group. Public read-name sets remain display
+    names, not evidence IDs. Legacy caller-created objects without alignment
+    metadata retain name-only phasing;
     they are not equated with scoped collected fragments.
 
     Parameters
@@ -335,51 +341,15 @@ def annotate_phased_variants(
     list of IsovarResult
     """
 
-    supporting_ids, supporting_names = _variant_fragment_support(unphased_isovar_results)
-    protein_ids, protein_names = _variant_fragment_support(unphased_isovar_results, protein=True)
-
-    phasing_counts_from_supporting_reads = compute_phasing_counts(supporting_ids)
-
-    phase_groups_from_supporting_reads = create_phase_groups(
-        supporting_ids,
-        min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
-        read_names_by_id=supporting_names,
-    )
-
-    phasing_counts_from_protein_sequences = compute_phasing_counts(
-        protein_ids
-    )
-
-    phase_groups_from_protein_sequences = create_phase_groups(
-        protein_ids,
-        min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
-        read_names_by_id=protein_names,
-        variant_to_top_protein_sequence_dict=create_variant_to_top_protein_sequence_dict(
-            unphased_isovar_results),
-    )
-
-    results_with_phasing = []
-    for isovar_result in unphased_isovar_results:
-        variant = isovar_result.variant
-        phase_group_from_supporting_reads = phase_groups_from_supporting_reads.get(
-            variant
-        )
-        phased_variants_in_supporting_reads = threshold_phased_variant_counts(
-            phasing_counts_from_supporting_reads[variant],
-            min_count=min_shared_fragments_for_phasing,
-        )
-
-        phase_group_from_protein_sequence = phase_groups_from_protein_sequences.get(
-            variant
-        )
-        phased_variants_in_protein_sequence = threshold_phased_variant_counts(
-            phasing_counts_from_protein_sequences[variant],
-            min_count=min_shared_fragments_for_phasing,
-        )
-        results_with_phasing.append(
-            isovar_result.clone_with_updates(
-                phase_group_from_supporting_reads=phase_group_from_supporting_reads,
-                phase_group_from_protein_sequence=phase_group_from_protein_sequence,
-                phased_variants_in_supporting_reads=phased_variants_in_supporting_reads,
-                phased_variants_in_protein_sequence=phased_variants_in_protein_sequence))
-    return results_with_phasing
+    updates = {result.variant: {} for result in unphased_isovar_results}
+    for source in ("supporting_reads", "protein_sequence"):
+        protein = source == "protein_sequence"
+        neighbors, groups = _phase_annotations(
+            _variant_reads(unphased_isovar_results, protein=protein),
+            min_shared_fragments_for_phasing,
+            create_variant_to_top_protein_sequence_dict(unphased_isovar_results) if protein else None)
+        for variant, fields in updates.items():
+            fields["phased_variants_in_" + source] = neighbors[variant]
+            fields["phase_group_from_" + source] = groups.get(variant)
+    return [result.clone_with_updates(**updates[result.variant])
+            for result in unphased_isovar_results]
