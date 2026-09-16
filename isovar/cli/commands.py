@@ -16,6 +16,7 @@ COMMANDS = {
     "variant-reads": ("isovar_variant_reads", "Export alternate-allele supporting reads"),
     "variant-sequences": ("isovar_variant_sequences", "Export reconstructed cDNA sequences"),
     "plot": ("isovar_plot", "Draw protein, coverage, read-overlap and transcript figures"),
+    "fusion": ("isovar_fusion", "Validate and translate supplied fusion RNA with junction evidence"),
 }
 
 

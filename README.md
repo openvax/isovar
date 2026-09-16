@@ -210,7 +210,9 @@ The ordinary variant-to-protein pipeline accepts literal nucleotide alleles,
 including sequence-resolved indels. Symbolic structural variants (`<DEL>`,
 `<DUP>`, etc.), breakends, and `varcode.StructuralVariant` objects are rejected
 explicitly; their placeholder bases must not be interpreted as small variants.
-Fusion reconstruction requires a separate sequence- and evidence-aware path.
+For supplied fusion RNA, `isovar fusion --input fusion.json --output result.json`
+validates junction evidence and annotated coding frames, retaining unresolved
+or ambiguous outcomes. See the [fusion input/output contract](docs/fusion.md).
 
 ## Commandline 
 

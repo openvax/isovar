@@ -63,6 +63,10 @@ VARIANT_SEQUENCE_LENGTH = 90
 # variant coding sequence
 MIN_VARIANT_SEQUENCE_COVERAGE = 2
 
+# Supplied fusion transcripts are an additive, direct-junction evidence path.
+FUSION_PEPTIDE_LENGTHS = (8, 9, 10, 11)
+MIN_FUSION_FRAGMENTS = 2
+
 # number of nucleotides shared between reference and variant sequence
 # before variant for reference contexts used to establish ORF
 MIN_TRANSCRIPT_PREFIX_LENGTH = 10

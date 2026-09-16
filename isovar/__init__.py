@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.14.1"
+__version__ = "1.15.0"
 
 
 from .allele_read import AlleleRead
@@ -29,10 +29,17 @@ from .transcript_assembly_edit import TranscriptAssemblyEdit
 from .variant_orf import VariantORF
 from .variant_sequence import VariantSequence
 from .variant_sequence_creator import VariantSequenceCreator
+from .fusion import FusionBlock, FusionBreakpoint, FusionRead, FusionReference, FusionTranscript, reconstruct_fusion
 
 
 __all__ = [
     "run_isovar",
+    "FusionBlock",
+    "FusionBreakpoint",
+    "FusionRead",
+    "FusionReference",
+    "FusionTranscript",
+    "reconstruct_fusion",
     "isovar_results_to_dataframe",
     "AlleleRead",
     "PhaseGroup",
