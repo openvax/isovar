@@ -26,11 +26,21 @@ from isovar.cli.isovar_reference_contexts import run as isovar_reference_context
 from isovar.cli.isovar_variant_reads import run as isovar_variant_reads
 from isovar.cli.isovar_variant_sequences import run as isovar_variant_sequences
 from isovar.cli.isovar_main import run as isovar_main
+from isovar.cli.main_args import make_isovar_arg_parser
 from isovar.cli.rna_args import (
     allele_counts_dataframe_from_args,
     make_rna_reads_arg_parser,
     variants_reads_dataframe_from_args,
 )
+
+# the modules themselves, for the parsers they build at import time
+from isovar.cli import isovar_allele_counts as isovar_allele_counts_module
+from isovar.cli import isovar_allele_reads as isovar_allele_reads_module
+from isovar.cli import isovar_protein_sequences as isovar_protein_sequences_module
+from isovar.cli import isovar_reference_contexts as isovar_reference_contexts_module
+from isovar.cli import isovar_translations as isovar_translations_module
+from isovar.cli import isovar_variant_reads as isovar_variant_reads_module
+from isovar.cli import isovar_variant_sequences as isovar_variant_sequences_module
 
 vcf_args = [
     "--vcf",
@@ -121,3 +131,35 @@ def test_variant_reads_dataframe_helper(extra_args, expected_count):
     df = variants_reads_dataframe_from_args(args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert len(df) == expected_count
+
+
+def test_cli_help_describes_every_command_and_option(capsys):
+    # the eight commands build their parsers at import time, except isovar-main
+    # which builds its own inside run(), so check that one separately
+    described_parsers = [
+        module.parser
+        for module in (
+            isovar_allele_counts_module,
+            isovar_allele_reads_module,
+            isovar_protein_sequences_module,
+            isovar_reference_contexts_module,
+            isovar_translations_module,
+            isovar_variant_reads_module,
+            isovar_variant_sequences_module,
+        )
+    ]
+    for parser in described_parsers:
+        assert parser.description, parser.prog
+
+    # argparse only exposes its actions through the private _actions list
+    for parser in described_parsers + [make_isovar_arg_parser()]:
+        for action in parser._actions:
+            assert action.help, (parser.prog, action.option_strings)
+
+    with pytest.raises(SystemExit) as exit_info:
+        isovar_main(["--help"])
+    assert exit_info.value.code == 0
+    # argparse wraps the description to the terminal width, so collapse
+    # whitespace before looking for the phrase
+    help_text = " ".join(capsys.readouterr().out.split())
+    assert "Collect RNA evidence for each variant" in help_text

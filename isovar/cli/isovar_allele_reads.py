@@ -26,7 +26,10 @@ from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
 
-parser = make_rna_reads_arg_parser()
+parser = make_rna_reads_arg_parser(
+    description=(
+        "Write the name and sequence of every RNA read overlapping each variant, "
+        "split into prefix, allele and suffix."))
 parser = add_output_args(parser)
 
 

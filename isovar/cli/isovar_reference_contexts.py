@@ -22,7 +22,10 @@ from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
 
-parser = make_reference_context_arg_parser()
+parser = make_reference_context_arg_parser(
+    description=(
+        "Write the reference coding context (sequence and reading frame) around "
+        "each variant from overlapping protein-coding transcripts. Does not use RNA."))
 parser = add_output_args(
     parser,
     filename="isovar-reference-contexts-result.csv")

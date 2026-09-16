@@ -23,7 +23,7 @@ def add_output_args(
     output_group.add_argument(
         "--output",
         default=filename,
-        help=description)
+        help=description + " (default %(default)s)")
     output_group.add_argument(
         "--output-columns",
         default=None,

@@ -26,7 +26,10 @@ from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
 
-parser = make_rna_reads_arg_parser()
+parser = make_rna_reads_arg_parser(
+    description=(
+        "Write the name and sequence of every RNA read that supports the alt "
+        "allele of each variant."))
 parser = add_output_args(
     parser,
     filename="isovar-variant-reads-result.csv",

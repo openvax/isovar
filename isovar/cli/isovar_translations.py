@@ -27,7 +27,10 @@ from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
 
-parser = make_translation_arg_parser()
+parser = make_translation_arg_parser(
+    description=(
+        "Write every translation of the variant cDNA sequences assembled from RNA "
+        "reads, in the reading frame of each matching reference transcript."))
 parser = add_output_args(
     parser,
     filename="isovar-translate-variants-results.csv",

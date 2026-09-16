@@ -24,7 +24,10 @@ from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
 
-parser = make_rna_reads_arg_parser()
+parser = make_rna_reads_arg_parser(
+    description=(
+        "Write counts of RNA reads and fragments supporting the ref, alt and "
+        "other alleles at each variant."))
 parser = add_output_args(
     parser,
     filename="isovar-allele-counts-result.csv",
