@@ -13,6 +13,7 @@
 import pandas as pd
 
 from .allele_read import AlleleRead
+from .read_identity import count_reads, fragment_ids
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
 from .locus_read import LocusRead
@@ -77,9 +78,9 @@ def allele_counts_dataframe(read_evidence_generator):
         element_class=ReadEvidence,
         variant_and_elements_generator=read_evidence_generator,
         converters={
-            "ref_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
-            "alt_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
-            "other_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
+            "ref_reads": count_reads,
+            "alt_reads": count_reads,
+            "other_reads": count_reads,
         },
         rename_dict={
             "ref_reads": "num_ref_reads",
@@ -87,9 +88,9 @@ def allele_counts_dataframe(read_evidence_generator):
             "other_reads": "num_other_reads",
         },
         extra_column_fns={
-            "num_ref_fragments": lambda _, x: len(x.ref_read_names),
-            "num_alt_fragments": lambda _, x: len(x.alt_read_names),
-            "num_other_fragments": lambda _, x: len(x.other_read_names)
+            "num_ref_fragments": lambda _, x: len(fragment_ids(x.ref_reads)),
+            "num_alt_fragments": lambda _, x: len(fragment_ids(x.alt_reads)),
+            "num_other_fragments": lambda _, x: len(fragment_ids(x.other_reads))
         })
 
 
@@ -103,7 +104,7 @@ def allele_reads_to_dataframe(variants_and_allele_reads):
     """
     df_builder = DataFrameBuilder(
         AlleleRead,
-        exclude={"source_read_count"},
+        exclude={"source_read_count", "source_alignments"},
         extra_column_fns={
             "gene": lambda v, _: ";".join(v.gene_names),
         })
@@ -121,7 +122,7 @@ def locus_reads_dataframe(alignments, chromosome, base0_start, base0_end, *args,
     """
     df_builder = DataFrameBuilder(
         LocusRead,
-        exclude={"source_read_count"},
+        exclude={"source_read_count", "source_alignments", "is_primary"},
         variant_columns=False,
         converters={
             "reference_positions": list_to_string,
@@ -193,10 +194,7 @@ def translations_generator_to_dataframe(translations_generator):
         },
         extra_column_fns={
             "untrimmed_variant_sequence_read_count": (
-                lambda _, t: sum(
-                    getattr(read, "source_read_count", 1)
-                    for read in t.untrimmed_variant_sequence.reads
-                )),
+                lambda _, t: count_reads(t.untrimmed_variant_sequence.reads)),
         })
 
 
@@ -208,9 +206,9 @@ def read_evidence_generator_to_dataframe(read_evidence_generator):
         element_class=ReadEvidence,
         variant_and_elements_generator=read_evidence_generator,
         converters={
-            "ref_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
-            "alt_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
-            "other_reads": lambda reads: sum(getattr(read, "source_read_count", 1) for read in reads),
+            "ref_reads": count_reads,
+            "alt_reads": count_reads,
+            "other_reads": count_reads,
         })
 
 

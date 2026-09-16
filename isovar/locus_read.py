@@ -25,8 +25,8 @@ class LocusRead(ValueObject):
     locus to later figure out the allele at this locus.
 
     Overlapping paired-end reads from the same fragment may be merged into a
-    single LocusRead. In that case `source_read_count` records how many raw
-    alignments were collapsed into this fragment-level view.
+    single LocusRead. In that case `source_read_count` records how many
+    sequenced segments were collapsed into this fragment-level view.
     """
     __slots__ = [
         "name",
@@ -39,6 +39,8 @@ class LocusRead(ValueObject):
         "read_base0_start_inclusive",
         "read_base0_end_exclusive",
         "splice_junctions",
+        "source_alignments",
+        "is_primary",
     ]
 
     def __init__(
@@ -52,7 +54,9 @@ class LocusRead(ValueObject):
             read_base0_start_inclusive,
             read_base0_end_exclusive,
             source_read_count=1,
-            splice_junctions=()):
+            splice_junctions=(),
+            source_alignments=(),
+            is_primary=False):
         """
         Parameters
         ----------
@@ -84,6 +88,16 @@ class LocusRead(ValueObject):
         splice_junctions : sequence of (int, int)
             Reference skips from CIGAR ``N`` operations, represented as
             0-based half-open genomic intervals ``(intron_start, intron_end)``.
+
+        source_alignments : tuple
+            Immutable (segment identity, alignment identity) pairs collected
+            from SAM; see ``read_identity``. Empty for legacy caller-created
+            objects. Alternative placements do not identify extra reads.
+
+        is_primary : bool
+            Whether this view contains primary alignments. Mate merging also
+            requires explicit, complementary segment flags and a common read
+            group. Missing provenance is not evidence that two views are mates.
 
         reference_base0_start_inclusive : int
             Start index of reference locus which is overlapped
@@ -164,3 +178,5 @@ class LocusRead(ValueObject):
         self.read_base0_start_inclusive = read_base0_start_inclusive
         self.read_base0_end_exclusive = read_base0_end_exclusive
         self.splice_junctions = tuple(splice_junctions)
+        self.source_alignments = tuple(source_alignments)
+        self.is_primary = is_primary

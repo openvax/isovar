@@ -28,6 +28,7 @@ import numpy as np
 
 from .value_object import ValueObject
 from .logging import get_logger
+from .read_identity import alignment_constraints, compatible_alignments, observation_groups
 
 logger = get_logger(__name__)
 
@@ -52,6 +53,7 @@ class VariantSequence(ValueObject):
         "compatible_transcript_ids",
         # lazily computed coverage array (not part of value identity)
         "_coverage_cache",
+        "_source_alignments",
     ]
 
     def __init__(self, prefix, alt, suffix, reads):
@@ -60,6 +62,7 @@ class VariantSequence(ValueObject):
         self.suffix = suffix
         self.sequence = prefix + alt + suffix
         self.reads = frozenset(reads)
+        self._source_alignments = alignment_constraints(self.reads)
         transcript_sets = [
             read.compatible_transcript_ids
             for read in self.reads
@@ -173,6 +176,8 @@ class VariantSequence(ValueObject):
 
     def can_add_reads_without_narrowing(self, reads):
         """Whether reads support every transcript currently possible here."""
+        if not compatible_alignments(self._source_alignments, reads):
+            return False
         compatible_ids = self.compatible_transcript_ids
         if compatible_ids is None:
             return all(
@@ -199,6 +204,8 @@ class VariantSequence(ValueObject):
                 other_sequence)
             return None
         elif not self.transcript_compatible_with(other_sequence):
+            return None
+        elif not compatible_alignments(self._source_alignments, other_sequence.reads):
             return None
         elif self.contains(other_sequence):
             if len(other_sequence) >= min_overlap_size:
@@ -248,14 +255,13 @@ class VariantSequence(ValueObject):
             return self._coverage_cache
         variant_start_index, variant_end_index = self.variant_indices()
         n_nucleotides = len(self)
-        # Accumulate interval boundaries once per original read, then sum
-        # once across the sequence. Repeated full-span reads no longer each
-        # update an entire NumPy slice. Coverage still counts allele objects,
-        # not names or source_read_count, exactly as before.
+        # Preserve the historical merged-pair coverage unit, but do not count
+        # an alternative placement or a retained single-mate view twice.
         boundaries = [0] * (n_nucleotides + 1)
-        for read in self.reads:
-            start = max(0, variant_start_index - len(read.prefix))
-            end = min(n_nucleotides, variant_end_index + len(read.suffix))
+        # All intervals cover the focal allele, so each union is contiguous.
+        for group in observation_groups(self.reads):
+            start = max(0, variant_start_index - max(len(read.prefix) for read in group))
+            end = min(n_nucleotides, variant_end_index + max(len(read.suffix) for read in group))
             boundaries[start] += 1
             boundaries[end] -= 1
         coverage_array = np.cumsum(boundaries, dtype="int32")[:-1]
@@ -333,5 +339,5 @@ class VariantSequence(ValueObject):
 VariantSequence._fields = tuple(
     f
     for f in VariantSequence._fields
-    if f != "_coverage_cache"
+    if f not in {"_coverage_cache", "_source_alignments"}
 )

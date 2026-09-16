@@ -34,6 +34,7 @@ from collections import defaultdict
 
 from .default_parameters import MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
 from .logging import get_logger
+from .read_identity import compatible_alignments, observation_groups, read_sort_key
 
 logger = get_logger(__name__)
 
@@ -48,6 +49,10 @@ def _sequence_key(sequence):
         if compatible_ids is None
         else (1, tuple(sorted(compatible_ids))))
     return sequence.prefix, sequence.alt, sequence.suffix, transcript_key
+
+
+def _candidate_sort_key(sequence):
+    return _sequence_key(sequence), tuple(sorted(read_sort_key(r) for r in sequence.reads))
 
 
 def _sequence_kmers(sequence, k):
@@ -120,7 +125,7 @@ def greedy_merge_helper(
     # order. Merge identical candidates first so splitting their read sets
     # between duplicate entries cannot change their support score.
     variant_sequences = sorted(
-        merge_identical_sequences(variant_sequences), key=_sequence_key)
+        merge_identical_sequences(variant_sequences), key=_candidate_sort_key)
     candidates = []
     for i, j in _greedy_merge_candidate_pairs(
             variant_sequences,
@@ -132,7 +137,7 @@ def greedy_merge_helper(
                 len(variant_sequences[i])
                 + len(variant_sequences[j])
                 - len(combined))
-            candidates.append((overlap, len(combined.reads), i, j, combined))
+            candidates.append((overlap, len(observation_groups(combined.reads)), i, j, combined))
 
     if not candidates:
         return list(variant_sequences), False
@@ -141,24 +146,20 @@ def greedy_merge_helper(
     candidates.sort(key=lambda c: (-c[0], -c[1], c[2], c[3]))
 
     used = set()
-    merged_variant_sequences = {}
+    merged_variant_sequences = []
     for overlap, n_reads, i, j, combined in candidates:
         if i in used or j in used:
             continue
         used.add(i)
         used.add(j)
-        combined_key = _sequence_key(combined)
-        if combined_key in merged_variant_sequences:
-            existing = merged_variant_sequences[combined_key]
-            combined = combined.add_reads(existing.reads)
-        merged_variant_sequences[combined_key] = combined
+        merged_variant_sequences.append(combined)
 
     unmerged = [
         variant_sequences[k]
         for k in range(len(variant_sequences))
         if k not in used
     ]
-    result = list(merged_variant_sequences.values()) + unmerged
+    result = merge_identical_sequences(merged_variant_sequences) + unmerged
     return result, True
 
 
@@ -178,15 +179,11 @@ def greedy_merge(
     exact duplicates combined.
     """
     variant_sequences = list(variant_sequences)
-    intermediate_candidates = {}
+    intermediate_candidates = []
 
     def preserve_candidates(candidates):
-        for candidate in candidates:
-            key = _sequence_key(candidate)
-            if key in intermediate_candidates:
-                candidate = intermediate_candidates[key].add_reads(
-                    candidate.reads)
-            intermediate_candidates[key] = candidate
+        intermediate_candidates[:] = merge_identical_sequences(
+            intermediate_candidates + list(candidates))
 
     if preserve_intermediate_candidates:
         preserve_candidates(variant_sequences)
@@ -198,7 +195,7 @@ def greedy_merge(
         if preserve_intermediate_candidates and merged_any:
             preserve_candidates(variant_sequences)
     if preserve_intermediate_candidates:
-        return sorted(intermediate_candidates.values(), key=_sequence_key)
+        return sorted(intermediate_candidates, key=_candidate_sort_key)
     return variant_sequences
 
 
@@ -219,35 +216,26 @@ def collapse_substrings(variant_sequences):
         # return your input
         return variant_sequences
 
-    # dictionary mapping VariantSequence objects to lists of reads
-    # they absorb from substring VariantSequences
-    extra_reads_from_substrings = defaultdict(set)
     result_list = []
     # Longest first, with content-based ties so an ambiguous contained read
     # is always assigned to the same parent regardless of input order.
     for short_variant_sequence in sorted(
             variant_sequences,
-            key=lambda seq: (-len(seq), _sequence_key(seq))):
+            key=lambda seq: (-len(seq), _candidate_sort_key(seq))):
         found_superstring = False
-        for long_variant_sequence in result_list:
+        for i, long_variant_sequence in enumerate(result_list):
             if (
                 long_variant_sequence.contains(short_variant_sequence)
                 and long_variant_sequence.can_add_reads_without_narrowing(
                     short_variant_sequence.reads)
             ):
-                extra_reads_from_substrings[long_variant_sequence].update(
+                result_list[i] = long_variant_sequence.add_reads(
                     short_variant_sequence.reads)
                 found_superstring = True
                 break
         if not found_superstring:
             result_list.append(short_variant_sequence)
-    # add to each VariantSequence the reads it absorbed from dropped substrings
-    # and then return
-    return [
-        variant_sequence.add_reads(
-            extra_reads_from_substrings[variant_sequence])
-        for variant_sequence in result_list
-    ]
+    return result_list
 
 
 def merge_identical_sequences(variant_sequences):
@@ -258,16 +246,20 @@ def merge_identical_sequences(variant_sequences):
     coverage trimming or retained assembly history, carry no extra sequence
     information and can be combined safely. Identical cDNA on disjoint
     transcript paths remains separate rather than manufacturing support for a
-    path no read group shares.
+    path no read group shares. Competing placements of the same segment also
+    remain separate, even when their local cDNA strings happen to be identical.
     """
-    sequences_by_parts = {}
-    for variant_sequence in variant_sequences:
+    sequences_by_parts = defaultdict(list)
+    for variant_sequence in sorted(variant_sequences, key=_candidate_sort_key):
         key = _sequence_key(variant_sequence)
-        if key in sequences_by_parts:
-            variant_sequence = sequences_by_parts[key].add_reads(
-                variant_sequence.reads)
-        sequences_by_parts[key] = variant_sequence
-    return list(sequences_by_parts.values())
+        alternatives = sequences_by_parts[key]
+        for i, existing in enumerate(alternatives):
+            if compatible_alignments(existing._source_alignments, variant_sequence.reads):
+                alternatives[i] = existing.add_reads(variant_sequence.reads)
+                break
+        else:
+            alternatives.append(variant_sequence)
+    return [sequence for alternatives in sequences_by_parts.values() for sequence in alternatives]
 
 
 DEFAULT_MAX_ASSEMBLY_SEQUENCES = 1000
@@ -335,7 +327,7 @@ def iterative_overlap_assembly(
     return list(sorted(
         variant_sequences,
         key=lambda seq: (
-            -len(seq.reads),
+            -len(observation_groups(seq.reads)),
             seq.prefix,
             seq.alt,
             seq.suffix,

@@ -54,6 +54,7 @@ def test_partitioned_read_sequences_snv():
     variant_read = variant_reads[0]
     expected = AlleleRead(
         name=read.qname,
+        source_alignments=((("", "dummy", 0), (0, 0, "6M", False)),),
         prefix="ACC",
         allele="G",
         suffix="TG")
@@ -93,6 +94,7 @@ def test_partitioned_read_sequences_insertion():
     variant_read = variant_reads[0]
     expected = AlleleRead(
         name=read.qname,
+        source_alignments=((("", "dummy", 0), (0, 0, "4M1I2M", False)),),
         prefix="ACCT",
         allele="G",
         suffix="TG")
@@ -129,6 +131,7 @@ def test_partitioned_read_sequences_deletion():
     variant_read = variant_reads[0]
     expected = AlleleRead(
         name=read.qname,
+        source_alignments=((("", "dummy", 0), (0, 0, "4M1D1M", False)),),
         prefix="ACCT",
         allele="",
         suffix="G")

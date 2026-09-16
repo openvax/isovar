@@ -17,7 +17,7 @@ BAM/index SHA256 and original/retained SAM-record hashes are in
 The ONT protein passes independent frame, translation and reference-plus-edit
 checks using the existing offline Ensembl 87 corpus models. No retained
 non-focal CIGAR indels were found in the selected protein's reconstructions
-(known frame limitation #265). The Illumina product has one alternate object,
+(alignment-aware frame transfer shipped in 1.16.0). The Illumina product has one alternate object,
 below the unchanged two-read sequence-coverage floor. Its absence of output
 is **insufficient alternate support**, not evidence that the variant is absent.
 
@@ -92,3 +92,77 @@ Generate the entire gallery with
 context/haplotype comparisons and explicit fusion RNA windows. The output is
 UTC-stamped, with individual white 600-dpi PNG/SVG panels, per-example vector
 PDFs, evidence JSON, a page index, and `isovar-all-figures.pdf`.
+
+## NR2F2: matched DNA/RNA audit, September 16, 2026
+
+The selected CeGaT RNA example contains the focal GRCh37 chr15:96875528 G>T
+and a downstream deletion of GTG at chr15:96875577-96875579. A complete indexed
+query of chr15:96875200-96875850 was acquired separately from the original
+CeGaT blood-DNA (P116686_1), tumor-DNA (P116686_2), and tumor-RNA (P116686_3)
+products. The [pinned sample metadata](https://gitlab.com/slowkow/osteosarc.com/-/blob/deaf7290a5dfa9d8d7c8ab9da5d001f69fcc2d47/scripts/data/bam-metadata-consolidated.tsv)
+labels these T0 material collected December 16, 2022,
+sequenced March 22, 2023. DNA headers specify hg19 (normal chrY PAR masking is
+irrelevant here); RNA uses hg19. No coordinate liftover was used for counting.
+
+`nr2f2.py` classifies the exact sequence between eight-base flanks, independently
+of CIGAR placement within a repeat. The entire hg19 genomic window from the
+[UCSC sequence API](https://api.genome.ucsc.edu/getData/sequence?genome=hg19;chrom=chr15;start=96875510;end=96875600)
+agrees with the pinned Ensembl ENST00000394166 cDNA. Base quality must be >=20
+throughout the anchored window, MAPQ >=20 (255 retained, not interpreted as a
+calibrated confidence), with unmapped/secondary/supplementary/QC-fail/duplicate
+flags excluded. Mates are counted once per (RG, QNAME); conflicts and other
+sequences are not relabeled reference. These are template counts, not UMIs.
+
+| Sample | GTG retained | GTG deleted | Other |
+| --- | ---: | ---: | ---: |
+| Blood DNA | 137 | 0 | 2 |
+| Tumor DNA | 323 | 0 | 3 |
+| Tumor RNA | 23 | 5 | 0 |
+
+Four RNA templates directly phase focal T with the deletion on a single
+Q20-passing segment. Tumor DNA instead has 16 directly phased T + retained-GTG
+templates. All five RNA deletion templates share `81M3D17M`, the same start,
+strand, end and mate start: **one endpoint family**, not five established
+independent molecules. At Q30 only three deletion templates remain; lowering
+MAPQ to 1 does not change deletion counts. This is **RNA-supported,
+DNA-unconfirmed** context. PCR/alignment artifacts and RNA-level effects are
+not distinguished; no germline or somatic origin is assigned, and zero DNA
+support is not proof of absence at arbitrary sensitivity.
+
+`corpus/nr2f2-evidence.json.gz` retains every original regional SAM record,
+source headers, URLs, regional-BAM hashes, genomic reference response, and
+counts at all three thresholds; `nr2f2-manifest.json` pins its SHA256.
+For explicit reacquisition, fetch each `SOURCES` BAM index (`.bai`, not
+`.bam.bai`), use `samtools view --no-PG -b -M -X URL INDEX
+chr15:96875200-96875850 -o SAMPLE.bam`, and save the UCSC response as
+`hg19-reference.json`, and the pinned `METADATA_URL` table as
+`source-metadata.tsv`. Then run:
+
+```sh
+python -m tests.data.osteosarc.figure_comparisons.nr2f2 \
+  --inputs /path/to/new-regions --output /path/to/new/nr2f2-evidence.json.gz
+```
+
+The destination must not exist. Tests recount original records offline; the
+gallery adds separate DNA/RNA and direct-haplotype panels with caveats in the
+side margin. This audit is distinct from the three-read selected translation
+fixture and does not relabel that fixture as a sample-abundance estimate.
+
+## Read-identity correction (Isovar 1.17.0, #264)
+
+Across the 49-case expanded corpus, top protein sequences and outcome labels
+are unchanged. Seven default-mode cases change counts or intermediate stage
+counts (ATRX, GLIS3, NAV2, PIP5K1A, RNF213, SLC25A12, ZNF674); all primary-only
+results are unchanged. NAV2's top protein support drops from 23 alignment-counted
+reads to 18 sequenced segments. Two high-depth KTN1 negative controls also lose
+duplicate alignment counts. No original read, reference or independent
+translation expectation was modified.
+
+The older six-locus corpus exposes a separate, genuine output change for
+`bulk_star_t0/H1-2`: read2 of template `...2382:6460:24392` has competing
+`99M15D46M4S` (primary) and `118M31S` (secondary) placements with different allele
+calls. These observations are now uncertain rather than definitive deletion
+support. One unambiguous overlapping pair (two segments, one template) remains,
+so the unchanged default two-observation coverage floor yields no protein.
+An explicit coverage-one diagnostic still independently validates translation;
+it is not the default, and this selected fixture is not a whole-sample verdict.

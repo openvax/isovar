@@ -20,6 +20,7 @@ from .dna import reverse_complement_dna
 from .effect_prediction import predicted_effects_for_variant
 from .protein_sequence_creator import ProteinSequenceCreator
 from .protein_sequence_helpers import mutant_peptide_window_count
+from .read_identity import fragment_ids, observation_groups
 from .variant_helpers import base0_interval_for_variant, interbase_range_affected_by_variant_on_transcript
 
 
@@ -84,22 +85,26 @@ def _witness_data(translation):
     spans = Counter()
     genomic_blocks = set()
     junctions = Counter()
-    for read in sequence.reads:
-        before = read.suffix if reverse else read.prefix
-        after = read.prefix if reverse else read.suffix
-        spans[(max(left, -len(before)), min(right, len(read.allele) + len(after)))] += 1
-        # Clip mappings to the actual sequence entering this witness. Blocks
-        # always remain in forward genomic coordinates, even on minus strands.
-        query_start = max(0, len(read.prefix) - len(sequence.prefix))
-        query_end = min(len(read.sequence), len(read.prefix) + len(read.allele) + len(sequence.suffix))
-        blocks = []
-        for q0, q1, r0, _ in read.reference_blocks:
-            start, end = max(q0, query_start), min(q1, query_end)
-            if start < end:
-                blocks.append((r0 + start - q0, r0 + end - q0))
-        genomic_blocks.update(blocks)
-        gaps = {(a[1], b[0]) for a, b in zip(blocks, blocks[1:])}
-        junctions.update(set(read.splice_junctions).intersection(gaps))
+    groups = observation_groups(sequence.reads)
+    for group in groups:
+        before = max(len(read.suffix if reverse else read.prefix) for read in group)
+        after = max(len(read.prefix if reverse else read.suffix) for read in group)
+        spans[(max(left, -before), min(right, len(sequence.alt) + after))] += 1
+        observed_junctions = set()
+        for read in group:
+            # Clip mappings to the sequence entering this witness. Blocks
+            # remain in forward genomic coordinates, even on minus strands.
+            query_start = max(0, len(read.prefix) - len(sequence.prefix))
+            query_end = min(len(read.sequence), len(read.prefix) + len(read.allele) + len(sequence.suffix))
+            blocks = []
+            for q0, q1, r0, _ in read.reference_blocks:
+                start, end = max(q0, query_start), min(q1, query_end)
+                if start < end:
+                    blocks.append((r0 + start - q0, r0 + end - q0))
+            genomic_blocks.update(blocks)
+            gaps = {(a[1], b[0]) for a, b in zip(blocks, blocks[1:])}
+            observed_junctions.update(set(read.splice_junctions).intersection(gaps))
+        junctions.update(observed_junctions)
     coverage = sequence.coverage()
     if reverse:
         coverage = coverage[::-1]
@@ -109,7 +114,7 @@ def _witness_data(translation):
         start=left, end=right, alt_length=len(sequence.alt),
         coverage=[int(x) for x in coverage],
         spans=[dict(start=a, end=b, observations=count) for (a, b), count in sorted(spans.items())],
-        observations=len(sequence.reads), templates=len(sequence.read_names),
+        observations=len(groups), templates=len(fragment_ids(sequence.reads)),
         spanning_observations=spans.get((left, right), 0),
         genomic_blocks=sorted(genomic_blocks),
         junctions=[dict(start=a, end=b, observations=n) for (a, b), n in sorted(junctions.items())],
@@ -163,7 +168,7 @@ def collect_visualization_data(
             # A protein may aggregate synonymous RNA sequences or several
             # frames. Display one witness, never their synthetic union.
             witness = min(protein.translations, key=lambda t: (
-                -len(t.untrimmed_variant_sequence.read_names),
+                -len(fragment_ids(t.untrimmed_variant_sequence.reads)),
                 t.untrimmed_variant_sequence.sequence,
                 len(t.untrimmed_variant_sequence.prefix),
                 tuple(sorted(x.id for x in t.reference_context.transcripts))))
@@ -186,8 +191,8 @@ def collect_visualization_data(
         variant, transcript_id_whitelist, requested.protein_sequence_length or PROTEIN_SEQUENCE_LENGTH, transcripts)
         if include_reference_predictions else [])
     start, end = base0_interval_for_variant(variant)
-    counts = {name: dict(observations=len(getattr(read_evidence, name + "_reads")),
-                        templates=len({r.name for r in getattr(read_evidence, name + "_reads")}))
+    counts = {name: dict(observations=len(observation_groups(getattr(read_evidence, name + "_reads"))),
+                        templates=len(fragment_ids(getattr(read_evidence, name + "_reads"))))
               for name in ("ref", "alt", "other")}
     return dict(
         schema_version=1, isovar_version=__version__,
@@ -204,8 +209,8 @@ def collect_visualization_data(
             "Protein selection is not independent biological validation or a clinical recommendation.",
             "Each mode shows its top protein and one contributing cDNA witness, not all alternatives.",
             "Varcode tracks assume the reference transcript plus only the nominated edit; they are not RNA evidence.",
-            "Spans and coverage count post-merge read objects, not independent molecules.",
-            "Known upstream-indel frame and secondary-alignment limitations: Isovar #265 and #264.",
+            "Spans and coverage count deduplicated post-merge observations, not independent molecules.",
+            "Distinct read names do not establish molecular independence; no coordinate/UMI deduplication is inferred.",
         ])
 
 

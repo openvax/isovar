@@ -21,6 +21,7 @@ from .default_parameters import (
     MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
 )
 from .logging import get_logger
+from .read_identity import observation_groups
 from .variant_sequence_helpers import (
     filter_variant_sequences,
     initial_variant_sequences_from_reads
@@ -176,7 +177,7 @@ class VariantSequenceCreator(object):
         # Sort by decreasing read support, with content-based ties even when
         # overlap assembly is disabled.
         variant_sequences.sort(key=lambda vs: (
-            -len(vs.reads), vs.prefix, vs.alt, vs.suffix))
+            -len(observation_groups(vs.reads)), vs.prefix, vs.alt, vs.suffix))
         return variant_sequences
 
     def flanking_sequence_lengths(self, n_alt_nucleotides):

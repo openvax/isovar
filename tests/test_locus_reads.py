@@ -69,6 +69,8 @@ def test_locus_reads_snv():
     read = reads[0]
     expected = LocusRead(
         name=pysam_read.qname,
+        source_alignments=((("", "dummy", 0), (0, 0, "6M", False)),),
+        is_primary=True,
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 2, 3, 4, 5],
         quality_scores=pysam_read.query_qualities,
@@ -106,6 +108,8 @@ def test_locus_reads_insertion():
     read = reads[0]
     expected = LocusRead(
         name=pysam_read.qname,
+        source_alignments=((("", "dummy", 0), (0, 0, "4M1I2M", False)),),
+        is_primary=True,
         sequence=pysam_read.query_sequence,
         # expect the inserted nucleotide to be missing a corresponding
         # ref position
@@ -147,6 +151,8 @@ def test_locus_reads_deletion():
     read = reads[0]
     expected = LocusRead(
         name=pysam_read.qname,
+        source_alignments=((("", "dummy", 0), (0, 0, "4M1D1M", False)),),
+        is_primary=True,
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 2, 3, 5],
         quality_scores=pysam_read.query_qualities,
@@ -182,6 +188,8 @@ def test_locus_reads_substitution_longer():
     read = reads[0]
     expected = LocusRead(
         name=pysam_read.qname,
+        source_alignments=((("", "dummy", 0), (0, 0, "2M1I4M", False)),),
+        is_primary=True,
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, None, 2, 3, 4, 5],
         quality_scores=pysam_read.query_qualities,
@@ -216,6 +224,8 @@ def test_locus_reads_substitution_shorter():
     read = reads[0]
     expected = LocusRead(
         name=pysam_read.qname,
+        source_alignments=((("", "dummy", 0), (0, 0, "2M1D3M", False)),),
+        is_primary=True,
         sequence=pysam_read.query_sequence,
         reference_positions=[0, 1, 3, 4, 5],
         quality_scores=pysam_read.query_qualities,
@@ -281,6 +291,7 @@ def test_get_locus_reads_merges_overlapping_paired_reads():
         name="fragment-1",
         reference_start=2,
     )
+    left_mate.flag, right_mate.flag = 65, 129
     read_collector = ReadCollector(merge_overlapping_fragments=True)
     reads = read_collector.get_locus_reads(
         MockAlignmentFile(references=("chromosome",), reads=[left_mate, right_mate]),
@@ -311,6 +322,7 @@ def test_mates_with_conflicting_alignment_paths_remain_separate(
         make_pysam_read(second_sequence, second_cigar, name="pair"),
     ]
     collector = ReadCollector()
+    reads[0].flag, reads[1].flag = 65, 129
     for order in (reads, reads[::-1]):
         result = collector._get_locus_reads(
             MockAlignmentFile(["1"], order), "1", 1, 2, compact=compact)
@@ -323,6 +335,7 @@ def test_mates_with_conflicting_alignment_paths_remain_separate(
 def test_mates_with_matching_gapped_paths_merge(cigar):
     sequence = "AAATTCCC" if "I" in cigar else "AAACCC"
     reads = [make_pysam_read(sequence, cigar, name="pair") for _ in range(2)]
+    reads[0].flag, reads[1].flag = 65, 129
     result = ReadCollector().get_locus_reads(MockAlignmentFile(["1"], reads), "1", 1, 2)
     assert len(result) == 1
     assert result[0].sequence == sequence

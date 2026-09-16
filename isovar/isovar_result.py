@@ -19,15 +19,13 @@ and any protein sequences which were successfully translated for it.
 """
 
 from collections import OrderedDict
+from itertools import chain
 
 from functools import cached_property
 
 from .common import safediv
 from .alignment_score import alignment_score
-
-
-def _sum_source_read_count(reads):
-    return sum(getattr(read, "source_read_count", 1) for read in reads)
+from .read_identity import count_reads, fragment_ids
 
 
 class IsovarResult(object):
@@ -995,50 +993,49 @@ class IsovarResult(object):
         """
         Total number of reads at this locus, regardless of allele.
         """
-        return self.num_ref_reads + self.num_alt_reads + self.num_other_reads
+        return count_reads(chain(self.ref_reads, self.alt_reads, self.other_reads))
 
     @cached_property
     def num_total_fragments(self):
         """
-        Total number of distinct fragments at this locus, which also corresponds
-        to the total number of read names.
+        Total distinct fragments at this locus, scoped by SAM read group.
         """
-        return len(self.all_read_names)
+        return len(fragment_ids(chain(self.ref_reads, self.alt_reads, self.other_reads)))
 
     @cached_property
     def num_ref_reads(self):
         """
         Number of reads which support the reference allele.
         """
-        return _sum_source_read_count(self.ref_reads)
+        return count_reads(self.ref_reads)
 
     @cached_property
     def num_ref_fragments(self):
         """
         Number of distinct fragments which support the reference allele.
         """
-        return len(self.ref_read_names)
+        return len(fragment_ids(self.ref_reads))
 
     @cached_property
     def num_alt_reads(self):
         """
         Number of reads which support the alt allele.
         """
-        return _sum_source_read_count(self.alt_reads)
+        return count_reads(self.alt_reads)
 
     @cached_property
     def num_alt_fragments(self):
         """
         Number of distinct fragments which support the alt allele.
         """
-        return len(self.alt_read_names)
+        return len(fragment_ids(self.alt_reads))
 
     @cached_property
     def num_other_reads(self):
         """
         Number of reads which support neither the reference nor alt alleles.
         """
-        return _sum_source_read_count(self.other_reads)
+        return count_reads(self.other_reads)
 
     @cached_property
     def num_other_fragments(self):
@@ -1046,7 +1043,7 @@ class IsovarResult(object):
         Number of distinct fragments which support neither the reference nor
         alt alleles.
         """
-        return len(self.other_read_names)
+        return len(fragment_ids(self.other_reads))
 
     @cached_property
     def fraction_ref_reads(self):

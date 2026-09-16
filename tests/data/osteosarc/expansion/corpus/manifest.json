@@ -757,12 +757,12 @@
           "read_objects": {
             "alt": 17,
             "other": 0,
-            "ref": 18
+            "ref": 19
           },
           "reads": {
             "alt": 19,
             "other": 0,
-            "ref": 26
+            "ref": 23
           },
           "template_names": {
             "alt": 16,
@@ -9639,7 +9639,7 @@
           "reads": {
             "alt": 19,
             "other": 2,
-            "ref": 35
+            "ref": 34
           },
           "template_names": {
             "alt": 10,
@@ -14852,12 +14852,12 @@
         "counts": {
           "all_template_names": 32,
           "read_objects": {
-            "alt": 18,
+            "alt": 23,
             "other": 0,
             "ref": 16
           },
           "reads": {
-            "alt": 28,
+            "alt": 23,
             "other": 0,
             "ref": 27
           },
@@ -14942,7 +14942,7 @@
               "LH00306:228:22KJT5LT4:7:2211:49634:3073",
               "LH00306:228:22KJT5LT4:7:2314:11431:22222"
             ],
-            "supporting_reads": 23,
+            "supporting_reads": 18,
             "supporting_template_names": 13,
             "validation_status": "ok"
           }
@@ -17033,12 +17033,12 @@
           "read_objects": {
             "alt": 8,
             "other": 0,
-            "ref": 20
+            "ref": 22
           },
           "reads": {
             "alt": 13,
             "other": 0,
-            "ref": 32
+            "ref": 28
           },
           "template_names": {
             "alt": 8,
@@ -19062,12 +19062,12 @@
           "read_objects": {
             "alt": 39,
             "other": 16,
-            "ref": 17
+            "ref": 18
           },
           "reads": {
             "alt": 45,
             "other": 17,
-            "ref": 26
+            "ref": 25
           },
           "template_names": {
             "alt": 38,
@@ -20666,12 +20666,12 @@
           "read_objects": {
             "alt": 42,
             "other": 0,
-            "ref": 18
+            "ref": 20
           },
           "reads": {
             "alt": 64,
             "other": 0,
-            "ref": 34
+            "ref": 30
           },
           "template_names": {
             "alt": 42,
@@ -26248,7 +26248,7 @@
         "counts": {
           "all_template_names": 42,
           "read_objects": {
-            "alt": 26,
+            "alt": 29,
             "other": 0,
             "ref": 16
           },
@@ -26357,10 +26357,10 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "rna_candidate_count": 71,
+          "rna_candidate_count": 87,
           "stage": "independent_protein_validation",
-          "translation_count": 71,
-          "translations_with_mutation": 71
+          "translation_count": 87,
+          "translations_with_mutation": 87
         },
         "status": "ok"
       },

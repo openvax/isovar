@@ -116,6 +116,20 @@ isovar_results = run_isovar(
 ````
 
 
+Since 1.17.0, read support counts sequenced segments, not their alternative
+SAM alignments ([#264](https://github.com/openvax/isovar/issues/264)). Only
+complementary primary mates in the same read group are collapsed. Secondary
+placements remain available, but incompatible placements of one segment cannot
+extend a cDNA assembly or inflate support; conflicting allele calls from that
+segment are retained as uncertain (`other_reads`). Read-group-aware fragment
+counts are separate from the original string-valued `*_read_names` properties.
+Existing read constructors remain supported with optional provenance fields.
+
+This can change counts, filtering and reconstructed context for multimapped
+reads; it does not establish independent molecules or perform UMI deduplication.
+Cross-variant phasing still uses bare names; read-group-safe phasing is tracked
+separately in [#282](https://github.com/openvax/isovar/issues/282).
+
 ### Python API options for coding sequence assembly and translation
 
 To change how Isovar assembles RNA reads into coding sequences, determines their

@@ -46,6 +46,7 @@ def test_cli_rna_defaults_match_python_and_merge_mates():
         make_pysam_read("ACCGTG", "6M", name="pair", reference_start=0),
         make_pysam_read("CGTGAA", "6M", name="pair", reference_start=2),
     ]
+    reads[0].flag, reads[1].flag = 65, 129
     for collector in (cli, api):
         merged = collector.get_locus_reads(MockAlignmentFile(["1"], reads), "1", 3, 4)
         assert len(merged) == 1

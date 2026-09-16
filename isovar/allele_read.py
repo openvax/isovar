@@ -32,6 +32,11 @@ class AlleleRead(ValueObject):
     When overlapping mates from the same fragment are merged upstream,
     `source_read_count` retains the number of raw reads represented by this
     fragment-level allele observation.
+
+    ``source_alignments`` preserves the immutable segment/placement identities
+    from SAM. It defaults to empty for existing manually constructed reads;
+    public ``name`` remains the original QNAME string. Counts across collected
+    observations must deduplicate segment IDs, not sum ``source_read_count``.
     """
     __slots__ = [
         "prefix",
@@ -43,6 +48,7 @@ class AlleleRead(ValueObject):
         "reference_blocks",
         "splice_junctions",
         "compatible_transcript_ids",
+        "source_alignments",
     ]
 
     def __init__(
@@ -54,13 +60,15 @@ class AlleleRead(ValueObject):
             source_read_count=1,
             reference_blocks=(),
             splice_junctions=(),
-            compatible_transcript_ids=None):
+            compatible_transcript_ids=None,
+            source_alignments=()):
         self.prefix = prefix
         self.allele = allele
         self.suffix = suffix
         self.name = name
         self.sequence = prefix + allele + suffix
         self.source_read_count = source_read_count
+        self.source_alignments = tuple(source_alignments)
         self.reference_blocks = tuple(reference_blocks)
         self.splice_junctions = tuple(splice_junctions)
         self.compatible_transcript_ids = (
@@ -81,7 +89,8 @@ class AlleleRead(ValueObject):
             source_read_count=self.source_read_count,
             reference_blocks=self.reference_blocks,
             splice_junctions=self.splice_junctions,
-            compatible_transcript_ids=transcript_ids)
+            compatible_transcript_ids=transcript_ids,
+            source_alignments=self.source_alignments)
 
     @staticmethod
     def _reference_blocks(reference_positions):
@@ -208,12 +217,13 @@ class AlleleRead(ValueObject):
             name=read_name,
             source_read_count=locus_read.source_read_count,
             reference_blocks=reference_blocks,
-            splice_junctions=splice_junctions)
+            splice_junctions=splice_junctions,
+            source_alignments=locus_read.source_alignments)
 
 
-# Genomic path details and branch-local transcript classifications are
-# inference metadata, not distinct observations. Explicit assembly keys retain
-# compatible paths while set unions still count one physical read only once.
+# Branch-local transcript classifications are not distinct observations.
+# source_alignments DOES participate in identity: retain competing placements
+# as hypotheses, then deduplicate support by segment rather than object count.
 AlleleRead._fields = tuple(
     field
     for field in AlleleRead._fields
