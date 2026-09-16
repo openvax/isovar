@@ -1,0 +1,10 @@
+{
+  "inputs": [
+    "/Users/iskander/code/isovar/figures/osteosarc/2026-09-16_03-09-39-994573Z/DIAPH1-5-141526090-C-A/all-figures.pdf",
+    "/Users/iskander/code/isovar/figures/osteosarc/2026-09-16_03-09-39-994573Z/SLC25A12-2-171813470-A-G/all-figures.pdf",
+    "/Users/iskander/code/isovar/figures/osteosarc/2026-09-16_03-09-39-994573Z/TECPR1-7-98241128-G-del/all-figures.pdf"
+  ],
+  "output": "three-examples-12-pages.pdf",
+  "pages": 12,
+  "method": "Lossless vector page concatenation; pypdf"
+}
