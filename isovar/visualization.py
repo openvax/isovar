@@ -14,16 +14,64 @@ import re
 
 from .default_parameters import (
     PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_OVERVIEW_DPI, PLOT_VIEW, PLOT_VIEWS, PLOT_WIDTH,
+    PROTEIN_SEQUENCE_LENGTH,
 )
 from .dna import reverse_complement_dna
+from .effect_prediction import predicted_effects_for_variant
 from .protein_sequence_creator import ProteinSequenceCreator
 from .protein_sequence_helpers import mutant_peptide_window_count
-from .variant_helpers import base0_interval_for_variant
+from .variant_helpers import base0_interval_for_variant, interbase_range_affected_by_variant_on_transcript
 
 
 def _creator_settings(creator):
     return {name: getattr(creator, name)
             for name in inspect.signature(ProteinSequenceCreator).parameters}
+
+
+def _transcript_data(transcript, rna_supported=False):
+    return dict(id=transcript.id, name=getattr(transcript, "name", None), gene=transcript.gene_name,
+                strand=transcript.strand, rna_supported=rna_supported,
+                exons=sorted((int(a) - 1, int(b)) for a, b in transcript.exon_intervals))
+
+
+def _reference_predictions(variant, whitelist, length, transcripts):
+    """Reference-plus-one-edit predictions, never used to fill missing RNA.
+
+    Anchor the display to the genomic edit's codon, as Isovar does, rather
+    than Varcode's repeat-normalized protein event. Keep every transcript's
+    annotation and unavailability reason, even when local sequences coincide.
+    """
+    predictions = []
+    for effect in predicted_effects_for_variant(variant, transcript_id_whitelist=whitelist):
+        transcript = effect.transcript
+        if transcript is None:
+            continue
+        row = dict(transcript_id=transcript.id, effect=type(effect).__name__,
+                   description=effect.short_description, protein=None)
+        predictions.append(row)
+        transcripts.setdefault(transcript.id, _transcript_data(transcript))
+        sequence = effect.mutant_protein_sequence
+        if sequence is None or not transcript.complete:
+            row["unavailable_reason"] = "No complete protein prediction"
+            continue
+        try:
+            start, end = interbase_range_affected_by_variant_on_transcript(variant, transcript)
+            cds = min(transcript.start_codon_spliced_offsets)
+            if start < cds or end - start != len(variant.ref):
+                raise ValueError("Edit is not contiguous within the coding transcript")
+        except ValueError as error:
+            row["unavailable_reason"] = str(error)
+            continue
+        anchor = (start - cds) // 3
+        left = max(0, anchor - length // 2)
+        right = min(len(sequence), left + length)
+        frameshift = (len(variant.ref) - len(variant.alt)) % 3 != 0
+        altered_end = right if frameshift else (start - cds + len(variant.alt) + 2) // 3
+        row["protein"] = dict(amino_acids=sequence[left:right], mutation_start=anchor - left,
+                              mutation_end=min(right, altered_end) - left,
+                              protein_start_1based=left + 1, anchor_1based=anchor + 1,
+                              frameshift=frameshift, ends_with_stop_codon=False)
+    return sorted(predictions, key=lambda p: (p["transcript_id"], p["description"]))
 
 
 def _witness_data(translation):
@@ -75,7 +123,8 @@ def _witness_data(translation):
 
 def collect_visualization_data(
         variant, read_evidence, creator_kwargs=None,
-        compare_assembly=PLOT_COMPARE_ASSEMBLY, transcript_id_whitelist=None):
+        compare_assembly=PLOT_COMPARE_ASSEMBLY, transcript_id_whitelist=None,
+        include_reference_predictions=True):
     """Collect JSON-serializable evidence without sampling analysis inputs.
 
     Parameters
@@ -88,6 +137,8 @@ def collect_visualization_data(
     compare_assembly : bool
         Compare assembly on/off, overriding only that setting in each mode.
     transcript_id_whitelist : set of str, optional
+    include_reference_predictions : bool
+        Add Varcode predictions on the same annotation, independently of RNA.
 
     Returns
     -------
@@ -96,6 +147,7 @@ def collect_visualization_data(
         local transcript models, and counts. No read names are exported.
     """
     from . import __version__
+    from varcode import __version__ as varcode_version
 
     creator_kwargs = dict(creator_kwargs or {})
     requested = ProteinSequenceCreator(**creator_kwargs)
@@ -119,10 +171,7 @@ def collect_visualization_data(
             for translation in protein.translations:
                 for transcript in translation.reference_context.transcripts:
                     ids.add(transcript.id)
-                    transcripts[transcript.id] = dict(
-                        id=transcript.id, name=getattr(transcript, "name", None), gene=transcript.gene_name,
-                        strand=transcript.strand,
-                        exons=sorted((int(a) - 1, int(b)) for a, b in transcript.exon_intervals))
+                    transcripts[transcript.id] = _transcript_data(transcript, rna_supported=True)
             entry["protein"] = dict(
                 amino_acids=protein.amino_acids,
                 mutation_start=protein.mutation_start_idx, mutation_end=protein.mutation_end_idx,
@@ -133,6 +182,9 @@ def collect_visualization_data(
                 transcript_ids=sorted(ids), translation_count=len(protein.translations),
                 witness=_witness_data(witness))
         results.append(entry)
+    predictions = (_reference_predictions(
+        variant, transcript_id_whitelist, requested.protein_sequence_length or PROTEIN_SEQUENCE_LENGTH, transcripts)
+        if include_reference_predictions else [])
     start, end = base0_interval_for_variant(variant)
     counts = {name: dict(observations=len(getattr(read_evidence, name + "_reads")),
                         templates=len({r.name for r in getattr(read_evidence, name + "_reads")}))
@@ -143,13 +195,15 @@ def collect_visualization_data(
         variant=dict(contig=variant.contig, start=variant.start, ref=variant.ref, alt=variant.alt,
                      reference=variant.reference_name, interval=[start, end]),
         genes=sorted({t["gene"] for t in transcripts.values()}),
-        counts=counts, modes=results,
+        counts=counts, modes=results, reference_predictions=predictions,
+        varcode_version=varcode_version,
         transcript_whitelist=(None if transcript_id_whitelist is None else sorted(transcript_id_whitelist)),
         transcripts=[transcripts[k] for k in sorted(transcripts)],
         limitations=[
             "Protein candidates are shown before run_isovar result-level filters.",
             "Protein selection is not independent biological validation or a clinical recommendation.",
             "Each mode shows its top protein and one contributing cDNA witness, not all alternatives.",
+            "Varcode tracks assume the reference transcript plus only the nominated edit; they are not RNA evidence.",
             "Spans and coverage count post-merge read objects, not independent molecules.",
             "Known upstream-indel frame and secondary-alignment limitations: Isovar #265 and #264.",
         ])
@@ -199,19 +253,45 @@ def _side_note(ax, text, y=1, transform=None):
                    ha="left", va="top", fontsize=10, color=GRAY, linespacing=1.6)
 
 
-def _protein_panel(ax, data, rectangle):
+def _prediction_groups(data):
+    groups = {}
+    for prediction in data.get("reference_predictions", []):
+        p = prediction["protein"]
+        if p is not None:
+            key = (p["amino_acids"], p["mutation_start"], p["mutation_end"])
+            groups.setdefault(key, []).append(prediction)
+    return list(groups.values())
+
+
+def _protein_panel(ax, data, rectangle, max_rows):
     _style_axis(ax, "Protein context")
-    left, right = -1, 1
-    for i, mode in enumerate(data["modes"]):
-        y = len(data["modes"]) - i
+    rows = []
+    for mode in data["modes"]:
         p = mode["protein"]
-        label = "Assembly on" if mode["assembly"] else "Assembly off"
-        ax.text(-0.025, y, label, transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=12)
+        note = ("%d aa · %d × %d-mers\n%d templates" % (
+            len(p["amino_acids"]), p["peptide_windows"], mode["settings"]["protein_context_peptide_length"],
+            p["templates"]) if p else "%d alternate read objects" % data["counts"]["alt"]["observations"])
+        if p and len(p["amino_acids"]) > 80:
+            note += "\nSequence in evidence.json"
+        rows.append(("Isovar\nAssembly " + ("on" if mode["assembly"] else "off"), p,
+                     BLUE if mode["assembly"] else GRAY, note))
+    groups = _prediction_groups(data)
+    for i, group in enumerate(groups[:max_rows]):
+        descriptions = sorted({p["description"] for p in group})
+        note = "\n".join(descriptions[:2])
+        if len(descriptions) > 2:
+            note += "\n+%d effect labels in notes" % (len(descriptions) - 2)
+        rows.append(("Varcode %d\n(%d transcript%s)" % (i + 1, len(group), "s" if len(group) != 1 else ""),
+                     group[0]["protein"], INK, note))
+    left, right = -1, 1
+    for i, (label, p, color, note) in enumerate(rows):
+        y = len(rows) - i
+        ax.text(-0.025, y, label, transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=11)
+        _side_note(ax, note, y=y + .15, transform=ax.get_yaxis_transform())
         if p is None:
             ax.text(0, y, "No translated protein", va="center", fontsize=10, color=GRAY)
             continue
         a, b = p["mutation_start"], p["mutation_end"]
-        color = BLUE if mode["assembly"] else GRAY
         left, right = min(left, -a - 0.7), max(right, len(p["amino_acids"]) - a + 0.7)
         letters = len(p["amino_acids"]) <= 80
         if not letters:
@@ -227,13 +307,13 @@ def _protein_panel(ax, data, rectangle):
             ax.plot([-.5, -.5], [y - .23, y + .23], color=ORANGE, lw=2)
         if p["ends_with_stop_codon"]:
             ax.text(len(p["amino_acids"]) - a, y, "*", ha="center", va="center", fontsize=11)
-        peptide_length = mode["settings"]["protein_context_peptide_length"]
-        _side_note(ax, "%d aa · %d × %d-mers\n%d templates%s" % (
-            len(p["amino_acids"]), p["peptide_windows"], peptide_length, p["templates"],
-            "\nSequence in evidence.json" if not letters else ""),
-            y=y + .15, transform=ax.get_yaxis_transform())
     ax.axvline(-.5, color=ORANGE, alpha=.3, lw=.8, zorder=0)
-    ax.set(xlim=(left, right), ylim=(.3, len(data["modes"]) + .45),
+    if groups:
+        label = "Varcode: reference + nominated edit only"
+        if len(groups) > max_rows:
+            label += " (%d/%d sequence groups shown)" % (max_rows, len(groups))
+        ax.text(0, 1.005, label, transform=ax.transAxes, fontsize=10, color=GRAY)
+    ax.set(xlim=(left, right), ylim=(.3, len(rows) + .45),
            xlabel="Amino-acid offset from mutation (N → C)")
 
 
@@ -245,6 +325,10 @@ def _coverage_panel(ax, data):
     from matplotlib.ticker import MaxNLocator
 
     _style_axis(ax, "RNA coverage")
+    if not any(mode["protein"] for mode in data["modes"]):
+        ax.text(.5, .5, "No reconstructed cDNA meeting the current thresholds", transform=ax.transAxes, ha="center")
+        ax.set_axis_off()
+        return
     for mode in data["modes"]:
         if not mode["protein"]:
             continue
@@ -333,7 +417,7 @@ def _genomic_projection(data):
 
 
 def _transcript_panel(ax, data, max_rows, rectangle):
-    _style_axis(ax, "Contributing transcripts")
+    _style_axis(ax, "Transcript models")
     if not data["transcripts"]:
         ax.text(.5, .5, "No contributing transcript model", transform=ax.transAxes, ha="center")
         ax.set_axis_off()
@@ -354,7 +438,7 @@ def _transcript_panel(ax, data, max_rows, rectangle):
                         label="_annotated_intron")
         for a, b in exons:
             ax.add_patch(rectangle((project(a), y - .17), project(b) - project(a), .34,
-                                   color=INK, lw=0, zorder=3))
+                                   color=INK if transcript.get("rna_supported", True) else "#B0B0B0", lw=0, zorder=3))
         arrow = "→" if transcript["strand"] == "+" else "←"
         label = transcript["id"] + " " + arrow
         name = transcript.get("name")
@@ -389,8 +473,10 @@ def _transcript_panel(ax, data, max_rows, rectangle):
     if len(shown) < len(data["transcripts"]):
         count = "%d of %d models shown" % (len(shown), len(data["transcripts"]))
     note = count + "\nIsoform not established"
+    if any(not t.get("rna_supported", True) for t in shown):
+        note += "\nBlack: contributes RNA protein\nGray: prediction only"
     if any(b - a > x1 - x0 for a, b, x0, x1 in segments):
-        note += "\n// compressed intron"
+        note += "\n// compressed genomic gap"
     _side_note(ax, note)
 
 
@@ -419,9 +505,9 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
     witness = _selected_witness(data)
     heights, panels, names = [], [], []
     if view in {"all", "protein"}:
-        heights.append(2.6 if len(data["modes"]) == 2 else 1.8)
+        heights.append(1 + .85 * (len(data["modes"]) + min(max_rows, len(_prediction_groups(data)))))
         names.append("protein")
-        panels.append(lambda ax: _protein_panel(ax, data, rectangle))
+        panels.append(lambda ax: _protein_panel(ax, data, rectangle, max_rows))
     if view in {"all", "assembly", "coverage"}:
         heights.append(2)
         names.append("coverage")
@@ -455,6 +541,9 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
         title = "%s   %s:%s %s>%s (1-based)" % (
             ", ".join(data["genes"][:3]) or "Mutation evidence", variant["contig"], variant["start"],
             allele_label(variant["ref"]), allele_label(variant["alt"]))
+        sample = data.get("provenance", {}).get("sample_label")
+        if sample:
+            title += " · " + sample
         figure.suptitle(title, x=.035, y=1 - .18 / height, ha="left", fontsize=18, fontweight="bold")
         if view != "coverage":
             figure.text(.815, 1 - .7 / height, "Orange: mutation", fontsize=10, color=ORANGE)
@@ -463,7 +552,7 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
 
 
 def _figure_caption(data):
-    return (
+    caption = (
         "# Figure notes\n\nReference: " + data["variant"]["reference"] + ".\n\n"
         "Orange marks the mutation or deletion boundary; blue denotes assembly on, gray assembly off. "
         "Protein peptide counts are mutation-overlapping windows of the displayed length.\n\n"
@@ -477,13 +566,34 @@ def _figure_caption(data):
         "Protein template counts include all translations contributing that protein; cDNA counts refer "
         "only to the displayed reconstruction. Junction counts are retained CIGAR N observations.\n\n"
         "The title uses normalized 1-based variant coordinates. Genomic tracks use forward-strand "
-        "0-based, half-open coordinates, with compressed introns marked //; cDNA and protein offsets "
+        "0-based, half-open coordinates, with compressed genomic gaps marked //; cDNA and protein offsets "
         "are transcript-oriented. Angled gray connectors join adjacent annotated exon boundaries; "
         "black connectors on the RNA junction row are observed splice junctions. Transcript names "
         "come from the same annotation as the ENST IDs. Models do not establish a unique isoform.\n\n"
         "These are candidates before result-level filters, not independent validation or a clinical "
         "recommendation. Complete sequences, settings, support and limitations are in evidence.json.\n"
     )
+    if data.get("reference_predictions"):
+        caption += (
+            "\n## Varcode baseline\n\nThese tracks predict the reference transcript plus the nominated variant only, "
+            "not observed expression or a patient haplotype. The display is anchored to the genomic edit's codon; "
+            "Varcode effect labels may use a different repeat-normalized protein boundary. Equal local predicted "
+            "sequences are grouped, not ranked. No predicted residues fill missing Isovar context. Reference "
+            "tracks do not mark a terminal stop; their ends may simply be the display boundary. Black transcript "
+            "boxes contribute to a displayed RNA protein; gray boxes are prediction-only candidates. Compatibility "
+            "can use read alignment outside the displayed retained cDNA; this local track is not a full explanation "
+            "of every model exclusion.\n\n"
+            "| Track | Transcript (name) | Varcode effect |\n| --- | --- | --- |\n")
+        models = {t["id"]: t for t in data["transcripts"]}
+        for i, group in enumerate(_prediction_groups(data), 1):
+            for p in group:
+                t = models[p["transcript_id"]]
+                caption += "| Varcode %d | %s (%s) | %s |\n" % (i, t["id"], t.get("name") or "unnamed", p["description"])
+        for p in data["reference_predictions"]:
+            if p["protein"] is None:
+                caption += "| Unavailable | %s | %s: %s |\n" % (
+                    p["transcript_id"], p["description"], p["unavailable_reason"])
+    return caption
 
 
 def save_variant_figures(data, output_dir, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS, dpi=PLOT_DPI):

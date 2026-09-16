@@ -1,0 +1,1279 @@
+{
+  "counts": {
+    "alt": {
+      "observations": 34,
+      "templates": 34
+    },
+    "other": {
+      "observations": 0,
+      "templates": 0
+    },
+    "ref": {
+      "observations": 17,
+      "templates": 17
+    }
+  },
+  "genes": [
+    "DYNC1H1"
+  ],
+  "isovar_version": "1.14.0",
+  "limitations": [
+    "Protein candidates are shown before run_isovar result-level filters.",
+    "Protein selection is not independent biological validation or a clinical recommendation.",
+    "Each mode shows its top protein and one contributing cDNA witness, not all alternatives.",
+    "Varcode tracks assume the reference transcript plus only the nominated edit; they are not RNA evidence.",
+    "Spans and coverage count post-merge read objects, not independent molecules.",
+    "Known upstream-indel frame and secondary-alignment limitations: Isovar #265 and #264."
+  ],
+  "modes": [
+    {
+      "assembly": true,
+      "protein": {
+        "amino_acids": "MVKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
+        "contains_mutation": true,
+        "ends_with_stop_codon": false,
+        "frameshift": false,
+        "mutation_end": 25,
+        "mutation_start": 24,
+        "peptide_windows": 25,
+        "templates": 33,
+        "transcript_ids": [
+          "ENST00000360184"
+        ],
+        "translation_count": 1,
+        "witness": {
+          "alt_length": 1,
+          "cdna": "ATGGTGAAAGACCAGCAGGAGGCTGAAAAGAAGAAGGTTATGAGCCAAGAAATCCAGGAACAGCTGCATAAGCATCAGGAGGTAATTGCAGACAAACAGATGAGTGTCAAAGAAGATCTTGATAAGGTGGAACCTGCCGTCATTGAGGC",
+          "coverage": [
+            20,
+            20,
+            20,
+            21,
+            21,
+            21,
+            21,
+            21,
+            22,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            25,
+            25,
+            25,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            27,
+            27,
+            27,
+            27,
+            27,
+            29,
+            29,
+            29,
+            29,
+            30,
+            30,
+            30,
+            30,
+            30,
+            31,
+            31,
+            31,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            29,
+            29,
+            29,
+            23,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            21,
+            20,
+            20,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            15,
+            13,
+            13,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11
+          ],
+          "end": 75,
+          "genomic_blocks": [
+            [
+              102029902,
+              102029938
+            ],
+            [
+              102029905,
+              102029938
+            ],
+            [
+              102029910,
+              102029938
+            ],
+            [
+              102029911,
+              102029938
+            ],
+            [
+              102029924,
+              102029938
+            ],
+            [
+              102029936,
+              102029938
+            ],
+            [
+              102030161,
+              102030203
+            ],
+            [
+              102030161,
+              102030206
+            ],
+            [
+              102030161,
+              102030207
+            ],
+            [
+              102030161,
+              102030228
+            ],
+            [
+              102030161,
+              102030229
+            ],
+            [
+              102030161,
+              102030231
+            ],
+            [
+              102030161,
+              102030253
+            ],
+            [
+              102030161,
+              102030254
+            ],
+            [
+              102030161,
+              102030256
+            ],
+            [
+              102030161,
+              102030274
+            ],
+            [
+              102030162,
+              102030274
+            ],
+            [
+              102030172,
+              102030274
+            ],
+            [
+              102030177,
+              102030274
+            ],
+            [
+              102030181,
+              102030274
+            ],
+            [
+              102030186,
+              102030274
+            ],
+            [
+              102030189,
+              102030274
+            ]
+          ],
+          "junctions": [
+            {
+              "end": 102030161,
+              "observations": 25,
+              "start": 102029938
+            }
+          ],
+          "observations": 33,
+          "orf": {
+            "cdna": "ATGGTGAAAGACCAGCAGGAGGCTGAAAAGAAGAAGGTTATGAGCCAAGAAATCCAGGAACAGCTGCATAAGCATCAGGAGGTAATTGCAGACAAACAGATGAGTGTCAAAGAAGATCTTGATAAGGTGGAACCTGCCGTCATTGAGGC",
+            "codon_offset": 0,
+            "variant_end": 75,
+            "variant_start": 74
+          },
+          "spanning_observations": 0,
+          "spans": [
+            {
+              "end": 4,
+              "observations": 4,
+              "start": -74
+            },
+            {
+              "end": 7,
+              "observations": 6,
+              "start": -74
+            },
+            {
+              "end": 8,
+              "observations": 1,
+              "start": -74
+            },
+            {
+              "end": 29,
+              "observations": 1,
+              "start": -74
+            },
+            {
+              "end": 30,
+              "observations": 1,
+              "start": -74
+            },
+            {
+              "end": 32,
+              "observations": 1,
+              "start": -74
+            },
+            {
+              "end": 54,
+              "observations": 3,
+              "start": -74
+            },
+            {
+              "end": 55,
+              "observations": 1,
+              "start": -74
+            },
+            {
+              "end": 57,
+              "observations": 2,
+              "start": -74
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -71
+            },
+            {
+              "end": 54,
+              "observations": 1,
+              "start": -66
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -65
+            },
+            {
+              "end": 55,
+              "observations": 1,
+              "start": -52
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -40
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -37
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -27
+            },
+            {
+              "end": 75,
+              "observations": 2,
+              "start": -22
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -18
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -13
+            },
+            {
+              "end": 75,
+              "observations": 2,
+              "start": -10
+            }
+          ],
+          "start": -74,
+          "strand": "+",
+          "templates": 33,
+          "transcript_ids": [
+            "ENST00000360184"
+          ]
+        }
+      },
+      "settings": {
+        "count_mismatches_after_variant": false,
+        "max_protein_sequences_per_variant": 1,
+        "max_transcript_mismatches": 2,
+        "min_assembly_overlap_size": 30,
+        "min_protein_sequence_support_fraction": 0.85,
+        "min_transcript_prefix_length": 10,
+        "min_variant_sequence_coverage": 2,
+        "protein_context_peptide_length": 25,
+        "protein_sequence_length": 49,
+        "protein_sequence_preference": "balanced",
+        "variant_sequence_assembly": true
+      }
+    },
+    {
+      "assembly": false,
+      "protein": {
+        "amino_acids": "VKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
+        "contains_mutation": true,
+        "ends_with_stop_codon": false,
+        "frameshift": false,
+        "mutation_end": 24,
+        "mutation_start": 23,
+        "peptide_windows": 24,
+        "templates": 33,
+        "transcript_ids": [
+          "ENST00000360184"
+        ],
+        "translation_count": 1,
+        "witness": {
+          "alt_length": 1,
+          "cdna": "GTGAAAGACCAGCAGGAGGCTGAAAAGAAGAAGGTTATGAGCCAAGAAATCCAGGAACAGCTGCATAAGCATCAGGAGGTAATTGCAGACAAACAGATGAGTGTCAAAGAAGATCTTGATAAGGTGGAACCTGCCGTCATTGAGGC",
+          "coverage": [
+            21,
+            21,
+            21,
+            21,
+            21,
+            22,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            23,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            24,
+            25,
+            25,
+            25,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            27,
+            27,
+            27,
+            27,
+            27,
+            29,
+            29,
+            29,
+            29,
+            30,
+            30,
+            30,
+            30,
+            30,
+            31,
+            31,
+            31,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            29,
+            29,
+            29,
+            23,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            22,
+            21,
+            20,
+            20,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            15,
+            13,
+            13,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11
+          ],
+          "end": 75,
+          "genomic_blocks": [
+            [
+              102029905,
+              102029938
+            ],
+            [
+              102029910,
+              102029938
+            ],
+            [
+              102029911,
+              102029938
+            ],
+            [
+              102029924,
+              102029938
+            ],
+            [
+              102029936,
+              102029938
+            ],
+            [
+              102030161,
+              102030203
+            ],
+            [
+              102030161,
+              102030206
+            ],
+            [
+              102030161,
+              102030207
+            ],
+            [
+              102030161,
+              102030228
+            ],
+            [
+              102030161,
+              102030229
+            ],
+            [
+              102030161,
+              102030231
+            ],
+            [
+              102030161,
+              102030253
+            ],
+            [
+              102030161,
+              102030254
+            ],
+            [
+              102030161,
+              102030256
+            ],
+            [
+              102030161,
+              102030274
+            ],
+            [
+              102030162,
+              102030274
+            ],
+            [
+              102030172,
+              102030274
+            ],
+            [
+              102030177,
+              102030274
+            ],
+            [
+              102030181,
+              102030274
+            ],
+            [
+              102030186,
+              102030274
+            ],
+            [
+              102030189,
+              102030274
+            ]
+          ],
+          "junctions": [
+            {
+              "end": 102030161,
+              "observations": 25,
+              "start": 102029938
+            }
+          ],
+          "observations": 33,
+          "orf": {
+            "cdna": "GTGAAAGACCAGCAGGAGGCTGAAAAGAAGAAGGTTATGAGCCAAGAAATCCAGGAACAGCTGCATAAGCATCAGGAGGTAATTGCAGACAAACAGATGAGTGTCAAAGAAGATCTTGATAAGGTGGAACCTGCCGTCATTGAGGC",
+            "codon_offset": 0,
+            "variant_end": 72,
+            "variant_start": 71
+          },
+          "spanning_observations": 1,
+          "spans": [
+            {
+              "end": 4,
+              "observations": 4,
+              "start": -71
+            },
+            {
+              "end": 7,
+              "observations": 6,
+              "start": -71
+            },
+            {
+              "end": 8,
+              "observations": 1,
+              "start": -71
+            },
+            {
+              "end": 29,
+              "observations": 1,
+              "start": -71
+            },
+            {
+              "end": 30,
+              "observations": 1,
+              "start": -71
+            },
+            {
+              "end": 32,
+              "observations": 1,
+              "start": -71
+            },
+            {
+              "end": 54,
+              "observations": 3,
+              "start": -71
+            },
+            {
+              "end": 55,
+              "observations": 1,
+              "start": -71
+            },
+            {
+              "end": 57,
+              "observations": 2,
+              "start": -71
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -71
+            },
+            {
+              "end": 54,
+              "observations": 1,
+              "start": -66
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -65
+            },
+            {
+              "end": 55,
+              "observations": 1,
+              "start": -52
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -40
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -37
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -27
+            },
+            {
+              "end": 75,
+              "observations": 2,
+              "start": -22
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -18
+            },
+            {
+              "end": 75,
+              "observations": 1,
+              "start": -13
+            },
+            {
+              "end": 75,
+              "observations": 2,
+              "start": -10
+            }
+          ],
+          "start": -71,
+          "strand": "+",
+          "templates": 33,
+          "transcript_ids": [
+            "ENST00000360184"
+          ]
+        }
+      },
+      "settings": {
+        "count_mismatches_after_variant": false,
+        "max_protein_sequences_per_variant": 1,
+        "max_transcript_mismatches": 2,
+        "min_assembly_overlap_size": 30,
+        "min_protein_sequence_support_fraction": 0.85,
+        "min_transcript_prefix_length": 10,
+        "min_variant_sequence_coverage": 2,
+        "protein_context_peptide_length": 25,
+        "protein_sequence_length": 49,
+        "protein_sequence_preference": "balanced",
+        "variant_sequence_assembly": false
+      }
+    }
+  ],
+  "provenance": {
+    "caption": "Assembly on: 49 aa and 25 mutation-overlapping 25-mers; assembly off: 48 aa and 24 25-mers. Both outputs pass independent RNA translation, frame and interval checks. Selected primary-only original RNA fixtures are not full-sample abundance estimates. Varcode tracks assume only the nominated edit on each reference transcript.",
+    "case_id": "11-DYNC1H1-chr14-102030200-1b66c15da594a3ef",
+    "corpus_manifest_sha256": "3ffb02fb47cbad8ff439e1eb357862b919d9c8cf66f8cbbdb8d1e860b6d57ebd",
+    "excluded_flags": [
+      256,
+      1024,
+      2048
+    ],
+    "fixture": "11-DYNC1H1-chr14-102030200-1b66c15da594a3ef.primary.bam",
+    "fixture_sha256": "717bfc9672b97a3cbd2148343c6f6725ce98abdfb9bc482079ee4bde40cb3014",
+    "independent_validation": [
+      {
+        "assembly": true,
+        "checks": [
+          {
+            "expected_amino_acids": "MVKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
+            "expected_stop": false,
+            "frame": 0,
+            "genetic_code": 1,
+            "matches_expected": true,
+            "protein_start_1based": 3243,
+            "protein_version": "ENSP00000348965.4",
+            "status": "ok",
+            "transcript_version": "ENST00000360184.8"
+          }
+        ],
+        "status": "ok"
+      },
+      {
+        "assembly": false,
+        "checks": [
+          {
+            "expected_amino_acids": "VKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
+            "expected_stop": false,
+            "frame": 0,
+            "genetic_code": 1,
+            "matches_expected": true,
+            "protein_start_1based": 3244,
+            "protein_version": "ENSP00000348965.4",
+            "status": "ok",
+            "transcript_version": "ENST00000360184.8"
+          }
+        ],
+        "status": "ok"
+      }
+    ],
+    "merge_overlapping_fragments": true,
+    "nonfocal_witness_indels": 0,
+    "original_allele": {
+      "alt": "T",
+      "assembly": "GRCh38",
+      "chrom": "chr14",
+      "gene": "DYNC1H1",
+      "genomic_validation": {
+        "allele_offset": 30,
+        "end": 102030230,
+        "genome": "hg38",
+        "receipt": {
+          "bytes": 222,
+          "sha256": "d19de824ae54c17b8e77ad53f2906c39da55d3b6f0ad6e5a6ffa57164a205117",
+          "url": "https://api.genome.ucsc.edu/getData/sequence?genome=hg38&chrom=chr14&start=102030169&end=102030230"
+        },
+        "sequence": "CCAAGAAATCCAGGAACAGCTGCATAAGCAGCAGGAGGTAATTGCAGACAAACAGATGAGT",
+        "start": 102030169
+      },
+      "pos": 102030200,
+      "ref": "G",
+      "source_location": "chr14:102030200",
+      "source_protein_label": "p.Gln3267His",
+      "source_url": "https://osteosarc.com/variant/DYNC1H1-chr14-102030200/",
+      "vaccine_count": 1,
+      "variant_id": "DYNC1H1-chr14-102030200"
+    },
+    "reference_files": {
+      "models.json.gz": "f579a53633bd0e7f2bf8e62c3ac147a33909ff7dbf678ea2b33e349ff35727c2",
+      "reference.cdna.fa.gz": "6a88b30246cea10a2bf763a09c82e932960f6b70d20b52094312d20fc2281054",
+      "reference.gtf.gz": "098d0f71e178aabacf8cf07306d615c27e6c481828887997fb5955fd57eeec78",
+      "reference.pep.fa.gz": "5b179f645dc1e2591ee99dff7f3cc7418eaf395a6c3fc33cb9958ad0c6b6ee58"
+    },
+    "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+    "sample_label": null,
+    "selection": "Pinned selected original reads; primary-only derivative",
+    "source_bam_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/genomics/genomics-bulk/2022.12.16/RNA/2022.12.16.rna.bostongene/processed/2024.06.11.bostongene.align.tcga.protocol.dr32Aligned.sorted.bam",
+    "source_id": "1b66c15da594a3ef",
+    "source_variant_url": "https://osteosarc.com/variant/DYNC1H1-chr14-102030200/"
+  },
+  "reference_predictions": [
+    {
+      "description": "p.Q3267H",
+      "effect": "Substitution",
+      "protein": {
+        "amino_acids": "MVKDQQEAEKKKVMSQEIQEQLHKHQEVIADKQMSVKEDLDKVEPAVIE",
+        "anchor_1based": 3267,
+        "ends_with_stop_codon": false,
+        "frameshift": false,
+        "mutation_end": 25,
+        "mutation_start": 24,
+        "protein_start_1based": 3243
+      },
+      "transcript_id": "ENST00000360184"
+    }
+  ],
+  "rendering": {
+    "background": "white",
+    "dpi": 600,
+    "max_rows": 20,
+    "overview_dpi": 300,
+    "panels": [
+      "all",
+      "protein",
+      "coverage",
+      "reads",
+      "transcripts"
+    ],
+    "view": "all",
+    "width_inches": 16
+  },
+  "result_filters_applied": false,
+  "schema_version": 1,
+  "transcript_whitelist": [
+    "ENST00000360184"
+  ],
+  "transcripts": [
+    {
+      "exons": [
+        [
+          101964527,
+          101964947
+        ],
+        [
+          101975711,
+          101975799
+        ],
+        [
+          101979318,
+          101979492
+        ],
+        [
+          101979718,
+          101979974
+        ],
+        [
+          101980363,
+          101980550
+        ],
+        [
+          101983018,
+          101983290
+        ],
+        [
+          101983381,
+          101983609
+        ],
+        [
+          101985686,
+          101986763
+        ],
+        [
+          101987452,
+          101987632
+        ],
+        [
+          101988702,
+          101988852
+        ],
+        [
+          101991526,
+          101991673
+        ],
+        [
+          101994183,
+          101994324
+        ],
+        [
+          101994672,
+          101994849
+        ],
+        [
+          101994985,
+          101995096
+        ],
+        [
+          101995180,
+          101995300
+        ],
+        [
+          101997034,
+          101997274
+        ],
+        [
+          101999988,
+          102000144
+        ],
+        [
+          102000285,
+          102000399
+        ],
+        [
+          102000953,
+          102001064
+        ],
+        [
+          102001144,
+          102001354
+        ],
+        [
+          102001534,
+          102001681
+        ],
+        [
+          102002536,
+          102002703
+        ],
+        [
+          102002791,
+          102002965
+        ],
+        [
+          102004517,
+          102004683
+        ],
+        [
+          102004761,
+          102004950
+        ],
+        [
+          102005041,
+          102005236
+        ],
+        [
+          102005887,
+          102006170
+        ],
+        [
+          102007007,
+          102007108
+        ],
+        [
+          102008177,
+          102008337
+        ],
+        [
+          102009842,
+          102010086
+        ],
+        [
+          102010275,
+          102010459
+        ],
+        [
+          102010739,
+          102010952
+        ],
+        [
+          102011874,
+          102012113
+        ],
+        [
+          102012313,
+          102012470
+        ],
+        [
+          102015104,
+          102015332
+        ],
+        [
+          102015855,
+          102016086
+        ],
+        [
+          102016348,
+          102016489
+        ],
+        [
+          102016765,
+          102016999
+        ],
+        [
+          102017087,
+          102017294
+        ],
+        [
+          102017382,
+          102017504
+        ],
+        [
+          102018450,
+          102018616
+        ],
+        [
+          102019892,
+          102020056
+        ],
+        [
+          102022750,
+          102022880
+        ],
+        [
+          102026573,
+          102026707
+        ],
+        [
+          102027173,
+          102027288
+        ],
+        [
+          102027382,
+          102027544
+        ],
+        [
+          102027618,
+          102027833
+        ],
+        [
+          102027936,
+          102028141
+        ],
+        [
+          102029538,
+          102029712
+        ],
+        [
+          102029818,
+          102029938
+        ],
+        [
+          102030161,
+          102030282
+        ],
+        [
+          102032271,
+          102032467
+        ],
+        [
+          102033064,
+          102033182
+        ],
+        [
+          102033268,
+          102033484
+        ],
+        [
+          102033975,
+          102034188
+        ],
+        [
+          102034324,
+          102034452
+        ],
+        [
+          102036488,
+          102036642
+        ],
+        [
+          102038459,
+          102038606
+        ],
+        [
+          102038697,
+          102038848
+        ],
+        [
+          102039000,
+          102039254
+        ],
+        [
+          102039411,
+          102039546
+        ],
+        [
+          102039637,
+          102039732
+        ],
+        [
+          102040235,
+          102040410
+        ],
+        [
+          102040597,
+          102040673
+        ],
+        [
+          102041573,
+          102041734
+        ],
+        [
+          102042012,
+          102042124
+        ],
+        [
+          102042227,
+          102042288
+        ],
+        [
+          102042383,
+          102042507
+        ],
+        [
+          102042634,
+          102042748
+        ],
+        [
+          102043874,
+          102044045
+        ],
+        [
+          102044273,
+          102044491
+        ],
+        [
+          102044594,
+          102044698
+        ],
+        [
+          102047816,
+          102048028
+        ],
+        [
+          102048515,
+          102048669
+        ],
+        [
+          102049439,
+          102049582
+        ],
+        [
+          102049713,
+          102049882
+        ],
+        [
+          102050070,
+          102050198
+        ],
+        [
+          102050434,
+          102050791
+        ]
+      ],
+      "gene": "DYNC1H1",
+      "id": "ENST00000360184",
+      "name": "DYNC1H1-001",
+      "rna_supported": true,
+      "strand": "+"
+    }
+  ],
+  "varcode_version": "7.0.0",
+  "variant": {
+    "alt": "T",
+    "contig": "14",
+    "interval": [
+      102030199,
+      102030200
+    ],
+    "ref": "G",
+    "reference": "GRCh38-osteosarc-vaccine-cohort-ensembl87-7be1ab94b01efb6b",
+    "start": 102030200
+  }
+}

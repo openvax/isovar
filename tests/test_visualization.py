@@ -53,6 +53,48 @@ def test_comparison_is_exactly_the_existing_pipeline(evidence_data):
     assert data["transcripts"][0]["name"] == "EXAMPLE-201"
 
 
+def test_reference_predictions_can_be_disabled_without_changing_rna(evidence_data, monkeypatch):
+    data, variant, evidence = evidence_data
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Prediction was requested despite explicit opt-out")
+
+    monkeypatch.setattr("isovar.visualization.predicted_effects_for_variant", forbidden)
+    without = collect_visualization_data(variant, evidence, compare_assembly=True, include_reference_predictions=False)
+    assert without["reference_predictions"] == []
+    assert without["modes"] == data["modes"]
+
+
+def test_reference_predictions_group_sequences_not_transcript_identity(evidence_data):
+    pytest.importorskip("matplotlib")
+    from isovar.visualization import _figure_caption, _prediction_groups
+
+    data, _, _ = evidence_data
+    protein = dict(amino_acids="ARG", mutation_start=1, mutation_end=2, ends_with_stop_codon=False)
+    data["transcripts"].append(dict(data["transcripts"][0], id="TX2", name="EXAMPLE-202"))
+    data["reference_predictions"] = [dict(transcript_id="TX1", description="p.K2R", protein=protein),
+                                     dict(transcript_id="TX2", description="p.K8R", protein=dict(protein))]
+    assert len(_prediction_groups(data)) == 1
+    figure = plot_variant_evidence(data, view="protein")
+    texts = [t.get_text() for t in figure.axes[0].texts]
+    assert "Varcode 1\n(2 transcripts)" in texts
+    caption = _figure_caption(data)
+    assert "p.K2R" in caption and "p.K8R" in caption
+    assert "reference transcript plus the nominated variant only" in caption
+
+
+def test_unannotated_flank_is_not_labeled_as_an_intron(evidence_data):
+    pytest.importorskip("matplotlib")
+    data, _, _ = evidence_data
+    data["transcripts"][0]["exons"] = [[950, 1200]]
+    data["modes"][0]["protein"]["witness"]["genomic_blocks"] = [[900, 1030]]
+    figure = plot_variant_evidence(data, view="transcripts")
+    ax = figure.axes[0]
+    assert any("compressed genomic gap" in t.get_text() for t in ax.texts)
+    assert not any("compressed intron" in t.get_text() for t in ax.texts)
+    assert not any(line.get_label() == "_annotated_intron" for line in ax.lines)
+
+
 def test_oriented_span_coverage_is_exact(evidence_data):
     data, _, _ = evidence_data
     for mode in data["modes"]:

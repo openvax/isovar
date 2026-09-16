@@ -28,6 +28,64 @@ CASE_IDS = (
     "34-SLC25A12-chr2-171813470-fbea0bf403520431",
     "36-TECPR1-chr7-98241127-8fda918141cedf55",
 )
+ADDITIONAL_CASE_IDS = (
+    "10-DYNC1H1-chr14-101980529-53f498a544883d51",
+    "11-DYNC1H1-chr14-102030200-1b66c15da594a3ef",
+    "17-H1_2-chr6-26055824-1120a096937e29e1",
+    "21-MAP2-chr2-209694768-2bc1fc291308debb",
+    "25-NAV2-chr11-20080142-8fda918141cedf55",
+    "28-NTF3-chr12-5494381-53f498a544883d51",
+)
+PAIR_CORPUS = CORPUS.parents[1] / "figure_comparisons/corpus"
+PAIR_CASE_IDS = ("PIP5K1A-T1-ONT", "PIP5K1A-T1-Illumina")
+
+
+def case_caption(case, data):
+    on, off = [m["protein"] for m in data["modes"]]
+    gene = case["variant"]["gene"]
+    if on is None:
+        summary = ("No RNA-derived protein under the default coverage floor of two read objects. "
+                   "%d alternate-supporting object(s) are available. Varcode supplies a prediction, "
+                   "not evidence of mutant expression." % data["counts"]["alt"]["observations"])
+    else:
+        summary = ("Assembly on: %d aa and %d mutation-overlapping 25-mers; assembly off: %d aa and %d 25-mers. "
+                   "Both outputs pass independent RNA translation, frame and interval checks. " % (
+                       len(on["amino_acids"]), on["peptide_windows"],
+                       len(off["amino_acids"]) if off else 0, off["peptide_windows"] if off else 0))
+        if case["case_id"] in CASE_IDS:
+            if not (off and len(on["amino_acids"]) > len(off["amino_acids"])
+                    and off["amino_acids"] in on["amino_acids"] and not on["witness"]["spanning_observations"]):
+                raise ValueError("Example is no longer simple context recovery: " + case["case_id"])
+            summary += ("Both also match the independent reference-plus-edit expectation. The shorter sequence "
+                        "is not mistranslated. No single read object spans the full reconstructed cDNA. ")
+    if gene == "NAV2":
+        summary += ("The current splice-aware output retains %d contributing transcript models, not a unique isoform. "
+                    "Other Varcode predictions remain visible for comparison, not as isoform assignments. "
+                    "The earlier seven-isoform V/L comparison predates splice-path restriction and is not the "
+                    "current result. Black transcript models contribute to this RNA protein; gray models do not. "
+                    "The 47-aa RNA sequence ends at W, before the reference predictions diverge into LR or VN; "
+                    "those extra residues are predicted, not reconstructed. No junction remains inside this "
+                    "retained cDNA window. Path compatibility may use alignment beyond the plotted window. "
+                    % len(on["transcript_ids"]))
+    elif gene == "NTF3":
+        summary += ("For the nominated chr12:5494381 A>G call, Varcode predicts K56R (K69R on the other model). "
+                    "RNA instead encodes serine: the adjacent change gives the source-linked compound AG>GT allele. "
+                    "This is a translated RNA-versus-single-edit difference, not proof of a germline or somatic origin "
+                    "for the second base. Both assembly modes recover it; assembly is not required here. ")
+    elif gene == "H1-2":
+        summary += ("H1-2 is named HIST1H1C in the pinned Ensembl 87 annotation. This is a 15-nt in-frame "
+                    "deletion, not a structural variant. Varcode's repeat-normalized deletion label differs from "
+                    "the source label; the full mutant sequence is independently checked. ")
+    if case["case_id"] in PAIR_CASE_IDS:
+        summary += ("This is the complete acquired locus, not a selected read subset: " + case["case_id"] + ". "
+                    "ONT and Illumina products are both catalogued T1, but are different processed libraries. "
+                    "The ONT sequence passes independent reference-plus-edit validation; the Illumina product "
+                    "has only one alternate read object. This demonstrates insufficient support in that product, "
+                    "not that short reads intrinsically cannot reconstruct the sequence or that read length alone "
+                    "explains the difference. ONT also reconstructs it without overlap assembly. ")
+        return summary + "No cell/molecule-level independence or matched malignant-cell composition is established."
+    return summary + ("Selected primary-only original RNA fixtures are not full-sample abundance estimates. "
+                      "Varcode tracks assume only the nominated edit on each reference transcript.")
 
 
 def check_no_nonfocal_witness_indels(protein):
@@ -45,22 +103,25 @@ def check_no_nonfocal_witness_indels(protein):
                     raise ValueError("Non-focal retained indel: figure needs a separate frame audit (#265)")
 
 
-def generate(output_dir):
-    """Validate both modes and save a reproducible three-example figure batch."""
+def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS):
+    """Validate both modes and save reproducible original-read figures."""
     manifest = json.loads((CORPUS / "manifest.json").read_text())
     cases = {c["case_id"]: c for c in manifest["cases"]}
+    if set(case_ids).intersection(PAIR_CASE_IDS):
+        cases.update({c["case_id"]: c for c in json.loads((PAIR_CORPUS / "manifest.json").read_text())["cases"]})
     reference_dir = CORPUS / "references/GRCh38"
     reference_manifest, models = load_reference(reference_dir)
     output = timestamped_run_directory(output_dir)
     summaries = []
     with tempfile.TemporaryDirectory(prefix="isovar-figure-reference-") as cache:
         genome = reference_genome(reference_dir, cache)
-        for case_id in CASE_IDS:
+        for case_id in case_ids:
             case = cases[case_id]
+            case_corpus = PAIR_CORPUS if case_id in PAIR_CASE_IDS else CORPUS
             r = case["variant"]
-            bam_path = CORPUS / case["primary_bam"]
+            bam_path = case_corpus / case["primary_bam"]
             for filename in (case["primary_bam"], case["primary_bam"] + ".bai"):
-                if digest(CORPUS / filename) != case["files"][filename]:
+                if digest(case_corpus / filename) != case["files"][filename]:
                     raise ValueError("Fixture checksum mismatch: " + filename)
             variant = Variant(r["chrom"].removeprefix("chr"), r["pos"], r["ref"], r["alt"], ensembl=genome)
             expected = {tid: apply_variant(r, models[tid])
@@ -69,45 +130,45 @@ def generate(output_dir):
                 evidence = ReadCollector(use_secondary_alignments=False).read_evidence_for_variant(variant, bam)
             data = collect_visualization_data(variant, evidence, compare_assembly=True,
                                               transcript_id_whitelist=set(expected))
+            data["genes"] = [r["gene"]]
+            for prediction in data["reference_predictions"]:
+                p = prediction["protein"]
+                if p:
+                    full = expected[prediction["transcript_id"]]["mutant_protein"]
+                    offset = p["protein_start_1based"] - 1
+                    if p["amino_acids"] != full[offset:offset + len(p["amino_acids"])]:
+                        raise ValueError("Varcode baseline disagrees with independent reference edit: " + case_id)
             validation = []
             for assembly in (True, False):
                 creator = ProteinSequenceCreator(variant_sequence_assembly=assembly)
                 proteins = creator.sorted_protein_sequences_for_variant(
                     variant, evidence, transcript_id_whitelist=set(expected))
                 if not proteins:
-                    raise ValueError("Selected example no longer has a protein: " + case_id)
+                    validation.append(dict(assembly=assembly, checks=[], status="no_protein"))
+                    continue
                 check_no_nonfocal_witness_indels(proteins[0])
                 checked = protein_check(proteins[0], expected, creator.protein_sequence_length,
                                         creator.protein_context_peptide_length)
-                if checked["validation_status"] != "ok" or not checked["matches_expected"]:
+                if checked["validation_status"] != "ok":
                     raise ValueError("Independent validation failed: " + case_id)
                 # Record independent checks but omit the public source read names.
-                validation.append(dict(assembly=assembly, checks=checked["checks"]))
+                validation.append(dict(assembly=assembly, checks=checked["checks"], status="ok"))
             on, off = [m["protein"] for m in data["modes"]]
-            if not (len(on["amino_acids"]) > len(off["amino_acids"])
-                    and off["amino_acids"] in on["amino_acids"]):
-                raise ValueError("Example is no longer simple context recovery: " + case_id)
-            caption = (
-                "Assembly recovers %d aa rather than %d aa, providing %d rather than %d "
-                "mutation-overlapping 25-mers. Both sequences pass independent translation "
-                "and transcript-reference checks; the shorter output is not mistranslated. "
-                "No single read object spans the full reconstructed cDNA. "
-                "These are selected primary-only original RNA fixtures, not full-sample abundance estimates."
-            ) % (len(on["amino_acids"]), len(off["amino_acids"]), on["peptide_windows"], off["peptide_windows"])
-            if on["witness"]["spanning_observations"]:
-                raise ValueError("A single observation now spans the assembled witness: " + case_id)
+            caption = case_caption(case, data)
             data["provenance"] = dict(
                 case_id=case_id, source_id=case["source_id"], source_variant_url=r["source_url"],
                 source_bam_url=case["source_url"],
                 fixture=case["primary_bam"], fixture_sha256=digest(bam_path),
-                corpus_manifest_sha256=digest(CORPUS / "manifest.json"),
+                corpus_manifest_sha256=digest(case_corpus / "manifest.json"),
                 reference_manifest_sha256=digest(reference_dir / "manifest.json"),
                 reference_files=reference_manifest["files"],
-                original_allele=r, selection="Pinned selected original reads; primary-only derivative",
+                original_allele=r, selection=("Complete acquired locus; primary-only derivative" if case_id in PAIR_CASE_IDS
+                                             else "Pinned selected original reads; primary-only derivative"),
                 excluded_flags=[256, 1024, 2048], merge_overlapping_fragments=True,
                 nonfocal_witness_indels=0,
+                sample_label=case_id if case_id in PAIR_CASE_IDS else None,
                 independent_validation=validation, caption=caption)
-            directory = save_variant_figures(data, output)
+            directory = save_variant_figures(data, output / case_id if case_id in PAIR_CASE_IDS else output)
             (directory / "README.md").write_text(
                 "# " + r["gene"] + " assembly comparison\n\n" + caption + "\n\n"
                 + "\n\n".join("## " + label + "\n\n![" + label + "](" + name + ".png)\n\n"
@@ -118,9 +179,11 @@ def generate(output_dir):
                 + "Source variant: " + r["source_url"] + "\n\n"
                 + "Source RNA product: `" + case["source_id"] + "`. Fixture: `" + case["primary_bam"] + "`.\n\n"
                 + "See evidence.json for exact settings, transcript models, checksums and independent validation.\n")
-            summaries.append(dict(case_id=case_id, directory=directory.name, caption=caption,
-                                  on_length=len(on["amino_acids"]), off_length=len(off["amino_acids"]),
-                                  on_windows=on["peptide_windows"], off_windows=off["peptide_windows"]))
+            summaries.append(dict(case_id=case_id, directory=str(directory.relative_to(output)), caption=caption,
+                                  on_length=len(on["amino_acids"]) if on else 0,
+                                  off_length=len(off["amino_acids"]) if off else 0,
+                                  on_windows=on["peptide_windows"] if on else 0,
+                                  off_windows=off["peptide_windows"] if off else 0))
     (output / "manifest.json").write_text(json.dumps(dict(examples=summaries), indent=2) + "\n")
     (output / "README.md").write_text(
         "# Osteosarc assembly figures\n\n"
@@ -129,7 +192,9 @@ def generate(output_dir):
         "Each variant has separate protein, read-overlap, coverage and transcript figures, plus a 300-dpi overview preview, "
         "a multipage all-figures.pdf, captions and evidence.json. Source reads are public CC0 osteosarc.com data; see "
         "tests/data/osteosarc/README.md for source and selection details.\n\n"
-        "Assembly recovers missing local context in these examples. This does not establish a unique "
+        "Assembly recovers missing context in the first three examples; later cases show agreement, "
+        "insufficient support, transcript ambiguity and RNA differences from a single-edit prediction. "
+        "This does not establish a unique "
         "isoform, full-length protein, peptide presentation, or clinical suitability. The comparison "
         "changes only overlap assembly; mate merging stays enabled in both modes.\n\n"
         + "\n\n".join("## " + s["case_id"] + "\n\n" + s["caption"]

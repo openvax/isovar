@@ -1,0 +1,318 @@
+{
+  "counts": {
+    "alt": {
+      "observations": 1,
+      "templates": 1
+    },
+    "other": {
+      "observations": 0,
+      "templates": 0
+    },
+    "ref": {
+      "observations": 0,
+      "templates": 0
+    }
+  },
+  "genes": [
+    "MAP2"
+  ],
+  "isovar_version": "1.14.0",
+  "limitations": [
+    "Protein candidates are shown before run_isovar result-level filters.",
+    "Protein selection is not independent biological validation or a clinical recommendation.",
+    "Each mode shows its top protein and one contributing cDNA witness, not all alternatives.",
+    "Varcode tracks assume the reference transcript plus only the nominated edit; they are not RNA evidence.",
+    "Spans and coverage count post-merge read objects, not independent molecules.",
+    "Known upstream-indel frame and secondary-alignment limitations: Isovar #265 and #264."
+  ],
+  "modes": [
+    {
+      "assembly": true,
+      "protein": null,
+      "settings": {
+        "count_mismatches_after_variant": false,
+        "max_protein_sequences_per_variant": 1,
+        "max_transcript_mismatches": 2,
+        "min_assembly_overlap_size": 30,
+        "min_protein_sequence_support_fraction": 0.85,
+        "min_transcript_prefix_length": 10,
+        "min_variant_sequence_coverage": 2,
+        "protein_context_peptide_length": 25,
+        "protein_sequence_length": 49,
+        "protein_sequence_preference": "balanced",
+        "variant_sequence_assembly": true
+      }
+    },
+    {
+      "assembly": false,
+      "protein": null,
+      "settings": {
+        "count_mismatches_after_variant": false,
+        "max_protein_sequences_per_variant": 1,
+        "max_transcript_mismatches": 2,
+        "min_assembly_overlap_size": 30,
+        "min_protein_sequence_support_fraction": 0.85,
+        "min_transcript_prefix_length": 10,
+        "min_variant_sequence_coverage": 2,
+        "protein_context_peptide_length": 25,
+        "protein_sequence_length": 49,
+        "protein_sequence_preference": "balanced",
+        "variant_sequence_assembly": false
+      }
+    }
+  ],
+  "provenance": {
+    "caption": "No RNA-derived protein under the default coverage floor of two read objects. 1 alternate-supporting object(s) are available. Varcode supplies a prediction, not evidence of mutant expression.Selected primary-only original RNA fixtures are not full-sample abundance estimates. Varcode tracks assume only the nominated edit on each reference transcript.",
+    "case_id": "21-MAP2-chr2-209694768-2bc1fc291308debb",
+    "corpus_manifest_sha256": "3ffb02fb47cbad8ff439e1eb357862b919d9c8cf66f8cbbdb8d1e860b6d57ebd",
+    "excluded_flags": [
+      256,
+      1024,
+      2048
+    ],
+    "fixture": "21-MAP2-chr2-209694768-2bc1fc291308debb.primary.bam",
+    "fixture_sha256": "7a514f579ea8ae8d780d96f00e81a0059f0e25722b43eeb8d252e4cdc873c29e",
+    "independent_validation": [
+      {
+        "assembly": true,
+        "checks": [],
+        "status": "no_protein"
+      },
+      {
+        "assembly": false,
+        "checks": [],
+        "status": "no_protein"
+      }
+    ],
+    "merge_overlapping_fragments": true,
+    "nonfocal_witness_indels": 0,
+    "original_allele": {
+      "alt": "C",
+      "assembly": "GRCh38",
+      "chrom": "chr2",
+      "gene": "MAP2",
+      "genomic_validation": {
+        "allele_offset": 30,
+        "end": 209694820,
+        "genome": "hg38",
+        "receipt": {
+          "bytes": 243,
+          "sha256": "4d098b9a04c70e6d81ee19685735f7415fbd50b8e7c92569aa783d59343e55bc",
+          "url": "https://api.genome.ucsc.edu/getData/sequence?genome=hg38&chrom=chr2&start=209694737&end=209694820"
+        },
+        "sequence": "CATTGTAAAAACGGACAGTCAGCTCGAAGACCTGGGCTACTGTGTGTTCAATAAGTACACAGTCCCATTGCCATCACCTGTTC",
+        "start": 209694737
+      },
+      "pos": 209694768,
+      "ref": "CCTGGGCTACTGTGTGTTCAATA",
+      "source_location": "chr2:209694768",
+      "source_protein_label": "p.Leu867fs",
+      "source_url": "https://osteosarc.com/variant/MAP2-chr2-209694768/",
+      "vaccine_count": 3,
+      "variant_id": "MAP2-chr2-209694768"
+    },
+    "reference_files": {
+      "models.json.gz": "f579a53633bd0e7f2bf8e62c3ac147a33909ff7dbf678ea2b33e349ff35727c2",
+      "reference.cdna.fa.gz": "6a88b30246cea10a2bf763a09c82e932960f6b70d20b52094312d20fc2281054",
+      "reference.gtf.gz": "098d0f71e178aabacf8cf07306d615c27e6c481828887997fb5955fd57eeec78",
+      "reference.pep.fa.gz": "5b179f645dc1e2591ee99dff7f3cc7418eaf395a6c3fc33cb9958ad0c6b6ee58"
+    },
+    "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+    "sample_label": null,
+    "selection": "Pinned selected original reads; primary-only derivative",
+    "source_bam_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT_dedup/IPISRC044_T2_sclrs_ONT_dedup.bam",
+    "source_id": "2bc1fc291308debb",
+    "source_variant_url": "https://osteosarc.com/variant/MAP2-chr2-209694768/"
+  },
+  "reference_predictions": [
+    {
+      "description": "p.L867fs",
+      "effect": "FrameShift",
+      "protein": {
+        "amino_acids": "SRTGLPPVTDENHVIVKTDSQLEDSTQSHCHHLFKTVRIYQGRVVPFTK",
+        "anchor_1based": 867,
+        "ends_with_stop_codon": false,
+        "frameshift": true,
+        "mutation_end": 49,
+        "mutation_start": 24,
+        "protein_start_1based": 843
+      },
+      "transcript_id": "ENST00000360351"
+    },
+    {
+      "description": "p.L863fs",
+      "effect": "FrameShift",
+      "protein": {
+        "amino_acids": "SRTGLPPVTDENHVIVKTDSQLEDSTQSHCHHLFKTVRIYQGRVVPFTK",
+        "anchor_1based": 863,
+        "ends_with_stop_codon": false,
+        "frameshift": true,
+        "mutation_end": 49,
+        "mutation_start": 24,
+        "protein_start_1based": 839
+      },
+      "transcript_id": "ENST00000447185"
+    }
+  ],
+  "rendering": {
+    "background": "white",
+    "dpi": 600,
+    "max_rows": 20,
+    "overview_dpi": 300,
+    "panels": [
+      "all",
+      "protein",
+      "coverage",
+      "reads",
+      "transcripts"
+    ],
+    "view": "all",
+    "width_inches": 16
+  },
+  "result_filters_applied": false,
+  "schema_version": 1,
+  "transcript_whitelist": [
+    "ENST00000360351",
+    "ENST00000447185"
+  ],
+  "transcripts": [
+    {
+      "exons": [
+        [
+          209579420,
+          209579755
+        ],
+        [
+          209580035,
+          209580100
+        ],
+        [
+          209625052,
+          209625129
+        ],
+        [
+          209653141,
+          209653432
+        ],
+        [
+          209678571,
+          209678685
+        ],
+        [
+          209680749,
+          209680827
+        ],
+        [
+          209692624,
+          209696350
+        ],
+        [
+          209696541,
+          209696748
+        ],
+        [
+          209696916,
+          209697051
+        ],
+        [
+          209700276,
+          209700338
+        ],
+        [
+          209705579,
+          209705727
+        ],
+        [
+          209709913,
+          209710254
+        ],
+        [
+          209725708,
+          209725790
+        ],
+        [
+          209729849,
+          209729962
+        ],
+        [
+          209730181,
+          209734118
+        ]
+      ],
+      "gene": "MAP2",
+      "id": "ENST00000360351",
+      "name": "MAP2-001",
+      "rna_supported": false,
+      "strand": "+"
+    },
+    {
+      "exons": [
+        [
+          209653170,
+          209653432
+        ],
+        [
+          209678571,
+          209678685
+        ],
+        [
+          209680749,
+          209680827
+        ],
+        [
+          209692636,
+          209696350
+        ],
+        [
+          209696541,
+          209696748
+        ],
+        [
+          209696916,
+          209697051
+        ],
+        [
+          209700276,
+          209700338
+        ],
+        [
+          209705579,
+          209705727
+        ],
+        [
+          209709913,
+          209710254
+        ],
+        [
+          209725708,
+          209725790
+        ],
+        [
+          209729849,
+          209729962
+        ],
+        [
+          209730181,
+          209730397
+        ]
+      ],
+      "gene": "MAP2",
+      "id": "ENST00000447185",
+      "name": "MAP2-014",
+      "rna_supported": false,
+      "strand": "+"
+    }
+  ],
+  "varcode_version": "7.0.0",
+  "variant": {
+    "alt": "",
+    "contig": "2",
+    "interval": [
+      209694768,
+      209694790
+    ],
+    "ref": "CTGGGCTACTGTGTGTTCAATA",
+    "reference": "GRCh38-osteosarc-vaccine-cohort-ensembl87-7be1ab94b01efb6b",
+    "start": 209694769
+  }
+}

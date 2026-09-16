@@ -1,0 +1,498 @@
+{
+  "counts": {
+    "alt": {
+      "observations": 1,
+      "templates": 1
+    },
+    "other": {
+      "observations": 0,
+      "templates": 0
+    },
+    "ref": {
+      "observations": 129,
+      "templates": 129
+    }
+  },
+  "genes": [
+    "PIP5K1A"
+  ],
+  "isovar_version": "1.14.0",
+  "limitations": [
+    "Protein candidates are shown before run_isovar result-level filters.",
+    "Protein selection is not independent biological validation or a clinical recommendation.",
+    "Each mode shows its top protein and one contributing cDNA witness, not all alternatives.",
+    "Varcode tracks assume the reference transcript plus only the nominated edit; they are not RNA evidence.",
+    "Spans and coverage count post-merge read objects, not independent molecules.",
+    "Known upstream-indel frame and secondary-alignment limitations: Isovar #265 and #264."
+  ],
+  "modes": [
+    {
+      "assembly": true,
+      "protein": null,
+      "settings": {
+        "count_mismatches_after_variant": false,
+        "max_protein_sequences_per_variant": 1,
+        "max_transcript_mismatches": 2,
+        "min_assembly_overlap_size": 30,
+        "min_protein_sequence_support_fraction": 0.85,
+        "min_transcript_prefix_length": 10,
+        "min_variant_sequence_coverage": 2,
+        "protein_context_peptide_length": 25,
+        "protein_sequence_length": 49,
+        "protein_sequence_preference": "balanced",
+        "variant_sequence_assembly": true
+      }
+    },
+    {
+      "assembly": false,
+      "protein": null,
+      "settings": {
+        "count_mismatches_after_variant": false,
+        "max_protein_sequences_per_variant": 1,
+        "max_transcript_mismatches": 2,
+        "min_assembly_overlap_size": 30,
+        "min_protein_sequence_support_fraction": 0.85,
+        "min_transcript_prefix_length": 10,
+        "min_variant_sequence_coverage": 2,
+        "protein_context_peptide_length": 25,
+        "protein_sequence_length": 49,
+        "protein_sequence_preference": "balanced",
+        "variant_sequence_assembly": false
+      }
+    }
+  ],
+  "provenance": {
+    "caption": "No RNA-derived protein under the default coverage floor of two read objects. 1 alternate-supporting object(s) are available. Varcode supplies a prediction, not evidence of mutant expression.This is the complete acquired locus, not a selected read subset: PIP5K1A-T1-Illumina. ONT and Illumina products are both catalogued T1, but are different processed libraries. The ONT sequence passes independent reference-plus-edit validation; the Illumina product has only one alternate read object. This demonstrates insufficient support in that product, not that short reads intrinsically cannot reconstruct the sequence or that read length alone explains the difference. ONT also reconstructs it without overlap assembly. No cell/molecule-level independence or matched malignant-cell composition is established.",
+    "case_id": "PIP5K1A-T1-Illumina",
+    "corpus_manifest_sha256": "5f800b1ecd4a5f38395664558b10f309822da3284dba433a66c301a9c7186f63",
+    "excluded_flags": [
+      256,
+      1024,
+      2048
+    ],
+    "fixture": "PIP5K1A-T1-Illumina.primary.bam",
+    "fixture_sha256": "5f11ab65c1fb6d5662976dc649b919615a11b4e5dcd48e9d6c705fc86f341937",
+    "independent_validation": [
+      {
+        "assembly": true,
+        "checks": [],
+        "status": "no_protein"
+      },
+      {
+        "assembly": false,
+        "checks": [],
+        "status": "no_protein"
+      }
+    ],
+    "merge_overlapping_fragments": true,
+    "nonfocal_witness_indels": 0,
+    "original_allele": {
+      "alt": "A",
+      "assembly": "GRCh38",
+      "chrom": "chr1",
+      "gene": "PIP5K1A",
+      "genomic_validation": {
+        "allele_offset": 30,
+        "end": 151242209,
+        "genome": "hg38",
+        "receipt": {
+          "bytes": 222,
+          "sha256": "afb69812dce63ec6829968ea811341370518bab627cc7af44c3952af6f865818",
+          "url": "https://api.genome.ucsc.edu/getData/sequence?genome=hg38&chrom=chr1&start=151242147&end=151242209"
+        },
+        "sequence": "TCGGTCTGGCTCATCTTTCTCTCGGCGAGCAGGCTCCAGTGGCAACTCCTGCATTACTTACC",
+        "start": 151242147
+      },
+      "pos": 151242178,
+      "ref": "AG",
+      "source_location": "chr1:151242178",
+      "source_protein_label": "p.Gly474fs",
+      "source_url": "https://osteosarc.com/variant/PIP5K1A-chr1-151242178/",
+      "vaccine_count": 3,
+      "variant_id": "PIP5K1A-chr1-151242178"
+    },
+    "reference_files": {
+      "models.json.gz": "f579a53633bd0e7f2bf8e62c3ac147a33909ff7dbf678ea2b33e349ff35727c2",
+      "reference.cdna.fa.gz": "6a88b30246cea10a2bf763a09c82e932960f6b70d20b52094312d20fc2281054",
+      "reference.gtf.gz": "098d0f71e178aabacf8cf07306d615c27e6c481828887997fb5955fd57eeec78",
+      "reference.pep.fa.gz": "5b179f645dc1e2591ee99dff7f3cc7418eaf395a6c3fc33cb9958ad0c6b6ee58"
+    },
+    "reference_manifest_sha256": "7be1ab94b01efb6b15c77640dad760db2a21cbc5312918a0eb3a26db46c7e96b",
+    "sample_label": "PIP5K1A-T1-Illumina",
+    "selection": "Complete acquired locus; primary-only derivative",
+    "source_bam_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ucsf/T1/illumina_bams/June2024_pfo-004-SYS2.bam",
+    "source_id": "c89442609fffd3f1",
+    "source_variant_url": "https://osteosarc.com/variant/PIP5K1A-chr1-151242178/"
+  },
+  "reference_predictions": [
+    {
+      "description": "p.G461fs",
+      "effect": "FrameShift",
+      "protein": {
+        "amino_acids": "FKKIPLKPSPSKKFRSGSSFSRRAAPVATPALLTSHRSLGNTRHK",
+        "anchor_1based": 461,
+        "ends_with_stop_codon": false,
+        "frameshift": true,
+        "mutation_end": 45,
+        "mutation_start": 24,
+        "protein_start_1based": 437
+      },
+      "transcript_id": "ENST00000349792"
+    },
+    {
+      "description": "p.G474fs",
+      "effect": "FrameShift",
+      "protein": {
+        "amino_acids": "FKKIPLKPSPSKKFRSGSSFSRRAAPVATPALLTSHRSLGNTRHK",
+        "anchor_1based": 474,
+        "ends_with_stop_codon": false,
+        "frameshift": true,
+        "mutation_end": 45,
+        "mutation_start": 24,
+        "protein_start_1based": 450
+      },
+      "transcript_id": "ENST00000368888"
+    },
+    {
+      "description": "p.G462fs",
+      "effect": "FrameShift",
+      "protein": {
+        "amino_acids": "FKKIPLKPSPSKKFRSGSSFSRRAAPVATPALLTSHRSLGNTRHK",
+        "anchor_1based": 462,
+        "ends_with_stop_codon": false,
+        "frameshift": true,
+        "mutation_end": 45,
+        "mutation_start": 24,
+        "protein_start_1based": 438
+      },
+      "transcript_id": "ENST00000409426"
+    },
+    {
+      "description": "p.G434fs",
+      "effect": "FrameShift",
+      "protein": {
+        "amino_acids": "FKKIPLKPSPSKKFRSGSSFSRRAAPVATPALLTSHRSLGNTRHK",
+        "anchor_1based": 434,
+        "ends_with_stop_codon": false,
+        "frameshift": true,
+        "mutation_end": 45,
+        "mutation_start": 24,
+        "protein_start_1based": 410
+      },
+      "transcript_id": "ENST00000441902"
+    }
+  ],
+  "rendering": {
+    "background": "white",
+    "dpi": 600,
+    "max_rows": 20,
+    "overview_dpi": 300,
+    "panels": [
+      "all",
+      "protein",
+      "coverage",
+      "reads",
+      "transcripts"
+    ],
+    "view": "all",
+    "width_inches": 16
+  },
+  "result_filters_applied": false,
+  "schema_version": 1,
+  "transcript_whitelist": [
+    "ENST00000349792",
+    "ENST00000368888",
+    "ENST00000409426",
+    "ENST00000441902"
+  ],
+  "transcripts": [
+    {
+      "exons": [
+        [
+          151198550,
+          151199081
+        ],
+        [
+          151224247,
+          151224279
+        ],
+        [
+          151227319,
+          151227400
+        ],
+        [
+          151231670,
+          151231801
+        ],
+        [
+          151232247,
+          151232365
+        ],
+        [
+          151232550,
+          151232703
+        ],
+        [
+          151234196,
+          151234496
+        ],
+        [
+          151236557,
+          151236763
+        ],
+        [
+          151238181,
+          151238265
+        ],
+        [
+          151239129,
+          151239178
+        ],
+        [
+          151239954,
+          151240039
+        ],
+        [
+          151242122,
+          151242269
+        ],
+        [
+          151242437,
+          151242567
+        ],
+        [
+          151246919,
+          151246965
+        ],
+        [
+          151247862,
+          151249536
+        ]
+      ],
+      "gene": "PIP5K1A",
+      "id": "ENST00000349792",
+      "name": "PIP5K1A-001",
+      "rna_supported": false,
+      "strand": "+"
+    },
+    {
+      "exons": [
+        [
+          151198574,
+          151199081
+        ],
+        [
+          151224244,
+          151224279
+        ],
+        [
+          151224370,
+          151224406
+        ],
+        [
+          151227319,
+          151227400
+        ],
+        [
+          151231670,
+          151231801
+        ],
+        [
+          151232247,
+          151232365
+        ],
+        [
+          151232550,
+          151232703
+        ],
+        [
+          151234196,
+          151234496
+        ],
+        [
+          151236557,
+          151236763
+        ],
+        [
+          151238181,
+          151238265
+        ],
+        [
+          151239129,
+          151239178
+        ],
+        [
+          151239954,
+          151240039
+        ],
+        [
+          151242122,
+          151242269
+        ],
+        [
+          151242437,
+          151242567
+        ],
+        [
+          151246919,
+          151246965
+        ],
+        [
+          151247862,
+          151247888
+        ]
+      ],
+      "gene": "PIP5K1A",
+      "id": "ENST00000368888",
+      "name": "PIP5K1A-003",
+      "rna_supported": false,
+      "strand": "+"
+    },
+    {
+      "exons": [
+        [
+          151198551,
+          151199081
+        ],
+        [
+          151224244,
+          151224279
+        ],
+        [
+          151227319,
+          151227400
+        ],
+        [
+          151231670,
+          151231801
+        ],
+        [
+          151232247,
+          151232365
+        ],
+        [
+          151232550,
+          151232703
+        ],
+        [
+          151234196,
+          151234496
+        ],
+        [
+          151236557,
+          151236763
+        ],
+        [
+          151238181,
+          151238265
+        ],
+        [
+          151239129,
+          151239178
+        ],
+        [
+          151239954,
+          151240039
+        ],
+        [
+          151242122,
+          151242269
+        ],
+        [
+          151242437,
+          151242567
+        ],
+        [
+          151246919,
+          151246965
+        ],
+        [
+          151247862,
+          151249504
+        ]
+      ],
+      "gene": "PIP5K1A",
+      "id": "ENST00000409426",
+      "name": "PIP5K1A-015",
+      "rna_supported": false,
+      "strand": "+"
+    },
+    {
+      "exons": [
+        [
+          151198552,
+          151199081
+        ],
+        [
+          151224244,
+          151224279
+        ],
+        [
+          151227319,
+          151227400
+        ],
+        [
+          151231670,
+          151231801
+        ],
+        [
+          151232247,
+          151232365
+        ],
+        [
+          151232550,
+          151232703
+        ],
+        [
+          151234196,
+          151234496
+        ],
+        [
+          151236557,
+          151236763
+        ],
+        [
+          151239129,
+          151239178
+        ],
+        [
+          151239954,
+          151240039
+        ],
+        [
+          151242122,
+          151242269
+        ],
+        [
+          151242437,
+          151242567
+        ],
+        [
+          151246919,
+          151246965
+        ],
+        [
+          151247862,
+          151248149
+        ]
+      ],
+      "gene": "PIP5K1A",
+      "id": "ENST00000441902",
+      "name": "PIP5K1A-016",
+      "rna_supported": false,
+      "strand": "+"
+    }
+  ],
+  "varcode_version": "7.0.0",
+  "variant": {
+    "alt": "",
+    "contig": "1",
+    "interval": [
+      151242178,
+      151242179
+    ],
+    "ref": "G",
+    "reference": "GRCh38-osteosarc-vaccine-cohort-ensembl87-7be1ab94b01efb6b",
+    "start": 151242179
+  }
+}
