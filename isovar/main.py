@@ -28,6 +28,7 @@ from .default_parameters import (
 from .effect_prediction import top_varcode_effect
 from .filtering import apply_filters
 from .phasing import annotate_phased_variants
+from .variant_helpers import require_literal_variant
 
 logger = get_logger(__name__)
 
@@ -101,6 +102,10 @@ def run_isovar(
 
     if isinstance(variants, str):
         variants = load_vcf(variants)
+
+    variants = tuple(variants)
+    for variant in variants:
+        require_literal_variant(variant)
 
     if isinstance(alignment_file, str):
         alignment_file = AlignmentFile(

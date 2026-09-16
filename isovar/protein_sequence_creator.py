@@ -41,6 +41,7 @@ from .translation_helpers import find_mutant_amino_acid_interval
 from .value_object import ValueObject
 from .variant_sequence_creator import VariantSequenceCreator
 from .variant_orf_helpers import match_variant_sequence_to_reference_context
+from .variant_helpers import require_literal_variant
 
 from .logging import get_logger
 
@@ -238,6 +239,9 @@ class ProteinSequenceCreator(ValueObject):
 
     def variant_sequences_from_reads(self, variant, reads):
         """Assemble each distinct compatible-transcript read group once."""
+        # Sequence-only callers can assemble reads without a nominated variant.
+        if variant is not None:
+            require_literal_variant(variant)
         reads = list(reads)
         transcript_read_groups = self._transcript_read_groups(reads)
         if transcript_read_groups is None:
@@ -431,6 +435,7 @@ class ProteinSequenceCreator(ValueObject):
 
         Returns list of Translation objects
         """
+        require_literal_variant(variant)
         variant_reads = list(variant_reads)
         if len(variant_reads) == 0:
             logger.info("No supporting reads for variant %s", variant)

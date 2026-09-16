@@ -24,7 +24,7 @@ from .locus_read import LocusRead
 from .logging import get_logger
 from .allele_read import AlleleRead
 from .allele_read_helpers import allele_reads_from_locus_reads
-from .variant_helpers import trim_variant
+from .variant_helpers import require_literal_variant, trim_variant
 from .read_evidence import ReadEvidence
 
 logger = get_logger(__name__)
@@ -1020,6 +1020,8 @@ class ReadCollector(object):
 
         Returns sequence of LocusRead objects.
         """
+        # Validate before consulting annotation or the alignment handle.
+        require_literal_variant(variant)
         if chromosome is None:
             # if a chromosome name isn't manually specified then try
             # to figure out whether adding or removing "chr" is necessary

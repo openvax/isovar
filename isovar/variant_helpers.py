@@ -20,6 +20,27 @@ from .dna import reverse_complement_dna
 logger = get_logger(__name__)
 
 
+def require_literal_variant(variant):
+    """Reject SV placeholder alleles before using the small-variant pipeline.
+
+    StructuralVariant inherits literal ref/alt placeholders from Variant.
+    Testing the strings alone therefore cannot identify these objects.
+    Explicit-sequence indels remain supported regardless of their length.
+    """
+    if getattr(variant, "is_structural", False):
+        raise ValueError(
+            "Isovar's small-variant pipeline does not support structural variants; "
+            "a sequence-resolved fusion requires a separate reconstruction path.")
+    _require_literal_alleles(variant.ref, variant.alt)
+
+
+def _require_literal_alleles(ref, alt):
+    if any(c in ref or c in alt for c in "<>[]*."):
+        raise ValueError(
+            "Isovar requires literal nucleotide alleles, not symbolic SVs, "
+            "breakends, spanning-deletion markers or missing alleles.")
+
+
 def trim_variant_fields(location, ref, alt):
     """
     Trims common prefixes from the ref and alt sequences
@@ -37,6 +58,7 @@ def trim_variant_fields(location, ref, alt):
 
     Returns adjusted triplet (location, ref, alt)
     """
+    _require_literal_alleles(ref, alt)
     if len(alt) > 0 and ref.startswith(alt):
         # if alt is a prefix of the ref sequence then we actually have a
         # deletion like:
@@ -68,6 +90,7 @@ def trim_variant(variant):
 
     Returns trimmed triplet (location, ref, alt)
     """
+    require_literal_variant(variant)
     return trim_variant_fields(variant.start, variant.ref, variant.alt)
 
 
@@ -88,6 +111,7 @@ def base0_interval_for_variant_fields(base1_location, ref, alt):
     alt : str
         Alternative nucleotides
     """
+    _require_literal_alleles(ref, alt)
     if len(ref) == 0:
         # in interbase coordinates, the insertion happens
         # at the same start/end offsets, since those are already between
@@ -144,6 +168,7 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
     an insertion. On the other hand, deletion the preceding "CGG" at that same locus could
     result in an offset pair such as (97, 100)
     """
+    require_literal_variant(variant)
     if variant.is_insertion:
         if transcript.strand == "+":
             # base-1 position of an insertion is the genomic nucleotide
