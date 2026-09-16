@@ -35,6 +35,7 @@ ADDITIONAL_CASE_IDS = (
     "21-MAP2-chr2-209694768-2bc1fc291308debb",
     "25-NAV2-chr11-20080142-8fda918141cedf55",
     "28-NTF3-chr12-5494381-53f498a544883d51",
+    "48-NR2F2-chr15-96332299-fbeb5d8a415e4d18",
 )
 PAIR_CORPUS = CORPUS.parents[1] / "figure_comparisons/corpus"
 PAIR_CASE_IDS = ("PIP5K1A-T1-ONT", "PIP5K1A-T1-Illumina")
@@ -76,6 +77,13 @@ def case_caption(case, data):
         summary += ("H1-2 is named HIST1H1C in the pinned Ensembl 87 annotation. This is a 15-nt in-frame "
                     "deletion, not a structural variant. Varcode's repeat-normalized deletion label differs from "
                     "the source label; the full mutant sequence is independently checked. ")
+    elif gene == "NR2F2":
+        summary += ("This is the native GRCh37 CeGaT RNA product, not the GRCh38 locus with no alternate reads. "
+                    "Three original templates carry the focal allele and a downstream 3-nt CIGAR deletion "
+                    "at chr15:96875577-96875579. Both assembly modes retain it, whereas the single-edit "
+                    "Varcode prediction does not. The in-frame deletion changes the downstream protein context; "
+                    "its biological origin is not established. Magenta marks position-wise differences, "
+                    "including the shifted sequence after that deletion. ")
     elif gene == "MAP2":
         summary += ("The nominal 22-nt call must not be conflated with the separately observed compound haplotype: "
                     "a 28-nt deletion plus two substitutions. Its local RNA sequence can align as 22D/2M/6D with "
@@ -93,8 +101,9 @@ def case_caption(case, data):
                       "Varcode tracks assume only the nominated edit on each reference transcript.")
 
 
-def check_no_nonfocal_witness_indels(protein):
-    """Keep these demonstrations outside the known upstream-indel bug #265."""
+def nonfocal_witness_indels(protein):
+    """Record retained alignment indels separately from the nominated allele."""
+    indels = set()
     for translation in protein.translations:
         sequence = translation.untrimmed_variant_sequence
         focal = base0_interval_for_variant(translation.reference_context.variant)
@@ -105,7 +114,8 @@ def check_no_nonfocal_witness_indels(protein):
                 gap = (left[3], right[2])
                 if (q0 < left[1] <= right[0] < q1 and gap not in read.splice_junctions
                         and (right[0] != left[1] or gap[0] != gap[1]) and gap != focal):
-                    raise ValueError("Non-focal retained indel: figure needs a separate frame audit (#265)")
+                    indels.add((gap[0], gap[1], right[0] - left[1]))
+    return sorted(indels)
 
 
 def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS):
@@ -114,14 +124,19 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
     cases = {c["case_id"]: c for c in manifest["cases"]}
     if set(case_ids).intersection(PAIR_CASE_IDS):
         cases.update({c["case_id"]: c for c in json.loads((PAIR_CORPUS / "manifest.json").read_text())["cases"]})
-    reference_dir = CORPUS / "references/GRCh38"
-    reference_manifest, models = load_reference(reference_dir)
     output = timestamped_run_directory(output_dir)
     summaries = []
     with tempfile.TemporaryDirectory(prefix="isovar-figure-reference-") as cache:
-        genome = reference_genome(reference_dir, cache)
+        reference_data = {}
         for case_id in case_ids:
             case = cases[case_id]
+            reference_name = case.get("reference", "GRCh38")
+            reference_dir = CORPUS / "references" / reference_name
+            if reference_name not in reference_data:
+                reference_manifest, models = load_reference(reference_dir)
+                reference_data[reference_name] = (reference_manifest, models,
+                    reference_genome(reference_dir, Path(cache) / reference_name))
+            reference_manifest, models, genome = reference_data[reference_name]
             case_corpus = PAIR_CORPUS if case_id in PAIR_CASE_IDS else CORPUS
             r = case["variant"]
             bam_path = case_corpus / case["primary_bam"]
@@ -144,6 +159,7 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
                     if p["amino_acids"] != full[offset:offset + len(p["amino_acids"])]:
                         raise ValueError("Varcode baseline disagrees with independent reference edit: " + case_id)
             validation = []
+            retained_indels = set()
             for assembly in (True, False):
                 creator = ProteinSequenceCreator(variant_sequence_assembly=assembly)
                 proteins = creator.sorted_protein_sequences_for_variant(
@@ -151,7 +167,7 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
                 if not proteins:
                     validation.append(dict(assembly=assembly, checks=[], status="no_protein"))
                     continue
-                check_no_nonfocal_witness_indels(proteins[0])
+                retained_indels.update(nonfocal_witness_indels(proteins[0]))
                 checked = protein_check(proteins[0], expected, creator.protein_sequence_length,
                                         creator.protein_context_peptide_length)
                 if checked["validation_status"] != "ok":
@@ -170,7 +186,7 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
                 original_allele=r, selection=("Complete acquired locus; primary-only derivative" if case_id in PAIR_CASE_IDS
                                              else "Pinned selected original reads; primary-only derivative"),
                 excluded_flags=[256, 1024, 2048], merge_overlapping_fragments=True,
-                nonfocal_witness_indels=0,
+                nonfocal_witness_indels=len(retained_indels), nonfocal_alignment_indels=sorted(retained_indels),
                 sample_label=case_id if case_id in PAIR_CASE_IDS else None,
                 independent_validation=validation, caption=caption)
             directory = save_variant_figures(data, output / case_id if case_id in PAIR_CASE_IDS else output)

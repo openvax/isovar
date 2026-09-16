@@ -11,7 +11,7 @@ import pysam
 
 from isovar.fusion import fusion_from_dict, reconstruct_fusion
 from isovar.fusion_visualization import GREEN, _canvas, save_fusion_figures
-from isovar.visualization import BLUE, GRAY, ORANGE, _plot_imports, _side_note
+from isovar.visualization import BLUE, GRAY, ORANGE, _plot_imports, _protein_disagreements, _side_note
 from tests.data.osteosarc.expansion.references import translate
 from tests.osteosarc_protein_helpers import transcript_offset
 from . import osteosarc_assembly_figures
@@ -124,16 +124,20 @@ def cd109_protein(data):
 
 def protein_rows(title, subtitle, rows, offsets, note, footer=""):
     figure, ax = _canvas(title,subtitle,5.4)
+    differences = _protein_disagreements(dict(amino_acids=p, mutation_start=-start, ends_with_stop_codon=False)
+                                        for _,p,_,start in rows)
     for y,(label,protein,color,start) in enumerate(rows[::-1],1):
         for i,aa in enumerate(protein,start):
             ax.text(i+.5,y,aa,ha="center",va="center",fontsize=11 if len(protein)>55 else 14,
                     fontfamily="monospace",color=color)
+            if i in differences:
+                ax.plot([i+.12,i+.88],[y-.22,y-.22],color="#AA3377",lw=2.5)
         ax.text(-.035,y,label,transform=ax.get_yaxis_transform(),ha="right",va="center",fontsize=11)
     for offset in offsets:
         ax.axvspan(offset,offset+1,color=ORANGE,alpha=.12,zorder=-1)
     ax.set(xlim=(min(r[3] for r in rows)-1,max(r[3]+len(r[1]) for r in rows)+1),
            ylim=(.4,len(rows)+.7),xlabel="Aligned protein offset (amino acids)")
-    _side_note(ax,note)
+    _side_note(ax,note + "\n\nMagenta: tracks differ")
     figure.text(.19,.06,footer,fontsize=10,color=GRAY)
     return figure
 
@@ -222,10 +226,13 @@ def generate(output_dir):
             evidence={"ZNF436-length":data["znf436"],"CD109-phase":dict(sources=data["cd109"],protein=cd109),
                       "MAP2-haplotypes":data["map2"]}[group]
             (directory/"evidence.json").write_text(json.dumps(evidence,indent=2)+"\n")
-    for entry in json.loads((FUSIONS/"manifest.json").read_text()):
+    fusion_entries = [(FUSIONS, e) for e in json.loads((FUSIONS/"manifest.json").read_text())]
+    coding = FUSIONS.parent / "coding-corpus"
+    fusion_entries += [(coding, e) for e in json.loads((coding/"manifest.json").read_text())]
+    for corpus, entry in fusion_entries:
         if "input" not in entry:
             continue
-        raw=(FUSIONS/entry["input"]).read_bytes()
+        raw=(corpus/entry["input"]).read_bytes()
         assert sha256(raw).hexdigest()==entry["sha256"]
         supplied=json.loads(gzip.decompress(raw))
         fusion,refs,reads=fusion_from_dict(supplied)
@@ -249,8 +256,10 @@ def generate(output_dir):
         handle.write("\n\n## Extended evidence gallery\n\nCombined vector PDF: `isovar-all-figures.pdf`. "
             "Page index and bookmarks preserve individual examples; all panels also have separate 600-dpi PNG and SVG files. "
             "ZNF436 isolates a read-span limitation; CD109 demonstrates direct phase; MAP2 separates distinct haplotypes. "
-            "Fusion windows are RNA-supported but remain unresolved for coding frame. "
-            "No fusion protein, long-read-only fusion detection, or clinical suitability is claimed.\n\n")
+            "ATP5MG-KMT2A (Sid) and BCR-ABL1 (external K562 control) have RNA-backed coding hypotheses; "
+            "compatible noncoding/alternative-CDS annotations remain explicit. The other fusion windows "
+            "remain unresolved. No uniquely expressed fusion protein, long-read-only fusion detection, "
+            "or clinical suitability is claimed.\n\n")
         for item in index:
             handle.write("- Page %d: [%s](%s), %d pages\n" % (item["start_page"],item["path"],item["path"],item["pages"]))
     return output

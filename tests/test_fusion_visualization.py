@@ -16,7 +16,7 @@ def test_fusion_panels_use_actual_boundaries_and_do_not_invent_proteins(tmp_path
     fusion,refs,reads=example(insert="GCT")
     result=reconstruct_fusion(fusion,refs,reads,peptide_lengths=(2,3))
     panels=dict(fusion_figures(result,refs,{"donor.1":"Donor-name"}))
-    assert set(panels)=={"junction","donor-context","acceptor-context","protein-1"}
+    assert set(panels)=={"junction","donor-context","acceptor-context","protein-1","junction-peptides-1"}
     assert panels["junction"].get_facecolor()==(1,1,1,1)
     assert any("Donor-name" in t.get_text() for t in panels["donor-context"].axes[0].texts)
     assert len(panels["donor-context"].axes[0].patches)==1
