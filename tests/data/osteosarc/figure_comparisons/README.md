@@ -148,6 +148,88 @@ gallery adds separate DNA/RNA and direct-haplotype panels with caveats in the
 side margin. This audit is distinct from the three-read selected translation
 fixture and does not relabel that fixture as a sample-abundance estimate.
 
+### Independent RNA-product follow-up
+
+`nr2f2-libraries.json.gz` adds complete bounded NR2F2 queries from 23 tumor RNA
+products (including the original CeGaT product), with two additional BostonGene
+vendor BAMs explicitly **not assessed** because the pinned inventory has no
+index. BostonGene reprocessed products are assessed. These are **25 products,
+not 25 independent libraries**, and counts must not be added across rows.
+The same pinned metadata table selects tumor RNA, plus the T1 PacBio mapping,
+T1 Illumina source and three tagged ONT predecessors of the deduplicated ONT
+products. Pooled blood data with unresolved donor attribution are not included.
+
+UCSC chain 16 maps the entire GRCh38 chr15:96332281-96332371 interbase window
+to GRCh37 chr15:96875510-96875600 in one forward, ungapped block. The independently
+fetched hg38 sequence equals the original hg19 sequence across all 90 bases.
+The deletion is GRCh38 chr15:96332348-96332350 (GTG), not the focal SNV.
+Queries cover chr15:96331971-96332621 or chr15:96875200-96875850 as appropriate,
+after verifying the BAM reference assembly. All original regional SAM records,
+headers, index receipts, reference responses and sample metadata are retained.
+
+Representative products below use the same eight-base anchors, Q20, MAPQ20,
+flag exclusions and (RG, QNAME) template counting as the original audit.
+"Other" includes nonmatching anchored sequences rather than relabeling them
+reference. Zero callable templates means unassessable, not negative.
+
+| Product / processing family | GTG retained | GTG deleted | Other |
+| --- | ---: | ---: | ---: |
+| T0 CeGaT | 23 | 5 | 0 |
+| T0 BostonGene BG003082, reprocessed | 18 | 0 | 0 |
+| T0 Personalis, oncoanalyser | 17 | 0 | 1 |
+| T1 BostonGene BG009368, reprocessed | 85 | 0 | 0 |
+| T1 Tempus, vendor | 6 | 0 | 0 |
+| T2 UCLA SARC0277, reprocessed | 5 | 0 | 0 |
+| T1 UCSF Illumina, CellRanger | 24 | 0 | 0 |
+| T2 UCSF Illumina, CellRanger | 30 | 0 | 0 |
+| T3 UCSF Illumina, CellRanger | 2 | 0 | 0 |
+| T3 UCSF CD45-negative Illumina | 46 | 0 | 0 |
+| T1 UCSF ONT, deduplicated | 8 | 0 | 0 |
+| T2 UCSF ONT, deduplicated | 22 | 0 | 0 |
+| T3 UCSF ONT, deduplicated | 0 | 0 | 0 |
+| T1 PacBio | 0 | 0 | 0 |
+
+No other acquired product supports the exact deletion at Q20, Q30, Q10, or
+Q20/MAPQ1. An explicitly **sequence-only** diagnostic, including missing base
+qualities, also finds no deletion outside CeGaT. PacBio has 19 reference-window
+templates in that diagnostic, but all 45 regional records lack QUAL, so none
+qualifies as Q20 evidence. T3 ONT has one reference-window template at Q10,
+none at Q20. These outcomes do not establish absence at arbitrary sensitivity.
+No other product has a Q20 focal-T call either; different sampled material,
+allelic expression, assay sensitivity and processing remain relevant.
+
+The original CeGaT five Q20 deletion templates still form **one endpoint family**
+(seven templates at Q10). The deletion therefore remains **not independently
+confirmed in another RNA library**, RNA-supported and DNA-unconfirmed. This
+does not identify a germline/somatic origin, distinguish PCR/alignment artifacts
+from RNA-level effects, or establish independent molecules.
+
+Processing relationships are checked rather than inferred from display labels:
+the two Tempus vendor deliveries share all 146 regional read names; the T1 UCSF
+Illumina/CellRanger products share all 805; T1 BG009368 and the product labelled
+T1 UCLA oncoanalyser share 402 of 405 each, with BG009368 in the latter's read
+group. UCLA T2 products similarly overlap, and ONT deduplicated products are
+subsets of their tagged predecessors. Original metadata explicitly calls the
+Tempus deliveries duplicates. Different sequencing platforms or renamed read
+groups are not proof of different input molecules; barcode families are not
+pooled across products. CeGaT, T0 BostonGene and T0 Personalis have different
+instrument/run/flowcell prefixes, supporting distinct sequencing runs, not
+necessarily distinct tissue extractions or independent biological replicates.
+
+Reproduce with the pinned `METADATA_URL` table saved as `source-metadata.tsv`:
+
+```sh
+python -m tests.data.osteosarc.figure_comparisons.nr2f2_libraries \
+  --output /path/to/new/nr2f2-libraries \
+  --source-metadata /path/to/source-metadata.tsv
+```
+
+Optional `--index-cache` reuses only URL- and checksum-verified original indexes
+under `*/inputs/alignments/*/source-index.bai`. No whole remote BAM is fetched.
+The manifest pins the resulting archive, and offline tests independently
+recount all five policies from its original records. Neither acquisition nor
+external data access runs in tests.
+
 ## Read-identity correction (Isovar 1.17.0, #264)
 
 Across the 49-case expanded corpus, top protein sequences and outcome labels
