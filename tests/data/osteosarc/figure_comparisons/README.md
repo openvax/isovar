@@ -54,3 +54,41 @@ The acquisition tool downloads indexes and bounded regions, never the whole
 remote BAM. Compare retained record hashes and header/allele identity as well
 as archive checksums (BAM compression can vary by tool version).
 Tests and figure generation use only the pinned offline derivatives.
+
+## Context, phasing and haplotype extension
+
+`corpus/context-evidence.json.gz` is separately pinned by
+`context-manifest.json`. It retains original SAM records for both ZNF436 RNA
+products, both CD109 RNA products, and five MAP2 DNA/RNA products, along with
+the 35-product MAP2 audit summary and source hashes. Counts refer to products,
+not independent cohorts; tagged/deduplicated ONT copies are never added.
+
+- ZNF436: three alternate CB/UMI groups per T1 library, 3 ONT versus 8 Illumina
+  read objects; 49 versus 30 aa with assembly. Even the optimistic union of
+  short-read flanks is only 113 nt, below the 147 nt needed for 49 aa. The
+  matched timepoint does not control library/cell composition.
+- CD109: 21 ONT templates carry both alternate alleles, 207 spliced nucleotides
+  apart. The short-read product has 22 focal-alt and 19 linked-alt templates,
+  but no read/template or CB/UMI observes both. Three original ONT reads exactly
+  support the displayed 222-nt two-edit interval, Q20 at every base. Its local
+  translation is conditional on the annotated frame, not a whole-protein
+  Isovar reconstruction; one 25-mer cannot include both changed codons.
+- MAP2: the 22-nt listed deletion, 28-nt deletion alone, and 28-nt deletion
+  plus C>A/T>G substitutions are separate explicit hypotheses. Exact anchored
+  compound sequence has 24/16 T1/T2 DNA, 4/2 bulk RNA and one deduplicated T2
+  ONT template at Q20. No exact isolated 22-nt sequence appears in the audited
+  35 products. This is not proof of absence at arbitrary sensitivity.
+
+`build_context.py` packages the read-only diagnostic audit and original
+records; it requires `--diagnostics`, `--reference-models` (the original
+Ensembl 87 model archive), and `--output`. `verify_context()` independently
+recounts the pinned MAP2/CD109 observations, checks the ZNF436 molecule groups
+and translations, and checks the 222-nt CD109 witnesses before plotting.
+The remaining 30 MAP2 products retain audit summaries/digests, not raw SAMs.
+
+Generate the entire gallery with
+`python -m examples.osteosarc_context_figures --output-dir figures/osteosarc`
+(install `isovar[plot]`). Original assembly examples come first, followed by
+context/haplotype comparisons and explicit fusion RNA windows. The output is
+UTC-stamped, with individual white 600-dpi PNG/SVG panels, per-example vector
+PDFs, evidence JSON, a page index, and `isovar-all-figures.pdf`.
