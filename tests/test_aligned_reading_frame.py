@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
-from Bio.Seq import Seq
 from varcode import Variant
 
 from isovar import ReadCollector, ProteinSequenceCreator
@@ -14,6 +13,7 @@ from isovar.reference_context import ReferenceContext
 from isovar.variant_orf import VariantORF
 from isovar.variant_sequence import VariantSequence
 from .mock_objects import MockAlignmentFile, make_pysam_read
+from .data.osteosarc.expansion.references import translate
 
 
 def inputs(prefix_length=30, strand="+", start_codon=False):
@@ -50,7 +50,7 @@ def test_upstream_cigar_indel_transfers_frame(strand, prefix_length, cigars, pro
         translations = ProteinSequenceCreator(protein_sequence_preference="support").translate_variant_reads(
             variant, evidence.alt_reads)
     assert translations
-    assert str(Seq(sequence[:len(sequence) // 3 * 3]).translate()) == protein
+    assert translate(sequence)[0] == protein
     assert {t.amino_acids for t in translations} == {protein}
     assert {t.variant_orf.num_mismatches_before_variant for t in translations} == {abs(prefix_length - 30)}
 
@@ -97,7 +97,7 @@ def test_spliced_assembly_transfers_frame_across_two_partial_reads():
         VariantSequence(sequence[:31], "G", sequence[32:], evidence.alt_reads), context)
     assert orf.offset_to_first_complete_codon == 0
     assert orf.num_mismatches_before_variant == 1
-    assert str(Seq(orf.in_frame_cdna_sequence).translate()) == "KKKKKKKKKKSPLGPLGPL"
+    assert translate(orf.in_frame_cdna_sequence)[0] == "KKKKKKKKKKSPLGPLGPL"
 
 
 @pytest.mark.parametrize("read_id,protein", [
@@ -135,4 +135,4 @@ def test_sid_cd109_observed_deletion_does_not_reset_frame(read_id, protein):
     assert orf is not None
     assert orf.offset_to_first_complete_codon == 0
     assert orf.cdna_sequence == sequence
-    assert str(Seq(orf.in_frame_cdna_sequence).translate()).split("*")[0] == protein
+    assert translate(orf.in_frame_cdna_sequence)[0] == protein
