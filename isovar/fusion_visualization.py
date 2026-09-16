@@ -29,6 +29,7 @@ def fusion_figures(result, references=(), transcript_names=None):
     are thick. No inferred splice connector is drawn across a fusion.
     """
     _, _, rectangle = _plot_imports()
+    references = tuple(references)
     names = transcript_names or {}
     j0, j1 = result["junction_interval"]
     sequence = result["cdna_sequence"]
@@ -114,8 +115,8 @@ def fusion_figures(result, references=(), transcript_names=None):
             if left <= boundary/3 <= right:
                 ax.axvline(boundary/3,color=ORANGE,ls="--",lw=1.3)
         ax.set(xlim=(left,max(left+1,right)),ylim=(0,2),xlabel="Protein offset (amino acids; local donor-junction window)")
-        _side_note(ax, "%s\n%d junction peptides\n%s" %
-                   ("Observed CDS start" if protein["complete_5prime"] else "Conditional partial CDS",
+        _side_note(ax, "%s\n%s\n%d junction peptides\n%s" %
+                   (status, "Observed CDS start" if protein["complete_5prime"] else "Conditional partial CDS",
                     len(protein["junction_peptides"]), "Ends at stop" if protein["ends_with_stop_codon"] else "Sequence ends first"))
         figure.text(.19,.065,"No proteome-novelty or protein-expression claim. Alternative hypotheses are not ranked.",fontsize=10,color=GRAY)
         yield "protein-%d" % number, figure
@@ -125,6 +126,7 @@ def save_fusion_figures(result, output_dir, references=(), transcript_names=None
     """Save individual PNG/SVG panels and one vector PDF, without overwriting."""
     if isinstance(dpi,bool) or not isinstance(dpi,int) or dpi < 72:
         raise ValueError("dpi must be an integer >= 72")
+    references = tuple(references)
     _, rc_context, _ = _plot_imports()
     from matplotlib.backends.backend_pdf import PdfPages
 

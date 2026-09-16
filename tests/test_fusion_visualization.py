@@ -23,7 +23,7 @@ def test_fusion_panels_use_actual_boundaries_and_do_not_invent_proteins(tmp_path
     result=reconstruct_fusion(fusion,(),reads)
     assert result["status"]=="unresolved_frame"
     assert set(dict(fusion_figures(result,refs)))=={"junction","donor-context","acceptor-context"}
-    directory=save_fusion_figures(result,tmp_path,refs,dpi=80)
+    directory=save_fusion_figures(result,tmp_path,iter(refs),dpi=80)
     assert {p.stem for p in directory.glob("*.png")}=={"junction","donor-context","acceptor-context"}
     assert len(list(directory.glob("*.svg")))==3
     assert (directory/"all-figures.pdf").read_bytes().startswith(b"%PDF")
