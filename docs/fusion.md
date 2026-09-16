@@ -38,10 +38,12 @@ sequences and all candidate transcript models, not just the preferred one.
 Reference-set completeness is the caller's responsibility.
 
 Reads carry sample/library/read/fragment IDs, source, original query offset,
-observed sequence, cDNA placement, and alignment blocks. Supplementary/SA
-mappings must be resolved into one consistent observation of a physical read
-by the caller; alternative placements must not be unioned. Paired observations
-share a fragment ID; processed copies retain the same library/read identity.
+observed sequence, cDNA placement, alignment blocks, and a `mate_number`.
+Use `1`/`2` for paired SAM ends that share a query name and `0` for an
+unpaired or unknown end. Supplementary/SA mappings must be resolved into one
+consistent observation of one mate by the caller; alternative placements must
+not be unioned. Paired observations share a fragment ID; processed copies
+retain the same library/read/mate identity.
 Validated cell/UMI identities may be used as fragment IDs. Isovar validates
 exact sequence and mapping agreement, deduplicates processed copies, rejects
 conflicting placements, and counts directly spanning fragments separately.
