@@ -190,8 +190,10 @@ class FusionRead:
     window, with ``source_query_start`` recording its offset in the original
     transcript-oriented read. Fragment IDs must identify physical templates
     within a sample/library (or validated cell/UMI groups), not processed BAMs.
-    Supplementary records for a read must be resolved by the input adapter,
-    never submitted as independent reads or joined across alternative mappings.
+    ``mate_number`` is 1 or 2 for paired SAM records that share a query name,
+    and 0 when the read is unpaired or its end is unknown. Supplementary
+    records for one mate must be resolved by the input adapter, never submitted
+    as independent reads or joined across alternative mappings.
     """
 
     sample_id: str
@@ -203,11 +205,15 @@ class FusionRead:
     cdna_start: int
     sequence: str
     blocks: Tuple[FusionBlock, ...] = field(default_factory=tuple)
+    mate_number: int = 0
 
     def __post_init__(self):
         _dna(self.sequence)
         for name in ("source_query_start", "cdna_start"):
             _integer(getattr(self, name), name)
+        _integer(self.mate_number, "mate_number")
+        if self.mate_number not in (0, 1, 2):
+            raise ValueError("mate_number must be 0, 1, or 2")
         if not all((self.sample_id, self.library_id, self.fragment_id, self.read_id, self.source)):
             raise ValueError("RNA evidence needs sample/library/read/fragment/source identities")
         object.__setattr__(self, "blocks", tuple(self.blocks))
@@ -286,7 +292,12 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
         mapping = _coordinates(read.blocks)
         if any(q >= len(read.sequence) or coordinates.get(q + start) != p for q, p in mapping.items()):
             raise ValueError("RNA observation has a conflicting partner mapping")
-        key = (read.sample_id, read.library_id, read.read_id)
+        key = (
+            read.sample_id,
+            read.library_id,
+            read.read_id,
+            read.mate_number,
+        )
         # Copies from another processed file do not add evidence. Disagreeing
         # placements of one read are a conflict, not a larger inferred witness.
         signature = (read.fragment_id, start, read.source_query_start, read.sequence, tuple(read.blocks))

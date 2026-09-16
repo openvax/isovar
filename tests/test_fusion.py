@@ -143,6 +143,30 @@ def test_duplicate_products_supplementary_records_and_mates_do_not_inflate_fragm
         reconstruct_fusion(fusion, refs, reads + (replace(reads[0], source_query_start=1),))
 
 
+def test_paired_mates_share_query_name_without_becoming_duplicates():
+    fusion, refs, reads = example()
+    first = replace(reads[0], read_id="paired", fragment_id="template", mate_number=1)
+    second = replace(reads[1], read_id="paired", fragment_id="template", mate_number=2)
+
+    result = reconstruct_fusion(fusion, refs, (first, second))
+
+    assert result["evidence"]["reads"] == 2
+    assert result["evidence"]["fragments"] == 1
+    assert result["evidence"]["directly_spanning_fragments"] == 1
+    assert result["status"] == "insufficient_support"
+    duplicate_first = replace(first, source="processed-copy")
+    deduplicated = reconstruct_fusion(
+        fusion, refs, (first, duplicate_first, second)
+    )
+    assert deduplicated["evidence"]["reads"] == 2
+    with pytest.raises(ValueError, match="Conflicting observations"):
+        reconstruct_fusion(
+            fusion,
+            refs,
+            (first, replace(first, source_query_start=1), second),
+        )
+
+
 def test_unmapped_or_unobserved_sequence_does_not_establish_support():
     fusion, refs, reads = example()
     assert reconstruct_fusion(fusion, refs)["status"] == "insufficient_support"
@@ -191,6 +215,12 @@ def test_invalid_fusion_inputs(change):
 def test_invalid_reference_inputs(change):
     with pytest.raises(ValueError):
         replace(example()[1][0], **change)
+
+
+@pytest.mark.parametrize("mate_number", [True, -1, 3])
+def test_invalid_mate_number(mate_number):
+    with pytest.raises(ValueError, match="mate_number"):
+        replace(example()[2][0], mate_number=mate_number)
 
 
 @pytest.mark.parametrize("options", [dict(min_fragments=0), dict(min_fragments=True),
