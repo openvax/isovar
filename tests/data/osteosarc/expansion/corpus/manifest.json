@@ -8132,11 +8132,11 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "reference_matching_rejected": 5,
           "rna_candidate_count": 17,
           "stage": "independent_protein_validation",
-          "translation_count": 12,
-          "translations_with_mutation": 12
+          "translation_count": 17,
+          "translations_with_mutation": 11,
+          "translations_without_mutation": 6
         },
         "status": "ok"
       },
@@ -8309,11 +8309,11 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "reference_matching_rejected": 5,
           "rna_candidate_count": 17,
           "stage": "independent_protein_validation",
-          "translation_count": 12,
-          "translations_with_mutation": 12
+          "translation_count": 17,
+          "translations_with_mutation": 11,
+          "translations_without_mutation": 6
         },
         "status": "ok"
       },
@@ -10401,10 +10401,12 @@
         ],
         "stages": {
           "reference_context_count": 1,
+          "reference_matching_rejected": 1,
           "rna_candidate_count": 18,
           "stage": "independent_protein_validation",
-          "translation_count": 18,
-          "translations_with_mutation": 18
+          "translation_count": 17,
+          "translations_with_mutation": 13,
+          "translations_without_mutation": 4
         },
         "status": "ok"
       },
@@ -10567,10 +10569,12 @@
         ],
         "stages": {
           "reference_context_count": 1,
+          "reference_matching_rejected": 1,
           "rna_candidate_count": 18,
           "stage": "independent_protein_validation",
-          "translation_count": 18,
-          "translations_with_mutation": 18
+          "translation_count": 17,
+          "translations_with_mutation": 13,
+          "translations_without_mutation": 4
         },
         "status": "ok"
       },
@@ -15514,17 +15518,6 @@
                 "genetic_code": 1,
                 "matches_expected": true,
                 "protein_start_1based": 8,
-                "protein_version": "ENSP00000013034.3",
-                "status": "ok",
-                "transcript_version": "ENST00000013034.3"
-              },
-              {
-                "expected_amino_acids": "GIVFQGEGPPISSCDTRTMANCERTFIAIKPDG",
-                "expected_stop": false,
-                "frame": 2,
-                "genetic_code": 1,
-                "matches_expected": true,
-                "protein_start_1based": 8,
                 "protein_version": "ENSP00000451932.1",
                 "status": "ok",
                 "transcript_version": "ENST00000555572.1"
@@ -15563,7 +15556,6 @@
               17
             ],
             "retained_cdna_min_coverages": [
-              2,
               40
             ],
             "supporting_read_names": [
@@ -15595,7 +15587,6 @@
               "12848b3e-ed54-4905-a936-44f81513fa46_0",
               "132adf36-a423-4b74-9754-d5486fc7a8e4_0",
               "13f5f2c6-8ebc-4612-abed-ac1851c54b52_0",
-              "14aa3c88-f4a4-4189-8437-2aad9636b65a_0",
               "15b44fb4-fe2b-429d-9c46-70cac6034812_0",
               "163335c9-805d-4161-9b76-29692f1cde2e_0",
               "242db332-b4ef-462a-8cfb-58ff012751f6_0",
@@ -15603,25 +15594,23 @@
               "365d573a-10f9-4436-9477-882113e609b9_0",
               "6bc22481-dc7d-46a5-9fb7-3f487fc3403e_0",
               "879af6a7-f89b-4cef-9d94-e72646b9fb44_0",
-              "aaa29d22-f734-424a-9328-959977b808f4_0",
               "c8baa078-94e9-496b-9b97-23268028c643_0",
               "cc2a2daf-d8b2-4398-8463-2317a3d5af5a_0",
               "e4290362-a764-4270-ac1c-133c6356abdf_0",
               "e62022d8-56c9-4aac-a4e5-29a5ed99069e_0",
               "e8baf7a9-890f-4e15-b8be-0a4540746232_0"
             ],
-            "supporting_reads": 42,
-            "supporting_template_names": 42,
+            "supporting_reads": 40,
+            "supporting_template_names": 40,
             "validation_status": "ok"
           }
         ],
         "stages": {
           "reference_context_count": 1,
-          "reference_matching_rejected": 4,
           "rna_candidate_count": 23,
           "stage": "independent_protein_validation",
-          "translation_count": 19,
-          "translations_with_mutation": 19
+          "translation_count": 23,
+          "translations_with_mutation": 23
         },
         "status": "ok"
       },
@@ -15728,17 +15717,6 @@
                 "genetic_code": 1,
                 "matches_expected": true,
                 "protein_start_1based": 8,
-                "protein_version": "ENSP00000013034.3",
-                "status": "ok",
-                "transcript_version": "ENST00000013034.3"
-              },
-              {
-                "expected_amino_acids": "GIVFQGEGPPISSCDTRTMANCERTFIAIKPDG",
-                "expected_stop": false,
-                "frame": 2,
-                "genetic_code": 1,
-                "matches_expected": true,
-                "protein_start_1based": 8,
                 "protein_version": "ENSP00000451932.1",
                 "status": "ok",
                 "transcript_version": "ENST00000555572.1"
@@ -15777,7 +15755,6 @@
               17
             ],
             "retained_cdna_min_coverages": [
-              2,
               40
             ],
             "supporting_read_names": [
@@ -15809,7 +15786,6 @@
               "12848b3e-ed54-4905-a936-44f81513fa46_0",
               "132adf36-a423-4b74-9754-d5486fc7a8e4_0",
               "13f5f2c6-8ebc-4612-abed-ac1851c54b52_0",
-              "14aa3c88-f4a4-4189-8437-2aad9636b65a_0",
               "15b44fb4-fe2b-429d-9c46-70cac6034812_0",
               "163335c9-805d-4161-9b76-29692f1cde2e_0",
               "242db332-b4ef-462a-8cfb-58ff012751f6_0",
@@ -15817,25 +15793,23 @@
               "365d573a-10f9-4436-9477-882113e609b9_0",
               "6bc22481-dc7d-46a5-9fb7-3f487fc3403e_0",
               "879af6a7-f89b-4cef-9d94-e72646b9fb44_0",
-              "aaa29d22-f734-424a-9328-959977b808f4_0",
               "c8baa078-94e9-496b-9b97-23268028c643_0",
               "cc2a2daf-d8b2-4398-8463-2317a3d5af5a_0",
               "e4290362-a764-4270-ac1c-133c6356abdf_0",
               "e62022d8-56c9-4aac-a4e5-29a5ed99069e_0",
               "e8baf7a9-890f-4e15-b8be-0a4540746232_0"
             ],
-            "supporting_reads": 42,
-            "supporting_template_names": 42,
+            "supporting_reads": 40,
+            "supporting_template_names": 40,
             "validation_status": "ok"
           }
         ],
         "stages": {
           "reference_context_count": 1,
-          "reference_matching_rejected": 4,
           "rna_candidate_count": 23,
           "stage": "independent_protein_validation",
-          "translation_count": 19,
-          "translations_with_mutation": 19
+          "translation_count": 23,
+          "translations_with_mutation": 23
         },
         "status": "ok"
       },
@@ -16784,11 +16758,11 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "reference_matching_rejected": 3,
           "rna_candidate_count": 11,
           "stage": "independent_protein_validation",
-          "translation_count": 8,
-          "translations_with_mutation": 8
+          "translation_count": 11,
+          "translations_with_mutation": 8,
+          "translations_without_mutation": 3
         },
         "status": "ok"
       },
@@ -16931,11 +16905,11 @@
         ],
         "stages": {
           "reference_context_count": 1,
-          "reference_matching_rejected": 3,
           "rna_candidate_count": 11,
           "stage": "independent_protein_validation",
-          "translation_count": 8,
-          "translations_with_mutation": 8
+          "translation_count": 11,
+          "translations_with_mutation": 8,
+          "translations_without_mutation": 3
         },
         "status": "ok"
       },
@@ -24361,10 +24335,11 @@
         ],
         "stages": {
           "reference_context_count": 1,
+          "reference_matching_rejected": 1,
           "rna_candidate_count": 8,
           "stage": "independent_protein_validation",
-          "translation_count": 8,
-          "translations_with_mutation": 8
+          "translation_count": 7,
+          "translations_with_mutation": 7
         },
         "status": "ok"
       },
@@ -24535,10 +24510,11 @@
         ],
         "stages": {
           "reference_context_count": 1,
+          "reference_matching_rejected": 1,
           "rna_candidate_count": 8,
           "stage": "independent_protein_validation",
-          "translation_count": 8,
-          "translations_with_mutation": 8
+          "translation_count": 7,
+          "translations_with_mutation": 7
         },
         "status": "ok"
       },
@@ -27049,10 +27025,11 @@
         ],
         "stages": {
           "reference_context_count": 2,
+          "reference_matching_rejected": 2,
           "rna_candidate_count": 8,
           "stage": "independent_protein_validation",
-          "translation_count": 16,
-          "translations_with_mutation": 16
+          "translation_count": 14,
+          "translations_with_mutation": 14
         },
         "status": "ok"
       },
@@ -27216,10 +27193,11 @@
         ],
         "stages": {
           "reference_context_count": 2,
+          "reference_matching_rejected": 2,
           "rna_candidate_count": 8,
           "stage": "independent_protein_validation",
-          "translation_count": 16,
-          "translations_with_mutation": 16
+          "translation_count": 14,
+          "translations_with_mutation": 14
         },
         "status": "ok"
       },

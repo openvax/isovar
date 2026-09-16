@@ -88,6 +88,10 @@ def match_variant_sequence_to_reference_context(
         if variant_orf is None:
             return None
 
+        if min(variant_orf.variant_cdna_interval_start,
+               len(variant_orf.reference_cdna_sequence_before_variant)) < min_transcript_prefix_length:
+            return None
+
         n_mismatch_before_variant = (
             variant_orf.num_mismatches_before_variant)
         n_mismatch_after_variant = (
