@@ -98,7 +98,9 @@ def fusion_figures(result, references=(), transcript_names=None):
         reasons = "; ".join(result["reasons"])
         if reasons:
             # Raw identifiers and all reasons remain in evidence.json.
-            summary = ("Junction lies before the annotated donor CDS; no coding frame assigned."
+            summary = ("Coding hypothesis shown separately; alternative CDS/noncoding annotations remain compatible."
+                       if result["translations"] else
+                       "Junction lies before the annotated donor CDS; no coding frame assigned."
                        if any("junction_before_donor_CDS" in r for r in result["reasons"]) else
                        "No validated coding frame for this observed RNA window; no protein is inferred.")
             figure.text(.19,.065,summary,fontsize=11,color=INK)
@@ -111,15 +113,43 @@ def fusion_figures(result, references=(), transcript_names=None):
         amino_acids = protein["amino_acids"][left:right]
         for i, aa in enumerate(amino_acids,left):
             ax.text(i+.5,1,aa,ha="center",va="center",fontsize=14,fontfamily="monospace")
+        if protein["ends_with_stop_codon"] and right == len(protein["amino_acids"]):
+            ax.text(right+.5,1,"*",ha="center",va="center",fontsize=16,color=ORANGE)
         for boundary in sorted(set(protein["junction_in_translated_cds"])):
             if left <= boundary/3 <= right:
                 ax.axvline(boundary/3,color=ORANGE,ls="--",lw=1.3)
-        ax.set(xlim=(left,max(left+1,right)),ylim=(0,2),xlabel="Protein offset (amino acids; local donor-junction window)")
+        ax.set(xlim=(left,max(left+1,right+1)),ylim=(0,2),xlabel="Protein offset (amino acids; local donor-junction window)")
         _side_note(ax, "%s\n%s\n%d junction peptides\n%s" %
                    (status, "Observed CDS start" if protein["complete_5prime"] else "Conditional partial CDS",
                     len(protein["junction_peptides"]), "Ends at stop" if protein["ends_with_stop_codon"] else "Sequence ends first"))
         figure.text(.19,.065,"No proteome-novelty or protein-expression claim. Alternative hypotheses are not ranked.",fontsize=10,color=GRAY)
         yield "protein-%d" % number, figure
+
+        peptides = protein["junction_peptides"]
+        if not peptides:
+            continue
+        # One first window per peptide length keeps the panel readable;
+        # every enumerated junction-spanning peptide remains in evidence.json.
+        shown = {}
+        for peptide in peptides:
+            length = len(peptide["sequence"])
+            if length not in shown:
+                shown[length] = peptide
+        figure, ax = _canvas(title, "Junction-spanning peptide examples", 5.8)
+        for y, (length, peptide) in enumerate(sorted(shown.items(), reverse=True), 1):
+            a, b = peptide["protein_interval"]
+            for i, aa in enumerate(peptide["sequence"], a):
+                ax.text(i+.5,y,aa,ha="center",va="center",fontsize=14,fontfamily="monospace")
+            ax.text(-.03,y,"%d-mer" % length,transform=ax.get_yaxis_transform(),ha="right",va="center")
+        for boundary in sorted(set(protein["junction_in_translated_cds"])):
+            ax.axvline(boundary/3,color=ORANGE,ls="--",lw=1.3)
+        ax.set(xlim=(min(p["protein_interval"][0] for p in shown.values())-.5,
+                     max(p["protein_interval"][1] for p in shown.values())+.5),
+               ylim=(.3,len(shown)+.7),xlabel="Protein offset (amino acids)")
+        _side_note(ax,"%d of %d windows\n%s\n\nNo binding or\nself-proteome test" % (len(shown),len(peptides),status))
+        figure.text(.19,.065,"A mixed junction codon counts as spanning. These are sequence windows, not validated neoantigens.",
+                    fontsize=10,color=GRAY)
+        yield "junction-peptides-%d" % number, figure
 
 
 def save_fusion_figures(result, output_dir, references=(), transcript_names=None, dpi=PLOT_DPI):

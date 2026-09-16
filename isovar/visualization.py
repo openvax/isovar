@@ -263,10 +263,26 @@ def _prediction_groups(data):
     return list(groups.values())
 
 
+def _protein_disagreements(proteins):
+    """Offsets with different residues/stops in overlapping displayed tracks.
+
+    Offsets are relative to each nominated edit, not a protein homology
+    alignment. Missing sequence is lack of coverage, never a disagreement.
+    """
+    residues = {}
+    for protein in proteins:
+        if protein is None:
+            continue
+        sequence = protein["amino_acids"] + ("*" if protein["ends_with_stop_codon"] else "")
+        for offset, aa in enumerate(sequence, -protein["mutation_start"]):
+            residues.setdefault(offset, set()).add(aa)
+    return {offset for offset, observed in residues.items() if len(observed) > 1}
+
+
 def _protein_panel(ax, data, rectangle, max_rows):
     _style_axis(ax, "Protein context")
     rows = []
-    for mode in data["modes"]:
+    for mode in sorted(data["modes"], key=lambda m: m["assembly"]):
         p = mode["protein"]
         note = ("%d aa · %d × %d-mers\n%d templates" % (
             len(p["amino_acids"]), p["peptide_windows"], mode["settings"]["protein_context_peptide_length"],
@@ -284,6 +300,7 @@ def _protein_panel(ax, data, rectangle, max_rows):
         rows.append(("Varcode %d\n(%d transcript%s)" % (i + 1, len(group), "s" if len(group) != 1 else ""),
                      group[0]["protein"], INK, note))
     left, right = -1, 1
+    differences = _protein_disagreements(p for _, p, _, _ in rows)
     for i, (label, p, color, note) in enumerate(rows):
         y = len(rows) - i
         ax.text(-0.025, y, label, transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=11)
@@ -297,6 +314,11 @@ def _protein_panel(ax, data, rectangle, max_rows):
         if not letters:
             ax.plot([-a, len(p["amino_acids"]) - a], [y, y], color=color, lw=4)
             ax.plot([0, b - a], [y, y], color=ORANGE, lw=5)
+        end = len(p["amino_acids"]) - a + int(p["ends_with_stop_codon"])
+        for offset in sorted(differences):
+            if -a <= offset < end:
+                ax.plot([offset - .4, offset + .4], [y - .27, y - .27],
+                        color="#AA3377", lw=2.5, label="_protein_difference")
         for j, aa in enumerate(p["amino_acids"] if letters else ""):
             changed = a <= j < b
             if changed:
@@ -313,6 +335,8 @@ def _protein_panel(ax, data, rectangle, max_rows):
         if len(groups) > max_rows:
             label += " (%d/%d sequence groups shown)" % (max_rows, len(groups))
         ax.text(0, 1.005, label, transform=ax.transAxes, fontsize=10, color=GRAY)
+    ax.text(1.035, 1.005, "Orange: mutation\nMagenta: track difference\nBlank: no sequence", transform=ax.transAxes,
+            fontsize=10, color=GRAY, va="bottom")
     ax.set(xlim=(left, right), ylim=(.3, len(rows) + .45),
            xlabel="Amino-acid offset from mutation (N → C)")
 
@@ -434,7 +458,7 @@ def _transcript_panel(ax, data, max_rows, rectangle):
             a, b = left[1], right[0]
             if a < b:
                 x0, x1 = project(a), project(b)
-                ax.plot([x0, (x0 + x1) / 2, x1], [y, y + .28, y], color=GRAY, lw=1,
+                ax.plot([x0, x1], [y, y], color=GRAY, lw=1,
                         label="_annotated_intron")
         for a, b in exons:
             ax.add_patch(rectangle((project(a), y - .17), project(b) - project(a), .34,
@@ -451,7 +475,7 @@ def _transcript_panel(ax, data, max_rows, rectangle):
         a, b = junction["start"], junction["end"]
         if lo <= a < b <= hi:
             x0, x1 = project(a), project(b)
-            ax.plot([x0, (x0 + x1) / 2, x1], [0, .35, 0], color=INK, lw=1,
+            ax.plot([x0, x1], [0, 0], color=INK, lw=1, marker="|", markersize=8,
                     label="_observed_junction")
             ax.text((x0 + x1) / 2, -.22, str(junction["observations"]), ha="center", fontsize=8)
     ax.text(-.025, 0, "RNA junctions", transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=10)
@@ -538,14 +562,14 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
         def allele_label(bases):
             return (bases or "-") if len(bases) <= 16 else bases[:10] + "… (%d nt)" % len(bases)
 
-        title = "%s   %s:%s %s>%s (1-based)" % (
+        title = "%s   %s:%s %s>%s" % (
             ", ".join(data["genes"][:3]) or "Mutation evidence", variant["contig"], variant["start"],
             allele_label(variant["ref"]), allele_label(variant["alt"]))
         sample = data.get("provenance", {}).get("sample_label")
         if sample:
             title += " · " + sample
         figure.suptitle(title, x=.035, y=1 - .18 / height, ha="left", fontsize=18, fontweight="bold")
-        if view != "coverage":
+        if view not in {"coverage", "protein", "all"}:
             figure.text(.815, 1 - .7 / height, "Orange: mutation", fontsize=10, color=ORANGE)
         figure.subplots_adjust(left=.17, right=.79, top=1 - 1.05 / height, bottom=.65 / height, hspace=.5)
     return figure
@@ -555,7 +579,11 @@ def _figure_caption(data):
     caption = (
         "# Figure notes\n\nReference: " + data["variant"]["reference"] + ".\n\n"
         "Orange marks the mutation or deletion boundary; blue denotes assembly on, gray assembly off. "
-        "Protein peptide counts are mutation-overlapping windows of the displayed length.\n\n"
+        "Protein tracks are ordered no assembly, assembly, then Varcode. Magenta underlines mark "
+        "different residues (or a stop versus a residue) at shared mutation-relative offsets, including "
+        "positions outside the mutation. This is an edit-anchored comparison, not a homology alignment. "
+        "Missing coverage is not a sequence difference. Protein peptide counts are "
+        "mutation-overlapping windows of the displayed length.\n\n"
         "Reconstructed cDNA is one actual RNA-derived sequence producing the displayed protein. "
         "Other reconstructions can produce the same protein; their reads are not combined into this track. "
         "The read-overlap panel shows the first mode with a protein, normally assembly on.\n\n"
@@ -567,7 +595,7 @@ def _figure_caption(data):
         "only to the displayed reconstruction. Junction counts are retained CIGAR N observations.\n\n"
         "The title uses normalized 1-based variant coordinates. Genomic tracks use forward-strand "
         "0-based, half-open coordinates, with compressed genomic gaps marked //; cDNA and protein offsets "
-        "are transcript-oriented. Angled gray connectors join adjacent annotated exon boundaries; "
+        "are transcript-oriented. Straight gray connectors join adjacent annotated exon boundaries; "
         "black connectors on the RNA junction row are observed splice junctions. Transcript names "
         "come from the same annotation as the ENST IDs. Models do not establish a unique isoform.\n\n"
         "These are candidates before result-level filters, not independent validation or a clinical "

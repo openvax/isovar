@@ -83,6 +83,28 @@ def test_reference_predictions_group_sequences_not_transcript_identity(evidence_
     assert "reference transcript plus the nominated variant only" in caption
 
 
+def test_protein_order_and_differences_include_flanks_but_not_missing_coverage(evidence_data):
+    pytest.importorskip("matplotlib")
+    from isovar.visualization import _protein_disagreements
+
+    data = deepcopy(evidence_data[0])
+    for mode in data["modes"]:
+        mode["protein"].update(amino_acids="ACDEF" if mode["assembly"] else "ACD", mutation_start=1,
+                               mutation_end=2, ends_with_stop_codon=False)
+    predicted = dict(amino_acids="ACYEF", mutation_start=1, mutation_end=2, ends_with_stop_codon=False)
+    data["reference_predictions"] = [dict(transcript_id="TX1", description="p.K2C", protein=predicted)]
+    assert _protein_disagreements([m["protein"] for m in data["modes"]] + [predicted]) == {1}
+    figure = plot_variant_evidence(data, view="protein")
+    ax = figure.axes[0]
+    labels = {t.get_text(): t.get_position()[1] for t in ax.texts}
+    assert labels["Isovar\nAssembly off"] > labels["Isovar\nAssembly on"] > labels["Varcode 1\n(1 transcript)"]
+    assert "(1-based)" not in figure._suptitle.get_text()
+    lines = [line for line in ax.lines if line.get_label() == "_protein_difference"]
+    assert len(lines) == 3
+    assert all(list(line.get_xdata()) == [.6, 1.4] for line in lines)
+    assert _protein_disagreements([dict(predicted, amino_acids="AC", ends_with_stop_codon=True), predicted]) == {1}
+
+
 def test_unannotated_flank_is_not_labeled_as_an_intron(evidence_data):
     pytest.importorskip("matplotlib")
     data, _, _ = evidence_data
@@ -316,13 +338,13 @@ def test_transcript_connectors_use_exact_exon_boundaries_and_names(evidence_data
     connectors = [line for line in ax.lines if line.get_label() == "_annotated_intron"]
     assert len(connectors) == 2
     for line, (start, end) in zip(connectors, [(1010, 1100), (1020, 1110)]):
-        assert list(line.get_xdata()) == [project(start), (project(start) + project(end)) / 2, project(end)]
+        assert list(line.get_xdata()) == [project(start), project(end)]
         y = line.get_ydata()
-        assert y[0] == y[-1] < y[1]
+        assert y[0] == y[1]
     observed = [line for line in ax.lines if line.get_label() == "_observed_junction"]
     assert len(observed) == 1
     assert list(observed[0].get_xdata()) == list(connectors[0].get_xdata())
-    assert list(observed[0].get_ydata()) == [0, .35, 0]
+    assert list(observed[0].get_ydata()) == [0, 0]
     arrow = "→" if data["transcripts"][0]["strand"] == "+" else "←"
     labels = [t.get_text() for t in ax.texts]
     assert "TX1 " + arrow + "\n(EXAMPLE-201)" in labels

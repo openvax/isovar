@@ -1,0 +1,18 @@
+[
+  {
+    "event": "ATP5MG--KMT2A",
+    "sample": "Sid-T0-Personalis",
+    "input": "ATP5MG--KMT2A.input.json.gz",
+    "sha256": "003b36de003c4faa404a88f538a35d3dfef9d58e6690eefd7bdc123f7c264873",
+    "fragments": 2,
+    "expected_status": "ambiguous"
+  },
+  {
+    "event": "BCR--ABL1",
+    "sample": "K562-external-control",
+    "input": "BCR--ABL1.input.json.gz",
+    "sha256": "4f2db70bee2b9a8369a9c79608b2240ce850c8fd4ab91fc3b64ddc1863fc2e6e",
+    "fragments": 2,
+    "expected_status": "ambiguous"
+  }
+]

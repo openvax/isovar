@@ -6,6 +6,8 @@ from hashlib import sha256
 import pysam
 
 from examples import osteosarc_assembly_figures
+from tests.data.osteosarc.expansion.references import apply_variant, load_reference, translate
+from tests.osteosarc_protein_helpers import transcript_offset
 
 
 def record_data(data, output):
@@ -72,7 +74,28 @@ def test_extended_examples_separate_predictions_from_rna_and_keep_ambiguity(tmp_
     assert {p["description"] for p in ntf3["reference_predictions"]} == {"p.K56R", "p.K69R"}
     for data in cases.values():
         assert all(v["status"] in {"ok", "no_protein"} for v in data["provenance"]["independent_validation"])
-        assert data["provenance"]["nonfocal_witness_indels"] == 0
+        assert data["provenance"]["nonfocal_witness_indels"] == (1 if data is cases["NR2F2"] else 0)
+    nr2f2 = cases["NR2F2"]
+    assert nr2f2["provenance"]["nonfocal_alignment_indels"] == [[96875576, 96875579, 0]]
+    assert all(m["protein"]["templates"] == 3 for m in nr2f2["modes"])
+    assert {m["protein"]["amino_acids"] for m in nr2f2["modes"]} == {"TAAGGQGGPGVPGSDKQQQQQHIECVVGDKSS"}
+    # Independently edit the pinned transcript with BOTH observed changes.
+    # The CIGAR deletion is not evidence of its germline/somatic origin.
+    corpus = osteosarc_assembly_figures.CORPUS
+    case = next(c for c in json.loads((corpus / "manifest.json").read_text())["cases"]
+                if c["case_id"] == nr2f2["provenance"]["case_id"])
+    _, models = load_reference(corpus / "references" / case["reference"])
+    model = models["ENST00000394166"]
+    single = apply_variant(case["variant"], model)["mutant_cdna"]
+    deletion = transcript_offset(model["exons"], model["strand"], 96875577)
+    assert single[deletion:deletion + 3] == "GTG"
+    compound = single[:deletion] + single[deletion + 3:]
+    for mode in nr2f2["modes"]:
+        rna = mode["protein"]["witness"]["cdna"]
+        start = compound.index(rna)
+        frame = (model["cds_start"] - start) % 3
+        assert translate(rna[frame:])[0] == mode["protein"]["amino_acids"]
+    assert all(not c["matches_expected"] for v in nr2f2["provenance"]["independent_validation"] for c in v["checks"])
     assert all(not c["matches_expected"] for v in ntf3["provenance"]["independent_validation"] for c in v["checks"])
 
 
