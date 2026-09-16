@@ -24,6 +24,7 @@ from .allele_read_helpers import group_unique_sequences
 from .assembly import merge_identical_sequences
 from .logging import get_logger
 from .variant_sequence import VariantSequence
+from .read_identity import partition_read_alignments, read_sort_key
 
 logger = get_logger(__name__)
 
@@ -80,9 +81,10 @@ def initial_variant_sequences_from_reads(
             prefix=prefix,
             alt=alt,
             suffix=suffix,
-            reads=reads)
+            reads=compatible_reads)
         for ((prefix, alt, suffix, _compatible_transcript_ids), reads)
         in unique_sequence_groups.items()
+        for compatible_reads in partition_read_alignments(reads)
     ]
 
 
@@ -247,13 +249,18 @@ def _variant_sequences_with_shared_read_support(variant_sequences, read_groups):
             transcript_ids)
         bounded_groups[key].update(reads)
     by_allele = defaultdict(list)
-    for (prefix, alt, suffix, transcript_ids), reads in bounded_groups.items():
+    def group_key(item):
+        prefix, alt, suffix, ids = item[0]
+        return prefix, alt, suffix, (0, ()) if ids is None else (1, tuple(sorted(ids)))
+
+    for (prefix, alt, suffix, transcript_ids), reads in sorted(bounded_groups.items(), key=group_key):
         by_allele[alt].append((prefix, suffix, reads, transcript_ids))
     indexes = {alt: (_FlankIndex(groups, True), _FlankIndex(groups, False))
                for alt, groups in by_allele.items()}
     result = []
     for sequence in variant_sequences:
         supporting_reads = set()
+        constraints = dict(sequence._source_alignments)
         boundaries = [0] * (len(sequence) + 1)
         variant_start, variant_end = sequence.variant_indices()
         if sequence.alt in indexes:
@@ -282,13 +289,20 @@ def _variant_sequences_with_shared_read_support(variant_sequences, read_groups):
                             and (sequence.alt or (prefix and sequence.prefix) or (suffix and sequence.suffix))
                             and (prefix.endswith(sequence.prefix) or sequence.prefix.endswith(prefix))
                             and (suffix.startswith(sequence.suffix) or sequence.suffix.startswith(suffix))):
-                        supporting_reads.update(group)
-                        # Canonical read groups partition the original read
-                        # objects. Their bounded flanks have identical overlap
-                        # bounds within this candidate, so count the group
-                        # once instead of rescanning every read for coverage.
-                        boundaries[max(0, variant_start - len(prefix))] += len(group)
-                        boundaries[min(len(sequence), variant_end + len(suffix))] -= len(group)
+                        compatible_group = []
+                        for read in sorted(group, key=read_sort_key):
+                            placements = getattr(read, "source_alignments", ())
+                            if all(key not in constraints or constraints[key] == value
+                                   for key, value in placements):
+                                constraints.update(placements)
+                                compatible_group.append(read)
+                        supporting_reads.update(compatible_group)
+                        # Legacy metadata-free groups retain the fast bounded
+                        # coverage calculation. Collected observations need
+                        # segment-aware coverage below to avoid recounting
+                        # a mate already represented in a collapsed pair.
+                        boundaries[max(0, variant_start - len(prefix))] += len(compatible_group)
+                        boundaries[min(len(sequence), variant_end + len(suffix))] -= len(compatible_group)
         if supporting_reads == sequence.reads:
             supported = sequence
         else:
@@ -297,7 +311,7 @@ def _variant_sequences_with_shared_read_support(variant_sequences, read_groups):
                 alt=sequence.alt,
                 suffix=sequence.suffix,
                 reads=supporting_reads)
-        if supported._coverage_cache is None:
+        if supported._coverage_cache is None and not constraints:
             supported._coverage_cache = np.cumsum(boundaries, dtype="int32")[:-1]
         result.append(supported)
     return result

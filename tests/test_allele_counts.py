@@ -70,6 +70,7 @@ def test_allele_count_dataframe_preserves_raw_read_count_after_fragment_merge():
         name="fragment-1",
         reference_start=2,
     )
+    left_mate.flag, right_mate.flag = 65, 129
     read_evidence = ReadCollector(
         merge_overlapping_fragments=True
     ).read_evidence_for_variant(

@@ -79,10 +79,15 @@ def case_caption(case, data):
                     "the source label; the full mutant sequence is independently checked. ")
     elif gene == "NR2F2":
         summary += ("This is the native GRCh37 CeGaT RNA product, not the GRCh38 locus with no alternate reads. "
-                    "Three original templates carry the focal allele and a downstream 3-nt CIGAR deletion "
+                    "Three selected original templates carry the focal allele and a downstream 3-nt CIGAR deletion "
                     "at chr15:96875577-96875579. Both assembly modes retain it, whereas the single-edit "
                     "Varcode prediction does not. The in-frame deletion changes the downstream protein context; "
-                    "its biological origin is not established. Magenta marks position-wise differences, "
+                    "its biological origin is not established. The matched-sample audit finds 5 RNA deletion "
+                    "templates with eight-base Q20 anchors, but none among 326 tumor-DNA or 139 blood-DNA "
+                    "templates assessed. All five share one alignment/fragment-endpoint family: independent "
+                    "molecules are not established. Treat this as RNA-supported, DNA-unconfirmed context, "
+                    "not a validated germline or somatic deletion. See NR2F2-evidence for counts and provenance. "
+                    "Magenta marks position-wise differences, "
                     "including the shifted sequence after that deletion. ")
     elif gene == "MAP2":
         summary += ("The nominal 22-nt call must not be conflated with the separately observed compound haplotype: "

@@ -25,6 +25,9 @@ class ReadEvidence(ValueObject):
     """
     This class represents the reads at a variant locus partitioned
     by allele (ref/alt/other) relative to a variant.
+
+    Collected segments with conflicting allele calls across placements are
+    retained in ``other_reads``, not treated as definitive ref/alt evidence.
     """
 
     __slots__ = [

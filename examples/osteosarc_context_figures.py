@@ -14,6 +14,7 @@ from isovar.fusion_visualization import GREEN, _canvas, save_fusion_figures
 from isovar.visualization import BLUE, GRAY, ORANGE, _plot_imports, _protein_disagreements, _side_note
 from tests.data.osteosarc.expansion.references import translate
 from tests.osteosarc_protein_helpers import transcript_offset
+from tests.data.osteosarc.figure_comparisons import nr2f2
 from . import osteosarc_assembly_figures
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -202,6 +203,51 @@ def context_panels(data, cd109):
     yield "MAP2-haplotypes","haplotype-support",figure
 
 
+def nr2f2_panels(data):
+    """Keep the DNA/RNA discrepancy and molecular-independence caveat visible."""
+    figure, ax = _canvas("NR2F2 | RNA-supported, DNA-unconfirmed",
+                         "Matched CeGaT T0 samples | chr15:96875577-96875579 | GRCh37", 5.0)
+    columns = [0, 3.0, 5.0, 7.0]
+    for x, label in zip(columns, ["Sample", "GTG retained", "GTG deleted", "Other"]):
+        ax.text(x, 3.2, label, fontsize=12, weight="bold", color=GRAY)
+    for y, key in zip([2.4, 1.65, 0.9], ["normal", "tumor", "rna"]):
+        source = data["sources"][key]
+        counts = source["audits"]["q20"]["counts"]["deletion"]
+        ax.text(0, y, source["label"], fontsize=15, va="center")
+        for x, label, color in zip(columns[1:], ["reference", "deletion", "other"], [BLUE, "#b02a78", GRAY]):
+            ax.text(x + .5, y, str(counts.get(label, 0)), fontsize=22, color=color, va="center", ha="center")
+        ax.axhline(y-.32, color="#e7e7e7", linewidth=.7)
+    ax.set(xlim=(-.1, 8.3), ylim=(0, 3.7))
+    ax.axis("off")
+    _side_note(ax, "5 RNA templates\n1 endpoint family\n\nNot five proven\nindependent molecules.\n\nNo germline/somatic\norigin assigned.")
+    figure.text(.08, .07, "Exact sequence between eight-base flanks; Q20 across the window; MAPQ >=20 (255 retained).\n"
+                "Primary/QC-passing; duplicate-flagged records excluded; mates counted once. Other alleles remain visible.",
+                fontsize=10, color=GRAY)
+    yield "NR2F2-evidence", "dna-rna", figure
+
+    figure, ax = _canvas("NR2F2 | Directly observed local haplotypes",
+                         "Focal G>T and nearby deletion assessed together on one aligned segment", 5.4)
+    labels = ["G + retained GTG", "T + retained GTG", "G + deleted GTG", "T + deleted GTG", "Other"]
+    keys = ["reference/reference", "alternate/reference", "reference/deletion", "alternate/deletion"]
+    for x, text in zip([0, 4.0, 5.7, 7.4], ["Same-segment haplotype", "Blood DNA", "Tumor DNA", "Tumor RNA"]):
+        ax.text(x, 4.1, text, fontsize=11, weight="bold", color=GRAY, ha="left" if x == 0 else "center")
+    for y, label in zip([3.35, 2.65, 1.95, 1.25, .55], labels):
+        ax.text(0, y, label, fontsize=13, va="center")
+        for x, sample in zip([4.0, 5.7, 7.4], ["normal", "tumor", "rna"]):
+            counts = data["sources"][sample]["audits"]["q20"]["counts"]["joint"]
+            i = labels.index(label)
+            count = counts.get(keys[i], 0) if i < 4 else sum(v for k, v in counts.items() if k not in keys)
+            ax.text(x, y, str(count), fontsize=19, va="center", ha="center",
+                    color="#b02a78" if i == 3 else BLUE if i < 2 else GRAY)
+        ax.axhline(y-.3, color="#e7e7e7", linewidth=.7)
+    ax.set(xlim=(-.1, 8.3), ylim=(0, 4.6))
+    ax.axis("off")
+    _side_note(ax, "4 RNA templates\nphase T with deletion.\n\nSame endpoint family;\nPCR or alignment\nartifact not excluded.\n\nDNA supports T\nwithout the deletion.")
+    figure.text(.08, .065, "One template counted once; only records passing both focal-base and full deletion-window Q20 checks.\n"
+                "This is direct phase in observed RNA, not validation of a distinct biological deletion.", fontsize=10, color=GRAY)
+    yield "NR2F2-evidence", "direct-haplotypes", figure
+
+
 def generate(output_dir):
     data=load_context()
     cd109=verify_context(data)
@@ -211,7 +257,12 @@ def generate(output_dir):
     from pypdf import PdfReader, PdfWriter
 
     custom=defaultdict(list)
+    nr2f2_data = nr2f2.load()
+    for source in nr2f2_data["sources"].values():
+        assert nr2f2.recount(source, nr2f2_data["reference"]) == source["audits"]["q20"]
     for group,name,figure in context_panels(data,cd109):
+        custom[group].append((name,figure))
+    for group,name,figure in nr2f2_panels(nr2f2_data):
         custom[group].append((name,figure))
     with rc_context({"svg.fonttype":"none","pdf.fonttype":42}):
         for group,panels in custom.items():
@@ -224,7 +275,7 @@ def generate(output_dir):
                     pdf.savefig(figure,facecolor="white")
                     figure.clear()
             evidence={"ZNF436-length":data["znf436"],"CD109-phase":dict(sources=data["cd109"],protein=cd109),
-                      "MAP2-haplotypes":data["map2"]}[group]
+                      "MAP2-haplotypes":data["map2"], "NR2F2-evidence":nr2f2_data}[group]
             (directory/"evidence.json").write_text(json.dumps(evidence,indent=2)+"\n")
     fusion_entries = [(FUSIONS, e) for e in json.loads((FUSIONS/"manifest.json").read_text())]
     coding = FUSIONS.parent / "coding-corpus"

@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT))
 from isovar import __version__, run_isovar  # noqa: E402
 from isovar.read_collector import ReadCollector  # noqa: E402
+from isovar.read_identity import count_reads  # noqa: E402
 from isovar.protein_sequence_creator import ProteinSequenceCreator  # noqa: E402
 from isovar.protein_sequence_helpers import mutant_peptide_window_count  # noqa: E402
 from tests.data.osteosarc.expansion.acquire import error_record  # noqa: E402
@@ -146,7 +147,7 @@ def counts_from_evidence(evidence):
         return None
     groups = {name: getattr(evidence, name + "_reads") for name in ("ref", "alt", "other")}
     return dict(
-        reads={name: sum(r.source_read_count for r in reads) for name, reads in groups.items()},
+        reads={name: count_reads(reads) for name, reads in groups.items()},
         read_objects={name: len(reads) for name, reads in groups.items()},
         template_names={name: len({r.name for r in reads}) for name, reads in groups.items()},
         all_template_names=len({r.name for reads in groups.values() for r in reads}),

@@ -133,12 +133,14 @@ def test_allele_read_insertion():
         locus_read_without_insertion
     )
     expected_allele_read_with_insertion = AlleleRead(
+        source_alignments=((("", "dummy", 0), (0, 0, "4M1I2M", False)),),
         prefix="ACCT",
         allele="G",
         suffix="TG",
         name="dummy",
     )
     expected_allele_read_without_insertion = AlleleRead(
+        source_alignments=((("", "dummy", 0), (0, 0, "6M", False)),),
         prefix="ACCT",
         allele="",
         suffix="TG",

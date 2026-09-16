@@ -25,12 +25,9 @@ from .translation_key import TranslationKey
 from .translation import Translation  # noqa: F401
 from .logging import get_logger
 from .value_object import ValueObject
+from .read_identity import count_reads, fragment_ids
 
 logger = get_logger(__name__)
-
-
-def _sum_source_read_count(reads):
-    return sum(getattr(read, "source_read_count", 1) for read in reads)
 
 
 class ProteinSequence(TranslationKey):
@@ -174,12 +171,12 @@ class ProteinSequence(TranslationKey):
     @property
     def num_supporting_fragments(self):
         """
-        Number of unique read names used to construct the cDNA sequences from
-        which this protein sequence was translated.
+        Number of distinct fragments (scoped by SAM read group) used to
+        construct the cDNA sequences translated into this protein.
 
         Returns int
         """
-        return len({r.name for r in self.supporting_reads})
+        return len(fragment_ids(self.supporting_reads))
 
     @property
     def num_supporting_reads(self):
@@ -189,7 +186,7 @@ class ProteinSequence(TranslationKey):
 
         Returns int
         """
-        return _sum_source_read_count(self.supporting_reads)
+        return count_reads(self.supporting_reads)
 
     @property
     def num_mismatches_before_variant(self):

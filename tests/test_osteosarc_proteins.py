@@ -56,6 +56,17 @@ def test_real_rna_ranked_proteins_match_independent_expected_sequences(protein_c
         assert not evidence.alt_reads
         assert result["outcome"] == "no_alt_reads"
         assert result["top_proteins"] == []
+    elif sample == "bulk_star_t0" and gene == "H1-2" and coverage == 2:
+        # #264: the second putative template has competing 15D/118M
+        # placements of read2. Only one unambiguous, merged pair remains.
+        from isovar.read_identity import count_reads
+        assert len(evidence.alt_reads) == 1
+        assert count_reads(evidence.alt_reads) == 2
+        assert result["outcome"] == "no_rna_candidate"
+        assert result["top_proteins"] == []
+        uncertain = [r for r in evidence.other_reads if r.name.endswith("2382:6460:24392")]
+        assert {r.allele for r in uncertain} == {"", "CCTTGGGCTTCACAG"}
+        assert count_reads(uncertain) == 2
     else:
         assert evidence.alt_reads
         assert result["outcome"] == "expected_top_protein", result

@@ -26,6 +26,7 @@ from .allele_read import AlleleRead
 from .allele_read_helpers import allele_reads_from_locus_reads
 from .variant_helpers import require_literal_variant, trim_variant
 from .read_evidence import ReadEvidence
+from .read_identity import source_alignments_from_pysam, source_read_ids
 
 logger = get_logger(__name__)
 
@@ -43,6 +44,8 @@ class _CompactLocusRead(object):
         "read_base0_start_inclusive",
         "read_base0_end_exclusive",
         "splice_junctions",
+        "source_alignments",
+        "is_primary",
     ]
 
     def __init__(
@@ -56,7 +59,9 @@ class _CompactLocusRead(object):
             read_base0_start_inclusive,
             read_base0_end_exclusive,
             source_read_count=1,
-            splice_junctions=()):
+            splice_junctions=(),
+            source_alignments=(),
+            is_primary=False):
         self.name = name
         self.sequence = sequence
         self.reference_blocks = tuple(reference_blocks)
@@ -67,6 +72,8 @@ class _CompactLocusRead(object):
         self.read_base0_start_inclusive = read_base0_start_inclusive
         self.read_base0_end_exclusive = read_base0_end_exclusive
         self.splice_junctions = tuple(splice_junctions)
+        self.source_alignments = tuple(source_alignments)
+        self.is_primary = is_primary
 
     @classmethod
     def from_locus_read(cls, read):
@@ -81,6 +88,8 @@ class _CompactLocusRead(object):
             read_base0_end_exclusive=read.read_base0_end_exclusive,
             source_read_count=read.source_read_count,
             splice_junctions=read.splice_junctions,
+            source_alignments=read.source_alignments,
+            is_primary=read.is_primary,
         )
 
 class ReadCollector(object):
@@ -532,6 +541,9 @@ class ReadCollector(object):
             read_base0_end_exclusive=read_base0_end_exclusive,
             source_read_count=1,
             splice_junctions=self._splice_junctions(pysam_aligned_segment),
+            source_alignments=source_alignments_from_pysam(pysam_aligned_segment, name),
+            is_primary=not (pysam_aligned_segment.is_secondary
+                            or pysam_aligned_segment.is_supplementary),
         )
 
     @staticmethod
@@ -681,6 +693,15 @@ class ReadCollector(object):
 
     @classmethod
     def _merge_locus_read_pair(cls, first, second):
+        # QNAME alone also identifies secondary/supplementary placements of
+        # ONE segment. Only complementary primary mates can be collapsed.
+        first_ids, second_ids = source_read_ids(first), source_read_ids(second)
+        if not (first.is_primary and second.is_primary
+                and len(first_ids) == len(second_ids) == 1):
+            return None
+        first_id, second_id = next(iter(first_ids)), next(iter(second_ids))
+        if first_id[:2] != second_id[:2] or {first_id[2], second_id[2]} != {64, 128}:
+            return None
         if (
             first.name != second.name
             or first.reference_base0_start_inclusive != second.reference_base0_start_inclusive
@@ -776,6 +797,8 @@ class ReadCollector(object):
             source_read_count=first.source_read_count + second.source_read_count,
             splice_junctions=tuple(sorted(set(
                 first.splice_junctions + second.splice_junctions))),
+            source_alignments=tuple(sorted(first.source_alignments + second.source_alignments)),
+            is_primary=True,
         )
         if isinstance(first, _CompactLocusRead) and isinstance(second, _CompactLocusRead):
             return _CompactLocusRead(
@@ -866,7 +889,7 @@ class ReadCollector(object):
         If `merge_overlapping_fragments` is enabled then overlapping paired-end
         reads from the same fragment are conservatively merged so downstream
         assembly sees one fragment-spanning sequence instead of double-counting
-        the overlap. The raw number of source alignments is retained on each
+        the overlap. The number of sequenced segments is retained on each
         merged LocusRead via `source_read_count`.
 
         Parameters

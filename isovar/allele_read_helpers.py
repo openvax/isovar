@@ -20,6 +20,7 @@ from collections import Counter, defaultdict
 from .common import groupby
 from .logging import get_logger
 from .allele_read import AlleleRead
+from .read_identity import source_read_ids
 
 logger = get_logger(__name__)
 
@@ -127,16 +128,36 @@ def split_reads_into_ref_alt_other(ref, alt, overlapping_reads):
     Returns three lists of AlleleRead objects
         - reads which support the reference allele
         - reads which support the variant's alt allele
-        - reads which support other alleles
+        - reads which support other alleles or have conflicting placements
     """
     # convert to list in case it's a generator since
     # we want to traverse the sequence repeatedly
     overlapping_reads = list(overlapping_reads)
 
+    alleles_by_segment = defaultdict(set)
+    for read in overlapping_reads:
+        for key in source_read_ids(read):
+            alleles_by_segment[key].add(read.allele)
+    ambiguous = {key for key, alleles in alleles_by_segment.items() if len(alleles) > 1}
+    # A collapsed consensus cannot attribute its allele to just one mate.
+    # Keep every view of its component segments in the same uncertainty group.
+    changed = True
+    while ambiguous and changed:
+        previous_size = len(ambiguous)
+        for read in overlapping_reads:
+            keys = source_read_ids(read)
+            if keys & ambiguous:
+                ambiguous.update(keys)
+        changed = len(ambiguous) > previous_size
+    # A segment with competing allele calls is not definitive ref/alt support.
+    # Retain all original observations in other_reads rather than picking one.
+    uncertain_reads = [r for r in overlapping_reads if source_read_ids(r) & ambiguous]
+    overlapping_reads = [r for r in overlapping_reads if not source_read_ids(r) & ambiguous]
+
     reads_grouped_by_allele = group_reads_by_allele(overlapping_reads)
     ref_reads = reads_grouped_by_allele.get(ref, [])
     alt_reads = reads_grouped_by_allele.get(alt, [])
-    other_reads = []
+    other_reads = uncertain_reads
     for allele, allele_reads in reads_grouped_by_allele.items():
         if allele in {ref, alt}:
             continue

@@ -58,8 +58,10 @@ figures/
 All backgrounds are opaque white. Use `--dpi` to change PNG resolution (overview
 previews are capped at 300 dpi) and `--max-rows` to limit displayed span
 groups/transcript models. Neither reduces the reads used for analysis. A row
-marked ×N represents N post-merge read objects with the same clipped span.
-Coverage uses all supporting objects. Read names are not exported.
+marked ×N represents N deduplicated post-merge observations with the same
+clipped span. Alternative placements of one segment cannot inflate support;
+merged mates count as one coverage observation. Distinct templates do not
+establish independent molecules. Read names are not exported by `isovar plot`.
 
 ## Reading the figure
 
