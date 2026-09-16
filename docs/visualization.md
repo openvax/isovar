@@ -9,21 +9,31 @@ pip install 'isovar[plot]'
 Plot one mutation from your BAM and reference annotation:
 
 ```sh
-isovar-plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
+isovar plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
   --compare-assembly --output-dir figures
 
-isovar-plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
+isovar plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
   --view protein --compare-assembly --output-dir figures
 
-isovar-plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
+isovar plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
   --view transcripts --output-dir figures
 
-isovar-plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
-  --view assembly --output-dir figures
+isovar plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
+  --view reads --output-dir figures
 ```
 
-The default `--view all` combines protein, coverage, read-overlap and local
-transcript panels. Existing variant-file, read-collection and translation
+The default `--view all` exports **four individual figures** (protein, coverage,
+read overlaps and transcripts) plus a combined overview. Individual panels use
+a wider 16-inch canvas with editable SVG and a 600-dpi PNG (9,600 pixels wide).
+The overview PNG is a 300-dpi preview (4,800 pixels wide); its SVG and the PDF
+remain fully vector. Brief
+support notes sit in a separate right margin; definitions and detailed
+provenance live in `caption.md` and `evidence.json`, not over the data.
+
+Select `--view protein`, `coverage`, `reads` or `transcripts` to export only one.
+The existing `--view assembly` still produces combined coverage/read panels,
+now with their separate figures too. The `isovar-plot` alias remains supported.
+Existing variant-file, read-collection and translation
 options work here too. Select exactly one mutation per invocation.
 `--compare-assembly` changes **only** overlap assembly between the two runs;
 mate merging and every other setting remain the same. This is not a comparison
@@ -35,12 +45,18 @@ Each invocation creates a new directory; it never overwrites an earlier run:
 figures/
   YYYY-MM-DD_HH-MM-SS-microsecondsZ/     # UTC
     DIAPH1-5-141526090-C-A/
-      overview.svg                    # vector graphics with editable text
-      overview.png                    # opaque white, 300 dpi by default
+      overview.{svg,png}               # combined overview
+      protein.{svg,png}                # standalone, large protein panel
+      coverage.{svg,png}               # standalone coverage panel
+      reads.{svg,png}                  # standalone read-overlap panel
+      transcripts.{svg,png}            # standalone transcript panel
+      caption.md                      # definitions and interpretation
+      all-figures.pdf                  # one standalone panel per page
       evidence.json                   # sequences, coordinates, support, settings
 ```
 
-Use `--dpi` to change PNG resolution and `--max-rows` to limit displayed span
+All backgrounds are opaque white. Use `--dpi` to change PNG resolution (overview
+previews are capped at 300 dpi) and `--max-rows` to limit displayed span
 groups/transcript models. Neither reduces the reads used for analysis. A row
 marked ×N represents N post-merge read objects with the same clipped span.
 Coverage uses all supporting objects. Read names are not exported.
@@ -53,14 +69,20 @@ Coverage uses all supporting objects. Read names are not exported.
   sequences are always in `evidence.json`.
 - RNA rows use transcript-oriented cDNA offsets: upstream is left even for a
   minus-strand transcript. Coverage and overlap panels share the same scale.
-- One actual supporting cDNA witness is shown for each selected protein;
-  protein support can include other translations of the same protein. The
+- **Reconstructed cDNA** means one actual RNA-derived sequence that produces
+  the selected protein. Several different reconstructions can yield the same
+  protein; this track does not combine their reads or establish a unique isoform.
+  Protein support can include other translations of the same protein. The
   overlap panel shows the first mode with a protein, normally assembly on.
-  Witness support and overall protein support are recorded separately.
+  Reconstruction support and overall protein support are recorded separately.
+  The JSON key `witness` is retained for compatibility with existing consumers.
 - Transcript models use **forward genomic coordinates**, with strand arrows.
+  ENST labels include transcript names from the same annotation when available.
+  Angled gray connectors join adjacent exon boundaries; black connectors on the
+  separately labeled RNA junction row show observed splice evidence.
   Exons are clipped to the local observed region; long intronic gaps are
   compressed and marked `//`. Junction counts come from retained CIGAR N
-  evidence for the displayed witness, not from assuming the annotation is true.
+  evidence for the displayed reconstruction, not from assuming the annotation is true.
 - The figure title uses Varcode's normalized 1-based allele representation.
   Genomic track boundaries are 0-based, half-open. An anchored VCF deletion
   can therefore have a different displayed start after its anchor is removed.
@@ -69,7 +91,9 @@ Models that contribute the same protein do not uniquely identify an isoform.
 The figure is a rendering of Isovar's output, not an independent validation of
 its sequence, full-length transcript, expression, peptide presentation or
 clinical suitability. No extra sequence is filled in from the reference.
-Like `isovar-protein-sequences`, it shows candidates before `run_isovar`'s
+Coordinate conversions follow the [Ensembl GTF definition](https://www.ensembl.org/info/website/upload/gff.html);
+observed introns use CIGAR N per the [SAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf).
+Like `isovar protein-sequences`, it shows candidates before `run_isovar`'s
 result-level filters; producing a plot does not mean a variant passed them.
 
 Known interpretation limitations remain tracked in
@@ -79,7 +103,7 @@ indels when assigning the reading frame). Plotting does not repair them.
 
 ## Reproduce the osteosarc examples
 
-Browse the [recorded figure gallery](../figures/osteosarc/2026-09-16_01-26-26-429446Z/README.md).
+Browse the [recorded figure gallery](../figures/osteosarc/2026-09-16_03-09-39-994573Z/README.md).
 
 From a repository checkout with the plotting extra installed:
 
@@ -99,7 +123,7 @@ translation and transcript-reference checks before figures are written.
 | SLC25A12 | 44 → 49 aa | 20 → 25 |
 | TECPR1 | 37 → 49 aa | 13 → 25 |
 
-In each example, no single read object spans the full assembled cDNA witness.
+In each example, no single read object spans the full reconstructed cDNA.
 Assembly connects overlapping observations to recover missing context. The
 shorter no-assembly sequence is correct, but incomplete for those additional
 peptide windows. Selected fixture counts are not full-sample abundance estimates.

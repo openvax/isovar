@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import sys
+from .commands import parser_for_program
 
 from ..logging import get_logger
 from .reference_context_args import (
@@ -28,10 +29,10 @@ parser = add_output_args(
     filename="isovar-reference-contexts-result.csv")
 
 
-def run(args=None):
+def run(args=None, *, prog=None):
     if args is None:
         args = sys.argv[1:]
-    args = parser.parse_args(args)
+    args = parser_for_program(parser, prog).parse_args(args)
     reference_contexts_df = reference_contexts_dataframe_from_args(args)
     logger.info(reference_contexts_df)
     write_dataframe(reference_contexts_df, args)

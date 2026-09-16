@@ -17,6 +17,7 @@ a read count to each protein sequence.
 """
 
 import sys
+from .commands import parser_for_program
 
 
 from ..logging import get_logger
@@ -35,10 +36,10 @@ parser = add_output_args(
     filename="isovar-protein-sequences-result.csv")
 
 
-def run(args=None):
+def run(args=None, *, prog=None):
     if args is None:
         args = sys.argv[1:]
-    args = parser.parse_args(args)
+    args = parser_for_program(parser, prog).parse_args(args)
     logger.info(args)
     df = protein_sequences_dataframe_from_args(args)
     logger.info(df)

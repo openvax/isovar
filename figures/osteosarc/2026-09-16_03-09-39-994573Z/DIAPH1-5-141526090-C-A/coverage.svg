@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1152pt" height="266.4pt" viewBox="0 0 1152 266.4" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.1, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 266.4
+L 1152 266.4
+L 1152 0
+L 0 0
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 195.84 219.6
+L 910.08 219.6
+L 910.08 75.6
+L 195.84 75.6
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1">
+      <defs>
+       <path id="me8b00eef02" d="M 0 0
+L 0 3
+" style="stroke: #202020; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#me8b00eef02" x="267.264" y="219.6" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_1">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #202020" x="267.264" y="234.457422" transform="rotate(-0 267.264 234.457422)">−60</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_2">
+      <g>
+       <use xlink:href="#me8b00eef02" x="356.544" y="219.6" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_2">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #202020" x="356.544" y="234.457422" transform="rotate(-0 356.544 234.457422)">−40</text>
+     </g>
+    </g>
+    <g id="xtick_3">
+     <g id="line2d_3">
+      <g>
+       <use xlink:href="#me8b00eef02" x="445.824" y="219.6" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_3">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #202020" x="445.824" y="234.457422" transform="rotate(-0 445.824 234.457422)">−20</text>
+     </g>
+    </g>
+    <g id="xtick_4">
+     <g id="line2d_4">
+      <g>
+       <use xlink:href="#me8b00eef02" x="535.104" y="219.6" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_4">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #202020" x="535.104" y="234.457422" transform="rotate(-0 535.104 234.457422)">0</text>
+     </g>
+    </g>
+    <g id="xtick_5">
+     <g id="line2d_5">
+      <g>
+       <use xlink:href="#me8b00eef02" x="624.384" y="219.6" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_5">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #202020" x="624.384" y="234.457422" transform="rotate(-0 624.384 234.457422)">20</text>
+     </g>
+    </g>
+    <g id="xtick_6">
+     <g id="line2d_6">
+      <g>
+       <use xlink:href="#me8b00eef02" x="713.664" y="219.6" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_6">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #202020" x="713.664" y="234.457422" transform="rotate(-0 713.664 234.457422)">40</text>
+     </g>
+    </g>
+    <g id="xtick_7">
+     <g id="line2d_7">
+      <g>
+       <use xlink:href="#me8b00eef02" x="802.944" y="219.6" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_7">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #202020" x="802.944" y="234.457422" transform="rotate(-0 802.944 234.457422)">60</text>
+     </g>
+    </g>
+    <g id="xtick_8">
+     <g id="line2d_8">
+      <g>
+       <use xlink:href="#me8b00eef02" x="892.224" y="219.6" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_8">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #202020" x="892.224" y="234.457422" transform="rotate(-0 892.224 234.457422)">80</text>
+     </g>
+    </g>
+    <g id="text_9">
+     <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #202020" x="552.96" y="250.218125" transform="rotate(-0 552.96 250.218125)">cDNA offset from alternate allele (nt; 5′ → 3′)</text>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_9">
+      <defs>
+       <path id="m9a308955ed" d="M 0 0
+L -3 0
+" style="stroke: #202020; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#m9a308955ed" x="195.84" y="219.6" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_10">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #202020" x="189.34" y="223.778711" transform="rotate(-0 189.34 223.778711)">0</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_10">
+      <g>
+       <use xlink:href="#m9a308955ed" x="195.84" y="165.935404" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_11">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #202020" x="189.34" y="170.114115" transform="rotate(-0 189.34 170.114115)">6</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_11">
+      <g>
+       <use xlink:href="#m9a308955ed" x="195.84" y="112.270807" style="fill: #202020; stroke: #202020; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_12">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #202020" x="189.34" y="116.449518" transform="rotate(-0 189.34 116.449518)">12</text>
+     </g>
+    </g>
+    <g id="text_13">
+     <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #202020" x="168.699922" y="147.6" transform="rotate(-90 168.699922 147.6)">Read objects</text>
+    </g>
+   </g>
+   <g id="line2d_12">
+    <path d="M 204.768 192.767702
+L 314.136 192.767702
+L 314.136 183.823602
+L 403.416 183.823602
+L 403.416 174.879503
+L 416.808 174.879503
+L 416.808 130.159006
+L 443.592 130.159006
+L 443.592 121.214907
+L 501.624 121.214907
+L 501.624 103.326708
+L 550.728 103.326708
+L 550.728 112.270807
+L 568.584 112.270807
+L 568.584 121.214907
+L 680.184 121.214907
+L 680.184 130.159006
+L 865.44 130.159006
+L 865.44 130.159006
+" clip-path="url(#pa431f66f50)" style="fill: none; stroke: #0072b2; stroke-width: 1.5; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_13">
+    <path d="M 316.368 174.879503
+L 403.416 174.879503
+L 403.416 165.935404
+L 416.808 165.935404
+L 416.808 121.214907
+L 443.592 121.214907
+L 443.592 112.270807
+L 501.624 112.270807
+L 501.624 94.382609
+L 550.728 94.382609
+L 550.728 103.326708
+L 568.584 103.326708
+L 568.584 112.270807
+L 653.4 112.270807
+L 653.4 121.214907
+L 680.184 121.214907
+L 680.184 130.159006
+L 865.44 130.159006
+L 865.44 130.159006
+" clip-path="url(#pa431f66f50)" style="fill: none; stroke-dasharray: 5.55,2.4; stroke-dashoffset: 0; stroke: #707070; stroke-width: 1.5"/>
+   </g>
+   <g id="line2d_14">
+    <path d="M 195.84 201.711801
+L 910.08 201.711801
+" clip-path="url(#pa431f66f50)" style="fill: none; stroke-dasharray: 1,1.65; stroke-dashoffset: 0; stroke: #707070"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 195.84 219.6
+L 910.08 219.6
+" style="fill: none; stroke: #b0b0b0; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="text_14">
+    <text style="font-weight: 700; font-size: 14px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #202020" x="195.84" y="59.6" transform="rotate(-0 195.84 59.6)">RNA coverage</text>
+   </g>
+   <g id="legend_1">
+    <g id="line2d_15">
+     <path d="M 931.936 83.698437
+L 936.936 83.698437
+L 936.936 83.698437
+L 946.936 83.698437
+L 946.936 83.698437
+L 951.936 83.698437
+" style="fill: none; stroke: #0072b2; stroke-width: 1.5; stroke-linecap: square"/>
+    </g>
+    <g id="text_15">
+     <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #202020" x="959.936" y="87.198437" transform="rotate(-0 959.936 87.198437)">Assembly on</text>
+    </g>
+    <g id="line2d_16">
+     <path d="M 931.936 98.699219
+L 936.936 98.699219
+L 936.936 98.699219
+L 946.936 98.699219
+L 946.936 98.699219
+L 951.936 98.699219
+" style="fill: none; stroke-dasharray: 5.55,2.4; stroke-dashoffset: 0; stroke: #707070; stroke-width: 1.5"/>
+    </g>
+    <g id="text_16">
+     <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #202020" x="959.936" y="102.199219" transform="rotate(-0 959.936 102.199219)">Assembly off</text>
+    </g>
+    <g id="line2d_17">
+     <path d="M 931.936 113.7
+L 941.936 113.7
+L 951.936 113.7
+" style="fill: none; stroke-dasharray: 1,1.65; stroke-dashoffset: 0; stroke: #707070"/>
+    </g>
+    <g id="text_17">
+     <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #202020" x="959.936" y="117.2" transform="rotate(-0 959.936 117.2)">Coverage floor 2</text>
+    </g>
+   </g>
+  </g>
+  <g id="text_18">
+   <text style="font-weight: 700; font-size: 18px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #202020" x="40.32" y="26.637187" transform="rotate(-0 40.32 26.637187)">DIAPH1   5:141526090 C&gt;A (1-based)</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pa431f66f50">
+   <rect x="195.84" y="75.6" width="714.24" height="144"/>
+  </clipPath>
+ </defs>
+</svg>

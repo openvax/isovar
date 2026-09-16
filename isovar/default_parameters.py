@@ -180,7 +180,10 @@ DEFAULT_FILTER_FLAGS = [
 
 # Static mutation-evidence figures; shared by the plotting API and CLI.
 PLOT_COMPARE_ASSEMBLY = False
-PLOT_DPI = 300
+PLOT_DPI = 600
+PLOT_OVERVIEW_DPI = 300
+PLOT_WIDTH = 16
 PLOT_MAX_ROWS = 20
 PLOT_VIEW = "all"
+PLOT_VIEWS = ("all", "protein", "coverage", "reads", "assembly", "transcripts")
 PLOT_OUTPUT_DIRECTORY = "isovar-figures"
