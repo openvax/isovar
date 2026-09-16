@@ -28,10 +28,10 @@ from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
 
-def run(args=None):
+def run(args=None, *, prog=None):
     if args is None:
         args = sys.argv[1:]
-    parser = make_isovar_arg_parser()
+    parser = make_isovar_arg_parser(prog=prog)
     parser = add_output_args(
         parser,
         filename="isovar-results.csv")

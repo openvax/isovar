@@ -209,34 +209,41 @@ properties can be further negated by prepending 'not_' to the property name, so 
 Basic example:
 
 ```sh
-$ isovar  \
+$ isovar run \
     --vcf somatic-variants.vcf  \
     --bam rnaseq.bam \
     --protein-sequence-length 30 \
     --output isovar-results.csv
 ```
 
-Each command's `--help` lists its options and current defaults:
+`isovar --help` lists the subcommands. Each subcommand's `--help` lists its
+options and current defaults:
 
 ```sh
 isovar --help
-isovar-reference-contexts --help
+isovar run --help
+isovar reference-contexts --help
 ```
 
 For example, use only primary alignments, include soft-clipped bases, and
 require at least three read objects at every retained cDNA base:
 
 ```sh
-isovar --vcf somatic-variants.vcf --bam rnaseq.bam \
+isovar run --vcf somatic-variants.vcf --bam rnaseq.bam \
     --drop-secondary-alignments --use-soft-clipped-bases \
     --min-variant-sequence-coverage 3 --num-rna-decompression-threads 4 \
     --output isovar-results.csv
 ```
 
 To export every candidate protein, use `--max-protein-sequences-per-variant 0`.
-The default keeps the top candidate for each variant. The standalone
-`isovar-variant-sequences` command accepts `--variant-sequence-length`
+The default keeps the top candidate for each variant. The
+`isovar variant-sequences` command accepts `--variant-sequence-length`
 to set its preferred cDNA length.
+
+Existing scripts remain supported: `isovar --vcf ... --bam ...` still runs the
+main pipeline, and hyphenated commands such as `isovar-protein-sequences` and
+`isovar-plot` remain aliases. Both spellings use the same handlers and defaults.
+You can also invoke the CLI as `python -m isovar`.
 
 ### Shared CLI and Python defaults
 
@@ -257,7 +264,7 @@ Explicit Python `filter_thresholds` dictionaries still replace the defaults;
 to override selected defaults, copy `DEFAULT_FILTER_THRESHOLDS` and update it.
 The existing imports from `isovar.main` remain supported.
 
-`--reference-context-size` belongs only to `isovar-reference-contexts`,
+`--reference-context-size` belongs only to `isovar reference-contexts`,
 where it must be positive. Protein-producing commands now reject this
 previously ignored option. They derive reference context size from the requested
 cDNA length and minimum transcript prefix. Automatic protein length and
@@ -312,31 +319,32 @@ Multiple distinct variant sequences and reference contexts can generate the same
 
 ## Other Isovar Commandline Tools
 
-`isovar-plot` renders white-background protein, read-overlap and local transcript
-figures as SVG and high-resolution PNG, in UTC date/time-stamped directories.
+`isovar plot` renders white-background protein, coverage, read-overlap and local
+transcript figures as individual SVGs and 600-dpi PNGs, plus an overview, in
+UTC date/time-stamped directories.
 Install `isovar[plot]`, then see the [plotting commands and reproducible osteosarc
 assembly examples](docs/visualization.md).
 
 <dl>
-<dt>isovar-protein-sequences --vcf variants.vcf --bam rna.bam</dt>
+<dt>isovar protein-sequences --vcf variants.vcf --bam rna.bam</dt>
 <dd>Candidate protein sequences from RNA reads; keeps the top sequence per variant unless <code>--max-protein-sequences-per-variant 0</code> is supplied.</dd>
 
-<dt>isovar-allele-counts --vcf variants.vcf --bam rna.bam</dt>
+<dt>isovar allele-counts --vcf variants.vcf --bam rna.bam</dt>
 <dd>Counts of reads and fragments supporting the ref, alt, and other alleles at all given variant locations.</dd>
 
-<dt>isovar-allele-reads --vcf variants.vcf --bam rna.bam</dt>
+<dt>isovar allele-reads --vcf variants.vcf --bam rna.bam</dt>
 <dd>Sequences of all reads overlapping any of the given variants.</dd>
  
-<dt>isovar-translations --vcf variants.vcf --bam rna.bam</dt>
+<dt>isovar translations --vcf variants.vcf --bam rna.bam</dt>
 <dd>All possible translations of any assembled cDNA sequence containing any of the given variants in the reference frame of any matching transcript.</dd>
 
-<dt>isovar-reference-contexts --vcf variants.vcf</dt>
+<dt>isovar reference-contexts --vcf variants.vcf</dt>
 <dd>Shows all candidate reference contexts (sequence and reading frame) before each variant, derived from overlapping reference coding transcripts.</dd>
 
-<dt>isovar-variant-reads --vcf variants.vcf --bam rna.bam</dt>
-<dd>Like the isovar-allele-reads command but limited only to reads which support the alt allele.</dd>
+<dt>isovar variant-reads --vcf variants.vcf --bam rna.bam</dt>
+<dd>Like the isovar allele-reads command but limited only to reads which support the alt allele.</dd>
 
-<dt>isovar-variant-sequences --vcf variants.vcf --bam rna.bam</dt>
+<dt>isovar variant-sequences --vcf variants.vcf --bam rna.bam</dt>
 <dd>Shows all assembled cDNA coding sequences supporting any of the given variants.</dd>
 </dl>
 

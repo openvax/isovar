@@ -37,7 +37,7 @@ isovar = ["logging.conf"]
 plot = ["matplotlib>=3.6,<4"]
 
 [project.scripts]
-isovar = "isovar.cli.isovar_main:run"
+isovar = "isovar.cli.commands:run"
 isovar-protein-sequences = "isovar.cli.isovar_protein_sequences:run"
 isovar-translations = "isovar.cli.isovar_translations:run"
 isovar-reference-contexts = "isovar.cli.isovar_reference_contexts:run"

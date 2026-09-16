@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import sys
+from .commands import parser_for_program
 
 from ..logging import get_logger
 
@@ -48,10 +49,10 @@ def variant_sequences_dataframe_from_args(args):
     return variant_sequences_generator_to_dataframe(variant_sequences_generator)
 
 
-def run(args=None):
+def run(args=None, *, prog=None):
     if args is None:
         args = sys.argv[1:]
-    args = parser.parse_args(args)
+    args = parser_for_program(parser, prog).parse_args(args)
     logger.info(args)
     df = variant_sequences_dataframe_from_args(args)
     logger.info(df)

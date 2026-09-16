@@ -23,6 +23,12 @@ def test_osteosarc_figure_comparisons_validate_without_changing_reads(tmp_path, 
             for e in manifest["examples"]] == [(49, 40, 25, 16), (49, 44, 25, 20), (49, 37, 25, 13)]
     for path in output.glob("*/evidence.json"):
         data = json.loads(path.read_text())
+        assert all(t["name"] and t["name"] != t["id"] for t in data["transcripts"])
+        junctions = {(j["start"], j["end"]) for j in data["modes"][0]["protein"]["witness"]["junctions"]}
+        assert junctions
+        for transcript in data["transcripts"]:
+            introns = {(a[1], b[0]) for a, b in zip(transcript["exons"], transcript["exons"][1:])}
+            assert junctions <= introns
         assert data["modes"][0]["protein"]["witness"]["spanning_observations"] == 0
         assert data["provenance"]["source_bam_url"].startswith("https://")
         assert data["provenance"]["nonfocal_witness_indels"] == 0

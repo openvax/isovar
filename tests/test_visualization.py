@@ -12,7 +12,7 @@ import pytest
 from varcode import Variant
 
 from isovar import ProteinSequenceCreator
-from isovar.default_parameters import PLOT_DPI, PLOT_MAX_ROWS, PLOT_VIEW
+from isovar.default_parameters import PLOT_DPI, PLOT_MAX_ROWS, PLOT_VIEW, PLOT_VIEWS, PLOT_WIDTH
 from isovar.read_evidence import ReadEvidence
 from isovar.visualization import (
     _creator_settings, _genomic_projection, _witness_data, collect_visualization_data,
@@ -28,7 +28,7 @@ def evidence_data(request, monkeypatch):
     prefix, suffix = "AAA" * 30, "CCC" * 30
     context = _context(variant, strand, prefix, suffix)
     # Unknown path metadata remains unclassified until the normal pipeline.
-    context.transcripts = (SimpleNamespace(id="TX1", gene_name="EXAMPLE", strand=strand,
+    context.transcripts = (SimpleNamespace(id="TX1", name="EXAMPLE-201", gene_name="EXAMPLE", strand=strand,
                                           exon_intervals=((1, 2000),)),)
     monkeypatch.setattr("isovar.protein_sequence_creator.reference_contexts_for_variant", lambda *a, **kw: [context])
     alt = "C" if strand == "+" else "G"
@@ -50,6 +50,7 @@ def test_comparison_is_exactly_the_existing_pipeline(evidence_data):
     assert {k for k in a if a[k] != b[k]} == {"variant_sequence_assembly"}
     assert len(data["modes"][0]["protein"]["amino_acids"]) > len(data["modes"][1]["protein"]["amino_acids"])
     json.dumps(data)  # No NumPy scalars or opaque sequence/transcript objects.
+    assert data["transcripts"][0]["name"] == "EXAMPLE-201"
 
 
 def test_oriented_span_coverage_is_exact(evidence_data):
@@ -65,7 +66,7 @@ def test_oriented_span_coverage_is_exact(evidence_data):
     assert data["modes"][0]["protein"]["witness"]["spanning_observations"] == 0
 
 
-@pytest.mark.parametrize("view", ["all", "protein", "assembly", "transcripts"])
+@pytest.mark.parametrize("view", PLOT_VIEWS)
 def test_all_views_render_opaque_and_do_not_mutate_evidence(evidence_data, view):
     pytest.importorskip("matplotlib")
     from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -197,7 +198,101 @@ def test_deletion_boundary_and_long_protein_render(evidence_data):
         mode["protein"]["mutation_start"] = mode["protein"]["mutation_end"] = 20
     figure = plot_variant_evidence(data, view="protein")
     FigureCanvasAgg(figure).draw()
-    assert any("sequence in evidence.json" in t.get_text() for t in figure.axes[0].texts)
+    assert any("Sequence in evidence.json" in t.get_text() for t in figure.axes[0].texts)
+
+
+def test_metadata_is_in_the_margin_and_labels_are_plain(evidence_data):
+    pytest.importorskip("matplotlib")
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+    figure = plot_variant_evidence(evidence_data[0], max_rows=2)
+    canvas = FigureCanvasAgg(figure)
+    canvas.draw()
+    renderer = canvas.get_renderer()
+    assert figure.get_figwidth() == PLOT_WIDTH and PLOT_WIDTH > 11.7
+    assert PLOT_DPI == 600
+    texts = [t for ax in figure.axes for t in ax.texts]
+    assert not any("witness" in t.get_text().lower() or "observations /" in t.get_text() for t in texts)
+    assert any(t.get_text() == "Reconstructed cDNA" for t in texts)
+    for ax in figure.axes:
+        metadata = [t for t in ax.texts if any(s in t.get_text() for s in
+                    ("templates", "spanning", "models", "Isoform", "groups shown"))]
+        for note in metadata:
+            box = note.get_window_extent(renderer)
+            assert box.x0 > ax.get_window_extent(renderer).x1
+            assert box.x1 <= figure.bbox.x1
+        if ax.get_legend() is not None:
+            assert ax.get_legend().get_window_extent(renderer).x0 > ax.get_window_extent(renderer).x1
+
+
+@pytest.mark.parametrize("view,names", [
+    ("all", {"overview", "protein", "coverage", "reads", "transcripts"}),
+    ("assembly", {"assembly", "coverage", "reads"}),
+    ("coverage", {"coverage"}),
+    ("reads", {"reads"}),
+])
+def test_separate_panel_exports_and_pixel_dimensions(evidence_data, tmp_path, view, names):
+    pytest.importorskip("matplotlib")
+    from PIL import Image
+
+    data = evidence_data[0]
+    before = deepcopy(data)
+    directory = save_variant_figures(data, tmp_path, view=view, dpi=72)
+    assert {p.stem for p in directory.glob("*.png")} == names
+    assert {p.stem for p in directory.glob("*.svg")} == names
+    assert (directory / "caption.md").is_file()
+    pdf = (directory / "all-figures.pdf").read_bytes()
+    assert pdf.startswith(b"%PDF-")
+    assert len(re.findall(rb"/Type /Page\b", pdf)) == len(names - {"overview", "assembly"})
+    for name in names:
+        with Image.open(directory / (name + ".png")) as image:
+            assert image.width == PLOT_WIDTH * 72
+            assert image.info["dpi"][0] == pytest.approx(72, abs=.02)
+            assert image.convert("RGBA").getpixel((0, 0)) == (255, 255, 255, 255)
+        assert "<text" in (directory / (name + ".svg")).read_text()
+    assert data == before
+    saved = json.loads((directory / "evidence.json").read_text())
+    assert saved["modes"] == data["modes"]
+    assert saved["rendering"]["width_inches"] == PLOT_WIDTH
+
+
+def test_transcript_connectors_use_exact_exon_boundaries_and_names(evidence_data):
+    pytest.importorskip("matplotlib")
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+    data = deepcopy(evidence_data[0])
+    data["transcripts"][0]["exons"] = [(950, 1010), (1100, 1170)]
+    other = dict(data["transcripts"][0], id="TX2", name=None, exons=[(960, 1020), (1110, 1190)])
+    data["transcripts"].append(other)
+    for mode in data["modes"]:
+        mode["protein"]["witness"]["genomic_blocks"] = [(980, 1010), (1100, 1120)]
+        mode["protein"]["witness"]["junctions"] = [dict(start=1010, end=1100, observations=3)]
+    _, _, _, project = _genomic_projection(data)
+    figure = plot_variant_evidence(data, view="transcripts")
+    FigureCanvasAgg(figure).draw()
+    ax = figure.axes[0]
+    connectors = [line for line in ax.lines if line.get_label() == "_annotated_intron"]
+    assert len(connectors) == 2
+    for line, (start, end) in zip(connectors, [(1010, 1100), (1020, 1110)]):
+        assert list(line.get_xdata()) == [project(start), (project(start) + project(end)) / 2, project(end)]
+        y = line.get_ydata()
+        assert y[0] == y[-1] < y[1]
+    observed = [line for line in ax.lines if line.get_label() == "_observed_junction"]
+    assert len(observed) == 1
+    assert list(observed[0].get_xdata()) == list(connectors[0].get_xdata())
+    assert list(observed[0].get_ydata()) == [0, .35, 0]
+    arrow = "→" if data["transcripts"][0]["strand"] == "+" else "←"
+    labels = [t.get_text() for t in ax.texts]
+    assert "TX1 " + arrow + "\n(EXAMPLE-201)" in labels
+    assert "TX2 " + arrow in labels
+
+
+def test_missing_transcript_name_still_renders(evidence_data):
+    pytest.importorskip("matplotlib")
+    data = deepcopy(evidence_data[0])
+    del data["transcripts"][0]["name"]
+    figure = plot_variant_evidence(data, view="transcripts")
+    assert not any("None" in t.get_text() for t in figure.axes[0].texts)
 
 
 def test_cli_writes_a_timestamped_report(evidence_data, monkeypatch, tmp_path):

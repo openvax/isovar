@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 
 from .default_parameters import (
-    PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_VIEW,
+    PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_OVERVIEW_DPI, PLOT_VIEW, PLOT_VIEWS, PLOT_WIDTH,
 )
 from .dna import reverse_complement_dna
 from .protein_sequence_creator import ProteinSequenceCreator
@@ -120,7 +120,7 @@ def collect_visualization_data(
                 for transcript in translation.reference_context.transcripts:
                     ids.add(transcript.id)
                     transcripts[transcript.id] = dict(
-                        id=transcript.id, gene=transcript.gene_name,
+                        id=transcript.id, name=getattr(transcript, "name", None), gene=transcript.gene_name,
                         strand=transcript.strand,
                         exons=sorted((int(a) - 1, int(b)) for a, b in transcript.exon_intervals))
             entry["protein"] = dict(
@@ -186,11 +186,17 @@ BLUE, ORANGE, GRAY, INK = "#0072B2", "#D55E00", "#707070", "#202020"
 
 def _style_axis(ax, title):
     ax.set_facecolor("white")
-    ax.set_title(title, loc="left", fontsize=12, fontweight="bold", pad=13)
+    ax.set_title(title, loc="left", fontsize=14, fontweight="bold", pad=16)
     ax.spines[["top", "right", "left"]].set_visible(False)
     ax.spines["bottom"].set_color("#B0B0B0")
-    ax.tick_params(axis="both", labelsize=9, length=3, colors=INK)
+    ax.tick_params(axis="both", labelsize=11, length=3, colors=INK)
     ax.set_yticks([])
+
+
+def _side_note(ax, text, y=1, transform=None):
+    """Reserve the right margin for metadata, outside the plotting area."""
+    return ax.text(1.035, y, text, transform=transform or ax.transAxes,
+                   ha="left", va="top", fontsize=10, color=GRAY, linespacing=1.6)
 
 
 def _protein_panel(ax, data, rectangle):
@@ -200,7 +206,7 @@ def _protein_panel(ax, data, rectangle):
         y = len(data["modes"]) - i
         p = mode["protein"]
         label = "Assembly on" if mode["assembly"] else "Assembly off"
-        ax.text(-0.025, y, label, transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=10)
+        ax.text(-0.025, y, label, transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=12)
         if p is None:
             ax.text(0, y, "No translated protein", va="center", fontsize=10, color=GRAY)
             continue
@@ -215,18 +221,17 @@ def _protein_panel(ax, data, rectangle):
             changed = a <= j < b
             if changed:
                 ax.add_patch(rectangle((j - a - .46, y - .20), .92, .40, color=ORANGE, alpha=.12, lw=0))
-            ax.text(j - a, y, aa, ha="center", va="center", fontfamily="DejaVu Sans Mono", fontsize=10,
+            ax.text(j - a, y, aa, ha="center", va="center", fontfamily="DejaVu Sans Mono", fontsize=12,
                     color=ORANGE if changed else color, fontweight="bold" if changed else "normal")
         if a == b:
             ax.plot([-.5, -.5], [y - .23, y + .23], color=ORANGE, lw=2)
         if p["ends_with_stop_codon"]:
             ax.text(len(p["amino_acids"]) - a, y, "*", ha="center", va="center", fontsize=11)
         peptide_length = mode["settings"]["protein_context_peptide_length"]
-        ax.text(0, y - .34,
-                ("%d aa; %d mutation-overlapping %d-mers; %d supporting templates" % (
-                    len(p["amino_acids"]), p["peptide_windows"], peptide_length, p["templates"]))
-                + ("; sequence in evidence.json" if not letters else ""),
-                transform=ax.get_yaxis_transform(), fontsize=9, color=GRAY)
+        _side_note(ax, "%d aa · %d × %d-mers\n%d templates%s" % (
+            len(p["amino_acids"]), p["peptide_windows"], peptide_length, p["templates"],
+            "\nSequence in evidence.json" if not letters else ""),
+            y=y + .15, transform=ax.get_yaxis_transform())
     ax.axvline(-.5, color=ORANGE, alpha=.3, lw=.8, zorder=0)
     ax.set(xlim=(left, right), ylim=(.3, len(data["modes"]) + .45),
            xlabel="Amino-acid offset from mutation (N → C)")
@@ -239,7 +244,7 @@ def _selected_witness(data):
 def _coverage_panel(ax, data):
     from matplotlib.ticker import MaxNLocator
 
-    _style_axis(ax, "Coverage of the displayed cDNA witnesses")
+    _style_axis(ax, "RNA coverage")
     for mode in data["modes"]:
         if not mode["protein"]:
             continue
@@ -249,18 +254,18 @@ def _coverage_panel(ax, data):
                 linestyle="-" if mode["assembly"] else "--",
                 label="Assembly on" if mode["assembly"] else "Assembly off")
     floor = data["modes"][0]["settings"]["min_variant_sequence_coverage"]
-    ax.axhline(floor, color=ORANGE, lw=1, ls=":", label="Coverage floor %d" % floor)
+    ax.axhline(floor, color=GRAY, lw=1, ls=":", label="Coverage floor %d" % floor)
     peak = max([floor, 1] + [max(m["protein"]["witness"]["coverage"], default=0)
                             for m in data["modes"] if m["protein"]])
-    ax.set_ylim(0, peak * 1.7)
-    ax.set_ylabel("Read objects", fontsize=9)
+    ax.set_ylim(0, peak * 1.15)
+    ax.set_ylabel("Read objects", fontsize=11)
     ax.yaxis.set_major_locator(MaxNLocator(3, integer=True))
-    ax.legend(frameon=False, fontsize=8, loc="upper right", ncol=3)
-    ax.set_xlabel("cDNA nucleotide offset from alternate allele (5′ → 3′)")
+    ax.legend(frameon=False, fontsize=10, loc="upper left", bbox_to_anchor=(1.025, 1), borderaxespad=0)
+    ax.set_xlabel("cDNA offset from alternate allele (nt; 5′ → 3′)")
 
 
 def _assembly_panel(ax, data, max_rows):
-    _style_axis(ax, "Read overlap and one selected cDNA witness")
+    _style_axis(ax, "Read overlaps")
     w = _selected_witness(data)
     if w is None:
         ax.text(.5, .5, "No translated assembly to display", transform=ax.transAxes, ha="center")
@@ -276,16 +281,20 @@ def _assembly_panel(ax, data, max_rows):
     for i, span in enumerate(selected):
         y = len(selected) - i
         ax.plot([span["start"], span["end"]], [y, y], color=color, lw=3, solid_capstyle="butt")
-        ax.text(span["end"] + 1.5, y, "×%d" % span["observations"], fontsize=8, va="center", color=GRAY)
+        if span["observations"] > 1:
+            ax.text(span["end"] + 1.5, y, "×%d" % span["observations"], fontsize=10, va="center", color=GRAY)
     ax.plot([w["start"], w["end"]], [0, 0], color=INK, lw=5, solid_capstyle="butt")
-    ax.text(-.025, 0, "cDNA witness", transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=9)
+    ax.text(-.025, 0, "Reconstructed cDNA", transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=11)
     ax.axvspan(0, max(w["alt_length"], .3), color=ORANGE, alpha=.16)
     ax.axvline(0, color=ORANGE, lw=1)
-    note = "%d observations / %d templates; %d span the whole witness; %d/%d span groups shown" % (
-        w["observations"], w["templates"], w["spanning_observations"], len(selected), len(spans))
-    ax.text(0, 1.025, note, transform=ax.transAxes, fontsize=8.5, color=GRAY)
+    note = "%d templates\n%d spanning read objects" % (w["templates"], w["spanning_observations"])
+    if w["observations"] != w["templates"]:
+        note += "\n%d total read objects" % w["observations"]
+    if len(selected) < len(spans):
+        note += "\n%d of %d span groups shown" % (len(selected), len(spans))
+    _side_note(ax, note)
     ax.set(xlim=(w["start"] - 2, w["end"] + 9), ylim=(-.7, len(selected) + .6),
-           xlabel="cDNA nucleotide offset (5′ → 3′); read spans clipped to witness")
+           xlabel="cDNA offset from alternate allele (nt; 5′ → 3′)")
 
 
 def _genomic_projection(data):
@@ -324,7 +333,7 @@ def _genomic_projection(data):
 
 
 def _transcript_panel(ax, data, max_rows, rectangle):
-    _style_axis(ax, "Local transcript models contributing to these proteins")
+    _style_axis(ax, "Contributing transcripts")
     if not data["transcripts"]:
         ax.text(.5, .5, "No contributing transcript model", transform=ax.transAxes, ha="center")
         ax.set_axis_off()
@@ -334,37 +343,55 @@ def _transcript_panel(ax, data, max_rows, rectangle):
     for i, transcript in enumerate(shown):
         y = len(shown) - i
         exons = [(max(a, lo), min(b, hi)) for a, b in transcript["exons"] if a < hi and b > lo]
-        if exons:
-            ax.plot([project(exons[0][0]), project(exons[-1][1])], [y, y], color=GRAY, lw=.8)
-            for a, b in exons:
-                ax.add_patch(rectangle((project(a), y - .17), project(b) - project(a), .34, color=INK, lw=0))
+        # GTF exons were converted from closed 1-based to half-open 0-based
+        # bounds in collect_visualization_data. Introns connect exon end to
+        # next exon start on the forward genomic axis, for either strand.
+        for left, right in zip(exons, exons[1:]):
+            a, b = left[1], right[0]
+            if a < b:
+                x0, x1 = project(a), project(b)
+                ax.plot([x0, (x0 + x1) / 2, x1], [y, y + .28, y], color=GRAY, lw=1,
+                        label="_annotated_intron")
+        for a, b in exons:
+            ax.add_patch(rectangle((project(a), y - .17), project(b) - project(a), .34,
+                                   color=INK, lw=0, zorder=3))
         arrow = "→" if transcript["strand"] == "+" else "←"
-        ax.text(-.025, y, transcript["id"] + " " + arrow, transform=ax.get_yaxis_transform(),
-                ha="right", va="center", fontsize=8)
+        label = transcript["id"] + " " + arrow
+        name = transcript.get("name")
+        if name and name != transcript["id"]:
+            label += "\n(" + name + ")"
+        ax.text(-.025, y, label, transform=ax.get_yaxis_transform(),
+                ha="right", va="center", fontsize=10, linespacing=1.3)
     w = _selected_witness(data)
     for junction in (w["junctions"] if w else []):
         a, b = junction["start"], junction["end"]
         if lo <= a < b <= hi:
             x0, x1 = project(a), project(b)
-            ax.plot([x0, (x0 + x1) / 2, x1], [0, .35, 0], color=INK, lw=1)
+            ax.plot([x0, (x0 + x1) / 2, x1], [0, .35, 0], color=INK, lw=1,
+                    label="_observed_junction")
             ax.text((x0 + x1) / 2, -.22, str(junction["observations"]), ha="center", fontsize=8)
-    ax.text(-.025, 0, "Observed junctions", transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=8)
+    ax.text(-.025, 0, "RNA junctions", transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=10)
     if not w or not w["junctions"]:
         ax.text(.5, 0, "No retained junction evidence", transform=ax.get_yaxis_transform(),
                 ha="center", va="center", fontsize=8, color=GRAY)
     a, b = data["variant"]["interval"]
-    ax.axvline(project(a), color=ORANGE, lw=1.2)
+    ax.axvline(project(a), color=ORANGE, lw=1.2, zorder=5)
     if b > a:
-        ax.axvspan(project(a), project(b), color=ORANGE, alpha=.15)
+        ax.axvspan(project(a), project(b), color=ORANGE, alpha=.15, zorder=4)
     ticks = sorted({lo, hi, a})
     ax.set_xticks([project(p) for p in ticks], [f"{p:,}" for p in ticks])
     for start, end, x0, x1 in segments:
         if end - start > x1 - x0:
             ax.text((x0 + x1) / 2, len(shown) + .55, "//", ha="center", fontsize=10, color=GRAY)
     ax.set(xlim=(project(lo) - 2, project(hi) + 2), ylim=(-.65, len(shown) + .95),
-           xlabel="Genomic coordinates (0-based, forward strand); // marks compressed introns")
-    ax.text(0, 1.025, "%d/%d models shown; shared compatibility does not identify a unique isoform" % (
-        len(shown), len(data["transcripts"])), transform=ax.transAxes, fontsize=8.5, color=GRAY)
+           xlabel="Genomic position (0-based, forward strand)")
+    count = "%d model%s" % (len(shown), "s" if len(shown) != 1 else "")
+    if len(shown) < len(data["transcripts"]):
+        count = "%d of %d models shown" % (len(shown), len(data["transcripts"]))
+    note = count + "\nIsoform not established"
+    if any(b - a > x1 - x0 for a, b, x0, x1 in segments):
+        note += "\n// compressed intron"
+    _side_note(ax, note)
 
 
 def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
@@ -374,7 +401,8 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
     ----------
     data : dict
         Output of collect_visualization_data.
-    view : {'all', 'protein', 'assembly', 'transcripts'}
+    view : {'all', 'protein', 'coverage', 'reads', 'assembly', 'transcripts'}
+        'assembly' retains the combined coverage/read view.
     max_rows : int
         Maximum displayed span/model rows, never an analysis-input limit.
 
@@ -383,66 +411,114 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
     matplotlib.figure.Figure
         Caller may save or further customize the figure.
     """
-    if view not in {"all", "protein", "assembly", "transcripts"}:
+    if view not in PLOT_VIEWS:
         raise ValueError("Unknown visualization view: %s" % view)
     if isinstance(max_rows, bool) or not isinstance(max_rows, int) or max_rows < 2:
         raise ValueError("max_rows must be an integer >= 2")
     Figure, rc_context, rectangle = _plot_imports()
     witness = _selected_witness(data)
-    heights, panels = [], []
+    heights, panels, names = [], [], []
     if view in {"all", "protein"}:
-        heights.append(1.7 if len(data["modes"]) == 2 else 1.25)
+        heights.append(2.6 if len(data["modes"]) == 2 else 1.8)
+        names.append("protein")
         panels.append(lambda ax: _protein_panel(ax, data, rectangle))
-    if view in {"all", "assembly"}:
-        heights.extend([1.25, 1.4 + .19 * min(max_rows, len(witness["spans"]) if witness else 1)])
-        panels.extend([lambda ax: _coverage_panel(ax, data), lambda ax: _assembly_panel(ax, data, max_rows)])
+    if view in {"all", "assembly", "coverage"}:
+        heights.append(2)
+        names.append("coverage")
+        panels.append(lambda ax: _coverage_panel(ax, data))
+    if view in {"all", "assembly", "reads"}:
+        heights.append(2 + .22 * min(max_rows, len(witness["spans"]) if witness else 1))
+        names.append("reads")
+        panels.append(lambda ax: _assembly_panel(ax, data, max_rows))
     if view in {"all", "transcripts"}:
-        heights.append(1.3 + .3 * min(max_rows, len(data["transcripts"])))
+        heights.append(2 + .48 * min(max_rows, len(data["transcripts"])))
+        names.append("transcripts")
         panels.append(lambda ax: _transcript_panel(ax, data, max_rows, rectangle))
-    with rc_context({"font.family": "DejaVu Sans", "font.size": 10, "text.color": INK,
+    with rc_context({"font.family": "DejaVu Sans", "font.size": 12, "text.color": INK,
                      "axes.labelcolor": INK, "svg.fonttype": "none", "axes.formatter.useoffset": False}):
-        height = sum(heights) + 2.5
-        figure = Figure(figsize=(11.7, height), facecolor="white")
+        height = sum(heights) + 1.7 + .7 * (len(panels) - 1)
+        figure = Figure(figsize=(PLOT_WIDTH, height), facecolor="white")
         axes = figure.subplots(len(panels), 1, squeeze=False, gridspec_kw={"height_ratios": heights})[:, 0]
-        for draw, ax in zip(panels, axes):
+        for name, draw, ax in zip(names, panels, axes):
+            ax.set_label(name)
             draw(ax)
-        if view in {"all", "assembly"} and witness:
+        if witness:
             witnesses = [m["protein"]["witness"] for m in data["modes"] if m["protein"]]
             bounds = (min(w["start"] for w in witnesses) - 2, max(w["end"] for w in witnesses) + 9)
-            offset = 1 if view == "all" else 0
-            for ax in axes[offset:offset + 2]:
-                ax.set_xlim(bounds)
+            for name, ax in zip(names, axes):
+                if name in {"coverage", "reads"}:
+                    ax.set_xlim(bounds)
         variant = data["variant"]
         def allele_label(bases):
-            return (bases or "–") if len(bases) <= 16 else bases[:10] + "… (%d nt)" % len(bases)
+            return (bases or "-") if len(bases) <= 16 else bases[:10] + "… (%d nt)" % len(bases)
 
-        title = "%s   %s:%s %s>%s" % (
+        title = "%s   %s:%s %s>%s (1-based)" % (
             ", ".join(data["genes"][:3]) or "Mutation evidence", variant["contig"], variant["start"],
             allele_label(variant["ref"]), allele_label(variant["alt"]))
-        figure.suptitle(title, x=.05, y=1 - .2 / height, ha="left", fontsize=16, fontweight="bold")
-        figure.text(.05, 1 - .58 / height, "RNA-supported local reconstruction; mutation coordinates above are 1-based",
-                    fontsize=10, color=GRAY)
-        figure.text(.05, 1 - .79 / height, "Reference: " + variant["reference"], fontsize=8.5, color=GRAY)
-        figure.text(.05, .18 / height,
-                    "Orange: altered residue/allele or deletion boundary. Blue: assembly on. Gray: assembly off.\n"
-                    "One cDNA witness is shown per mode; no unique isoform or clinical validity is implied.",
-                    fontsize=8.5, color=GRAY)
-        figure.subplots_adjust(left=.22, right=.97, top=1 - 1.32 / height, bottom=.85 / height, hspace=.95)
+        figure.suptitle(title, x=.035, y=1 - .18 / height, ha="left", fontsize=18, fontweight="bold")
+        if view != "coverage":
+            figure.text(.815, 1 - .7 / height, "Orange: mutation", fontsize=10, color=ORANGE)
+        figure.subplots_adjust(left=.17, right=.79, top=1 - 1.05 / height, bottom=.65 / height, hspace=.5)
     return figure
 
 
+def _figure_caption(data):
+    return (
+        "# Figure notes\n\nReference: " + data["variant"]["reference"] + ".\n\n"
+        "Orange marks the mutation or deletion boundary; blue denotes assembly on, gray assembly off. "
+        "Protein peptide counts are mutation-overlapping windows of the displayed length.\n\n"
+        "Reconstructed cDNA is one actual RNA-derived sequence producing the displayed protein. "
+        "Other reconstructions can produce the same protein; their reads are not combined into this track. "
+        "The read-overlap panel shows the first mode with a protein, normally assembly on.\n\n"
+        "Read objects are post-mate-merge observations, not independent molecules. Spanning read objects "
+        "cover the entire displayed reconstructed cDNA; spans are clipped to that sequence. "
+        "Identical spans are grouped, with multiplicity marked only when greater than one. "
+        "Coverage uses every supporting object, including groups hidden by the display limit. "
+        "Protein template counts include all translations contributing that protein; cDNA counts refer "
+        "only to the displayed reconstruction. Junction counts are retained CIGAR N observations.\n\n"
+        "The title uses normalized 1-based variant coordinates. Genomic tracks use forward-strand "
+        "0-based, half-open coordinates, with compressed introns marked //; cDNA and protein offsets "
+        "are transcript-oriented. Angled gray connectors join adjacent annotated exon boundaries; "
+        "black connectors on the RNA junction row are observed splice junctions. Transcript names "
+        "come from the same annotation as the ENST IDs. Models do not establish a unique isoform.\n\n"
+        "These are candidates before result-level filters, not independent validation or a clinical "
+        "recommendation. Complete sequences, settings, support and limitations are in evidence.json.\n"
+    )
+
+
 def save_variant_figures(data, output_dir, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS, dpi=PLOT_DPI):
-    """Write SVG, opaque PNG and evidence JSON to a fresh variant directory."""
+    """Write PNG/SVG panels, a vector PDF, notes and evidence to a fresh directory.
+
+    'all' exports the overview and four separate panels; 'assembly' exports
+    the combined RNA view and its two separate panels. Other views export one.
+    all-figures.pdf contains one standalone panel per page, without an overview.
+    The overview PNG is a preview capped at PLOT_OVERVIEW_DPI; its SVG is vector.
+    """
     if isinstance(dpi, bool) or not isinstance(dpi, int) or dpi < 72:
         raise ValueError("dpi must be an integer >= 72")
     figure = plot_variant_evidence(data, view=view, max_rows=max_rows)
     directory = Path(output_dir) / variant_directory_name(data)
     directory.mkdir(parents=True, exist_ok=False)
-    name = "overview" if view == "all" else view
+    views = (["all", "protein", "coverage", "reads", "transcripts"] if view == "all" else
+             ["assembly", "coverage", "reads"] if view == "assembly" else [view])
     _, rc_context, _ = _plot_imports()
-    with rc_context({"svg.fonttype": "none", "svg.hashsalt": "isovar"}):
-        figure.savefig(directory / (name + ".svg"), facecolor="white", transparent=False, metadata={"Date": None})
-        figure.savefig(directory / (name + ".png"), facecolor="white", transparent=False, dpi=dpi)
-    payload = dict(data, rendering=dict(view=view, max_rows=max_rows, dpi=dpi, background="white"))
+    from matplotlib.backends.backend_pdf import PdfPages
+
+    with rc_context({"svg.fonttype": "none", "svg.hashsalt": "isovar", "pdf.fonttype": 42}), \
+            PdfPages(directory / "all-figures.pdf", metadata={"CreationDate": None, "ModDate": None}) as pdf:
+        for i, panel in enumerate(views):
+            if i:
+                figure = plot_variant_evidence(data, view=panel, max_rows=max_rows)
+            name = "overview" if panel == "all" else panel
+            figure.savefig(directory / (name + ".svg"), facecolor="white", transparent=False, metadata={"Date": None})
+            render_dpi = min(dpi, PLOT_OVERVIEW_DPI) if panel == "all" else dpi
+            figure.savefig(directory / (name + ".png"), facecolor="white", transparent=False, dpi=render_dpi)
+            if panel not in {"all", "assembly"}:
+                pdf.savefig(figure, facecolor="white", transparent=False)
+            figure.clear()
+    payload = dict(data, rendering=dict(view=view, panels=views, max_rows=max_rows, dpi=dpi,
+                                       overview_dpi=min(dpi, PLOT_OVERVIEW_DPI),
+                                       width_inches=PLOT_WIDTH, background="white"))
     (directory / "evidence.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    (directory / "caption.md").write_text(_figure_caption(data))
     return directory

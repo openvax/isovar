@@ -5,19 +5,20 @@ import sys
 from varcode.cli import variant_collection_from_args
 
 from ..default_parameters import (
-    PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_OUTPUT_DIRECTORY, PLOT_VIEW,
+    PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_OUTPUT_DIRECTORY, PLOT_VIEW, PLOT_VIEWS,
 )
 from ..visualization import (
     _plot_imports, collect_visualization_data, save_variant_figures, timestamped_run_directory,
 )
 from .rna_args import alignment_file_from_args, read_collector_from_args
+from .commands import parser_for_program
 from .translation_args import make_translation_arg_parser, protein_sequence_creator_kwargs_from_args
 
 
 parser = make_translation_arg_parser(description=(
     "Plot the protein context, read overlap and local transcript models around one mutation. "
     "Writes white-background SVG/PNG figures and evidence JSON into a new UTC-stamped directory."))
-parser.add_argument("--view", choices=("all", "protein", "assembly", "transcripts"), default=PLOT_VIEW,
+parser.add_argument("--view", choices=PLOT_VIEWS, default=PLOT_VIEW,
                     help="Figure panels (default %(default)s).")
 parser.add_argument("--compare-assembly", action="store_true", default=PLOT_COMPARE_ASSEMBLY,
                     help="Compare assembly on/off with the same collected reads and all other settings unchanged.")
@@ -28,17 +29,18 @@ parser.add_argument("--max-rows", type=int, default=PLOT_MAX_ROWS,
 parser.add_argument("--dpi", type=int, default=PLOT_DPI, help="PNG resolution (default %(default)s); SVG is vector.")
 
 
-def run(args=None):
-    args = parser.parse_args(sys.argv[1:] if args is None else args)
+def run(args=None, *, prog=None):
+    command_parser = parser_for_program(parser, prog)
+    args = command_parser.parse_args(sys.argv[1:] if args is None else args)
     if args.max_rows < 2 or args.dpi < 72:
-        parser.error("--max-rows must be >= 2 and --dpi must be >= 72")
+        command_parser.error("--max-rows must be >= 2 and --dpi must be >= 72")
     try:
         _plot_imports()
     except ImportError as error:
-        parser.error(str(error))
+        command_parser.error(str(error))
     variants = variant_collection_from_args(args)
     if len(variants) != 1:
-        parser.error("Select exactly one mutation (use --variant or a single-record variant file).")
+        command_parser.error("Select exactly one mutation (use --variant or a single-record variant file).")
     variant = next(iter(variants))
     collector = read_collector_from_args(args)
     with alignment_file_from_args(args) as alignment:

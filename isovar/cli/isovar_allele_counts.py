@@ -15,6 +15,7 @@ Prints number of reads supporting ref, alt, and other alleles at variant loci.
 """
 
 import sys
+from .commands import parser_for_program
 
 from ..logging import get_logger
 
@@ -31,10 +32,10 @@ parser = add_output_args(
     description="Name of CSV file which contains read and fragment counts")
 
 
-def run(args=None):
+def run(args=None, *, prog=None):
     if args is None:
         args = sys.argv[1:]
-    args = parser.parse_args(args)
+    args = parser_for_program(parser, prog).parse_args(args)
     logger.info(args)
     df = allele_counts_dataframe_from_args(args)
     logger.info(df)

@@ -14,6 +14,7 @@ import pysam
 from varcode import Variant
 
 from isovar import ProteinSequenceCreator, ReadCollector
+from isovar.default_parameters import PLOT_DPI
 from isovar.variant_helpers import base0_interval_for_variant
 from isovar.visualization import collect_visualization_data, save_variant_figures, timestamped_run_directory
 from tests.data.osteosarc.expansion.inventory import digest
@@ -90,7 +91,7 @@ def generate(output_dir):
                 "Assembly recovers %d aa rather than %d aa, providing %d rather than %d "
                 "mutation-overlapping 25-mers. Both sequences pass independent translation "
                 "and transcript-reference checks; the shorter output is not mistranslated. "
-                "No single read object spans the full assembled cDNA witness. "
+                "No single read object spans the full reconstructed cDNA. "
                 "These are selected primary-only original RNA fixtures, not full-sample abundance estimates."
             ) % (len(on["amino_acids"]), len(off["amino_acids"]), on["peptide_windows"], off["peptide_windows"])
             if on["witness"]["spanning_observations"]:
@@ -109,6 +110,11 @@ def generate(output_dir):
             directory = save_variant_figures(data, output)
             (directory / "README.md").write_text(
                 "# " + r["gene"] + " assembly comparison\n\n" + caption + "\n\n"
+                + "\n\n".join("## " + label + "\n\n![" + label + "](" + name + ".png)\n\n"
+                              + "[PNG](" + name + ".png) · [SVG](" + name + ".svg)"
+                              for name, label in (("protein", "Protein context"), ("reads", "Read overlaps"),
+                                                  ("coverage", "RNA coverage"), ("transcripts", "Transcripts")))
+                + "\n\n[All panels PDF](all-figures.pdf) · [Overview](overview.svg) · [Figure notes](caption.md) · [Evidence](evidence.json)\n\n"
                 + "Source variant: " + r["source_url"] + "\n\n"
                 + "Source RNA product: `" + case["source_id"] + "`. Fixture: `" + case["primary_bam"] + "`.\n\n"
                 + "See evidence.json for exact settings, transcript models, checksums and independent validation.\n")
@@ -119,15 +125,17 @@ def generate(output_dir):
     (output / "README.md").write_text(
         "# Osteosarc assembly figures\n\n"
         "Reproduce: `python -m examples.osteosarc_assembly_figures --output-dir figures/osteosarc`\n\n"
-        "White-background SVG (editable vector text) and 300-dpi PNG. Each variant directory contains "
-        "a caption and evidence.json. Source reads are public CC0 osteosarc.com data; see "
+        "White-background SVG (editable vector text) and " + str(PLOT_DPI) + "-dpi PNG. "
+        "Each variant has separate protein, read-overlap, coverage and transcript figures, plus a 300-dpi overview preview, "
+        "a multipage all-figures.pdf, captions and evidence.json. Source reads are public CC0 osteosarc.com data; see "
         "tests/data/osteosarc/README.md for source and selection details.\n\n"
         "Assembly recovers missing local context in these examples. This does not establish a unique "
         "isoform, full-length protein, peptide presentation, or clinical suitability. The comparison "
         "changes only overlap assembly; mate merging stays enabled in both modes.\n\n"
         + "\n\n".join("## " + s["case_id"] + "\n\n" + s["caption"]
-                      + "\n\n![Assembly comparison](" + s["directory"] + "/overview.png)"
-                      + "\n\n[Vector SVG](" + s["directory"] + "/overview.svg) · [Evidence]("
+                      + "\n\n![Protein comparison](" + s["directory"] + "/protein.png)"
+                      + "\n\n![Read overlaps](" + s["directory"] + "/reads.png)"
+                      + "\n\n[All panels and captions](" + s["directory"] + "/README.md) · [Evidence]("
                       + s["directory"] + "/evidence.json)"
                     for s in summaries) + "\n")
     return output
