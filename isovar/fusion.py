@@ -19,7 +19,7 @@ def _integer(value, name):
 
 
 def _dna(sequence):
-    if not sequence or set(sequence) - set("ACGT"):
+    if not isinstance(sequence, str) or not sequence or set(sequence) - set("ACGT"):
         raise ValueError("Fusion sequences must contain explicit uppercase A/C/G/T bases")
 
 
@@ -139,9 +139,12 @@ class FusionReference:
     sequence: str
     cds_start: Optional[int] = None
     cds_end: Optional[int] = None
+    genetic_code: int = 1
 
     def __post_init__(self):
         _dna(self.sequence)
+        if isinstance(self.genetic_code, bool) or self.genetic_code != 1:
+            raise ValueError("Fusion frame validation currently supports NCBI genetic code 1 only")
         if not all((self.transcript_id, self.reference_name, self.annotation, self.contig)):
             raise ValueError("Reference transcript/annotation identity is required")
         if self.strand not in ("+", "-"):
@@ -273,6 +276,7 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
         raise ValueError("Duplicate reference transcript identity")
     coordinates = _coordinates(fusion.blocks)
     observations, fragments, direct, seen = [], set(), set(), {}
+    covered = set()
     for read in reads:
         if read.sample_id != fusion.provenance["sample_id"]:
             raise ValueError("RNA evidence belongs to another sample")
@@ -291,6 +295,7 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
                 raise ValueError("Conflicting observations for the same RNA read")
             continue
         seen[key] = signature
+        covered.update(range(start, end))
         fragment = (read.sample_id, read.library_id, read.fragment_id)
         fragments.add(fragment)
         spans = (start < fusion.junction_start <= fusion.junction_end < end and
@@ -310,9 +315,12 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
                   reference_annotations=sorted({r.annotation for r in references}),
                   evidence=dict(reads=len(observations), fragments=len(fragments),
                                 directly_spanning_fragments=len(direct), observations=observations),
-                  parameters=dict(peptide_lengths=lengths, min_fragments=min_fragments))
+                  parameters=dict(peptide_lengths=lengths, min_fragments=min_fragments, genetic_code=1))
     if len(direct) < min_fragments:
         result.update(status="insufficient_support", reasons=["insufficient_direct_junction_fragments"])
+        return result
+    if len(covered) != len(fusion.sequence):
+        result.update(status="insufficient_support", reasons=["unobserved_fusion_sequence"])
         return result
     groups = {}
     for reference, offset in matches["donor"]:
@@ -347,11 +355,21 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
                                complete_5prime=projected_start >= 0, ends_with_stop_codon=stop,
                                trailing_partial_codon_bases=(0 if stop else (len(fusion.sequence) - start) % 3),
                                junction_in_translated_cds=junction, junction_peptides=peptides,
-                               donor_transcript_ids=[], frame_evidence=[], acceptor_frames=[])
+                               donor_transcript_ids=[], frame_evidence=[], acceptor_frames=[],
+                               downstream_frameshift_peptides=[])
             for acceptor, acceptor_offset in matches["acceptor"]:
                 if acceptor.cds_start is not None and acceptor.cds_start <= acceptor_offset < acceptor.cds_end - 3:
                     in_frame = (fusion.junction_end - start) % 3 == (acceptor_offset - acceptor.cds_start) % 3
                     groups[key]["acceptor_frames"].append(dict(transcript_id=acceptor.transcript_id, in_frame=in_frame))
+                    if not in_frame:
+                        # These lie wholly after the junction. Their altered
+                        # frame is relative to this acceptor model, not a claim
+                        # that the sequence is absent from the proteome.
+                        for length in lengths:
+                            for i in range((junction[1] + 2) // 3, len(protein) - length + 1):
+                                groups[key]["downstream_frameshift_peptides"].append(dict(
+                                    sequence=protein[i:i + length], protein_interval=[i, i + length],
+                                    acceptor_transcript_id=acceptor.transcript_id))
         groups[key]["donor_transcript_ids"].append(reference.transcript_id)
         groups[key]["frame_evidence"].append(dict(transcript_id=reference.transcript_id, annotation=reference.annotation,
             donor_reference_offset=offset, reference_cds_start=reference.cds_start,
