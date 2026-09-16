@@ -204,6 +204,14 @@ If a result collection is flattened into a DataFrame then each filter is include
 It's also possible to filter on boolean properties (without numerical thresholds) by passing `filter_flags` to `run_isovar`. These boolean
 properties can be further negated by prepending 'not_' to the property name, so that both `'protein_sequence_matches_predicted_mutation_effect'` and `'not_protein_sequence_matches_predicted_mutation_effect'` are valid names for `filter_flags`.
 
+### Structural variants
+
+The ordinary variant-to-protein pipeline accepts literal nucleotide alleles,
+including sequence-resolved indels. Symbolic structural variants (`<DEL>`,
+`<DUP>`, etc.), breakends, and `varcode.StructuralVariant` objects are rejected
+explicitly; their placeholder bases must not be interpreted as small variants.
+Fusion reconstruction requires a separate sequence- and evidence-aware path.
+
 ## Commandline 
 
 Basic example:

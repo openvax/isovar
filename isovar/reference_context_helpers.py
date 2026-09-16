@@ -17,6 +17,7 @@ from .default_parameters import REFERENCE_CONTEXT_SIZE
 from .effect_prediction import reference_coding_transcripts_for_variant
 from .reference_context import ReferenceContext
 from .reference_coding_sequence_key import ReferenceCodingSequenceKey
+from .variant_helpers import require_literal_variant
 
 
 def reference_contexts_for_variant(
@@ -36,6 +37,7 @@ def reference_contexts_for_variant(
     Returns list of ReferenceContext objects, sorted by maximum length of
     coding sequence of any supporting transcripts.
     """
+    require_literal_variant(variant)
     overlapping_transcripts = reference_coding_transcripts_for_variant(
         variant=variant,
         transcript_id_whitelist=transcript_id_whitelist)
