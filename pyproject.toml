@@ -34,7 +34,7 @@ isovar = ["logging.conf"]
 "Bug Tracker" = "https://github.com/openvax/isovar/issues"
 
 [project.optional-dependencies]
-plot = ["matplotlib>=3.6,<4"]
+plot = ["matplotlib>=3.6,<4", "pypdf>=5,<7"]
 
 [project.scripts]
 isovar = "isovar.cli.commands:run"

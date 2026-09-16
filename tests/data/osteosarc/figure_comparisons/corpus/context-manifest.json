@@ -1,0 +1,5 @@
+{
+  "file": "context-evidence.json.gz",
+  "sha256": "7ebeeef273e1739340719e4ec8a3817d1a18485124ffe13706ae3f014cc17bbd",
+  "description": "Original source records plus audited exact local sequence/quality and independent translation checks"
+}
