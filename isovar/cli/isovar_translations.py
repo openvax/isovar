@@ -23,6 +23,7 @@ from ..dataframe_helpers import translations_generator_to_dataframe
 
 from .translation_args import make_translation_arg_parser, protein_sequence_creator_kwargs_from_args
 from .rna_args import read_evidence_generator_from_args
+from .input_validation import check_parsed_args
 from .output_args import add_output_args, write_dataframe
 
 logger = get_logger(__name__)
@@ -57,6 +58,7 @@ def run(args=None):
     if args is None:
         args = sys.argv[1:]
     args = parser.parse_args(args)
+    check_parsed_args(parser, args)
     logger.info(args)
     df = translations_dataframe_from_args(args)
     logger.info(df)

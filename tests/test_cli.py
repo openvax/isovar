@@ -26,6 +26,9 @@ from isovar.cli.isovar_reference_contexts import run as isovar_reference_context
 from isovar.cli.isovar_variant_reads import run as isovar_variant_reads
 from isovar.cli.isovar_variant_sequences import run as isovar_variant_sequences
 from isovar.cli.isovar_main import run as isovar_main
+from isovar.cli import isovar_reference_contexts as isovar_reference_contexts_module
+from isovar.cli import isovar_variant_reads as isovar_variant_reads_module
+from isovar.cli.input_validation import check_parsed_args
 from isovar.cli.rna_args import (
     allele_counts_dataframe_from_args,
     make_rna_reads_arg_parser,
@@ -121,3 +124,111 @@ def test_variant_reads_dataframe_helper(extra_args, expected_count):
     df = variants_reads_dataframe_from_args(args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert len(df) == expected_count
+
+
+def _cli_error_message(fn, args, capsys):
+    with pytest.raises(SystemExit) as exit_info:
+        fn(args)
+    assert exit_info.value.code == 2
+    return capsys.readouterr().err.strip().splitlines()[-1]
+
+
+def test_cli_missing_vcf_is_a_one_line_error(capsys):
+    message = _cli_error_message(
+        isovar_main,
+        ["--vcf", "missing.vcf",
+         "--bam", data_path("data/b16.f10/b16.combined.sorted.bam")],
+        capsys)
+    assert message.endswith("error: --vcf file not found: missing.vcf")
+
+
+def test_cli_missing_bam_is_a_one_line_error(capsys):
+    message = _cli_error_message(
+        isovar_allele_counts, vcf_args + ["--bam", "missing.bam"], capsys)
+    assert message.endswith("error: --bam file not found: missing.bam")
+
+
+def test_cli_unindexed_bam_is_a_one_line_error(capsys):
+    unindexed_bam = data_path("data/primary.chr1.unsorted.bam")
+    message = _cli_error_message(
+        isovar_variant_reads, vcf_args + ["--bam", unindexed_bam], capsys)
+    assert "must be a coordinate-sorted, indexed BAM or CRAM" in message
+
+
+def test_cli_sam_passed_as_bam_is_a_one_line_error(capsys):
+    sam_path = data_path("data/b16.f10/b16.combined.sam")
+    message = _cli_error_message(
+        isovar_allele_reads, vcf_args + ["--bam", sam_path], capsys)
+    assert "must be a coordinate-sorted, indexed BAM or CRAM" in message
+
+
+def test_cli_no_variants_is_a_one_line_error(capsys):
+    message = _cli_error_message(
+        isovar_reference_contexts, [], capsys)
+    assert message.endswith(
+        "error: no variants given; use --vcf, --maf, --variant or --json-variants")
+
+
+def test_cli_variant_without_genome_is_a_one_line_error(capsys):
+    message = _cli_error_message(
+        isovar_reference_contexts, ["--variant", "9", "82927102", "G", "T"], capsys)
+    assert message.endswith("error: --genome is required when using --variant")
+
+
+def test_cli_unknown_genome_is_a_one_line_error(capsys):
+    message = _cli_error_message(
+        isovar_reference_contexts, vcf_args + ["--genome", "not-a-genome"], capsys)
+    assert "error: --genome not-a-genome:" in message
+
+
+def test_cli_missing_output_directory_fails_before_running(capsys, tmp_path):
+    output_path = str(tmp_path / "missing-dir" / "out.csv")
+    message = _cli_error_message(
+        isovar_main, args_with_bam + ["--output", output_path], capsys)
+    assert message.endswith(
+        "error: --output directory does not exist: %s" % (tmp_path / "missing-dir"))
+
+
+def _check_args(argv):
+    """
+    Validate a commandline without running it, so the remote-input cases
+    below never touch the network.
+    """
+    parser = isovar_variant_reads_module.parser
+    check_parsed_args(parser, parser.parse_args(argv))
+
+
+def test_cli_accepts_remote_vcf_and_bam_urls():
+    # htslib opens remote BAMs and varcode's load_vcf downloads HTTP(S)
+    # VCFs, so neither may be rejected for not being on the local disk
+    _check_args([
+        "--vcf", "https://example.com/variants.vcf",
+        "--bam", "https://example.com/rna.bam"])
+    _check_args([
+        "--vcf", "s3://bucket/variants.vcf",
+        "--bam", "s3://bucket/rna.bam"])
+
+
+def test_cli_windows_style_path_is_not_treated_as_a_url(capsys):
+    message = _cli_error_message(
+        isovar_variant_reads,
+        vcf_args + ["--bam", r"C:\rna\missing.bam"], capsys)
+    assert message.endswith(r"error: --bam file not found: C:\rna\missing.bam")
+
+
+def test_cli_output_path_expands_tilde(tmp_path, monkeypatch):
+    # pandas expands "~" when writing, so validation has to expand it too
+    monkeypatch.setenv("HOME", str(tmp_path))
+    _check_args(args_with_bam + ["--output", "~/isovar-results.csv"])
+
+
+def test_cli_genome_not_checked_when_only_maf_is_given(tmp_path):
+    # varcode ignores --genome for MAF files, since each row names its own
+    # reference, so an unresolvable name there must not be fatal
+    maf_path = tmp_path / "variants.maf"
+    maf_path.touch()
+    parser = isovar_reference_contexts_module.parser
+    args = parser.parse_args([
+        "--maf", str(maf_path),
+        "--genome", "not-a-genome"])
+    check_parsed_args(parser, args)
