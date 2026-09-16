@@ -55,10 +55,17 @@ def test_extended_examples_separate_predictions_from_rna_and_keep_ambiguity(tmp_
     assert nav2["modes"][0]["protein"]["transcript_ids"] == ["ENST00000527559", "ENST00000540292"]
     assert len([p for p in nav2["reference_predictions"] if p["protein"]]) == 7
     assert sum(t["rna_supported"] for t in nav2["transcripts"]) == 2
+    assert len(nav2["modes"][0]["protein"]["amino_acids"]) == 47
+    assert nav2["modes"][0]["protein"]["amino_acids"].endswith("W")
+    assert nav2["modes"][0]["protein"]["witness"]["junctions"] == []
+    assert {p["protein"]["amino_acids"][-3:] for p in nav2["reference_predictions"] if p["protein"]} == {"WLR", "WVN"}
     ntf3 = cases["NTF3"]
     for mode in ntf3["modes"]:
         p = mode["protein"]
         assert p["amino_acids"][p["mutation_start"]] == "S"
+        witness = p["witness"]
+        offset = -witness["start"]
+        assert witness["cdna"][offset:offset + 2] == "GT"  # Original genomic AG>GT compound, not just a matching amino acid.
     for prediction in ntf3["reference_predictions"]:
         p = prediction["protein"]
         assert p["amino_acids"][p["mutation_start"]] == "R"
