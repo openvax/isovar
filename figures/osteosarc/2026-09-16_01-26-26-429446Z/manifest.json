@@ -1,0 +1,31 @@
+{
+  "examples": [
+    {
+      "case_id": "09-DIAPH1-chr5-141526090-1b66c15da594a3ef",
+      "directory": "DIAPH1-5-141526090-C-A",
+      "caption": "Assembly recovers 49 aa rather than 40 aa, providing 25 rather than 16 mutation-overlapping 25-mers. Both sequences pass independent translation and transcript-reference checks; the shorter output is not mistranslated. No single read object spans the full assembled cDNA witness. These are selected primary-only original RNA fixtures, not full-sample abundance estimates.",
+      "on_length": 49,
+      "off_length": 40,
+      "on_windows": 25,
+      "off_windows": 16
+    },
+    {
+      "case_id": "34-SLC25A12-chr2-171813470-fbea0bf403520431",
+      "directory": "SLC25A12-2-171813470-A-G",
+      "caption": "Assembly recovers 49 aa rather than 44 aa, providing 25 rather than 20 mutation-overlapping 25-mers. Both sequences pass independent translation and transcript-reference checks; the shorter output is not mistranslated. No single read object spans the full assembled cDNA witness. These are selected primary-only original RNA fixtures, not full-sample abundance estimates.",
+      "on_length": 49,
+      "off_length": 44,
+      "on_windows": 25,
+      "off_windows": 20
+    },
+    {
+      "case_id": "36-TECPR1-chr7-98241127-8fda918141cedf55",
+      "directory": "TECPR1-7-98241128-G-del",
+      "caption": "Assembly recovers 49 aa rather than 37 aa, providing 25 rather than 13 mutation-overlapping 25-mers. Both sequences pass independent translation and transcript-reference checks; the shorter output is not mistranslated. No single read object spans the full assembled cDNA witness. These are selected primary-only original RNA fixtures, not full-sample abundance estimates.",
+      "on_length": 49,
+      "off_length": 37,
+      "on_windows": 25,
+      "off_windows": 13
+    }
+  ]
+}

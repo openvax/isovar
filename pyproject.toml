@@ -33,6 +33,9 @@ isovar = ["logging.conf"]
 "Homepage" = "https://github.com/openvax/isovar"
 "Bug Tracker" = "https://github.com/openvax/isovar/issues"
 
+[project.optional-dependencies]
+plot = ["matplotlib>=3.6,<4"]
+
 [project.scripts]
 isovar = "isovar.cli.isovar_main:run"
 isovar-protein-sequences = "isovar.cli.isovar_protein_sequences:run"
@@ -42,6 +45,7 @@ isovar-allele-reads = "isovar.cli.isovar_allele_reads:run"
 isovar-allele-counts = "isovar.cli.isovar_allele_counts:run"
 isovar-variant-reads = "isovar.cli.isovar_variant_reads:run"
 isovar-variant-sequences = "isovar.cli.isovar_variant_sequences:run"
+isovar-plot = "isovar.cli.isovar_plot:run"
 
 [tool.ruff.lint]
 select = ["E", "F"]
