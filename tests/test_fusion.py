@@ -272,9 +272,18 @@ def test_original_osteosarc_rna_windows_remain_unresolved_not_fake_proteins():
         header = pysam.AlignmentHeader.from_references(["chr" + str(i) for i in range(1, 23)], [300000000] * 22)
         for observation, original in zip(reads, data["original_records"]):
             record = pysam.AlignedSegment.fromstring(original["sam"], header)
+            partner = pysam.AlignedSegment.fromstring(original["partner_sam"], header)
+            from tests.data.fusions.build_osteosarc import extract
+            reconstructed = extract(record, fusion.donor.contig, fusion.donor.position,
+                                    fusion.acceptor.contig, fusion.acceptor.position+1,
+                                    fusion.junction_start, [record, partner])
+            assert reconstructed is not None
+            assert reconstructed['sequence'] == fusion.sequence
+            assert reconstructed['blocks'] == data['fusion']['blocks']
             lo = observation.source_query_start
             hi = lo + len(observation.sequence)
             assert record.query_name == observation.read_id
+            assert not original['source_reverse_complement']
             assert record.query_sequence[lo:hi] == observation.sequence
             assert min(record.query_qualities[lo:hi]) == original["minimum_base_quality"] >= 10
             assert not record.flag & (4 | 256 | 512 | 1024 | 2048)
