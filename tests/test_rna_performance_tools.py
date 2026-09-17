@@ -337,7 +337,8 @@ def test_collection_fingerprint_preserves_all_fields_and_order():
                    quality_scores=[31, 0, 40], source_read_count=2, reference_base0_start_inclusive=10000,
                    reference_base0_end_exclusive=10002, read_base0_start_inclusive=0,
                    read_base0_end_exclusive=3, splice_junctions=((10001, 10002),),
-                   is_primary=True, source_alignments=((("", "read", 0), (0, 10000, "3M", False)),))
+                   is_primary=True, source_alignments=((("", "read", 0), (0, 10000, "3M", False)),),
+                   source_alignment_paths=(("read", "different-path"),))
     assert set(changes) == set(read._fields)
     for field, value in changes.items():
         changed = deepcopy(read)

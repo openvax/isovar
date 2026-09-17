@@ -41,6 +41,7 @@ class LocusRead(ValueObject):
         "splice_junctions",
         "source_alignments",
         "is_primary",
+        "source_alignment_paths",
     ]
 
     def __init__(
@@ -56,7 +57,8 @@ class LocusRead(ValueObject):
             source_read_count=1,
             splice_junctions=(),
             source_alignments=(),
-            is_primary=False):
+            is_primary=False,
+            source_alignment_paths=()):
         """
         Parameters
         ----------
@@ -93,6 +95,10 @@ class LocusRead(ValueObject):
             Immutable (segment identity, alignment identity) pairs collected
             from SAM; see ``read_identity``. Empty for legacy caller-created
             objects. Alternative placements do not identify extra reads.
+
+        source_alignment_paths : tuple
+            Optional immutable SAM chimeric-path declarations, keyed by source
+            segment. Used only for phasing; see ``chimeric_alignment``.
 
         is_primary : bool
             Whether this view contains primary alignments. Mate merging also
@@ -180,3 +186,4 @@ class LocusRead(ValueObject):
         self.splice_junctions = tuple(splice_junctions)
         self.source_alignments = tuple(source_alignments)
         self.is_primary = is_primary
+        self.source_alignment_paths = tuple(source_alignment_paths)

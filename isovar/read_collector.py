@@ -27,6 +27,7 @@ from .allele_read_helpers import allele_reads_from_locus_reads
 from .variant_helpers import require_literal_variant, trim_variant
 from .read_evidence import ReadEvidence
 from .read_identity import source_alignments_from_pysam, source_read_ids
+from .chimeric_alignment import source_alignment_paths_from_pysam
 
 logger = get_logger(__name__)
 
@@ -46,6 +47,7 @@ class _CompactLocusRead(object):
         "splice_junctions",
         "source_alignments",
         "is_primary",
+        "source_alignment_paths",
     ]
 
     def __init__(
@@ -61,7 +63,8 @@ class _CompactLocusRead(object):
             source_read_count=1,
             splice_junctions=(),
             source_alignments=(),
-            is_primary=False):
+            is_primary=False,
+            source_alignment_paths=()):
         self.name = name
         self.sequence = sequence
         self.reference_blocks = tuple(reference_blocks)
@@ -74,6 +77,7 @@ class _CompactLocusRead(object):
         self.splice_junctions = tuple(splice_junctions)
         self.source_alignments = tuple(source_alignments)
         self.is_primary = is_primary
+        self.source_alignment_paths = tuple(source_alignment_paths)
 
     @classmethod
     def from_locus_read(cls, read):
@@ -90,6 +94,7 @@ class _CompactLocusRead(object):
             splice_junctions=read.splice_junctions,
             source_alignments=read.source_alignments,
             is_primary=read.is_primary,
+            source_alignment_paths=read.source_alignment_paths,
         )
 
 class ReadCollector(object):
@@ -513,6 +518,7 @@ class ReadCollector(object):
         if isinstance(sequence, bytes):
             sequence = sequence.decode("ascii")
 
+        query_interval = (read_base0_start_inclusive, read_base0_end_exclusive)
         if not self.use_soft_clipped_bases:
             # if we're not allowing soft clipped based then
             # the fraction of the read which is usable may be smaller
@@ -530,6 +536,7 @@ class ReadCollector(object):
                 read_base0_start_inclusive -= aligned_subsequence_start
             if read_base0_end_exclusive is not None:
                 read_base0_end_exclusive -= aligned_subsequence_start
+        source_alignments = source_alignments_from_pysam(pysam_aligned_segment, name)
         return LocusRead(
             name=name,
             sequence=sequence,
@@ -541,7 +548,9 @@ class ReadCollector(object):
             read_base0_end_exclusive=read_base0_end_exclusive,
             source_read_count=1,
             splice_junctions=self._splice_junctions(pysam_aligned_segment),
-            source_alignments=source_alignments_from_pysam(pysam_aligned_segment, name),
+            source_alignments=source_alignments,
+            source_alignment_paths=source_alignment_paths_from_pysam(
+                pysam_aligned_segment, source_alignments, query_interval),
             is_primary=not (pysam_aligned_segment.is_secondary
                             or pysam_aligned_segment.is_supplementary),
         )
@@ -798,6 +807,7 @@ class ReadCollector(object):
             splice_junctions=tuple(sorted(set(
                 first.splice_junctions + second.splice_junctions))),
             source_alignments=tuple(sorted(first.source_alignments + second.source_alignments)),
+            source_alignment_paths=tuple(sorted(first.source_alignment_paths + second.source_alignment_paths)),
             is_primary=True,
         )
         if isinstance(first, _CompactLocusRead) and isinstance(second, _CompactLocusRead):

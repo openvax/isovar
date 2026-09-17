@@ -37,6 +37,8 @@ class AlleleRead(ValueObject):
     from SAM. It defaults to empty for existing manually constructed reads;
     public ``name`` remains the original QNAME string. Counts across collected
     observations must deduplicate segment IDs, not sum ``source_read_count``.
+    Optional ``source_alignment_paths`` retains validated supplementary-path
+    declarations separately; they allow cross-record phasing, not linear assembly.
     """
     __slots__ = [
         "prefix",
@@ -49,6 +51,7 @@ class AlleleRead(ValueObject):
         "splice_junctions",
         "compatible_transcript_ids",
         "source_alignments",
+        "source_alignment_paths",
     ]
 
     def __init__(
@@ -61,7 +64,8 @@ class AlleleRead(ValueObject):
             reference_blocks=(),
             splice_junctions=(),
             compatible_transcript_ids=None,
-            source_alignments=()):
+            source_alignments=(),
+            source_alignment_paths=()):
         self.prefix = prefix
         self.allele = allele
         self.suffix = suffix
@@ -69,6 +73,7 @@ class AlleleRead(ValueObject):
         self.sequence = prefix + allele + suffix
         self.source_read_count = source_read_count
         self.source_alignments = tuple(source_alignments)
+        self.source_alignment_paths = tuple(source_alignment_paths)
         self.reference_blocks = tuple(reference_blocks)
         self.splice_junctions = tuple(splice_junctions)
         self.compatible_transcript_ids = (
@@ -90,7 +95,8 @@ class AlleleRead(ValueObject):
             reference_blocks=self.reference_blocks,
             splice_junctions=self.splice_junctions,
             compatible_transcript_ids=transcript_ids,
-            source_alignments=self.source_alignments)
+            source_alignments=self.source_alignments,
+            source_alignment_paths=self.source_alignment_paths)
 
     @staticmethod
     def _reference_blocks(reference_positions):
@@ -218,7 +224,8 @@ class AlleleRead(ValueObject):
             source_read_count=locus_read.source_read_count,
             reference_blocks=reference_blocks,
             splice_junctions=splice_junctions,
-            source_alignments=locus_read.source_alignments)
+            source_alignments=locus_read.source_alignments,
+            source_alignment_paths=locus_read.source_alignment_paths)
 
 
 # Branch-local transcript classifications are not distinct observations.

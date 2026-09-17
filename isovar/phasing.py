@@ -15,7 +15,8 @@ from itertools import combinations
 
 from .default_parameters import MIN_SHARED_FRAGMENTS_FOR_PHASING
 from .phase_group import PhaseGroup
-from .read_identity import alignment_constraints, compatible_alignments, fragment_ids
+from .read_identity import alignment_constraints, fragment_ids
+from .chimeric_alignment import compatible_phasing_alignments
 from .transcript_edit_helpers import transcript_assembly_edit_sort_key
 
 
@@ -177,10 +178,8 @@ def _phasing_support(variant_to_reads):
 
     Alternative observations are hypotheses, not simultaneous constraints.
     A pair needs at least one jointly compatible choice. Reuse the assembly
-    rule: one placement per segment, allowing complementary mates. Separate
-    supplementary placements remain unphased: retained provenance does not
-    establish their membership in one chimeric path. A single spliced alignment
-    (CIGAR N) can still link variants across its exons.
+    rule for linear placements and complementary mates. Different placements
+    of one segment require reciprocal, compatible supplementary-path evidence.
 
     Metadata-free reads/IDs retain legacy name-only semantics. Public names
     are kept separately and never substituted for scoped evidence IDs.
@@ -195,9 +194,14 @@ def _phasing_support(variant_to_reads):
                 names_by_id[fragment] = getattr(read, "name", read)
     support = defaultdict(dict)
     for fragment, by_variant in observations.items():
+        placements = defaultdict(set)
+        for reads in by_variant.values():
+            for constraints, _ in reads:
+                for segment, placement in constraints.items():
+                    placements[segment].add(placement)
         for (variant, reads), (other, other_reads) in combinations(by_variant.items(), 2):
-            if any(compatible_alignments(constraints, (other_read,))
-                   for constraints, _ in reads for _, other_read in other_reads):
+            if any(compatible_phasing_alignments(constraints, read, other_read, placements)
+                   for constraints, read in reads for _, other_read in other_reads):
                 shared = support[variant].setdefault(other, set())
                 shared.add(fragment)
                 support[other][variant] = shared

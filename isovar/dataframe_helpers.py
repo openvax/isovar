@@ -104,7 +104,7 @@ def allele_reads_to_dataframe(variants_and_allele_reads):
     """
     df_builder = DataFrameBuilder(
         AlleleRead,
-        exclude={"source_read_count", "source_alignments"},
+        exclude={"source_read_count", "source_alignments", "source_alignment_paths"},
         extra_column_fns={
             "gene": lambda v, _: ";".join(v.gene_names),
         })
@@ -122,7 +122,7 @@ def locus_reads_dataframe(alignments, chromosome, base0_start, base0_end, *args,
     """
     df_builder = DataFrameBuilder(
         LocusRead,
-        exclude={"source_read_count", "source_alignments", "is_primary"},
+        exclude={"source_read_count", "source_alignments", "source_alignment_paths", "is_primary"},
         variant_columns=False,
         converters={
             "reference_positions": list_to_string,
