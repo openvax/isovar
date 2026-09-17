@@ -66,7 +66,8 @@ cell identity. No long-read-only biological claim or fusion protein is made.
 ## Larger DNA deletions
 
 - **DLG5**, chr10:77850921-77930452 (79,531 bp): overlaps 864 coding bases
-  of DLG5-001 and 639 of DLG5-002, including their coding-start regions.
+  of DLG5-001 and 639 of DLG5-002. It includes the annotated start of complete
+  DLG5-001; DLG5-002 is incomplete and has no annotated start codon.
   This is not a simple internal in-frame deletion merely because those lengths
   are divisible by three. No matching RNA D/N or observed supplementary
   adjacency was recovered. Aligned RNA inside the interval: 100/81 ONT and

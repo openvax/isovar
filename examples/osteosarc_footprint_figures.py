@@ -70,7 +70,7 @@ def deletion_panels(entry):
         ax.text(-.035,y,m['id']+'\n('+m['name']+')',ha='right',va='center',transform=ax.get_yaxis_transform(),fontsize=10)
     ax.set(xlim=((lo-start)/unit,(hi-start)/unit),ylim=(.4,len(models)+.7),xlabel='Genomic offset from deletion start (kb)')
     _side_note(ax,'Orange: DNA interval\nBlue: annotated exon\n\nEnsembl 87 / GRCh38\nModels run on - strand\n\nNot an RNA assembly')
-    note=('Deletes coding-start region in long isoforms; no mutant RNA junction reconstructed.' if entry['gene']=='DLG5' else
+    note=('Deletes the DLG5-001 coding-start region; no mutant RNA junction reconstructed.' if entry['gene']=='DLG5' else
           'Intronic in coding models; normal splicing can remove this interval with or without the DNA deletion.')
     figure.text(.19,.065,note,fontsize=11,color=GRAY)
     yield 'transcript-interval',figure
