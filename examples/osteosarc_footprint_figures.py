@@ -49,7 +49,7 @@ def deletion_panels(entry):
     junctions=defaultdict(int)
     for product in entry['products']:
         for j in product['junctions']:
-            if j['operation']=='N' and j['start']<=start and j['end']>=end:
+            if j['operation']=='N' and j['annotated'] and j['start']<=start and j['end']>=end:
                 junctions[j['start'],j['end']]+=j['templates']
     common=max(junctions,key=junctions.get) if junctions else None
     lo,hi=(min(start-1000,common[0]-500),max(end+1000,common[1]+500)) if common else (start-5000,end+5000)
