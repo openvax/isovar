@@ -1,0 +1,9 @@
+{
+  "file": "rna-footprints.json.gz",
+  "sha256": "74b13d5a790a880f367951d74966a13812a3882583da670ec813d8746d0ff7c9",
+  "inputs": "/private/tmp/osteosarc-rna-footprints-20260917/inputs",
+  "annotation": "Ensembl 87 / GRCh38",
+  "candidates": 9,
+  "scope": "T1/T2, ONT and oncoanalyser short RNA; no claim about unqueried libraries",
+  "records": "Complete regional BAMs retained separately; fusion path SAMs embedded; indel/count summaries require reacquisition"
+}

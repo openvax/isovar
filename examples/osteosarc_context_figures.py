@@ -16,6 +16,7 @@ from tests.data.osteosarc.expansion.references import translate
 from tests.osteosarc_protein_helpers import transcript_offset
 from tests.data.osteosarc.figure_comparisons import nr2f2
 from . import osteosarc_assembly_figures
+from . import osteosarc_footprint_figures
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "tests/data/osteosarc/figure_comparisons/corpus"
@@ -290,12 +291,14 @@ def generate(output_dir):
         result=reconstruct_fusion(fusion,refs,reads)
         directory=save_fusion_figures(result,output/"fusion-rna",refs,supplied.get("reference_names"))
         (directory/"input.json").write_text(json.dumps(supplied,indent=2)+"\n")
+    osteosarc_footprint_figures.generate(output)
     combined=PdfWriter()
     index=[]
     priority = ["DIAPH1-", "SLC25A12-", "TECPR1-", "ZNF436-length", "CD109-phase", "MAP2-haplotypes"]
     def order(path):
         name=str(path.relative_to(output))
-        return (next((i for i,prefix in enumerate(priority) if name.startswith(prefix)),len(priority)),name)
+        return (next((i for i,prefix in enumerate(priority) if name.startswith(prefix)),len(priority)),
+                name.removesuffix('all-figures.pdf')+'000')
     for path in sorted(output.rglob("all-figures.pdf"),key=order):
         pages=len(PdfReader(path).pages)
         index.append(dict(path=str(path.relative_to(output)),start_page=len(combined.pages)+1,pages=pages))
@@ -303,6 +306,7 @@ def generate(output_dir):
     combined.add_metadata({"/Title":"Isovar: RNA reconstruction, haplotypes and fusion evidence"})
     combined.write(output/"isovar-all-figures.pdf")
     (output/"figure-index.json").write_text(json.dumps(index,indent=2)+"\n")
+    (output/"RNA_FOOTPRINTS.md").write_text((CORPUS.parent/"RNA_FOOTPRINTS.md").read_text())
     with (output/"README.md").open("a") as handle:
         handle.write("\n\n## Extended evidence gallery\n\nCombined vector PDF: `isovar-all-figures.pdf`. "
             "Page index and bookmarks preserve individual examples; all panels also have separate 600-dpi PNG and SVG files. "
@@ -311,6 +315,9 @@ def generate(output_dir):
             "compatible noncoding/alternative-CDS annotations remain explicit. The other fusion windows "
             "remain unresolved. No uniquely expressed fusion protein, long-read-only fusion detection, "
             "or clinical suitability is claimed.\n\n")
+        handle.write("The nine-candidate extension is under `rna-footprints/`: four exact indels, two observed "
+            "rearrangement junctions with unresolved frames, and three larger DNA deletions with explicit RNA "
+            "footprint limits. See `RNA_FOOTPRINTS.md` for findings, filters and reproduction.\n\n")
         for item in index:
             handle.write("- Page %d: [%s](%s), %d pages\n" % (item["start_page"],item["path"],item["path"],item["pages"]))
     return output
