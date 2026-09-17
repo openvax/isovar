@@ -13,10 +13,14 @@ from isovar.variant_helpers import (
 
 
 @pytest.mark.parametrize("kind", ["DEL", "DUP", "INV", "INS", "BND"])
-def test_structural_placeholder_is_rejected(kind):
+@pytest.mark.parametrize("legacy_placeholder", [False, True])
+def test_structural_variant_is_rejected_before_interpreting_alleles(kind, legacy_placeholder):
     variant = StructuralVariant("1", 100, kind, end=200, ref="C", genome="GRCh38")
-    # This literal-looking placeholder is the integration defect, not an SNV.
-    assert variant.alt == "A"
+    if legacy_placeholder:
+        # Older Varcode exposed a literal-looking ALT for structural events.
+        # Preserve that guard without requiring current Varcode to do so.
+        variant = SimpleNamespace(is_structural=True, sv_type=kind,
+                                  start=100, ref="C", alt="A")
     with pytest.raises(ValueError, match="structural variants"):
         trim_variant(variant)
     with pytest.raises(ValueError, match="structural variants"):

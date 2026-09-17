@@ -138,10 +138,16 @@ Since 1.17.2, cross-variant phasing also requires compatible placements
 at least one compatible pair of observations, with no competing placements of
 the same segment. Complementary mates and variants on one spliced alignment
 still phase; incompatible alternatives cannot inflate thresholds or group
-support. Separate supplementary placements remain unphased because retained
-provenance does not establish a common chimeric path
-([#286](https://github.com/openvax/isovar/issues/286)). Groups remain connected
-pairwise evidence, not proof of one globally resolved haplotype.
+support. Since 1.17.3, separately observed supplementary pieces can phase when
+reciprocal `SA` declarations establish the same chimeric path
+([#286](https://github.com/openvax/isovar/issues/286)). These are pieces of one
+sequenced segment, not paired mates or alternative placements. Strand and
+hard clipping are normalized to original-query coordinates; ambiguous path
+links or variant bases in overlapping pieces remain unphased. Minimap2's
+approximate `SA` CIGARs identify paths only: actual record CIGARs still determine
+alleles. A tag alone never creates supporting evidence, and ordinary cDNA
+assembly still requires one linear placement per segment. Groups remain
+connected pairwise evidence, not proof of one globally resolved haplotype.
 
 ### Python API options for coding sequence assembly and translation
 
