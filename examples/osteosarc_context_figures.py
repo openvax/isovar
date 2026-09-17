@@ -17,6 +17,7 @@ from tests.osteosarc_protein_helpers import transcript_offset
 from tests.data.osteosarc.figure_comparisons import nr2f2
 from . import osteosarc_assembly_figures
 from . import osteosarc_footprint_figures
+from . import osteosarc_extended_figures
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "tests/data/osteosarc/figure_comparisons/corpus"
@@ -292,9 +293,10 @@ def generate(output_dir):
         directory=save_fusion_figures(result,output/"fusion-rna",refs,supplied.get("reference_names"))
         (directory/"input.json").write_text(json.dumps(supplied,indent=2)+"\n")
     osteosarc_footprint_figures.generate(output)
+    osteosarc_extended_figures.generate(output)
     combined=PdfWriter()
     index=[]
-    priority = ["DIAPH1-", "SLC25A12-", "TECPR1-", "ZNF436-length", "CD109-phase", "MAP2-haplotypes"]
+    priority = ["extended-rna/00-overview", "DIAPH1-", "SLC25A12-", "TECPR1-", "ZNF436-length", "CD109-phase", "MAP2-haplotypes"]
     def order(path):
         name=str(path.relative_to(output))
         return (next((i for i,prefix in enumerate(priority) if name.startswith(prefix)),len(priority)),
@@ -307,6 +309,7 @@ def generate(output_dir):
     combined.write(output/"isovar-all-figures.pdf")
     (output/"figure-index.json").write_text(json.dumps(index,indent=2)+"\n")
     (output/"RNA_FOOTPRINTS.md").write_text((CORPUS.parent/"RNA_FOOTPRINTS.md").read_text())
+    (output/"EXTENDED_RNA.md").write_text((CORPUS.parent/"EXTENDED_RNA.md").read_text())
     with (output/"README.md").open("a") as handle:
         handle.write("\n\n## Extended evidence gallery\n\nCombined vector PDF: `isovar-all-figures.pdf`. "
             "Page index and bookmarks preserve individual examples; all panels also have separate 600-dpi PNG and SVG files. "

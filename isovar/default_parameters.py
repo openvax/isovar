@@ -184,6 +184,8 @@ DEFAULT_FILTER_FLAGS = [
 
 # Static mutation-evidence figures; shared by the plotting API and CLI.
 PLOT_COMPARE_ASSEMBLY = False
+PLOT_ALL_PROTEINS = False
+PLOT_PROTEIN_ROWS_PER_PAGE = 10
 PLOT_DPI = 600
 PLOT_OVERVIEW_DPI = 300
 PLOT_WIDTH = 16

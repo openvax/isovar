@@ -1,11 +1,13 @@
 """Publication-ready figures for one mutation, using the standard RNA pipeline."""
 
 import sys
+from pathlib import Path
+from urllib.parse import urlsplit
 
 from varcode.cli import variant_collection_from_args
 
 from ..default_parameters import (
-    PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_OUTPUT_DIRECTORY, PLOT_VIEW, PLOT_VIEWS,
+    PLOT_ALL_PROTEINS, PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_OUTPUT_DIRECTORY, PLOT_VIEW, PLOT_VIEWS,
 )
 from ..visualization import (
     _plot_imports, collect_visualization_data, save_variant_figures, timestamped_run_directory,
@@ -27,6 +29,9 @@ parser.add_argument("--output-dir", default=PLOT_OUTPUT_DIRECTORY,
 parser.add_argument("--max-rows", type=int, default=PLOT_MAX_ROWS,
                     help="Maximum displayed span/model rows; never limits analysis (default %(default)s).")
 parser.add_argument("--dpi", type=int, default=PLOT_DPI, help="PNG resolution (default %(default)s); SVG is vector.")
+parser.add_argument("--all-proteins", action="store_true", default=PLOT_ALL_PROTEINS,
+                    help="Also write paginated protein/frame alternatives; removes only the protein result cap.")
+parser.add_argument("--sample-label", help="Explicit sample/technology label for figures (default: BAM filename).")
 
 
 def run(args=None, *, prog=None):
@@ -45,9 +50,14 @@ def run(args=None, *, prog=None):
     collector = read_collector_from_args(args)
     with alignment_file_from_args(args) as alignment:
         evidence = collector.read_evidence_for_variant(variant, alignment)
+    creator_kwargs = protein_sequence_creator_kwargs_from_args(args)
+    if args.all_proteins:
+        creator_kwargs["max_protein_sequences_per_variant"] = None
     data = collect_visualization_data(
-        variant, evidence, creator_kwargs=protein_sequence_creator_kwargs_from_args(args),
+        variant, evidence, creator_kwargs=creator_kwargs,
         compare_assembly=args.compare_assembly)
+    label = args.sample_label or Path(urlsplit(args.bam).path).name
+    data["provenance"] = dict(sample_label=label)
     data["inputs"] = dict(bam=args.bam, vcf=args.vcf, maf=args.maf, json_variants=args.json_variants)
     data["collection_settings"] = dict(
         min_mapping_quality=collector.min_mapping_quality,
@@ -57,6 +67,10 @@ def run(args=None, *, prog=None):
         merge_overlapping_fragments=collector.merge_overlapping_fragments)
     directory = save_variant_figures(data, timestamped_run_directory(args.output_dir),
                                     view=args.view, max_rows=args.max_rows, dpi=args.dpi)
+    if args.all_proteins:
+        from ..protein_comparison import save_protein_comparison
+        save_protein_comparison([dict(source=args.bam, label=label, visualization=data)],
+                                directory / "protein-alternatives", dpi=args.dpi)
     print(directory)
 
 

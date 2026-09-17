@@ -20,6 +20,7 @@ from isovar.visualization import collect_visualization_data
 from isovar import ProteinSequenceCreator
 from tests.data.fusions.build_osteosarc import extract, linked_records, references, segment_key
 from tests.data.osteosarc.expansion.references import apply_variant
+from tests.data.osteosarc.expansion.acquire import assembly_from_header
 from tests.data.osteosarc.expansion.runner import protein_check
 
 INDELS = [
@@ -66,15 +67,19 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def acquire(source, output):
+def acquire(source, output, query_regions=None, index_path=None):
     directory = output / source["id"]
     directory.mkdir(parents=True)
     bam = directory / "regions.bam"
+    query_regions = regions() if query_regions is None else query_regions
     command = ["samtools", "view", "--no-PG", "-b", "-M", "-X", source["url"],
-               source["url"] + ".bai", *regions(), "-o", str(bam)]
+               str(index_path) if index_path else source["url"] + ".bai", *query_regions, "-o", str(bam)]
     subprocess.run(command, check=True, timeout=600, cwd=directory)
+    with pysam.AlignmentFile(bam) as handle:
+        if assembly_from_header(handle.header.to_dict()) != "GRCh38":
+            raise ValueError("Footprints require verified GRCh38 genomic alignments")
     subprocess.run(["samtools", "index", str(bam)], check=True)
-    receipt = dict(source, command=command, regions=regions(), assembly="GRCh38",
+    receipt = dict(source, command=command, regions=query_regions, assembly="GRCh38",
                    acquired_at=datetime.now(timezone.utc).isoformat(), bam_sha256=digest(bam),
                    index_sha256=digest(Path(str(bam) + ".bai")))
     (directory / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
@@ -170,7 +175,7 @@ def split_deletion_paths(records,start,end):
     return supported
 
 
-def audit(inputs, output):
+def audit(inputs, output, sources=None, all_proteins=False):
     """Analyze original BAMs; retain unresolved outcomes rather than invent alleles."""
     output.mkdir(parents=True,exist_ok=False)
     genome=EnsemblRelease(87)
@@ -178,7 +183,7 @@ def audit(inputs, output):
     from importlib.metadata import version
     data=dict(annotation='Ensembl 87 / GRCh38', indels=[], deletions=[], fusions=[], sources=[],
               software=dict(isovar=__version__,varcode=version('varcode'),pysam=pysam.__version__))
-    sources=list(source_products())
+    sources=list(source_products()) if sources is None else list(sources)
     for source in sources:
         source['receipt']=json.loads((inputs/source['id']/'receipt.json').read_text())
     data['sources']=sources
@@ -201,23 +206,29 @@ def audit(inputs, output):
             if source['product']=='ONT-tagged':
                 continue
             with pysam.AlignmentFile(inputs/source['id']/'regions.bam') as bam:
+                records=list(bam.fetch(row['contig'],variant.start-1,variant.end))
+                primary=[r for r in records if not r.flag & (4|256|512|1024|2048) and r.mapping_quality>=20]
+                input_quality=dict(primary_mapq20_records=len(primary),
+                                   primary_records_missing_qualities=sum(r.query_qualities is None for r in primary))
                 evidence=ReadCollector(use_secondary_alignments=False).read_evidence_for_variant(variant,bam)
                 default_evidence=ReadCollector().read_evidence_for_variant(variant,bam)
             counts={k:len(fragment_ids(getattr(evidence,k+'_reads'))) for k in ('ref','alt','other')}
             default_counts={k:len(fragment_ids(getattr(default_evidence,k+'_reads'))) for k in ('ref','alt','other')}
-            visualization=collect_visualization_data(variant,evidence,compare_assembly=True)
+            creator_kwargs=dict(max_protein_sequences_per_variant=None) if all_proteins else {}
+            visualization=collect_visualization_data(variant,evidence,compare_assembly=True,creator_kwargs=creator_kwargs)
             validation=[]
             for assembly in (True,False):
-                creator=ProteinSequenceCreator(variant_sequence_assembly=assembly)
+                creator=ProteinSequenceCreator(variant_sequence_assembly=assembly,**creator_kwargs)
                 proteins=creator.sorted_protein_sequences_for_variant(variant,evidence)
-                checked=protein_check(proteins[0],expectations,creator.protein_sequence_length,
-                                      creator.protein_context_peptide_length) if proteins else None
-                if checked and checked['validation_status']!='ok':
+                checks=[protein_check(p,expectations,creator.protein_sequence_length,
+                                      creator.protein_context_peptide_length) for p in proteins]
+                checked=next(iter(checks),None)
+                if any(c['validation_status']!='ok' for c in checks):
                     raise ValueError('Independent protein validation failed: %s %s %s' % (row['gene'],source['id'],checked))
-                validation.append(dict(assembly=assembly,result=checked))
+                validation.append(dict(assembly=assembly,result=checked,all_results=checks))
             visualization.setdefault('provenance',{}).update(source=source, sample_label=source['id'],
                 count_unit='RG/QNAME templates; not proven independent molecules',secondary_alignments=False,
-                independent_validation=validation)
+                independent_validation=validation,input_quality=input_quality)
             entry['products'].append(dict(source=source['id'],counts=counts,default_counts=default_counts,visualization=visualization))
             print(row['gene'],source['id'],counts,[len(m['protein']['amino_acids']) if m['protein'] else 0
                                                  for m in visualization['modes']],flush=True)
@@ -256,7 +267,7 @@ def audit(inputs, output):
     packed.write_bytes(gzip.compress((json.dumps(data,sort_keys=True)+'\n').encode(),mtime=0))
     (output/'rna-footprints-manifest.json').write_text(json.dumps(dict(file=packed.name,sha256=digest(packed),
         inputs=str(inputs),annotation=data['annotation'],candidates=9,
-        scope='T1/T2, ONT and oncoanalyser short RNA; no claim about unqueried libraries',
+        scope='Explicit listed source products only; no claim about unqueried libraries',
         records='Complete regional BAMs retained separately; fusion path SAMs embedded; indel/count summaries require reacquisition'),indent=2)+'\n')
     return data
 

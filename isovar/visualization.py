@@ -148,8 +148,12 @@ def collect_visualization_data(
     Returns
     -------
     dict
-        Selected proteins, one supporting cDNA witness per protein, settings,
-        local transcript models, and counts. No read names are exported.
+        Returned protein alternatives, one supporting cDNA witness per protein,
+        settings, local transcript models, and counts. ``protein`` retains the
+        top result for existing consumers; ``proteins`` retains all results
+        allowed by the creator's cap. Set ``max_protein_sequences_per_variant``
+        to None in creator_kwargs to inspect every recovered alternative.
+        No read names are exported.
     """
     from . import __version__
     from varcode import __version__ as varcode_version
@@ -162,9 +166,10 @@ def collect_visualization_data(
         creator = ProteinSequenceCreator(**dict(creator_kwargs, variant_sequence_assembly=assembly))
         proteins = creator.sorted_protein_sequences_for_variant(
             variant, read_evidence, transcript_id_whitelist=transcript_id_whitelist)
-        entry = dict(assembly=assembly, settings=_creator_settings(creator), protein=None)
-        if proteins:
-            protein = proteins[0]
+        entry = dict(assembly=assembly, settings=_creator_settings(creator), protein=None, proteins=[])
+        selected_ids = {t.id for p in proteins[:1] for translation in p.translations
+                        for t in translation.reference_context.transcripts}
+        for protein in proteins:
             # A protein may aggregate synonymous RNA sequences or several
             # frames. Display one witness, never their synthetic union.
             witness = min(protein.translations, key=lambda t: (
@@ -176,8 +181,20 @@ def collect_visualization_data(
             for translation in protein.translations:
                 for transcript in translation.reference_context.transcripts:
                     ids.add(transcript.id)
-                    transcripts[transcript.id] = _transcript_data(transcript, rna_supported=True)
-            entry["protein"] = dict(
+                    supported = transcript.id in selected_ids or transcripts.get(transcript.id, {}).get("rna_supported", False)
+                    transcripts[transcript.id] = _transcript_data(transcript, rna_supported=supported)
+            frames = []
+            for translation in protein.translations:
+                orf = translation.variant_orf
+                frames.append(dict(
+                    strand=translation.reference_context.strand,
+                    transcript_ids=sorted(t.id for t in translation.reference_context.transcripts),
+                    cdna=orf.cdna_sequence,
+                    codon_offset=orf.offset_to_first_complete_codon,
+                    variant_start=orf.variant_cdna_interval_start,
+                    variant_end=orf.variant_cdna_interval_end,
+                    variant_codon_phase=(orf.variant_cdna_interval_start - orf.offset_to_first_complete_codon) % 3))
+            entry["proteins"].append(dict(
                 amino_acids=protein.amino_acids,
                 mutation_start=protein.mutation_start_idx, mutation_end=protein.mutation_end_idx,
                 frameshift=protein.frameshift, ends_with_stop_codon=protein.ends_with_stop_codon,
@@ -185,7 +202,8 @@ def collect_visualization_data(
                 templates=protein.num_supporting_fragments,
                 peptide_windows=mutant_peptide_window_count(protein, creator.protein_context_peptide_length),
                 transcript_ids=sorted(ids), translation_count=len(protein.translations),
-                witness=_witness_data(witness))
+                frames=frames, witness=_witness_data(witness)))
+        entry["protein"] = next(iter(entry["proteins"]), None)
         results.append(entry)
     predictions = (_reference_predictions(
         variant, transcript_id_whitelist, requested.protein_sequence_length or PROTEIN_SEQUENCE_LENGTH, transcripts)
@@ -207,7 +225,8 @@ def collect_visualization_data(
         limitations=[
             "Protein candidates are shown before run_isovar result-level filters.",
             "Protein selection is not independent biological validation or a clinical recommendation.",
-            "Each mode shows its top protein and one contributing cDNA witness, not all alternatives.",
+            "Detail panels show the top protein; proteins retains every result allowed by the recorded creator cap.",
+            "Each protein has one selected cDNA witness and all contributing frame contexts; these are not all biological ORFs.",
             "Varcode tracks assume the reference transcript plus only the nominated edit; they are not RNA evidence.",
             "Spans and coverage count deduplicated post-merge observations, not independent molecules.",
             "Distinct read names do not establish molecular independence; no coordinate/UMI deduplication is inferred.",
@@ -284,28 +303,11 @@ def _protein_disagreements(proteins):
     return {offset for offset, observed in residues.items() if len(observed) > 1}
 
 
-def _protein_panel(ax, data, rectangle, max_rows):
-    _style_axis(ax, "Protein context")
-    rows = []
-    for mode in sorted(data["modes"], key=lambda m: m["assembly"]):
-        p = mode["protein"]
-        note = ("%d aa · %d × %d-mers\n%d templates" % (
-            len(p["amino_acids"]), p["peptide_windows"], mode["settings"]["protein_context_peptide_length"],
-            p["templates"]) if p else "%d alternate read objects" % data["counts"]["alt"]["observations"])
-        if p and len(p["amino_acids"]) > 80:
-            note += "\nSequence in evidence.json"
-        rows.append(("Isovar\nAssembly " + ("on" if mode["assembly"] else "off"), p,
-                     BLUE if mode["assembly"] else GRAY, note))
-    groups = _prediction_groups(data)
-    for i, group in enumerate(groups[:max_rows]):
-        descriptions = sorted({p["description"] for p in group})
-        note = "\n".join(descriptions[:2])
-        if len(descriptions) > 2:
-            note += "\n+%d effect labels in notes" % (len(descriptions) - 2)
-        rows.append(("Varcode %d\n(%d transcript%s)" % (i + 1, len(group), "s" if len(group) != 1 else ""),
-                     group[0]["protein"], INK, note))
+def _draw_protein_rows(ax, rows, rectangle, differences=None):
+    """Shared residue geometry for single-product and paginated comparisons."""
     left, right = -1, 1
-    differences = _protein_disagreements(p for _, p, _, _ in rows)
+    if differences is None:
+        differences = _protein_disagreements(p for _, p, _, _ in rows)
     for i, (label, p, color, note) in enumerate(rows):
         y = len(rows) - i
         ax.text(-0.025, y, label, transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=11)
@@ -335,6 +337,31 @@ def _protein_panel(ax, data, rectangle, max_rows):
         if p["ends_with_stop_codon"]:
             ax.text(len(p["amino_acids"]) - a, y, "*", ha="center", va="center", fontsize=11)
     ax.axvline(-.5, color=ORANGE, alpha=.3, lw=.8, zorder=0)
+    ax.set(xlim=(left, right), ylim=(.3, len(rows) + .45),
+           xlabel="Amino-acid offset from mutation (N → C)")
+
+
+def _protein_panel(ax, data, rectangle, max_rows):
+    _style_axis(ax, "Protein context")
+    rows = []
+    for mode in sorted(data["modes"], key=lambda m: m["assembly"]):
+        p = mode["protein"]
+        note = ("%d aa · %d × %d-mers\n%d templates" % (
+            len(p["amino_acids"]), p["peptide_windows"], mode["settings"]["protein_context_peptide_length"],
+            p["templates"]) if p else "%d alternate read objects" % data["counts"]["alt"]["observations"])
+        if p and len(p["amino_acids"]) > 80:
+            note += "\nSequence in evidence.json"
+        rows.append(("Isovar\nAssembly " + ("on" if mode["assembly"] else "off"), p,
+                     BLUE if mode["assembly"] else GRAY, note))
+    groups = _prediction_groups(data)
+    for i, group in enumerate(groups[:max_rows]):
+        descriptions = sorted({p["description"] for p in group})
+        note = "\n".join(descriptions[:2])
+        if len(descriptions) > 2:
+            note += "\n+%d effect labels in notes" % (len(descriptions) - 2)
+        rows.append(("Varcode %d\n(%d transcript%s)" % (i + 1, len(group), "s" if len(group) != 1 else ""),
+                     group[0]["protein"], INK, note))
+    _draw_protein_rows(ax, rows, rectangle)
     if groups:
         label = "Varcode: reference + nominated edit only"
         if len(groups) > max_rows:
@@ -342,8 +369,6 @@ def _protein_panel(ax, data, rectangle, max_rows):
         ax.text(0, 1.005, label, transform=ax.transAxes, fontsize=10, color=GRAY)
     ax.text(1.035, 1.005, "Orange: mutation\nMagenta: track difference\nBlank: no sequence", transform=ax.transAxes,
             fontsize=10, color=GRAY, va="bottom")
-    ax.set(xlim=(left, right), ylim=(.3, len(rows) + .45),
-           xlabel="Amino-acid offset from mutation (N → C)")
 
 
 def _selected_witness(data):
