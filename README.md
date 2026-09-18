@@ -37,6 +37,11 @@ which occur due to modified splice signals.
 
 ## Python API
 
+Adapter/poly-A inference and optional end trimming are available through
+`ReadCollector` and the shared RNA CLI options. Both are opt-in; original BAM
+records and aligned/inserted bases are preserved. See the
+[read-end inference API and profiles](docs/read-end-inference.md).
+
 In the example below, `isovar.run_isovar` returns a list of `isovar.IsovarResult` objects. 
 Each of these objects corresponds to a single input variant and contains all of the information about the RNA evidence at that variant's location and any mutant protein sequences which were assembled for the variant.
 

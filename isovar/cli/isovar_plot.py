@@ -1,6 +1,8 @@
 """Publication-ready figures for one mutation, using the standard RNA pipeline."""
 
 import sys
+from dataclasses import asdict
+from collections.abc import Mapping
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -65,7 +67,14 @@ def run(args=None, *, prog=None):
         use_secondary_alignments=collector.use_secondary_alignments,
         use_soft_clipped_bases=collector.use_soft_clipped_bases,
         use_reads_without_base_qualities=collector.use_reads_without_base_qualities,
-        merge_overlapping_fragments=collector.merge_overlapping_fragments)
+        merge_overlapping_fragments=collector.merge_overlapping_fragments,
+        infer_read_ends=collector.infer_read_ends,
+        trim_adapters=collector.trim_adapters,
+        trim_poly_a=collector.trim_poly_a,
+        read_end_profile=(
+            {group: asdict(profile) for group, profile in collector.read_end_profile.items()}
+            if isinstance(collector.read_end_profile, Mapping) else
+            asdict(collector.read_end_profile) if collector.read_end_profile is not None else None))
     directory = save_variant_figures(data, timestamped_run_directory(args.output_dir),
                                     view=args.view, max_rows=args.max_rows, dpi=args.dpi)
     if args.all_proteins:

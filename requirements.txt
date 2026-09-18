@@ -3,3 +3,4 @@ varcode>=5.0.0
 pandas>=0.23.0
 pysam>=0.15.2
 psutil
+edlib>=1.3.9.post1,<2

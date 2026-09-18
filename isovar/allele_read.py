@@ -52,6 +52,7 @@ class AlleleRead(ValueObject):
         "compatible_transcript_ids",
         "source_alignments",
         "source_alignment_paths",
+        "source_read_views",
     ]
 
     def __init__(
@@ -65,7 +66,8 @@ class AlleleRead(ValueObject):
             splice_junctions=(),
             compatible_transcript_ids=None,
             source_alignments=(),
-            source_alignment_paths=()):
+            source_alignment_paths=(),
+            source_read_views=()):
         self.prefix = prefix
         self.allele = allele
         self.suffix = suffix
@@ -74,6 +76,7 @@ class AlleleRead(ValueObject):
         self.source_read_count = source_read_count
         self.source_alignments = tuple(source_alignments)
         self.source_alignment_paths = tuple(source_alignment_paths)
+        self.source_read_views = tuple(source_read_views)
         self.reference_blocks = tuple(reference_blocks)
         self.splice_junctions = tuple(splice_junctions)
         self.compatible_transcript_ids = (
@@ -96,7 +99,8 @@ class AlleleRead(ValueObject):
             splice_junctions=self.splice_junctions,
             compatible_transcript_ids=transcript_ids,
             source_alignments=self.source_alignments,
-            source_alignment_paths=self.source_alignment_paths)
+            source_alignment_paths=self.source_alignment_paths,
+            source_read_views=self.source_read_views)
 
     @staticmethod
     def _reference_blocks(reference_positions):
@@ -234,7 +238,8 @@ class AlleleRead(ValueObject):
             reference_blocks=reference_blocks,
             splice_junctions=splice_junctions,
             source_alignments=locus_read.source_alignments,
-            source_alignment_paths=locus_read.source_alignment_paths)
+            source_alignment_paths=locus_read.source_alignment_paths,
+            source_read_views=getattr(locus_read, "source_read_views", ()))
 
 
 # Branch-local transcript classifications are not distinct observations.
@@ -247,5 +252,6 @@ AlleleRead._fields = tuple(
         "reference_blocks",
         "splice_junctions",
         "compatible_transcript_ids",
+        "source_read_views",
     }
 )

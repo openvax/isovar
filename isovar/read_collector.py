@@ -11,6 +11,7 @@
 # limitations under the License.
 
 from collections import defaultdict
+from collections.abc import Mapping
 from itertools import groupby
 
 from .default_parameters import (
@@ -20,6 +21,7 @@ from .default_parameters import (
     USE_SOFT_CLIPPED_BASES,
     USE_READS_WITHOUT_BASE_QUALITIES,
     MERGE_OVERLAPPING_FRAGMENTS,
+    INFER_READ_ENDS, TRIM_ADAPTERS, TRIM_POLY_A, READ_END_PROFILE,
 )
 from .locus_read import LocusRead
 from .logging import get_logger
@@ -29,6 +31,7 @@ from .variant_helpers import require_literal_variant, trim_variant
 from .read_evidence import ReadEvidence
 from .read_identity import source_alignments_from_pysam, source_read_ids
 from .chimeric_alignment import source_alignment_paths_from_pysam
+from .read_end_inference import ReadEndProfile, read_sequence_view_from_alignment
 
 logger = get_logger(__name__)
 
@@ -49,6 +52,7 @@ class _CompactLocusRead(object):
         "source_alignments",
         "is_primary",
         "source_alignment_paths",
+        "source_read_views",
     ]
 
     def __init__(
@@ -65,7 +69,8 @@ class _CompactLocusRead(object):
             splice_junctions=(),
             source_alignments=(),
             is_primary=False,
-            source_alignment_paths=()):
+            source_alignment_paths=(),
+            source_read_views=()):
         self.name = name
         self.sequence = sequence
         self.reference_blocks = tuple(reference_blocks)
@@ -79,6 +84,7 @@ class _CompactLocusRead(object):
         self.source_alignments = tuple(source_alignments)
         self.is_primary = is_primary
         self.source_alignment_paths = tuple(source_alignment_paths)
+        self.source_read_views = tuple(source_read_views)
 
     @classmethod
     def from_locus_read(cls, read):
@@ -96,6 +102,7 @@ class _CompactLocusRead(object):
             source_alignments=read.source_alignments,
             is_primary=read.is_primary,
             source_alignment_paths=read.source_alignment_paths,
+            source_read_views=read.source_read_views,
         )
 
 class ReadCollector(object):
@@ -112,6 +119,10 @@ class ReadCollector(object):
         use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES,
         merge_overlapping_fragments=MERGE_OVERLAPPING_FRAGMENTS,
         use_reads_without_base_qualities=USE_READS_WITHOUT_BASE_QUALITIES,
+        infer_read_ends=INFER_READ_ENDS,
+        read_end_profile=READ_END_PROFILE,
+        trim_adapters=TRIM_ADAPTERS,
+        trim_poly_a=TRIM_POLY_A,
     ):
         """
         Parameters
@@ -137,6 +148,18 @@ class ReadCollector(object):
             Retain sequence/alignment evidence when QUAL is absent. Unknown
             qualities remain None, never inferred from MAPQ. Disagreeing mates
             cannot be quality-resolved when either base has unknown quality.
+
+        infer_read_ends : bool
+            Attach original-query adapter/poly-A/T candidates without trimming.
+            Supplying a profile or enabling trimming also enables annotation.
+
+        read_end_profile : ReadEndProfile or mapping of RG to ReadEndProfile
+            Explicit kit configuration, optionally per read group. Missing groups
+            remain unknown; no adapter profile is guessed from the instrument.
+
+        trim_adapters, trim_poly_a : bool
+            Opt-in removal from terminal soft clips only. Original alignments,
+            aligned bases and insertion evidence are never rewritten.
         """
         self.use_secondary_alignments = use_secondary_alignments
         self.use_duplicate_reads = use_duplicate_reads
@@ -144,6 +167,25 @@ class ReadCollector(object):
         self.use_soft_clipped_bases = use_soft_clipped_bases
         self.merge_overlapping_fragments = merge_overlapping_fragments
         self.use_reads_without_base_qualities = use_reads_without_base_qualities
+        if read_end_profile is not None:
+            profiles = read_end_profile.values() if isinstance(read_end_profile, Mapping) else (read_end_profile,)
+            if any(not isinstance(profile, ReadEndProfile) for profile in profiles):
+                raise TypeError("read_end_profile must contain ReadEndProfile objects")
+        if trim_adapters and read_end_profile is None:
+            raise ValueError("Adapter trimming requires an explicit read_end_profile")
+        self.infer_read_ends = infer_read_ends
+        self.read_end_profile = read_end_profile
+        self.trim_adapters = trim_adapters
+        self.trim_poly_a = trim_poly_a
+
+    def read_sequence_view(self, read):
+        """Infer original-query end structure independently of a variant locus."""
+        profile = self.read_end_profile
+        if isinstance(profile, Mapping):
+            group = read.get_tag("RG") if read.has_tag("RG") else ""
+            profile = profile.get(group)
+        return read_sequence_view_from_alignment(
+            read, profile, trim_adapters=self.trim_adapters, trim_poly_a=self.trim_poly_a)
 
     @staticmethod
     def _iter_left_aligned_indel_events(
@@ -499,23 +541,26 @@ class ReadCollector(object):
 
         query_interval = (None if read_base0_start_inclusive is None else
                           (read_base0_start_inclusive, read_base0_end_exclusive))
+        view = None
+        retained_start, retained_end = 0, len(sequence)
+        if (self.infer_read_ends or self.read_end_profile is not None
+                or self.trim_adapters or self.trim_poly_a):
+            view = self.read_sequence_view(pysam_aligned_segment)
+            retained_start, retained_end = view.start, view.end
         if not self.use_soft_clipped_bases:
-            # if we're not allowing soft clipped based then
-            # the fraction of the read which is usable may be smaller
-            # than the sequence, qualities, and alignment positions
-            # we've extracted, so slice through those to get rid of
-            # soft-clipped ends of the read
-            sequence = sequence[aligned_subsequence_start:aligned_subsequence_end]
-            base0_reference_positions = base0_reference_positions[
-                aligned_subsequence_start:aligned_subsequence_end
-            ]
-            base_qualities = base_qualities[
-                aligned_subsequence_start:aligned_subsequence_end
-            ]
-            if read_base0_start_inclusive is not None:
-                read_base0_start_inclusive -= aligned_subsequence_start
-            if read_base0_end_exclusive is not None:
-                read_base0_end_exclusive -= aligned_subsequence_start
+            retained_start = max(retained_start, aligned_subsequence_start)
+            retained_end = min(retained_end, aligned_subsequence_end)
+        # One slice and one coordinate shift for both policies. Allele and SA
+        # intervals above came from the unchanged original CIGAR/SEQ.
+        sequence = sequence[retained_start:retained_end]
+        base0_reference_positions = base0_reference_positions[retained_start:retained_end]
+        base_qualities = base_qualities[retained_start:retained_end]
+        if read_base0_start_inclusive is not None:
+            read_base0_start_inclusive -= retained_start
+        if read_base0_end_exclusive is not None:
+            read_base0_end_exclusive -= retained_start
+        if view is not None:
+            view = view._replace(start=retained_start, end=retained_end)
         source_alignments = source_alignments_from_pysam(pysam_aligned_segment, name)
         return LocusRead(
             name=name,
@@ -531,6 +576,7 @@ class ReadCollector(object):
             source_alignments=source_alignments,
             source_alignment_paths=source_alignment_paths_from_pysam(
                 pysam_aligned_segment, source_alignments, query_interval),
+            source_read_views=() if view is None else ((source_alignments[0], view),),
             is_primary=not (pysam_aligned_segment.is_secondary
                             or pysam_aligned_segment.is_supplementary),
         )
@@ -792,6 +838,7 @@ class ReadCollector(object):
                 first.splice_junctions + second.splice_junctions))),
             source_alignments=tuple(sorted(first.source_alignments + second.source_alignments)),
             source_alignment_paths=tuple(sorted(first.source_alignment_paths + second.source_alignment_paths)),
+            source_read_views=first.source_read_views + second.source_read_views,
             is_primary=True,
         )
         if isinstance(first, _CompactLocusRead) and isinstance(second, _CompactLocusRead):

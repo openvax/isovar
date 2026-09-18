@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.18.1"
+__version__ = "1.19.0"
 
 
 from .allele_read import AlleleRead
@@ -23,6 +23,10 @@ from .phase_group import PhaseGroup
 from .protein_sequence import ProteinSequence
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
+from .read_end_inference import (
+    Adapter, ReadEndProfile, ReadEndAnnotation, ReadSequenceView,
+    infer_read_ends, read_sequence_view_from_alignment,
+)
 from .read_evidence import ReadEvidence
 from .read_phasing import IsovarReadPhasing
 from .transcript_assembly_edit import TranscriptAssemblyEdit
@@ -50,6 +54,12 @@ __all__ = [
     "ProteinSequence",
     "ProteinSequenceCreator",
     "ReadCollector",
+    "Adapter",
+    "ReadEndProfile",
+    "ReadEndAnnotation",
+    "ReadSequenceView",
+    "infer_read_ends",
+    "read_sequence_view_from_alignment",
     "ReadEvidence",
     "TranscriptAssemblyEdit",
     "VariantORF",
