@@ -17,6 +17,7 @@ COMMANDS = {
     "variant-sequences": ("isovar_variant_sequences", "Export reconstructed cDNA sequences"),
     "plot": ("isovar_plot", "Draw protein, coverage, read-overlap and transcript figures"),
     "fusion": ("isovar_fusion", "Validate and translate supplied fusion RNA with junction evidence"),
+    "sv-rna": ("isovar_sv_rna", "Reconstruct exploratory RNA paths around one nominated SV"),
 }
 
 

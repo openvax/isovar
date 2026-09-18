@@ -7,9 +7,11 @@ from reference, select the longest ORF, or assemble a whole transcript.
 
 See [library responsibilities](library-responsibilities.md) for the boundary
 between Varcode's hypotheses, Isovar's RNA evidence, and Vaxrank's candidate
-evaluation. End-to-end RNA path discovery/reconciliation is tracked in
-[#305](https://github.com/openvax/isovar/issues/305); this guide covers the
-existing supplied-sequence workflow.
+evaluation. Event-directed path reconstruction from a BAM is
+[`isovar sv-rna`](sv-rna.md); its exploratory candidates are not this validated
+input. Reconciliation with Varcode hypotheses remains
+[#305](https://github.com/openvax/isovar/issues/305). This guide covers the
+supplied-sequence workflow.
 
 ```sh
 isovar fusion --input fusion.input.json --output fusion.result.json
