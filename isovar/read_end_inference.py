@@ -198,7 +198,18 @@ def adapter_matches(sequence, adapter, window):
         errors = result["editDistance"]
         if errors < 0:
             continue
-        for start, end in result["locations"]:
+        locations = result["locations"]
+        if not partial and errors:
+            # HW reports all optimal ends, but only one start per end. Anchor
+            # each end in reverse to recover every tied start as an SHW end.
+            # No alignment can consume more than overlap + errors bases.
+            locations = []
+            for _, end in result["locations"]:
+                first = max(0, end + 1 - overlap - errors)
+                anchored = edlib.align(observed[::-1], target[first:end + 1][::-1],
+                                       mode="SHW", task="locations", k=errors)
+                locations.extend((end - reverse_end, end) for _, reverse_end in anchored["locations"])
+        for start, end in locations:
             if start is None or end < start:
                 continue
             if partial:
@@ -214,16 +225,25 @@ def adapter_matches(sequence, adapter, window):
 
 
 def poly_a_matches(sequence, profile, start=0, end=None):
-    """Infer noisy A/T-rich terminal runs; no biological-origin claim is made."""
+    """Infer locally supported A/T runs; no biological-origin claim is made."""
     end = len(sequence) if end is None else end
     matches = []
+    support_length = profile.min_poly_a_length
+    local_budget = math.floor(support_length * profile.max_poly_a_error_rate)
     for side in ("left", "right"):
         part = sequence[start:min(end, start + profile.end_window)] if side == "left" else sequence[max(start, end - profile.end_window):end][::-1]
         for base in "AT":
-            errors = score = 0
+            errors = score = local_errors = 0
             best = None
             for length, observed in enumerate(part, 1):
                 errors += observed != base
+                local_errors += observed != base
+                if length > support_length:
+                    local_errors -= part[length - support_length - 1] != base
+                # Require an end seed and continuous local support. Do not
+                # cross real sequence just because a distant tail is long.
+                if length >= support_length and local_errors > local_budget:
+                    break
                 score += 1 if observed == base else -4
                 if (length >= profile.min_poly_a_length
                         and errors <= length * profile.max_poly_a_error_rate

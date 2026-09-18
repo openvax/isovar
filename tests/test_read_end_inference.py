@@ -1,6 +1,7 @@
 """End inference is additive; derived trimming must preserve alignment semantics."""
 
 from dataclasses import asdict
+from itertools import product
 import json
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from isovar import (
     Adapter, AlleleRead, ReadCollector, ReadEndProfile, infer_read_ends,
     read_sequence_view_from_alignment,
 )
-from isovar.read_end_inference import read_end_profiles_from_json, reverse_complement
+from isovar.read_end_inference import adapter_matches, read_end_profiles_from_json, reverse_complement
 from isovar.cli.rna_args import read_collector_from_args
 from isovar.cli.main_args import make_isovar_arg_parser
 from .mock_objects import MockAlignmentFile, make_pysam_read
@@ -69,6 +70,34 @@ def test_poly_a_is_heuristic_and_opt_in(tail):
     assert reverse.sequence == reverse_complement(BODY)
 
 
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("leading_tail", ["", "A" * 20])
+def test_long_tail_cannot_rescue_a_scan_through_the_read_body(reverse, leading_tail):
+    sequence = leading_tail + BODY + "A" * 100
+    expected = BODY
+    if reverse:
+        sequence, expected = reverse_complement(sequence), reverse_complement(expected)
+    view = infer_read_ends(sequence, trim_poly_a=True)
+    assert view.sequence == expected
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_long_tail_preserves_genuine_opposite_soft_clip(reverse):
+    sequence = BODY + "A" * 100
+    cigar = "6S6M100S"
+    if reverse:
+        sequence, cigar = reverse_complement(sequence), "100S6M6S"
+    read = make_pysam_read(sequence, cigar)
+    read.flag = 16 if reverse else 0
+    view = read_sequence_view_from_alignment(read, trim_poly_a=True)
+    assert view.sequence == (reverse_complement(BODY) if reverse else BODY)
+
+
+@pytest.mark.parametrize("tail", ["A" * 11 + "C", "A" * 5 + "C" + "A" * 18])
+def test_local_tail_support_tolerates_terminal_and_internal_errors(tail):
+    assert infer_read_ends(BODY + tail, trim_poly_a=True).sequence == BODY
+
+
 def test_combined_adapter_and_tail_never_stitches_across_internal_sequence():
     sequence = BODY + "A" * 25 + MOTIF
     assert infer_read_ends(sequence, profile=PROFILE, trim_poly_a=True).sequence == sequence
@@ -93,6 +122,52 @@ def test_equally_supported_adapter_boundaries_are_not_forced():
     assert view.sequence == sequence
     assert len(view.annotations) == 2
     assert all(a.ambiguous for a in view.annotations)
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("aligned", [False, True])
+def test_tied_adapter_starts_at_one_end_preserve_flanking_bases(reverse, aligned):
+    sequence = BODY + MOTIF[1:]
+    if reverse:
+        sequence = reverse_complement(sequence)
+    if aligned:
+        cigar = f"6M{len(sequence) - 6}S" if not reverse else f"{len(sequence) - 6}S6M"
+        read = make_pysam_read(sequence, cigar)
+        read.flag = 16 if reverse else 0
+        view = read_sequence_view_from_alignment(read, PROFILE, trim_adapters=True)
+    else:
+        view = infer_read_ends(sequence, profile=PROFILE, reverse=reverse, trim_adapters=True)
+    assert view.sequence == sequence
+    adapters = [a for a in view.annotations if a.kind == "adapter"]
+    assert len(adapters) == 2
+    assert all(a.ambiguous and a.errors == 1 for a in adapters)
+    assert {a.end if reverse else a.start for a in adapters} == (
+        {len(sequence) - 11, len(sequence) - 12} if reverse else {11, 12})
+
+
+@pytest.mark.parametrize("side", ["left", "right"])
+def test_adapter_locations_match_exhaustive_edit_distance(side):
+    # Independent, deliberately small oracle checks every substring boundary,
+    # including tied starts, tied ends and end-window coordinate offsets.
+    def distance(first, second):
+        row = list(range(len(second) + 1))
+        for i, a in enumerate(first, 1):
+            next_row = [i]
+            for j, b in enumerate(second, 1):
+                next_row.append(min(row[j] + 1, next_row[-1] + 1, row[j - 1] + (a != b)))
+            row = next_row
+        return row[-1]
+
+    adapter = Adapter("short", "ACGT", side, min_overlap=4, max_error_rate=0.3)
+    for letters in product("ACGT", repeat=5):
+        sequence = "GC" + "".join(letters) + "CT"
+        first, last = (0, 6) if side == "left" else (len(sequence) - 6, len(sequence))
+        scores = {(start, end): distance(adapter.sequence, sequence[start:end])
+                  for start in range(first, last) for end in range(start + 1, last + 1)}
+        best = min(scores.values())
+        expected = {span for span, score in scores.items() if score == best and score <= 1}
+        observed = {(hit.start, hit.end) for hit in adapter_matches(sequence, adapter, window=6)}
+        assert observed == expected, (sequence, side)
 
 
 def test_adapter_conflict_cannot_enable_tail_trimming_across_it():
@@ -229,6 +304,39 @@ def test_profiles_are_read_group_and_mate_specific():
     assert collector.read_sequence_view(read).sequence == BODY
     read.set_tag("RG", "unknown")
     assert collector.read_sequence_view(read).sequence == read.seq
+
+
+def test_collection_infers_ends_only_after_locus_and_read_filters(monkeypatch):
+    retained = [make_pysam_read(BODY, "12M", name=name, mapq=30, reference_start=100)
+                for name in ("reference", "alternate")]
+    retained[1].query_sequence = "GC" + "A" + BODY[3:]
+    retained[1].query_qualities = [30] * len(BODY)
+    duplicate = make_pysam_read(BODY, "12M", name="duplicate", mapq=30, reference_start=100)
+    duplicate.flag = 1024
+    rejected = [duplicate,
+                make_pysam_read(BODY, "12M", name="distant", mapq=30, reference_start=300),
+                make_pysam_read(BODY, "12M", name="low-mapq", mapq=0, reference_start=100),
+                make_pysam_read(BODY, "2M5N10M", name="spliced-out", mapq=30, reference_start=100),
+                make_pysam_read(BODY, "2M10S", name="no-allele", mapq=30, reference_start=100)]
+    collector = ReadCollector(infer_read_ends=True, use_duplicate_reads=False, min_mapping_quality=20)
+    seen, fetches = [], []
+    original = collector.read_sequence_view
+
+    def annotate(read):
+        seen.append(read.query_name)
+        return original(read)
+
+    def fetch(*args):
+        fetches.append(args)
+        return retained + rejected
+
+    bam = MockAlignmentFile(["1"], [])
+    monkeypatch.setattr(bam, "fetch", fetch)
+    monkeypatch.setattr(collector, "read_sequence_view", annotate)
+    loci = collector.get_locus_reads(bam, "1", 102, 103)
+    assert fetches == [("1", 101, 104)]
+    assert seen == ["reference", "alternate"]
+    assert {locus.name for locus in loci} == set(seen)
 
 
 def test_cli_profile_roundtrip_and_shared_defaults(tmp_path):

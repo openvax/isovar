@@ -31,6 +31,20 @@ genomic homopolymers, terminal insertions, hard/soft clips, indels/splices,
 supplementary paths, compact/public parity, mate merging and unchanged defaults.
 Include unchanged Sid adapter/tail records as regression fixtures.
 
+### Boundary-safety corrections (#304)
+
+- Require A/T support in the first `min_poly_a_length` bases and in each
+  subsequent window of that length, using the configured error-rate limit.
+  Stop at unsupported sequence: a distant long tail must not rescue a scan
+  through the read body. This conservative local rule can retain clustered
+  noisy tail bases rather than remove uncertain flanking sequence.
+- Recover every equally optimal adapter start at each optimal end with a
+  reversed, end-anchored alignment. Edlib's infix locations alone do not
+  enumerate tied starts. Preserve competing cut boundaries without trimming.
+- Regress both orientations, retained soft clips, interrupted tails and
+  independent edit-distance enumeration. Keep inference behind locus selection
+  and existing filters; do not add a BAM-wide preprocessing pass.
+
 This is the safe terminal-sequence foundation, not all of #302: automatic kit
 identification, raw-signal tail estimation, a comprehensive kit catalogue,
 internal concatemer splitting and genomic disambiguation of aligned candidate
@@ -71,6 +85,27 @@ Merged mates retain separate source views, **not** an invented one-to-one mappin
 from the consensus to one original read. Source views precede allele-level N
 cleanup and are not coordinates of a merged/assembled sequence. Existing CSV
 schemas remain unchanged; inspect annotations through the Python API.
+
+## Selection and cost
+
+The ordinary allele collector fetches the requested genomic locus (plus its
+one-base anchors), applies read/overlap filters and derives allele coordinates
+before optional end inference. It does not preprocess the whole BAM. Retained
+reference-supporting and alternate-supporting observations are both eligible;
+end inference is not a mutation-support classifier. Adapter/tail searches are
+bounded by `end_window` (default 200 bases per end). Full original sequence and
+quality provenance is still retained. A read overlapping multiple requested
+variants can be processed separately for each locus. Calling the standalone
+annotator directly makes the caller responsible for selecting reads.
+
+SV discovery needs a different candidate pool: affected gene/exon regions and
+both breakpoint partners, not an exact predicted fusion sequence or only reads
+covering the literal DNA breakpoint. The osteosarc exploration uses regional
+subsets and splice-aware full-read/clip realignment, with competing normal and
+repeat placements retained. That research workflow is not an automatic SV
+candidate collector in this PR. `isovar fusion` still validates supplied,
+sequence-resolved fusion transcripts. Ordinary splicing alone cannot assign
+an RNA footprint to a particular DNA mutation.
 
 ## CLI
 
@@ -115,6 +150,8 @@ sequence heuristic, and an inferred tail does not assign an SV or a transcript.
   orientation and soft/hard clipping.
 - [Cutadapt matching](https://cutadapt.readthedocs.io/en/stable/guide.html#adapter-search-parameters):
   partial matches and overlap-relative error tolerance.
+- [Edlib](https://github.com/Martinsos/edlib): infix and anchored-prefix edit-distance
+  alignment; tied starts are recovered explicitly before choosing trim boundaries.
 - [Dorado poly-A estimation](https://software-docs.nanoporetech.com/dorado/latest/basecaller/polya_estimation/):
   A/T orientation and estimated lengths distinct from the basecalled sequence.
 - [Iso-Seq workflow](https://isoseq.how/clustering/cli-workflow.html): primers and
