@@ -1,0 +1,44 @@
+[
+  {
+    "event": "TPST1--CRCP",
+    "source": "PacBio-T1",
+    "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/pacbio/IPISRC044_T1_sclrs_live_pbmm2_mapped.bam",
+    "input": "corpus/TPST1--CRCP-T1.input.json.gz",
+    "window": 1000,
+    "regions": 17,
+    "regional_records": 954,
+    "segments": 23,
+    "records": 46,
+    "command": "samtools view --no-PG -b -M <url> <url>.bai <regions>",
+    "file": "TPST1--CRCP.PacBio-T1.sam.gz",
+    "sha256": "56411620dc61973f7be102a642b10fa701fb2ae2462a8aec7e72d4651640a56c"
+  },
+  {
+    "event": "FOXO3--STRADA-CCDC47",
+    "source": "ONT-T1-tagged",
+    "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T1_sclrs_ONT/IPISRC044_T1_sclrs_ONT/IPISRC044_T1_sclrs_ONT.tagged.bam",
+    "input": "corpus/FOXO3--STRADA-CCDC47-T1.input.json.gz",
+    "window": 1000,
+    "regions": 36,
+    "regional_records": 14477,
+    "segments": 18,
+    "records": 47,
+    "command": "samtools view --no-PG -b -M <url> <url>.bai <regions>",
+    "file": "FOXO3--STRADA-CCDC47.ONT-T1-tagged.sam.gz",
+    "sha256": "91c27851bb2bc5d6af9387a09ba4c2dba8dd11302ea5dc2221dbe51ada8459a6"
+  },
+  {
+    "event": "ATP5MG--KMT2A",
+    "source": "PacBio-T1",
+    "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/pacbio/IPISRC044_T1_sclrs_live_pbmm2_mapped.bam",
+    "input": "coding-corpus/ATP5MG--KMT2A.input.json.gz",
+    "window": 1000,
+    "regions": 42,
+    "regional_records": 5070,
+    "segments": 7,
+    "records": 7,
+    "command": "samtools view --no-PG -b -M <url> <url>.bai <regions>",
+    "file": "ATP5MG--KMT2A.PacBio-T1.sam.gz",
+    "sha256": "bcbda3ead21a866f02d0784b776ce76aa14e1d86158b51326d7d0a43219f2c22"
+  }
+]

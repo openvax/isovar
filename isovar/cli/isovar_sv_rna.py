@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 
 from ..default_parameters import (
-    FUSION_PEPTIDE_LENGTHS, SV_ASSEMBLE, SV_BREAKPOINT_WINDOW, SV_MAX_PATHS, SV_MAX_QUERIES, SV_MAX_RECORDS,
-    SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_ANCHOR_BASES, SV_MIN_OVERLAP,
+    FUSION_PEPTIDE_LENGTHS, SV_ASSEMBLE, SV_BREAKPOINT_WINDOW, SV_MAX_BREAKPOINT_SHIFT,
+    SV_MAX_EXTENSION_SEGMENTS, SV_MAX_PATHS, SV_ANNOTATED_JUNCTION_TOLERANCE, SV_MAX_QUERIES, SV_MAX_RECORDS,
+    SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_LOCAL_VARIANT_FRACTION, SV_MIN_ANCHOR_BASES, SV_MIN_OVERLAP,
 )
 from ..sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
@@ -29,11 +30,19 @@ def make_parser(prog="isovar sv-rna"):
     group.add_argument("--min-alternative-fraction", type=float, default=SV_MIN_ALTERNATIVE_FRACTION,
                        help="Prune alternatives below this fraction of the best-supported one "
                             "(default: %(default)s)")
+    group.add_argument("--min-local-variant-fraction", type=float, default=SV_MIN_LOCAL_VARIANT_FRACTION,
+                       help="Base/small-indel alternatives also need this fraction of the best (default: %(default)s)")
     group.add_argument("--max-records", type=int, default=SV_MAX_RECORDS, help="(default: %(default)s)")
     group.add_argument("--max-queries", type=int, default=SV_MAX_QUERIES, help="(default: %(default)s)")
     group.add_argument("--max-paths", type=int, default=SV_MAX_PATHS, help="(default: %(default)s)")
+    group.add_argument("--max-extension-segments", type=int, default=SV_MAX_EXTENSION_SEGMENTS,
+                       help="Segments built to extend one path end, furthest-reaching first (default: %(default)s)")
     group.add_argument("--breakpoint-window", type=int, default=SV_BREAKPOINT_WINDOW,
                        help="Bases searched to either side of each breakpoint (default: %(default)s)")
+    group.add_argument("--annotated-junction-tolerance", type=int, default=SV_ANNOTATED_JUNCTION_TOLERANCE,
+                       help="Treat unannotated joins this close to annotated ones as wobble (default: %(default)s)")
+    group.add_argument("--max-breakpoint-shift", type=int, default=SV_MAX_BREAKPOINT_SHIFT,
+                       help="Junction bases an aligner may place past a breakpoint (default: %(default)s)")
     group.add_argument("--no-assembly", dest="assemble", action="store_false", default=SV_ASSEMBLE,
                        help="Use only reads which span each seed junction")
     group.add_argument("--peptide-lengths", type=int, nargs="+", default=FUSION_PEPTIDE_LENGTHS,
@@ -51,9 +60,12 @@ def run(args=None, prog=None):
                 bam, source=options.source or options.bam, read_collector=read_collector_from_args(options),
                 min_anchor_bases=options.min_anchor_bases, min_overlap=options.min_overlap,
                 min_alternative_fragments=options.min_alternative_fragments,
-                min_alternative_fraction=options.min_alternative_fraction, max_records=options.max_records,
+                min_alternative_fraction=options.min_alternative_fraction,
+                min_local_variant_fraction=options.min_local_variant_fraction, max_records=options.max_records,
                 max_queries=options.max_queries, max_paths=options.max_paths, assemble=options.assemble,
-                breakpoint_window=options.breakpoint_window,
+                breakpoint_window=options.breakpoint_window, max_breakpoint_shift=options.max_breakpoint_shift,
+                max_extension_segments=options.max_extension_segments,
+                annotated_junction_tolerance=options.annotated_junction_tolerance,
                 peptide_lengths=options.peptide_lengths, **inputs)
         Path(options.output).expanduser().write_text(json.dumps(result, indent=2) + "\n")
     except (OSError, ValueError, TypeError, KeyError) as error:
