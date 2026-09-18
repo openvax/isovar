@@ -1,0 +1,554 @@
+"""#305/#306: RNA paths, frames and event linkage for a nominated SV, from BAM records.
+
+Synthetic cases place reads on explicit transcript models; no genome sequence
+is needed because reconstruction never reads reference bases. Real cases use
+the pinned, unchanged original records of the fusion corpora.
+"""
+from dataclasses import replace
+import gzip
+import json
+from pathlib import Path
+import random
+import time
+
+import pysam
+import pytest
+
+from isovar import reconstruct_sv_rna
+from isovar.cli import commands
+from isovar.fusion import FusionBreakpoint, FusionReference, fusion_from_dict, reconstruct_fusion
+from isovar.read_collector import ReadCollector
+from isovar.read_end_inference import Adapter, ReadEndProfile, reverse_complement
+from isovar.sv_rna import sv_rna_input_from_dict
+from tests.data.osteosarc.expansion.references import translate
+
+HEADER = pysam.AlignmentHeader.from_dict(dict(
+    SQ=[dict(SN="1", LN=20000), dict(SN="2", LN=20000)], RG=[dict(ID="a"), dict(ID="b")]))
+STOPS = {"TAA", "TAG", "TGA"}
+FUSIONS = Path(__file__).parent / "data/fusions"
+
+
+def antisense(sequence, placements):
+    return reverse_complement(sequence), [(c, p, "-" if s == "+" else "+") for c, p, s in reversed(placements)]
+
+
+def record(name, contig, start, cigar, sequence, flag=0, group="a", qualities=True, mapq=60):
+    read = pysam.AlignedSegment(HEADER)
+    read.query_name = name
+    read.reference_id = HEADER.get_tid(contig)
+    read.reference_start = start
+    read.cigarstring = cigar
+    read.flag = flag
+    read.query_sequence = sequence
+    read.query_qualities = [30] * len(sequence) if qualities else None
+    read.mapping_quality = mapq
+    read.set_tag("RG", group)
+    return read
+
+
+def link(records):
+    for read in records:
+        read.set_tag("SA", "".join("%s,%d,%s,%s,%d,0;" % (
+            other.reference_name, other.reference_start + 1, "-" if other.is_reverse else "+",
+            other.cigarstring.replace("H", "S"), other.mapping_quality) for other in records if other is not read))
+    return records
+
+
+def aligned(name, sequence, placements, flag=0, group="a", qualities=True):
+    """Records for one segment: a primary and hard-clipped supplementary pieces."""
+    pieces = []
+    for q, (contig, position, strand) in enumerate(placements):
+        if pieces and pieces[-1][0] == (contig, strand):
+            pieces[-1][1].append((q, position))
+        else:
+            pieces.append(((contig, strand), [(q, position)]))
+    primary = max(range(len(pieces)), key=lambda k: len(pieces[k][1]))
+    n, records = len(sequence), []
+    for k, ((contig, strand), bases) in enumerate(pieces):
+        q0, q1 = bases[0][0], bases[-1][0] + 1
+        reverse = strand == "-"
+        genomic = sorted(p for _, p in bases)
+        operations = []
+        for previous, position in zip([None] + genomic, genomic):
+            if previous is not None and position > previous + 1:
+                operations.append([position - previous - 1, "N"])
+            if operations and operations[-1][1] == "M" and previous == position - 1:
+                operations[-1][0] += 1
+            else:
+                operations.append([1, "M"])
+        left, right = (n - q1, q0) if reverse else (q0, n - q1)
+        clip = "S" if k == primary else "H"
+        cigar = "".join("%d%s" % tuple(op) for op in
+                        ([[left, clip]] if left else []) + operations + ([[right, clip]] if right else []))
+        stored = reverse_complement(sequence) if reverse else sequence
+        if k != primary:
+            stored = stored[left:n - right]
+        records.append(record(name, contig, genomic[0], cigar, stored,
+                              flag | (16 if reverse else 0) | (0 if k == primary else 2048), group, qualities))
+    return link(records) if len(records) > 1 else records
+
+
+def write_bam(path, records):
+    unsorted = str(path) + ".unsorted"
+    with pysam.AlignmentFile(unsorted, "wb", header=HEADER) as out:
+        for read in records:
+            out.write(read)
+    pysam.sort("-o", str(path), unsorted)
+    pysam.index(str(path))
+    return path
+
+
+class Scenario:
+    """Donor D-201 (chr 1, +) exons 1-2 spliced to acceptor A-201 (chr 2) exons 2-3."""
+
+    def __init__(self, acceptor_strand="+", seed=0):
+        self.rng = random.Random(seed)
+        self.donor_ref, self.donor_positions = self.gene(
+            "D-201", "1", "+", [(1000, 1100), (2000, 2150), (3000, 3300)], 20, 150)
+        exons = [(5000, 5100), (6000, 6300), (7000, 7400)] if acceptor_strand == "+" else [
+            (5000, 5400), (6000, 6300), (7000, 7100)]
+        self.acceptor_ref, self.acceptor_positions = self.gene("A-201", "2", acceptor_strand, exons, 30, 200)
+        self.sequence = self.donor_ref.sequence[:250] + self.acceptor_ref.sequence[100:]
+        self.positions = self.donor_positions[:250] + self.acceptor_positions[100:]
+        # DNA breakpoints in donor intron 2 and acceptor intron 1: splicing
+        # removes both from the RNA.
+        self.donor = FusionBreakpoint("1", 2500, "+")
+        self.acceptor = FusionBreakpoint("2", 5500, "+") if acceptor_strand == "+" else FusionBreakpoint("2", 6500, "-")
+        # The literal adjacency at the RNA junction.
+        self.exact = (FusionBreakpoint("1", 2150, "+"),
+                      FusionBreakpoint("2", 6000, "+") if acceptor_strand == "+" else FusionBreakpoint("2", 6300, "-"))
+
+    def random(self, n):
+        return "".join(self.rng.choice("ACGT") for _ in range(n))
+
+    def gene(self, name, contig, strand, exons, cds_start, codons):
+        coding = "ATG"
+        while len(coding) < 3 * codons + 3:
+            codon = self.random(3)
+            coding += "" if codon in STOPS else codon
+        sequence = self.random(cds_start) + coding + "TAA"
+        sequence += self.random(sum(b - a for a, b in exons) - len(sequence))
+        positions = [(contig, p, strand) for a, b in exons for p in range(a, b)]
+        positions = positions[::-1] if strand == "-" else positions
+        return FusionReference(name, "test", "synthetic 1", contig, strand, exons, sequence,
+                               cds_start, cds_start + len(coding) + 3), positions
+
+    def tile(self, prefix, sequence, positions, length=100, step=10, errors=None, **kwargs):
+        """Alternate sense/antisense reads, as from an unstranded library."""
+        records = []
+        for i, s in enumerate(range(0, len(sequence) - length + 1, step)):
+            read = sequence[s:s + length]
+            if errors is not None:
+                rng, rate = errors
+                read = "".join(rng.choice([b for b in "ACGT" if b != x]) if rng.random() < rate else x for x in read)
+            read = (read, positions[s:s + length])
+            records += aligned("%s%d" % (prefix, i), *(antisense(*read) if i % 2 else read), **kwargs)
+        return records
+
+    def reads(self, **kwargs):
+        return (self.tile("f", self.sequence, self.positions, **kwargs)
+                + self.tile("d", self.donor_ref.sequence, self.donor_positions, step=13)
+                + self.tile("a", self.acceptor_ref.sequence, self.acceptor_positions, step=17))
+
+    def run(self, bam, donor=None, acceptor=None, references=None, regions=(), **kwargs):
+        with pysam.AlignmentFile(str(bam)) as alignments:
+            return reconstruct_sv_rna(
+                alignments, event_id="D--A", reference_name="test", donor=donor or self.donor,
+                acceptor=acceptor or self.acceptor, regions=regions,
+                references=references or [self.donor_ref, self.acceptor_ref], sample_id="sample",
+                source=str(bam), event_provenance=dict(caller="synthetic DNA call"), **kwargs)
+
+
+def spanning(result, relation=None):
+    return [j for p in result["paths"] for j in p["junctions"] if relation in (None, j["relation"])]
+
+
+@pytest.mark.parametrize("acceptor_strand", ["+", "-"])
+def test_spliced_fusion_is_reconstructed_and_translated_in_the_donor_frame(tmp_path, acceptor_strand):
+    s = Scenario(acceptor_strand)
+    result = s.run(write_bam(tmp_path / "rna.bam", s.reads()))
+    assert result["status"] == "event_linked_candidates" and not result["limitations"]
+    path, = result["paths"]
+    assert path["sequence"] == s.sequence  # Assembled through overlaps, no reference padding.
+    assert path["unplaced_intervals"] == []
+    junction, = path["junctions"]
+    assert junction["query_interval"] == [249, 250] and junction["kinds"] == ["split"]
+    assert junction["relation"] == path["event_linkage"]["status"] == "event_compatible_junction"
+    assert junction["breakpoint_assignment"] == [350, 500 if acceptor_strand == "+" else 200]
+    assert not junction["annotated"] and not junction["forward_splice_geometry"]
+    starts = range(0, len(s.sequence) - 99, 10)
+    assert junction["spanning_fragments"] == sum(a <= 249 and 250 < a + 100 for a in starts)
+    assert not path["event_linkage"]["somatic_causation_proven"]
+
+    assert path["frame_status"] == "translated"
+    translation, = path["translations"]
+    expected, stop = translate(s.sequence[20:], annotated_start=True)  # Independent NCBI table 1.
+    assert (translation["amino_acids"], translation["ends_with_stop_codon"]) == (expected, stop)
+    assert translation["translation_start"] == 20 and translation["transcript_ids"] == ["D-201"]
+    evidence, = translation["frame_evidence"]
+    assert evidence["complete_5prime"] and not evidence["upstream_frame_assumed"]
+    assert evidence["departure"] == 250 and evidence["departure_relation"] == "event_compatible_junction"
+    assert path["reference_readings"] == ["A-201"]  # The acceptor's own frame is not a novel protein.
+    reference_proteins = [translate(r.sequence[r.cds_start:], annotated_start=True)[0]
+                          for r in (s.donor_ref, s.acceptor_ref)]
+    junction_codon = (250 - 20) // 3
+    for peptide in translation["candidate_peptides"]:
+        a, b = peptide["protein_interval"]
+        assert expected[a:b] == peptide["sequence"] and b > junction_codon
+        assert not any(peptide["sequence"] in protein for protein in reference_proteins)
+    assert any(a <= junction_codon < b for a, b in (p["protein_interval"] for p in translation["candidate_peptides"]))
+
+
+def test_exact_breakpoint_and_observed_junction_homology(tmp_path):
+    s = Scenario()
+    read = s.sequence[200:300]  # Junction after read base 49.
+    records = []
+    for name in ("h1", "h2"):
+        # Both pieces align read bases 47-49: donor 2147-2149 and acceptor 5997-5999.
+        records += link([record(name, "1", 2100, "50M50S", read),
+                         record(name, "2", 5997, "47H53M", read[47:], 2048)])
+    bam = write_bam(tmp_path / "rna.bam", records)
+    for donor, acceptor, expected in [
+            (2150, 6000, ("breakpoint_junction", [3, 0])), (2147, 5997, ("breakpoint_junction", [0, 3])),
+            (2151, 6000, ("event_compatible_junction", [4, 0]))]:
+        result = s.run(bam, FusionBreakpoint("1", donor, "+"), FusionBreakpoint("2", acceptor, "+"))
+        path, = result["paths"]
+        junction, = path["junctions"]
+        assert path["sequence"] == read and junction["query_interval"] == [46, 50]
+        assert junction["unplaced_bases"] == read[47:50]  # Placed twice, so by neither piece.
+        assert (junction["relation"], junction["breakpoint_assignment"]) == expected
+        assert junction["spanning_fragments"] == 2
+
+
+def test_one_read_is_enough_to_report_an_event_junction(tmp_path):
+    s = Scenario()
+    records = aligned("only", s.sequence[200:300], s.positions[200:300])
+    variant = s.sequence[200:249] + ("A" if s.sequence[249] != "A" else "C") + s.sequence[250:300]
+    records += aligned("other", variant, s.positions[200:300])  # A base variant at the junction.
+    result = s.run(write_bam(tmp_path / "rna.bam", records), *s.exact)
+    assert sorted(p["sequence"] for p in result["paths"]) == sorted([s.sequence[200:300], variant])
+    assert all(p["junctions"][0]["spanning_fragments"] == 1 for p in result["paths"])
+    assert not any(seed.get("minor_variant_of_seeded_junction") for seed in result["seeds"])
+    # Against twenty reads, the single-read variant of the same join is pruned.
+    records += [r for i in range(20) for r in aligned("m%d" % i, s.sequence[200:300], s.positions[200:300])]
+    result = s.run(write_bam(tmp_path / "many.bam", records), *s.exact)
+    assert [p["sequence"] for p in result["paths"]] == [s.sequence[200:300]]
+    assert [seed.get("minor_variant_of_seeded_junction", False) for seed in result["seeds"]] == [False, True]
+
+
+def test_sa_tag_without_its_observed_record_creates_no_junction(tmp_path):
+    s = Scenario()
+    primaries = [r for r in s.tile("f", s.sequence, s.positions) if not r.is_supplementary]
+    bam = write_bam(tmp_path / "rna.bam", primaries)
+    result = s.run(bam)
+    assert result["status"] == "no_candidate_paths" and result["paths"] == []
+    assert result["segment_path_notes"]["SA_declared_piece_not_linked"] > 0
+    # A soft clip at the nominated breakpoint is unplaced sequence, not a partner.
+    result = s.run(bam, *s.exact, read_collector=ReadCollector(use_soft_clipped_bases=True))
+    assert result["status"] == "event_linked_candidates"
+    assert {p["event_linkage"]["status"] for p in result["paths"]} == {"breakpoint_clip_partner_unplaced"}
+    path, = [p for p in result["paths"] if p["junctions"][0]["left"]]
+    junction, = path["junctions"]
+    assert junction["right"] is None and junction["left"] == ["1", 2149, "+"]
+    assert [path["unplaced_intervals"][-1][1]] == [len(path["sequence"])]
+    assert path["blocks"][-1]["contig"] == "1"  # No acceptor mapping is invented.
+    translation, = path["translations"]
+    assert translation["amino_acids"] in translate(s.sequence[20:], annotated_start=True)[0]
+
+
+def junction_reads(s, step=10, length=100):
+    return ["f%d" % i for i, a in enumerate(range(0, len(s.sequence) - length + 1, step))
+            if a < s.junction <= a + length - 1]
+
+
+def test_distant_pieces_and_mates_are_retrieved_but_mates_are_not_joined(tmp_path):
+    s = Scenario()
+    s.junction = 250
+    first = aligned("pair", s.sequence[100:200], s.positions[100:200], flag=1 | 64)
+    second = aligned("pair", *antisense(s.sequence[300:400], s.positions[300:400]), flag=1 | 128)
+    for read, mate in ((first[0], second[0]), (second[0], first[0])):
+        read.next_reference_id, read.next_reference_start = mate.reference_id, mate.reference_start
+    bam = write_bam(tmp_path / "rna.bam", first + second + s.tile("f", s.sequence, s.positions))
+    # Only donor exons and a narrow breakpoint window are searched: partner
+    # records are reached only through observed SA and mate locations.
+    result = s.run(bam, references=[s.donor_ref], breakpoint_window=10)
+    hops = result["acquisition"]["hop_queries"]
+    assert hops and all(h["fetched"] and h["contig"] == "2" for h in hops)
+    path, = result["paths"]
+    # The retrieved mate overlaps junction reads, so it extends the path to its
+    # own end; nothing past it was retrieved. Alone, the pair bridges nothing.
+    assert path["sequence"] == s.sequence[:400] and path["blocks"][-1]["contig"] == "2"
+    names = {sam.split("\t")[0] for sam in result["original_records"].values()}
+    assert names == set(junction_reads(s))  # The discordant pair is not junction evidence.
+    alone = s.run(write_bam(tmp_path / "pair.bam", first + second), references=[s.donor_ref], breakpoint_window=10)
+    assert alone["acquisition"]["records"] == 2 and alone["paths"] == []
+
+
+def test_alternative_placements_and_duplicate_records_add_no_support(tmp_path):
+    s = Scenario()
+    s.junction = 250
+    reads = s.tile("f", s.sequence, s.positions)
+    baseline = s.run(write_bam(tmp_path / "base.bam", reads))
+    junction, = spanning(baseline)
+    assert junction["spanning_fragments"] == len(junction_reads(s))
+    primaries = {r.query_name: r for r in reads if not r.is_supplementary}
+    # Secondary placements elsewhere are other hypotheses for those segments,
+    # never additional supporting pieces.
+    secondary = [record(name, "2", 4600, "100M", primaries[name].get_forward_sequence(), 256)
+                 for name in junction_reads(s)[:2]]
+    other_group = [r.__copy__() for r in reads if r.query_name in junction_reads(s)[:3]]
+    for read in other_group:
+        read.set_tag("RG", "b")  # The same QNAME in another read group is another fragment.
+    result = s.run(write_bam(tmp_path / "alt.bam", reads + reads[:6] + secondary + other_group))
+    path, = result["paths"]
+    assert path["sequence"] == baseline["paths"][0]["sequence"]
+    assert path["junctions"][0]["spanning_fragments"] == junction["spanning_fragments"] + 3
+    assert path["sequence_evidence"]["secondary_segments"] == 0
+    dropped = s.run(write_bam(tmp_path / "drop.bam", reads + secondary),
+                    read_collector=ReadCollector(use_secondary_alignments=False))
+    assert dropped["excluded_records"] == {"secondary": 2}
+    assert dropped["paths"][0]["sequence"] == path["sequence"]
+
+
+def test_missing_qualities_are_kept_unless_policy_requires_them(tmp_path):
+    s = Scenario()
+    bam = write_bam(tmp_path / "rna.bam", s.tile("f", s.sequence, s.positions, qualities=False))
+    result = s.run(bam)
+    path, = result["paths"]
+    assert path["sequence"] == s.sequence and path["sequence_evidence"]["missing_quality_segments"] > 0
+    assert all(o["missing_qualities"] for o in result["observations"].values())
+    strict = s.run(bam, read_collector=ReadCollector(use_reads_without_base_qualities=False))
+    assert strict["paths"] == [] and set(strict["excluded_records"]) == {"qualities_unavailable"}
+
+
+def test_assembly_extends_beyond_junction_reads_only_when_enabled(tmp_path):
+    s = Scenario()
+    bam = write_bam(tmp_path / "rna.bam", s.tile("f", s.sequence, s.positions, step=40))
+    assembled, = s.run(bam)["paths"]
+    direct, = s.run(bam, assemble=False)["paths"]
+    assert assembled["sequence"] == s.sequence[:max(range(0, len(s.sequence) - 99, 40)) + 100]
+    assert direct["sequence"] in s.sequence and len(direct["sequence"]) < len(s.sequence)
+    junction, = direct["junctions"]
+    assert junction["linked_interval"] == [0, len(direct["sequence"])]  # Every base co-observed with the join.
+    assert assembled["junctions"][0]["linked_interval"][1] < len(s.sequence)
+    assert assembled["sequence_evidence"]["assembly_phase"] == "hypothesis_not_proven_long_range_phase"
+
+
+def test_deep_noisy_coverage_prunes_error_branches_without_path_explosion(tmp_path):
+    s = Scenario()
+    errors = (random.Random(5), 0.004)
+    reads = (s.tile("f", s.sequence, s.positions, 150, 2, errors)
+             + s.tile("d", s.donor_ref.sequence, s.donor_positions, 150, 3, errors)
+             + s.tile("a", s.acceptor_ref.sequence, s.acceptor_positions, 150, 3, errors))
+    bam = write_bam(tmp_path / "deep.bam", reads)
+    started = time.perf_counter()
+    result = s.run(bam)
+    assert time.perf_counter() - started < 30
+    assert "path_limit" not in result["limitations"]
+    path, = result["paths"]
+    assert path["sequence"] == s.sequence  # Consensus of observed bases, not one read.
+    assert result["pruned_branches"]
+
+
+def variant(s):
+    return s.sequence[:600] + ("A" if s.sequence[600] != "A" else "C") + s.sequence[601:]
+
+
+def test_undistinguished_alternatives_fork_and_strong_ones_prune(tmp_path):
+    s = Scenario()
+    reads = aligned("x", s.sequence, s.positions) + aligned("y", variant(s), s.positions)
+    two = s.run(write_bam(tmp_path / "two.bam", reads))
+    assert sorted(p["sequence"] for p in two["paths"]) == sorted([s.sequence, variant(s)])
+    assert not two["pruned_branches"]  # One read each: neither can outweigh the other.
+    many = [r for i in range(20) for r in aligned("m%d" % i, s.sequence, s.positions)] + reads[2:]
+    pruned = s.run(write_bam(tmp_path / "many.bam", many))
+    path, = pruned["paths"]
+    assert path["sequence"] == s.sequence
+    branch, = pruned["pruned_branches"]
+    assert branch["fragments"] == 1 and branch["direction"] == "3prime"
+    limited = s.run(tmp_path / "two.bam", max_paths=1)
+    assert len(limited["paths"]) == 1 and "path_limit" in limited["limitations"]
+
+
+def test_record_and_query_limits_are_reported(tmp_path):
+    s = Scenario()
+    bam = write_bam(tmp_path / "rna.bam", s.reads())
+    assert "record_limit" in s.run(bam, max_records=5)["limitations"]
+    assert "query_limit" in s.run(bam, max_queries=1)["limitations"]
+
+
+def test_novel_noncoding_continuation_is_translated_in_the_donor_frame(tmp_path):
+    s = Scenario()
+    tail = s.random(400)
+    sequence = s.donor_ref.sequence[:250] + tail
+    positions = s.donor_positions[:250] + [("2", 12000 + i, "+") for i in range(400)]
+    bam = write_bam(tmp_path / "rna.bam", s.tile("f", sequence, positions))
+    result = s.run(bam, s.exact[0], FusionBreakpoint("2", 12000, "+"), references=[s.donor_ref])
+    assert result["reference_models"] == [dict(
+        transcript_id="D-201", annotation="synthetic 1", contig="1", strand="+",
+        sequence_sha256=__import__("hashlib").sha256(s.donor_ref.sequence.encode()).hexdigest())]
+    path, = result["paths"]
+    assert path["sequence"] == sequence and path["event_linkage"]["status"] == "breakpoint_junction"
+    translation, = path["translations"]
+    assert (translation["amino_acids"], translation["ends_with_stop_codon"]) == translate(
+        sequence[20:], annotated_start=True)
+    assert result["acquisition"]["searched_regions"][-1] == ["2", 11000, 13000]
+
+
+def test_unattributed_junctions_need_support_and_annotation_competes(tmp_path):
+    s = Scenario()
+    skip = s.donor_ref.sequence[:100] + s.donor_ref.sequence[250:]
+    skip_positions = s.donor_positions[:100] + s.donor_positions[250:]
+    one = s.run(write_bam(tmp_path / "one.bam", aligned("s0", skip[:200], skip_positions[:200])))
+    assert one["status"] == "no_candidate_paths"
+    two = s.run(write_bam(tmp_path / "two.bam", s.tile("s", skip, skip_positions, step=40)))
+    assert two["status"] == "regional_candidates_only"
+    path, = two["paths"]
+    assert path["event_linkage"]["status"] == "regional_novel_junction"
+    translation, = path["translations"]  # Exon 2 skipping is in frame: 50 codons removed.
+    assert translation["amino_acids"] == translate(skip[20:], annotated_start=True)[0]
+    assert translation["departure_relations"] == ["regional_novel_junction"]
+    # The same exon skip across a nominated deletion is also ordinary splicing
+    # of an annotated isoform: it competes, and is not a candidate.
+    isoform = FusionReference("D-202", "test", "synthetic 1", "1", "+", [(1000, 1100), (3000, 3300)],
+                              skip, 20, s.donor_ref.cds_end - 150)
+    result = s.run(tmp_path / "two.bam", FusionBreakpoint("1", 1500, "+"), FusionBreakpoint("1", 2600, "+"),
+                   references=[s.donor_ref, isoform, s.acceptor_ref])
+    assert result["status"] == "no_candidate_paths"
+    competing, = result["competing_annotated_junctions"]
+    assert competing["left"] == ["1", 1099, "+"] and competing["right"] == ["1", 3000, "+"]
+    unannotated = s.run(tmp_path / "two.bam", FusionBreakpoint("1", 1500, "+"), FusionBreakpoint("1", 2600, "+"))
+    assert unannotated["status"] == "regional_candidates_only"
+    assert unannotated["paths"][0]["event_linkage"]["status"] == "splice_ambiguous_event_junction"
+
+
+def test_inputs_and_parameters_are_validated(tmp_path):
+    s = Scenario()
+    bam = write_bam(tmp_path / "rna.bam", [])
+    with pytest.raises(ValueError, match="provenance"):
+        reconstruct_sv_rna(None, event_id="e", reference_name="test", donor=s.donor, acceptor=s.acceptor,
+                           regions=[], references=[s.donor_ref], sample_id="s", source="x", event_provenance={})
+    for options in [dict(max_paths=0), dict(min_anchor_bases=2), dict(min_alternative_fraction=1.5),
+                    dict(peptide_lengths=[])]:
+        with pytest.raises(ValueError):
+            s.run(bam, **options)
+    with pytest.raises(ValueError, match="interval"):
+        s.run(bam, regions=[("3", 0, 10)])
+    with pytest.raises(ValueError, match="versioned"):
+        s.run(bam, references=[replace(s.donor_ref, reference_name="other")])
+
+
+def test_cli_writes_the_api_result(tmp_path):
+    s = Scenario()
+    bam = write_bam(tmp_path / "rna.bam", s.tile("f", s.sequence, s.positions))
+    data = dict(event_id="D--A", reference_name="test", sample_id="sample",
+                donor=vars(s.donor), acceptor=vars(s.acceptor), regions=[["1", 2400, 2600]],
+                references=[vars(r) for r in (s.donor_ref, s.acceptor_ref)],
+                event_provenance=dict(caller="synthetic DNA call"))
+    (tmp_path / "event.json").write_text(json.dumps(data))
+    output = tmp_path / "result.json"
+    commands.run(["sv-rna", "--bam", str(bam), "--input", str(tmp_path / "event.json"),
+                  "--output", str(output), "--no-assembly"])
+    result = json.loads(output.read_text())
+    with pysam.AlignmentFile(str(bam)) as alignments:
+        expected = reconstruct_sv_rna(alignments, source=str(bam), assemble=False,
+                                      **sv_rna_input_from_dict(json.loads(json.dumps(data))))
+    assert result == json.loads(json.dumps(expected))
+    assert result["parameters"]["assemble"] is False and result["status"] == "event_linked_candidates"
+
+
+def corpus_bam(tmp_path, name, directory="coding-corpus"):
+    data = json.loads(gzip.decompress((FUSIONS / directory / (name + ".input.json.gz")).read_bytes()))
+    contigs = sorted({r["contig"] for r in data["references"]} | {data["fusion"]["donor"]["contig"],
+                                                                   data["fusion"]["acceptor"]["contig"]})
+    header = pysam.AlignmentHeader.from_dict(dict(SQ=[dict(SN=c, LN=300000000) for c in contigs]))
+    sams = sorted({s for r in data["original_records"] for s in (r["sam"], r.get("partner_sam")) if s})
+    unsorted, path = tmp_path / (name + ".unsorted"), tmp_path / (name + ".bam")
+    with pysam.AlignmentFile(str(unsorted), "wb", header=header) as out:
+        for sam in sams:
+            out.write(pysam.AlignedSegment.fromstring(sam, header))
+    pysam.sort("-o", str(path), str(unsorted))
+    pysam.index(str(path))
+    fusion = data["fusion"]
+    inputs = sv_rna_input_from_dict(dict(
+        event_id=name, reference_name=fusion["reference_name"], sample_id=fusion["provenance"]["sample_id"],
+        donor=fusion["donor"], acceptor=fusion["acceptor"], references=data["references"],
+        event_provenance=dict(fixture=name, caller=fusion["provenance"].get("caller", "osteosarc catalogue"))))
+    return data, path, inputs
+
+
+def run_corpus(path, inputs, **kwargs):
+    with pysam.AlignmentFile(str(path)) as bam:
+        return reconstruct_sv_rna(bam, source=path.name, **inputs, **kwargs)
+
+
+def test_original_short_reads_reproduce_the_validated_atp5mg_kmt2a_translation(tmp_path):
+    data, bam, inputs = corpus_bam(tmp_path, "ATP5MG--KMT2A")
+    supplied, = reconstruct_fusion(*fusion_from_dict(data))["translations"]
+    result = run_corpus(bam, inputs)
+    path, = result["paths"]
+    junction, = path["junctions"]
+    assert junction["relation"] == "breakpoint_junction" and junction["breakpoint_assignment"] == [0, 0]
+    assert junction["kinds"] == ["N"] and junction["spanning_fragments"] == 2  # STAR's CIGAR N, not SA.
+    assert data["fusion"]["sequence"] in path["sequence"]
+    translation, = path["translations"]
+    assert translation["amino_acids"] == supplied["amino_acids"] == "MAQFVRNLVEKTPALVNG"
+    assert translation["ends_with_stop_codon"] and translation["transcript_ids"] == supplied["donor_transcript_ids"]
+    assert all(e["complete_5prime"] for e in translation["frame_evidence"])
+    # Noncoding donor isoforms share the anchor, as in the supplied result.
+    assert path["frame_status"] == "ambiguous" and translation["competing_noncoding_models"]
+    peptides = {p["sequence"] for p in translation["candidate_peptides"]}
+    assert {p["sequence"] for p in supplied["junction_peptides"]} <= peptides
+    assert ({sam.split("\t")[0] for sam in result["original_records"].values()}
+            == {r["sam"].split("\t")[0] for r in data["original_records"]})
+
+    # Soft-clipped read-through adapter makes a second, technical path until
+    # the explicit TruSeq profile trims it.
+    clipped = run_corpus(bam, inputs, read_collector=ReadCollector(use_soft_clipped_bases=True))
+    assert len(clipped["paths"]) == 2
+    profile = ReadEndProfile("TruSeq", "1", (Adapter("TruSeq", "AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"),))
+    trimmed = run_corpus(bam, inputs, read_collector=ReadCollector(
+        use_soft_clipped_bases=True, read_end_profile=profile, trim_adapters=True))
+    assert [p["sequence"] for p in trimmed["paths"]] == [path["sequence"]]
+
+
+def test_sa_only_long_reads_do_not_become_a_placed_bcr_abl1_junction(tmp_path):
+    data, bam, inputs = corpus_bam(tmp_path, "BCR--ABL1")
+    supplied, = reconstruct_fusion(*fusion_from_dict(data))["translations"]
+    result = run_corpus(bam, inputs)
+    # The fixture retains primaries whose SA partners were not acquired.
+    assert result["status"] == "no_candidate_paths"
+    assert result["segment_path_notes"] == {"SA_declared_piece_not_linked": 2}
+    clipped = run_corpus(bam, inputs, read_collector=ReadCollector(use_soft_clipped_bases=True))
+    assert clipped["status"] == "event_linked_candidates" and len(clipped["paths"]) == 2  # One per CCS read.
+    assert {p["event_linkage"]["status"] for p in clipped["paths"]} == {"breakpoint_clip_partner_unplaced"}
+    peptides = {p["sequence"] for path in clipped["paths"] for t in path["translations"]
+                for p in t["candidate_peptides"] if "breakpoint_clip_partner_unplaced" in t["departure_relations"]}
+    assert {p["sequence"] for p in supplied["junction_peptides"]} <= peptides
+    assert any(supplied["amino_acids"] in t["amino_acids"] for p in clipped["paths"] for t in p["translations"])
+
+
+@pytest.mark.parametrize("name,fragments,frame_statuses", [
+    ("PARD3B--CDKN2B-AS1-CDKN2B-T1", 2, {"no_gene_anchor"}),
+    ("FOXO3--STRADA-CCDC47-T1", 5, {"no_gene_anchor"}),
+    ("TPST1--CRCP-T1", 61, {"reference_protein_only", "ambiguous"}),
+])
+def test_original_ont_split_reads_recover_the_junction_without_a_coding_frame(tmp_path, name, fragments,
+                                                                                frame_statuses):
+    data, bam, inputs = corpus_bam(tmp_path, name, "corpus")
+    started = time.perf_counter()
+    result = run_corpus(bam, inputs)
+    assert time.perf_counter() - started < 30
+    window = data["fusion"]
+    event = [p for p in result["paths"] if p["event_linkage"]["status"] == "breakpoint_junction"]
+    assert event and all(window["sequence"] in p["sequence"] for p in event[:1])
+    # Unplaced junction bases are the supplied untemplated insertion plus
+    # homology the supplied window assigned to one partner.
+    junction = next(j for j in event[0]["junctions"] if j["relation"] == "breakpoint_junction")
+    assert (len(junction["unplaced_bases"]) - sum(junction["breakpoint_assignment"])
+            == window["junction_end"] - window["junction_start"])
+    seeds = [s for s in result["seeds"] if s["relation"] == "breakpoint_junction"]
+    assert sum(s["fragments"] for s in seeds) >= fragments
+    # The supplied analysis found no coding donor frame; neither does this.
+    assert {p["frame_status"] for p in event} <= frame_statuses
+    assert not any("breakpoint_junction" in t["departure_relations"] for p in event for t in p["translations"])

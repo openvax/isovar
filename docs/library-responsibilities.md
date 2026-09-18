@@ -11,8 +11,8 @@ cannot answer those questions.
 | **Vaxrank** | Evaluate the resulting protein/peptide candidates, retaining their evidence. |
 
 This is the shared responsibility split. The end-to-end SV workflow below is
-planned in [#305](https://github.com/openvax/isovar/issues/305), not an additional
-capability already provided by `run_isovar`.
+tracked in [#305](https://github.com/openvax/isovar/issues/305); `run_isovar`
+does not provide it. Its first slice is [`isovar sv-rna`](sv-rna.md).
 
 ## RNA reconstruction and reconciliation
 
@@ -54,6 +54,12 @@ an otherwise usable observation.
   protein alternatives in `IsovarResult.sorted_protein_sequences`.
   `top_protein_sequence` is a selection convenience, not a unique biological answer.
   The small-variant read path rejects symbolic SVs.
+- [Nominated-SV RNA paths](sv-rna.md) use `reconstruct_sv_rna` / `isovar sv-rna`.
+  From a BAM and annotated models, they recover junction-seeded paths,
+  including spliced joins whose DNA breakpoint is intronic. They transfer
+  annotated frames into novel downstream sequence and label sequence, frame
+  and event linkage separately. Comparing Varcode hypotheses, competing
+  genomic placements and Vaxrank consumption remain open.
 - [Supplied fusion RNA](fusion.md) uses `reconstruct_fusion` / `isovar fusion`.
   It validates externally supplied sequence, mappings, and read support and
   retains compatible reference/frame interpretations. It does **not** discover

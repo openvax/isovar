@@ -207,3 +207,20 @@ PLOT_MAX_ROWS = 20
 PLOT_VIEW = "all"
 PLOT_VIEWS = ("all", "protein", "coverage", "reads", "assembly", "transcripts")
 PLOT_OUTPUT_DIRECTORY = "isovar-figures"
+
+# Exploratory RNA reconstruction around a nominated SV (``isovar sv-rna``).
+# Exact collinear CDS match needed to transfer a reading frame:
+SV_MIN_ANCHOR_BASES = 18
+# Exact, coordinate-anchored overlap needed to extend a path:
+SV_MIN_OVERLAP = 30
+# Fragments for an unattributed junction to seed a path, or for an extension
+# branch to prune a weaker disagreeing alternative (which is reported):
+SV_MIN_ALTERNATIVE_FRAGMENTS = 2
+SV_MIN_ALTERNATIVE_FRACTION = 0.1
+# Resource limits; reaching one is reported, never silent:
+SV_MAX_RECORDS = 10000
+SV_MAX_QUERIES = 1000
+SV_MAX_PATHS = 100
+SV_ASSEMBLE = True
+# Bases searched to either side of each nominated breakpoint:
+SV_BREAKPOINT_WINDOW = 1000

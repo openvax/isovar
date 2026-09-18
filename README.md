@@ -257,9 +257,13 @@ explicitly; their placeholder bases must not be interpreted as small variants.
 For supplied fusion RNA, `isovar fusion --input fusion.json --output result.json`
 validates junction evidence and annotated coding frames, retaining unresolved
 or ambiguous outcomes. See the [fusion input/output contract](docs/fusion.md).
-Automatic SV read collection, alternative-path assembly, and hypothesis
-reconciliation are tracked in [#305](https://github.com/openvax/isovar/issues/305);
-the supplied-fusion command does not perform those discovery steps.
+For one nominated SV, `isovar sv-rna --bam rna.bam --input event.json --output
+candidates.json` collects regional, supplementary and mate records, assembles
+junction-seeded RNA paths and transfers annotated frames into downstream
+sequence. It keeps sequence, frame and event-linkage evidence separate
+([contract](docs/sv-rna.md)). Its output is exploratory, not validated fusion
+input; reconciliation with Varcode hypotheses remains
+[#305](https://github.com/openvax/isovar/issues/305).
 
 ## Commandline 
 
