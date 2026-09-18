@@ -329,6 +329,7 @@ def test_collection_benchmark_rejects_invalid_timeout(timeout):
 
 def test_collection_fingerprint_preserves_all_fields_and_order():
     from isovar.locus_read import LocusRead
+    from isovar.read_end_inference import ReadSequenceView
 
     read = LocusRead("read", "ACG", [10000, None, 10001], [30, 0, 40], 10001, 10001, 1, 2)
     baseline = collection_benchmark.read_fingerprint([read])
@@ -338,7 +339,8 @@ def test_collection_fingerprint_preserves_all_fields_and_order():
                    reference_base0_end_exclusive=10002, read_base0_start_inclusive=0,
                    read_base0_end_exclusive=3, splice_junctions=((10001, 10002),),
                    is_primary=True, source_alignments=((("", "read", 0), (0, 10000, "3M", False)),),
-                   source_alignment_paths=(("read", "different-path"),))
+                   source_alignment_paths=(("read", "different-path"),),
+                   source_read_views=(("read", ReadSequenceView("ACG", None, 0, 3)),))
     assert set(changes) == set(read._fields)
     for field, value in changes.items():
         changed = deepcopy(read)

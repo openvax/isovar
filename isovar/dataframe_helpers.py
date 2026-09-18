@@ -122,7 +122,7 @@ def locus_reads_dataframe(alignments, chromosome, base0_start, base0_end, *args,
     """
     df_builder = DataFrameBuilder(
         LocusRead,
-        exclude={"source_read_count", "source_alignments", "source_alignment_paths", "is_primary"},
+        exclude={"source_read_count", "source_alignments", "source_alignment_paths", "is_primary", "source_read_views"},
         variant_columns=False,
         converters={
             "reference_positions": list_to_string,

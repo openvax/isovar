@@ -363,15 +363,14 @@ def test_cli_writes_a_timestamped_report(evidence_data, monkeypatch, tmp_path):
     pytest.importorskip("matplotlib")
     from contextlib import nullcontext
     from isovar.cli import isovar_plot
+    from isovar import ReadCollector
 
     data, variant, evidence = evidence_data
     monkeypatch.setattr(isovar_plot, "variant_collection_from_args", lambda args: [variant])
     monkeypatch.setattr(isovar_plot, "alignment_file_from_args", lambda args: nullcontext(None))
-    monkeypatch.setattr(isovar_plot, "read_collector_from_args", lambda args: SimpleNamespace(
-        read_evidence_for_variant=lambda *a: evidence, min_mapping_quality=1,
-        use_reads_without_base_qualities=True,
-        use_duplicate_reads=False, use_secondary_alignments=True, use_soft_clipped_bases=False,
-        merge_overlapping_fragments=True))
+    collector = ReadCollector()
+    monkeypatch.setattr(collector, "read_evidence_for_variant", lambda *a: evidence)
+    monkeypatch.setattr(isovar_plot, "read_collector_from_args", lambda args: collector)
     isovar_plot.run(["--bam", "rna.bam", "--compare-assembly", "--view", "protein",
                      "--dpi", "72", "--output-dir", str(tmp_path)])
     reports = list(tmp_path.glob("*/*/evidence.json"))

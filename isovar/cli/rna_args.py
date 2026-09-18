@@ -15,6 +15,7 @@ Common command-line arguments for all Isovar commands which use RNA
 """
 
 from pysam import AlignmentFile
+from argparse import ArgumentTypeError
 
 from varcode.cli import make_variants_parser, variant_collection_from_args
 
@@ -26,14 +27,24 @@ from ..default_parameters import (
     USE_READS_WITHOUT_BASE_QUALITIES,
     MERGE_OVERLAPPING_FRAGMENTS,
     NUM_RNA_DECOMPRESSION_THREADS,
+    INFER_READ_ENDS, TRIM_ADAPTERS, TRIM_POLY_A, READ_END_PROFILE,
 )
 
 from ..read_collector import ReadCollector
+from ..read_end_inference import read_end_profiles_from_json
 from ..dataframe_helpers import (
     allele_counts_dataframe,
     allele_reads_to_dataframe,
     read_evidence_generator_to_dataframe,
 )
+
+
+def read_end_profile_argument(filename):
+    """Report explicit profile errors as argument errors, not tracebacks."""
+    try:
+        return read_end_profiles_from_json(filename)
+    except (OSError, ValueError, TypeError, AttributeError) as error:
+        raise ArgumentTypeError(str(error)) from error
 
 
 def add_rna_args(
@@ -90,6 +101,19 @@ def add_rna_args(
         help="Discard reads with missing QUAL instead of retaining sequence/alignment evidence with unknown base quality.")
 
     rna_group.add_argument(
+        "--infer-read-ends", action="store_true", default=INFER_READ_ENDS,
+        help="Annotate candidate adapter/poly-A/T ends without changing read sequence.")
+    rna_group.add_argument(
+        "--read-end-profile", type=read_end_profile_argument, default=READ_END_PROFILE,
+        help="JSON adapter/kit profile, optionally keyed by read_groups; also enables end annotation.")
+    rna_group.add_argument(
+        "--trim-adapters", action="store_true", default=TRIM_ADAPTERS,
+        help="Trim inferred adapters from terminal soft clips (requires --read-end-profile; raw BAM unchanged).")
+    rna_group.add_argument(
+        "--trim-poly-a", action="store_true", default=TRIM_POLY_A,
+        help="Trim candidate poly-A/T tails from terminal soft clips; enables inference, preserves aligned bases.")
+
+    rna_group.add_argument(
         "--no-merge-overlapping-fragments",
         dest="merge_overlapping_fragments",
         action="store_false",
@@ -140,6 +164,10 @@ def read_collector_from_args(args):
         use_duplicate_reads=args.use_duplicate_reads,
         use_secondary_alignments=not args.drop_secondary_alignments,
         use_soft_clipped_bases=args.use_soft_clipped_bases,
+        infer_read_ends=getattr(args, "infer_read_ends", INFER_READ_ENDS),
+        read_end_profile=getattr(args, "read_end_profile", READ_END_PROFILE),
+        trim_adapters=getattr(args, "trim_adapters", TRIM_ADAPTERS),
+        trim_poly_a=getattr(args, "trim_poly_a", TRIM_POLY_A),
         use_reads_without_base_qualities=getattr(
             args, "use_reads_without_base_qualities", USE_READS_WITHOUT_BASE_QUALITIES),
         merge_overlapping_fragments=getattr(

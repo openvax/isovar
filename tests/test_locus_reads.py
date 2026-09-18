@@ -465,6 +465,8 @@ def _make_mock_pysam_read_with_none_mapq():
     mock_read.query_name = real_read.query_name
     mock_read.query_sequence = real_read.query_sequence
     mock_read.query_qualities = real_read.query_qualities
+    mock_read.query_alignment_start = real_read.query_alignment_start
+    mock_read.query_alignment_end = real_read.query_alignment_end
     mock_read.is_secondary = False
     mock_read.is_duplicate = False
     mock_read.is_unmapped = False

@@ -114,6 +114,17 @@ USE_SOFT_CLIPPED_BASES = False
 # Missing QUAL is unknown confidence, not evidence that the sequence is bad.
 USE_READS_WITHOUT_BASE_QUALITIES = True
 
+# End annotation and derived trimming are opt-in; raw alignments never change.
+INFER_READ_ENDS = False
+TRIM_ADAPTERS = False
+TRIM_POLY_A = False
+READ_END_PROFILE = None
+READ_END_WINDOW = 200
+MIN_ADAPTER_OVERLAP = 12
+MAX_ADAPTER_ERROR_RATE = 0.15
+MIN_POLY_A_LENGTH = 12
+MAX_POLY_A_ERROR_RATE = 0.1
+
 # minimum number of RNA reads supporting a variant allele
 MIN_NUM_RNA_ALT_READS = 3
 
