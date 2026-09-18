@@ -111,6 +111,9 @@ MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE = 30
 # by the aligner
 USE_SOFT_CLIPPED_BASES = False
 
+# Missing QUAL is unknown confidence, not evidence that the sequence is bad.
+USE_READS_WITHOUT_BASE_QUALITIES = True
+
 # minimum number of RNA reads supporting a variant allele
 MIN_NUM_RNA_ALT_READS = 3
 
@@ -184,6 +187,8 @@ DEFAULT_FILTER_FLAGS = [
 
 # Static mutation-evidence figures; shared by the plotting API and CLI.
 PLOT_COMPARE_ASSEMBLY = False
+PLOT_ALL_PROTEINS = False
+PLOT_PROTEIN_ROWS_PER_PAGE = 10
 PLOT_DPI = 600
 PLOT_OVERVIEW_DPI = 300
 PLOT_WIDTH = 16

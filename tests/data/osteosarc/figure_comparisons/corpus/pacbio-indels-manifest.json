@@ -1,0 +1,66 @@
+{
+  "source": {
+    "id": "T1-PacBio",
+    "source_id": "0066232879babe83",
+    "sample": "T1",
+    "technology": "PacBio",
+    "product": "PacBio",
+    "processing_family": "T1-PacBio",
+    "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/pacbio/IPISRC044_T1_sclrs_live_pbmm2_mapped.bam",
+    "sample_metadata": null,
+    "index_receipt": {
+      "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/pacbio/IPISRC044_T1_sclrs_live_pbmm2_mapped.bam.bai",
+      "sha256": "f73247e33a7c3c1070b8470fc8a00750174eb6aff8f76b3c2d7b48326fd9db89",
+      "bytes": 3490824
+    },
+    "command": [
+      "samtools",
+      "view",
+      "--no-PG",
+      "-b",
+      "-M",
+      "-X",
+      "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/pacbio/IPISRC044_T1_sclrs_live_pbmm2_mapped.bam",
+      "/private/tmp/osteosarc-extended-rna-20260917/acquired-inputs/T1-PacBio.source.bai",
+      "chr9:133055893-133059893",
+      "chr17:80325830-80329830",
+      "chr9:3854149-3858149",
+      "chr14:55625965-55629965",
+      "chr10:77845921-77935452",
+      "chr2:99663095-99673223",
+      "chr19:10487683-10497894",
+      "chr6:29610906-29614906",
+      "chr6:44216908-44220908",
+      "chr15:31741670-31745670",
+      "chr15:33041479-33045479",
+      "-o",
+      "/private/tmp/osteosarc-extended-rna-20260917/acquired-inputs/T1-PacBio/regions.bam"
+    ],
+    "regions": [
+      "chr9:133055893-133059893",
+      "chr17:80325830-80329830",
+      "chr9:3854149-3858149",
+      "chr14:55625965-55629965",
+      "chr10:77845921-77935452",
+      "chr2:99663095-99673223",
+      "chr19:10487683-10497894",
+      "chr6:29610906-29614906",
+      "chr6:44216908-44220908",
+      "chr15:31741670-31745670",
+      "chr15:33041479-33045479"
+    ],
+    "assembly": "GRCh38",
+    "acquired_at": "2026-09-17T17:04:36.235367+00:00",
+    "bam_sha256": "d661b976959d49c4f7f58c47fa4761ed3858fc390c2da604b6f8e4b304209e54",
+    "index_sha256": "a56e824729b8ba6e4a886128c0dbaed68f805e4633335464aab953f39356fef6"
+  },
+  "regions": [
+    "chr9:133057793-133057993",
+    "chr17:80327730-80327930",
+    "chr9:3856049-3856249",
+    "chr14:55627865-55628065"
+  ],
+  "file": "pacbio-indels.bam",
+  "sha256": "73287c4e9dd22f903ce6d8f9494b90ef7fbc153293a967ba003b88394b11901e",
+  "index_sha256": "ea0dad2eccb1dbead7d8e8b149f23f1a08716fcf110ab6c70d71eb20acaecef5"
+}

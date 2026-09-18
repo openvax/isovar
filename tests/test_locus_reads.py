@@ -39,6 +39,31 @@ class TrackingReferencePositions(list):
         return super().index(*args, **kwargs)
 
 
+@pytest.mark.parametrize("compact", [False, True])
+@pytest.mark.parametrize("soft_clips", [False, True])
+@pytest.mark.parametrize("insertion", [False, True])
+def test_soft_clip_policy_preserves_large_cigar_indels(compact, soft_clips, insertion):
+    allele = "GT" * 64 if insertion else ""
+    read = make_pysam_read(
+        seq="TT" + "ACCA" + allele + "CGGT" + "AA",
+        cigar="2S4M128%s4M2S" % ("I" if insertion else "D"), mapq=60)
+    bam = MockAlignmentFile(["1"], [read])
+    collector = ReadCollector(use_soft_clipped_bases=soft_clips)
+    locus, = collector.collect_locus_reads_with_optional_compaction(
+        bam, "1", 4, 4 if insertion else 132, compact=compact)
+    assert locus.sequence[locus.read_base0_start_inclusive:locus.read_base0_end_exclusive] == allele
+    assert locus.sequence == (read.query_sequence if soft_clips else read.query_sequence[2:-2])
+
+
+@pytest.mark.parametrize("soft_clips", [False, True])
+def test_soft_clips_do_not_supply_an_unaligned_insertion_anchor(soft_clips):
+    read = make_pysam_read(seq="ACCA" + "GT" * 64, cigar="4M128S", mapq=60)
+    collector = ReadCollector(use_soft_clipped_bases=soft_clips)
+    # No mapped base after the insertion: the clipped allele is not recovered.
+    locus, = collector.get_locus_reads(MockAlignmentFile(["1"], [read]), "1", 4, 4)
+    assert locus.read_base0_start_inclusive == locus.read_base0_end_exclusive == 4
+
+
 def test_locus_reads_snv():
     """
     test_partitioned_read_sequences_snv : Test that read gets correctly
@@ -309,6 +334,41 @@ def test_get_locus_reads_merges_overlapping_paired_reads():
 
 
 @pytest.mark.parametrize("compact", [False, True])
+@pytest.mark.parametrize("soft_clips", [False, True])
+def test_missing_base_qualities_preserve_sequence_alignment_and_explicit_unknowns(compact, soft_clips):
+    read = make_pysam_read("AACCGTGA", "1S6M1S", mapq=30)
+    read.query_qualities = None
+    bam = MockAlignmentFile(["1"], [read])
+    collector = ReadCollector(use_soft_clipped_bases=soft_clips)
+    locus, = collector.collect_locus_reads_with_optional_compaction(bam, "1", 2, 3, compact=compact)
+    assert locus.sequence == ("AACCGTGA" if soft_clips else "ACCGTG")
+    assert list(locus.quality_scores) == [None] * len(locus.sequence)
+    assert read.query_qualities is None
+    assert ReadCollector(use_reads_without_base_qualities=False).collect_locus_reads_with_optional_compaction(bam, "1", 2, 3, compact=compact) == []
+    read.mapping_quality = 0
+    assert collector.collect_locus_reads_with_optional_compaction(bam, "1", 2, 3, compact=compact) == []
+
+
+@pytest.mark.parametrize("compact", [False, True])
+@pytest.mark.parametrize("known_quality", [None, 3, 40])
+@pytest.mark.parametrize("disagree", [False, True])
+def test_unknown_quality_mates_merge_agreement_but_never_resolve_conflicts(compact, known_quality, disagree):
+    left = make_pysam_read("ACCGTG", "6M", name="pair", mapq=30)
+    right = make_pysam_read("CATGAA" if disagree else "CGTGAA", "6M", name="pair", mapq=30, reference_start=2)
+    left.flag, right.flag = 65, 129
+    left.query_qualities = None
+    right.query_qualities = [known_quality] * 6 if known_quality is not None else None
+    for reads in ([left, right], [right, left]):
+        result = ReadCollector().collect_locus_reads_with_optional_compaction(MockAlignmentFile(["1"], reads), "1", 3, 4, compact=compact)
+        if disagree:
+            assert len(result) == 2
+        else:
+            merged, = result
+            assert merged.sequence == "ACCGTGAA"
+            assert list(merged.quality_scores) == [None, None] + [known_quality] * 6
+
+
+@pytest.mark.parametrize("compact", [False, True])
 @pytest.mark.parametrize("first_cigar,first_sequence,second_cigar,second_sequence", [
     ("3M2D3M", "AAACCC", "8M", "AAATTCCC"),
     ("3M2I3M", "AAATTCCC", "6M", "AAACCC"),
@@ -324,7 +384,7 @@ def test_mates_with_conflicting_alignment_paths_remain_separate(
     collector = ReadCollector()
     reads[0].flag, reads[1].flag = 65, 129
     for order in (reads, reads[::-1]):
-        result = collector._get_locus_reads(
+        result = collector.collect_locus_reads_with_optional_compaction(
             MockAlignmentFile(["1"], order), "1", 1, 2, compact=compact)
         assert len(result) == 2
         assert sorted(r.sequence for r in result) == sorted([first_sequence, second_sequence])

@@ -19,10 +19,18 @@ def record_data(data, output):
     return directory
 
 
+def record_comparison(products, output):
+    from isovar.protein_comparison import comparison_rows
+    output.mkdir(parents=True)
+    (output / "comparison.json").write_text(json.dumps(comparison_rows(products)))
+    return output
+
+
 def test_osteosarc_figure_comparisons_validate_without_changing_reads(tmp_path, monkeypatch):
     # Rendering itself is tested separately; keep this scientific regression
     # usable even when the optional Matplotlib dependency is not installed.
     monkeypatch.setattr(osteosarc_assembly_figures, "save_variant_figures", record_data)
+    monkeypatch.setattr(osteosarc_assembly_figures, "save_protein_comparison", record_comparison)
     output = osteosarc_assembly_figures.generate(tmp_path, case_ids=osteosarc_assembly_figures.CASE_IDS)
     manifest = json.loads((output / "manifest.json").read_text())
     assert [(e["on_length"], e["off_length"], e["on_windows"], e["off_windows"])
@@ -45,6 +53,7 @@ def test_osteosarc_figure_comparisons_validate_without_changing_reads(tmp_path, 
 
 def test_extended_examples_separate_predictions_from_rna_and_keep_ambiguity(tmp_path, monkeypatch):
     monkeypatch.setattr(osteosarc_assembly_figures, "save_variant_figures", record_data)
+    monkeypatch.setattr(osteosarc_assembly_figures, "save_protein_comparison", record_comparison)
     output = osteosarc_assembly_figures.generate(tmp_path, case_ids=osteosarc_assembly_figures.ADDITIONAL_CASE_IDS)
     cases = {d["provenance"]["case_id"].split("-")[1]: d
              for path in output.rglob("evidence.json") for d in [json.loads(path.read_text())]}
@@ -101,6 +110,7 @@ def test_extended_examples_separate_predictions_from_rna_and_keep_ambiguity(tmp_
 
 def test_t1_long_short_comparison_uses_complete_original_regions(tmp_path, monkeypatch):
     monkeypatch.setattr(osteosarc_assembly_figures, "save_variant_figures", record_data)
+    monkeypatch.setattr(osteosarc_assembly_figures, "save_protein_comparison", record_comparison)
     corpus = osteosarc_assembly_figures.PAIR_CORPUS
     for case in json.loads((corpus / "manifest.json").read_text())["cases"]:
         with pysam.AlignmentFile(corpus / case["primary_bam"]) as bam:
@@ -121,3 +131,7 @@ def test_t1_long_short_comparison_uses_complete_original_regions(tmp_path, monke
     assert all(c["matches_expected"] for v in long["provenance"]["independent_validation"] for c in v["checks"])
     for a, b in zip(long["modes"], short["modes"]):
         assert a["settings"] == b["settings"]
+    comparison, = list(output.rglob("comparison.json"))
+    rows = json.loads(comparison.read_text())
+    assert {r["source"] for r in rows} == {"PIP5K1A-T1-ONT", "PIP5K1A-T1-Illumina", "Varcode"}
+    assert all(r["protein"] is None for r in rows if r["source"] == "PIP5K1A-T1-Illumina")

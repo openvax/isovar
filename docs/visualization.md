@@ -20,6 +20,9 @@ isovar plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
 
 isovar plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
   --view reads --output-dir figures
+
+isovar plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
+  --compare-assembly --all-proteins --sample-label 'T1 / Illumina' --output-dir figures
 ```
 
 The default `--view all` exports **four individual figures** (protein, coverage,
@@ -38,6 +41,33 @@ options work here too. Select exactly one mutation per invocation.
 `--compare-assembly` changes **only** overlap assembly between the two runs;
 mate merging and every other setting remain the same. This is not a comparison
 of raw single-end reads against paired-end reads.
+
+Sample/technology describes the input product; assembly off/on describes two
+reconstruction modes within that product. `--sample-label` makes this explicit
+(otherwise the BAM filename is used). `--all-proteins` adds paginated
+`protein-alternatives/` comparisons and removes only the protein result cap.
+Every recovered frame/sequence alternative is retained, not just the top
+protein. Exact shorter contexts with identical frame/transcript assignments
+are grouped without joining sequences or summing support; ambiguous shorter
+contexts retain every compatible group. Varcode predictions repeat alongside
+RNA, including unavailable predictions. These are reference-supported results
+under the chosen thresholds, not an exhaustive enumeration of biological ORFs.
+
+Since 1.18.0, absent BAM QUAL does not discard the sequence. Alignment/sequence
+filters still apply, missing base confidence stays unknown, and overlapping
+mate disagreements are not quality-resolved when either quality is missing.
+Use `--require-base-qualities` to retain the previous strict policy (API:
+`ReadCollector(use_reads_without_base_qualities=False)`). Available measured
+scores are not replaced or changed; MAPQ and consensus read accuracy are not
+per-base Phred substitutes. The osteosarc report keeps both adaptive and strict
+counts, original PacBio consensus tags, and the restored protein contexts.
+
+`--use-soft-clipped-bases` retains unaligned ends; it does not realign an SV
+partner or recover a clip-only allele. CIGAR insertions remain usable with
+the default off. In a [matched osteosarc audit](../tests/data/osteosarc/figure_comparisons/SOFT_CLIPS.md),
+turning it on reduced some top protein contexts because clipped sequence
+conflicted with aligned observations. The default remains off; breakpoint-aware
+clip analysis is separate from ordinary variant assembly.
 
 Each invocation creates a new directory; it never overwrites an earlier run:
 
@@ -88,7 +118,7 @@ establish independent molecules. Read names are not exported by `isovar plot`.
   The JSON key `witness` is retained for compatibility with existing consumers.
 - Transcript models use **forward genomic coordinates**, with strand arrows.
   ENST labels include transcript names from the same annotation when available.
-  Angled gray connectors join adjacent exon boundaries; black connectors on the
+  Straight gray connectors join adjacent exon boundaries; black connectors on the
   separately labeled RNA junction row show observed splice evidence.
   Exons are clipped to the local observed region; long genomic gaps outside
   the displayed exon union are compressed and marked `//`. These can include
@@ -107,10 +137,12 @@ observed introns use CIGAR N per the [SAM specification](https://samtools.github
 Like `isovar protein-sequences`, it shows candidates before `run_isovar`'s
 result-level filters; producing a plot does not mean a variant passed them.
 
-Known interpretation limitations remain tracked in
-[#264](https://github.com/openvax/isovar/issues/264) (secondary alignments in
-mate merging) and [#265](https://github.com/openvax/isovar/issues/265) (upstream
-indels when assigning the reading frame). Plotting does not repair them.
+Reading-frame transfer and alternative/supplementary placement handling use
+the production pipeline, including the fixes for
+[#264](https://github.com/openvax/isovar/issues/264) and
+[#265](https://github.com/openvax/isovar/issues/265). A successful translation
+still does not establish biological independence, a unique isoform or absence
+of sequencing errors.
 
 ## Reproduce the osteosarc examples
 
@@ -170,7 +202,7 @@ Additional examples:
 
 ### DIAPH1 junction-track walkthrough
 
-The five named transcript models share the displayed intron. Gray angled lines
+The five named transcript models share the displayed intron. Gray straight lines
 join annotated exon boundaries. The separate black RNA junction connects
 `[141524229, 141526037)` on the forward, 0-based genomic axis; its label **10**
 counts retained post-merge observations, not intron length or independent
@@ -181,16 +213,22 @@ path but does not choose one of the five isoforms.
 
 ### Structural variants
 
-This gallery does not establish reconstruction of a real osteosarc SV. The
-pinned 44-allele cohort contains SNVs and small deletions, not a validated
-breakpoint/fusion example. Literal-sequence indels and symbolic SVs are different
-inputs: Isovar has no general breakpoint/END/orientation-aware RNA reconstruction
-path. In Varcode 7.0.0 and 9.0.0, a symbolic `StructuralVariant` exposes placeholder
-bases that Isovar's small-allele helpers currently interpret incorrectly;
-see [#270](https://github.com/openvax/isovar/issues/270). Do not interpret a
-symbolic SV result as a validated rearranged protein. Fixing that integration
-and validating real breakpoint-spanning RNA are separate work, not hidden
-inside the renderer.
+Literal indels, symbolic DNA SV calls, and supplied fusion transcripts are
+different inputs. The small-variant pipeline rejects symbolic placeholders
+([#270](https://github.com/openvax/isovar/issues/270)); it does not infer a
+rearranged protein from END and a gene label. The separate
+[`isovar fusion` workflow](fusion.md) validates supplied transcript/junction
+and coding evidence, preserving unresolved frames and alternative hypotheses.
+
+The expanded batch gallery includes original fusion RNA and the
+[nine-candidate RNA footprint audit](../tests/data/osteosarc/figure_comparisons/EXTENDED_RNA.md).
+It queries SV loci directly without requiring a Varcode protein prediction.
+DLG5 illustrates why DNA assembly, RNA splice footprints and translated
+consequences must remain separate: a sequence-resolved DNA junction is
+supported, but no mutant RNA/CDS is established. Novel splice paths can be
+candidate consequences; they are not assigned to the mutation without direct
+or safely phased linkage. Use `python -m examples.osteosarc_context_figures`
+for the full dated gallery and combined vector PDF.
 
 The public data are CC0; see the
 [source and selection documentation](../tests/data/osteosarc/README.md).
@@ -218,3 +256,26 @@ changing RNA analysis. The JSON additions are `reference_predictions`,
 protein, not unique isoform identification). For further
 styling, `plot_variant_evidence(data)` returns a Matplotlib Figure without
 selecting a GUI backend or changing global plotting defaults.
+
+For comparisons across source products, collect each independently with the
+same annotation and filters, then render together:
+
+```python
+from isovar.protein_comparison import save_protein_comparison
+
+products = []
+for source_id, label, read_evidence in independently_collected_products:
+    data = collect_visualization_data(
+        variant, read_evidence, compare_assembly=True,
+        creator_kwargs={"max_protein_sequences_per_variant": None},
+    )
+    products.append({"source": source_id, "label": label, "visualization": data})
+save_protein_comparison(products, run / "all-products")
+```
+
+`mode.protein` remains the top result for existing consumers;
+`mode.proteins` contains all results allowed by the recorded cap. Every
+protein retains its contributing cDNA/frame contexts and a selected real
+witness. Source products are never pooled into molecule counts. Missing
+coverage, no alternate support and failure to recover a translated protein
+are displayed separately; reference sequence never fills missing RNA.

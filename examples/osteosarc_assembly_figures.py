@@ -15,6 +15,7 @@ from varcode import Variant
 
 from isovar import ProteinSequenceCreator, ReadCollector
 from isovar.default_parameters import PLOT_DPI
+from isovar.protein_comparison import save_protein_comparison
 from isovar.variant_helpers import base0_interval_for_variant
 from isovar.visualization import collect_visualization_data, save_variant_figures, timestamped_run_directory
 from tests.data.osteosarc.expansion.inventory import digest
@@ -39,6 +40,15 @@ ADDITIONAL_CASE_IDS = (
 )
 PAIR_CORPUS = CORPUS.parents[1] / "figure_comparisons/corpus"
 PAIR_CASE_IDS = ("PIP5K1A-T1-ONT", "PIP5K1A-T1-Illumina")
+SOURCE_LABELS = {
+    "1b66c15da594a3ef": "Illumina / timepoint unresolved",
+    "fbea0bf403520431": "T0 BostonGene / Illumina",
+    "8fda918141cedf55": "T2 SARC0277 / Illumina",
+    "53f498a544883d51": "T1 ONT tagged",
+    "1120a096937e29e1": "T2 ONT tagged",
+    "2bc1fc291308debb": "T2 ONT dedup",
+    "fbeb5d8a415e4d18": "T0 CeGaT / Illumina",
+}
 
 
 def case_caption(case, data):
@@ -131,6 +141,7 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
         cases.update({c["case_id"]: c for c in json.loads((PAIR_CORPUS / "manifest.json").read_text())["cases"]})
     output = timestamped_run_directory(output_dir)
     summaries = []
+    comparisons = {}
     with tempfile.TemporaryDirectory(prefix="isovar-figure-reference-") as cache:
         reference_data = {}
         for case_id in case_ids:
@@ -154,7 +165,8 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
             with pysam.AlignmentFile(bam_path) as bam:
                 evidence = ReadCollector(use_secondary_alignments=False).read_evidence_for_variant(variant, bam)
             data = collect_visualization_data(variant, evidence, compare_assembly=True,
-                                              transcript_id_whitelist=set(expected))
+                                              transcript_id_whitelist=set(expected),
+                                              creator_kwargs=dict(max_protein_sequences_per_variant=None))
             data["genes"] = [r["gene"]]
             for prediction in data["reference_predictions"]:
                 p = prediction["protein"]
@@ -166,19 +178,21 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
             validation = []
             retained_indels = set()
             for assembly in (True, False):
-                creator = ProteinSequenceCreator(variant_sequence_assembly=assembly)
+                creator = ProteinSequenceCreator(variant_sequence_assembly=assembly, max_protein_sequences_per_variant=None)
                 proteins = creator.sorted_protein_sequences_for_variant(
                     variant, evidence, transcript_id_whitelist=set(expected))
                 if not proteins:
                     validation.append(dict(assembly=assembly, checks=[], status="no_protein"))
                     continue
                 retained_indels.update(nonfocal_witness_indels(proteins[0]))
-                checked = protein_check(proteins[0], expected, creator.protein_sequence_length,
-                                        creator.protein_context_peptide_length)
-                if checked["validation_status"] != "ok":
+                checks = [protein_check(p, expected, creator.protein_sequence_length,
+                                        creator.protein_context_peptide_length) for p in proteins]
+                checked = checks[0]
+                if any(c["validation_status"] != "ok" for c in checks):
                     raise ValueError("Independent validation failed: " + case_id)
                 # Record independent checks but omit the public source read names.
-                validation.append(dict(assembly=assembly, checks=checked["checks"], status="ok"))
+                validation.append(dict(assembly=assembly, checks=checked["checks"], status="ok",
+                                       all_results=[{k: v for k, v in c.items() if k != "supporting_read_names"} for c in checks]))
             on, off = [m["protein"] for m in data["modes"]]
             caption = case_caption(case, data)
             data["provenance"] = dict(
@@ -192,9 +206,11 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
                                              else "Pinned selected original reads; primary-only derivative"),
                 excluded_flags=[256, 1024, 2048], merge_overlapping_fragments=True,
                 nonfocal_witness_indels=len(retained_indels), nonfocal_alignment_indels=sorted(retained_indels),
-                sample_label=case_id if case_id in PAIR_CASE_IDS else None,
+                sample_label=case_id if case_id in PAIR_CASE_IDS else SOURCE_LABELS[case["source_id"]],
                 independent_validation=validation, caption=caption)
             directory = save_variant_figures(data, output / case_id if case_id in PAIR_CASE_IDS else output)
+            key = (r["gene"], r["chrom"], r["pos"], r["ref"], r["alt"], reference_name)
+            comparisons.setdefault(key, []).append(dict(source=case_id, label=data["provenance"]["sample_label"], visualization=data))
             (directory / "README.md").write_text(
                 "# " + r["gene"] + " assembly comparison\n\n" + caption + "\n\n"
                 + "\n\n".join("## " + label + "\n\n![" + label + "](" + name + ".png)\n\n"
@@ -210,6 +226,8 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
                                   off_length=len(off["amino_acids"]) if off else 0,
                                   on_windows=on["peptide_windows"] if on else 0,
                                   off_windows=off["peptide_windows"] if off else 0))
+    for (gene, chrom, pos, ref, alt, reference), products in comparisons.items():
+        save_protein_comparison(products, output / "protein-alternatives" / (gene + "-" + str(pos)))
     (output / "manifest.json").write_text(json.dumps(dict(examples=summaries), indent=2) + "\n")
     (output / "README.md").write_text(
         "# Osteosarc assembly figures\n\n"

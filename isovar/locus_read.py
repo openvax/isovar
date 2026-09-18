@@ -79,8 +79,9 @@ class LocusRead(ValueObject):
             list object itself is preserved, and each read keeps its own list,
             so mutating one read's coordinates never affects another.
 
-        quality_scores : array of int
-            Base qualities for every character in the sequence
+        quality_scores : sequence of int or None
+            Base qualities for every character in the sequence. None marks
+            unavailable quality, not a fabricated low/high Phred score.
 
         source_read_count : int
             Number of raw reads represented by this LocusRead. Usually 1, but

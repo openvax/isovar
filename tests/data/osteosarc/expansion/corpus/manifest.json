@@ -29135,27 +29135,27 @@
       "bam": "47-MT_ND5-chrM-12994-0066232879babe83.bam",
       "case_id": "47-MT_ND5-chrM-12994-0066232879babe83",
       "defaults": {
-        "all_ranked_match_expected": null,
+        "all_ranked_match_expected": true,
         "counts": {
-          "all_template_names": 1,
+          "all_template_names": 33,
           "read_objects": {
-            "alt": 1,
-            "other": 0,
-            "ref": 0
+            "alt": 16,
+            "other": 1,
+            "ref": 16
           },
           "reads": {
-            "alt": 1,
-            "other": 0,
-            "ref": 0
+            "alt": 16,
+            "other": 1,
+            "ref": 16
           },
           "template_names": {
-            "alt": 1,
-            "other": 0,
-            "ref": 0
+            "alt": 16,
+            "other": 1,
+            "ref": 16
           }
         },
         "filter_values": {
-          "has_mutant_protein_sequence_from_rna": false,
+          "has_mutant_protein_sequence_from_rna": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -29166,18 +29166,71 @@
           "max_num_ref_reads": true,
           "min_fraction_alt_fragments": true,
           "min_fraction_alt_reads": true,
-          "min_num_alt_fragments": false,
-          "min_num_alt_reads": false,
+          "min_num_alt_fragments": true,
+          "min_num_alt_reads": true,
           "min_ratio_alt_to_other_fragments": true,
           "predicted_effect_modifies_protein_sequence": true,
-          "protein_sequence_contains_mutation": false
+          "protein_sequence_contains_mutation": true
         },
-        "outcome": "no_rna_candidate",
-        "passes_all_filters": false,
-        "proteins": [],
+        "outcome": "expected_top_protein",
+        "passes_all_filters": true,
+        "proteins": [
+          {
+            "amino_acids": "WDPQQMALLNANPSLTPLLGLLLATAGKSAQLGLHPWLPSAMEGPTPVS",
+            "checks": [
+              {
+                "expected_amino_acids": "WDPQQMALLNANPSLTPLLGLLLATAGKSAQLGLHPWLPSAMEGPTPVS",
+                "expected_stop": false,
+                "frame": 2,
+                "genetic_code": 2,
+                "matches_expected": true,
+                "protein_start_1based": 196,
+                "protein_version": "ENSP00000354813.2",
+                "status": "ok",
+                "transcript_version": "ENST00000361567.2"
+              }
+            ],
+            "contains_mutation": true,
+            "ends_with_stop_codon": false,
+            "frameshift": false,
+            "length": 49,
+            "matches_expected": true,
+            "mutation_containing_peptide_windows": 25,
+            "mutation_interval": [
+              24,
+              25
+            ],
+            "retained_cdna_min_coverages": [
+              14
+            ],
+            "supporting_read_names": [
+              "molecule/10053129",
+              "molecule/11017826",
+              "molecule/173527",
+              "molecule/1751507",
+              "molecule/1828611",
+              "molecule/2342921",
+              "molecule/2759337",
+              "molecule/3580692",
+              "molecule/3627399",
+              "molecule/4712469",
+              "molecule/5013370",
+              "molecule/5811747",
+              "molecule/6646731",
+              "molecule/6926126",
+              "molecule/9006573"
+            ],
+            "supporting_reads": 15,
+            "supporting_template_names": 15,
+            "validation_status": "ok"
+          }
+        ],
         "stages": {
-          "rna_candidate_count": 0,
-          "stage": "independent_protein_validation"
+          "reference_context_count": 1,
+          "rna_candidate_count": 16,
+          "stage": "independent_protein_validation",
+          "translation_count": 16,
+          "translations_with_mutation": 16
         },
         "status": "ok"
       },
@@ -29223,27 +29276,27 @@
       },
       "primary_bam": "47-MT_ND5-chrM-12994-0066232879babe83.primary.bam",
       "primary_only": {
-        "all_ranked_match_expected": null,
+        "all_ranked_match_expected": true,
         "counts": {
-          "all_template_names": 1,
+          "all_template_names": 33,
           "read_objects": {
-            "alt": 1,
-            "other": 0,
-            "ref": 0
+            "alt": 16,
+            "other": 1,
+            "ref": 16
           },
           "reads": {
-            "alt": 1,
-            "other": 0,
-            "ref": 0
+            "alt": 16,
+            "other": 1,
+            "ref": 16
           },
           "template_names": {
-            "alt": 1,
-            "other": 0,
-            "ref": 0
+            "alt": 16,
+            "other": 1,
+            "ref": 16
           }
         },
         "filter_values": {
-          "has_mutant_protein_sequence_from_rna": false,
+          "has_mutant_protein_sequence_from_rna": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -29254,18 +29307,71 @@
           "max_num_ref_reads": true,
           "min_fraction_alt_fragments": true,
           "min_fraction_alt_reads": true,
-          "min_num_alt_fragments": false,
-          "min_num_alt_reads": false,
+          "min_num_alt_fragments": true,
+          "min_num_alt_reads": true,
           "min_ratio_alt_to_other_fragments": true,
           "predicted_effect_modifies_protein_sequence": true,
-          "protein_sequence_contains_mutation": false
+          "protein_sequence_contains_mutation": true
         },
-        "outcome": "no_rna_candidate",
-        "passes_all_filters": false,
-        "proteins": [],
+        "outcome": "expected_top_protein",
+        "passes_all_filters": true,
+        "proteins": [
+          {
+            "amino_acids": "WDPQQMALLNANPSLTPLLGLLLATAGKSAQLGLHPWLPSAMEGPTPVS",
+            "checks": [
+              {
+                "expected_amino_acids": "WDPQQMALLNANPSLTPLLGLLLATAGKSAQLGLHPWLPSAMEGPTPVS",
+                "expected_stop": false,
+                "frame": 2,
+                "genetic_code": 2,
+                "matches_expected": true,
+                "protein_start_1based": 196,
+                "protein_version": "ENSP00000354813.2",
+                "status": "ok",
+                "transcript_version": "ENST00000361567.2"
+              }
+            ],
+            "contains_mutation": true,
+            "ends_with_stop_codon": false,
+            "frameshift": false,
+            "length": 49,
+            "matches_expected": true,
+            "mutation_containing_peptide_windows": 25,
+            "mutation_interval": [
+              24,
+              25
+            ],
+            "retained_cdna_min_coverages": [
+              14
+            ],
+            "supporting_read_names": [
+              "molecule/10053129",
+              "molecule/11017826",
+              "molecule/173527",
+              "molecule/1751507",
+              "molecule/1828611",
+              "molecule/2342921",
+              "molecule/2759337",
+              "molecule/3580692",
+              "molecule/3627399",
+              "molecule/4712469",
+              "molecule/5013370",
+              "molecule/5811747",
+              "molecule/6646731",
+              "molecule/6926126",
+              "molecule/9006573"
+            ],
+            "supporting_reads": 15,
+            "supporting_template_names": 15,
+            "validation_status": "ok"
+          }
+        ],
         "stages": {
-          "rna_candidate_count": 0,
-          "stage": "independent_protein_validation"
+          "reference_context_count": 1,
+          "rna_candidate_count": 16,
+          "stage": "independent_protein_validation",
+          "translation_count": 16,
+          "translations_with_mutation": 16
         },
         "status": "ok"
       },

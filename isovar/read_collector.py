@@ -18,6 +18,7 @@ from .default_parameters import (
     USE_DUPLICATE_READS,
     MIN_READ_MAPPING_QUALITY,
     USE_SOFT_CLIPPED_BASES,
+    USE_READS_WITHOUT_BASE_QUALITIES,
     MERGE_OVERLAPPING_FRAGMENTS,
 )
 from .locus_read import LocusRead
@@ -110,6 +111,7 @@ class ReadCollector(object):
         min_mapping_quality=MIN_READ_MAPPING_QUALITY,
         use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES,
         merge_overlapping_fragments=MERGE_OVERLAPPING_FRAGMENTS,
+        use_reads_without_base_qualities=USE_READS_WITHOUT_BASE_QUALITIES,
     ):
         """
         Parameters
@@ -130,12 +132,18 @@ class ReadCollector(object):
             Merge overlapping paired-end reads from the same fragment into one
             fragment-level sequence while preserving the raw alignment count in
             `source_read_count`.
+
+        use_reads_without_base_qualities : bool
+            Retain sequence/alignment evidence when QUAL is absent. Unknown
+            qualities remain None, never inferred from MAPQ. Disagreeing mates
+            cannot be quality-resolved when either base has unknown quality.
         """
         self.use_secondary_alignments = use_secondary_alignments
         self.use_duplicate_reads = use_duplicate_reads
         self.min_mapping_quality = min_mapping_quality
         self.use_soft_clipped_bases = use_soft_clipped_bases
         self.merge_overlapping_fragments = merge_overlapping_fragments
+        self.use_reads_without_base_qualities = use_reads_without_base_qualities
 
     @staticmethod
     def _iter_left_aligned_indel_events(
@@ -351,8 +359,10 @@ class ReadCollector(object):
         base_qualities = pysam_aligned_segment.query_qualities
 
         if base_qualities is None:
-            logger.warning("Skipping read '%s' due to missing base qualities" % name)
-            return None
+            if not self.use_reads_without_base_qualities:
+                logger.debug("Skipping read '%s' due to missing base qualities", name)
+                return None
+            base_qualities = [None] * len(sequence)
         elif len(base_qualities) != len(sequence):
             logger.warning(
                 "Skipping read '%s' due to mismatch in length of sequence (%d) and qualities (%d)"
@@ -756,8 +766,12 @@ class ReadCollector(object):
                     key,
                     reference_position,
                     base,
-                    max(existing_quality_score, quality_score),
+                    (quality_score if existing_quality_score is None else
+                     existing_quality_score if quality_score is None else
+                     max(existing_quality_score, quality_score)),
                 )
+            elif quality_score is None or existing_quality_score is None:
+                return None
             elif quality_score > existing_quality_score:
                 merged_tokens[key] = token
             elif quality_score == existing_quality_score:
@@ -871,7 +885,7 @@ class ReadCollector(object):
         representation and the subclass conversion/merge hooks are preserved
         for existing API consumers.
         """
-        return self._get_locus_reads(
+        return self.collect_locus_reads_with_optional_compaction(
             alignment_file=alignment_file,
             chromosome=chromosome,
             base0_start_inclusive=base0_start_inclusive,
@@ -882,7 +896,7 @@ class ReadCollector(object):
             compact=False,
         )
 
-    def _get_locus_reads(
+    def collect_locus_reads_with_optional_compaction(
         self,
         alignment_file,
         chromosome,
@@ -914,8 +928,10 @@ class ReadCollector(object):
         base0_end_exclusive : int
             End of genomic interval, base 0 and exclusive
 
-        The compact form is private and used only when public collection hooks
-        are unmodified. It drops each per-base coordinate list immediately after
+        ``compact=False`` returns the public list-backed LocusRead form;
+        ``compact=True`` returns internal block-backed observations. The main
+        pipeline selects compact storage only when collection hooks are
+        unmodified. Compaction drops each per-base coordinate list after
         converting it to a handful of aligned blocks.
         """
         logger.debug(
@@ -1121,7 +1137,7 @@ class ReadCollector(object):
             trimmed_alt=alt,
         )
         if compact:
-            return self._get_locus_reads(compact=True, **kwargs)
+            return self.collect_locus_reads_with_optional_compaction(compact=True, **kwargs)
         return self.get_locus_reads(**kwargs)
 
     def _can_use_compact_evidence_path(self):

@@ -23484,21 +23484,21 @@
       "defaults": {
         "all_ranked_match_expected": null,
         "counts": {
-          "all_template_names": 1,
+          "all_template_names": 220,
           "read_objects": {
             "alt": 0,
             "other": 0,
-            "ref": 1
+            "ref": 220
           },
           "reads": {
             "alt": 0,
             "other": 0,
-            "ref": 1
+            "ref": 220
           },
           "template_names": {
             "alt": 0,
             "other": 0,
-            "ref": 1
+            "ref": 220
           }
         },
         "filter_values": {
@@ -24479,21 +24479,21 @@
       "defaults": {
         "all_ranked_match_expected": null,
         "counts": {
-          "all_template_names": 0,
+          "all_template_names": 2,
           "read_objects": {
-            "alt": 0,
+            "alt": 1,
             "other": 0,
-            "ref": 0
+            "ref": 1
           },
           "reads": {
-            "alt": 0,
+            "alt": 1,
             "other": 0,
-            "ref": 0
+            "ref": 1
           },
           "template_names": {
-            "alt": 0,
+            "alt": 1,
             "other": 0,
-            "ref": 0
+            "ref": 1
           }
         },
         "filter_values": {
@@ -24506,18 +24506,19 @@
           "max_num_other_reads": true,
           "max_num_ref_fragments": true,
           "max_num_ref_reads": true,
-          "min_fraction_alt_fragments": false,
-          "min_fraction_alt_reads": false,
+          "min_fraction_alt_fragments": true,
+          "min_fraction_alt_reads": true,
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
-          "min_ratio_alt_to_other_fragments": false,
+          "min_ratio_alt_to_other_fragments": true,
           "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
-        "outcome": "no_callable_allele",
+        "outcome": "no_rna_candidate",
         "passes_all_filters": false,
         "proteins": [],
         "stages": {
+          "rna_candidate_count": 0,
           "stage": "independent_protein_validation"
         },
         "status": "ok"
