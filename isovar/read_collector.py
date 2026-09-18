@@ -424,57 +424,26 @@ class ReadCollector(object):
                 normalized_indel_interval
             )
         elif reference_interval_size == 0:
-            # Reference interval is between two bases but read may contain
-            # insertion.
-            #
-            # Reference:
-            #   Insertion location:       *
-            #   Reference position: 10000 | 10001 10002 10003 10004 10005 10006 10007
-            #   Base sequence:        A   |   T     G     C     A     A     A     A
-            #
-            # Read with inserted nucleotide:
-            #   Read position:      00000 00001 00002 00003 00004 00005 00006 00007
-            #   Base sequence:        A    *A*    T     G     C     A     A     A
-            #   Reference position: 10000 ----- 10001 10002 10003 10004 10005 10006
-            #
-            # The start/end of the reference interval may be mapped to a read position,
-            # in this case reference:10000 -> read:00000, but it would be incorrect
-            # to take this position as the start/end of the insertion on the read
-            # since it does not cover the inserted bases. Instead, we look at the
-            # read position of the next base in the reference and, if it's more than
-            # 1 base away from the start, use that as the end of the interval. If it's
-            # next to the start of the interval then we return the empty "between bases"
-            # interval of [start, start).
-            #
-            # To deal with insertions at the beginning and end of a read we're
-            # going to allow the start/end to be None.
-            reference_position_before_insertion = base0_start_inclusive - 1
-            reference_position_after_insertion = base0_start_inclusive
-            read_base0_before_insertion = reference_position_to_read_position.get(
-                reference_position_before_insertion
-            )
-            read_base0_after_insertion = reference_position_to_read_position.get(
-                reference_position_after_insertion
-            )
-
-            if (
-                read_base0_before_insertion is None
-                and read_base0_after_insertion is None
-            ):
-                return None
-            elif read_base0_before_insertion is None:
-                read_base0_start_inclusive = aligned_subsequence_start
-                read_base0_end_exclusive = read_base0_after_insertion
-            elif read_base0_after_insertion is None:
-                read_base0_start_inclusive = read_base0_before_insertion + 1
-                read_base0_end_exclusive = aligned_subsequence_end
-            elif read_base0_after_insertion - read_base0_before_insertion == 1:
-                read_base0_start_inclusive = read_base0_end_exclusive = (
-                    read_base0_before_insertion + 1
-                )
-            else:
-                read_base0_start_inclusive = read_base0_before_insertion + 1
-                read_base0_end_exclusive = read_base0_after_insertion
+            # Only CIGAR I supplies inserted bases. Missing anchors can be a
+            # read end, clipping or D; none makes mapped flanks an insertion.
+            # This also retains terminal/adjacent I operations without MD.
+            read_base0_start_inclusive = read_base0_end_exclusive = None
+            query_position = 0
+            reference_position = pysam_aligned_segment.reference_start
+            for operation, length in pysam_aligned_segment.cigartuples or ():
+                if operation == 1 and reference_position == base0_start_inclusive:
+                    if read_base0_start_inclusive is None:
+                        read_base0_start_inclusive = query_position
+                    read_base0_end_exclusive = query_position + length
+                if operation in (0, 1, 4, 7, 8):
+                    query_position += length
+                if operation in (0, 2, 3, 7, 8):
+                    reference_position += length
+            if read_base0_start_inclusive is None:
+                before = reference_position_to_read_position.get(base0_start_inclusive - 1)
+                after = reference_position_to_read_position.get(base0_start_inclusive)
+                if before is not None and after == before + 1:
+                    read_base0_start_inclusive = read_base0_end_exclusive = after
         else:
             # Reference bases are selected for match or deletion.
             #
@@ -528,7 +497,8 @@ class ReadCollector(object):
         if isinstance(sequence, bytes):
             sequence = sequence.decode("ascii")
 
-        query_interval = (read_base0_start_inclusive, read_base0_end_exclusive)
+        query_interval = (None if read_base0_start_inclusive is None else
+                          (read_base0_start_inclusive, read_base0_end_exclusive))
         if not self.use_soft_clipped_bases:
             # if we're not allowing soft clipped based then
             # the fraction of the read which is usable may be smaller

@@ -207,6 +207,15 @@ class AlleleRead(ValueObject):
         else:
             reference_blocks = cls._reference_blocks(
                 locus_read.reference_positions[retained_start:retained_end])
+        if insertion and not nucleotides_at_variant_locus:
+            # No inserted bases is reference evidence only when the alignment
+            # spans both sides. A read end/clip is an unobserved allele, not an
+            # observed empty allele. Check after mate merging; keep the original
+            # LocusRead available to callers inspecting unassigned evidence.
+            if not all(any(g0 <= anchor < g1 for _, _, g0, g1 in reference_blocks)
+                       for anchor in (reference_base0_start_inclusive - 1,
+                                      reference_base0_start_inclusive)):
+                return None
         observed_block_gaps = {
             (left[3], right[2])
             for left, right in zip(reference_blocks, reference_blocks[1:])

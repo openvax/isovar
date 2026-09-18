@@ -195,8 +195,8 @@ def test_read_evidence_counts_insertion_reads_at_read_boundaries():
     Insertion-supporting reads that begin or end at the insertion locus should
     be counted as alt reads instead of being dropped.
 
-    Regression test for GitHub issue #49. Also serves as an indel-count
-    regression for GitHub issue #23.
+    Regression for #49 and #23: terminal CIGAR insertions remain usable.
+    By #296, one-sided empty alleles do not establish reference support.
     """
     chromosome = "1"
     variant = Variant(
@@ -232,6 +232,12 @@ def test_read_evidence_counts_insertion_reads_at_read_boundaries():
             mdtag="1",
             name="ref-end",
             reference_start=2),
+        make_pysam_read(
+            seq="AT",
+            cigar="2M",
+            mdtag="2",
+            name="ref-spanning",
+            reference_start=2),
     ]
 
     read_creator = ReadCollector()
@@ -240,7 +246,7 @@ def test_read_evidence_counts_insertion_reads_at_read_boundaries():
         alignment_file=MockAlignmentFile(references=(chromosome,), reads=reads))
 
     eq_(read_evidence.alt_read_names, {"alt-start", "alt-end"})
-    eq_(read_evidence.ref_read_names, {"ref-start", "ref-end"})
+    eq_(read_evidence.ref_read_names, {"ref-spanning"})
 
 
 def test_partitioned_read_sequences_snv_at_last_exonic_base_before_splice():

@@ -83,6 +83,10 @@ class LocusRead(ValueObject):
             Base qualities for every character in the sequence. None marks
             unavailable quality, not a fabricated low/high Phred score.
 
+        read_base0_start_inclusive, read_base0_end_exclusive : int or None
+            Query interval for the allele. Both are None when an insertion
+            boundary is unassigned; the locus sequence/alignment is retained.
+
         source_read_count : int
             Number of raw reads represented by this LocusRead. Usually 1, but
             overlapping paired-end mates from the same fragment may be merged

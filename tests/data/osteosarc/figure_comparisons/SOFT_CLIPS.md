@@ -11,13 +11,18 @@ an allele, or infer a fusion CDS. If a large indel is represented only by a
 clip, the small-variant collector does not recover its alternate allele merely
 by retaining that clip. A separate one-sided insertion-boundary bug was
 reproduced and filed as [#296](https://github.com/openvax/isovar/issues/296):
-such reads can incorrectly count as reference support with either setting.
-This audit does not fix or silently reinterpret that classification.
+such reads incorrectly counted as reference support with either setting.
+Isovar 1.18.1 fixes this at allele assignment without dropping the original
+locus/clip evidence. The matched experiment below was repeated after that fix.
+The related [#299](https://github.com/openvax/isovar/issues/299) fix extracts
+insertions directly from CIGAR I, so a D operation at a missing anchor cannot
+mislabel neighboring aligned bases as inserted sequence. Equivalent-indel
+normalization and terminal insertions remain supported without requiring MD.
 
 ## Matched on/off experiment
 
 The same four exact indels, eleven RNA products, Ensembl 87 annotation and
-Isovar 1.18.0 branch were run with clipping off/on. All other settings were
+Isovar 1.18.1 branch were run with clipping off/on. All other settings were
 identical: absent QUAL retained explicitly as unknown, secondary alignments
 excluded, default balanced protein ranking, uncapped protein results, and
 assembly separately off/on. This is 44 input comparisons / 88 mode-specific

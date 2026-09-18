@@ -4,8 +4,9 @@ Audited September 17, 2026. This extends the nine candidates from
 `RNA_FOOTPRINTS.md` with eight additional indexed GRCh38 RNA products:
 T0 BostonGene and Personalis bulk RNA, T1 Tempus bulk RNA and PacBio,
 and T3 ONT tagged/deduplicated plus two Illumina single-cell products.
-The six original T1/T2 queries are retained with their checksums and unchanged
-default allele counts. This is not every public RNA library: native GRCh37,
+The six original T1/T2 queries are retained with their checksums. Isovar 1.18.1
+corrects one-sided KTN1 insertion reference counts, as detailed below.
+This is not every public RNA library: native GRCh37,
 unindexed products and further reprocessings remain outside scope.
 
 ## Sample, technology and assembly are separate axes
@@ -45,13 +46,13 @@ Default alternate / reference RG-QNAME template counts in new products:
 
 | Product | GTF3C5 | RNF213 | GLIS3 | KTN1 |
 | --- | ---: | ---: | ---: | ---: |
-| T0 BostonGene Illumina | 7 / 22 | 0 / 175 | 0 / 57 | 0 / 1048 |
-| T0 Personalis Illumina | 0 / 227 | 0 / 274 | 0 / 54 | 0 / 1152 |
+| T0 BostonGene Illumina | 7 / 22 | 0 / 175 | 0 / 57 | 0 / 1047 |
+| T0 Personalis Illumina | 0 / 227 | 0 / 274 | 0 / 54 | 0 / 1147 |
 | T1 Tempus Illumina | 0 / 36 | 0 / 60 | 0 / 10 | 0 / 200 |
 | T1 PacBio | 19 / 48 | 2 / 34 | 0 / 0 | 0 / 220 |
 | T3 ONT dedup | 6 / 583 | 1 / 1047 | 0 / 1 | 0 / 1127 |
-| T3 Illumina scRNA | 1 / 44 | 1 / 251 | 0 / 0 | 0 / 154 |
-| T3 CD45neg Illumina | 0 / 17 | 1 / 38 | 0 / 1 | 0 / 82 |
+| T3 Illumina scRNA | 1 / 44 | 1 / 251 | 0 / 0 | 0 / 152 |
+| T3 CD45neg Illumina | 0 / 17 | 1 / 38 | 0 / 1 | 0 / 81 |
 
 Other/conflicting observations remain in the fixture; denominators above are
 not total coverage or VAF estimates. Many PacBio input alignments lack QUAL;
@@ -73,11 +74,35 @@ The single alternate T3 Illumina observations do not pass the current
 reconstruction support floor. Every returned protein in both modes passes
 independent frame, cDNA translation and mutation-interval checks. All top
 small-indel proteins match the single-edit expectation over recovered context.
-Some **lower-ranked GTF3C5 ONT alternatives differ from that expectation**.
+Some **lower-ranked GTF3C5 ONT/PacBio alternatives differ from that expectation**.
 They remain visible, not relabelled as confirmed isoforms: ONT errors,
 nonfocal variation and processing/molecular dependence are not adjudicated by
 successful translation. RNF213, GLIS3 and KTN1's recovered alternatives agree
 with the single-edit baseline.
+
+## Insertion-boundary correction in 1.18.1
+
+An empty insertion allele now requires alignment across both adjacent reference
+bases before counting as reference support (#296). Public locus reads and their
+clips remain available; terminal CIGAR insertions remain observed alleles.
+Insertion extraction now uses CIGAR I directly, including adjacent operations
+and absent MD, instead of inferring an allele from a missing anchor (#299).
+A deletion at an anchor cannot turn downstream aligned bases into an insertion.
+The original 49-case corpus has no changed result. Two KTN1 stress fixtures
+change counts only; all stress proteins remain identical.
+
+Re-auditing all 44 indel/product combinations removes false default reference
+template counts only at KTN1: T1 ONT 637 to 636; T2 Illumina 302 to 301;
+T0 BostonGene 1048 to 1047; T0 Personalis 1152 to 1147; T3 scRNA 154 to 152;
+T3 CD45neg 82 to 81. T2 Illumina also recovers one alternate template
+(2 to 3, other 1 to 0): a one-sided alternative placement had created a false
+reference/alternate conflict. Primary-only alternate counts and every
+primary-only protein object are unchanged, with clips both off and on.
+Direct CIGAR extraction also removes three false other-allele observations in
+T1 ONT (4 to 1) and five in T2 ONT (8 to 3), where missing anchors had made
+aligned flanks look like insertions. They remain unassigned locus evidence.
+Original read groups, pairs and alternative placements are preserved in a
+17-record checksum-pinned Sid regression fixture; no original BAM is edited.
 
 ## Rearrangements and larger deletion footprints
 

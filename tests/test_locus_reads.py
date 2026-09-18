@@ -61,7 +61,7 @@ def test_soft_clips_do_not_supply_an_unaligned_insertion_anchor(soft_clips):
     collector = ReadCollector(use_soft_clipped_bases=soft_clips)
     # No mapped base after the insertion: the clipped allele is not recovered.
     locus, = collector.get_locus_reads(MockAlignmentFile(["1"], [read]), "1", 4, 4)
-    assert locus.read_base0_start_inclusive == locus.read_base0_end_exclusive == 4
+    assert locus.read_base0_start_inclusive is locus.read_base0_end_exclusive is None
 
 
 def test_locus_reads_snv():
