@@ -18,7 +18,7 @@ visible. No callable reads, no alternate support, and no translated protein
 despite alternate reads are different outcomes.
 
 The protein result cap is explicitly removed **for these comparisons only**.
-Default API/CLI selection is unchanged. The old `mode.protein` top-result field
+The default protein cap is unchanged. The old `mode.protein` top-result field
 remains; `mode.proteins` retains every returned result, with all contributing
 cDNA/frame contexts. These are recovered, reference-supported alternatives
 under the recorded filters, not every biologically possible ORF or splice path.
@@ -48,17 +48,27 @@ Default alternate / reference RG-QNAME template counts in new products:
 | T0 BostonGene Illumina | 7 / 22 | 0 / 175 | 0 / 57 | 0 / 1048 |
 | T0 Personalis Illumina | 0 / 227 | 0 / 274 | 0 / 54 | 0 / 1152 |
 | T1 Tempus Illumina | 0 / 36 | 0 / 60 | 0 / 10 | 0 / 200 |
-| T1 PacBio | 0 / 1 | 0 / 1 | 0 / 0 | 0 / 1 |
+| T1 PacBio | 19 / 48 | 2 / 34 | 0 / 0 | 0 / 220 |
 | T3 ONT dedup | 6 / 583 | 1 / 1047 | 0 / 1 | 0 / 1127 |
 | T3 Illumina scRNA | 1 / 44 | 1 / 251 | 0 / 0 | 0 / 154 |
 | T3 CD45neg Illumina | 0 / 17 | 1 / 38 | 0 / 1 | 0 / 82 |
 
 Other/conflicting observations remain in the fixture; denominators above are
 not total coverage or VAF estimates. Many PacBio input alignments lack QUAL;
-the default quality-aware collector excludes them. These zeros must not be
-presented as technology failure or absence of the allele.
+Isovar 1.18.0 retains these reads with unknown base quality and unchanged
+alignment/sequence filters. `--require-base-qualities` (API:
+`ReadCollector(use_reads_without_base_qualities=False)`) restores the previous
+strict behavior; `strict_quality_counts` retains that comparator in JSON.
+No MAPQ, consensus accuracy or made-up constant is substituted for base Phred.
+Known qualities remain unchanged. If overlapping mates disagree and either
+base's quality is unknown, their evidence stays separate rather than guessing
+which base wins. This default is centralized for CLI and API.
 
-GTF3C5 reconstructs 49 aa in T0 BostonGene and 32 aa in T3 ONT in both modes.
+GTF3C5 reconstructs 49 aa in T0 BostonGene and T1 PacBio, and 32 aa in T3 ONT
+in both modes. RNF213 reconstructs 41 aa in T1 PacBio in both modes. The new
+PacBio contexts pass independent translation checks and agree with the
+single-edit baseline. Previously all 19 GTF3C5 and two RNF213 alternate
+template IDs were excluded solely because QUAL was absent.
 The single alternate T3 Illumina observations do not pass the current
 reconstruction support floor. Every returned protein in both modes passes
 independent frame, cDNA translation and mutation-interval checks. All top
@@ -93,12 +103,24 @@ QUAL on 720 of 727 primary MAPQ20 records. Its header identifies Iso-Seq 4.0
 `groupdedup` followed by pbmm2. Missing QUAL after groupdedup is a
 [previously reported workflow limitation](https://github.com/PacificBiosciences/pbbioconda/issues/694),
 not proof of an aligner bug or poor underlying HiFi reads. Recovering earlier
-quality-bearing reads is preferable to manufacturing Phred scores. Other
+quality-bearing reads can add calibrated base confidence; retaining the
+current consensus sequence without fabricating Phred avoids losing it. Other
 queried products have QUAL on every primary MAPQ20 record; no sequence/QUAL
 length mismatch was found. Illumina's small discrete score sets are consistent
 with [quality-score binning](https://emea.support.illumina.com/content/dam/illumina-support/documents/documentation/system_documentation/novaseq/1000000019358_18_novaseq-6000-system-guide.pdf),
 not by themselves corruption. These counts describe queried slices, not the
 entire source BAMs.
+
+The original missing-QUAL PacBio records retain `ic`/`is` consensus/read-count
+tags, not calibrated per-base confidence; those counts are not independent
+molecular support. The existing MT-ND5 corpus case also regains a translated,
+independently validated protein. KTN1's PacBio reference count becomes 220;
+the NTF3 compound case regains one reference and one alternate observation
+but remains below the reconstruction support floor. Original BAMs are unchanged.
+
+The [soft-clip on/off audit](SOFT_CLIPS.md) keeps missing-QUAL policy fixed and
+does not change the clipping default. Extra unaligned ends did not rescue a
+protein in the four-indel panel and often reduced supported context.
 
 AFF3 and KEAP1 retain ordinary annotated splice skips across their intronic
 DNA intervals in additional products. These normal mature-RNA paths cannot
@@ -155,6 +177,48 @@ when Varcode has no concrete protein prediction. Ordinary/novel splice paths
 are **candidate consequences**, not mutation-assigned reads, until direct or
 safely phased sequence evidence links them to the mutant allele. Annotation
 and presence alone cannot supply that link.
+
+## DNA-nominated intergenic partners and retained clips
+
+Three literal T1 Purple BND records nominate two WIPF2 breakends
+(chr17:40221092 to chr9:42953930; chr17:40221238 to chr6:9473195)
+and TMEM63B (chr6:44154877 to chr12:133264867). Ensembl 87 has no gene at
+the partner positions. The WIPF2 records share an assembly identifier and
+assembly links: they are components of a complex event, not two independently
+established fusions. Varcode 9.2.3 classifies coding overlaps as
+`TranslocationToIntergenic` without a concrete protein. That effect name is
+broader than a literal intergenic partner; here the partner annotation was
+checked independently. Both BND sides must be queried, since the mate of an
+intergenic-anchored record can be genic.
+
+DNA alone supplies useful search constraints: retained sides/orientation,
+inserted junction sequence when present, affected transcripts/exons and
+whether annotated coding starts/stops are retained. These nominate RNA
+queries and candidate splice paths, not an expressed CDS. An ordinary splice
+can remove the DNA junction, so footprint linkage remains necessary.
+
+Original T1 tagged ONT, bulk Illumina and PacBio regional BAMs were acquired
+for the complete two genes and +/-5-kb partner windows, with matching GRCh38
+reference windows. An explicit screen retained all >=25-nt primary/MAPQ20
+soft clips, including missing-QUAL PacBio clips. It searched both orientations
+for diverse exact 25mers unique **within that partner window**, not genome-wide.
+No observed compatible supplementary path or SA nomination to these partner
+windows was found. TMEM63B has two ONT and three Illumina clips within 100 bp
+of the DNA breakend, but none matches a screened partner seed.
+
+WIPF2 has no >=25-nt clip within 100 bp of either nominated breakend.
+Across its whole gene, three ONT clips have 27-base matches to the chr9 window;
+six ONT and one missing-QUAL PacBio clip have 25--27-base matches to chr6.
+Several identical clipped reads match both partner windows, and clipping
+boundaries lie 1.2--49.8 kb from the DNA breakends. These are weak candidate
+matches, not unique partner alignments or mutation-assigned RNA. No frame or
+protein is inferred. The bounded exact-seed screen can miss error-bearing or
+spliced partners; absence here is not biological absence.
+
+The dated output retains raw BAMs, indices, exact VCF records, reference
+snapshots, every clip summary/hit SAM and the screen script. A justified next
+step is splice-aware, competing-placement realignment of nominated clips,
+not globally treating every soft clip as coding context.
 
 ## Provenance and reproduction
 

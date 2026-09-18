@@ -303,7 +303,7 @@ def _protein_disagreements(proteins):
     return {offset for offset, observed in residues.items() if len(observed) > 1}
 
 
-def _draw_protein_rows(ax, rows, rectangle, differences=None):
+def draw_protein_rows(ax, rows, rectangle, differences=None):
     """Shared residue geometry for single-product and paginated comparisons."""
     left, right = -1, 1
     if differences is None:
@@ -361,7 +361,7 @@ def _protein_panel(ax, data, rectangle, max_rows):
             note += "\n+%d effect labels in notes" % (len(descriptions) - 2)
         rows.append(("Varcode %d\n(%d transcript%s)" % (i + 1, len(group), "s" if len(group) != 1 else ""),
                      group[0]["protein"], INK, note))
-    _draw_protein_rows(ax, rows, rectangle)
+    draw_protein_rows(ax, rows, rectangle)
     if groups:
         label = "Varcode: reference + nominated edit only"
         if len(groups) > max_rows:

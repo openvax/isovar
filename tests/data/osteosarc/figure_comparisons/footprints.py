@@ -18,6 +18,7 @@ from isovar import ReadCollector
 from isovar.read_identity import fragment_ids
 from isovar.visualization import collect_visualization_data
 from isovar import ProteinSequenceCreator
+from isovar.default_parameters import USE_SOFT_CLIPPED_BASES
 from tests.data.fusions.build_osteosarc import extract, linked_records, references, segment_key
 from tests.data.osteosarc.expansion.references import apply_variant
 from tests.data.osteosarc.expansion.acquire import assembly_from_header
@@ -175,7 +176,7 @@ def split_deletion_paths(records,start,end):
     return supported
 
 
-def audit(inputs, output, sources=None, all_proteins=False):
+def audit(inputs, output, sources=None, all_proteins=False, use_soft_clipped_bases=USE_SOFT_CLIPPED_BASES):
     """Analyze original BAMs; retain unresolved outcomes rather than invent alleles."""
     output.mkdir(parents=True,exist_ok=False)
     genome=EnsemblRelease(87)
@@ -210,10 +211,13 @@ def audit(inputs, output, sources=None, all_proteins=False):
                 primary=[r for r in records if not r.flag & (4|256|512|1024|2048) and r.mapping_quality>=20]
                 input_quality=dict(primary_mapq20_records=len(primary),
                                    primary_records_missing_qualities=sum(r.query_qualities is None for r in primary))
-                evidence=ReadCollector(use_secondary_alignments=False).read_evidence_for_variant(variant,bam)
+                evidence=ReadCollector(use_secondary_alignments=False,
+                    use_soft_clipped_bases=use_soft_clipped_bases).read_evidence_for_variant(variant,bam)
                 default_evidence=ReadCollector().read_evidence_for_variant(variant,bam)
+                strict_evidence=ReadCollector(use_reads_without_base_qualities=False).read_evidence_for_variant(variant,bam)
             counts={k:len(fragment_ids(getattr(evidence,k+'_reads'))) for k in ('ref','alt','other')}
             default_counts={k:len(fragment_ids(getattr(default_evidence,k+'_reads'))) for k in ('ref','alt','other')}
+            strict_counts={k:len(fragment_ids(getattr(strict_evidence,k+'_reads'))) for k in ('ref','alt','other')}
             creator_kwargs=dict(max_protein_sequences_per_variant=None) if all_proteins else {}
             visualization=collect_visualization_data(variant,evidence,compare_assembly=True,creator_kwargs=creator_kwargs)
             validation=[]
@@ -228,8 +232,11 @@ def audit(inputs, output, sources=None, all_proteins=False):
                 validation.append(dict(assembly=assembly,result=checked,all_results=checks))
             visualization.setdefault('provenance',{}).update(source=source, sample_label=source['id'],
                 count_unit='RG/QNAME templates; not proven independent molecules',secondary_alignments=False,
-                independent_validation=validation,input_quality=input_quality)
-            entry['products'].append(dict(source=source['id'],counts=counts,default_counts=default_counts,visualization=visualization))
+                independent_validation=validation,input_quality=input_quality,
+                use_soft_clipped_bases=use_soft_clipped_bases,
+                base_quality_policy='Retain absent QUAL as unknown; use measured qualities when present')
+            entry['products'].append(dict(source=source['id'],counts=counts,default_counts=default_counts,
+                                         strict_quality_counts=strict_counts,visualization=visualization))
             print(row['gene'],source['id'],counts,[len(m['protein']['amino_acids']) if m['protein'] else 0
                                                  for m in visualization['modes']],flush=True)
         data['indels'].append(entry)

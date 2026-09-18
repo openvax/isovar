@@ -53,6 +53,22 @@ contexts retain every compatible group. Varcode predictions repeat alongside
 RNA, including unavailable predictions. These are reference-supported results
 under the chosen thresholds, not an exhaustive enumeration of biological ORFs.
 
+Since 1.18.0, absent BAM QUAL does not discard the sequence. Alignment/sequence
+filters still apply, missing base confidence stays unknown, and overlapping
+mate disagreements are not quality-resolved when either quality is missing.
+Use `--require-base-qualities` to retain the previous strict policy (API:
+`ReadCollector(use_reads_without_base_qualities=False)`). Available measured
+scores are not replaced or changed; MAPQ and consensus read accuracy are not
+per-base Phred substitutes. The osteosarc report keeps both adaptive and strict
+counts, original PacBio consensus tags, and the restored protein contexts.
+
+`--use-soft-clipped-bases` retains unaligned ends; it does not realign an SV
+partner or recover a clip-only allele. CIGAR insertions remain usable with
+the default off. In a [matched osteosarc audit](../tests/data/osteosarc/figure_comparisons/SOFT_CLIPS.md),
+turning it on reduced some top protein contexts because clipped sequence
+conflicted with aligned observations. The default remains off; breakpoint-aware
+clip analysis is separate from ordinary variant assembly.
+
 Each invocation creates a new directory; it never overwrites an earlier run:
 
 ```text

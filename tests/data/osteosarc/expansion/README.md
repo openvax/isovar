@@ -235,8 +235,11 @@ explicit limitation, not positive real-insertion validation.
 
 NTF3's compound allele yields the expected transcript-specific window in
 ONT and bulk RNA. Its PacBio region has one ref and one alt exact-CIGAR
-observation, both lacking qualities, so current Isovar rejects both; this
-is pinned for the #8 missing-quality policy rather than assigning fake scores.
+observation, both lacking qualities. Isovar 1.18.0 retains both with unknown
+base confidence (#294); one alternate template remains below the reconstruction
+support floor. The PacBio MT-ND5 fixture now recovers an independently validated
+protein, and KTN1 reference counts increase from 1 to 220 without gaining an
+alternate call. Original BAMs and independent CIGAR counts are unchanged.
 
 ## Reproduction
 

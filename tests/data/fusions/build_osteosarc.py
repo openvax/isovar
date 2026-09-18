@@ -11,6 +11,7 @@ import pysam
 from pyensembl import EnsemblRelease
 from isovar.chimeric_alignment import compatible_phasing_alignments, source_alignment_paths_from_pysam
 from isovar.read_identity import source_alignments_from_pysam
+from isovar.default_parameters import USE_READS_WITHOUT_BASE_QUALITIES
 from tests.osteosarc_protein_helpers import reverse_complement
 
 EVENTS = [('TPST1--CRCP', 'chr7', 66205522, 'chr7', 66127704, ['TPST1'], ['CRCP']),
@@ -87,7 +88,8 @@ def linked_records(first, second, records):
                                         *observations, placements)
 
 
-def extract(read, c1, p1, c2, p2, flank, records=(), strands=('+', '+')):
+def extract(read, c1, p1, c2, p2, flank, records=(), strands=('+', '+'),
+            use_reads_without_base_qualities=USE_READS_WITHOUT_BASE_QUALITIES):
     if read.flag & (4 | 256 | 512 | 1024 | 2048) or not read.has_tag('SA') or read.mapping_quality < 20:
         return None
     sequence = read.get_forward_sequence()
@@ -114,7 +116,7 @@ def extract(read, c1, p1, c2, p2, flank, records=(), strands=('+', '+')):
     if not linked_records(first, second, records):
         return None
     reverse = donor[q0][2] != strands[0]
-    quality = read.get_forward_qualities()
+    quality = read.get_forward_qualities() if read.query_qualities is not None else None
     if reverse:
         sequence = reverse_complement(sequence)
         quality = quality[::-1] if quality is not None else None
@@ -130,7 +132,8 @@ def extract(read, c1, p1, c2, p2, flank, records=(), strands=('+', '+')):
     lo, hi = q0-flank, q1+flank
     if lo < 0 or hi > len(sequence):
         return None
-    if quality is None or min(quality[lo:hi]) < 10:
+    if ((quality is None and not use_reads_without_base_qualities) or
+            (quality is not None and min(quality[lo:hi]) < 10)):
         return None
     mapping = {q:p for q,p in donor.items() if lo <= q < q0}
     mapping.update({q:p for q,p in acceptor.items() if q1 <= q < hi})
@@ -139,7 +142,8 @@ def extract(read, c1, p1, c2, p2, flank, records=(), strands=('+', '+')):
         return None
     return dict(sequence=local, junction_start=flank, junction_end=q1-lo,
                 blocks=blocks(mapping,lo,hi), source_query_start=lo,
-                minimum_base_quality=min(quality[lo:hi]), read_id=read.query_name,
+                minimum_base_quality=min(quality[lo:hi]) if quality is not None else None,
+                base_quality_status='available' if quality is not None else 'missing', read_id=read.query_name,
                 source_reverse_complement=reverse != read.is_reverse,
                 fragment_id=(read.get_tag('CB') + '/' + read.get_tag('UB')
                              if read.has_tag('CB') and read.has_tag('UB') else read.query_name),

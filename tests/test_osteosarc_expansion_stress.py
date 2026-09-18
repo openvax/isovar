@@ -91,13 +91,13 @@ def test_compound_definition_explains_ntf3_rna_without_inventing_vaccine_members
     assert not any(c["independent_primary"]["counts"]["alt"] for c in CASES if c["variant"]["gene"] != "NTF3")
 
 
-def test_pacbio_missing_qualities_explain_lost_compound_evidence():
+def test_pacbio_compound_evidence_survives_missing_qualities_but_not_support_floor():
     case = next(c for c in CASES if c["source_id"] == "0066232879babe83" and c["variant"]["gene"] == "NTF3")
     assert case["independent_primary"]["counts"] == dict(ref=1, alt=1, other=0, uncallable=0)
     with pysam.AlignmentFile(DIRECTORY / case["bam"]) as bam:
         assert all(r.query_qualities is None for r in bam)
-    assert case["defaults"]["outcome"] == "no_callable_allele"
-    assert case["defaults"]["counts"]["reads"] == dict(ref=0, alt=0, other=0)
+    assert case["defaults"]["outcome"] == "no_rna_candidate"
+    assert case["defaults"]["counts"]["reads"] == dict(ref=1, alt=1, other=0)
 
 
 @pytest.mark.parametrize("cigar,sequence,pos,ref,alt,expected", [

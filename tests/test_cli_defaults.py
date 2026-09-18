@@ -59,11 +59,14 @@ def test_explicit_rna_options_and_legacy_namespace():
         "--bam", "unused.bam", "--min-mapping-quality", "17",
         "--use-duplicate-reads", "--drop-secondary-alignments",
         "--use-soft-clipped-bases", "--no-merge-overlapping-fragments",
+        "--require-base-qualities",
     ])
     assert vars(rna_args.read_collector_from_args(args)) == vars(ReadCollector(
         min_mapping_quality=17, use_duplicate_reads=True, use_secondary_alignments=False,
-        use_soft_clipped_bases=True, merge_overlapping_fragments=False))
+        use_soft_clipped_bases=True, merge_overlapping_fragments=False, use_reads_without_base_qualities=False))
     del args.merge_overlapping_fragments
+    del args.use_reads_without_base_qualities
+    assert rna_args.read_collector_from_args(args).use_reads_without_base_qualities == defaults.USE_READS_WITHOUT_BASE_QUALITIES
     assert rna_args.read_collector_from_args(args).merge_overlapping_fragments == \
         defaults.MERGE_OVERLAPPING_FRAGMENTS
 

@@ -6,6 +6,7 @@ from examples.osteosarc_extended_figures import load_dlg5
 from examples.osteosarc_footprint_figures import load as baseline
 from isovar.protein_comparison import comparison_rows
 from tests.data.osteosarc.figure_comparisons.extended_footprints import load, source_products
+from tests.data.osteosarc.figure_comparisons.extended_footprints import CORPUS
 from tests.data.osteosarc.figure_comparisons.dlg5 import local_evidence
 from tests.data.osteosarc.figure_comparisons.footprints import fusion_footprint, split_deletion_paths
 from tests.test_chimeric_phasing import record
@@ -66,6 +67,15 @@ def test_t3_gabbr1_has_a_path_but_no_quality_passing_window():
         r.query_qualities = [60] * len(r.query_sequence)
     assert extract(primary, "chr6", 29612906, "chr6", 44218908, 20, records, ("-", "+")) is None
     assert extract(primary, "chr6", 29612920, "chr6", 44218908, 20, records, ("-", "+")) is not None
+    # Absent QUAL is unknown, not measured low quality. Geometry still gates it.
+    for r in records:
+        r.query_qualities = None
+    assert extract(primary, "chr6", 29612906, "chr6", 44218908, 20, records, ("-", "+")) is None
+    window = extract(primary, "chr6", 29612920, "chr6", 44218908, 20, records, ("-", "+"))
+    assert window["base_quality_status"] == "missing"
+    assert window["minimum_base_quality"] is None
+    assert extract(primary, "chr6", 29612920, "chr6", 44218908, 20, records, ("-", "+"),
+                   use_reads_without_base_qualities=False) is None
 
 
 def test_dlg5_caller_fields_are_not_silently_repaired_into_assembled_haplotype():
@@ -109,8 +119,35 @@ def test_low_quality_mate_does_not_cancel_an_observed_start_or_invent_a_conflict
 
 
 def test_missing_pacbio_qualities_remain_an_input_limitation():
+    expected = {"GTF3C5": (19, 48), "RNF213": (2, 34), "GLIS3": (0, 0), "KTN1": (0, 220)}
     for entry in load()["indels"]:
         p = next(p for p in entry["products"] if p["source"] == "T1-PacBio")
         quality = p["visualization"]["provenance"]["input_quality"]
         assert quality["primary_records_missing_qualities"] > 0
-        assert p["default_counts"]["alt"] == 0
+        assert p["strict_quality_counts"]["alt"] == 0
+        assert (p["default_counts"]["alt"], p["default_counts"]["ref"]) == expected[entry["gene"]]
+
+
+def test_original_pacbio_indels_recount_with_unknown_quality_not_imputed_phred():
+    import json
+    from pyensembl import EnsemblRelease
+    from varcode import Variant
+    from isovar import ReadCollector
+    from isovar.read_identity import fragment_ids
+    from tests.data.osteosarc.expansion.inventory import digest
+    manifest = json.loads((CORPUS / "pacbio-indels-manifest.json").read_text())
+    path = CORPUS / manifest["file"]
+    assert digest(path) == manifest["sha256"]
+    assert digest(CORPUS / (manifest["file"] + ".bai")) == manifest["index_sha256"]
+    with pysam.AlignmentFile(path) as bam:
+        assert any("groupdedup" in p.get("ID", "") for p in bam.header.to_dict()["PG"])
+        for entry in load()["indels"]:
+            product = next(p for p in entry["products"] if p["source"] == "T1-PacBio")
+            variant = Variant(entry["contig"].removeprefix("chr"), entry["start"], entry["ref"], entry["alt"], ensembl=EnsemblRelease(87))
+            for adaptive in (False, True):
+                collector = ReadCollector(use_reads_without_base_qualities=adaptive)
+                evidence = collector.read_evidence_for_variant(variant, bam)
+                counts = {k: len(fragment_ids(getattr(evidence, k + "_reads"))) for k in ("ref", "alt", "other")}
+                assert counts == product["default_counts" if adaptive else "strict_quality_counts"]
+            loci = collector.locus_reads_overlapping_variant(bam, variant)
+            assert any(None in r.quality_scores for r in loci)

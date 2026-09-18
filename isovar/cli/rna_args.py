@@ -23,6 +23,7 @@ from ..default_parameters import (
     USE_DUPLICATE_READS,
     USE_SECONDARY_ALIGNMENTS,
     USE_SOFT_CLIPPED_BASES,
+    USE_READS_WITHOUT_BASE_QUALITIES,
     MERGE_OVERLAPPING_FRAGMENTS,
     NUM_RNA_DECOMPRESSION_THREADS,
 )
@@ -82,6 +83,13 @@ def add_rna_args(
             "Include soft-clipped bases at the ends of reads (default %(default)s)."))
 
     rna_group.add_argument(
+        "--require-base-qualities",
+        dest="use_reads_without_base_qualities",
+        default=USE_READS_WITHOUT_BASE_QUALITIES,
+        action="store_false",
+        help="Discard reads with missing QUAL instead of retaining sequence/alignment evidence with unknown base quality.")
+
+    rna_group.add_argument(
         "--no-merge-overlapping-fragments",
         dest="merge_overlapping_fragments",
         action="store_false",
@@ -132,6 +140,8 @@ def read_collector_from_args(args):
         use_duplicate_reads=args.use_duplicate_reads,
         use_secondary_alignments=not args.drop_secondary_alignments,
         use_soft_clipped_bases=args.use_soft_clipped_bases,
+        use_reads_without_base_qualities=getattr(
+            args, "use_reads_without_base_qualities", USE_READS_WITHOUT_BASE_QUALITIES),
         merge_overlapping_fragments=getattr(
             args, "merge_overlapping_fragments", MERGE_OVERLAPPING_FRAGMENTS))
 

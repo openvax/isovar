@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .default_parameters import PLOT_DPI, PLOT_PROTEIN_ROWS_PER_PAGE, PLOT_WIDTH
 from .visualization import (
-    BLUE, GRAY, INK, _draw_protein_rows, _plot_imports,
+    BLUE, GRAY, INK, draw_protein_rows, _plot_imports,
     _protein_disagreements, _style_axis,
 )
 
@@ -139,12 +139,14 @@ def protein_comparison_figures(products, rows_per_page=PLOT_PROTEIN_ROWS_PER_PAG
                 elif p:
                     phases = ", ".join("%s/%d" % (s, phase) for s, phase in row["frames"])
                     note = "%d templates\nStrand/phase: %s" % (p["templates"], phases)
+                    if row.get("input_quality", {}).get("primary_records_missing_qualities"):
+                        note += "\nInput includes missing QUAL"
                 else:
                     note = row["status"].replace("_", " ")
                     if row.get("input_quality", {}).get("primary_records_missing_qualities"):
                         note += "\nMissing QUAL in input"
                 display.append((label, p, INK if row["source"] == "Varcode" else BLUE if row["assembly"] else GRAY, note))
-            _draw_protein_rows(ax, display, rectangle, differences)
+            draw_protein_rows(ax, display, rectangle, differences)
             figure.suptitle(title, x=.035, y=.975, ha="left", fontsize=19, fontweight="bold")
             figure.subplots_adjust(left=.24, right=.79, bottom=.16, top=.85)
             figure.text(.24, .065, "Orange: nominated mutation. Magenta: differing residues at shared offsets; missing context is not a mismatch.", fontsize=10, color=GRAY)

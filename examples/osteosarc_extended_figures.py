@@ -60,7 +60,7 @@ def indel_support(data):
         rows.append((LABELS[sid], values))
     return table_panel("Nine candidates | Extended RNA products", "Explicit small indels: alternate / reference template IDs",
                        [e["gene"] for e in entries], rows,
-                       "Default allele filters\nProducts not pooled\n\nONT: deduplicated\nPacBio: missing QUAL\nin many input records\n\nNot molecule counts",
+                       "Default allele filters\nProducts not pooled\n\nAbsent QUAL retained\nas unknown confidence\nStrict counts in JSON\n\nNot molecule counts",
                        "Other/conflicting observations remain in evidence.json. A zero alternate count is not biological absence.")
 
 
@@ -82,10 +82,12 @@ def deletion_support(entry):
 
 
 def fusion_support(entry):
-    rows = [(LABELS[p["source"]], [p["complete_paths"], sum(bool(r["windows"]) for r in p["paths"]), p["cell_umi_labels"]])
+    rows = [(LABELS[p["source"]], [p["complete_paths"], "%d / %d" % (
+                sum(any(w["minimum_base_quality"] is not None for w in r["windows"]) for r in p["paths"]),
+                sum(any(w["minimum_base_quality"] is None for w in r["windows"]) for r in p["paths"])), p["cell_umi_labels"]])
             for p in entry["products"]]
     return table_panel(entry["name"].replace("--", " / ") + " | RNA paths", "Observed supplementary paths; not paired mates or alternative placements",
-                       ["Complete paths", "Q10 window paths", "CB / UMI labels"], rows,
+                       ["Complete paths", "Q10 / QUAL unknown", "CB / UMI labels"], rows,
                        "Actual partner CIGARs\nMAPQ >=20\n\nTagged and dedup\nare processing relatives\nNever add their counts\n\nFrame unresolved",
                        "No validated coding sequence. Missing partner records can prevent a path call; zero is not absence of fusion RNA.")
 
@@ -99,11 +101,11 @@ def dlg5_panels(data):
         "Twenty-base flanks\nPrimary / MAPQ >=20\n\nColumns overlap\nDo not sum evidence\n\nOrganoid is culture\nNormals are not\nindependent replicates",
         "Purple/ESVEE's sequence matches DRAGEN's CONTIG and DNA reads. Nearby changes distinguish it from nominal DEL fields.")
     rna = [p for p in data["products"] if p["source"]["product"] not in ("DNA", "ONT-tagged")]
-    rows = [(LABELS[p["source"]["id"]], [p["start_codon"].get("reference_start", 0),
+    rows = [(LABELS[p["source"]["id"]], ["%d / %d" % (p["start_codon"].get("reference_start", 0), p["start_codon"].get("quality_unresolved", 0)),
                 p["footprints"]["purple_bnd"]["aligned_templates"]["inside"], p["signatures"]["purple_bnd"]["q20"]]) for p in rna]
     yield "rna-start-and-junction", table_panel("DLG5 | Retained start versus mutant junction", "The listed event removes the annotated DLG5-001 start region",
-        ["Normal start Q20", "Inside DNA interval", "BND sequence Q20"], rows,
-        "Genomic CAT = ATG\non DLG5 minus strand\n\nStart: exact Q20 bases\nInside: aligned coverage\nDifferent measurements\n\nNo mutant protein\nframe justified",
+        ["Start Q20 / unresolved", "Inside DNA interval", "BND sequence Q20"], rows,
+        "Genomic CAT = ATG\non DLG5 minus strand\n\nUnresolved: absent/low QUAL\nInside: aligned coverage\nDifferent measurements\n\nNo mutant protein\nframe justified",
         "Retained-start RNA does not exclude a subclonal DNA deletion. Missing mutant junction does not establish biological absence.")
     figure, ax = _canvas("DLG5 | What can be reconstructed?", "DNA sequence is concrete; mutant RNA and coding frame remain unresolved", 6)
     ax.axis("off")

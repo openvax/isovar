@@ -64,6 +64,7 @@ def run(args=None, *, prog=None):
         use_duplicate_reads=collector.use_duplicate_reads,
         use_secondary_alignments=collector.use_secondary_alignments,
         use_soft_clipped_bases=collector.use_soft_clipped_bases,
+        use_reads_without_base_qualities=collector.use_reads_without_base_qualities,
         merge_overlapping_fragments=collector.merge_overlapping_fragments)
     directory = save_variant_figures(data, timestamped_run_directory(args.output_dir),
                                     view=args.view, max_rows=args.max_rows, dpi=args.dpi)
