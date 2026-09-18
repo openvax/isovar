@@ -20,20 +20,26 @@ Isovar determines mutant protein subsequences around mutations from cancer RNAse
 
 Isovar works by:
 
- 1) collecting RNA reads which spanning the location of a variant,
+ 1) collecting RNA reads spanning the location of a variant,
 
  2) filtering the RNA reads to those which support the mutation,
 
- 3) assembling mutant reads into longer coding sequences,  
+ 3) assembling mutant reads into longer RNA sequences,
 
- 4) matching mutant coding sequences against reference annotated reading
+ 4) matching assembled RNA sequences against reference annotated reading
 frames, and
 
- 5) translating coding sequences determined directly from RNA into mutant protein sequences.
+ 5) translating RNA-derived coding sequences into predicted protein subsequences.
 
-The assembled coding sequences may incorporate proximal 
-(germline and somatic) variants, along with any splicing alterations 
-which occur due to modified splice signals.
+The assembled sequences may incorporate nearby variants and observed splice
+junctions when the reads and reference context support them. Missing coverage
+or an unresolved reading frame remains uncertainty, not an unchanged protein.
+
+[Varcode](https://github.com/openvax/varcode) generates transcript hypotheses and
+predicts coding consequences; Isovar reconstructs RNA-supported sequences and
+reconciles the evidence; [Vaxrank](https://github.com/openvax/vaxrank) evaluates
+protein/peptide candidates. See [library responsibilities](docs/library-responsibilities.md)
+for the shared contract and which integrations are still planned.
 
 ## Python API
 
@@ -251,6 +257,9 @@ explicitly; their placeholder bases must not be interpreted as small variants.
 For supplied fusion RNA, `isovar fusion --input fusion.json --output result.json`
 validates junction evidence and annotated coding frames, retaining unresolved
 or ambiguous outcomes. See the [fusion input/output contract](docs/fusion.md).
+Automatic SV read collection, alternative-path assembly, and hypothesis
+reconciliation are tracked in [#305](https://github.com/openvax/isovar/issues/305);
+the supplied-fusion command does not perform those discovery steps.
 
 ## Commandline 
 
