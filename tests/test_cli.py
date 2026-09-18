@@ -75,7 +75,7 @@ def test_cli_allele_counts():
 
 
 @pytest.mark.parametrize("extra_args,expected_count", [
-    ([], 274), (["--no-merge-overlapping-fragments"], 294),
+    ([], 273), (["--no-merge-overlapping-fragments"], 293),
 ])
 def test_cli_allele_reads(extra_args, expected_count):
     df = run_cli_fn(isovar_allele_reads, return_dataframe=True, extra_args=extra_args)

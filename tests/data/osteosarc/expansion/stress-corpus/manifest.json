@@ -194,21 +194,21 @@
       "defaults": {
         "all_ranked_match_expected": null,
         "counts": {
-          "all_template_names": 1048,
+          "all_template_names": 1047,
           "read_objects": {
             "alt": 0,
             "other": 0,
-            "ref": 1113
+            "ref": 1112
           },
           "reads": {
             "alt": 0,
             "other": 0,
-            "ref": 1744
+            "ref": 1743
           },
           "template_names": {
             "alt": 0,
             "other": 0,
-            "ref": 1048
+            "ref": 1047
           }
         },
         "filter_values": {
@@ -20345,21 +20345,21 @@
       "defaults": {
         "all_ranked_match_expected": null,
         "counts": {
-          "all_template_names": 641,
+          "all_template_names": 637,
           "read_objects": {
             "alt": 0,
-            "other": 4,
-            "ref": 637
+            "other": 1,
+            "ref": 636
           },
           "reads": {
             "alt": 0,
-            "other": 4,
-            "ref": 637
+            "other": 1,
+            "ref": 636
           },
           "template_names": {
             "alt": 0,
-            "other": 4,
-            "ref": 637
+            "other": 1,
+            "ref": 636
           }
         },
         "filter_values": {

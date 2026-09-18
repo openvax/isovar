@@ -69,6 +69,11 @@ turning it on reduced some top protein contexts because clipped sequence
 conflicted with aligned observations. The default remains off; breakpoint-aware
 clip analysis is separate from ordinary variant assembly.
 
+Since 1.18.1, a one-sided read ending at an insertion cannot establish reference
+support just because no inserted bases were aligned. Original locus/clip
+evidence is retained; both flanking reference bases must be observed to call
+the empty reference allele. CIGAR-supported terminal insertions remain usable.
+
 Each invocation creates a new directory; it never overwrites an earlier run:
 
 ```text
