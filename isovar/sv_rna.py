@@ -18,6 +18,7 @@ placement exists (insertions, soft clips, junction homology).
 
 from bisect import bisect_right
 from collections import Counter, defaultdict
+from heapq import nsmallest
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 from itertools import combinations
@@ -25,8 +26,9 @@ from types import SimpleNamespace
 
 from .chimeric_alignment import compatible_phasing_alignments, source_alignment_paths_from_pysam
 from .default_parameters import (
-    FUSION_PEPTIDE_LENGTHS, SV_ASSEMBLE, SV_BREAKPOINT_WINDOW, SV_MAX_PATHS, SV_MAX_QUERIES, SV_MAX_RECORDS,
-    SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_ANCHOR_BASES, SV_MIN_OVERLAP,
+    FUSION_PEPTIDE_LENGTHS, SV_ASSEMBLE, SV_BREAKPOINT_WINDOW, SV_MAX_BREAKPOINT_SHIFT,
+    SV_MAX_EXTENSION_SEGMENTS, SV_MAX_PATHS, SV_MAX_QUERIES, SV_MAX_RECORDS, SV_ANNOTATED_JUNCTION_TOLERANCE,
+    SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_LOCAL_VARIANT_FRACTION, SV_MIN_ANCHOR_BASES, SV_MIN_OVERLAP,
 )
 from .fusion import FusionBlock, FusionBreakpoint, FusionReference
 from .genetic_code import standard_genetic_code
@@ -35,6 +37,9 @@ from .read_end_inference import reverse_complement
 from .read_identity import source_alignments_from_pysam
 
 _BIN = 64  # Genomic bin width of the observation index.
+_RECORD_BIN = 1024  # Genomic bin width of the unbuilt-record index.
+_MIN_INTRON = 21  # Shorter CIGAR N gaps are deletions (STAR's alignIntronMin default).
+_LOCAL = 20  # Placements this close are local (base/indel) alternatives, not splice choices.
 _HOP_WINDOW = 1000  # Nearby SA/mate targets share one indexed query.
 _MAX_SEGMENT_PATHS = 64  # Alternative supplementary groupings per segment.
 
@@ -44,10 +49,12 @@ LINKAGE_STATUSES = (
     "breakpoint_junction",  # The RNA join reproduces the DNA adjacency.
     "event_compatible_junction",  # Donor-side to acceptor-side join, e.g. spliced.
     "breakpoint_clip_partner_unplaced",  # Unaligned sequence at a breakpoint.
-    "splice_ambiguous_event_junction",  # Also an ordinary forward splice.
+    # Crosses the event, but ordinary forward splicing (or read-through) of
+    # the unrearranged reference could make it: any such non-breakpoint join,
+    # and a breakpoint join between annotated splice sites.
+    "splice_ambiguous_event_junction",
     "regional_novel_junction",  # Unannotated join not crossing the event.
 )
-_SUPPORT_GATED = set(LINKAGE_STATUSES[3:])
 
 
 def segment_identity(read):
@@ -56,7 +63,14 @@ def segment_identity(read):
 
 
 def _record_id(read):
-    return sha256(read.to_string().encode()).hexdigest()
+    """Stable record ID; hashing the key avoids hashing long reads' SEQ/QUAL."""
+    return sha256(repr(_record_key(read)).encode()).hexdigest()
+
+
+def _record_key(read):
+    """Cheap identity of one SAM record, for deduplicating repeated fetches."""
+    return (read.query_name, read.flag, read.reference_id, read.reference_start, read.cigarstring or "",
+            read.get_tag("RG") if read.has_tag("RG") else "")
 
 
 def _merge(intervals):
@@ -150,13 +164,13 @@ def collect_sv_records(bam, regions, references, max_records=SV_MAX_RECORDS, max
                 fragment = segment_identity(read)[:2]
                 if fragments is not None and fragment not in fragments:
                     continue
-                sam = read.to_string()
-                if sam in records:
+                key = _record_key(read)
+                if key in records:
                     continue
                 if len(records) >= max_records:
                     limitations.add("record_limit")
                     break
-                records[sam] = read
+                records[key] = read
                 hop_targets, notes = _hop_targets(read)
                 limitations.update(notes)
                 for target_contig, position in hop_targets:
@@ -175,7 +189,7 @@ def collect_sv_records(bam, regions, references, max_records=SV_MAX_RECORDS, max
                 pending[-1] = (contig, previous[1], position + 1, previous[3] | targets[contig, position])
             else:
                 pending.append((contig, position, position + 1, frozenset(targets[contig, position])))
-    return sorted(records.values(), key=_record_id), dict(
+    return [records[key] for key in sorted(records)], dict(
         searched_regions=[[c, a, b] for c in sorted(searched) for a, b in searched[c]],
         hop_queries=hops, queries=queries, records=len(records), limitations=sorted(limitations),
         scope="indexed_regions_and_observed_SA_or_mate_locations",
@@ -296,7 +310,7 @@ def _segment_groupings(group, reasons):
     return [tuple(group[i] for i in sorted(s)) for s in sorted(maximal, key=sorted)]
 
 
-def _record_placements(read, view):
+def _record_placements(read, view, intern):
     """Actual CIGAR placements and gap kinds, in original sequencing coordinates."""
     length = read.infer_read_length()
     hard = read.cigartuples[0][1] if read.cigartuples[0][0] == 5 else 0
@@ -306,26 +320,19 @@ def _record_placements(read, view):
     def original(q):
         return length - 1 - hard - q if read.is_reverse else hard + q
 
-    placements, kinds = {}, {}
-    q, r, previous, gap = 0, read.reference_start, None, None
-    for operation, n in read.cigartuples:
-        if operation in (0, 7, 8):
-            for k in range(n):
-                if start <= original(q + k) < end:
-                    placements[original(q + k)] = (read.reference_name, r + k, strand)
-            if previous is not None and gap is not None:
-                kinds[tuple(sorted((original(previous), original(q))))] = gap
-            previous, gap = q + n - 1, None
-            q, r = q + n, r + n
-        elif operation in (1, 4):
-            q += n
-        elif operation in (2, 3):
-            gap = "N" if operation == 3 or gap == "N" else "D"
-            r += n
+    placements, kinds, previous = {}, {}, None
+    for q, r, n, gap, _ in _aligned_blocks(read):
+        for k in range(n):
+            if start <= original(q + k) < end:
+                position = (read.reference_name, r + k, strand)
+                placements[original(q + k)] = intern.setdefault(position, position)
+        if previous is not None and gap is not None:
+            kinds[tuple(sorted((original(previous), original(q))))] = _gap_kind(*gap)
+        previous = q + n - 1
     return placements, kinds
 
 
-def _segment_path(records, collector):
+def _segment_path(records, collector, intern):
     """Join one segment's linked records by original query offset."""
     bases, placements, sources, kinds = {}, defaultdict(set), defaultdict(set), {}
     for index, read in enumerate(records):
@@ -335,7 +342,7 @@ def _segment_path(records, collector):
         for q, base in enumerate(sequence, start):
             if bases.setdefault(q, base) != base:
                 return "conflicting_segment_sequence"
-        mapping, gaps = _record_placements(read, view)
+        mapping, gaps = _record_placements(read, view, intern)
         for q, position in mapping.items():
             placements[q].add(position)
             sources[q].add(index)
@@ -358,78 +365,254 @@ def _segment_path(records, collector):
     return sequence, positions, breaks, (lo, hi)
 
 
-def segment_observations(records, collector):
-    """Build both orientations of every observed segment path.
+def _build_segment(identity, records, collector, reasons, intern):
+    """Both orientations of each linked grouping of one segment's records.
 
-    Returns
-    -------
-    observations : list of RnaObservation
-    excluded : dict
-        Record ID to the ReadCollector filter which excluded it.
-    reasons : collections.Counter
-        Segment paths which could not be built, and single-record paths whose
-        declared SA pieces were not observed and linked, by reason.
+    ``intern`` shares one tuple per placement: deep reads cover the same bases.
     """
-    groups, excluded, reasons = defaultdict(list), {}, Counter()
-    for read in records:
-        reason = _ineligible(read, collector)
-        if reason:
-            excluded[_record_id(read)] = reason
-        else:
-            groups[segment_identity(read)].append(read)
     observations = []
-    for identity in sorted(groups):
-        group = sorted(groups[identity], key=_record_id)
-        for members in _segment_groupings(group, reasons):
-            if len(members) == 1 and members[0].has_tag("SA"):
-                reasons["SA_declared_piece_not_linked"] += 1
-            built = _segment_path(members, collector)
-            if isinstance(built, str):
-                reasons[built] += 1
+    for members in _segment_groupings(sorted(records, key=_record_id), reasons):
+        if len(records) > 1 and len(members) == 1 and members[0].has_tag("SA"):
+            reasons["SA_declared_piece_not_linked"] += 1
+        built = _segment_path(members, collector, intern)
+        if isinstance(built, str):
+            reasons[built] += 1
+            continue
+        sequence, positions, breaks, interval = built
+        record_ids = tuple(sorted(_record_id(r) for r in members))
+        key = sha256("".join(record_ids).encode()).hexdigest()[:24]
+        common = dict(identity=identity, records=record_ids, query_interval=interval,
+                      missing_qualities=any(r.query_qualities is None for r in members),
+                      secondary=any(r.is_secondary for r in members))
+        n = len(sequence)
+        observations.append(RnaObservation(key + "+", sequence=sequence, positions=positions,
+                                           breaks=breaks, reverse=False, **common))
+        sequence, positions = _mirror(sequence, positions)
+        positions = tuple(None if p is None else intern.setdefault(p, p) for p in positions)
+        observations.append(RnaObservation(
+            key + "-", sequence=sequence, positions=positions, reverse=True,
+            breaks=tuple(sorted((n - 1 - j, n - 1 - i, kind) for i, j, kind in breaks)), **common))
+    return observations
+
+
+def _gap_kind(spliced, length):
+    """A reference gap between aligned bases: N only for a plausible intron."""
+    return "N" if spliced and length >= _MIN_INTRON else "D"
+
+
+def _aligned_blocks(read):
+    """(query offset, reference start, length, preceding gap, inserted bases) per aligned block.
+
+    Query offsets index the stored SEQ. The preceding gap is ``(spliced,
+    reference length)`` of the D/N operations since the previous block, or
+    ``None``; inserted bases are the I operations since then.
+    """
+    q, r, gap, inserted = 0, read.reference_start, None, 0
+    for operation, n in read.cigartuples:
+        if operation in (0, 7, 8):
+            yield q, r, n, gap, inserted
+            q, r, gap, inserted = q + n, r + n, None, 0
+        elif operation in (1, 4):
+            q += n
+            inserted += n if operation == 1 else 0
+        elif operation in (2, 3):
+            spliced, size = gap or (False, 0)
+            gap, r = (spliced or operation == 3, size + n), r + n
+
+
+def _record_gaps(read):
+    """(left, right, kind, inserted sequence) of CIGAR N/D joins, in + orientation."""
+    gaps, last = [], None
+    for q, r, n, gap, inserted in _aligned_blocks(read):
+        if last is not None and gap is not None:
+            gaps.append(((read.reference_name, last, "+"), (read.reference_name, r, "+"), _gap_kind(*gap),
+                         read.query_sequence[q - inserted:q].upper()))
+        last = r + n - 1
+    return gaps
+
+
+def _offsets(query_runs, lo, key, runs):
+    """(key, path offset of the observation start) for each shared placed base run."""
+    found = set()
+    for start, _, contig, low, high, strand in query_runs:
+        for other, _, other_contig, other_low, other_high, other_strand in runs:
+            if (other_contig, other_strand) != (contig, strand) or other_low >= high or low >= other_high:
                 continue
-            sequence, positions, breaks, interval = built
-            record_ids = tuple(sorted(_record_id(r) for r in members))
-            key = sha256("".join(record_ids).encode()).hexdigest()[:24]
-            common = dict(identity=identity, records=record_ids, query_interval=interval,
-                          missing_qualities=any(r.query_qualities is None for r in members),
-                          secondary=any(r.is_secondary for r in members))
-            n = len(sequence)
-            observations.append(RnaObservation(key + "+", sequence=sequence, positions=positions,
-                                               breaks=breaks, reverse=False, **common))
-            sequence, positions = _mirror(sequence, positions)
-            observations.append(RnaObservation(
-                key + "-", sequence=sequence, positions=positions, reverse=True,
-                breaks=tuple(sorted((n - 1 - j, n - 1 - i, kind) for i, j, kind in breaks)), **common))
-    return observations, excluded, reasons
+            if strand == "+":
+                shared = low if low > other_low else other_low
+                path_q, observed_q = start + shared - low, other + shared - other_low
+            else:
+                shared = (high if high < other_high else other_high) - 1
+                path_q, observed_q = start + high - 1 - shared, other + other_high - 1 - shared
+            found.add((key, lo + path_q - observed_q))
+    return found
+
+
+class _Observations:
+    """Segment observations, built only when a seed or a path end needs them.
+
+    Building per-base placements for every record scales with total aligned
+    bases, which deep long-read loci make prohibitive. Records are instead
+    grouped by segment and binned by aligned block. A path end builds at most
+    ``cap`` overlapping segments, those reaching furthest in its direction;
+    reaching the cap is reported.
+    """
+
+    def __init__(self, records, collector, cap):
+        self.collector, self.cap, self.limited = collector, cap, False
+        self.groups, self.excluded, self.reasons = defaultdict(list), Counter(), Counter()
+        self.extent, self.bins, self.gaps = defaultdict(dict), defaultdict(list), defaultdict(dict)
+        self.gap_kinds = defaultdict(set)
+        self.built, self.observations, self.joins, self.runs = {}, {}, defaultdict(list), {}
+        self.intern, self.molecules, self.windows = {}, {}, {}
+        for read in records:
+            reason = _ineligible(read, collector)
+            if reason:
+                self.excluded[reason] += 1
+                continue
+            identity = segment_identity(read)
+            self.groups[identity].append(read)
+            contig = read.reference_name
+            for start, end in read.get_blocks():
+                for b in range(start // _RECORD_BIN, (end - 1) // _RECORD_BIN + 1):
+                    self.bins[contig, b].append((start, end, identity))
+            low, high = self.extent[identity].get(contig, (read.reference_start, read.reference_end))
+            self.extent[identity][contig] = (min(low, read.reference_start), max(high, read.reference_end))
+
+    def build(self, identity):
+        if identity not in self.built:
+            self.built[identity] = _build_segment(identity, self.groups[identity], self.collector, self.reasons,
+                                                  self.intern)
+            for o in self.built[identity]:
+                self.observations[o.key] = o
+                for i, j, kind in o.breaks:
+                    self.joins[o.positions[i], o.positions[j]].append((o, i, j, kind))
+        return self.built[identity]
+
+    def molecule(self, identity):
+        """(cell barcode, UMI) of a segment, when its primary record carries both."""
+        if identity not in self.molecules:
+            self.molecules[identity] = self._molecule(identity)
+        return self.molecules[identity]
+
+    def observation_runs(self, observation):
+        if observation.key not in self.runs:
+            self.runs[observation.key] = _runs(observation.positions)
+        return self.runs[observation.key]
+
+    def _molecule(self, identity):
+        read = min(self.groups[identity], key=lambda r: (r.is_supplementary or r.is_secondary))
+        cell = read.get_tag("CB") if read.has_tag("CB") else None
+        umi = next((read.get_tag(t) for t in ("UB", "XM") if read.has_tag(t)), None)
+        return (cell, umi) if cell and umi else None
+
+    def classify(self, event, annotated, anchored):
+        """Sort segments by their CIGAR joins, without building single records.
+
+        Returns segments to build now (multi-record paths, joins at or across
+        the event, possible breakpoint clips); ``lazy[relation][canonical
+        join]`` segments for splice-ambiguous and regional unannotated joins;
+        and fragments of annotated joins crossing the event.
+        """
+        now, lazy, competing = set(), defaultdict(lambda: defaultdict(set)), defaultdict(set)
+        breakpoints = [(b.contig, b.position) for b in (event.donor, event.acceptor)]
+        for identity, records in self.groups.items():
+            if len(records) > 1:
+                now.add(identity)
+                continue
+            read, = records
+            if read.has_tag("SA"):
+                self.reasons["SA_declared_piece_not_linked"] += 1  # Its declared pieces were not collected.
+            for left, right, kind, inserted in _record_gaps(read):
+                self.gaps[left, right][identity] = inserted
+                self.gap_kinds[left, right].add(kind)
+                oriented = [(left, right), (_flip(right), _flip(left))]
+                classes = [_join_class(event, annotated, *join, len(inserted), kind) for join in oriented]
+                uses = [use for use, _ in classes]
+                if "annotated" in uses:
+                    for (use, relation), join in zip(classes, oriented):
+                        if use == "annotated" and relation:
+                            competing[join].add(identity[:2])
+                elif "event" in uses:
+                    now.add(identity)
+                elif "wobble" in uses:
+                    self.reasons["join_near_annotated_junction"] += 1
+                elif "lazy" in uses:
+                    lazy[next(r for use, r in classes if use == "lazy")][_canonical(left, right)].add(identity)
+                elif kind != "D" and all(r is None for _, r in classes) and any(
+                        anchored(p) for p in (left, right, _flip(left), _flip(right))):
+                    lazy["regional_novel_junction"][_canonical(left, right)].add(identity)
+            # SAM permits soft clips inside terminal hard clips.
+            if (self.collector.use_soft_clipped_bases and any(op == 4 for op, _ in read.cigartuples)
+                    and any(read.reference_name == contig and abs(edge - position) <= 1
+                            for contig, position in breakpoints for edge in (read.reference_start, read.reference_end))):
+                now.add(identity)
+        return now, lazy, competing
+
+    def join_segments(self, left, right):
+        """Segments whose own path makes this join: built ones plus never-built single records.
+
+        A built segment without the join (a failed build, or a trimmed read
+        end) does not count.
+        """
+        unbuilt = set(self.gaps.get((left, right), ())) | set(self.gaps.get((_flip(right), _flip(left)), ()))
+        return {o.identity for o, *_ in self.joins.get((left, right), ())} | {i for i in unbuilt if i not in self.built}
+
+    def overlapping(self, positions, lo, hi):
+        """(key, path offset) of observations sharing a placed base in positions[lo:hi].
+
+        Forked branches re-query shared windows; results are memoized.
+        """
+        window = positions[lo:hi]
+        if window not in self.windows:
+            self.windows[window] = self._overlapping(window)
+        return {(key, lo + offset) for key, offset in self.windows[window]}
+
+    def _overlapping(self, window):
+        runs = _runs(window)
+        covered = Counter()  # Window bases each segment's aligned blocks cover.
+        for _, _, contig, low, high, _ in runs:
+            blocks = {block for b in range(low // _RECORD_BIN, (high - 1) // _RECORD_BIN + 1)
+                      for block in self.bins.get((contig, b), ()) if block[0] < high and low < block[1]}
+            for start, end, identity in blocks:
+                covered[identity] += min(end, high) - max(start, low)
+        candidates = set(covered)
+        if len(candidates) > self.cap:
+            # Extenders must overlap the whole window (``min_overlap``): prefer
+            # segments covering most of it (e.g. both sides of a junction),
+            # then those reaching furthest beyond it.
+            self.limited = True
+            _, _, contig, _, _, strand = runs[-1]
+
+            def rank(identity):
+                low, high = self.extent[identity].get(contig, (float("inf"), float("-inf")))
+                return -covered[identity], -(high if strand == "+" else -low), identity
+            candidates = nsmallest(self.cap, candidates, key=rank)
+        found = set()
+        for identity in candidates:
+            for o in self.build(identity):
+                found |= _offsets(runs, 0, o.key, self.observation_runs(o))
+        return found
 
 
 class _ObservationIndex:
-    """Observations binned by their placed collinear runs, strand-specifically."""
+    """A fixed set of observations (e.g. one seed's reads), binned by placed runs."""
 
     def __init__(self, observations):
         self.observations = {o.key: o for o in observations}
-        self.bins = defaultdict(list)
-        for o in observations:
-            for start, _, contig, low, high, strand in _runs(o.positions):
+        self.runs = {o.key: _runs(o.positions) for o in observations}
+        self.bins = defaultdict(set)
+        for key, runs in self.runs.items():
+            for _, _, contig, low, high, strand in runs:
                 for b in range(low // _BIN, (high - 1) // _BIN + 1):
-                    self.bins[contig, strand, b].append((o.key, start, low, high))
+                    self.bins[contig, strand, b].add(key)
 
     def overlapping(self, positions, lo, hi):
         """(key, path offset of the observation start) sharing a placed base in positions[lo:hi]."""
-        found = set()
-        for start, _, contig, low, high, strand in _runs(positions[lo:hi]):
-            for b in range(low // _BIN, (high - 1) // _BIN + 1):
-                for key, other, other_low, other_high in self.bins.get((contig, strand, b), ()):
-                    if other_low >= high or low >= other_high:
-                        continue
-                    if strand == "+":
-                        shared = low if low > other_low else other_low
-                        path_q, observed_q = start + shared - low, other + shared - other_low
-                    else:
-                        shared = (high if high < other_high else other_high) - 1
-                        path_q, observed_q = start + high - 1 - shared, other + other_high - 1 - shared
-                    found.add((key, lo + path_q - observed_q))
-        return found
+        runs = _runs(positions[lo:hi])
+        keys = {key for _, _, contig, low, high, strand in runs
+                for b in range(low // _BIN, (high - 1) // _BIN + 1) for key in self.bins.get((contig, strand, b), ())}
+        return {found for key in keys for found in _offsets(runs, lo, key, self.runs[key])}
 
 
 def _agrees(sequence, positions, observation, offset, lo, hi):
@@ -441,10 +624,26 @@ def _agrees(sequence, positions, observation, offset, lo, hi):
     return mine == theirs or all(x is None or y is None or x == y for x, y in zip(mine, theirs))
 
 
-def _supported(support, min_fragments, min_fraction):
-    """Alternatives which meet both thresholds; empty when none does."""
-    best = max(support.values())
-    return {key for key, count in support.items() if count >= min_fragments and count >= min_fraction * best}
+def _supported(support, min_fragments, min_fraction, min_local_fraction):
+    """Alternatives which meet the thresholds; empty when none does.
+
+    Keys are (base, placement). An alternative placed within ``_LOCAL`` bases
+    of the best one (or unplaced) is a base or small-indel variant of it, and
+    also needs ``min_local_fraction`` of the best's support: systematic
+    long-read errors often exceed ``min_fraction``, while a heterozygous
+    allele approaches the best. Distant placements (other splice choices)
+    need only ``min_fraction``.
+    """
+    best_key = max(support, key=lambda key: (support[key], repr(key)))
+    best = support[best_key]
+
+    def local(key):
+        a, b = key[1], best_key[1]
+        return a is None or b is None or (a[::2] == b[::2] and abs(a[1] - b[1]) <= _LOCAL)
+
+    return {key for key, count in support.items()
+            if count >= min_fragments and count >= min_fraction * best
+            and (key == best_key or not local(key) or count >= min_local_fraction * best)}
 
 
 def _votes(active, t):
@@ -475,7 +674,8 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
     thresholds; otherwise every alternative becomes its own path. Support is
     counted over every read overlapping the path end. A branch keeps the reads
     which chose it, so it can continue through unplaced sequence (e.g.
-    soft-clipped tails) where no new read can be anchored.
+    soft-clipped tails) where no new read can be anchored. Each finished
+    path is returned with the keys of the observations which voted for it.
     """
     done, stack = [], [(sequence, positions, {}, ())]
     while stack:
@@ -493,15 +693,17 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
                          or _agrees(sequence, positions, observation, offset, max(0, offset), n))):
                 extenders.append((observation, offset))
         if not extenders:
-            done.append((sequence, positions))
+            done.append((sequence, positions, frozenset(used.values())))
             continue
         placed = {p for p in positions if p is not None}
         bases, added, active, forks, stopped, dropped = [], [], extenders, None, False, set()
         while True:
             votes = _votes(active, n + len(bases))
-            if not votes or (len(votes) > 1 and bases):
-                # Reads ending within this step leave fewer voters; decide a
-                # disagreement only after re-collecting every overlapping read.
+            if not votes or (bases and (len(votes) > 1 or 2 * sum(map(len, votes.values())) < len(extenders))):
+                # Reads ending within this step leave fewer voters: decide a
+                # disagreement, or continue once most extenders have ended,
+                # only after re-collecting every read overlapping the new end
+                # (so one long read cannot decide the rest of the path alone).
                 break
             if len(votes) > 1:
                 support = {key: len({o.fragment for o, _ in v}) for key, v in votes.items()}
@@ -537,7 +739,10 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
         if stopped or (forks and len(done) + len(stack) + len(forks) > budget):
             if forks:
                 notes.add("path_limit")
-            done.append((sequence, positions))
+            voters = dict(used)
+            for o in agreeing.values():
+                voters.setdefault(o.identity, o.key)
+            done.append((sequence, positions, frozenset(voters.values())))
         elif forks:
             for key in sorted(forks, key=repr):
                 chosen = {o.key for o, _ in forks[key]}
@@ -555,21 +760,16 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
     return done
 
 
-def _donor_distance(position, breakpoint):
-    """Retained donor bases between this base and the breakpoint, if retained."""
+def _distance(position, breakpoint, side):
+    """Signed retained-partner bases between a base and a breakpoint.
+
+    Negative when the base lies past the breakpoint, on the side the adjacency
+    removes; ``None`` on another contig or strand.
+    """
     contig, base, strand = position
     if (contig, strand) != (breakpoint.contig, breakpoint.strand):
         return None
-    distance = breakpoint.position - base - 1 if strand == "+" else base - breakpoint.position
-    return distance if distance >= 0 else None
-
-
-def _acceptor_distance(position, breakpoint):
-    contig, base, strand = position
-    if (contig, strand) != (breakpoint.contig, breakpoint.strand):
-        return None
-    distance = base - breakpoint.position if strand == "+" else breakpoint.position - base - 1
-    return distance if distance >= 0 else None
+    return breakpoint.position - base - 1 if (side == "donor") == (strand == "+") else base - breakpoint.position
 
 
 def _forward_splice(left, right):
@@ -577,23 +777,82 @@ def _forward_splice(left, right):
     return left[::2] == right[::2] and (right[1] > left[1] if left[2] == "+" else right[1] < left[1])
 
 
-def _event_relation(left, right, unplaced, donor, acceptor):
-    """Compare one RNA join with the oriented DNA adjacency.
+class _Event:
+    """The nominated oriented adjacency, compared with observed RNA joins."""
 
-    A breakpoint junction may assign unplaced junction bases (homology or
-    untemplated insertion) to either partner; the assignment is reported and
-    is not verified against a genome sequence. A non-breakpoint join crossing
-    from the donor to the acceptor side is splice-ambiguous when ordinary
-    forward splicing (or read-through) of the reference could also make it.
-    """
-    d, a = _donor_distance(left, donor), _acceptor_distance(right, acceptor)
-    if d is None or a is None:
-        return None, None
-    if d + a <= unplaced:
-        return "breakpoint_junction", [d, a]
-    if _forward_splice(left, right):
-        return "splice_ambiguous_event_junction", [d, a]
-    return "event_compatible_junction", [d, a]
+    def __init__(self, donor, acceptor, max_shift, annotated, tolerance):
+        self.donor, self.acceptor, self.max_shift = donor, acceptor, max_shift
+        self.donor_sites = {left for left, _ in annotated}
+        self.acceptor_sites = {right for _, right in annotated}
+        self.nearby = defaultdict(set)
+        for (contig, low, strand), right in annotated:
+            for shift in range(-tolerance, tolerance + 1):
+                self.nearby[contig, low + shift, strand].add(right)
+        self.tolerance = tolerance
+        # The adjacency is read-through-ambiguous when any placement on its
+        # diagonal joins an annotated exon end to an annotated exon start
+        # downstream on the same strand: cis-splicing can make that RNA.
+        self.read_through = any(
+            _forward_splice(left, right) and left in self.donor_sites and right in self.acceptor_sites
+            for left, right in (self._at(d, -d) for d in range(-max_shift, max_shift + 1)))
+
+    def _at(self, d, a):
+        """The donor and acceptor bases at these signed distances from the breakpoints."""
+        donor, acceptor = self.donor, self.acceptor
+        left = donor.position - 1 - d if donor.strand == "+" else donor.position + d
+        right = acceptor.position + a if acceptor.strand == "+" else acceptor.position - 1 - a
+        return (donor.contig, left, donor.strand), (acceptor.contig, right, acceptor.strand)
+
+    def near_annotated(self, left, right):
+        """Whether an unannotated join lies within ``tolerance`` bases of an annotated one.
+
+        Long-read aligners commonly misplace annotated junctions by a few
+        bases; such joins seed no ordinary-splicing or regional path.
+        """
+        return any(r[::2] == right[::2] and abs(r[1] - right[1]) <= self.tolerance for r in self.nearby.get(left, ()))
+
+    def relation(self, left, right, unplaced):
+        """Relation of one join to the adjacency, and its breakpoint assignment.
+
+        Unplaced junction bases (homology or untemplated insertion) may belong
+        to either partner, and an aligner may place up to ``max_shift``
+        homologous bases past a breakpoint: every such join on the adjacency's
+        diagonal is the breakpoint junction. The homology is not verified
+        against a genome sequence. Every placement of a read-through-ambiguous
+        adjacency is splice-ambiguous. A join just off the diagonal, with one
+        side past a breakpoint, is a (noisy) event join, not an unrelated one.
+        """
+        d, a = _distance(left, self.donor, "donor"), _distance(right, self.acceptor, "acceptor")
+        if d is None or a is None:
+            return None, None
+        if self.on_diagonal(d, a, unplaced):
+            return ("splice_ambiguous_event_junction" if self.read_through else "breakpoint_junction"), [d, a]
+        if min(d, a) < 0 and not self.near_breakpoint(d, a, unplaced):
+            return None, None
+        return ("splice_ambiguous_event_junction" if _forward_splice(left, right)
+                else "event_compatible_junction"), [d, a]
+
+    def on_diagonal(self, d, a, unplaced):
+        """Whether a join with this assignment is the adjacency itself.
+
+        Junction bases may be assigned to either partner, but the RNA cannot
+        contain reference bases from past both breakpoints (``d + a < 0``).
+        """
+        return 0 <= d + a <= unplaced and min(d, a) >= -self.max_shift
+
+    def near_breakpoint(self, d, a, unplaced):
+        """Within ``max_shift`` of the adjacency: a noisy placement of it, if weaker."""
+        return max(d, a) <= unplaced + self.max_shift and min(d, a) >= -self.max_shift
+
+    def clips(self, positions, length):
+        """(i, j, assignment) where placed sequence stops exactly at a breakpoint."""
+        placed = [q for q, p in enumerate(positions) if p is not None]
+        found = []
+        if placed[-1] < length - 1 and _distance(positions[placed[-1]], self.donor, "donor") == 0:
+            found.append((placed[-1], placed[-1] + 1, [0, None]))
+        if placed[0] > 0 and _distance(positions[placed[0]], self.acceptor, "acceptor") == 0:
+            found.append((placed[0] - 1, placed[0], [None, 0]))
+        return found
 
 
 class _Model:
@@ -747,49 +1006,81 @@ def _frame_evidence(sequence, positions, departures, models, min_anchor, referen
                 reference_readings=sorted(reference_readings), readings_departing_elsewhere=other_departures)
 
 
-def _seeds(observations, models, annotated, donor, acceptor, min_fragments):
-    """Unannotated junctions (and breakpoint clips) at which paths start."""
-    spans = defaultdict(list)
-    for model in models:
-        r = model.reference
-        spans[r.contig, r.strand].append((r.exons[0][0], r.exons[-1][1]))
+def _canonical(left, right):
+    """One key for a join and its reverse complement."""
+    return min((left, right), (_flip(right), _flip(left)))
 
-    def anchored(position):
-        return any(a <= position[1] < b for a, b in spans.get((position[0], position[2]), ()))
 
-    seeds, competing = {}, defaultdict(set)
+def _join_class(event, annotated, left, right, unplaced, kind):
+    """How one join, seen in this orientation, is used.
+
+    Returns ``("annotated", relation)``, ``("event", relation)`` for joins at
+    or across the adjacency, ``("lazy", relation)`` for ordinary-splice joins
+    across the event (seeded later, by support), ``("wobble", None)`` for
+    unannotated joins beside annotated ones, or ``(None, relation)``.
+    """
+    relation, assignment = event.relation(left, right, unplaced)
+    if unplaced == 0 and (left, right) in annotated:
+        return "annotated", relation
+    if relation and (relation != "splice_ambiguous_event_junction" or event.on_diagonal(*assignment, unplaced)):
+        return "event", relation
+    if kind == "D":
+        return None, relation  # Small deletions are not splices.
+    if unplaced == 0 and event.near_annotated(left, right):
+        return "wobble", None
+    return ("lazy", relation) if relation else (None, None)
+
+
+def _seeds(observations, event, annotated, anchored, competing, key=None, deferred=None):
+    """Seeds at unannotated joins and breakpoint clips, strongest adjacency placement first.
+
+    Without ``key``, only joins at or across the event (and breakpoint clips)
+    seed; other joins are added to ``deferred[relation][canonical join]`` so
+    that all of their reads are judged together. With ``key``, only that
+    (canonical) join seeds, in each orientation that is sense to a gene or
+    crosses the event. Annotated joins across the event go to ``competing``.
+    """
+    seeds = {}
     for o in observations:
         cores = []
         for i, j, kind in o.breaks:
             left, right = o.positions[i], o.positions[j]
-            relation, assignment = _event_relation(left, right, j - i - 1, donor, acceptor)
-            if j == i + 1 and (left, right) in annotated:
+            use, relation = _join_class(event, annotated, left, right, j - i - 1, kind)
+            if use == "annotated":
                 if relation:
                     competing[left, right].add(o.fragment)
                 continue
-            if relation is None:
-                if kind == "D" or not (anchored(left) or anchored(right)):
-                    continue
-                relation = "regional_novel_junction"
-            cores.append((i, j, relation, kind))
-        placed = [q for q, p in enumerate(o.positions) if p is not None]
-        if placed[-1] < len(o.sequence) - 1 and _donor_distance(o.positions[placed[-1]], donor) == 0:
-            cores.append((placed[-1], placed[-1] + 1, "breakpoint_clip_partner_unplaced", "clip"))
-        if placed[0] > 0 and _acceptor_distance(o.positions[placed[0]], acceptor) == 0:
-            cores.append((placed[0] - 1, placed[0], "breakpoint_clip_partner_unplaced", "clip"))
+            if use == "event" and key is None:
+                cores.append((i, j, relation, kind))
+                continue
+            regional = (use is None and relation is None and (anchored(left) or anchored(right))
+                        and not event.relation(_flip(right), _flip(left), j - i - 1)[0] and kind != "D")
+            if use != "lazy" and not regional:
+                continue
+            relation = relation or "regional_novel_junction"
+            if key is None:
+                if deferred is not None:
+                    deferred[relation][_canonical(left, right)].add(o.identity)
+            elif _canonical(left, right) == key:
+                cores.append((i, j, relation, kind))
+        if key is None:
+            cores += [(i, j, "breakpoint_clip_partner_unplaced", "clip")
+                      for i, j, _ in event.clips(o.positions, len(o.sequence))]
         for i, j, relation, kind in cores:
             seed = seeds.setdefault((o.sequence[i:j + 1], o.positions[i:j + 1]), dict(
-                relation=relation, fragments=set(), observations=[], kinds=set()))
+                relation=relation, fragments=set(), observations=[], kinds=set(),
+                near_breakpoint=relation in ("breakpoint_junction", "event_compatible_junction",
+                                             "splice_ambiguous_event_junction")
+                and event.near_breakpoint(*event.relation(o.positions[i], o.positions[j], j - i - 1)[1], j - i - 1)))
             seed["fragments"].add(o.fragment)
             seed["observations"].append((o, i))
             seed["kinds"].add(kind)
     rank = {status: i for i, status in enumerate(LINKAGE_STATUSES)}
-    ordered = sorted(
-        ((key, seed) for key, seed in seeds.items()
-         if seed["relation"] not in _SUPPORT_GATED or len(seed["fragments"]) >= min_fragments),
-        key=lambda item: (rank[item[1]["relation"]], -len(item[1]["fragments"]), item[0][0], repr(item[0][1])))
-    return ordered, [dict(left=list(left), right=list(right), fragments=len(fragments))
-                     for (left, right), fragments in sorted(competing.items())]
+    # Placements of the adjacency are ordered by support alone, so the
+    # strongest is the reference its weaker variants are pruned against.
+    return sorted(seeds.items(), key=lambda item: (
+        not item[1]["near_breakpoint"], 0 if item[1]["near_breakpoint"] else rank[item[1]["relation"]],
+        -len(item[1]["fragments"]), item[0][0], repr(item[0][1])))
 
 
 def _contains(path, core):
@@ -802,67 +1093,115 @@ def _contains(path, core):
     return False
 
 
-def _support(sequence, positions, index):
-    """Observations contained in, and agreeing with, the whole path."""
-    result = []
-    for key, offset in sorted(index.overlapping(positions, 0, len(positions))):
-        observation = index.observations[key]
-        if (0 <= offset and offset + len(observation.sequence) <= len(sequence)
-                and _agrees(sequence, positions, observation, offset, offset, offset + len(observation.sequence))):
-            result.append((observation, offset))
-    return result
-
-
-def _path_result(sequence, positions, index, donor, acceptor, annotated, frame_evidence):
+def _path_result(sequence, positions, voters, store, event, annotated, adjacency, clip_support, frame_evidence):
     """Serialize one path with junction, sequence and frame evidence.
 
-    Returns the result and the observations reported as direct evidence:
-    those spanning a reported junction or breakpoint clip, or the whole path.
+    Direct support for a junction is every segment whose own observed path
+    makes that join, whatever its other bases (so noisy long reads count).
+    All assignments of the nominated adjacency's junction bases support its
+    breakpoint junction. Counts include single records not yet built, whose
+    CIGAR makes the join; built observations are cited individually.
+    Returns the result and the observations it cites.
     """
-    support = _support(sequence, positions, index)
-    kinds = defaultdict(set)
-    for observation, offset in support:
-        for i, j, kind in observation.breaks:
-            kinds[i + offset, j + offset].add(kind)
+    path_runs, spans_seen, placed = defaultdict(list), {}, [0]
+    for q0, _, contig, low, high, strand in _runs(positions):
+        path_runs[contig, strand].append((q0, low, high))
+    for position in positions:
+        placed.append(placed[-1] + (position is not None))
+
+    def span(observation):
+        """First and last path offsets co-observed by one read, if it agrees with the path there.
+
+        The read must observe every placed path base between them, and place
+        no other base between its first and last shared ones (no skipped or
+        extra exon). Intervening unplaced query spans must also agree in
+        length and sequence; otherwise it contributes no interval.
+        """
+        if observation.key not in spans_seen:
+            shared, shared_runs = 0, []
+            runs = store.observation_runs(observation)
+            for own, _, contig, other_low, other_high, strand in runs:
+                for q0, low, high in path_runs.get((contig, strand), ()):
+                    a, b = max(low, other_low), min(high, other_high)
+                    if a < b:
+                        shared += b - a
+                        if strand == "+":
+                            start, own_start = q0 + a - low, own + a - other_low
+                        else:
+                            start, own_start = q0 + high - b, own + other_high - b
+                        shared_runs.append((start, start + b - a, own_start, own_start + b - a))
+            result = ()
+            if shared:
+                shared_runs.sort()
+                first, last = shared_runs[0][0], shared_runs[-1][1] - 1
+                own_first = min(a for _, _, a, _ in shared_runs)
+                own_last = max(b for _, _, _, b in shared_runs) - 1
+                own_placed = sum(max(0, min(end, own_last + 1) - max(start, own_first)) for start, end, *_ in runs)
+                if (shared == placed[last + 1] - placed[first] == own_placed
+                        and all(start - end == own_start - own_end >= 0
+                                and sequence[end:start] == observation.sequence[own_end:own_start]
+                                for (_, end, _, own_end), (start, _, own_start, _)
+                                in zip(shared_runs, shared_runs[1:]))):
+                    result = (first, last)
+            spans_seen[observation.key] = result
+        return spans_seen[observation.key]
     rows = []
     for i, j in _breaks(positions):
         left, right = positions[i], positions[j]
-        relation, assignment = _event_relation(left, right, j - i - 1, donor, acceptor)
+        relation, assignment = event.relation(left, right, j - i - 1)
         is_annotated = j == i + 1 and (left, right) in annotated
-        # Annotated splicing and CIGAR deletions are reported only when they
-        # also cross the nominated event.
-        if relation is None and (is_annotated or kinds[i, j] <= {"D"}):
+        if relation is None and is_annotated:
+            continue  # Ordinary annotated splicing.
+        if relation == "breakpoint_junction":
+            direct, segments = adjacency, {o.identity for o, *_ in adjacency}
+        else:
+            direct, segments = store.joins.get((left, right), []), store.join_segments(left, right)
+        kinds = {kind for *_, kind in direct}
+        if segments - {o.identity for o, *_ in direct}:
+            kinds |= store.gap_kinds.get((left, right), set()) | store.gap_kinds.get((_flip(right), _flip(left)), set())
+        # CIGAR deletions are reported only when they also cross the event.
+        if relation is None and kinds <= {"D"}:
             continue
-        rows.append((i, j, relation or "regional_novel_junction", assignment, is_annotated))
-    placed = [q for q, p in enumerate(positions) if p is not None]
-    if placed[-1] < len(sequence) - 1 and _donor_distance(positions[placed[-1]], donor) == 0:
-        rows.append((placed[-1], placed[-1] + 1, "breakpoint_clip_partner_unplaced", [0, None], False))
-    if placed[0] > 0 and _acceptor_distance(positions[placed[0]], acceptor) == 0:
-        rows.append((placed[0] - 1, placed[0], "breakpoint_clip_partner_unplaced", [None, 0], False))
+        rows.append((i, j, relation or "regional_novel_junction", assignment, is_annotated, direct, segments, kinds))
+    for i, j, assignment in event.clips(positions, len(sequence)):
+        direct = clip_support["donor" if assignment[0] == 0 else "acceptor"]
+        rows.append((i, j, "breakpoint_clip_partner_unplaced", assignment, False, direct,
+                     {o.identity for o, *_ in direct}, {"clip"}))
     junctions, evidence = [], {}
-    for i, j, relation, assignment, is_annotated in sorted(rows, key=lambda row: row[:2]):
-        spanning = [(o, offset) for o, offset in support if offset <= i and j < offset + len(o.sequence)]
-        evidence.update((o.key, o) for o, _ in spanning)
+    for i, j, relation, assignment, is_annotated, direct, segments, kinds in sorted(rows, key=lambda row: row[:2]):
+        evidence.update((o.key, o) for o, *_ in direct)
+        unbuilt = segments - {o.identity for o, *_ in direct}
+        junction_sequences = Counter(o.sequence[a + 1:b] for o, a, b, _ in direct)
+        if unbuilt:
+            left, right = positions[i], positions[j]
+            junction_sequences.update(inserted for identity, inserted in store.gaps.get((left, right), {}).items()
+                                      if identity in unbuilt)
+            junction_sequences.update(reverse_complement(inserted) for identity, inserted in
+                                      store.gaps.get((_flip(right), _flip(left)), {}).items() if identity in unbuilt)
+        molecules = {store.molecule(identity) for identity in segments} - {None}
+        # Bases co-observed with the join in single reads; annotated splices are context only.
+        spans = [] if is_annotated else [q for q in (span(o) for o, *_ in direct) if q]
+        clip = relation == "breakpoint_clip_partner_unplaced"
         junctions.append(dict(
             query_interval=[i, j], left=positions[i] and list(positions[i]),
             right=positions[j] and list(positions[j]), unplaced_bases=sequence[i + 1:j],
             forward_splice_geometry=bool(positions[i] and positions[j] and _forward_splice(positions[i], positions[j])),
-            kinds=sorted(kinds[i, j]) or (["clip"] if relation == "breakpoint_clip_partner_unplaced" else []),
-            annotated=is_annotated, relation=relation, breakpoint_assignment=assignment,
-            spanning_segments=len({o.identity for o, _ in spanning}),
-            spanning_fragments=len({o.fragment for o, _ in spanning}),
-            spanning_observations=sorted({o.key for o, _ in spanning}),
-            linked_interval=([min(offset for _, offset in spanning),
-                              max(offset + len(o.sequence) for o, offset in spanning)] if spanning else None)))
+            kinds=sorted(kinds), annotated=is_annotated, relation=relation, breakpoint_assignment=assignment,
+            direct_segments=len(segments), direct_fragments=len({s[:2] for s in segments}),
+            direct_molecules=len(molecules) if molecules else None,
+            direct_observations=sorted({o.key for o, *_ in direct}),
+            direct_junction_sequences=None if clip else [
+                list(item) for item in sorted(junction_sequences.items(), key=lambda item: (-item[1], item[0]))],
+            linked_interval=[min(min(q) for q in spans), max(max(q) for q in spans) + 1] if spans else None))
     departures = {q: j["relation"] for j in junctions if not j["annotated"]
                   for q in range(j["query_interval"][0] + 1,
                                  len(sequence) if j["right"] is None else j["query_interval"][1] + 1)}
     frame = frame_evidence(sequence, positions, departures)
     relations = {j["relation"] for j in junctions if not j["annotated"]}
     status = next((s for s in LINKAGE_STATUSES if s in relations), "no_novel_junction")
-    whole = sorted({o.key for o, offset in support if offset == 0 and len(o.sequence) == len(sequence)})
-    evidence.update((key, index.observations[key]) for key in whole)
-    segments = {o.identity for o, _ in support}
+    voting = [store.observations[key] for key in sorted(voters)]
+    evidence.update((o.key, o) for o in voting)
+    segments = {o.identity for o in voting}
     return dict(
         path_id=sha256(repr((sequence, positions)).encode()).hexdigest()[:24],
         sequence=sequence,
@@ -873,10 +1212,9 @@ def _path_result(sequence, positions, index, donor, acceptor, annotated, frame_e
                                                      if j["relation"] == status and not j["annotated"]],
                            somatic_causation_proven=False),
         sequence_evidence=dict(
-            contained_segments=len(segments), contained_fragments=len({s[:2] for s in segments}),
-            whole_path_observations=whole,
-            missing_quality_segments=len({o.identity for o, _ in support if o.missing_qualities}),
-            secondary_segments=len({o.identity for o, _ in support if o.secondary}),
+            voting_segments=len(segments), voting_fragments=len({s[:2] for s in segments}),
+            missing_quality_segments=len({o.identity for o in voting if o.missing_qualities}),
+            secondary_segments=len({o.identity for o in voting if o.secondary}),
             assembly_phase="hypothesis_not_proven_long_range_phase"),
         **frame), evidence
 
@@ -895,9 +1233,13 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                        sample_id, source, event_provenance, read_collector=None,
                        min_anchor_bases=SV_MIN_ANCHOR_BASES, min_overlap=SV_MIN_OVERLAP,
                        min_alternative_fragments=SV_MIN_ALTERNATIVE_FRAGMENTS,
-                       min_alternative_fraction=SV_MIN_ALTERNATIVE_FRACTION, max_records=SV_MAX_RECORDS, max_queries=SV_MAX_QUERIES,
-                       max_paths=SV_MAX_PATHS, assemble=SV_ASSEMBLE,
-                       breakpoint_window=SV_BREAKPOINT_WINDOW, peptide_lengths=FUSION_PEPTIDE_LENGTHS):
+                       min_alternative_fraction=SV_MIN_ALTERNATIVE_FRACTION,
+                       min_local_variant_fraction=SV_MIN_LOCAL_VARIANT_FRACTION, max_records=SV_MAX_RECORDS,
+                       max_queries=SV_MAX_QUERIES, max_paths=SV_MAX_PATHS,
+                       max_extension_segments=SV_MAX_EXTENSION_SEGMENTS, assemble=SV_ASSEMBLE,
+                       breakpoint_window=SV_BREAKPOINT_WINDOW, max_breakpoint_shift=SV_MAX_BREAKPOINT_SHIFT,
+                       annotated_junction_tolerance=SV_ANNOTATED_JUNCTION_TOLERANCE,
+                       peptide_lengths=FUSION_PEPTIDE_LENGTHS):
     """Reconstruct RNA paths for one nominated, oriented DNA adjacency.
 
     Paths start at unannotated RNA junctions (and, when soft-clipped bases are
@@ -936,12 +1278,27 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         An alternative extension branch, or a sequence variant of an already
         seeded junction, is also pruned when its fragments are below this
         fraction of the best-supported alternative. Pruning is reported.
+    min_local_variant_fraction : float
+        A base or small-indel alternative (placed within 20 bases of the best,
+        or a variant of a seeded junction's bases) also needs this fraction of
+        the best's support, so systematic long-read errors do not fork paths.
     max_records, max_queries, max_paths : int
         Resource limits; reaching one is reported in ``limitations``.
+    max_extension_segments : int
+        Segments built to extend one path end; those reaching furthest are
+        used. Reaching it is reported as ``extension_segment_limit``.
     assemble : bool
         Extend through overlapping observations which do not span the seed.
     breakpoint_window : int
         Bases searched to either side of each nominated breakpoint.
+    max_breakpoint_shift : int
+        Junction bases an aligner may place past a breakpoint (homology, not
+        verified against a genome) while the join still counts as the
+        breakpoint junction.
+    annotated_junction_tolerance : int
+        Unannotated joins within this many bases of an annotated junction are
+        treated as alignment wobble and seed no ordinary-splicing or regional
+        path (joins at the nominated adjacency are always used).
     peptide_lengths : iterable of int
 
     Returns
@@ -957,11 +1314,15 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     if not isinstance(donor, FusionBreakpoint) or not isinstance(acceptor, FusionBreakpoint):
         raise TypeError("Expected oriented FusionBreakpoint inputs")
     for value in (min_anchor_bases, min_overlap, min_alternative_fragments, max_records, max_queries, max_paths,
-                  breakpoint_window):
+                  max_extension_segments, breakpoint_window):
         if type(value) is not int or value < 1:
             raise ValueError("SV evidence thresholds and search limits must be positive integers")
-    if isinstance(min_alternative_fraction, bool) or not 0 <= min_alternative_fraction <= 1:
-        raise ValueError("min_alternative_fraction must be between 0 and 1")
+    for value in (max_breakpoint_shift, annotated_junction_tolerance):
+        if type(value) is not int or value < 0:
+            raise ValueError("Breakpoint shift and annotated-junction tolerance must be nonnegative integers")
+    for value in (min_alternative_fraction, min_local_variant_fraction):
+        if isinstance(value, bool) or not 0 <= value <= 1:
+            raise ValueError("Alternative-support fractions must be between 0 and 1")
     if min_anchor_bases < 3:
         raise ValueError("A frame anchor needs at least one codon")
     lengths = tuple(sorted(set(peptide_lengths)))
@@ -978,58 +1339,109 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     annotated = set().union(*(m.junctions() for m in models))
     reference_peptides = {m.protein[i:i + k] for m in models if m.protein
                           for k in lengths for i in range(len(m.protein) - k + 1)}
+    event = _Event(donor, acceptor, max_breakpoint_shift, annotated, annotated_junction_tolerance)
+    spans = defaultdict(list)
+    for r in references:
+        spans[r.contig, r.strand].append((r.exons[0][0], r.exons[-1][1]))
+
+    def anchored(position):
+        """Within an annotated gene span, on its strand."""
+        return any(a <= position[1] < b for a, b in spans.get((position[0], position[2]), ()))
 
     records, acquisition = collect_sv_records(bam, regions, references, max_records, max_queries,
                                               (donor, acceptor), breakpoint_window)
-    observations, excluded, reasons = segment_observations(records, collector)
-    index = _ObservationIndex(observations)
-    seeds, competing = _seeds(observations, models, annotated, donor, acceptor, min_alternative_fragments)
+    store = _Observations(records, collector, max_extension_segments)
+    now, lazy, competing = store.classify(event, annotated, anchored)
+    initial = [o for identity in sorted(now) for o in store.build(identity)]
+    first = _seeds(initial, event, annotated, anchored, competing, deferred=lazy)
+    queue = [(relation, key, ids) for relation in ("splice_ambiguous_event_junction", "regional_novel_junction")
+             for key, ids in sorted(lazy[relation].items(),
+                                    key=lambda item: (-len({i[:2] for i in item[1]}), repr(item[0])))
+             if len({i[:2] for i in ids}) >= min_alternative_fragments]
+    thresholds = (min_alternative_fragments, min_alternative_fraction, min_local_variant_fraction)
+    paths, pruned, notes, seed_rows, strongest, seen = {}, [], set(acquisition["limitations"]), [], {}, set()
 
-    thresholds = (min_alternative_fragments, min_alternative_fraction)
-    pairs = list(zip(observations[::2], observations[1::2]))  # Both orientations of each segment path.
-    mirrors = {**{a.key: b for a, b in pairs}, **{b.key: a for a, b in pairs}}
-    paths, pruned, notes, seed_rows, strongest = {}, [], set(acquisition["limitations"]), [], {}
-    for (core_sequence, core_positions), seed in seeds:
-        row = dict(relation=seed["relation"], kinds=sorted(seed["kinds"]),
-                   left=list(core_positions[0]) if core_positions[0] else None,
-                   right=list(core_positions[-1]) if core_positions[-1] else None,
-                   unplaced_bases=core_sequence[1:-1], fragments=len(seed["fragments"]),
-                   segments=len({o.identity for o, _ in seed["observations"]}), paths=[])
-        seed_rows.append(row)
-        # Seeds are ordered by support: a weak base variant of an already
-        # seeded junction is pruned like any other weak extension branch.
-        if core_positions in strongest:
-            strong = _supported({"best": strongest[core_positions], "this": row["fragments"]}, *thresholds)
-            if "best" in strong and "this" not in strong:
-                row["minor_variant_of_seeded_junction"] = True
+    def batches():
+        """(seeds, gated): event seeds first; other joins are built only if reached."""
+        yield first, False
+        for k, (_, key, ids) in enumerate(queue):
+            if len(paths) >= max_paths:
+                notes.add("path_limit")
+                seed_rows.extend(dict(relation=relation, left=list(left), right=list(right),
+                                      fragments=len({i[:2] for i in ids}), unexplored=True, paths=[])
+                                 for relation, (left, right), ids in queue[k:])
+                return
+            if len(ids) > max_extension_segments:
+                notes.add("seed_segment_limit")
+            chosen = sorted(ids)[:max_extension_segments]
+            yield _seeds([o for identity in chosen for o in store.build(identity)], event, annotated, anchored,
+                         competing, key=key), True
+
+    for batch, gated in batches():
+        for (core_sequence, core_positions), seed in batch:
+            if (core_sequence, core_positions) in seen:
                 continue
-        strongest.setdefault(core_positions, row["fragments"])
-        if any(_contains(path, (core_sequence, core_positions)) for path in paths):
-            row["represented_by_earlier_path"] = True
-            continue
-        if len(paths) >= max_paths:
-            notes.add("path_limit")
-            row["unexplored"] = True
-            continue
-        pool = index
-        if not assemble:
-            spanning = [o for o, _ in seed["observations"]]
-            pool = _ObservationIndex(spanning + [mirrors[o.key] for o in spanning])
-        for sequence, positions in _extend(core_sequence, core_positions, pool, min_overlap,
-                                           thresholds, max_paths - len(paths), pruned, notes, False):
-            for mirror in _extend(*_mirror(sequence, positions), pool, min_overlap, thresholds,
-                                  max(1, max_paths - len(paths)), pruned, notes, True):
-                path = _mirror(*mirror)
-                paths.setdefault(path, [])
-                if len(paths) > max_paths:
-                    del paths[path]
-                    notes.add("path_limit")
-                    break
-                paths[path].append(row)
+            seen.add((core_sequence, core_positions))
+            row = dict(relation=seed["relation"], kinds=sorted(seed["kinds"]),
+                       left=list(core_positions[0]) if core_positions[0] else None,
+                       right=list(core_positions[-1]) if core_positions[-1] else None,
+                       unplaced_bases=core_sequence[1:-1], fragments=len(seed["fragments"]),
+                       segments=len({o.identity for o, _ in seed["observations"]}), paths=[])
+            seed_rows.append(row)
+            # Joins at or across the event may rest on one fragment; ordinary
+            # splices and regional joins need support.
+            if gated and row["fragments"] < min_alternative_fragments:
+                row["below_min_fragments"] = True
+                continue
+            # Seeds come strongest first. A base variant of a seeded junction is
+            # pruned like a weak extension branch (only against a supported
+            # best). Another placement of the nominated adjacency (a different
+            # junction-base assignment or noisy near-miss) is the same event:
+            # it seeds only if it is itself supported.
+            variant = "adjacency" if seed["near_breakpoint"] else core_positions
+            if variant in strongest:
+                best, best_positions = strongest[variant]
+                strong = _supported({("", None): best, ("", "this"): row["fragments"]}, *thresholds)
+                if ("", "this") not in strong and (("", None) in strong or core_positions != best_positions):
+                    row["minor_variant_of_seeded_junction"] = True
+                    continue
+            strongest.setdefault(variant, (row["fragments"], core_positions))
+            if any(_contains(path, (core_sequence, core_positions)) for path in paths):
+                row["represented_by_earlier_path"] = True
+                continue
+            if len(paths) >= max_paths:
+                notes.add("path_limit")
+                row["unexplored"] = True
+                continue
+            pool = store
+            if not assemble:
+                spanning = [o for o, _ in seed["observations"]]
+                mirrors = {o.key: m for o in spanning for m in store.built[o.identity]
+                           if m.key[:-1] == o.key[:-1] and m.key != o.key}
+                pool = _ObservationIndex(spanning + [mirrors[o.key] for o in spanning])
+            for sequence, positions, voters in _extend(core_sequence, core_positions, pool, min_overlap,
+                                                       thresholds, max_paths - len(paths), pruned, notes, False):
+                for *mirror, more in _extend(*_mirror(sequence, positions), pool, min_overlap, thresholds,
+                                             max(1, max_paths - len(paths)), pruned, notes, True):
+                    path = _mirror(*mirror)
+                    if path not in paths and len(paths) >= max_paths:
+                        notes.add("path_limit")
+                        break
+                    rows, contributors = paths.setdefault(path, ([], set()))
+                    rows.append(row)
+                    contributors.update(voters | more)
+    if store.limited:
+        notes.add("extension_segment_limit")
+    adjacency = [entry for (left, right), entries in store.joins.items() for entry in entries
+                 if event.relation(left, right, entry[2] - entry[1] - 1)[0] == "breakpoint_junction"]
+    clip_support = defaultdict(list)
+    for o in store.observations.values():
+        for i, j, assignment in event.clips(o.positions, len(o.sequence)):
+            clip_support["donor" if assignment[0] == 0 else "acceptor"].append((o, i, j, "clip"))
     results, used = [], {}
-    for (sequence, positions), rows in paths.items():
+    for (sequence, positions), (rows, voters) in paths.items():
         result, evidence = _path_result(
-            sequence, positions, index, donor, acceptor, annotated,
+            sequence, positions, voters, store, event, annotated, adjacency, clip_support,
             lambda *path: _frame_evidence(*path, models, min_anchor_bases, reference_peptides, lengths))
         results.append(result)
         for row in rows:
@@ -1038,13 +1450,16 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         used.update(evidence)
     rank = {status: i for i, status in enumerate(LINKAGE_STATUSES)}
     results.sort(key=lambda r: (rank.get(r["event_linkage"]["status"], len(rank)),
-                                -max([j["spanning_fragments"] for j in r["junctions"]], default=0),
+                                -max([j["direct_fragments"] for j in r["junctions"]], default=0),
                                 r["sequence"], r["path_id"]))
     record_ids = {rid for o in used.values() for rid in o.records}
-    statuses = {r["event_linkage"]["status"] for r in results}
+    cited = {rid: r.to_string() for identity in {o.identity for o in used.values()}
+             for r in store.groups[identity] if (rid := _record_id(r)) in record_ids}
+    best = next((s for s in LINKAGE_STATUSES if s in {r["event_linkage"]["status"] for r in results}), None)
     return dict(
-        schema="isovar.sv_rna_candidates.v1",
-        status=("event_linked_candidates" if statuses - _SUPPORT_GATED - {"no_novel_junction"}
+        schema="isovar.sv_rna_candidates.v2",
+        status=("event_linked_candidates" if best in LINKAGE_STATUSES[:3]
+                else "splice_ambiguous_candidates" if best == "splice_ambiguous_event_junction"
                 else "regional_candidates_only" if results else "no_candidate_paths"),
         event_id=event_id, reference_name=reference_name, sample_id=sample_id, source=source,
         event_provenance=event_provenance, donor=asdict(donor), acceptor=asdict(acceptor),
@@ -1054,18 +1469,26 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         acquisition=acquisition, limitations=sorted(notes),
         parameters=dict(min_anchor_bases=min_anchor_bases, min_overlap=min_overlap,
                         min_alternative_fragments=min_alternative_fragments,
-                        min_alternative_fraction=min_alternative_fraction, max_records=max_records,
-                        max_queries=max_queries, max_paths=max_paths, assemble=assemble,
-                        breakpoint_window=breakpoint_window, peptide_lengths=lengths,
-                        genetic_code=1, use_soft_clipped_bases=collector.use_soft_clipped_bases,
+                        min_alternative_fraction=min_alternative_fraction,
+                        min_local_variant_fraction=min_local_variant_fraction, max_records=max_records,
+                        max_queries=max_queries, max_paths=max_paths,
+                        max_extension_segments=max_extension_segments, assemble=assemble,
+                        breakpoint_window=breakpoint_window, max_breakpoint_shift=max_breakpoint_shift,
+                        annotated_junction_tolerance=annotated_junction_tolerance,
+                        peptide_lengths=lengths, genetic_code=1,
+                        use_soft_clipped_bases=collector.use_soft_clipped_bases,
                         min_mapping_quality=collector.min_mapping_quality),
-        seeds=seed_rows, competing_annotated_junctions=competing, pruned_branches=pruned, paths=results,
+        seeds=seed_rows,
+        competing_annotated_junctions=[dict(left=list(left), right=list(right), fragments=len(fragments))
+                                       for (left, right), fragments in sorted(competing.items())],
+        pruned_branches=pruned, paths=results,
         observations={key: dict(identity=list(o.identity), records=list(o.records), reverse_complement=o.reverse,
                                 original_query_interval=list(o.query_interval),
                                 missing_qualities=o.missing_qualities, secondary=o.secondary)
                       for key, o in sorted(used.items())},
-        excluded_records=dict(Counter(excluded.values())), segment_path_notes=dict(reasons),
-        original_records={_record_id(r): r.to_string() for r in records if _record_id(r) in record_ids})
+        observation_counts=dict(eligible_segments=len(store.groups), built_segments=len(store.built)),
+        excluded_records=dict(store.excluded), segment_path_notes=dict(store.reasons),
+        original_records=cited)
 
 
 def sv_rna_input_from_dict(data):

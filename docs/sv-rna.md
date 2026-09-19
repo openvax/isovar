@@ -1,6 +1,6 @@
 # RNA paths around a nominated SV
 
-Isovar 1.20 adds `isovar sv-rna` / `reconstruct_sv_rna`: event-directed RNA
+Isovar 1.20 added `isovar sv-rna` / `reconstruct_sv_rna`: event-directed RNA
 reconstruction from an indexed BAM, upstream of the [supplied-fusion
 workflow](fusion.md). It is the first slice of
 [#305](https://github.com/openvax/isovar/issues/305) and
@@ -39,19 +39,33 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
    separate observations. Bases come from actual CIGARs in original query
    coordinates. Hard-clipped bases stay unavailable. Bases that two pieces
    place differently (junction homology) stay in the sequence but unplaced.
-   Missing QUAL is kept unless `--require-base-qualities`.
+   A CIGAR `N` gap shorter than 21 bases is a deletion, not an intron
+   (STAR's `alignIntronMin`). Missing QUAL is kept unless `--require-base-qualities`.
 3. **Seed.** Paths start at unannotated junctions: CIGAR `N` or supplementary
    splits between consecutive placed bases. With soft clips enabled, unaligned
-   sequence exactly at a breakpoint also seeds a path. Seeds tied to the event
-   are always used. Splice-ambiguous and regional junctions need
-   `--min-alternative-fragments` (default 2).
+   sequence exactly at a breakpoint also seeds a path. Joins at or across the
+   event (breakpoint, event-compatible, clips) may rest on one fragment.
+   Splice-ambiguous and regional joins are queued and seeded by support, if the
+   path budget allows. They need `--min-alternative-fragments` (default 2),
+   counted over every read that makes the join. Placements of the adjacency
+   (other junction-base assignments, and near-misses within
+   `--max-breakpoint-shift`) are ordered by support. The strongest seeds;
+   another seeds only if it is itself supported (next item). A base variant
+   of one placement is pruned only against a supported best. Unannotated
+   ordinary-splice or regional joins within `--annotated-junction-tolerance`
+   (5) bases of an annotated junction are aligner wobble and seed nothing.
 4. **Extend.** Paths grow 5' and 3' through exact overlaps (`--min-overlap`,
    default 30) that share a placed base with the path and never conflict in
    placement. There is no sequence-only joining across repeats and no bridging of
-   unobserved mate inserts. At a disagreement, an alternative is pruned only
-   when another has at least `--min-alternative-fragments` fragments and it
-   has less than `--min-alternative-fraction` (0.1) of the best. Otherwise each
-   alternative becomes its own path. Pruned branches are listed.
+   unobserved mate inserts. At a disagreement, an alternative is pruned when
+   another has at least `--min-alternative-fragments` fragments and it has
+   less than `--min-alternative-fraction` (0.1) of the best. A base or
+   small-indel alternative (placed within 20 bases of the best, or unplaced)
+   also needs `--min-local-variant-fraction` (0.5) of the best. Systematic
+   long-read errors, often 20–40% of reads, therefore do not fork paths, while
+   a heterozygous allele does. Other alternatives (splice choices) fork. Pruned
+   branches are listed. Once most of a step's reads have ended, the path end is
+   re-queried, so one long read cannot decide the rest of a path alone.
    `--no-assembly` uses only reads that span the seed junction.
 5. **Translate.** A frame is transferred from each exact, collinear CDS match
    of at least `--min-anchor-bases` (18) and read downstream through observed
@@ -64,12 +78,21 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
 
 ## Independent evidence axes
 
-- **Sequence:** `sequence_evidence` counts segments and fragments whose whole
-  observation agrees with the path. Each junction counts the observations that
-  span it, and `linked_interval` marks bases co-observed with the junction in
-  single reads. Wider context is an assembly hypothesis, not proven phase.
-  Mates, supplementary pieces and duplicate records of one fragment count once;
-  a QNAME in another read group is another fragment.
+- **Sequence:** each junction's `direct_segments`, `direct_fragments` and
+  `direct_molecules` count reads whose **own** alignment makes that join,
+  however their other bases compare with the assembled consensus. That keeps
+  noisy long reads. Every assignment of the nominated adjacency's junction
+  bases supports its breakpoint junction; `direct_junction_sequences` lists
+  them, including CIGAR insertions from reads beyond the segment build cap.
+  Molecules are distinct cell barcode + UMI (`CB` with `UB` or `XM`),
+  `null` when untagged. A read whose build failed (e.g. ambiguous bases) is
+  not counted. `linked_interval` marks path bases co-observed with a novel
+  junction in single reads that observe every path base in between (a read
+  skipping or adding an exon contributes nothing). Intervening unplaced bases
+  must agree in length and sequence too. `sequence_evidence` counts the segments whose
+  overlaps voted for the path. Wider context is an assembly hypothesis, not
+  proven phase. Mates, supplementary pieces and duplicate records of one
+  fragment count once; a QNAME in another read group is another fragment.
 - **Frame:** `frame_status` is `translated` (one protein, no competing model),
   `ambiguous` (several proteins, or a noncoding model sharing the frame
   anchor), `reference_protein_only`, `unresolved` (only noncoding or UTR
@@ -77,14 +100,21 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
   annotated start codon is observed; otherwise the upstream frame is assumed.
   `translation_observed` is always false: RNA is not protein evidence.
 - **Event linkage:** every junction has a `relation`. Values, strongest first:
-  - `breakpoint_junction`: the join reproduces the adjacency, allowing unplaced
-    junction bases to be assigned to either partner (see
-    `breakpoint_assignment`; this assignment is not checked against the genome).
+  - `breakpoint_junction`: the join reproduces the adjacency. Unplaced junction
+    bases may belong to either partner, and an aligner may place up to
+    `--max-breakpoint-shift` (10) homologous bases past one breakpoint (a
+    negative `breakpoint_assignment`; `0 ≤ d + a ≤` unplaced bases). The
+    homology is not checked against a genome. A join just off that diagonal,
+    with one side past a breakpoint, is a noisy event join, not a regional one.
   - `event_compatible_junction`: donor side to acceptor side, but not at the
     breakpoint, as when splicing removes an intronic breakpoint.
   - `breakpoint_clip_partner_unplaced`: unaligned sequence at a breakpoint.
   - `splice_ambiguous_event_junction`: crosses the event, but ordinary forward
-    splicing or read-through of the reference could make it too.
+    splicing or read-through of the reference could make it too. That means
+    any such non-breakpoint join, and every placement of an adjacency whose
+    diagonal includes an annotated exon end joined to an annotated exon start
+    downstream on the same strand (read-through of adjacent genes).
+    `breakpoint_assignment` still shows the match.
   - `regional_novel_junction`: an unannotated join near the event which
     does not cross it.
 
@@ -93,11 +123,31 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
   `somatic_causation_proven` is always false.
 
 Top-level `status` is `event_linked_candidates` (one of the first three
-relations), `regional_candidates_only` or `no_candidate_paths`. A missing path
+relations), `splice_ambiguous_candidates`, `regional_candidates_only` or
+`no_candidate_paths`. The output schema is `isovar.sv_rna_candidates.v2`
+(1.21): v1's `spanning_*` fields became `direct_*`, and whole-path
+containment counts became voting counts. A missing path
 is not evidence against the event. Peptides are windows absent from the
 supplied reference proteins only; this is not proteome novelty, presentation
-or immunogenicity. Results retain the SAM text of junction-spanning and
-whole-path records, excluded-record reasons and effective parameters.
+or immunogenicity. Results retain the SAM text of cited records, excluded-record
+reasons, segment-path notes and effective parameters.
+
+## Scale
+
+Per-base observations are built only when needed: for segments whose CIGAR
+(including inserted bases) or split structure crosses the event, then for lazily seeded joins in support
+order, then for reads that extend a path end. Each path end builds at most
+`--max-extension-segments` (200). Reads covering most of the end's window
+(e.g. both sides of a junction) come first, since an extender must overlap it
+all, then those reaching furthest. Reaching the cap is reported as
+`extension_segment_limit`. A queued join builds at most
+that many of its reads (`seed_segment_limit`). Junction counts use a cheap
+CIGAR index and need no building. Placement tuples are shared across reads.
+`observation_counts` reports eligible and built segments. On Sid ONT T1
+TPST1–CRCP (8k records), 1.20.0 took 40 s and 1.9 GB and hit the path cap
+while counting 0 of 12 noisy FOXO3 reads. 1.21 takes 5 s and 0.3 GB. The
+65k-record ONT ATP5MG–KMT2A regions (previously ~15 GB, out of reach) take
+about 45 s and 1 GB.
 
 ## Regression data and limits
 
@@ -117,9 +167,16 @@ limits and noncoding continuations. Real records:
 - **TPST1--CRCP, FOXO3, PARD3B** (Sid ONT split reads): the breakpoint junction
   is recovered, including PARD3B's 12-nt insertion. As in the supplied
   analysis, no coding frame crosses it.
+- **Sid T1 long reads** ([fixtures](../tests/data/fusions/long-read/README.md)):
+  PacBio TPST1–CRCP reads with the 8-nt homology placed on CRCP are the
+  breakpoint junction (20 molecules). Noisy ONT FOXO3 reads directly support
+  their junction (12 reads, 8 molecules). The PacBio ATP5MG–KMT2A join is
+  read-through-ambiguous.
 
-Noisy long reads are not error-corrected. Exact overlaps fragment them into
-many single-read branches, bounded by `--max-paths`. Out of scope here:
+The ATP5MG–KMT2A join appears in every Sid long-read product, always between
+annotated splice sites of adjacent same-strand genes. RNA alone does not
+distinguish that from a rearrangement. Noisy long reads are not
+error-corrected, and isoform alternatives fork paths up to `--max-paths`. Out of scope here:
 whole-genome clip realignment, consensus calling, complex multi-breakend
 events, automatic adapter-profile inference
 ([#309](https://github.com/openvax/isovar/issues/309)), translation-initiation

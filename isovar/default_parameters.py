@@ -217,10 +217,19 @@ SV_MIN_OVERLAP = 30
 # branch to prune a weaker disagreeing alternative (which is reported):
 SV_MIN_ALTERNATIVE_FRAGMENTS = 2
 SV_MIN_ALTERNATIVE_FRACTION = 0.1
+# A base/small-indel alternative must also reach this fraction of the best
+# branch, so systematic long-read errors do not fork paths (het alleles pass):
+SV_MIN_LOCAL_VARIANT_FRACTION = 0.5
 # Resource limits; reaching one is reported, never silent:
 SV_MAX_RECORDS = 10000
 SV_MAX_QUERIES = 1000
 SV_MAX_PATHS = 100
+# Segments built to extend one path end; the furthest-reaching are used.
+SV_MAX_EXTENSION_SEGMENTS = 200
 SV_ASSEMBLE = True
 # Bases searched to either side of each nominated breakpoint:
 SV_BREAKPOINT_WINDOW = 1000
+# Junction bases an aligner may place past a breakpoint (unverified homology):
+SV_MAX_BREAKPOINT_SHIFT = 10
+# Unannotated joins this close to an annotated junction are aligner wobble:
+SV_ANNOTATED_JUNCTION_TOLERANCE = 5
