@@ -409,6 +409,13 @@ assembly examples](docs/visualization.md).
 <dd>Shows all assembled cDNA coding sequences supporting any of the given variants.</dd>
 </dl>
 
+## Reproducible research data
+
+The [shared osteosarc data workflow](docs/osteosarc-data.md) imports, downloads
+and exports the pinned original-read regression subset through
+`osteosarc==0.1.0`, with checksum verification and offline reuse across OpenVax
+consumers. Acquisition is optional; ordinary tests use checked-in fixtures.
+
 ## Sequencing Recommendations
 
 Isovar works best with high quality / high coverage mRNA sequence data. 

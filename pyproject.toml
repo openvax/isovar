@@ -27,7 +27,7 @@ dependencies = {file = ["requirements.txt"]}
 include = ["isovar", "isovar.*"]
 
 [tool.setuptools.package-data]
-isovar = ["logging.conf"]
+isovar = ["logging.conf", "data/*.json"]
 
 [project.urls]
 "Homepage" = "https://github.com/openvax/isovar"
@@ -35,6 +35,7 @@ isovar = ["logging.conf"]
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.6,<4", "pypdf>=5,<7"]
+data = ["osteosarc==0.1.0; python_version >= '3.10'"]
 
 [project.scripts]
 isovar = "isovar.cli.commands:run"
