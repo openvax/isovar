@@ -43,11 +43,15 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
    (STAR's `alignIntronMin`). Missing QUAL is kept unless `--require-base-qualities`.
 3. **Seed.** Paths start at unannotated junctions: CIGAR `N` or supplementary
    splits between consecutive placed bases. With soft clips enabled, unaligned
-   sequence exactly at a breakpoint also seeds a path. The nominated adjacency
-   may rest on one fragment. Any other join needs `--min-alternative-fragments`
-   (default 2). Joins within `--max-breakpoint-shift` of the adjacency are
-   noisy placements of it. Weaker assignments of the adjacency are pruned
-   against the strongest (next item), and the pruning is reported. Unannotated
+   sequence exactly at a breakpoint also seeds a path. Joins at or across the
+   event (breakpoint, event-compatible, clips) may rest on one fragment.
+   Splice-ambiguous and regional joins are queued and seeded by support, if the
+   path budget allows. They need `--min-alternative-fragments` (default 2),
+   counted over every read that makes the join. Placements of the adjacency
+   (other junction-base assignments, and near-misses within
+   `--max-breakpoint-shift`) are ordered by support. The strongest seeds;
+   another seeds only if it is itself supported (next item). A base variant
+   of one placement is pruned only against a supported best. Unannotated
    ordinary-splice or regional joins within `--annotated-junction-tolerance`
    (5) bases of an annotated junction are aligner wobble and seed nothing.
 4. **Extend.** Paths grow 5' and 3' through exact overlaps (`--min-overlap`,
@@ -60,7 +64,9 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
    also needs `--min-local-variant-fraction` (0.5) of the best. Systematic
    long-read errors, often 20–40% of reads, therefore do not fork paths, while
    a heterozygous allele does. Other alternatives (splice choices) fork. Pruned
-   branches are listed. `--no-assembly` uses only reads that span the seed junction.
+   branches are listed. Once most of a step's reads have ended, the path end is
+   re-queried, so one long read cannot decide the rest of a path alone.
+   `--no-assembly` uses only reads that span the seed junction.
 5. **Translate.** A frame is transferred from each exact, collinear CDS match
    of at least `--min-anchor-bases` (18) and read downstream through observed
    sequence to the first stop or path end. The continuation need not match any
@@ -78,8 +84,10 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
   noisy long reads. Every assignment of the nominated adjacency's junction
   bases supports its breakpoint junction; `direct_junction_sequences` lists
   them. Molecules are distinct cell barcode + UMI (`CB` with `UB` or `XM`),
-  `null` when untagged. `linked_interval` marks path bases co-observed with a
-  novel junction in single reads. `sequence_evidence` counts the segments whose
+  `null` when untagged. A read whose build failed (e.g. ambiguous bases) is
+  not counted. `linked_interval` marks path bases co-observed with a novel
+  junction in single reads that observe every path base in between (a read
+  skipping or adding an exon contributes nothing). `sequence_evidence` counts the segments whose
   overlaps voted for the path. Wider context is an assembly hypothesis, not
   proven phase. Mates, supplementary pieces and duplicate records of one
   fragment count once; a QNAME in another read group is another fragment.
@@ -92,16 +100,19 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
 - **Event linkage:** every junction has a `relation`. Values, strongest first:
   - `breakpoint_junction`: the join reproduces the adjacency. Unplaced junction
     bases may belong to either partner, and an aligner may place up to
-    `--max-breakpoint-shift` (10) homologous bases past a breakpoint (a negative
-    `breakpoint_assignment`). The homology is not checked against a genome.
+    `--max-breakpoint-shift` (10) homologous bases past one breakpoint (a
+    negative `breakpoint_assignment`; `0 ≤ d + a ≤` unplaced bases). The
+    homology is not checked against a genome. A join just off that diagonal,
+    with one side past a breakpoint, is a noisy event join, not a regional one.
   - `event_compatible_junction`: donor side to acceptor side, but not at the
     breakpoint, as when splicing removes an intronic breakpoint.
   - `breakpoint_clip_partner_unplaced`: unaligned sequence at a breakpoint.
   - `splice_ambiguous_event_junction`: crosses the event, but ordinary forward
     splicing or read-through of the reference could make it too. That means
-    any such non-breakpoint join, and a breakpoint join from an annotated exon
-    end to an annotated exon start downstream on the same strand (read-through
-    of adjacent genes). `breakpoint_assignment` still shows the exact match.
+    any such non-breakpoint join, and every placement of an adjacency whose
+    diagonal includes an annotated exon end joined to an annotated exon start
+    downstream on the same strand (read-through of adjacent genes).
+    `breakpoint_assignment` still shows the match.
   - `regional_novel_junction`: an unannotated join near the event which
     does not cross it.
 
@@ -121,12 +132,14 @@ reasons, segment-path notes and effective parameters.
 
 ## Scale
 
-Per-base observations are built only when needed: for segments whose CIGAR or
-split structure crosses the event, then for lazily seeded joins in support
+Per-base observations are built only when needed: for segments whose CIGAR
+(including inserted bases) or split structure crosses the event, then for lazily seeded joins in support
 order, then for reads that extend a path end. Each path end builds at most
-`--max-extension-segments` (200). Reads covering every placed run of the end
-(both sides of a junction) come first, then those reaching furthest. Reaching
-the cap is reported as `extension_segment_limit`. Junction counts use a cheap
+`--max-extension-segments` (200). Reads covering most of the end's window
+(e.g. both sides of a junction) come first, since an extender must overlap it
+all, then those reaching furthest. Reaching the cap is reported as
+`extension_segment_limit`. A queued join builds at most
+that many of its reads (`seed_segment_limit`). Junction counts use a cheap
 CIGAR index and need no building. Placement tuples are shared across reads.
 `observation_counts` reports eligible and built segments. On Sid ONT T1
 TPST1–CRCP (8k records), 1.20.0 took 40 s and 1.9 GB and hit the path cap

@@ -80,7 +80,7 @@ def build(event, source, input_path, output, scratch):
     path.write_bytes(gzip.compress((header + "".join(line + "\n" for line in lines)).encode(), mtime=0))
     return dict(event=event, source=source, url=url, input=input_path, window=WINDOW, regions=len(regions),
                 regional_records=sum(len(v) for v in records.values()), segments=len(kept), records=len(lines),
-                command=" ".join(command[:5] + ["<url>", "<url>.bai", "<regions>"]), file=path.name,
+                command=" ".join(command[:5] + ["-o", "<output>", "-X", "<url>", "<url>.bai", "<regions>"]), file=path.name,
                 sha256=sha256(path.read_bytes()).hexdigest())
 
 

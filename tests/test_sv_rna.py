@@ -497,6 +497,124 @@ def test_lazily_queued_joins_beyond_the_path_budget_are_reported_unexplored(tmp_
     assert result["observation_counts"]["built_segments"] < result["observation_counts"]["eligible_segments"]
 
 
+def genome_base(s, position):
+    """Transcript bases where annotated; a fixed pseudo-random base elsewhere."""
+    if not hasattr(s, "bases"):
+        s.bases = dict(zip(s.donor_positions, s.donor_ref.sequence))
+        s.bases.update(zip(s.acceptor_positions, s.acceptor_ref.sequence))
+    return s.bases.get(position) or random.Random("%s:%d" % position[:2]).choice("ACGT")
+
+
+def breakpoint_read(s, name, d, a, flank=60):
+    """A split read placed ``d`` / ``a`` bases from the exact adjacency (negative: past it)."""
+    placements = ([("1", p, "+") for p in range(2150 - d - flank, 2150 - d)]
+                  + [("2", p, "+") for p in range(6000 + a, 6000 + a + flank)])
+    return aligned(name, "".join(genome_base(s, p) for p in placements), placements)
+
+
+def test_review_regressions_for_adjacency_placements(tmp_path):
+    s = Scenario()
+    # A single split read at an intronic-breakpoint fusion still seeds a path.
+    single = s.reads(step=10000) + aligned("f", s.sequence[200:300], s.positions[200:300])
+    result = s.run(write_bam(tmp_path / "single.bam", single))
+    assert result["status"] == "event_linked_candidates" and len(result["paths"]) == 1
+    # Singleton near-misses are one event, not one path each.
+    reads = [r for k, (d, a) in enumerate([(1, 2), (2, 1), (3, 3), (0, 4), (4, 0), (2, 2)])
+             for r in breakpoint_read(s, "n%d" % k, d, a)]
+    near = s.run(write_bam(tmp_path / "near.bam", reads), *s.exact)
+    assert len(near["paths"]) == 1
+    # The strongest placement is the reference: a weak exact join and a
+    # 3-read near-miss are pruned against 20 reads at (2, 3).
+    reads = [r for k in range(20) for r in breakpoint_read(s, "m%d" % k, 2, 3)]
+    reads += [r for k in range(3) for r in breakpoint_read(s, "w%d" % k, 4, 4)] + breakpoint_read(s, "x", 0, 0)
+    strongest = s.run(write_bam(tmp_path / "strong.bam", reads), *s.exact)
+    assert len(strongest["paths"]) == 1
+    assert sum(bool(row.get("minor_variant_of_seeded_junction")) for row in strongest["seeds"]) == 2
+    # A join with one side just past a breakpoint is a near-miss of the event.
+    past = s.run(write_bam(tmp_path / "past.bam", [r for k in range(4) for r in breakpoint_read(s, "p%d" % k, -2, 5)]),
+                 *s.exact)
+    assert past["status"] == "event_linked_candidates"
+    assert past["paths"][0]["junctions"][0]["relation"] == "event_compatible_junction"
+    # Reference bases from past both breakpoints are another adjacency.
+    both = s.run(write_bam(tmp_path / "both.bam", [r for k in range(3) for r in breakpoint_read(s, "b%d" % k, -10, -10)]),
+                 *s.exact)
+    assert not any(j["relation"] == "breakpoint_junction" for p in both["paths"] for j in p["junctions"])
+
+
+def test_breakpoint_join_with_inserted_bases_in_a_same_strand_event(tmp_path):
+    s = Scenario()
+    placements = [("1", p, "+") for p in range(2050, 2100)] + [("1", p, "+") for p in range(3052, 3102)]
+    sequence = "".join(genome_base(s, p) for p in placements[:50]) + "TTT" + "".join(
+        genome_base(s, p) for p in placements[50:])
+    read = record("ins", "1", 2050, "50M3I952N50M", sequence)
+    result = s.run(write_bam(tmp_path / "rna.bam", [read]), FusionBreakpoint("1", 2100, "+"),
+                   FusionBreakpoint("1", 3050, "+"))
+    junction, = result["paths"][0]["junctions"]
+    assert junction["relation"] == "breakpoint_junction" and junction["breakpoint_assignment"] == [0, 2]
+    assert junction["unplaced_bases"] == "TTT" and result["status"] == "event_linked_candidates"
+
+
+def test_read_through_is_a_property_of_the_adjacency_not_of_one_placement(tmp_path):
+    s = Scenario()
+    positions = [("1", p, "+") for a, b in [(10000, 10100), (11000, 11300), (12000, 12400)] for p in range(a, b)]
+    downstream = replace(s.acceptor_ref, transcript_id="B-201", contig="1",
+                         exons=((10000, 10100), (11000, 11300), (12000, 12400)))
+    exact = s.donor_positions[200:250] + positions[100:150]
+    shifted = s.donor_positions[200:250] + [("1", 2150, "+"), ("1", 2151, "+")] + positions[102:150]
+    sequence = s.donor_ref.sequence[200:250] + s.acceptor_ref.sequence[100:150]
+    reads = [r for k in range(9) for r in aligned("e%d" % k, sequence, exact)]
+    reads += [r for k in range(2) for r in aligned("s%d" % k, sequence, shifted)]
+    result = s.run(write_bam(tmp_path / "rna.bam", reads), FusionBreakpoint("1", 2150, "+"),
+                   FusionBreakpoint("1", 11000, "+"), references=[s.donor_ref, downstream])
+    assert result["status"] == "splice_ambiguous_candidates"
+    assert not any(j["relation"] == "breakpoint_junction" for p in result["paths"] for j in p["junctions"])
+
+
+def test_multi_record_reads_share_a_lazily_seeded_join_with_single_records(tmp_path):
+    s = Scenario()
+    skip = s.donor_ref.sequence[:100] + s.donor_ref.sequence[250:]
+    skip_positions = s.donor_positions[:100] + s.donor_positions[250:]
+    reads = [r for k in range(3) for r in aligned("s%d" % k, skip[40:200], skip_positions[40:200])]
+    reads.append(record("s0", "1", 2600, "40M", skip[300:340], 256))  # A secondary placement of s0.
+    result = s.run(write_bam(tmp_path / "rna.bam", reads))
+    seeded = [row for row in result["seeds"] if row["relation"] == "regional_novel_junction" and row["paths"]]
+    assert [row["fragments"] for row in seeded] == [3] and len(result["paths"]) == 1
+
+
+def test_extension_cap_keeps_reads_that_can_extend(tmp_path):
+    s = Scenario()
+    bam = write_bam(tmp_path / "rna.bam", s.tile("f", s.sequence, s.positions, 100, 2))
+    for cap in (1000, 5):
+        path, = s.run(bam, max_extension_segments=cap)["paths"]
+        assert path["sequence"] == s.sequence
+
+
+def test_one_long_read_does_not_decide_a_path_the_short_reads_contradict(tmp_path):
+    s = Scenario()
+    skipped = s.sequence[:450] + s.sequence[650:]
+    long_read = aligned("long", skipped, s.positions[:450] + s.positions[650:])
+    result = s.run(write_bam(tmp_path / "rna.bam", s.tile("f", s.sequence, s.positions, 100, 10) + long_read))
+    sequences = [p["sequence"] for p in result["paths"]]
+    assert s.sequence in sequences  # The majority isoform, not only the long read's.
+    majority = result["paths"][sequences.index(s.sequence)]
+    junction = majority["junctions"][0]
+    # The long read makes the junction but skips path bases: it adds no linked interval.
+    assert junction["linked_interval"][1] <= 350
+
+
+def test_reads_whose_build_fails_are_not_direct_support(tmp_path):
+    s = Scenario()
+    skip = s.donor_ref.sequence[:100] + s.donor_ref.sequence[250:]
+    skip_positions = s.donor_positions[:100] + s.donor_positions[250:]
+    reads = [r for k in range(3) for r in aligned("c%d" % k, skip[40:200], skip_positions[40:200])]
+    ambiguous = skip[40:120] + "N" + skip[121:200]
+    reads += [r for k in range(4) for r in aligned("n%d" % k, ambiguous, skip_positions[40:200])]
+    result = s.run(write_bam(tmp_path / "rna.bam", reads))
+    junction, = [j for p in result["paths"] for j in p["junctions"]]
+    assert junction["direct_segments"] == len(junction["direct_observations"]) == 3
+    assert result["segment_path_notes"]["ambiguous_bases"] == 4
+
+
 def test_record_and_query_limits_are_reported(tmp_path):
     s = Scenario()
     bam = write_bam(tmp_path / "rna.bam", s.reads())

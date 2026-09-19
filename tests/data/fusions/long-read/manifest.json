@@ -9,7 +9,7 @@
     "regional_records": 954,
     "segments": 23,
     "records": 46,
-    "command": "samtools view --no-PG -b -M <url> <url>.bai <regions>",
+    "command": "samtools view --no-PG -b -M -o <output> -X <url> <url>.bai <regions>",
     "file": "TPST1--CRCP.PacBio-T1.sam.gz",
     "sha256": "56411620dc61973f7be102a642b10fa701fb2ae2462a8aec7e72d4651640a56c"
   },
@@ -23,7 +23,7 @@
     "regional_records": 14477,
     "segments": 18,
     "records": 47,
-    "command": "samtools view --no-PG -b -M <url> <url>.bai <regions>",
+    "command": "samtools view --no-PG -b -M -o <output> -X <url> <url>.bai <regions>",
     "file": "FOXO3--STRADA-CCDC47.ONT-T1-tagged.sam.gz",
     "sha256": "91c27851bb2bc5d6af9387a09ba4c2dba8dd11302ea5dc2221dbe51ada8459a6"
   },
@@ -37,7 +37,7 @@
     "regional_records": 5070,
     "segments": 7,
     "records": 7,
-    "command": "samtools view --no-PG -b -M <url> <url>.bai <regions>",
+    "command": "samtools view --no-PG -b -M -o <output> -X <url> <url>.bai <regions>",
     "file": "ATP5MG--KMT2A.PacBio-T1.sam.gz",
     "sha256": "bcbda3ead21a866f02d0784b776ce76aa14e1d86158b51326d7d0a43219f2c22"
   }
