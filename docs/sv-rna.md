@@ -83,11 +83,13 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
   however their other bases compare with the assembled consensus. That keeps
   noisy long reads. Every assignment of the nominated adjacency's junction
   bases supports its breakpoint junction; `direct_junction_sequences` lists
-  them. Molecules are distinct cell barcode + UMI (`CB` with `UB` or `XM`),
+  them, including CIGAR insertions from reads beyond the segment build cap.
+  Molecules are distinct cell barcode + UMI (`CB` with `UB` or `XM`),
   `null` when untagged. A read whose build failed (e.g. ambiguous bases) is
   not counted. `linked_interval` marks path bases co-observed with a novel
   junction in single reads that observe every path base in between (a read
-  skipping or adding an exon contributes nothing). `sequence_evidence` counts the segments whose
+  skipping or adding an exon contributes nothing). Intervening unplaced bases
+  must agree in length and sequence too. `sequence_evidence` counts the segments whose
   overlaps voted for the path. Wider context is an assembly hypothesis, not
   proven phase. Mates, supplementary pieces and duplicate records of one
   fragment count once; a QNAME in another read group is another fragment.

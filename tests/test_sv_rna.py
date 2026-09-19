@@ -258,6 +258,27 @@ def test_sa_tag_without_its_observed_record_creates_no_junction(tmp_path):
     assert translation["amino_acids"] in translate(s.sequence[20:], annotated_start=True)[0]
 
 
+@pytest.mark.parametrize("side", ["donor", "acceptor"])
+@pytest.mark.parametrize("flag", [0, 16])
+def test_breakpoint_soft_clips_inside_terminal_hard_clips(tmp_path, side, flag):
+    s = Scenario()
+    if side == "donor":
+        sequence = s.sequence[200:250] + "T" * 20
+        read = record("clip", "1", 2100, "50M20S10H", sequence, flag)
+    else:
+        sequence = "T" * 20 + s.sequence[250:300]
+        read = record("clip", "2", 6000, "10H20S50M", sequence, flag)
+    bam = write_bam(tmp_path / "clip.bam", [read])
+    assert s.run(bam, *s.exact)["paths"] == []
+    result = s.run(bam, *s.exact, read_collector=ReadCollector(use_soft_clipped_bases=True))
+    path, = result["paths"]
+    assert path["sequence"] == sequence
+    junction, = path["junctions"]
+    assert junction["relation"] == "breakpoint_clip_partner_unplaced"
+    assert junction["direct_fragments"] == 1
+    assert junction["right" if side == "donor" else "left"] is None
+
+
 def junction_reads(s, step=10, length=100):
     return ["f%d" % i for i, a in enumerate(range(0, len(s.sequence) - length + 1, step))
             if a < s.junction <= a + length - 1]
@@ -600,6 +621,45 @@ def test_one_long_read_does_not_decide_a_path_the_short_reads_contradict(tmp_pat
     junction = majority["junctions"][0]
     # The long read makes the junction but skips path bases: it adds no linked interval.
     assert junction["linked_interval"][1] <= 350
+
+
+@pytest.mark.parametrize("long_insertion", ["", "AAA", "TTT"])
+def test_linked_interval_requires_the_observed_junction_insertion(tmp_path, long_insertion):
+    s = Scenario()
+    short_sequence = s.sequence[200:250] + "TTT" + s.sequence[250:300]
+    reads = [r for k in range(7) for r in link([
+        record("short%d" % k, "1", 2100, "50M3I50S", short_sequence),
+        record("short%d" % k, "2", 6000, "53H50M", s.sequence[250:300], 2048)])]
+    reads += s.tile("donor", s.donor_ref.sequence, s.donor_positions)
+    reads += s.tile("acceptor", s.acceptor_ref.sequence, s.acceptor_positions)
+    long_sequence = s.sequence[:250] + long_insertion + s.sequence[250:]
+    reads += link([
+        record("long", "1", 1000, "100M900N150M" + ("3I" if long_insertion else "") + "700S", long_sequence),
+        record("long", "2", 6000, "%dH300M700N400M" % (250 + len(long_insertion)), s.sequence[250:], 2048)])
+    result = s.run(write_bam(tmp_path / "insertion.bam", reads), *s.exact)
+    path, = [p for p in result["paths"] if p["sequence"] == s.sequence[:250] + "TTT" + s.sequence[250:]]
+    junction, = path["junctions"]
+    assert junction["direct_fragments"] == 8  # All eight reads make the join.
+    assert junction["linked_interval"] == ([0, 953] if long_insertion == "TTT" else [200, 303])
+
+
+@pytest.mark.parametrize("strand", ["+", "-"])
+@pytest.mark.parametrize("insertion_cigar", ["3I1900N", "1900N3I", "1I1900N2I"])
+def test_unbuilt_junction_reads_preserve_inserted_sequence(tmp_path, strand, insertion_cigar):
+    s = Scenario()
+    sequence = s.donor_ref.sequence[40:100] + "TTT" + s.donor_ref.sequence[250:350]
+    reads = [record("ins%03d" % k, "1", 1040, "10H7S60M" + insertion_cigar + "100M5S8H",
+                    "G" * 7 + sequence + "C" * 5, flag=16 if k % 2 else 0) for k in range(250)]
+    reference = s.donor_ref
+    if strand == "-":
+        reference = replace(reference, strand="-", sequence=reverse_complement(reference.sequence),
+                            cds_start=None, cds_end=None)
+    result = s.run(write_bam(tmp_path / "deep-insertion.bam", reads), references=[reference])
+    junction, = spanning(result, "regional_novel_junction")
+    assert junction["direct_segments"] == junction["direct_fragments"] == 250
+    assert result["observation_counts"]["built_segments"] == 200
+    assert "seed_segment_limit" in result["limitations"]
+    assert junction["direct_junction_sequences"] == [["TTT" if strand == "+" else "AAA", 250]]
 
 
 def test_reads_whose_build_fails_are_not_direct_support(tmp_path):

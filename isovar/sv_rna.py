@@ -421,11 +421,12 @@ def _aligned_blocks(read):
 
 
 def _record_gaps(read):
-    """(left, right, kind, inserted bases) of CIGAR N/D joins, in + orientation."""
+    """(left, right, kind, inserted sequence) of CIGAR N/D joins, in + orientation."""
     gaps, last = [], None
-    for _, r, n, gap, inserted in _aligned_blocks(read):
+    for q, r, n, gap, inserted in _aligned_blocks(read):
         if last is not None and gap is not None:
-            gaps.append(((read.reference_name, last, "+"), (read.reference_name, r, "+"), _gap_kind(*gap), inserted))
+            gaps.append(((read.reference_name, last, "+"), (read.reference_name, r, "+"), _gap_kind(*gap),
+                         read.query_sequence[q - inserted:q].upper()))
         last = r + n - 1
     return gaps
 
@@ -460,7 +461,7 @@ class _Observations:
     def __init__(self, records, collector, cap):
         self.collector, self.cap, self.limited = collector, cap, False
         self.groups, self.excluded, self.reasons = defaultdict(list), Counter(), Counter()
-        self.extent, self.bins, self.gaps = defaultdict(dict), defaultdict(list), defaultdict(set)
+        self.extent, self.bins, self.gaps = defaultdict(dict), defaultdict(list), defaultdict(dict)
         self.gap_kinds = defaultdict(set)
         self.built, self.observations, self.joins, self.runs = {}, {}, defaultdict(list), {}
         self.intern, self.molecules, self.windows = {}, {}, {}
@@ -523,10 +524,10 @@ class _Observations:
             if read.has_tag("SA"):
                 self.reasons["SA_declared_piece_not_linked"] += 1  # Its declared pieces were not collected.
             for left, right, kind, inserted in _record_gaps(read):
-                self.gaps[left, right].add(identity)
+                self.gaps[left, right][identity] = inserted
                 self.gap_kinds[left, right].add(kind)
                 oriented = [(left, right), (_flip(right), _flip(left))]
-                classes = [_join_class(event, annotated, *join, inserted, kind) for join in oriented]
+                classes = [_join_class(event, annotated, *join, len(inserted), kind) for join in oriented]
                 uses = [use for use, _ in classes]
                 if "annotated" in uses:
                     for (use, relation), join in zip(classes, oriented):
@@ -541,7 +542,8 @@ class _Observations:
                 elif kind != "D" and all(r is None for _, r in classes) and any(
                         anchored(p) for p in (left, right, _flip(left), _flip(right))):
                     lazy["regional_novel_junction"][_canonical(left, right)].add(identity)
-            if (self.collector.use_soft_clipped_bases and 4 in (read.cigartuples[0][0], read.cigartuples[-1][0])
+            # SAM permits soft clips inside terminal hard clips.
+            if (self.collector.use_soft_clipped_bases and any(op == 4 for op, _ in read.cigartuples)
                     and any(read.reference_name == contig and abs(edge - position) <= 1
                             for contig, position in breakpoints for edge in (read.reference_start, read.reference_end))):
                 now.add(identity)
@@ -553,7 +555,7 @@ class _Observations:
         A built segment without the join (a failed build, or a trimmed read
         end) does not count.
         """
-        unbuilt = self.gaps.get((left, right), set()) | self.gaps.get((_flip(right), _flip(left)), set())
+        unbuilt = set(self.gaps.get((left, right), ())) | set(self.gaps.get((_flip(right), _flip(left)), ()))
         return {o.identity for o, *_ in self.joins.get((left, right), ())} | {i for i in unbuilt if i not in self.built}
 
     def overlapping(self, positions, lo, hi):
@@ -1112,10 +1114,11 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
 
         The read must observe every placed path base between them, and place
         no other base between its first and last shared ones (no skipped or
-        extra exon); otherwise it contributes no interval.
+        extra exon). Intervening unplaced query spans must also agree in
+        length and sequence; otherwise it contributes no interval.
         """
         if observation.key not in spans_seen:
-            shared, path_offsets, own_offsets = 0, [], []
+            shared, shared_runs = 0, []
             runs = store.observation_runs(observation)
             for own, _, contig, other_low, other_high, strand in runs:
                 for q0, low, high in path_runs.get((contig, strand), ()):
@@ -1123,16 +1126,22 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
                     if a < b:
                         shared += b - a
                         if strand == "+":
-                            path_offsets += [q0 + a - low, q0 + b - 1 - low]
-                            own_offsets += [own + a - other_low, own + b - 1 - other_low]
+                            start, own_start = q0 + a - low, own + a - other_low
                         else:
-                            path_offsets += [q0 + high - b, q0 + high - 1 - a]
-                            own_offsets += [own + other_high - b, own + other_high - 1 - a]
+                            start, own_start = q0 + high - b, own + other_high - b
+                        shared_runs.append((start, start + b - a, own_start, own_start + b - a))
             result = ()
             if shared:
-                first, last, own_first, own_last = min(path_offsets), max(path_offsets), min(own_offsets), max(own_offsets)
+                shared_runs.sort()
+                first, last = shared_runs[0][0], shared_runs[-1][1] - 1
+                own_first = min(a for _, _, a, _ in shared_runs)
+                own_last = max(b for _, _, _, b in shared_runs) - 1
                 own_placed = sum(max(0, min(end, own_last + 1) - max(start, own_first)) for start, end, *_ in runs)
-                if shared == placed[last + 1] - placed[first] == own_placed:
+                if (shared == placed[last + 1] - placed[first] == own_placed
+                        and all(start - end == own_start - own_end >= 0
+                                and sequence[end:start] == observation.sequence[own_end:own_start]
+                                for (_, end, _, own_end), (start, _, own_start, _)
+                                in zip(shared_runs, shared_runs[1:]))):
                     result = (first, last)
             spans_seen[observation.key] = result
         return spans_seen[observation.key]
@@ -1161,7 +1170,14 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
     junctions, evidence = [], {}
     for i, j, relation, assignment, is_annotated, direct, segments, kinds in sorted(rows, key=lambda row: row[:2]):
         evidence.update((o.key, o) for o, *_ in direct)
-        unbuilt = len(segments - {o.identity for o, *_ in direct})  # Single CIGAR joins: no unplaced bases.
+        unbuilt = segments - {o.identity for o, *_ in direct}
+        junction_sequences = Counter(o.sequence[a + 1:b] for o, a, b, _ in direct)
+        if unbuilt:
+            left, right = positions[i], positions[j]
+            junction_sequences.update(inserted for identity, inserted in store.gaps.get((left, right), {}).items()
+                                      if identity in unbuilt)
+            junction_sequences.update(reverse_complement(inserted) for identity, inserted in
+                                      store.gaps.get((_flip(right), _flip(left)), {}).items() if identity in unbuilt)
         molecules = {store.molecule(identity) for identity in segments} - {None}
         # Bases co-observed with the join in single reads; annotated splices are context only.
         spans = [] if is_annotated else [q for q in (span(o) for o, *_ in direct) if q]
@@ -1175,8 +1191,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
             direct_molecules=len(molecules) if molecules else None,
             direct_observations=sorted({o.key for o, *_ in direct}),
             direct_junction_sequences=None if clip else [
-                list(item) for item in sorted((Counter(o.sequence[a + 1:b] for o, a, b, _ in direct)
-                                               + Counter({"": unbuilt})).items(), key=lambda item: (-item[1], item[0]))],
+                list(item) for item in sorted(junction_sequences.items(), key=lambda item: (-item[1], item[0]))],
             linked_interval=[min(min(q) for q in spans), max(max(q) for q in spans) + 1] if spans else None))
     departures = {q: j["relation"] for j in junctions if not j["annotated"]
                   for q in range(j["query_interval"][0] + 1,
