@@ -112,11 +112,19 @@ def test_corrupt_cache_and_modified_exports_are_not_silently_repaired(tmp_path, 
 
 
 @pytest.mark.parametrize("corrupt_download", [False, True])
-def test_explicit_repair_checks_downloaded_bytes(tmp_path, osteosarc, small_manifest, monkeypatch, corrupt_download):
+@pytest.mark.parametrize("corruption", ["object", "url_receipt"])
+def test_explicit_repair_checks_downloaded_bytes(tmp_path, osteosarc, small_manifest, monkeypatch,
+                                               corrupt_download, corruption):
     cache = tmp_path / "cache"
     paths = acquire_dataset(manifest_path=small_manifest, cache_root=cache, import_corpus=CORPUS, offline=True)
     asset = load_manifest(small_manifest)["assets"][0]
-    paths[asset["filename"]].write_bytes(b"corrupt")
+    if corruption == "object":
+        paths[asset["filename"]].write_bytes(b"corrupt")
+    else:
+        paths[asset["filename"]].unlink()
+        wrong = tmp_path / "wrong.bam"
+        wrong.write_bytes(b"x" * asset["size_bytes"])
+        osteosarc.Cache(cache).import_file(wrong, asset["url"])
     calls = []
 
     def download(command, **kwargs):

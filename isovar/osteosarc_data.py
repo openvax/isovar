@@ -104,7 +104,7 @@ def acquire_dataset(output=None, *, manifest_path=DEFAULT_MANIFEST, cache_root=N
         expected = dict(sha256=asset["sha256"], size=asset["size_bytes"])
         try:
             receipt = (cache.import_file(source, asset["url"], **expected) if source is not None and not repair
-                       else cache.fetch(asset["url"], refresh=repair, **expected))
+                       else cache.fetch(asset["url"], refresh=repair_cache, **expected))
             paths[asset["filename"]] = cache.path(receipt)
         except OsteosarcError as error:
             raise ValueError(str(error)) from error
