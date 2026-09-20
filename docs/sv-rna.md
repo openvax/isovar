@@ -27,12 +27,19 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
 ## What it does
 
 1. **Retrieve.** Search both breakpoint neighbourhoods (`--breakpoint-window`,
-   default 1000 bases each side), every exon of every reference model and any
-   extra regions. Then fetch observed SA and mate locations, keeping only records
-   of the requesting fragments. An SA tag is a retrieval hint, never an
-   alignment; unplaced unmapped mates and genome-wide alternative placements
-   are not assessed. Record, query and path limits are reported in
-   `limitations`, never silent.
+   default 1000 bases each side) first. Distinct windows take turns admitting
+   new records, even when they overlap, so depth at the first breakpoint cannot
+   consume the entire budget before the second is sampled. Recover their
+   observed SA and mate records next, following links recursively and keeping
+   only records of the requesting fragments. Then spend the remaining budget
+   on reference exons, extra regions and their links. A planned but unvisited
+   region never suppresses a linked-record lookup. An SA tag is a retrieval
+   hint, never an alignment; unplaced unmapped mates and genome-wide alternative
+   placements are not assessed. Record, query and path limits are reported in
+   `limitations`, never silent. A limit may still truncate breakpoint evidence.
+   `acquisition.searched_regions` retains the requested regional scope;
+   `region_queries` and `hop_queries` record which queries were fetched and
+   exhausted (`complete`), including the priority of each regional query.
 2. **Observe.** Each sequenced segment (read group, QNAME, mate) becomes one
    query path. Supplementary records are joined only when the existing
    reciprocal SA validator links them; alternative/secondary placements stay
