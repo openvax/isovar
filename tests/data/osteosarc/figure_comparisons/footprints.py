@@ -8,12 +8,12 @@ import gzip
 import json
 import logging
 from pathlib import Path
-import subprocess
 from collections import Counter, defaultdict
 
 import pysam
 from pyensembl import EnsemblRelease
 from varcode import Variant
+from isovar.sid_data import extract_regions
 from isovar import ReadCollector
 from isovar.read_identity import fragment_ids
 from isovar.visualization import collect_visualization_data
@@ -21,7 +21,6 @@ from isovar import ProteinSequenceCreator
 from isovar.default_parameters import USE_SOFT_CLIPPED_BASES
 from tests.data.fusions.build_osteosarc import extract, linked_records, references, segment_key
 from tests.data.osteosarc.expansion.references import apply_variant
-from tests.data.osteosarc.expansion.acquire import assembly_from_header
 from tests.data.osteosarc.expansion.runner import protein_check
 
 INDELS = [
@@ -68,19 +67,13 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def acquire(source, output, query_regions=None, index_path=None):
+def acquire(source, output, query_regions=None):
     directory = output / source["id"]
     directory.mkdir(parents=True)
     bam = directory / "regions.bam"
     query_regions = regions() if query_regions is None else query_regions
-    command = ["samtools", "view", "--no-PG", "-b", "-M", "-X", source["url"],
-               str(index_path) if index_path else source["url"] + ".bai", *query_regions, "-o", str(bam)]
-    subprocess.run(command, check=True, timeout=600, cwd=directory)
-    with pysam.AlignmentFile(bam) as handle:
-        if assembly_from_header(handle.header.to_dict()) != "GRCh38":
-            raise ValueError("Footprints require verified GRCh38 genomic alignments")
-    subprocess.run(["samtools", "index", str(bam)], check=True)
-    receipt = dict(source, command=command, regions=query_regions, assembly="GRCh38",
+    subset = extract_regions(source["url"], query_regions, "GRCh38", bam)
+    receipt = dict(source, osteosarc=subset.receipt, regions=query_regions, assembly="GRCh38",
                    acquired_at=datetime.now(timezone.utc).isoformat(), bam_sha256=digest(bam),
                    index_sha256=digest(Path(str(bam) + ".bai")))
     (directory / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")

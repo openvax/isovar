@@ -1,7 +1,7 @@
 """Optional network acquisition; fetch indexed loci, never entire BAMs or in CI.
 
 Usage: python tests/data/osteosarc/fetch_sources.py NEW_SOURCE_DIR
-Requires curl and samtools with HTTPS support. Metadata drift is an error;
+Requires isovar[data], samtools and an explicit ISOVAR_SID_SNAPSHOT. Metadata drift is an error;
 revising the pinned source snapshots requires explicit review.
 """
 
@@ -10,10 +10,15 @@ from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha256
 import json
 from pathlib import Path
-import subprocess
+import shutil
+import sys
+
+import pysam
 
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[2]))
+from isovar.sid_data import extract_regions, fetch_metadata  # noqa: E402
 METADATA = {
     "bams.json": "https://osteosarc.com/bams/bams.json",
     "vafs.tsv": "https://osteosarc.com/variants/variant_vafs_long.tsv",
@@ -30,7 +35,9 @@ def fetch(destination):
     (destination / "selection.json").write_bytes((HERE / "selection.json").read_bytes())
     for filename, url in METADATA.items():
         path = destination / filename
-        subprocess.run(["curl", "--fail", "--location", "--retry", "3", "--output", str(path), url], check=True)
+        cached, receipt = fetch_metadata(url)
+        shutil.copyfile(cached, path)
+        path.with_name(path.name + ".receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
         if sha256(path.read_bytes()).hexdigest() != checksums[filename]:
             raise ValueError(f"Upstream metadata changed: {filename}; review before rebuilding")
     regions = [f"{v['chrom']}:{int(v['pos']) - 1}-{int(v['pos']) + len(v['ref'])}"
@@ -38,11 +45,11 @@ def fetch(destination):
 
     def fetch_bam(item):
         label, source = item
-        # -M avoids duplicate emission when intervals overlap. Original
-        # duplicate SAM records already in a source BAM remain untouched.
-        subprocess.run(["samtools", "view", "--no-PG", "-h", "-M", "-o",
-                        str(destination / (label + ".sam")), source["url"], *regions],
-                       check=True, cwd=destination)
+        subset = extract_regions(source["url"], regions, "GRCh38")
+        with subset.open() as bam, pysam.AlignmentFile(destination / (label + ".sam"), "w", header=bam.header) as sam:
+            for read in bam:
+                sam.write(read)
+        (destination / (label + ".receipt.json")).write_text(json.dumps(subset.receipt, indent=2) + "\n")
         print(label, "downloaded", flush=True)
 
     with ThreadPoolExecutor(max_workers=2) as executor:

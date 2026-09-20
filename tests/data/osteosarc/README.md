@@ -128,7 +128,12 @@ manual recipe, not recomputed from the small CI fixtures.
 
 ## Reproduce and test
 
-Requires curl, HTTPS-enabled samtools, and Python with pysam. The first
+For the package's exact test-only selections, use the
+[minimal Sid bundle generator](../../../docs/sid-test-reads.md). The following
+commands rebuild the historical broader selection.
+
+Requires `isovar[data]`, HTTPS-enabled samtools, and a named osteosarc snapshot
+configured with `ISOVAR_SID_SNAPSHOT` and optionally `ISOVAR_SID_CACHE`. The first
 command downloads only indexed regions and small metadata files; it requires
 a **new** destination directory. Metadata checksum drift fails explicitly
 and needs review. There are no downloads during tests.

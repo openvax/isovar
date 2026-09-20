@@ -12,8 +12,10 @@ import gzip
 from hashlib import sha256
 import json
 from pathlib import Path
+import shutil
 
 import pysam
+from isovar.sid_data import extract_regions, fetch_metadata
 
 ROOT = Path(__file__).resolve().parents[4]
 CORPUS = Path(__file__).parent / "corpus"
@@ -30,6 +32,18 @@ SOURCES = {
 FOCAL = 96875527
 DELETION = (96875576, 96875579)
 EXCLUDED = 4 | 256 | 512 | 1024 | 2048
+
+
+def acquire(output):
+    """Acquire this audit through osteosarc, separately from the test bundle."""
+    output.mkdir(parents=True, exist_ok=False)
+    for key, (_, source) in SOURCES.items():
+        subset = extract_regions(BUCKET + source, [REGION], "GRCh37", output / (key + ".bam"))
+        (output / (key + ".receipt.json")).write_text(json.dumps(subset.receipt, indent=2) + "\n")
+    for name, url in (("hg19-reference.json", REFERENCE_URL), ("source-metadata.tsv", METADATA_URL)):
+        cached, receipt = fetch_metadata(url)
+        shutil.copyfile(cached, output / name)
+        (output / (name + ".receipt.json")).write_text(json.dumps(receipt, indent=2) + "\n")
 
 
 def recount(source, reference, min_quality=20, min_mapq=20, flank=8,
@@ -144,7 +158,13 @@ def load():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--inputs", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--acquire", type=Path)
+    parser.add_argument("--inputs", type=Path)
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    build(args.inputs, args.output)
+    if args.acquire:
+        acquire(args.acquire)
+    elif args.inputs and args.output:
+        build(args.inputs, args.output)
+    else:
+        parser.error("Specify --acquire or both --inputs and --output")

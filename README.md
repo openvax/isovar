@@ -411,6 +411,10 @@ assembly examples](docs/visualization.md).
 
 ## Reproducible research data
 
+The package includes a [minimal, generated Sid test-read bundle](docs/sid-test-reads.md),
+reproduced through osteosarc and usable offline. Only records required by the
+listed tests are included.
+
 The [shared osteosarc data workflow](docs/osteosarc-data.md) imports, downloads
 and exports the pinned original-read regression subset through
 `osteosarc==0.1.0`, with checksum verification and offline reuse across OpenVax

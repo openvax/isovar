@@ -31,6 +31,11 @@ Source definitions: [osteosarc data catalogue](https://osteosarc.com/data/),
 
 ## Reproduce acquisition
 
+Install `isovar[data]` and set `ISOVAR_SID_SNAPSHOT` to an existing osteosarc
+snapshot (and optionally `ISOVAR_SID_CACHE`). All Sid acquisition below uses
+osteosarc. The [packaged test-read generator](../../../../docs/sid-test-reads.md)
+selects only the records required by tests.
+
 From the repository root, using HTTPS-enabled samtools and Python with pysam:
 
 ```python
@@ -132,11 +137,14 @@ support is not proof of absence at arbitrary sensitivity.
 `corpus/nr2f2-evidence.json.gz` retains every original regional SAM record,
 source headers, URLs, regional-BAM hashes, genomic reference response, and
 counts at all three thresholds; `nr2f2-manifest.json` pins its SHA256.
-For explicit reacquisition, fetch each `SOURCES` BAM index (`.bai`, not
-`.bam.bai`), use `samtools view --no-PG -b -M -X URL INDEX
-chr15:96875200-96875850 -o SAMPLE.bam`, and save the UCSC response as
-`hg19-reference.json`, and the pinned `METADATA_URL` table as
-`source-metadata.tsv`. Then run:
+For explicit reacquisition through the configured osteosarc snapshot, run:
+
+```sh
+python -m tests.data.osteosarc.figure_comparisons.nr2f2 --acquire /path/to/new-regions
+```
+
+This also saves the UCSC response as `hg19-reference.json` and the pinned
+`METADATA_URL` table as `source-metadata.tsv`. Then run:
 
 ```sh
 python -m tests.data.osteosarc.figure_comparisons.nr2f2 \

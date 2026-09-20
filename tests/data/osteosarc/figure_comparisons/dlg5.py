@@ -191,9 +191,7 @@ def acquire_dna(output):
     (output / "calls.json").write_text(json.dumps(calls, indent=2) + "\n")
 
     def fetch(source):
-        index = output / (source["id"] + ".source.bai")
-        source["index_receipt"] = fetch_snapshot(source["url"] + ".bai", index)
-        return acquire(source, output, query_regions=REGIONS, index_path=index.resolve())
+        return acquire(source, output, query_regions=REGIONS)
 
     with ThreadPoolExecutor(max_workers=3) as pool:
         list(pool.map(fetch, sources))

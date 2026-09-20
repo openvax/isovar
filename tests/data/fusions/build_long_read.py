@@ -12,10 +12,11 @@ import gzip
 from hashlib import sha256
 import json
 from pathlib import Path
-import subprocess
 import tempfile
 
 import pysam
+
+from isovar.sid_data import extract_regions
 
 HERE = Path(__file__).parent
 BUCKET = "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/"
@@ -60,8 +61,7 @@ def build(event, source, input_path, output, scratch):
     url = BUCKET + SOURCES[source]
     regions = ["%s:%d-%d" % (c, a + 1, b) for c, a, b in intervals(donor, acceptor, references)]
     regional = scratch / ("%s.%s.bam" % (event, source))
-    command = ["samtools", "view", "--no-PG", "-b", "-M", "-o", str(regional), "-X", url, url + ".bai"]
-    subprocess.run(command + regions, check=True, cwd=scratch)  # htslib saves remote indexes in cwd.
+    subset = extract_regions(url, regions, "GRCh38", regional)
     windows = [(b["contig"], b["position"] - WINDOW, b["position"] + WINDOW) for b in (donor, acceptor)]
     touches, records = {}, {}
     with pysam.AlignmentFile(str(regional)) as bam:
@@ -80,7 +80,7 @@ def build(event, source, input_path, output, scratch):
     path.write_bytes(gzip.compress((header + "".join(line + "\n" for line in lines)).encode(), mtime=0))
     return dict(event=event, source=source, url=url, input=input_path, window=WINDOW, regions=len(regions),
                 regional_records=sum(len(v) for v in records.values()), segments=len(kept), records=len(lines),
-                command=" ".join(command[:5] + ["-o", "<output>", "-X", "<url>", "<url>.bai", "<regions>"]), file=path.name,
+                osteosarc=subset.receipt, file=path.name,
                 sha256=sha256(path.read_bytes()).hexdigest())
 
 

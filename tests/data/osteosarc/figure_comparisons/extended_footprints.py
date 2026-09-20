@@ -9,7 +9,7 @@ import shutil
 
 import pysam
 
-from tests.data.osteosarc.expansion.inventory import digest, fetch_snapshot
+from tests.data.osteosarc.expansion.inventory import digest
 from tests.data.osteosarc.figure_comparisons import footprints
 from tests.data.osteosarc.figure_comparisons.nr2f2_libraries import load as load_libraries
 
@@ -63,13 +63,9 @@ def acquire(output, baseline):
         shutil.copytree(directory, output / source["id"])
 
     def fetch(source):
-        # Index downloads are pinned explicitly instead of relying on htslib's
-        # implicit index cache. Legacy fusion examples are outside this query.
-        index = output / (source["id"] + ".source.bai")
-        source["index_receipt"] = fetch_snapshot(source["url"] + ".bai", index)
+        # osteosarc resolves and pins the source's listed index.
         return footprints.acquire(source, output,
-                                  query_regions=footprints.regions()[:-len(footprints.LEGACY)],
-                                  index_path=index.resolve())
+                                  query_regions=footprints.regions()[:-len(footprints.LEGACY)])
 
     with ThreadPoolExecutor(max_workers=3) as pool:
         list(pool.map(fetch, [s for s in sources if s["id"] not in old_ids]))

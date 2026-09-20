@@ -7,6 +7,9 @@ import json
 from pathlib import Path
 
 import pysam
+import tempfile
+
+from isovar.sid_data import extract_regions
 from pyensembl import EnsemblRelease
 
 from .build_osteosarc import blocks, extract, references
@@ -83,8 +86,17 @@ def build(sid_bam, k562_bam, output):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--sid-bam", type=Path, required=True)
+    parser.add_argument("--sid-bam", type=Path, help="Previously acquired regional Sid BAM; omit to acquire through osteosarc")
     parser.add_argument("--k562-bam", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    build(args.sid_bam, args.k562_bam, args.output)
+    with tempfile.TemporaryDirectory() as scratch:
+        sid_bam = args.sid_bam
+        if sid_bam is None:
+            source = json.loads(gzip.decompress((Path(__file__).parent / "coding-corpus/ATP5MG--KMT2A.input.json.gz").read_bytes()))
+            url = source["fusion"]["provenance"]["source"]
+            sid_bam = Path(scratch) / "sid.bam"
+            subset = extract_regions(url, ["chr11:118400717-118402717", "chr11:118467774-118469774"], "GRCh38", sid_bam)
+            args.output.mkdir(parents=True, exist_ok=True)
+            (args.output / "sid-acquisition.json").write_text(json.dumps(subset.receipt, indent=2) + "\n")
+        build(sid_bam, args.k562_bam, args.output)
