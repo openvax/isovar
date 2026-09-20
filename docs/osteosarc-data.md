@@ -1,5 +1,9 @@
 # Shared osteosarc regression data
 
+For the packaged test-only read selections and regeneration from source BAMs,
+see [Minimal Sid test reads](sid-test-reads.md). This page covers the older
+shared 49-case BAM/index cache, which remains available unchanged.
+
 Isovar packages the `osteosarc / vaccine-rna-v1` manifest used by Vaxrank:
 49 cases covering 44 original vaccine loci, with 98 BAM/index objects totaling
 4,126,730 bytes. The manifest pins Isovar commit

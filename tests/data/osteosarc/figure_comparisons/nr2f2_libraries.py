@@ -12,7 +12,7 @@ from urllib.parse import quote
 
 import pysam
 
-from tests.data.osteosarc.expansion.acquire import assembly_from_header
+from isovar.sid_data import open_dataset, extract_regions
 from tests.data.osteosarc.expansion.inventory import fetch_snapshot
 from tests.data.osteosarc.expansion.liftover import (
     chain_blocks,
@@ -116,11 +116,10 @@ def acquire(output, source_metadata, index_cache=None):
             )
             return result
         try:
-            header_text = subprocess.check_output(
-                ["samtools", "view", "--no-PG", "-H", url], timeout=90
-            ).decode()
-            header = pysam.AlignmentHeader.from_text(header_text)
-            assembly = assembly_from_header(header.to_dict())
+            dataset = open_dataset()
+            info = dataset.inspect_alignment(url, timeout=90)
+            header = pysam.AlignmentHeader.from_dict(info.header)
+            assembly = info.assembly
             assert assembly in config, assembly
             focal, deletion, (start, end) = config[assembly]
             (contig,) = [s for s in header.references if s in ("chr15", "15")]
@@ -128,47 +127,16 @@ def acquire(output, source_metadata, index_cache=None):
                 header.get_reference_length(contig)
                 == {"GRCh37": 102531392, "GRCh38": 101991189}[assembly]
             )
-            index_url = nr2f2.BUCKET + quote(source["listed_indexes"][0], safe="/")
-            index = None
+            # Import an explicitly supplied, verified old index into the shared
+            # cache; snapshot-bound extraction still validates the source Asset.
+            asset = dataset.asset(url)
             for candidate in indices.get(identity, []):
-                meta = json.loads(
-                    candidate.with_name(candidate.name + ".receipt.json").read_text()
-                )
-                if (
-                    meta["url"] == index_url
-                    and sha256(candidate.read_bytes()).hexdigest() == meta["sha256"]
-                ):
-                    index = candidate
-                    index_receipt = meta
-                    break
-            if index is None:
-                index = directory / (
-                    "source-index" + Path(source["listed_indexes"][0]).suffix
-                )
-                index_receipt = fetch_snapshot(index_url, index)
+                meta = json.loads(candidate.with_name(candidate.name + ".receipt.json").read_text())
+                if meta["url"] in asset.index_urls and sha256(candidate.read_bytes()).hexdigest() == meta["sha256"]:
+                    dataset.cache.import_file(candidate, meta["url"])
             bam = directory / "region.bam"
             region = "%s:%d-%d" % (contig, start + 1, end)
-            subprocess.run(
-                [
-                    "samtools",
-                    "view",
-                    "--no-PG",
-                    "-b",
-                    "-M",
-                    "-X",
-                    url,
-                    str(index),
-                    region,
-                    "-o",
-                    str(bam),
-                ],
-                check=True,
-                capture_output=True,
-                timeout=300,
-            )
-            subprocess.run(
-                ["samtools", "quickcheck", str(bam)], check=True, capture_output=True
-            )
+            subset = extract_regions(url, [region], assembly, bam, dataset=dataset, timeout=300)
             with pysam.AlignmentFile(bam) as handle:
                 result.update(
                     header=str(handle.header), records=[r.to_string() for r in handle]
@@ -177,7 +145,7 @@ def acquire(output, source_metadata, index_cache=None):
                 status="ok",
                 assembly=assembly,
                 region=region,
-                index=index_receipt,
+                osteosarc=subset.receipt,
                 regional_bam_sha256=sha256(bam.read_bytes()).hexdigest(),
             )
             result["audits"] = {

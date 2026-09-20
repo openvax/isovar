@@ -11,13 +11,12 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-from urllib.parse import quote
 
-import pysam
 
 ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT))
-from tests.data.osteosarc.expansion.inventory import BUCKET, digest, fetch_snapshot, write_json  # noqa: E402
+from tests.data.osteosarc.expansion.inventory import digest, write_json  # noqa: E402
+from isovar.sid_data import open_dataset, extract_regions  # noqa: E402
 
 
 ASSEMBLY_LENGTHS = {
@@ -57,24 +56,22 @@ def survey_header(source, destination):
         if result["status"] == "ok" and digest(header_path) != result["header_sha256"]:
             raise ValueError("Header snapshot checksum mismatch")
         return result
-    url = BUCKET + quote(source["key"], safe="/")
     attempts = []
     result = dict(source_id=source["source_id"], source_url=source["url"])
     for attempt in range(3):
         try:
-            response = subprocess.run([
-                "samtools", "view", "--no-PG", "-H", url,
-            ], capture_output=True, check=True, timeout=90)
-            header = pysam.AlignmentHeader.from_text(response.stdout.decode()).to_dict()
+            info = open_dataset().inspect_alignment(source["url"], timeout=90)
+            raw_header = info.path.read_bytes()
+            header = info.header
             assembly = assembly_from_header(header)
             if header_path.exists():
-                if header_path.read_bytes() != response.stdout:
+                if header_path.read_bytes() != raw_header:
                     raise ValueError("Existing header differs from source")
             else:
                 with header_path.open("xb") as handle:
-                    handle.write(response.stdout)
-            result.update(status="ok", header_sha256=sha256(response.stdout).hexdigest(),
-                          header=header, assembly=assembly,
+                    handle.write(raw_header)
+            result.update(status="ok", header_sha256=sha256(raw_header).hexdigest(),
+                          header=header, assembly=assembly, osteosarc=info.receipt,
                           coordinate_status=("genomic" if assembly else
                                              "unmapped_reference" if not header.get("SQ") else
                                              "unresolved_reference"))
@@ -144,44 +141,18 @@ def acquire_regions(source, variants, destination, assembly, label=None, timeout
                     raise ValueError("Mitochondrial reference length does not match validated variant coordinate system")
             if not source["listed_indexes"]:
                 raise ValueError("No genomic BAM index in pinned inventory; whole-BAM fetching is prohibited")
-            index_key = source["listed_indexes"][0]
-            index_path = directory / ("source-index" + Path(index_key).suffix)
-            index_metadata = fetch_snapshot(BUCKET + quote(index_key, safe="/"), index_path)
             regions, missing = regions_for_header(variants, header["header"])
             if not regions:
                 raise ValueError("None of the requested contigs are in this alignment")
-            result.update(regions=regions, missing_contigs_for=missing, index=index_metadata)
+            result.update(regions=regions, missing_contigs_for=missing)
             stage = "regional_acquisition"
-            # A supplied local index is mandatory (-X), so the command can
-            # neither fall back to scanning nor download the complete BAM.
-            command = ["samtools", "view", "--no-PG", "-b", "-M", "-X",
-                       BUCKET + quote(source["key"], safe="/"), str(index_path), *regions]
-            failures = []
-            for attempt in range(3):
-                partial = directory / f"regions-{label}.attempt-{attempt}.bam"
-                if partial.exists():
-                    raise ValueError(f"Previous unfinished attempt requires inspection: {partial}")
-                try:
-                    subprocess.run(command + ["-o", str(partial)], capture_output=True, check=True, timeout=timeout)
-                    subprocess.run(["samtools", "quickcheck", "-v", str(partial)],
-                                   capture_output=True, check=True, timeout=30)
-                    with pysam.AlignmentFile(partial) as bam:
-                        # Full consumption validates decoding and establishes
-                        # multiplicity; no allele/quality-based downsampling.
-                        count = sum(1 for _ in bam)
-                    partial.rename(output)
-                    pysam.index(str(output))
-                    result.update(status="ok", bam_sha256=digest(output), region_records=count,
-                                  bam_bytes=output.stat().st_size, failed_attempts=failures,
-                                  index_sha256=digest(str(output) + ".bai"))
-                    break
-                except (subprocess.SubprocessError, OSError) as error:
-                    detail = error_record(error, stage)
-                    if isinstance(error, subprocess.CalledProcessError):
-                        detail["stderr"] = error.stderr.decode(errors="replace")
-                    failures.append(detail)
-            else:
-                result.update(failures[-1], failed_attempts=failures)
+            lengths = {r["SN"]: r["LN"] for r in header["header"]["SQ"]}
+            subset = extract_regions(source["url"], regions, assembly, output,
+                                     reference_lengths=lengths, timeout=timeout)
+            result.update(status="ok", bam_sha256=digest(output),
+                          region_records=subset.receipt["records"], bam_bytes=output.stat().st_size,
+                          failed_attempts=[], index_sha256=digest(str(output) + ".bai"),
+                          osteosarc=subset.receipt)
         except (subprocess.SubprocessError, ValueError, OSError) as error:
             result.update(error_record(error, stage))
     write_json(result_path, result)

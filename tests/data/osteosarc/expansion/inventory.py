@@ -13,7 +13,9 @@ import io
 import json
 from pathlib import Path
 import re
-import subprocess
+import shutil
+
+from isovar.sid_data import fetch_metadata
 
 
 BUCKET = "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/"
@@ -58,12 +60,10 @@ def fetch_snapshot(url, path):
     partial = path.with_name(path.name + ".partial")
     if partial.exists():
         raise ValueError(f"Unfinished download needs inspection: {partial}")
-    subprocess.run([
-        "curl", "--fail", "--location", "--silent", "--show-error",
-        "--connect-timeout", "15", "--max-time", "120",
-        "--retry", "3", "--retry-max-time", "180", "--output", str(partial), url,
-    ], check=True, timeout=240)
-    metadata = {"url": url, "sha256": digest(partial), "bytes": partial.stat().st_size}
+    cached, acquisition = fetch_metadata(url)
+    shutil.copyfile(cached, partial)
+    metadata = {"url": url, "sha256": digest(partial), "bytes": partial.stat().st_size,
+                "osteosarc": acquisition}
     partial.rename(path)
     write_json(receipt, metadata)
     return metadata

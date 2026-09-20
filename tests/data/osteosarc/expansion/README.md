@@ -1,3 +1,8 @@
+Regeneration now uses `osteosarc==0.1.0`: install `isovar[data]` and set
+`ISOVAR_SID_SNAPSHOT` (optionally `ISOVAR_SID_CACHE`). To regenerate only the
+reads bundled with Isovar, see [Minimal Sid test reads](../../../../docs/sid-test-reads.md).
+The wider audits described below remain outside the package.
+
 # Expanded osteosarc RNA/protein audit (#218)
 
 This is a read-evidence and local protein-reconstruction benchmark, **not** a
