@@ -440,6 +440,7 @@ def test_locus_read_avoids_linear_index_scans_over_reference_positions():
     mock_read.is_secondary = False
     mock_read.is_duplicate = False
     mock_read.is_unmapped = False
+    mock_read.is_qcfail = False
     mock_read.mapping_quality = real_read.mapping_quality
     mock_read.get_reference_positions.return_value = tracking_positions
 
@@ -470,6 +471,7 @@ def _make_mock_pysam_read_with_none_mapq():
     mock_read.is_secondary = False
     mock_read.is_duplicate = False
     mock_read.is_unmapped = False
+    mock_read.is_qcfail = False
     mock_read.get_reference_positions.return_value = list(range(6))
     mock_read.mapping_quality = None
     return mock_read

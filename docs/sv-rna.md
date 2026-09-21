@@ -117,6 +117,8 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
 
 `record_evidence` is keyed by the same IDs as `original_records` and separates
 MAPQ, QUAL availability, query/aligned-query lengths and selected native tags.
+`alignment_metadata` retains RG and PG header records once per result, including
+platform, library and basecaller/model provenance when supplied by the producer.
 Absent tags and MAPQ 255 are null; zero remains zero. Missing QUAL stays
 optional (`--require-base-qualities` opts out). Original SAM retains every tag
 and the actual qualities, including bases outside the candidate interval.
@@ -124,13 +126,50 @@ and the actual qualities, including bases outside the candidate interval.
 | Field | Meaning and use |
 |---|---|
 | `mapping_quality` | Confidence in alignment placement; existing `--min-mapping-quality` filter |
+| `mapping_quality_raw`, `sam_flag` | Original MAPQ (including 255) and SAM flags |
 | `base_qualities_available` | Whether per-base Phred qualities are stored; not the same as MAPQ |
+| `original_base_qualities_tag_present` | OQ exists; it is not automatically substituted for QUAL |
+| `qs`, `dx`, `pi`, `sp` | ONT mean read Q, duplex status, split-read parent and signal offset; dx is 1 for duplex, 0 for unpaired simplex, -1 for a simplex parent of duplex |
 | `NM`, `mg` | Edit distance and gap-compressed alignment identity (%); true variants contribute to differences |
+| `AS`, `NH`, `HI`, `nM` | Alignment score, alignment multiplicity/index and STAR mismatch count |
+| `ms`, `s1`, `s2`, `dv`, `de`, `rl`, `tp` | minimap2 alignment/chaining scores, divergence, repetitive-seed length and alignment type |
 | `rm` | pbmm2 trimmed overlapping query matches between alignments |
 | `rq`, `np`, `ec` | Predicted read accuracy, complete insert passes, effective subread coverage when present |
 | `ic`, `is`, `im` | Iso-Seq consensus input count, associated read count, input names; not independent molecule counts |
 | `CB`, `UB`, `XM`, `RG` | Cell, UMI and read-group provenance; XM is raw after Iso-Seq tag and corrected after correct |
 | `rc` | Iso-Seq predicted real-cell flag; neither a malignancy label nor base accuracy |
+| `ff` | PacBio CCS failure bit mask, when available |
+| `CR`, `CY`, `UR`, `UY`, `RX`, `QX`, `MI`, `PG` | Raw cell/UMI bases and qualities, SAM molecular barcode/quality, molecule identifier and producing program |
+
+These are native producer-specific fields, not interchangeable quality scales.
+For example, CCS may use `rq=-1` for unpolished reads. `XM` has an Iso-Seq meaning
+only in an Iso-Seq context. The common evidence extractor is also available as
+`isovar.read_metadata.record_evidence(read)` for ordinary pysam records. It reads
+selected tags only, avoiding signal, kinetics and modification arrays.
+
+Small variants and SVs use `ReadCollector.alignment_filter_reason`: unmapped,
+vendor-QC-failed, disallowed duplicate/secondary, missing sequence/name, low
+MAPQ and (when requested) missing QUAL records are excluded before assembly.
+The existing numeric MAPQ filter retains 255, which STAR uses for unique
+mappings. Exported `mapping_quality=null` correctly avoids claiming Q255;
+consult the raw value, NH and producer metadata when choosing another policy.
+
+Python callers can apply the same additional policy in either pipeline:
+
+```python
+from isovar import ReadCollector
+
+# An example alignment-multiplicity policy: explicitly retain missing NH.
+collector = ReadCollector(
+    read_filter=lambda read: not read.has_tag("NH") or read.get_tag("NH") == 1)
+```
+
+The predicate receives each eligible original record before mate merging or SV
+segment construction. Exceptions propagate. SV output records whether a custom
+filter was used; record its configuration in `event_provenance` for reproduction.
+Default collection does not call `record_evidence` or impose new tag thresholds.
+Filters can similarly inspect `rq` or `qs` with a stated missing-value policy and
+known producer. They must not infer a base-specific Phred score from these tags.
 
 For example, downstream code can inspect each full-interval witness's
 `observations[id].records`, join those IDs to `record_evidence`, and require a
@@ -142,6 +181,10 @@ weight, synthetic base quality or platform-specific tag threshold is imposed.
 it is not a per-base quality calculation for the candidate interval.
 
 Definitions: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf),
+[Dorado](https://software-docs.nanoporetech.com/dorado/latest/basecaller/sam_spec/),
+[Dorado duplex](https://software-docs.nanoporetech.com/dorado/latest/basecaller/duplex/),
+[CCS filtering](https://ccs.how/faq/reads-bam.html),
+[minimap2](https://github.com/lh3/minimap2/blob/master/minimap2.1),
 [PacBio BAM](https://pacbiofileformats.readthedocs.io/en/13.1/BAM.html),
 [Iso-Seq](https://isoseq.how/isoseq-tags.html), and
 [pbmm2](https://github.com/PacificBiosciences/pbmm2).
