@@ -2,6 +2,7 @@
 
 from collections import Counter
 from copy import deepcopy
+from importlib.metadata import version
 from pathlib import Path
 from types import SimpleNamespace
 import subprocess
@@ -11,6 +12,7 @@ import pysam
 import pytest
 
 from isovar import sid_data
+from tests.data.osteosarc import bundle as recipe_compiler
 from tests.data.osteosarc.bundle import fixture_inputs
 
 
@@ -117,6 +119,28 @@ def osteosarc():
     if sys.version_info < (3, 10):
         pytest.skip("Optional acquisition requires Python 3.10+")
     return pytest.importorskip("osteosarc")
+
+
+def test_compiled_recipe_records_installed_acquisition_version(packaged, monkeypatch, osteosarc):
+    recipe, bundle = packaged
+    fixture = next(fixture_inputs())
+    selected = recipe["fixtures"][fixture["name"]]
+    original_source = recipe["sources"][selected["source"]]
+    asset = SimpleNamespace(**original_source["asset"])
+    dataset = SimpleNamespace(
+        id=recipe["snapshot_id"], asset=lambda url: asset,
+        inspect_alignment=lambda key: SimpleNamespace(
+            assembly=original_source["assembly"], header=bundle["sources"][selected["source"]]["header"]))
+    monkeypatch.setattr(recipe_compiler, "fixture_inputs", lambda: iter([fixture]))
+
+    compiled = recipe_compiler.compile_recipe(dataset)
+
+    assert compiled["osteosarc_version"] == version("osteosarc")
+    assert compiled["snapshot_id"] == recipe["snapshot_id"]
+    assert compiled["fixtures"] == {fixture["name"]: selected}
+    assert compiled["sources"][selected["source"]]["asset"] == original_source["asset"]
+    # Recompilation must not rewrite the historical packaged provenance.
+    assert sid_data.read_json(sid_data.RECIPE) == recipe
 
 
 def test_regeneration_delegates_explicit_intervals_then_drops_background(tmp_path, osteosarc):

@@ -8,6 +8,7 @@ python -m tests.data.osteosarc.bundle --snapshot NAME --cache CACHE --output REC
 """
 
 import argparse
+from importlib.metadata import version
 import json
 from pathlib import Path
 import re
@@ -184,7 +185,7 @@ def compile_recipe(dataset):
                                      if c in ("M", "MT", "chrM", "chrMT") else {}))
                              for c, a, b in intervals]
         del source["reference_lengths"]
-    return dict(schema_version=1, snapshot_id=dataset.id, osteosarc_version="0.1.0",
+    return dict(schema_version=1, snapshot_id=dataset.id, osteosarc_version=version("osteosarc"),
                 license="CC0-1.0", selection="Exact original records exercised by the listed tests; not VAF sampling",
                 sources=sources, fixtures=fixtures)
 

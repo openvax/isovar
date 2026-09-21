@@ -3,6 +3,7 @@
 from collections import Counter
 from copy import deepcopy
 from hashlib import sha256
+from io import BytesIO
 import json
 from pathlib import Path
 import shutil
@@ -11,6 +12,7 @@ import sys
 
 import pysam
 import pytest
+import requests
 
 from isovar.osteosarc_data import DEFAULT_MANIFEST, acquire_dataset, load_manifest, main, verify_dataset
 
@@ -28,6 +30,7 @@ def osteosarc():
 @pytest.fixture
 def no_network(monkeypatch):
     monkeypatch.setattr(subprocess, "run", lambda *a, **kw: pytest.fail("Unexpected network/acquisition subprocess"))
+    monkeypatch.setattr(requests.Session, "send", lambda *a, **kw: pytest.fail("Unexpected HTTP request"))
 
 
 @pytest.fixture
@@ -114,7 +117,7 @@ def test_corrupt_cache_and_modified_exports_are_not_silently_repaired(tmp_path, 
 @pytest.mark.parametrize("corrupt_download", [False, True])
 @pytest.mark.parametrize("corruption", ["object", "url_receipt"])
 def test_explicit_repair_checks_downloaded_bytes(tmp_path, osteosarc, small_manifest, monkeypatch,
-                                               corrupt_download, corruption):
+                                               corrupt_download, corruption, no_network):
     cache = tmp_path / "cache"
     paths = acquire_dataset(manifest_path=small_manifest, cache_root=cache, import_corpus=CORPUS, offline=True)
     asset = load_manifest(small_manifest)["assets"][0]
@@ -127,22 +130,30 @@ def test_explicit_repair_checks_downloaded_bytes(tmp_path, osteosarc, small_mani
         osteosarc.Cache(cache).import_file(wrong, asset["url"])
     calls = []
 
-    def download(command, **kwargs):
-        assert command[0] == "curl" and command[-1] == asset["url"]
-        calls.append(command[-1])
-        Path(command[command.index("--dump-header") + 1]).write_text("HTTP/2 200\n\n")
-        destination = Path(command[command.index("--output") + 1])
-        destination.write_bytes(b"x" * asset["size_bytes"] if corrupt_download else (CORPUS / asset["filename"]).read_bytes())
+    def download(session, request, **kwargs):
+        assert request.url == asset["url"]
+        assert request.method in ("HEAD", "GET")
+        calls.append(request.method)
+        response = requests.Response()
+        response.status_code = 200
+        response.url, response.request = request.url, request
+        response.headers.update({"Content-Length": str(asset["size_bytes"]), "ETag": '"fixture"'})
+        payload = b"x" * asset["size_bytes"] if corrupt_download else (CORPUS / asset["filename"]).read_bytes()
+        response.raw = BytesIO(payload if request.method == "GET" else b"")
+        return response
 
-    monkeypatch.setattr(subprocess, "run", download)
+    # Exercise the real osteosarc/datacache download and validation path;
+    # replace only the HTTP transport, keeping the test independent of curl.
+    monkeypatch.setattr(requests.Session, "send", download)
     if corrupt_download:
-        with pytest.raises(ValueError, match="sha256 mismatch"):
+        with pytest.raises(ValueError, match="(?i)sha-?256 mismatch"):
             acquire_dataset(tmp_path / "export", manifest_path=small_manifest, cache_root=cache, repair_cache=True)
         assert not (tmp_path / "export").exists()
     else:
         output = acquire_dataset(tmp_path / "export", manifest_path=small_manifest, cache_root=cache, repair_cache=True)
         assert verify_dataset(output, small_manifest) == output
-    assert calls == [asset["url"]]
+    assert calls.count("GET") == 1
+    assert calls.count("HEAD") >= 1
 
 
 def test_cli_offline_failure_is_actionable(tmp_path, osteosarc, small_manifest, no_network, capsys):
