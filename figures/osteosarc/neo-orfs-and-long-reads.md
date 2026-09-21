@@ -32,9 +32,17 @@ tables report longer TPST1 upstream ORFs in the same frame: an ACG start in
 nocodazole- and Taxol-treated U-2 OS cells (Supplementary Data 2 and 4), and a
 CTG start in nocodazole-treated MDA-MB-231 cells (Data 9). These calls support
 translation of the upstream region under those conditions but do not establish
-initiation at our internal ATG or translation of Sid's fusion. The study's
-processed PRIDE peptide tables (PXD057839) could not be downloaded during this
-audit, so a TPST1-specific MS detection remains unverified.
+initiation at our internal ATG or translation of Sid's fusion.
+
+We searched the study's three processed immunopeptidomics tables in
+[PRIDE PXD057839](https://www.ebi.ac.uk/pride/archive/projects/PXD057839): U-2 OS
+(15,880 precursor rows), SUM-159PT (30,314) and MDA-MB-231 (20,294). None reported
+TPST1/ENST00000304842 or a peptide of at least seven residues contained in the
+39-aa wild-type sequence, including a search treating isoleucine/leucine as
+indistinguishable. These are precursor rows, not distinct peptides or biological
+replicates. Thus this study provides regional Ribo-seq support, but no detected
+MS peptide from this uORF in its processed results. That is not proof of absence
+of translation in another tissue, condition or study.
 
 Alternative PacBio paths contain 61- and 72-aa candidates starting at the same ATG; each has only one exact full ATG-to-stop witness. The 20-template breakpoint support must not be assigned to every complete candidate. Their differences remain possible splice/error/assembly alternatives.
 
