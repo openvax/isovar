@@ -22,7 +22,27 @@ The candidate ATG lies at GRCh38 chr7:66205483 (1-based), in the first exon/5′
 
 The annotated TPST1 start is in exon 2 at chr7:66240426 (1-based). The fusion joins exon 1 to CRCP instead of continuing into that exon. Using the normal start would insert sequence absent from the observed RNA.
 
-The start context is `GCCAGG-ATG-CCGTCC`: A at −3 but C at +4. We enumerated ATGs; we did not select the first ATG, optimize Kozak scores, or assume that the longest ORF is translated. In the reference TPST1 transcript, the same unannotated ATG yields a different potential 37-aa upstream ORF. The fusion changes its continuation after the shared 13-aa prefix. This is a **candidate altered upstream ORF**, not evidence that initiation or protein expression occurs. Genome-wide peptide novelty has not been checked.
+The start context is `GCCAGG-ATG-CCGTCC`: A at −3 but C at +4. We enumerated ATGs; we did not select the first ATG, optimize Kozak scores, or assume that the longest ORF is translated. In the reference TPST1 transcript, the same unannotated ATG yields a different potential **39-aa** upstream ORF (`MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV`). The earlier prose incorrectly counted it as 37 aa; the reconstructed sequence was correct. The fusion changes its continuation after the shared 13-aa prefix. This is a **candidate altered upstream ORF**, not evidence that initiation or protein expression occurs in Sid. Genome-wide peptide novelty has not been checked.
+
+[Kowar et al. (2025)](https://doi.org/10.1038/s41467-025-63405-2) independently
+include this exact 39-aa sequence in their immunopeptidomics search database
+(Supplementary Data 12, row 2227; its trailing `Z` is not an amino acid in this
+ORF). Search-database inclusion is not an observed MS peptide. Their Ribo-seq
+tables report longer TPST1 upstream ORFs in the same frame: an ACG start in
+nocodazole- and Taxol-treated U-2 OS cells (Supplementary Data 2 and 4), and a
+CTG start in nocodazole-treated MDA-MB-231 cells (Data 9). These calls support
+translation of the upstream region under those conditions but do not establish
+initiation at our internal ATG or translation of Sid's fusion.
+
+We searched the study's three processed immunopeptidomics tables in
+[PRIDE PXD057839](https://www.ebi.ac.uk/pride/archive/projects/PXD057839): U-2 OS
+(15,880 precursor rows), SUM-159PT (30,314) and MDA-MB-231 (20,294). None reported
+TPST1/ENST00000304842 or a peptide of at least seven residues contained in the
+39-aa wild-type sequence, including a search treating isoleucine/leucine as
+indistinguishable. These are precursor rows, not distinct peptides or biological
+replicates. Thus this study provides regional Ribo-seq support, but no detected
+MS peptide from this uORF in its processed results. That is not proof of absence
+of translation in another tissue, condition or study.
 
 Alternative PacBio paths contain 61- and 72-aa candidates starting at the same ATG; each has only one exact full ATG-to-stop witness. The 20-template breakpoint support must not be assigned to every complete candidate. Their differences remain possible splice/error/assembly alternatives.
 

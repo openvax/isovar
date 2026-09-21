@@ -309,21 +309,7 @@ def _breaks(positions):
 
 def _ineligible(read, collector):
     """The ReadCollector filters, applied to each record separately."""
-    if read.is_unmapped:
-        return "unmapped"
-    if read.is_qcfail:
-        return "qc_fail"
-    if not read.query_sequence:
-        return "sequence_unavailable"
-    if read.is_duplicate and not collector.use_duplicate_reads:
-        return "duplicate"
-    if read.is_secondary and not collector.use_secondary_alignments:
-        return "secondary"
-    if read.mapping_quality < collector.min_mapping_quality:
-        return "mapping_quality"
-    if read.query_qualities is None and not collector.use_reads_without_base_qualities:
-        return "qualities_unavailable"
-    return None
+    return collector.alignment_filter_reason(read)
 
 
 def _linked_pieces(first, second, group):
@@ -1515,12 +1501,14 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     cited_reads = {rid: r for identity in {o.identity for o in used.values()}
              for r in store.groups[identity] if (rid := _record_id(r)) in record_ids}
     best = next((s for s in LINKAGE_STATUSES if s in {r["event_linkage"]["status"] for r in results}), None)
+    header = bam.header.to_dict()
     return dict(
         schema="isovar.sv_rna_candidates.v2",
         status=("event_linked_candidates" if best in LINKAGE_STATUSES[:3]
                 else "splice_ambiguous_candidates" if best == "splice_ambiguous_event_junction"
                 else "regional_candidates_only" if results else "no_candidate_paths"),
         event_id=event_id, reference_name=reference_name, sample_id=sample_id, source=source,
+        alignment_metadata=dict(read_groups=header.get("RG", []), programs=header.get("PG", [])),
         event_provenance=event_provenance, donor=asdict(donor), acceptor=asdict(acceptor),
         reference_models=[dict(transcript_id=r.transcript_id, annotation=r.annotation, contig=r.contig,
                                strand=r.strand, sequence_sha256=sha256(r.sequence.encode()).hexdigest())
@@ -1537,6 +1525,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                         peptide_lengths=lengths, genetic_code=1,
                         min_orf_amino_acids=min_orf_amino_acids, max_orf_candidates=max_orf_candidates,
                         use_soft_clipped_bases=collector.use_soft_clipped_bases,
+                        custom_read_filter=collector.read_filter is not None,
                         min_mapping_quality=collector.min_mapping_quality),
         seeds=seed_rows,
         competing_annotated_junctions=[dict(left=list(left), right=list(right), fragments=len(fragments))

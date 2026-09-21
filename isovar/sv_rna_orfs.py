@@ -1,22 +1,7 @@
 """Exploratory ATG ORFs and their observed RNA evidence, not initiation calls."""
 
 from .genetic_code import standard_genetic_code
-
-
-def record_evidence(read):
-    """Extract separately filterable alignment, consensus and provenance data.
-
-    Tag meanings follow SAM, PacBio BAM, Iso-Seq and pbmm2 specifications.
-    Missing tags stay null, zero stays zero, and no tag substitutes for QUAL.
-    Original SAM records retain all other tags and the actual quality string.
-    """
-    tags = ("NM", "mg", "rm", "rq", "np", "ec", "ic", "is", "im", "CB", "UB", "XM", "rc", "RG")
-    return dict(
-        mapping_quality=None if read.mapping_quality == 255 else read.mapping_quality,
-        base_qualities_available=read.query_qualities is not None,
-        query_length=read.query_length,
-        aligned_query_bases=sum(n for op, n in (read.cigartuples or ()) if op in (0, 1, 7, 8)),
-        tags={tag: read.get_tag(tag) if read.has_tag(tag) else None for tag in tags})
+from .read_metadata import record_evidence as record_evidence
 
 
 def _start_references(sequence, positions, start, amino_acids, stop, models):

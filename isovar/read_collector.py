@@ -123,6 +123,7 @@ class ReadCollector(object):
         read_end_profile=READ_END_PROFILE,
         trim_adapters=TRIM_ADAPTERS,
         trim_poly_a=TRIM_POLY_A,
+        read_filter=None,
     ):
         """
         Parameters
@@ -160,6 +161,13 @@ class ReadCollector(object):
         trim_adapters, trim_poly_a : bool
             Opt-in removal from terminal soft clips only. Original alignments,
             aligned bases and insertion evidence are never rewritten.
+
+        read_filter : callable or None
+            Optional predicate on each eligible original pysam record. Return
+            True to keep it. Used by both small-variant and SV reconstruction,
+            before merging or segment building. No platform tags are decoded
+            unless the predicate requests them. Missing-tag policy belongs to
+            the caller; exceptions propagate rather than silently losing reads.
         """
         self.use_secondary_alignments = use_secondary_alignments
         self.use_duplicate_reads = use_duplicate_reads
@@ -177,6 +185,43 @@ class ReadCollector(object):
         self.read_end_profile = read_end_profile
         self.trim_adapters = trim_adapters
         self.trim_poly_a = trim_poly_a
+        if read_filter is not None and not callable(read_filter):
+            raise TypeError("read_filter must be callable or None")
+        self.read_filter = read_filter
+
+    def alignment_filter_reason(self, read):
+        """Return a rejection reason, or None, for one original SAM record.
+
+        MAPQ retains the historical numeric filter, including STAR's 255 for
+        unique mappings. Metadata reports 255 as unavailable, never Q255.
+        Unknown QUAL remains optional on every platform.
+        """
+        if read.is_unmapped:
+            return "unmapped"
+        if read.is_qcfail:
+            return "qc_fail"
+        if read.is_duplicate and not self.use_duplicate_reads:
+            return "duplicate"
+        if read.is_secondary and not self.use_secondary_alignments:
+            return "secondary"
+        if read.query_name is None:
+            return "name_unavailable"
+        mapq = read.mapping_quality
+        if (mapq is None and self.min_mapping_quality > 0) or (
+                mapq is not None and mapq < self.min_mapping_quality):
+            return "mapping_quality"
+        sequence = read.query_sequence
+        if not sequence:
+            return "sequence_unavailable"
+        qualities = read.query_qualities
+        if qualities is None:
+            if not self.use_reads_without_base_qualities:
+                return "qualities_unavailable"
+        elif len(qualities) != len(sequence):
+            return "qualities_length_mismatch"
+        if self.read_filter is not None and not self.read_filter(read):
+            return "read_filter"
+        return None
 
     def read_sequence_view(self, read):
         """Infer original-query end structure independently of a variant locus."""
@@ -355,62 +400,20 @@ class ReadCollector(object):
         -------
         LocusRead or None
         """
-        if pysam_aligned_segment.is_secondary and not self.use_secondary_alignments:
-            return None
-
-        if pysam_aligned_segment.is_duplicate and not self.use_duplicate_reads:
-            return None
-
         name = pysam_aligned_segment.query_name
-
-        if name is None:
-            logger.warning("Read missing name at position %d", base0_start_inclusive + 1)
-            return None
-
-        if pysam_aligned_segment.is_unmapped:
-            logger.warning("How did we get unmapped read '%s' in a pileup?", name)
+        reason = self.alignment_filter_reason(pysam_aligned_segment)
+        if reason is not None:
+            logger.debug("Skipping read %r: %s", name, reason)
             return None
 
         if self._interval_overlaps_reference_skip(
                 pysam_aligned_segment, base0_start_inclusive, base0_end_exclusive):
             return None
 
-        mapping_quality = pysam_aligned_segment.mapping_quality
-
-        if mapping_quality is None:
-            if self.min_mapping_quality > 0:
-                logger.debug("Skipping read '%s' due to missing MAPQ" % name)
-                return None
-            else:
-                mapping_quality = 0
-        elif mapping_quality < self.min_mapping_quality:
-            logger.debug(
-                "Skipping read '%s' due to low MAPQ: %d < %d",
-                name,
-                mapping_quality,
-                self.min_mapping_quality,
-            )
-            return None
-
         sequence = pysam_aligned_segment.query_sequence
-
-        if sequence is None:
-            logger.warning("Skipping read '%s' due to missing sequence" % name)
-            return None
-
         base_qualities = pysam_aligned_segment.query_qualities
-
         if base_qualities is None:
-            if not self.use_reads_without_base_qualities:
-                logger.debug("Skipping read '%s' due to missing base qualities", name)
-                return None
             base_qualities = [None] * len(sequence)
-        elif len(base_qualities) != len(sequence):
-            logger.warning(
-                "Skipping read '%s' due to mismatch in length of sequence (%d) and qualities (%d)"
-                % (name, len(sequence), len(base_qualities))
-            )
-            return None
 
         # By default, AlignedSegment.get_reference_positions returns only the
         # 0-based reference positions aligned to read bases. If full_length is
@@ -860,6 +863,9 @@ class ReadCollector(object):
 
         merged_reads = []
         for grouped_read_list in grouped_reads.values():
+            if len(grouped_read_list) == 1:
+                merged_reads.extend(grouped_read_list)
+                continue
             pending_reads = sorted(grouped_read_list, key=cls._locus_read_sort_key)
             changed = True
             while changed and len(pending_reads) > 1:
@@ -1109,11 +1115,8 @@ class ReadCollector(object):
             )
             return []
 
-        logger.info(
-            "Gathering reads for variant %s (with gene names %s)",
-            variant,
-            variant.gene_names,
-        )
+        logger.info("Gathering reads for variant %s:%s %s>%s",
+                    variant.contig, variant.start, variant.ref, variant.alt)
 
         base1_position, ref, alt = trim_variant(variant)
 
