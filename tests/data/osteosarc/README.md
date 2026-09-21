@@ -167,13 +167,22 @@ the cDNA (reverse-complementing H1-2), and translates with NCBI table 1.
 It first checks every unedited cDNA against the original Ensembl peptide.
 No Isovar/Varcode protein prediction supplies expected amino-acid sequences.
 
-The partial annotation has the explicit dataset identity
-`GRCh38-osteosarc-six-transcript-subset`; all genomic coordinates remain
-GRCh38. Calling the partial dataset simply GRCh38 exposed
-[Varcode #402](https://github.com/openvax/varcode/issues/402): its global
-contig cache can then reject valid chromosomes in later full-GRCh38 analyses.
-The fixture's distinct identity prevents contamination without clearing or
-patching global caches; the general upstream bug remains open.
+All offline reference subsets use `tests/reference_identity.py`: it verifies
+the pinned SHA256 of each GTF/cDNA/protein archive before indexing, then hashes
+their uncompressed contents together with their file roles. Moving a subset,
+recompressing it with updated archive checksums, or editing descriptive manifest
+metadata preserves its identity; changing reference contents changes it.
+Indexes live in a subdirectory named by that identity, so a shared cache root
+cannot reuse another subset's identically named GTF/FASTA indexes.
+Assembly/release and source provenance remain in the manifests. Existing pinned
+assets, including the descriptive CeGaT suffix, are unchanged.
+
+Calling different partial datasets simply GRCh38 exposed
+[Varcode #402](https://github.com/openvax/varcode/issues/402): older versions'
+global contig cache could reject valid chromosomes in later analyses. That bug
+is fixed upstream (including Varcode 9.3.7, used for this change's validation).
+Content identities also keep subsets distinct with older supported Varcode
+versions and make fixture references reproducible independently of that fix.
 
 The three original archives were also checked against Ensembl's published
 release-87 `CHECKSUMS` files: BSD sum/block pairs are cDNA **31257/62549**,

@@ -13,6 +13,7 @@ from tests.data.osteosarc.expansion.references import apply_variant, load_refere
 from tests.data.osteosarc.expansion.runner import audit_mode, PRIMARY_EXCLUDE_FLAGS
 from tests.data.osteosarc.expansion.stress import exact_allele
 from tests.real_rna_helpers import record_digest
+from tests.reference_identity import reference_dataset_identity
 from tests.test_osteosarc_expansion_corpus import canonical_result
 
 
@@ -43,7 +44,7 @@ def test_reference_subset_identities_are_distinct_and_annotation_order_independe
         checksum = digest(directory / "manifest.json")
         genome = reference_genome(directory, tmp_path / name)
         identities[name] = genome.reference_name
-        assert genome.reference_name == manifest["dataset_identity"] + "-" + checksum[:16]
+        assert genome.reference_name == reference_dataset_identity(directory, manifest["files"])
         variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], ensembl=genome)
         assert record["gene"] in variant.gene_names
         assert digest(directory / "manifest.json") == checksum

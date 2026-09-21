@@ -178,7 +178,7 @@ def test_subset_reference_does_not_poison_full_grch38_contig_validation(protein_
     # on a chromosome absent from that subset must still use the full genome.
     variant, _, _ = protein_cases["ont_t1", "PIP5K1A"]
     assert variant.gene_names == ["PIP5K1A"]
-    assert variant.reference_name == "GRCh38-osteosarc-six-transcript-subset"
+    assert variant.reference_name != grch38.reference_name
     assert "TP53" in Variant("17", 7676589, "CTC", "", ensembl=grch38).gene_names
 
 
