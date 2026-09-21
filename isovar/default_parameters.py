@@ -233,3 +233,6 @@ SV_BREAKPOINT_WINDOW = 1000
 SV_MAX_BREAKPOINT_SHIFT = 10
 # Unannotated joins this close to an annotated junction are aligner wobble:
 SV_ANNOTATED_JUNCTION_TOLERANCE = 5
+# Exploratory ATG candidates are separate from annotated CDS translations.
+SV_MIN_ORF_AMINO_ACIDS = 15
+SV_MAX_ORF_CANDIDATES = 100

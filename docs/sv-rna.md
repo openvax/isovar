@@ -82,6 +82,72 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
    leaving at an indel, a sequencing error or another model's splice junction
    are counted in `readings_departing_elsewhere`. Identical proteins from
    several models are grouped with every model's frame evidence.
+6. **Explore other starts.** Each path also has `exploratory_orfs`, separate
+   from `translations` and `frame_status`. It enumerates observed ATGs whose
+   potential translation crosses an event-related junction, including
+   read-through-ambiguous joins and breakpoint clips. The default minimum is
+   15 aa (`--min-orf-amino-acids`); at most 100 candidates per path are retained
+   in start-offset order (`--max-orf-candidates`). `candidate_limit_reached`
+   reports truncation. Non-ATG initiation and starts outside the retained RNA
+   are not searched. A path end without a stop remains partial.
+
+   `start_context` reports the observed flanks, including the −3 and +4 bases
+   when present. This is not a Kozak score or an initiation prediction. Exact
+   ATG placements are compared with every supplied reference model and labeled
+   annotated start, 5′ UTR, internal CDS, 3′ UTR or noncoding transcript.
+   `annotated_start` means at least one supplied model annotates that codon;
+   no matching model does not establish that a start is globally unannotated.
+   `reference_comparisons` translates from the same reference ATG and reports
+   its shared amino-acid prefix. For a partial RNA candidate, a difference
+   from the complete reference ORF may only reflect truncation. Global peptide
+   novelty and protein expression are not established.
+
+   Each candidate's `full_interval_support` requires an exact complete
+   nucleotide witness, including the stop when present, from a built
+   observation that makes a crossed junction. Placements must be compatible,
+   with shared anchors on both available sides. No pair of partial reads is
+   counted as one full witness. Counts distinguish segments, RG/QNAME fragments
+   and RG/cell/UMI labels within this input source; these labels are not proof
+   of independent molecules. Missing tags yield null molecule counts. Witness
+   query intervals and observation IDs link to the original records. Counts
+   cover built direct observations, not every unbuilt read beyond resource
+   limits. A path stop with zero witnesses is still only assembled sequence.
+
+## Filterable read evidence
+
+`record_evidence` is keyed by the same IDs as `original_records` and separates
+MAPQ, QUAL availability, query/aligned-query lengths and selected native tags.
+Absent tags and MAPQ 255 are null; zero remains zero. Missing QUAL stays
+optional (`--require-base-qualities` opts out). Original SAM retains every tag
+and the actual qualities, including bases outside the candidate interval.
+
+| Field | Meaning and use |
+|---|---|
+| `mapping_quality` | Confidence in alignment placement; existing `--min-mapping-quality` filter |
+| `base_qualities_available` | Whether per-base Phred qualities are stored; not the same as MAPQ |
+| `NM`, `mg` | Edit distance and gap-compressed alignment identity (%); true variants contribute to differences |
+| `rm` | pbmm2 trimmed overlapping query matches between alignments |
+| `rq`, `np`, `ec` | Predicted read accuracy, complete insert passes, effective subread coverage when present |
+| `ic`, `is`, `im` | Iso-Seq consensus input count, associated read count, input names; not independent molecule counts |
+| `CB`, `UB`, `XM`, `RG` | Cell, UMI and read-group provenance; XM is raw after Iso-Seq tag and corrected after correct |
+| `rc` | Iso-Seq predicted real-cell flag; neither a malignancy label nor base accuracy |
+
+For example, downstream code can inspect each full-interval witness's
+`observations[id].records`, join those IDs to `record_evidence`, and require a
+chosen MAPQ or `tags.mg` threshold. Missing values need an explicit retention
+policy. Filtering witnesses requires recounting distinct fragments and labels;
+the original aggregate count does not survive arbitrary filtering. No combined
+weight, synthetic base quality or platform-specific tag threshold is imposed.
+`missing_quality_segments` counts witnesses containing any record without QUAL;
+it is not a per-base quality calculation for the candidate interval.
+
+Definitions: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf),
+[PacBio BAM](https://pacbiofileformats.readthedocs.io/en/13.1/BAM.html),
+[Iso-Seq](https://isoseq.how/isoseq-tags.html), and
+[pbmm2](https://github.com/PacificBiosciences/pbmm2).
+Initiation context: [Kozak's mutagenesis study](https://pubmed.ncbi.nlm.nih.gov/3943125/).
+The [Sid neo-ORF report](../figures/osteosarc/neo-orfs-and-long-reads.md)
+compares candidate sequence support with what is known about initiation.
 
 ## Independent evidence axes
 

@@ -734,7 +734,7 @@ def test_inputs_and_parameters_are_validated(tmp_path):
         reconstruct_sv_rna(None, event_id="e", reference_name="test", donor=s.donor, acceptor=s.acceptor,
                            regions=[], references=[s.donor_ref], sample_id="s", source="x", event_provenance={})
     for options in [dict(max_paths=0), dict(min_anchor_bases=2), dict(min_alternative_fraction=1.5),
-                    dict(peptide_lengths=[])]:
+                    dict(peptide_lengths=[]), dict(min_orf_amino_acids=0), dict(max_orf_candidates=0)]:
         with pytest.raises(ValueError):
             s.run(bam, **options)
     with pytest.raises(ValueError, match="interval"):
@@ -753,10 +753,11 @@ def test_cli_writes_the_api_result(tmp_path):
     (tmp_path / "event.json").write_text(json.dumps(data))
     output = tmp_path / "result.json"
     commands.run(["sv-rna", "--bam", str(bam), "--input", str(tmp_path / "event.json"),
-                  "--output", str(output), "--no-assembly"])
+                  "--output", str(output), "--no-assembly", "--min-orf-amino-acids", "5", "--max-orf-candidates", "2"])
     result = json.loads(output.read_text())
     with pysam.AlignmentFile(str(bam)) as alignments:
         expected = reconstruct_sv_rna(alignments, source=str(bam), assemble=False,
+                                      min_orf_amino_acids=5, max_orf_candidates=2,
                                       **sv_rna_input_from_dict(json.loads(json.dumps(data))))
     assert result == json.loads(json.dumps(expected))
     assert result["parameters"]["assemble"] is False and result["status"] == "event_linked_candidates"
