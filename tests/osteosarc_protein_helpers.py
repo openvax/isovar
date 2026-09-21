@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 
 from .data.osteosarc.protein_references import fasta_records
+from .reference_identity import reference_dataset_identity
 
 
 REFERENCE = Path(__file__).parent / "data" / "osteosarc" / "protein_reference"
@@ -172,19 +173,20 @@ def check_translation(translation, expected, protein_length):
             "protein_start_1based": first_codon + 1}
 
 
-def reference_genome(cache_directory):
+def reference_genome(cache_directory, directory=REFERENCE):
     """Real PyEnsembl parser/index, restricted to these six pinned transcripts."""
     from pyensembl import Genome
 
+    directory = Path(directory)
+    manifest = json.loads((directory / "protein_reference_manifest.json").read_text())
+    checksums = {name: metadata["subset_sha256"] for name, metadata in manifest["files"].items()}
+    dataset_identity = reference_dataset_identity(directory, checksums)
     genome = Genome(
-        # Give the partial dataset its own identity: Varcode caches valid
-        # contigs by reference_name, so calling it GRCh38 would poison later
-        # full-genome queries in the same process (upstream issue linked in README).
-        reference_name="GRCh38-osteosarc-six-transcript-subset",
-        annotation_name="osteosarc-ensembl-subset", annotation_version=87,
-        gtf_path_or_url=str(REFERENCE / "reference.gtf.gz"),
-        transcript_fasta_paths_or_urls=[str(REFERENCE / "reference.cdna.fa.gz")],
-        protein_fasta_paths_or_urls=[str(REFERENCE / "reference.pep.fa.gz")],
-        copy_local_files_to_cache=True, cache_directory_path=str(cache_directory))
+        reference_name=dataset_identity,
+        annotation_name="osteosarc-ensembl-subset", annotation_version=manifest["ensembl_release"],
+        gtf_path_or_url=str(directory / "reference.gtf.gz"),
+        transcript_fasta_paths_or_urls=[str(directory / "reference.cdna.fa.gz")],
+        protein_fasta_paths_or_urls=[str(directory / "reference.pep.fa.gz")],
+        copy_local_files_to_cache=True, cache_directory_path=str(Path(cache_directory) / dataset_identity))
     genome.index()
     return genome

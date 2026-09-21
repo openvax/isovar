@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT))
 from tests.data.osteosarc.expansion.inventory import digest, write_json  # noqa: E402
 from tests.data.osteosarc.protein_references import fasta_records  # noqa: E402
 from tests.osteosarc_protein_helpers import aligned_window_start, reverse_complement, transcript_offset  # noqa: E402
+from tests.reference_identity import reference_dataset_identity  # noqa: E402
 
 
 # NCBI genetic-code tables 1 and 2, in the published TCAG codon order.
@@ -137,16 +138,13 @@ def reference_genome(directory, cache):
 
     directory = Path(directory)
     manifest, _ = load_reference(directory)
-    # The stress and full-cohort subsets can share an assembly/release label
-    # but expose different contigs. Give their pinned datasets distinct names
-    # (Isovar #233; Varcode's name-keyed contig cache is tracked in #402).
-    dataset_identity = manifest["dataset_identity"] + "-" + digest(directory / "manifest.json")[:16]
+    dataset_identity = reference_dataset_identity(directory, manifest["files"])
     genome = Genome(
         reference_name=dataset_identity, annotation_name="osteosarc-vaccine-cohort",
         annotation_version=manifest["ensembl_release"], gtf_path_or_url=str(directory / "reference.gtf.gz"),
         transcript_fasta_paths_or_urls=[str(directory / "reference.cdna.fa.gz")],
         protein_fasta_paths_or_urls=[str(directory / "reference.pep.fa.gz")],
-        copy_local_files_to_cache=True, cache_directory_path=str(cache))
+        copy_local_files_to_cache=True, cache_directory_path=str(Path(cache) / dataset_identity))
     genome.index()
     return genome
 
