@@ -29,12 +29,14 @@ from .default_parameters import (
     FUSION_PEPTIDE_LENGTHS, SV_ASSEMBLE, SV_BREAKPOINT_WINDOW, SV_MAX_BREAKPOINT_SHIFT,
     SV_MAX_EXTENSION_SEGMENTS, SV_MAX_PATHS, SV_MAX_QUERIES, SV_MAX_RECORDS, SV_ANNOTATED_JUNCTION_TOLERANCE,
     SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_LOCAL_VARIANT_FRACTION, SV_MIN_ANCHOR_BASES, SV_MIN_OVERLAP,
+    SV_MIN_ORF_AMINO_ACIDS, SV_MAX_ORF_CANDIDATES,
 )
 from .fusion import FusionBlock, FusionBreakpoint, FusionReference
 from .genetic_code import standard_genetic_code
 from .read_collector import ReadCollector
 from .read_end_inference import reverse_complement
 from .read_identity import source_alignments_from_pysam
+from .sv_rna_orfs import exploratory_orfs, record_evidence
 
 _BIN = 64  # Genomic bin width of the observation index.
 _RECORD_BIN = 1024  # Genomic bin width of the unbuilt-record index.
@@ -1143,7 +1145,8 @@ def _contains(path, core):
     return False
 
 
-def _path_result(sequence, positions, voters, store, event, annotated, adjacency, clip_support, frame_evidence):
+def _path_result(sequence, positions, voters, store, event, annotated, adjacency, clip_support, frame_evidence,
+                 orf_evidence):
     """Serialize one path with junction, sequence and frame evidence.
 
     Direct support for a junction is every segment whose own observed path
@@ -1266,6 +1269,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
             missing_quality_segments=len({o.identity for o in voting if o.missing_qualities}),
             secondary_segments=len({o.identity for o in voting if o.secondary}),
             assembly_phase="hypothesis_not_proven_long_range_phase"),
+        exploratory_orfs=orf_evidence(sequence, positions, junctions, evidence),
         **frame), evidence
 
 
@@ -1289,7 +1293,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                        max_extension_segments=SV_MAX_EXTENSION_SEGMENTS, assemble=SV_ASSEMBLE,
                        breakpoint_window=SV_BREAKPOINT_WINDOW, max_breakpoint_shift=SV_MAX_BREAKPOINT_SHIFT,
                        annotated_junction_tolerance=SV_ANNOTATED_JUNCTION_TOLERANCE,
-                       peptide_lengths=FUSION_PEPTIDE_LENGTHS):
+                       peptide_lengths=FUSION_PEPTIDE_LENGTHS,
+                       min_orf_amino_acids=SV_MIN_ORF_AMINO_ACIDS, max_orf_candidates=SV_MAX_ORF_CANDIDATES):
     """Reconstruct RNA paths for one nominated, oriented DNA adjacency.
 
     Paths start at unannotated RNA junctions (and, when soft-clipped bases are
@@ -1350,6 +1355,9 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         treated as alignment wobble and seed no ordinary-splicing or regional
         path (joins at the nominated adjacency are always used).
     peptide_lengths : iterable of int
+    min_orf_amino_acids, max_orf_candidates : int
+        Minimum length and per-path cap for separate exploratory ATG ORFs.
+        Candidates are ordered by start offset; truncation is explicit.
 
     Returns
     -------
@@ -1364,7 +1372,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     if not isinstance(donor, FusionBreakpoint) or not isinstance(acceptor, FusionBreakpoint):
         raise TypeError("Expected oriented FusionBreakpoint inputs")
     for value in (min_anchor_bases, min_overlap, min_alternative_fragments, max_records, max_queries, max_paths,
-                  max_extension_segments, breakpoint_window):
+                  max_extension_segments, breakpoint_window, min_orf_amino_acids, max_orf_candidates):
         if type(value) is not int or value < 1:
             raise ValueError("SV evidence thresholds and search limits must be positive integers")
     for value in (max_breakpoint_shift, annotated_junction_tolerance):
@@ -1492,7 +1500,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     for (sequence, positions), (rows, voters) in paths.items():
         result, evidence = _path_result(
             sequence, positions, voters, store, event, annotated, adjacency, clip_support,
-            lambda *path: _frame_evidence(*path, models, min_anchor_bases, reference_peptides, lengths))
+            lambda *path: _frame_evidence(*path, models, min_anchor_bases, reference_peptides, lengths),
+            lambda *path: exploratory_orfs(*path, models, store.molecule, min_orf_amino_acids, max_orf_candidates))
         results.append(result)
         for row in rows:
             if result["path_id"] not in row["paths"]:
@@ -1503,7 +1512,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                                 -max([j["direct_fragments"] for j in r["junctions"]], default=0),
                                 r["sequence"], r["path_id"]))
     record_ids = {rid for o in used.values() for rid in o.records}
-    cited = {rid: r.to_string() for identity in {o.identity for o in used.values()}
+    cited_reads = {rid: r for identity in {o.identity for o in used.values()}
              for r in store.groups[identity] if (rid := _record_id(r)) in record_ids}
     best = next((s for s in LINKAGE_STATUSES if s in {r["event_linkage"]["status"] for r in results}), None)
     return dict(
@@ -1526,6 +1535,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                         breakpoint_window=breakpoint_window, max_breakpoint_shift=max_breakpoint_shift,
                         annotated_junction_tolerance=annotated_junction_tolerance,
                         peptide_lengths=lengths, genetic_code=1,
+                        min_orf_amino_acids=min_orf_amino_acids, max_orf_candidates=max_orf_candidates,
                         use_soft_clipped_bases=collector.use_soft_clipped_bases,
                         min_mapping_quality=collector.min_mapping_quality),
         seeds=seed_rows,
@@ -1538,7 +1548,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                       for key, o in sorted(used.items())},
         observation_counts=dict(eligible_segments=len(store.groups), built_segments=len(store.built)),
         excluded_records=dict(store.excluded), segment_path_notes=dict(store.reasons),
-        original_records=cited)
+        record_evidence={rid: record_evidence(read) for rid, read in sorted(cited_reads.items())},
+        original_records={rid: read.to_string() for rid, read in sorted(cited_reads.items())})
 
 
 def sv_rna_input_from_dict(data):

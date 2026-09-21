@@ -7,6 +7,7 @@ from ..default_parameters import (
     FUSION_PEPTIDE_LENGTHS, SV_ASSEMBLE, SV_BREAKPOINT_WINDOW, SV_MAX_BREAKPOINT_SHIFT,
     SV_MAX_EXTENSION_SEGMENTS, SV_MAX_PATHS, SV_ANNOTATED_JUNCTION_TOLERANCE, SV_MAX_QUERIES, SV_MAX_RECORDS,
     SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_LOCAL_VARIANT_FRACTION, SV_MIN_ANCHOR_BASES, SV_MIN_OVERLAP,
+    SV_MIN_ORF_AMINO_ACIDS, SV_MAX_ORF_CANDIDATES,
 )
 from ..sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
@@ -47,6 +48,10 @@ def make_parser(prog="isovar sv-rna"):
                        help="Use only reads which span each seed junction")
     group.add_argument("--peptide-lengths", type=int, nargs="+", default=FUSION_PEPTIDE_LENGTHS,
                        help="Candidate peptide lengths (default: %(default)s)")
+    group.add_argument("--min-orf-amino-acids", type=int, default=SV_MIN_ORF_AMINO_ACIDS,
+                       help="Minimum separate exploratory ATG ORF length (default: %(default)s)")
+    group.add_argument("--max-orf-candidates", type=int, default=SV_MAX_ORF_CANDIDATES,
+                       help="Per-path exploratory ORF cap, with explicit truncation (default: %(default)s)")
     return parser
 
 
@@ -66,7 +71,8 @@ def run(args=None, prog=None):
                 breakpoint_window=options.breakpoint_window, max_breakpoint_shift=options.max_breakpoint_shift,
                 max_extension_segments=options.max_extension_segments,
                 annotated_junction_tolerance=options.annotated_junction_tolerance,
-                peptide_lengths=options.peptide_lengths, **inputs)
+                peptide_lengths=options.peptide_lengths, min_orf_amino_acids=options.min_orf_amino_acids,
+                max_orf_candidates=options.max_orf_candidates, **inputs)
         Path(options.output).expanduser().write_text(json.dumps(result, indent=2) + "\n")
     except (OSError, ValueError, TypeError, KeyError) as error:
         parser.error(str(error))
