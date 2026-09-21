@@ -417,7 +417,7 @@ listed tests are included.
 
 The [shared osteosarc data workflow](docs/osteosarc-data.md) imports, downloads
 and exports the pinned original-read regression subset through
-`osteosarc==0.1.0`, with checksum verification and offline reuse across OpenVax
+`osteosarc==0.1.2`, with checksum verification and offline reuse across OpenVax
 consumers. Acquisition is optional; ordinary tests use checked-in fixtures.
 
 ## Sequencing Recommendations

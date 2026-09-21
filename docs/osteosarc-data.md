@@ -20,7 +20,7 @@ The pinned manifest and BAMs do not change when osteosarc updates its catalogue.
 
 ## Import, download and export
 
-Acquisition uses the published `osteosarc==0.1.0` cache API. It requires
+Acquisition uses the published `osteosarc==0.1.2` cache API. It requires
 Python 3.10+ and the optional data extra:
 
 ```sh

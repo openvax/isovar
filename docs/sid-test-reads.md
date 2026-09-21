@@ -7,9 +7,12 @@ assets, their consuming tests, and bounded acquisition intervals. There are
 27,077 unique source/SAM-record pairs. Reusing a record across tests does not
 increase storage, while actual duplicate multiplicity is preserved on export.
 
-The bundle is generated through **osteosarc 0.1.0**, using snapshot Assets and
-indexed Region extraction. It includes SNV/indel, native GRCh37 and mitochondrial,
-long-read, fusion, phasing, clipping, and matched DNA/RNA regression inputs.
+Regeneration uses **osteosarc 0.1.2**, using snapshot Assets and indexed Region
+extraction. The shipped bundle was originally generated with 0.1.0; its recorded
+provenance and selected read bytes remain unchanged. New recipe compilations
+record the installed osteosarc version. The bundle includes SNV/indel, native
+GRCh37 and mitochondrial, long-read, fusion, phasing, clipping, and matched
+DNA/RNA regression inputs.
 The external K562 control remains separate. These are test selections, not a
 random sample, a whole locus dataset, or an estimator of sample coverage/VAF.
 Historical allele definitions and protein expectations are unchanged.
