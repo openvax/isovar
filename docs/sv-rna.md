@@ -248,6 +248,24 @@ supplied reference proteins only; this is not proteome novelty, presentation
 or immunogenicity. Results retain the SAM text of cited records, excluded-record
 reasons, segment-path notes and effective parameters.
 
+## Read lineage
+
+`junctions[].direct_read_lineage` and exploratory ORF
+`full_interval_support.read_lineage` report Dorado sequencing signal ancestry
+among the respective supporting segments. `segment_ids` makes the denominator
+explicit; `resolved_signal_groups` counts only resolved groups, and
+`unresolved_segments`/`status_counts` expose missing or conflicting evidence.
+`read_lineage.segments` at the top level records each consulted segment's
+producer, status, `pi` parent, `dx` class, `sp` offset and resolved signal group.
+
+Explicit Dorado split children can share a signal group; duplex parents and
+consensuses remain unresolved because `dx` does not provide their correspondence.
+Unknown producers also remain unresolved. This does not change segment/fragment
+counts, reconstruction thresholds, alignment compatibility, or full-ORF witness
+requirements. Signal groups are **not independent molecule counts**. They are
+scoped to one input and one read group; existing barcode/UMI label fields remain
+separate. See the [lineage contract and primary sources](ont-read-lineage.md).
+
 ## Scale
 
 Per-base observations are built only when needed: for segments whose CIGAR

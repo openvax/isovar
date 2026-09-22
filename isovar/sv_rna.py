@@ -37,6 +37,7 @@ from .read_collector import ReadCollector
 from .read_end_inference import reverse_complement
 from .read_identity import source_alignments_from_pysam
 from .sv_rna_orfs import exploratory_orfs, record_evidence
+from .read_lineage import ReadLineage
 
 _BIN = 64  # Genomic bin width of the observation index.
 _RECORD_BIN = 1024  # Genomic bin width of the unbuilt-record index.
@@ -496,7 +497,7 @@ class _Observations:
     reaching the cap is reported.
     """
 
-    def __init__(self, records, collector, cap):
+    def __init__(self, records, collector, cap, header):
         self.collector, self.cap, self.limited = collector, cap, False
         self.groups, self.excluded, self.reasons = defaultdict(list), Counter(), Counter()
         self.extent, self.bins, self.gaps = defaultdict(dict), defaultdict(list), defaultdict(dict)
@@ -516,6 +517,7 @@ class _Observations:
                     self.bins[contig, b].append((start, end, identity))
             low, high = self.extent[identity].get(contig, (read.reference_start, read.reference_end))
             self.extent[identity][contig] = (min(low, read.reference_start), max(high, read.reference_end))
+        self.lineage = ReadLineage(self.groups, header)
 
     def build(self, identity):
         if identity not in self.built:
@@ -1228,6 +1230,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
             kinds=sorted(kinds), annotated=is_annotated, relation=relation, breakpoint_assignment=assignment,
             direct_segments=len(segments), direct_fragments=len({s[:2] for s in segments}),
             direct_molecules=len(molecules) if molecules else None,
+            direct_read_lineage=store.lineage.support(segments),
             direct_observations=sorted({o.key for o, *_ in direct}),
             direct_junction_sequences=None if clip else [
                 list(item) for item in sorted(junction_sequences.items(), key=lambda item: (-item[1], item[0]))],
@@ -1394,7 +1397,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
 
     records, acquisition = collect_sv_records(bam, regions, references, max_records, max_queries,
                                               (donor, acceptor), breakpoint_window)
-    store = _Observations(records, collector, max_extension_segments)
+    header = bam.header.to_dict()
+    store = _Observations(records, collector, max_extension_segments, header)
     now, lazy, competing = store.classify(event, annotated, anchored)
     initial = [o for identity in sorted(now) for o in store.build(identity)]
     first = _seeds(initial, event, annotated, anchored, competing, deferred=lazy)
@@ -1487,7 +1491,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         result, evidence = _path_result(
             sequence, positions, voters, store, event, annotated, adjacency, clip_support,
             lambda *path: _frame_evidence(*path, models, min_anchor_bases, reference_peptides, lengths),
-            lambda *path: exploratory_orfs(*path, models, store.molecule, min_orf_amino_acids, max_orf_candidates))
+            lambda *path: exploratory_orfs(*path, models, store.molecule, min_orf_amino_acids, max_orf_candidates,
+                                           lineage=store.lineage.support))
         results.append(result)
         for row in rows:
             if result["path_id"] not in row["paths"]:
@@ -1501,7 +1506,6 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     cited_reads = {rid: r for identity in {o.identity for o in used.values()}
              for r in store.groups[identity] if (rid := _record_id(r)) in record_ids}
     best = next((s for s in LINKAGE_STATUSES if s in {r["event_linkage"]["status"] for r in results}), None)
-    header = bam.header.to_dict()
     return dict(
         schema="isovar.sv_rna_candidates.v2",
         status=("event_linked_candidates" if best in LINKAGE_STATUSES[:3]
@@ -1509,6 +1513,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                 else "regional_candidates_only" if results else "no_candidate_paths"),
         event_id=event_id, reference_name=reference_name, sample_id=sample_id, source=source,
         alignment_metadata=dict(read_groups=header.get("RG", []), programs=header.get("PG", [])),
+        read_lineage=dict(scope="eligible_records_within_input_read_group", segments=store.lineage.evidence()),
         event_provenance=event_provenance, donor=asdict(donor), acceptor=asdict(acceptor),
         reference_models=[dict(transcript_id=r.transcript_id, annotation=r.annotation, contig=r.contig,
                                strand=r.strand, sequence_sha256=sha256(r.sequence.encode()).hexdigest())

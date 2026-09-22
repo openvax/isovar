@@ -68,7 +68,7 @@ def _witnesses(sequence, positions, start, end, junctions, observations):
 
 
 def exploratory_orfs(sequence, positions, junctions, observations, models, molecule,
-                     min_amino_acids, max_candidates):
+                     min_amino_acids, max_candidates, lineage=None):
     """Enumerate bounded ATG candidates crossing an event-related RNA join.
 
     These are potential translations of observed sequence, separate from
@@ -115,6 +115,7 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, molec
             full_interval_support=dict(
                 segments=len(segments), fragments=len({s[:2] for s in segments}),
                 molecule_labels=len(molecules) if molecules else None,
+                read_lineage=lineage(segments) if lineage is not None else None,
                 missing_quality_segments=len({observations[w["observation"]].identity for w in witnesses
                                               if observations[w["observation"]].missing_qualities}),
                 scope="built_direct_junction_observations", witnesses=witnesses)))

@@ -657,6 +657,7 @@ def test_unbuilt_junction_reads_preserve_inserted_sequence(tmp_path, strand, ins
     result = s.run(write_bam(tmp_path / "deep-insertion.bam", reads), references=[reference])
     junction, = spanning(result, "regional_novel_junction")
     assert junction["direct_segments"] == junction["direct_fragments"] == 250
+    assert junction["direct_read_lineage"]["unresolved_segments"] == 250
     assert result["observation_counts"]["built_segments"] == 200
     assert "seed_segment_limit" in result["limitations"]
     assert junction["direct_junction_sequences"] == [["TTT" if strand == "+" else "AAA", 250]]
@@ -910,6 +911,7 @@ def test_noisy_ont_reads_count_as_direct_junction_support(tmp_path):
     # v1.20.0 counted 0: no read matched the assembled consensus end to end.
     assert junction["direct_fragments"] == 12 and junction["direct_molecules"] == 8
     assert junction["direct_junction_sequences"][0] == ["GGA", 12]
+    assert junction["direct_read_lineage"]["status_counts"] == {"unknown_producer": 12}
 
 
 def test_long_reads_show_the_atp5mg_kmt2a_join_is_read_through_ambiguous(tmp_path):
