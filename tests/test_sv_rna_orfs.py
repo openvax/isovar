@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pysam
 
+from isovar.cell_umi import CellUmiEvidence
 from isovar.sv_rna import RnaObservation, _Model
 from isovar.sv_rna_orfs import exploratory_orfs, record_evidence
 from tests.test_sv_rna import long_read_run
@@ -25,8 +26,11 @@ def inputs(sequence="ATGAAAATGAAATAA"):
     return sequence, positions, reads, junction
 
 
-def run(sequence, positions, reads, junction, models=(), minimum=1, limit=100, molecule=lambda identity: None):
-    return exploratory_orfs(sequence, positions, [junction], reads, models, molecule, minimum, limit)
+def run(sequence, positions, reads, junction, models=(), minimum=1, limit=100, cell_umi=None):
+    if cell_umi is None:
+        groups = {r.identity: [pysam.AlignedSegment()] for r in reads.values()}
+        cell_umi = CellUmiEvidence(groups, {}, "sample", "input")
+    return exploratory_orfs(sequence, positions, [junction], reads, models, cell_umi.support, minimum, limit)
 
 
 def test_only_orfs_crossing_the_junction_are_reported_with_observed_stop():
@@ -73,14 +77,20 @@ def test_partial_reads_conflicting_placements_and_different_unplaced_bases_are_n
     assert candidate["ends_with_stop_codon"] and candidate["full_interval_support"]["fragments"] == 0
 
 
-def test_reverse_observation_offsets_and_read_group_scoped_molecule_labels():
+def test_reverse_observation_offsets_and_library_scoped_molecule_labels():
     seq, pos, reads, junction = inputs()
     for key, rg in (("same", "library"), ("other", "another-library")):
         reads[key] = replace(reads["full"], key=key, identity=(rg, key, 0), reverse=True,
                              missing_qualities=True, sequence="CCC" + seq, positions=(None,) * 3 + pos,
                              query_interval=(10, 28))
     junction["direct_observations"] = list(reads)
-    candidate, = run(seq, pos, reads, junction, molecule=lambda identity: ("cell", "umi"))["candidates"]
+    tagged = pysam.AlignedSegment()
+    tagged.set_tag("CB", "cell")
+    tagged.set_tag("UB", "umi")
+    groups = {r.identity: [tagged] for r in reads.values()}
+    header = dict(RG=[dict(ID=rg, SM="sample", LB=rg) for rg in ("library", "another-library")])
+    candidate, = run(seq, pos, reads, junction,
+                     cell_umi=CellUmiEvidence(groups, header, "sample", "input"))["candidates"]
     support = candidate["full_interval_support"]
     assert support["segments"] == support["fragments"] == 3
     assert support["molecule_labels"] == 2 and support["missing_quality_segments"] == 2
@@ -137,7 +147,8 @@ def test_original_pacbio_upstream_orf_has_full_span_support_and_retains_tags(tmp
     assert reference["amino_acids"] == "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV"
     assert reference["shared_prefix_amino_acids"] == 13
     support = candidate["full_interval_support"]
-    assert support["molecule_labels"] == support["missing_quality_segments"] == 15
+    assert support["molecule_labels"] is None and support["missing_quality_segments"] == 15
+    assert support["cell_umi_support"]["status_counts"] == {"unresolved_xm": 15}
     record_ids = {rid for w in support["witnesses"] for rid in result["observations"][w["observation"]]["records"]}
     evidence = [result["record_evidence"][rid] for rid in record_ids]
     assert all(not r["base_qualities_available"] and r["mapping_quality"] == 60 for r in evidence)

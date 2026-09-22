@@ -89,9 +89,9 @@ def aligned(name, sequence, placements, flag=0, group="a", qualities=True):
     return link(records) if len(records) > 1 else records
 
 
-def write_bam(path, records):
+def write_bam(path, records, header=HEADER):
     unsorted = str(path) + ".unsorted"
-    with pysam.AlignmentFile(unsorted, "wb", header=HEADER) as out:
+    with pysam.AlignmentFile(unsorted, "wb", header=header) as out:
         for read in records:
             out.write(read)
     pysam.sort("-o", str(path), unsorted)
@@ -901,7 +901,9 @@ def test_pacbio_places_homologous_junction_bases_past_the_catalogue_breakpoint(t
     junction = adjacency_junction(result)
     # pbmm2 assigns all 8 homologous bases to CRCP; ONT reads leave them unplaced.
     assert junction["breakpoint_assignment"] == [3, -3] and junction["unplaced_bases"] == ""
-    assert junction["direct_fragments"] == junction["direct_molecules"] == 20
+    assert junction["direct_fragments"] == 20
+    assert junction["direct_molecules"] is None
+    assert junction["direct_cell_umi_support"]["status_counts"] == {"unresolved_xm": 20}
     assert result["status"] == "event_linked_candidates"
 
 
@@ -909,7 +911,9 @@ def test_noisy_ont_reads_count_as_direct_junction_support(tmp_path):
     result = long_read_run(tmp_path, "FOXO3--STRADA-CCDC47", "ONT-T1-tagged")
     junction = adjacency_junction(result)
     # v1.20.0 counted 0: no read matched the assembled consensus end to end.
-    assert junction["direct_fragments"] == 12 and junction["direct_molecules"] == 8
+    assert junction["direct_fragments"] == 12 and junction["direct_molecules"] is None
+    assert junction["direct_cell_umi_support"]["observed_labels"] == 8
+    assert junction["direct_cell_umi_support"]["unknown_library_segments"] == 12
     assert junction["direct_junction_sequences"][0] == ["GGA", 12]
     assert junction["direct_read_lineage"]["status_counts"] == {"unknown_producer": 12}
 
@@ -918,5 +922,7 @@ def test_long_reads_show_the_atp5mg_kmt2a_join_is_read_through_ambiguous(tmp_pat
     result = long_read_run(tmp_path, "ATP5MG--KMT2A", "PacBio-T1")
     junction, = [j for p in result["paths"] for j in p["junctions"]
                  if j["relation"] == "splice_ambiguous_event_junction" and j["breakpoint_assignment"] == [0, 0]][:1]
-    assert junction["forward_splice_geometry"] and junction["direct_fragments"] == junction["direct_molecules"] == 5
+    assert junction["forward_splice_geometry"] and junction["direct_fragments"] == 5
+    assert junction["direct_molecules"] is None
+    assert junction["direct_cell_umi_support"]["status_counts"] == {"unresolved_xm": 5}
     assert result["status"] == "splice_ambiguous_candidates"
