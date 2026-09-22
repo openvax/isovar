@@ -7,6 +7,7 @@ from dataclasses import replace
 import pysam
 import pytest
 
+from isovar.cell_umi import CellUmiEvidence
 from isovar.read_lineage import ReadLineage
 from isovar.sv_rna import segment_identity
 from isovar.sv_rna_orfs import exploratory_orfs
@@ -172,7 +173,8 @@ def test_full_orf_lineage_uses_only_complete_compatible_witnesses():
     evidence = lineage([read(name, pi="parent" if name.startswith("full") else "partial-parent")
                         for name in ("full", "full2", "left", "right")])
     junction["direct_observations"] = list(observations)
-    result = exploratory_orfs(sequence, positions, [junction], observations, [], lambda identity: None,
+    labels = CellUmiEvidence(evidence.groups, {}, "sample", "source")
+    result = exploratory_orfs(sequence, positions, [junction], observations, [], labels.support,
                               1, 100, lineage=evidence.support)
     candidate, = result["candidates"]
     support = candidate["full_interval_support"]
@@ -181,7 +183,7 @@ def test_full_orf_lineage_uses_only_complete_compatible_witnesses():
     assert support["read_lineage"]["segment_ids"] == [["a", "full", 0], ["a", "full2", 0]]
     # The two partial siblings still cannot establish the complete ORF together.
     junction["direct_observations"] = ["left", "right"]
-    candidate, = exploratory_orfs(sequence, positions, [junction], observations, [], lambda identity: None,
+    candidate, = exploratory_orfs(sequence, positions, [junction], observations, [], labels.support,
                                   1, 100, lineage=evidence.support)["candidates"]
     assert candidate["full_interval_support"]["read_lineage"]["resolved_signal_groups"] == 0
 

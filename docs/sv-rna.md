@@ -194,14 +194,16 @@ compares candidate sequence support with what is known about initiation.
 
 ## Independent evidence axes
 
-- **Sequence:** each junction's `direct_segments`, `direct_fragments` and
-  `direct_molecules` count reads whose **own** alignment makes that join,
+- **Sequence:** each junction's `direct_segments` and `direct_fragments`
+  count segments/templates whose **own** alignment makes that join,
   however their other bases compare with the assembled consensus. That keeps
   noisy long reads. Every assignment of the nominated adjacency's junction
   bases supports its breakpoint junction; `direct_junction_sequences` lists
   them, including CIGAR insertions from reads beyond the segment build cap.
-  Molecules are distinct cell barcode + UMI (`CB` with `UB` or `XM`),
-  `null` when untagged. A read whose build failed (e.g. ambiguous bases) is
+  `direct_cell_umi_support` separately reports input/sample/library-scoped
+  cell/UMI labels and unresolved evidence; these are not independent molecules.
+  `direct_molecules` is a deprecated label-count alias, `null` if any supporting
+  segment lacks a resolved label or declared library scope. A read whose build failed (e.g. ambiguous bases) is
   not counted. `linked_interval` marks path bases co-observed with a novel
   junction in single reads that observe every path base in between (a read
   skipping or adding an exon contributes nothing). Intervening unplaced bases
@@ -266,6 +268,29 @@ requirements. Signal groups are **not independent molecule counts**. They are
 scoped to one input and one read group; existing barcode/UMI label fields remain
 separate. See the [lineage contract and primary sources](ont-read-lineage.md).
 
+## Cell/UMI evidence
+
+Junction `direct_cell_umi_support` and exploratory ORF
+`full_interval_support.cell_umi_support` use the same aggregation policy on
+their own supporting segments. The former includes direct junction support;
+the latter requires exact full-interval witnesses. A read which spans only a
+junction cannot supply full-ORF evidence.
+
+`observed_labels` counts distinct reported label pairs within their declared
+scope. `segment_ids`, `unresolved_segments`, `unknown_library_segments` and
+`status_counts` expose the denominator and its limitations. `complete_label_count`
+is `null` unless every witness has a label and known library scope. The existing
+`direct_molecules` and `full_interval_support.molecule_labels` scalars alias
+this complete label count. `independent_molecules` remains `null`: label
+collisions and producer-specific clustering cannot be resolved by string equality.
+No reconstruction threshold, sequence vote, raw fragment count or ONT signal
+group count uses these labels.
+
+The top-level `cell_umi_evidence` contains the versioned policy and each consulted
+segment's scope, label, contributing UMI tags, XM semantics and resolution status.
+Visible mates are consulted for conflicts even when only one mate supports the
+reported interval. See [the scope and tag contract](cell-umi-evidence.md).
+
 ## Scale
 
 Per-base observations are built only when needed: for segments whose CIGAR
@@ -303,8 +328,11 @@ limits and noncoding continuations. Real records:
   analysis, no coding frame crosses it.
 - **Sid T1 long reads** ([fixtures](../tests/data/fusions/long-read/README.md)):
   PacBio TPST1–CRCP reads with the 8-nt homology placed on CRCP are the
-  breakpoint junction (20 molecules). Noisy ONT FOXO3 reads directly support
-  their junction (12 reads, 8 molecules). The PacBio ATP5MG–KMT2A join is
+  breakpoint junction (20 fragments). Noisy ONT FOXO3 reads directly support
+  their junction (12 fragments, 8 observed CB/UB labels with unknown library scope).
+  The PacBio fixture retains CB/XM, but its disconnected program history does not
+  establish corrected XM labels. Neither fixture supplies a complete molecular
+  denominator. The PacBio ATP5MG–KMT2A join is
   read-through-ambiguous.
 
 The ATP5MG–KMT2A join appears in every Sid long-read product, always between

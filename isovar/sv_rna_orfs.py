@@ -67,7 +67,7 @@ def _witnesses(sequence, positions, start, end, junctions, observations):
     return [witnesses[key] for key in sorted(witnesses)]
 
 
-def exploratory_orfs(sequence, positions, junctions, observations, models, molecule,
+def exploratory_orfs(sequence, positions, junctions, observations, models, cell_umi_support,
                      min_amino_acids, max_candidates, lineage=None):
     """Enumerate bounded ATG candidates crossing an event-related RNA join.
 
@@ -99,7 +99,7 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, molec
         aa, _ = standard_genetic_code.translate(sequence[start:coding_end], first_codon_is_start=True)
         witnesses = _witnesses(sequence, positions, start, end, crossed, observations)
         segments = {observations[w["observation"]].identity for w in witnesses}
-        molecules = {(identity[0], *label) for identity in segments if (label := molecule(identity)) is not None}
+        labels = cell_umi_support(segments)
         comparisons = _start_references(sequence, positions, start, aa, has_stop, models)
         minus_three = sequence[start - 3] if start >= 3 else None
         plus_four = sequence[start + 3] if start + 3 < len(sequence) else None
@@ -114,7 +114,7 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, molec
             crossed_junctions=[junctions.index(j) for j in crossed],
             full_interval_support=dict(
                 segments=len(segments), fragments=len({s[:2] for s in segments}),
-                molecule_labels=len(molecules) if molecules else None,
+                molecule_labels=labels["complete_label_count"], cell_umi_support=labels,
                 read_lineage=lineage(segments) if lineage is not None else None,
                 missing_quality_segments=len({observations[w["observation"]].identity for w in witnesses
                                               if observations[w["observation"]].missing_qualities}),

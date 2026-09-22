@@ -24,6 +24,7 @@ from hashlib import sha256
 from itertools import combinations
 from types import SimpleNamespace
 
+from .cell_umi import CellUmiEvidence
 from .chimeric_alignment import compatible_phasing_alignments, source_alignment_paths_from_pysam
 from .default_parameters import (
     FUSION_PEPTIDE_LENGTHS, SV_ASSEMBLE, SV_BREAKPOINT_WINDOW, SV_MAX_BREAKPOINT_SHIFT,
@@ -497,13 +498,13 @@ class _Observations:
     reaching the cap is reported.
     """
 
-    def __init__(self, records, collector, cap, header):
+    def __init__(self, records, collector, cap, header, sample_id, source):
         self.collector, self.cap, self.limited = collector, cap, False
         self.groups, self.excluded, self.reasons = defaultdict(list), Counter(), Counter()
         self.extent, self.bins, self.gaps = defaultdict(dict), defaultdict(list), defaultdict(dict)
         self.gap_kinds = defaultdict(set)
         self.built, self.observations, self.joins, self.runs = {}, {}, defaultdict(list), {}
-        self.intern, self.molecules, self.windows = {}, {}, {}
+        self.intern, self.windows = {}, {}
         for read in records:
             reason = _ineligible(read, collector)
             if reason:
@@ -518,6 +519,7 @@ class _Observations:
             low, high = self.extent[identity].get(contig, (read.reference_start, read.reference_end))
             self.extent[identity][contig] = (min(low, read.reference_start), max(high, read.reference_end))
         self.lineage = ReadLineage(self.groups, header)
+        self.cell_umi = CellUmiEvidence(self.groups, header, sample_id, source)
 
     def build(self, identity):
         if identity not in self.built:
@@ -529,22 +531,10 @@ class _Observations:
                     self.joins[o.positions[i], o.positions[j]].append((o, i, j, kind))
         return self.built[identity]
 
-    def molecule(self, identity):
-        """(cell barcode, UMI) of a segment, when its primary record carries both."""
-        if identity not in self.molecules:
-            self.molecules[identity] = self._molecule(identity)
-        return self.molecules[identity]
-
     def observation_runs(self, observation):
         if observation.key not in self.runs:
             self.runs[observation.key] = _runs(observation.positions)
         return self.runs[observation.key]
-
-    def _molecule(self, identity):
-        read = min(self.groups[identity], key=lambda r: (r.is_supplementary or r.is_secondary))
-        cell = read.get_tag("CB") if read.has_tag("CB") else None
-        umi = next((read.get_tag(t) for t in ("UB", "XM") if read.has_tag(t)), None)
-        return (cell, umi) if cell and umi else None
 
     def classify(self, event, annotated, anchored):
         """Sort segments by their CIGAR joins, without building single records.
@@ -1219,7 +1209,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
                                       if identity in unbuilt)
             junction_sequences.update(reverse_complement(inserted) for identity, inserted in
                                       store.gaps.get((_flip(right), _flip(left)), {}).items() if identity in unbuilt)
-        molecules = {store.molecule(identity) for identity in segments} - {None}
+        cell_umi_support = store.cell_umi.support(segments)
         # Bases co-observed with the join in single reads; annotated splices are context only.
         spans = [] if is_annotated else [q for q in (span(o) for o, *_ in direct) if q]
         clip = relation == "breakpoint_clip_partner_unplaced"
@@ -1229,7 +1219,8 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
             forward_splice_geometry=bool(positions[i] and positions[j] and _forward_splice(positions[i], positions[j])),
             kinds=sorted(kinds), annotated=is_annotated, relation=relation, breakpoint_assignment=assignment,
             direct_segments=len(segments), direct_fragments=len({s[:2] for s in segments}),
-            direct_molecules=len(molecules) if molecules else None,
+            direct_molecules=cell_umi_support["complete_label_count"],
+            direct_cell_umi_support=cell_umi_support,
             direct_read_lineage=store.lineage.support(segments),
             direct_observations=sorted({o.key for o, *_ in direct}),
             direct_junction_sequences=None if clip else [
@@ -1398,7 +1389,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     records, acquisition = collect_sv_records(bam, regions, references, max_records, max_queries,
                                               (donor, acceptor), breakpoint_window)
     header = bam.header.to_dict()
-    store = _Observations(records, collector, max_extension_segments, header)
+    store = _Observations(records, collector, max_extension_segments, header, sample_id, source)
     now, lazy, competing = store.classify(event, annotated, anchored)
     initial = [o for identity in sorted(now) for o in store.build(identity)]
     first = _seeds(initial, event, annotated, anchored, competing, deferred=lazy)
@@ -1491,7 +1482,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         result, evidence = _path_result(
             sequence, positions, voters, store, event, annotated, adjacency, clip_support,
             lambda *path: _frame_evidence(*path, models, min_anchor_bases, reference_peptides, lengths),
-            lambda *path: exploratory_orfs(*path, models, store.molecule, min_orf_amino_acids, max_orf_candidates,
+            lambda *path: exploratory_orfs(*path, models, store.cell_umi.support, min_orf_amino_acids, max_orf_candidates,
                                            lineage=store.lineage.support))
         results.append(result)
         for row in rows:
@@ -1514,6 +1505,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         event_id=event_id, reference_name=reference_name, sample_id=sample_id, source=source,
         alignment_metadata=dict(read_groups=header.get("RG", []), programs=header.get("PG", [])),
         read_lineage=dict(scope="eligible_records_within_input_read_group", segments=store.lineage.evidence()),
+        cell_umi_evidence=store.cell_umi.evidence(),
         event_provenance=event_provenance, donor=asdict(donor), acceptor=asdict(acceptor),
         reference_models=[dict(transcript_id=r.transcript_id, annotation=r.annotation, contig=r.contig,
                                strand=r.strand, sequence_sha256=sha256(r.sequence.encode()).hexdigest())
