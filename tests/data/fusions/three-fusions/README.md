@@ -17,8 +17,9 @@ python -m tests.data.fusions.build_three_fusions \
 
 The local corpus must contain `source_inventory.json` and indexed
 `alignments/<source_id>/reads.bam`. The manifest records each source URL,
-original inventory entry, local BAM hash, source-header hash, explicit query
-regions, selection rule, annotation URLs and fixture hashes. Only the four
+local BAM hash, source-header hash, explicit query regions, selection rule,
+annotation URLs and fixture hashes. Original inventory entries are retained in
+the hash-pinned `source-inventory.json.gz`. Only the four
 specified original tagged ONT / mapped PacBio products are used; deduplicated
 alternatives are never pooled with their predecessors.
 

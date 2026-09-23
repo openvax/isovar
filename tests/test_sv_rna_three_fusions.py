@@ -33,6 +33,8 @@ def case(tmp_path_factory):
 
 @pytest.mark.parametrize("entry", MANIFEST["fixtures"], ids=lambda e: e["file"])
 def test_original_records_and_selection_survive_fixture_roundtrip(entry, tmp_path):
+    inventory = pinned_json(DATA, MANIFEST["source_inventory"])
+    assert MANIFEST["sources"][entry["source"]]["source_id"] in inventory
     data = pinned_json(DATA, entry)
     header = pysam.AlignmentHeader.from_dict(data["header"])
     unsorted, bam = tmp_path / "unsorted.bam", tmp_path / "reads.bam"

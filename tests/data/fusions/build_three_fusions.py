@@ -139,6 +139,9 @@ def main():
         inventory_path = args.local_corpus / "source_inventory.json"
         inventory = {s["source_id"]: s for s in json.loads(inventory_path.read_text())}
         manifest["local_inventory_sha256"] = file_digest(inventory_path)
+        inventory_file = "source-inventory.json.gz"
+        manifest["source_inventory"] = dict(file=inventory_file, sha256=write_gzip(
+            args.output / inventory_file, {sid: inventory[sid] for sid in SOURCES.values()}))
     dataset = open_dataset(args.snapshot, args.cache) if args.snapshot else None
     with tempfile.TemporaryDirectory() as scratch:
         for label, source_id in SOURCES.items():
@@ -148,8 +151,7 @@ def main():
                 if BUCKET + entry["key"] != url:
                     raise ValueError("Unexpected source URL: " + source_id)
                 path = args.local_corpus / "alignments" / source_id / "reads.bam"
-                provenance = dict(source_id=source_id, url=url, local_bam_sha256=file_digest(path),
-                                  inventory_entry=entry)
+                provenance = dict(source_id=source_id, url=url, local_bam_sha256=file_digest(path))
             else:
                 path = Path(scratch) / (label + ".bam")
                 regions = sorted({"%s:%d-%d" % (c, a + 1, b) for e in EVENTS.values() for c, a, b in windows(e)})
