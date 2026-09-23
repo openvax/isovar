@@ -155,6 +155,32 @@ def test_older_v2_boundary_metadata_is_flagged_not_invented():
     assert "junction_boundary_classification_unavailable" in only(result)["uncertainty_flags"]
 
 
+def test_missing_or_disagreeing_start_annotations_do_not_choose_the_best_occurrence(tmp_path):
+    from tests.test_orf_start import annotation, reference
+
+    result = reconstruction()
+    first = result["paths"][0]["exploratory_orfs"]["candidates"][0]
+    # Two paths with the same ORF can disagree about the transcript origin.
+    # This test controls their annotation to exercise export's reconciliation.
+    original_id = only(result)["candidate_id"]
+    other = deepcopy(result["paths"][0])
+    other["path_id"] = "other"
+    other["exploratory_orfs"]["candidates"][0]["start_evidence"] = annotation(reference())
+    result["paths"].append(other)
+    candidate = only(result)
+    assert candidate["candidate_id"] == original_id
+    assert candidate["start_evidence_summary"] == dict(status="ambiguous", tier=None, priority=None)
+    assert "start_tier_ambiguous" in candidate["uncertainty_flags"]
+    del first["start_evidence"]
+    candidate = only(result)
+    assert candidate["start_evidence_summary"] == dict(status="unavailable", tier=None, priority=None)
+    assert "start_tier_unavailable" in candidate["uncertainty_flags"]
+    paths = write_sv_rna_orfs(export_sv_rna_orfs(result), tmp_path / "unknown")
+    with paths["tsv"].open() as handle:
+        row, = csv.DictReader(handle, delimiter="\t")
+    assert row["start_tier_status"] == "unavailable" and row["start_priority"] == row["start_tier"] == ""
+
+
 def test_rejects_wrong_schema_and_inconsistent_translation():
     result = reconstruction()
     result["paths"][0]["sequence"] = "A" * 15
