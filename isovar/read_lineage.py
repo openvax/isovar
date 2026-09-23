@@ -130,13 +130,19 @@ class ReadLineage:
         A known subset count must not be treated as the total support count.
         """
         rows = [self.segment(identity) for identity in sorted(set(identities))]
-        groups = {tuple(row["signal_group"]) for row in rows if row["signal_group"] is not None}
-        unresolved = sum(row["signal_group"] is None for row in rows)
-        return dict(segment_ids=[row["identity"] for row in rows],
-                    resolved_signal_groups=len(groups), unresolved_segments=unresolved,
-                    all_segments_resolved=not unresolved,
-                    status_counts=dict(sorted(Counter(row["status"] for row in rows).items())))
+        return summarize_lineage_rows(rows)
 
     def evidence(self):
         """Evidence for requested segments and any consulted visible parents."""
         return [self.cache[key] for key in sorted(self.cache)]
+
+
+def summarize_lineage_rows(rows):
+    """Summarize unique serialized segment rows using the reconstruction policy."""
+    rows = list(rows)
+    groups = {tuple(row["signal_group"]) for row in rows if row["signal_group"] is not None}
+    unresolved = sum(row["signal_group"] is None for row in rows)
+    return dict(segment_ids=[row["identity"] for row in rows],
+                resolved_signal_groups=len(groups), unresolved_segments=unresolved,
+                all_segments_resolved=not unresolved,
+                status_counts=dict(sorted(Counter(row["status"] for row in rows).items())))
