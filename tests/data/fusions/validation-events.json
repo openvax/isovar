@@ -1,0 +1,50 @@
+[
+  {
+    "event_id": "TPST1--CRCP",
+    "record": {
+      "chrom": "chr7",
+      "pos": "66126215",
+      "end": "66206600",
+      "ref": "T",
+      "alt": "<DUP:TANDEM>",
+      "info": "END=66206600;SVTYPE=DUP;SVLEN=80385;CONTIG=GTTTTGTACTTTCCAGATGATGGTAGCAAGAAGTCCAGTGTCCACAGGGATTTGACTCTGCCTGAAGAATGGTATGGGAGATGGCAGGAGAAATTGGTGAACTCCAGTAAAGCGATTAAATGGTCAATTACTGCATTCATTAAGAAGAAACAATTCTGCTATCCGTGCCATGTATTGTTTTATGTTAATTGCCTTTGTAACCCTAACCCTATCTCTTTGTGAACCACTGTTAGTTTTGCTTTATTTATTGACTCGGAAGTCACCTATCTGGCCCATGCTTTTGAAGTCTTGGGTCATCATTTGGATCATCTCGCCACACTCCTGGTTTAAGAACATACAGAGGTCTCTGTTGCACATTACAAATCAAGTGCAGACCCCTCTACCTGATTTTTAAGGATTCTGCATGAC;SVINSLEN=8;SVINSSEQ=CCCTAACC;SOMATIC;SOMATICSCORE=57.22",
+      "record_id": "DRAGEN:DUP:TANDEM:110451:0:1:0:0:0",
+      "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/basespace/results/ucla_T1/normal-ucla_tumor-ucla-T1_ds.6bf94c171a8f4af68274fcbb2b9b3e01/normal-ucla_tumor-ucla-T1.sv.vcf.gz",
+      "sample": "T1 UCLA WGS",
+      "caller": "DRAGEN SV"
+    },
+    "sha256": "ad303b0c31bdc5d56212e5a8031849a6b0b5f9eefce03e6104532191b3487d7a"
+  },
+  {
+    "event_id": "FOXO3--STRADA-CCDC47",
+    "record": {
+      "chrom": "chr6",
+      "pos": "108611245",
+      "end": "108611245",
+      "ref": "G",
+      "alt": "G[chr17:63745980[",
+      "info": "ASMID=5401;ASMLEN=463;ASMSEG=0;AVGLEN=282;BEAOR=1;BEAPOS=0;BEOR=1;CIPOS=-2,1;DF=0;HOMSEQ=GGA;IHOMPOS=-2,1;MATEID=37931;REF=140;REFPAIR=11;SEGALEN=126;SEGID=5401_0;SEGMAPQ=60;SEGRL=119;SEGSCO=126;SF=7;SVID=16258_37931;SVTYPE=BND;UFP=6;VF=7",
+      "record_id": "16258",
+      "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T1_ucla/esvee/IPISRC044_tumor_T1_ucla.esvee.somatic.vcf.gz",
+      "sample": "T1 UCLA WGS",
+      "caller": "ESVEE"
+    },
+    "sha256": "6145adb89d3ea4f3958a4885fa39f61bea56f74ec043d23ca95d7ecd62a18d62"
+  },
+  {
+    "event_id": "PARD3B--CDKN2B-AS1-CDKN2B",
+    "record": {
+      "chrom": "chr2",
+      "pos": "205310103",
+      "end": "205310103",
+      "ref": "G",
+      "alt": "GTGTGCTGATATG[chr9:22007648[",
+      "info": "SVTYPE=BND;MATEID=MantaBND:172318:0:1:0:0:0:1;SVINSLEN=12;SVINSSEQ=TGTGCTGATATG;SOMATIC;SOMATICSCORE=67;BND_DEPTH=80;MATE_BND_DEPTH=79",
+      "record_id": "MantaBND:172318:0:1:0:0:0:0",
+      "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/genomics_reprocessing/DNA/T1_2024_WGS_sarek_variants/sarek_run1_tumor_normal_only/variant_calling/manta/SG.WGS.UCLA.2024.06.06.tumor_vs_SG.WGS.UCLA.2024.06.06.normal/SG.WGS.UCLA.2024.06.06.tumor_vs_SG.WGS.UCLA.2024.06.06.normal.manta.somatic_sv.vcf.gz",
+      "sample": "T1 UCLA WGS",
+      "caller": "Manta"
+    },
+    "sha256": "cd0c1ae557f15e956f9ce0b193f26a17da19575e17cc152ccd399c944e182e2a"
+  }
+]
