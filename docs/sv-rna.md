@@ -20,6 +20,15 @@ and non-empty `event_provenance` (the DNA call and its somatic-status basis).
 read-end trimming are the usual RNA options (`--min-mapping-quality`,
 `--use-soft-clipped-bases`, `--read-end-profile`, ...).
 
+For an intergenic adjacency, supply `"references": []` when there are no
+applicable transcript models. Observed junction sequences and exploratory
+ATG-to-stop ORFs can still be recovered. The result and exported ORFs carry
+`reference_models_unavailable`; annotated splice, start and frame assessment
+is unavailable. Event linkage means compatibility with the nominated DNA
+adjacency, and cannot exclude ordinary splicing without annotation. Missing
+models do not establish peptide novelty or translation, and do not authorize
+filling unobserved RNA sequence from the genome.
+
 Coordinates follow `fusion.md`: 0-based, interbase; a breakpoint is the retained
 partner's boundary, oriented so the donor is 5'. Each path base has one
 `(contig, position, strand)` placement in path orientation, or none.
@@ -393,7 +402,7 @@ the required native `--output` reconstruction. The prefix must not collide
 with the native output. The API equivalents are
 `isovar.export_sv_rna_orfs(result)` and `isovar.write_sv_rna_orfs(export, prefix)`.
 The adapter accepts `isovar.sv_rna_candidates.v2` and emits
-`isovar.sv_rna_orfs.v1`. This is the exploratory SV ATG-ORF portion of
+`isovar.sv_rna_orfs.v2`. This is the exploratory SV ATG-ORF portion of
 [#324](https://github.com/openvax/isovar/issues/324); annotated-frame translations
 and ordinary SNV/indel exchange remain separate work.
 
@@ -442,8 +451,9 @@ ORFs, absent/single witnesses, missing qualities, unknown library/lineage,
 shared signal ancestry, unplaced bases, stop-only crossings, uncertain event
 linkage and reconstruction/search limits. Nondefault branch thresholds are
 flagged and exact parameters retained. Fragment orientation is partitioned into
-original-query, reverse-complement and mixed, relative to the as-sequenced
-query, **not established RNA polarity**. Initiation, translation, peptide novelty
+original-query, reverse-complement and mixed, relative to the processed input
+sequence supplied to the aligner, **not established biological RNA strand**.
+Preprocessing may have reversed or normalized this sequence already. Initiation, translation, peptide novelty
 and interval-specific base quality remain unassessed by this adapter. No ranking,
 abundance or presentation inference is performed. Sequence translation follows
 NCBI standard code 1; an ATG-to-stop sequence is a hypothesis, not proof of use.
@@ -576,3 +586,42 @@ and splice-predictor scores are explicitly `not_assessed`: this observed-path
 assessment neither invents alternate-haplotype sequence nor substitutes motif
 predictions for original RNA. RNA strand, initiation, translation and mature
 transcript identity remain unproven.
+
+## ORF warning names and v1 migration (#353)
+
+The v2 export uses these names in JSON and TSV:
+
+| v1 flag | v2 flag | Meaning |
+| --- | --- | --- |
+| `reverse_complement_query_witnesses_only` | `reverse_complement_support_only` | All complete supporting fragments use reverse-complemented processed input-read observations. Never emitted for zero support. |
+| `rna_polarity_unresolved` | `rna_strand_unresolved` | Biological transcription direction has not been established. Emitted for every exploratory candidate, including original-read-only and unsupported candidates. |
+| `mixed_query_orientations` | `mixed_read_orientations` | Support includes both processed-read orientations, either across fragments or within one fragment. |
+
+These are interpretation flags, not quality failures or automatic rejection
+criteria. Reverse-complement support is not inherently defective in ONT or cDNA
+libraries. Genomic mapping strand (SAM FLAG 0x10), processed-read orientation and
+biological RNA strand are different quantities. This exporter does not infer
+protocol-aware RNA strand. Orientation counts, source scoping and template
+deduplication are unchanged.
+
+Schema v2 is explicit in JSON and in the TSV `schema` column. New exports emit
+only the new names. To read stored v1 exports before filtering warnings, use:
+
+```python
+import json
+from isovar import normalize_sv_rna_orf_export, write_sv_rna_orfs
+
+with open("stored.orfs.json") as handle:
+    export = normalize_sv_rna_orf_export(json.load(handle))
+write_sv_rna_orfs(export, "migrated.orfs")
+```
+
+The public normalizer accepts v1/v2, copies without mutating input, maps legacy
+flags once, preserves unknown flags, and leaves sequence/evidence IDs and all
+counts untouched. The writer uses the same migration and always writes v2.
+Stored v1 TSV warning columns can use the mapping above; regenerate TSV from
+the accompanying JSON when available. Consumers supporting both versions must
+normalize before filtering, rather than silently looking only for old names.
+
+See [pysam input sequence orientation](https://pysam.readthedocs.io/en/latest/api.html#pysam.AlignedSegment.get_forward_sequence)
+and [ONT adapter-based orientation](https://epi2me.nanoporetech.com/workflows/wf-single-cell/wf-single-cell-report.html).
