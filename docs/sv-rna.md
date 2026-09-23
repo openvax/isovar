@@ -100,6 +100,16 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
    reports truncation. Non-ATG initiation and starts outside the retained RNA
    are not searched. A path end without a stop remains partial.
 
+   The ATG-to-stop interval may cross either boundary of unplaced junction
+   sequence: `donor_to_unplaced` or `unplaced_to_acceptor`, or both. Adjacent
+   placed flanks are `flank_to_flank`. `junction_crossings` records these
+   classes and `termination_only` when only the stop codon crosses a boundary;
+   such a candidate need not contain a new amino-acid sequence. Codons may
+   straddle boundaries. ORFs wholly within one flank or the unplaced interval
+   are excluded. Unplaced bases can be insertion, homology or clipped sequence;
+   these classes do not verify a DNA insertion. Translation continues to use
+   the [standard genetic code](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG1).
+
    `start_context` reports the observed flanks, including the −3 and +4 bases
    when present. This is not a Kozak score or an initiation prediction. Exact
    ATG placements are compared with every supplied reference model and labeled
@@ -114,7 +124,15 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
    Each candidate's `full_interval_support` requires an exact complete
    nucleotide witness, including the stop when present, from a built
    observation that makes a crossed junction. Placements must be compatible,
-   with shared anchors on both available sides. No pair of partial reads is
+   with shared anchors on both available sides. If an ORF starts or stops
+   inside unplaced junction sequence, the same observation must also match
+   the sequence and compatible placements between that ORF and the other
+   available flank. `witnesses[].junction_links` records each supported
+   junction's path query interval and this potentially larger observation
+   interval, separately from the ORF's own interval. Alignment homology may
+   require looking beyond the first flank base for a shared anchor. Mismatches
+   in this extra linkage interval conservatively exclude a witness, even if
+   its ORF bases match. No pair of partial reads is
    counted as one full witness. Counts distinguish segments, RG/QNAME fragments
    and RG/cell/UMI labels within this input source; these labels are not proof
    of independent molecules. Missing tags yield null molecule counts. Witness

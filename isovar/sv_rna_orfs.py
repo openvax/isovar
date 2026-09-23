@@ -43,7 +43,8 @@ def _witnesses(sequence, positions, start, end, junctions, observations):
     Sequence agreement includes unplaced bases. Two partial reads never
     become a full witness. Different assignments of junction homology are
     allowed only at unplaced bases, with shared placed anchors on each
-    available side. The observation already makes the cited junction.
+    available side. A shorter ORF may need additional sequence to link it to
+    the other flank; that interval must also match in this same observation.
     """
     dna = sequence[start:end]
     witnesses = {}
@@ -53,18 +54,45 @@ def _witnesses(sequence, positions, start, end, junctions, observations):
             observation = observations[key]
             offset = observation.sequence.find(dna)
             while offset >= 0:
-                pairs = list(zip(positions[start:end], observation.positions[offset:offset + len(dna)]))
-                shared = [start + i for i, (p, q) in enumerate(pairs) if p is not None and p == q]
-                consistent = all(p is None or q is None or p == q for p, q in pairs)
-                sides = (any(q <= left for q in shared) if junction["left"] is not None else True,
-                         any(q >= right for q in shared) if junction["right"] is not None else True)
-                if consistent and shared and all(sides):
+                shift = offset - start
+                lo, hi = max(0, -shift), min(len(sequence), len(observation.sequence) - shift)
+
+                def shared(q):
+                    return positions[q] is not None and positions[q] == observation.positions[q + shift]
+
+                anchors = []
+                if junction["left"] is not None:
+                    anchors.append(next((q for q in range(min(left, end - 1), lo - 1, -1) if shared(q)), None))
+                if junction["right"] is not None:
+                    anchors.append(next((q for q in range(max(right, start), hi) if shared(q)), None))
+                if anchors and all(q is not None for q in anchors):
+                    a, b = min(start, *anchors), max(end, *(q + 1 for q in anchors))
+                    pairs = zip(positions[a:b], observation.positions[a + shift:b + shift])
+                    consistent = (sequence[a:b] == observation.sequence[a + shift:b + shift]
+                                  and all(p is None or q is None or p == q for p, q in pairs))
+                else:
+                    consistent = False
+                if consistent:
+                    link_interval = [a + shift, b + shift]
                     a = (observation.query_interval[1] - offset - len(dna) if observation.reverse
                          else observation.query_interval[0] + offset)
-                    witnesses[key, offset] = dict(observation=key, observation_interval=[offset, offset + len(dna)],
-                                                  original_query_interval=[a, a + len(dna)])
+                    witness = witnesses.setdefault((key, offset), dict(
+                        observation=key, observation_interval=[offset, offset + len(dna)],
+                        original_query_interval=[a, a + len(dna)], junction_links=[]))
+                    link = dict(junction_query_interval=[left, right], observation_interval=link_interval)
+                    if link not in witness["junction_links"]:
+                        witness["junction_links"].append(link)
                 offset = observation.sequence.find(dna, offset + 1)
     return [witnesses[key] for key in sorted(witnesses)]
+
+
+def _boundaries(junction):
+    """Named RNA boundaries; unplaced bases need not be a DNA insertion."""
+    left, right = junction["query_interval"]
+    if right == left + 1 and junction["left"] is not None and junction["right"] is not None:
+        return [("flank_to_flank", right)]
+    return ([("donor_to_unplaced", left + 1)] if junction["left"] is not None else []) + (
+        [("unplaced_to_acceptor", right)] if junction["right"] is not None else [])
 
 
 def exploratory_orfs(sequence, positions, junctions, observations, models, cell_umi_support,
@@ -75,7 +103,7 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, cell_
     annotated CDS frame transfer. Context is reported, never scored as proof
     of initiation. A missing stop means the retained sequence ends first.
     """
-    related = [j for j in junctions if not j["annotated"] and j["relation"] in (
+    related = [(i, j, _boundaries(j)) for i, j in enumerate(junctions) if not j["annotated"] and j["relation"] in (
         "breakpoint_junction", "event_compatible_junction", "breakpoint_clip_partner_unplaced",
         "splice_ambiguous_event_junction")]
     candidates, limited = [], False
@@ -89,15 +117,16 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, cell_
         elif codon == "ATG":
             stop = next_stop[q % 3]
             coding_end = stop if stop is not None else q + 3 * ((len(sequence) - q) // 3)
-            crossed = [j for j in related if q <= j["query_interval"][0]
-                       and j["query_interval"][1] < coding_end]
+            end = coding_end + (3 if stop is not None else 0)
+            crossed = [(i, j, [(kind, b) for kind, b in boundaries if q < b < end])
+                       for i, j, boundaries in related if any(q < b < end for _, b in boundaries)]
             if crossed and (coding_end - q) // 3 >= min_amino_acids:
                 starts.append((q, coding_end, stop is not None, crossed))
     limited = len(starts) > max_candidates
     for start, coding_end, has_stop, crossed in reversed(starts[-max_candidates:]):
         end = coding_end + (3 if has_stop else 0)
         aa, _ = standard_genetic_code.translate(sequence[start:coding_end], first_codon_is_start=True)
-        witnesses = _witnesses(sequence, positions, start, end, crossed, observations)
+        witnesses = _witnesses(sequence, positions, start, end, [j for _, j, _ in crossed], observations)
         segments = {observations[w["observation"]].identity for w in witnesses}
         labels = cell_umi_support(segments)
         comparisons = _start_references(sequence, positions, start, aa, has_stop, models)
@@ -111,7 +140,10 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, cell_
                                query_interval=[max(0, start - 6), min(len(sequence), start + 9)],
                                minus_three=minus_three, plus_four=plus_four),
             reference_comparisons=comparisons,
-            crossed_junctions=[junctions.index(j) for j in crossed],
+            crossed_junctions=[i for i, _, _ in crossed],
+            junction_crossings=[dict(junction_index=i, boundaries=[kind for kind, _ in boundaries],
+                                     termination_only=all(b >= coding_end for _, b in boundaries))
+                                for i, _, boundaries in crossed],
             full_interval_support=dict(
                 segments=len(segments), fragments=len({s[:2] for s in segments}),
                 molecule_labels=labels["complete_label_count"], cell_umi_support=labels,
