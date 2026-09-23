@@ -102,6 +102,12 @@ def _occurrence(path, candidate):
         "path_id", "frame_status", "unresolved_models")})
     row["reconstruction_scopes"] = deepcopy(path.get("reconstruction_scopes", []))
     row["start_evidence"] = deepcopy(candidate.get("start_evidence"))
+    if row["start_evidence"] is not None:
+        for assessment in row["start_evidence"]["assessments"]:
+            inclusion = assessment.get("splice_inclusion", {})
+            for key in ("cell_umi_support", "read_lineage"):
+                if inclusion.get(key) is not None:
+                    inclusion[key].pop("segment_ids", None)
     row["junctions"] = []
     crossings = {c["junction_index"]: c for c in candidate.get("junction_crossings", [])}
     for index in candidate["crossed_junctions"]:
