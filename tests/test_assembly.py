@@ -12,7 +12,6 @@
 
 import random
 from itertools import permutations
-from time import time
 
 import pytest
 
@@ -455,36 +454,49 @@ def test_assembly_of_many_subsequences():
     eq_(result_decoy.sequence, decoy.sequence)
 
 
-def test_assembly_time():
+@pytest.mark.parametrize("trim_range", [10, 20])
+def test_contained_assembly_bounds_pairwise_work(monkeypatch, trim_range):
     original_prefix = "ACTGAACCTTGGAAACCCTTTGGG"
     original_allele = "CCCTTT"
     original_suffix = "GGAAGGAAGGAATTTTTTTTGGCC"
 
-    # generate 400 subsequences of all combinations of 0-19
-    # characters trimmed from beginning of prefix vs. end of suffix
+    # Every input is contained in the longest sequence. Collapsing this
+    # workload should take linear pairwise work, not an all-pairs search.
     subsequences = [
         VariantSequence(
             prefix=original_prefix[i:],
             alt=original_allele,
             suffix=original_suffix[:-j] if j > 0 else original_suffix,
             reads={str(i) + "_" + str(j)})
-        for i in range(20)
-        for j in range(20)
+        for i in range(trim_range)
+        for j in range(trim_range)
     ]
-    eq_(len(subsequences), 400)
-    t_start = time()
+    comparisons = dict(contains=0, combine=0)
+    original_contains, original_combine = VariantSequence.contains, VariantSequence.combine
+
+    def contains(self, other):
+        comparisons["contains"] += 1
+        return original_contains(self, other)
+
+    def combine(self, other, min_overlap_size=1):
+        comparisons["combine"] += 1
+        return original_combine(self, other, min_overlap_size=min_overlap_size)
+
+    monkeypatch.setattr(VariantSequence, "contains", contains)
+    monkeypatch.setattr(VariantSequence, "combine", combine)
     results = iterative_overlap_assembly(
         subsequences,
         min_overlap_size=len(original_allele))
-    t_end = time()
     eq_(len(results), 1)
     result = results[0]
     eq_(result.prefix, original_prefix)
+    eq_(result.alt, original_allele)
     eq_(result.suffix, original_suffix)
-    t_elapsed = t_end - t_start
-    assert t_elapsed < 0.1, \
-        "Expected assembly of 400 sequences to take less than 100ms: %0.4fms" % (
-            t_elapsed * 1000,)
+    assert result.reads == {str(i) + "_" + str(j) for i in range(trim_range) for j in range(trim_range)}
+    # Allow two comparisons per input (e.g. one containment and one merge
+    # pass), while rejecting quadratic pair enumeration independent of host
+    # scheduling, coverage instrumentation or machine speed (#316).
+    assert sum(comparisons.values()) <= 2 * len(subsequences), comparisons
 
 
 def test_assembly_unrelated_sequences():
