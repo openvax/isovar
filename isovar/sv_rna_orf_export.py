@@ -17,6 +17,35 @@ from .orf_start import summarize_orf_start_evidence
 from .read_lineage import summarize_lineage_rows
 
 
+def normalize_sv_rna_orf_export(export):
+    """Copy a v1 or v2 ORF export into the v2 warning vocabulary.
+
+    Parameters
+    ----------
+    export : dict
+        An ``isovar.sv_rna_orfs.v1`` or ``isovar.sv_rna_orfs.v2`` mapping.
+
+    Returns
+    -------
+    dict
+        A deep copy with schema v2 and each legacy orientation flag renamed
+        once. Unknown flags and every other field are preserved. Evidence,
+        sequence IDs and counts are not recomputed. Unrecognized schemas
+        raise ``ValueError``. This is also the writer's migration policy.
+    """
+    if export.get("schema") not in ("isovar.sv_rna_orfs.v1", "isovar.sv_rna_orfs.v2"):
+        raise ValueError("Expected isovar.sv_rna_orfs.v1 or isovar.sv_rna_orfs.v2")
+    aliases = dict(reverse_complement_query_witnesses_only="reverse_complement_support_only",
+                   rna_polarity_unresolved="rna_strand_unresolved",
+                   mixed_query_orientations="mixed_read_orientations")
+    result = deepcopy(export)
+    result["schema"] = "isovar.sv_rna_orfs.v2"
+    for candidate in result["candidates"]:
+        candidate["uncertainty_flags"] = sorted({aliases.get(flag, flag)
+                                                 for flag in candidate["uncertainty_flags"]})
+    return result
+
+
 def _canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
@@ -90,7 +119,7 @@ def _occurrence(path, candidate):
 
 def _flags(candidate, result):
     flags = {"initiation_unobserved", "translation_unobserved", "peptide_novelty_unassessed",
-             "rna_polarity_unresolved", "interval_base_quality_unassessed"}
+             "rna_strand_unresolved", "interval_base_quality_unassessed"}
     support, occurrences = candidate["rna_support"], candidate["occurrences"]
     if candidate["start_evidence_summary"]["status"] != "consistent":
         flags.add("start_tier_" + candidate["start_evidence_summary"]["status"])
@@ -115,9 +144,9 @@ def _flags(candidate, result):
         flags.add("shared_signal_ancestry")
     directions = support["fragment_query_orientations"]
     if support["fragments"] and directions["reverse_complement"] == support["fragments"]:
-        flags.add("reverse_complement_query_witnesses_only")
+        flags.add("reverse_complement_support_only")
     if directions["mixed"] or directions["original_query"] and directions["reverse_complement"]:
-        flags.add("mixed_query_orientations")
+        flags.add("mixed_read_orientations")
     for occurrence in occurrences:
         if occurrence["orf_candidate_limit_reached"]:
             flags.add("orf_candidate_limit_reached")
@@ -150,7 +179,7 @@ def export_sv_rna_orfs(result):
     Returns
     -------
     dict
-        ``isovar.sv_rna_orfs.v1`` sequences, occurrences, evidence and warnings.
+        ``isovar.sv_rna_orfs.v2`` sequences, occurrences, evidence and warnings.
         Exact nucleotide alternatives remain distinct even if their peptides
         agree. Candidate identity excludes sample/source; evidence identity
         includes them and excludes event. Hashes are references, not guarantees
@@ -188,7 +217,7 @@ def export_sv_rna_orfs(result):
     export = {key: deepcopy(result[key]) for key in (
         "event_id", "reference_name", "sample_id", "source", "event_provenance", "donor", "acceptor",
         "reference_models", "parameters", "limitations")}
-    export.update(schema="isovar.sv_rna_orfs.v1", reconstruction_schema=result["schema"], candidates=candidates,
+    export.update(schema="isovar.sv_rna_orfs.v2", reconstruction_schema=result["schema"], candidates=candidates,
                   interval_conventions=dict(orf_and_witness="zero_based_half_open",
                                             junction_query_interval="zero_based_flanking_base_offsets"),
                   evidence_identity_policy="sha256_of_domain_and_canonical_json; sample/source scoped; event excluded",
@@ -208,13 +237,15 @@ def write_sv_rna_orfs(export, prefix):
 
     Unknown numeric values remain null in JSON and blank in TSV. DNA includes
     an observed terminal stop; protein excludes it. All alternatives are kept.
-    Returns the output paths keyed by format.
+    Accepts v1/v2 exports and writes v2 using :func:`normalize_sv_rna_orf_export`;
+    the input is not modified. Returns the output paths keyed by format.
     """
+    export = normalize_sv_rna_orf_export(export)
     paths = sv_rna_orf_output_paths(prefix)
     for path in paths.values():
         path.parent.mkdir(parents=True, exist_ok=True)
     paths["json"].write_text(json.dumps(export, indent=2) + "\n")
-    columns = ["candidate_id", "event_id", "reference_name", "sample_id", "source", "amino_acids",
+    columns = ["schema", "candidate_id", "event_id", "reference_name", "sample_id", "source", "amino_acids",
                "nucleotide_sequence", "ends_with_stop_codon", "fragments", "segments", "observed_cell_umi_labels",
                "complete_cell_umi_labels", "resolved_signal_groups", "independent_molecules",
                "original_query_fragments", "reverse_complement_fragments", "mixed_orientation_fragments",
@@ -225,7 +256,7 @@ def write_sv_rna_orfs(export, prefix):
         writer.writeheader()
         for candidate in export["candidates"]:
             support = candidate["rna_support"]
-            row = {key: export[key] for key in ("event_id", "reference_name", "sample_id", "source")}
+            row = {key: export[key] for key in ("schema", "event_id", "reference_name", "sample_id", "source")}
             row.update({key: candidate[key] for key in (
                 "candidate_id", "amino_acids", "nucleotide_sequence", "ends_with_stop_codon")})
             row.update({key: support[key] for key in (

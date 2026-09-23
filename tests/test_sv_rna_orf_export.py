@@ -96,7 +96,7 @@ def test_mates_and_alternative_orientations_count_segments_and_fragments_separat
     assert support["segments"] == 2 and support["fragments"] == 1
     assert support["fragment_query_orientations"] == dict(original_query=0, reverse_complement=0, mixed=1)
     assert support["missing_quality_segments"] == 1
-    assert {"mixed_query_orientations", "missing_base_qualities"} <= set(candidate["uncertainty_flags"])
+    assert {"mixed_read_orientations", "missing_base_qualities"} <= set(candidate["uncertainty_flags"])
 
 
 def test_known_shared_library_labels_and_signal_descendants_use_the_shared_ledgers():
@@ -141,7 +141,7 @@ def test_stop_only_and_reverse_complement_only_flags_preserve_junction_provenanc
     result["observations"]["full"]["reverse_complement"] = True
     candidate = only(result)
     assert {"termination_only_junction_crossing", "unplaced_junction_sequence",
-            "reverse_complement_query_witnesses_only"} <= set(candidate["uncertainty_flags"])
+            "reverse_complement_support_only"} <= set(candidate["uncertainty_flags"])
     junction, = candidate["occurrences"][0]["junctions"]
     assert junction["boundaries"] == ["donor_to_unplaced"]
     assert junction["query_interval"] == [44, 57]

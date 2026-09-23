@@ -257,7 +257,8 @@ class RnaObservation:
     ``breaks`` lists consecutive placed bases ``(i, j, kind)`` which are not
     genomic neighbours; kind is the CIGAR ``N``/``D`` or ``split`` between
     supplementary records. ``reverse`` marks the reverse complement of the
-    original sequencing orientation.
+    processed input-read orientation (which need not be the original
+    physical sequencing orientation or biological RNA strand).
     """
 
     key: str
