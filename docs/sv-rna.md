@@ -20,6 +20,15 @@ and non-empty `event_provenance` (the DNA call and its somatic-status basis).
 read-end trimming are the usual RNA options (`--min-mapping-quality`,
 `--use-soft-clipped-bases`, `--read-end-profile`, ...).
 
+For an intergenic adjacency, supply `"references": []` when there are no
+applicable transcript models. Observed junction sequences and exploratory
+ATG-to-stop ORFs can still be recovered. The result and exported ORFs carry
+`reference_models_unavailable`; annotated splice, start and frame assessment
+is unavailable. Event linkage means compatibility with the nominated DNA
+adjacency, and cannot exclude ordinary splicing without annotation. Missing
+models do not establish peptide novelty or translation, and do not authorize
+filling unobserved RNA sequence from the genome.
+
 Coordinates follow `fusion.md`: 0-based, interbase; a breakpoint is the retained
 partner's boundary, oriented so the donor is 5'. Each path base has one
 `(contig, position, strand)` placement in path orientation, or none.
