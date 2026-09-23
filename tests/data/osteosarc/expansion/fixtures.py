@@ -40,22 +40,15 @@ def select_names(bam, record, preferred_names=(), limit=16):
         group = ("uncallable" if observation is None else "ref" if observation["allele"] == ref else
                  "alt" if observation["allele"] == alt else "other")
         groups[group][read.query_name] = min(groups[group].get(read.query_name, "f" * 64), record_digest(read))
-    selected = set(preferred_names[:32])
-    for values in groups.values():
-        selected.update(sorted(values, key=lambda name: (values[name], name))[:limit])
-    return selected, region, native
+    from osteosarc.legacy_fixtures import select_assigned_names
+    return select_assigned_names(groups, preferred_names, limit=limit), region, native
 
 
 def original_fixture(source_bam, output, record, preferred_names=(), complete=False):
+    from osteosarc.legacy_fixtures import write_selected_names
     with pysam.AlignmentFile(source_bam) as source:
         selected, region, native = select_names(source, record, preferred_names)
-        records = []
-        with pysam.AlignmentFile(output, "wb", header=source.header) as target:
-            for ordinal, read in enumerate(source.fetch(*region)):
-                if complete or read.query_name in selected:
-                    target.write(read)
-                    records.append(dict(regional_ordinal=ordinal, sam_sha256=record_digest(read), name=read.query_name))
-    pysam.index(str(output))
+    records = write_selected_names(source_bam, output, region, selected, complete=complete)
     return native, records
 
 
