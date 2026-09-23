@@ -540,3 +540,39 @@ The source distribution includes this runner, the small fusion data, and their
 construction/audit scripts; the wheel contains the runtime comparison API and
 shared packaged read bundle. The archive regression reconstructs the original
 PARD3B candidate offline after building and extracting the actual sdist.
+
+## Link an intronic start to an observed transcript path
+
+Reconstruction now carries `splice_inclusion` inside each intronic
+`start_evidence.assessments` entry. The public `annotate_orf_inclusion` function
+performs the same assessment for callers with retained path observations.
+It preserves a strand-aware graph of reference exons, observed contiguous
+runs and their joins, together with all qualifying and failing witnesses.
+
+An intronic start reaches priority 3 only when one full-ORF witness also links
+it to the event and a qualifying CIGAR N splice. Cryptic donor/acceptor use
+must attach the start's own contiguous segment to an annotated exon boundary;
+a splice elsewhere in the read is insufficient. Two such boundaries on the
+same observation identify an exonization hypothesis. A retained intron needs
+both exon/intron boundaries, separate annotated splicing on that same
+observation, and competing CIGAR N evidence for removal of that intron.
+A rearranged intronic segment needs an annotated partner exon and its linked
+annotated splice. Rearrangement alone does not prove transcript maturation.
+
+The linked interval must match the original observed sequence and placements,
+with at least eight bases on each side of the splice, MAPQ >= 20 and every
+available linked base at Q20 or higher. Missing quality or MAPQ 255 cannot
+satisfy the gate. These are conservative evidence thresholds, not calibrated
+translation probabilities. Original and reverse-complement processed-read
+orientations receive the same assessment. Witness identifiers resolve to the
+native original records; source-scoped fragments, library-scoped cell/UMI
+labels and signal ancestry remain separate, deduplicated summaries.
+
+Unsupported starts remain available at priority 4 with explicit failure or
+unresolved status. No sequence is filled, no stop is spliced away, and no
+reference frame is transferred to a separate downstream ATG. Annotated-frame
+translations remain separate from ATG hypotheses. Matched-normal comparisons
+and splice-predictor scores are explicitly `not_assessed`: this observed-path
+assessment neither invents alternate-haplotype sequence nor substitutes motif
+predictions for original RNA. RNA strand, initiation, translation and mature
+transcript identity remain unproven.

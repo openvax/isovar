@@ -1,5 +1,12 @@
 # ORF start evidence and splice inference (#350)
 
+Implementation update: start-origin annotation and observed same-read splice
+linkage are now implemented. Tier 3 is emitted only by the qualified inclusion
+assessment documented in `sv-rna.md`. The historical first-PR plan below records
+why the stages were separate. Matched-normal analysis and alternate-haplotype
+splice prediction remain explicit optional downstream work, not inferred data.
+
+
 ## First PR: start-origin annotation
 
 Add a public, transcript-specific annotation of each event-crossing ATG ORF.

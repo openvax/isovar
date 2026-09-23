@@ -1,6 +1,7 @@
 """Exploratory ATG ORFs and their observed RNA evidence, not initiation calls."""
 
 from .genetic_code import standard_genetic_code
+from .orf_inclusion import annotate_orf_inclusion
 from .orf_start import annotate_orf_start
 from .read_metadata import record_evidence as record_evidence
 
@@ -64,7 +65,7 @@ def _boundaries(junction):
 
 
 def exploratory_orfs(sequence, positions, junctions, observations, models, cell_umi_support,
-                     min_amino_acids, max_candidates, lineage=None):
+                     min_amino_acids, max_candidates, lineage=None, competing_splices=()):
     """Enumerate bounded ATG candidates crossing an event-related RNA join.
 
     These are potential translations of observed sequence, separate from
@@ -98,6 +99,15 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, cell_
         segments = {observations[w["observation"]].identity for w in witnesses}
         labels = cell_umi_support(segments)
         start_evidence = annotate_orf_start(sequence, positions, start, [m.reference for m in models])
+        start_evidence = annotate_orf_inclusion(
+            start_evidence, sequence, positions, end, [m.reference for m in models], observations, witnesses,
+            competing_splices=competing_splices)
+        for assessment in start_evidence["assessments"]:
+            inclusion = assessment.get("splice_inclusion")
+            if inclusion is not None:
+                qualified = {observations[key].identity for key in inclusion["qualified_observations"]}
+                inclusion["cell_umi_support"] = cell_umi_support(qualified)
+                inclusion["read_lineage"] = lineage(qualified) if lineage is not None else None
         comparisons = start_evidence["reference_comparisons"]
         minus_three = sequence[start - 3] if start >= 3 else None
         plus_four = sequence[start + 3] if start + 3 < len(sequence) else None
