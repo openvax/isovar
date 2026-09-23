@@ -14,6 +14,7 @@ from pathlib import Path
 import tempfile
 
 import pysam
+import pyensembl
 from pyensembl import EnsemblRelease
 
 from isovar.sid_data import extract_regions, minimal_header, open_dataset, sam_digest
@@ -133,7 +134,8 @@ def main():
         event_source="https://osteosarc.com/fusions/", window=WINDOW,
         coordinate_contract="0-based interbase retained donor/acceptor boundaries",
         selection="Original local SAM lines for RG/QNAME/mate segments touching both +/-2000 windows; identical lines once",
-        software={"pysam": pysam.__version__, "samtools": pysam.__samtools_version__},
+        software={"pysam": pysam.__version__, "samtools": pysam.__samtools_version__,
+                  "pyensembl": pyensembl.__version__},
         sources={}, fixtures=[])
     if args.local_corpus:
         inventory_path = args.local_corpus / "source_inventory.json"

@@ -322,6 +322,7 @@
   },
   "selection": "Original local SAM lines for RG/QNAME/mate segments touching both +/-2000 windows; identical lines once",
   "software": {
+    "pyensembl": "2.10.4",
     "pysam": "0.24.0",
     "samtools": "1.23.1"
   },
