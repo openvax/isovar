@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.22.2"
+__version__ = "1.23.1"
 
 
 from .allele_read import AlleleRead
@@ -35,7 +35,7 @@ from .variant_sequence import VariantSequence
 from .variant_sequence_creator import VariantSequenceCreator
 from .fusion import FusionBlock, FusionBreakpoint, FusionRead, FusionReference, FusionTranscript, reconstruct_fusion
 from .sv_rna import reconstruct_sv_rna
-from .sv_rna_orf_export import export_sv_rna_orfs, write_sv_rna_orfs
+from .sv_rna_orf_export import export_sv_rna_orfs, write_sv_rna_orfs, normalize_sv_rna_orf_export
 
 
 __all__ = [
@@ -47,6 +47,7 @@ __all__ = [
     "FusionTranscript",
     "reconstruct_fusion",
     "reconstruct_sv_rna",
+    "normalize_sv_rna_orf_export",
     "export_sv_rna_orfs",
     "write_sv_rna_orfs",
     "isovar_results_to_dataframe",
