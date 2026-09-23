@@ -1,0 +1,356 @@
+{
+  "annotation": "Ensembl 115",
+  "annotation_sources": [
+    "https://ftp.ensembl.org/pub/release-115/gtf/homo_sapiens/Homo_sapiens.GRCh38.115.gtf.gz",
+    "https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz",
+    "https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/ncrna/Homo_sapiens.GRCh38.ncrna.fa.gz"
+  ],
+  "coordinate_contract": "0-based interbase retained donor/acceptor boundaries",
+  "event_source": "https://osteosarc.com/fusions/",
+  "events": {
+    "GABBR1--SLC29A1": {
+      "acceptor": {
+        "contig": "chr6",
+        "position": 44218907,
+        "strand": "+"
+      },
+      "donor": {
+        "contig": "chr6",
+        "position": 29612905,
+        "strand": "-"
+      },
+      "genes": [
+        "ENSG00000204681",
+        "ENSG00000112759",
+        "ENSG00000262179"
+      ]
+    },
+    "OTUD7A--FMN1": {
+      "acceptor": {
+        "contig": "chr15",
+        "position": 33043478,
+        "strand": "+"
+      },
+      "donor": {
+        "contig": "chr15",
+        "position": 31743669,
+        "strand": "-"
+      },
+      "genes": [
+        "ENSG00000169918",
+        "ENSG00000248905"
+      ]
+    },
+    "PARD3B--CDKN2B-AS1-CDKN2B": {
+      "acceptor": {
+        "contig": "chr9",
+        "position": 22007647,
+        "strand": "+"
+      },
+      "donor": {
+        "contig": "chr2",
+        "position": 205310103,
+        "strand": "+"
+      },
+      "genes": [
+        "ENSG00000116117",
+        "ENSG00000147883",
+        "ENSG00000240498",
+        "ENSG00000264545"
+      ]
+    }
+  },
+  "fixtures": [
+    {
+      "event": "PARD3B--CDKN2B-AS1-CDKN2B",
+      "file": "PARD3B--CDKN2B-AS1-CDKN2B.ONT-T1.json.gz",
+      "records": 76,
+      "regions": [
+        [
+          "chr2",
+          205308103,
+          205312103
+        ],
+        [
+          "chr9",
+          22005647,
+          22009647
+        ]
+      ],
+      "segments": 38,
+      "sha256": "f40b54386700fca3237dffa53eda5a6d474b1e41ec0d4f35bb8a59ed5d40a39a",
+      "source": "ONT-T1",
+      "source_header_sha256": "4bd8902e10b9d437224ee4a0fa2ff99660af4fe1e93ec673cbe6a28d56fbf701"
+    },
+    {
+      "event": "GABBR1--SLC29A1",
+      "file": "GABBR1--SLC29A1.ONT-T1.json.gz",
+      "records": 4,
+      "regions": [
+        [
+          "chr6",
+          29610905,
+          29614905
+        ],
+        [
+          "chr6",
+          44216907,
+          44220907
+        ]
+      ],
+      "segments": 2,
+      "sha256": "76274635f8394dd03320a6ef8088a0344f8f36013869564fa4ac72c57a046658",
+      "source": "ONT-T1",
+      "source_header_sha256": "4bd8902e10b9d437224ee4a0fa2ff99660af4fe1e93ec673cbe6a28d56fbf701"
+    },
+    {
+      "event": "OTUD7A--FMN1",
+      "file": "OTUD7A--FMN1.ONT-T1.json.gz",
+      "records": 0,
+      "regions": [
+        [
+          "chr15",
+          31741669,
+          31745669
+        ],
+        [
+          "chr15",
+          33041478,
+          33045478
+        ]
+      ],
+      "segments": 0,
+      "sha256": "c48c7754b134ae07100dd9b9d16c2a12d3087f6911201be12c0406b6744827b9",
+      "source": "ONT-T1",
+      "source_header_sha256": "4bd8902e10b9d437224ee4a0fa2ff99660af4fe1e93ec673cbe6a28d56fbf701"
+    },
+    {
+      "event": "PARD3B--CDKN2B-AS1-CDKN2B",
+      "file": "PARD3B--CDKN2B-AS1-CDKN2B.ONT-T2.json.gz",
+      "records": 44,
+      "regions": [
+        [
+          "chr2",
+          205308103,
+          205312103
+        ],
+        [
+          "chr9",
+          22005647,
+          22009647
+        ]
+      ],
+      "segments": 22,
+      "sha256": "2aef31982046e964c709cc5e1835fb0f4d3f4ab1fd9fae3dbd4aadf444d50e09",
+      "source": "ONT-T2",
+      "source_header_sha256": "931b560e7c39d5cdd3505e0a71039e3685ba603f9b7064ea06b7d6a19363c842"
+    },
+    {
+      "event": "GABBR1--SLC29A1",
+      "file": "GABBR1--SLC29A1.ONT-T2.json.gz",
+      "records": 6,
+      "regions": [
+        [
+          "chr6",
+          29610905,
+          29614905
+        ],
+        [
+          "chr6",
+          44216907,
+          44220907
+        ]
+      ],
+      "segments": 3,
+      "sha256": "2d0c41aea23f62bc5b8623fe81dd0e6cb43265793e8a0d0a3dffb1b67ae18c0c",
+      "source": "ONT-T2",
+      "source_header_sha256": "931b560e7c39d5cdd3505e0a71039e3685ba603f9b7064ea06b7d6a19363c842"
+    },
+    {
+      "event": "OTUD7A--FMN1",
+      "file": "OTUD7A--FMN1.ONT-T2.json.gz",
+      "records": 23,
+      "regions": [
+        [
+          "chr15",
+          31741669,
+          31745669
+        ],
+        [
+          "chr15",
+          33041478,
+          33045478
+        ]
+      ],
+      "segments": 11,
+      "sha256": "a3538bd9e8b4e678430568f93da8344a5a86ac164b15d2a20ffaf8ec5385cc21",
+      "source": "ONT-T2",
+      "source_header_sha256": "931b560e7c39d5cdd3505e0a71039e3685ba603f9b7064ea06b7d6a19363c842"
+    },
+    {
+      "event": "PARD3B--CDKN2B-AS1-CDKN2B",
+      "file": "PARD3B--CDKN2B-AS1-CDKN2B.ONT-T3.json.gz",
+      "records": 16,
+      "regions": [
+        [
+          "chr2",
+          205308103,
+          205312103
+        ],
+        [
+          "chr9",
+          22005647,
+          22009647
+        ]
+      ],
+      "segments": 8,
+      "sha256": "fc35f507736a065ed7a4184194c94bc45fa4e1bd86e182353b0daa39f5d5c6c6",
+      "source": "ONT-T3",
+      "source_header_sha256": "f8e7daaa2294a1874538e34665df257f9e134ba2888d075b578ac523783c8ce9"
+    },
+    {
+      "event": "GABBR1--SLC29A1",
+      "file": "GABBR1--SLC29A1.ONT-T3.json.gz",
+      "records": 2,
+      "regions": [
+        [
+          "chr6",
+          29610905,
+          29614905
+        ],
+        [
+          "chr6",
+          44216907,
+          44220907
+        ]
+      ],
+      "segments": 1,
+      "sha256": "d025156dce53ebd6c573cab67bf4909d55ab8678e03dc379df67948d83f9e62c",
+      "source": "ONT-T3",
+      "source_header_sha256": "f8e7daaa2294a1874538e34665df257f9e134ba2888d075b578ac523783c8ce9"
+    },
+    {
+      "event": "OTUD7A--FMN1",
+      "file": "OTUD7A--FMN1.ONT-T3.json.gz",
+      "records": 0,
+      "regions": [
+        [
+          "chr15",
+          31741669,
+          31745669
+        ],
+        [
+          "chr15",
+          33041478,
+          33045478
+        ]
+      ],
+      "segments": 0,
+      "sha256": "c48c7754b134ae07100dd9b9d16c2a12d3087f6911201be12c0406b6744827b9",
+      "source": "ONT-T3",
+      "source_header_sha256": "f8e7daaa2294a1874538e34665df257f9e134ba2888d075b578ac523783c8ce9"
+    },
+    {
+      "event": "PARD3B--CDKN2B-AS1-CDKN2B",
+      "file": "PARD3B--CDKN2B-AS1-CDKN2B.PacBio-T1.json.gz",
+      "records": 10,
+      "regions": [
+        [
+          "chr2",
+          205308103,
+          205312103
+        ],
+        [
+          "chr9",
+          22005647,
+          22009647
+        ]
+      ],
+      "segments": 5,
+      "sha256": "53ad95370fe99a377265f6a9ca3faa71eb6462635fa8f0d0a60eb2d5a6ce09ca",
+      "source": "PacBio-T1",
+      "source_header_sha256": "d9e49ea876c4392385dbf2dd29dc6b4eee1258632e831d5265d7edc40bdc81ad"
+    },
+    {
+      "event": "GABBR1--SLC29A1",
+      "file": "GABBR1--SLC29A1.PacBio-T1.json.gz",
+      "records": 0,
+      "regions": [
+        [
+          "chr6",
+          29610905,
+          29614905
+        ],
+        [
+          "chr6",
+          44216907,
+          44220907
+        ]
+      ],
+      "segments": 0,
+      "sha256": "923940fc64b6ee324fcb8ffb5206ecdcb41662568318eb043bedcea863b69271",
+      "source": "PacBio-T1",
+      "source_header_sha256": "d9e49ea876c4392385dbf2dd29dc6b4eee1258632e831d5265d7edc40bdc81ad"
+    },
+    {
+      "event": "OTUD7A--FMN1",
+      "file": "OTUD7A--FMN1.PacBio-T1.json.gz",
+      "records": 0,
+      "regions": [
+        [
+          "chr15",
+          31741669,
+          31745669
+        ],
+        [
+          "chr15",
+          33041478,
+          33045478
+        ]
+      ],
+      "segments": 0,
+      "sha256": "c48c7754b134ae07100dd9b9d16c2a12d3087f6911201be12c0406b6744827b9",
+      "source": "PacBio-T1",
+      "source_header_sha256": "d9e49ea876c4392385dbf2dd29dc6b4eee1258632e831d5265d7edc40bdc81ad"
+    }
+  ],
+  "local_inventory_sha256": "5e1b9d3f919d6c0c6bf0def4070be5d5a3b7512347699e1d73b31843eb51aed2",
+  "reference_name": "GRCh38",
+  "references": {
+    "file": "references.json.gz",
+    "sha256": "9717f396a11c20119e6303df5b101e53b111d019697091cab629293b9e8161fd"
+  },
+  "selection": "Original local SAM lines for RG/QNAME/mate segments touching both +/-2000 windows; identical lines once",
+  "software": {
+    "pyensembl": "2.10.4",
+    "pysam": "0.24.0",
+    "samtools": "1.23.1"
+  },
+  "source_inventory": {
+    "file": "source-inventory.json.gz",
+    "sha256": "b0a4d260acaa299221dd7d7a1b638456af71b3b58c710bec0a1a146778d44a6f"
+  },
+  "sources": {
+    "ONT-T1": {
+      "local_bam_sha256": "c752b9fecb24de8022567a9979f57e364b13c919e05c164038d19de8e6c844db",
+      "source_id": "53f498a544883d51",
+      "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T1_sclrs_ONT/IPISRC044_T1_sclrs_ONT/IPISRC044_T1_sclrs_ONT.tagged.bam"
+    },
+    "ONT-T2": {
+      "local_bam_sha256": "4f961e1f843990d8c09d388afb2e9c6ec4c5bc47ed684c0501cd36c841967bb6",
+      "source_id": "1120a096937e29e1",
+      "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT.tagged.bam"
+    },
+    "ONT-T3": {
+      "local_bam_sha256": "89941186e44340a29b2eac2f129e8db6de8c9e95762f603358458fbfe1410f09",
+      "source_id": "58c4d68e5f7e55b5",
+      "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT.tagged.bam"
+    },
+    "PacBio-T1": {
+      "local_bam_sha256": "cd930334ff7e57bce51089f2a1dc10bcb3db62bd3bd214c7fc1cdd3294aaafd2",
+      "source_id": "0066232879babe83",
+      "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/pacbio/IPISRC044_T1_sclrs_live_pbmm2_mapped.bam"
+    }
+  },
+  "window": 2000
+}
