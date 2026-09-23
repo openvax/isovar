@@ -20,7 +20,7 @@ from isovar.cli import commands
 from isovar.fusion import FusionBreakpoint, FusionReference, fusion_from_dict, reconstruct_fusion
 from isovar.read_collector import ReadCollector
 from isovar.read_end_inference import Adapter, ReadEndProfile, reverse_complement
-from isovar.sv_rna import sv_rna_input_from_dict
+from isovar.sv_rna import RnaObservation, _extend_both, _ObservationIndex, sv_rna_input_from_dict
 from tests.data.osteosarc.expansion.references import translate
 
 HEADER = pysam.AlignmentHeader.from_dict(dict(
@@ -356,6 +356,22 @@ def test_assembly_extends_beyond_junction_reads_only_when_enabled(tmp_path):
     assert junction["linked_interval"] == [0, len(direct["sequence"])]  # Every base co-observed with the join.
     assert assembled["junctions"][0]["linked_interval"][1] < len(s.sequence)
     assert assembled["sequence_evidence"]["assembly_phase"] == "hypothesis_not_proven_long_range_phase"
+    assert assembled["reconstruction_scopes"] == ["regional", "seed_spanning"]
+    assert direct["reconstruction_scopes"] == ["seed_spanning"]
+
+
+def test_overlap_extension_still_stops_before_revisiting_a_placement():
+    sequence = "ACGTAC"
+    positions = tuple(("1", q, "+") for q in range(6))
+    observation = RnaObservation(
+        key="cycle", identity=("rg", "cycle", 0), records=("cycle",),
+        sequence=sequence + sequence, positions=positions + positions, breaks=((5, 6, "split"),),
+        reverse=False, query_interval=(0, 12), missing_qualities=False, secondary=False)
+    notes = set()
+    paths = list(_extend_both(sequence, positions, _ObservationIndex([observation]), 3,
+                              (2, 0.1, 0.5), 8, [], notes))
+    assert len(paths) == 1 and paths[0][:2] == (sequence, positions)
+    assert notes == {"repeated_genomic_position"}
 
 
 def test_deep_noisy_coverage_prunes_error_branches_without_path_explosion(tmp_path):
@@ -916,6 +932,19 @@ def test_noisy_ont_reads_count_as_direct_junction_support(tmp_path):
     assert junction["direct_cell_umi_support"]["unknown_library_segments"] == 12
     assert junction["direct_junction_sequences"][0] == ["GGA", 12]
     assert junction["direct_read_lineage"]["status_counts"] == {"unknown_producer": 12}
+
+
+def test_regional_extensions_preserve_directly_witnessed_junction_orf(tmp_path):
+    result = long_read_run(tmp_path, "FOXO3--STRADA-CCDC47", "ONT-T1-tagged")
+    candidates = [c for p in result["paths"] for c in p["exploratory_orfs"]["candidates"]
+                  if c["amino_acids"] == "MPLLYGYSVIEIYRRSNGTQP"]
+    assert candidates
+    assert {c["full_interval_support"]["fragments"] for c in candidates} == {9}
+    # Alternative paths must not inflate support for the same original RNA.
+    witnesses = {w["observation"] for c in candidates for w in c["full_interval_support"]["witnesses"]}
+    assert len({tuple(result["observations"][w]["identity"][:2]) for w in witnesses}) == 9
+    assert adjacency_junction(result)["direct_fragments"] == 12
+    assert all(not c["initiation_observed"] and not c["translation_observed"] for c in candidates)
 
 
 def test_long_reads_show_the_atp5mg_kmt2a_join_is_read_through_ambiguous(tmp_path):

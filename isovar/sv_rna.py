@@ -790,6 +790,15 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
     return done
 
 
+def _extend_both(sequence, positions, index, min_overlap, thresholds, budget, pruned, notes):
+    """Extend both ends without replacing any bases of the starting path."""
+    for sequence, positions, voters in _extend(
+            sequence, positions, index, min_overlap, thresholds, budget, pruned, notes, False):
+        for *mirror, more in _extend(*_mirror(sequence, positions), index, min_overlap,
+                                     thresholds, budget, pruned, notes, True):
+            yield (*_mirror(*mirror), voters | more)
+
+
 def _distance(position, breakpoint, side):
     """Signed retained-partner bases between a base and a breakpoint.
 
@@ -1324,6 +1333,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         used. Reaching it is reported as ``extension_segment_limit``.
     assemble : bool
         Extend through overlapping observations which do not span the seed.
+        Also retain seed-spanning reconstructions not contained in a regional
+        assembly, subject to the same path limit.
     breakpoint_window : int
         Bases searched to either side of each nominated breakpoint.
     max_breakpoint_shift : int
@@ -1399,6 +1410,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
              if len({i[:2] for i in ids}) >= min_alternative_fragments]
     thresholds = (min_alternative_fragments, min_alternative_fraction, min_local_variant_fraction)
     paths, pruned, notes, seed_rows, strongest, seen = {}, [], set(acquisition["limitations"]), [], {}, set()
+    reconstruction_scopes = defaultdict(set)
 
     def batches():
         """(seeds, gated): event seeds first; other joins are built only if reached."""
@@ -1452,23 +1464,41 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                 notes.add("path_limit")
                 row["unexplored"] = True
                 continue
-            pool = store
-            if not assemble:
-                spanning = [o for o, _ in seed["observations"]]
-                mirrors = {o.key: m for o in spanning for m in store.built[o.identity]
-                           if m.key[:-1] == o.key[:-1] and m.key != o.key}
-                pool = _ObservationIndex(spanning + [mirrors[o.key] for o in spanning])
-            for sequence, positions, voters in _extend(core_sequence, core_positions, pool, min_overlap,
-                                                       thresholds, max_paths - len(paths), pruned, notes, False):
-                for *mirror, more in _extend(*_mirror(sequence, positions), pool, min_overlap, thresholds,
-                                             max(1, max_paths - len(paths)), pruned, notes, True):
-                    path = _mirror(*mirror)
+            spanning = [o for o, _ in seed["observations"]]
+            mirrors = {o.key: m for o in spanning for m in store.built[o.identity]
+                       if m.key[:-1] == o.key[:-1] and m.key != o.key}
+            pool = _ObservationIndex(spanning + [mirrors[o.key] for o in spanning])
+            # Regional assembly must not erase a seed-spanning reconstruction:
+            # e.g. a 3' extender can occupy an upstream placement and the cycle
+            # guard then prevents recovering the witnessed 5' sequence. Keep
+            # both hypotheses when neither contains the other, without letting
+            # one long junction read veto a well-supported regional isoform.
+            for scope, index in ([("regional", store), ("seed_spanning", pool)] if assemble
+                                 else [("seed_spanning", pool)]):
+                scope_pruned = []
+                for sequence, positions, voters in _extend_both(
+                        core_sequence, core_positions, index, min_overlap, thresholds,
+                        max(1, max_paths - len(paths)), scope_pruned, notes):
+                    path = sequence, positions
+                    represented = [existing for existing in paths if _contains(existing, path)]
+                    if represented:
+                        for existing in represented:
+                            paths[existing][0].append(row)
+                            paths[existing][1].update(voters)
+                            reconstruction_scopes[existing].add(scope)
+                        continue
                     if path not in paths and len(paths) >= max_paths:
                         notes.add("path_limit")
                         break
                     rows, contributors = paths.setdefault(path, ([], set()))
                     rows.append(row)
-                    contributors.update(voters | more)
+                    contributors.update(voters)
+                    reconstruction_scopes[path].add(scope)
+                # Both scopes can prune exactly the same alternative. These
+                # are descriptions of decisions, not additional evidence.
+                for branch in scope_pruned:
+                    if branch not in pruned:
+                        pruned.append(branch)
     if store.limited:
         notes.add("extension_segment_limit")
     adjacency = [entry for (left, right), entries in store.joins.items() for entry in entries
@@ -1485,6 +1515,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
             lambda *path: exploratory_orfs(*path, models, store.cell_umi.support, min_orf_amino_acids, max_orf_candidates,
                                            lineage=store.lineage.support))
         results.append(result)
+        result["reconstruction_scopes"] = sorted(reconstruction_scopes[sequence, positions])
         for row in rows:
             if result["path_id"] not in row["paths"]:
                 row["paths"].append(result["path_id"])

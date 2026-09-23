@@ -74,6 +74,15 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
    branches are listed. Once most of a step's reads have ended, the path end is
    re-queried, so one long read cannot decide the rest of a path alone.
    `--no-assembly` uses only reads that span the seed junction.
+   With assembly enabled, both regional and seed-spanning reconstructions are
+   considered; a seed-spanning path contained in a regional path is collapsed
+   into it. This preserves witnessed flanks when competing regional extensions
+   block their assembly (for example at a repeated genomic placement), without
+   suppressing a regional isoform supported by shorter reads. Each path lists
+   its `reconstruction_scopes` (`regional`, `seed_spanning`); containment adds
+   a scope without counting its reads again. The same support thresholds and
+   global path budget apply to both scopes. A retained path can still be a
+   consensus: full-ORF witnesses remain a separate evidence measure.
 5. **Translate.** A frame is transferred from each exact, collinear CDS match
    of at least `--min-anchor-bases` (18) and read downstream through observed
    sequence to the first stop or path end. The continuation need not match any
