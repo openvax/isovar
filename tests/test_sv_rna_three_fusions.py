@@ -1,13 +1,13 @@
 """Original RNA regressions with reproducible selection and annotation builders."""
 import json
 
-from Bio.Seq import Seq
 import pysam
 import pytest
 
 from isovar.sid_data import sam_digest
 from tests.data.fusions.audit_three_fusions import DATA, audit_candidates, pinned_json, run_case
 from tests.data.fusions.build_three_fusions import select
+from tests.data.osteosarc.expansion.references import translate
 
 MANIFEST = json.loads((DATA / "manifest.json").read_text())
 PARD = "PARD3B--CDKN2B-AS1-CDKN2B"
@@ -63,7 +63,7 @@ def test_complete_orfs_have_original_native_witnesses_but_no_proven_initiation(
         case, event, source, orientation, peptide, native, labels, tail):
     result, candidates = case(event, source, orientation)
     candidate, = [c for c in candidates if c["amino_acids"] == peptide]
-    assert str(Seq(candidate["nucleotides"]).translate(table=1)) == peptide + "*"
+    assert translate(candidate["nucleotides"], table=1) == (peptide, True)
     assert candidate["native_fragments"] == candidate["native_q10_fragments"] == native
     assert candidate["native_cb_ub_labels"] == labels
     assert candidate["native_terminal_a10_fragments"] == tail

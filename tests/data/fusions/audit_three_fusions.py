@@ -12,12 +12,13 @@ import json
 from pathlib import Path
 import tempfile
 
-from Bio.Seq import Seq
 import pysam
 
 from isovar.sid_data import sam_digest
 from isovar.sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 from tests.data.fusions.build_three_fusions import segment
+from tests.data.osteosarc.expansion.references import translate
+from tests.osteosarc_protein_helpers import reverse_complement
 
 DATA = Path(__file__).with_name("three-fusions")
 
@@ -77,7 +78,7 @@ def audit_candidates(result, records):
                 continue
             start, end = candidate["query_interval"]
             nt, aa = path["sequence"][start:end], candidate["amino_acids"]
-            if str(Seq(nt).translate(table=1)) != aa + "*":
+            if translate(nt, table=1) != (aa, True) or len(nt) != 3 * (len(aa) + 1):
                 raise ValueError("Independent translation disagrees")
             item = candidates.setdefault((nt, aa), dict(
                 nucleotides=nt, amino_acids=aa, annotated_start=candidate["annotated_start"],
@@ -97,7 +98,7 @@ def audit_candidates(result, records):
             if len(primary) == 1 and primary[0].query_sequence:
                 read = primary[0]
                 sequence = read.get_forward_sequence()
-                native, opposite = sequence.count(nt), sequence.count(str(Seq(nt).reverse_complement()))
+                native, opposite = sequence.count(nt), sequence.count(reverse_complement(nt))
                 row["orientation"] = ("native" if native == 1 and not opposite else
                                       "opposite" if opposite == 1 and not native else "ambiguous")
                 row["terminal_A_run"] = len(sequence) - len(sequence.rstrip("A"))

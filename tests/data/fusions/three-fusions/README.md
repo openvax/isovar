@@ -73,7 +73,7 @@ python -m tests.data.fusions.audit_three_fusions \
    both strands. Candidate starts are ATGs, not an exhaustive non-AUG search.
 5. Only complete candidate ORFs crossing an actual `breakpoint_junction` enter
    the audit. Full-interval witness identities are unioned across paths. Their
-   nucleotides are independently translated by Biopython using
+   nucleotides are independently translated by the existing test oracle using
    [NCBI standard code 1](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG1).
    Each witness is checked against the **original forward query sequence**,
    separately reporting native versus reverse-complement matches, absent or
