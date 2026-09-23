@@ -17,6 +17,8 @@ import pysam
 import pyensembl
 from pyensembl import EnsemblRelease
 
+from osteosarc.legacy_fixtures import segment_key as segment
+
 from isovar.sid_data import extract_regions, minimal_header, open_dataset, sam_digest
 
 HERE = Path(__file__).parent
@@ -74,28 +76,12 @@ def windows(event):
              event[k]["position"] + WINDOW) for k in ("donor", "acceptor")]
 
 
-def segment(read):
-    return (read.get_tag("RG") if read.has_tag("RG") else "", read.query_name,
-            read.flag & 0xC0 if read.is_paired else 0)
-
-
 def select(bam, event):
-    """Keep unedited local records for segments overlapping both end windows.
-
-    Identical SAM lines retrieved in both queries are represented once. No
-    sequence, quality, ORF, native-orientation or CB/UB selection is applied.
-    This is a bounded path fixture, not an exhaustive event-support count.
-    """
-    sides, lines = defaultdict(set), {}
-    for side, (contig, start, end) in enumerate(windows(event)):
-        for read in bam.fetch(contig, start, end):
-            if read.is_unmapped:
-                continue
-            key = segment(read)
-            sides[key].add(side)
-            lines[read.to_string()] = key
-    selected = sorted(line for line, key in lines.items() if sides[key] == {0, 1})
-    return selected, sum(value == {0, 1} for value in sides.values())
+    """Execute the historical identical-SAM-lines-once recipe in Osteosarc."""
+    from osteosarc.legacy_fixtures import select_window_segments
+    lines, segments, _ = select_window_segments(
+        bam, windows(event), duplicate_policy="identical-SAM-lines-once")
+    return lines, segments
 
 
 def references(genome, event):

@@ -51,11 +51,6 @@ def intervals(donor, acceptor, references):
     return merged
 
 
-def segment(read):
-    return (read.get_tag("RG") if read.has_tag("RG") else "", read.query_name,
-            read.flag & 0xC0 if read.is_paired else 0)
-
-
 def build(event, source, input_path, output, scratch):
     donor, acceptor, references = event_input(input_path)
     url = BUCKET + SOURCES[source]
@@ -63,23 +58,15 @@ def build(event, source, input_path, output, scratch):
     regional = scratch / ("%s.%s.bam" % (event, source))
     subset = extract_regions(url, regions, "GRCh38", regional)
     windows = [(b["contig"], b["position"] - WINDOW, b["position"] + WINDOW) for b in (donor, acceptor)]
-    touches, records = {}, {}
+    from osteosarc.legacy_fixtures import select_window_segments
     with pysam.AlignmentFile(str(regional)) as bam:
         header = str(bam.header)
-        for read in bam:
-            if read.is_unmapped:
-                continue
-            key = segment(read)
-            records.setdefault(key, []).append(read.to_string())
-            for k, (contig, start, end) in enumerate(windows):
-                if read.reference_name == contig and read.reference_start < end and start < read.reference_end:
-                    touches.setdefault(key, set()).add(k)
-    kept = sorted(key for key, sides in touches.items() if sides == {0, 1})
-    lines = sorted(line for key in kept for line in records[key])
+        lines, segments, regional_records = select_window_segments(
+            bam, windows, available_context=True, duplicate_policy="preserve")
     path = output / ("%s.%s.sam.gz" % (event, source))
     path.write_bytes(gzip.compress((header + "".join(line + "\n" for line in lines)).encode(), mtime=0))
     return dict(event=event, source=source, url=url, input=input_path, window=WINDOW, regions=len(regions),
-                regional_records=sum(len(v) for v in records.values()), segments=len(kept), records=len(lines),
+                regional_records=regional_records, segments=segments, records=len(lines),
                 osteosarc=subset.receipt, file=path.name,
                 sha256=sha256(path.read_bytes()).hexdigest())
 
