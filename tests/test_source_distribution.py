@@ -37,6 +37,13 @@ RELEASE_TESTS = (
     "test_release_upload.py",
 )
 
+SV_SUPPORT = (
+    "examples/osteosarc_sv_validation.py", "docs/sv-rna.md", "tests/__init__.py",
+    "tests/osteosarc_protein_helpers.py", "tests/reference_identity.py",
+    "tests/data/osteosarc/protein_references.py", "tests/data/osteosarc/expansion/references.py",
+    "tests/data/osteosarc/expansion/inventory.py",
+)
+
 
 def test_sdist_contains_release_tooling_required_by_release_tests(tmp_path):
     source_root = Path(__file__).resolve().parents[1]
@@ -49,6 +56,13 @@ def test_sdist_contains_release_tooling_required_by_release_tests(tmp_path):
     packaged_tests.mkdir()
     for filename in RELEASE_TESTS:
         shutil.copy2(source_root / "tests" / filename, packaged_tests / filename)
+
+    for name in SV_SUPPORT:
+        target = checkout / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_root / name, target)
+    shutil.copytree(source_root / "tests/data/fusions", checkout / "tests/data/fusions",
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
 
     dist_dir = checkout / "dist"
     dist_dir.mkdir()
@@ -86,3 +100,29 @@ def test_sdist_contains_release_tooling_required_by_release_tests(tmp_path):
         for script_name in release_scripts:
             script_info = archive.getmember("%s/%s" % (root, script_name))
             assert script_info.mode & stat.S_IXUSR
+
+        for name in SV_SUPPORT + ("tests/data/fusions/build_validation_events.py",
+                                  "tests/data/fusions/validation-events.json"):
+            assert "%s/%s" % (root, name) in names
+        options = {"filter": "data"} if hasattr(tarfile, "data_filter") else {}
+        archive.extractall(tmp_path / "unpacked", **options)
+    # Exercise original-read reconstruction from the actual archive, with no
+    # repository-relative imports, network, or external reference acquisition.
+    smoke = subprocess.run([sys.executable, "-c", """
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from examples.osteosarc_sv_validation import DATA
+from tests.data.fusions.audit_three_fusions import run_case
+from isovar.sv_rna_comparison import compare_sv_rna_predictions
+with TemporaryDirectory() as scratch:
+    result, _ = run_case(DATA / 'three-fusions', 'PARD3B--CDKN2B-AS1-CDKN2B',
+                         'ONT-T1', 'reverse', Path(scratch))
+comparison = compare_sv_rna_predictions(result, dict(event_id=result['event_id'],
+    reference_name=result['reference_name'], source='packaged-fixture-independent-oracle',
+    predictions=[dict(prediction_id='known', amino_acids='MNISNIHISTQKKKKKKSRF', complete=True)]))
+matched, = [h for h in comparison['hypotheses']
+            if h['comparisons'][0]['status'] == 'same_amino_acid_sequence']
+assert matched['full_interval_fragments'] == 4
+assert matched['orf']['rna_support']['fragment_query_orientations']['original_query'] == 4
+"""], cwd=tmp_path / "unpacked" / root, env=env, capture_output=True, text=True)
+    assert smoke.returncode == 0, smoke.stderr

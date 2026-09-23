@@ -513,3 +513,8 @@ Fixture construction is saved with the tests:
   `--source-directory DIR` instead verifies original local VCFs offline.
 - Synthetic comparison inputs and the original-read #337 regression are in
   `tests/test_sv_rna_comparison.py` and `tests/test_sv_rna_orfs.py`.
+
+The source distribution includes this runner, the small fusion data, and their
+construction/audit scripts; the wheel contains the runtime comparison API and
+shared packaged read bundle. The archive regression reconstructs the original
+PARD3B candidate offline after building and extracting the actual sdist.

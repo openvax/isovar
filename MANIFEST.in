@@ -2,3 +2,13 @@ include deploy.sh
 include lint.sh
 include release_upload.py
 include test.sh
+# Portable SV reconstruction examples and their original-data recipes (sdist only).
+include examples/osteosarc_sv_validation.py
+include docs/sv-rna.md
+include tests/__init__.py
+include tests/osteosarc_protein_helpers.py
+include tests/reference_identity.py
+include tests/data/osteosarc/protein_references.py
+include tests/data/osteosarc/expansion/references.py
+include tests/data/osteosarc/expansion/inventory.py
+recursive-include tests/data/fusions *.py *.md *.json *.gz
