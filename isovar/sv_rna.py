@@ -1305,6 +1305,9 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         ``breakpoint_window`` bases around each breakpoint are always searched.
     references : iterable of FusionReference
         All candidate transcript models. Peptide novelty is relative to them.
+        An explicitly empty iterable permits intergenic exploratory ORFs;
+        annotated splice, start and frame assessment is then unavailable and
+        reported in ``limitations``. No reference sequence is substituted.
     sample_id, source : str
         Sample and alignment-source identity.
     event_provenance : dict
@@ -1378,8 +1381,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     if not lengths or any(type(n) is not int or n < 1 for n in lengths):
         raise ValueError("Peptide lengths must be positive integers")
     references = tuple(references)
-    if not references or any(not isinstance(r, FusionReference) or r.reference_name != reference_name
-                             for r in references):
+    if any(not isinstance(r, FusionReference) or r.reference_name != reference_name
+           for r in references):
         raise ValueError("Matching, explicitly versioned reference models are required")
     if len({(r.annotation, r.transcript_id) for r in references}) != len(references):
         raise ValueError("Duplicate reference transcript identity")
@@ -1410,6 +1413,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
              if len({i[:2] for i in ids}) >= min_alternative_fragments]
     thresholds = (min_alternative_fragments, min_alternative_fraction, min_local_variant_fraction)
     paths, pruned, notes, seed_rows, strongest, seen = {}, [], set(acquisition["limitations"]), [], {}, set()
+    if not references:
+        notes.add("reference_models_unavailable")
     reconstruction_scopes = defaultdict(set)
 
     def batches():
