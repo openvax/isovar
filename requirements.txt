@@ -6,4 +6,4 @@ psutil
 edlib>=1.3.9.post1,<2
 
 # Shared fixture mechanics (including offline historical SAM bundles).
-osteosarc==0.2.3
+osteosarc==0.2.4
