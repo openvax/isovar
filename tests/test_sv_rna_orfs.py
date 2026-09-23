@@ -4,6 +4,7 @@ from dataclasses import replace
 from types import SimpleNamespace
 
 import pysam
+import pytest
 
 from isovar.cell_umi import CellUmiEvidence
 from isovar.sv_rna import RnaObservation, _Model
@@ -44,6 +45,119 @@ def test_only_orfs_crossing_the_junction_are_reported_with_observed_stop():
     assert candidate["start_context"]["minus_three"] is None
     assert candidate["full_interval_support"]["fragments"] == 1
     assert not run(seq, pos, reads, junction, minimum=5)["candidates"]
+
+
+def insertion_inputs(donor, inserted, acceptor):
+    sequence = donor + inserted + acceptor
+    left, right = len(donor) - 1, len(donor) + len(inserted)
+    positions = (tuple(("1", q, "+") for q in range(len(donor))) + (None,) * len(inserted)
+                 + tuple(("2", q, "+") for q in range(len(acceptor))))
+    reads = {"full": replace(observation("full", sequence, positions), breaks=((left, right, "split"),))}
+    junction = dict(query_interval=[left, right], left=positions[left], right=positions[right],
+                    annotated=False, relation="breakpoint_junction", direct_observations=["full"])
+    return sequence, positions, reads, junction
+
+
+@pytest.mark.parametrize("donor,inserted,acceptor,protein,boundaries,termination_only", [
+    ("ATG" + "GCC" * 14, "GGCTGAAAAAAA", "CCC" * 8, "M" + "A" * 14 + "G",
+     ["donor_to_unplaced"], False),
+    ("CCC" * 5, "CCCATG" + "GCC" * 4, "GCC" * 10 + "TAA", "M" + "A" * 14,
+     ["unplaced_to_acceptor"], False),
+    ("ATG" + "GCC" * 7, "GCC", "GCC" * 7 + "TAA", "M" + "A" * 15,
+     ["donor_to_unplaced", "unplaced_to_acceptor"], False),
+    # Initiating and terminating codons need not fall on a junction boundary.
+    ("CCCAT", "G" + "GCC" * 14 + "TAACCC", "CCC" * 8, "M" + "A" * 14,
+     ["donor_to_unplaced"], False),
+    ("ATG" + "GCC" * 14 + "TG", "A" + "CCC" * 3, "CCC" * 8, "M" + "A" * 14,
+     ["donor_to_unplaced"], True),
+    ("ATG" + "GCC" * 14, "TGA" + "CCC" * 3, "CCC" * 8, "M" + "A" * 14,
+     ["donor_to_unplaced"], True),
+    ("ATG" + "GCC" * 14, "GCCTG", "A" + "CCC" * 8, "M" + "A" * 15,
+     ["donor_to_unplaced", "unplaced_to_acceptor"], False),
+])
+def test_orfs_cross_either_unplaced_boundary_including_split_codons(
+        donor, inserted, acceptor, protein, boundaries, termination_only):
+    args = insertion_inputs(donor, inserted, acceptor)
+    candidate, = run(*args, minimum=15)["candidates"]
+    assert candidate["amino_acids"] == protein and candidate["ends_with_stop_codon"]
+    assert candidate["junction_crossings"] == [dict(junction_index=0, boundaries=boundaries,
+                                                   termination_only=termination_only)]
+    assert candidate["full_interval_support"]["fragments"] == 1
+    assert not candidate["initiation_observed"] and not candidate["translation_observed"]
+
+
+@pytest.mark.parametrize("donor,inserted,acceptor", [
+    ("ATGGCCTAA", "CCCCCC", "CCC"),  # Stops before the first boundary.
+    ("CCC", "CCCATGGCCTAACCC", "CCC"),  # Entire ORF lies in unplaced sequence.
+    ("CCC", "CCCCCC", "ATGGCCTAA"),  # Starts at the acceptor boundary.
+])
+def test_orf_must_cross_a_boundary_not_merely_touch_or_lie_within_the_junction(donor, inserted, acceptor):
+    assert not run(*insertion_inputs(donor, inserted, acceptor))["candidates"]
+
+
+def test_insertion_ending_witness_requires_the_same_observation_to_link_the_other_flank():
+    seq, pos, reads, junction = insertion_inputs("ATG" + "GCC" * 14, "GGCTGAAAAAAA", "CCC" * 8)
+    end, right = 51, junction["query_interval"][1]
+    full = reads["full"]
+    reads["orf_only"] = replace(full, key="orf_only", identity=("library", "orf_only", 0),
+                               sequence=seq[:end], positions=pos[:end])
+    reads["tail_error"] = replace(full, key="tail_error", identity=("library", "tail_error", 0),
+                                 sequence=seq[:end] + "T" + seq[end + 1:])
+    reads["wrong_flank"] = replace(full, key="wrong_flank", identity=("library", "wrong_flank", 0),
+                                  positions=pos[:right] + tuple(("3", q, "+") for q in range(len(pos) - right)))
+    reads["later_copy"] = replace(full, key="later_copy", identity=("library", "later_copy", 0),
+                                 sequence=seq + seq[:end], positions=pos + pos[:end])
+    junction["direct_observations"] = list(reads)
+    candidate, = run(seq, pos, reads, junction, minimum=15)["candidates"]
+    support = candidate["full_interval_support"]
+    assert support["fragments"] == 2  # The full read and first, junction-linked copy only.
+    assert all(w["observation_interval"] == [0, end] for w in support["witnesses"])
+    assert all(w["junction_links"] == [dict(junction_query_interval=[44, 57], observation_interval=[0, 58])]
+               for w in support["witnesses"])
+    # A sequence hypothesis remains visible even with no original full witness.
+    junction["direct_observations"] = ["orf_only", "tail_error", "wrong_flank"]
+    candidate, = run(seq, pos, reads, junction, minimum=15)["candidates"]
+    assert candidate["full_interval_support"]["fragments"] == 0
+
+
+def test_insertion_ending_witness_accepts_homology_assignment_and_reverse_offsets():
+    seq, pos, reads, junction = insertion_inputs("ATG" + "GCC" * 14, "GGCTGAAAAAAA", "CCC" * 8)
+    right = junction["query_interval"][1]
+    # First two acceptor bases are unplaced by this alternative alignment.
+    reads["full"] = replace(reads["full"], reverse=True, positions=pos[:right] + (None, None) + pos[right + 2:])
+    candidate, = run(seq, pos, reads, junction, minimum=15)["candidates"]
+    witness, = candidate["full_interval_support"]["witnesses"]
+    assert witness["observation_interval"] == [0, 51]
+    assert witness["original_query_interval"] == [10 + len(seq) - 51, 10 + len(seq)]
+    assert witness["junction_links"][0]["observation_interval"] == [0, right + 3]
+
+
+def test_orf_ending_inside_breakpoint_clip_needs_only_the_available_flank():
+    seq, pos, reads, junction = insertion_inputs("ATG" + "GCC" * 14, "GGCTGAAAAAAA", "CCC" * 8)
+    right = junction["query_interval"][1]
+    seq, pos = seq[:right], pos[:right]
+    junction.update(query_interval=[44, right - 1], right=None, relation="breakpoint_clip_partner_unplaced")
+    reads["full"] = replace(reads["full"], sequence=seq, positions=pos)
+    candidate, = run(seq, pos, reads, junction, minimum=15)["candidates"]
+    assert candidate["amino_acids"] == "M" + "A" * 14 + "G"
+    assert candidate["full_interval_support"]["fragments"] == 1
+    assert candidate["junction_crossings"][0]["boundaries"] == ["donor_to_unplaced"]
+
+
+def test_one_full_witness_can_retain_links_to_multiple_crossed_junctions():
+    sequence = "ATG" + "GCC" * 6 + "TAA"
+    positions = tuple((str(min(q // 6, 2)), q, "+") for q in range(len(sequence)))
+    read = replace(observation("full", sequence, positions), breaks=((5, 6, "split"), (11, 12, "split")))
+    junctions = [dict(query_interval=[q, q + 1], left=positions[q], right=positions[q + 1],
+                      annotated=False, relation="event_compatible_junction", direct_observations=["full"])
+                 for q in (5, 11)]
+    cell_umi = CellUmiEvidence({read.identity: [pysam.AlignedSegment()]}, {}, "sample", "input")
+    candidate, = exploratory_orfs(sequence, positions, junctions, {"full": read}, [],
+                                  cell_umi.support, 1, 100)["candidates"]
+    assert candidate["crossed_junctions"] == [0, 1]
+    assert candidate["full_interval_support"]["fragments"] == 1
+    witness, = candidate["full_interval_support"]["witnesses"]
+    assert [link["junction_query_interval"] for link in witness["junction_links"]] == [[5, 6], [11, 12]]
 
 
 def test_competing_starts_and_partial_terminal_codon_are_preserved_and_limit_is_explicit():
