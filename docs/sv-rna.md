@@ -430,3 +430,86 @@ Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf),
 [SA tag](https://samtools.github.io/hts-specs/SAMtags.pdf),
 [fusion reconstruction assessment](https://pmc.ncbi.nlm.nih.gov/articles/PMC6802306/)
 and [NCBI translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).
+
+## Compare predictions with RNA protein hypotheses
+
+```sh
+isovar sv-rna --bam rna.bam --input event.json --output candidates.json \
+  --predictions predictions.json
+```
+
+The prediction document supplies matching `event_id` and `reference_name`,
+optional matching `sample_id`, nonempty `source` provenance (annotator, version,
+annotation release and source calls), and a `predictions` list. Each entry has a
+unique `prediction_id`, `amino_acids` (or `null` for unresolved), and optionally
+`complete: true`. Additional effect-class and transcript metadata is retained.
+For example:
+
+```json
+{"event_id":"event-1","reference_name":"GRCh38",
+ "source":{"annotator":"varcode","version":"9.4.2","ensembl_release":95},
+ "predictions":[{"prediction_id":"model-1","amino_acids":"MAK","complete":true}]}
+```
+
+`prediction_comparison` retains every event-linked annotated-frame translation
+and exploratory ORF. It distinguishes complete candidates from partial readings
+and exact fragment matches from whole amino-acid sequence equality. A shorter
+complete ORF is not relabeled a matching fragment of a longer predicted protein.
+`no_exact_sequence_match` reports a sequence comparison, not a verdict about
+which isoform or sequencing hypothesis is correct. Unknown predicted proteins
+stay unresolved; purely regional junctions cannot validate the nominated event.
+
+Alternative path contexts sharing the same nucleotide/protein hypothesis keep
+all path IDs. Full-interval witnesses are deduplicated by original segment and
+query interval within the input source. Junction support is never substituted
+for full-protein support. RNA alone does not establish initiation, protein
+expression, somatic causation or antigen presentation.
+
+Exploratory ORF comparison reuses the shared ORF exporter, including stable
+candidate IDs, source-scoped witness unions, orientation and uncertainty flags.
+Annotated-frame translations retain their frame evidence separately; junction
+support is never reported as complete protein support.
+
+## Reproduce the Osteosarc comparison
+
+From a checkout with Varcode >=9.4.2 and Ensembl 95 installed:
+
+```sh
+python -m examples.osteosarc_sv_validation output-directory
+```
+
+This reconstructs TPST1–CRCP, PARD3B–CDKN2B-AS1/CDKN2B and FOXO3–STRADA/CCDC47:
+the three strongest named rearrangement leads in the audited catalogue (393,
+48 and 31 reported RNA split reads, respectively, before library/record
+reconciliation). It uses selected original PacBio/ONT records, retains their
+actual support counts, and reannotates the source T1 DNA calls with Varcode.
+These catalogue screening counts are not the fixture's witness counts.
+The runner examines both event orientations. TPST1 and FOXO3 use the pinned
+Ensembl 87 models; PARD3B reuses the released three-fusion audit with Ensembl
+115 models and original ONT T1 records. DNA predictions use Ensembl 95, with
+all identities and reconstruction parameters preserved in the output. Gene-pair labels do
+not assert a coding gene fusion.
+
+For a full indexed **T1** RNA alignment, supply `--bam PATH_OR_URL`; `--source URL`
+records the original identity when the path is a local acquisition. Reconstruction
+queries the nominated regions and reference exons with the ordinary Isovar
+limits. This does not imply a whole-BAM scan or exhaustive unconstrained assembly.
+Inspect each report's `acquisition` and `limitations` before interpreting absence.
+
+The output has one complete reconstruction/comparison JSON per event/orientation and a
+`protein_comparison.csv`. Source records, alternative ORFs, frame assumptions,
+full-interval witnesses and unavailable predicted proteins remain inspectable.
+
+Fixture construction is saved with the tests:
+
+- `tests/data/fusions/build_long_read.py` defines indexed acquisition and original
+  long-read selection; `isovar.sid_data` records the acquisition/checksum recipe.
+- `tests/data/fusions/build_osteosarc.py` builds the reference/junction corpus;
+  `build_three_fusions.py` and `audit_three_fusions.py` supply the released
+  PARD3B original-read fixture and reconstruction recipe.
+- `tests/data/fusions/validation-events.json` pins DNA VCF URLs, SHA256 and record
+  IDs. `python -m tests.data.fusions.build_validation_events --snapshot NAME
+  --output events.json` regenerates it through the shared Osteosarc cache;
+  `--source-directory DIR` instead verifies original local VCFs offline.
+- Synthetic comparison inputs and the original-read #337 regression are in
+  `tests/test_sv_rna_comparison.py` and `tests/test_sv_rna_orfs.py`.
