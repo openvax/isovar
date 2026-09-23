@@ -121,6 +121,19 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
    from the complete reference ORF may only reflect truncation. Global peptide
    novelty and protein expression are not established.
 
+   `start_evidence` adds transcript-specific origin tiers: exact annotated CDS
+   ATG (priority 1), 5′-UTR ATG (2), or sequence-only start (4). The latter
+   retains intronic, antisense, noncoding, junction-created and unplaced
+   subtypes. Priority 3 is reserved for qualified splice-linked intronic
+   inclusion and is not yet emitted. Annotation never proves initiation.
+   Overlapping models with different tiers remain ambiguous, with null overall
+   priority; each model's assessment is retained. For example, TPST1's 30-aa
+   candidate is a 5′-UTR start in ENST00000304842 but also overlaps supplied
+   noncoding isoforms, so it has no single isoform-independent priority.
+   `annotate_orf_start` exposes this annotation independently of reconstruction;
+   `summarize_orf_start_evidence` applies the same conservative rule across
+   occurrences. See the [tier definitions and splice-inference plan](orf-start-evidence-plan.md).
+
    Each candidate's `full_interval_support` requires an exact complete
    nucleotide witness, including the stop when present, from a built
    observation that makes a crossed junction. Placements must be compatible,
@@ -392,6 +405,15 @@ Synonymous nucleotide alternatives remain separate. Path occurrences retain
 start context, reference comparisons, frame status, junction boundary classes
 and exact witness intervals. ORF and witness intervals are zero-based half-open;
 junction query intervals instead identify the two flanking base offsets.
+
+Each occurrence preserves `start_evidence`. `start_evidence_summary` agrees
+with all supplied transcript/path tiers or reports `ambiguous`; missing
+metadata in an older reconstruction reports `unavailable`. Neither case is
+assigned a numeric priority. TSV includes `start_tier_status`, `start_tier`,
+`start_priority`, and per-occurrence `start_evidence_json`. Lower numbers are
+only an annotation prior: compare RNA support and quality separately, and
+inspect ambiguous alternatives instead of sorting null priorities as evidence.
+Tier metadata does not enter sequence IDs or evidence counts.
 
 Candidate IDs hash `[event_id, reference_name, nucleotide_sequence, amino_acids,
 ends_with_stop_codon]`, excluding sample/source. Sequence IDs hash only their

@@ -1,12 +1,12 @@
 """Candidate initiation is separate from annotation and full-span RNA support."""
 
 from dataclasses import replace
-from types import SimpleNamespace
 
 import pysam
 import pytest
 
 from isovar.cell_umi import CellUmiEvidence
+from isovar import FusionReference, export_sv_rna_orfs
 from isovar.sv_rna import RnaObservation, _Model
 from isovar.sv_rna_orfs import exploratory_orfs, record_evidence
 from tests.test_sv_rna import long_read_run
@@ -213,15 +213,17 @@ def test_reverse_observation_offsets_and_library_scoped_molecule_labels():
 
 def test_reference_start_classification_compares_same_atg_without_claiming_initiation():
     seq, pos, reads, junction = inputs()
-    ref = SimpleNamespace(contig="1", strand="+", exons=((0, 15),), sequence="ATGAAACCCTAATAA",
-                          cds_start=0, cds_end=9, transcript_id="coding", annotation="test")
-    models = [_Model(ref), _Model(SimpleNamespace(**dict(vars(ref), cds_start=9, cds_end=12, transcript_id="utr")))]
+    ref = FusionReference(contig="1", strand="+", exons=((0, 21),), sequence="ATGAAACCCTAAATGCCCTAA",
+                          cds_start=0, cds_end=12, transcript_id="coding", annotation="test", reference_name="test")
+    models = [_Model(ref), _Model(replace(ref, cds_start=12, cds_end=21, transcript_id="utr"))]
     candidate, = run(seq, pos, reads, junction, models=models)["candidates"]
     assert candidate["annotated_start"] and not candidate["initiation_observed"]
     first, second = candidate["reference_comparisons"]
     assert first["start_kind"] == "annotated_start" and second["start_kind"] == "five_prime_UTR"
     assert first["amino_acids"] == "MKP" and first["shared_prefix_amino_acids"] == 2
     assert first["differs_from_reference_orf"]
+    assert candidate["start_evidence"]["status"] == "ambiguous"
+    assert candidate["start_evidence"]["priority"] is None
 
 
 def test_record_evidence_preserves_zero_missing_qual_and_mapq_unavailable():
@@ -260,6 +262,17 @@ def test_original_pacbio_upstream_orf_has_full_span_support_and_retains_tags(tmp
     assert reference["transcript_offset"] == 284 and reference["annotated_cds_start"] == 425
     assert reference["amino_acids"] == "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV"
     assert reference["shared_prefix_amino_acids"] == 13
+    start = candidate["start_evidence"]
+    coding, = [r for r in start["assessments"] if r["transcript_id"] == "ENST00000304842"]
+    assert coding["tier"] == "five_prime_UTR_ATG" and coding["priority"] == 2
+    assert coding["reference_orf_type"] == "upstream_ORF"
+    # Two other supplied TPST1 isoforms have no annotated CDS. Preserve that
+    # uncertainty instead of assigning the coding isoform's UTR to all three.
+    assert start["status"] == "ambiguous" and start["priority"] is None
+    exported, = [c for c in export_sv_rna_orfs(result)["candidates"]
+                 if c["amino_acids"] == candidate["amino_acids"]]
+    assert exported["start_evidence_summary"]["status"] == "ambiguous"
+    assert exported["occurrences"][0]["start_evidence"] == start
     support = candidate["full_interval_support"]
     assert support["molecule_labels"] is None and support["missing_quality_segments"] == 15
     assert support["cell_umi_support"]["status_counts"] == {"unresolved_xm": 15}

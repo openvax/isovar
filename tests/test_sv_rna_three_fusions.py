@@ -71,6 +71,12 @@ def test_complete_orfs_have_original_native_witnesses_but_no_proven_initiation(
     assert not candidate["initiation_observed"] and not candidate["translation_observed"]
     assert not any("breakpoint_junction" in t["departure_relations"]
                    for p in result["paths"] for t in p["translations"])
+    if event in (PARD, GABBR):
+        starts = [c["start_evidence"] for p in result["paths"] for c in p["exploratory_orfs"]["candidates"]
+                  if c["amino_acids"] == peptide]
+        assert starts and all(s["tier"] == "sequence_only" and s["priority"] == 4 for s in starts)
+        assert all("intronic" in {r["region"] for r in s["assessments"]} for s in starts)
+        assert all(r["splice_inference"] == "not_assessed" for s in starts for r in s["assessments"])
 
 
 def test_gabbr_opposite_strand_junction_read_is_not_a_second_native_orf_witness(case):

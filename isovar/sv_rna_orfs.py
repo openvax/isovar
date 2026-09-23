@@ -1,40 +1,8 @@
 """Exploratory ATG ORFs and their observed RNA evidence, not initiation calls."""
 
 from .genetic_code import standard_genetic_code
+from .orf_start import annotate_orf_start
 from .read_metadata import record_evidence as record_evidence
-
-
-def _start_references(sequence, positions, start, amino_acids, stop, models):
-    comparisons = []
-    for model in models:
-        reference = model.reference
-        offset = model.offsets.get(positions[start])
-        if (offset is None or model.positions[offset:offset + 3] != list(positions[start:start + 3])
-                or reference.sequence[offset:offset + 3] != "ATG"):
-            continue
-        if reference.cds_start is None:
-            kind = "noncoding_transcript"
-        elif offset == reference.cds_start:
-            kind = "annotated_start"
-        elif offset < reference.cds_start:
-            kind = "five_prime_UTR"
-        elif offset >= reference.cds_end:
-            kind = "three_prime_UTR"
-        else:
-            kind = "internal_CDS"
-        ref_aa, ref_stop = standard_genetic_code.translate(reference.sequence[offset:], first_codon_is_start=True)
-        shared = 0
-        for a, b in zip(amino_acids, ref_aa):
-            if a != b:
-                break
-            shared += 1
-        comparisons.append(dict(
-            transcript_id=reference.transcript_id, annotation=reference.annotation,
-            transcript_offset=offset, start_kind=kind, annotated_cds_start=reference.cds_start,
-            amino_acids=ref_aa, ends_with_stop_codon=ref_stop,
-            shared_prefix_amino_acids=shared,
-            differs_from_reference_orf=(amino_acids, stop) != (ref_aa, ref_stop)))
-    return comparisons
 
 
 def _witnesses(sequence, positions, start, end, junctions, observations):
@@ -129,7 +97,8 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, cell_
         witnesses = _witnesses(sequence, positions, start, end, [j for _, j, _ in crossed], observations)
         segments = {observations[w["observation"]].identity for w in witnesses}
         labels = cell_umi_support(segments)
-        comparisons = _start_references(sequence, positions, start, aa, has_stop, models)
+        start_evidence = annotate_orf_start(sequence, positions, start, [m.reference for m in models])
+        comparisons = start_evidence["reference_comparisons"]
         minus_three = sequence[start - 3] if start >= 3 else None
         plus_four = sequence[start + 3] if start + 3 < len(sequence) else None
         candidates.append(dict(
@@ -139,7 +108,7 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, cell_
             start_context=dict(sequence=sequence[max(0, start - 6):min(len(sequence), start + 9)],
                                query_interval=[max(0, start - 6), min(len(sequence), start + 9)],
                                minus_three=minus_three, plus_four=plus_four),
-            reference_comparisons=comparisons,
+            reference_comparisons=comparisons, start_evidence=start_evidence,
             crossed_junctions=[i for i, _, _ in crossed],
             junction_crossings=[dict(junction_index=i, boundaries=[kind for kind, _ in boundaries],
                                      termination_only=all(b >= coding_end for _, b in boundaries))
