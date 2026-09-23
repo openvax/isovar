@@ -13,6 +13,7 @@ from .default_parameters import (
     SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_LOCAL_VARIANT_FRACTION,
 )
 from .genetic_code import standard_genetic_code
+from .orf_start import summarize_orf_start_evidence
 from .read_lineage import summarize_lineage_rows
 
 
@@ -100,6 +101,7 @@ def _occurrence(path, candidate):
     row.update({key: deepcopy(path[key]) for key in (
         "path_id", "frame_status", "unresolved_models")})
     row["reconstruction_scopes"] = deepcopy(path.get("reconstruction_scopes", []))
+    row["start_evidence"] = deepcopy(candidate.get("start_evidence"))
     row["junctions"] = []
     crossings = {c["junction_index"]: c for c in candidate.get("junction_crossings", [])}
     for index in candidate["crossed_junctions"]:
@@ -119,6 +121,8 @@ def _flags(candidate, result):
     flags = {"initiation_unobserved", "translation_unobserved", "peptide_novelty_unassessed",
              "rna_strand_unresolved", "interval_base_quality_unassessed"}
     support, occurrences = candidate["rna_support"], candidate["occurrences"]
+    if candidate["start_evidence_summary"]["status"] != "consistent":
+        flags.add("start_tier_" + candidate["start_evidence_summary"]["status"])
     if not any(o["annotated_start"] for o in occurrences):
         flags.add("no_annotated_start_in_supplied_models")
     if any(o["frame_status"] != "translated" for o in occurrences):
@@ -206,6 +210,8 @@ def export_sv_rna_orfs(result):
         candidate["occurrences"] = _unique(candidate["occurrences"])
         witnesses = [w for occurrence in candidate["occurrences"] for w in occurrence["witnesses"]]
         candidate["rna_support"] = _support(result, witnesses)
+        candidate["start_evidence_summary"] = summarize_orf_start_evidence(
+            o["start_evidence"] for o in candidate["occurrences"])
         candidate["uncertainty_flags"] = _flags(candidate, result)
         candidates.append(candidate)
     export = {key: deepcopy(result[key]) for key in (
@@ -243,7 +249,8 @@ def write_sv_rna_orfs(export, prefix):
                "nucleotide_sequence", "ends_with_stop_codon", "fragments", "segments", "observed_cell_umi_labels",
                "complete_cell_umi_labels", "resolved_signal_groups", "independent_molecules",
                "original_query_fragments", "reverse_complement_fragments", "mixed_orientation_fragments",
-               "missing_quality_segments", "evidence_set_id", "uncertainty_flags"]
+               "missing_quality_segments", "evidence_set_id", "uncertainty_flags",
+               "start_tier_status", "start_tier", "start_priority", "start_evidence_json"]
     with paths["tsv"].open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, delimiter="\t")
         writer.writeheader()
@@ -261,6 +268,12 @@ def write_sv_rna_orfs(export, prefix):
                        reverse_complement_fragments=support["fragment_query_orientations"]["reverse_complement"],
                        mixed_orientation_fragments=support["fragment_query_orientations"]["mixed"],
                        uncertainty_flags=";".join(candidate["uncertainty_flags"]))
+            summary = candidate.get("start_evidence_summary", summarize_orf_start_evidence([]))
+            row.update(start_tier_status=summary["status"], start_tier=summary["tier"],
+                       start_priority=summary["priority"],
+                       start_evidence_json=_canonical([dict(path_id=o["path_id"],
+                                                           start_evidence=o.get("start_evidence"))
+                                                       for o in candidate["occurrences"]]))
             writer.writerow(row)
     for kind, field in (("protein", "amino_acids"), ("nucleotide", "nucleotide_sequence")):
         with paths[kind].open("w") as handle:

@@ -36,6 +36,7 @@ from .variant_sequence_creator import VariantSequenceCreator
 from .fusion import FusionBlock, FusionBreakpoint, FusionRead, FusionReference, FusionTranscript, reconstruct_fusion
 from .sv_rna import reconstruct_sv_rna
 from .sv_rna_orf_export import export_sv_rna_orfs, write_sv_rna_orfs, normalize_sv_rna_orf_export
+from .orf_start import annotate_orf_start, summarize_orf_start_evidence
 
 
 __all__ = [
@@ -50,6 +51,8 @@ __all__ = [
     "normalize_sv_rna_orf_export",
     "export_sv_rna_orfs",
     "write_sv_rna_orfs",
+    "annotate_orf_start",
+    "summarize_orf_start_evidence",
     "isovar_results_to_dataframe",
     "AlleleRead",
     "PhaseGroup",
