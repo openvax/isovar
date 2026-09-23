@@ -1,6 +1,7 @@
 """Candidate initiation is separate from annotation and full-span RNA support."""
 
 from dataclasses import replace
+from copy import deepcopy
 
 import pysam
 import pytest
@@ -272,7 +273,13 @@ def test_original_pacbio_upstream_orf_has_full_span_support_and_retains_tags(tmp
     exported, = [c for c in export_sv_rna_orfs(result)["candidates"]
                  if c["amino_acids"] == candidate["amino_acids"]]
     assert exported["start_evidence_summary"]["status"] == "ambiguous"
-    assert exported["occurrences"][0]["start_evidence"] == start
+    portable = deepcopy(start)
+    for assessment in portable["assessments"]:
+        inclusion = assessment["splice_inclusion"]
+        for key in ("cell_umi_support", "read_lineage"):
+            inclusion[key].pop("segment_ids")
+    assert exported["occurrences"][0]["start_evidence"] == portable
+    assert all("segment_ids" in a["splice_inclusion"]["cell_umi_support"] for a in start["assessments"])
     support = candidate["full_interval_support"]
     assert support["molecule_labels"] is None and support["missing_quality_segments"] == 15
     assert support["cell_umi_support"]["status_counts"] == {"unresolved_xm": 15}

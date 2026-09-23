@@ -76,7 +76,9 @@ def test_complete_orfs_have_original_native_witnesses_but_no_proven_initiation(
                   if c["amino_acids"] == peptide]
         assert starts and all(s["tier"] == "sequence_only" and s["priority"] == 4 for s in starts)
         assert all("intronic" in {r["region"] for r in s["assessments"]} for s in starts)
-        assert all(r["splice_inference"] == "not_assessed" for s in starts for r in s["assessments"])
+        assert all(r["splice_inference"] == "observed_path_assessed" for s in starts for r in s["assessments"])
+        assert all(r["splice_inclusion"]["qualified_fragments"] == 0
+                   for s in starts for r in s["assessments"])
 
 
 def test_gabbr_opposite_strand_junction_read_is_not_a_second_native_orf_witness(case):

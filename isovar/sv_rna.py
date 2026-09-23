@@ -271,6 +271,8 @@ class RnaObservation:
     query_interval: tuple
     missing_qualities: bool
     secondary: bool
+    qualities: tuple = ()
+    minimum_mapping_quality: object = None
 
     @property
     def fragment(self):
@@ -420,18 +422,31 @@ def _build_segment(identity, records, collector, reasons, intern):
             reasons[built] += 1
             continue
         sequence, positions, breaks, interval = built
+        quality_votes = defaultdict(list)
+        for read in members:
+            view = collector.read_sequence_view(read)
+            if view.qualities is not None:
+                qualities = view.qualities[::-1] if read.is_reverse else view.qualities
+                offset, _ = view.sequenced_interval(0, len(view.sequence))
+                for q, quality in enumerate(qualities, offset):
+                    quality_votes[q].append(quality)
+        qualities = tuple(min(quality_votes[q]) if quality_votes[q] else None
+                          for q in range(*interval))
+        mapqs = [r.mapping_quality for r in members]
         record_ids = tuple(sorted(_record_id(r) for r in members))
         key = sha256("".join(record_ids).encode()).hexdigest()[:24]
         common = dict(identity=identity, records=record_ids, query_interval=interval,
                       missing_qualities=any(r.query_qualities is None for r in members),
-                      secondary=any(r.is_secondary for r in members))
+                      secondary=any(r.is_secondary for r in members),
+                      minimum_mapping_quality=None if 255 in mapqs else min(mapqs))
         n = len(sequence)
         observations.append(RnaObservation(key + "+", sequence=sequence, positions=positions,
-                                           breaks=breaks, reverse=False, **common))
+                                           breaks=breaks, reverse=False, qualities=qualities, **common))
         sequence, positions = _mirror(sequence, positions)
         positions = tuple(None if p is None else intern.setdefault(p, p) for p in positions)
         observations.append(RnaObservation(
             key + "-", sequence=sequence, positions=positions, reverse=True,
+            qualities=qualities[::-1],
             breaks=tuple(sorted((n - 1 - j, n - 1 - i, kind) for i, j, kind in breaks)), **common))
     return observations
 
@@ -1405,6 +1420,17 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                                               (donor, acceptor), breakpoint_window)
     header = bam.header.to_dict()
     store = _Observations(records, collector, max_extension_segments, header, sample_id, source)
+    inclusion_splices = defaultdict(set)
+    for identity, members in store.groups.items():
+        for read in members:
+            if read.mapping_quality == 255 or read.mapping_quality < 20:
+                continue
+            for left, right, kind, _ in _record_gaps(read):
+                if kind == "N":
+                    inclusion_splices[left, right].add(identity[:2])
+                    inclusion_splices[_flip(right), _flip(left)].add(identity[:2])
+    inclusion_splices = [dict(left=list(left), right=list(right), fragments=len(fragments))
+                         for (left, right), fragments in sorted(inclusion_splices.items())]
     now, lazy, competing = store.classify(event, annotated, anchored)
     initial = [o for identity in sorted(now) for o in store.build(identity)]
     first = _seeds(initial, event, annotated, anchored, competing, deferred=lazy)
@@ -1519,7 +1545,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
             sequence, positions, voters, store, event, annotated, adjacency, clip_support,
             lambda *path: _frame_evidence(*path, models, min_anchor_bases, reference_peptides, lengths),
             lambda *path: exploratory_orfs(*path, models, store.cell_umi.support, min_orf_amino_acids, max_orf_candidates,
-                                           lineage=store.lineage.support))
+                                           lineage=store.lineage.support, competing_splices=inclusion_splices))
         results.append(result)
         result["reconstruction_scopes"] = sorted(reconstruction_scopes[sequence, positions])
         for row in rows:
