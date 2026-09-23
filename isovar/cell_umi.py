@@ -188,16 +188,22 @@ class CellUmiEvidence:
         an independent molecule count; no clustering or collision model is used.
         """
         rows = [self.segment(key) for key in sorted(set(identities))]
-        labels = {tuple(row["label"]) for row in rows if row["label"] is not None}
-        unresolved = sum(row["label"] is None for row in rows)
-        unknown_scope = sum(not row["library_scope_known"] for row in rows)
-        return dict(unit="cell_umi_label", segment_ids=[row["identity"] for row in rows],
-                    observed_labels=len(labels), unresolved_segments=unresolved,
-                    unknown_library_segments=unknown_scope, all_segments_labeled=not unresolved,
-                    complete_label_count=len(labels) if rows and not unresolved and not unknown_scope else None,
-                    independent_molecules=None,
-                    status_counts=dict(sorted(Counter(row["status"] for row in rows).items())))
+        return summarize_cell_umi_rows(rows)
 
     def evidence(self):
         """JSON-ready policy and evidence for consulted segments and mates."""
         return dict(policy=self.policy, segments=[self.cache[key] for key in sorted(self.cache)])
+
+
+def summarize_cell_umi_rows(rows):
+    """Summarize unique serialized segment rows using the reconstruction policy."""
+    rows = list(rows)
+    labels = {tuple(row["label"]) for row in rows if row["label"] is not None}
+    unresolved = sum(row["label"] is None for row in rows)
+    unknown_scope = sum(not row["library_scope_known"] for row in rows)
+    return dict(unit="cell_umi_label", segment_ids=[row["identity"] for row in rows],
+                observed_labels=len(labels), unresolved_segments=unresolved,
+                unknown_library_segments=unknown_scope, all_segments_labeled=not unresolved,
+                complete_label_count=len(labels) if rows and not unresolved and not unknown_scope else None,
+                independent_molecules=None,
+                status_counts=dict(sorted(Counter(row["status"] for row in rows).items())))

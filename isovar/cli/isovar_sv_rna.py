@@ -10,6 +10,7 @@ from ..default_parameters import (
     SV_MIN_ORF_AMINO_ACIDS, SV_MAX_ORF_CANDIDATES,
 )
 from ..sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
+from ..sv_rna_orf_export import export_sv_rna_orfs, sv_rna_orf_output_paths, write_sv_rna_orfs
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
 
 
@@ -18,6 +19,7 @@ def make_parser(prog="isovar sv-rna"):
     parser.add_argument("--input", required=True,
                         help="Nominated event, search regions, reference models and event provenance JSON")
     parser.add_argument("--output", required=True, help="Exploratory candidate paths JSON")
+    parser.add_argument("--orf-output-prefix", help="Also export exploratory ORFs as JSON, TSV and protein/DNA FASTA")
     parser.add_argument("--source", help="Alignment source identity recorded in the output (default: --bam)")
     add_rna_args(parser)
     group = parser.add_argument_group("SV RNA reconstruction")
@@ -59,6 +61,9 @@ def run(args=None, prog=None):
     parser = make_parser(prog or "isovar sv-rna")
     options = parser.parse_args(args)
     try:
+        if options.orf_output_prefix and Path(options.output).expanduser().resolve() in {
+                path.resolve() for path in sv_rna_orf_output_paths(options.orf_output_prefix).values()}:
+            raise ValueError("ORF output prefix collides with --output")
         inputs = sv_rna_input_from_dict(json.loads(Path(options.input).expanduser().read_text()))
         with alignment_file_from_args(options) as bam:
             result = reconstruct_sv_rna(
@@ -74,5 +79,7 @@ def run(args=None, prog=None):
                 peptide_lengths=options.peptide_lengths, min_orf_amino_acids=options.min_orf_amino_acids,
                 max_orf_candidates=options.max_orf_candidates, **inputs)
         Path(options.output).expanduser().write_text(json.dumps(result, indent=2) + "\n")
+        if options.orf_output_prefix:
+            write_sv_rna_orfs(export_sv_rna_orfs(result), options.orf_output_prefix)
     except (OSError, ValueError, TypeError, KeyError) as error:
         parser.error(str(error))

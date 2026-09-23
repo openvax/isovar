@@ -372,6 +372,60 @@ events, automatic adapter-profile inference
 inference, germline/co-somatic attribution
 ([#297](https://github.com/openvax/isovar/issues/297)) and Vaxrank ranking.
 
+## Export exploratory ORF sequences
+
+Add `--orf-output-prefix sample.orfs` to `isovar sv-rna` to write
+`sample.orfs.json`, `.tsv`, `.protein.fasta` and `.nucleotide.fasta` alongside
+the required native `--output` reconstruction. The prefix must not collide
+with the native output. The API equivalents are
+`isovar.export_sv_rna_orfs(result)` and `isovar.write_sv_rna_orfs(export, prefix)`.
+The adapter accepts `isovar.sv_rna_candidates.v2` and emits
+`isovar.sv_rna_orfs.v1`. This is the exploratory SV ATG-ORF portion of
+[#324](https://github.com/openvax/isovar/issues/324); annotated-frame translations
+and ordinary SNV/indel exchange remain separate work.
+
+Every exploratory hypothesis is retained, including partial ORFs and candidates
+with no exact full-interval witness. Nucleotide FASTA includes an observed stop
+codon; protein FASTA excludes the stop. Identical nucleotide, amino-acid and
+stop-completeness tuples within an event/reference are grouped across paths.
+Synonymous nucleotide alternatives remain separate. Path occurrences retain
+start context, reference comparisons, frame status, junction boundary classes
+and exact witness intervals. ORF and witness intervals are zero-based half-open;
+junction query intervals instead identify the two flanking base offsets.
+
+Candidate IDs hash `[event_id, reference_name, nucleotide_sequence, amino_acids,
+ends_with_stop_codon]`, excluding sample/source. Sequence IDs hash only their
+sequence. All hashes use full SHA-256 of JSON `[domain, value]`, with sorted keys,
+ASCII escaping and no whitespace. Domains/prefixes are `sv_orf`, `nt`, `aa`,
+`segment`, `fragment`, `signal` and `evidence`. Segment and fragment values are
+`[[sample_id, source], identity]`, where identities are respectively
+`[RG, QNAME, segment_bits]` and `[RG, QNAME]`; signal values use the resolved
+signal-group identity in the same input scope. Evidence-set IDs hash sorted
+segment IDs. Event identity is excluded from RNA member IDs so shared reads
+across events can be detected. Different set IDs do not imply disjoint evidence:
+compare member IDs. Different source aliases are not evidence of independence;
+these hashes are not anonymization guarantees.
+
+Support is recomputed from the union of original segment identities, never by
+adding path counts. Cell/UMI and signal-ancestry summaries use the same ledgers
+as reconstruction. Known label/signal counts describe resolved subsets;
+`complete_label_count` is null unless every witness is labeled with known library
+scope. `independent_molecules` is always null. TSV renders unknown numbers as
+blank. Source/library metadata do not establish independent biological samples.
+Raw SAM and read names are not copied into the evidence summaries; witness
+observation IDs resolve against the native reconstruction.
+
+Flags describe unannotated starts, unresolved annotated path frames, partial
+ORFs, absent/single witnesses, missing qualities, unknown library/lineage,
+shared signal ancestry, unplaced bases, stop-only crossings, uncertain event
+linkage and reconstruction/search limits. Nondefault branch thresholds are
+flagged and exact parameters retained. Fragment orientation is partitioned into
+original-query, reverse-complement and mixed, relative to the as-sequenced
+query, **not established RNA polarity**. Initiation, translation, peptide novelty
+and interval-specific base quality remain unassessed by this adapter. No ranking,
+abundance or presentation inference is performed. Sequence translation follows
+NCBI standard code 1; an ATG-to-stop sequence is a hypothesis, not proof of use.
+
 Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf),
 [SA tag](https://samtools.github.io/hts-specs/SAMtags.pdf),
 [fusion reconstruction assessment](https://pmc.ncbi.nlm.nih.gov/articles/PMC6802306/)

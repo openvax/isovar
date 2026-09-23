@@ -770,7 +770,8 @@ def test_cli_writes_the_api_result(tmp_path):
     (tmp_path / "event.json").write_text(json.dumps(data))
     output = tmp_path / "result.json"
     commands.run(["sv-rna", "--bam", str(bam), "--input", str(tmp_path / "event.json"),
-                  "--output", str(output), "--no-assembly", "--min-orf-amino-acids", "5", "--max-orf-candidates", "2"])
+                  "--output", str(output), "--orf-output-prefix", str(tmp_path / "orfs"),
+                  "--no-assembly", "--min-orf-amino-acids", "5", "--max-orf-candidates", "2"])
     result = json.loads(output.read_text())
     with pysam.AlignmentFile(str(bam)) as alignments:
         expected = reconstruct_sv_rna(alignments, source=str(bam), assemble=False,
@@ -778,6 +779,11 @@ def test_cli_writes_the_api_result(tmp_path):
                                       **sv_rna_input_from_dict(json.loads(json.dumps(data))))
     assert result == json.loads(json.dumps(expected))
     assert result["parameters"]["assemble"] is False and result["status"] == "event_linked_candidates"
+    from isovar import export_sv_rna_orfs
+    assert json.loads((tmp_path / "orfs.json").read_text()) == export_sv_rna_orfs(result)
+    assert (tmp_path / "orfs.tsv").is_file()
+    assert (tmp_path / "orfs.protein.fasta").is_file()
+    assert (tmp_path / "orfs.nucleotide.fasta").is_file()
 
 
 def corpus_bam(tmp_path, name, directory="coding-corpus"):
