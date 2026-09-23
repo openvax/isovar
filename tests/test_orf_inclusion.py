@@ -131,22 +131,52 @@ def test_retention_requires_both_boundaries_processed_context_and_competing_spli
 
 
 @pytest.mark.parametrize("context,expected", [(True, 3), (False, 4)])
-def test_rearranged_intronic_segment_needs_linked_partner_splicing(context, expected):
+@pytest.mark.parametrize("donor_end", [224, 324])
+def test_rearranged_intronic_segment_needs_linked_partner_splicing(context, expected, donor_end):
     from isovar import FusionReference, annotate_orf_inclusion, annotate_orf_start
     from isovar.sv_rna import RnaObservation
     donor = reference()
     partner = FusionReference("partner", "synthetic", "test", "2", "+",
                               ((500, 524), (700, 724)), "C" * 48)
-    positions = [("1", p, "+") for p in range(200, 224)]
+    positions = [("1", p, "+") for p in range(200, donor_end)]
+    edge = len(positions)
     positions += [("2", p, "+") for p in range(500, 524)] + [("2", p, "+") for p in range(700, 724)]
     sequence = "CCC" + "ATG" + "C" * (len(positions) - 6)
     obs = RnaObservation("read", ("rg", "read", 0), (), sequence, tuple(positions),
-                         ((23, 24, "split"), (47, 48, "N" if context else "D")), False,
+                         ((edge - 1, edge, "split"), (edge + 23, edge + 24, "N" if context else "D")), False,
                          (0, len(sequence)), False, False, (30,) * len(sequence), 60)
     models = [donor, partner]
     evidence = annotate_orf_inclusion(annotate_orf_start(sequence, positions, 3, models),
                                      sequence, positions, len(sequence), models, {"read": obs},
                                      [dict(observation="read", observation_interval=[3, len(sequence)])])
+    # A rearrangement after another exon does not establish inclusion of the
+    # upstream retained intron, even in the same contiguous aligned run.
+    expected = expected if donor_end == 224 else 4
     assert evidence["priority"] == expected
     if expected == 3:
         assert evidence["assessments"][0]["splice_inclusion"]["mechanisms"] == ["fusion_rearranged_exon"]
+
+
+@pytest.mark.parametrize("strand", ["+", "-"])
+@pytest.mark.parametrize("start_position,priority", [(180, 3), (230, 4)])
+def test_cryptic_splice_must_include_the_start_intron(strand, start_position, priority):
+    from isovar import FusionReference, annotate_orf_inclusion, annotate_orf_start
+    from isovar.sv_rna import RnaObservation
+    ref = FusionReference("introns", "synthetic", "test", "1", strand,
+                          ((100, 120), (200, 220), (300, 320)), "C" * 60)
+    coordinates = list(range(100, 120)) + list(range(160, 320))
+    if strand == "-":
+        coordinates.reverse()
+    positions = [("1", p, strand) for p in coordinates]
+    start = coordinates.index(start_position)
+    sequence = "C" * start + "ATG" + "C" * (len(positions) - start - 3)
+    edge = 20 if strand == "+" else 160
+    obs = RnaObservation("read", ("rg", "read", 0), (), sequence, tuple(positions),
+                         ((edge - 1, edge, "N"),), False, (0, len(sequence)), False, False,
+                         (30,) * len(sequence), 60)
+    result = annotate_orf_inclusion(annotate_orf_start(sequence, positions, start, [ref]),
+                                    sequence, positions, len(sequence), [ref], {"read": obs},
+                                    [dict(observation="read", observation_interval=[start, len(sequence)])])
+    # The same contiguous alignment also spans a different retained intron.
+    # Processing the first intron cannot establish inclusion of that second one.
+    assert result["priority"] == priority

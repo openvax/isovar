@@ -157,15 +157,17 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
         assessment["splice_inference"] = "observed_path_assessed"
         if assessment["region"] != "intronic":
             continue
+        lo, hi = assessment["intron_interval"]
         start_run = next((r for r in runs if r[0] <= start and start + 3 <= r[1]), None)
         relevant = [e for e in edges if
-                    (e["mechanism"] == "cryptic_acceptor" and e["flanking_runs"][1] == start_run) or
-                    (e["mechanism"] == "cryptic_donor" and e["flanking_runs"][0] == start_run)]
+                    (e["mechanism"] == "cryptic_acceptor" and e["flanking_runs"][1] == start_run
+                     and lo <= e["right"][1] < hi) or
+                    (e["mechanism"] == "cryptic_donor" and e["flanking_runs"][0] == start_run
+                     and lo <= e["left"][1] < hi)]
         # Coverage becomes a retention hypothesis only when a single aligned
         # run crosses both boundaries. Processed context and a competitor
         # are additional requirements, not substitutes for those boundaries.
         if start_run is not None:
-            lo, hi = assessment["intron_interval"]
             before, after = ((lo - 1, hi) if reference.strand == "+" else (hi, lo - 1))
             offset = {p: q for q, p in enumerate(positions[start_run[0]:start_run[1]], start_run[0])}
             left = (reference.contig, before, reference.strand)
@@ -186,6 +188,9 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
             # a linked partner exon with its own observed annotated splice.
             for edge in edges:
                 if edge["mechanism"] != "rearranged_path" or start_run not in edge["flanking_runs"]:
+                    continue
+                own = edge["left"] if edge["flanking_runs"][0] == start_run else edge["right"]
+                if not lo <= own[1] < hi:
                     continue
                 other = edge["right"] if edge["flanking_runs"][0] == start_run else edge["left"]
                 for partner in references.values():
