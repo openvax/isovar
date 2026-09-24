@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,12 +7,13 @@ name = "isovar"
 requires-python = ">=3.9"
 authors = [{name="Alex Rubinsteyn"}, {name="Arman Aksoy"}, {name="Julia Kodysh"}]
 description = "Determine mutant protein sequences from RNA using assembly around variants"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]

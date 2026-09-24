@@ -4,6 +4,12 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.28.1
+
+- Package metadata declares the license as the SPDX expression `Apache-2.0`
+  (PEP 639) instead of the deprecated classifier; building requires setuptools 77
+  or later ([#205](https://github.com/openvax/isovar/issues/205)).
+
 ## 1.28.0
 
 CSV output from the command-line tools
