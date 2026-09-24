@@ -78,3 +78,20 @@ def test_ensembl_installer_stops_after_bounded_attempts(tmp_path):
     assert installs == ["87:1", "87:2", "87:3"]
     assert sleeps == ["15", "30"]
     assert "Failed to install Ensembl release 87 after 3 attempts" in result.stderr
+
+
+def test_release_version_guard_rejects_stale_or_released_versions():
+    import importlib.util
+    from packaging.version import Version
+    spec = importlib.util.spec_from_file_location(
+        "check_release_version", SOURCE_ROOT / ".github/scripts/check_release_version.py")
+    guard = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(guard)
+    assert guard.version_of('__version__ = "1.25.1"\n') == Version("1.25.1")
+    released = {Version("1.25.0")}
+    assert guard.problems(Version("1.25.1"), Version("1.25.0"), released) == []
+    assert guard.problems(Version("1.25.0"), Version("1.25.0"), released) == [
+        "version 1.25.0 must be greater than the base branch's 1.25.0",
+        "version 1.25.0 is already released or tagged"]
+    # A stacked PR only needs to exceed its own base branch.
+    assert guard.problems(Version("1.26.0"), Version("1.25.1"), released) == []

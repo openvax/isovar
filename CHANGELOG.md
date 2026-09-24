@@ -4,6 +4,11 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.29.2
+
+- CI rejects a pull request whose version is not newer than its base branch's, or
+  is already on PyPI or tagged ([#345](https://github.com/openvax/isovar/issues/345)).
+
 ## 1.29.1
 
 - The complete osteosarc figure gallery's README names its own generator

@@ -38,6 +38,13 @@ jobs:
       - name: Run default linting script
         run: |
           ./lint.sh
+      - name: Require an unreleased version newer than the base branch
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          git show FETCH_HEAD:isovar/__init__.py > "$RUNNER_TEMP/base_init.py"
+          python -m pip install packaging
+          python .github/scripts/check_release_version.py "$RUNNER_TEMP/base_init.py"
       - name: Cache Ensembl source archives
         uses: actions/cache@v6
         with:
