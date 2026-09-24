@@ -66,11 +66,16 @@ def test_only_qualified_same_read_splice_linkage_promotes_intronic_atg(tmp_path,
     candidate, = [c for c in export["candidates"] if c["nucleotide_sequence"] == sequence]
     assert candidate["rna_support"]["fragments"] == 2
     assert candidate["start_evidence_summary"]["priority"] == priority
-    evidence = candidate["occurrences"][0]["start_evidence"]["assessments"][0]["splice_inclusion"]
-    assert evidence["qualified_fragments"] == (2 if priority == 3 else 0)
-    assert "segment_ids" not in evidence["cell_umi_support"]
-    assert "segment_ids" not in evidence["read_lineage"]
+    assessment, = candidate["occurrences"][0]["start_evidence"]["assessments"]
     assert not candidate["initiation_observed"] and not candidate["translation_observed"]
+    if mode == "wrong_strand":
+        # An antisense start is not intronic, so no inclusion is assessed.
+        assert assessment["region"] == "antisense" and "splice_inclusion" not in assessment
+    else:
+        evidence = assessment["splice_inclusion"]
+        assert evidence["qualified_fragments"] == (2 if priority == 3 else 0)
+        assert "segment_ids" not in evidence["cell_umi_support"]
+        assert "segment_ids" not in evidence["read_lineage"]
     if priority == 3:
         assert evidence["mechanisms"] == ["cryptic_donor"]
         assert all(w["minimum_base_quality"] == 30 for w in evidence["witnesses"])

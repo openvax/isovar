@@ -4,6 +4,15 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.25.1
+
+- `isovar sv-rna` ORF starts: only intronic start assessments carry
+  `splice_inclusion` and `splice_inference="observed_path_assessed"`. UTR, CDS,
+  noncoding and antisense starts were reported as assessed-but-unresolved.
+- `frame_status` is `departs_elsewhere_only`, not `no_gene_anchor`, when a path has
+  an exact coding anchor but every reading leaves the model before a reported
+  junction ([#362](https://github.com/openvax/isovar/issues/362)).
+
 ## 1.25.0
 
 - Importing Isovar no longer configures logging. Previously every module ran
