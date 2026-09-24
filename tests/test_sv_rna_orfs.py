@@ -29,11 +29,11 @@ def inputs(sequence="ATGAAAATGAAATAA"):
     return sequence, positions, reads, junction
 
 
-def run(sequence, positions, reads, junction, models=(), minimum=1, limit=100, cell_umi=None):
+def run(sequence, positions, reads, junction, references=(), minimum=1, limit=100, cell_umi=None):
     if cell_umi is None:
         groups = {r.identity: [pysam.AlignedSegment()] for r in reads.values()}
         cell_umi = CellUmiEvidence(groups, {}, "sample", "input")
-    return exploratory_orfs(sequence, positions, [junction], reads, models, cell_umi.support, minimum, limit)
+    return exploratory_orfs(sequence, positions, [junction], reads, references, cell_umi.support, minimum, limit)
 
 
 def test_only_orfs_crossing_the_junction_are_reported_with_observed_stop():
@@ -217,8 +217,8 @@ def test_reference_start_classification_compares_same_atg_without_claiming_initi
     seq, pos, reads, junction = inputs()
     ref = FusionReference(contig="1", strand="+", exons=((0, 21),), sequence="ATGAAACCCTAAATGCCCTAA",
                           cds_start=0, cds_end=12, transcript_id="coding", annotation="test", reference_name="test")
-    models = [_Model(ref), _Model(replace(ref, cds_start=12, cds_end=21, transcript_id="utr"))]
-    candidate, = run(seq, pos, reads, junction, models=models)["candidates"]
+    references = [ref, replace(ref, cds_start=12, cds_end=21, transcript_id="utr")]
+    candidate, = run(seq, pos, reads, junction, references=references)["candidates"]
     assert candidate["annotated_start"] and not candidate["initiation_observed"]
     first, second = candidate["reference_comparisons"]
     assert first["start_kind"] == "annotated_start" and second["start_kind"] == "five_prime_UTR"

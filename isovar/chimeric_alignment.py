@@ -46,6 +46,20 @@ def _alignment(contig, start, reverse, cigar):
                       start_query + aligned_query, length, start + aligned_reference)
 
 
+def sa_entries(tag):
+    """Parse a SAM ``SA`` tag into (contig, 0-based start, strand, CIGAR, MAPQ, NM).
+
+    Raises ValueError for a malformed entry. See the SAMtags definition.
+    """
+    if not isinstance(tag, str):
+        raise ValueError("SA tag is not a string")
+    entries = []
+    for entry in tag.rstrip(";").split(";"):
+        contig, position, strand, cigar, mapq, nm = entry.split(",")
+        entries.append((contig, int(position) - 1, strand, cigar, int(mapq), int(nm)))
+    return entries
+
+
 def source_alignment_paths_from_pysam(read, source_alignments, query_interval=None):
     """Retain a validated SA declaration; malformed tags never discard reads.
 
@@ -54,21 +68,17 @@ def source_alignment_paths_from_pysam(read, source_alignments, query_interval=No
     No SA declaration creates an observation: both variant-supporting records
     must actually be collected and pass the usual read filters.
     """
-    if not read.has_tag("SA"):
-        return ()
-    tag = read.get_tag("SA")
-    if not isinstance(tag, str):
+    if not read.has_tag("SA") or read.is_unmapped or read.cigarstring is None:
         return ()
     try:
         own = _alignment(read.reference_name, read.reference_start,
                          read.is_reverse, read.cigarstring)
         others = []
-        for entry in tag.rstrip(";").split(";"):
-            contig, position, strand, cigar, mapq, nm = entry.split(",")
+        for contig, start, strand, cigar, mapq, nm in sa_entries(read.get_tag("SA")):
             if (strand not in ("+", "-") or read.header.get_tid(contig) < 0
-                    or not 0 <= int(mapq) <= 255 or int(nm) < 0):
+                    or not 0 <= mapq <= 255 or nm < 0):
                 raise ValueError("invalid SA entry")
-            others.append(_alignment(contig, int(position) - 1, strand == "-", cigar))
+            others.append(_alignment(contig, start, strand == "-", cigar))
         members = sorted([own] + others, key=lambda a: (a.query_start, a.query_end))
         if (any(a.query_length != own.query_length for a in others)
                 or any(a.query_start >= b.query_start or a.query_end >= b.query_end
@@ -88,7 +98,7 @@ def source_alignment_paths_from_pysam(read, source_alignments, query_interval=No
         path = _AlignmentPath(bool(read.is_secondary), bool(read.is_supplementary),
                               own, tuple(sorted(others)), query_interval)
         return ((source_alignments[0][0], path),)
-    except (AttributeError, TypeError, ValueError) as error:
+    except ValueError as error:
         logger.warning("Ignoring chimeric-path evidence for read %s: %s", read.query_name, error)
         return ()
 

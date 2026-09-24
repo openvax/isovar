@@ -21,6 +21,11 @@ def source_alignments_from_pysam(read, name):
         read.is_reverse)),)
 
 
+def segment_identity(read):
+    """(read group, QNAME, mate bits): one sequenced segment in one library."""
+    return source_alignments_from_pysam(read, read.query_name)[0][0]
+
+
 def source_read_ids(read):
     """Segment IDs of the SAM records behind a read (empty for legacy objects)."""
     return {key for key, _ in getattr(read, "source_alignments", ())}

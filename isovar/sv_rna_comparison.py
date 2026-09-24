@@ -7,9 +7,9 @@ from copy import deepcopy
 from hashlib import sha256
 
 from .sv_rna_orf_export import export_sv_rna_orfs
+from .sv_rna_relations import EVENT_CROSSING_RELATIONS
 
-EVENT_RELATIONS = {"breakpoint_junction", "event_compatible_junction",
-                   "breakpoint_clip_partner_unplaced", "splice_ambiguous_event_junction"}
+EVENT_RELATIONS = frozenset(EVENT_CROSSING_RELATIONS)
 
 
 def _matches(observed, complete, prediction):
@@ -65,6 +65,8 @@ def compare_sv_rna_predictions(result, predictions):
             raise ValueError("Prediction completeness must be boolean")
     # Filter occurrences before the shared exporter unions their witnesses.
     # Regional-only occurrences must not inflate event-linked support.
+    # exploratory_orfs already selects these relations; this guards results
+    # read from files, which may be older or edited.
     linked = dict(result, paths=[])
     for path in result["paths"]:
         candidates = [c for c in path["exploratory_orfs"]["candidates"]

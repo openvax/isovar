@@ -26,7 +26,7 @@ from itertools import combinations
 from types import SimpleNamespace
 
 from .cell_umi import CellUmiEvidence
-from .chimeric_alignment import compatible_phasing_alignments, source_alignment_paths_from_pysam
+from .chimeric_alignment import compatible_phasing_alignments, sa_entries, source_alignment_paths_from_pysam
 from .default_parameters import (
     FUSION_PEPTIDE_LENGTHS, SV_ASSEMBLE, SV_BREAKPOINT_WINDOW, SV_MAX_BREAKPOINT_SHIFT,
     SV_MAX_EXTENSION_SEGMENTS, SV_MAX_PATHS, SV_MAX_QUERIES, SV_MAX_RECORDS, SV_ANNOTATED_JUNCTION_TOLERANCE,
@@ -39,8 +39,9 @@ from .fusion import FusionBlock, FusionBreakpoint, FusionReference
 from .genetic_code import standard_genetic_code
 from .read_collector import ReadCollector
 from .dna import reverse_complement_dna
-from .read_identity import read_group, source_alignments_from_pysam
+from .read_identity import read_group, segment_identity, source_alignments_from_pysam
 from .read_metadata import record_evidence
+from .sv_rna_relations import EVENT_LINKED_RELATIONS, LINKAGE_STATUSES
 from .sv_rna_orfs import exploratory_orfs
 from .read_lineage import ReadLineage
 
@@ -51,23 +52,6 @@ _LOCAL = 20  # Placements this close are local (base/indel) alternatives, not sp
 _HOP_WINDOW = 1000  # Nearby SA/mate targets share one indexed query.
 _MAX_SEGMENT_PATHS = 64  # Alternative supplementary groupings per segment.
 
-# Linkage of a path to the nominated adjacency, strongest first. The first
-# three are event-linked; the last two may arise without the rearrangement.
-LINKAGE_STATUSES = (
-    "breakpoint_junction",  # The RNA join reproduces the DNA adjacency.
-    "event_compatible_junction",  # Donor-side to acceptor-side join, e.g. spliced.
-    "breakpoint_clip_partner_unplaced",  # Unaligned sequence at a breakpoint.
-    # Crosses the event, but ordinary forward splicing (or read-through) of
-    # the unrearranged reference could make it: any such non-breakpoint join,
-    # and a breakpoint join between annotated splice sites.
-    "splice_ambiguous_event_junction",
-    "regional_novel_junction",  # Unannotated join not crossing the event.
-)
-
-
-def segment_identity(read):
-    """(read group, QNAME, mate bits): one sequenced segment in one library."""
-    return source_alignments_from_pysam(read, read.query_name)[0][0]
 
 
 def _record_id(read):
@@ -101,10 +85,8 @@ def _hop_targets(read):
     targets, notes = [], set()
     if read.has_tag("SA"):
         try:
-            for entry in read.get_tag("SA").rstrip(";").split(";"):
-                contig, position = entry.split(",")[:2]
-                targets.append((contig, int(position) - 1))
-        except (AttributeError, ValueError):
+            targets.extend((contig, position) for contig, position, *_ in sa_entries(read.get_tag("SA")))
+        except ValueError:
             notes.add("unparseable_SA_tag")
     if read.is_paired:
         if read.next_reference_id >= 0 and read.next_reference_start >= 0:
@@ -1609,7 +1591,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         result, evidence = _path_result(
             sequence, positions, voters, store, event, annotated, adjacency, clip_support,
             lambda *path: _frame_evidence(*path, models, min_anchor_bases, reference_peptides, lengths),
-            lambda *path: exploratory_orfs(*path, models, store.cell_umi.support, min_orf_amino_acids, max_orf_candidates,
+            lambda *path: exploratory_orfs(*path, references, store.cell_umi.support, min_orf_amino_acids, max_orf_candidates,
                                            lineage=store.lineage.support, competing_splices=inclusion_splices,
                                            inclusion_thresholds=inclusion_thresholds))
         results.append(result)
@@ -1632,7 +1614,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     best = next((s for s in LINKAGE_STATUSES if s in {r["event_linkage"]["status"] for r in results}), None)
     return dict(
         schema="isovar.sv_rna_candidates.v3",
-        status=("event_linked_candidates" if best in LINKAGE_STATUSES[:3]
+        status=("event_linked_candidates" if best in EVENT_LINKED_RELATIONS
                 else "splice_ambiguous_candidates" if best == "splice_ambiguous_event_junction"
                 else "regional_candidates_only" if results else "no_candidate_paths"),
         event_id=event_id, reference_name=reference_name, sample_id=sample_id, source=source,
