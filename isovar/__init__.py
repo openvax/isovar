@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.28.0"
+__version__ = "1.28.1"
 
 
 from .allele_read import AlleleRead

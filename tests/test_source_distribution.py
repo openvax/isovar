@@ -85,12 +85,16 @@ def test_sdist_contains_release_tooling_required_by_release_tests(tmp_path):
         check=False,
     )
     assert result.returncode == 0, result.stderr
+    assert "SetuptoolsDeprecationWarning" not in result.stderr, result.stderr
 
     archives = tuple(dist_dir.glob("isovar-*.tar.gz"))
     assert len(archives) == 1
     with tarfile.open(archives[0], "r:gz") as archive:
         root = archive.getnames()[0].split("/", 1)[0]
         names = set(archive.getnames())
+        metadata = archive.extractfile("%s/PKG-INFO" % root).read().decode()
+        assert "License-Expression: Apache-2.0" in metadata
+        assert "License :: OSI Approved" not in metadata
         release_scripts = ("deploy.sh", "lint.sh", "test.sh")
         for script_name in release_scripts:
             assert "%s/%s" % (root, script_name) in names
