@@ -18,6 +18,7 @@ import pytest
 from isovar import reconstruct_sv_rna
 from isovar.cli import commands
 from isovar.fusion import FusionBreakpoint, FusionReference, fusion_from_dict, reconstruct_fusion
+from tests.testing_helpers import fusion_input
 from isovar.read_collector import ReadCollector
 from isovar.dna import reverse_complement_dna as reverse_complement
 from isovar.read_end_inference import Adapter, ReadEndProfile
@@ -174,7 +175,7 @@ def test_spliced_fusion_is_reconstructed_and_translated_in_the_donor_frame(tmp_p
     assert path["sequence"] == s.sequence  # Assembled through overlaps, no reference padding.
     assert path["unplaced_intervals"] == []
     junction, = path["junctions"]
-    assert junction["query_interval"] == [249, 250] and junction["kinds"] == ["split"]
+    assert junction["query_interval"] == [250, 250] and junction["kinds"] == ["split"]
     assert junction["relation"] == path["event_linkage"]["status"] == "event_compatible_junction"
     assert junction["breakpoint_assignment"] == [350, 500 if acceptor_strand == "+" else 200]
     assert not junction["annotated"] and not junction["forward_splice_geometry"]
@@ -216,7 +217,7 @@ def test_exact_breakpoint_and_observed_junction_homology(tmp_path):
         result = s.run(bam, FusionBreakpoint("1", donor, "+"), FusionBreakpoint("2", acceptor, "+"))
         path, = result["paths"]
         junction, = path["junctions"]
-        assert path["sequence"] == read and junction["query_interval"] == [46, 50]
+        assert path["sequence"] == read and junction["query_interval"] == [47, 50]
         assert junction["unplaced_bases"] == read[47:50]  # Placed twice, so by neither piece.
         assert (junction["relation"], junction["breakpoint_assignment"]) == expected
         assert junction["direct_fragments"] == 2
@@ -367,7 +368,7 @@ def test_overlap_extension_still_stops_before_revisiting_a_placement():
     observation = RnaObservation(
         key="cycle", identity=("rg", "cycle", 0), records=("cycle",),
         sequence=sequence + sequence, positions=positions + positions, breaks=((5, 6, "split"),),
-        reverse=False, query_interval=(0, 12), missing_qualities=False, secondary=False)
+        reverse_complement=False, query_interval=(0, 12), missing_qualities=False, secondary=False)
     notes = set()
     paths = list(_extend_both(sequence, positions, _ObservationIndex([observation]), 3,
                               (2, 0.1, 0.5), 8, [], notes))
@@ -781,7 +782,7 @@ def test_cli_writes_the_api_result(tmp_path):
                                       **sv_rna_input_from_dict(json.loads(json.dumps(data))))
     assert result == json.loads(json.dumps(expected))
     assert result["parameters"]["assemble"] is False and result["status"] == "event_linked_candidates"
-    assert result["schema"] == "isovar.sv_rna_candidates.v3"
+    assert result["schema"] == "isovar.sv_rna_candidates.v4"
     assert result["parameters"]["read_collection"] == dict(
         min_mapping_quality=1, use_duplicate_reads=False, use_secondary_alignments=True,
         use_soft_clipped_bases=False, use_reads_without_base_qualities=True, merge_overlapping_fragments=True,
@@ -823,7 +824,7 @@ def run_corpus(path, inputs, **kwargs):
 
 def test_original_short_reads_reproduce_the_validated_atp5mg_kmt2a_translation(tmp_path):
     data, bam, inputs = corpus_bam(tmp_path, "ATP5MG--KMT2A")
-    supplied, = reconstruct_fusion(*fusion_from_dict(data))["translations"]
+    supplied, = reconstruct_fusion(*fusion_from_dict(fusion_input(data)))["paths"][0]["translations"]
     result = run_corpus(bam, inputs)
     path, = result["paths"]
     junction, = path["junctions"]
@@ -836,12 +837,12 @@ def test_original_short_reads_reproduce_the_validated_atp5mg_kmt2a_translation(t
     assert data["fusion"]["sequence"] in path["sequence"]
     translation, = path["translations"]
     assert translation["amino_acids"] == supplied["amino_acids"] == "MAQFVRNLVEKTPALVNG"
-    assert translation["ends_with_stop_codon"] and translation["transcript_ids"] == supplied["donor_transcript_ids"]
+    assert translation["ends_with_stop_codon"] and translation["transcript_ids"] == supplied["transcript_ids"]
     assert all(e["complete_5prime"] for e in translation["frame_evidence"])
     # Noncoding donor isoforms share the anchor, as in the supplied result.
     assert path["frame_status"] == "ambiguous" and translation["competing_noncoding_models"]
     peptides = {p["sequence"] for p in translation["candidate_peptides"]}
-    assert {p["sequence"] for p in supplied["junction_peptides"]} <= peptides
+    assert {p["sequence"] for p in supplied["candidate_peptides"]} <= peptides
     assert ({sam.split("\t")[0] for sam in result["original_records"].values()}
             == {r["sam"].split("\t")[0] for r in data["original_records"]})
 
@@ -857,7 +858,7 @@ def test_original_short_reads_reproduce_the_validated_atp5mg_kmt2a_translation(t
 
 def test_sa_only_long_reads_do_not_become_a_placed_bcr_abl1_junction(tmp_path):
     data, bam, inputs = corpus_bam(tmp_path, "BCR--ABL1")
-    supplied, = reconstruct_fusion(*fusion_from_dict(data))["translations"]
+    supplied, = reconstruct_fusion(*fusion_from_dict(fusion_input(data)))["paths"][0]["translations"]
     result = run_corpus(bam, inputs)
     # The fixture retains primaries whose SA partners were not acquired.
     assert result["status"] == "no_candidate_paths"
@@ -867,7 +868,7 @@ def test_sa_only_long_reads_do_not_become_a_placed_bcr_abl1_junction(tmp_path):
     assert {p["event_linkage"]["status"] for p in clipped["paths"]} == {"breakpoint_clip_partner_unplaced"}
     peptides = {p["sequence"] for path in clipped["paths"] for t in path["translations"]
                 for p in t["candidate_peptides"] if "breakpoint_clip_partner_unplaced" in t["departure_relations"]}
-    assert {p["sequence"] for p in supplied["junction_peptides"]} <= peptides
+    assert {p["sequence"] for p in supplied["candidate_peptides"]} <= peptides
     assert any(supplied["amino_acids"] in t["amino_acids"] for p in clipped["paths"] for t in p["translations"])
 
 

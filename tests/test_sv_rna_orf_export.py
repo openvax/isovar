@@ -15,10 +15,11 @@ def reconstruction(args=None):
     seq, pos, reads, junction = args or inputs()
     orfs = run(seq, pos, reads, junction)
     path = dict(path_id="path1", sequence=seq, junctions=[junction], exploratory_orfs=orfs,
-                frame_status="unresolved", unresolved_models=[], reconstruction_scopes=["seed_spanning"])
-    observations = {key: dict(identity=list(o.identity), reverse_complement=o.reverse,
+                frame_status="unresolved", unresolved_models=[], reconstruction_scopes=["seed_spanning"],
+                end_reasons={"5prime": ["observations_end"], "3prime": ["observations_end"]})
+    observations = {key: dict(identity=list(o.identity), reverse_complement=o.reverse_complement,
                              missing_qualities=o.missing_qualities) for key, o in reads.items()}
-    return dict(schema="isovar.sv_rna_candidates.v2", event_id="D--A", reference_name="synthetic",
+    return dict(schema="isovar.sv_rna_candidates.v4", event_id="D--A", reference_name="synthetic",
                 sample_id="sample", source="source", event_provenance={}, donor={}, acceptor={},
                 reference_models=[], parameters={}, limitations=[], paths=[path], observations=observations)
 
@@ -78,8 +79,8 @@ def test_sequence_ids_keep_synonymous_alternatives_and_scope_evidence_independen
     assert only(result)["rna_support"]["fragment_ids"] != first["rna_support"]["fragment_ids"]
 
 
-def add_witness(result, key, identity, reverse=False, missing=False):
-    result["observations"][key] = dict(identity=identity, reverse_complement=reverse, missing_qualities=missing)
+def add_witness(result, key, identity, reverse_complement=False, missing=False):
+    result["observations"][key] = dict(identity=identity, reverse_complement=reverse_complement, missing_qualities=missing)
     witnesses = result["paths"][0]["exploratory_orfs"]["candidates"][0]["full_interval_support"]["witnesses"]
     witness = deepcopy(witnesses[0])
     witness["observation"] = key
@@ -89,7 +90,7 @@ def add_witness(result, key, identity, reverse=False, missing=False):
 def test_mates_and_alternative_orientations_count_segments_and_fragments_separately():
     result = reconstruction()
     result["observations"]["full"]["identity"] = ["library", "read", 64]
-    add_witness(result, "mate", ["library", "read", 128], reverse=True, missing=True)
+    add_witness(result, "mate", ["library", "read", 128], reverse_complement=True, missing=True)
     add_witness(result, "placement", ["library", "read", 64])
     candidate = only(result)
     support = candidate["rna_support"]
@@ -144,22 +145,14 @@ def test_stop_only_and_reverse_complement_only_flags_preserve_junction_provenanc
             "reverse_complement_support_only"} <= set(candidate["uncertainty_flags"])
     junction, = candidate["occurrences"][0]["junctions"]
     assert junction["boundaries"] == ["donor_to_unplaced"]
-    assert junction["query_interval"] == [44, 57]
+    assert junction["query_interval"] == [45, 57]
     assert "direct_fragments" not in junction
-
-
-def test_older_v2_boundary_metadata_is_flagged_not_invented():
-    result = reconstruction()
-    del result["paths"][0]["exploratory_orfs"]["candidates"][0]["junction_crossings"]
-    del result["paths"][0]["reconstruction_scopes"]
-    assert "junction_boundary_classification_unavailable" in only(result)["uncertainty_flags"]
 
 
 def test_missing_or_disagreeing_start_annotations_do_not_choose_the_best_occurrence(tmp_path):
     from tests.test_orf_start import annotation, reference
 
     result = reconstruction()
-    first = result["paths"][0]["exploratory_orfs"]["candidates"][0]
     # Two paths with the same ORF can disagree about the transcript origin.
     # This test controls their annotation to exercise export's reconciliation.
     original_id = only(result)["candidate_id"]
@@ -171,14 +164,10 @@ def test_missing_or_disagreeing_start_annotations_do_not_choose_the_best_occurre
     assert candidate["candidate_id"] == original_id
     assert candidate["start_evidence_summary"] == dict(status="ambiguous", tier=None, priority=None)
     assert "start_tier_ambiguous" in candidate["uncertainty_flags"]
-    del first["start_evidence"]
-    candidate = only(result)
-    assert candidate["start_evidence_summary"] == dict(status="unavailable", tier=None, priority=None)
-    assert "start_tier_unavailable" in candidate["uncertainty_flags"]
-    paths = write_sv_rna_orfs(export_sv_rna_orfs(result), tmp_path / "unknown")
+    paths = write_sv_rna_orfs(export_sv_rna_orfs(result), tmp_path / "ambiguous")
     with paths["tsv"].open() as handle:
         row, = csv.DictReader(handle, delimiter="\t")
-    assert row["start_tier_status"] == "unavailable" and row["start_priority"] == row["start_tier"] == ""
+    assert row["start_tier_status"] == "ambiguous" and row["start_priority"] == row["start_tier"] == ""
 
 
 def test_rejects_wrong_schema_and_inconsistent_translation():
@@ -188,6 +177,10 @@ def test_rejects_wrong_schema_and_inconsistent_translation():
         export_sv_rna_orfs(result)
     with pytest.raises(ValueError, match="requires"):
         export_sv_rna_orfs({})
+    with pytest.raises(ValueError, match="requires"):
+        export_sv_rna_orfs(dict(result, schema="isovar.sv_rna_candidates.v3"))
+    with pytest.raises(ValueError, match="Expected"):
+        write_sv_rna_orfs(dict(schema="isovar.sv_rna_orfs.v2"), "unused")
 
 
 def test_writer_round_trip_and_empty_outputs(tmp_path):
@@ -216,11 +209,8 @@ def test_cli_rejects_output_collision_before_opening_inputs(tmp_path, capsys, su
     assert "collides with --output" in capsys.readouterr().err
 
 
-def test_v3_path_end_reasons_are_exported_and_truncation_is_flagged():
+def test_path_end_reasons_are_exported_and_truncation_is_flagged():
     result = reconstruction()
-    assert only(result)["occurrences"][0]["end_reasons"] is None  # v2 predates end reasons
-    result["schema"] = "isovar.sv_rna_candidates.v3"
-    result["paths"][0]["end_reasons"] = {"5prime": ["observations_end"], "3prime": ["observations_end"]}
     natural = only(result)
     assert natural["occurrences"][0]["end_reasons"] == result["paths"][0]["end_reasons"]
     assert "path_end_truncated" not in natural["uncertainty_flags"]

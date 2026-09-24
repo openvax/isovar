@@ -4,6 +4,7 @@ import pysam
 
 from examples.osteosarc_footprint_figures import load, fusion_inputs
 from isovar.fusion import fusion_from_dict, reconstruct_fusion
+from tests.testing_helpers import fusion_input
 from tests.data.fusions.build_osteosarc import extract
 from tests.data.osteosarc.expansion.references import translate
 from tests.data.osteosarc.figure_comparisons.footprints import deletion_footprint, fusion_footprint, split_deletion_paths
@@ -40,9 +41,9 @@ def test_real_sid_fusion_paths_and_junction_windows_recount_from_actual_records(
             assert recounted['complete_paths']==product['complete_paths']
             assert recounted['cell_umi_labels']==product['cell_umi_labels']
         for supplied in fusion_inputs(entry,{s['id']:s for s in data['sources']}):
-            fusion,refs,reads=fusion_from_dict(supplied)
+            fusion,refs,reads=fusion_from_dict(fusion_input(supplied))
             result=reconstruct_fusion(fusion,refs,reads)
-            assert result['status']=='unresolved_frame' and result['translations']==[]
+            assert result['status']=='unresolved' and result['paths'][0]['translations']==[]
             for original in supplied['original_records']:
                 records=[pysam.AlignedSegment.fromstring(original[k],header) for k in ('sam','partner_sam')]
                 _,c1,p1,c2,p2,s1,s2=event

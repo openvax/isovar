@@ -6,7 +6,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
-from isovar.fusion import fusion_from_dict, reconstruct_fusion
+from isovar.fusion import FUSION_INPUT_KEYS, fusion_from_dict, reconstruct_fusion
 from isovar.fusion_visualization import _canvas, save_fusion_figures
 from isovar.visualization import BLUE, GRAY, ORANGE, _plot_imports, _side_note, save_variant_figures
 
@@ -178,7 +178,7 @@ def generate(output):
     for entry in data['fusions']:
         save_panels(root/entry['name'],[('path-support',fusion_support_panel(entry))])
         for supplied in fusion_inputs(entry,sources):
-            fusion,refs,reads=fusion_from_dict(supplied)
+            fusion,refs,reads=fusion_from_dict({k: v for k, v in supplied.items() if k in FUSION_INPUT_KEYS})
             result=reconstruct_fusion(fusion,refs,reads)
             directory=save_fusion_figures(result,root/entry['name'],refs,{m['id']:m['name'] for m in entry['models']})
             (directory/'input.json').write_text(json.dumps(supplied,indent=2)+'\n')

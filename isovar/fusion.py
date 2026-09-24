@@ -262,9 +262,11 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
     Returns
     -------
     dict
-        RNA sequence, junction/mapping/provenance, evidence counts and all
-        supported translation hypotheses. Only ``status == 'translated'`` has
-        one resolved translation; ``ambiguous`` must not be silently ranked.
+        An ``isovar.fusion_rna.v2`` result with the same path structure as
+        ``reconstruct_sv_rna``: one supplied path with its junction, direct
+        support, ``frame_status`` and every supported translation hypothesis.
+        Only ``status == 'translated'`` has one resolved translation;
+        ``ambiguous`` must not be silently ranked.
     """
     _integer(min_fragments, "min_fragments")
     if min_fragments < 1:
@@ -317,15 +319,22 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
     matches = {side: [(ref, offset) for ref in references
                      if (offset := _match_reference(fusion, ref, side)) is not None]
                for side in ("donor", "acceptor")}
-    result = dict(schema_version=1, event_id=fusion.event_id, reference_name=fusion.reference_name,
-                  cdna_sequence=fusion.sequence, sequence_sha256=sha256(fusion.sequence.encode()).hexdigest(),
-                  junction_interval=[fusion.junction_start, fusion.junction_end],
-                  donor=asdict(fusion.donor), acceptor=asdict(fusion.acceptor), blocks=[asdict(b) for b in fusion.blocks],
-                  provenance=fusion.provenance, status="unresolved_frame", reasons=[], translations=[],
-                  compatible_transcripts={side: [r.transcript_id for r, _ in rows] for side, rows in matches.items()},
+    junction = dict(query_interval=[fusion.junction_start, fusion.junction_end],
+                    left=list(coordinates[fusion.junction_start - 1]), right=list(coordinates[fusion.junction_end]),
+                    unplaced_bases=fusion.sequence[fusion.junction_start:fusion.junction_end],
+                    relation="breakpoint_junction", direct_fragments=len(direct))
+    path = dict(path_id="supplied", sequence=fusion.sequence,
+                sequence_sha256=sha256(fusion.sequence.encode()).hexdigest(),
+                blocks=[asdict(b) for b in fusion.blocks], junctions=[junction],
+                frame_status="not_assessed", translations=[],
+                compatible_transcripts={side: [r.transcript_id for r, _ in rows] for side, rows in matches.items()})
+    result = dict(schema="isovar.fusion_rna.v2", event_id=fusion.event_id, reference_name=fusion.reference_name,
+                  sample_id=fusion.provenance["sample_id"], provenance=fusion.provenance,
+                  donor=asdict(fusion.donor), acceptor=asdict(fusion.acceptor),
+                  status="unresolved", reasons=[], paths=[path],
                   reference_annotations=sorted({r.annotation for r in references}),
                   evidence=dict(reads=len(observations), fragments=len(fragments),
-                                directly_spanning_fragments=len(direct), observations=observations),
+                                direct_fragments=len(direct), observations=observations),
                   parameters=dict(peptide_lengths=lengths, min_fragments=min_fragments, genetic_code=1))
     if len(direct) < min_fragments:
         result.update(status="insufficient_support", reasons=["insufficient_direct_junction_fragments"])
@@ -367,13 +376,14 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
                     if boundaries:
                         peptides.append(dict(sequence=protein[i:i + length], protein_interval=[i, i + length],
                                              junction_boundaries_in_cds=boundaries))
-            groups[key] = dict(amino_acids=protein, translation_start=start,
+            groups[key] = dict(translation_start=start, translation_end=start + 3 * (len(protein) + stop),
+                               amino_acids=protein, ends_with_stop_codon=stop,
                                cds_start=(start if projected_start >= 0 else None),
-                               complete_5prime=projected_start >= 0, ends_with_stop_codon=stop,
+                               complete_5prime=projected_start >= 0,
                                trailing_partial_codon_bases=(0 if stop else (len(fusion.sequence) - start) % 3),
-                               junction_in_translated_cds=junction, junction_peptides=peptides,
-                               donor_transcript_ids=[], frame_evidence=[], acceptor_frames=[],
-                               downstream_frameshift_peptides=[])
+                               junction_in_translated_cds=junction, candidate_peptides=peptides,
+                               transcript_ids=[], frame_evidence=[], acceptor_frames=[],
+                               downstream_frameshift_peptides=[], translation_observed=False)
             for acceptor, acceptor_offset in matches["acceptor"]:
                 if acceptor.cds_start is not None and acceptor.cds_start <= acceptor_offset < acceptor.cds_end - 3:
                     in_frame = (fusion.junction_end - start) % 3 == (acceptor_offset - acceptor.cds_start) % 3
@@ -387,25 +397,34 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
                                 groups[key]["downstream_frameshift_peptides"].append(dict(
                                     sequence=protein[i:i + length], protein_interval=[i, i + length],
                                     acceptor_transcript_id=acceptor.transcript_id))
-        groups[key]["donor_transcript_ids"].append(reference.transcript_id)
+        groups[key]["transcript_ids"].append(reference.transcript_id)
         groups[key]["frame_evidence"].append(dict(transcript_id=reference.transcript_id, annotation=reference.annotation,
             donor_reference_offset=offset, reference_cds_start=reference.cds_start,
             basis="exact_collinear_donor_match", upstream_frame_assumed=projected_start < 0))
-    result["translations"] = list(groups.values())
+    path["translations"] = list(groups.values())
     if groups:
         # Noncoding alternatives are also real uncertainty, not permission to
         # pick the one donor model that happens to produce a peptide.
         result["status"] = "ambiguous" if len(groups) > 1 or result["reasons"] else "translated"
     elif not matches["donor"]:
         result["reasons"].append("no_exact_collinear_annotated_donor")
+    path["frame_status"] = result["status"]
     return result
+
+
+FUSION_INPUT_KEYS = frozenset(("fusion", "references", "reads", "reference_names"))
 
 
 def fusion_from_dict(data):
     """Decode the explicit JSON input used by ``isovar fusion``.
 
-    Raises ValueError for a missing key or an unexpected field.
+    Returns (FusionTranscript, references, reads). The optional
+    ``reference_names`` key only labels figures. Raises ValueError for a
+    missing key or an unexpected field, at any level.
     """
+    unknown = set(data) - FUSION_INPUT_KEYS
+    if unknown:
+        raise ValueError("Unexpected fusion input keys: %s" % ", ".join(sorted(unknown)))
     try:
         return _fusion_from_dict(data)
     except KeyError as error:

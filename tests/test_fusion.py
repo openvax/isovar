@@ -13,6 +13,7 @@ from isovar import FusionBlock, FusionBreakpoint, FusionRead, FusionReference, F
 from isovar.cli import commands
 from isovar.cli.isovar_fusion import make_parser
 from isovar.fusion import fusion_from_dict
+from tests.testing_helpers import fusion_input
 from .data.osteosarc.expansion.references import translate
 
 
@@ -46,13 +47,13 @@ def test_orientations_split_codons_insertions_and_independent_translation(donor_
     fusion, refs, reads = example(donor_strand, acceptor_strand, cut, insert)
     result = reconstruct_fusion(fusion, refs, reads, peptide_lengths=(2, 3))
     assert result["status"] == "translated"
-    protein = result["translations"][0]
+    protein = result["paths"][0]["translations"][0]
     expected, stop = translate(fusion.sequence, annotated_start=True)
     assert protein["amino_acids"] == expected
     assert protein["ends_with_stop_codon"] == stop
     assert protein["junction_in_translated_cds"] == [cut, cut + len(insert)]
     assert protein["acceptor_frames"][0]["in_frame"] == ((cut + len(insert)) % 3 == 0)
-    for peptide in protein["junction_peptides"]:
+    for peptide in protein["candidate_peptides"]:
         lo, hi = peptide["protein_interval"]
         assert peptide["sequence"] == translate(fusion.sequence[3 * lo:3 * hi], annotated_start=lo == 0)[0]
         assert any(3 * lo < b < 3 * hi for b in (cut, cut + len(insert)))
@@ -67,7 +68,7 @@ def test_orientations_split_codons_insertions_and_independent_translation(donor_
 def test_partial_cds_is_conditional_not_invented_start(partial):
     fusion, refs, reads = example(partial=partial)
     result = reconstruct_fusion(fusion, refs, reads, peptide_lengths=(2,))
-    protein = result["translations"][0]
+    protein = result["paths"][0]["translations"][0]
     start = (-partial) % 3
     assert not protein["complete_5prime"] and protein["cds_start"] is None
     assert protein["translation_start"] == start
@@ -81,7 +82,7 @@ def test_compatible_transcripts_are_a_set_not_a_best_isoform():
     refs += (replace(refs[0], transcript_id="donor.2"),)
     result = reconstruct_fusion(fusion, refs, reads)
     assert result["status"] == "translated"
-    assert result["translations"][0]["donor_transcript_ids"] == ["donor.1", "donor.2"]
+    assert result["paths"][0]["translations"][0]["transcript_ids"] == ["donor.1", "donor.2"]
     result = reconstruct_fusion(fusion, refs + (replace(refs[0], transcript_id="noncoding", cds_start=None, cds_end=None),), reads)
     assert result["status"] == "ambiguous"
     assert result["reasons"] == ["donor_CDS_unavailable:noncoding"]
@@ -94,18 +95,18 @@ def test_alternative_upstream_frames_are_not_ranked():
         ((0, 4), (103, 109), (300, 305)), "ATGA" + refs[0].sequence[3:9] + "CCTAA", 0, 15)
     result = reconstruct_fusion(fusion, refs + (alternative,), reads)
     assert result["status"] == "ambiguous"
-    assert {p["translation_start"] for p in result["translations"]} == {0, 2}
-    assert all(p["cds_start"] is None for p in result["translations"])
+    assert {p["translation_start"] for p in result["paths"][0]["translations"]} == {0, 2}
+    assert all(p["cds_start"] is None for p in result["paths"][0]["translations"])
 
 
 def test_no_cds_no_reference_or_inconsistent_donor_never_uses_longest_orf():
     fusion, refs, reads = example()
-    assert reconstruct_fusion(fusion, (), reads)["status"] == "unresolved_frame"
+    assert reconstruct_fusion(fusion, (), reads)["status"] == "unresolved"
     noncoding = replace(refs[0], cds_start=None, cds_end=None)
-    assert reconstruct_fusion(fusion, (noncoding,), reads)["translations"] == []
+    assert reconstruct_fusion(fusion, (noncoding,), reads)["paths"][0]["translations"] == []
     changed = replace(fusion, sequence=fusion.sequence[:6] + "A" + fusion.sequence[7:])
     changed_reads = tuple(replace(r, sequence=changed.sequence) for r in reads)
-    assert reconstruct_fusion(changed, refs, changed_reads)["status"] == "unresolved_frame"
+    assert reconstruct_fusion(changed, refs, changed_reads)["status"] == "unresolved"
 
 
 def test_utr_join_early_stop_and_no_acceptor_codon_are_explicit():
@@ -115,7 +116,7 @@ def test_utr_join_early_stop_and_no_acceptor_codon_are_explicit():
     assert result["reasons"] == ["junction_before_donor_CDS:donor.1"]
     fusion, refs, reads = example(insert="TAA")
     result = reconstruct_fusion(fusion, refs, reads)
-    assert result["translations"] == []
+    assert result["paths"][0]["translations"] == []
     assert result["reasons"] == ["no_translated_acceptor_context:donor.1"]
     fusion, refs, reads = example(cut=20)
     assert reconstruct_fusion(fusion, refs, reads)["reasons"] == ["junction_after_donor_CDS:donor.1"]
@@ -124,17 +125,17 @@ def test_utr_join_early_stop_and_no_acceptor_codon_are_explicit():
 def test_incomplete_donor_codon_and_disrupted_start_do_not_claim_a_fusion_protein():
     for partial in (10, 11):
         result = reconstruct_fusion(*example(partial=partial))
-        assert result["translations"] == []
+        assert result["paths"][0]["translations"] == []
         assert result["reasons"] == ["no_translated_donor_context:donor.1"]
     result = reconstruct_fusion(*example(cut=1))
-    assert result["translations"] == []
+    assert result["paths"][0]["translations"] == []
     assert result["reasons"] == ["fusion_disrupts_annotated_start:donor.1"]
 
 
 def test_duplicate_products_supplementary_records_and_mates_do_not_inflate_fragments():
     fusion, refs, reads = example()
     result = reconstruct_fusion(fusion, refs, reads + (replace(reads[0], source="processed-copy"),))
-    assert result["evidence"]["reads"] == result["evidence"]["directly_spanning_fragments"] == 2
+    assert result["evidence"]["reads"] == result["evidence"]["direct_fragments"] == 2
     mates = (reads[0], replace(reads[1], fragment_id=reads[0].fragment_id))
     result = reconstruct_fusion(fusion, refs, mates)
     assert result["status"] == "insufficient_support"
@@ -152,7 +153,7 @@ def test_paired_mates_share_query_name_without_becoming_duplicates():
 
     assert result["evidence"]["reads"] == 2
     assert result["evidence"]["fragments"] == 1
-    assert result["evidence"]["directly_spanning_fragments"] == 1
+    assert result["evidence"]["direct_fragments"] == 1
     assert result["status"] == "insufficient_support"
     duplicate_first = replace(first, source="processed-copy")
     deduplicated = reconstruct_fusion(
@@ -258,11 +259,11 @@ def test_original_osteosarc_rna_windows_remain_unresolved_not_fake_proteins():
         path = corpus / entry["input"]
         assert hashlib.sha256(path.read_bytes()).hexdigest() == entry["sha256"]
         data = json.loads(gzip.decompress(path.read_bytes()))
-        fusion, refs, reads = fusion_from_dict(data)
+        fusion, refs, reads = fusion_from_dict(fusion_input(data))
         result = reconstruct_fusion(fusion, refs, reads)
-        assert result["status"] == "unresolved_frame"
-        assert result["translations"] == []
-        assert result["evidence"]["directly_spanning_fragments"] == entry["fragments"]
+        assert result["status"] == "unresolved"
+        assert result["paths"][0]["translations"] == []
+        assert result["evidence"]["direct_fragments"] == entry["fragments"]
         if fusion.event_id.startswith("TPST1"):
             assert "junction_before_donor_CDS:ENST00000304842" in result["reasons"]
         else:
