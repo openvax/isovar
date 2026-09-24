@@ -217,10 +217,10 @@ both the event and a qualifying CIGAR `N` splice:
 The linked interval must match the original read sequence and placements, with:
 - at least `--inclusion-min-splice-anchor-bases` (8) bases on each side of the splice;
 - MAPQ of at least `--inclusion-min-mapping-quality` (20);
-- every available base at `--inclusion-min-base-quality` (Q20) or higher.
+- every base at `--inclusion-min-base-quality` (Q20) or higher.
 
 The same MAPQ gate selects the competing splices used for intron retention.
-Missing base qualities fail the gate. MAPQ 255 counts as a unique alignment, as
+Missing base qualities fail the gate, reported as unavailable rather than low. MAPQ 255 counts as a unique alignment, as
 STAR writes it. For aligners that use 255 as the SAM specification's
 "unavailable", pass `--inclusion-mapq-255-unavailable`; 255 then fails the gate,
 and `limitations` lists `mapq_255_excluded_from_inclusion`. The gates used are

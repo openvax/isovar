@@ -4,6 +4,14 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.31.1
+
+- The README and guides are rewritten for readers. Each guide opens with what it
+  is for and a quick start, and dense paragraphs became tables and lists.
+  `docs/read-processing-audit.md` is now a reference on which reads are used, and
+  the README groups the guides by task. No behavior changes.
+- The docs test also checks that `#section` links point to an existing heading.
+
 ## 1.31.0
 
 Supplied fusions and reconstructed SV paths share one RNA path format

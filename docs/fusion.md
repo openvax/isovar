@@ -9,7 +9,8 @@ allele or a DNA breakpoint alone is not a fusion transcript.
 
 To find RNA paths around an SV call from a BAM, without a transcript in hand,
 use [`isovar sv-rna`](sv-rna.md). Both commands return the same
-[RNA path format](sv-rna.md#the-rna-path-format). See
+[RNA path format](sv-rna.md#the-rna-path-format). Vaxrank reads the result
+with `fusion_antigens_from_isovar`; see
 [library responsibilities](library-responsibilities.md) for how this fits with
 Varcode and Vaxrank.
 

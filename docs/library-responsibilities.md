@@ -1,8 +1,9 @@
 # Varcode, Isovar, and Vaxrank
 
-Isovar owns the RNA-evidence part of the pipeline. It reconstructs sequence and
-determines what the available reads can distinguish; an effect label alone
-cannot answer those questions.
+Three OpenVax libraries share the work of turning tumor sequencing into vaccine
+candidates. Isovar owns the RNA evidence: it reconstructs the sequences the
+reads actually show and works out what the reads can and cannot distinguish.
+An effect label from annotation alone cannot answer those questions.
 
 | Library | Responsibility |
 |---|---|
@@ -10,11 +11,12 @@ cannot answer those questions.
 | **Isovar** | Reconstruct RNA-supported sequences, compare them with those hypotheses, and preserve unresolved alternatives. |
 | **Vaxrank** | Evaluate the resulting protein/peptide candidates, retaining their evidence. |
 
-This is the shared responsibility split. The end-to-end SV workflow below is
-tracked in [#305](https://github.com/openvax/isovar/issues/305); `run_isovar`
-does not provide it. Its first slice is [`isovar sv-rna`](sv-rna.md).
+## How RNA reconstruction should work
 
-## RNA reconstruction and reconciliation
+These steps describe the complete workflow for SVs, which is tracked in
+[#305](https://github.com/openvax/isovar/issues/305). `run_isovar` does not
+provide it; [`isovar sv-rna`](sv-rna.md) is its first part, and
+[Available today](#available-today) lists what exists now.
 
 1. **Collect anchored evidence.** Include relevant aligned sequence, usable soft
    clips, observed supplementary alignments, mates, and long reads. A clipped
@@ -32,15 +34,19 @@ does not provide it. Its first slice is [`isovar sv-rna`](sv-rna.md).
    justified. Keep unresolved frame/sequence results and multiple compatible
    proteins, rather than choosing an isoform because it appeared first.
 
-Retain nucleotide-level structures, reference/annotation and transcript IDs,
-sample/library identity, read/fragment provenance, support, conflicts, sequence
-completeness, and frame assumptions. Grouping identical proteins must preserve
-their contributing structures and evidence.
+Every result should keep:
 
-Supported, contradicted within an observed region, indistinguishable over the
-covered region, and not covered are different results. A long read may resolve
-a branch that shorter reads cannot; several expressed paths can also coexist.
-A resource limit must disclose unexamined hypotheses, not label them unsupported.
+- the nucleotide-level structure, reference and annotation, and transcript IDs;
+- sample and library identity, and read and fragment provenance;
+- support, conflicts, how complete the sequence is, and what the frame assumes.
+
+Grouping identical proteins must keep the structures and evidence behind each.
+
+Four outcomes must stay distinct: *supported*, *contradicted* within an observed
+region, *indistinguishable* over the covered region, and *not covered*. A long
+read may resolve a branch that shorter reads cannot, and several expressed paths
+can coexist. When a resource limit stops a search, the unexamined hypotheses
+must be reported as unexamined, not as unsupported.
 
 Technical sequence must not become fusion evidence merely because it aligns
 somewhere. Explicit adapter/poly-A annotation and trimming are available
@@ -66,7 +72,10 @@ an otherwise usable observation.
 - [Supplied fusion RNA](fusion.md) uses `reconstruct_fusion` / `isovar fusion`.
   It validates externally supplied sequence, mappings, and read support and
   retains compatible reference/frame interpretations. It does **not** discover
-  or assemble a fusion from BAM soft clips.
+  or assemble a fusion from BAM soft clips. Its result uses the same
+  [RNA path format](sv-rna.md#the-rna-path-format) as `isovar sv-rna`, and
+  Vaxrank's `fusion_antigens_from_isovar` turns its coding hypotheses into
+  candidate antigens without choosing an isoform.
 - Matched germline/co-somatic attribution of reconstructed edits remains
   [#297](https://github.com/openvax/isovar/issues/297). Sequence reconstruction
   and identifying the origin of each edit are different tasks.
