@@ -203,8 +203,8 @@ MAPQ and (when requested) missing QUAL records are excluded before assembly.
 This collection filter compares MAPQ numerically, so it retains 255, which STAR
 uses for unique mappings. Exported `mapping_quality=null` correctly avoids
 claiming Q255; consult the raw value, NH and producer metadata when choosing
-another policy. The stricter splice-inclusion gate below treats 255 as
-unavailable unless told otherwise.
+another policy. The splice-inclusion gate below also treats 255 as unique by
+default.
 
 Python callers can apply the same additional policy in either pipeline:
 
@@ -584,11 +584,11 @@ with at least `--inclusion-min-splice-anchor-bases` (8) bases on each side of th
 splice, MAPQ of at least `--inclusion-min-mapping-quality` (20) and every
 available linked base at `--inclusion-min-base-quality` (Q20) or higher; the same
 MAPQ gate selects the competing splices used for intron retention. Missing
-quality cannot satisfy the gate. MAPQ 255 is unavailable under the SAM
-specification, so by default it fails too and the result lists
-`mapq_255_excluded_from_inclusion` in `limitations`. STAR writes 255 for unique
-alignments; for STAR input, `--inclusion-mapq-255-is-unique`
-(`inclusion_mapq_255_is_unique=True`) lets 255 pass. The effective gates are
+quality cannot satisfy the gate. MAPQ 255 counts as a unique alignment, as STAR
+writes it. For aligners that use 255 as the SAM specification's "unavailable",
+pass `--inclusion-mapq-255-unavailable` (`inclusion_mapq_255_is_unique=False`);
+255 then fails the gate and the result lists `mapq_255_excluded_from_inclusion`
+in `limitations`. The effective gates are
 recorded in `parameters.inclusion` and in each assessment's `thresholds`. These
 are conservative evidence thresholds, not calibrated translation probabilities. Original and reverse-complement processed-read
 orientations receive the same assessment. Witness identifiers resolve to the

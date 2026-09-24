@@ -241,7 +241,8 @@ SV_MAX_ORF_CANDIDATES = 100
 SV_INCLUSION_MIN_SPLICE_ANCHOR_BASES = 8
 SV_INCLUSION_MIN_BASE_QUALITY = 20
 SV_INCLUSION_MIN_MAPPING_QUALITY = 20
-# The SAM specification defines MAPQ 255 as unavailable, but STAR writes 255
-# for unique alignments. By default 255 cannot satisfy the inclusion gate;
-# set True only for aligners which use 255 to mean unique.
-SV_INCLUSION_MAPQ_255_IS_UNIQUE = False
+# STAR writes MAPQ 255 for unique alignments, which the SAM specification
+# otherwise reserves for "unavailable". By default 255 passes the inclusion
+# MAPQ gate as a unique alignment; set False for aligners which use 255 to
+# mean unavailable.
+SV_INCLUSION_MAPQ_255_IS_UNIQUE = True

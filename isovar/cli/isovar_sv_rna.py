@@ -9,6 +9,7 @@ from ..default_parameters import (
     SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_LOCAL_VARIANT_FRACTION, SV_MIN_ANCHOR_BASES, SV_MIN_OVERLAP,
     SV_MIN_ORF_AMINO_ACIDS, SV_MAX_ORF_CANDIDATES,
     SV_INCLUSION_MIN_SPLICE_ANCHOR_BASES, SV_INCLUSION_MIN_BASE_QUALITY, SV_INCLUSION_MIN_MAPPING_QUALITY,
+    SV_INCLUSION_MAPQ_255_IS_UNIQUE,
 )
 from ..sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 from ..logging import configure_cli_logging
@@ -70,9 +71,10 @@ def make_parser(prog="isovar sv-rna"):
                            help="Minimum base quality over the linked interval (default: %(default)s)")
     inclusion.add_argument("--inclusion-min-mapping-quality", type=int, default=SV_INCLUSION_MIN_MAPPING_QUALITY,
                            help="Minimum MAPQ of the linking observation and competing splices (default: %(default)s)")
-    inclusion.add_argument("--inclusion-mapq-255-is-unique", action="store_true",
-                           help="Treat MAPQ 255 as a unique alignment, as STAR writes it, instead of unavailable "
-                                "(the SAM specification); by default 255 fails the MAPQ gate")
+    inclusion.add_argument("--inclusion-mapq-255-unavailable", dest="inclusion_mapq_255_is_unique",
+                           action="store_false", default=SV_INCLUSION_MAPQ_255_IS_UNIQUE,
+                           help="Treat MAPQ 255 as unavailable, per the SAM specification, so it fails the MAPQ "
+                                "gate; by default it is a unique alignment, as STAR writes it")
     return parser
 
 

@@ -124,8 +124,9 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
         exact bases on each side of the splice, and the minimum base and
         mapping quality over the linked interval.
     mapq_255_is_unique : bool
-        Whether MAPQ 255 means a unique alignment (STAR) rather than the SAM
-        specification's "unavailable". False, the default, fails the gate.
+        Whether MAPQ 255 means a unique alignment, as STAR writes it (the
+        default), rather than the SAM specification's "unavailable", which
+        fails the gate.
     competing_splices : iterable of dict
         Observed CIGAR N joins with ``left``, ``right``, and ``fragments`` in
         this input source, after MAPQ filtering. Missing competitors mean

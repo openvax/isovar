@@ -57,7 +57,7 @@ def inclusion_result(tmp_path, mode, assemble, **options):
 @pytest.mark.parametrize("assemble", [False, True])
 @pytest.mark.parametrize("mode,priority", [
     ("linked", 3), ("unspliced", 4), ("wrong_strand", 4),
-    ("low_quality", 4), ("missing_quality", 4), ("unknown_mapq", 4),
+    ("low_quality", 4), ("missing_quality", 4), ("unknown_mapq", 3),
     ("low_mapq", 4), ("deletion", 4),
 ])
 def test_only_qualified_same_read_splice_linkage_promotes_intronic_atg(tmp_path, mode, priority, assemble):
@@ -88,24 +88,24 @@ def test_only_qualified_same_read_splice_linkage_promotes_intronic_atg(tmp_path,
 
 
 @pytest.mark.parametrize("assemble", [False, True])
-def test_mapq_255_fails_the_inclusion_gate_unless_explicitly_unique(tmp_path, assemble):
+def test_mapq_255_is_unique_by_default_and_unavailable_on_request(tmp_path, assemble):
     result, sequence = inclusion_result(tmp_path, "unknown_mapq", assemble)
-    assert "mapq_255_excluded_from_inclusion" in result["limitations"]
+    assert "mapq_255_excluded_from_inclusion" not in result["limitations"]
     assert result["parameters"]["inclusion"] == dict(
-        min_splice_anchor_bases=8, min_base_quality=20, min_mapping_quality=20, mapq_255_is_unique=False)
+        min_splice_anchor_bases=8, min_base_quality=20, min_mapping_quality=20, mapq_255_is_unique=True)
+    candidate, = [c for c in export_sv_rna_orfs(result)["candidates"] if c["nucleotide_sequence"] == sequence]
+    assert candidate["start_evidence_summary"]["priority"] == 3
+
+    (tmp_path / "unavailable").mkdir()
+    result, sequence = inclusion_result(tmp_path / "unavailable", "unknown_mapq", assemble,
+                                        inclusion_mapq_255_is_unique=False)
+    assert "mapq_255_excluded_from_inclusion" in result["limitations"]
+    assert not result["parameters"]["inclusion"]["mapq_255_is_unique"]
     candidate, = [c for c in export_sv_rna_orfs(result)["candidates"] if c["nucleotide_sequence"] == sequence]
     evidence = candidate["occurrences"][0]["start_evidence"]["assessments"][0]["splice_inclusion"]
     assert candidate["start_evidence_summary"]["priority"] == 4
     assert {w["status"] for w in evidence["witnesses"]} == {"mapping_quality_unavailable"}
     assert all(w["mapping_quality_255"] and w["minimum_mapping_quality"] is None for w in evidence["witnesses"])
-
-    (tmp_path / "unique").mkdir()
-    result, sequence = inclusion_result(tmp_path / "unique", "unknown_mapq", assemble,
-                                        inclusion_mapq_255_is_unique=True)
-    assert "mapq_255_excluded_from_inclusion" not in result["limitations"]
-    assert result["parameters"]["inclusion"]["mapq_255_is_unique"]
-    candidate, = [c for c in export_sv_rna_orfs(result)["candidates"] if c["nucleotide_sequence"] == sequence]
-    assert candidate["start_evidence_summary"]["priority"] == 3
 
 
 def test_inclusion_mapping_quality_threshold_is_configurable(tmp_path):
@@ -219,11 +219,11 @@ def test_cryptic_splice_must_include_the_start_intron(strand, start_position, pr
 
 @pytest.mark.parametrize("options,expected", [
     ([], dict(inclusion_min_splice_anchor_bases=8, inclusion_min_base_quality=20,
-              inclusion_min_mapping_quality=20, inclusion_mapq_255_is_unique=False)),
+              inclusion_min_mapping_quality=20, inclusion_mapq_255_is_unique=True)),
     (["--inclusion-min-splice-anchor-bases", "10", "--inclusion-min-base-quality", "25",
-      "--inclusion-min-mapping-quality", "30", "--inclusion-mapq-255-is-unique"],
+      "--inclusion-min-mapping-quality", "30", "--inclusion-mapq-255-unavailable"],
      dict(inclusion_min_splice_anchor_bases=10, inclusion_min_base_quality=25,
-          inclusion_min_mapping_quality=30, inclusion_mapq_255_is_unique=True)),
+          inclusion_min_mapping_quality=30, inclusion_mapq_255_is_unique=False)),
 ])
 def test_cli_passes_inclusion_gates_to_reconstruction(tmp_path, monkeypatch, options, expected):
     from contextlib import nullcontext
