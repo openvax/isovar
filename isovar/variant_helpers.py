@@ -96,7 +96,7 @@ def trim_variant(variant):
 
 def base0_interval_for_variant_fields(base1_location, ref, alt):
     """
-    Inteval of interbase offsets of the affected reference positions for a
+    Interval of interbase offsets of the affected reference positions for a
     particular variant's primary fields (pos, ref, alt).
 
     Parameters
@@ -110,6 +110,8 @@ def base0_interval_for_variant_fields(base1_location, ref, alt):
 
     alt : str
         Alternative nucleotides
+
+    Returns (base0_start, base0_end)
     """
     _require_literal_alleles(ref, alt)
     if len(ref) == 0:
@@ -129,14 +131,14 @@ def base0_interval_for_variant_fields(base1_location, ref, alt):
 
 def base0_interval_for_variant(variant):
     """
-    Inteval of interbase offsets of the affected reference positions for a
+    Interval of interbase offsets of the affected reference positions for a
     particular variant.
 
     Parameters
     ----------
     variant : varcode.Variant
 
-    Returns triplet of (base1_location, ref, alt)
+    Returns (base0_start, base0_end)
     """
     base1_location, ref, alt = trim_variant(variant)
     return base0_interval_for_variant_fields(
@@ -201,9 +203,9 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
                     transcript)
         if len(offsets) == 0:
             raise ValueError(
-                "Couldn't find any exonic reference bases affected by %s on %s",
-                variant,
-                transcript)
+                "Couldn't find any exonic reference bases affected by %s on %s" % (
+                    variant,
+                    transcript))
         start_offset = min(offsets)
         end_offset = max(offsets) + 1
     return (start_offset, end_offset)

@@ -38,7 +38,6 @@ from .reference_context import ReferenceContext
 from .transcript_compatibility import annotate_reads_with_transcript_compatibility
 from .translation import Translation
 from .translation_helpers import find_mutant_amino_acid_interval
-from .value_object import ValueObject
 from .variant_sequence_creator import VariantSequenceCreator
 from .variant_orf_helpers import match_variant_sequence_to_reference_context
 from .variant_helpers import require_literal_variant
@@ -59,7 +58,7 @@ def _variant_sequence_key(sequence):
         tuple(sorted(transcript_ids or ())))
 
 
-class ProteinSequenceCreator(ValueObject):
+class ProteinSequenceCreator(object):
     """
     Creates ProteinSequence objects for each variant by translating
     cDNA into one or more Translation objects and then grouping them
@@ -82,7 +81,9 @@ class ProteinSequenceCreator(ValueObject):
             protein_context_peptide_length=PROTEIN_CONTEXT_PEPTIDE_LENGTH,
             min_protein_sequence_support_fraction=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION):
         """
-        protein_sequence_length : int
+        Parameters
+        ----------
+        protein_sequence_length : int or None
             Try to translate protein sequences of this length, though sometimes
             we'll have to return something shorter (depending on the RNAseq data,
             and presence of stop codons). None chooses 2 * peptide length - 1:
@@ -108,7 +109,8 @@ class ProteinSequenceCreator(ValueObject):
             against max_transcript_mismatches.
 
         max_protein_sequences_per_variant : int
-            Number of protein sequences to return for each ProteinSequence
+            Number of ranked protein sequences to keep for each variant;
+            0 or None keeps all of them.
 
         variant_sequence_assembly : bool
             If True, then assemble variant cDNA sequences based on overlap of
@@ -121,8 +123,8 @@ class ProteinSequenceCreator(ValueObject):
 
         protein_sequence_preference : str
             balanced (default) maximizes mutation-containing peptide windows
-            within the support budget. support uses the historical single-scale
-            support-first algorithm. context maximizes windows without that
+            within the support budget. support assembles one context length and
+            ranks by read support first. context maximizes windows without that
             relative budget; it can select substantially weaker RNA evidence.
 
         protein_context_peptide_length : int
@@ -488,41 +490,41 @@ class ProteinSequenceCreator(ValueObject):
             reference_contexts=reference_contexts)
 
     def translate_variants(
-                self,
-                variants_with_read_evidence_generator,
-                transcript_id_whitelist=None):
-            """
-            Translates each coding variant in a collection to one or more protein
-            fragment sequences (if the variant is not filtered and its spanning RNA
-            sequences can be given a reading frame).
+            self,
+            variants_with_read_evidence_generator,
+            transcript_id_whitelist=None):
+        """
+        Translates each coding variant in a collection to one or more protein
+        fragment sequences (if the variant is not filtered and its spanning RNA
+        sequences can be given a reading frame).
 
-            Parameters
-            ----------
-            variants_with_read_evidence_generator : sequence or generator
-                Each item of this sequence should be a pair containing a varcode.Variant
-                and a ReadEvidence object
+        Parameters
+        ----------
+        variants_with_read_evidence_generator : sequence or generator
+            Each item of this sequence should be a pair containing a varcode.Variant
+            and a ReadEvidence object
 
-            transcript_id_whitelist : set, optional
-                If given, expected to be a set of transcript IDs which we should use
-                for determining the reading frame around a variant. If omitted, then
-                try to use all overlapping reference transcripts.
+        transcript_id_whitelist : set, optional
+            If given, expected to be a set of transcript IDs which we should use
+            for determining the reading frame around a variant. If omitted, then
+            try to use all overlapping reference transcripts.
 
-            Yields pairs of a Variant and a sequence of all its candidate
-            Translation objects.
-            """
-            for variant, read_evidence in variants_with_read_evidence_generator:
-                translations = self.translate_variant_reads(
-                    variant=variant,
-                    variant_reads=read_evidence.alt_reads,
-                    transcript_id_whitelist=transcript_id_whitelist)
-                yield variant, translations
+        Yields pairs of a Variant and a sequence of all its candidate
+        Translation objects.
+        """
+        for variant, read_evidence in variants_with_read_evidence_generator:
+            translations = self.translate_variant_reads(
+                variant=variant,
+                variant_reads=read_evidence.alt_reads,
+                transcript_id_whitelist=transcript_id_whitelist)
+            yield variant, translations
 
     def sorted_protein_sequences_for_variant(
             self,
             variant,
             read_evidence,
             transcript_id_whitelist=None):
-        """"
+        """
         Translates a coding variant and its overlapping RNA reads into Translation
         objects, which are aggregated into ProteinSequence objects by their
         amino acid sequence (when they have equivalent coding sequences).
@@ -565,6 +567,7 @@ class ProteinSequenceCreator(ValueObject):
             read_evidence_generator,
             transcript_id_whitelist=None):
         """
+        Create ranked protein sequences for each variant's read evidence.
 
         Parameters
         ----------
@@ -573,9 +576,8 @@ class ProteinSequenceCreator(ValueObject):
             their corresponding ReadEvidence
 
         transcript_id_whitelist : set of str or None
-            Which transcripts should be considered when predicting DNA-only
-            coding effects of mutations and also when trying to establish a
-            reading frame for identified cDNA sequences.
+            Transcripts which may establish a reading frame for identified
+            cDNA sequences.
 
         Generates sequence of (varcode.Variant, ProteinSequence list) pairs.
         """

@@ -228,7 +228,7 @@ def test_sort_protein_sequences():
         protseq_most_reads,
         protseq_fewest_reads,
     ]
-    eq_(sort_protein_sequences(unsorted_protein_sequences), expected_order)
+    eq_(sort_protein_sequences(unsorted_protein_sequences, "support"), expected_order)
 
 
 def test_sort_protein_sequences_uses_raw_reads_before_length():
@@ -243,7 +243,7 @@ def test_sort_protein_sequences_uses_raw_reads_before_length():
     short_protein = ProteinSequence.from_translations([short_translation])
     long_protein = ProteinSequence.from_translations([long_translation])
 
-    sorted_proteins = sort_protein_sequences([long_protein, short_protein])
+    sorted_proteins = sort_protein_sequences([long_protein, short_protein], "support")
 
     eq_(short_protein.num_supporting_fragments, 3)
     eq_(long_protein.num_supporting_fragments, 3)
@@ -273,7 +273,7 @@ def test_grouped_protein_support_can_beat_each_individual_cdna_sequence():
         short_translation_2,
         long_translation,
     ])
-    sorted_proteins = sort_protein_sequences(proteins)
+    sorted_proteins = sort_protein_sequences(proteins, "support")
 
     eq_(len(proteins), 2)
     eq_(sorted_proteins[0].amino_acids, "MKH")
