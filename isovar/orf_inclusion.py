@@ -50,14 +50,16 @@ def _edges(positions, reference):
                 mechanism = "cryptic_donor"
         elif not forward:
             mechanism = "rearranged_path"
-        edges.append(dict(query_interval=[a - 1, b], left=list(left), right=list(right),
+        # Half-open: the bases between the two runs (empty when they abut).
+        edges.append(dict(query_interval=[a, b], left=list(left), right=list(right),
                           flanking_runs=[[lo, a], [b, hi]], mechanism=mechanism))
     return runs, edges
 
 
 def _qualified_link(sequence, positions, start, end, edge, witness, observation, min_anchor, min_baseq, min_mapq,
                     mapq_255_is_unique):
-    a, b = edge["query_interval"]
+    # a and b are the placed bases on either side of the join.
+    a, b = edge["query_interval"][0] - 1, edge["query_interval"][1]
     left_run, right_run = edge["flanking_runs"]
     if a - left_run[0] + 1 < min_anchor or right_run[1] - b < min_anchor:
         return None
@@ -220,7 +222,7 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
                             or partner.spliced_offset(other[1]) is None):
                         continue
                     _, context = _edges(positions, partner)
-                    required = [edge["query_interval"][0] + 1 - min_splice_anchor_bases,
+                    required = [edge["query_interval"][0] - min_splice_anchor_bases,
                                 edge["query_interval"][1] + min_splice_anchor_bases]
                     if required[0] < edge["flanking_runs"][0][0] or required[1] > edge["flanking_runs"][1][1]:
                         continue

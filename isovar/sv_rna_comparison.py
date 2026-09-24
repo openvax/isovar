@@ -103,7 +103,7 @@ def compare_sv_rna_predictions(result, predictions):
     for key, item in sorted(annotated.items()):
         item["hypothesis_id"] = sha256(repr((result["event_id"], result["reference_name"], key)).encode()).hexdigest()
         rows.append(item)
-    return dict(schema="isovar.sv_rna_prediction_comparison.v1", event_id=result["event_id"],
+    return dict(schema="isovar.sv_rna_prediction_comparison.v2", event_id=result["event_id"],
                 reference_name=result["reference_name"], sample_id=result.get("sample_id"),
                 rna_source=result["source"], predictions=deepcopy(predictions), hypotheses=rows,
                 reconstruction_limitations=deepcopy(result["limitations"]),

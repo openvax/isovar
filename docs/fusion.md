@@ -1,122 +1,160 @@
 # Supplied fusion RNA
 
-`isovar fusion` validates a supplied, sequence-resolved fusion transcript,
-separately from SNV/indel reconstruction. A gene pair, symbolic VCF allele, or DNA breakpoint is not a
-fusion transcript. `isovar fusion` does not discover fusions, pad sequences
-from reference, select the longest ORF, or assemble a whole transcript.
+`isovar fusion` checks a fusion transcript that another tool has already
+assembled. It asks: *do the RNA reads actually show this sequence and its
+junction, and does an annotated reading frame carry across the junction into a
+new protein?* It does not discover fusions, fill gaps with reference sequence,
+pick the longest ORF, or assemble a transcript. A gene pair, a symbolic VCF
+allele or a DNA breakpoint alone is not a fusion transcript.
 
-See [library responsibilities](library-responsibilities.md) for the boundary
-between Varcode's hypotheses, Isovar's RNA evidence, and Vaxrank's candidate
-evaluation. Event-directed path reconstruction from a BAM is
-[`isovar sv-rna`](sv-rna.md); its exploratory candidates are not this validated
-input. Its `--predictions` option compares supplied protein predictions with the
-reconstructed paths; full reconciliation with Varcode hypotheses remains
-[#305](https://github.com/openvax/isovar/issues/305). This guide covers the
-supplied-sequence workflow.
+To find RNA paths around an SV call from a BAM, without a transcript in hand,
+use [`isovar sv-rna`](sv-rna.md). Both commands return the same
+[RNA path format](sv-rna.md#the-rna-path-format). See
+[library responsibilities](library-responsibilities.md) for how this fits with
+Varcode and Vaxrank.
+
+## Quick start
 
 ```sh
-isovar fusion --input fusion.input.json --output fusion.result.json
+isovar fusion --input fusion.json --output result.json
+# Optional figures in a new UTC-stamped directory:
+isovar fusion --input fusion.json --output result.json --plot-dir figures/fusions
 ```
 
-Add `--plot-dir figures/fusions` to save white-background individual PNG/SVG
-panels and a vector PDF in a fresh UTC-stamped directory (`--dpi` defaults to
-600). Junction RNA and local donor/acceptor annotation are separate panels;
-only justified translations receive protein panels. Full original inputs
-and model details should accompany published figures.
+From Python:
 
-The JSON input has three required keys: `fusion`, `references`, and `reads`.
-These map directly to the public `FusionTranscript`, `FusionReference`, and
-`FusionRead` dataclasses. An optional `reference_names` mapping of transcript ID
-to display name labels the `--plot-dir` figures. Nested mappings use `FusionBreakpoint` and `FusionBlock`.
-`reconstruct_fusion(fusion, references, reads)` returns the same serializable
-result as the CLI. Defaults are shared: two distinct directly spanning
-fragments, and junction peptide lengths 8, 9, 10, 11.
+```python
+from isovar import reconstruct_fusion
+from isovar.fusion import fusion_from_dict
 
-## Coordinates and evidence
+fusion, references, reads = fusion_from_dict(data)
+result = reconstruct_fusion(fusion, references, reads)
+```
 
-All coordinates are plain integers, **0-based interbase**. Genomic intervals
-are ascending and half-open, including on the minus strand. Query/cDNA/CDS
-coordinates follow the supplied RNA's 5'-to-3' orientation. `reference_name`
-identifies the assembly; `contig` identifies the chromosome, without alias
-guessing. A breakpoint is the retained partner's boundary, not a VCF POS.
+## Input
 
-`junction_start:junction_end` is the inserted RNA interval (empty for a direct
-join). Blocks must reach both boundaries with the declared chromosome and
-orientation. Reference exons are ascending genomic intervals; reference CDS
-end includes the stop codon. Supply complete, versioned reference transcript
-sequences and all candidate transcript models, not just the preferred one.
-Reference-set completeness is the caller's responsibility.
+The input JSON has these keys; unknown keys are rejected:
 
-Reads carry sample/library/read/fragment IDs, source, original query offset,
-observed sequence, cDNA placement, alignment blocks, and a `mate_number`.
-Use `1`/`2` for paired SAM ends that share a query name and `0` for an
-unpaired or unknown end. Supplementary/SA mappings must be resolved into one
-consistent observation of one mate by the caller; alternative placements must
-not be unioned. Paired observations share a fragment ID; processed copies
-retain the same library/read/mate identity.
-Validated cell/UMI identities may be used as fragment IDs. Isovar validates
-exact sequence and mapping agreement, deduplicates processed copies, rejects
-conflicting placements, and counts directly spanning fragments separately.
-Every supplied cDNA base must have observed read coverage before translation.
-Coverage alone is not proof of long-range phase: the supplied assembler/caller
-is responsible for that contig hypothesis, which remains in provenance.
+| Key | Required | Content |
+|---|---|---|
+| `fusion` | yes | The supplied transcript (`FusionTranscript`) |
+| `references` | no | Every candidate transcript model for both partners (`FusionReference`), not just the preferred one |
+| `reads` | no | RNA observations of the transcript (`FusionRead`) |
+| `reference_names` | no | Transcript ID → display name, used only to label figures |
 
-Required provenance fields are `sample_id`, `method`, `version`, `parameters`
-(including evidence filters), `source`, and `contig_id`. Additional provenance
-is preserved. Results retain the sequence digest, event and mapping, read
-observations, support counts, annotation identities, and effective parameters.
-Read-source authenticity and alignment quality are not inferred from a JSON
-claim; retain auditable original alignments and acquisition hashes.
+A minimal `fusion`:
 
-## Frame and result states
+```json
+{
+  "event_id": "GENE1--GENE2",
+  "reference_name": "GRCh38",
+  "sequence": "ATGGCTGCTAAACCTGGGTCCCTTTGAATAA",
+  "junction_start": 15, "junction_end": 15,
+  "donor":    {"contig": "1", "position": 1115, "strand": "+"},
+  "acceptor": {"contig": "2", "position": 2003, "strand": "+"},
+  "blocks": [
+    {"query_start": 0,  "query_end": 15, "contig": "1", "reference_start": 1100, "reference_end": 1115, "strand": "+"},
+    {"query_start": 15, "query_end": 31, "contig": "2", "reference_start": 2003, "reference_end": 2019, "strand": "+"}
+  ],
+  "provenance": {"sample_id": "tumor-1", "method": "assembler", "version": "1.0",
+                 "parameters": {}, "source": "rna.bam", "contig_id": "contig-7"}
+}
+```
 
-Frame transfer is deliberately conservative: the observed donor must exactly
-match a collinear interval of an annotated transcript with a complete CDS.
-Upstream indels, unknown starts, novel donor paths, and sequence discrepancies
-remain unresolved. Nuclear NCBI genetic code 1 is currently supported; other
-codes are rejected, not silently translated with code 1.
+- **Coordinates** are 0-based and half-open. Genomic intervals are ascending,
+  even on the minus strand. Positions within the transcript (`query_*`, CDS
+  offsets) run 5′→3′ along the supplied RNA.
+- **`junction_start:junction_end`** is the inserted sequence between the partners;
+  it is empty for a direct join.
+- **`blocks`** align the two partner sequences to the genome. They must reach the
+  junction and agree with the `donor`/`acceptor` breakpoints, which are each
+  partner's retained boundary, not a VCF position.
+- **`provenance`** must name the sample, method, version, parameters, input source
+  and contig ID. It is kept verbatim.
 
-All compatible donor and acceptor models are retained. Acceptor models label
-in-frame versus frameshift context; they do not replace the donor frame.
-Actual supplied RNA is translated through its first stop or observed end.
-An observed full start has `complete_5prime=true`. Otherwise `cds_start=null`,
-and the partial protein is **conditional on the annotated upstream frame**;
-the result explicitly records that assumption. `translation_start` is the
-first complete codon in the supplied cDNA. `junction_in_translated_cds` is
-relative to that start, not to an unobserved full-length CDS. Stop status and
-trailing partial codon bases distinguish complete and truncated 3' context.
+Each **read** gives `sample_id`, `library_id`, `fragment_id`, `read_id`, `source`,
+its `sequence`, where it sits on the supplied transcript (`cdna_start`), its own
+alignment `blocks`, `source_query_start` in the original read, and `mate_number`
+(1 or 2 for paired ends, 0 otherwise). Resolve supplementary pieces into one
+observation per mate before submitting, and never union alternative placements.
+Copies of one read from different processed files are counted once; conflicting
+copies are an error.
 
-- `translated`: one translation hypothesis across the compatible supplied
-  donor models. This is not a uniquely selected transcript or proven protein
-  expression; check partial-CDS and frame evidence before downstream use.
-- `ambiguous`: different translation hypotheses or coding/noncoding donor
-  alternatives. Downstream tools must not silently rank these.
-- `unresolved_frame`: sufficient local RNA support but no justified coding
-  interpretation. This is not evidence that no fusion RNA exists.
-- `insufficient_support`: absent direct junction support or unobserved cDNA
-  bases. A supplied contig alone does not become a validated protein.
+**References** give each transcript's exons, spliced sequence and optional CDS.
+The CDS end includes the stop codon, and a missing CDS means noncoding or
+unknown. Only NCBI genetic code 1 is supported.
 
-Junction peptides strictly cross at least one junction boundary at nucleotide
-resolution, including within-codon joins. Insertions have two boundaries.
-`downstream_frameshift_peptides` are separate, wholly downstream intervals
-whose frame differs from the named acceptor model. Neither list establishes
-absence from the reference proteome, antigen presentation, or immunogenicity.
+## Result
 
-## Real RNA examples and limitations
+The result (schema `isovar.fusion_rna.v2`) has one path, `paths[0]`, the
+supplied transcript, in the same structure as `isovar sv-rna`:
 
-The pinned osteosarc examples retain original ONT records and exact repeated
-junction windows, not reference-concatenated transcripts. TPST1–CRCP has a
-donor 5' UTR junction; FOXO3 and PARD3B local windows are intronic relative to
-the supplied Ensembl 87 donor models. These remain `unresolved_frame` rather
-than acquiring a fictitious coding fusion. Counts describe the selected
-exact sequence group, not total event abundance. The PARD3B window preserves
-the observed 12-nt inserted sequence. These examples do not establish a
-long-read-only detection advantage.
+| Field | Meaning |
+|---|---|
+| `status` | `translated`, `ambiguous`, `unresolved` or `insufficient_support` (below) |
+| `reasons` | Why a frame could not be used, per transcript model |
+| `paths[0].sequence`, `sequence_sha256`, `blocks` | The supplied RNA and its alignment |
+| `paths[0].junctions[0]` | `query_interval` of the inserted bases, flanking genomic positions `left`/`right`, `unplaced_bases`, `relation` (`breakpoint_junction`) and `direct_fragments` |
+| `paths[0].frame_status` | As `status`, or `not_assessed` when support was insufficient |
+| `paths[0].translations` | Every justified protein hypothesis |
+| `paths[0].compatible_transcripts` | Reference models whose exons exactly match each partner |
+| `evidence` | `reads`, `fragments`, `direct_fragments` and every observation, marked with whether it spans the junction |
+| `parameters` | `peptide_lengths`, `min_fragments` and `genetic_code` |
 
-Fusion results must not be coerced into a fake single-locus `Variant` for
-Vaxrank; the small-variant path rejects symbolic SVs.
+### Status
 
-Sources: [SAM alignment format](https://samtools.github.io/hts-specs/SAMv1.pdf),
+- **`insufficient_support`**: fewer than `--min-fragments` (2) distinct fragments
+  directly span the junction, or some transcript bases are not covered by any
+  read. A supplied sequence alone is never a validated protein.
+- **`unresolved`**: the RNA is supported, but no annotated frame can be justified.
+  This does not mean no fusion RNA exists.
+- **`ambiguous`**: more than one protein hypothesis, or coding and noncoding donor
+  models both fit. Downstream tools must not silently pick one.
+- **`translated`**: one protein hypothesis across the compatible donor models.
+  This is not a uniquely chosen isoform or proof of protein expression. Check
+  `complete_5prime` and the frame evidence before use.
+
+### Translations
+
+A frame is transferred only when the donor side matches an annotated coding
+transcript exactly and collinearly. Upstream indels, unknown starts, novel
+donor splicing and sequence mismatches leave the frame unresolved. The supplied
+RNA is then translated through its first stop or its end. Each translation has:
+
+- `translation_start`/`translation_end`, `amino_acids` and `ends_with_stop_codon`;
+- `complete_5prime`: whether the annotated start codon is in the RNA. When false,
+  `cds_start` is null and the protein assumes the annotated upstream frame;
+- `transcript_ids` and `frame_evidence` for every donor model giving this protein;
+- `acceptor_frames`: whether each acceptor model is in frame;
+- `candidate_peptides`: every window of the requested lengths that crosses a
+  junction boundary, with `junction_boundaries_in_cds`. An insertion has two boundaries;
+- `downstream_frameshift_peptides`: windows wholly after the junction in a frame
+  different from an acceptor model;
+- `junction_in_translated_cds` and `trailing_partial_codon_bases`.
+
+Neither peptide list establishes absence from the reference proteome,
+presentation or immunogenicity.
+
+## Figures
+
+`--plot-dir DIR` writes white-background PNG and SVG panels and a vector PDF to a
+new UTC-stamped directory under `DIR`, never overwriting an earlier run. There
+are separate panels for the junction reads, local donor and acceptor
+annotation, and each justified protein. `--dpi` sets PNG resolution (default
+600, minimum 72). The JSON result is written before plotting, so a plotting
+error does not lose it.
+
+## Real RNA examples
+
+The pinned osteosarc examples keep original ONT records and the exact repeated
+junction windows, not reference-built transcripts. TPST1–CRCP has a donor 5′-UTR
+junction. The FOXO3 and PARD3B windows are intronic relative to the supplied
+Ensembl 87 donor models. All of them stay `unresolved` rather than acquiring an
+invented coding fusion. The PARD3B window keeps its observed 12-nt insertion.
+Counts describe the selected sequence group, not total event abundance. Fusion
+results must not be turned into a single-locus `Variant` for Vaxrank.
+
+Sources: [SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf),
 [NCBI translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi),
-[osteosarc fusion evidence](https://osteosarc.com/fusions/), and
+[osteosarc fusion evidence](https://osteosarc.com/fusions/),
 [CTAT-LR-fusion](https://github.com/TrinityCTAT/CTAT-LR-fusion/wiki).

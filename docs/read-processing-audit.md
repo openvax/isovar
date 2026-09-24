@@ -48,7 +48,7 @@ Q255. See [STAR's parameters](https://github.com/alexdobin/STAR/blob/master/sour
 both pipelines. `isovar.read_metadata.record_evidence` exposes native SAM,
 ONT and PacBio tags, original-quality availability and flags without assigning
 a combined weight. SV exports also retain RG/PG headers. See
-[the field definitions and filtering example](sv-rna.md#filterable-read-evidence).
+[the field definitions and filtering example](sv-rna.md#read-evidence-you-can-filter-on).
 
 Allele collection no longer accesses gene annotation solely for logging (#295).
 The mate merger avoids sorting singleton groups and scanning all their bases

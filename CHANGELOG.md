@@ -4,6 +4,40 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.31.0
+
+Supplied fusions and reconstructed SV paths share one RNA path format
+([#364](https://github.com/openvax/isovar/issues/364)). Neither output had
+production consumers, so the old forms are not kept:
+
+- `reconstruct_fusion` returns schema `isovar.fusion_rna.v2`. Its supplied
+  transcript is `paths[0]`, with the same `sequence`, `junctions`, `frame_status`
+  and `translations` fields as `reconstruct_sv_rna`. Renamed:
+  - `schema_version` → `schema`;
+  - `cdna_sequence` → `sequence`;
+  - `junction_interval` → the junction's `query_interval`;
+  - `junction_peptides` → `candidate_peptides`;
+  - `donor_transcript_ids` → `transcript_ids`;
+  - `directly_spanning_fragments` → `direct_fragments`;
+  - status `unresolved_frame` → `unresolved`.
+
+  Translations gain `translation_end` and `translation_observed`.
+- `reconstruct_sv_rna` returns schema `isovar.sv_rna_candidates.v4`:
+  - junction and inclusion-edge `query_interval`s are half-open intervals of
+    the unplaced bases between partners, instead of the two flanking offsets;
+  - translations gain a top-level `complete_5prime`;
+  - `reference_comparisons[].start_kind` uses the `start_evidence` region
+    names, so `annotated_start` becomes `annotated_CDS_start`;
+  - `RnaObservation.reverse` becomes `reverse_complement`;
+  - junction `direct_molecules` and ORF `molecule_labels` are removed. They
+    repeated `complete_label_count`, a count of cell/UMI labels rather than
+    molecules; read it from `direct_cell_umi_support` or `cell_umi_support`.
+- ORF exports are `isovar.sv_rna_orfs.v3` with one `interval_convention`, and
+  prediction comparisons are `isovar.sv_rna_prediction_comparison.v2`.
+  `export_sv_rna_orfs` accepts only v4 reconstructions, and `write_sv_rna_orfs`
+  only v3 exports. `normalize_sv_rna_orf_export` and its v1 flag migration are removed.
+- `fusion_from_dict` and `sv_rna_input_from_dict` reject unknown top-level keys.
+
 ## 1.30.0
 
 - `isovar sv-rna`'s splice-inclusion gate treats MAPQ 255 as a unique alignment,

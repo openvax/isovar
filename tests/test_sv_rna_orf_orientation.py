@@ -7,8 +7,7 @@ import json
 import pysam
 import pytest
 
-from isovar import (FusionBreakpoint, export_sv_rna_orfs, normalize_sv_rna_orf_export,
-                    reconstruct_sv_rna, write_sv_rna_orfs)
+from isovar import FusionBreakpoint, export_sv_rna_orfs, reconstruct_sv_rna, write_sv_rna_orfs
 from tests.test_sv_rna import aligned, antisense, write_bam
 
 
@@ -59,34 +58,8 @@ def test_reconstruction_export_json_tsv_orientation_contract(tmp_path, mode, cou
     with paths["tsv"].open() as handle:
         row, = [r for r in csv.DictReader(handle, delimiter="\t")
                 if r["candidate_id"] == candidate["candidate_id"]]
-    assert row["schema"] == "isovar.sv_rna_orfs.v2"
+    assert row["schema"] == "isovar.sv_rna_orfs.v3"
     assert set(row["uncertainty_flags"].split(";")) == flags
     assert int(row["fragments"]) == sum(counts)
     assert tuple(int(row[k]) for k in ("original_query_fragments", "reverse_complement_fragments",
                                       "mixed_orientation_fragments")) == counts
-
-
-def test_legacy_export_migration_is_explicit_idempotent_and_preserves_evidence(tmp_path):
-    from tests.test_sv_rna_orf_export import reconstruction
-    export = export_sv_rna_orfs(reconstruction())
-    old = deepcopy(export)
-    old["schema"] = "isovar.sv_rna_orfs.v1"
-    old["candidates"][0]["uncertainty_flags"] = [
-        "rna_polarity_unresolved", "reverse_complement_query_witnesses_only",
-        "mixed_query_orientations", "mixed_read_orientations", "future_unknown_flag"]
-    before = deepcopy(old)
-    new = normalize_sv_rna_orf_export(old)
-    assert old == before
-    assert new["candidates"][0]["uncertainty_flags"] == [
-        "future_unknown_flag", "mixed_read_orientations", "reverse_complement_support_only",
-        "rna_strand_unresolved"]
-    assert normalize_sv_rna_orf_export(new) == new
-    expected = deepcopy(old)
-    expected["schema"] = new["schema"]
-    expected["candidates"][0]["uncertainty_flags"] = new["candidates"][0]["uncertainty_flags"]
-    assert expected == new
-    paths = write_sv_rna_orfs(old, tmp_path / "migrated")
-    assert json.loads(paths["json"].read_text()) == new
-    assert old == before
-    with pytest.raises(ValueError, match="Expected"):
-        normalize_sv_rna_orf_export(dict(schema="unexpected"))

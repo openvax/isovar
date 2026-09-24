@@ -243,8 +243,8 @@ class RnaObservation:
 
     ``breaks`` lists consecutive placed bases ``(i, j, kind)`` which are not
     genomic neighbours; kind is the CIGAR ``N``/``D`` or ``split`` between
-    supplementary records. ``reverse`` marks the reverse complement of the
-    processed input-read orientation (which need not be the original
+    supplementary records. ``reverse_complement`` marks the reverse complement
+    of the processed input-read orientation (which need not be the original
     physical sequencing orientation or biological RNA strand).
     """
 
@@ -254,7 +254,7 @@ class RnaObservation:
     sequence: str
     positions: tuple
     breaks: tuple
-    reverse: bool
+    reverse_complement: bool
     query_interval: tuple
     missing_qualities: bool
     secondary: bool
@@ -431,11 +431,11 @@ def _build_segment(identity, records, collector, reasons, intern):
                       mapping_quality_255=255 in mapqs)
         n = len(sequence)
         observations.append(RnaObservation(key + "+", sequence=sequence, positions=positions,
-                                           breaks=breaks, reverse=False, qualities=qualities, **common))
+                                           breaks=breaks, reverse_complement=False, qualities=qualities, **common))
         sequence, positions = _mirror(sequence, positions)
         positions = tuple(None if p is None else intern.setdefault(p, p) for p in positions)
         observations.append(RnaObservation(
-            key + "-", sequence=sequence, positions=positions, reverse=True,
+            key + "-", sequence=sequence, positions=positions, reverse_complement=True,
             qualities=qualities[::-1],
             breaks=tuple(sorted((n - 1 - j, n - 1 - i, kind) for i, j, kind in breaks)), **common))
     return observations
@@ -1040,6 +1040,7 @@ def _frame_evidence(sequence, positions, departures, models, min_anchor, referen
     translations = sorted(groups.values(), key=lambda g: (g["translation_start"], g["amino_acids"]))
     for translation in translations:
         translation["departure_relations"] = sorted({e["departure_relation"] for e in translation["frame_evidence"]})
+        translation["complete_5prime"] = any(e["complete_5prime"] for e in translation["frame_evidence"])
         # A noncoding model matching the same frame-anchor sequence is an
         # alternative explanation, not permission to drop the protein.
         spans = [a for e in translation["frame_evidence"] for a in e["anchors"]]
@@ -1237,12 +1238,12 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
         spans = [] if is_annotated else [q for q in (span(o) for o, *_ in direct) if q]
         clip = relation == "breakpoint_clip_partner_unplaced"
         junctions.append(dict(
-            query_interval=[i, j], left=positions[i] and list(positions[i]),
+            # Half-open: the unplaced bases between the partners (empty for a direct join).
+            query_interval=[i + 1, j], left=positions[i] and list(positions[i]),
             right=positions[j] and list(positions[j]), unplaced_bases=sequence[i + 1:j],
             forward_splice_geometry=bool(positions[i] and positions[j] and _forward_splice(positions[i], positions[j])),
             kinds=sorted(kinds), annotated=is_annotated, relation=relation, breakpoint_assignment=assignment,
             direct_segments=len(segments), direct_fragments=len({s[:2] for s in segments}),
-            direct_molecules=cell_umi_support["complete_label_count"],
             direct_cell_umi_support=cell_umi_support,
             direct_read_lineage=store.lineage.support(segments),
             direct_observations=sorted({o.key for o, *_ in direct}),
@@ -1250,7 +1251,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
                 list(item) for item in sorted(junction_sequences.items(), key=lambda item: (-item[1], item[0]))],
             linked_interval=[min(min(q) for q in spans), max(max(q) for q in spans) + 1] if spans else None))
     departures = {q: j["relation"] for j in junctions if not j["annotated"]
-                  for q in range(j["query_interval"][0] + 1,
+                  for q in range(j["query_interval"][0],
                                  len(sequence) if j["right"] is None else j["query_interval"][1] + 1)}
     frame = frame_evidence(sequence, positions, departures)
     relations = {j["relation"] for j in junctions if not j["annotated"]}
@@ -1614,7 +1615,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
              for r in store.groups[identity] if (rid := _record_id(r)) in record_ids}
     best = next((s for s in LINKAGE_STATUSES if s in {r["event_linkage"]["status"] for r in results}), None)
     return dict(
-        schema="isovar.sv_rna_candidates.v3",
+        schema="isovar.sv_rna_candidates.v4",
         status=("event_linked_candidates" if best in EVENT_LINKED_RELATIONS
                 else "splice_ambiguous_candidates" if best == "splice_ambiguous_event_junction"
                 else "regional_candidates_only" if results else "no_candidate_paths"),
@@ -1643,7 +1644,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         competing_annotated_junctions=[dict(left=list(left), right=list(right), fragments=len(fragments))
                                        for (left, right), fragments in sorted(competing.items())],
         pruned_branches=pruned, paths=results,
-        observations={key: dict(identity=list(o.identity), records=list(o.records), reverse_complement=o.reverse,
+        observations={key: dict(identity=list(o.identity), records=list(o.records), reverse_complement=o.reverse_complement,
                                 original_query_interval=list(o.query_interval),
                                 missing_qualities=o.missing_qualities, secondary=o.secondary)
                       for key, o in sorted(used.items())},
@@ -1653,13 +1654,20 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         original_records={rid: read.to_string() for rid, read in sorted(cited_reads.items())})
 
 
+SV_RNA_INPUT_KEYS = frozenset((
+    "event_id", "reference_name", "sample_id", "donor", "acceptor", "regions", "references", "event_provenance"))
+
+
 def sv_rna_input_from_dict(data):
     """Decode the explicit JSON input used by ``isovar sv-rna``.
 
     Returns keyword arguments for ``reconstruct_sv_rna`` (other than the BAM,
     source and evidence parameters). Raises ValueError for a missing key or
-    an unexpected field.
+    an unexpected field, at any level.
     """
+    unknown = set(data) - SV_RNA_INPUT_KEYS
+    if unknown:
+        raise ValueError("Unexpected SV RNA input keys: %s" % ", ".join(sorted(unknown)))
     try:
         return _sv_rna_input_from_dict(data)
     except KeyError as error:

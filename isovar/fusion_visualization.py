@@ -31,8 +31,9 @@ def fusion_figures(result, references=(), transcript_names=None):
     _, _, rectangle = _plot_imports()
     references = tuple(references)
     names = transcript_names or {}
-    j0, j1 = result["junction_interval"]
-    sequence = result["cdna_sequence"]
+    path, = result["paths"]
+    j0, j1 = path["junctions"][0]["query_interval"]
+    sequence = path["sequence"]
     title = result["event_id"].replace("--", " / ") + "   " + result["provenance"]["sample_id"]
     figure, ax = _canvas(title, "Directly observed fusion RNA")
     observations = result["evidence"]["observations"]
@@ -57,7 +58,7 @@ def fusion_figures(result, references=(), transcript_names=None):
            xlabel="Supplied cDNA offset (nt, 5' to 3')")
     status = result["status"].replace("_", " ")
     note = ("%d spanning fragments\n%d shown\n\n%s\n\nBlue: donor RNA\nGreen: acceptor RNA" %
-            (result["evidence"]["directly_spanning_fragments"], len(shown), status))
+            (result["evidence"]["direct_fragments"], len(shown), status))
     if j1 > j0:
         note += "\nOrange: %d-nt insert" % (j1-j0)
     _side_note(ax, note)
@@ -72,7 +73,7 @@ def fusion_figures(result, references=(), transcript_names=None):
         position = partner["position"]
         models = [r for r in references if r.contig == partner["contig"] and r.reference_name == result["reference_name"]
                   and r.exons[0][0] < position+120 and r.exons[-1][1] > position-120]
-        compatible = set(result["compatible_transcripts"][side])
+        compatible = set(path["compatible_transcripts"][side])
         # Relevant same-strand models first; preserve all models in the JSON.
         models.sort(key=lambda r: (r.transcript_id not in compatible, r.strand != partner["strand"], r.transcript_id))
         shown_models = models[:6]
@@ -99,14 +100,14 @@ def fusion_figures(result, references=(), transcript_names=None):
         if reasons:
             # Raw identifiers and all reasons remain in evidence.json.
             summary = ("Coding hypothesis shown separately; alternative CDS/noncoding annotations remain compatible."
-                       if result["translations"] else
+                       if path["translations"] else
                        "Junction lies before the annotated donor CDS; no coding frame assigned."
                        if any("junction_before_donor_CDS" in r for r in result["reasons"]) else
                        "No validated coding frame for this observed RNA window; no protein is inferred.")
             figure.text(.19,.065,summary,fontsize=11,color=INK)
         yield side + "-context", figure
 
-    for number, protein in enumerate(result["translations"],1):
+    for number, protein in enumerate(path["translations"],1):
         figure, ax = _canvas(title, "Protein hypothesis %d" % number)
         left = max(0,protein["junction_in_translated_cds"][0]//3-24)
         right = min(len(protein["amino_acids"]),left+49)
@@ -121,11 +122,11 @@ def fusion_figures(result, references=(), transcript_names=None):
         ax.set(xlim=(left,max(left+1,right+1)),ylim=(0,2),xlabel="Protein offset (amino acids; local donor-junction window)")
         _side_note(ax, "%s\n%s\n%d junction peptides\n%s" %
                    (status, "Observed CDS start" if protein["complete_5prime"] else "Conditional partial CDS",
-                    len(protein["junction_peptides"]), "Ends at stop" if protein["ends_with_stop_codon"] else "Sequence ends first"))
+                    len(protein["candidate_peptides"]), "Ends at stop" if protein["ends_with_stop_codon"] else "Sequence ends first"))
         figure.text(.19,.065,"No proteome-novelty or protein-expression claim. Alternative hypotheses are not ranked.",fontsize=10,color=GRAY)
         yield "protein-%d" % number, figure
 
-        peptides = protein["junction_peptides"]
+        peptides = protein["candidate_peptides"]
         if not peptides:
             continue
         # One first window per peptide length keeps the panel readable;

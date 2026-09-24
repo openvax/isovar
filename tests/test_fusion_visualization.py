@@ -21,13 +21,13 @@ def test_fusion_panels_use_actual_boundaries_and_do_not_invent_proteins(tmp_path
     assert any("Donor-name" in t.get_text() for t in panels["donor-context"].axes[0].texts)
     assert len(panels["donor-context"].axes[0].patches)==1
     result=reconstruct_fusion(fusion,(),reads)
-    assert result["status"]=="unresolved_frame"
+    assert result["status"]=="unresolved"
     assert set(dict(fusion_figures(result,refs)))=={"junction","donor-context","acceptor-context"}
     directory=save_fusion_figures(result,tmp_path,iter(refs),dpi=80)
     assert {p.stem for p in directory.glob("*.png")}=={"junction","donor-context","acceptor-context"}
     assert len(list(directory.glob("*.svg")))==3
     assert (directory/"all-figures.pdf").read_bytes().startswith(b"%PDF")
-    assert json.loads((directory/"evidence.json").read_text())["translations"]==[]
+    assert json.loads((directory/"evidence.json").read_text())["paths"][0]["translations"]==[]
     assert len(json.loads((directory/"reference-models.json").read_text())["references"])==2
     with pytest.raises(FileExistsError):
         save_fusion_figures(result,tmp_path,refs,dpi=80)

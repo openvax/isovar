@@ -72,10 +72,6 @@ Both `junctions[].direct_cell_umi_support` and
 | `independent_molecules` | Always null; not established by this policy |
 | `status_counts` | Segment counts for each resolution status |
 
-The older `direct_molecules` and ORF `molecule_labels` fields are aliases of
-`complete_label_count`, so they are null for partially tagged or unknown-library
-inputs. Prefer the structured evidence and its explicit unit.
-
 `cell_umi_evidence.segments` records consulted segment identities, scope,
 selected labels, UMI tags, XM semantics and reasons. Its label key is the tuple
 `(source, sample_id, header_sample, library, read_group, basis,

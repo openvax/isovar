@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.30.0"
+__version__ = "1.31.0"
 
 
 from .allele_read import AlleleRead
@@ -35,7 +35,7 @@ from .variant_sequence import VariantSequence
 from .variant_sequence_creator import VariantSequenceCreator
 from .fusion import FusionBlock, FusionBreakpoint, FusionRead, FusionReference, FusionTranscript, reconstruct_fusion
 from .sv_rna import reconstruct_sv_rna
-from .sv_rna_orf_export import export_sv_rna_orfs, write_sv_rna_orfs, normalize_sv_rna_orf_export
+from .sv_rna_orf_export import export_sv_rna_orfs, write_sv_rna_orfs
 from .sv_rna_comparison import compare_sv_rna_predictions
 from .orf_inclusion import annotate_orf_inclusion
 from .orf_start import annotate_orf_start, summarize_orf_start_evidence
@@ -50,7 +50,6 @@ __all__ = [
     "FusionTranscript",
     "reconstruct_fusion",
     "reconstruct_sv_rna",
-    "normalize_sv_rna_orf_export",
     "export_sv_rna_orfs",
     "write_sv_rna_orfs",
     "compare_sv_rna_predictions",

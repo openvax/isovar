@@ -16,7 +16,7 @@ from tests.test_sv_rna import long_read_run
 
 def observation(key, sequence, positions, **kwargs):
     return RnaObservation(key=key, identity=("library", key, 0), records=(key,), sequence=sequence,
-                          positions=tuple(positions), breaks=((5, 6, "split"),), reverse=False,
+                          positions=tuple(positions), breaks=((5, 6, "split"),), reverse_complement=False,
                           query_interval=(10, 10 + len(sequence)), missing_qualities=False,
                           secondary=False, **kwargs)
 
@@ -24,7 +24,7 @@ def observation(key, sequence, positions, **kwargs):
 def inputs(sequence="ATGAAAATGAAATAA"):
     positions = tuple(("1" if q < 6 else "2", q, "+") for q in range(len(sequence)))
     reads = {"full": observation("full", sequence, positions)}
-    junction = dict(query_interval=[5, 6], left=positions[5], right=positions[6], annotated=False,
+    junction = dict(query_interval=[6, 6], left=positions[5], right=positions[6], annotated=False,
                     relation="breakpoint_junction", direct_observations=list(reads))
     return sequence, positions, reads, junction
 
@@ -55,7 +55,7 @@ def insertion_inputs(donor, inserted, acceptor):
     positions = (tuple(("1", q, "+") for q in range(len(donor))) + (None,) * len(inserted)
                  + tuple(("2", q, "+") for q in range(len(acceptor))))
     reads = {"full": replace(observation("full", sequence, positions), breaks=((left, right, "split"),))}
-    junction = dict(query_interval=[left, right], left=positions[left], right=positions[right],
+    junction = dict(query_interval=[left + 1, right], left=positions[left], right=positions[right],
                     annotated=False, relation="breakpoint_junction", direct_observations=["full"])
     return sequence, positions, reads, junction
 
@@ -114,7 +114,7 @@ def test_insertion_ending_witness_requires_the_same_observation_to_link_the_othe
     support = candidate["full_interval_support"]
     assert support["fragments"] == 2  # The full read and first, junction-linked copy only.
     assert all(w["observation_interval"] == [0, end] for w in support["witnesses"])
-    assert all(w["junction_links"] == [dict(junction_query_interval=[44, 57], observation_interval=[0, 58])]
+    assert all(w["junction_links"] == [dict(junction_query_interval=[45, 57], observation_interval=[0, 58])]
                for w in support["witnesses"])
     # A sequence hypothesis remains visible even with no original full witness.
     junction["direct_observations"] = ["orf_only", "tail_error", "wrong_flank"]
@@ -126,7 +126,7 @@ def test_insertion_ending_witness_accepts_homology_assignment_and_reverse_offset
     seq, pos, reads, junction = insertion_inputs("ATG" + "GCC" * 14, "GGCTGAAAAAAA", "CCC" * 8)
     right = junction["query_interval"][1]
     # First two acceptor bases are unplaced by this alternative alignment.
-    reads["full"] = replace(reads["full"], reverse=True, positions=pos[:right] + (None, None) + pos[right + 2:])
+    reads["full"] = replace(reads["full"], reverse_complement=True, positions=pos[:right] + (None, None) + pos[right + 2:])
     candidate, = run(seq, pos, reads, junction, minimum=15)["candidates"]
     witness, = candidate["full_interval_support"]["witnesses"]
     assert witness["observation_interval"] == [0, 51]
@@ -138,7 +138,7 @@ def test_orf_ending_inside_breakpoint_clip_needs_only_the_available_flank():
     seq, pos, reads, junction = insertion_inputs("ATG" + "GCC" * 14, "GGCTGAAAAAAA", "CCC" * 8)
     right = junction["query_interval"][1]
     seq, pos = seq[:right], pos[:right]
-    junction.update(query_interval=[44, right - 1], right=None, relation="breakpoint_clip_partner_unplaced")
+    junction.update(query_interval=[45, right - 1], right=None, relation="breakpoint_clip_partner_unplaced")
     reads["full"] = replace(reads["full"], sequence=seq, positions=pos)
     candidate, = run(seq, pos, reads, junction, minimum=15)["candidates"]
     assert candidate["amino_acids"] == "M" + "A" * 14 + "G"
@@ -150,7 +150,7 @@ def test_one_full_witness_can_retain_links_to_multiple_crossed_junctions():
     sequence = "ATG" + "GCC" * 6 + "TAA"
     positions = tuple((str(min(q // 6, 2)), q, "+") for q in range(len(sequence)))
     read = replace(observation("full", sequence, positions), breaks=((5, 6, "split"), (11, 12, "split")))
-    junctions = [dict(query_interval=[q, q + 1], left=positions[q], right=positions[q + 1],
+    junctions = [dict(query_interval=[q + 1, q + 1], left=positions[q], right=positions[q + 1],
                       annotated=False, relation="event_compatible_junction", direct_observations=["full"])
                  for q in (5, 11)]
     cell_umi = CellUmiEvidence({read.identity: [pysam.AlignedSegment()]}, {}, "sample", "input")
@@ -159,7 +159,7 @@ def test_one_full_witness_can_retain_links_to_multiple_crossed_junctions():
     assert candidate["crossed_junctions"] == [0, 1]
     assert candidate["full_interval_support"]["fragments"] == 1
     witness, = candidate["full_interval_support"]["witnesses"]
-    assert [link["junction_query_interval"] for link in witness["junction_links"]] == [[5, 6], [11, 12]]
+    assert [link["junction_query_interval"] for link in witness["junction_links"]] == [[6, 6], [12, 12]]
 
 
 def test_competing_starts_and_partial_terminal_codon_are_preserved_and_limit_is_explicit():
@@ -193,10 +193,10 @@ def test_partial_reads_conflicting_placements_and_different_unplaced_bases_are_n
     assert candidate["ends_with_stop_codon"] and candidate["full_interval_support"]["fragments"] == 0
 
 
-def test_reverse_observation_offsets_and_library_scoped_molecule_labels():
+def test_reverse_observation_offsets_and_library_scoped_cell_umi_labels():
     seq, pos, reads, junction = inputs()
     for key, rg in (("same", "library"), ("other", "another-library")):
-        reads[key] = replace(reads["full"], key=key, identity=(rg, key, 0), reverse=True,
+        reads[key] = replace(reads["full"], key=key, identity=(rg, key, 0), reverse_complement=True,
                              missing_qualities=True, sequence="CCC" + seq, positions=(None,) * 3 + pos,
                              query_interval=(10, 28))
     junction["direct_observations"] = list(reads)
@@ -209,7 +209,7 @@ def test_reverse_observation_offsets_and_library_scoped_molecule_labels():
                      cell_umi=CellUmiEvidence(groups, header, "sample", "input"))["candidates"]
     support = candidate["full_interval_support"]
     assert support["segments"] == support["fragments"] == 3
-    assert support["molecule_labels"] == 2 and support["missing_quality_segments"] == 2
+    assert support["cell_umi_support"]["complete_label_count"] == 2 and support["missing_quality_segments"] == 2
     assert all(w["original_query_interval"] == [10, 25] for w in support["witnesses"])
 
 
@@ -221,7 +221,7 @@ def test_reference_start_classification_compares_same_atg_without_claiming_initi
     candidate, = run(seq, pos, reads, junction, references=references)["candidates"]
     assert candidate["annotated_start"] and not candidate["initiation_observed"]
     first, second = candidate["reference_comparisons"]
-    assert first["start_kind"] == "annotated_start" and second["start_kind"] == "five_prime_UTR"
+    assert first["start_kind"] == "annotated_CDS_start" and second["start_kind"] == "five_prime_UTR"
     assert first["amino_acids"] == "MKP" and first["shared_prefix_amino_acids"] == 2
     assert first["differs_from_reference_orf"]
     assert candidate["start_evidence"]["status"] == "ambiguous"
@@ -279,7 +279,7 @@ def test_original_pacbio_upstream_orf_has_full_span_support_and_retains_tags(tmp
                for a in start["assessments"])
     assert exported["occurrences"][0]["start_evidence"] == start
     support = candidate["full_interval_support"]
-    assert support["molecule_labels"] is None and support["missing_quality_segments"] == 15
+    assert support["cell_umi_support"]["complete_label_count"] is None and support["missing_quality_segments"] == 15
     assert support["cell_umi_support"]["status_counts"] == {"unresolved_xm": 15}
     record_ids = {rid for w in support["witnesses"] for rid in result["observations"][w["observation"]]["records"]}
     evidence = [result["record_evidence"][rid] for rid in record_ids]

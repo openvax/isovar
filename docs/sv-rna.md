@@ -1,649 +1,464 @@
 # RNA paths around a nominated SV
 
-`isovar sv-rna` / `reconstruct_sv_rna` reconstructs event-directed RNA paths
-from an indexed BAM, upstream of the [supplied-fusion
-workflow](fusion.md). It is the first slice of
-[#305](https://github.com/openvax/isovar/issues/305) and
-[#306](https://github.com/openvax/isovar/issues/306). No predicted fusion cDNA
-is required. The output is **exploratory**: it is not the validated
-supplied-fusion result, and it is not passed to Vaxrank's fusion input.
+`isovar sv-rna` asks: *given a structural variant called from DNA, what RNA
+sequences do the reads actually show around it, and could any of them encode a
+new protein?* It searches an indexed RNA BAM around the two breakpoints,
+assembles the RNA paths the reads support, and reports each path's junctions,
+reading frames and candidate proteins, together with the evidence behind them.
+
+Use it when you have an SV call but not a fusion transcript. If you already have
+a sequence-resolved fusion transcript from another tool, validate it with
+[`isovar fusion`](fusion.md) instead. Both commands produce the same
+[RNA path format](#the-rna-path-format), so downstream code can read either.
+
+The output is **exploratory**. It shows what the RNA supports; it does not prove
+the SV causes the RNA, that a protein is made, or that any peptide is presented.
+
+## Quick start
 
 ```sh
 isovar sv-rna --bam rna.bam --input event.json --output candidates.json
 ```
 
-The input JSON has `event_id`, `reference_name`, `sample_id`, `donor` and
-`acceptor` (`FusionBreakpoint`), optional extra `regions`
-(`[contig, start, end]`), `references` (`FusionReference`, all candidate models)
-and non-empty `event_provenance` (the DNA call and its somatic-status basis).
-`isovar.sv_rna.sv_rna_input_from_dict` decodes it for the API. Read filters, soft clips and
-read-end trimming are the usual RNA options (`--min-mapping-quality`,
-`--use-soft-clipped-bases`, `--read-end-profile`, ...).
+`event.json` names the event and the transcript models to compare against:
 
-For an intergenic adjacency, supply `"references": []` when there are no
-applicable transcript models. Observed junction sequences and exploratory
-ATG-to-stop ORFs can still be recovered. The result and exported ORFs carry
-`reference_models_unavailable`; annotated splice, start and frame assessment
-is unavailable. Event linkage means compatibility with the nominated DNA
-adjacency, and cannot exclude ordinary splicing without annotation. Missing
-models do not establish peptide novelty or translation, and do not authorize
-filling unobserved RNA sequence from the genome.
-
-Coordinates follow `fusion.md`: 0-based, interbase; a breakpoint is the retained
-partner's boundary, oriented so the donor is 5'. Each path base has one
-`(contig, position, strand)` placement in path orientation, or none.
-
-## What it does
-
-1. **Retrieve.** Search both breakpoint neighbourhoods (`--breakpoint-window`,
-   default 1000 bases each side) first. Distinct windows take turns admitting
-   new records, even when they overlap, so depth at the first breakpoint cannot
-   consume the entire budget before the second is sampled. Recover their
-   observed SA and mate records next, following links recursively and keeping
-   only records of the requesting fragments. Then spend the remaining budget
-   on reference exons, extra regions and their links. A planned but unvisited
-   region never suppresses a linked-record lookup. An SA tag is a retrieval
-   hint, never an alignment; unplaced unmapped mates and genome-wide alternative
-   placements are not assessed. Record, query and path limits are reported in
-   `limitations`, never silent. A limit may still truncate breakpoint evidence.
-   `acquisition.searched_regions` retains the requested regional scope;
-   `region_queries` and `hop_queries` record which queries were fetched and
-   exhausted (`complete`), including the priority of each regional query.
-2. **Observe.** Each sequenced segment (read group, QNAME, mate) becomes one
-   query path. Supplementary records are joined only when the existing
-   reciprocal SA validator links them; alternative/secondary placements stay
-   separate observations. Bases come from actual CIGARs in original query
-   coordinates. Hard-clipped bases stay unavailable. Bases that two pieces
-   place differently (junction homology) stay in the sequence but unplaced.
-   A CIGAR `N` gap shorter than 21 bases is a deletion, not an intron
-   (STAR's `alignIntronMin`). Missing QUAL is kept unless `--require-base-qualities`.
-3. **Seed.** Paths start at unannotated junctions: CIGAR `N` or supplementary
-   splits between consecutive placed bases. With soft clips enabled, unaligned
-   sequence exactly at a breakpoint also seeds a path. Joins at or across the
-   event (breakpoint, event-compatible, clips) may rest on one fragment.
-   Splice-ambiguous and regional joins are queued and seeded by support, if the
-   path budget allows. They need `--min-alternative-fragments` (default 2),
-   counted over every read that makes the join. Placements of the adjacency
-   (other junction-base assignments, and near-misses within
-   `--max-breakpoint-shift`) are ordered by support. The strongest seeds;
-   another seeds only if it is itself supported (next item). A base variant
-   of one placement is pruned only against a supported best. Unannotated
-   ordinary-splice or regional joins within `--annotated-junction-tolerance`
-   (5) bases of an annotated junction are aligner wobble and seed nothing.
-4. **Extend.** Paths grow 5' and 3' through exact overlaps (`--min-overlap`,
-   default 30) that share a placed base with the path and never conflict in
-   placement. There is no sequence-only joining across repeats and no bridging of
-   unobserved mate inserts. At a disagreement, an alternative is pruned when
-   another has at least `--min-alternative-fragments` fragments and it has
-   less than `--min-alternative-fraction` (0.1) of the best. A base or
-   small-indel alternative (placed within 20 bases of the best, or unplaced)
-   also needs `--min-local-variant-fraction` (0.5) of the best. Systematic
-   long-read errors, often 20–40% of reads, therefore do not fork paths, while
-   a heterozygous allele does. Other alternatives (splice choices) fork. Pruned
-   branches are listed. Once most of a step's reads have ended, the path end is
-   re-queried, so one long read cannot decide the rest of a path alone.
-   `--no-assembly` uses only reads that span the seed junction.
-   With assembly enabled, both regional and seed-spanning reconstructions are
-   considered; a seed-spanning path contained in a regional path is collapsed
-   into it. This preserves witnessed flanks when competing regional extensions
-   block their assembly (for example at a repeated genomic placement), without
-   suppressing a regional isoform supported by shorter reads. Each path lists
-   its `reconstruction_scopes` (`regional`, `seed_spanning`); containment adds
-   a scope without counting its reads again. The same support thresholds and
-   global path budget apply to both scopes. A retained path can still be a
-   consensus: full-ORF witnesses remain a separate evidence measure.
-5. **Translate.** A frame is transferred from each exact, collinear CDS match
-   of at least `--min-anchor-bases` (18) and read downstream through observed
-   sequence to the first stop or path end. The continuation need not match any
-   annotated ORF. A substitution keeps the frame. A reading is reported only when
-   it leaves its model at a reported junction or breakpoint clip. Readings
-   leaving at an indel, a sequencing error or another model's splice junction
-   are counted in `readings_departing_elsewhere`. Identical proteins from
-   several models are grouped with every model's frame evidence.
-6. **Explore other starts.** Each path also has `exploratory_orfs`, separate
-   from `translations` and `frame_status`. It enumerates observed ATGs whose
-   potential translation crosses an event-related junction, including
-   read-through-ambiguous joins and breakpoint clips. The default minimum is
-   15 aa (`--min-orf-amino-acids`); at most 100 candidates per path are retained
-   in start-offset order (`--max-orf-candidates`). `candidate_limit_reached`
-   reports truncation. Non-ATG initiation and starts outside the retained RNA
-   are not searched. A path end without a stop remains partial.
-
-   The ATG-to-stop interval may cross either boundary of unplaced junction
-   sequence: `donor_to_unplaced` or `unplaced_to_acceptor`, or both. Adjacent
-   placed flanks are `flank_to_flank`. `junction_crossings` records these
-   classes and `termination_only` when only the stop codon crosses a boundary;
-   such a candidate need not contain a new amino-acid sequence. Codons may
-   straddle boundaries. ORFs wholly within one flank or the unplaced interval
-   are excluded. Unplaced bases can be insertion, homology or clipped sequence;
-   these classes do not verify a DNA insertion. Translation continues to use
-   the [standard genetic code](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG1).
-
-   `start_context` reports the observed flanks, including the −3 and +4 bases
-   when present. This is not a Kozak score or an initiation prediction. Exact
-   ATG placements are compared with every supplied reference model and labeled
-   annotated start, 5′ UTR, UTR/CDS boundary, internal CDS, 3′ UTR or noncoding
-   transcript.
-   `annotated_start` means at least one supplied model annotates that codon;
-   no matching model does not establish that a start is globally unannotated.
-   `reference_comparisons` translates from the same reference ATG and reports
-   its shared amino-acid prefix. For a partial RNA candidate, a difference
-   from the complete reference ORF may only reflect truncation. Global peptide
-   novelty and protein expression are not established.
-
-   `start_evidence` adds transcript-specific origin tiers: exact annotated CDS
-   ATG (priority 1), 5′-UTR ATG (2), splice-linked intronic start (3), or
-   sequence-only start (4). The latter retains intronic, antisense, noncoding,
-   junction-created and unplaced subtypes. Priority 3 requires qualified
-   same-observation inclusion evidence (below). Annotation never proves initiation.
-   Overlapping models with different tiers remain ambiguous, with null overall
-   priority; each model's assessment is retained. For example, TPST1's 30-aa
-   candidate is a 5′-UTR start in ENST00000304842 but also overlaps supplied
-   noncoding isoforms, so it has no single isoform-independent priority.
-   `annotate_orf_start` exposes this annotation independently of reconstruction;
-   `summarize_orf_start_evidence` applies the same conservative rule across
-   occurrences. See the [tier definitions](orf-start-evidence.md).
-
-   Each candidate's `full_interval_support` requires an exact complete
-   nucleotide witness, including the stop when present, from a built
-   observation that makes a crossed junction. Placements must be compatible,
-   with shared anchors on both available sides. If an ORF starts or stops
-   inside unplaced junction sequence, the same observation must also match
-   the sequence and compatible placements between that ORF and the other
-   available flank. `witnesses[].junction_links` records each supported
-   junction's path query interval and this potentially larger observation
-   interval, separately from the ORF's own interval. Alignment homology may
-   require looking beyond the first flank base for a shared anchor. Mismatches
-   in this extra linkage interval conservatively exclude a witness, even if
-   its ORF bases match. No pair of partial reads is
-   counted as one full witness. Counts distinguish segments, RG/QNAME fragments
-   and RG/cell/UMI labels within this input source; these labels are not proof
-   of independent molecules. Missing tags yield null molecule counts. Witness
-   query intervals and observation IDs link to the original records. Counts
-   cover built direct observations, not every unbuilt read beyond resource
-   limits. A path stop with zero witnesses is still only assembled sequence.
-
-## Filterable read evidence
-
-`record_evidence` is keyed by the same IDs as `original_records` and separates
-MAPQ, QUAL availability, query/aligned-query lengths and selected native tags.
-`alignment_metadata` retains RG and PG header records once per result, including
-platform, library and basecaller/model provenance when supplied by the producer.
-Absent tags and MAPQ 255 are null; zero remains zero. Missing QUAL stays
-optional (`--require-base-qualities` opts out). Original SAM retains every tag
-and the actual qualities, including bases outside the candidate interval.
-
-| Field | Meaning and use |
-|---|---|
-| `mapping_quality` | Confidence in alignment placement; existing `--min-mapping-quality` filter |
-| `mapping_quality_raw`, `sam_flag` | Original MAPQ (including 255) and SAM flags |
-| `base_qualities_available` | Whether per-base Phred qualities are stored; not the same as MAPQ |
-| `original_base_qualities_tag_present` | OQ exists; it is not automatically substituted for QUAL |
-| `qs`, `dx`, `pi`, `sp` | ONT mean read Q, duplex status, split-read parent and signal offset; dx is 1 for duplex, 0 for unpaired simplex, -1 for a simplex parent of duplex |
-| `NM`, `mg` | Edit distance and gap-compressed alignment identity (%); true variants contribute to differences |
-| `AS`, `NH`, `HI`, `nM` | Alignment score, alignment multiplicity/index and STAR mismatch count |
-| `ms`, `s1`, `s2`, `dv`, `de`, `rl`, `tp` | minimap2 alignment/chaining scores, divergence, repetitive-seed length and alignment type |
-| `rm` | pbmm2 trimmed overlapping query matches between alignments |
-| `rq`, `np`, `ec` | Predicted read accuracy, complete insert passes, effective subread coverage when present |
-| `ic`, `is`, `im` | Iso-Seq consensus input count, associated read count, input names; not independent molecule counts |
-| `CB`, `UB`, `XM`, `RG` | Cell, UMI and read-group provenance; XM is raw after Iso-Seq tag and corrected after correct |
-| `rc` | Iso-Seq predicted real-cell flag; neither a malignancy label nor base accuracy |
-| `ff` | PacBio CCS failure bit mask, when available |
-| `CR`, `CY`, `UR`, `UY`, `RX`, `QX`, `MI`, `PG` | Raw cell/UMI bases and qualities, SAM molecular barcode/quality, molecule identifier and producing program |
-
-These are native producer-specific fields, not interchangeable quality scales.
-For example, CCS may use `rq=-1` for unpolished reads. `XM` has an Iso-Seq meaning
-only in an Iso-Seq context. The common evidence extractor is also available as
-`isovar.read_metadata.record_evidence(read)` for ordinary pysam records. It reads
-selected tags only, avoiding signal, kinetics and modification arrays.
-
-Small variants and SVs use `ReadCollector.alignment_filter_reason`: unmapped,
-vendor-QC-failed, disallowed duplicate/secondary, missing sequence/name, low
-MAPQ and (when requested) missing QUAL records are excluded before assembly.
-This collection filter compares MAPQ numerically, so it retains 255, which STAR
-uses for unique mappings. Exported `mapping_quality=null` correctly avoids
-claiming Q255; consult the raw value, NH and producer metadata when choosing
-another policy. The splice-inclusion gate below also treats 255 as unique by
-default.
-
-Python callers can apply the same additional policy in either pipeline:
-
-```python
-from isovar import ReadCollector
-
-# An example alignment-multiplicity policy: explicitly retain missing NH.
-collector = ReadCollector(
-    read_filter=lambda read: not read.has_tag("NH") or read.get_tag("NH") == 1)
+```json
+{
+  "event_id": "GENE1--GENE2",
+  "reference_name": "GRCh38",
+  "sample_id": "tumor-1",
+  "donor":    {"contig": "1", "position": 2500, "strand": "+"},
+  "acceptor": {"contig": "2", "position": 5500, "strand": "+"},
+  "regions": [["1", 2400, 2600]],
+  "references": [
+    {"transcript_id": "ENST00000000001", "reference_name": "GRCh38", "annotation": "Ensembl 115",
+     "contig": "1", "strand": "+", "exons": [[1000, 1100], [2000, 2150]],
+     "sequence": "GAGGCACGACCA...", "cds_start": 20, "cds_end": 200}
+  ],
+  "event_provenance": {"caller": "manta", "version": "1.6", "somatic_basis": "absent in matched normal"}
+}
 ```
 
-The predicate receives each eligible original record before mate merging or SV
-segment construction. Exceptions propagate. SV output records whether a custom
-filter was used; record its configuration in `event_provenance` for reproduction.
-Default collection does not call `record_evidence` or impose new tag thresholds.
-Filters can similarly inspect `rq` or `qs` with a stated missing-value policy and
-known producer. They must not infer a base-specific Phred score from these tags.
+- **`donor` and `acceptor`** are the breakpoints: the last retained base boundary
+  of each partner, oriented so the donor is 5′ of the join. Coordinates are
+  0-based.
+- **`references`** lists every transcript model that might be involved, with
+  exons, spliced sequence and CDS. Include noncoding isoforms too, so they can
+  compete. Use `"references": []` for an intergenic event. Junctions and
+  start-codon ORFs are still found, but annotated frames and splice assessment
+  are unavailable, and the result says `reference_models_unavailable`.
+- **`regions`** (optional) adds search intervals. Both breakpoint neighbourhoods
+  and the reference exons are always searched.
+- **`event_provenance`** is required and is copied into the output verbatim:
+  record where the DNA call came from and why it is considered somatic.
 
-For example, downstream code can inspect each full-interval witness's
-`observations[id].records`, join those IDs to `record_evidence`, and require a
-chosen MAPQ or `tags.mg` threshold. Missing values need an explicit retention
-policy. Filtering witnesses requires recounting distinct fragments and labels;
-the original aggregate count does not survive arbitrary filtering. No combined
-weight, synthetic base quality or platform-specific tag threshold is imposed.
-`missing_quality_segments` counts witnesses containing any record without QUAL;
-it is not a per-base quality calculation for the candidate interval.
+Unknown keys are rejected, so a misspelled field fails immediately. From Python,
+`isovar.sv_rna.sv_rna_input_from_dict(data)` decodes the same document and
+`isovar.reconstruct_sv_rna(bam, source=..., **inputs)` runs the reconstruction.
+All the usual RNA read options apply, such as `--min-mapping-quality`,
+`--use-soft-clipped-bases` and `--read-end-profile`.
 
-Definitions: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf),
-[Dorado](https://software-docs.nanoporetech.com/dorado/latest/basecaller/sam_spec/),
-[Dorado duplex](https://software-docs.nanoporetech.com/dorado/latest/basecaller/duplex/),
-[CCS filtering](https://ccs.how/faq/reads-bam.html),
-[minimap2](https://github.com/lh3/minimap2/blob/master/minimap2.1),
-[PacBio BAM](https://pacbiofileformats.readthedocs.io/en/13.1/BAM.html),
-[Iso-Seq](https://isoseq.how/isoseq-tags.html), and
-[pbmm2](https://github.com/PacificBiosciences/pbmm2).
-Initiation context: [Kozak's mutagenesis study](https://pubmed.ncbi.nlm.nih.gov/3943125/).
-The [Sid neo-ORF report](../figures/osteosarc/neo-orfs-and-long-reads.md)
+## Reading the result
+
+Start at the top-level **`status`**:
+
+| `status` | Meaning |
+|---|---|
+| `event_linked_candidates` | At least one path has a junction that reproduces or is compatible with the nominated adjacency |
+| `splice_ambiguous_candidates` | The best paths cross the event, but ordinary splicing or read-through could also explain them |
+| `regional_candidates_only` | Only unannotated junctions near the event that do not cross it |
+| `no_candidate_paths` | No path was assembled. This is not evidence against the event: check `limitations` and `acquisition` |
+
+Then look at each entry in **`paths`**. A path is one assembled RNA sequence:
+
+- **`sequence`** is the RNA sequence in 5′→3′ path orientation.
+- **`junctions`** lists every non-reference join in it, with its `relation` to the
+  event (below) and its direct read support.
+- **`frame_status` and `translations`** give proteins from annotated reading
+  frames carried across the junction.
+- **`exploratory_orfs`** lists start-codon-to-stop ORFs that cross an
+  event-related junction, in any frame.
+- **`end_reasons`** says whether each end of the path is a real end of the
+  observed RNA or was cut short by a limit.
+
+### Junction relations
+
+Each junction's `relation` says how it relates to the nominated event, strongest first:
+
+| `relation` | Meaning |
+|---|---|
+| `breakpoint_junction` | The RNA join reproduces the DNA adjacency, allowing up to `--max-breakpoint-shift` (10) homologous bases to sit on either side |
+| `event_compatible_junction` | Donor side joined to acceptor side, but not exactly at the breakpoint, as when splicing removes an intronic breakpoint |
+| `breakpoint_clip_partner_unplaced` | Unaligned (soft-clipped) sequence starting exactly at a breakpoint; needs `--use-soft-clipped-bases` |
+| `splice_ambiguous_event_junction` | Crosses the event, but splicing or read-through of the unrearranged genome could make the same join (for example adjacent genes on one strand) |
+| `regional_novel_junction` | An unannotated join near the event that does not cross it |
+
+Annotated junctions that happen to cross the event are listed in
+`competing_annotated_junctions` and never become candidates.
+`somatic_causation_proven` is always false: RNA cannot establish that the SV caused the join.
+
+### How to judge a candidate
+
+Isovar reports sequence, frame and event linkage as separate kinds of evidence.
+Check each on its own:
+
+1. **Is the junction real?** `direct_fragments` counts read fragments whose *own*
+   alignment makes that join. One or two fragments is thin evidence.
+   `direct_junction_sequences` shows every junction-base variant seen.
+2. **Is it linked to the event?** Prefer `breakpoint_junction` and
+   `event_compatible_junction`; treat `splice_ambiguous_event_junction` with care.
+3. **Is the wider sequence observed, or assembled?** Bases far from the junction
+   come from overlapping reads (`sequence_evidence`), not necessarily from one
+   molecule. `linked_interval` marks the bases seen in the same reads as the junction.
+4. **Is the protein justified?** `frame_status` below. For an exploratory ORF,
+   `full_interval_support` counts reads that contain the *entire* ORF and a crossed
+   junction; zero means the ORF is only assembled sequence.
+5. **Was anything cut short?** Any reason in `end_reasons` other than
+   `observations_end` means that end was truncated. Also check the top-level
+   `limitations` (for example `record_limit`, `path_limit`).
+
+Counts of segments, fragments, cell/UMI labels and ONT signal groups are
+different units. None of them is a count of independent RNA molecules.
+
+## The RNA path format
+
+`isovar sv-rna` (schema `isovar.sv_rna_candidates.v4`) and `isovar fusion`
+(schema `isovar.fusion_rna.v2`) share these fields. Every interval is 0-based
+and half-open (`[start, end)`) in path coordinates.
+
+| Level | Fields |
+|---|---|
+| Result | `schema`, `event_id`, `reference_name`, `sample_id`, `status`, `paths`, `parameters` |
+| Path | `path_id`, `sequence`, `junctions`, `frame_status`, `translations` |
+| Junction | `query_interval`: the unplaced bases between the two partners (empty for a direct join); `left`/`right`: the placed bases on either side as `[contig, position, strand]`; `unplaced_bases`; `relation`; `direct_fragments` |
+| Translation | `translation_start`, `translation_end`, `amino_acids`, `ends_with_stop_codon`, `complete_5prime`, `transcript_ids`, `frame_evidence`, `candidate_peptides` (`sequence`, `protein_interval`), `translation_observed` (always false) |
+
+`path["sequence"][start:end]` for a junction's `query_interval` equals its
+`unplaced_bases`. Each tool adds fields of its own; see below and the
+[fusion guide](fusion.md).
+
+## Frames and translations
+
+A frame is transferred from each exact, collinear match to an annotated CDS of
+at least `--min-anchor-bases` (18) and read through the observed sequence to the
+first stop or the end of the path. The protein after the junction need not match
+any annotated ORF. A substitution keeps the frame. A reading is reported only
+when it leaves its transcript model at a reported junction or breakpoint clip.
+
+| `frame_status` | Meaning |
+|---|---|
+| `translated` | One protein, and no competing noncoding model shares the frame anchor |
+| `ambiguous` | Several proteins, or a noncoding model shares the anchor: do not pick one silently |
+| `reference_protein_only` | The frame reads straight through the reference; no junction changes it |
+| `unresolved` | Only noncoding or UTR anchors |
+| `departs_elsewhere_only` | A coding anchor exists, but every reading leaves its model at an indel, a sequencing error or another splice before a reported junction (counted in `readings_departing_elsewhere`) |
+| `no_gene_anchor` | No exact coding anchor |
+
+`complete_5prime` is true only when the annotated start codon itself is in the
+RNA; otherwise the protein assumes the annotated upstream frame. Identical
+proteins from several models are grouped, with every model's `frame_evidence`.
+`candidate_peptides` lists windows of `--peptide-lengths` (8–11) absent from the
+supplied reference proteins. That is not proteome-wide novelty.
+
+## Exploratory ORFs
+
+`exploratory_orfs` looks beyond annotated frames. It lists every observed ATG
+whose ORF crosses an event-related junction, in start order. The defaults keep
+ORFs of at least `--min-orf-amino-acids` (15) and at most
+`--max-orf-candidates` (100) per path; `candidate_limit_reached` reports
+truncation. Non-ATG starts are not searched. An ORF without a stop is partial.
+
+For each candidate:
+
+- **`junction_crossings`** says which boundary of the junction the ORF crosses:
+  `donor_to_unplaced`, `unplaced_to_acceptor`, or `flank_to_flank` for a direct
+  join. `termination_only` is set when only the stop codon crosses; such an ORF
+  may add no new amino acids. Unplaced bases can be an insertion, homology or
+  clipped sequence.
+- **`start_context`** shows the bases around the ATG, including −3 and +4. This is
+  not a Kozak score.
+- **`reference_comparisons`** translates from the same ATG in each supplied
+  model and reports the shared amino-acid prefix. A partial RNA ORF can differ
+  from a complete reference ORF simply because it is truncated.
+- **`start_evidence`** ranks where the start lies, per transcript: 1 for the
+  annotated CDS start, 2 for a 5′-UTR ATG, 3 for an intronic ATG with a
+  splice-linked inclusion witness, and 4 for anything else. Models that disagree
+  leave the overall priority null. Priorities are an annotation prior, not a
+  probability of translation. See [ORF start evidence](orf-start-evidence.md).
+- **`full_interval_support`** counts only observations that contain the whole
+  ORF, including its stop when present, and also make a crossed junction, with
+  compatible placements on both sides. Two partial reads never add up to a full
+  witness. `witnesses[]` lists the observation IDs and intervals, including a
+  wider `junction_links` interval when the ORF starts or stops inside unplaced
+  junction bases.
+
+`isovar.annotate_orf_start` and `isovar.summarize_orf_start_evidence` expose the
+start annotation outside reconstruction. The [Sid neo-ORF report](../figures/osteosarc/neo-orfs-and-long-reads.md)
 compares candidate sequence support with what is known about initiation.
 
-## Independent evidence axes
+## Link an intronic start to an observed transcript path
 
-- **Sequence:** each junction's `direct_segments` and `direct_fragments`
-  count segments/templates whose **own** alignment makes that join,
-  however their other bases compare with the assembled consensus. That keeps
-  noisy long reads. Every assignment of the nominated adjacency's junction
-  bases supports its breakpoint junction; `direct_junction_sequences` lists
-  them, including CIGAR insertions from reads beyond the segment build cap.
-  `direct_cell_umi_support` separately reports input/sample/library-scoped
-  cell/UMI labels and unresolved evidence; these are not independent molecules.
-  `direct_molecules` is a deprecated label-count alias, `null` if any supporting
-  segment lacks a resolved label or declared library scope. A read whose build failed (e.g. ambiguous bases) is
-  not counted. `linked_interval` marks path bases co-observed with a novel
-  junction in single reads that observe every path base in between (a read
-  skipping or adding an exon contributes nothing). Intervening unplaced bases
-  must agree in length and sequence too. `sequence_evidence` counts the segments whose
-  overlaps voted for the path. Wider context is an assembly hypothesis, not
-  proven phase. Mates, supplementary pieces and duplicate records of one
-  fragment count once; a QNAME in another read group is another fragment.
-- **Frame:** `frame_status` is `translated` (one protein, no competing model),
-  `ambiguous` (several proteins, or a noncoding model sharing the frame
-  anchor), `reference_protein_only`, `unresolved` (only noncoding or UTR
-  anchors), `departs_elsewhere_only` (a coding anchor whose every reading
-  leaves its model before a reported junction, counted in
-  `readings_departing_elsewhere`) or `no_gene_anchor`. `complete_5prime` is set only when the
-  annotated start codon is observed; otherwise the upstream frame is assumed.
-  `translation_observed` is always false: RNA is not protein evidence.
-- **Event linkage:** every junction has a `relation`. Values, strongest first:
-  - `breakpoint_junction`: the join reproduces the adjacency. Unplaced junction
-    bases may belong to either partner, and an aligner may place up to
-    `--max-breakpoint-shift` (10) homologous bases past one breakpoint (a
-    negative `breakpoint_assignment`; `0 ≤ d + a ≤` unplaced bases). The
-    homology is not checked against a genome. A join just off that diagonal,
-    with one side past a breakpoint, is a noisy event join, not a regional one.
-  - `event_compatible_junction`: donor side to acceptor side, but not at the
-    breakpoint, as when splicing removes an intronic breakpoint.
-  - `breakpoint_clip_partner_unplaced`: unaligned sequence at a breakpoint.
-  - `splice_ambiguous_event_junction`: crosses the event, but ordinary forward
-    splicing or read-through of the reference could make it too. That means
-    any such non-breakpoint join, and every placement of an adjacency whose
-    diagonal includes an annotated exon end joined to an annotated exon start
-    downstream on the same strand (read-through of adjacent genes).
-    `breakpoint_assignment` still shows the match.
-  - `regional_novel_junction`: an unannotated join near the event which
-    does not cross it.
+An ATG inside an intron could be real if the RNA shows that intron segment
+spliced into a mature transcript. Intronic `start_evidence` assessments carry a
+`splice_inclusion` record for this. Starts in other regions have none and keep
+`splice_inference="not_assessed"`. `isovar.annotate_orf_inclusion` runs the same
+assessment on retained observations.
 
-  Annotated junctions which cross the event are listed in
-  `competing_annotated_junctions` and never become candidates.
-  `somatic_causation_proven` is always false.
+An intronic start reaches priority 3 only when one full-ORF witness links it to
+both the event and a qualifying CIGAR `N` splice:
 
-Top-level `status` is `event_linked_candidates` (one of the first three
-relations), `splice_ambiguous_candidates`, `regional_candidates_only` or
-`no_candidate_paths`. The output schema is `isovar.sv_rna_candidates.v3`
-(see the [changelog](../CHANGELOG.md) for changes from v1 and v2). A missing
-path is not evidence against the event. Peptides are windows absent from the
-supplied reference proteins only; this is not proteome novelty, presentation
-or immunogenicity. Results retain the SAM text of cited records, excluded-record
-reasons, segment-path notes and effective parameters: `parameters` holds the
-reconstruction thresholds, `parameters.read_collection` every read-collection
-setting (including trimming and the SHA-256 of each read-end profile) and
-`parameters.inclusion` the splice-inclusion gates.
+- **Cryptic donor or acceptor use**: the start's own aligned segment joins an
+  annotated exon boundary. Two such joins on one observation suggest exonization.
+- **Retained intron**: the segment spans both exon/intron boundaries, the same
+  observation has another annotated splice, and other reads splice this intron out.
+- **Rearranged intronic segment**: joined to an annotated partner exon that has its
+  own linked annotated splice. A rearrangement alone does not prove maturation.
 
-Each path's `end_reasons` gives, for its `5prime` and `3prime` ends, why
-extension stopped: `observations_end` when no observation extends it further,
-`repeated_genomic_position` when the next base would revisit a placement, or
-`path_limit`. A path reached from several seeds or scopes can list more than
-one reason for an end; any reason other than `observations_end` means that end
-was truncated, not reached. Records without a read name are skipped and
-reported as `unnamed_records_skipped`.
+The linked interval must match the original read sequence and placements, with:
+- at least `--inclusion-min-splice-anchor-bases` (8) bases on each side of the splice;
+- MAPQ of at least `--inclusion-min-mapping-quality` (20);
+- every available base at `--inclusion-min-base-quality` (Q20) or higher.
 
-## Read lineage
+The same MAPQ gate selects the competing splices used for intron retention.
+Missing base qualities fail the gate. MAPQ 255 counts as a unique alignment, as
+STAR writes it. For aligners that use 255 as the SAM specification's
+"unavailable", pass `--inclusion-mapq-255-unavailable`; 255 then fails the gate,
+and `limitations` lists `mapq_255_excluded_from_inclusion`. The gates used are
+recorded in `parameters.inclusion` and in each assessment's `thresholds`.
+Matched-normal comparison and splice-predictor scores are not performed and are
+reported as `not_assessed`.
 
-`junctions[].direct_read_lineage` and exploratory ORF
-`full_interval_support.read_lineage` report Dorado sequencing signal ancestry
-among the respective supporting segments. `segment_ids` makes the denominator
-explicit; `resolved_signal_groups` counts only resolved groups, and
-`unresolved_segments`/`status_counts` expose missing or conflicting evidence.
-`read_lineage.segments` at the top level records each consulted segment's
-producer, status, `pi` parent, `dx` class, `sp` offset and resolved signal group.
+## How the reconstruction works
 
-Explicit Dorado split children can share a signal group; duplex parents and
-consensuses remain unresolved because `dx` does not provide their correspondence.
-Unknown producers also remain unresolved. This does not change segment/fragment
-counts, reconstruction thresholds, alignment compatibility, or full-ORF witness
-requirements. Signal groups are **not independent molecule counts**. They are
-scoped to one input and one read group; existing barcode/UMI label fields remain
-separate. See the [lineage contract and primary sources](ont-read-lineage.md).
+1. **Retrieve.** Search both breakpoint neighbourhoods (`--breakpoint-window`,
+   1000 bases each side) first. The two windows take turns admitting records, so
+   depth at one breakpoint cannot use up the budget before the other is sampled.
+   Next, follow the reads' supplementary (`SA`) and mate locations, then the
+   reference exons and extra regions. SA tags are only retrieval hints. Unmapped
+   mates and genome-wide alternative placements are not examined. `acquisition`
+   records every query and whether it finished.
+2. **Build observations.** Each sequenced segment (read group, read name, mate)
+   becomes one observation. Supplementary pieces are joined only when their SA
+   tags reciprocally confirm the same path; secondary placements stay separate.
+   Hard-clipped bases are unavailable. Bases two pieces place differently
+   (junction homology) are kept but unplaced. A CIGAR `N` shorter than 21 bases is
+   treated as a deletion (STAR's `alignIntronMin`).
+3. **Seed.** Paths start at unannotated junctions: CIGAR `N` gaps or
+   supplementary splits. With `--use-soft-clipped-bases`, clipped sequence exactly
+   at a breakpoint also seeds. Joins at or across the event may rest on one
+   fragment. Other joins need `--min-alternative-fragments` (2). Joins within
+   `--annotated-junction-tolerance` (5) bases of an annotated junction are
+   treated as aligner wobble.
+4. **Extend.** Paths grow in both directions through exact overlaps of at least
+   `--min-overlap` (30) bases that share a genomic placement with the path. Where
+   reads disagree:
+   - An alternative is pruned when the best has at least
+     `--min-alternative-fragments` fragments and the alternative has under
+     `--min-alternative-fraction` (0.1) of its support.
+   - A base or small-indel alternative also needs `--min-local-variant-fraction`
+     (0.5) of the best. This way systematic long-read errors (often 20–40% of reads)
+     do not fork paths, but a heterozygous allele does.
+   - Real alternatives, such as splice choices, fork into separate paths.
 
-## Cell/UMI evidence
+   Pruned branches are listed in `pruned_branches`. `--no-assembly` uses only
+   reads that span the seed junction. With assembly, paths built from regional
+   overlaps and from junction-spanning reads alone are both kept
+   (`reconstruction_scopes`), so a witnessed flank is not lost when regional
+   extension goes elsewhere.
+5. **Translate and explore**, as described above.
 
-Junction `direct_cell_umi_support` and exploratory ORF
-`full_interval_support.cell_umi_support` use the same aggregation policy on
-their own supporting segments. The former includes direct junction support;
-the latter requires exact full-interval witnesses. A read which spans only a
-junction cannot supply full-ORF evidence.
+Per-base observations are built lazily, and `--max-extension-segments` (200)
+bounds the reads built to extend one path end. On Sid ONT T1, TPST1–CRCP (8,000
+records) takes about 5 s and 0.3 GB, and the 65,000-record ATP5MG–KMT2A region
+takes about 45 s and 1 GB.
 
-`observed_labels` counts distinct reported label pairs within their declared
-scope. `segment_ids`, `unresolved_segments`, `unknown_library_segments` and
-`status_counts` expose the denominator and its limitations. `complete_label_count`
-is `null` unless every witness has a label and known library scope. The existing
-`direct_molecules` and `full_interval_support.molecule_labels` scalars alias
-this complete label count. `independent_molecules` remains `null`: label
-collisions and producer-specific clustering cannot be resolved by string equality.
-No reconstruction threshold, sequence vote, raw fragment count or ONT signal
-group count uses these labels.
+## Options
 
-The top-level `cell_umi_evidence` contains the versioned policy and each consulted
-segment's scope, label, contributing UMI tags, XM semantics and resolution status.
-Visible mates are consulted for conflicts even when only one mate supports the
-reported interval. See [the scope and tag contract](cell-umi-evidence.md).
+| Option | Default | What it controls |
+|---|---|---|
+| `--breakpoint-window` | 1000 | Bases searched on each side of each breakpoint |
+| `--max-breakpoint-shift` | 10 | Homologous junction bases allowed past a breakpoint |
+| `--min-overlap` | 30 | Exact overlap needed to extend a path |
+| `--min-anchor-bases` | 18 | Exact CDS match needed to transfer a frame |
+| `--min-alternative-fragments` | 2 | Support needed to seed an unattributed join or prune an alternative |
+| `--min-alternative-fraction` | 0.1 | Alternatives below this fraction of the best are pruned |
+| `--min-local-variant-fraction` | 0.5 | Base/small-indel alternatives also need this fraction of the best |
+| `--annotated-junction-tolerance` | 5 | Unannotated joins this close to annotated ones are wobble |
+| `--no-assembly` | off | Only use reads spanning the seed junction |
+| `--max-records`, `--max-queries`, `--max-paths` | 10000, 1000, 100 | Resource limits; reaching one is reported in `limitations` |
+| `--max-extension-segments` | 200 | Reads built to extend one path end |
+| `--peptide-lengths` | 8 9 10 11 | Candidate peptide lengths |
+| `--min-orf-amino-acids`, `--max-orf-candidates` | 15, 100 | Exploratory ORF length and per-path cap |
+| `--inclusion-min-splice-anchor-bases`, `--inclusion-min-base-quality`, `--inclusion-min-mapping-quality` | 8, 20, 20 | Splice-linked inclusion gates |
+| `--inclusion-mapq-255-unavailable` | off | Treat MAPQ 255 as unavailable in the inclusion gate |
 
-## Scale
+`parameters` records every threshold used, `parameters.read_collection` every
+read-collection setting (including trimming and read-end profile SHA-256s), and
+`parameters.inclusion` the inclusion gates. Records without a read name are
+skipped and reported as `unnamed_records_skipped`.
 
-Per-base observations are built only when needed: for segments whose CIGAR
-(including inserted bases) or split structure crosses the event, then for lazily seeded joins in support
-order, then for reads that extend a path end. Each path end builds at most
-`--max-extension-segments` (200). Reads covering most of the end's window
-(e.g. both sides of a junction) come first, since an extender must overlap it
-all, then those reaching furthest. Reaching the cap is reported as
-`extension_segment_limit`. A queued join builds at most
-that many of its reads (`seed_segment_limit`). Junction counts use a cheap
-CIGAR index and need no building. Placement tuples are shared across reads.
-`observation_counts` reports eligible and built segments. On Sid ONT T1,
-TPST1–CRCP (8k records) takes about 5 s and 0.3 GB, and the 65k-record
-ATP5MG–KMT2A regions about 45 s and 1 GB.
+## Export exploratory ORFs
 
-## Regression data and limits
+Add `--orf-output-prefix sample.orfs` to also write `sample.orfs.json`,
+`sample.orfs.tsv`, `sample.orfs.protein.fasta` and `sample.orfs.nucleotide.fasta`.
+Existing files are replaced. From Python, use `isovar.export_sv_rna_orfs(result)`
+and `isovar.write_sv_rna_orfs(export, prefix)`. The export (schema
+`isovar.sv_rna_orfs.v3`) keeps every hypothesis, including partial ORFs and
+ORFs without a full witness:
 
-Synthetic tests cover both strands, spliced and exact breakpoints, observed
-homology, SA-only claims, distant mates, secondary placements, read-group
-collisions, missing QUAL, assembly on/off, deep noisy coverage, forks,
-limits and noncoding continuations. Real records:
+- Identical sequences found on several paths become one candidate, with each
+  path listed as an occurrence. Synonymous alternatives stay separate.
+- Support is recomputed from the union of original read segments, never by
+  adding path counts.
+- The nucleotide FASTA includes an observed stop codon; the protein FASTA does not.
+- `start_evidence_summary` agrees with every occurrence's start tier, or reports
+  `ambiguous` with no priority.
 
-- **ATP5MG--KMT2A** (Sid, STAR `N` join): reproduces the validated
-  `MAQFVRNLVEKTPALVNG*` translation and its noncoding ambiguity. With soft
-  clips, a read-through TruSeq adapter forms a second path until the explicit
-  adapter profile trims it.
-- **BCR--ABL1** (K562 Iso-Seq): the fixture lacks the SA partners, so no
-  placed junction is invented. With soft clips, each CCS read yields a
-  breakpoint-clip path whose donor-frame peptides include the validated
-  junction peptides.
-- **TPST1--CRCP, FOXO3, PARD3B** (Sid ONT split reads): the breakpoint junction
-  is recovered, including PARD3B's 12-nt insertion. As in the supplied
-  analysis, no coding frame crosses it.
-- **Sid T1 long reads** ([fixtures](../tests/data/fusions/long-read/README.md)):
-  PacBio TPST1–CRCP reads with the 8-nt homology placed on CRCP are the
-  breakpoint junction (20 fragments). Noisy ONT FOXO3 reads directly support
-  their junction (12 fragments, 8 observed CB/UB labels with unknown library scope).
-  The PacBio fixture retains CB/XM, but its disconnected program history does not
-  establish corrected XM labels. Neither fixture supplies a complete molecular
-  denominator. The PacBio ATP5MG–KMT2A join is
-  read-through-ambiguous.
+`uncertainty_flags` lists what to check before using a candidate:
 
-The ATP5MG–KMT2A join appears in every Sid long-read product, always between
-annotated splice sites of adjacent same-strand genes. RNA alone does not
-distinguish that from a rearrangement. Noisy long reads are not
-error-corrected, and isoform alternatives fork paths up to `--max-paths`. Out of scope here:
-whole-genome clip realignment, consensus calling, complex multi-breakend
-events, automatic adapter-profile inference
-([#309](https://github.com/openvax/isovar/issues/309)), translation-initiation
-inference, germline/co-somatic attribution
-([#297](https://github.com/openvax/isovar/issues/297)) and Vaxrank ranking.
+| Flag | Meaning |
+|---|---|
+| `partial_orf` | No stop codon before the path ends |
+| `no_full_fragment_witness`, `single_full_fragment_witness` | Zero or one read contains the whole ORF |
+| `no_annotated_start_in_supplied_models` | No supplied model starts at this ATG |
+| `annotated_path_frame_unresolved_or_ambiguous` | The path's annotated frame is not a single translation |
+| `start_tier_ambiguous` | Transcript models disagree about the start's origin |
+| `path_end_truncated` | A path end was cut short by a limit |
+| `missing_base_qualities` | A witness lacks QUAL |
+| `library_scope_unresolved`, `cell_umi_labels_unresolved`, `signal_lineage_unresolved`, `shared_signal_ancestry` | Label or lineage evidence is incomplete, or witnesses share an ONT signal |
+| `unplaced_junction_sequence`, `termination_only_junction_crossing`, `splice_ambiguous_event_junction`, `breakpoint_clip_partner_unplaced` | The crossed junction has these properties |
+| `orf_candidate_limit_reached` | The path had more ORFs than `--max-orf-candidates` |
+| `rna_strand_unresolved`, `initiation_unobserved`, `translation_unobserved`, `peptide_novelty_unassessed`, `interval_base_quality_unassessed` | Always present: what RNA reconstruction cannot establish |
+| `reverse_complement_support_only`, `mixed_read_orientations` | Orientation of supporting reads relative to the sequencer's input (not RNA strand) |
+| `reconstruction_limit:…`, `nondefault_branch_thresholds` | A search limit was reached, or pruning thresholds were changed |
 
-## Export exploratory ORF sequences
+These are prompts for review, not automatic rejections. IDs are full SHA-256
+hashes of canonical JSON: candidate IDs hash the event, reference, sequence,
+protein and stop status; segment and fragment IDs are scoped to the sample and
+source. Hashes are references, not anonymization.
 
-Add `--orf-output-prefix sample.orfs` to `isovar sv-rna` to write
-`sample.orfs.json`, `.tsv`, `.protein.fasta` and `.nucleotide.fasta` alongside
-the required native `--output` reconstruction. The prefix must not collide
-with the native output. The API equivalents are
-`isovar.export_sv_rna_orfs(result)` and `isovar.write_sv_rna_orfs(export, prefix)`.
-The adapter accepts `isovar.sv_rna_candidates.v2` and `v3` and emits
-`isovar.sv_rna_orfs.v2`. Occurrences carry their path's `end_reasons` (null for
-v2 input), and a truncated path end adds the `path_end_truncated` warning. This is the exploratory SV ATG-ORF portion of
-[#324](https://github.com/openvax/isovar/issues/324); annotated-frame translations
-and ordinary SNV/indel exchange remain separate work.
-
-Every exploratory hypothesis is retained, including partial ORFs and candidates
-with no exact full-interval witness. Nucleotide FASTA includes an observed stop
-codon; protein FASTA excludes the stop. Identical nucleotide, amino-acid and
-stop-completeness tuples within an event/reference are grouped across paths.
-Synonymous nucleotide alternatives remain separate. Path occurrences retain
-start context, reference comparisons, frame status, junction boundary classes
-and exact witness intervals. ORF and witness intervals are zero-based half-open;
-junction query intervals instead identify the two flanking base offsets.
-
-Each occurrence preserves `start_evidence`. `start_evidence_summary` agrees
-with all supplied transcript/path tiers or reports `ambiguous`; missing
-metadata in an older reconstruction reports `unavailable`. Neither case is
-assigned a numeric priority. TSV includes `start_tier_status`, `start_tier`,
-`start_priority`, and per-occurrence `start_evidence_json`. Lower numbers are
-only an annotation prior: compare RNA support and quality separately, and
-inspect ambiguous alternatives instead of sorting null priorities as evidence.
-Tier metadata does not enter sequence IDs or evidence counts.
-
-Candidate IDs hash `[event_id, reference_name, nucleotide_sequence, amino_acids,
-ends_with_stop_codon]`, excluding sample/source. Sequence IDs hash only their
-sequence. All hashes use full SHA-256 of JSON `[domain, value]`, with sorted keys,
-ASCII escaping and no whitespace. Domains/prefixes are `sv_orf`, `nt`, `aa`,
-`segment`, `fragment`, `signal` and `evidence`. Segment and fragment values are
-`[[sample_id, source], identity]`, where identities are respectively
-`[RG, QNAME, segment_bits]` and `[RG, QNAME]`; signal values use the resolved
-signal-group identity in the same input scope. Evidence-set IDs hash sorted
-segment IDs. Event identity is excluded from RNA member IDs so shared reads
-across events can be detected. Different set IDs do not imply disjoint evidence:
-compare member IDs. Different source aliases are not evidence of independence;
-these hashes are not anonymization guarantees.
-
-Support is recomputed from the union of original segment identities, never by
-adding path counts. Cell/UMI and signal-ancestry summaries use the same ledgers
-as reconstruction. Known label/signal counts describe resolved subsets;
-`complete_label_count` is null unless every witness is labeled with known library
-scope. `independent_molecules` is always null. TSV renders unknown numbers as
-blank. Source/library metadata do not establish independent biological samples.
-Raw SAM and read names are not copied into the evidence summaries; witness
-observation IDs resolve against the native reconstruction.
-
-Flags describe unannotated starts, unresolved annotated path frames, partial
-ORFs, absent/single witnesses, missing qualities, unknown library/lineage,
-shared signal ancestry, unplaced bases, stop-only crossings, uncertain event
-linkage and reconstruction/search limits. Nondefault branch thresholds are
-flagged and exact parameters retained. Fragment orientation is partitioned into
-original-query, reverse-complement and mixed, relative to the processed input
-sequence supplied to the aligner, **not established biological RNA strand**.
-Preprocessing may have reversed or normalized this sequence already. Initiation, translation, peptide novelty
-and interval-specific base quality remain unassessed by this adapter. No ranking,
-abundance or presentation inference is performed. Sequence translation follows
-NCBI standard code 1; an ATG-to-stop sequence is a hypothesis, not proof of use.
-
-## Compare predictions with RNA protein hypotheses
+## Compare with predicted proteins
 
 ```sh
 isovar sv-rna --bam rna.bam --input event.json --output candidates.json \
   --predictions predictions.json
 ```
 
-The prediction document supplies matching `event_id` and `reference_name`,
-optional matching `sample_id`, nonempty `source` provenance (annotator, version,
-annotation release and source calls), and a `predictions` list. Each entry has a
-unique `prediction_id`, `amino_acids` (or `null` for unresolved), and optionally
-`complete: true`. Additional effect-class and transcript metadata is retained.
-For example:
+`predictions.json` lists proteins predicted from DNA, for example by Varcode:
 
 ```json
-{"event_id":"event-1","reference_name":"GRCh38",
- "source":{"annotator":"varcode","version":"9.4.2","ensembl_release":95},
- "predictions":[{"prediction_id":"model-1","amino_acids":"MAK","complete":true}]}
+{"event_id": "GENE1--GENE2", "reference_name": "GRCh38",
+ "source": {"annotator": "varcode", "version": "9.4.2", "ensembl_release": 95},
+ "predictions": [{"prediction_id": "model-1", "amino_acids": "MAK...", "complete": true}]}
 ```
 
-`prediction_comparison` retains every event-linked annotated-frame translation
-and exploratory ORF. It distinguishes complete candidates from partial readings
-and exact fragment matches from whole amino-acid sequence equality. A shorter
-complete ORF is not relabeled a matching fragment of a longer predicted protein.
-`no_exact_sequence_match` reports a sequence comparison, not a verdict about
-which isoform or sequencing hypothesis is correct. Unknown predicted proteins
-stay unresolved; purely regional junctions cannot validate the nominated event.
+`event_id` and `reference_name` must match the event. Each prediction needs a
+unique `prediction_id` and `amino_acids`, which may be `null` for an unresolved
+prediction. Other fields are kept.
 
-Alternative path contexts sharing the same nucleotide/protein hypothesis keep
-all path IDs. Full-interval witnesses are deduplicated by original segment and
-query interval within the input source. Junction support is never substituted
-for full-protein support. RNA alone does not establish initiation, protein
-expression, somatic causation or antigen presentation.
+The output's `prediction_comparison` (schema
+`isovar.sv_rna_prediction_comparison.v2`) compares every event-linked
+annotated-frame translation and exploratory ORF with each prediction. Statuses
+distinguish identical sequences from exact fragments and from no match.
+A shorter complete ORF is not called a fragment of a longer prediction.
+Junction-only support is never reported as whole-protein support.
 
-Exploratory ORF comparison reuses the shared ORF exporter, including stable
-candidate IDs, source-scoped witness unions, orientation and uncertainty flags.
-Annotated-frame translations retain their frame evidence separately; junction
-support is never reported as complete protein support.
+## Read evidence you can filter on
 
-## Reproduce the Osteosarc comparison
+`record_evidence` holds, for every cited original record, its MAPQ, whether it
+has base qualities, lengths and selected native tags. `original_records` holds
+the SAM text, and `alignment_metadata` the RG and PG header lines. Absent tags
+and MAPQ 255 are `null` in `mapping_quality`; the raw value is kept.
 
-From a checkout with Varcode >=9.4.2 and Ensembl 95 installed:
+| Field | Meaning |
+|---|---|
+| `mapping_quality`, `mapping_quality_raw`, `sam_flag` | Alignment placement confidence (null for 255), the original value, and SAM flags |
+| `base_qualities_available`, `original_base_qualities_tag_present` | Whether QUAL is stored, and whether an `OQ` tag exists (never substituted for QUAL) |
+| `qs`, `dx`, `pi`, `sp` | ONT mean read Q, duplex status (1 duplex, 0 simplex, −1 simplex parent of a duplex), split-read parent and signal offset |
+| `NM`, `mg` | Edit distance and gap-compressed identity (%) |
+| `AS`, `NH`, `HI`, `nM` | Alignment score, number of alignments and index, STAR mismatches |
+| `ms`, `s1`, `s2`, `dv`, `de`, `rl`, `tp` | minimap2 scores, divergence, repetitive seed length and alignment type |
+| `rm` | pbmm2 trimmed overlapping query matches |
+| `rq`, `np`, `ec` | PacBio predicted accuracy, passes and effective coverage |
+| `ic`, `is`, `im` | Iso-Seq consensus inputs and associated reads (not molecule counts) |
+| `CB`, `UB`, `XM`, `RG`, `rc`, `ff` | Cell barcode, UMI, Iso-Seq XM, read group, Iso-Seq real-cell flag, CCS failure bits |
+| `CR`, `CY`, `UR`, `UY`, `RX`, `QX`, `MI`, `PG` | Raw barcode/UMI bases and qualities, molecular barcode, molecule ID, producing program |
+
+These are native, producer-specific fields, not interchangeable quality scales.
+For example, CCS writes `rq=-1` for unpolished reads. To apply your own policy,
+join each witness's `observations[id].records` to `record_evidence`, filter, and
+recount distinct fragments. Aggregate counts do not survive arbitrary filtering.
+`isovar.read_metadata.record_evidence(read)` extracts the same fields from any
+pysam record. To filter reads before reconstruction, pass a predicate:
+
+```python
+from isovar import ReadCollector
+
+# Keep uniquely aligned reads; keep reads without an NH tag too.
+collector = ReadCollector(read_filter=lambda read: not read.has_tag("NH") or read.get_tag("NH") == 1)
+```
+
+The result records that a custom filter was used; describe it in
+`event_provenance` so the run can be reproduced.
+
+Cell/UMI labels and ONT signal lineage are reported on each junction
+(`direct_cell_umi_support`, `direct_read_lineage`) and each ORF's full-interval
+support. They are described in [cell/UMI evidence](cell-umi-evidence.md) and
+[ONT read lineage](ont-read-lineage.md). Their `complete_label_count` is null
+when any supporting segment lacks a resolved label or library.
+
+## Regression data
+
+Synthetic tests cover both strands, spliced and exact breakpoints, homology,
+SA-only claims, distant mates, secondary placements, read-group collisions,
+missing QUAL, deep noisy coverage, forks and limits. Original reads cover:
+
+- **ATP5MG–KMT2A** (Sid, STAR): reproduces the validated `MAQFVRNLVEKTPALVNG*`
+  translation and its noncoding ambiguity. With soft clips, a read-through TruSeq
+  adapter makes a second path until the adapter profile trims it. In every Sid
+  long-read product this join lies between annotated splice sites of adjacent
+  genes on one strand, so RNA alone cannot tell it from read-through.
+- **BCR–ABL1** (K562 Iso-Seq): without the SA partners no placed junction is
+  invented; with soft clips, breakpoint-clip paths include the validated junction peptides.
+- **TPST1–CRCP, FOXO3, PARD3B** (Sid ONT split reads): the breakpoint junction is
+  recovered, including PARD3B's 12-nt insertion; no coding frame crosses it.
+- **Sid T1 long reads** ([fixtures](../tests/data/fusions/long-read/README.md)):
+  PacBio TPST1–CRCP reads with 8 nt of homology (20 fragments), and noisy ONT FOXO3
+  reads (12 fragments, 8 cell/UMI labels with unknown library scope).
+
+Out of scope: whole-genome clip realignment, consensus calling, complex
+multi-breakend events, automatic adapter-kit inference
+([#309](https://github.com/openvax/isovar/issues/309)), initiation inference,
+germline/co-somatic attribution ([#297](https://github.com/openvax/isovar/issues/297))
+and Vaxrank ranking. Reconciling these paths with Varcode's SV hypotheses is
+[#305](https://github.com/openvax/isovar/issues/305).
+
+## Reproduce the osteosarc comparison
+
+From a checkout with Varcode ≥9.4.2 and Ensembl 95 installed:
 
 ```sh
 python -m examples.osteosarc_sv_validation output-directory
 ```
 
-This reconstructs TPST1–CRCP, PARD3B–CDKN2B-AS1/CDKN2B and FOXO3–STRADA/CCDC47:
-the three strongest named rearrangement leads in the audited catalogue (393,
-48 and 31 reported RNA split reads, respectively, before library/record
-reconciliation). It uses selected original PacBio/ONT records, retains their
-actual support counts, and reannotates the source T1 DNA calls with Varcode.
-These catalogue screening counts are not the fixture's witness counts.
-The runner examines both event orientations. TPST1 and FOXO3 use the pinned
-Ensembl 87 models; PARD3B reuses the released three-fusion audit with Ensembl
-115 models and original ONT T1 records. DNA predictions use Ensembl 95, with
-all identities and reconstruction parameters preserved in the output. Gene-pair labels do
-not assert a coding gene fusion.
+This reconstructs TPST1–CRCP, PARD3B–CDKN2B-AS1/CDKN2B and FOXO3–STRADA/CCDC47,
+the three strongest named rearrangement leads in the audited catalogue, from
+selected original PacBio/ONT records in both orientations, and compares them with
+Varcode's predictions from the T1 DNA calls. It writes one reconstruction and
+comparison JSON per event and orientation plus `protein_comparison.csv`. To use a
+full indexed T1 alignment instead, pass `--bam PATH_OR_URL` (and `--source URL`
+for a local copy). Gene-pair labels do not assert a coding fusion.
 
-For a full indexed **T1** RNA alignment, supply `--bam PATH_OR_URL`; `--source URL`
-records the original identity when the path is a local acquisition. Reconstruction
-queries the nominated regions and reference exons with the ordinary Isovar
-limits. This does not imply a whole-BAM scan or exhaustive unconstrained assembly.
-Inspect each report's `acquisition` and `limitations` before interpreting absence.
+The fixture builders live with the tests: `tests/data/fusions/build_long_read.py`,
+`build_osteosarc.py`, `build_three_fusions.py`, `audit_three_fusions.py`, and
+`validation-events.json` with its generator `build_validation_events.py`.
 
-The output has one complete reconstruction/comparison JSON per event/orientation and a
-`protein_comparison.csv`. Source records, alternative ORFs, frame assumptions,
-full-interval witnesses and unavailable predicted proteins remain inspectable.
-
-Fixture construction is saved with the tests:
-
-- `tests/data/fusions/build_long_read.py` defines indexed acquisition and original
-  long-read selection; `isovar.sid_data` records the acquisition/checksum recipe.
-- `tests/data/fusions/build_osteosarc.py` builds the reference/junction corpus;
-  `build_three_fusions.py` and `audit_three_fusions.py` supply the released
-  PARD3B original-read fixture and reconstruction recipe.
-- `tests/data/fusions/validation-events.json` pins DNA VCF URLs, SHA256 and record
-  IDs. `python -m tests.data.fusions.build_validation_events --snapshot NAME
-  --output events.json` regenerates it through the shared Osteosarc cache;
-  `--source-directory DIR` instead verifies original local VCFs offline.
-- Synthetic comparison inputs and the original-read #337 regression are in
-  `tests/test_sv_rna_comparison.py` and `tests/test_sv_rna_orfs.py`.
-
-The source distribution includes this runner, the small fusion data, and their
-construction/audit scripts; the wheel contains the runtime comparison API and
-shared packaged read bundle. The archive regression reconstructs the original
-PARD3B candidate offline after building and extracting the actual sdist.
-
-## Link an intronic start to an observed transcript path
-
-Reconstruction carries `splice_inclusion` inside each intronic
-`start_evidence.assessments` entry; other regions have none and keep
-`splice_inference="not_assessed"`. The public `annotate_orf_inclusion` function
-performs the same assessment for callers with retained path observations.
-It preserves a strand-aware graph of reference exons, observed contiguous
-runs and their joins, together with all qualifying and failing witnesses.
-
-An intronic start reaches priority 3 only when one full-ORF witness also links
-it to the event and a qualifying CIGAR N splice. Cryptic donor/acceptor use
-must attach the start's own contiguous segment to an annotated exon boundary;
-a splice elsewhere in the read is insufficient. Two such boundaries on the
-same observation identify an exonization hypothesis. A retained intron needs
-both exon/intron boundaries, separate annotated splicing on that same
-observation, and competing CIGAR N evidence for removal of that intron.
-A rearranged intronic segment needs an annotated partner exon and its linked
-annotated splice. Rearrangement alone does not prove transcript maturation.
-
-The linked interval must match the original observed sequence and placements,
-with at least `--inclusion-min-splice-anchor-bases` (8) bases on each side of the
-splice, MAPQ of at least `--inclusion-min-mapping-quality` (20) and every
-available linked base at `--inclusion-min-base-quality` (Q20) or higher; the same
-MAPQ gate selects the competing splices used for intron retention. Missing
-quality cannot satisfy the gate. MAPQ 255 counts as a unique alignment, as STAR
-writes it. For aligners that use 255 as the SAM specification's "unavailable",
-pass `--inclusion-mapq-255-unavailable` (`inclusion_mapq_255_is_unique=False`);
-255 then fails the gate and the result lists `mapq_255_excluded_from_inclusion`
-in `limitations`. The effective gates are
-recorded in `parameters.inclusion` and in each assessment's `thresholds`. These
-are conservative evidence thresholds, not calibrated translation probabilities. Original and reverse-complement processed-read
-orientations receive the same assessment. Witness identifiers resolve to the
-native original records; source-scoped fragments, library-scoped cell/UMI
-labels and signal ancestry remain separate, deduplicated summaries.
-
-Unsupported starts remain available at priority 4 with explicit failure or
-unresolved status. No sequence is filled, no stop is spliced away, and no
-reference frame is transferred to a separate downstream ATG. Annotated-frame
-translations remain separate from ATG hypotheses. Matched-normal comparisons
-and splice-predictor scores are explicitly `not_assessed`: this observed-path
-assessment neither invents alternate-haplotype sequence nor substitutes motif
-predictions for original RNA. RNA strand, initiation, translation and mature
-transcript identity remain unproven.
-
-## ORF warning names and v1 migration (#353)
-
-The v2 export uses these names in JSON and TSV:
-
-| v1 flag | v2 flag | Meaning |
-| --- | --- | --- |
-| `reverse_complement_query_witnesses_only` | `reverse_complement_support_only` | All complete supporting fragments use reverse-complemented processed input-read observations. Never emitted for zero support. |
-| `rna_polarity_unresolved` | `rna_strand_unresolved` | Biological transcription direction has not been established. Emitted for every exploratory candidate, including original-read-only and unsupported candidates. |
-| `mixed_query_orientations` | `mixed_read_orientations` | Support includes both processed-read orientations, either across fragments or within one fragment. |
-
-These are interpretation flags, not quality failures or automatic rejection
-criteria. Reverse-complement support is not inherently defective in ONT or cDNA
-libraries. Genomic mapping strand (SAM FLAG 0x10), processed-read orientation and
-biological RNA strand are different quantities. This exporter does not infer
-protocol-aware RNA strand. Orientation counts, source scoping and template
-deduplication are unchanged.
-
-Schema v2 is explicit in JSON and in the TSV `schema` column. New exports emit
-only the new names. To read stored v1 exports before filtering warnings, use:
-
-```python
-import json
-from isovar import normalize_sv_rna_orf_export, write_sv_rna_orfs
-
-with open("stored.orfs.json") as handle:
-    export = normalize_sv_rna_orf_export(json.load(handle))
-write_sv_rna_orfs(export, "migrated.orfs")
-```
-
-The public normalizer accepts v1/v2, copies without mutating input, maps legacy
-flags once, preserves unknown flags, and leaves sequence/evidence IDs and all
-counts untouched. The writer uses the same migration and always writes v2.
-Stored v1 TSV warning columns can use the mapping above; regenerate TSV from
-the accompanying JSON when available. Consumers supporting both versions must
-normalize before filtering, rather than silently looking only for old names.
-
-See [pysam input sequence orientation](https://pysam.readthedocs.io/en/latest/api.html#pysam.AlignedSegment.get_forward_sequence)
-and [ONT adapter-based orientation](https://epi2me.nanoporetech.com/workflows/wf-single-cell/wf-single-cell-report.html).
-
-Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf),
-[SA tag](https://samtools.github.io/hts-specs/SAMtags.pdf),
-[fusion reconstruction assessment](https://pmc.ncbi.nlm.nih.gov/articles/PMC6802306/)
-and [NCBI translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).
+Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf) and
+[SAM tags](https://samtools.github.io/hts-specs/SAMtags.pdf),
+[Dorado](https://software-docs.nanoporetech.com/dorado/latest/basecaller/sam_spec/),
+[CCS](https://ccs.how/faq/reads-bam.html), [Iso-Seq](https://isoseq.how/isoseq-tags.html),
+[minimap2](https://github.com/lh3/minimap2/blob/master/minimap2.1),
+[pbmm2](https://github.com/PacificBiosciences/pbmm2),
+[fusion reconstruction assessment](https://pmc.ncbi.nlm.nih.gov/articles/PMC6802306/),
+[NCBI translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi),
+[Kozak 1986](https://pubmed.ncbi.nlm.nih.gov/3943125/).

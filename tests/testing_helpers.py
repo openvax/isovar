@@ -47,3 +47,9 @@ def load_bam(bam_path):
 
 def load_vcf(vcf_path, genome=None):
     return varcode.load_vcf(data_path(vcf_path), genome=genome)
+
+
+def fusion_input(fixture):
+    """The isovar fusion input keys of a fixture that also carries audit fields."""
+    from isovar.fusion import FUSION_INPUT_KEYS
+    return {key: value for key, value in fixture.items() if key in FUSION_INPUT_KEYS}

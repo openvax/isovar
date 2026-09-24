@@ -129,7 +129,7 @@ def annotate_orf_start(sequence, positions, start, references):
                 comparisons.append(dict(
                     transcript_id=reference.transcript_id, annotation=reference.annotation,
                     transcript_offset=offset,
-                    start_kind="annotated_start" if region == "annotated_CDS_start" else region,
+                    start_kind=region,
                     annotated_cds_start=reference.cds_start, amino_acids=ref_aa, ends_with_stop_codon=ref_stop,
                     shared_prefix_amino_acids=shared, differs_from_reference_orf=(aa, stop) != (ref_aa, ref_stop)))
         else:

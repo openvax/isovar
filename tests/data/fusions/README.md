@@ -40,7 +40,7 @@ chr17:63743980-63747980, chr2:205308103-205312103, and
 chr9:22005648-22009648. The builder requires the complete cached Ensembl 87
 annotation/cDNA, not a subset registered under a generic genome name.
 
-All five retained windows remain `unresolved_frame` with the supplied
+All five retained windows remain `unresolved` with the supplied
 annotation. TPST1 joins before its annotated CDS start; FOXO3 and PARD3B
 windows have no exact collinear donor transcript match. No repeated PARD3B
 T2 window passes this specific extraction rule; that is not absence of RNA

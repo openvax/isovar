@@ -18,7 +18,8 @@ def _witnesses(sequence, positions, start, end, junctions, observations):
     dna = sequence[start:end]
     witnesses = {}
     for junction in junctions:
-        left, right = junction["query_interval"]
+        # Flanking placed bases around the junction's unplaced interval.
+        left, right = junction["query_interval"][0] - 1, junction["query_interval"][1]
         for key in junction["direct_observations"]:
             observation = observations[key]
             offset = observation.sequence.find(dna)
@@ -43,12 +44,13 @@ def _witnesses(sequence, positions, start, end, junctions, observations):
                     consistent = False
                 if consistent:
                     link_interval = [a + shift, b + shift]
-                    a = (observation.query_interval[1] - offset - len(dna) if observation.reverse
+                    a = (observation.query_interval[1] - offset - len(dna) if observation.reverse_complement
                          else observation.query_interval[0] + offset)
                     witness = witnesses.setdefault((key, offset), dict(
                         observation=key, observation_interval=[offset, offset + len(dna)],
                         original_query_interval=[a, a + len(dna)], junction_links=[]))
-                    link = dict(junction_query_interval=[left, right], observation_interval=link_interval)
+                    link = dict(junction_query_interval=list(junction["query_interval"]),
+                                observation_interval=link_interval)
                     if link not in witness["junction_links"]:
                         witness["junction_links"].append(link)
                 offset = observation.sequence.find(dna, offset + 1)
@@ -57,11 +59,11 @@ def _witnesses(sequence, positions, start, end, junctions, observations):
 
 def _boundaries(junction):
     """Named RNA boundaries; unplaced bases need not be a DNA insertion."""
-    left, right = junction["query_interval"]
-    if right == left + 1 and junction["left"] is not None and junction["right"] is not None:
-        return [("flank_to_flank", right)]
-    return ([("donor_to_unplaced", left + 1)] if junction["left"] is not None else []) + (
-        [("unplaced_to_acceptor", right)] if junction["right"] is not None else [])
+    start, end = junction["query_interval"]
+    if start == end and junction["left"] is not None and junction["right"] is not None:
+        return [("flank_to_flank", end)]
+    return ([("donor_to_unplaced", start)] if junction["left"] is not None else []) + (
+        [("unplaced_to_acceptor", end)] if junction["right"] is not None else [])
 
 
 def exploratory_orfs(sequence, positions, junctions, observations, references, cell_umi_support,
@@ -116,7 +118,7 @@ def exploratory_orfs(sequence, positions, junctions, observations, references, c
         candidates.append(dict(
             query_interval=[start, end], amino_acids=aa, ends_with_stop_codon=has_stop,
             initiation_observed=False, translation_observed=False,
-            start_codon_basis="observed_ATG", annotated_start=any(c["start_kind"] == "annotated_start" for c in comparisons),
+            start_codon_basis="observed_ATG", annotated_start=any(c["start_kind"] == "annotated_CDS_start" for c in comparisons),
             start_context=dict(sequence=sequence[max(0, start - 6):min(len(sequence), start + 9)],
                                query_interval=[max(0, start - 6), min(len(sequence), start + 9)],
                                minus_three=minus_three, plus_four=plus_four),
@@ -127,7 +129,7 @@ def exploratory_orfs(sequence, positions, junctions, observations, references, c
                                 for i, _, boundaries in crossed],
             full_interval_support=dict(
                 segments=len(segments), fragments=len({s[:2] for s in segments}),
-                molecule_labels=labels["complete_label_count"], cell_umi_support=labels,
+                cell_umi_support=labels,
                 read_lineage=lineage(segments) if lineage is not None else None,
                 missing_quality_segments=len({observations[w["observation"]].identity for w in witnesses
                                               if observations[w["observation"]].missing_qualities}),
