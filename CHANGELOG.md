@@ -9,7 +9,9 @@ releases that only fix bugs or add fixtures are omitted; see the
 - The README and guides are rewritten for readers. Each guide opens with what it
   is for and a quick start, and dense paragraphs became tables and lists.
   `docs/read-processing-audit.md` is now a reference on which reads are used, and
-  the README groups the guides by task. No behavior changes.
+  the README groups the guides by task, and explains how to choose the reference
+  annotation from Python ([#123](https://github.com/openvax/isovar/issues/123)).
+  No behavior changes.
 - The docs test also checks that `#section` links point to an existing heading.
 
 ## 1.31.0

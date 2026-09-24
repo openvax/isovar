@@ -55,6 +55,24 @@ your alignments before the first run, for example:
 pyensembl install --release 75 --species human
 ```
 
+On the command line, `--genome` names an assembly such as `GRCh38` or `hg19`,
+and the most recent Ensembl release installed for it is used. From Python, choose
+the annotation yourself by loading the variants with a PyEnsembl genome:
+
+```python
+import pyensembl
+import varcode
+from isovar import run_isovar
+
+variants = varcode.load_vcf(
+    "cancer-mutations.vcf", genome=pyensembl.EnsemblRelease(93))
+isovar_results = run_isovar(variants=variants, alignment_file="tumor-rna.bam")
+```
+
+A `pyensembl.Genome` built from your own GTF and transcript FASTA files works the
+same way, and gene and transcript names then come from that annotation. Align
+the RNA to the same assembly as the annotation.
+
 ## Python API
 
 `isovar.run_isovar` returns one `isovar.IsovarResult` per input variant, in input
