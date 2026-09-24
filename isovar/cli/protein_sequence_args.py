@@ -16,6 +16,7 @@ from ..protein_sequence_creator import ProteinSequenceCreator
 from ..dataframe_helpers import protein_sequences_generator_to_dataframe
 
 from .rna_args import read_evidence_generator_from_args
+from .validation import non_negative_int
 from .translation_args import (
     add_protein_selection_args,
     make_translation_arg_parser,
@@ -33,7 +34,7 @@ def add_protein_sequence_args(parser):
         "Protein sequences (grouping equivalent translations)")
     protein_sequence_group.add_argument(
         "--max-protein-sequences-per-variant",
-        type=int,
+        type=non_negative_int,
         default=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
         help="Maximum protein sequences per variant; 0 keeps all (default %(default)s).")
     add_protein_selection_args(protein_sequence_group)

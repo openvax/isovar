@@ -110,5 +110,5 @@ def run(args=None, prog=None):
         Path(options.output).expanduser().write_text(json.dumps(result, indent=2) + "\n")
         if options.orf_output_prefix:
             write_sv_rna_orfs(export_sv_rna_orfs(result), options.orf_output_prefix)
-    except (OSError, ValueError, TypeError, KeyError) as error:
+    except (OSError, ValueError) as error:
         parser.error(str(error))

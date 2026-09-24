@@ -14,8 +14,6 @@
 Create parser and run Isovar from parsed args
 """
 
-from varcode.cli import variant_collection_from_args
-
 from ..main import run_isovar
 
 from .protein_sequence_args import (
@@ -24,6 +22,7 @@ from .protein_sequence_args import (
 )
 from .filter_args import add_filter_args, filter_threshold_dict_from_args
 from .rna_args import read_collector_from_args, alignment_file_from_args
+from .validation import variant_collection_from_args
 
 def make_isovar_arg_parser(**kwargs):
     """
@@ -42,11 +41,11 @@ def run_isovar_from_parsed_args(args):
     """
     Extract parameters from parsed arguments and use them to run Isovar
     """
-    variants = variant_collection_from_args(args)
     read_collector = read_collector_from_args(args)
-    alignment_file = alignment_file_from_args(args)
     protein_sequence_creator = protein_sequence_creator_from_args(args)
     filter_thresholds = filter_threshold_dict_from_args(args)
+    variants = variant_collection_from_args(args)
+    alignment_file = alignment_file_from_args(args)
     return run_isovar(
         variants=variants,
         alignment_file=alignment_file,

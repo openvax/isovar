@@ -27,6 +27,15 @@ class MockAlignmentFile(object):
     def fetch(self, *args, **kwargs):
         return self.reads
 
+    is_bam = True
+    is_cram = False
+
+    def has_index(self):
+        return True
+
+    def close(self):
+        pass
+
     @property
     def filename(self):
         return "MOCK-READS.bam"

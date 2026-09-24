@@ -402,7 +402,19 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
 
 
 def fusion_from_dict(data):
-    """Decode the explicit JSON input used by ``isovar fusion``."""
+    """Decode the explicit JSON input used by ``isovar fusion``.
+
+    Raises ValueError for a missing key or an unexpected field.
+    """
+    try:
+        return _fusion_from_dict(data)
+    except KeyError as error:
+        raise ValueError("Fusion input is missing %s" % error) from error
+    except TypeError as error:
+        raise ValueError("Invalid fusion input: %s" % error) from error
+
+
+def _fusion_from_dict(data):
     transcript = dict(data["fusion"])
     transcript["donor"] = FusionBreakpoint(**transcript["donor"])
     transcript["acceptor"] = FusionBreakpoint(**transcript["acceptor"])

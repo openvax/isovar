@@ -305,7 +305,9 @@ isovar run --vcf somatic-variants.vcf --bam rnaseq.bam \
 ```
 
 Progress messages go to stderr; set `--log-level DEBUG` for per-candidate detail
-or `--log-level WARNING` for quiet runs. The CLI applies the same default filters
+or `--log-level WARNING` for quiet runs. Out-of-range options and unusable inputs
+(a missing file, an unindexed BAM, SAM input, a missing output directory,
+malformed JSON) are reported as one-line usage errors with exit status 2. The CLI applies the same default filters
 as `run_isovar`; the filter options set `filter:*` columns and `passes_all_filters`
 without removing rows. `--reference-context-size` belongs only to
 `isovar reference-contexts`; protein-producing commands derive their reference
