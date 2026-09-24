@@ -1,8 +1,10 @@
 # Releasing Isovar
 
-This document explains what do once your [Pull Request](https://www.atlassian.com/git/tutorials/making-a-pull-request/) has been reviewed and all final changes applied. Now you're ready merge your branch into master and release it to the world:
-
-0. Make sure that you have `pandoc` and `pypandoc` installed: this is needed for readme markdown on PyPI. (See [here](http://pandoc.org/installing.html) and [here](https://pypi.python.org/pypi/pypandoc), respectively, for instructions.)
-1. Bump the [version](http://semver.org/) in `__init__.py`, as part of the PR you want to release.
-2. Merge your branch into master.
-3. Run `python setup.py sdist upload`, which pushes the newest release to PyPI.
+1. On a feature branch, bump `__version__` in `isovar/__init__.py` as part of the PR
+   ([semver](https://semver.org/): minor for new features or behavior changes,
+   patch for fixes and docs). Add an entry to [CHANGELOG.md](CHANGELOG.md) for any
+   change that can alter results or break callers.
+2. Merge the PR once CI passes.
+3. From a clean, up-to-date `master`, run `./deploy.sh`. It runs `./lint.sh` and
+   `./test.sh`, builds the sdist and wheel, uploads them to PyPI, and tags the release.
+   It refuses to run from another branch or with uncommitted changes.

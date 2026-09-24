@@ -14,7 +14,8 @@ import inspect
 from pathlib import Path
 import re
 
-from isovar import run_isovar
+from isovar import IsovarResult, run_isovar
+from isovar.default_parameters import DEFAULT_FILTER_FLAGS
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -24,3 +25,29 @@ def test_run_isovar_docstring_documents_every_parameter():
     for name in inspect.signature(run_isovar).parameters:
         assert re.search(r"^\s*%s : " % name, doc, re.M), "%s undocumented" % name
 
+
+def test_readme_filter_names_are_isovar_result_properties():
+    readme = (ROOT / "README.md").read_text()
+    thresholds = re.findall(r"""['"](?:min|max)_([a-z_]+)['"]""", readme)
+    negated_flags = re.findall(r"`not_([a-z_]+)`", readme)
+    assert thresholds and negated_flags
+    for name in thresholds + negated_flags + list(DEFAULT_FILTER_FLAGS):
+        assert hasattr(IsovarResult, name), name
+    for name in DEFAULT_FILTER_FLAGS:
+        assert "`%s`" % name in readme, name
+
+
+REPOSITORY_URL = "https://github.com/openvax/isovar/blob/master/"
+
+
+def test_markdown_links_to_this_repository_resolve():
+    pages = [ROOT / "README.md", ROOT / "CHANGELOG.md", ROOT / "RELEASING.md", *(ROOT / "docs").glob("*.md")]
+    for page in pages:
+        for target in re.findall(r"\]\(([^)#\s]+)(?:#[^)]*)?\)", page.read_text()):
+            if target.startswith(REPOSITORY_URL):
+                path = ROOT / target[len(REPOSITORY_URL):]
+            elif "://" in target or target.startswith("mailto:"):
+                continue
+            else:
+                path = page.parent / target
+            assert path.exists(), "%s links to missing %s" % (page.name, target)

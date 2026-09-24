@@ -9,14 +9,16 @@
 # Isovar
 
 * [Overview](#overview)
+* [Installation](#installation)
 * [Python API](#python-api)
-* [Commandline](#commandline)
-* [Internal Design](#internal-design)
-* [Other Isovar Commandline Tools](#other-isovar-commandline-tools)
-* [Sequencing Recommendations](#sequencing-recommendations)
+* [Command line](#command-line)
+* [Internal design](#internal-design)
+* [Documentation](#documentation)
+* [Sequencing recommendations](#sequencing-recommendations)
 
 ## Overview
-Isovar determines mutant protein subsequences around mutations from cancer RNAseq data.
+
+Isovar determines mutant protein subsequences around mutations from cancer RNA-seq data.
 
 Isovar works by:
 
@@ -38,176 +40,136 @@ or an unresolved reading frame remains uncertainty, not an unchanged protein.
 [Varcode](https://github.com/openvax/varcode) generates transcript hypotheses and
 predicts coding consequences; Isovar reconstructs RNA-supported sequences and
 reconciles the evidence; [Vaxrank](https://github.com/openvax/vaxrank) evaluates
-protein/peptide candidates. See [library responsibilities](docs/library-responsibilities.md)
-for the shared contract and which integrations are still planned.
+protein/peptide candidates. See [library responsibilities](https://github.com/openvax/isovar/blob/master/docs/library-responsibilities.md)
+for the shared contract.
+
+## Installation
+
+```sh
+pip install isovar
+# Optional figure rendering for `isovar plot` and `isovar fusion --plot-dir`:
+pip install 'isovar[plot]'
+```
+
+Isovar requires Python 3.9 or later. Reference annotation comes from
+[PyEnsembl](https://github.com/openvax/pyensembl); install the release matching
+your alignments before the first run, for example:
+
+```sh
+pyensembl install --release 75 --species human
+```
 
 ## Python API
 
-Adapter/poly-A inference and optional end trimming are available through
-`ReadCollector` and the shared RNA CLI options. Both are opt-in; original BAM
-records and aligned/inserted bases are preserved. See the
-[read-end inference API and profiles](docs/read-end-inference.md).
-
-In the example below, `isovar.run_isovar` returns a list of `isovar.IsovarResult` objects. 
-Each of these objects corresponds to a single input variant and contains all of the information about the RNA evidence at that variant's location and any mutant protein sequences which were assembled for the variant.
+`isovar.run_isovar` returns one `isovar.IsovarResult` per input variant, in input
+order. Each result holds the RNA evidence at that variant's locus and any mutant
+protein sequences assembled for it.
 
 ```python
-
 from isovar import run_isovar
 
 isovar_results = run_isovar(
     variants="cancer-mutations.vcf",
     alignment_file="tumor-rna.bam")
-    
-# this code traverses every variant and prints the number
-# of RNA reads which support the alt allele for variants
-# which had a successfully assembled/translated protein sequence
+
 for isovar_result in isovar_results:
-    # if any protein sequences were assembled from RNA
-    # then the one preferred by the context/support policy can be
-    # accessed from a property called `top_protein_sequence`.
+    # The protein preferred by the context/support policy, or None.
     if isovar_result.top_protein_sequence is not None:
-        # print number of distinct fragments supporting the
-        # the variant allele for this mutation
+        # Number of distinct fragments supporting the variant allele.
         print(isovar_result.variant, isovar_result.num_alt_fragments)
-    
 ```
 
 A collection of `IsovarResult` objects can also be flattened into a Pandas DataFrame:
 
 ```python
-
 from isovar import run_isovar, isovar_results_to_dataframe
 
-df =  isovar_results_to_dataframe(
-        run_isovar(
-            variants="cancer-mutations.vcf",
-            alignment_file="tumor-rna.bam"))
+df = isovar_results_to_dataframe(
+    run_isovar(
+        variants="cancer-mutations.vcf",
+        alignment_file="tumor-rna.bam"))
 ```
 
+Isovar logs through the standard `logging` module under the `isovar` logger and
+never configures logging itself; configure it in your application to see progress.
 
-### RNA support versus vaccine context
+### Collecting RNA reads
 
-Isovar 1.8.0 derives its context target from desired peptide size **K: 2*K-1**
-(15mers → 29 aa; 25mers → 49 aa; 30mers → 59 aa). For a centered single-residue
-mutation this includes every mutation-containing Kmer. The default
-`balanced` policy maximizes actual mutation-overlapping windows among
-candidates retaining at least 85% of the best candidate's compatible
-read-name support, with an independent absolute floor of two read objects
-at each retained RNA base. Both thresholds are configurable. Actual context
-adapts to RNA support and coverage; protein boundaries and stops can also
-produce shorter output. This is not 85% of per-base depth.
+Create a `ReadCollector` to change how reads are selected. The defaults are shown:
 
-This is a configurable selection tolerance, not a confidence estimate.
-Allele counts are unchanged, and no reference sequence is used to fill
-missing RNA. See [context selection and configuration](PROTEIN_SELECTION.md)
-for support-first/context-first alternatives and the
-[original tumor-RNA audit](tests/data/osteosarc/SAMPLE_AUDIT.md) for real
-sequence comparisons. Vaxrank's explicit context-length request remains
-respected; its coordinated default change is tracked separately.
-
-### Python API options for collecting RNA reads
-
-To change how Isovar collects and filters RNA reads you can create
-your own instance of the `isovar.ReadCollector` class and pass it to `run_isovar`.
 ```python
 from isovar import run_isovar, ReadCollector
 
-# create a custom ReadCollector to change options for how RNA reads are processed
 read_collector = ReadCollector(
-    use_duplicate_reads=True,
-    use_secondary_alignments=True, 
-    use_soft_clipped_bases=True)
+    min_mapping_quality=1,
+    use_duplicate_reads=False,
+    use_secondary_alignments=True,
+    use_soft_clipped_bases=False,
+    # Merge overlapping mates of one fragment into a single observation.
+    merge_overlapping_fragments=True,
+    # Keep reads without QUAL; their base qualities stay unknown.
+    use_reads_without_base_qualities=True,
+    # Optional predicate on each original pysam record.
+    read_filter=None)
 
 isovar_results = run_isovar(
     variants="cancer-mutations.vcf",
     alignment_file="tumor-rna.bam",
     read_collector=read_collector)
+```
 
-````
+Read support counts sequenced segments, not their alternative SAM alignments.
+Segments are scoped by read group, and only complementary primary mates in the
+same read group are merged. A segment whose alternative placements support
+conflicting alleles is counted with the uncertain `other` reads rather than as
+ref or alt evidence, and incompatible placements of one segment cannot extend
+an assembly. Fragment counts (`num_alt_fragments`, etc.) are read-group-aware;
+the `*_read_names` properties are plain names for display. None of these
+counts establishes independent molecules or performs UMI deduplication.
 
+Mates with conflicting alignment paths stay separate. For matching paths,
+disagreeing bases are resolved by quality, which can change allele support as
+well as assembled sequence. A read ending at an insertion supports the reference
+allele only if both flanking reference bases are aligned. `use_soft_clipped_bases`
+keeps unaligned read ends; it does not realign a clipped partner sequence.
 
-Since 1.17.0, read support counts sequenced segments, not their alternative
-SAM alignments ([#264](https://github.com/openvax/isovar/issues/264)). Only
-complementary primary mates in the same read group are collapsed. Secondary
-placements remain available, but incompatible placements of one segment cannot
-extend a cDNA assembly or inflate support; conflicting allele calls from that
-segment are retained as uncertain (`other_reads`). Read-group-aware fragment
-counts are separate from the original string-valued `*_read_names` properties.
-Existing read constructors remain supported with optional provenance fields.
+Adapter/poly-A inference and optional end trimming are opt-in `ReadCollector`
+settings (`infer_read_ends`, `read_end_profile`, `trim_adapters`, `trim_poly_a`);
+original BAM records and aligned/inserted bases are never modified. See the
+[read-end inference guide](https://github.com/openvax/isovar/blob/master/docs/read-end-inference.md).
 
-This can change counts, filtering and reconstructed context for multimapped
-reads; it does not establish independent molecules or perform UMI deduplication.
-Since 1.17.1, cross-variant phasing also uses read-group-scoped fragment IDs
-([#282](https://github.com/openvax/isovar/issues/282)). Matching names in different
-read groups cannot create an edge; paired segments count as one fragment.
-Public read-name helpers and phase-group names remain strings for display, not
-unique evidence IDs. Caller-created reads without provenance retain name-only
-phasing with other legacy reads; they are not equated with collected reads.
-Since 1.17.2, cross-variant phasing also requires compatible placements
-([#284](https://github.com/openvax/isovar/issues/284)): a shared fragment must have
-at least one compatible pair of observations, with no competing placements of
-the same segment. Complementary mates and variants on one spliced alignment
-still phase; incompatible alternatives cannot inflate thresholds or group
-support. Since 1.17.3, separately observed supplementary pieces can phase when
-reciprocal `SA` declarations establish the same chimeric path
-([#286](https://github.com/openvax/isovar/issues/286)). These are pieces of one
-sequenced segment, not paired mates or alternative placements. Strand and
-hard clipping are normalized to original-query coordinates; ambiguous path
-links or variant bases in overlapping pieces remain unphased. Minimap2's
-approximate `SA` CIGARs identify paths only: actual record CIGARs still determine
-alleles. A tag alone never creates supporting evidence, and ordinary cDNA
-assembly still requires one linear placement per segment. Groups remain
-connected pairwise evidence, not proof of one globally resolved haplotype.
+### Assembly and translation
 
-### Python API options for coding sequence assembly and translation
-
-To change how Isovar assembles RNA reads into coding sequences, determines their
-reading frames, and groups translated amino acid sequences you can create your
-own instance of the `isovar.ProteinSequenceCreator` class and pass it to `run_isovar`.
-
-As of Isovar 1.9.0, overlap assembly is enabled by default in both the Python API
-and command-line tools. To preserve the earlier Python API behavior, pass
-`variant_sequence_assembly=False` to `ProteinSequenceCreator`; on the command
-line, use `--disable-variant-sequence-assembly`.
-
-As of Isovar 1.10.0, BAM-derived reads retain their aligned exon blocks and
-splice junctions during protein creation. Each read remains compatible with a
-set of transcripts; overlapping reads are assembled within shared compatible
-paths, and the resulting cDNA is translated only against those transcripts.
-Evidence that ends before an isoform-distinguishing junction remains ambiguous
-and can support every compatible branch without being counted more than once.
-
+Create a `ProteinSequenceCreator` to change how reads are assembled into coding
+sequences, placed in a reading frame and grouped into proteins. The defaults are shown:
 
 ```python
 from isovar import run_isovar, ProteinSequenceCreator
 
-# create a custom ProteinSequenceCreator to change options for how
-# protein sequences are assembled from RNA reads
 protein_sequence_creator = ProteinSequenceCreator(
-    # number of amino acids we're aiming for, coding sequences
-    # might still give us a shorter sequence due to an early stop 
-    # codon or poor coverage
-    protein_sequence_length=30,
-    # minimum number of reads covering each base of the coding sequence
+    # Peptide size K used to score context; the default target length is 2*K-1.
+    protein_context_peptide_length=25,
+    # None derives the target from the peptide size (49 aa for K=25).
+    protein_sequence_length=None,
+    # "balanced", "support" or "context"; see protein context selection below.
+    protein_sequence_preference="balanced",
+    # Balanced mode keeps candidates with at least this fraction of the best
+    # candidate's compatible read support.
+    min_protein_sequence_support_fraction=0.85,
+    # Minimum number of reads covering each base of the coding sequence.
     min_variant_sequence_coverage=2,
-    # how much of a reference transcript should a coding sequence match before
-    # we use it to establish a reading frame
-    min_transcript_prefix_length=20,
-    # how many mismatches allowed between coding sequence (before the variant)
-    # and transcript (before the variant location)
+    # Bases of reference transcript the cDNA must match before the variant
+    # to establish a reading frame.
+    min_transcript_prefix_length=10,
+    # Mismatches allowed between the cDNA and the reference transcript.
     max_transcript_mismatches=2,
-    # also count mismatches after the variant location toward
-    # max_transcript_mismatches
+    # Also count mismatches after the variant toward max_transcript_mismatches.
     count_mismatches_after_variant=False,
-    # if more than one protein sequence can be assembled for a variant
-    # then drop any beyond this number 
+    # Ranked protein sequences kept per variant; 0 keeps all.
     max_protein_sequences_per_variant=1,
-    # enabled by default; if set to False then coding sequence will be derived from
-    # a single RNA read with the variant closest to its center
+    # Assemble overlapping reads; if False each sequence comes from one read.
     variant_sequence_assembly=True,
-    # how many nucleotides must two reads overlap before they are combined
-    # into a single coding sequence
+    # Minimum overlap, in nucleotides, before two reads are combined.
     min_assembly_overlap_size=30)
 
 isovar_results = run_isovar(
@@ -216,78 +178,124 @@ isovar_results = run_isovar(
     protein_sequence_creator=protein_sequence_creator)
 ```
 
-### Python API for filtering results
+BAM-derived reads keep their aligned exon blocks and splice junctions. Each read
+is compatible with a set of annotated transcripts; overlapping reads are
+assembled only within shared compatible paths, and the resulting cDNA is
+translated only against those transcripts. Evidence that ends before an
+isoform-distinguishing junction stays ambiguous and can support every
+compatible branch without being counted twice. The reading frame is carried
+through the read's observed alignment, so an upstream indel shifts it
+([details](https://github.com/openvax/isovar/blob/master/docs/aligned-reading-frame.md)).
 
-You can filter a collection of `IsovarResult` objects by any of their numerical properties using the `filter_thresholds` option
-of the `run_isovar` function. The value expected for this argument is a dictionary whose keys have named like `'min_fraction_ref_reads'` or `'max_num_alt_fragments'`  and whose values are numerical thresholds.
-Everything after the `'min_'` or `'max_'` at the start of a key is expected to be the name of a property of `IsovarResult`. 
-Many of the commonly accessed properties regarding RNA read evidence follow the pattern: 
-```
-{num|fraction}_{ref|alt|other}_{reads|fragments} 
-```
+### Protein context selection
 
-For example, in the following code the results are filtered to have 10 or more alt reads supporting a variant and no more than 25% of the fragments supporting an allele other than the ref or alt.
+For peptide size K, Isovar targets 2*K-1 residues (15mers → 29 aa, 25mers → 49 aa),
+enough for every K-mer overlapping a centered single-residue change. The default
+`balanced` preference maximizes mutation-overlapping peptide windows among
+candidates with at least 85% of the best candidate's compatible read support.
+`support` ranks by read support first; `context` ignores the support budget.
+Actual context depends on RNA coverage, and no reference sequence fills missing
+RNA. See [protein context selection](https://github.com/openvax/isovar/blob/master/docs/protein-selection.md)
+for the exact rules and the [tumor-RNA audit](https://github.com/openvax/isovar/blob/master/tests/data/osteosarc/SAMPLE_AUDIT.md).
+
+### Filtering results
+
+`run_isovar` evaluates filters on each result; a failing result is kept, with
+`False` in its `filter_values` dictionary and in `passes_all_filters`. When the
+results are flattened into a DataFrame each filter becomes a `filter:<name>` column.
+
+`filter_thresholds` maps names like `'min_num_alt_reads'` or
+`'max_fraction_other_fragments'` to numbers. The text after `min_` or `max_` names
+a numeric property of `IsovarResult`, and most read-evidence properties follow
+the pattern `{num|fraction}_{ref|alt|other}_{reads|fragments}`. For example, this
+requires at least 10 alt reads and at most 25% of fragments supporting other alleles:
+
 ```python
 from isovar import run_isovar
 
 isovar_results = run_isovar(
     variants="cancer-mutations.vcf",
     alignment_file="tumor-rna.bam",
-    filter_thresholds={"min_num_alt_reads": 10, "max_fraction_other_fragments": 0.25})    
+    filter_thresholds={"min_num_alt_reads": 10, "max_fraction_other_fragments": 0.25})
 
 for isovar_result in isovar_results:
-    # print each variant and whether it passed both filters
     print(isovar_result.variant, isovar_result.passes_all_filters)
 ```
 
-A variant which fails one or more filters is not excluded from the result collection but it has `False` values in its corresponding 
-`filter_values` dictionary property and will have a `False` value for the `passes_all_filters` property. 
+`filter_flags` names boolean properties of `IsovarResult`; prefix one with `not_`
+to negate it, as in `not_protein_sequence_matches_predicted_mutation_effect`.
+Omitting either argument applies the defaults in
+[`default_parameters.py`](https://github.com/openvax/isovar/blob/master/isovar/default_parameters.py)
+(`DEFAULT_FILTER_THRESHOLDS` and `DEFAULT_FILTER_FLAGS`, the latter being
+`predicted_effect_modifies_protein_sequence`, `has_mutant_protein_sequence_from_rna`
+and `protein_sequence_contains_mutation`). Passing a value replaces the
+corresponding defaults; to change one threshold, copy `DEFAULT_FILTER_THRESHOLDS`
+and update it.
 
-If a result collection is flattened into a DataFrame then each filter is included as a column. 
+### Phasing
 
-It's also possible to filter on boolean properties (without numerical thresholds) by passing `filter_flags` to `run_isovar`. These boolean
-properties can be further negated by prepending 'not_' to the property name, so that both `'protein_sequence_matches_predicted_mutation_effect'` and `'not_protein_sequence_matches_predicted_mutation_effect'` are valid names for `filter_flags`.
+Variants whose alt reads share at least `min_shared_fragments_for_phasing`
+(default 2) fragments with compatible placements are reported as phased.
+`phased_variants_in_supporting_reads` uses all alt reads and
+`phased_variants_in_protein_sequence` uses the reads behind the top protein
+sequence; `phase_group_from_supporting_reads` and
+`phase_group_from_protein_sequence` give the connected `PhaseGroup`, which may
+include variants linked only through others. Complementary mates, variants on one
+spliced alignment, and supplementary pieces whose reciprocal `SA` tags declare
+the same chimeric path can phase. Matching names in different read groups
+cannot. A group is connected pairwise evidence, not one resolved haplotype.
+`IsovarReadPhasing` and `IsovarMutantTranscript` expose these results through
+Varcode's phasing and mutant-transcript interfaces.
 
-### Structural variants
+### Structural variants and fusions
 
-The ordinary variant-to-protein pipeline accepts literal nucleotide alleles,
-including sequence-resolved indels. Symbolic structural variants (`<DEL>`,
-`<DUP>`, etc.), breakends, and `varcode.StructuralVariant` objects are rejected
-explicitly; their placeholder bases must not be interpreted as small variants.
-For supplied fusion RNA, `isovar fusion --input fusion.json --output result.json`
-validates junction evidence and annotated coding frames, retaining unresolved
-or ambiguous outcomes. See the [fusion input/output contract](docs/fusion.md).
-For one nominated SV, `isovar sv-rna --bam rna.bam --input event.json --output
-candidates.json` collects regional, supplementary and mate records, assembles
-junction-seeded RNA paths and transfers annotated frames into downstream
-sequence. It keeps sequence, frame and event-linkage evidence separate
-([contract](docs/sv-rna.md)). Its output is exploratory, not validated fusion
-input; reconciliation with Varcode hypotheses remains
-[#305](https://github.com/openvax/isovar/issues/305).
+The small-variant pipeline accepts literal nucleotide alleles, including
+sequence-resolved indels. Symbolic structural variants (`<DEL>`, `<DUP>`, etc.),
+breakends and `varcode.StructuralVariant` objects are rejected rather than
+interpreted as small variants. Two separate workflows handle them:
 
-## Commandline 
+- `isovar sv-rna` / `reconstruct_sv_rna` reconstructs exploratory RNA paths around
+  one nominated SV from a BAM and annotated models, keeping sequence, frame and
+  event-linkage evidence separate ([guide](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md)).
+  `--predictions` compares supplied protein predictions with the reconstructed
+  paths; full reconciliation with Varcode hypotheses is
+  [#305](https://github.com/openvax/isovar/issues/305).
+- `isovar fusion` / `reconstruct_fusion` validates a supplied fusion transcript's
+  junction evidence and annotated coding frames
+  ([guide](https://github.com/openvax/isovar/blob/master/docs/fusion.md)).
 
-Basic example:
+## Command line
 
 ```sh
-$ isovar run \
-    --vcf somatic-variants.vcf  \
+isovar run \
+    --vcf somatic-variants.vcf \
     --bam rnaseq.bam \
-    --protein-sequence-length 30 \
     --output isovar-results.csv
 ```
 
-`isovar --help` lists the subcommands. Each subcommand's `--help` lists its
-options and current defaults:
+`isovar --help` lists the subcommands; each subcommand's `--help` lists its options
+and defaults, which match the Python API. `isovar --vcf ... --bam ...` (without a
+subcommand) also runs the pipeline, and `python -m isovar` works too.
 
-```sh
-isovar --help
-isovar run --help
-isovar reference-contexts --help
-```
+| Command | Output |
+|---|---|
+| `isovar run` | One row per variant: read evidence, top protein sequence, predicted effect and filters |
+| `isovar protein-sequences` | Ranked candidate protein sequences (`--max-protein-sequences-per-variant 0` keeps all) |
+| `isovar translations` | Every translation of each assembled cDNA in each compatible reading frame, before grouping |
+| `isovar variant-sequences` | Assembled cDNA sequences supporting each variant |
+| `isovar reference-contexts` | Reference sequence and reading frame around each variant (no BAM needed) |
+| `isovar allele-counts` | Read and fragment counts for the ref, alt and other alleles |
+| `isovar allele-reads` | All reads overlapping each variant |
+| `isovar variant-reads` | Reads supporting each variant's alt allele |
+| `isovar plot` | Protein, coverage, read-overlap and transcript figures for one mutation ([guide](https://github.com/openvax/isovar/blob/master/docs/visualization.md)) |
+| `isovar sv-rna` | Exploratory RNA paths around one nominated SV, as JSON |
+| `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON |
+
+Except `isovar run`, the table and plot commands also install as hyphenated
+scripts such as `isovar-protein-sequences` and `isovar-plot`.
 
 For example, use only primary alignments, include soft-clipped bases, and
-require at least three read objects at every retained cDNA base:
+require at least three reads at every retained cDNA base:
 
 ```sh
 isovar run --vcf somatic-variants.vcf --bam rnaseq.bam \
@@ -296,146 +304,91 @@ isovar run --vcf somatic-variants.vcf --bam rnaseq.bam \
     --output isovar-results.csv
 ```
 
-To export every candidate protein, use `--max-protein-sequences-per-variant 0`.
-The default keeps the top candidate for each variant. The
-`isovar variant-sequences` command accepts `--variant-sequence-length`
-to set its preferred cDNA length.
+Progress messages go to stderr; set `--log-level DEBUG` for per-candidate detail
+or `--log-level WARNING` for quiet runs. The CLI applies the same default filters
+as `run_isovar`; the filter options set `filter:*` columns and `passes_all_filters`
+without removing rows. `--reference-context-size` belongs only to
+`isovar reference-contexts`; protein-producing commands derive their reference
+context from the requested cDNA length and minimum transcript prefix.
 
-Existing scripts remain supported: `isovar --vcf ... --bam ...` still runs the
-main pipeline, and hyphenated commands such as `isovar-protein-sequences` and
-`isovar-plot` remain aliases. Both spellings use the same handlers and defaults.
-You can also invoke the CLI as `python -m isovar`.
+## Internal design
 
-### Shared CLI and Python defaults
+![](https://raw.githubusercontent.com/openvax/isovar/master/isovar_design.png)
 
-Defaults are defined in [default_parameters.py](isovar/default_parameters.py).
-As of 1.11.0, CLI-created collectors and `ReadCollector()` merge overlapping
-mates, matching `run_isovar()`. Merged reads retain the number of contributing
-alignments in `source_read_count`. To keep mates separate, pass
-`--no-merge-overlapping-fragments` or
-`ReadCollector(merge_overlapping_fragments=False)`.
-Mates with conflicting alignment paths remain separate. For matching paths,
-the existing consensus rule resolves disagreeing bases by quality; this can
-change allele support as well as assembled sequences.
-
-The CLI now applies the complete default filter set used by `run_isovar()`,
-including read-level allele fractions and limits on other-allele support.
-This adds filter columns to CLI output and can change `passes_all_filters`.
-Explicit Python `filter_thresholds` dictionaries still replace the defaults;
-to override selected defaults, copy `DEFAULT_FILTER_THRESHOLDS` and update it.
-The existing imports from `isovar.main` remain supported.
-
-`--reference-context-size` belongs only to `isovar reference-contexts`,
-where it must be positive. Protein-producing commands now reject this
-previously ignored option. They derive reference context size from the requested
-cDNA length and minimum transcript prefix. Automatic protein length and
-Vaxrank's explicit peptide/context settings remain supported.
-
-
-
-## Internal Design
-
-![](isovar_design.png)
-
-The inputs to Isovar are one or more somatic variant call (VCF) files, along with a BAM file 
+The inputs to Isovar are one or more somatic variant call (VCF) files, along with a BAM file
 containing aligned tumor RNA reads. The following objects are used to aggregate information within Isovar:
 
-* [LocusRead](https://github.com/openvax/isovar/blob/master/isovar/locus_read.py): Isovar examines each variant locus and extracts reads overlapping that locus, 
-represented by `LocusRead`. The `LocusRead` representation allows filtering  based
+* [LocusRead](https://github.com/openvax/isovar/blob/master/isovar/locus_read.py): Isovar examines each variant locus and extracts reads overlapping that locus,
+represented by `LocusRead`. The `LocusRead` representation allows filtering based
 on quality and alignment criteria (e.g. MAPQ > 0) which are thrown away in later stages
-of Isovar. 
+of Isovar.
 
-* [AlleleRead](https://github.com/openvax/isovar/blob/master/isovar/allele_read.py): Once `LocusRead` objects have been filtered, they are converted into a simplified 
-representation called `AlleleRead`. Each `AlleleRead` contains only the cDNA sequences 
-*before*, *at*, and *after* the variant locus. 
+* [AlleleRead](https://github.com/openvax/isovar/blob/master/isovar/allele_read.py): Once `LocusRead` objects have been filtered, they are converted into a simplified
+representation called `AlleleRead`. Each `AlleleRead` contains only the cDNA sequences
+*before*, *at*, and *after* the variant locus.
 
-* [ReadEvidence](https://github.com/openvax/isovar/blob/master/isovar/read_evidence.py): 
+* [ReadEvidence](https://github.com/openvax/isovar/blob/master/isovar/read_evidence.py):
 The set of `AlleleRead` objects overlapping a mutation's location may support many different
-distinct allele. The `ReadEvidence` type represents the grouping of these reads into
+distinct alleles. The `ReadEvidence` type represents the grouping of these reads into
 *ref*, *alt* and *other* `AlleleRead` sets, where *ref* reads agree with the reference
- sequence, *alt* reads agree with the given mutation, and *other* reads contain all
- non-ref/non-alt alleles. The *alt* reads will be used later to determine
+sequence, *alt* reads agree with the given mutation, and *other* reads contain all
+non-ref/non-alt alleles. The *alt* reads will be used later to determine
 a mutant coding sequence, but the *ref* and *other* groups are also kept in case they are
-useful for filtering. 
+useful for filtering.
 
 * [VariantSequence](https://github.com/openvax/isovar/blob/master/isovar/variant_sequence.py):
 Overlapping `AlleleRead`s containing the same mutation are assembled into a longer
-sequence. The `VariantSequence` object represents this candidate coding sequence, as well
-as all the `AlleleRead` objects which were used to create it.
+sequence by `VariantSequenceCreator`. The `VariantSequence` object represents this candidate
+coding sequence, as well as all the `AlleleRead` objects which were used to create it.
 
 * [ReferenceContext](https://github.com/openvax/isovar/blob/master/isovar/reference_context.py): To determine the reading frame in which to translate a `VariantSequence`, Isovar
 looks at all Ensembl annotated transcripts overlapping the locus and collapses them
- into one or more `ReferenceContext` object. Each `ReferenceContext` represents the 
- cDNA sequence upstream of the variant locus and in which of the {0, +1, +2} reading frames
-  it is translated. 
+into one or more `ReferenceContext` objects. Each `ReferenceContext` represents the
+cDNA sequence upstream of the variant locus and in which of the {0, +1, +2} reading frames
+it is translated.
 
-* [Translation](https://github.com/openvax/isovar/blob/master/isovar/translation.py): Use the reading frame from a `ReferenceContext` to translate a `VariantSequence` 
-into a protein fragment, represented by `Translation`.
+* [VariantORF](https://github.com/openvax/isovar/blob/master/isovar/variant_orf.py) and
+[Translation](https://github.com/openvax/isovar/blob/master/isovar/translation.py): A `VariantORF`
+places a `VariantSequence` in the reading frame of a `ReferenceContext`, and its translation
+into a protein fragment is represented by `Translation`.
 
 * [ProteinSequence](https://github.com/openvax/isovar/blob/master/isovar/protein_sequence.py):
-Multiple distinct variant sequences and reference contexts can generate the same translations, so we aggregate those equivalent `Translation` objects into a `ProteinSequence`.
+Multiple distinct variant sequences and reference contexts can generate the same translations, so
+`ProteinSequenceCreator` aggregates those equivalent `Translation` objects into a `ProteinSequence`.
+`TranscriptAssemblyEdit` records the transcript-relative edits observed in its assemblies.
 
 * [IsovarResult](https://github.com/openvax/isovar/blob/master/isovar/isovar_result.py): Since a single variant locus might have reads which assemble into multiple incompatible coding sequences, an `IsovarResult` represents a variant and one or more `ProteinSequence` objects which are associated with it. Protein sequences are ranked by the configured context/support preference and the top sequence is made easy to access. Allele-support properties such as `num_alt_fragments` and `fraction_ref_reads` remain separate from the selected protein's compatible support.
 
+## Documentation
 
-## Other Isovar Commandline Tools
+| Guide | Contents |
+|---|---|
+| [Protein context selection](https://github.com/openvax/isovar/blob/master/docs/protein-selection.md) | Context target, the balanced/support/context preferences and their thresholds |
+| [Aligned reading frames](https://github.com/openvax/isovar/blob/master/docs/aligned-reading-frame.md) | How observed alignments carry the coding frame |
+| [Read-end inference](https://github.com/openvax/isovar/blob/master/docs/read-end-inference.md) | Opt-in adapter and poly-A/T annotation and trimming |
+| [Mutation-evidence figures](https://github.com/openvax/isovar/blob/master/docs/visualization.md) | `isovar plot` and the reproducible osteosarc figure examples |
+| [SV RNA reconstruction](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md) | `isovar sv-rna` inputs, outputs, ORF export and prediction comparison |
+| [ORF start evidence](https://github.com/openvax/isovar/blob/master/docs/orf-start-evidence.md) | Start-origin tiers and splice-linked inclusion for SV ORFs |
+| [Cell/UMI evidence](https://github.com/openvax/isovar/blob/master/docs/cell-umi-evidence.md) | Input-scoped cell and UMI labels in SV support |
+| [ONT read lineage](https://github.com/openvax/isovar/blob/master/docs/ont-read-lineage.md) | Dorado split/duplex signal ancestry in SV support |
+| [Supplied fusion RNA](https://github.com/openvax/isovar/blob/master/docs/fusion.md) | `isovar fusion` input/output contract |
+| [Library responsibilities](https://github.com/openvax/isovar/blob/master/docs/library-responsibilities.md) | How Varcode, Isovar and Vaxrank divide the work |
+| [Minimal Sid test reads](https://github.com/openvax/isovar/blob/master/docs/sid-test-reads.md) | The packaged, offline test-read bundle and its regeneration |
+| [Shared osteosarc data](https://github.com/openvax/isovar/blob/master/docs/osteosarc-data.md) | The pinned 49-case BAM/index regression cache |
+| [Read-processing audit](https://github.com/openvax/isovar/blob/master/docs/read-processing-audit.md) | Cross-platform read eligibility, native evidence tags and benchmarks |
+| [Changelog](https://github.com/openvax/isovar/blob/master/CHANGELOG.md) | Behavior changes by release |
 
-`isovar plot` renders white-background protein, coverage, read-overlap and local
-transcript figures as individual SVGs and 600-dpi PNGs, plus an overview, in
-UTC date/time-stamped directories.
-Install `isovar[plot]`, then see the [plotting commands and reproducible osteosarc
-assembly examples](docs/visualization.md).
+## Sequencing recommendations
 
-<dl>
-<dt>isovar protein-sequences --vcf variants.vcf --bam rna.bam</dt>
-<dd>Candidate protein sequences from RNA reads; keeps the top sequence per variant unless <code>--max-protein-sequences-per-variant 0</code> is supplied.</dd>
+Isovar works best with high-quality, high-coverage poly-A-selected mRNA sequencing,
+for example >100M paired-end reads on a current Illumina short-read platform. The
+depth needed depends on RNA degradation and tumor purity. With short reads, read
+length bounds the recoverable protein: assembly only uses reads overlapping the
+variant, so 100 bp reads give at most 199 bp of sequence around a somatic SNV,
+about 66 amino acids. Without assembly, one 100 bp read determines at most 33.
 
-<dt>isovar allele-counts --vcf variants.vcf --bam rna.bam</dt>
-<dd>Counts of reads and fragments supporting the ref, alt, and other alleles at all given variant locations.</dd>
-
-<dt>isovar allele-reads --vcf variants.vcf --bam rna.bam</dt>
-<dd>Sequences of all reads overlapping any of the given variants.</dd>
- 
-<dt>isovar translations --vcf variants.vcf --bam rna.bam</dt>
-<dd>All possible translations of any assembled cDNA sequence containing any of the given variants in the reference frame of any matching transcript.</dd>
-
-<dt>isovar reference-contexts --vcf variants.vcf</dt>
-<dd>Shows all candidate reference contexts (sequence and reading frame) before each variant, derived from overlapping reference coding transcripts.</dd>
-
-<dt>isovar variant-reads --vcf variants.vcf --bam rna.bam</dt>
-<dd>Like the isovar allele-reads command but limited only to reads which support the alt allele.</dd>
-
-<dt>isovar variant-sequences --vcf variants.vcf --bam rna.bam</dt>
-<dd>Shows all assembled cDNA coding sequences supporting any of the given variants.</dd>
-</dl>
-
-## Reproducible research data
-
-The package includes a [minimal, generated Sid test-read bundle](docs/sid-test-reads.md),
-reproduced through osteosarc and usable offline. Only records required by the
-listed tests are included.
-
-The [shared osteosarc data workflow](docs/osteosarc-data.md) imports, downloads
-and exports the pinned original-read regression subset through
-`osteosarc==0.1.2`, with checksum verification and offline reuse across OpenVax
-consumers. Acquisition is optional; ordinary tests use checked-in fixtures.
-
-## Sequencing Recommendations
-
-Isovar works best with high quality / high coverage mRNA sequence data. 
-This means that you will get best results from >100M paired-end reads sequenced on an 
-Illumina HiSeq from a library enriched with poly-A capture. The number of reads varies 
-depending on degree of RNA degradation and tumor purity. The read length will determine 
-the longest protein sequence you can recover, since Isovar's cDNA assembly only 
-considers reads that overlap a variant. With 100bp reads you will be able to assemble
-at most 199bp of sequence around a somatic single nucleotide variant, and consequently 
-only be to determine 66 amino acids from the protein sequence. If you disable the cDNA 
-assembly algorithm then a 100bp read will only be able to determine 33 amino acids.
-
-**Note on long-read and error-prone data:** Isovar's cDNA assembly algorithm requires 
-exact sequence matches when detecting overlaps between reads. This is well-suited for 
-Illumina short reads (~0.1% error rate) but will produce fragmented or incomplete 
-assemblies with long-read technologies (PacBio, Oxford Nanopore) that have higher 
-indel error rates. The coverage-trimming step also assumes that read coverage decreases 
-monotonically away from the variant locus, which may not hold for reads spanning 
-splice junctions.
+Overlap assembly requires exact sequence matches, which suits short reads with low
+error rates. Long reads (PacBio, Oxford Nanopore) often span the whole context
+without assembly, but noisy reads may not join by exact overlap; SV reconstruction
+(`isovar sv-rna`) uses noise-tolerant extension. Coverage trimming assumes that read
+coverage falls off away from the variant, which reads spanning splice junctions can violate.

@@ -43,8 +43,10 @@ a branch that shorter reads cannot; several expressed paths can also coexist.
 A resource limit must disclose unexamined hypotheses, not label them unsupported.
 
 Technical sequence must not become fusion evidence merely because it aligns
-somewhere. Library-aware adapter/poly-A handling is tracked separately in
-[#302](https://github.com/openvax/isovar/issues/302). High base quality does not
+somewhere. Explicit adapter/poly-A annotation and trimming are available
+([read-end inference](read-end-inference.md)); recognizing adapter-derived
+sequence in reused soft clips remains [#302](https://github.com/openvax/isovar/issues/302),
+and inferring an unknown kit remains [#309](https://github.com/openvax/isovar/issues/309). High base quality does not
 establish biological origin, and missing qualities do not by themselves reject
 an otherwise usable observation.
 
@@ -58,8 +60,9 @@ an otherwise usable observation.
   From a BAM and annotated models, they recover junction-seeded paths,
   including spliced joins whose DNA breakpoint is intronic. They transfer
   annotated frames into novel downstream sequence and label sequence, frame
-  and event linkage separately. Comparing Varcode hypotheses, competing
-  genomic placements and Vaxrank consumption remain open.
+  and event linkage separately, and `--predictions` compares supplied protein
+  predictions with those paths. Full reconciliation with Varcode hypotheses,
+  competing genomic placements and Vaxrank consumption remain open.
 - [Supplied fusion RNA](fusion.md) uses `reconstruct_fusion` / `isovar fusion`.
   It validates externally supplied sequence, mappings, and read support and
   retains compatible reference/frame interpretations. It does **not** discover

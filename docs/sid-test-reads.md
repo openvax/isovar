@@ -7,10 +7,11 @@ assets, their consuming tests, and bounded acquisition intervals. There are
 27,077 unique source/SAM-record pairs. Reusing a record across tests does not
 increase storage, while actual duplicate multiplicity is preserved on export.
 
-Regeneration uses **osteosarc 0.1.2**, using snapshot Assets and indexed Region
-extraction. The shipped bundle was originally generated with 0.1.0; its recorded
-provenance and selected read bytes remain unchanged. New recipe compilations
-record the installed osteosarc version. The bundle includes SNV/indel, native
+Acquisition, record selection, transport and integrity checks are delegated to
+the installed `osteosarc` dependency (0.2.3 or later), using snapshot Assets and
+indexed Region extraction. The shipped bundle was generated with osteosarc 0.1.0,
+which its recipe still records; its selected read bytes are unchanged. New recipe
+compilations record the installed osteosarc version. The bundle includes SNV/indel, native
 GRCh37 and mitochondrial, long-read, fusion, phasing, clipping, and matched
 DNA/RNA regression inputs.
 The external K562 control remains separate. These are test selections, not a
@@ -19,7 +20,7 @@ Historical allele definitions and protein expectations are unchanged.
 
 ## Use the installed package offline
 
-No osteosarc installation or network access is needed to list, verify or export:
+No network access is needed to list, verify or export:
 
 ```sh
 python -m isovar.sid_data verify
@@ -41,11 +42,10 @@ historical BAM containers and their full headers.
 
 ## Regenerate from osteosarc
 
-Regeneration is explicit and needs Python 3.10+, `isovar[data]`, and HTTPS-enabled
-samtools. A new cache needs a metadata snapshot first:
+Regeneration is explicit and needs HTTPS-enabled samtools. A new cache needs a
+metadata snapshot first:
 
 ```sh
-python -m pip install 'isovar[data]'
 python -m osteosarc --cache /tmp/sid-cache sync isovar-test-reads
 python -m isovar.sid_data generate \
   --snapshot isovar-test-reads --cache /tmp/sid-cache \
@@ -79,6 +79,16 @@ before reuse. `--source ASSET_ID_PREFIX` restricts a generation run to a source
 listed in the recipe. `--offline` forbids network and requires cached regional
 extracts. A cache may contain larger temporary regional BAMs and indexes; those
 are never copied into the package. No test triggers acquisition.
+
+Use a new output destination for each regeneration; the checked-in scientific
+expectations remain the oracle. For a common, versioned osteosarc panel recipe,
+`generate` also accepts `--panel-recipe recipe.json --panel-source
+SOURCE_ID=original.bam --output NEW_DIRECTORY --offline`, with one
+`--panel-source` per local original input. Panel output contains indexed BAMs,
+checksums, retained record multiplicities, source/header identities and
+selection reasons. See osteosarc's
+[shared fixture workflow](https://github.com/iskandr/osteosarc/blob/v0.2.3/docs/fixture-migration.md)
+and [Osteosarc #15](https://github.com/iskandr/osteosarc/issues/15).
 
 ## Change the selected tests deliberately
 

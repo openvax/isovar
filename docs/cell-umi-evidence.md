@@ -1,11 +1,11 @@
 # Cell/UMI evidence in SV reconstruction
 
 `reconstruct_sv_rna` reports cell/UMI **labels**, separate from sequenced
-segments, templates, ONT signal ancestry and independent molecules. The policy
-`isovar.cell_umi_labels.v1` fixes the junction/ORF mismatch in
-[#334](https://github.com/openvax/isovar/issues/334). It supplies the accounting
-foundation for [#226](https://github.com/openvax/isovar/issues/226); it does not
-perform cell-stratified reconstruction, UMI clustering or barcode correction.
+segments, templates, ONT signal ancestry and independent molecules, under the
+policy `isovar.cell_umi_labels.v1`. Junction and ORF support use the same
+accounting. It does not perform cell-stratified reconstruction
+([#226](https://github.com/openvax/isovar/issues/226)), UMI clustering or
+barcode correction.
 
 ## Scope
 
@@ -72,15 +72,15 @@ Both `junctions[].direct_cell_umi_support` and
 | `independent_molecules` | Always null; not established by this policy |
 | `status_counts` | Segment counts for each resolution status |
 
-The legacy `direct_molecules` and ORF `molecule_labels` fields alias
-`complete_label_count`. They can now be null for partially tagged or unknown
-library inputs that previously returned a misleading subset count. Consumers
-should use the structured evidence and its explicit unit.
+The older `direct_molecules` and ORF `molecule_labels` fields are aliases of
+`complete_label_count`, so they are null for partially tagged or unknown-library
+inputs. Prefer the structured evidence and its explicit unit.
 
 `cell_umi_evidence.segments` records consulted segment identities, scope,
 selected labels, UMI tags, XM semantics and reasons. Its label key is the tuple
-`(source, sample_id, header_sample, library, fallback_read_group, scope_basis,
-cell_barcode, umi)`. Unknown metadata are null. Visible mates consulted for
+`(source, sample_id, header_sample, library, read_group, basis,
+cell_barcode, umi)`, where `read_group` is set only when the sample/library
+scope is unknown and `basis` is `sample_library`, `read_group` or `input`. Unknown metadata are null. Visible mates consulted for
 conflicts can appear here without appearing in a support denominator.
 
 ## Primary sources
