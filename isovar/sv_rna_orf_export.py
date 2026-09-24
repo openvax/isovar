@@ -101,6 +101,8 @@ def _occurrence(path, candidate):
     row.update({key: deepcopy(path[key]) for key in (
         "path_id", "frame_status", "unresolved_models")})
     row["reconstruction_scopes"] = deepcopy(path.get("reconstruction_scopes", []))
+    # Candidates schema v2 predates per-path end reasons; None means unknown.
+    row["end_reasons"] = deepcopy(path.get("end_reasons"))
     row["start_evidence"] = deepcopy(candidate.get("start_evidence"))
     if row["start_evidence"] is not None:
         for assessment in row["start_evidence"]["assessments"]:
@@ -156,6 +158,9 @@ def _flags(candidate, result):
     for occurrence in occurrences:
         if occurrence["orf_candidate_limit_reached"]:
             flags.add("orf_candidate_limit_reached")
+        if any(reason != "observations_end" for reasons in (occurrence.get("end_reasons") or {}).values()
+               for reason in reasons):
+            flags.add("path_end_truncated")
         for junction in occurrence["junctions"]:
             if junction.get("unplaced_bases"):
                 flags.add("unplaced_junction_sequence")
@@ -180,7 +185,7 @@ def export_sv_rna_orfs(result):
     Parameters
     ----------
     result : dict
-        An ``isovar.sv_rna_candidates.v2`` result. Not modified.
+        An ``isovar.sv_rna_candidates.v2`` or ``.v3`` result. Not modified.
 
     Returns
     -------
@@ -191,8 +196,8 @@ def export_sv_rna_orfs(result):
         includes them and excludes event. Hashes are references, not guarantees
         of anonymization or evidence independence across source aliases.
     """
-    if result.get("schema") != "isovar.sv_rna_candidates.v2":
-        raise ValueError("SV ORF export requires isovar.sv_rna_candidates.v2")
+    if result.get("schema") not in ("isovar.sv_rna_candidates.v2", "isovar.sv_rna_candidates.v3"):
+        raise ValueError("SV ORF export requires isovar.sv_rna_candidates.v2 or v3")
     groups = {}
     for path in result["paths"]:
         for candidate in path["exploratory_orfs"]["candidates"]:

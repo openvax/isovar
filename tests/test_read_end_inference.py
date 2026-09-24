@@ -389,3 +389,13 @@ def test_actual_sid_records_preserved_and_tails_do_not_trim_mapped_a_bases():
             assert view.original_qualities is None
             assert view.sequence == read.query_sequence
         assert read.to_string() == original
+
+
+def test_sv_rna_records_the_read_end_profile_fingerprint():
+    from isovar import ReadCollector
+    from isovar.sv_rna import _collection_parameters
+    profile = ReadEndProfile(name="kit", version="1", adapters=(Adapter("R2", "AGATCGGAAGAGC", mate=2),))
+    single = _collection_parameters(ReadCollector(read_end_profile=profile, trim_adapters=True))
+    assert single["read_end_profile_sha256"] == profile.fingerprint and single["trim_adapters"]
+    by_group = _collection_parameters(ReadCollector(read_end_profile={"rg": profile}))
+    assert by_group["read_end_profile_sha256"] == {"rg": profile.fingerprint}

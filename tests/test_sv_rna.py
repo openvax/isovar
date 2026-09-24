@@ -373,6 +373,7 @@ def test_overlap_extension_still_stops_before_revisiting_a_placement():
                               (2, 0.1, 0.5), 8, [], notes))
     assert len(paths) == 1 and paths[0][:2] == (sequence, positions)
     assert notes == {"repeated_genomic_position"}
+    assert paths[0][3] == {"5prime": "observations_end", "3prime": "repeated_genomic_position"}
 
 
 def test_deep_noisy_coverage_prunes_error_branches_without_path_explosion(tmp_path):
@@ -780,6 +781,14 @@ def test_cli_writes_the_api_result(tmp_path):
                                       **sv_rna_input_from_dict(json.loads(json.dumps(data))))
     assert result == json.loads(json.dumps(expected))
     assert result["parameters"]["assemble"] is False and result["status"] == "event_linked_candidates"
+    assert result["schema"] == "isovar.sv_rna_candidates.v3"
+    assert result["parameters"]["read_collection"] == dict(
+        min_mapping_quality=1, use_duplicate_reads=False, use_secondary_alignments=True,
+        use_soft_clipped_bases=False, use_reads_without_base_qualities=True, merge_overlapping_fragments=True,
+        infer_read_ends=False, trim_adapters=False, trim_poly_a=False, read_end_profile_sha256=None,
+        custom_read_filter=False)
+    assert all(set(p["end_reasons"]) == {"5prime", "3prime"} and all(p["end_reasons"].values())
+               for p in result["paths"])
     from isovar import export_sv_rna_orfs
     assert json.loads((tmp_path / "orfs.json").read_text()) == export_sv_rna_orfs(result)
     assert (tmp_path / "orfs.tsv").is_file()

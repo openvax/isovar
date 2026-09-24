@@ -214,3 +214,15 @@ def test_cli_rejects_output_collision_before_opening_inputs(tmp_path, capsys, su
         cli_run(["--input", "nonexistent", "--bam", "nonexistent", "--output", str(prefix) + suffix,
                  "--orf-output-prefix", str(prefix)])
     assert "collides with --output" in capsys.readouterr().err
+
+
+def test_v3_path_end_reasons_are_exported_and_truncation_is_flagged():
+    result = reconstruction()
+    assert only(result)["occurrences"][0]["end_reasons"] is None  # v2 predates end reasons
+    result["schema"] = "isovar.sv_rna_candidates.v3"
+    result["paths"][0]["end_reasons"] = {"5prime": ["observations_end"], "3prime": ["observations_end"]}
+    natural = only(result)
+    assert natural["occurrences"][0]["end_reasons"] == result["paths"][0]["end_reasons"]
+    assert "path_end_truncated" not in natural["uncertainty_flags"]
+    result["paths"][0]["end_reasons"]["3prime"].append("path_limit")
+    assert "path_end_truncated" in only(result)["uncertainty_flags"]
