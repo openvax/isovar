@@ -1,83 +1,107 @@
 # Cell/UMI evidence in SV reconstruction
 
-`reconstruct_sv_rna` reports cell/UMI **labels**, separate from sequenced
-segments, templates, ONT signal ancestry and independent molecules, under the
-policy `isovar.cell_umi_labels.v1`. Junction and ORF support use the same
-accounting. It does not perform cell-stratified reconstruction
-([#226](https://github.com/openvax/isovar/issues/226)), UMI clustering or
-barcode correction.
+Single-cell and UMI-tagged libraries label each read with a cell barcode (`CB`)
+and a unique molecular identifier (UMI, such as `UB`). Several reads with the
+same pair of labels may be copies of one RNA molecule. `reconstruct_sv_rna`
+reports how many distinct labels support each junction and each ORF, alongside
+its read and fragment counts, under the policy `isovar.cell_umi_labels.v1`.
 
-## Scope
+A label count is not a molecule count. Isovar uses the labels as the input
+reports them. It does not cluster UMIs, correct barcodes or reconstruct each
+cell separately ([#226](https://github.com/openvax/isovar/issues/226)). A
+missing or unresolved label never removes a read or changes the reconstruction.
 
-Every label belongs to the explicit input `source` and `sample_id`. Within that
-namespace, header `SM` and `LB` identify the declared sample and library. Two
-read groups with the same `SM`/`LB` share a label if their complete CB/UMI pairs
-match. Different libraries or header samples never merge. When `SM` is absent,
-the explicit input sample still supplies the sample namespace; missing `SM`
-is retained and is not equated with a different group's populated `SM`.
+## Reading the counts
 
-Missing `LB` means unknown library scope. Labels then remain read-group-local,
-or input-local when `RG` is absent. They contribute to `observed_labels`, but
-not a complete library-scoped count. Duplicate header RG IDs are ambiguous and
-their labels remain unresolved. No donor, timepoint, library or barcode suffix
-is inferred from a filename. Header metadata are declarations, not independently
-validated biological sample assignments.
-
-Sources remain separate even when their label strings agree. Different input
-paths do not prove independent evidence: do not add counts from reprocessed
-products or otherwise overlapping read sets. Pooled donor identity, molecule
-collisions and cross-source reconciliation remain unassessed.
-
-## Tags and conflicts
-
-- Use `CB` and `UB` verbatim as reported cell/UMI identifiers. Do not strip
-  suffixes, change case, correct strings or substitute raw `CR`/`XC`, `UR`/`OX`
-  or possibly raw `RX`. SAM's CB is *optionally* corrected; the presence of a
-  tag alone does not prove whitelist correction or cell calling. `UB` uses
-  the documented corrected-UMI convention without claiming its producer has
-  been independently validated. Gene-dependent UMI correction is not rerun.
-- `XM` contributes only when a record's PG pointer, its RG's PG pointer, or an
-  unambiguous whole-header program history identifies an Iso-Seq `correct`
-  step. Follow `PP` links; reject missing, cyclic, contradictory and duplicate
-  program references. Without a pointer, every header lineage must agree.
-  A later Iso-Seq `tag` step makes XM raw; `dedup`/`groupdedup` alone does not
-  establish correction. Platform labels, filenames and an unrelated Iso-Seq
-  header entry are insufficient. Bismark's XM is methylation, not a UMI.
-- All retained placements of a segment participate in conflict checking.
-  Non-string/empty selected tags and disagreeing CB or accepted UMI values
-  leave the segment unresolved. Corrected UB and attributable corrected XM
-  must agree when both occur. Raw and corrected values may differ normally.
-- At least one record must carry a complete pair. CB on one record and UMI
-  on another do not become a complete label. Missing tags on additional
-  records are counted explicitly. Conflicting labels on visible mates leave
-  the template's segments unresolved, even if only one mate is a witness.
-
-The original records and native evidence tags remain unchanged. A missing or
-unresolved label never removes an RNA alignment or changes reconstruction.
-
-## Counts
-
-Both `junctions[].direct_cell_umi_support` and
-`exploratory_orfs.candidates[].full_interval_support.cell_umi_support` contain:
+Each junction's `direct_cell_umi_support`, and each ORF's
+`full_interval_support.cell_umi_support`, contains:
 
 | Field | Meaning |
 | --- | --- |
-| `unit` | `cell_umi_label` |
-| `segment_ids` | Exact supporting `(RG, QNAME, mate bits)` identities |
-| `observed_labels` | Distinct resolved label pairs in their declared scopes; a subset count |
-| `unresolved_segments` | Witnesses without a usable complete label |
-| `unknown_library_segments` | Witnesses without unambiguous declared library metadata |
-| `all_segments_labeled` | Whether every witness has a usable label, independent of library completeness |
-| `complete_label_count` | Count only if there are witnesses and every label and library scope is resolved; otherwise null |
-| `independent_molecules` | Always null; not established by this policy |
-| `status_counts` | Segment counts for each resolution status |
+| `complete_label_count` | Distinct labels among the supporting reads, if every read has a usable label and a known library; otherwise null |
+| `observed_labels` | Distinct usable labels found, even when some reads lack one; a lower bound |
+| `all_segments_labeled` | Whether every supporting read has a usable label, whether or not its library is known |
+| `unresolved_segments` | Supporting reads without a usable complete label |
+| `unknown_library_segments` | Supporting reads without unambiguous library metadata |
+| `status_counts` | Supporting reads by resolution status |
+| `segment_ids` | The supporting reads, as `(RG, QNAME, mate bits)` |
+| `unit` | Always `cell_umi_label` |
+| `independent_molecules` | Always null: labels do not establish independent molecules |
 
-`cell_umi_evidence.segments` records consulted segment identities, scope,
-selected labels, UMI tags, XM semantics and reasons. Its label key is the tuple
-`(source, sample_id, header_sample, library, read_group, basis,
-cell_barcode, umi)`, where `read_group` is set only when the sample/library
-scope is unknown and `basis` is `sample_library`, `read_group` or `input`. Unknown metadata are null. Visible mates consulted for
-conflicts can appear here without appearing in a support denominator.
+Use `complete_label_count` when it is not null. When it is null, look at
+`observed_labels` and the unresolved and unknown-library counts to see why.
+
+## Which labels count as the same
+
+A label belongs to the input's `source` and `sample_id`. Within that input, the
+read group header's `SM` and `LB` fields give the sample and library:
+
+- Read groups with the same `SM` and `LB` share labels, so matching CB/UMI pairs
+  in them count once.
+- Different libraries or samples never share labels.
+- Without `LB`, the library is unknown. Labels then stay local to their read
+  group, or to the whole input when there is no `RG`. They count toward
+  `observed_labels` but never toward `complete_label_count`.
+- Without `SM`, the input's `sample_id` names the sample. A missing `SM` is not
+  treated as equal to another group's `SM`.
+- Duplicate read group IDs in the header are ambiguous, and their labels stay
+  unresolved.
+- Nothing is inferred from file names: no donor, timepoint, library or barcode
+  suffix.
+
+Header fields are declarations, not independently validated sample assignments.
+Different inputs are never combined, even when their label strings agree.
+Different input files are not independent evidence either: do not add counts
+from reprocessed products or overlapping read sets. Pooled donors, UMI
+collisions and reconciliation across inputs are not assessed.
+
+## Which tags are used
+
+- `CB` and `UB` are used verbatim: suffixes are not stripped, case is not
+  changed and strings are not corrected. The raw tags (`CR`/`XC`, `UR`/`OX`, and
+  possibly `RX`) are not substituted. In the SAM specification CB is only
+  *optionally* corrected, so the tag alone does not prove whitelist correction
+  or cell calling. `UB` is taken as the documented corrected UMI, without
+  independent validation of its producer. Gene-dependent UMI correction is not
+  rerun.
+- `XM` counts only when the BAM header shows it was written by an Iso-Seq
+  `correct` step. That step must be named by the record's `PG` pointer, its read
+  group's `PG` pointer, or an unambiguous program history for the whole header.
+  - `PP` links are followed. Missing, cyclic, contradictory and duplicate
+    program references are rejected.
+  - Without a pointer, every program lineage in the header must agree.
+  - A later Iso-Seq `tag` step makes `XM` raw again. `dedup` or `groupdedup`
+    alone does not establish correction.
+  - Platform labels, file names and an unrelated Iso-Seq header entry are not
+    enough. Bismark's `XM` is a methylation call, not a UMI.
+
+## Conflicts
+
+A read counts only if at least one of its records carries both a cell barcode
+and a UMI. A CB on one record and a UMI on another do not make a complete label.
+Records missing tags are counted explicitly. A read is left unresolved when:
+
+- any retained placement has an empty or non-string tag;
+- its placements disagree on CB or on the accepted UMI;
+- corrected `UB` and attributable corrected `XM` disagree (raw and corrected
+  values may differ normally);
+- its visible mates carry conflicting labels, even if only one mate supports
+  the junction.
+
+## The evidence record
+
+`cell_umi_evidence.segments` lists every read consulted, with its scope,
+selected labels, UMI tags, `XM` interpretation and the reasons for its status.
+Visible mates checked for conflicts can appear here without being counted as
+support. Each label's key is the tuple `(source, sample_id, header_sample,
+library, read_group, basis, cell_barcode, umi)`:
+
+- `basis` is `sample_library`, `read_group` or `input`, the scope the label was
+  resolved in;
+- `read_group` is set only when the sample or library is unknown;
+- unknown metadata are null.
+
+The original records and their tags are not modified.
 
 ## Primary sources
 

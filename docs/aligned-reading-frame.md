@@ -1,26 +1,43 @@
-# Alignment-aware local reading frames
+# Reading frames from aligned reads
 
-BAM-derived RNA prefixes transfer coding phase through their observed
-alignment to the compatible transcript, so an upstream insertion or deletion
-is not hidden by trimming RNA and reference strings to equal lengths
+To translate an RNA sequence, Isovar has to know which bases begin codons. It
+takes the frame from the annotated transcripts the reads are compatible with,
+and carries it along each read's own alignment. It does not line up the RNA and
+reference as plain strings.
+
+This matters when the RNA has an indel upstream of the variant. A one-base
+deletion shifts the frame of everything after it. Trimming the RNA and reference
+to equal lengths and comparing them would hide that shift
 ([#265](https://github.com/openvax/isovar/issues/265)).
 
-The first retained, mapped RNA base anchors the local frame. Internal query
-insertions and exonic reference deletions count as nucleotide differences;
-annotated introns do not. Conflicting mappings or transcript-frame hypotheses
-yield no translation, not a sequence-only fallback. An included annotated
-start codon must remain mapped and intact. This does not infer unobserved
-upstream variants, establish a full-length CDS, or distinguish a biological
-indel from a sequencing/alignment error.
+## How the frame is carried
 
-Manually constructed `AlleleRead` objects without alignment metadata are
-matched by sequence alone; supplying alignment metadata is necessary for the
-indel-aware guarantee.
+- The first retained, aligned RNA base anchors the frame.
+- Each inserted or deleted base in an exon counts as one difference toward
+  `max_transcript_mismatches` and moves the frame accordingly. Annotated
+  introns (CIGAR `N`) are skipped without counting.
+- If a read's alignments, or the frames of its compatible transcripts,
+  disagree, there is no translation. Isovar does not fall back to matching
+  sequence alone.
+- If the sequence includes an annotated start codon, that codon must still be
+  aligned and intact.
 
-Regression coverage includes both strands, repetitive prefixes, and original
-Sid CD109 ONT observations with a one-base deletion. RNA translation is checked
-separately from a reference-transcript-plus-single-edit prediction. These are
-different hypotheses, not interchangeable ground truth.
+Reads you build by hand as `AlleleRead` objects without alignment metadata are
+matched by sequence alone. Supply alignment metadata to get the indel-aware
+behavior.
 
-Coordinates follow the query/reference consumption rules in the
+## What this does not do
+
+It does not infer variants upstream of what the reads show, establish a
+full-length coding sequence, or tell a biological indel from a sequencing or
+alignment error.
+
+## Tests
+
+Regression tests cover both strands, repetitive prefixes, and original Sid
+CD109 ONT reads with a one-base deletion. The translated RNA is checked
+separately from a prediction made from the reference transcript plus a single
+edit. These are different hypotheses, and neither is ground truth for the other.
+
+Coordinates follow the query and reference consumption rules of the
 [SAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf).

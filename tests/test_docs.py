@@ -40,14 +40,35 @@ def test_readme_filter_names_are_isovar_result_properties():
 REPOSITORY_URL = "https://github.com/openvax/isovar/blob/master/"
 
 
+PAGES = [ROOT / "README.md", ROOT / "CHANGELOG.md", ROOT / "RELEASING.md", *(ROOT / "docs").glob("*.md")]
+
+
+def heading_anchors(text):
+    """GitHub's anchors for a Markdown page's headings, outside code blocks."""
+    anchors, fenced = set(), False
+    for line in text.splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        elif not fenced and re.match(r"#{1,6} ", line):
+            slug = re.sub(r"[^\w\- ]", "", line.lstrip("#").strip().lower()).replace(" ", "-")
+            anchor, n = slug, 0
+            while anchor in anchors:
+                n += 1
+                anchor = "%s-%d" % (slug, n)
+            anchors.add(anchor)
+    return anchors
+
+
 def test_markdown_links_to_this_repository_resolve():
-    pages = [ROOT / "README.md", ROOT / "CHANGELOG.md", ROOT / "RELEASING.md", *(ROOT / "docs").glob("*.md")]
-    for page in pages:
-        for target in re.findall(r"\]\(([^)#\s]+)(?:#[^)]*)?\)", page.read_text()):
+    for page in PAGES:
+        for target, fragment in re.findall(r"\]\(([^)#\s]*)(?:#([^)\s]*))?\)", page.read_text()):
             if target.startswith(REPOSITORY_URL):
                 path = ROOT / target[len(REPOSITORY_URL):]
             elif "://" in target or target.startswith("mailto:"):
                 continue
             else:
-                path = page.parent / target
+                path = page.parent / target if target else page
             assert path.exists(), "%s links to missing %s" % (page.name, target)
+            if fragment and path.suffix == ".md":
+                assert fragment in heading_anchors(path.read_text()), (
+                    "%s links to missing section %s#%s" % (page.name, target, fragment))
