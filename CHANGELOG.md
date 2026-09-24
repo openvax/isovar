@@ -4,6 +4,12 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.29.1
+
+- The complete osteosarc figure gallery's README names its own generator
+  (`examples.osteosarc_context_figures`) and links its reports; the base-only
+  command is labelled as such ([#301](https://github.com/openvax/isovar/issues/301)).
+
 ## 1.29.0
 
 Consolidated SV helpers ([#364](https://github.com/openvax/isovar/issues/364));
