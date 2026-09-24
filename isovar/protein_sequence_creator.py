@@ -158,7 +158,7 @@ class ProteinSequenceCreator(object):
         self.min_assembly_overlap_size = min_assembly_overlap_size
 
         # Two extra bases suffice for a partial leading codon and center odd
-        # SNV windows in every phase. Preserve the old budget in support mode.
+        # SNV windows in every phase; support mode keeps three.
         extra_bases = 3 if protein_sequence_preference == "support" else 2
         self._cdna_sequence_length = self.protein_sequence_length * 3 + extra_bases
         self._variant_sequence_creator = self._make_variant_sequence_creator(self._cdna_sequence_length)
@@ -224,8 +224,8 @@ class ProteinSequenceCreator(object):
         if not reads:
             return []
         if self.protein_sequence_preference == "support":
-            # Preserve the original single-scale candidate order as well as
-            # its extraction budget (protein support ties are stable).
+            # One context length, in the creator's own candidate order
+            # (protein support ties are stable).
             return self._variant_sequence_creator.reads_to_variant_sequences(variant, reads)
         sequences = {}
         for length in self.candidate_context_lengths():
@@ -310,10 +310,8 @@ class ProteinSequenceCreator(object):
             in_frame_cdna_sequence,
             len(in_frame_cdna_sequence),
             len(in_frame_cdna_sequence) // 3)
-        # TODO:
-        #  determine if the first codon is the start codon of a
-        #  transcript, for now any of the unusual start codons like CTG
-        #  will translate to leucine instead of methionine
+        # The first codon is never treated as a start codon, so a
+        # non-AUG start such as CUG translates as leucine.
         amino_acids, ends_with_stop_codon = translate_cdna(
             in_frame_cdna_sequence,
             first_codon_is_start=False,

@@ -6,6 +6,7 @@ from pathlib import Path
 from ..default_parameters import FUSION_PEPTIDE_LENGTHS, MIN_FUSION_FRAGMENTS, PLOT_DPI
 from ..fusion import fusion_from_dict, reconstruct_fusion
 from ..logging import configure_cli_logging
+from .output_args import add_log_level_arg
 
 
 def make_parser(prog="isovar fusion"):
@@ -18,13 +19,14 @@ def make_parser(prog="isovar fusion"):
                         help="Minimum distinct directly junction-spanning fragments (default: %(default)s)")
     parser.add_argument("--plot-dir", help="Also write PNG/SVG/vector PDF panels in a new UTC-stamped directory")
     parser.add_argument("--dpi", type=int, default=PLOT_DPI, help="PNG resolution (default: %(default)s)")
+    add_log_level_arg(parser)
     return parser
 
 
 def run(args=None, prog=None):
     parser = make_parser(prog or "isovar fusion")
     options = parser.parse_args(args)
-    configure_cli_logging()
+    configure_cli_logging(options.log_level)
     try:
         data = json.loads(Path(options.input).expanduser().read_text())
         fusion, references, reads = fusion_from_dict(data)

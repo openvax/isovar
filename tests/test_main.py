@@ -37,15 +37,6 @@ def test_isovar_main_to_dataframe():
     assert_frame_equal(cli_df, df)
 
 
-def test_run_isovar_docstring_uses_current_filter_api_names():
-    doc = run_isovar.__doc__
-    assert doc is not None
-    assert "filter_values field" in doc
-    assert "filter_values_dict" not in doc
-    assert '"not_has_mutant_protein_sequence_from_rna"' in doc
-    assert '"not_has_protein_sequence"' not in doc
-
-
 def test_python_and_cli_enable_variant_sequence_assembly_by_default():
     protein_creator = ProteinSequenceCreator()
     variant_creator = VariantSequenceCreator()

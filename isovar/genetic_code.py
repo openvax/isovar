@@ -177,13 +177,12 @@ standard_genetic_code_with_extra_start_codons = standard_genetic_code.copy(
         'ATT'}))
 
 vertebrate_mitochondrial_genetic_code = standard_genetic_code.copy(
-    name="verterbrate-mitochondrial",
+    name="vertebrate-mitochondrial",
     # NCBI translation table 2. AGA/AGG termination is supported by direct
-    # direct mtRF1 termination experiments (2023):
+    # mtRF1 termination experiments (2023):
     # https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG2
     # https://pubmed.ncbi.nlm.nih.gov/37141370/
-    # A historical frameshift hypothesis never justified translating these
-    # codons as ordinary arginine during mitochondrial elongation.
+    # They are not translated as arginine during mitochondrial elongation.
     stop_codons={'TAA', 'TAG', 'AGA', 'AGG'},
     # "AUU codes for isoleucine during elongation but can code for
     #  methionine for initiation (ND2) See Fearnley & Walker (1987) and

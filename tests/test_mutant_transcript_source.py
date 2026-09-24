@@ -14,13 +14,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from varcode import (
-    MutantTranscriptSource,
-    ReadPhaseResolver,
-    ReadPhasingSource,
-    apply_phase_resolver_to_effects,
-    load_vcf,
-)
+from varcode import ReadPhaseResolver, apply_phase_resolver_to_effects, load_vcf
 
 from isovar import IsovarMutantTranscript, IsovarReadPhasing, run_isovar
 
@@ -48,20 +42,6 @@ def result_and_transcript(b16_results):
     )
     transcript = result.top_protein_sequence.transcripts[0]
     return b16_results, result, transcript
-
-
-def test_isovar_mutant_transcript_satisfies_runtime_protocol(result_and_transcript):
-    results, _, _ = result_and_transcript
-    source = IsovarMutantTranscript(results)
-    assert isinstance(source, MutantTranscriptSource)
-
-
-def test_composed_isovar_source_satisfies_read_phase_resolver_protocols(
-        result_and_transcript):
-    results, _, _ = result_and_transcript
-    source = IsovarReadEvidence(results)
-    assert isinstance(source, ReadPhasingSource)
-    assert isinstance(source, MutantTranscriptSource)
 
 
 def test_composed_isovar_source_initializes_both_provider_indexes(

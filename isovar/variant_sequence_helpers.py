@@ -57,7 +57,7 @@ def initial_variant_sequences_from_reads(
     """
     Get all unique sequences from reads spanning a variant locus. This will
     include partial sequences due to reads starting in the middle of the
-    sequence around around a variant.
+    sequence around a variant.
 
     Parameters
     ----------

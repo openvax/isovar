@@ -12,7 +12,7 @@
 
 
 """
-Helper functions used for creating translating a variant's cDNA sequence
+Helper functions used for translating a variant's cDNA sequence
 into a particular reading frame.
 """
 
@@ -27,7 +27,7 @@ def find_mutant_amino_acid_interval(
     """
     Parameters
     ----------
-    cdna_sequence : skbio.DNA or str
+    cdna_sequence : str
         cDNA sequence found in RNAseq data
 
     cdna_first_codon_offset : int
@@ -77,8 +77,7 @@ def find_mutant_amino_acid_interval(
     if frameshift:
         # if mutation is a frame shift then every amino acid from the
         # first affected codon to the stop is considered mutant
-        #
-        # TODO: what if the first k amino acids are synonymous with the reference sequence?
+        # (including any leading residues which happen to match the reference).
         variant_aa_interval_end = n_amino_acids
     else:
         # Count codons from the start of the first affected codon, not from

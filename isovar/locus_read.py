@@ -74,20 +74,9 @@ class LocusRead(ValueObject):
             For every base in the sequence, which base-0 reference position
             does it map to, or None if the read base is an insertion or soft-clipped
 
-            `ReadCollector.get_locus_reads` replaces the built-in integers in
-            this list with shared equal integers before returning the read, so
-            equal coordinates on different reads of the same collection call
-            may be the same object. Values, order and length are unchanged, the
-            list object itself is preserved, and each read keeps its own list,
-            so mutating one read's coordinates never affects another.
-
         quality_scores : sequence of int or None
             Base qualities for every character in the sequence. None marks
             unavailable quality, not a fabricated low/high Phred score.
-
-        read_base0_start_inclusive, read_base0_end_exclusive : int or None
-            Query interval for the allele. Both are None when an insertion
-            boundary is unassigned; the locus sequence/alignment is retained.
 
         source_read_count : int
             Number of raw reads represented by this LocusRead. Usually 1, but
@@ -124,13 +113,9 @@ class LocusRead(ValueObject):
             End index of reference locus which is overlapped
             by this read (base 0, exclusive)
 
-        read_base0_start_inclusive : int or None
-            Start index of base in read which corresponds to
-            start of reference locus (if it's mapped)
-
-        read_base0_end_exclusive : int or None
-            End index after last base in sequence which
-            corresponds to reference locus (if it's mapped)
+        read_base0_start_inclusive, read_base0_end_exclusive : int or None
+            Query interval for the allele. Both are None when the locus isn't
+            mapped on this read, including an unassigned insertion boundary.
         """
         ######################################################################
         # When can the start or end of the read interval be None?
@@ -145,7 +130,7 @@ class LocusRead(ValueObject):
         # part of the interval.
         #
         # If y > x, then we're selecting some non-zero reference bases and either matching them
-        # or deleting them. If they CIGAR operation is M (match), then x and y should have
+        # or deleting them. If the CIGAR operation is M (match), then x and y should have
         # corresponding positions on the read (unless, like previously, only part of the
         # interval is covered by a read).
         #

@@ -192,8 +192,8 @@ class ReadCollector(object):
     def alignment_filter_reason(self, read):
         """Return a rejection reason, or None, for one original SAM record.
 
-        MAPQ retains the historical numeric filter, including STAR's 255 for
-        unique mappings. Metadata reports 255 as unavailable, never Q255.
+        MAPQ is compared numerically, so STAR's 255 for unique mappings
+        passes. Metadata reports 255 as unavailable, never Q255.
         Unknown QUAL remains optional on every platform.
         """
         if read.is_unmapped:
@@ -395,6 +395,11 @@ class ReadCollector(object):
 
         base0_end_exclusive : int
 
+        trimmed_base1_start, trimmed_ref, trimmed_alt : int, str, str or None
+            Trimmed variant fields. When supplied for an indel, an equivalent
+            indel aligned elsewhere in the same repeat is found and its query
+            interval is used for the allele.
+
         Returns
         -------
         LocusRead or None
@@ -455,11 +460,6 @@ class ReadCollector(object):
                 trimmed_alt=trimmed_alt,
             )
 
-        # TODO:
-        #  Consider how to handle variants before splice sites, where
-        #  the bases before or after on the genome will not be mapped on the
-        #  read
-        #
         # we have a dictionary mapping base-1 reference positions to base-0
         # read indices and we need to use that to convert the reference
         # half-open interval into a half-open interval on the read.
@@ -900,12 +900,10 @@ class ReadCollector(object):
         trimmed_ref=None,
         trimmed_alt=None,
     ):
-        """Return public, list-backed ``LocusRead`` objects for a locus.
+        """Return ``LocusRead`` objects overlapping a locus.
 
-        Equal built-in coordinate integers are shared within this call, but
-        every read retains its own mutable ``reference_positions`` list. This
-        representation and the subclass conversion/merge hooks are preserved
-        for existing API consumers.
+        See ``collect_locus_reads_with_optional_compaction`` for parameters.
+        Each read has its own ``reference_positions`` list.
         """
         return self.collect_locus_reads_with_optional_compaction(
             alignment_file=alignment_file,
@@ -968,8 +966,7 @@ class ReadCollector(object):
         # immutable integers, never lists or read evidence, through a cache
         # local to this call. Every cached integer is already held by a read,
         # so the cache adds only table slots, and its size is bounded by the
-        # reference span of reads at this locus. A fixed-size LRU cache shared
-        # nothing once that span exceeded its bound (#234).
+        # reference span of reads at this locus.
         shared_positions = {} if not compact else None
         share_position = shared_positions.setdefault if shared_positions is not None else None
 
@@ -1104,13 +1101,14 @@ class ReadCollector(object):
             )
 
         if chromosome is None:
-            # failed to infer a chromsome name for this variant which
+            # failed to infer a chromosome name for this variant which
             # matches names used in SAM/BAM file
+            filename = alignment_file.filename
             logger.warning(
                 "Chromosome '%s' from variant %s not in alignment file %s",
                 variant.contig,
                 variant,
-                alignment_file.filename,
+                filename.decode() if isinstance(filename, bytes) else filename,
             )
             return []
 
@@ -1142,7 +1140,7 @@ class ReadCollector(object):
             # are selected, so just get the interval for those.
             #
             # For example, if two bases at positions chr1:1000 and 1001 are deleted
-            # then the base0 indices will be 9999:1001
+            # then the base0 indices will be 999:1001
             base0_start_inclusive = base1_position - 1
             base0_end_exclusive = base0_start_inclusive + len(ref)
 
@@ -1160,7 +1158,11 @@ class ReadCollector(object):
         return self.get_locus_reads(**kwargs)
 
     def _can_use_compact_evidence_path(self):
-        """Keep every subclass on the historical public hook path."""
+        """Use compact reads only when no collection hook is overridden.
+
+        Subclasses and instance-level overrides of the LocusRead hooks
+        receive the public list-backed LocusRead objects they expect.
+        """
         return type(self) is ReadCollector and not any(
             name in self.__dict__
             for name in (
@@ -1224,8 +1226,7 @@ class ReadCollector(object):
 
         Parameters
         ----------
-        variant : varcode.VariantCollection
-            Variants which will be the keys of the result
+        variant : varcode.Variant
 
         alignment_file : pysam.AlignmentFile
             Aligned RNA reads

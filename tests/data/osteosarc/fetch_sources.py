@@ -1,7 +1,7 @@
 """Optional network acquisition; fetch indexed loci, never entire BAMs or in CI.
 
 Usage: python tests/data/osteosarc/fetch_sources.py NEW_SOURCE_DIR
-Requires isovar[data], samtools and an explicit ISOVAR_SID_SNAPSHOT. Metadata drift is an error;
+Requires samtools and an explicit ISOVAR_SID_SNAPSHOT. Metadata drift is an error;
 revising the pinned source snapshots requires explicit review.
 """
 

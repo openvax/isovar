@@ -37,9 +37,11 @@ def parser_for_program(parser, prog=None):
 def run_dataframe_command(parser, dataframe_from_args, args=None, prog=None):
     """Parse options, build one table from them and write it as CSV."""
     args = parser_for_program(parser, prog).parse_args(sys.argv[1:] if args is None else args)
-    configure_cli_logging()
-    logger.info("Options: %s", args)
-    write_dataframe(dataframe_from_args(args), args)
+    configure_cli_logging(args.log_level)
+    logger.debug("Options: %s", args)
+    df = dataframe_from_args(args)
+    write_dataframe(df, args)
+    logger.info("Wrote %d rows to %s", len(df), args.output)
 
 
 def run(args=None):

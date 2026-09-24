@@ -22,9 +22,8 @@ CORPUS = Path(__file__).parent / "data/osteosarc/expansion/corpus"
 
 @pytest.fixture
 def osteosarc():
-    if sys.version_info < (3, 10):
-        pytest.skip("Optional acquisition uses osteosarc, which requires Python 3.10+")
-    return pytest.importorskip("osteosarc")
+    import osteosarc
+    return osteosarc
 
 
 @pytest.fixture

@@ -11,7 +11,6 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-import sys
 from urllib.parse import urlsplit
 
 
@@ -81,12 +80,7 @@ def acquire_dataset(output=None, *, manifest_path=DEFAULT_MANIFEST, cache_root=N
     output = Path(output) if output is not None else None
     if output is not None and (output.exists() or output.is_symlink()):
         return verify_dataset(output, manifest_path)
-    if sys.version_info < (3, 10):
-        raise RuntimeError("Osteosarc acquisition requires Python 3.10+ and isovar[data]")
-    try:
-        from osteosarc import Cache, OsteosarcError
-    except ImportError as error:
-        raise RuntimeError("Install isovar[data] to acquire osteosarc fixtures") from error
+    from osteosarc import Cache, OsteosarcError
     cache = Cache(cache_root, offline=offline)
     paths = {}
     for asset in manifest["assets"]:

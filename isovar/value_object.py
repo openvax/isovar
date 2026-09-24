@@ -37,10 +37,10 @@ class MetaclassCollectSlots(type):
 class ValueObject(metaclass=MetaclassCollectSlots):
     """
     Base class for objects which define their fields
-    via __slots__ to decrease memory footporint and
+    via __slots__ to decrease memory footprint and
     speed up field access.
 
-    Since a ValueObject can specified purely by a list of field names
+    Since a ValueObject can be specified purely by a list of field names
     and then inherits a lot of useful helper methods (e.g. hashing,
     equality, string representation) it can act as something like
     an algebraic datatype implementation in Python.

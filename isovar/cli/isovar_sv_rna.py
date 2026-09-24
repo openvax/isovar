@@ -12,6 +12,7 @@ from ..default_parameters import (
 from ..sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 from ..logging import configure_cli_logging
 from ..sv_rna_orf_export import export_sv_rna_orfs, sv_rna_orf_output_paths, write_sv_rna_orfs
+from .output_args import add_log_level_arg
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
 
 
@@ -25,6 +26,7 @@ def make_parser(prog="isovar sv-rna"):
                         help="Optional source-identified protein predictions JSON for sequence comparison")
     parser.add_argument("--source", help="Alignment source identity recorded in the output (default: --bam)")
     add_rna_args(parser)
+    add_log_level_arg(parser)
     group = parser.add_argument_group("SV RNA reconstruction")
     group.add_argument("--min-anchor-bases", type=int, default=SV_MIN_ANCHOR_BASES,
                        help="Exact collinear CDS match needed to transfer a frame (default: %(default)s)")
@@ -66,7 +68,7 @@ def make_parser(prog="isovar sv-rna"):
 def run(args=None, prog=None):
     parser = make_parser(prog or "isovar sv-rna")
     options = parser.parse_args(args)
-    configure_cli_logging()
+    configure_cli_logging(options.log_level)
     try:
         if options.orf_output_prefix and Path(options.output).expanduser().resolve() in {
                 path.resolve() for path in sv_rna_orf_output_paths(options.orf_output_prefix).values()}:

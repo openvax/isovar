@@ -255,8 +255,8 @@ class VariantSequence(ValueObject):
             return self._coverage_cache
         variant_start_index, variant_end_index = self.variant_indices()
         n_nucleotides = len(self)
-        # Preserve the historical merged-pair coverage unit, but do not count
-        # an alternative placement or a retained single-mate view twice.
+        # A merged mate pair counts once. An alternative placement or a
+        # retained single-mate view of an already counted segment does not.
         boundaries = [0] * (n_nucleotides + 1)
         # All intervals cover the focal allele, so each union is contiguous.
         for group in observation_groups(self.reads):
