@@ -9,7 +9,7 @@ import pytest
 
 from isovar.cell_umi import CellUmiEvidence
 from isovar.read_lineage import ReadLineage
-from isovar.sv_rna import segment_identity
+from isovar.read_identity import segment_identity
 from isovar.sv_rna_orfs import exploratory_orfs
 from tests.test_sv_rna import HEADER, Scenario, aligned, record, spanning
 from tests.test_sv_rna_orfs import inputs, observation
@@ -236,4 +236,4 @@ def test_header_lines_without_ids_are_ignored_not_fatal():
     metadata["PG"].append(dict(PN="samtools"))
     evidence = lineage([read("x")], metadata)
     assert set(evidence.read_groups) == {"a", "b"}
-    assert set(evidence.programs) == {"basecaller", "aligner"}
+    assert set(evidence.history.programs) == {"basecaller", "aligner"}

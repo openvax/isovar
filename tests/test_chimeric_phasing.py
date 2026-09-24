@@ -265,3 +265,12 @@ def test_original_osteosarc_rna_records_phase_only_with_observed_reciprocal_link
     assert count_reads(inputs[0].alt_reads + inputs[1].alt_reads) == 1
     records[0].set_tag("SA", None)
     assert_placement_phasing(collect(), 1, set())
+
+
+def test_sa_entries_parse_every_field_and_reject_malformed_tags():
+    from isovar.chimeric_alignment import sa_entries
+    assert sa_entries("chr2,101,-,20S30M,60,1;chr3,5,+,30M20S,0,0;") == [
+        ("chr2", 100, "-", "20S30M", 60, 1), ("chr3", 4, "+", "30M20S", 0, 0)]
+    for tag in ("chr2,101", "chr2,x,-,30M,60,0", 7):
+        with pytest.raises(ValueError):
+            sa_entries(tag)

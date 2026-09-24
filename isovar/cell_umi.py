@@ -3,7 +3,7 @@
 from collections import Counter, defaultdict
 import shlex
 
-from .read_metadata import unique_header_entries
+from .read_metadata import ProgramHistory, unique_header_entries
 
 
 def _isoseq_step(program):
@@ -49,8 +49,7 @@ class CellUmiEvidence:
         self.groups, self.sample_id, self.source = groups, sample_id, source
         self.read_groups = unique_header_entries(header.get("RG", []))
         self.ambiguous_groups = {r.get("ID") for r in header.get("RG", [])} - self.read_groups.keys()
-        self.programs = unique_header_entries(header.get("PG", []))
-        self.programs_unique = len(self.programs) == len(header.get("PG", []))
+        self.history = ProgramHistory(header)
         self.program_cache, self.cache = {}, {}
         self.header_xm_producer = False
         self.templates = defaultdict(list)
@@ -58,18 +57,17 @@ class CellUmiEvidence:
             self.templates[identity[:2]].append(identity)
 
     def _xm_program(self, key):
-        if key in self.program_cache:
-            return self.program_cache[key]
-        current, seen, state = key, set(), None
-        while current is not None:
-            if current in seen or current not in self.programs:
-                state = None
-                break
-            seen.add(current)
-            program = self.programs[current]
+        if key not in self.program_cache:
+            self.program_cache[key] = self._xm_state(self.history.chain(key))
+        return self.program_cache[key]
+
+    @staticmethod
+    def _xm_state(chain):
+        """Iso-Seq XM semantics from a program chain, newest first."""
+        state = None
+        for program in chain or ():
             if "bismark" in program.get("PN", program["ID"]).lower():
-                state = None
-                break
+                return None
             step = _isoseq_step(program)
             # The latest tag/correct step determines whether XM is raw.
             if state in (None, "isoseq_correction_unknown"):
@@ -79,28 +77,19 @@ class CellUmiEvidence:
                     state = "isoseq_raw"
                 elif step in ("dedup", "groupdedup"):
                     state = "isoseq_correction_unknown"
-            current = program.get("PP")
-        self.program_cache[key] = state
         return state
 
     def _xm_producer(self, read, group):
-        program = read.get_tag("PG") if read.has_tag("PG") else group.get("PG")
+        program = self.history.pointer(read, group)
         if program is not None:
             return self._xm_program(program) if isinstance(program, str) else None
         # Without a record/RG pointer, every header lineage must agree. A
         # disconnected aligner/merged input cannot identify this tag's producer.
         if self.header_xm_producer is False:
-            parents = {p.get("PP") for p in self.programs.values()}
-            leaves = self.programs.keys() - parents
-            states = {self._xm_program(key) for key in leaves}
-            covered, pending = set(), list(leaves)
-            while pending:
-                key = pending.pop()
-                if key in self.programs and key not in covered:
-                    covered.add(key)
-                    pending.append(self.programs[key].get("PP"))
-            self.header_xm_producer = (next(iter(states)) if self.programs_unique and len(states) == 1
-                                      and covered == self.programs.keys() else None)
+            states = {self._xm_program(key) for key in self.history.leaves}
+            self.header_xm_producer = (
+                next(iter(states)) if self.history.unique and len(states) == 1
+                and self.history.leaves_cover_all() else None)
         return self.header_xm_producer
 
     def _metadata(self, identity):

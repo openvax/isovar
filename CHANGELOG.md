@@ -4,6 +4,27 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.29.0
+
+Consolidated SV helpers ([#364](https://github.com/openvax/isovar/issues/364));
+reconstruction output is unchanged.
+
+- `sv_rna_orfs.exploratory_orfs` takes the supplied `FusionReference` models
+  instead of the private `sv_rna._Model` wrappers.
+- `compare_sv_rna_predictions` is exported from `isovar`.
+- `isovar.sv_rna_relations` defines the junction linkage statuses and the
+  event-linked and event-crossing subsets once. They were previously spelled out
+  separately in `sv_rna`, `sv_rna_orfs` and `sv_rna_comparison`.
+- `chimeric_alignment.sa_entries` is the one `SA` tag parser. SV record retrieval
+  and chimeric-path validation both use it. Path validation no longer
+  suppresses `AttributeError`/`TypeError`, which hid programming errors.
+- `segment_identity` moved to `read_identity`; `sv_rna` still imports it.
+- `read_metadata.ProgramHistory` walks `@PG` chains and resolves record/read-group
+  `PG` pointers for both the cell/UMI and ONT lineage evidence. Each keeps its own
+  producer policy.
+- Each SV record's read-end view is built once rather than twice, which halves
+  adapter matching when a read-end profile is set.
+
 ## 1.28.1
 
 - Package metadata declares the license as the SPDX expression `Apache-2.0`

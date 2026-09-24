@@ -7,7 +7,7 @@ import pysam
 import pytest
 
 from isovar.cell_umi import CellUmiEvidence
-from isovar.sv_rna import segment_identity
+from isovar.read_identity import segment_identity
 from tests.test_sv_rna import HEADER, Scenario, aligned, record, write_bam
 
 

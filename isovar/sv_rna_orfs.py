@@ -3,6 +3,7 @@
 from .genetic_code import standard_genetic_code
 from .orf_inclusion import annotate_orf_inclusion
 from .orf_start import annotate_orf_start
+from .sv_rna_relations import EVENT_CROSSING_RELATIONS
 
 
 def _witnesses(sequence, positions, start, end, junctions, observations):
@@ -63,26 +64,26 @@ def _boundaries(junction):
         [("unplaced_to_acceptor", right)] if junction["right"] is not None else [])
 
 
-def exploratory_orfs(sequence, positions, junctions, observations, models, cell_umi_support,
+def exploratory_orfs(sequence, positions, junctions, observations, references, cell_umi_support,
                      min_amino_acids, max_candidates, lineage=None, competing_splices=(), inclusion_thresholds=None):
     """Enumerate bounded ATG candidates crossing an event-related RNA join.
 
     These are potential translations of observed sequence, separate from
     annotated CDS frame transfer. Context is reported, never scored as proof
     of initiation. A missing stop means the retained sequence ends first.
+    ``references`` are the supplied ``FusionReference`` transcript models.
     ``inclusion_thresholds`` holds keyword arguments for
     ``annotate_orf_inclusion``; None uses its defaults.
     """
-    related = [(i, j, _boundaries(j)) for i, j in enumerate(junctions) if not j["annotated"] and j["relation"] in (
-        "breakpoint_junction", "event_compatible_junction", "breakpoint_clip_partner_unplaced",
-        "splice_ambiguous_event_junction")]
+    related = [(i, j, _boundaries(j)) for i, j in enumerate(junctions)
+               if not j["annotated"] and j["relation"] in EVENT_CROSSING_RELATIONS]
     candidates, limited = [], False
     # Next in-frame stop for each ATG, without translating every long suffix.
     next_stop = [None, None, None]
     starts = []
     for q in range(len(sequence) - 3, -1, -1):
         codon = sequence[q:q + 3]
-        if codon in ("TAA", "TAG", "TGA"):
+        if codon in standard_genetic_code.stop_codons:
             next_stop[q % 3] = q
         elif codon == "ATG":
             stop = next_stop[q % 3]
@@ -99,9 +100,9 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, cell_
         witnesses = _witnesses(sequence, positions, start, end, [j for _, j, _ in crossed], observations)
         segments = {observations[w["observation"]].identity for w in witnesses}
         labels = cell_umi_support(segments)
-        start_evidence = annotate_orf_start(sequence, positions, start, [m.reference for m in models])
+        start_evidence = annotate_orf_start(sequence, positions, start, references)
         start_evidence = annotate_orf_inclusion(
-            start_evidence, sequence, positions, end, [m.reference for m in models], observations, witnesses,
+            start_evidence, sequence, positions, end, references, observations, witnesses,
             competing_splices=competing_splices, **(inclusion_thresholds or {}))
         for assessment in start_evidence["assessments"]:
             inclusion = assessment.get("splice_inclusion")
