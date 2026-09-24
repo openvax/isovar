@@ -28,7 +28,10 @@ production consumers, so the old forms are not kept:
   - translations gain a top-level `complete_5prime`;
   - `reference_comparisons[].start_kind` uses the `start_evidence` region
     names, so `annotated_start` becomes `annotated_CDS_start`;
-  - `RnaObservation.reverse` becomes `reverse_complement`.
+  - `RnaObservation.reverse` becomes `reverse_complement`;
+  - junction `direct_molecules` and ORF `molecule_labels` are removed. They
+    repeated `complete_label_count`, a count of cell/UMI labels rather than
+    molecules; read it from `direct_cell_umi_support` or `cell_umi_support`.
 - ORF exports are `isovar.sv_rna_orfs.v3` with one `interval_convention`, and
   prediction comparisons are `isovar.sv_rna_prediction_comparison.v2`.
   `export_sv_rna_orfs` accepts only v4 reconstructions, and `write_sv_rna_orfs`

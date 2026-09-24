@@ -193,7 +193,7 @@ def test_partial_reads_conflicting_placements_and_different_unplaced_bases_are_n
     assert candidate["ends_with_stop_codon"] and candidate["full_interval_support"]["fragments"] == 0
 
 
-def test_reverse_observation_offsets_and_library_scoped_molecule_labels():
+def test_reverse_observation_offsets_and_library_scoped_cell_umi_labels():
     seq, pos, reads, junction = inputs()
     for key, rg in (("same", "library"), ("other", "another-library")):
         reads[key] = replace(reads["full"], key=key, identity=(rg, key, 0), reverse_complement=True,
@@ -209,7 +209,7 @@ def test_reverse_observation_offsets_and_library_scoped_molecule_labels():
                      cell_umi=CellUmiEvidence(groups, header, "sample", "input"))["candidates"]
     support = candidate["full_interval_support"]
     assert support["segments"] == support["fragments"] == 3
-    assert support["molecule_labels"] == 2 and support["missing_quality_segments"] == 2
+    assert support["cell_umi_support"]["complete_label_count"] == 2 and support["missing_quality_segments"] == 2
     assert all(w["original_query_interval"] == [10, 25] for w in support["witnesses"])
 
 
@@ -279,7 +279,7 @@ def test_original_pacbio_upstream_orf_has_full_span_support_and_retains_tags(tmp
                for a in start["assessments"])
     assert exported["occurrences"][0]["start_evidence"] == start
     support = candidate["full_interval_support"]
-    assert support["molecule_labels"] is None and support["missing_quality_segments"] == 15
+    assert support["cell_umi_support"]["complete_label_count"] is None and support["missing_quality_segments"] == 15
     assert support["cell_umi_support"]["status_counts"] == {"unresolved_xm": 15}
     record_ids = {rid for w in support["witnesses"] for rid in result["observations"][w["observation"]]["records"]}
     evidence = [result["record_evidence"][rid] for rid in record_ids]

@@ -129,7 +129,7 @@ def exploratory_orfs(sequence, positions, junctions, observations, references, c
                                 for i, _, boundaries in crossed],
             full_interval_support=dict(
                 segments=len(segments), fragments=len({s[:2] for s in segments}),
-                molecule_labels=labels["complete_label_count"], cell_umi_support=labels,
+                cell_umi_support=labels,
                 read_lineage=lineage(segments) if lineage is not None else None,
                 missing_quality_segments=len({observations[w["observation"]].identity for w in witnesses
                                               if observations[w["observation"]].missing_qualities}),

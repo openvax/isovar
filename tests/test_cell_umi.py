@@ -209,12 +209,12 @@ def test_junction_and_full_orf_use_the_same_scoped_evidence(tmp_path, libraries,
     path, = result["paths"]
     junction, = path["junctions"]
     assert junction["direct_fragments"] == junction["direct_segments"] == 2
-    assert junction["direct_molecules"] == count
+    assert junction["direct_cell_umi_support"]["complete_label_count"] == count
     orfs = path["exploratory_orfs"]["candidates"]
     assert orfs
     for orf in orfs:
         full = orf["full_interval_support"]
-        assert full["segments"] == 2 and full["molecule_labels"] == count
+        assert full["segments"] == 2 and full["cell_umi_support"]["complete_label_count"] == count
         assert full["cell_umi_support"] == junction["direct_cell_umi_support"]
     assert json.loads(json.dumps(result))["cell_umi_evidence"] == result["cell_umi_evidence"]
 
@@ -232,9 +232,10 @@ def test_partial_junction_witness_is_not_promoted_to_full_orf_support(tmp_path):
     result = scenario.run(write_bam(tmp_path / "rna.bam", reads, header=header))
     path, = result["paths"]
     junction, = path["junctions"]
-    assert junction["direct_segments"] == 2 and junction["direct_molecules"] is None
+    assert junction["direct_segments"] == 2
+    assert junction["direct_cell_umi_support"]["complete_label_count"] is None
     assert junction["direct_cell_umi_support"]["unresolved_segments"] == 1
     orf = next(c for c in path["exploratory_orfs"]["candidates"] if c["query_interval"][0] == 20)
     full = orf["full_interval_support"]
-    assert full["segments"] == full["molecule_labels"] == 1
+    assert full["segments"] == full["cell_umi_support"]["complete_label_count"] == 1
     assert full["cell_umi_support"]["unresolved_segments"] == 0

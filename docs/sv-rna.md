@@ -404,9 +404,8 @@ The result records that a custom filter was used; describe it in
 Cell/UMI labels and ONT signal lineage are reported on each junction
 (`direct_cell_umi_support`, `direct_read_lineage`) and each ORF's full-interval
 support. They are described in [cell/UMI evidence](cell-umi-evidence.md) and
-[ONT read lineage](ont-read-lineage.md). `direct_molecules` and ORF
-`molecule_labels` are the complete label count, or null when any supporting
-segment lacks a resolved label or library.
+[ONT read lineage](ont-read-lineage.md). Their `complete_label_count` is null
+when any supporting segment lacks a resolved label or library.
 
 ## Regression data
 

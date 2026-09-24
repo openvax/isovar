@@ -1244,7 +1244,6 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
             forward_splice_geometry=bool(positions[i] and positions[j] and _forward_splice(positions[i], positions[j])),
             kinds=sorted(kinds), annotated=is_annotated, relation=relation, breakpoint_assignment=assignment,
             direct_segments=len(segments), direct_fragments=len({s[:2] for s in segments}),
-            direct_molecules=cell_umi_support["complete_label_count"],
             direct_cell_umi_support=cell_umi_support,
             direct_read_lineage=store.lineage.support(segments),
             direct_observations=sorted({o.key for o, *_ in direct}),
