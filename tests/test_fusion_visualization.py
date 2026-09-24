@@ -57,3 +57,14 @@ def test_context_counts_and_protein_are_reproduced_from_original_records():
     panels=list(context_panels(data,protein))
     assert len(panels)==6
     assert all(fig.get_facecolor()==(1,1,1,1) for _,_,fig in panels)
+
+
+def test_complete_gallery_readme_names_its_own_generator_and_reports():
+    from examples import osteosarc_context_figures as context
+    base = "# Osteosarc assembly figures\n\n" + context.BASE_REPRODUCTION + "\nPanels.\n"
+    readme = context.complete_gallery_readme(base)
+    assert readme.startswith("# Osteosarc RNA evidence gallery\n")
+    assert "Reproduce this complete gallery: `python -m examples.osteosarc_context_figures" in readme
+    assert "base assembly panels alone" in readme and "examples.osteosarc_assembly_figures" in readme
+    assert all("[%s](%s)" % (name, name) in readme for name in context.COMPLETE_GALLERY_REPORTS)
+    assert readme.endswith("Panels.\n")

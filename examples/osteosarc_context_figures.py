@@ -308,9 +308,11 @@ def generate(output_dir):
     combined.add_metadata({"/Title":"Isovar: RNA reconstruction, haplotypes and fusion evidence"})
     combined.write(output/"isovar-all-figures.pdf")
     (output/"figure-index.json").write_text(json.dumps(index,indent=2)+"\n")
-    (output/"RNA_FOOTPRINTS.md").write_text((CORPUS.parent/"RNA_FOOTPRINTS.md").read_text())
-    (output/"EXTENDED_RNA.md").write_text((CORPUS.parent/"EXTENDED_RNA.md").read_text())
-    with (output/"README.md").open("a") as handle:
+    for report in COMPLETE_GALLERY_REPORTS:
+        (output/report).write_text((CORPUS.parent/report).read_text())
+    readme = output/"README.md"
+    readme.write_text(complete_gallery_readme(readme.read_text()))
+    with readme.open("a") as handle:
         handle.write("\n\n## Extended evidence gallery\n\nCombined vector PDF: `isovar-all-figures.pdf`. "
             "Page index and bookmarks preserve individual examples; all panels also have separate 600-dpi PNG and SVG files. "
             "ZNF436 isolates a read-span limitation; CD109 demonstrates direct phase; MAP2 separates distinct haplotypes. "
@@ -324,6 +326,23 @@ def generate(output_dir):
         for item in index:
             handle.write("- Page %d: [%s](%s), %d pages\n" % (item["start_page"],item["path"],item["path"],item["pages"]))
     return output
+
+
+COMPLETE_GALLERY_REPORTS = ("CORPUS_OUTCOMES.md", "EXTENDED_RNA.md", "RNA_FOOTPRINTS.md", "SOFT_CLIPS.md")
+BASE_REPRODUCTION = "Reproduce: `python -m examples.osteosarc_assembly_figures --output-dir figures/osteosarc`\n"
+
+
+def complete_gallery_readme(base_readme):
+    """Name this generator, not the base one, as the way to reproduce the gallery."""
+    if BASE_REPRODUCTION not in base_readme:
+        raise ValueError("Unexpected base gallery README")
+    return base_readme.replace("# Osteosarc assembly figures\n", "# Osteosarc RNA evidence gallery\n", 1).replace(
+        BASE_REPRODUCTION,
+        "Reproduce this complete gallery: "
+        "`python -m examples.osteosarc_context_figures --output-dir figures/osteosarc`\n\n"
+        "The base assembly panels alone (without the extended RNA, DNA-footprint and fusion sections) "
+        "come from `python -m examples.osteosarc_assembly_figures --output-dir figures/osteosarc`.\n\n"
+        "Reports: " + ", ".join("[%s](%s)" % (name, name) for name in COMPLETE_GALLERY_REPORTS) + ".\n", 1)
 
 
 def main():
