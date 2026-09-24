@@ -18,6 +18,7 @@ placement exists (insertions, soft clips, junction homology).
 
 from bisect import bisect_right
 from collections import Counter, defaultdict, deque
+from collections.abc import Mapping
 from heapq import nsmallest
 from dataclasses import asdict, dataclass
 from hashlib import sha256
@@ -184,6 +185,7 @@ def collect_sv_records(bam, regions, references, max_records=SV_MAX_RECORDS, max
             row['fetched'] = True
             for read in bam.fetch(contig, start, end, multiple_iterators=interleave):
                 if read.query_name is None:
+                    limitations.add("unnamed_records_skipped")
                     continue
                 fragment = segment_identity(read)[:2]
                 if fragments is not None and fragment not in fragments:
@@ -727,7 +729,9 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
     counted over every read overlapping the path end. A branch keeps the reads
     which chose it, so it can continue through unplaced sequence (e.g.
     soft-clipped tails) where no new read can be anchored. Each finished
-    path is returned with the keys of the observations which voted for it.
+    path is returned with the keys of the observations which voted for it and
+    why this end stopped: ``observations_end`` when no observation extends it,
+    ``repeated_genomic_position`` or ``path_limit``.
     """
     done, stack = [], [(sequence, positions, {}, ())]
     while stack:
@@ -745,7 +749,7 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
                          or _agrees(sequence, positions, observation, offset, max(0, offset), n))):
                 extenders.append((observation, offset))
         if not extenders:
-            done.append((sequence, positions, frozenset(used.values())))
+            done.append((sequence, positions, frozenset(used.values()), "observations_end"))
             continue
         placed = {p for p in positions if p is not None}
         bases, added, active, forks, stopped, dropped = [], [], extenders, None, False, set()
@@ -794,7 +798,8 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
             voters = dict(used)
             for o in agreeing.values():
                 voters.setdefault(o.identity, o.key)
-            done.append((sequence, positions, frozenset(voters.values())))
+            done.append((sequence, positions, frozenset(voters.values()),
+                         "repeated_genomic_position" if stopped else "path_limit"))
         elif forks:
             for key in sorted(forks, key=repr):
                 chosen = {o.key for o, _ in forks[key]}
@@ -813,12 +818,15 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
 
 
 def _extend_both(sequence, positions, index, min_overlap, thresholds, budget, pruned, notes):
-    """Extend both ends without replacing any bases of the starting path."""
-    for sequence, positions, voters in _extend(
+    """Extend both ends without replacing any bases of the starting path.
+
+    Yields (sequence, positions, voter keys, end reasons by direction).
+    """
+    for sequence, positions, voters, three_prime in _extend(
             sequence, positions, index, min_overlap, thresholds, budget, pruned, notes, False):
-        for *mirror, more in _extend(*_mirror(sequence, positions), index, min_overlap,
-                                     thresholds, budget, pruned, notes, True):
-            yield (*_mirror(*mirror), voters | more)
+        for *mirror, more, five_prime in _extend(*_mirror(sequence, positions), index, min_overlap,
+                                                 thresholds, budget, pruned, notes, True):
+            yield (*_mirror(*mirror), voters | more, {"5prime": five_prime, "3prime": three_prime})
 
 
 def _distance(position, breakpoint, side):
@@ -1296,6 +1304,29 @@ def _intervals(indices):
     return result
 
 
+def _collection_parameters(collector):
+    """Every ReadCollector setting which can change the collected evidence."""
+    profile = collector.read_end_profile
+    if profile is None:
+        fingerprint = None
+    elif isinstance(profile, Mapping):
+        fingerprint = {group: p.fingerprint for group, p in sorted(profile.items())}
+    else:
+        fingerprint = profile.fingerprint
+    return dict(
+        min_mapping_quality=collector.min_mapping_quality,
+        use_duplicate_reads=collector.use_duplicate_reads,
+        use_secondary_alignments=collector.use_secondary_alignments,
+        use_soft_clipped_bases=collector.use_soft_clipped_bases,
+        use_reads_without_base_qualities=collector.use_reads_without_base_qualities,
+        merge_overlapping_fragments=collector.merge_overlapping_fragments,
+        infer_read_ends=collector.infer_read_ends,
+        trim_adapters=collector.trim_adapters,
+        trim_poly_a=collector.trim_poly_a,
+        read_end_profile_sha256=fingerprint,
+        custom_read_filter=collector.read_filter is not None)
+
+
 def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, regions, references,
                        sample_id, source, event_provenance, read_collector=None,
                        min_anchor_bases=SV_MIN_ANCHOR_BASES, min_overlap=SV_MIN_OVERLAP,
@@ -1475,6 +1506,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     if mapq_255_excluded:
         notes.add("mapq_255_excluded_from_inclusion")
     reconstruction_scopes = defaultdict(set)
+    end_reasons = defaultdict(set)
 
     def batches():
         """(seeds, gated): event seeds first; other joins are built only if reached."""
@@ -1540,7 +1572,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
             for scope, index in ([("regional", store), ("seed_spanning", pool)] if assemble
                                  else [("seed_spanning", pool)]):
                 scope_pruned = []
-                for sequence, positions, voters in _extend_both(
+                for sequence, positions, voters, ends in _extend_both(
                         core_sequence, core_positions, index, min_overlap, thresholds,
                         max(1, max_paths - len(paths)), scope_pruned, notes):
                     path = sequence, positions
@@ -1558,6 +1590,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                     rows.append(row)
                     contributors.update(voters)
                     reconstruction_scopes[path].add(scope)
+                    end_reasons[path].update(ends.items())
                 # Both scopes can prune exactly the same alternative. These
                 # are descriptions of decisions, not additional evidence.
                 for branch in scope_pruned:
@@ -1581,6 +1614,10 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                                            inclusion_thresholds=inclusion_thresholds))
         results.append(result)
         result["reconstruction_scopes"] = sorted(reconstruction_scopes[sequence, positions])
+        # One path can be reached from several seeds or scopes, so an end can
+        # have more than one reason; a natural end is not a truncation.
+        result["end_reasons"] = {end: sorted(r for e, r in end_reasons[sequence, positions] if e == end)
+                                 for end in ("5prime", "3prime")}
         for row in rows:
             if result["path_id"] not in row["paths"]:
                 row["paths"].append(result["path_id"])
@@ -1594,7 +1631,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
              for r in store.groups[identity] if (rid := _record_id(r)) in record_ids}
     best = next((s for s in LINKAGE_STATUSES if s in {r["event_linkage"]["status"] for r in results}), None)
     return dict(
-        schema="isovar.sv_rna_candidates.v2",
+        schema="isovar.sv_rna_candidates.v3",
         status=("event_linked_candidates" if best in LINKAGE_STATUSES[:3]
                 else "splice_ambiguous_candidates" if best == "splice_ambiguous_event_junction"
                 else "regional_candidates_only" if results else "no_candidate_paths"),
@@ -1618,9 +1655,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                         peptide_lengths=lengths, genetic_code=1,
                         min_orf_amino_acids=min_orf_amino_acids, max_orf_candidates=max_orf_candidates,
                         inclusion=dict(inclusion_thresholds),
-                        use_soft_clipped_bases=collector.use_soft_clipped_bases,
-                        custom_read_filter=collector.read_filter is not None,
-                        min_mapping_quality=collector.min_mapping_quality),
+                        read_collection=_collection_parameters(collector)),
         seeds=seed_rows,
         competing_annotated_junctions=[dict(left=list(left), right=list(right), fragments=len(fragments))
                                        for (left, right), fragments in sorted(competing.items())],

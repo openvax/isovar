@@ -119,7 +119,7 @@ def test_custom_filter_applies_before_small_variant_and_sv_reconstruction(tmp_pa
     result = s.run(write_bam(tmp_path / "filtered.bam", reads), read_collector=collector)
     assert result["paths"] == []
     assert result["excluded_records"]["read_filter"] > 0
-    assert result["parameters"]["custom_read_filter"]
+    assert result["parameters"]["read_collection"]["custom_read_filter"]
     assert result["alignment_metadata"]["read_groups"] == [dict(ID="a"), dict(ID="b")]
 
 

@@ -4,6 +4,26 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.27.0
+
+- `isovar sv-rna` output schema `isovar.sv_rna_candidates.v3`
+  ([#363](https://github.com/openvax/isovar/issues/363)). Changes since v2:
+  - each path has `end_reasons` (`observations_end`, `repeated_genomic_position`
+    or `path_limit` for each end), so a truncated path no longer looks complete;
+  - `parameters.read_collection` records every read-collection setting,
+    including duplicate/secondary/QUAL policy, trimming and read-end profile
+    SHA-256s; `use_soft_clipped_bases`, `custom_read_filter` and
+    `min_mapping_quality` moved there from the top level of `parameters`;
+  - `parameters.inclusion` and the 1.26.0 inclusion `thresholds` changes;
+  - fields added after v2 was introduced: `start_evidence`, `junction_crossings`,
+    `reconstruction_scopes` and `junction_links`, and the 1.25.1
+    `departs_elsewhere_only` frame status;
+  - `direct_molecules` and ORF `molecule_labels` are null unless every label and
+    library scope is resolved (since 1.21.9);
+  - records without a read name are reported as `unnamed_records_skipped`.
+- `export_sv_rna_orfs` accepts v2 and v3 results. Occurrences carry `end_reasons`,
+  and a truncated path end adds the `path_end_truncated` warning.
+
 ## 1.26.0
 
 - `isovar sv-rna` splice-linked inclusion gates are configurable and recorded:

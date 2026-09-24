@@ -296,12 +296,23 @@ compares candidate sequence support with what is known about initiation.
 
 Top-level `status` is `event_linked_candidates` (one of the first three
 relations), `splice_ambiguous_candidates`, `regional_candidates_only` or
-`no_candidate_paths`. The output schema is `isovar.sv_rna_candidates.v2`
-(see the [changelog](../CHANGELOG.md) for changes from v1). A missing path
-is not evidence against the event. Peptides are windows absent from the
+`no_candidate_paths`. The output schema is `isovar.sv_rna_candidates.v3`
+(see the [changelog](../CHANGELOG.md) for changes from v1 and v2). A missing
+path is not evidence against the event. Peptides are windows absent from the
 supplied reference proteins only; this is not proteome novelty, presentation
 or immunogenicity. Results retain the SAM text of cited records, excluded-record
-reasons, segment-path notes and effective parameters.
+reasons, segment-path notes and effective parameters: `parameters` holds the
+reconstruction thresholds, `parameters.read_collection` every read-collection
+setting (including trimming and the SHA-256 of each read-end profile) and
+`parameters.inclusion` the splice-inclusion gates.
+
+Each path's `end_reasons` gives, for its `5prime` and `3prime` ends, why
+extension stopped: `observations_end` when no observation extends it further,
+`repeated_genomic_position` when the next base would revisit a placement, or
+`path_limit`. A path reached from several seeds or scopes can list more than
+one reason for an end; any reason other than `observations_end` means that end
+was truncated, not reached. Records without a read name are skipped and
+reported as `unnamed_records_skipped`.
 
 ## Read lineage
 
@@ -403,8 +414,9 @@ Add `--orf-output-prefix sample.orfs` to `isovar sv-rna` to write
 the required native `--output` reconstruction. The prefix must not collide
 with the native output. The API equivalents are
 `isovar.export_sv_rna_orfs(result)` and `isovar.write_sv_rna_orfs(export, prefix)`.
-The adapter accepts `isovar.sv_rna_candidates.v2` and emits
-`isovar.sv_rna_orfs.v2`. This is the exploratory SV ATG-ORF portion of
+The adapter accepts `isovar.sv_rna_candidates.v2` and `v3` and emits
+`isovar.sv_rna_orfs.v2`. Occurrences carry their path's `end_reasons` (null for
+v2 input), and a truncated path end adds the `path_end_truncated` warning. This is the exploratory SV ATG-ORF portion of
 [#324](https://github.com/openvax/isovar/issues/324); annotated-frame translations
 and ordinary SNV/indel exchange remain separate work.
 
