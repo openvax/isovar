@@ -274,13 +274,10 @@ def test_original_pacbio_upstream_orf_has_full_span_support_and_retains_tags(tmp
     exported, = [c for c in export_sv_rna_orfs(result)["candidates"]
                  if c["amino_acids"] == candidate["amino_acids"]]
     assert exported["start_evidence_summary"]["status"] == "ambiguous"
-    portable = deepcopy(start)
-    for assessment in portable["assessments"]:
-        inclusion = assessment["splice_inclusion"]
-        for key in ("cell_umi_support", "read_lineage"):
-            inclusion[key].pop("segment_ids")
-    assert exported["occurrences"][0]["start_evidence"] == portable
-    assert all("segment_ids" in a["splice_inclusion"]["cell_umi_support"] for a in start["assessments"])
+    # UTR and noncoding starts are not intronic, so no splice inclusion is assessed.
+    assert all("splice_inclusion" not in a and a["splice_inference"] == "not_assessed"
+               for a in start["assessments"])
+    assert exported["occurrences"][0]["start_evidence"] == start
     support = candidate["full_interval_support"]
     assert support["molecule_labels"] is None and support["missing_quality_segments"] == 15
     assert support["cell_umi_support"]["status_counts"] == {"unresolved_xm": 15}
@@ -292,3 +289,18 @@ def test_original_pacbio_upstream_orf_has_full_span_support_and_retains_tags(tmp
     assert {r["tags"]["ic"] for r in evidence} == {1, 2}
     assert {r["tags"]["rc"] for r in evidence} == {0, 1}
     assert {r["tags"]["rm"] for r in evidence} == {1}
+
+
+def test_anchored_reading_that_departs_at_an_indel_is_not_reported_as_no_gene_anchor():
+    from isovar.sv_rna import _frame_evidence
+    cds = "ATG" + "GCC" * 38 + "TAA"
+    ref = FusionReference(contig="1", strand="+", exons=((0, len(cds)),), sequence=cds, cds_start=0,
+                          cds_end=len(cds), transcript_id="coding", annotation="test", reference_name="test")
+    # A 52-nt exact CDS anchor, then a 1-nt deletion and too little sequence to re-anchor.
+    path = cds[:52] + cds[53:63]
+    positions = [("1", p, "+") for p in list(range(52)) + list(range(53, 63))]
+    result = _frame_evidence(path, positions, {60: "breakpoint_junction"}, [_Model(ref)], 18, set(), (9,))
+    assert result["frame_status"] == "departs_elsewhere_only"
+    assert result["readings_departing_elsewhere"] == 1 and not result["translations"]
+    unanchored = _frame_evidence(path[:17], positions[:17], {}, [_Model(ref)], 18, set(), (9,))
+    assert unanchored["frame_status"] == "no_gene_anchor"

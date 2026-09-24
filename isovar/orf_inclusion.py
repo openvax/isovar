@@ -141,7 +141,9 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
     competing_splices = list(competing_splices)
     for assessment in result["assessments"]:
         reference = references.get((assessment["transcript_id"], assessment["annotation"]))
-        if reference is None:
+        # Only an intronic start needs splice evidence for inclusion; other
+        # regions keep splice_inference="not_assessed" and no inclusion record.
+        if reference is None or assessment["region"] != "intronic":
             continue
         runs, edges = _edges(positions, reference)
         evidence = dict(policy="isovar.orf_inclusion.v1", status="unresolved", mechanisms=[],
@@ -155,8 +157,6 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
                         mature_transcript_proven=False)
         assessment["splice_inclusion"] = evidence
         assessment["splice_inference"] = "observed_path_assessed"
-        if assessment["region"] != "intronic":
-            continue
         lo, hi = assessment["intron_interval"]
         start_run = next((r for r in runs if r[0] <= start and start + 3 <= r[1]), None)
         relevant = [e for e in edges if

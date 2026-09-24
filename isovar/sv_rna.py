@@ -1052,8 +1052,10 @@ def _frame_evidence(sequence, positions, departures, models, min_anchor, referen
             u["transcript_id"] for u in unresolved
             if any(a[0] < s[1] and s[0] < a[1] for a in u["anchors"] for s in spans))
     if not translations:
+        # An exact coding anchor whose every reading leaves the model at an
+        # indel or error is still a gene anchor, not the absence of one.
         status = ("reference_protein_only" if reference_readings else "unresolved" if unresolved
-                  else "no_gene_anchor")
+                  else "departs_elsewhere_only" if other_departures else "no_gene_anchor")
     elif len(translations) == 1 and not translations[0]["competing_noncoding_models"]:
         status = "translated"
     else:

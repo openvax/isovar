@@ -264,7 +264,9 @@ compares candidate sequence support with what is known about initiation.
 - **Frame:** `frame_status` is `translated` (one protein, no competing model),
   `ambiguous` (several proteins, or a noncoding model sharing the frame
   anchor), `reference_protein_only`, `unresolved` (only noncoding or UTR
-  anchors) or `no_gene_anchor`. `complete_5prime` is set only when the
+  anchors), `departs_elsewhere_only` (a coding anchor whose every reading
+  leaves its model before a reported junction, counted in
+  `readings_departing_elsewhere`) or `no_gene_anchor`. `complete_5prime` is set only when the
   annotated start codon is observed; otherwise the upstream frame is assumed.
   `translation_observed` is always false: RNA is not protein evidence.
 - **Event linkage:** every junction has a `relation`. Values, strongest first:
@@ -547,7 +549,8 @@ PARD3B candidate offline after building and extracting the actual sdist.
 ## Link an intronic start to an observed transcript path
 
 Reconstruction carries `splice_inclusion` inside each intronic
-`start_evidence.assessments` entry. The public `annotate_orf_inclusion` function
+`start_evidence.assessments` entry; other regions have none and keep
+`splice_inference="not_assessed"`. The public `annotate_orf_inclusion` function
 performs the same assessment for callers with retained path observations.
 It preserves a strand-aware graph of reference exons, observed contiguous
 runs and their joins, together with all qualifying and failing witnesses.
