@@ -56,4 +56,4 @@ def write_dataframe(df, args):
             raise CommandInputError("Unknown --output-columns %s; valid columns: %s" % (
                 ", ".join(missing), ", ".join(df.columns)))
         df = df[args.output_columns]
-    df.to_csv(args.output, index=False)
+    df.to_csv(args.output, index=False, float_format="%.6g")

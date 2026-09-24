@@ -36,6 +36,7 @@ def test_dataframe_builder():
     df_builder.add(test_variant, test_obj)
     df = df_builder.to_dataframe()
     expected = pd.DataFrame(OrderedDict([
+        ("variant", [test_variant.short_description]),
         ("chr", ["X"]),
         ("pos", [10]),
         ("ref", ["CC"]),
@@ -54,6 +55,7 @@ def test_dataframe_builder_rename():
     df_builder.add(test_variant, test_obj)
     df = df_builder.to_dataframe()
     expected = pd.DataFrame(OrderedDict([
+        ("variant", [test_variant.short_description]),
         ("chr", ["X"]),
         ("pos", [10]),
         ("ref", ["CC"]),
@@ -73,6 +75,7 @@ def test_dataframe_rename_and_converters():
     df_builder.add(test_variant, test_obj)
     df = df_builder.to_dataframe()
     expected = pd.DataFrame(OrderedDict([
+        ("variant", [test_variant.short_description]),
         ("chr", ["X"]),
         ("pos", [10]),
         ("ref", ["CC"]),
@@ -93,6 +96,7 @@ def test_dataframe_rename_and_converters_and_exclude():
     df_builder.add(test_variant, test_obj)
     df = df_builder.to_dataframe()
     expected = pd.DataFrame(OrderedDict([
+        ("variant", [test_variant.short_description]),
         ("chr", ["X"]),
         ("pos", [10]),
         ("ref", ["CC"]),

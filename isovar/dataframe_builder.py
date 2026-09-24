@@ -25,7 +25,7 @@ COLLECTION_TYPES = (tuple, list, set, frozenset)
 class DataFrameBuilder(object):
     """
     Helper class for constructing a DataFrame which always has fields
-    of a variant (chr/pos/ref/alt) as well as some subset of the fields
+    of a variant (variant/chr/pos/ref/alt) as well as some subset of the fields
     from a namedtuple or ValueObject.
     """
     def __init__(
@@ -67,7 +67,9 @@ class DataFrameBuilder(object):
             value for each row.
 
         variant_columns : bool
-            If True, then add four columns for fields of a Variant: chr/pos/ref/alt.
+            If True, then start with the variant's description, as in
+            ``isovar run`` output, and its contig, position and alleles as
+            given in the input (variant/chr/pos/ref/alt).
 
         convert_collections_to_size : bool
             If a value is a built-in collection (list, tuple, or set) then
@@ -113,6 +115,7 @@ class DataFrameBuilder(object):
         if self.variant_columns:
             columns_list = [
                 # fields related to variant
+                ("variant", []),
                 ("chr", []),
                 ("pos", []),
                 ("ref", []),
@@ -145,7 +148,8 @@ class DataFrameBuilder(object):
                 "Expected %s : %s to be a Variant" % (
                     variant,
                     type(variant))
-            self.columns_dict["chr"].append(variant.contig)
+            self.columns_dict["variant"].append(variant.short_description)
+            self.columns_dict["chr"].append(variant.original_contig)
             self.columns_dict["pos"].append(variant.original_start)
             self.columns_dict["ref"].append(variant.original_ref)
             self.columns_dict["alt"].append(variant.original_alt)

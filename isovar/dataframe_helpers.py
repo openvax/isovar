@@ -16,6 +16,7 @@ from .allele_read import AlleleRead
 from .read_identity import count_reads, fragment_ids
 from .common import list_to_string
 from .dataframe_builder import DataFrameBuilder
+from .isovar_result import IsovarResult
 from .locus_read import LocusRead
 from .protein_sequence import ProteinSequence
 from .read_collector import ReadCollector
@@ -65,8 +66,12 @@ def protein_sequences_generator_to_dataframe(variant_and_protein_sequences_gener
     return dataframe_from_generator(
         element_class=ProteinSequence,
         variant_and_elements_generator=variant_and_protein_sequences_generator,
+        rename_dict={"translations": "num_translations"},
         extra_column_fns=dict(
-            gene=lambda _, x: ";".join(x.gene_names)))
+            gene=lambda _, x: ";".join(x.gene_names),
+            num_supporting_reads=lambda _, x: x.num_supporting_reads,
+            num_supporting_fragments=lambda _, x: x.num_supporting_fragments,
+            transcript_ids=lambda _, x: ";".join(x.transcript_ids)))
 
 
 def allele_counts_dataframe(read_evidence_generator):
@@ -167,8 +172,13 @@ def variant_sequences_generator_to_dataframe(variant_sequences_generator):
     return dataframe_from_generator(
         VariantSequence,
         variant_sequences_generator,
-        rename_dict={"alt": "allele"},
+        rename_dict={"alt": "allele", "reads": "num_reads"},
+        converters={
+            "reads": count_reads,
+            "compatible_transcript_ids": lambda ids: None if ids is None else ";".join(sorted(ids)),
+        },
         extra_column_fns={
+            "num_fragments": lambda _, x: len(fragment_ids(x.reads)),
             "gene": lambda variant, _: ";".join(variant.gene_names),
         })
 
@@ -192,6 +202,10 @@ def translations_generator_to_dataframe(translations_generator):
                     transcript.name for
                     transcript in rc.transcripts]))
         },
+        rename_dict={
+            "variant_orf": "in_frame_cdna_sequence",
+            "reference_context": "reference_transcript_names",
+        },
         extra_column_fns={
             "untrimmed_variant_sequence_read_count": (
                 lambda _, t: count_reads(t.untrimmed_variant_sequence.reads)),
@@ -208,7 +222,8 @@ def isovar_results_to_dataframe(isovar_results):
 
     Returns pandas.DataFrame
     """
-    records = []
-    for isovar_result in isovar_results:
-        records.append(isovar_result.to_record())
+    records = [isovar_result.to_record() for isovar_result in isovar_results]
+    if not records:
+        # Keep the header so that an empty result is still a valid table.
+        return pd.DataFrame(columns=IsovarResult.record_columns())
     return pd.DataFrame.from_records(records)

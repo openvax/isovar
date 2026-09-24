@@ -294,6 +294,11 @@ subcommand) also runs the pipeline, and `python -m isovar` works too.
 Except `isovar run`, the table and plot commands also install as hyphenated
 scripts such as `isovar-protein-sequences` and `isovar-plot`.
 
+Every CSV starts with the same variant key: `variant` (as in `chr9 g.82927102G>T`)
+and `chr`, `pos`, `ref` and `alt` as given in the input, so tables from different
+commands can be joined. Counts are `num_*` columns, lists are `;`-separated, and
+numbers are written with six significant digits. An empty result still has its header.
+
 For example, use only primary alignments, include soft-clipped bases, and
 require at least three reads at every retained cDNA base:
 

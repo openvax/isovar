@@ -36,6 +36,29 @@ class IsovarResult(object):
     assembly.
     """
 
+    # Varcode effect properties exported with a "predicted_effect_" prefix.
+    _PREDICTED_EFFECT_FIELDS = (
+        "gene_name",
+        "gene_id",
+        "transcript_id",
+        "transcript_name",
+        "modifies_protein_sequence",
+        "original_protein_sequence",
+        "aa_mutation_start_offset",
+        "aa_mutation_end_offset",
+        "mutant_protein_sequence",
+    )
+
+    # Record column names paired with fields of the top ProteinSequence.
+    _PROTEIN_SEQUENCE_FIELDS = (
+        ("protein_sequence", "amino_acids"),
+        ("protein_sequence_ends_with_stop_codon", "ends_with_stop_codon"),
+        ("protein_sequence_gene_names", "gene_names"),
+        ("protein_sequence_gene_ids", "gene_ids"),
+        ("protein_sequence_transcript_names", "transcript_names"),
+        ("protein_sequence_transcript_ids", "transcript_ids"),
+    )
+
     def __init__(
             self,
             variant,
@@ -198,6 +221,10 @@ class IsovarResult(object):
         """
         d = OrderedDict([
             ("variant", self.variant.short_description),
+            ("chr", self.variant.original_contig),
+            ("pos", self.variant.original_start),
+            ("ref", self.variant.original_ref),
+            ("alt", self.variant.original_alt),
             ("overlapping_gene_names",
                 ";".join(self.overlapping_gene_names(only_coding=False))),
             ("overlapping_gene_ids",
@@ -209,15 +236,8 @@ class IsovarResult(object):
 
         ])
 
-        # get all quantitative fields from this object
-        for key in dir(self):
-            if key.startswith("num_") or key.startswith("fraction_") or key.startswith("ratio_"):
-                d[key] = getattr(self, key)
-
-        # get all boolean properties that start with "has_"
-        for key in dir(self):
-            if key.startswith("has_"):
-                d[key] = getattr(self, key)
+        for key in self._record_property_names():
+            d[key] = getattr(self, key)
 
         ########################################################################
         # predicted protein changes without looking at RNA reads
@@ -229,19 +249,7 @@ class IsovarResult(object):
         d["predicted_effect_modifies_protein_sequence"] = \
             self.predicted_effect_modifies_protein_sequence
 
-        # list of field names on varcode effect properties
-        effect_properties = [
-            "gene_name",
-            "gene_id",
-            "transcript_id",
-            "transcript_name",
-            "modifies_protein_sequence",
-            "original_protein_sequence",
-            "aa_mutation_start_offset",
-            "aa_mutation_end_offset",
-            "mutant_protein_sequence"
-        ]
-        for field_name in effect_properties:
+        for field_name in self._PREDICTED_EFFECT_FIELDS:
             # store effect fields with prefix 'predicted_effect_' and use
             # getattr in case the field is not available for all effects
             d["predicted_effect_%s" % field_name] = getattr(
@@ -254,17 +262,7 @@ class IsovarResult(object):
         ########################################################################
         protein_sequence = self.top_protein_sequence
 
-        # list of names we want to use in the result dictionary,
-        # paired with names of fields on ProteinSequence
-        protein_sequence_properties = [
-            ("protein_sequence", "amino_acids"),
-            ("protein_sequence_ends_with_stop_codon", "ends_with_stop_codon"),
-            ("protein_sequence_gene_names", "gene_names"),
-            ("protein_sequence_gene_ids", "gene_ids"),
-            ("protein_sequence_transcript_names", "transcript_names"),
-            ("protein_sequence_transcript_ids", "transcript_ids"),
-        ]
-        for (name, protein_sequence_field) in protein_sequence_properties:
+        for (name, protein_sequence_field) in self._PROTEIN_SEQUENCE_FIELDS:
             value = getattr(protein_sequence, protein_sequence_field, None)
             if isinstance(value, (list, set, tuple)):
                 value = ";".join(value)
@@ -291,6 +289,32 @@ class IsovarResult(object):
         d["passes_all_filters"] = self.passes_all_filters
         return d
 
+    @classmethod
+    def _record_property_names(cls):
+        """Numeric (num_/fraction_/ratio_) then boolean (has_) properties."""
+        names = dir(cls)
+        return ([key for key in names if key.startswith(("num_", "fraction_", "ratio_"))]
+                + [key for key in names if key.startswith("has_")])
+
+    @classmethod
+    def record_columns(cls):
+        """Columns of ``to_record`` other than per-filter ``filter:`` columns."""
+        columns = (
+            ["variant", "chr", "pos", "ref", "alt",
+             "overlapping_gene_names", "overlapping_gene_ids",
+             "overlapping_coding_gene_names", "overlapping_coding_gene_ids"]
+            + cls._record_property_names()
+            + ["predicted_effect", "predicted_effect_class",
+               "predicted_effect_modifies_protein_sequence"]
+            + ["predicted_effect_" + name for name in cls._PREDICTED_EFFECT_FIELDS]
+            + [name for name, _ in cls._PROTEIN_SEQUENCE_FIELDS]
+            + ["protein_sequence_mutation_start_idx", "protein_sequence_mutation_end_idx",
+               "num_mutant_amino_acids_in_protein_sequence",
+               "trimmed_predicted_mutant_protein_sequence", "trimmed_reference_protein_sequence",
+               "protein_sequence_contains_mutation", "protein_sequence_contains_deletion",
+               "protein_sequence_matches_predicted_mutation_effect", "passes_all_filters"])
+        # A repeated key keeps its first position, as in to_record's dictionary.
+        return list(dict.fromkeys(columns))
 
     @cached_property
     def passes_all_filters(self):

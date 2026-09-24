@@ -4,6 +4,25 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.28.0
+
+CSV output from the command-line tools
+([#258](https://github.com/openvax/isovar/issues/258)):
+
+- Every table starts with `variant`, `chr`, `pos`, `ref`, `alt`. `chr` keeps the
+  input's contig name (`chr9`, not `9`), and `isovar run` gains the four columns
+  after `variant`. Existing `isovar run` columns are unchanged.
+- Collection fields were written as counts under their original names. They are
+  now `num_translations` (protein sequences), `num_reads` and `num_fragments`
+  (variant sequences), and `compatible_transcript_ids` lists IDs.
+- `isovar translations` renames `variant_orf` to `in_frame_cdna_sequence` and
+  `reference_context` to `reference_transcript_names`, matching their contents.
+- `isovar protein-sequences` adds `num_supporting_reads`, `num_supporting_fragments`
+  and `transcript_ids`.
+- Floats are written with six significant digits.
+- An empty result keeps its header row; `isovar_results_to_dataframe([])` returns
+  the `IsovarResult.record_columns()` columns.
+
 ## 1.27.1
 
 - Command-line input problems are one-line usage errors (exit 2) instead of
