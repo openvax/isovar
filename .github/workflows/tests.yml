@@ -1,10 +1,6 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-# TODO:
-# - update coveralls
-# - get a badge for tests passing
-# - download binary dependencies from conda
 name: Tests
 on: [push, pull_request]
 
@@ -59,6 +55,11 @@ jobs:
       - name: Run unit tests
         run: |
           ./test.sh
+      # The coveralls package comes from PyPI with the other test tools, so
+      # publishing needs no separate reporter download (#358). A failed upload
+      # fails the job.
       - name: Publish coverage to Coveralls
         if: matrix.python-version == '3.11'
-        uses: coverallsapp/github-action@v2.2.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: coveralls --service=github
