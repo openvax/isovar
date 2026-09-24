@@ -11,27 +11,19 @@
 # limitations under the License.
 
 """
-This module implements basic DNA functionality in Python strings to
-to avoid having to depend on a bigger library such as BioPython.
+Nucleotide helpers on Python strings, to avoid depending on a bigger library
+such as BioPython.
 """
 
-dna_complement_dictionary = {
-    "A": "T",
-    "T": "A",
-    "C": "G",
-    "G": "C",
-}
-
-dna_nucleotides = list(sorted(dna_complement_dictionary.keys()))
-
-dna_nucleotide_to_index = {c: i for (i, c) in enumerate(dna_nucleotides)}
-
-index_to_dna_nucleotide = {i: c for (i, c) in enumerate(dna_nucleotides)}
+# IUPAC codes, including N, in both cases. Other characters are unchanged.
+_COMPLEMENT = str.maketrans(
+    "ACGTRYKMSWBDHVNacgtrykmswbdhvn",
+    "TGCAYRMKSWVHDBNtgcayrmkswvhdbn")
 
 
 def complement_dna(seq):
     """
-    Convert every A->T, T->A, C->G, G->C in a DNA sequence
+    Complement every base of a DNA sequence, preserving case.
 
     Parameters
     ----------
@@ -39,7 +31,7 @@ def complement_dna(seq):
 
     Returns str
     """
-    return "".join(dna_complement_dictionary[nt] for nt in seq)
+    return seq.translate(_COMPLEMENT)
 
 
 def reverse_complement_dna(seq):

@@ -3,7 +3,6 @@
 from .genetic_code import standard_genetic_code
 from .orf_inclusion import annotate_orf_inclusion
 from .orf_start import annotate_orf_start
-from .read_metadata import record_evidence as record_evidence
 
 
 def _witnesses(sequence, positions, start, end, junctions, observations):

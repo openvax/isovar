@@ -9,7 +9,8 @@ import pytest
 from isovar.cell_umi import CellUmiEvidence
 from isovar import FusionReference, export_sv_rna_orfs
 from isovar.sv_rna import RnaObservation, _Model
-from isovar.sv_rna_orfs import exploratory_orfs, record_evidence
+from isovar.read_metadata import record_evidence
+from isovar.sv_rna_orfs import exploratory_orfs
 from tests.test_sv_rna import long_read_run
 
 

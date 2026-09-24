@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import defaultdict, Counter
+from collections import defaultdict
 from itertools import combinations
 
 from .default_parameters import MIN_SHARED_FRAGMENTS_FOR_PHASING
@@ -29,63 +29,6 @@ def _variant_sort_key(variant):
     )
 
 
-def create_read_names_to_variants_dict(variant_to_read_names_dict):
-    """
-    Invert a variant -> read-name mapping into read-name -> variants.
-    """
-    read_names_to_variants = defaultdict(set)
-
-    for variant, read_names in variant_to_read_names_dict.items():
-        for read_name in read_names:
-            read_names_to_variants[read_name].add(variant)
-    return read_names_to_variants
-
-
-def create_variant_to_alt_read_names_dict(isovar_results):
-    """
-    Create dictionary from variant to names of alt reads supporting
-    that variant in an IsovarResult.
-
-    Parameters
-    ----------
-    isovar_results : list of IsovarResult
-
-    Returns
-    -------
-    Dictionary from varcode.Variant to set(str) of read names
-
-    """
-    return {
-        isovar_result.variant: set(isovar_result.alt_read_names)
-        for isovar_result in isovar_results
-    }
-
-
-def create_variant_to_protein_sequence_read_names_dict(isovar_results):
-    """
-    Create dictionary from variant to names of alt reads used to create
-    mutant protein sequence in an IsovarResult.
-
-    Parameters
-    ----------
-    isovar_results : list of IsovarResult
-
-    Returns
-    -------
-    Dictionary from varcode.Variant to set(str) of read names
-    """
-    variant_to_read_names = {}
-    for isovar_result in isovar_results:
-        if isovar_result.has_mutant_protein_sequence_from_rna:
-            protein_sequence = isovar_result.top_protein_sequence
-            read_names = set(
-                protein_sequence.read_names_supporting_protein_sequence)
-        else:
-            read_names = set()
-        variant_to_read_names[isovar_result.variant] = read_names
-    return variant_to_read_names
-
-
 def create_variant_to_top_protein_sequence_dict(isovar_results):
     """
     Create dictionary from variant to its top translated protein sequence.
@@ -100,77 +43,6 @@ def create_variant_to_top_protein_sequence_dict(isovar_results):
         )
         for isovar_result in isovar_results
     }
-
-
-def compute_phasing_counts(variant_to_read_names_dict):
-    """
-
-    Parameters
-    ----------
-    variants_to_read_names : dict
-        Dictionary mapping varcode.Variant to a set of hashable fragment IDs.
-        Plain read names remain supported for caller-provided legacy mappings.
-
-    Returns
-    -------
-    Dictionary from variant to Counter(Variant)
-    """
-    support, _ = _phasing_support(variant_to_read_names_dict)
-    return defaultdict(Counter, {
-        variant: Counter({other: len(ids) for other, ids in neighbors.items()})
-        for variant, neighbors in support.items()
-    })
-
-def threshold_phased_variant_counts(counts_dict, min_count):
-    """
-    Choose set of phased variants by keeping any variants with associated
-    counts greater than or equal the given threshold.
-
-    Parameters
-    ----------
-    counts_dict : variant -> int dict
-
-    min_count : int
-
-    Returns
-    -------
-    set of varcode.Variant
-    """
-    return {
-        variant
-        for (variant, count)
-        in counts_dict.items()
-        if count >= min_count
-    }
-
-
-def create_phase_groups(
-        variant_to_read_names_dict,
-        min_shared_fragments_for_phasing,
-        variant_to_top_protein_sequence_dict=None,
-        read_names_by_id=None):
-    """
-    Group variants into connected components of the phasing graph.
-
-    If top translated protein sequences are provided then each resulting
-    PhaseGroup is also annotated with directly observed cDNA, protein, and
-    transcript metadata from those assemblies.
-
-    ``read_names_by_id`` optionally maps scoped fragment IDs to display names.
-    Names are converted only after constructing the graph; public PhaseGroup
-    fields retain their existing string-based representation.
-
-    Returns
-    -------
-    dict
-        Mapping from variant to PhaseGroup. Variants without phased partners are
-        omitted.
-    """
-    return _phase_annotations(
-        variant_to_read_names_dict,
-        min_shared_fragments_for_phasing,
-        variant_to_top_protein_sequence_dict,
-        read_names_by_id)[1]
 
 
 def _phasing_support(variant_to_reads):
@@ -211,12 +83,14 @@ def _phasing_support(variant_to_reads):
 def _phase_annotations(
         variant_to_reads,
         min_shared_fragments_for_phasing,
-        variant_to_top_protein_sequence_dict=None,
-        read_names_by_id=None):
-    """Derive neighbors and groups from the same validated fragment edges."""
+        variant_to_top_protein_sequence_dict=None):
+    """Derive neighbors and groups from the same validated fragment edges.
+
+    ``variant_to_reads`` maps each variant to its reads, or to plain read
+    names for callers without alignment metadata. Returns the phased
+    neighbors of every variant and the PhaseGroup of each grouped variant.
+    """
     support, names_by_id = _phasing_support(variant_to_reads)
-    if read_names_by_id is not None:
-        names_by_id.update(read_names_by_id)
     phased_neighbors = {
         variant: {other for other, ids in support[variant].items()
                   if len(ids) >= min_shared_fragments_for_phasing}

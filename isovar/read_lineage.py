@@ -3,10 +3,7 @@
 from collections import Counter
 import shlex
 
-
-def _unique_entries(entries):
-    counts = Counter(entry["ID"] for entry in entries)
-    return {entry["ID"]: entry for entry in entries if counts[entry["ID"]] == 1}
+from .read_metadata import unique_header_entries
 
 
 def _is_dorado_basecaller(program):
@@ -41,8 +38,8 @@ class ReadLineage:
 
     def __init__(self, groups, header):
         self.groups = groups
-        self.read_groups = _unique_entries(header.get("RG", []))
-        self.programs = _unique_entries(header.get("PG", []))
+        self.read_groups = unique_header_entries(header.get("RG", []))
+        self.programs = unique_header_entries(header.get("PG", []))
         self.program_is_dorado = {key: self._dorado_chain(key) for key in self.programs}
         # Multiple unrelated chains (e.g. a merged BAM) cannot identify a record's
         # producer without an explicit PG pointer. All roots must be Dorado.

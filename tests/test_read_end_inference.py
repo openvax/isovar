@@ -12,7 +12,8 @@ from isovar import (
     Adapter, AlleleRead, ReadCollector, ReadEndProfile, infer_read_ends,
     read_sequence_view_from_alignment,
 )
-from isovar.read_end_inference import adapter_matches, read_end_profiles_from_json, reverse_complement
+from isovar.dna import reverse_complement_dna as reverse_complement
+from isovar.read_end_inference import adapter_matches, read_end_profiles_from_json
 from isovar.cli.rna_args import read_collector_from_args
 from isovar.cli.main_args import make_isovar_arg_parser
 from .mock_objects import MockAlignmentFile, make_pysam_read

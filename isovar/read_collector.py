@@ -29,7 +29,7 @@ from .allele_read import AlleleRead
 from .allele_read_helpers import allele_reads_from_locus_reads
 from .variant_helpers import require_literal_variant, trim_variant
 from .read_evidence import ReadEvidence
-from .read_identity import source_alignments_from_pysam, source_read_ids
+from .read_identity import read_group, source_alignments_from_pysam, source_read_ids
 from .chimeric_alignment import source_alignment_paths_from_pysam
 from .read_end_inference import ReadEndProfile, read_sequence_view_from_alignment
 
@@ -227,8 +227,7 @@ class ReadCollector(object):
         """Infer original-query end structure independently of a variant locus."""
         profile = self.read_end_profile
         if isinstance(profile, Mapping):
-            group = read.get_tag("RG") if read.has_tag("RG") else ""
-            profile = profile.get(group)
+            profile = profile.get(read_group(read))
         return read_sequence_view_from_alignment(
             read, profile, trim_adapters=self.trim_adapters, trim_poly_a=self.trim_poly_a)
 
