@@ -22,6 +22,8 @@ reconstruction output is unchanged.
 - `read_metadata.ProgramHistory` walks `@PG` chains and resolves record/read-group
   `PG` pointers for both the cell/UMI and ONT lineage evidence. Each keeps its own
   producer policy.
+- Each SV record's read-end view is built once rather than twice, which halves
+  adapter matching when a read-end profile is set.
 
 ## 1.28.1
 

@@ -365,8 +365,13 @@ def _record_placements(read, view, intern):
 
 
 def _segment_path(records, collector, intern):
-    """Join one segment's linked records by original query offset."""
+    """Join one segment's linked records by original query offset.
+
+    Returns (sequence, positions, breaks, query interval, qualities), where each
+    base's quality is the lowest any record reports, or a rejection reason.
+    """
     bases, placements, sources, kinds = {}, defaultdict(set), defaultdict(set), {}
+    quality_votes = defaultdict(list)
     for index, read in enumerate(records):
         view = collector.read_sequence_view(read)
         start, _ = view.sequenced_interval(0, len(view.sequence))
@@ -374,6 +379,10 @@ def _segment_path(records, collector, intern):
         for q, base in enumerate(sequence, start):
             if bases.setdefault(q, base) != base:
                 return "conflicting_segment_sequence"
+        if view.qualities is not None:
+            qualities = view.qualities[::-1] if read.is_reverse else view.qualities
+            for q, quality in enumerate(qualities, start):
+                quality_votes[q].append(quality)
         mapping, gaps = _record_placements(read, view, intern)
         for q, position in mapping.items():
             placements[q].add(position)
@@ -394,7 +403,8 @@ def _segment_path(records, collector, intern):
     breaks = tuple(
         (i, j, kinds.get((i + lo, j + lo), "split" if sources[i + lo].isdisjoint(sources[j + lo]) else "gap"))
         for i, j in _breaks(positions))
-    return sequence, positions, breaks, (lo, hi)
+    qualities = tuple(min(quality_votes[q]) if quality_votes[q] else None for q in range(lo, hi))
+    return sequence, positions, breaks, (lo, hi), qualities
 
 
 def _build_segment(identity, records, collector, reasons, intern):
@@ -410,17 +420,7 @@ def _build_segment(identity, records, collector, reasons, intern):
         if isinstance(built, str):
             reasons[built] += 1
             continue
-        sequence, positions, breaks, interval = built
-        quality_votes = defaultdict(list)
-        for read in members:
-            view = collector.read_sequence_view(read)
-            if view.qualities is not None:
-                qualities = view.qualities[::-1] if read.is_reverse else view.qualities
-                offset, _ = view.sequenced_interval(0, len(view.sequence))
-                for q, quality in enumerate(qualities, offset):
-                    quality_votes[q].append(quality)
-        qualities = tuple(min(quality_votes[q]) if quality_votes[q] else None
-                          for q in range(*interval))
+        sequence, positions, breaks, interval, qualities = built
         mapqs = [r.mapping_quality for r in members]
         record_ids = tuple(sorted(_record_id(r) for r in members))
         key = sha256("".join(record_ids).encode()).hexdigest()[:24]
