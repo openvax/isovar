@@ -4,6 +4,14 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.31.2
+
+- CI publishes coverage with the `coveralls` package it already installs from
+  PyPI, instead of an action that downloads a separate reporter binary; that
+  download intermittently failed checksum verification
+  ([#358](https://github.com/openvax/isovar/issues/358)). A failed upload still
+  fails the job.
+
 ## 1.31.1
 
 - The README and guides are rewritten for readers. Each guide opens with what it
