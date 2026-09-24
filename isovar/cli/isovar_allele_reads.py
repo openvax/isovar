@@ -11,31 +11,18 @@
 # limitations under the License.
 
 """
-Prints names and sequences of reads overlapping a given set of variants.
+Export the names and sequences of all reads overlapping each variant.
 """
 
-import sys
-from .commands import parser_for_program
+from .commands import run_dataframe_command
+from .output_args import add_output_args
+from .rna_args import make_rna_reads_arg_parser, allele_reads_dataframe_from_args
 
-from ..logging import get_logger
-from .rna_args import (
-    make_rna_reads_arg_parser,
-    allele_reads_dataframe_from_args,
-)
-from .output_args import add_output_args, write_dataframe
-
-
-logger = get_logger(__name__)
-
-parser = make_rna_reads_arg_parser()
-parser = add_output_args(parser)
+parser = add_output_args(
+    make_rna_reads_arg_parser(description=__doc__),
+    filename="isovar-allele-reads-result.csv",
+    description="CSV of reads overlapping each variant")
 
 
 def run(args=None, *, prog=None):
-    if args is None:
-        args = sys.argv[1:]
-    args = parser_for_program(parser, prog).parse_args(args)
-    logger.info(args)
-    df = allele_reads_dataframe_from_args(args)
-    logger.info(df)
-    write_dataframe(df, args)
+    run_dataframe_command(parser, allele_reads_dataframe_from_args, args, prog)

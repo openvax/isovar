@@ -15,15 +15,12 @@ Common helper functions for writing CSV output files, shared by all
 the CLI commands
 """
 
-def add_output_args(
-        parser,
-        filename="output.csv",
-        description="Output CSV file"):
+def add_output_args(parser, filename, description="Output CSV file"):
     output_group = parser.add_argument_group("Output")
     output_group.add_argument(
         "--output",
         default=filename,
-        help=description)
+        help=description + " (default: %(default)s)")
     output_group.add_argument(
         "--output-columns",
         default=None,

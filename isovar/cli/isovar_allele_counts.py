@@ -11,34 +11,19 @@
 # limitations under the License.
 
 """
-Prints number of reads supporting ref, alt, and other alleles at variant loci.
+Count reads and fragments supporting the ref, alt and other alleles at each
+variant locus.
 """
 
-import sys
-from .commands import parser_for_program
-
-from ..logging import get_logger
-
+from .commands import run_dataframe_command
+from .output_args import add_output_args
 from .rna_args import make_rna_reads_arg_parser, allele_counts_dataframe_from_args
-from .output_args import add_output_args, write_dataframe
 
-
-logger = get_logger(__name__)
-
-parser = make_rna_reads_arg_parser()
 parser = add_output_args(
-    parser,
+    make_rna_reads_arg_parser(description=__doc__),
     filename="isovar-allele-counts-result.csv",
-    description="Name of CSV file which contains read and fragment counts")
+    description="CSV of read and fragment counts")
 
 
 def run(args=None, *, prog=None):
-    if args is None:
-        args = sys.argv[1:]
-    args = parser_for_program(parser, prog).parse_args(args)
-    logger.info(args)
-    df = allele_counts_dataframe_from_args(args)
-    logger.info(df)
-    write_dataframe(
-        df=df,
-        args=args)
+    run_dataframe_command(parser, allele_counts_dataframe_from_args, args, prog)

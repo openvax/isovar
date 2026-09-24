@@ -73,7 +73,7 @@ def match_variant_sequence_to_reference_context(
             variant_prefix_length,
             len(reference_context.sequence_before_variant_locus))
         if shared_prefix_length < min_transcript_prefix_length:
-            logger.info(
+            logger.debug(
                 "Shared RNA/reference prefix length %d shorter than min allowed %d (iter=%d)",
                 shared_prefix_length,
                 min_transcript_prefix_length,
@@ -97,11 +97,12 @@ def match_variant_sequence_to_reference_context(
         n_mismatch_after_variant = (
             variant_orf.num_mismatches_after_variant)
 
-        logger.info("Iter #%d/%d: %s (len=%d)" % (
+        logger.debug(
+            "Iter #%d/%d: %s (len=%d)",
             i + 1,
             max_trimming_attempts + 1,
             variant_orf,
-            len(variant_orf.cdna_sequence)))
+            len(variant_orf.cdna_sequence))
 
         total_mismatches = n_mismatch_before_variant
         if count_mismatches_after_variant:

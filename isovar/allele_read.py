@@ -15,12 +15,12 @@ Reads overlapping a locus of interest split into prefix,
 allele (ref, alt, or otherwise), and suffix portions
 """
 
-import logging
+from .logging import get_logger
 
 from .string_helpers import convert_from_bytes_if_necessary, trim_N_nucleotides
 from .value_object import ValueObject
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class AlleleRead(ValueObject):

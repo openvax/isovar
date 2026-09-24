@@ -11,12 +11,17 @@ from varcode.cli import variant_collection_from_args
 from ..default_parameters import (
     PLOT_ALL_PROTEINS, PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_OUTPUT_DIRECTORY, PLOT_VIEW, PLOT_VIEWS,
 )
+from ..logging import configure_cli_logging
 from ..visualization import (
     _plot_imports, collect_visualization_data, save_variant_figures, timestamped_run_directory,
 )
 from .rna_args import alignment_file_from_args, read_collector_from_args
 from .commands import parser_for_program
-from .translation_args import make_translation_arg_parser, protein_sequence_creator_kwargs_from_args
+from .translation_args import (
+    add_protein_selection_args,
+    make_translation_arg_parser,
+    protein_sequence_creator_kwargs_from_args,
+)
 
 
 parser = make_translation_arg_parser(description=(
@@ -34,6 +39,7 @@ parser.add_argument("--dpi", type=int, default=PLOT_DPI, help="PNG resolution (d
 parser.add_argument("--all-proteins", action="store_true", default=PLOT_ALL_PROTEINS,
                     help="Also write paginated protein/frame alternatives; removes only the protein result cap.")
 parser.add_argument("--sample-label", help="Explicit sample/technology label for figures (default: BAM filename).")
+add_protein_selection_args(parser)
 
 
 def run(args=None, *, prog=None):
@@ -45,6 +51,7 @@ def run(args=None, *, prog=None):
         _plot_imports()
     except ImportError as error:
         command_parser.error(str(error))
+    configure_cli_logging()
     variants = variant_collection_from_args(args)
     if len(variants) != 1:
         command_parser.error("Select exactly one mutation (use --variant or a single-record variant file).")
@@ -82,7 +89,3 @@ def run(args=None, *, prog=None):
         save_protein_comparison([dict(source=args.bam, label=label, visualization=data)],
                                 directory / "protein-alternatives", dpi=args.dpi)
     print(directory)
-
-
-if __name__ == "__main__":
-    run()

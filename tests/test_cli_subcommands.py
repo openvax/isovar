@@ -51,9 +51,9 @@ def test_option_first_interface_is_unchanged(monkeypatch):
 
     args = ["--bam", "plot", "--output", "run"]
     calls = []
-    monkeypatch.setattr(isovar_main, "run", lambda args: calls.append(args))
+    monkeypatch.setattr(isovar_main, "run", lambda args, **kw: calls.append((args, kw)))
     commands.run(args)
-    assert calls == [args]
+    assert calls == [(args, {"prog": "isovar"})]
 
 
 def test_root_help_version_unknown_command_and_no_args(capsys):

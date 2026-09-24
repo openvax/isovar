@@ -32,11 +32,7 @@ from ..default_parameters import (
 
 from ..read_collector import ReadCollector
 from ..read_end_inference import read_end_profiles_from_json
-from ..dataframe_helpers import (
-    allele_counts_dataframe,
-    allele_reads_to_dataframe,
-    read_evidence_generator_to_dataframe,
-)
+from ..dataframe_helpers import allele_counts_dataframe, allele_reads_to_dataframe
 
 
 def read_end_profile_argument(filename):
@@ -47,9 +43,7 @@ def read_end_profile_argument(filename):
         raise ArgumentTypeError(str(error)) from error
 
 
-def add_rna_args(
-        parser,
-        min_mapping_quality_default=MIN_READ_MAPPING_QUALITY):
+def add_rna_args(parser):
     """
     Extends an ArgumentParser instance with the following commandline arguments:
         --bam
@@ -57,6 +51,11 @@ def add_rna_args(
         --use-duplicate-reads
         --drop-secondary-alignments
         --use-soft-clipped-bases
+        --require-base-qualities
+        --infer-read-ends
+        --read-end-profile
+        --trim-adapters
+        --trim-poly-a
         --no-merge-overlapping-fragments
         --num-rna-decompression-threads
     """
@@ -69,7 +68,7 @@ def add_rna_args(
     rna_group.add_argument(
         "--min-mapping-quality",
         type=int,
-        default=min_mapping_quality_default,
+        default=MIN_READ_MAPPING_QUALITY,
         help="Minimum MAPQ value to allow for a read (default %(default)s)")
 
     rna_group.add_argument(
@@ -209,14 +208,6 @@ def allele_reads_generator_from_args(args):
         )
 
 
-def read_evidence_dataframe_from_args(args):
-    """
-    Collect ReadEvidence for each variant and turn them into a DataFrame
-    """
-    return read_evidence_generator_to_dataframe(
-        read_evidence_generator_from_args(args))
-
-
 def allele_counts_dataframe_from_args(args):
     """
     Collect read and fragment counts for each variant and turn them into a
@@ -242,9 +233,3 @@ def variant_reads_dataframe_from_args(args):
     return allele_reads_to_dataframe(
         variant_reads_generator_from_args(args))
 
-
-def variants_reads_dataframe_from_args(args):
-    """
-    Collect variant reads for each variant and turn them into a DataFrame
-    """
-    return variant_reads_dataframe_from_args(args)

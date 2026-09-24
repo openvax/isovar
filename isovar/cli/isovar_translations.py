@@ -11,28 +11,22 @@
 # limitations under the License.
 
 """
-Translate each non-synonymous coding variants into possible mutant protein
-sequences using an RNAseq BAM from the same tissuie.
+Export every translation of each assembled variant cDNA sequence in the reading
+frame of each compatible reference transcript, before candidates are grouped
+and ranked into protein sequences.
 """
 
-import sys
-from .commands import parser_for_program
-
-from ..logging import get_logger
-from ..protein_sequence_creator import ProteinSequenceCreator
 from ..dataframe_helpers import translations_generator_to_dataframe
-
-from .translation_args import make_translation_arg_parser, protein_sequence_creator_kwargs_from_args
+from ..protein_sequence_creator import ProteinSequenceCreator
+from .commands import run_dataframe_command
+from .output_args import add_output_args
 from .rna_args import read_evidence_generator_from_args
-from .output_args import add_output_args, write_dataframe
+from .translation_args import make_translation_arg_parser, protein_sequence_creator_kwargs_from_args
 
-logger = get_logger(__name__)
-
-parser = make_translation_arg_parser()
 parser = add_output_args(
-    parser,
+    make_translation_arg_parser(description=__doc__),
     filename="isovar-translate-variants-results.csv",
-    description="Name of CSV file which contains predicted sequences")
+    description="CSV of translations")
 
 
 def translations_generator_from_args(args):
@@ -50,15 +44,8 @@ def translations_dataframe_from_args(args):
     Collects Translation objects based on commandline arguments and
     converts them into a DataFrame.
     """
-    translations_generator = translations_generator_from_args(args)
-    return translations_generator_to_dataframe(translations_generator)
+    return translations_generator_to_dataframe(translations_generator_from_args(args))
 
 
 def run(args=None, *, prog=None):
-    if args is None:
-        args = sys.argv[1:]
-    args = parser_for_program(parser, prog).parse_args(args)
-    logger.info(args)
-    df = translations_dataframe_from_args(args)
-    logger.info(df)
-    write_dataframe(df, args)
+    run_dataframe_command(parser, translations_dataframe_from_args, args, prog)

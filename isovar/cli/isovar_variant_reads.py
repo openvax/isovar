@@ -11,34 +11,18 @@
 # limitations under the License.
 
 """
-Prints names and sequences of reads supporting a given set of variants.
+Export the names and sequences of reads supporting each variant's alt allele.
 """
 
-import sys
-from .commands import parser_for_program
+from .commands import run_dataframe_command
+from .output_args import add_output_args
+from .rna_args import make_rna_reads_arg_parser, variant_reads_dataframe_from_args
 
-from ..logging import get_logger
-from .rna_args import (
-    variant_reads_dataframe_from_args,
-    make_rna_reads_arg_parser,
-)
-from .output_args import add_output_args, write_dataframe
-
-
-logger = get_logger(__name__)
-
-parser = make_rna_reads_arg_parser()
 parser = add_output_args(
-    parser,
+    make_rna_reads_arg_parser(description=__doc__),
     filename="isovar-variant-reads-result.csv",
-    description="Name of CSV file which contains variant read sequences")
+    description="CSV of alt-allele read sequences")
 
 
 def run(args=None, *, prog=None):
-    if args is None:
-        args = sys.argv[1:]
-    args = parser_for_program(parser, prog).parse_args(args)
-    logger.info(args)
-    df = variant_reads_dataframe_from_args(args)
-    logger.info(df)
-    write_dataframe(df, args)
+    run_dataframe_command(parser, variant_reads_dataframe_from_args, args, prog)

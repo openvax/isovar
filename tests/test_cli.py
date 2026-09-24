@@ -29,7 +29,7 @@ from isovar.cli.isovar_main import run as isovar_main
 from isovar.cli.rna_args import (
     allele_counts_dataframe_from_args,
     make_rna_reads_arg_parser,
-    variants_reads_dataframe_from_args,
+    variant_reads_dataframe_from_args,
 )
 
 vcf_args = [
@@ -59,6 +59,13 @@ def run_cli_fn(fn, include_bam_in_args=True, return_dataframe=False, extra_args=
     remove(output_path)
     if return_dataframe:
         return df
+
+
+def test_cli_writes_logs_to_stderr_not_stdout(capsys):
+    run_cli_fn(isovar_allele_counts)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "Gathering reads" in captured.err
 
 
 def test_cli_allele_counts():
@@ -118,6 +125,6 @@ def test_cli_main():
 ])
 def test_variant_reads_dataframe_helper(extra_args, expected_count):
     args = make_rna_reads_arg_parser().parse_args(args_with_bam + extra_args)
-    df = variants_reads_dataframe_from_args(args)
+    df = variant_reads_dataframe_from_args(args)
     assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
     assert len(df) == expected_count

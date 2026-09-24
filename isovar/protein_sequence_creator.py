@@ -277,7 +277,7 @@ class ProteinSequenceCreator(ValueObject):
         given threshold.
         """
 
-        logger.info(
+        logger.debug(
             "Full mutant cDNA sequence: %s (len=%d)",
             variant_sequence.sequence,
             len(variant_sequence))
@@ -289,12 +289,12 @@ class ProteinSequenceCreator(ValueObject):
             count_mismatches_after_variant=self.count_mismatches_after_variant)
 
         if variant_orf is None:
-            logger.info("Unable to determine reading frame for %s", variant_sequence)
+            logger.debug("Unable to determine reading frame for %s", variant_sequence)
             return None
 
         cdna_sequence = variant_orf.cdna_sequence
         cdna_codon_offset = variant_orf.offset_to_first_complete_codon
-        logger.info(
+        logger.debug(
             "Untrimmed cDNA sequence: %s, offset to first codon = %d, len=%d",
             cdna_sequence,
             cdna_codon_offset,
@@ -304,7 +304,7 @@ class ProteinSequenceCreator(ValueObject):
         cdna_variant_end_offset = variant_orf.variant_cdna_interval_end
 
         in_frame_cdna_sequence = cdna_sequence[cdna_codon_offset:]
-        logger.info("Translating '%s' (len=%d, expected AA length=%d)",
+        logger.debug("Translating '%s' (len=%d, expected AA length=%d)",
             in_frame_cdna_sequence,
             len(in_frame_cdna_sequence),
             len(in_frame_cdna_sequence) // 3)
@@ -316,10 +316,11 @@ class ProteinSequenceCreator(ValueObject):
             in_frame_cdna_sequence,
             first_codon_is_start=False,
             mitochondrial=reference_context.mitochondrial)
-        logger.info("Translated amino acids: %s, ends_with_stop=%s, len=%d" % (
+        logger.debug(
+            "Translated amino acids: %s, ends_with_stop=%s, len=%d",
             amino_acids,
             ends_with_stop_codon,
-            len(amino_acids)))
+            len(amino_acids))
         mutation_start_idx, mutation_end_idx, frameshift = \
             find_mutant_amino_acid_interval(
                 cdna_sequence=cdna_sequence,
@@ -358,14 +359,11 @@ class ProteinSequenceCreator(ValueObject):
             reference_context=reference_context,
             variant_orf=variant_orf)
 
-        logger.info(
-            ("Translation from:"
-             "\n-- cDNA = %s"
-             "\n-- context = %s"
-             "\n-- translation = %s") % (
-                variant_sequence,
-                reference_context,
-                translation))
+        logger.debug(
+            "Translation from:\n-- cDNA = %s\n-- context = %s\n-- translation = %s",
+            variant_sequence,
+            reference_context,
+            translation)
 
         return translation
 

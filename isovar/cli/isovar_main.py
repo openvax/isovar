@@ -11,33 +11,23 @@
 # limitations under the License.
 
 """
-Primary Isovar command, used to collect information about variants,
-the RNA reads which overlap and protein sequences which can be constructed
-from reads that support the variant.
+Run the complete pipeline: collect RNA reads overlapping each variant, assemble
+and translate mutant protein sequences, and evaluate result filters.
 """
-import sys
 
-
-
-from ..logging import get_logger
 from ..dataframe_helpers import isovar_results_to_dataframe
-
+from .commands import run_dataframe_command
 from .main_args import run_isovar_from_parsed_args, make_isovar_arg_parser
+from .output_args import add_output_args
 
-from .output_args import add_output_args, write_dataframe
 
-logger = get_logger(__name__)
+def isovar_results_dataframe_from_args(args):
+    return isovar_results_to_dataframe(run_isovar_from_parsed_args(args))
+
 
 def run(args=None, *, prog=None):
-    if args is None:
-        args = sys.argv[1:]
-    parser = make_isovar_arg_parser(prog=prog)
     parser = add_output_args(
-        parser,
-        filename="isovar-results.csv")
-    args = parser.parse_args(args)
-    logger.info(args)
-    isovar_results = run_isovar_from_parsed_args(args)
-    df = isovar_results_to_dataframe(isovar_results)
-    logger.info(df)
-    write_dataframe(df, args)
+        make_isovar_arg_parser(prog=prog, description=__doc__),
+        filename="isovar-results.csv",
+        description="CSV with one row per variant")
+    run_dataframe_command(parser, isovar_results_dataframe_from_args, args)
