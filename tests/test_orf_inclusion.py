@@ -12,7 +12,7 @@ from tests.test_orf_start import reference
 from tests.test_sv_rna import aligned, write_bam
 
 
-def inclusion_result(tmp_path, mode, assemble):
+def inclusion_result(tmp_path, mode, assemble, **options):
     ref = reference()
     intronic = "CCCATG" + "GCC" * 6
     exon = ref.sequence[ref.cds_start:ref.cds_start + 24]
@@ -50,7 +50,7 @@ def inclusion_result(tmp_path, mode, assemble):
             acceptor=FusionBreakpoint("2", 1000, "+"), regions=(),
             sample_id="sample", source="synthetic-library", event_provenance={"fixture": "inclusion_result"},
             read_collector=ReadCollector(min_mapping_quality=0),
-            min_orf_amino_acids=1, assemble=assemble)
+            min_orf_amino_acids=1, assemble=assemble, **options)
     return result, sequence[3:-3]
 
 
@@ -85,6 +85,36 @@ def test_only_qualified_same_read_splice_linkage_promotes_intronic_atg(tmp_path,
         row, = [r for r in csv.DictReader(handle, delimiter="\t") if r["candidate_id"] == candidate["candidate_id"]]
     assert int(row["start_priority"]) == priority
     assert json.loads(row["start_evidence_json"])[0]["start_evidence"]["priority"] == priority
+
+
+@pytest.mark.parametrize("assemble", [False, True])
+def test_mapq_255_fails_the_inclusion_gate_unless_explicitly_unique(tmp_path, assemble):
+    result, sequence = inclusion_result(tmp_path, "unknown_mapq", assemble)
+    assert "mapq_255_excluded_from_inclusion" in result["limitations"]
+    assert result["parameters"]["inclusion"] == dict(
+        min_splice_anchor_bases=8, min_base_quality=20, min_mapping_quality=20, mapq_255_is_unique=False)
+    candidate, = [c for c in export_sv_rna_orfs(result)["candidates"] if c["nucleotide_sequence"] == sequence]
+    evidence = candidate["occurrences"][0]["start_evidence"]["assessments"][0]["splice_inclusion"]
+    assert candidate["start_evidence_summary"]["priority"] == 4
+    assert {w["status"] for w in evidence["witnesses"]} == {"mapping_quality_unavailable"}
+    assert all(w["mapping_quality_255"] and w["minimum_mapping_quality"] is None for w in evidence["witnesses"])
+
+    (tmp_path / "unique").mkdir()
+    result, sequence = inclusion_result(tmp_path / "unique", "unknown_mapq", assemble,
+                                        inclusion_mapq_255_is_unique=True)
+    assert "mapq_255_excluded_from_inclusion" not in result["limitations"]
+    assert result["parameters"]["inclusion"]["mapq_255_is_unique"]
+    candidate, = [c for c in export_sv_rna_orfs(result)["candidates"] if c["nucleotide_sequence"] == sequence]
+    assert candidate["start_evidence_summary"]["priority"] == 3
+
+
+def test_inclusion_mapping_quality_threshold_is_configurable(tmp_path):
+    result, sequence = inclusion_result(tmp_path, "linked", False, inclusion_min_mapping_quality=61)
+    candidate, = [c for c in export_sv_rna_orfs(result)["candidates"] if c["nucleotide_sequence"] == sequence]
+    evidence = candidate["occurrences"][0]["start_evidence"]["assessments"][0]["splice_inclusion"]
+    assert candidate["start_evidence_summary"]["priority"] == 4
+    assert evidence["thresholds"]["min_mapping_quality"] == 61
+    assert {w["status"] for w in evidence["witnesses"]} == {"low_mapping_quality"}
 
 
 def test_unrelated_splice_or_partial_witness_cannot_promote_start(tmp_path):
@@ -185,3 +215,24 @@ def test_cryptic_splice_must_include_the_start_intron(strand, start_position, pr
     # The same contiguous alignment also spans a different retained intron.
     # Processing the first intron cannot establish inclusion of that second one.
     assert result["priority"] == priority
+
+
+@pytest.mark.parametrize("options,expected", [
+    ([], dict(inclusion_min_splice_anchor_bases=8, inclusion_min_base_quality=20,
+              inclusion_min_mapping_quality=20, inclusion_mapq_255_is_unique=False)),
+    (["--inclusion-min-splice-anchor-bases", "10", "--inclusion-min-base-quality", "25",
+      "--inclusion-min-mapping-quality", "30", "--inclusion-mapq-255-is-unique"],
+     dict(inclusion_min_splice_anchor_bases=10, inclusion_min_base_quality=25,
+          inclusion_min_mapping_quality=30, inclusion_mapq_255_is_unique=True)),
+])
+def test_cli_passes_inclusion_gates_to_reconstruction(tmp_path, monkeypatch, options, expected):
+    from contextlib import nullcontext
+    from isovar.cli import isovar_sv_rna
+    seen = {}
+    event = tmp_path / "input.json"
+    event.write_text("{}")
+    monkeypatch.setattr(isovar_sv_rna, "sv_rna_input_from_dict", lambda value: {})
+    monkeypatch.setattr(isovar_sv_rna, "alignment_file_from_args", lambda options: nullcontext(None))
+    monkeypatch.setattr(isovar_sv_rna, "reconstruct_sv_rna", lambda *args, **kwargs: seen.update(kwargs) or {})
+    isovar_sv_rna.run(["--input", str(event), "--bam", "rna.bam", "--output", str(tmp_path / "out.json")] + options)
+    assert {key: seen[key] for key in expected} == expected

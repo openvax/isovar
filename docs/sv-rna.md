@@ -200,9 +200,11 @@ selected tags only, avoiding signal, kinetics and modification arrays.
 Small variants and SVs use `ReadCollector.alignment_filter_reason`: unmapped,
 vendor-QC-failed, disallowed duplicate/secondary, missing sequence/name, low
 MAPQ and (when requested) missing QUAL records are excluded before assembly.
-The existing numeric MAPQ filter retains 255, which STAR uses for unique
-mappings. Exported `mapping_quality=null` correctly avoids claiming Q255;
-consult the raw value, NH and producer metadata when choosing another policy.
+This collection filter compares MAPQ numerically, so it retains 255, which STAR
+uses for unique mappings. Exported `mapping_quality=null` correctly avoids
+claiming Q255; consult the raw value, NH and producer metadata when choosing
+another policy. The stricter splice-inclusion gate below treats 255 as
+unavailable unless told otherwise.
 
 Python callers can apply the same additional policy in either pipeline:
 
@@ -566,10 +568,17 @@ A rearranged intronic segment needs an annotated partner exon and its linked
 annotated splice. Rearrangement alone does not prove transcript maturation.
 
 The linked interval must match the original observed sequence and placements,
-with at least eight bases on each side of the splice, MAPQ >= 20 and every
-available linked base at Q20 or higher. Missing quality or MAPQ 255 cannot
-satisfy the gate. These are conservative evidence thresholds, not calibrated
-translation probabilities. Original and reverse-complement processed-read
+with at least `--inclusion-min-splice-anchor-bases` (8) bases on each side of the
+splice, MAPQ of at least `--inclusion-min-mapping-quality` (20) and every
+available linked base at `--inclusion-min-base-quality` (Q20) or higher; the same
+MAPQ gate selects the competing splices used for intron retention. Missing
+quality cannot satisfy the gate. MAPQ 255 is unavailable under the SAM
+specification, so by default it fails too and the result lists
+`mapq_255_excluded_from_inclusion` in `limitations`. STAR writes 255 for unique
+alignments; for STAR input, `--inclusion-mapq-255-is-unique`
+(`inclusion_mapq_255_is_unique=True`) lets 255 pass. The effective gates are
+recorded in `parameters.inclusion` and in each assessment's `thresholds`. These
+are conservative evidence thresholds, not calibrated translation probabilities. Original and reverse-complement processed-read
 orientations receive the same assessment. Witness identifiers resolve to the
 native original records; source-scoped fragments, library-scoped cell/UMI
 labels and signal ancestry remain separate, deduplicated summaries.

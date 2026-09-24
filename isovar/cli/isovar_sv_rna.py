@@ -8,6 +8,7 @@ from ..default_parameters import (
     SV_MAX_EXTENSION_SEGMENTS, SV_MAX_PATHS, SV_ANNOTATED_JUNCTION_TOLERANCE, SV_MAX_QUERIES, SV_MAX_RECORDS,
     SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_LOCAL_VARIANT_FRACTION, SV_MIN_ANCHOR_BASES, SV_MIN_OVERLAP,
     SV_MIN_ORF_AMINO_ACIDS, SV_MAX_ORF_CANDIDATES,
+    SV_INCLUSION_MIN_SPLICE_ANCHOR_BASES, SV_INCLUSION_MIN_BASE_QUALITY, SV_INCLUSION_MIN_MAPPING_QUALITY,
 )
 from ..sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 from ..logging import configure_cli_logging
@@ -62,6 +63,16 @@ def make_parser(prog="isovar sv-rna"):
                        help="Minimum separate exploratory ATG ORF length (default: %(default)s)")
     group.add_argument("--max-orf-candidates", type=int, default=SV_MAX_ORF_CANDIDATES,
                        help="Per-path exploratory ORF cap, with explicit truncation (default: %(default)s)")
+    inclusion = parser.add_argument_group("Splice-linked inclusion of intronic ORF starts")
+    inclusion.add_argument("--inclusion-min-splice-anchor-bases", type=int, default=SV_INCLUSION_MIN_SPLICE_ANCHOR_BASES,
+                           help="Exact bases required on each side of the linking splice (default: %(default)s)")
+    inclusion.add_argument("--inclusion-min-base-quality", type=int, default=SV_INCLUSION_MIN_BASE_QUALITY,
+                           help="Minimum base quality over the linked interval (default: %(default)s)")
+    inclusion.add_argument("--inclusion-min-mapping-quality", type=int, default=SV_INCLUSION_MIN_MAPPING_QUALITY,
+                           help="Minimum MAPQ of the linking observation and competing splices (default: %(default)s)")
+    inclusion.add_argument("--inclusion-mapq-255-is-unique", action="store_true",
+                           help="Treat MAPQ 255 as a unique alignment, as STAR writes it, instead of unavailable "
+                                "(the SAM specification); by default 255 fails the MAPQ gate")
     return parser
 
 
@@ -87,7 +98,11 @@ def run(args=None, prog=None):
                 max_extension_segments=options.max_extension_segments,
                 annotated_junction_tolerance=options.annotated_junction_tolerance,
                 peptide_lengths=options.peptide_lengths, min_orf_amino_acids=options.min_orf_amino_acids,
-                max_orf_candidates=options.max_orf_candidates, **inputs)
+                max_orf_candidates=options.max_orf_candidates,
+                inclusion_min_splice_anchor_bases=options.inclusion_min_splice_anchor_bases,
+                inclusion_min_base_quality=options.inclusion_min_base_quality,
+                inclusion_min_mapping_quality=options.inclusion_min_mapping_quality,
+                inclusion_mapq_255_is_unique=options.inclusion_mapq_255_is_unique, **inputs)
         if options.predictions:
             from ..sv_rna_comparison import compare_sv_rna_predictions
             result["prediction_comparison"] = compare_sv_rna_predictions(

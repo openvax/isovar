@@ -4,6 +4,21 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.26.0
+
+- `isovar sv-rna` splice-linked inclusion gates are configurable and recorded:
+  `--inclusion-min-splice-anchor-bases` (8), `--inclusion-min-base-quality` (20),
+  `--inclusion-min-mapping-quality` (20) and `--inclusion-mapq-255-is-unique`,
+  also `reconstruct_sv_rna(inclusion_*=...)`. The MAPQ gate previously ignored
+  every setting and was hard-coded at 20. Defaults are unchanged: MAPQ 255 is
+  unavailable, and excluding it adds `mapq_255_excluded_from_inclusion` to
+  `limitations`. For STAR input, the new flag lets unique alignments reach
+  priority 3 ([#361](https://github.com/openvax/isovar/issues/361)).
+- `annotate_orf_inclusion`'s `min_anchor_bases` is renamed
+  `min_splice_anchor_bases`, as is the matching `thresholds` key, so it is not
+  confused with the 18-base frame anchor. Witness rows gain `mapping_quality_255`,
+  and their `minimum_mapping_quality` is the lowest MAPQ other than 255.
+
 ## 1.25.1
 
 - `isovar sv-rna` ORF starts: only intronic start assessments carry

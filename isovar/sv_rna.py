@@ -31,6 +31,8 @@ from .default_parameters import (
     SV_MAX_EXTENSION_SEGMENTS, SV_MAX_PATHS, SV_MAX_QUERIES, SV_MAX_RECORDS, SV_ANNOTATED_JUNCTION_TOLERANCE,
     SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_LOCAL_VARIANT_FRACTION, SV_MIN_ANCHOR_BASES, SV_MIN_OVERLAP,
     SV_MIN_ORF_AMINO_ACIDS, SV_MAX_ORF_CANDIDATES,
+    SV_INCLUSION_MIN_SPLICE_ANCHOR_BASES, SV_INCLUSION_MIN_BASE_QUALITY, SV_INCLUSION_MIN_MAPPING_QUALITY,
+    SV_INCLUSION_MAPQ_255_IS_UNIQUE,
 )
 from .fusion import FusionBlock, FusionBreakpoint, FusionReference
 from .genetic_code import standard_genetic_code
@@ -273,7 +275,9 @@ class RnaObservation:
     missing_qualities: bool
     secondary: bool
     qualities: tuple = ()
+    # Lowest MAPQ other than 255, and whether any record reported 255.
     minimum_mapping_quality: object = None
+    mapping_quality_255: bool = False
 
     @property
     def fragment(self):
@@ -439,7 +443,8 @@ def _build_segment(identity, records, collector, reasons, intern):
         common = dict(identity=identity, records=record_ids, query_interval=interval,
                       missing_qualities=any(r.query_qualities is None for r in members),
                       secondary=any(r.is_secondary for r in members),
-                      minimum_mapping_quality=None if 255 in mapqs else min(mapqs))
+                      minimum_mapping_quality=min((q for q in mapqs if q != 255), default=None),
+                      mapping_quality_255=255 in mapqs)
         n = len(sequence)
         observations.append(RnaObservation(key + "+", sequence=sequence, positions=positions,
                                            breaks=breaks, reverse=False, qualities=qualities, **common))
@@ -1302,7 +1307,11 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                        breakpoint_window=SV_BREAKPOINT_WINDOW, max_breakpoint_shift=SV_MAX_BREAKPOINT_SHIFT,
                        annotated_junction_tolerance=SV_ANNOTATED_JUNCTION_TOLERANCE,
                        peptide_lengths=FUSION_PEPTIDE_LENGTHS,
-                       min_orf_amino_acids=SV_MIN_ORF_AMINO_ACIDS, max_orf_candidates=SV_MAX_ORF_CANDIDATES):
+                       min_orf_amino_acids=SV_MIN_ORF_AMINO_ACIDS, max_orf_candidates=SV_MAX_ORF_CANDIDATES,
+                       inclusion_min_splice_anchor_bases=SV_INCLUSION_MIN_SPLICE_ANCHOR_BASES,
+                       inclusion_min_base_quality=SV_INCLUSION_MIN_BASE_QUALITY,
+                       inclusion_min_mapping_quality=SV_INCLUSION_MIN_MAPPING_QUALITY,
+                       inclusion_mapq_255_is_unique=SV_INCLUSION_MAPQ_255_IS_UNIQUE):
     """Reconstruct RNA paths for one nominated, oriented DNA adjacency.
 
     Paths start at unannotated RNA junctions (and, when soft-clipped bases are
@@ -1371,6 +1380,14 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     min_orf_amino_acids, max_orf_candidates : int
         Minimum length and per-path cap for separate exploratory ATG ORFs.
         Candidates are ordered by start offset; truncation is explicit.
+    inclusion_min_splice_anchor_bases, inclusion_min_base_quality, inclusion_min_mapping_quality : int
+        Gates for linking an intronic ORF start to an observed splice
+        (priority 3); the MAPQ gate also selects the competing splices used
+        for intron retention. See ``annotate_orf_inclusion``.
+    inclusion_mapq_255_is_unique : bool
+        Treat MAPQ 255 as a unique alignment (STAR) rather than unavailable
+        (the SAM specification, and the default) in those gates. Excluded 255
+        records are reported as ``mapq_255_excluded_from_inclusion``.
 
     Returns
     -------
@@ -1385,9 +1402,16 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     if not isinstance(donor, FusionBreakpoint) or not isinstance(acceptor, FusionBreakpoint):
         raise TypeError("Expected oriented FusionBreakpoint inputs")
     for value in (min_anchor_bases, min_overlap, min_alternative_fragments, max_records, max_queries, max_paths,
-                  max_extension_segments, breakpoint_window, min_orf_amino_acids, max_orf_candidates):
+                  max_extension_segments, breakpoint_window, min_orf_amino_acids, max_orf_candidates,
+                  inclusion_min_splice_anchor_bases, inclusion_min_base_quality, inclusion_min_mapping_quality):
         if type(value) is not int or value < 1:
             raise ValueError("SV evidence thresholds and search limits must be positive integers")
+    if not isinstance(inclusion_mapq_255_is_unique, bool):
+        raise ValueError("inclusion_mapq_255_is_unique must be True or False")
+    inclusion_thresholds = dict(min_splice_anchor_bases=inclusion_min_splice_anchor_bases,
+                                min_base_quality=inclusion_min_base_quality,
+                                min_mapping_quality=inclusion_min_mapping_quality,
+                                mapq_255_is_unique=inclusion_mapq_255_is_unique)
     for value in (max_breakpoint_shift, annotated_junction_tolerance):
         if type(value) is not int or value < 0:
             raise ValueError("Breakpoint shift and annotated-junction tolerance must be nonnegative integers")
@@ -1423,10 +1447,13 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                                               (donor, acceptor), breakpoint_window)
     header = bam.header.to_dict()
     store = _Observations(records, collector, max_extension_segments, header, sample_id, source)
-    inclusion_splices = defaultdict(set)
+    inclusion_splices, mapq_255_excluded = defaultdict(set), False
     for identity, members in store.groups.items():
         for read in members:
-            if read.mapping_quality == 255 or read.mapping_quality < 20:
+            if read.mapping_quality == 255 and not inclusion_mapq_255_is_unique:
+                mapq_255_excluded = True
+                continue
+            if read.mapping_quality != 255 and read.mapping_quality < inclusion_min_mapping_quality:
                 continue
             for left, right, kind, _ in _record_gaps(read):
                 if kind == "N":
@@ -1445,6 +1472,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     paths, pruned, notes, seed_rows, strongest, seen = {}, [], set(acquisition["limitations"]), [], {}, set()
     if not references:
         notes.add("reference_models_unavailable")
+    if mapq_255_excluded:
+        notes.add("mapq_255_excluded_from_inclusion")
     reconstruction_scopes = defaultdict(set)
 
     def batches():
@@ -1548,7 +1577,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
             sequence, positions, voters, store, event, annotated, adjacency, clip_support,
             lambda *path: _frame_evidence(*path, models, min_anchor_bases, reference_peptides, lengths),
             lambda *path: exploratory_orfs(*path, models, store.cell_umi.support, min_orf_amino_acids, max_orf_candidates,
-                                           lineage=store.lineage.support, competing_splices=inclusion_splices))
+                                           lineage=store.lineage.support, competing_splices=inclusion_splices,
+                                           inclusion_thresholds=inclusion_thresholds))
         results.append(result)
         result["reconstruction_scopes"] = sorted(reconstruction_scopes[sequence, positions])
         for row in rows:
@@ -1587,6 +1617,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                         annotated_junction_tolerance=annotated_junction_tolerance,
                         peptide_lengths=lengths, genetic_code=1,
                         min_orf_amino_acids=min_orf_amino_acids, max_orf_candidates=max_orf_candidates,
+                        inclusion=dict(inclusion_thresholds),
                         use_soft_clipped_bases=collector.use_soft_clipped_bases,
                         custom_read_filter=collector.read_filter is not None,
                         min_mapping_quality=collector.min_mapping_quality),
