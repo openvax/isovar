@@ -2,6 +2,12 @@
 
 from copy import deepcopy
 
+from .default_parameters import (
+    SV_INCLUSION_MAPQ_255_IS_UNIQUE,
+    SV_INCLUSION_MIN_BASE_QUALITY,
+    SV_INCLUSION_MIN_MAPPING_QUALITY,
+    SV_INCLUSION_MIN_SPLICE_ANCHOR_BASES,
+)
 from .orf_start import summarize_orf_start_evidence
 
 
@@ -49,7 +55,8 @@ def _edges(positions, reference):
     return runs, edges
 
 
-def _qualified_link(sequence, positions, start, end, edge, witness, observation, min_anchor, min_baseq, min_mapq):
+def _qualified_link(sequence, positions, start, end, edge, witness, observation, min_anchor, min_baseq, min_mapq,
+                    mapq_255_is_unique):
     a, b = edge["query_interval"]
     left_run, right_run = edge["flanking_runs"]
     if a - left_run[0] + 1 < min_anchor or right_run[1] - b < min_anchor:
@@ -66,6 +73,7 @@ def _qualified_link(sequence, positions, start, end, edge, witness, observation,
     x, y = lo + shift, hi + shift
     row = dict(observation=witness["observation"], query_interval=[lo, hi], observation_interval=[x, y],
                minimum_mapping_quality=observation.minimum_mapping_quality,
+               mapping_quality_255=observation.mapping_quality_255,
                minimum_base_quality=None, status="unlinked")
     if (x < 0 or y > len(observation.sequence) or sequence[lo:hi] != observation.sequence[x:y]
             or any(p is not None and p != q for p, q in zip(positions[lo:hi], observation.positions[x:y]))):
@@ -78,16 +86,20 @@ def _qualified_link(sequence, positions, start, end, edge, witness, observation,
     qualities = observation.qualities[x:y]
     if len(qualities) == y - x and all(q is not None for q in qualities):
         row["minimum_base_quality"] = min(qualities)
+    mapq = observation.minimum_mapping_quality
     row["status"] = (
-        "mapping_quality_unavailable" if observation.minimum_mapping_quality is None else
-        "low_mapping_quality" if observation.minimum_mapping_quality < min_mapq else
+        "mapping_quality_unavailable" if observation.mapping_quality_255 and not mapq_255_is_unique else
+        "low_mapping_quality" if mapq is not None and mapq < min_mapq else
         "base_quality_unavailable" if row["minimum_base_quality"] is None else
         "low_base_quality" if row["minimum_base_quality"] < min_baseq else "qualified")
     return row
 
 
 def annotate_orf_inclusion(annotation, sequence, positions, end, references, observations, witnesses,
-                           *, min_anchor_bases=8, min_base_quality=20, min_mapping_quality=20,
+                           *, min_splice_anchor_bases=SV_INCLUSION_MIN_SPLICE_ANCHOR_BASES,
+                           min_base_quality=SV_INCLUSION_MIN_BASE_QUALITY,
+                           min_mapping_quality=SV_INCLUSION_MIN_MAPPING_QUALITY,
+                           mapq_255_is_unique=SV_INCLUSION_MAPQ_255_IS_UNIQUE,
                            competing_splices=()):
     """Link an intronic ATG, observed splice and SV on the same RNA observation.
 
@@ -107,8 +119,13 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
     witnesses : iterable of dict
         Full-ORF, event-linked witnesses from RNA reconstruction. Partial
         observations cannot substitute for same-observation linkage.
-    min_anchor_bases, min_base_quality, min_mapping_quality : int
-        Explicit conservative thresholds for transcript-inclusion promotion.
+    min_splice_anchor_bases, min_base_quality, min_mapping_quality : int
+        Explicit conservative thresholds for transcript-inclusion promotion:
+        exact bases on each side of the splice, and the minimum base and
+        mapping quality over the linked interval.
+    mapq_255_is_unique : bool
+        Whether MAPQ 255 means a unique alignment (STAR) rather than the SAM
+        specification's "unavailable". False, the default, fails the gate.
     competing_splices : iterable of dict
         Observed CIGAR N joins with ``left``, ``right``, and ``fragments`` in
         this input source, after MAPQ filtering. Missing competitors mean
@@ -129,9 +146,11 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
         an annotated splice on that same observation. This does not infer RNA strand,
         initiation, translation, or independence of templates.
     """
-    for value in (min_anchor_bases, min_base_quality, min_mapping_quality):
+    for value in (min_splice_anchor_bases, min_base_quality, min_mapping_quality):
         if type(value) is not int or value < 1:
             raise ValueError("Inclusion thresholds must be positive integers")
+    if not isinstance(mapq_255_is_unique, bool):
+        raise ValueError("mapq_255_is_unique must be True or False")
     start = annotation["query_offset"]
     if len(sequence) != len(positions) or not 0 <= start < end <= len(sequence):
         raise ValueError("Invalid ORF/path intervals")
@@ -149,8 +168,10 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
         evidence = dict(policy="isovar.orf_inclusion.v1", status="unresolved", mechanisms=[],
                         graph=dict(reference_exons=[list(e) for e in reference.exons],
                                    observed_runs=runs, observed_edges=edges),
-                        thresholds=dict(min_anchor_bases=min_anchor_bases, min_base_quality=min_base_quality,
-                                        min_mapping_quality=min_mapping_quality),
+                        thresholds=dict(min_splice_anchor_bases=min_splice_anchor_bases,
+                                        min_base_quality=min_base_quality,
+                                        min_mapping_quality=min_mapping_quality,
+                                        mapq_255_is_unique=mapq_255_is_unique),
                         witnesses=[], qualified_observations=[], qualified_fragments=0,
                         competing_splices=[],
                         matched_normal="not_assessed", splice_prediction="not_assessed",
@@ -173,14 +194,14 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
             left = (reference.contig, before, reference.strand)
             right = (reference.contig, after, reference.strand)
             a, b = offset.get(left), offset.get(right)
-            if (a is not None and b is not None and a - start_run[0] + 1 >= min_anchor_bases
-                    and start_run[1] - b >= min_anchor_bases):
+            if (a is not None and b is not None and a - start_run[0] + 1 >= min_splice_anchor_bases
+                    and start_run[1] - b >= min_splice_anchor_bases):
                 competitors = [c for c in competing_splices if c["left"] == list(left)
                                and c["right"] == list(right) and c["fragments"] > 0]
                 evidence["competing_splices"] = deepcopy(competitors)
                 if competitors:
                     relevant.extend(dict(e, mechanism="intron_retention",
-                                         required_interval=[a + 1 - min_anchor_bases, b + min_anchor_bases])
+                                         required_interval=[a + 1 - min_splice_anchor_bases, b + min_splice_anchor_bases])
                                     for e in edges if e["mechanism"] == "annotated_splice")
                 else:
                     evidence["status"] = "retention_without_competing_splice"
@@ -198,8 +219,8 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
                             or partner.spliced_offset(other[1]) is None):
                         continue
                     _, context = _edges(positions, partner)
-                    required = [edge["query_interval"][0] + 1 - min_anchor_bases,
-                                edge["query_interval"][1] + min_anchor_bases]
+                    required = [edge["query_interval"][0] + 1 - min_splice_anchor_bases,
+                                edge["query_interval"][1] + min_splice_anchor_bases]
                     if required[0] < edge["flanking_runs"][0][0] or required[1] > edge["flanking_runs"][1][1]:
                         continue
                     relevant.extend(dict(e, mechanism="fusion_rearranged_exon", required_interval=required,
@@ -210,7 +231,8 @@ def annotate_orf_inclusion(annotation, sequence, positions, end, references, obs
             for witness in witnesses:
                 obs = observations[witness["observation"]]
                 row = _qualified_link(sequence, positions, start, end, edge, witness, obs,
-                                      min_anchor_bases, min_base_quality, min_mapping_quality)
+                                      min_splice_anchor_bases, min_base_quality, min_mapping_quality,
+                                      mapq_255_is_unique)
                 if row is None:
                     continue
                 row["mechanism"] = edge["mechanism"]

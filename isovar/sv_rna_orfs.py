@@ -64,12 +64,14 @@ def _boundaries(junction):
 
 
 def exploratory_orfs(sequence, positions, junctions, observations, models, cell_umi_support,
-                     min_amino_acids, max_candidates, lineage=None, competing_splices=()):
+                     min_amino_acids, max_candidates, lineage=None, competing_splices=(), inclusion_thresholds=None):
     """Enumerate bounded ATG candidates crossing an event-related RNA join.
 
     These are potential translations of observed sequence, separate from
     annotated CDS frame transfer. Context is reported, never scored as proof
     of initiation. A missing stop means the retained sequence ends first.
+    ``inclusion_thresholds`` holds keyword arguments for
+    ``annotate_orf_inclusion``; None uses its defaults.
     """
     related = [(i, j, _boundaries(j)) for i, j in enumerate(junctions) if not j["annotated"] and j["relation"] in (
         "breakpoint_junction", "event_compatible_junction", "breakpoint_clip_partner_unplaced",
@@ -100,7 +102,7 @@ def exploratory_orfs(sequence, positions, junctions, observations, models, cell_
         start_evidence = annotate_orf_start(sequence, positions, start, [m.reference for m in models])
         start_evidence = annotate_orf_inclusion(
             start_evidence, sequence, positions, end, [m.reference for m in models], observations, witnesses,
-            competing_splices=competing_splices)
+            competing_splices=competing_splices, **(inclusion_thresholds or {}))
         for assessment in start_evidence["assessments"]:
             inclusion = assessment.get("splice_inclusion")
             if inclusion is not None:

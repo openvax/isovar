@@ -236,3 +236,12 @@ SV_ANNOTATED_JUNCTION_TOLERANCE = 5
 # Exploratory ATG candidates are separate from annotated CDS translations.
 SV_MIN_ORF_AMINO_ACIDS = 15
 SV_MAX_ORF_CANDIDATES = 100
+# Splice-linked inclusion of an intronic ORF start (priority 3): conservative
+# evidence gates over the linked interval, not calibrated probabilities.
+SV_INCLUSION_MIN_SPLICE_ANCHOR_BASES = 8
+SV_INCLUSION_MIN_BASE_QUALITY = 20
+SV_INCLUSION_MIN_MAPPING_QUALITY = 20
+# The SAM specification defines MAPQ 255 as unavailable, but STAR writes 255
+# for unique alignments. By default 255 cannot satisfy the inclusion gate;
+# set True only for aligners which use 255 to mean unique.
+SV_INCLUSION_MAPQ_255_IS_UNIQUE = False
