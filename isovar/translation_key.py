@@ -11,17 +11,11 @@
 # limitations under the License.
 
 """
-This module combines variant cDNA sequences collected from a BAM file with
-the reading frames of annotated reference transcripts to create candidate
-translations.
+Fields which identify equivalent translations, independent of the cDNA and
+reading frame which produced them.
 """
 
-
-from .logging import get_logger
 from .value_object import ValueObject
-
-
-logger = get_logger(__name__)
 
 
 class TranslationKey(ValueObject):

@@ -115,10 +115,10 @@ def allele_reads_to_dataframe(variants_and_allele_reads):
 
 def locus_reads_dataframe(alignments, chromosome, base0_start, base0_end, *args, **kwargs):
     """
-    Traverse an alignment file (typeically a BAM) to find all the reads 
+    Traverse an alignment file (typically a BAM) to find all the reads
     overlapping a specified locus.
 
-    Extra parameters are the same as those for ReadCreator
+    Extra parameters are passed to ReadCollector.
     """
     df_builder = DataFrameBuilder(
         LocusRead,
@@ -195,20 +195,6 @@ def translations_generator_to_dataframe(translations_generator):
         extra_column_fns={
             "untrimmed_variant_sequence_read_count": (
                 lambda _, t: count_reads(t.untrimmed_variant_sequence.reads)),
-        })
-
-
-def read_evidence_generator_to_dataframe(read_evidence_generator):
-    """
-    Create a DataFrame from generator of (Variant, ReadEvidence) pairs.
-    """
-    return dataframe_from_generator(
-        element_class=ReadEvidence,
-        variant_and_elements_generator=read_evidence_generator,
-        converters={
-            "ref_reads": count_reads,
-            "alt_reads": count_reads,
-            "other_reads": count_reads,
         })
 
 

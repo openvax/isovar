@@ -1,7 +1,7 @@
 # Supplied fusion RNA
 
-Isovar 1.15 adds an explicit sequence-resolved path, separate from SNV/indel
-reconstruction. A gene pair, symbolic VCF allele, or DNA breakpoint is not a
+`isovar fusion` validates a supplied, sequence-resolved fusion transcript,
+separately from SNV/indel reconstruction. A gene pair, symbolic VCF allele, or DNA breakpoint is not a
 fusion transcript. `isovar fusion` does not discover fusions, pad sequences
 from reference, select the longest ORF, or assemble a whole transcript.
 
@@ -9,7 +9,8 @@ See [library responsibilities](library-responsibilities.md) for the boundary
 between Varcode's hypotheses, Isovar's RNA evidence, and Vaxrank's candidate
 evaluation. Event-directed path reconstruction from a BAM is
 [`isovar sv-rna`](sv-rna.md); its exploratory candidates are not this validated
-input. Reconciliation with Varcode hypotheses remains
+input. Its `--predictions` option compares supplied protein predictions with the
+reconstructed paths; full reconciliation with Varcode hypotheses remains
 [#305](https://github.com/openvax/isovar/issues/305). This guide covers the
 supplied-sequence workflow.
 
@@ -23,9 +24,10 @@ panels and a vector PDF in a fresh UTC-stamped directory (`--dpi` defaults to
 only justified translations receive protein panels. Full original inputs
 and model details should accompany published figures.
 
-The JSON input has three keys: `fusion`, `references`, and `reads`. These map
-directly to the public `FusionTranscript`, `FusionReference`, and `FusionRead`
-dataclasses. Nested mappings use `FusionBreakpoint` and `FusionBlock`.
+The JSON input has three required keys: `fusion`, `references`, and `reads`.
+These map directly to the public `FusionTranscript`, `FusionReference`, and
+`FusionRead` dataclasses. An optional `reference_names` mapping of transcript ID
+to display name labels the `--plot-dir` figures. Nested mappings use `FusionBreakpoint` and `FusionBlock`.
 `reconstruct_fusion(fusion, references, reads)` returns the same serializable
 result as the CLI. Defaults are shared: two distinct directly spanning
 fragments, and junction peptide lengths 8, 9, 10, 11.
@@ -111,9 +113,8 @@ exact sequence group, not total event abundance. The PARD3B window preserves
 the observed 12-nt inserted sequence. These examples do not establish a
 long-read-only detection advantage.
 
-This is additive; existing small-variant APIs/CLI defaults are unchanged.
 Fusion results must not be coerced into a fake single-locus `Variant` for
-Vaxrank. Symbolic SVs are rejected by the small-variant path (1.14.1).
+Vaxrank; the small-variant path rejects symbolic SVs.
 
 Sources: [SAM alignment format](https://samtools.github.io/hts-specs/SAMv1.pdf),
 [NCBI translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi),

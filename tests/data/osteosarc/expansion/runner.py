@@ -323,7 +323,8 @@ def run_source(destination, source_id, reference_dir, output_dir, inventory_name
     destination, reference_dir, output_dir = map(Path, (destination, reference_dir, output_dir))
     inventory_path = destination / inventory_name
     inventory = json.loads(inventory_path.read_text())
-    source = next(s for s in inventory["alignments"] if s["source_id"] == source_id)
+    if not any(s["source_id"] == source_id for s in inventory["alignments"]):
+        raise ValueError("Unknown alignment source %r" % source_id)
     directory = destination / "alignments" / source_id
     manifest, models = load_reference(reference_dir)
     assembly = manifest["assembly"]

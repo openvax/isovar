@@ -10,14 +10,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Library modules only create loggers. Commands configure output explicitly,
+so importing Isovar never changes an embedding application's logging.
+"""
 
-from importlib import resources
 import logging
 import logging.config
 
+CLI_LOGGER_NAMES = ("isovar", "varcode", "pyensembl", "datacache")
+
 
 def get_logger(name):
-    config_resource = resources.files("isovar").joinpath("logging.conf")
-    with resources.as_file(config_resource) as config_path:
-        logging.config.fileConfig(config_path)
     return logging.getLogger(name)
+
+
+def configure_cli_logging(level="INFO"):
+    """Send command progress from Isovar and its annotation libraries to stderr.
+
+    The root logger and any logger not named in ``CLI_LOGGER_NAMES`` are left
+    unchanged. Repeated calls replace, rather than duplicate, the handler.
+    """
+    logging.config.dictConfig({
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {"isovar": {
+            "format": "%(asctime)s - %(name)s:%(lineno)s - %(levelname)s - %(message)s"}},
+        "handlers": {"stderr": {"class": "logging.StreamHandler", "formatter": "isovar"}},
+        "loggers": {name: {"level": level, "handlers": ["stderr"]} for name in CLI_LOGGER_NAMES},
+    })

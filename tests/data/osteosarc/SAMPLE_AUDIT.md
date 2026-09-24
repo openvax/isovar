@@ -8,13 +8,13 @@ edited reference transcript.** MAP2 has no exact RNA deletion support in
 either source; bulk PIP5K1A also has no alternate reads. These are successful
 zero-alt results, not translation failures.
 
-This PR fixes [#217](https://github.com/openvax/isovar/issues/217) (spliced
+This audit accompanied [Isovar 1.8.0](https://github.com/openvax/isovar/releases/tag/v1.8.0),
+which fixed [#217](https://github.com/openvax/isovar/issues/217) (spliced
 deletion-normalization crash) and
 [#215](https://github.com/openvax/isovar/issues/215) (splice skip misclassified
-as deletion). The results below use the proposed 1.8.0 changes, **not the
-still-released 1.7.11 behavior**. Before this fix the three ONT deletion
-loci PIP5K1A, H1-2 and GTF3C5 aborted in read collection. See this file's Git
-history for the pre-fix audit. This PR remains unmerged for user review.
+as deletion). The results below use 1.8.0 behavior. Before these fixes the three
+ONT deletion loci PIP5K1A, H1-2 and GTF3C5 aborted in read collection. See this
+file's Git history for the pre-fix audit.
 
 ## Samples and count definitions
 
@@ -92,7 +92,7 @@ flanks fail. The longest requests **149 cDNA bases**. Identical candidates
 are deduplicated without inventing additional reads or joining conflicting
 haplotypes. The separate `VariantSequenceCreator()` diagnostic requests 90
 bases; its candidate counts are not interchangeable with this pipeline.
-See [policy and configuration](../../../PROTEIN_SELECTION.md).
+See [policy and configuration](../../../docs/protein-selection.md).
 
 ### Independent expectations and annotation scope
 

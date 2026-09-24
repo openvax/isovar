@@ -1,6 +1,6 @@
 # Mutation-evidence figures
 
-Install the optional renderer (existing Isovar consumers need no new dependency):
+Install the optional renderer:
 
 ```sh
 pip install 'isovar[plot]'
@@ -53,14 +53,14 @@ contexts retain every compatible group. Varcode predictions repeat alongside
 RNA, including unavailable predictions. These are reference-supported results
 under the chosen thresholds, not an exhaustive enumeration of biological ORFs.
 
-Since 1.18.0, absent BAM QUAL does not discard the sequence. Alignment/sequence
-filters still apply, missing base confidence stays unknown, and overlapping
-mate disagreements are not quality-resolved when either quality is missing.
-Use `--require-base-qualities` to retain the previous strict policy (API:
+Absent BAM QUAL does not discard a read. Alignment/sequence filters still
+apply, missing base confidence stays unknown, and overlapping mate
+disagreements are not quality-resolved when either quality is missing. Use
+`--require-base-qualities` to discard such reads (API:
 `ReadCollector(use_reads_without_base_qualities=False)`). Available measured
 scores are not replaced or changed; MAPQ and consensus read accuracy are not
 per-base Phred substitutes. The osteosarc report keeps both adaptive and strict
-counts, original PacBio consensus tags, and the restored protein contexts.
+counts and the original PacBio consensus tags.
 
 `--use-soft-clipped-bases` retains unaligned ends; it does not realign an SV
 partner or recover a clip-only allele. CIGAR insertions remain usable with
@@ -69,10 +69,10 @@ turning it on reduced some top protein contexts because clipped sequence
 conflicted with aligned observations. The default remains off; breakpoint-aware
 clip analysis is separate from ordinary variant assembly.
 
-Since 1.18.1, a one-sided read ending at an insertion cannot establish reference
-support just because no inserted bases were aligned. Original locus/clip
-evidence is retained; both flanking reference bases must be observed to call
-the empty reference allele. CIGAR-supported terminal insertions remain usable.
+A one-sided read ending at an insertion cannot establish reference support
+just because no inserted bases were aligned: both flanking reference bases must
+be observed to call the empty reference allele. CIGAR-supported terminal
+insertions remain usable.
 
 Each invocation creates a new directory; it never overwrites an earlier run:
 
@@ -162,7 +162,7 @@ python -m examples.osteosarc_assembly_figures --output-dir figures/osteosarc
 
 This uses checksum-pinned, original primary-only RNA fixtures and offline
 Ensembl 87 models. No download, altered read, synthetic read or realignment
-is needed. It writes eleven example directories, individual captions and a
+is needed. It writes twelve example directories, individual captions and a
 manifest. Every returned RNA protein must pass independent translation/frame/
 interval checks; every displayed Varcode prediction must match the independent
 reference-plus-edit translation. RNA equality to that prediction is a separate
@@ -192,13 +192,19 @@ Additional examples:
   at W, before the reference-only tracks diverge into LR versus VN. Eight
   annotation models are retained, seven with protein predictions. The retained
   cDNA has no junction; the local display does not establish one isoform or
-  justify adding either predicted terminal extension. This supersedes the
-  earlier pre-splice-restriction 49-aa V/L comparison.
+  justify adding either predicted terminal extension.
 - **NTF3:** Varcode's nominated A>G predicts K56R (K69R in the other model),
   but RNA encodes S. The source-linked adjacent change produces a compound
   AG>GT allele. Independent translation checks pass, while the single-edit
   reference comparison fails as expected. This is not a claim that the second
   change is germline, nor that assembly is required (both modes recover S).
+- **NR2F2:** the native GRCh37 CeGaT RNA. Three selected original templates carry
+  the focal allele and a downstream 3-nt CIGAR deletion, which both assembly modes
+  retain and the single-edit Varcode prediction does not. The matched-sample audit
+  finds the deletion in RNA but in none of the assessed tumor-DNA or blood-DNA
+  templates, and the RNA templates share one alignment/fragment-endpoint family.
+  Treat it as RNA-supported, DNA-unconfirmed context, not a validated germline
+  or somatic deletion.
 - **PIP5K1A T1 ONT versus T1 Illumina:** complete regional inputs, not selected
   fixtures. ONT gives 46 aa in both modes; Illumina has one alternate object
   and no protein at the two-read floor. This is a library-level support

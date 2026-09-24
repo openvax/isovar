@@ -3,10 +3,7 @@
 from collections import Counter, defaultdict
 import shlex
 
-
-def _unique_entries(entries):
-    counts = Counter(entry.get("ID") for entry in entries)
-    return {entry["ID"]: entry for entry in entries if entry.get("ID") and counts[entry["ID"]] == 1}
+from .read_metadata import unique_header_entries
 
 
 def _isoseq_step(program):
@@ -50,9 +47,9 @@ class CellUmiEvidence:
 
     def __init__(self, groups, header, sample_id, source):
         self.groups, self.sample_id, self.source = groups, sample_id, source
-        self.read_groups = _unique_entries(header.get("RG", []))
+        self.read_groups = unique_header_entries(header.get("RG", []))
         self.ambiguous_groups = {r.get("ID") for r in header.get("RG", [])} - self.read_groups.keys()
-        self.programs = _unique_entries(header.get("PG", []))
+        self.programs = unique_header_entries(header.get("PG", []))
         self.programs_unique = len(self.programs) == len(header.get("PG", []))
         self.program_cache, self.cache = {}, {}
         self.header_xm_producer = False

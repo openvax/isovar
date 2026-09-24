@@ -40,31 +40,28 @@ def add_translation_args(parser):
     translation_group.add_argument(
         "--protein-sequence-preference", choices=("balanced", "support", "context"),
         default=PROTEIN_SEQUENCE_PREFERENCE,
-        help="Balance vaccine context within an RNA support budget, prioritize support, or prioritize context.")
+        help="Balance vaccine context within an RNA support budget, prioritize support, "
+             "or prioritize context (default %(default)s).")
     translation_group.add_argument(
         "--protein-context-peptide-length", type=int, default=None,
-        help="Peptide size for counting mutation-containing windows; default %s, "
-             "or vaxrank's vaccine peptide size." % PROTEIN_CONTEXT_PEPTIDE_LENGTH)
-    translation_group.add_argument(
-        "--min-protein-sequence-support-fraction", type=float,
-        default=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION,
-        help="Balanced: fraction of best candidate's compatible read-name support (default %(default)s, not per-base depth). "
-             "Use --min-variant-sequence-coverage for the independent absolute per-base floor.")
+        help="Peptide size for counting mutation-containing windows (default %s)."
+             % PROTEIN_CONTEXT_PEPTIDE_LENGTH)
 
     translation_group.add_argument(
         "--max-reference-transcript-mismatches",
         type=int,
         default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
         help=(
-            "Maximum number of mismatches between variant sequence"
-            " reference sequence before a candidate reading frame is ignored."))
+            "Maximum number of mismatches between the variant sequence and a"
+            " reference sequence before a candidate reading frame is ignored"
+            " (default %(default)s)."))
 
     translation_group.add_argument(
         "--count-mismatches-after-variant",
         action="store_true",
         default=COUNT_MISMATCHES_AFTER_VARIANT,
-        help="If true, mismatches after the variant locus will count toward the "
-             "--max-reference-transcript-mismatches filter.")
+        help="Count mismatches after the variant locus toward "
+             "--max-reference-transcript-mismatches.")
 
     translation_group.add_argument(
         "--min-transcript-prefix-length",
@@ -73,9 +70,18 @@ def add_translation_args(parser):
         help=(
             "Number of nucleotides before the variant we try to match against "
             "a reference transcript. Values greater than zero exclude variants "
-            "near the start codon of transcripts without 5' UTRs."))
+            "near the start codon of transcripts without 5' UTRs (default %(default)s)."))
 
     return translation_group
+
+
+def add_protein_selection_args(parser):
+    """Options used only when ranking protein sequences, not individual translations."""
+    parser.add_argument(
+        "--min-protein-sequence-support-fraction", type=float,
+        default=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION,
+        help="Balanced: fraction of best candidate's compatible read-name support (default %(default)s, not per-base depth). "
+             "Use --min-variant-sequence-coverage for the independent absolute per-base floor.")
 
 
 def protein_sequence_creator_kwargs_from_args(args):
@@ -107,10 +113,7 @@ def make_translation_arg_parser(**kwargs):
 
     Creates argparse.ArgumentParser instance with all of the options
     needed to translate each distinct cDNA sequence determined from
-    variants & RNAseq.
-
-    See `args.variant_sequences` for commandline parameters which aren't added
-    in this module.
+    variants & RNAseq, including those from ``variant_sequences_args``.
     """
     parser = make_variant_sequences_arg_parser(**kwargs)
     add_translation_args(parser)

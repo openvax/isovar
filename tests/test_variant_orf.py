@@ -26,7 +26,7 @@ from isovar.dna import reverse_complement_dna
 from isovar.protein_sequence_creator import ProteinSequenceCreator
 from isovar.protein_sequence_helpers import group_equivalent_translations
 from isovar.variant_sequence_creator import VariantSequenceCreator
-from isovar.variant_sequence_helpers import filter_variant_sequences
+from isovar.variant_sequence_helpers import trim_variant_sequences
 
 from .common import eq_ 
 from .genomes_for_testing import grch38
@@ -194,11 +194,11 @@ def make_inputs_for_tp53_201_variant(
     return variant_sequence, reference_context, expected
 
 
-def test_filter_variant_sequences_defers_reference_compatibility():
+def test_trim_variant_sequences_defers_reference_compatibility():
     """
     A longer assembly can be unusable even when it has greater read support.
 
-    Reference compatibility is unavailable during variant-sequence filtering,
+    Reference compatibility is unavailable during coverage trimming,
     so the shorter compatible candidate must reach the translation stage.
     """
     base_sequence, reference_context, _ = make_inputs_for_tp53_201_variant()
@@ -230,9 +230,8 @@ def test_filter_variant_sequences_defers_reference_compatibility():
         n_fragments=4,
         name_prefix="incompatible")
 
-    filtered = filter_variant_sequences(
-        variant_sequences=[compatible_short, incompatible_long],
-        preferred_sequence_length=len(incompatible_long),
+    filtered = trim_variant_sequences(
+        [compatible_short, incompatible_long],
         min_variant_sequence_coverage=2)
 
     creator = ProteinSequenceCreator(

@@ -21,11 +21,7 @@ from isovar import (
 )
 from isovar.allele_read import AlleleRead
 from isovar.read_collector import ReadCollector
-from isovar.variant_sequence_helpers import (
-    filter_variant_sequences,
-    filter_variant_sequences_by_length,
-    trim_variant_sequences,
-)
+from isovar.variant_sequence_helpers import trim_variant_sequences
 
 from .testing_helpers import load_bam
 from .genomes_for_testing import grch38
@@ -295,118 +291,9 @@ def _variant_sequence(prefix, alt, suffix, n_fragments, name_prefix):
     return VariantSequence(prefix=prefix, alt=alt, suffix=suffix, reads=reads)
 
 
-def test_filter_by_length_keeps_shorter_sequence_with_better_support():
-    # a long sequence assembled from few reads should not evict a shorter
-    # sequence supported by many more fragments, since length at this stage
-    # only reflects how far a chain of reads happened to extend
-    well_supported = _variant_sequence("A" * 20, "C", "T" * 20, 7, "concordant")
-    barely_supported = _variant_sequence("G" * 30, "C", "T" * 30, 2, "outlier")
-    kept = filter_variant_sequences_by_length(
-        [well_supported, barely_supported],
-        preferred_sequence_length=61)
-    eq_(set(kept), {well_supported, barely_supported})
-
-
-def test_filter_by_length_defers_when_longer_sequence_has_better_support():
-    # The longer sequence may fail reference matching, which cannot be known
-    # at this stage, so even a less-supported shorter candidate must survive.
-    short_sequence = _variant_sequence("A" * 20, "C", "T" * 20, 2, "short")
-    long_sequence = _variant_sequence("G" * 30, "C", "T" * 30, 7, "long")
-    kept = filter_variant_sequences_by_length(
-        [short_sequence, long_sequence],
-        preferred_sequence_length=61)
-    eq_(kept, [short_sequence, long_sequence])
-
-
-def test_filter_by_length_defers_when_sequences_have_equal_fragment_support():
-    # Fragment equality is not enough to choose: raw read counts, reference
-    # mismatches, and aggregate support are only available downstream.
-    short_sequence = _variant_sequence("A" * 20, "C", "T" * 20, 5, "short")
-    long_sequence = _variant_sequence("G" * 30, "C", "T" * 30, 5, "long")
-    kept = filter_variant_sequences_by_length(
-        [short_sequence, long_sequence],
-        preferred_sequence_length=61)
-    eq_(kept, [short_sequence, long_sequence])
-
-
-def test_filter_by_length_defers_raw_read_count_tie_break():
-    # Merged mates have one fragment name but preserve both raw reads through
-    # source_read_count. The final ProteinSequence sort ranks this count before
-    # length, so a fragment-only early filter would choose incorrectly.
-    short_reads = [
-        AlleleRead(
-            prefix="A" * 20,
-            allele="C",
-            suffix="T" * 20,
-            name="short_%d" % i,
-            source_read_count=2)
-        for i in range(3)
-    ]
-    short_sequence = VariantSequence(
-        prefix="A" * 20,
-        alt="C",
-        suffix="T" * 20,
-        reads=short_reads)
-    long_sequence = _variant_sequence("G" * 30, "C", "T" * 30, 3, "long")
-
-    kept = filter_variant_sequences_by_length(
-        [short_sequence, long_sequence],
-        preferred_sequence_length=61)
-
-    eq_(kept, [short_sequence, long_sequence])
-    eq_(sum(r.source_read_count for r in short_sequence.reads), 6)
-    eq_(sum(r.source_read_count for r in long_sequence.reads), 3)
-
-
-def test_filter_by_length_defers_aggregate_protein_support():
-    # Distinct cDNA candidates can translate to the same amino-acid sequence.
-    # Their disjoint reads are unioned only after translation, so neither can
-    # be discarded based on its individual support here.
-    short_1 = _variant_sequence("A" * 20, "C", "T" * 20, 2, "short_1")
-    short_2 = _variant_sequence("G" * 20, "C", "T" * 20, 2, "short_2")
-    long_sequence = _variant_sequence("C" * 30, "C", "T" * 30, 3, "long")
-
-    kept = filter_variant_sequences_by_length(
-        [short_1, short_2, long_sequence],
-        preferred_sequence_length=61)
-
-    eq_(kept, [short_1, short_2, long_sequence])
-
-
-def test_filter_by_length_ignores_read_counts_of_empty_sequences():
-    # trim_by_coverage returns an empty sequence which keeps all of the
-    # original reads, so an empty sequence can claim more fragments than any
-    # real one. It must never be rescued on those grounds.
-    real_sequence = _variant_sequence("G" * 30, "C", "T" * 30, 2, "real")
-    empty_sequence = VariantSequence(
-        prefix="",
-        alt="",
-        suffix="",
-        reads=[
-            AlleleRead(prefix="A", allele="C", suffix="T", name="empty_%d" % i)
-            for i in range(14)
-        ])
-    kept = filter_variant_sequences_by_length(
-        [real_sequence, empty_sequence],
-        preferred_sequence_length=61)
-    eq_(kept, [real_sequence])
-
-
-def test_filter_by_length_drops_empty_sequence_when_it_is_the_only_candidate():
-    degenerate = VariantSequence(
-        prefix="",
-        alt="",
-        suffix="",
-        reads=[AlleleRead(prefix="A", allele="", suffix="T", name="empty")])
-
-    kept = filter_variant_sequences_by_length(
-        [degenerate],
-        preferred_sequence_length=61)
-
-    eq_(kept, [])
-
-
-def test_filter_by_length_retains_nonempty_candidates_for_every_input_order():
+def test_trim_retains_nonempty_candidates_regardless_of_length_or_order():
+    # Ranking happens after translation, so neither length nor support may
+    # evict a covered candidate here; only empty sequences are dropped.
     short = _variant_sequence("A" * 10, "C", "T" * 10, 2, "short")
     long = _variant_sequence("G" * 30, "C", "T" * 30, 5, "long")
     deletion = _variant_sequence("C" * 20, "", "A" * 20, 3, "deletion")
@@ -416,25 +303,10 @@ def test_filter_by_length_retains_nonempty_candidates_for_every_input_order():
         suffix="",
         reads=[AlleleRead(prefix="A", allele="", suffix="T", name="empty")])
 
-    for preferred_sequence_length in (0, 21, 41, 61, 1000):
-        for ordered_candidates in permutations(
-                [short, long, deletion, degenerate]):
-            kept = filter_variant_sequences_by_length(
-                list(ordered_candidates),
-                preferred_sequence_length=preferred_sequence_length)
-            expected = [s for s in ordered_candidates if len(s) > 0]
-            eq_(kept, expected)
-
-
-def test_filter_by_length_keeps_deletion_sequences():
-    # deletions legitimately have an empty alt allele, so degenerate
-    # sequences must be identified by total length rather than by alt
-    deletion = _variant_sequence("A" * 20, "", "T" * 20, 7, "deletion")
-    longer_deletion = _variant_sequence("G" * 30, "", "T" * 30, 2, "long_deletion")
-    kept = filter_variant_sequences_by_length(
-        [deletion, longer_deletion],
-        preferred_sequence_length=61)
-    eq_(set(kept), {deletion, longer_deletion})
+    for ordered_candidates in permutations([short, long, deletion, degenerate]):
+        kept = trim_variant_sequences(
+            list(ordered_candidates), min_variant_sequence_coverage=1)
+        eq_(set(kept), {short, long, deletion})
 
 
 def test_trim_variant_sequences_drops_sequences_without_coverage():
@@ -521,35 +393,12 @@ def test_trim_variant_sequences_merges_only_exact_trimmed_duplicates():
         {long_read, inner_read}.union(already_trimmed_reads))
 
 
-def test_filter_by_length_distinguishes_deletion_from_degenerate_sequence():
-    # a deletion and a degenerate sequence both have an empty alt, so only
-    # total length can tell them apart. The deletion is shorter and better
-    # supported, so it should be rescued; the empty one never should be,
-    # despite claiming the most fragments of all.
+def test_trim_variant_sequences_keeps_well_supported_shorter_deletion():
+    # A deletion whose best supported sequence is not its longest.
     long_sequence = _variant_sequence("G" * 30, "", "T" * 30, 2, "long")
     short_deletion = _variant_sequence("A" * 20, "", "T" * 20, 7, "deletion")
-    degenerate = VariantSequence(
-        prefix="",
-        alt="",
-        suffix="",
-        reads=[
-            AlleleRead(prefix="A", allele="", suffix="T", name="degenerate_%d" % i)
-            for i in range(14)
-        ])
-    kept = filter_variant_sequences_by_length(
-        [long_sequence, short_deletion, degenerate],
-        preferred_sequence_length=61)
-    eq_(set(kept), {long_sequence, short_deletion})
-
-
-def test_filter_variant_sequences_keeps_well_supported_deletion():
-    # Coverage trimming and defensive validity filtering together, on a
-    # deletion whose best supported sequence is not its longest.
-    long_sequence = _variant_sequence("G" * 30, "", "T" * 30, 2, "long")
-    short_deletion = _variant_sequence("A" * 20, "", "T" * 20, 7, "deletion")
-    kept = filter_variant_sequences(
+    kept = trim_variant_sequences(
         [long_sequence, short_deletion],
-        preferred_sequence_length=61,
         min_variant_sequence_coverage=2)
     eq_(set(kept), {long_sequence, short_deletion})
     assert all(s.alt == "" for s in kept)
@@ -557,7 +406,7 @@ def test_filter_variant_sequences_keeps_well_supported_deletion():
 
 def test_reads_to_variant_sequences_keeps_deletion():
     # end to end through the creator: a deletion supported by well covered
-    # reads must survive assembly, coverage trimming, and validity filtering
+    # reads must survive assembly and coverage trimming
     variant = Variant("chr12", 65857041, "G", "", grch38)
     prefix, suffix = "A" * 30, "T" * 30
     reads = [

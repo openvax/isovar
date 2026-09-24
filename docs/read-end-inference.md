@@ -1,54 +1,39 @@
-# Adapter and poly-A/T inference (#302)
+# Adapter and poly-A/T inference
 
-## First-PR design
+Isovar can annotate, and optionally trim, adapter and poly-A/T sequence at read
+ends. Both are opt-in; annotation and trimming are independent, and original BAM
+records are never modified.
 
-Add a shared sequence-end annotator, explicit versioned adapter profiles and an
-immutable derived sequence view. Annotation and trimming are independent;
-existing defaults and original BAM records remain unchanged.
+## Behavior and limits
 
-- Match explicit adapters with substitutions/insertions/deletions and terminal
-  partial matches. Kit identity is supplied, never guessed from an instrument.
-  Profiles can select adapters by mate and can be assigned per read group.
-- Infer A/T-rich terminal tails, including interrupted runs. They are candidates,
-  not proof of polyadenylation, exact original tail length or transcript completeness.
-- Record intervals in the original available SAM query orientation, with a
-  reversible map for retained coordinates and original sequencing orientation.
-  Hard-clipped bases remain unavailable. No new coordinate scalar type.
-- Optional adapter/poly-A trimming returns one contiguous retained interval;
-  never stitch across an internal technical join. For aligned reads only
-  terminal CIGAR `S` bases are eligible. Preserve all aligned bases and CIGAR `I`
-  evidence, including terminal insertions. Do not mutate BAM sequence, qualities,
-  CIGAR, MD, SA or read identity.
-- Derive alleles from the original alignment, then slice sequence, qualities and
-  reference positions together and rebase allele offsets once. Keep original
-  coordinates for supplementary-path phasing. Carry optional source-view
-  provenance through compact storage, mate merging and allele conversion.
-- Expose the same opt-in policy to CLI/API. Unknown quality remains unknown.
-  Unknown profiles still permit tail annotation, not guessed adapter removal.
+- **Adapters** are matched with substitutions, insertions, deletions and terminal
+  partial matches. The kit is supplied in an explicit, versioned profile, never
+  guessed from the instrument. Profiles can select adapters by mate and can be
+  assigned per read group. Every equally optimal adapter start is recovered, and
+  competing cut boundaries are preserved rather than trimmed.
+- **Poly-A/T tails** are A/T-rich terminal candidates, including interrupted runs.
+  A/T support is required in the first `min_poly_a_length` bases and in each
+  following window of that length, within the configured error rate; the scan
+  stops at unsupported sequence, so a distant tail cannot pull the boundary through
+  the read body. A tail is not proof of polyadenylation, of the original tail length
+  or of transcript completeness.
+- **Coordinates** are recorded in the original SAM query orientation, with a
+  reversible map to retained coordinates and to sequencing orientation.
+  Hard-clipped bases remain unavailable.
+- **Trimming** returns one contiguous retained interval and never stitches across
+  an internal technical join. For aligned reads only terminal CIGAR `S` bases are
+  eligible; aligned bases and CIGAR `I` evidence, including terminal insertions,
+  are kept. Sequence, qualities, CIGAR, MD, SA and read identity are not edited.
+- **Alleles** come from the original alignment; sequence, qualities and reference
+  positions are then sliced together. Original coordinates are kept for
+  supplementary-path phasing, and source-view provenance survives compact storage,
+  mate merging and allele conversion. Unknown quality remains unknown.
 
-Verify partial/noisy adapters, both orientations, unknown quality, genuine
-genomic homopolymers, terminal insertions, hard/soft clips, indels/splices,
-supplementary paths, compact/public parity, mate merging and unchanged defaults.
-Include unchanged Sid adapter/tail records as regression fixtures.
-
-### Boundary-safety corrections (#304)
-
-- Require A/T support in the first `min_poly_a_length` bases and in each
-  subsequent window of that length, using the configured error-rate limit.
-  Stop at unsupported sequence: a distant long tail must not rescue a scan
-  through the read body. This conservative local rule can retain clustered
-  noisy tail bases rather than remove uncertain flanking sequence.
-- Recover every equally optimal adapter start at each optimal end with a
-  reversed, end-anchored alignment. Edlib's infix locations alone do not
-  enumerate tied starts. Preserve competing cut boundaries without trimming.
-- Regress both orientations, retained soft clips, interrupted tails and
-  independent edit-distance enumeration. Keep inference behind locus selection
-  and existing filters; do not add a BAM-wide preprocessing pass.
-
-This is the safe terminal-sequence foundation, not all of #302: automatic kit
-identification, raw-signal tail estimation, a comprehensive kit catalogue,
-internal concatemer splitting and genomic disambiguation of aligned candidate
-sequence remain separate work. Trimming candidate tails is explicitly opt-in.
+Not handled: automatic kit identification ([#309](https://github.com/openvax/isovar/issues/309)),
+raw-signal tail estimation, a kit catalogue, internal concatemer splitting and
+genomic disambiguation of aligned candidate sequence
+([#302](https://github.com/openvax/isovar/issues/302)). Edlib supplies the
+error-tolerant matcher.
 
 ## Python
 
@@ -100,12 +85,10 @@ annotator directly makes the caller responsible for selecting reads.
 
 SV discovery needs a different candidate pool: affected gene/exon regions and
 both breakpoint partners, not an exact predicted fusion sequence or only reads
-covering the literal DNA breakpoint. The osteosarc exploration uses regional
-subsets and splice-aware full-read/clip realignment, with competing normal and
-repeat placements retained. That research workflow is not an automatic SV
-candidate collector in this PR. `isovar fusion` still validates supplied,
-sequence-resolved fusion transcripts. Ordinary splicing alone cannot assign
-an RNA footprint to a particular DNA mutation.
+covering the literal DNA breakpoint. [`isovar sv-rna`](sv-rna.md) collects that
+pool for one nominated event, and `isovar fusion` validates supplied,
+sequence-resolved fusion transcripts. Ordinary splicing alone cannot assign an RNA
+footprint to a particular DNA mutation.
 
 ## CLI
 
@@ -136,13 +119,6 @@ Literal adapter sequence uses A/C/G/T: variable barcode/UMI stretches should not
 be passed as informative adapter bases. There is no implicit manufacturer
 catalogue. Existing upstream `pt` values, including failure states, are retained
 separately and are not used to invent missing sequence or locate a trim boundary.
-
-## Release behavior
-
-Isovar 1.19.0 adds opt-in inference and trimming; default read sequences and
-CLI/API policies remain unchanged. No aligned sequence or CIGAR is edited.
-Edlib supplies the error-tolerant matcher. Tail classification remains a
-sequence heuristic, and an inferred tail does not assign an SV or a transcript.
 
 ## Scientific references
 

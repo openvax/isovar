@@ -22,7 +22,6 @@ from .transcript_edit_helpers import (
     transcript_assembly_edit_sort_key,
 )
 from .translation_key import TranslationKey
-from .translation import Translation  # noqa: F401
 from .logging import get_logger
 from .value_object import ValueObject
 from .read_identity import count_reads, fragment_ids
@@ -122,7 +121,7 @@ class ProteinSequence(TranslationKey):
                 "Cannot create ProteinSequence without at least one Translation")
 
         # fill in fields inherited from TranslationKey by taking value
-        # from first Translation iobject and then check to make sure
+        # from first Translation object and then check to make sure
         # other translations are consistent with this
         first_translation = translations[0]
 
@@ -376,7 +375,8 @@ class ProteinSequence(TranslationKey):
 
     def ascending_sort_key(self):
         """
-        Sort key function used to sort protein sequences lexicographically by these criteria:
+        Support-first sort key, used directly by the "support" preference and
+        as a tie-break by the others. Sorts lexicographically by:
             - number of unique supporting fragments
             - number of unique supporting reads (either 1 or 2 per fragment)
             - minimum mismatch versus a supporting reference transcript before variant

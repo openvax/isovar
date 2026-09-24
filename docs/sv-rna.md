@@ -1,7 +1,7 @@
 # RNA paths around a nominated SV
 
-Isovar 1.20 added `isovar sv-rna` / `reconstruct_sv_rna`: event-directed RNA
-reconstruction from an indexed BAM, upstream of the [supplied-fusion
+`isovar sv-rna` / `reconstruct_sv_rna` reconstructs event-directed RNA paths
+from an indexed BAM, upstream of the [supplied-fusion
 workflow](fusion.md). It is the first slice of
 [#305](https://github.com/openvax/isovar/issues/305) and
 [#306](https://github.com/openvax/isovar/issues/306). No predicted fusion cDNA
@@ -16,7 +16,7 @@ The input JSON has `event_id`, `reference_name`, `sample_id`, `donor` and
 `acceptor` (`FusionBreakpoint`), optional extra `regions`
 (`[contig, start, end]`), `references` (`FusionReference`, all candidate models)
 and non-empty `event_provenance` (the DNA call and its somatic-status basis).
-`sv_rna_input_from_dict` decodes it for the API. Read filters, soft clips and
+`isovar.sv_rna.sv_rna_input_from_dict` decodes it for the API. Read filters, soft clips and
 read-end trimming are the usual RNA options (`--min-mapping-quality`,
 `--use-soft-clipped-bases`, `--read-end-profile`, ...).
 
@@ -122,7 +122,8 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
    `start_context` reports the observed flanks, including the −3 and +4 bases
    when present. This is not a Kozak score or an initiation prediction. Exact
    ATG placements are compared with every supplied reference model and labeled
-   annotated start, 5′ UTR, internal CDS, 3′ UTR or noncoding transcript.
+   annotated start, 5′ UTR, UTR/CDS boundary, internal CDS, 3′ UTR or noncoding
+   transcript.
    `annotated_start` means at least one supplied model annotates that codon;
    no matching model does not establish that a start is globally unannotated.
    `reference_comparisons` translates from the same reference ATG and reports
@@ -131,17 +132,17 @@ partner's boundary, oriented so the donor is 5'. Each path base has one
    novelty and protein expression are not established.
 
    `start_evidence` adds transcript-specific origin tiers: exact annotated CDS
-   ATG (priority 1), 5′-UTR ATG (2), or sequence-only start (4). The latter
-   retains intronic, antisense, noncoding, junction-created and unplaced
-   subtypes. Priority 3 is reserved for qualified splice-linked intronic
-   inclusion and is not yet emitted. Annotation never proves initiation.
+   ATG (priority 1), 5′-UTR ATG (2), splice-linked intronic start (3), or
+   sequence-only start (4). The latter retains intronic, antisense, noncoding,
+   junction-created and unplaced subtypes. Priority 3 requires qualified
+   same-observation inclusion evidence (below). Annotation never proves initiation.
    Overlapping models with different tiers remain ambiguous, with null overall
    priority; each model's assessment is retained. For example, TPST1's 30-aa
    candidate is a 5′-UTR start in ENST00000304842 but also overlaps supplied
    noncoding isoforms, so it has no single isoform-independent priority.
    `annotate_orf_start` exposes this annotation independently of reconstruction;
    `summarize_orf_start_evidence` applies the same conservative rule across
-   occurrences. See the [tier definitions and splice-inference plan](orf-start-evidence-plan.md).
+   occurrences. See the [tier definitions](orf-start-evidence.md).
 
    Each candidate's `full_interval_support` requires an exact complete
    nucleotide witness, including the stop when present, from a built
@@ -292,8 +293,7 @@ compares candidate sequence support with what is known about initiation.
 Top-level `status` is `event_linked_candidates` (one of the first three
 relations), `splice_ambiguous_candidates`, `regional_candidates_only` or
 `no_candidate_paths`. The output schema is `isovar.sv_rna_candidates.v2`
-(1.21): v1's `spanning_*` fields became `direct_*`, and whole-path
-containment counts became voting counts. A missing path
+(see the [changelog](../CHANGELOG.md) for changes from v1). A missing path
 is not evidence against the event. Peptides are windows absent from the
 supplied reference proteins only; this is not proteome novelty, presentation
 or immunogenicity. Results retain the SAM text of cited records, excluded-record
@@ -351,11 +351,9 @@ all, then those reaching furthest. Reaching the cap is reported as
 `extension_segment_limit`. A queued join builds at most
 that many of its reads (`seed_segment_limit`). Junction counts use a cheap
 CIGAR index and need no building. Placement tuples are shared across reads.
-`observation_counts` reports eligible and built segments. On Sid ONT T1
-TPST1–CRCP (8k records), 1.20.0 took 40 s and 1.9 GB and hit the path cap
-while counting 0 of 12 noisy FOXO3 reads. 1.21 takes 5 s and 0.3 GB. The
-65k-record ONT ATP5MG–KMT2A regions (previously ~15 GB, out of reach) take
-about 45 s and 1 GB.
+`observation_counts` reports eligible and built segments. On Sid ONT T1,
+TPST1–CRCP (8k records) takes about 5 s and 0.3 GB, and the 65k-record
+ATP5MG–KMT2A regions about 45 s and 1 GB.
 
 ## Regression data and limits
 
@@ -458,11 +456,6 @@ and interval-specific base quality remain unassessed by this adapter. No ranking
 abundance or presentation inference is performed. Sequence translation follows
 NCBI standard code 1; an ATG-to-stop sequence is a hypothesis, not proof of use.
 
-Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf),
-[SA tag](https://samtools.github.io/hts-specs/SAMtags.pdf),
-[fusion reconstruction assessment](https://pmc.ncbi.nlm.nih.gov/articles/PMC6802306/)
-and [NCBI translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).
-
 ## Compare predictions with RNA protein hypotheses
 
 ```sh
@@ -553,7 +546,7 @@ PARD3B candidate offline after building and extracting the actual sdist.
 
 ## Link an intronic start to an observed transcript path
 
-Reconstruction now carries `splice_inclusion` inside each intronic
+Reconstruction carries `splice_inclusion` inside each intronic
 `start_evidence.assessments` entry. The public `annotate_orf_inclusion` function
 performs the same assessment for callers with retained path observations.
 It preserves a strand-aware graph of reference exons, observed contiguous
@@ -625,3 +618,8 @@ normalize before filtering, rather than silently looking only for old names.
 
 See [pysam input sequence orientation](https://pysam.readthedocs.io/en/latest/api.html#pysam.AlignedSegment.get_forward_sequence)
 and [ONT adapter-based orientation](https://epi2me.nanoporetech.com/workflows/wf-single-cell/wf-single-cell-report.html).
+
+Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf),
+[SA tag](https://samtools.github.io/hts-specs/SAMtags.pdf),
+[fusion reconstruction assessment](https://pmc.ncbi.nlm.nih.gov/articles/PMC6802306/)
+and [NCBI translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).

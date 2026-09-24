@@ -21,6 +21,7 @@ import tarfile
 
 
 ROOT_FILES = (
+    "CHANGELOG.md",
     "LICENSE",
     "MANIFEST.in",
     "README.md",

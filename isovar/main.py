@@ -47,17 +47,17 @@ def run_isovar(
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
     into amino acid sequences. Collects both the read evidence and
-    protein sequences into IsovarResult objects. The values of any filters
-    which are supplied in the filter_thresholds argument are attached to
-    each IsovarResult's filter_values field.
+    protein sequences into IsovarResult objects. Filter results are
+    attached to each IsovarResult's filter_values field; failing a filter
+    never removes a result.
 
     Parameters
     ----------
-    variants : varcode.VariantCollection
-        Somatic variants
+    variants : varcode.VariantCollection, iterable of varcode.Variant or str
+        Somatic variants, or the path of a VCF file.
 
-    alignment_file : pysam.AlignmentFile
-        Aligned tumor RNA reads
+    alignment_file : pysam.AlignmentFile or str
+        Aligned tumor RNA reads, or the path of a BAM/CRAM file.
 
     transcript_id_whitelist : set of str or None
         Which transcripts should be considered when predicting DNA-only
@@ -73,26 +73,32 @@ def run_isovar(
         ProteinSequence objects. Created with default settings if not
         supplied.
 
-    filter_thresholds : dict or OrderedDict
+    filter_thresholds : dict or None
         Dictionary whose entries have names like "min_num_alt_reads"
         mapping to a numerical threshold value. In general, the keys
         must start with either "min_" or "max_" followed by a property
-        of the IsovarResult class.
+        of the IsovarResult class. None uses DEFAULT_FILTER_THRESHOLDS; a
+        dictionary replaces the defaults rather than extending them.
 
-    filter_flags : list of str
+    filter_flags : list of str or None
         List of boolean fields of IsovarResult used for filtering,
         they can also be negated by prepending "not_",
-        such as "not_has_mutant_protein_sequence_from_rna".
+        such as "not_has_mutant_protein_sequence_from_rna". None uses
+        DEFAULT_FILTER_FLAGS.
+
+    min_shared_fragments_for_phasing : int
+        Number of RNA fragments two variants must share, with compatible
+        placements, before they are reported as phased.
 
     decompression_threads : int
         Number of threads used by htslib to decompress BAM/CRAM
-        files.
+        files opened from a path.
 
     Returns
     -------
     list of IsovarResult
-        One per variant. The `protein_sequences` field will be empty
-        if no sequences could be determined.
+        One per variant, in input order. `sorted_protein_sequences` is
+        empty if no sequences could be determined.
     """
     if filter_thresholds is None:
         filter_thresholds = OrderedDict(DEFAULT_FILTER_THRESHOLDS)

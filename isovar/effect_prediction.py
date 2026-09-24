@@ -56,9 +56,7 @@ def predicted_effects_for_variant(
     """
     effects = variant.effects(raise_on_error=False)
     n_total_effects = len(effects)
-    logger.info("Predicted total %d effects for variant %s" % (
-        n_total_effects,
-        variant))
+    logger.debug("Predicted total %d effects for variant %s", n_total_effects, variant)
 
     # effects filtered by allowed transcripts
     effects_filtered_by_transcript = []
@@ -75,7 +73,7 @@ def predicted_effects_for_variant(
         elif transcript_id_whitelist is not None and not has_transcript:
             continue
         elif transcript_id_whitelist is not None and transcript.id not in transcript_id_whitelist:
-            logger.info(
+            logger.debug(
                 "Skipping transcript %s for variant %s because it's not in whitelist",
                 transcript.name,
                 variant)
@@ -83,7 +81,7 @@ def predicted_effects_for_variant(
         effects_filtered_by_transcript.append(effect)
 
     effects = effects.clone_with_new_elements(effects_filtered_by_transcript)
-    logger.info(
+    logger.debug(
         "Keeping %d/%d effects which have associated coding transcripts for %s: %s",
         len(effects),
         n_total_effects,
@@ -94,7 +92,7 @@ def predicted_effects_for_variant(
         effects = effects.clone_with_new_elements([
             e for e in effects if effect_in_coding_sequence(e)
         ])
-        logger.info(
+        logger.debug(
             "Keeping %d/%d effects in coding sequence for %s: %s",
             len(effects),
             n_total_effects,
@@ -107,7 +105,7 @@ def predicted_effects_for_variant(
             for effect in effects
             if effect.mutant_protein_sequence is not None
         ]
-        logger.info(
+        logger.debug(
             "Keeping %d effects with predictable AA sequences for %s: %s",
             len(effects_with_mut_sequence),
             variant,

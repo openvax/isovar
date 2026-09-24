@@ -19,7 +19,8 @@ from isovar import reconstruct_sv_rna
 from isovar.cli import commands
 from isovar.fusion import FusionBreakpoint, FusionReference, fusion_from_dict, reconstruct_fusion
 from isovar.read_collector import ReadCollector
-from isovar.read_end_inference import Adapter, ReadEndProfile, reverse_complement
+from isovar.dna import reverse_complement_dna as reverse_complement
+from isovar.read_end_inference import Adapter, ReadEndProfile
 from isovar.sv_rna import RnaObservation, _extend_both, _ObservationIndex, sv_rna_input_from_dict
 from tests.data.osteosarc.expansion.references import translate
 

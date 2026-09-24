@@ -20,12 +20,9 @@ The pinned manifest and BAMs do not change when osteosarc updates its catalogue.
 
 ## Import, download and export
 
-Acquisition uses the published `osteosarc==0.1.2` cache API. It requires
-Python 3.10+ and the optional data extra:
+Acquisition uses the cache API of the installed `osteosarc` dependency:
 
 ```sh
-python -m pip install 'isovar[data]'
-
 # Import the existing Isovar fixtures into the shared cache without network.
 python -m isovar.osteosarc_data --offline \
   --import-corpus tests/data/osteosarc/expansion/corpus
@@ -36,16 +33,14 @@ python -m isovar.osteosarc_data
 # Materialize a new offline copy from the cache.
 python -m isovar.osteosarc_data --offline --output /path/to/new/fixture-export
 
-# Verify an export without touching the cache or requiring osteosarc.
+# Verify an export without touching the cache.
 python -m isovar.osteosarc_data --verify-only --output /path/to/fixture-export
 
 # Explicitly refetch corrupt cache objects; valid objects are reused.
 python -m isovar.osteosarc_data --repair-cache
 ```
 
-Isovar's core Python 3.9 support is unchanged. Importing the module, displaying
-help and verifying existing exports do not require osteosarc. Ordinary tests
-read their checked-in fixtures and perform no acquisition.
+Ordinary tests read their checked-in fixtures and perform no acquisition.
 
 An export contains the portable manifest and exact original BAM/index bytes.
 It performs no alignment, filtering or further sampling. The fuller scientific

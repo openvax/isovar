@@ -23,8 +23,8 @@ from .default_parameters import (
 from .logging import get_logger
 from .read_identity import observation_groups
 from .variant_sequence_helpers import (
-    filter_variant_sequences,
-    initial_variant_sequences_from_reads
+    initial_variant_sequences_from_reads,
+    trim_variant_sequences,
 )
 
 logger = get_logger(__name__)
@@ -158,10 +158,10 @@ class VariantSequenceCreator(object):
             logger.info("After overlap assembly: 0 variant sequences")
             return []
 
-        variant_sequences = filter_variant_sequences(
-            variant_sequences=variant_sequences,
-            preferred_sequence_length=self.preferred_sequence_length,
-            min_variant_sequence_coverage=self.min_variant_sequence_coverage)
+        # Ranking waits until after reference matching and translation: a
+        # shorter or less-supported sequence may be the only one in frame.
+        variant_sequences = trim_variant_sequences(
+            variant_sequences, self.min_variant_sequence_coverage)
 
         if variant_sequences:
             logger.info(

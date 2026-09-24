@@ -109,9 +109,9 @@ def allele_reads_from_locus_reads(locus_reads):
     ----------
     locus_reads : list of LocusRead
 
-    Returns list of AlleleRead
+    Returns
     -------
-
+    list of AlleleRead
     """
     allele_reads = []
     for locus_read in locus_reads:

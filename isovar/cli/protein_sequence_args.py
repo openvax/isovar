@@ -12,19 +12,22 @@
 
 
 from ..default_parameters import MAX_PROTEIN_SEQUENCES_PER_VARIANT
-from ..main import ProteinSequenceCreator
+from ..protein_sequence_creator import ProteinSequenceCreator
 from ..dataframe_helpers import protein_sequences_generator_to_dataframe
 
 from .rna_args import read_evidence_generator_from_args
-from .translation_args import make_translation_arg_parser, protein_sequence_creator_kwargs_from_args
+from .translation_args import (
+    add_protein_selection_args,
+    make_translation_arg_parser,
+    protein_sequence_creator_kwargs_from_args,
+)
 
 
 def add_protein_sequence_args(parser):
     """
     Extends an ArgumentParser instance with the following args:
         --max-protein-sequences-per-variant
-    Also adds all translation arguments such as:
-        --protein-sequence-length
+        --min-protein-sequence-support-fraction
     """
     protein_sequence_group = parser.add_argument_group(
         "Protein sequences (grouping equivalent translations)")
@@ -33,6 +36,7 @@ def add_protein_sequence_args(parser):
         type=int,
         default=MAX_PROTEIN_SEQUENCES_PER_VARIANT,
         help="Maximum protein sequences per variant; 0 keeps all (default %(default)s).")
+    add_protein_selection_args(protein_sequence_group)
     return protein_sequence_group
 
 
@@ -53,10 +57,8 @@ def make_protein_sequences_arg_parser(**kwargs):
         Passed directly to argparse.ArgumentParser
 
     Creates argparse.ArgumentParser instance with all of the options
-    needed to determine protein sequences from variants & RNAseq.
-
-    See `args.translation` for commandline parameters which aren't added in
-    this module.
+    needed to determine protein sequences from variants & RNAseq, including
+    those from ``translation_args``.
     """
     parser = make_translation_arg_parser(**kwargs)
     add_protein_sequence_args(parser)

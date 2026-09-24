@@ -228,3 +228,12 @@ def test_unbuilt_direct_junction_reads_still_contribute_lineage(tmp_path):
     assert result["observation_counts"]["built_segments"] == 2
     assert junction["direct_read_lineage"]["resolved_signal_groups"] == 4
     assert len(result["read_lineage"]["segments"]) == 8
+
+
+def test_header_lines_without_ids_are_ignored_not_fatal():
+    metadata = header()
+    metadata["RG"].append(dict(PL="ONT", SM="sample"))
+    metadata["PG"].append(dict(PN="samtools"))
+    evidence = lineage([read("x")], metadata)
+    assert set(evidence.read_groups) == {"a", "b"}
+    assert set(evidence.programs) == {"basecaller", "aligner"}

@@ -255,8 +255,8 @@ class VariantSequence(ValueObject):
             return self._coverage_cache
         variant_start_index, variant_end_index = self.variant_indices()
         n_nucleotides = len(self)
-        # Preserve the historical merged-pair coverage unit, but do not count
-        # an alternative placement or a retained single-mate view twice.
+        # A merged mate pair counts once. An alternative placement or a
+        # retained single-mate view of an already counted segment does not.
         boundaries = [0] * (n_nucleotides + 1)
         # All intervals cover the focal allele, so each union is contiguous.
         for group in observation_groups(self.reads):
@@ -291,11 +291,11 @@ class VariantSequence(ValueObject):
         which are overlapped by fewer reads than specified.
         """
         read_count_array = self.coverage()
-        logger.info("Coverage: %s (len=%d)", read_count_array, len(read_count_array))
+        logger.debug("Coverage: %s (len=%d)", read_count_array, len(read_count_array))
         sufficient_coverage_mask = read_count_array >= min_reads
         sufficient_coverage_indices = np.argwhere(sufficient_coverage_mask)
         if len(sufficient_coverage_indices) == 0:
-            logger.debug("No bases in %s have coverage >= %d" % (self, min_reads))
+            logger.debug("No bases in %s have coverage >= %d", self, min_reads)
             return VariantSequence(prefix="", alt="", suffix="", reads=self.reads)
         variant_start_index, variant_end_index = self.variant_indices()
         # assuming that coverage drops off monotonically away from
@@ -318,8 +318,7 @@ class VariantSequence(ValueObject):
             #       last_covered_index = 10
             #       variant_start_index = 9
             #       variant_end_index = 11
-            logger.debug("Some variant bases in %s don't have coverage >= %d" % (
-                self, min_reads))
+            logger.debug("Some variant bases in %s don't have coverage >= %d", self, min_reads)
             return VariantSequence(prefix="", alt="", suffix="", reads=self.reads)
         trimmed = VariantSequence(
             prefix=self.prefix[first_covered_index:],

@@ -31,7 +31,7 @@ Source definitions: [osteosarc data catalogue](https://osteosarc.com/data/),
 
 ## Reproduce acquisition
 
-Install `isovar[data]` and set `ISOVAR_SID_SNAPSHOT` to an existing osteosarc
+Set `ISOVAR_SID_SNAPSHOT` to an existing osteosarc
 snapshot (and optionally `ISOVAR_SID_CACHE`). All Sid acquisition below uses
 osteosarc. The [packaged test-read generator](../../../../docs/sid-test-reads.md)
 selects only the records required by tests.

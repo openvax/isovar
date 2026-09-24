@@ -101,8 +101,8 @@ class VariantORF(ValueObject):
          n_trimmed_from_reference) = \
             trim_sequences(variant_sequence, reference_context)
 
-        logger.info(
-            ("cdna_predix='%s', cdna_alt='%s', cdna_suffix='%s', "
+        logger.debug(
+            ("cdna_prefix='%s', cdna_alt='%s', cdna_suffix='%s', "
              "reference_prefix='%s', reference_suffix='%s', n_trimmed=%d"),
             cdna_prefix,
             cdna_alt,

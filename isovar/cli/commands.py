@@ -5,6 +5,11 @@ from copy import copy
 from importlib import import_module
 import sys
 
+from ..logging import configure_cli_logging, get_logger
+from .output_args import write_dataframe
+
+logger = get_logger(__name__)
+
 
 COMMANDS = {
     "run": ("isovar_main", "Run the complete RNA-to-protein pipeline and result filters"),
@@ -29,6 +34,16 @@ def parser_for_program(parser, prog=None):
     return parser
 
 
+def run_dataframe_command(parser, dataframe_from_args, args=None, prog=None):
+    """Parse options, build one table from them and write it as CSV."""
+    args = parser_for_program(parser, prog).parse_args(sys.argv[1:] if args is None else args)
+    configure_cli_logging(args.log_level)
+    logger.debug("Options: %s", args)
+    df = dataframe_from_args(args)
+    write_dataframe(df, args)
+    logger.info("Wrote %d rows to %s", len(df), args.output)
+
+
 def run(args=None):
     from .. import __version__
 
@@ -36,10 +51,11 @@ def run(args=None):
     # Preserve the original option-first interface, including option values
     # which happen to equal a command name. Only the first token dispatches.
     if args and args[0].startswith("-") and args[0] not in {"-h", "--help", "--version"}:
-        return import_module(".isovar_main", __package__).run(args)
+        return import_module(".isovar_main", __package__).run(args, prog="isovar")
     parser = argparse.ArgumentParser(
         prog="isovar", description="Reconstruct mutant protein sequences from RNA evidence.",
-        epilog="Use 'isovar COMMAND --help' for options. Legacy isovar-COMMAND aliases and option-first invocations still work.")
+        epilog=("Use 'isovar COMMAND --help' for options. 'isovar --vcf ... --bam ...' runs the "
+                "pipeline, and table/plot commands also install as isovar-COMMAND scripts."))
     parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
     commands = parser.add_subparsers(dest="command", metavar="COMMAND")
     for name, (_, description) in COMMANDS.items():

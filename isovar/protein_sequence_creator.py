@@ -38,7 +38,6 @@ from .reference_context import ReferenceContext
 from .transcript_compatibility import annotate_reads_with_transcript_compatibility
 from .translation import Translation
 from .translation_helpers import find_mutant_amino_acid_interval
-from .value_object import ValueObject
 from .variant_sequence_creator import VariantSequenceCreator
 from .variant_orf_helpers import match_variant_sequence_to_reference_context
 from .variant_helpers import require_literal_variant
@@ -59,7 +58,7 @@ def _variant_sequence_key(sequence):
         tuple(sorted(transcript_ids or ())))
 
 
-class ProteinSequenceCreator(ValueObject):
+class ProteinSequenceCreator(object):
     """
     Creates ProteinSequence objects for each variant by translating
     cDNA into one or more Translation objects and then grouping them
@@ -82,7 +81,9 @@ class ProteinSequenceCreator(ValueObject):
             protein_context_peptide_length=PROTEIN_CONTEXT_PEPTIDE_LENGTH,
             min_protein_sequence_support_fraction=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION):
         """
-        protein_sequence_length : int
+        Parameters
+        ----------
+        protein_sequence_length : int or None
             Try to translate protein sequences of this length, though sometimes
             we'll have to return something shorter (depending on the RNAseq data,
             and presence of stop codons). None chooses 2 * peptide length - 1:
@@ -108,7 +109,8 @@ class ProteinSequenceCreator(ValueObject):
             against max_transcript_mismatches.
 
         max_protein_sequences_per_variant : int
-            Number of protein sequences to return for each ProteinSequence
+            Number of ranked protein sequences to keep for each variant;
+            0 or None keeps all of them.
 
         variant_sequence_assembly : bool
             If True, then assemble variant cDNA sequences based on overlap of
@@ -121,8 +123,8 @@ class ProteinSequenceCreator(ValueObject):
 
         protein_sequence_preference : str
             balanced (default) maximizes mutation-containing peptide windows
-            within the support budget. support uses the historical single-scale
-            support-first algorithm. context maximizes windows without that
+            within the support budget. support assembles one context length and
+            ranks by read support first. context maximizes windows without that
             relative budget; it can select substantially weaker RNA evidence.
 
         protein_context_peptide_length : int
@@ -156,7 +158,7 @@ class ProteinSequenceCreator(ValueObject):
         self.min_assembly_overlap_size = min_assembly_overlap_size
 
         # Two extra bases suffice for a partial leading codon and center odd
-        # SNV windows in every phase. Preserve the old budget in support mode.
+        # SNV windows in every phase; support mode keeps three.
         extra_bases = 3 if protein_sequence_preference == "support" else 2
         self._cdna_sequence_length = self.protein_sequence_length * 3 + extra_bases
         self._variant_sequence_creator = self._make_variant_sequence_creator(self._cdna_sequence_length)
@@ -222,8 +224,8 @@ class ProteinSequenceCreator(ValueObject):
         if not reads:
             return []
         if self.protein_sequence_preference == "support":
-            # Preserve the original single-scale candidate order as well as
-            # its extraction budget (protein support ties are stable).
+            # One context length, in the creator's own candidate order
+            # (protein support ties are stable).
             return self._variant_sequence_creator.reads_to_variant_sequences(variant, reads)
         sequences = {}
         for length in self.candidate_context_lengths():
@@ -277,7 +279,7 @@ class ProteinSequenceCreator(ValueObject):
         given threshold.
         """
 
-        logger.info(
+        logger.debug(
             "Full mutant cDNA sequence: %s (len=%d)",
             variant_sequence.sequence,
             len(variant_sequence))
@@ -289,12 +291,12 @@ class ProteinSequenceCreator(ValueObject):
             count_mismatches_after_variant=self.count_mismatches_after_variant)
 
         if variant_orf is None:
-            logger.info("Unable to determine reading frame for %s", variant_sequence)
+            logger.debug("Unable to determine reading frame for %s", variant_sequence)
             return None
 
         cdna_sequence = variant_orf.cdna_sequence
         cdna_codon_offset = variant_orf.offset_to_first_complete_codon
-        logger.info(
+        logger.debug(
             "Untrimmed cDNA sequence: %s, offset to first codon = %d, len=%d",
             cdna_sequence,
             cdna_codon_offset,
@@ -304,22 +306,21 @@ class ProteinSequenceCreator(ValueObject):
         cdna_variant_end_offset = variant_orf.variant_cdna_interval_end
 
         in_frame_cdna_sequence = cdna_sequence[cdna_codon_offset:]
-        logger.info("Translating '%s' (len=%d, expected AA length=%d)",
+        logger.debug("Translating '%s' (len=%d, expected AA length=%d)",
             in_frame_cdna_sequence,
             len(in_frame_cdna_sequence),
             len(in_frame_cdna_sequence) // 3)
-        # TODO:
-        #  determine if the first codon is the start codon of a
-        #  transcript, for now any of the unusual start codons like CTG
-        #  will translate to leucine instead of methionine
+        # The first codon is never treated as a start codon, so a
+        # non-AUG start such as CUG translates as leucine.
         amino_acids, ends_with_stop_codon = translate_cdna(
             in_frame_cdna_sequence,
             first_codon_is_start=False,
             mitochondrial=reference_context.mitochondrial)
-        logger.info("Translated amino acids: %s, ends_with_stop=%s, len=%d" % (
+        logger.debug(
+            "Translated amino acids: %s, ends_with_stop=%s, len=%d",
             amino_acids,
             ends_with_stop_codon,
-            len(amino_acids)))
+            len(amino_acids))
         mutation_start_idx, mutation_end_idx, frameshift = \
             find_mutant_amino_acid_interval(
                 cdna_sequence=cdna_sequence,
@@ -358,14 +359,11 @@ class ProteinSequenceCreator(ValueObject):
             reference_context=reference_context,
             variant_orf=variant_orf)
 
-        logger.info(
-            ("Translation from:"
-             "\n-- cDNA = %s"
-             "\n-- context = %s"
-             "\n-- translation = %s") % (
-                variant_sequence,
-                reference_context,
-                translation))
+        logger.debug(
+            "Translation from:\n-- cDNA = %s\n-- context = %s\n-- translation = %s",
+            variant_sequence,
+            reference_context,
+            translation)
 
         return translation
 
@@ -490,41 +488,41 @@ class ProteinSequenceCreator(ValueObject):
             reference_contexts=reference_contexts)
 
     def translate_variants(
-                self,
-                variants_with_read_evidence_generator,
-                transcript_id_whitelist=None):
-            """
-            Translates each coding variant in a collection to one or more protein
-            fragment sequences (if the variant is not filtered and its spanning RNA
-            sequences can be given a reading frame).
+            self,
+            variants_with_read_evidence_generator,
+            transcript_id_whitelist=None):
+        """
+        Translates each coding variant in a collection to one or more protein
+        fragment sequences (if the variant is not filtered and its spanning RNA
+        sequences can be given a reading frame).
 
-            Parameters
-            ----------
-            variants_with_read_evidence_generator : sequence or generator
-                Each item of this sequence should be a pair containing a varcode.Variant
-                and a ReadEvidence object
+        Parameters
+        ----------
+        variants_with_read_evidence_generator : sequence or generator
+            Each item of this sequence should be a pair containing a varcode.Variant
+            and a ReadEvidence object
 
-            transcript_id_whitelist : set, optional
-                If given, expected to be a set of transcript IDs which we should use
-                for determining the reading frame around a variant. If omitted, then
-                try to use all overlapping reference transcripts.
+        transcript_id_whitelist : set, optional
+            If given, expected to be a set of transcript IDs which we should use
+            for determining the reading frame around a variant. If omitted, then
+            try to use all overlapping reference transcripts.
 
-            Yields pairs of a Variant and a sequence of all its candidate
-            Translation objects.
-            """
-            for variant, read_evidence in variants_with_read_evidence_generator:
-                translations = self.translate_variant_reads(
-                    variant=variant,
-                    variant_reads=read_evidence.alt_reads,
-                    transcript_id_whitelist=transcript_id_whitelist)
-                yield variant, translations
+        Yields pairs of a Variant and a sequence of all its candidate
+        Translation objects.
+        """
+        for variant, read_evidence in variants_with_read_evidence_generator:
+            translations = self.translate_variant_reads(
+                variant=variant,
+                variant_reads=read_evidence.alt_reads,
+                transcript_id_whitelist=transcript_id_whitelist)
+            yield variant, translations
 
     def sorted_protein_sequences_for_variant(
             self,
             variant,
             read_evidence,
             transcript_id_whitelist=None):
-        """"
+        """
         Translates a coding variant and its overlapping RNA reads into Translation
         objects, which are aggregated into ProteinSequence objects by their
         amino acid sequence (when they have equivalent coding sequences).
@@ -567,6 +565,7 @@ class ProteinSequenceCreator(ValueObject):
             read_evidence_generator,
             transcript_id_whitelist=None):
         """
+        Create ranked protein sequences for each variant's read evidence.
 
         Parameters
         ----------
@@ -575,9 +574,8 @@ class ProteinSequenceCreator(ValueObject):
             their corresponding ReadEvidence
 
         transcript_id_whitelist : set of str or None
-            Which transcripts should be considered when predicting DNA-only
-            coding effects of mutations and also when trying to establish a
-            reading frame for identified cDNA sequences.
+            Transcripts which may establish a reading frame for identified
+            cDNA sequences.
 
         Generates sequence of (varcode.Variant, ProteinSequence list) pairs.
         """

@@ -35,9 +35,10 @@ from .default_parameters import (
 from .fusion import FusionBlock, FusionBreakpoint, FusionReference
 from .genetic_code import standard_genetic_code
 from .read_collector import ReadCollector
-from .read_end_inference import reverse_complement
-from .read_identity import source_alignments_from_pysam
-from .sv_rna_orfs import exploratory_orfs, record_evidence
+from .dna import reverse_complement_dna
+from .read_identity import read_group, source_alignments_from_pysam
+from .read_metadata import record_evidence
+from .sv_rna_orfs import exploratory_orfs
 from .read_lineage import ReadLineage
 
 _BIN = 64  # Genomic bin width of the observation index.
@@ -74,7 +75,7 @@ def _record_id(read):
 def _record_key(read):
     """Cheap identity of one SAM record, for deduplicating repeated fetches."""
     return (read.query_name, read.flag, read.reference_id, read.reference_start, read.cigarstring or "",
-            read.get_tag("RG") if read.has_tag("RG") else "")
+            read_group(read))
 
 
 def _merge(intervals):
@@ -285,7 +286,7 @@ def _flip(position):
 
 
 def _mirror(sequence, positions):
-    return reverse_complement(sequence), tuple(None if p is None else _flip(p) for p in reversed(positions))
+    return reverse_complement_dna(sequence), tuple(None if p is None else _flip(p) for p in reversed(positions))
 
 
 def _successor(position):
@@ -381,7 +382,7 @@ def _segment_path(records, collector, intern):
     for index, read in enumerate(records):
         view = collector.read_sequence_view(read)
         start, _ = view.sequenced_interval(0, len(view.sequence))
-        sequence = (reverse_complement(view.sequence) if read.is_reverse else view.sequence).upper()
+        sequence = (reverse_complement_dna(view.sequence) if read.is_reverse else view.sequence).upper()
         for q, base in enumerate(sequence, start):
             if bases.setdefault(q, base) != base:
                 return "conflicting_segment_sequence"
@@ -761,7 +762,7 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
                         pruned.append(dict(
                             direction="5prime" if mirrored else "3prime",
                             after=None if anchor is None else list(_flip(anchor) if mirrored else anchor),
-                            base=reverse_complement(base) if mirrored else base,
+                            base=reverse_complement_dna(base) if mirrored else base,
                             placement=None if position is None else list(_flip(position) if mirrored else position),
                             fragments=support[key], observations=sorted({o.key for o, _ in votes[key]})))
                         dropped.update(o.key for o, _ in votes[key])
@@ -1232,7 +1233,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
             left, right = positions[i], positions[j]
             junction_sequences.update(inserted for identity, inserted in store.gaps.get((left, right), {}).items()
                                       if identity in unbuilt)
-            junction_sequences.update(reverse_complement(inserted) for identity, inserted in
+            junction_sequences.update(reverse_complement_dna(inserted) for identity, inserted in
                                       store.gaps.get((_flip(right), _flip(left)), {}).items() if identity in unbuilt)
         cell_umi_support = store.cell_umi.support(segments)
         # Bases co-observed with the join in single reads; annotated splices are context only.

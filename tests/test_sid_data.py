@@ -116,9 +116,8 @@ def test_reduced_header_keeps_read_group_program_chain_and_sa_target():
 
 @pytest.fixture
 def osteosarc():
-    if sys.version_info < (3, 10):
-        pytest.skip("Optional acquisition requires Python 3.10+")
-    return pytest.importorskip("osteosarc")
+    import osteosarc
+    return osteosarc
 
 
 def test_compiled_recipe_records_installed_acquisition_version(packaged, monkeypatch, osteosarc):

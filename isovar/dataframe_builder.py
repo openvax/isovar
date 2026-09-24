@@ -67,9 +67,7 @@ class DataFrameBuilder(object):
             value for each row.
 
         variant_columns : bool
-            If True, then add four columns for fields of a Variant: chr/pos/ref/alt
-            along with a "gene" column indicating which gene name(s) the variant
-            overlaps.
+            If True, then add four columns for fields of a Variant: chr/pos/ref/alt.
 
         convert_collections_to_size : bool
             If a value is a built-in collection (list, tuple, or set) then
@@ -171,7 +169,7 @@ class DataFrameBuilder(object):
                 value = None
             elif not isinstance(value, VALID_ELEMENT_TYPES):
                 raise ValueError(
-                    "Please provider converter for field '%s' : %s to make a scalar or string" % (
+                    "Please provide a converter for field '%s' : %s to make a scalar or string" % (
                         name,
                         type(value)))
 

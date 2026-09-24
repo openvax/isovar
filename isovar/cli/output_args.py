@@ -15,15 +15,26 @@ Common helper functions for writing CSV output files, shared by all
 the CLI commands
 """
 
-def add_output_args(
-        parser,
-        filename="output.csv",
-        description="Output CSV file"):
+LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
+
+
+def add_log_level_arg(parser):
+    parser.add_argument(
+        "--log-level",
+        type=str.upper,
+        choices=LOG_LEVELS,
+        default="INFO",
+        help="Verbosity of progress messages written to stderr (default: %(default)s)")
+    return parser
+
+
+def add_output_args(parser, filename, description="Output CSV file"):
+    add_log_level_arg(parser)
     output_group = parser.add_argument_group("Output")
     output_group.add_argument(
         "--output",
         default=filename,
-        help=description)
+        help=description + " (default: %(default)s)")
     output_group.add_argument(
         "--output-columns",
         default=None,

@@ -79,9 +79,9 @@ def annotate_reads_with_transcript_compatibility(
         max_suffix_size=None):
     """Attach every compatible annotated transcript ID to each read.
 
-    Reads without alignment-path metadata remain compatible with all supplied
-    transcripts. This preserves the historical behavior for manually created
-    ``AlleleRead`` objects while BAM-derived reads are path-aware.
+    Reads without alignment-path metadata, such as manually created
+    ``AlleleRead`` objects, are compatible with all supplied transcripts.
+    BAM-derived reads are compatible only with transcripts sharing their path.
     """
     paths = []
     for transcript in transcripts:

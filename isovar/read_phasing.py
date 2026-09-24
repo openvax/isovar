@@ -41,8 +41,8 @@ adapter is intentionally duck-typed so tests, mocks, and alternative
 RNA-phasing producers (e.g. long-read tools) can target the same shape.
 
 Co-occurrence symmetry is inherited from the underlying field: Isovar's
-``compute_phasing_counts`` builds counts symmetrically and thresholds
-both directions with the same minimum, so
+phasing counts shared fragments symmetrically and thresholds both
+directions with the same minimum, so
 ``v2 in phasing.partners_in_cis(v1)`` implies
 ``v1 in phasing.partners_in_cis(v2)`` whenever both variants are in the
 input set.
@@ -59,6 +59,7 @@ on both sides.
 """
 
 from .isovar_result_provider import IsovarResultProvider
+from .phasing import _variant_sort_key
 
 
 class IsovarReadPhasing(IsovarResultProvider):
@@ -134,7 +135,3 @@ class IsovarReadPhasing(IsovarResultProvider):
         return tuple(sorted(
             result.phased_variants_in_supporting_reads,
             key=_variant_sort_key))
-
-
-def _variant_sort_key(variant):
-    return (variant.contig, variant.start, variant.ref, variant.alt)

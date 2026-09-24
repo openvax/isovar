@@ -23,7 +23,7 @@ the hash-pinned `source-inventory.json.gz`. Only the four
 specified original tagged ONT / mapped PacBio products are used; deduplicated
 alternatives are never pooled with their predecessors.
 
-For fresh bounded acquisition, install `isovar[data]`, explicitly create an
+For fresh bounded acquisition (osteosarc is installed with Isovar), explicitly create an
 osteosarc snapshot containing those assets, then use:
 
 ```sh

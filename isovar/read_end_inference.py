@@ -13,14 +13,11 @@ import math
 from pathlib import Path
 from typing import NamedTuple, Optional, Tuple
 
+from .dna import reverse_complement_dna
 from .default_parameters import (
     READ_END_WINDOW, MIN_ADAPTER_OVERLAP, MAX_ADAPTER_ERROR_RATE,
     MIN_POLY_A_LENGTH, MAX_POLY_A_ERROR_RATE, TRIM_ADAPTERS, TRIM_POLY_A,
 )
-
-
-def reverse_complement(sequence):
-    return sequence.translate(str.maketrans("ACGTNacgtn", "TGCANtgcan"))[::-1]
 
 
 @dataclass(frozen=True)
@@ -294,7 +291,7 @@ def infer_read_ends(sequence, qualities=None, profile=None, *, reverse=False,
         orientations = (False, True) if profile.both_orientations else (False,)
         for other_orientation in orientations:
             transformed = reverse != other_orientation
-            spec = (Adapter(adapter.name, reverse_complement(adapter.sequence),
+            spec = (Adapter(adapter.name, reverse_complement_dna(adapter.sequence),
                             "left" if adapter.end == "right" else "right",
                             adapter.mate, adapter.min_overlap, adapter.max_error_rate)
                     if transformed else adapter)

@@ -1,4 +1,4 @@
-Regeneration now uses `osteosarc==0.1.2`: install `isovar[data]` and set
+Regeneration uses the installed osteosarc dependency: set
 `ISOVAR_SID_SNAPSHOT` (optionally `ISOVAR_SID_CACHE`). To regenerate only the
 reads bundled with Isovar, see [Minimal Sid test reads](../../../../docs/sid-test-reads.md).
 The wider audits described below remain outside the package.

@@ -45,10 +45,7 @@ def open_dataset(snapshot=None, cache=None, offline=False):
 
 @lru_cache(maxsize=4)
 def _open_dataset(name, cache, offline):
-    try:
-        from osteosarc import Cache, Dataset
-    except ImportError as error:
-        raise RuntimeError("Regeneration requires Python >=3.10 and pip install 'isovar[data]'") from error
+    from osteosarc import Cache, Dataset
     return Dataset.open(name, cache=Cache(cache, offline=offline), offline=offline)
 
 

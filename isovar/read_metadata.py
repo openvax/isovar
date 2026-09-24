@@ -1,5 +1,7 @@
 """Native read evidence, kept separate from per-base and mapping qualities."""
 
+from collections import Counter
+
 
 # Select individual tags: get_tags() would also decode potentially large signal,
 # kinetics and modification arrays. Lowercase/X tags have producer-specific
@@ -10,6 +12,16 @@ EVIDENCE_TAGS = (
     "mg", "rm", "rq", "np", "ec", "ff", "ic", "is", "im", "rc",
     "CB", "CR", "CY", "UB", "UR", "UY", "RX", "QX", "MI", "XM",
 )
+
+
+def unique_header_entries(entries):
+    """Index @RG or @PG header lines by ID, omitting missing and repeated IDs.
+
+    A duplicated ID cannot identify one entry, and SAM readers accept lines
+    without one, so neither is guessed.
+    """
+    counts = Counter(entry.get("ID") for entry in entries)
+    return {entry["ID"]: entry for entry in entries if entry.get("ID") and counts[entry["ID"]] == 1}
 
 
 def record_evidence(read):

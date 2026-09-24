@@ -31,7 +31,7 @@ from collections import OrderedDict
 #       0 = reads maps to 10 or more locations
 #   (from http://seqanswers.com/forums/archive/index.php/t-27470.html)
 #   Since there's no bound on just how bad MAPQ=0 really can be, it seems
-#   wises to exclude those reads but still allow 9 candidate locations
+#   wise to exclude those reads but still allow 9 candidate locations
 #   per read.
 #
 #   The exact numbers differ with other aligners but the basic principle is the
@@ -129,7 +129,7 @@ MAX_POLY_A_ERROR_RATE = 0.1
 MIN_NUM_RNA_ALT_READS = 3
 
 # minimum number of total RNA fragments supporting a variant allele,
-# differs from MIN_NUM_ALT_READS for paired end sequencing but is the same
+# differs from MIN_NUM_RNA_ALT_READS for paired end sequencing but is the same
 # for single-end sequencing
 MIN_NUM_RNA_ALT_FRAGMENTS = 2
 
@@ -145,22 +145,22 @@ MAX_NUM_RNA_REF_READS = 10 ** 9
 # maximum number of total RNA fragments supporting a reference allele
 MAX_NUM_RNA_REF_FRAGMENTS = 10 ** 9
 
-# minimum ratio of # ref reads / # total overlapping reads
+# maximum ratio of # ref reads / # total overlapping reads
 MAX_FRACTION_RNA_REF_READS = 1.0
 
-# minimum ratio of # ref fragments / # total overlapping fragments
+# maximum ratio of # ref fragments / # total overlapping fragments
 MAX_FRACTION_RNA_REF_FRAGMENTS = 1.0
 
-# maximum number of RNA reads supporting a reference allele
+# maximum number of RNA reads supporting other (non-ref/non-alt) alleles
 MAX_NUM_RNA_OTHER_READS = 10 ** 9
 
-# maximum number of total RNA fragments supporting a reference allele
+# maximum number of RNA fragments supporting other (non-ref/non-alt) alleles
 MAX_NUM_RNA_OTHER_FRAGMENTS = 10 ** 9
 
-# minimum ratio of # other (non-ref/non-alt) reads / # total overlapping reads
+# maximum ratio of # other (non-ref/non-alt) reads / # total overlapping reads
 MAX_FRACTION_RNA_OTHER_READS = 0.5
 
-# minimum ratio of # other fragments (non-ref/non-alt) / # total overlapping fragments
+# maximum ratio of # other fragments (non-ref/non-alt) / # total overlapping fragments
 MAX_FRACTION_RNA_OTHER_FRAGMENTS = 0.5
 
 # At loci where there is RNA support for both the alt allele and other
@@ -169,8 +169,8 @@ MAX_FRACTION_RNA_OTHER_FRAGMENTS = 0.5
 # third and fourth alleles.
 MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS = 3.0
 
-# number of RNA fragments shared between two assembled protein sequences
-# before we say that their variants are phased
+# number of RNA fragments two variants must share, with compatible placements,
+# before we say that they are phased
 MIN_SHARED_FRAGMENTS_FOR_PHASING = 2
 
 

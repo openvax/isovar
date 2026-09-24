@@ -10,29 +10,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-from .commands import parser_for_program
+"""
+Export the reference sequence and reading frame around each variant, grouped
+across the coding transcripts which share them.
+"""
 
-from ..logging import get_logger
+from .commands import run_dataframe_command
+from .output_args import add_output_args
 from .reference_context_args import (
     make_reference_context_arg_parser,
-    reference_contexts_dataframe_from_args
+    reference_contexts_dataframe_from_args,
 )
-from .output_args import add_output_args, write_dataframe
 
-
-logger = get_logger(__name__)
-
-parser = make_reference_context_arg_parser()
 parser = add_output_args(
-    parser,
-    filename="isovar-reference-contexts-result.csv")
+    make_reference_context_arg_parser(description=__doc__),
+    filename="isovar-reference-contexts-result.csv",
+    description="CSV of reference contexts")
 
 
 def run(args=None, *, prog=None):
-    if args is None:
-        args = sys.argv[1:]
-    args = parser_for_program(parser, prog).parse_args(args)
-    reference_contexts_df = reference_contexts_dataframe_from_args(args)
-    logger.info(reference_contexts_df)
-    write_dataframe(reference_contexts_df, args)
+    run_dataframe_command(parser, reference_contexts_dataframe_from_args, args, prog)

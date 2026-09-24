@@ -10,30 +10,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 from pathlib import Path
+import re
 
-from isovar import run_isovar
-from isovar.dataframe_builder import DataFrameBuilder
+from isovar import IsovarResult, run_isovar
+from isovar.default_parameters import DEFAULT_FILTER_FLAGS
 
-
-def test_run_isovar_docstring_matches_signature_and_return_type():
-    doc = run_isovar.__doc__
-    assert doc is not None
-    assert "decompression_threads : int" in doc
-    assert "decompress_threads" not in doc
-    assert "list of IsovarResult" in doc
-    assert "Generator of IsovarResult" not in doc
+ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_readme_filter_flags_use_existing_isovar_result_property():
-    readme = Path("README.md").read_text()
-    assert "protein_sequence_matches_predicted_mutation_effect" in readme
-    assert "not_protein_sequence_matches_predicted_mutation_effect" in readme
-    assert "protein_sequence_matches_predicted_effect" not in readme
+def test_run_isovar_docstring_documents_every_parameter():
+    doc = run_isovar.__doc__ or ""
+    for name in inspect.signature(run_isovar).parameters:
+        assert re.search(r"^\s*%s : " % name, doc, re.M), "%s undocumented" % name
 
 
-def test_dataframe_builder_exclude_docstring_describes_omitted_fields():
-    doc = DataFrameBuilder.__init__.__doc__
-    assert doc is not None
-    assert "Field names from element_class which should be omitted" in doc
-    assert "should be used as columns" not in doc
+def test_readme_filter_names_are_isovar_result_properties():
+    readme = (ROOT / "README.md").read_text()
+    thresholds = re.findall(r"""['"](?:min|max)_([a-z_]+)['"]""", readme)
+    negated_flags = re.findall(r"`not_([a-z_]+)`", readme)
+    assert thresholds and negated_flags
+    for name in thresholds + negated_flags + list(DEFAULT_FILTER_FLAGS):
+        assert hasattr(IsovarResult, name), name
+    for name in DEFAULT_FILTER_FLAGS:
+        assert "`%s`" % name in readme, name
+
+
+REPOSITORY_URL = "https://github.com/openvax/isovar/blob/master/"
+
+
+def test_markdown_links_to_this_repository_resolve():
+    pages = [ROOT / "README.md", ROOT / "CHANGELOG.md", ROOT / "RELEASING.md", *(ROOT / "docs").glob("*.md")]
+    for page in pages:
+        for target in re.findall(r"\]\(([^)#\s]+)(?:#[^)]*)?\)", page.read_text()):
+            if target.startswith(REPOSITORY_URL):
+                path = ROOT / target[len(REPOSITORY_URL):]
+            elif "://" in target or target.startswith("mailto:"):
+                continue
+            else:
+                path = page.parent / target
+            assert path.exists(), "%s links to missing %s" % (page.name, target)

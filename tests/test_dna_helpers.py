@@ -20,3 +20,7 @@ def test_reverse_complement_dna():
 
 def test_complement_dna():
     eq_("ATGC", complement_dna("TACG"))
+
+
+def test_reverse_complement_handles_n_case_and_ambiguity_codes():
+    eq_("NnRyAC", reverse_complement_dna("GTrYnN"))

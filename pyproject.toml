@@ -27,7 +27,7 @@ dependencies = {file = ["requirements.txt"]}
 include = ["isovar", "isovar.*"]
 
 [tool.setuptools.package-data]
-isovar = ["logging.conf", "data/*.json", "data/sid-*.json.gz"]
+isovar = ["data/*.json", "data/sid-*.json.gz"]
 
 [project.urls]
 "Homepage" = "https://github.com/openvax/isovar"
@@ -50,7 +50,7 @@ isovar-plot = "isovar.cli.isovar_plot:run"
 
 [tool.ruff.lint]
 select = ["E", "F"]
-ignore = ["F821", "E501", "F841", "E731", "E741", "E722", "E721"]
+ignore = ["E501", "E731"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]

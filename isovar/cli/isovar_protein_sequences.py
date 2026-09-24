@@ -11,36 +11,22 @@
 # limitations under the License.
 
 """
-Translate non-synonymous coding variants into mutant protein sequences using an
-RNAseq BAM from the same sample. Combine synonymous translations and assign
-a read count to each protein sequence.
+Translate variant cDNA assembled from RNA reads into candidate mutant protein
+sequences, combining translations with identical amino acids.
 """
 
-import sys
-from .commands import parser_for_program
-
-
-from ..logging import get_logger
+from .commands import run_dataframe_command
+from .output_args import add_output_args
 from .protein_sequence_args import (
     make_protein_sequences_arg_parser,
-    protein_sequences_dataframe_from_args
+    protein_sequences_dataframe_from_args,
 )
-from .output_args import add_output_args, write_dataframe
 
-
-logger = get_logger(__name__)
-
-parser = make_protein_sequences_arg_parser()
 parser = add_output_args(
-    parser,
-    filename="isovar-protein-sequences-result.csv")
+    make_protein_sequences_arg_parser(description=__doc__),
+    filename="isovar-protein-sequences-result.csv",
+    description="CSV of candidate protein sequences")
 
 
 def run(args=None, *, prog=None):
-    if args is None:
-        args = sys.argv[1:]
-    args = parser_for_program(parser, prog).parse_args(args)
-    logger.info(args)
-    df = protein_sequences_dataframe_from_args(args)
-    logger.info(df)
-    write_dataframe(df, args)
+    run_dataframe_command(parser, protein_sequences_dataframe_from_args, args, prog)

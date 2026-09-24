@@ -27,14 +27,10 @@ def evaluate_threshold_filters(isovar_result, filter_thresholds):
     isovar_result : IsovarResult
 
     filter_thresholds : dict or OrderedDict
-        Every argument is supposed to be something like "max_alt_reads"
-        where the first three characters are "min" or "max" and the
-        rest of the name is either a field of IsovarResult or
-        a numeric field like "num_alt_reads". The name of each filter
-        maps to a cutoff value. Filters starting with "max"
-        require that the corresponding field on CoverageStats
-        is <= cutoff, whereas filters starting with
-        "min" require >= cutoff.
+        Names like "min_num_alt_reads" or "max_fraction_other_fragments"
+        mapped to cutoffs. The text after "min_" or "max_" names a numeric
+        property of IsovarResult; "min" filters require value >= cutoff and
+        "max" filters require value <= cutoff.
 
     Returns OrderedDict
     """
@@ -105,28 +101,18 @@ def evaluate_filters(
         filter_thresholds,
         filter_flags=None):
     """
-    Creates a dictionary whose keys are named of different
-    filter conditions and values are booleans, where True
-    indicates whether this set of coverage stats passes
-    the filter and False indicates that it failed.
+    Creates a dictionary whose keys are the names of filter conditions and
+    whose values are True when the result passes that filter.
 
     Parameters
     ----------
     isovar_result : IsovarResult
 
     filter_thresholds : dict or OrderedDict
-        Every argument is supposed to be something like "max_alt_reads"
-        where the first three characters are "min" or "max" and the
-        rest of the name is either a field of IsovarResult or
-        a numeric field like "num_alt_reads". The name of each filter
-        maps to a cutoff value. Filters starting with "max"
-        require that the corresponding field on CoverageStats
-        is <= cutoff, whereas filters starting with
-        "min" require >= cutoff.
+        See ``evaluate_threshold_filters``.
 
     filter_flags : list of str
-        Every element should be a boolean property of IsovarResult
-        or "not_" and the name of a property to be negated.
+        See ``evaluate_boolean_filters``.
 
     Returns
     -------
@@ -146,27 +132,18 @@ def apply_filters(
         filter_thresholds=None,
         filter_flags=None):
     """
-    Given an IsovarResult object, evaluates given filters
-    for each object, and returns a copy of the IsovarResult with new fiter
-    values.
+    Given an IsovarResult object, evaluates given filters and returns a copy
+    of the IsovarResult with the new filter values added.
 
     Parameters
     ----------
     isovar_result : IsovarResult
 
     filter_thresholds : dict or OrderedDict
-        Every argument is supposed to be something like "max_alt_reads"
-        where the first three characters are "min" or "max" and the
-        rest of the name is either a field of IsovarResult or
-        a numeric field like "num_alt_reads". The name of each filter
-        maps to a cutoff value. Filters starting with "max"
-        require that the corresponding field on CoverageStats
-        is <= cutoff, whereas filters starting with
-        "min" require >= cutoff.
+        See ``evaluate_threshold_filters``.
 
     filter_flags : list of str
-        Every element should be a boolean property of IsovarResult
-        or "not_" and the name of a property to be negated.
+        See ``evaluate_boolean_filters``. None counts as False.
 
     Returns IsovarResult
     """

@@ -7,8 +7,14 @@ caller-created reads without this metadata retain their original semantics.
 """
 
 
+def read_group(read):
+    """SAM read group of a pysam record, or "" when it has no RG tag."""
+    return read.get_tag("RG") if read.has_tag("RG") else ""
+
+
 def source_alignments_from_pysam(read, name):
-    group = read.get_tag("RG") if read.has_tag("RG") else ""
+    """The (segment ID, alignment ID) pair identifying one SAM record."""
+    group = read_group(read)
     segment = read.flag & 0xC0 if read.is_paired else 0
     return (((group, name, segment), (
         read.reference_id, read.reference_start, read.cigarstring,
@@ -16,6 +22,7 @@ def source_alignments_from_pysam(read, name):
 
 
 def source_read_ids(read):
+    """Segment IDs of the SAM records behind a read (empty for legacy objects)."""
     return {key for key, _ in getattr(read, "source_alignments", ())}
 
 

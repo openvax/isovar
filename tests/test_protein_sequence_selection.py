@@ -75,6 +75,20 @@ def test_support_context_tradeoff(preference, fraction, expected_length):
         assert len(ranked[0]) == expected_length
 
 
+def test_helper_default_matches_protein_sequence_creator_default():
+    candidates = [protein(9, 121), protein(49, 111)]
+    creator = ProteinSequenceCreator()
+    assert sort_protein_sequences(candidates) == sort_protein_sequences(
+        candidates, creator.protein_sequence_preference,
+        creator.protein_context_peptide_length, creator.min_protein_sequence_support_fraction)
+    assert len(sort_protein_sequences(candidates)[0]) == 49
+
+
+def test_creators_with_different_settings_are_not_equal():
+    assert ProteinSequenceCreator() != ProteinSequenceCreator(protein_sequence_length=5)
+    assert ProteinSequenceCreator() != ProteinSequenceCreator(protein_sequence_preference="support")
+
+
 def test_budget_boundary_and_raw_alignment_counts_do_not_inflate_support():
     short, boundary, weak = protein(9, 100), protein(25, 85), protein(49, 84, source_read_count=10)
     assert weak.num_supporting_fragments == 84

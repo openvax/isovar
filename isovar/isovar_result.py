@@ -64,7 +64,7 @@ class IsovarResult(object):
 
         filter_values : OrderedDict
             Dictionary from names of filters to whether this IsovarResult
-            passed that filter. 
+            passed that filter.
 
         phased_variants_in_supporting_reads : set of varcode.Variant
             Other somatic variants which directly share enough alt-read support
@@ -441,8 +441,8 @@ class IsovarResult(object):
     @cached_property
     def num_fragments_supporting_top_protein_sequence(self):
         """
-        How many fragments (unique read names) support the assembled
-        protein sequence?
+        How many fragments (read-group-scoped read names) support the
+        assembled protein sequence?
 
         Returns int
         """
@@ -728,8 +728,8 @@ class IsovarResult(object):
     @cached_property
     def num_transcripts_from_protein_sequences(self):
         """
-        Number of genes used by any translated protein sequence associated
-        with this IsovarResult.
+        Number of transcripts used by any translated protein sequence
+        associated with this IsovarResult.
 
         Returns int
         """
@@ -739,8 +739,7 @@ class IsovarResult(object):
     @cached_property
     def num_transcripts_from_top_protein_sequence(self):
         """
-        Number of genes used by any translated protein sequence associated
-        with this IsovarResult.
+        Number of transcripts used by the top protein sequence.
 
         Returns int
         """
@@ -800,8 +799,7 @@ class IsovarResult(object):
     @cached_property
     def num_genes_from_top_protein_sequence(self):
         """
-        Number of genes used by any translated protein sequence associated
-        with this IsovarResult.
+        Number of genes used by the top protein sequence.
 
         Returns int
         """

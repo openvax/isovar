@@ -67,11 +67,10 @@ also cover DNBSEQ, IONTORRENT and an absent platform declaration. This verifies
 format/policy compatibility, not equal biological sensitivity or calibrated
 error rates across technologies.
 
-One remaining evidence-unit limitation is tracked in
-[#331](https://github.com/openvax/isovar/issues/331): ONT split children and a
-duplex consensus can share original molecular lineage despite distinct read
-names. The new fields expose that relationship for explicit filtering; existing
-segment/fragment counts are not automatically independent-molecule counts.
+ONT split children and a duplex consensus can share original signal lineage
+despite distinct read names. SV support reports that lineage separately
+([ONT read lineage](ont-read-lineage.md)); segment/fragment counts are not
+independent-molecule counts.
 
 ## Measurements
 

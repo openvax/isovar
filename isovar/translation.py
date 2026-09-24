@@ -77,10 +77,6 @@ class Translation(TranslationKey):
         variant_orf : VariantORF
         """
 
-        # TODO:
-        #  get rid of untrimmed_variant_sequence by making
-        #  VariantORF keep track of its inputs
-
         self.amino_acids = amino_acids
         self.contains_mutation = contains_mutation
         self.mutation_start_idx = mutation_start_idx
@@ -104,6 +100,7 @@ class Translation(TranslationKey):
     @property
     def reference_cdna_sequence_before_variant(self):
         """
+        Reference transcript cDNA before the variant in this reading frame.
 
         Returns str
         """

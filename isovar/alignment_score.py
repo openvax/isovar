@@ -17,7 +17,7 @@ Sequence alignment helpers
 
 def alignment_score(a, b, min_subsequence_length=1):
     """
-    Number of mismatches between all two input sequences, allows
+    Number of mismatches between two input sequences, allowing
     for trimming of ends of sequences but not insertions or deletions
     within the sequences. Number of trimmed amino acids from each sequence
     count toward the mismatch total.

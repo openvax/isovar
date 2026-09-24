@@ -1,3 +1,4 @@
+include CHANGELOG.md
 include deploy.sh
 include lint.sh
 include release_upload.py

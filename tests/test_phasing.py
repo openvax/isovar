@@ -16,15 +16,7 @@ from varcode.mutant_transcript import TranscriptEdit
 
 from isovar.allele_read import AlleleRead
 from isovar.isovar_result import IsovarResult
-from isovar.phasing import (
-    annotate_phased_variants,
-    compute_phasing_counts,
-    create_phase_groups,
-    create_read_names_to_variants_dict,
-    create_variant_to_alt_read_names_dict,
-    create_variant_to_protein_sequence_read_names_dict,
-    threshold_phased_variant_counts,
-)
+from isovar.phasing import _phase_annotations, annotate_phased_variants
 from isovar.read_evidence import ReadEvidence
 from isovar.transcript_assembly_edit import TranscriptAssemblyEdit
 
@@ -269,10 +261,6 @@ def scoped_result(position, groups, segments=(64,), protein_groups=None):
 @pytest.mark.parametrize("groups", [("a", "b"), ("", "a")])
 def test_different_read_groups_cannot_phase_identical_names(groups):
     inputs = [scoped_result(10, [groups[0]]), scoped_result(20, [groups[1]])]
-    # Public helper contracts still expose unmodified strings, not scoped IDs.
-    for helper in (create_variant_to_alt_read_names_dict,
-                   create_variant_to_protein_sequence_read_names_dict):
-        assert list(helper(inputs).values()) == [{"shared"}, {"shared"}]
     for result in annotate_phased_variants(inputs, min_shared_fragments_for_phasing=1):
         assert result.alt_read_names == {"shared"}
         assert not result.phased_variants_in_supporting_reads
@@ -320,30 +308,25 @@ def test_missing_metadata_does_not_match_a_collected_unscoped_read():
         assert not result.phased_variants_in_protein_sequence
 
 
-def test_public_phase_group_helper_still_accepts_plain_names():
+def test_phase_groups_accept_plain_names():
     variants = [Variant("1", pos, "A", "C") for pos in (10, 20)]
-    groups = create_phase_groups({v: {"shared"} for v in variants}, 1)
+    _, groups = _phase_annotations({v: {"shared"} for v in variants}, 1)
     assert set(groups) == set(variants)
     assert all(g.supporting_read_names == {"shared"} for g in groups.values())
 
 
-def test_public_phasing_helpers_preserve_scoped_ids_and_thresholds():
+def test_phasing_threshold_counts_shared_fragments():
     a, b, c = [Variant("1", pos, "A", "C") for pos in (10, 20, 30)]
-    first, second = ("rg1", "shared"), ("rg2", "shared")
-    mapping = {a: {first, second}, b: {first, second}, c: {second}}
-    assert create_read_names_to_variants_dict(mapping) == {first: {a, b}, second: {a, b, c}}
-    counts = compute_phasing_counts(mapping)
-    assert counts == {a: {b: 2, c: 1}, b: {a: 2, c: 1}, c: {a: 1, b: 1}}
-    assert threshold_phased_variant_counts(counts[a], 2) == {b}
-    groups = create_phase_groups(mapping, 2, read_names_by_id={first: "shared", second: "shared"})
+    neighbors, groups = _phase_annotations({a: {"x", "y"}, b: {"x", "y"}, c: {"y"}}, 2)
+    assert neighbors == {a: {b}, b: {a}, c: set()}
     assert set(groups) == {a, b}
     assert groups[a] is groups[b]
-    assert groups[a].supporting_read_names == {"shared"}
+    assert groups[a].supporting_read_names == {"x", "y"}
 
 
 def test_phase_group_names_come_from_retained_edges_not_raw_cooccurrence():
     a, b, c = [Variant("1", pos, "A", "C") for pos in (10, 20, 30)]
-    groups = create_phase_groups({
+    _, groups = _phase_annotations({
         a: {"ab1", "ab2", "weak"},
         b: {"ab1", "ab2", "bc1", "bc2"},
         c: {"bc1", "bc2", "weak"},

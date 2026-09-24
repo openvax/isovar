@@ -20,7 +20,11 @@ ProteinSequence.
 from numbers import Integral, Real
 
 from .common import groupby
-from .default_parameters import PROTEIN_CONTEXT_PEPTIDE_LENGTH, MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION
+from .default_parameters import (
+    MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION,
+    PROTEIN_CONTEXT_PEPTIDE_LENGTH,
+    PROTEIN_SEQUENCE_PREFERENCE,
+)
 from .logging import get_logger
 from .protein_sequence import ProteinSequence
 from .translation import Translation
@@ -56,13 +60,13 @@ def mutant_peptide_window_count(protein_sequence, peptide_length):
     return max(0, last_start - first_start + 1)
 
 
-def sort_protein_sequences(protein_sequences, preference="support", peptide_length=PROTEIN_CONTEXT_PEPTIDE_LENGTH,
-                          min_support_fraction=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION):
+def sort_protein_sequences(protein_sequences, preference=PROTEIN_SEQUENCE_PREFERENCE,
+                           peptide_length=PROTEIN_CONTEXT_PEPTIDE_LENGTH,
+                           min_support_fraction=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION):
     """
     Sort candidates without dropping reads or changing their support counts.
 
-    The historical helper default is support-first; ProteinSequenceCreator
-    explicitly requests its configured preference (balanced by default).
+    Support ranks by fragments, reads, mismatches and then length.
     Balanced maximizes useful peptide windows within a relative compatible
     read-name support budget. Context ignores that relative budget. Neither
     mode treats the budget as a calibrated confidence or expression estimate.

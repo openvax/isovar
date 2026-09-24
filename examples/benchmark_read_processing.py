@@ -23,7 +23,7 @@ import pysam
 from isovar import __version__
 from isovar.read_collector import ReadCollector
 from isovar.sid_data import BUNDLE, RECIPE, read_json, verify
-from isovar.sv_rna_orfs import record_evidence
+from isovar.read_metadata import record_evidence
 from isovar.variant_helpers import trim_variant
 
 

@@ -10,26 +10,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-from .commands import parser_for_program
+"""
+Export the cDNA sequences assembled from reads supporting each variant.
+"""
 
-from ..logging import get_logger
-
-from ..variant_sequence_creator import VariantSequenceCreator
 from ..dataframe_helpers import variant_sequences_generator_to_dataframe
-
-
+from ..variant_sequence_creator import VariantSequenceCreator
+from .commands import run_dataframe_command
+from .output_args import add_output_args
 from .rna_args import read_evidence_generator_from_args
 from .variant_sequences_args import make_variant_sequences_arg_parser
-from .output_args import add_output_args, write_dataframe
 
-logger = get_logger(__name__)
-
-parser = make_variant_sequences_arg_parser(add_sequence_length_arg=True)
 parser = add_output_args(
-    parser,
+    make_variant_sequences_arg_parser(add_sequence_length_arg=True, description=__doc__),
     filename="isovar-variant-sequences-results.csv",
-    description="Name of CSV file which contains predicted sequences")
+    description="CSV of assembled cDNA sequences")
 
 
 def variant_sequences_generator_from_args(args):
@@ -44,16 +39,10 @@ def variant_sequences_generator_from_args(args):
         variant_sequence_assembly=args.variant_sequence_assembly)
     return variant_sequence_creator.sequences_from_read_evidence_generator(read_evidence_generator)
 
+
 def variant_sequences_dataframe_from_args(args):
-    variant_sequences_generator = variant_sequences_generator_from_args(args)
-    return variant_sequences_generator_to_dataframe(variant_sequences_generator)
+    return variant_sequences_generator_to_dataframe(variant_sequences_generator_from_args(args))
 
 
 def run(args=None, *, prog=None):
-    if args is None:
-        args = sys.argv[1:]
-    args = parser_for_program(parser, prog).parse_args(args)
-    logger.info(args)
-    df = variant_sequences_dataframe_from_args(args)
-    logger.info(df)
-    write_dataframe(df, args)
+    run_dataframe_command(parser, variant_sequences_dataframe_from_args, args, prog)
