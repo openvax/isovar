@@ -7,6 +7,7 @@ import sys
 
 from ..logging import configure_cli_logging, get_logger
 from .output_args import write_dataframe
+from .validation import CommandInputError, check_output_path
 
 logger = get_logger(__name__)
 
@@ -36,11 +37,16 @@ def parser_for_program(parser, prog=None):
 
 def run_dataframe_command(parser, dataframe_from_args, args=None, prog=None):
     """Parse options, build one table from them and write it as CSV."""
-    args = parser_for_program(parser, prog).parse_args(sys.argv[1:] if args is None else args)
+    parser = parser_for_program(parser, prog)
+    args = parser.parse_args(sys.argv[1:] if args is None else args)
     configure_cli_logging(args.log_level)
     logger.debug("Options: %s", args)
-    df = dataframe_from_args(args)
-    write_dataframe(df, args)
+    try:
+        check_output_path(args.output)
+        df = dataframe_from_args(args)
+        write_dataframe(df, args)
+    except CommandInputError as error:
+        parser.error(str(error))
     logger.info("Wrote %d rows to %s", len(df), args.output)
 
 

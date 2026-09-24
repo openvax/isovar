@@ -17,6 +17,7 @@ from ..default_parameters import (
     VARIANT_SEQUENCE_LENGTH,
 )
 from .rna_args import make_rna_reads_arg_parser
+from .validation import non_negative_int, positive_int
 
 
 def add_variant_sequence_args(
@@ -27,7 +28,7 @@ def add_variant_sequence_args(
 
     rna_sequence_group.add_argument(
         "--min-variant-sequence-coverage",
-        type=int,
+        type=non_negative_int,
         default=MIN_VARIANT_SEQUENCE_COVERAGE,
         help="Minimum RNA read objects covering every retained cDNA base (default %(default)s). "
              "An absolute floor, independent of the protein read-name support fraction.")
@@ -45,7 +46,7 @@ def add_variant_sequence_args(
         rna_sequence_group.add_argument(
             "--variant-sequence-length",
             default=VARIANT_SEQUENCE_LENGTH,
-            type=int,
+            type=positive_int,
             help="Preferred cDNA sequence length in nucleotides (default %(default)s).")
     return parser
 
@@ -62,11 +63,8 @@ def make_variant_sequences_arg_parser(add_sequence_length_arg=False, **kwargs):
         Passed directly to argparse.ArgumentParser
 
     Creates argparse.ArgumentParser instance with all of the options
-    needed to translate each distinct cDNA sequence determined from
-    variants & RNAseq.
-
-    See `args.variant_sequences` for commandline parameters which aren't added
-    in this module.
+    needed to assemble variant cDNA sequences from variants & RNAseq,
+    including those from ``rna_args``.
     """
     parser = make_rna_reads_arg_parser(**kwargs)
     add_variant_sequence_args(

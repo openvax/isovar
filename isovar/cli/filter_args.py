@@ -17,22 +17,25 @@ Common command-line arguments for filtering Isovar results
 from collections import OrderedDict
 
 from ..default_parameters import DEFAULT_FILTER_THRESHOLDS
+from .validation import fraction, non_negative_float, non_negative_int
 
 def add_filter_args(parser):
     """
     Extends an ArgumentParser instance with commandline arguments related
     to filtering variants and/or their associated protein sequences.
     """
-    filter_group = parser.add_argument_group("Filtering")
+    filter_group = parser.add_argument_group(
+        "Filtering",
+        "Filters set the filter:* columns and passes_all_filters; they never remove rows.")
     filter_group.add_argument(
         "--min-alt-rna-reads",
-        type=int,
+        type=non_negative_int,
         default=DEFAULT_FILTER_THRESHOLDS["min_num_alt_reads"],
         help="Minimum number of reads supporting variant allele (default %(default)s)")
 
     filter_group.add_argument(
         "--min-alt-rna-fragments",
-        type=int,
+        type=non_negative_int,
         default=DEFAULT_FILTER_THRESHOLDS["min_num_alt_fragments"],
         help=(
             "Minimum number of fragments supporting variant allele (default %(default)s). "
@@ -41,7 +44,7 @@ def add_filter_args(parser):
 
     filter_group.add_argument(
         "--min-alt-rna-fraction",
-        type=float,
+        type=fraction,
         default=DEFAULT_FILTER_THRESHOLDS["min_fraction_alt_fragments"],
         help=(
             "Minimum ratio of fragments supporting variant allele to total RNA fragments "
@@ -49,7 +52,7 @@ def add_filter_args(parser):
 
     filter_group.add_argument(
         "--min-ratio-alt-to-other-fragments",
-        type=float,
+        type=non_negative_float,
         default=DEFAULT_FILTER_THRESHOLDS["min_ratio_alt_to_other_fragments"],
         help=(
             "At loci where alleles other than the ref and a single alt are supported, "

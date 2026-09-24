@@ -6,8 +6,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from varcode.cli import variant_collection_from_args
-
 from ..default_parameters import (
     PLOT_ALL_PROTEINS, PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_OUTPUT_DIRECTORY, PLOT_VIEW, PLOT_VIEWS,
 )
@@ -18,6 +16,7 @@ from ..visualization import (
 from .rna_args import alignment_file_from_args, read_collector_from_args
 from .commands import parser_for_program
 from .output_args import add_log_level_arg
+from .validation import CommandInputError, dpi, variant_collection_from_args
 from .translation_args import (
     add_protein_selection_args,
     make_translation_arg_parser,
@@ -36,7 +35,7 @@ parser.add_argument("--output-dir", default=PLOT_OUTPUT_DIRECTORY,
                     help="Parent of new UTC-stamped run directories (default %(default)s).")
 parser.add_argument("--max-rows", type=int, default=PLOT_MAX_ROWS,
                     help="Maximum displayed span/model rows; never limits analysis (default %(default)s).")
-parser.add_argument("--dpi", type=int, default=PLOT_DPI, help="PNG resolution (default %(default)s); SVG is vector.")
+parser.add_argument("--dpi", type=dpi, default=PLOT_DPI, help="PNG resolution (default %(default)s); SVG is vector.")
 parser.add_argument("--all-proteins", action="store_true", default=PLOT_ALL_PROTEINS,
                     help="Also write paginated protein/frame alternatives; removes only the protein result cap.")
 parser.add_argument("--sample-label", help="Explicit sample/technology label for figures (default: BAM filename).")
@@ -47,19 +46,23 @@ add_log_level_arg(parser)
 def run(args=None, *, prog=None):
     command_parser = parser_for_program(parser, prog)
     args = command_parser.parse_args(sys.argv[1:] if args is None else args)
-    if args.max_rows < 2 or args.dpi < 72:
-        command_parser.error("--max-rows must be >= 2 and --dpi must be >= 72")
+    if args.max_rows < 2:
+        command_parser.error("--max-rows must be >= 2")
     try:
         _plot_imports()
     except ImportError as error:
         command_parser.error(str(error))
     configure_cli_logging(args.log_level)
-    variants = variant_collection_from_args(args)
-    if len(variants) != 1:
-        command_parser.error("Select exactly one mutation (use --variant or a single-record variant file).")
-    variant = next(iter(variants))
-    collector = read_collector_from_args(args)
-    with alignment_file_from_args(args) as alignment:
+    try:
+        collector = read_collector_from_args(args)
+        variants = variant_collection_from_args(args)
+        if len(variants) != 1:
+            command_parser.error("Select exactly one mutation (use --variant or a single-record variant file).")
+        variant = next(iter(variants))
+        alignment = alignment_file_from_args(args)
+    except CommandInputError as error:
+        command_parser.error(str(error))
+    with alignment:
         evidence = collector.read_evidence_for_variant(variant, alignment)
     creator_kwargs = protein_sequence_creator_kwargs_from_args(args)
     if args.all_proteins:

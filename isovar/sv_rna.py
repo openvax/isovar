@@ -1674,8 +1674,18 @@ def sv_rna_input_from_dict(data):
     """Decode the explicit JSON input used by ``isovar sv-rna``.
 
     Returns keyword arguments for ``reconstruct_sv_rna`` (other than the BAM,
-    source and evidence parameters).
+    source and evidence parameters). Raises ValueError for a missing key or
+    an unexpected field.
     """
+    try:
+        return _sv_rna_input_from_dict(data)
+    except KeyError as error:
+        raise ValueError("SV RNA input is missing %s" % error) from error
+    except TypeError as error:
+        raise ValueError("Invalid SV RNA input: %s" % error) from error
+
+
+def _sv_rna_input_from_dict(data):
     return dict(
         event_id=data["event_id"], reference_name=data["reference_name"], sample_id=data["sample_id"],
         donor=FusionBreakpoint(**data["donor"]), acceptor=FusionBreakpoint(**data["acceptor"]),

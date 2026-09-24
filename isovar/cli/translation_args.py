@@ -24,6 +24,7 @@ from ..default_parameters import (
     PROTEIN_SEQUENCE_LENGTH,
     MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION,
 )
+from .validation import fraction, non_negative_int, positive_int
 from .variant_sequences_args import make_variant_sequences_arg_parser
 
 def add_translation_args(parser):
@@ -33,7 +34,7 @@ def add_translation_args(parser):
     translation_group.add_argument(
         "--protein-sequence-length",
         default=None,
-        type=int,
+        type=positive_int,
         help="Requested translated context length; default is 2 * protein-context-peptide-length - 1 "
              "(%s with the default peptide length)." % PROTEIN_SEQUENCE_LENGTH)
 
@@ -43,13 +44,13 @@ def add_translation_args(parser):
         help="Balance vaccine context within an RNA support budget, prioritize support, "
              "or prioritize context (default %(default)s).")
     translation_group.add_argument(
-        "--protein-context-peptide-length", type=int, default=None,
+        "--protein-context-peptide-length", type=positive_int, default=None,
         help="Peptide size for counting mutation-containing windows (default %s)."
              % PROTEIN_CONTEXT_PEPTIDE_LENGTH)
 
     translation_group.add_argument(
         "--max-reference-transcript-mismatches",
-        type=int,
+        type=non_negative_int,
         default=MAX_REFERENCE_TRANSCRIPT_MISMATCHES,
         help=(
             "Maximum number of mismatches between the variant sequence and a"
@@ -65,7 +66,7 @@ def add_translation_args(parser):
 
     translation_group.add_argument(
         "--min-transcript-prefix-length",
-        type=int,
+        type=non_negative_int,
         default=MIN_TRANSCRIPT_PREFIX_LENGTH,
         help=(
             "Number of nucleotides before the variant we try to match against "
@@ -78,7 +79,7 @@ def add_translation_args(parser):
 def add_protein_selection_args(parser):
     """Options used only when ranking protein sequences, not individual translations."""
     parser.add_argument(
-        "--min-protein-sequence-support-fraction", type=float,
+        "--min-protein-sequence-support-fraction", type=fraction,
         default=MIN_PROTEIN_SEQUENCE_SUPPORT_FRACTION,
         help="Balanced: fraction of best candidate's compatible read-name support (default %(default)s, not per-base depth). "
              "Use --min-variant-sequence-coverage for the independent absolute per-base floor.")

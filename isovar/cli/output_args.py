@@ -15,6 +15,8 @@ Common helper functions for writing CSV output files, shared by all
 the CLI commands
 """
 
+from .validation import CommandInputError
+
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
 
 
@@ -48,12 +50,10 @@ def write_dataframe(df, args):
     Write a DataFrame to location specified in commandline arguments,
     optionally filtered by specific columns
     """
-    assert len(args.output) > 0
     if args.output_columns is not None and len(args.output_columns) > 0:
-        valid_columns = set(df.columns)
-        for col in args.output_columns:
-            if col not in valid_columns:
-                raise ValueError("Column not found '%s', valid options: %s" % (
-                    col, list(df.columns)))
+        missing = [col for col in args.output_columns if col not in set(df.columns)]
+        if missing:
+            raise CommandInputError("Unknown --output-columns %s; valid columns: %s" % (
+                ", ".join(missing), ", ".join(df.columns)))
         df = df[args.output_columns]
     df.to_csv(args.output, index=False)

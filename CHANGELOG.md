@@ -4,6 +4,20 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.27.1
+
+- Command-line input problems are one-line usage errors (exit 2) instead of
+  tracebacks ([#256](https://github.com/openvax/isovar/issues/256)): missing
+  variant/BAM/JSON files, missing `--genome`, SAM or unindexed alignment files,
+  a missing output directory (checked before any work), unknown
+  `--output-columns`, invalid `ReadCollector` settings and out-of-range numeric
+  options (negative lengths or counts, fractions outside [0, 1], `--dpi` below 72).
+  `isovar.cli.validation.CommandInputError` is a `ValueError`.
+- `fusion_from_dict` and `sv_rna_input_from_dict` raise `ValueError` for a
+  missing key or unexpected field instead of `KeyError`/`TypeError`, so
+  `isovar fusion` and `isovar sv-rna` no longer report programming errors as
+  usage errors.
+
 ## 1.27.0
 
 - `isovar sv-rna` output schema `isovar.sv_rna_candidates.v3`

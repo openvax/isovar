@@ -17,7 +17,7 @@ Common command-line arguments for all Isovar commands which use RNA
 from pysam import AlignmentFile
 from argparse import ArgumentTypeError
 
-from varcode.cli import make_variants_parser, variant_collection_from_args
+from varcode.cli import make_variants_parser
 
 from ..default_parameters import (
     MIN_READ_MAPPING_QUALITY,
@@ -33,6 +33,7 @@ from ..default_parameters import (
 from ..read_collector import ReadCollector
 from ..read_end_inference import read_end_profiles_from_json
 from ..dataframe_helpers import allele_counts_dataframe, allele_reads_to_dataframe
+from .validation import CommandInputError, non_negative_int, positive_int, variant_collection_from_args
 
 
 def read_end_profile_argument(filename):
@@ -67,7 +68,7 @@ def add_rna_args(parser):
 
     rna_group.add_argument(
         "--min-mapping-quality",
-        type=int,
+        type=non_negative_int,
         default=MIN_READ_MAPPING_QUALITY,
         help="Minimum MAPQ value to allow for a read (default %(default)s)")
 
@@ -121,7 +122,7 @@ def add_rna_args(parser):
 
     rna_group.add_argument(
         "--num-rna-decompression-threads",
-        type=int,
+        type=positive_int,
         help=(
             "Number of threads to use for decompression of BAM/CRAM files "
             "(default %(default)s)."),
@@ -147,17 +148,37 @@ def make_rna_reads_arg_parser(**kwargs):
 
 def alignment_file_from_args(args):
     """
-    Use parsed arguments to load a file of aligned RNA reads.
+    Use parsed arguments to open an indexed BAM/CRAM file of aligned RNA reads.
+
+    Raises CommandInputError if it is missing, unreadable, SAM or unindexed.
     """
-    return AlignmentFile(
-        args.bam,
-        threads=args.num_rna_decompression_threads)
+    try:
+        alignment_file = AlignmentFile(
+            args.bam,
+            threads=args.num_rna_decompression_threads)
+    except (OSError, ValueError) as error:
+        raise CommandInputError("Cannot open alignment file %s: %s" % (args.bam, error)) from error
+    if not (alignment_file.is_bam or alignment_file.is_cram):
+        alignment_file.close()
+        raise CommandInputError(
+            "%s is not BAM or CRAM; region queries need an indexed BAM/CRAM file" % args.bam)
+    if not alignment_file.has_index():
+        alignment_file.close()
+        raise CommandInputError("%s has no index; create one with 'samtools index'" % args.bam)
+    return alignment_file
 
 
 def read_collector_from_args(args):
     """
     Use parsed arguments to create a ReadCollector object
     """
+    try:
+        return _read_collector_from_args(args)
+    except (TypeError, ValueError) as error:
+        raise CommandInputError(str(error)) from error
+
+
+def _read_collector_from_args(args):
     return ReadCollector(
         min_mapping_quality=args.min_mapping_quality,
         use_duplicate_reads=args.use_duplicate_reads,
@@ -178,9 +199,9 @@ def read_evidence_generator_from_args(args):
     Creates a generator of (Variant, ReadEvidence) pairs from parsed
     arguments.
     """
+    read_creator = read_collector_from_args(args)
     variants = variant_collection_from_args(args)
     samfile = alignment_file_from_args(args)
-    read_creator = read_collector_from_args(args)
     return read_creator.read_evidence_generator(
         variants=variants,
         alignment_file=samfile)
