@@ -69,7 +69,8 @@ class IsovarResult(object):
             phased_variants_in_supporting_reads=None,
             phased_variants_in_protein_sequence=None,
             phase_group_from_supporting_reads=None,
-            phase_group_from_protein_sequence=None):
+            phase_group_from_protein_sequence=None,
+            protein_sequence_settings=None):
         """
         Parameters
         ----------
@@ -111,6 +112,11 @@ class IsovarResult(object):
             variants. When available, this group also carries directly observed
             cDNA, protein, and transcript metadata from the assembled protein
             sequences in the group.
+
+        protein_sequence_settings : dict or None
+            ``ProteinSequenceCreator.settings()`` of the creator that produced
+            `sorted_protein_sequences`, recorded by `run_isovar`. None when
+            unknown, as for a result built by hand.
         """
         self.variant = variant
         self.read_evidence = read_evidence
@@ -140,6 +146,7 @@ class IsovarResult(object):
 
         self.phase_group_from_supporting_reads = phase_group_from_supporting_reads
         self.phase_group_from_protein_sequence = phase_group_from_protein_sequence
+        self.protein_sequence_settings = protein_sequence_settings
 
     @property
     def fields(self):
@@ -156,6 +163,7 @@ class IsovarResult(object):
             "phased_variants_in_protein_sequence",
             "phase_group_from_supporting_reads",
             "phase_group_from_protein_sequence",
+            "protein_sequence_settings",
         ]
 
     def __str__(self):

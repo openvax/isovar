@@ -7,7 +7,6 @@ defaults. Genomic, cDNA and protein coordinates are deliberately separate.
 from collections import Counter
 from datetime import datetime, timezone
 from hashlib import sha256
-import inspect
 import json
 from pathlib import Path
 import re
@@ -22,11 +21,6 @@ from .protein_sequence_creator import ProteinSequenceCreator
 from .protein_sequence_helpers import mutant_peptide_window_count
 from .read_identity import fragment_ids, observation_groups
 from .variant_helpers import base0_interval_for_variant, interbase_range_affected_by_variant_on_transcript
-
-
-def _creator_settings(creator):
-    return {name: getattr(creator, name)
-            for name in inspect.signature(ProteinSequenceCreator).parameters}
 
 
 def _transcript_data(transcript, rna_supported=False):
@@ -166,7 +160,7 @@ def collect_visualization_data(
         creator = ProteinSequenceCreator(**dict(creator_kwargs, variant_sequence_assembly=assembly))
         proteins = creator.sorted_protein_sequences_for_variant(
             variant, read_evidence, transcript_id_whitelist=transcript_id_whitelist)
-        entry = dict(assembly=assembly, settings=_creator_settings(creator), protein=None, proteins=[])
+        entry = dict(assembly=assembly, settings=creator.settings(), protein=None, proteins=[])
         selected_ids = {t.id for p in proteins[:1] for translation in p.translations
                         for t in translation.reference_context.transcripts}
         for protein in proteins:

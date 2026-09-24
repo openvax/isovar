@@ -4,6 +4,23 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.32.0
+
+- `export_protein_hypotheses` and `isovar protein-hypotheses` export every
+  protein Isovar reconstructs for each variant, as `isovar.protein_hypotheses.v1`
+  JSON and TSV ([#324](https://github.com/openvax/isovar/issues/324)). Each
+  protein keeps all its translations, including synonymous cDNAs, and marks the
+  shorter windows another protein contains. RNA support is given as counts and
+  an evidence set of hashed read identities. The command keeps every protein by
+  default.
+- `union_rna_support` combines read sets from several hypotheses or exports,
+  counting each read once, and refuses sets from different evidence scopes.
+  `isovar sv-rna` ORF exports use the same read IDs, and their `rna_support`
+  gains `evidence_scope`.
+- `ProteinSequenceCreator.settings()` returns the creator's effective
+  parameters. `run_isovar` records them on each result as
+  `IsovarResult.protein_sequence_settings`.
+
 ## 1.31.2
 
 - CI publishes coverage with the `coveralls` package it already installs from

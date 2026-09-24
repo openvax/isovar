@@ -104,6 +104,10 @@ df = isovar_results_to_dataframe(
         alignment_file="tumor-rna.bam"))
 ```
 
+To hand every protein hypothesis to another tool, with the translations behind
+it and hashed read identities for its RNA support, use `export_protein_hypotheses`
+or `isovar protein-hypotheses` ([guide](https://github.com/openvax/isovar/blob/master/docs/protein-hypotheses.md)).
+
 Isovar logs through the standard `logging` module under the `isovar` logger and
 never configures logging itself; configure it in your application to see progress.
 
@@ -312,6 +316,7 @@ subcommand) also runs the pipeline, and `python -m isovar` works too.
 |---|---|
 | `isovar run` | One row per variant: read evidence, top protein sequence, predicted effect and filters |
 | `isovar protein-sequences` | Ranked candidate protein sequences (`--max-protein-sequences-per-variant 0` keeps all) |
+| `isovar protein-hypotheses` | Every protein hypothesis, its translations and scoped RNA evidence, as JSON and TSV ([guide](https://github.com/openvax/isovar/blob/master/docs/protein-hypotheses.md)) |
 | `isovar translations` | Every translation of each assembled cDNA in each compatible reading frame, before grouping |
 | `isovar variant-sequences` | Assembled cDNA sequences supporting each variant |
 | `isovar reference-contexts` | Reference sequence and reading frame around each variant (no BAM needed) |
@@ -406,6 +411,7 @@ Multiple distinct variant sequences and reference contexts can generate the same
 | Guide | What it covers |
 |---|---|
 | [Protein context selection](https://github.com/openvax/isovar/blob/master/docs/protein-selection.md) | How much protein context is reported and which candidate comes first |
+| [Protein hypothesis export](https://github.com/openvax/isovar/blob/master/docs/protein-hypotheses.md) | Every protein and translation with scoped RNA evidence, for tools that combine sources |
 | [Reading frames from aligned reads](https://github.com/openvax/isovar/blob/master/docs/aligned-reading-frame.md) | How an indel upstream of the variant carries into the reading frame |
 | [Adapter and poly-A trimming](https://github.com/openvax/isovar/blob/master/docs/read-end-inference.md) | Opt-in annotation and trimming of technical read ends |
 | [Mutation-evidence figures](https://github.com/openvax/isovar/blob/master/docs/visualization.md) | `isovar plot`, how to read its figures, and the osteosarc gallery |

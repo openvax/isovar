@@ -3,7 +3,6 @@
 from collections import defaultdict
 from copy import deepcopy
 import csv
-from hashlib import sha256
 import json
 from pathlib import Path
 from urllib.parse import quote
@@ -15,14 +14,7 @@ from .default_parameters import (
 from .genetic_code import standard_genetic_code
 from .orf_start import summarize_orf_start_evidence
 from .read_lineage import summarize_lineage_rows
-
-
-def _canonical(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-
-
-def _identifier(kind, value):
-    return kind + "_" + sha256(_canonical([kind, value]).encode()).hexdigest()
+from .rna_evidence import canonical_json as _canonical, content_identifier as _identifier, segment_support
 
 
 def _unique(rows):
@@ -33,9 +25,6 @@ def _support(result, witnesses):
     scope = [result["sample_id"], result["source"]]
     observations = [result["observations"][w["observation"]] for w in witnesses]
     identities = sorted({tuple(o["identity"]) for o in observations})
-    fragments = sorted({identity[:2] for identity in identities})
-    segment_ids = [_identifier("segment", [scope, identity]) for identity in identities]
-    fragment_ids = [_identifier("fragment", [scope, identity]) for identity in fragments]
     labels = {tuple(row["identity"]): row for row in result.get("cell_umi_evidence", {}).get("segments", [])}
     lineage = {tuple(row["identity"]): row for row in result.get("read_lineage", {}).get("segments", [])}
     label_rows = [labels.get(identity, dict(identity=list(identity), label=None, library_scope_known=False,
@@ -59,8 +48,7 @@ def _support(result, witnesses):
         orientation_counts[key] += 1
     return dict(
         scope="union_of_full_interval_junction_linked_witnesses_within_input",
-        segments=len(identities), fragments=len(fragments), segment_ids=segment_ids, fragment_ids=fragment_ids,
-        evidence_set_id=_identifier("evidence", sorted(segment_ids)),
+        **segment_support(scope, identities),
         signal_group_ids=signal_ids, cell_umi_support=label_summary, read_lineage=lineage_summary,
         independent_molecules=None, fragment_query_orientations=orientation_counts,
         missing_quality_segments=len({tuple(o["identity"]) for o in observations if o["missing_qualities"]}))

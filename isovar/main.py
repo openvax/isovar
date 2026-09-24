@@ -145,7 +145,8 @@ def run_isovar(
             variant=variant,
             predicted_effect=predicted_effect,
             read_evidence=read_evidence,
-            sorted_protein_sequences=protein_sequences)
+            sorted_protein_sequences=protein_sequences,
+            protein_sequence_settings=protein_sequence_creator.settings())
         isovar_result = apply_filters(
             isovar_result,
             filter_thresholds=filter_thresholds,

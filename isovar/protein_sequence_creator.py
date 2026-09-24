@@ -11,6 +11,7 @@
 # limitations under the License.
 
 
+import inspect
 from numbers import Integral
 
 from .default_parameters import (
@@ -163,6 +164,17 @@ class ProteinSequenceCreator(object):
         self._cdna_sequence_length = self.protein_sequence_length * 3 + extra_bases
         self._variant_sequence_creator = self._make_variant_sequence_creator(self._cdna_sequence_length)
         self.max_protein_sequences_per_variant = max_protein_sequences_per_variant
+
+    def settings(self):
+        """
+        Effective values of every constructor parameter, as a dict.
+
+        A derived value is reported as used, so ``protein_sequence_length``
+        is the target length computed from the peptide size when it was
+        not given explicitly.
+        """
+        return {name: getattr(self, name)
+                for name in inspect.signature(ProteinSequenceCreator).parameters}
 
     def _make_variant_sequence_creator(self, cdna_length):
         return VariantSequenceCreator(
