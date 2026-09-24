@@ -236,4 +236,4 @@ def test_header_lines_without_ids_are_ignored_not_fatal():
     metadata["PG"].append(dict(PN="samtools"))
     evidence = lineage([read("x")], metadata)
     assert set(evidence.read_groups) == {"a", "b"}
-    assert set(evidence.programs) == {"basecaller", "aligner"}
+    assert set(evidence.history.programs) == {"basecaller", "aligner"}

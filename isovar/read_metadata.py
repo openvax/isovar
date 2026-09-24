@@ -24,6 +24,43 @@ def unique_header_entries(entries):
     return {entry["ID"]: entry for entry in entries if entry.get("ID") and counts[entry["ID"]] == 1}
 
 
+class ProgramHistory:
+    """The @PG chains of one SAM header. Broken or cyclic chains are unresolved."""
+
+    def __init__(self, header):
+        entries = header.get("PG", [])
+        self.programs = unique_header_entries(entries)
+        self.unique = len(self.programs) == len(entries)
+        parents = {program.get("PP") for program in self.programs.values()}
+        self.leaves = sorted(set(self.programs) - parents)
+
+    def chain(self, key):
+        """Programs from ``key`` back to its root, newest first, or None."""
+        chain, seen = [], set()
+        while key is not None:
+            if key in seen or key not in self.programs:
+                return None
+            seen.add(key)
+            chain.append(self.programs[key])
+            key = chain[-1].get("PP")
+        return chain
+
+    def leaves_cover_all(self):
+        """Whether walking back from the leaves reaches every program."""
+        covered, pending = set(), list(self.leaves)
+        while pending:
+            key = pending.pop()
+            if key in self.programs and key not in covered:
+                covered.add(key)
+                pending.append(self.programs[key].get("PP"))
+        return covered == self.programs.keys()
+
+    @staticmethod
+    def pointer(read, read_group):
+        """The record's PG tag, else its read group's PG entry; None if neither."""
+        return read.get_tag("PG") if read.has_tag("PG") else read_group.get("PG")
+
+
 def record_evidence(read):
     """Return JSON-ready alignment, consensus, barcode and quality evidence.
 

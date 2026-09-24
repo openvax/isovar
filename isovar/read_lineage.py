@@ -3,7 +3,7 @@
 from collections import Counter
 import shlex
 
-from .read_metadata import unique_header_entries
+from .read_metadata import ProgramHistory, unique_header_entries
 
 
 def _is_dorado_basecaller(program):
@@ -39,31 +39,20 @@ class ReadLineage:
     def __init__(self, groups, header):
         self.groups = groups
         self.read_groups = unique_header_entries(header.get("RG", []))
-        self.programs = unique_header_entries(header.get("PG", []))
-        self.program_is_dorado = {key: self._dorado_chain(key) for key in self.programs}
+        self.history = ProgramHistory(header)
+        self.program_is_dorado = {
+            key: any(map(_is_dorado_basecaller, self.history.chain(key) or ()))
+            for key in self.history.programs}
         # Multiple unrelated chains (e.g. a merged BAM) cannot identify a record's
         # producer without an explicit PG pointer. All roots must be Dorado.
-        parents = {p.get("PP") for p in self.programs.values()}
-        leaves = set(self.programs) - parents
-        self.header_is_dorado = (bool(leaves) and len(self.programs) == len(header.get("PG", []))
+        self.header_is_dorado = (bool(self.history.leaves) and self.history.unique
                                  and all(self.program_is_dorado.values()))
         self.cache = {}
-
-    def _dorado_chain(self, key):
-        seen, found = set(), False
-        while key is not None:
-            if key in seen or key not in self.programs:
-                return False
-            seen.add(key)
-            program = self.programs[key]
-            found |= _is_dorado_basecaller(program)
-            key = program.get("PP")
-        return found
 
     def _producer(self, read, group):
         if group.get("PL", "").upper() != "ONT":
             return False
-        program = read.get_tag("PG") if read.has_tag("PG") else group.get("PG")
+        program = self.history.pointer(read, group)
         if program is None:
             return self.header_is_dorado
         return isinstance(program, str) and self.program_is_dorado.get(program, False)

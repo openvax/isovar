@@ -19,6 +19,9 @@ reconstruction output is unchanged.
   and chimeric-path validation both use it. Path validation no longer
   suppresses `AttributeError`/`TypeError`, which hid programming errors.
 - `segment_identity` moved to `read_identity`; `sv_rna` still imports it.
+- `read_metadata.ProgramHistory` walks `@PG` chains and resolves record/read-group
+  `PG` pointers for both the cell/UMI and ONT lineage evidence. Each keeps its own
+  producer policy.
 
 ## 1.28.1
 
