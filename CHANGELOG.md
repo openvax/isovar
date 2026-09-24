@@ -4,6 +4,14 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.30.0
+
+- `isovar sv-rna`'s splice-inclusion gate treats MAPQ 255 as a unique alignment,
+  as STAR writes it, so STAR-aligned intronic starts can reach priority 3
+  ([#361](https://github.com/openvax/isovar/issues/361)). `inclusion_mapq_255_is_unique`
+  now defaults to True. `--inclusion-mapq-255-unavailable` restores the SAM
+  specification's meaning and replaces `--inclusion-mapq-255-is-unique`.
+
 ## 1.29.2
 
 - CI rejects a pull request whose version is not newer than its base branch's, or

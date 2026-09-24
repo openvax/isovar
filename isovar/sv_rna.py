@@ -1398,9 +1398,10 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         (priority 3); the MAPQ gate also selects the competing splices used
         for intron retention. See ``annotate_orf_inclusion``.
     inclusion_mapq_255_is_unique : bool
-        Treat MAPQ 255 as a unique alignment (STAR) rather than unavailable
-        (the SAM specification, and the default) in those gates. Excluded 255
-        records are reported as ``mapq_255_excluded_from_inclusion``.
+        Treat MAPQ 255 as a unique alignment, as STAR writes it (the default),
+        in those gates. False treats it as unavailable, per the SAM
+        specification; excluded 255 records are then reported as
+        ``mapq_255_excluded_from_inclusion``.
 
     Returns
     -------
