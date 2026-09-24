@@ -15,6 +15,8 @@ logger = get_logger(__name__)
 COMMANDS = {
     "run": ("isovar_main", "Run the complete RNA-to-protein pipeline and result filters"),
     "protein-sequences": ("isovar_protein_sequences", "Export candidate protein sequences"),
+    "protein-hypotheses": ("isovar_protein_hypotheses",
+                           "Export every protein hypothesis and translation with scoped RNA evidence"),
     "translations": ("isovar_translations", "Export individual RNA translations"),
     "reference-contexts": ("isovar_reference_contexts", "Export reference sequence and reading-frame contexts"),
     "allele-reads": ("isovar_allele_reads", "Export reads overlapping each variant"),

@@ -116,3 +116,39 @@ def group_equivalent_translations(translations):
     for equivalent_translations in translation_groups.values():
         protein_sequences.append(ProteinSequence.from_translations(equivalent_translations))
     return protein_sequences
+
+
+def covered_protein_groups(keys):
+    """
+    Group proteins whose sequence another protein contains at the same mutation.
+
+    Nothing is joined or summed: this only records which shorter contexts are
+    exact windows of a longer one with the same reading frames.
+
+    Parameters
+    ----------
+    keys : list of tuple
+        One ``(frame_contexts, frameshift, mutation_start, sequence)`` per
+        protein, in rank order. ``frame_contexts`` is the set of
+        ``(strand, variant codon phase, transcript ID)`` behind the protein;
+        ``sequence`` ends with ``*`` after a stop codon.
+
+    Returns
+    -------
+    list of (int, list of int)
+        The 0-based index of each representative, a protein no other covers
+        (ties go to the better rank), with the indices of every protein it
+        covers, itself included. A protein covered by several representatives
+        is listed under each.
+    """
+    def covers(a, b):
+        contexts_a, frameshift_a, start_a, sequence_a = a
+        contexts_b, frameshift_b, start_b, sequence_b = b
+        left = start_a - start_b
+        return (contexts_a == contexts_b and frameshift_a == frameshift_b and left >= 0
+                and sequence_a[left:left + len(sequence_b)] == sequence_b)
+
+    representatives = [i for i, key in enumerate(keys) if not any(
+        j != i and covers(other, key) and (not covers(key, other) or j < i)
+        for j, other in enumerate(keys))]
+    return [(i, [j for j, key in enumerate(keys) if covers(keys[i], key)]) for i in representatives]

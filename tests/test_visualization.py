@@ -15,7 +15,7 @@ from isovar import ProteinSequenceCreator
 from isovar.default_parameters import PLOT_DPI, PLOT_MAX_ROWS, PLOT_VIEW, PLOT_VIEWS, PLOT_WIDTH
 from isovar.read_evidence import ReadEvidence
 from isovar.visualization import (
-    _creator_settings, _genomic_projection, _witness_data, collect_visualization_data,
+    _genomic_projection, _witness_data, collect_visualization_data,
     plot_variant_evidence, save_variant_figures, timestamped_run_directory, variant_directory_name,
 )
 from .test_translation_regressions import _context, _read
@@ -207,8 +207,8 @@ def test_cli_defaults_match_plotting_and_protein_apis():
 
     args = parser.parse_args(["--bam", "input.bam", "--variant", "1", "1000", "G", "C", "--genome", "GRCh38"])
     assert (args.view, args.dpi, args.max_rows) == (PLOT_VIEW, PLOT_DPI, PLOT_MAX_ROWS)
-    assert _creator_settings(ProteinSequenceCreator(**protein_sequence_creator_kwargs_from_args(args))) == \
-        _creator_settings(ProteinSequenceCreator())
+    assert ProteinSequenceCreator(**protein_sequence_creator_kwargs_from_args(args)).settings() == \
+        ProteinSequenceCreator().settings()
 
 
 @pytest.mark.parametrize("options", [{"max_rows": 1}, {"max_rows": True}, {"view": "invalid"}])

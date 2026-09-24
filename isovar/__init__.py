@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.31.2"
+__version__ = "1.32.0"
 
 
 from .allele_read import AlleleRead
@@ -20,6 +20,7 @@ from .locus_read import LocusRead
 from .main import run_isovar
 from .mutant_transcript_source import IsovarMutantTranscript
 from .phase_group import PhaseGroup
+from .protein_hypotheses import export_protein_hypotheses, read_group_metadata, write_protein_hypotheses
 from .protein_sequence import ProteinSequence
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
@@ -29,6 +30,7 @@ from .read_end_inference import (
 )
 from .read_evidence import ReadEvidence
 from .read_phasing import IsovarReadPhasing
+from .rna_evidence import union_rna_support
 from .transcript_assembly_edit import TranscriptAssemblyEdit
 from .variant_orf import VariantORF
 from .variant_sequence import VariantSequence
@@ -43,6 +45,10 @@ from .orf_start import annotate_orf_start, summarize_orf_start_evidence
 
 __all__ = [
     "run_isovar",
+    "export_protein_hypotheses",
+    "write_protein_hypotheses",
+    "read_group_metadata",
+    "union_rna_support",
     "FusionBlock",
     "FusionBreakpoint",
     "FusionRead",

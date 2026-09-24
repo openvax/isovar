@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 from .default_parameters import PLOT_DPI, PLOT_PROTEIN_ROWS_PER_PAGE, PLOT_WIDTH
+from .protein_sequence_helpers import covered_protein_groups
 from .visualization import (
     BLUE, GRAY, INK, draw_protein_rows, _plot_imports,
     _protein_disagreements, _style_axis,
@@ -21,23 +22,12 @@ def protein_groups(proteins):
     Frame/transcript assignments must agree. A shorter ambiguous result can
     belong to several displayed alternatives; its counts are never added to
     any representative. Every original rank remains explicitly recoverable.
+    Returns 1-based ranks; see `covered_protein_groups`.
     """
-    def covers(a, b):
-        def contexts(p):
-            return {(f["strand"], f["variant_codon_phase"], tid)
-                    for f in p["frames"] for tid in f["transcript_ids"]}
-        if contexts(a) != contexts(b) or a["frameshift"] != b["frameshift"]:
-            return False
-        left = a["mutation_start"] - b["mutation_start"]
-        sa = a["amino_acids"] + ("*" if a["ends_with_stop_codon"] else "")
-        sb = b["amino_acids"] + ("*" if b["ends_with_stop_codon"] else "")
-        return left >= 0 and sa[left:left + len(sb)] == sb
-
-    representatives = [i for i, p in enumerate(proteins) if not any(
-        j != i and covers(other, p) and (not covers(p, other) or j < i)
-        for j, other in enumerate(proteins))]
-    return [(i + 1, [j + 1 for j, p in enumerate(proteins) if covers(proteins[i], p)])
-            for i in representatives]
+    keys = [({(f["strand"], f["variant_codon_phase"], tid) for f in p["frames"] for tid in f["transcript_ids"]},
+             p["frameshift"], p["mutation_start"], p["amino_acids"] + ("*" if p["ends_with_stop_codon"] else ""))
+            for p in proteins]
+    return [(i + 1, [j + 1 for j in covered]) for i, covered in covered_protein_groups(keys)]
 
 
 def comparison_rows(products):

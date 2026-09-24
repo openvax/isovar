@@ -62,6 +62,10 @@ an otherwise usable observation.
   protein alternatives in `IsovarResult.sorted_protein_sequences`.
   `top_protein_sequence` is a selection convenience, not a unique biological answer.
   The small-variant read path rejects symbolic SVs.
+- [Protein hypothesis export](protein-hypotheses.md) uses
+  `export_protein_hypotheses` / `isovar protein-hypotheses`. It hands every
+  small-variant protein, its translations and hashed read evidence to tools that
+  combine sources, such as Topiary and Vaxrank, without choosing one.
 - [Nominated-SV RNA paths](sv-rna.md) use `reconstruct_sv_rna` / `isovar sv-rna`.
   From a BAM and annotated models, they recover junction-seeded paths,
   including spliced joins whose DNA breakpoint is intronic. They transfer

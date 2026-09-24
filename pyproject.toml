@@ -41,6 +41,7 @@ data = []  # Compatibility extra; shared fixture support is installed normally.
 [project.scripts]
 isovar = "isovar.cli.commands:run"
 isovar-protein-sequences = "isovar.cli.isovar_protein_sequences:run"
+isovar-protein-hypotheses = "isovar.cli.isovar_protein_hypotheses:run"
 isovar-translations = "isovar.cli.isovar_translations:run"
 isovar-reference-contexts = "isovar.cli.isovar_reference_contexts:run"
 isovar-allele-reads = "isovar.cli.isovar_allele_reads:run"
