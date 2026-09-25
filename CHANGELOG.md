@@ -4,6 +4,24 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.35.0
+
+- Small variants report the cell barcodes and UMIs behind their allele reads
+  and protein hypotheses. This is the first stage of
+  [#226](https://github.com/openvax/isovar/issues/226), and it is opt-in:
+  sample-level reconstruction is unchanged.
+  - Python: `cell_umi_allele_evidence` and `isovar.cell_evidence.CellUmiAlleles`.
+  - `isovar allele-counts --cell-umi-labels` adds `num_{ref,alt,other}_cells`,
+    `num_*_cell_umi_labels`, `num_*_unlabeled_segments` and
+    `num_cells_with_ref_and_alt` columns.
+  - `isovar protein-hypotheses --cell-umi-labels` (`cell_umi_alignment_file=`
+    in Python) adds `cell_umi_evidence` to each event and `cell_umi_support`
+    to each protein.
+
+  Labels use the SV policy `isovar.cell_umi_labels.v1`. Each summary adds
+  `observed_cells` and `complete_cell_count`, which is null unless every read
+  has a resolved label in a known library.
+
 ## 1.34.0
 
 - `reconcile_allele_interpretations` and `isovar allele-interpretations` compare
