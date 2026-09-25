@@ -343,7 +343,7 @@ subcommand) also runs the pipeline, and `python -m isovar` works too.
 | `isovar translations` | Every translation of each assembled cDNA in each compatible reading frame, before grouping |
 | `isovar variant-sequences` | Assembled cDNA sequences supporting each variant |
 | `isovar reference-contexts` | Reference sequence and reading frame around each variant (no BAM needed) |
-| `isovar allele-counts` | Read and fragment counts for the ref, alt and other alleles |
+| `isovar allele-counts` | Read and fragment counts for the ref, alt and other alleles; with `--cell-umi-labels`, cells and cell/UMI labels too |
 | `isovar allele-reads` | All reads overlapping each variant |
 | `isovar variant-reads` | Reads supporting each variant's alt allele |
 | `isovar plot` | Protein, coverage, read-overlap and transcript figures for one mutation ([guide](https://github.com/openvax/isovar/blob/master/docs/visualization.md)) |
@@ -449,7 +449,7 @@ Multiple distinct variant sequences and reference contexts can generate the same
 | [SV RNA reconstruction](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md) | `isovar sv-rna`: RNA paths around an SV call, their frames and ORFs, export and comparison |
 | [Supplied fusion RNA](https://github.com/openvax/isovar/blob/master/docs/fusion.md) | `isovar fusion`: checking a fusion transcript assembled by another tool |
 | [ORF start evidence](https://github.com/openvax/isovar/blob/master/docs/orf-start-evidence.md) | Where an SV ORF's start codon comes from, in four tiers |
-| [Cell/UMI evidence](https://github.com/openvax/isovar/blob/master/docs/cell-umi-evidence.md) | Cell barcode and UMI labels in SV support counts |
+| [Cell/UMI evidence](https://github.com/openvax/isovar/blob/master/docs/cell-umi-evidence.md) | Cell barcode and UMI labels behind small-variant alleles and SV support |
 | [ONT read lineage](https://github.com/openvax/isovar/blob/master/docs/ont-read-lineage.md) | Split and duplex nanopore reads in SV support counts |
 
 **Project**

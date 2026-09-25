@@ -10,11 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.34.0"
+__version__ = "1.35.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
 from .allele_read import AlleleRead
+from .cell_evidence import cell_umi_allele_evidence
 from .dataframe_helpers import isovar_results_to_dataframe
 from .isovar_result import IsovarResult
 from .locus_read import LocusRead
@@ -47,6 +48,7 @@ from .orf_start import annotate_orf_start, summarize_orf_start_evidence
 __all__ = [
     "run_isovar",
     "reconcile_allele_interpretations",
+    "cell_umi_allele_evidence",
     "export_protein_hypotheses",
     "write_protein_hypotheses",
     "read_group_metadata",

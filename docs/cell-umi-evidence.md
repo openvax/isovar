@@ -1,30 +1,74 @@
-# Cell/UMI evidence in SV reconstruction
+# Cell/UMI evidence
 
 Single-cell and UMI-tagged libraries label each read with a cell barcode (`CB`)
 and a unique molecular identifier (UMI, such as `UB`). Several reads with the
-same pair of labels may be copies of one RNA molecule. `reconstruct_sv_rna`
-reports how many distinct labels support each junction and each ORF, alongside
-its read and fragment counts, under the policy `isovar.cell_umi_labels.v1`.
+same pair of labels may be copies of one RNA molecule. Isovar reports how many
+distinct labels, and cells, support each piece of evidence, alongside the read
+and fragment counts, under one policy, `isovar.cell_umi_labels.v1`:
+
+- for small variants, each allele and protein hypothesis (opt-in, below);
+- for `reconstruct_sv_rna`, each junction and each ORF.
 
 A label count is not a molecule count. Isovar uses the labels as the input
 reports them. It does not cluster UMIs, correct barcodes or reconstruct each
 cell separately ([#226](https://github.com/openvax/isovar/issues/226)). A
 missing or unresolved label never removes a read or changes the reconstruction.
 
+## Small variants
+
+```sh
+isovar allele-counts --vcf variants.vcf --bam sc-rna.bam --cell-umi-labels \
+    --sample-id tumor-1 --output counts.csv
+isovar protein-hypotheses --vcf variants.vcf --bam sc-rna.bam --cell-umi-labels \
+    --sample-id tumor-1 --output hypotheses.json
+```
+
+`allele-counts` adds these columns for each of `ref`, `alt` and `other`:
+
+- `num_*_cells`: distinct cells, from the cell barcode alone, with or without a
+  UMI;
+- `num_*_cell_umi_labels`: distinct cell/UMI labels;
+- `num_*_unlabeled_segments` and `num_*_unknown_library_segments`: reads without
+  a usable label, and reads whose library is unknown;
+- `num_cells_with_ref_and_alt`: cells with reads of both alleles.
+
+`protein-hypotheses` adds `cell_umi_alleles` to each event (a summary per allele
+and `cells_with_ref_and_alt`), and a `cell_umi_support` to each protein's
+`rna_support`.
+
+From Python, use `cell_umi_allele_evidence(results, alignment_file,
+sample_id=..., source=...)`, or pass `cell_umi_alignment_file=` to
+`export_protein_hypotheses`. Pass the `ReadCollector` the results were collected
+with. A read whose record that collector would reject is reported as
+`metadata_unavailable` and counted as unresolved, with a warning.
+
+A few cautions:
+
+- Labels come from the eligible records overlapping the variant, so a mate
+  outside the locus is not consulted for conflicts.
+- Cells are summarized per allele or protein, with no cell IDs, so do not add
+  `observed_cells` across alleles or proteins that may share cells.
+- Counts from a selected or downsampled read set are not cell prevalence.
+- If no read carries a usable `CB`, all cell counts are zero and a warning is
+  logged; the data are probably not single-cell.
+
 ## Reading the counts
 
-Each junction's `direct_cell_umi_support`, and each ORF's
-`full_interval_support.cell_umi_support`, contains:
+Each summary (a small-variant allele or protein, an SV junction's
+`direct_cell_umi_support`, or an ORF's `full_interval_support.cell_umi_support`)
+contains the fields below. Small-variant summaries also give `segments` (the
+supporting reads), `observed_cells` and `complete_cell_count`. The cell count
+uses the same rule as the label count, except that a trusted barcode is enough.
 
 | Field | Meaning |
 | --- | --- |
 | `complete_label_count` | Distinct labels among the supporting reads, if every read has a usable label and a known library; otherwise null |
-| `observed_labels` | Distinct usable labels found, even when some reads lack one; a lower bound |
+| `observed_labels` | Distinct usable labels found, even when some reads lack one. A lower bound only when every library is known: without `LB`, one label in two read groups counts twice |
 | `all_segments_labeled` | Whether every supporting read has a usable label, whether or not its library is known |
 | `unresolved_segments` | Supporting reads without a usable complete label |
 | `unknown_library_segments` | Supporting reads without unambiguous library metadata |
 | `status_counts` | Supporting reads by resolution status |
-| `segment_ids` | The supporting reads, as `(RG, QNAME, mate bits)` |
+| `segment_ids` | The supporting reads, as `(RG, QNAME, mate bits)`. SV results only; exports and small-variant summaries use hashed IDs instead |
 | `unit` | Always `cell_umi_label` |
 | `independent_molecules` | Always null: labels do not establish independent molecules |
 
@@ -90,7 +134,7 @@ Records missing tags are counted explicitly. A read is left unresolved when:
 
 ## The evidence record
 
-`cell_umi_evidence.segments` lists every read consulted, with its scope,
+In SV results, `cell_umi_evidence.segments` lists every read consulted, with its scope,
 selected labels, UMI tags, `XM` interpretation and the reasons for its status.
 Visible mates checked for conflicts can appear here without being counted as
 support. Each label's key is the tuple `(source, sample_id, header_sample,

@@ -128,7 +128,11 @@ may be the same molecules. An `evidence_set_id` is null when some reads were
 built without alignment identities; their counts are then given but cannot be
 combined.
 
-Read and fragment counts are not molecule counts, abundance or TPM. The
+With `--cell-umi-labels` (Python: `cell_umi_alignment_file=`), each protein's
+`rna_support` gets a `cell_umi_support`, and each event a `cell_umi_alleles`. Both
+count the distinct cells and cell/UMI labels behind the reads; see
+[cell/UMI evidence](cell-umi-evidence.md#small-variants). Read and fragment
+counts are not molecule counts, abundance or TPM. The
 `read_groups` table gives each read group's sample, library and platform from
 the BAM header, or null when unknown.
 

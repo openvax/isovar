@@ -232,10 +232,30 @@ def allele_reads_generator_from_args(args):
 def allele_counts_dataframe_from_args(args):
     """
     Collect read and fragment counts for each variant and turn them into a
-    DataFrame.
+    DataFrame, with cell/UMI label counts when ``--cell-umi-labels`` is given.
     """
-    return allele_counts_dataframe(
-        read_evidence_generator_from_args(args))
+    if not getattr(args, "cell_umi_labels", False):
+        return allele_counts_dataframe(read_evidence_generator_from_args(args))
+    from ..cell_evidence import ALLELES, CellUmiAlleles, warn_if_unlabelled
+    evidence = []
+    with alignment_file_from_args(args) as alignment_file:
+        labels = CellUmiAlleles(alignment_file, sample_id=args.sample_id, source=args.source or args.bam,
+                                read_collector=read_collector_from_args(args))
+
+        def pairs():
+            # Count each variant's labels as it streams past, keeping only the counts.
+            for variant, read_evidence in read_evidence_generator_from_args(args):
+                evidence.append(labels.evidence(variant, read_evidence))
+                yield variant, read_evidence
+        df = allele_counts_dataframe(pairs())
+    warn_if_unlabelled(evidence)
+    for allele in ALLELES:
+        for column, field in (("cells", "observed_cells"), ("cell_umi_labels", "observed_labels"),
+                              ("unlabeled_segments", "unresolved_segments"),
+                              ("unknown_library_segments", "unknown_library_segments")):
+            df["num_%s_%s" % (allele, column)] = [e["alleles"][allele][field] for e in evidence]
+    df["num_cells_with_ref_and_alt"] = [e["cells_with_ref_and_alt"] for e in evidence]
+    return df
 
 
 def allele_reads_dataframe_from_args(args):

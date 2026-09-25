@@ -12,7 +12,7 @@ from ..protein_hypotheses import export_protein_hypotheses, write_protein_hypoth
 from .commands import parser_for_program
 from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
 from .output_args import add_log_level_arg
-from .rna_args import alignment_file_from_args
+from .rna_args import alignment_file_from_args, read_collector_from_args
 from .validation import CommandInputError, check_output_path
 
 parser = make_isovar_arg_parser(description=__doc__)
@@ -23,6 +23,9 @@ _group.add_argument("--sample-id", required=True, help="Sample the reads came fr
 _group.add_argument(
     "--source",
     help="Identity of the read set, which scopes read IDs with --sample-id (default: --bam)")
+_group.add_argument(
+    "--cell-umi-labels", action="store_true",
+    help="Also report cell barcode/UMI labels behind each allele and protein (single-cell data)")
 _group.add_argument(
     "--output", default="isovar-protein-hypotheses.json",
     help="JSON output; the TSV is written beside it (default: %(default)s)")
@@ -36,9 +39,11 @@ def run(args=None, *, prog=None):
         check_output_path(args.output)
         results = run_isovar_from_parsed_args(args)
         with alignment_file_from_args(args) as alignment_file:
-            header = alignment_file.header.to_dict()
-        export = export_protein_hypotheses(
-            results, sample_id=args.sample_id, source=args.source or args.bam, alignment_header=header)
+            export = export_protein_hypotheses(
+                results, sample_id=args.sample_id, source=args.source or args.bam,
+                alignment_header=alignment_file.header.to_dict(),
+                cell_umi_alignment_file=alignment_file if args.cell_umi_labels else None,
+                read_collector=read_collector_from_args(args))
         write_protein_hypotheses(export, args.output)
     except (CommandInputError, ValueError) as error:
         command.error(str(error))
