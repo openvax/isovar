@@ -4,6 +4,16 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.36.0
+
+- `IsovarReadPhasing.in_cis(v1, v2)` reports cis or trans from fragments that
+  cover both loci, and `None` otherwise. Trans needs fragments carrying one alt
+  allele with the other variant's reference allele. A matched germline variant
+  is cis when its edit is in the variant's top assembled protein. Varcode's
+  `MolecularPhaseResolver` calls this method instead of reading trans from the
+  partner lists, which only compare variants in the run
+  ([varcode#517](https://github.com/openvax/varcode/issues/517)).
+
 ## 1.35.0
 
 - Small variants count the cells and cell/UMI labels behind their allele reads

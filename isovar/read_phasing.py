@@ -21,9 +21,14 @@ companion ``MutantTranscriptSource`` concern (assembled-cDNA-derived
 mutant transcripts) is intentionally not covered here -- it's a
 separate axis, served by :class:`isovar.IsovarMutantTranscript`.
 
-Answers only the phasing question: "are these two variants observed on
-the same RNA reads?" -- derived from
-:attr:`isovar.IsovarResult.phased_variants_in_supporting_reads`.
+Answers only the phasing question. ``partners_in_cis`` lists variants
+observed on the same RNA fragments (from
+:attr:`isovar.IsovarResult.phased_variants_in_supporting_reads`), which
+establishes cis. Not being a partner is not evidence of trans: Isovar
+only compares variants in its run, so a variant outside it was never
+examined. :meth:`IsovarReadPhasing.in_cis` therefore answers cis *and*
+trans from fragments that cover both loci, and varcode's
+``MolecularPhaseResolver`` uses it in preference to the partner lists.
 
 Contract
 --------
@@ -58,8 +63,17 @@ have shared supporting reads, which implies positive alt-fragment counts
 on both sides.
 """
 
+from .default_parameters import MIN_SHARED_FRAGMENTS_FOR_PHASING
 from .isovar_result_provider import IsovarResultProvider
-from .phasing import _variant_sort_key
+from .phasing import _phasing_support, _variant_sort_key
+
+
+def _allele_reads(result, allele):
+    """``result``'s reads for ``"ref"`` or ``"alt"``; names for legacy inputs."""
+    reads = getattr(result, allele + "_reads", None)
+    if reads is None:
+        reads = getattr(result, allele + "_read_names", ())
+    return reads
 
 
 class IsovarReadPhasing(IsovarResultProvider):
@@ -91,13 +105,22 @@ class IsovarReadPhasing(IsovarResultProvider):
     True
     """
 
-    def __init__(self, isovar_results, *args, **kwargs):
+    def __init__(
+            self,
+            isovar_results,
+            *args,
+            min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
+            **kwargs):
         """
         Parameters
         ----------
         isovar_results : Iterable[IsovarResult]
             Results from a finished Isovar run (e.g. the output of
             ``run_isovar``). The iterable is consumed once.
+
+        min_shared_fragments_for_phasing : int
+            Fragments needed for :meth:`in_cis` to call cis or trans; the
+            same default as :func:`isovar.run_isovar`.
         """
         isovar_results = tuple(isovar_results)
         super().__init__(isovar_results, *args, **kwargs)
@@ -105,6 +128,7 @@ class IsovarReadPhasing(IsovarResultProvider):
             result.variant: result
             for result in isovar_results
         }
+        self.min_shared_fragments_for_phasing = min_shared_fragments_for_phasing
 
     def __repr__(self):
         return "IsovarReadPhasing(%d variants)" % len(self._by_variant)
@@ -135,3 +159,48 @@ class IsovarReadPhasing(IsovarResultProvider):
         return tuple(sorted(
             result.phased_variants_in_supporting_reads,
             key=_variant_sort_key))
+
+    def in_cis(self, v1, v2, transcript=None):
+        """
+        Whether ``v1`` and ``v2`` are on the same RNA molecules.
+
+        For two variants in the run, counts fragments with compatible
+        placements that carry both alt alleles (cis) and fragments that
+        carry one alt allele with the other variant's reference allele
+        (trans). Returns ``True`` or ``False`` when that count reaches
+        ``min_shared_fragments_for_phasing`` and exceeds the other, and
+        ``None`` otherwise, including when no fragment covers both loci.
+
+        A matched germline variant (``run_isovar(germline_variants=...)``)
+        is cis with a variant in the run when its edit is in that
+        variant's top assembled protein sequence, which Isovar assembles
+        from alt-supporting reads. Otherwise it is ``None``, because the
+        germline locus was not examined.
+
+        ``transcript`` is accepted for varcode's phase-resolver interface;
+        the evidence does not depend on the isoform.
+        """
+        r1 = self._by_variant.get(v1)
+        r2 = self._by_variant.get(v2)
+        if r1 is None and r2 is None:
+            return None
+        if r1 is None or r2 is None:
+            result, other = (r1, v2) if r2 is None else (r2, v1)
+            germline = getattr(result, "germline_variants_in_top_protein_sequence", ())
+            return True if other in germline else None
+        support, _ = _phasing_support({
+            (allele, variant): _allele_reads(result, allele)
+            for variant, result in ((v1, r1), (v2, r2))
+            for allele in ("alt", "ref")
+        })
+
+        def shared(a, b):
+            return len(support[a].get(b, ()))
+
+        cis = shared(("alt", v1), ("alt", v2))
+        trans = shared(("alt", v1), ("ref", v2)) + shared(("ref", v1), ("alt", v2))
+        if cis >= self.min_shared_fragments_for_phasing and cis > trans:
+            return True
+        if trans >= self.min_shared_fragments_for_phasing and trans > cis:
+            return False
+        return None

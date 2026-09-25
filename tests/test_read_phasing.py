@@ -13,7 +13,9 @@
 import doctest
 
 import pytest
-from varcode import Variant
+from types import SimpleNamespace
+
+from varcode import MolecularPhaseResolver, Variant
 
 import isovar.read_phasing
 from isovar import IsovarReadPhasing, run_isovar
@@ -29,12 +31,15 @@ from .mock_objects import MockAlignmentFile, make_pysam_read
 from .testing_helpers import data_path
 
 
-def _make_result(variant, alt_read_names, phased_partners=()):
+def _make_result(variant, alt_read_names, phased_partners=(), ref_read_names=()):
     read_evidence = ReadEvidence(
         trimmed_base1_start=variant.start,
         trimmed_ref=variant.ref,
         trimmed_alt=variant.alt,
-        ref_reads=[],
+        ref_reads=[
+            AlleleRead(prefix="A", allele=variant.ref, suffix="T", name=name)
+            for name in ref_read_names
+        ],
         alt_reads=[
             AlleleRead(prefix="A", allele=variant.alt, suffix="T", name=name)
             for name in alt_read_names
@@ -355,3 +360,81 @@ def test_synthetic_somatic_and_germline_phased_on_rna_reads():
     assert phasing.has_evidence(germline)
     eq_(phasing.partners_in_cis(somatic), (germline,))
     eq_(phasing.partners_in_cis(germline), (somatic,))
+
+
+def test_b16_in_cis_is_unknown_across_chromosomes(b16_results):
+    """No fragment covers two loci, so no pair may be reported as trans."""
+    phasing = IsovarReadPhasing(b16_results)
+    variants = [result.variant for result in b16_results]
+    for v1 in variants:
+        for v2 in variants:
+            if v1 != v2:
+                assert phasing.in_cis(v1, v2) is None
+
+
+# ---- in_cis: cis and trans from fragments covering both loci --------------
+
+V1 = Variant("1", 10, "A", "C", normalize_contig_names=False)
+V2 = Variant("1", 20, "G", "T", normalize_contig_names=False)
+
+
+def test_in_cis_true_when_fragments_carry_both_alts():
+    phasing = IsovarReadPhasing([
+        _make_result(V1, alt_read_names={"f1", "f2"}),
+        _make_result(V2, alt_read_names={"f1", "f2"}),
+    ])
+    assert phasing.in_cis(V1, V2) is True
+    assert phasing.in_cis(V2, V1) is True
+
+
+def test_in_cis_false_when_fragments_carry_one_alt_and_other_reference():
+    phasing = IsovarReadPhasing([
+        _make_result(V1, alt_read_names={"f1", "f2"}),
+        _make_result(V2, alt_read_names={"f3"}, ref_read_names={"f1", "f2"}),
+    ])
+    assert phasing.in_cis(V1, V2) is False
+    assert phasing.in_cis(V2, V1) is False
+
+
+def test_in_cis_none_without_fragments_covering_both_loci():
+    phasing = IsovarReadPhasing([
+        _make_result(V1, alt_read_names={"f1", "f2"}),
+        _make_result(V2, alt_read_names={"f3", "f4"}),
+    ])
+    assert phasing.partners_in_cis(V1) == ()
+    assert phasing.in_cis(V1, V2) is None
+
+
+def test_in_cis_needs_min_shared_fragments_and_a_majority():
+    results = [
+        _make_result(V1, alt_read_names={"f1", "f2", "f3"}),
+        _make_result(V2, alt_read_names={"f1"}, ref_read_names={"f2"}),
+    ]
+    assert IsovarReadPhasing(results).in_cis(V1, V2) is None
+    single = IsovarReadPhasing(
+        results[:1] + [_make_result(V2, alt_read_names={"f1"})],
+        min_shared_fragments_for_phasing=1)
+    assert single.in_cis(V1, V2) is True
+
+
+def test_matched_germline_edit_in_assembly_is_cis():
+    germline = Variant("1", 12, "T", "G", normalize_contig_names=False)
+    unseen = Variant("1", 14, "T", "G", normalize_contig_names=False)
+    somatic = SimpleNamespace(
+        variant=V1, num_alt_fragments=2,
+        phased_variants_in_supporting_reads=set(),
+        germline_variants_in_top_protein_sequence={germline})
+    phasing = IsovarReadPhasing([somatic])
+    assert phasing.in_cis(V1, germline) is True
+    assert phasing.in_cis(germline, V1) is True
+    assert phasing.in_cis(V1, unseen) is None
+    assert phasing.in_cis(germline, unseen) is None
+
+
+def test_varcode_resolver_uses_in_cis_for_trans():
+    phasing = IsovarReadPhasing([
+        _make_result(V1, alt_read_names={"f1", "f2"}),
+        _make_result(V2, alt_read_names={"f3"}, ref_read_names={"f1", "f2"}),
+    ])
+    assert MolecularPhaseResolver(phasing).in_cis(V1, V2) is False
+
