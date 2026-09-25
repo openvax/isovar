@@ -36,6 +36,9 @@ class IsovarResult(object):
     assembly.
     """
 
+    # Results pickled before 1.38.0 lack this field; they have none.
+    germline_read_evidence = {}
+
     # Varcode effect properties exported with a "predicted_effect_" prefix.
     _PREDICTED_EFFECT_FIELDS = (
         "gene_name",
@@ -70,7 +73,8 @@ class IsovarResult(object):
             phased_variants_in_protein_sequence=None,
             phase_group_from_supporting_reads=None,
             phase_group_from_protein_sequence=None,
-            protein_sequence_settings=None):
+            protein_sequence_settings=None,
+            germline_read_evidence=None):
         """
         Parameters
         ----------
@@ -117,6 +121,12 @@ class IsovarResult(object):
             ``ProteinSequenceCreator.settings()`` of the creator that produced
             `sorted_protein_sequences`, recorded by `run_isovar`. None when
             unknown, as for a result built by hand.
+
+        germline_read_evidence : dict or None
+            For each matched germline variant
+            (``run_isovar(germline_variants=...)``) that this variant's alt
+            reads cover, its ReadEvidence from the fragments carrying this
+            variant's alt allele, for telling cis from trans.
         """
         self.variant = variant
         self.read_evidence = read_evidence
@@ -147,6 +157,7 @@ class IsovarResult(object):
         self.phase_group_from_supporting_reads = phase_group_from_supporting_reads
         self.phase_group_from_protein_sequence = phase_group_from_protein_sequence
         self.protein_sequence_settings = protein_sequence_settings
+        self.germline_read_evidence = {} if germline_read_evidence is None else germline_read_evidence
 
     @property
     def fields(self):
@@ -164,6 +175,7 @@ class IsovarResult(object):
             "phase_group_from_supporting_reads",
             "phase_group_from_protein_sequence",
             "protein_sequence_settings",
+            "germline_read_evidence",
         ]
 
     def __str__(self):

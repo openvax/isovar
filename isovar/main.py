@@ -28,6 +28,7 @@ from .default_parameters import (
 )
 from .effect_prediction import top_varcode_effect
 from .filtering import apply_filters
+from .germline_evidence import germline_read_evidence
 from .phasing import annotate_phased_variants
 from .variant_helpers import require_literal_variant
 
@@ -101,7 +102,10 @@ def run_isovar(
         (loaded with the somatic variants' genome, PASS records only). An
         assembled cDNA edit that is one of these is reported as known
         germline. Edits that are other input `variants` are co-somatic;
-        anything else stays unexplained.
+        anything else stays unexplained. Reads are also collected at each
+        germline variant that a result's reads cover
+        (`IsovarResult.germline_read_evidence`), so `IsovarReadPhasing` can
+        tell whether it is in cis or trans.
 
     Returns
     -------
@@ -170,6 +174,11 @@ def run_isovar(
             filter_thresholds=filter_thresholds,
             filter_flags=filter_flags)
         results.append(isovar_result)
+    if germline_variants:
+        results = [
+            result.clone_with_updates(germline_read_evidence=evidence)
+            for result, evidence in zip(results, germline_read_evidence(
+                results, germline_variants, alignment_file, read_collector))]
     results = annotate_phased_variants(
         results,
         min_shared_fragments_for_phasing)

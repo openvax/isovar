@@ -27,13 +27,14 @@ observed on the same RNA fragments (from
 establishes cis. Not being a partner is not evidence of trans: Isovar
 only compares variants in its run, so a variant outside it was never
 examined. :meth:`IsovarReadPhasing.in_cis` therefore answers cis *and*
-trans from fragments that cover both loci, and varcode's
+trans from fragments that cover both loci, including matched germline
+variants whose reads ``run_isovar`` collected, and varcode's
 ``MolecularPhaseResolver`` uses it in preference to the partner lists.
 
 Contract
 --------
-``IsovarReadPhasing`` reads exactly three attributes from each element
-of its input iterable:
+``IsovarReadPhasing`` reads three attributes from each element of its
+input iterable:
 
 * ``variant`` -- a hashable identity used as the index key.
 * ``num_alt_fragments`` -- int; non-zero means
@@ -41,7 +42,11 @@ of its input iterable:
 * ``phased_variants_in_supporting_reads`` -- iterable of variants
   co-observed on supporting RNA reads.
 
-Any object exposing those three attributes is a valid input; the
+:meth:`IsovarReadPhasing.in_cis` also reads ``alt_reads`` and ``ref_reads``
+(or ``*_read_names``), and optionally ``germline_read_evidence`` and
+``germline_variants_in_top_protein_sequence``.
+
+Any object exposing those attributes is a valid input; the
 adapter is intentionally duck-typed so tests, mocks, and alternative
 RNA-phasing producers (e.g. long-read tools) can target the same shape.
 
@@ -129,6 +134,7 @@ class IsovarReadPhasing(IsovarResultProvider):
             for result in isovar_results
         }
         self.min_shared_fragments_for_phasing = min_shared_fragments_for_phasing
+        self._calls = {}
 
     def __repr__(self):
         return "IsovarReadPhasing(%d variants)" % len(self._by_variant)
@@ -167,38 +173,67 @@ class IsovarReadPhasing(IsovarResultProvider):
         For two variants in the run, counts fragments with compatible
         placements that carry both alt alleles (cis) and fragments that
         carry one alt allele with the other variant's reference allele
-        (trans). Returns ``True`` or ``False`` when that count reaches
+        (trans).
+
+        For a variant in the run and a matched germline variant
+        (``run_isovar(germline_variants=...)``) that its alt reads cover,
+        only fragments carrying the somatic alt allele count: with the
+        germline alt allele they are cis, with its reference allele trans.
+        A fragment with the somatic reference allele says nothing, since the
+        germline alt allele also comes from cells without the somatic
+        variant and from both copies of a homozygous variant. The germline
+        reads are in ``IsovarResult.germline_read_evidence``. When the reads
+        do not decide, a germline edit in the variant's top assembled
+        protein is cis; when they say trans but the protein has the edit,
+        the answer is ``None``.
+
+        Returns ``True`` or ``False`` when a count reaches
         ``min_shared_fragments_for_phasing`` and exceeds the other, and
         ``None`` otherwise, including when no fragment covers both loci.
-
-        A matched germline variant (``run_isovar(germline_variants=...)``)
-        is cis with a variant in the run when its edit is in that
-        variant's top assembled protein sequence, which Isovar assembles
-        from alt-supporting reads. Otherwise it is ``None``, because the
-        germline locus was not examined.
 
         ``transcript`` is accepted for varcode's phase-resolver interface;
         the evidence does not depend on the isoform.
         """
+        key = tuple(sorted((v1, v2), key=_variant_sort_key))
+        if key not in self._calls:
+            self._calls[key] = self._in_cis(v1, v2)
+        return self._calls[key]
+
+    def _in_cis(self, v1, v2):
         r1 = self._by_variant.get(v1)
         r2 = self._by_variant.get(v2)
         if r1 is None and r2 is None:
             return None
-        if r1 is None or r2 is None:
-            result, other = (r1, v2) if r2 is None else (r2, v1)
-            germline = getattr(result, "germline_variants_in_top_protein_sequence", ())
-            return True if other in germline else None
-        support, _ = _phasing_support({
-            (allele, variant): _allele_reads(result, allele)
-            for variant, result in ((v1, r1), (v2, r2))
-            for allele in ("alt", "ref")
-        })
+        if r1 is not None and r2 is not None:
+            cis, trans = self._counts(v1, r1, v2, r2, alleles1=("alt", "ref"))
+            return self._decide(cis, trans)
+        result, germline = (r1, v2) if r2 is None else (r2, v1)
+        evidence = (getattr(result, "germline_read_evidence", None) or {}).get(germline)
+        call = None
+        if evidence is not None:
+            call = self._decide(*self._counts(result.variant, result, germline, evidence, alleles1=("alt",)))
+        in_protein = germline in getattr(result, "germline_variants_in_top_protein_sequence", ())
+        if in_protein:
+            return None if call is False else True
+        return call
+
+    @staticmethod
+    def _counts(v1, reads1, v2, reads2, alleles1):
+        """Cis and trans fragment counts, from ``v1``'s reads with the given alleles."""
+        support, _ = _phasing_support(dict(
+            [(("alt", v2), _allele_reads(reads2, "alt")), (("ref", v2), _allele_reads(reads2, "ref"))]
+            + [((allele, v1), _allele_reads(reads1, allele)) for allele in alleles1]))
 
         def shared(a, b):
             return len(support[a].get(b, ()))
 
         cis = shared(("alt", v1), ("alt", v2))
-        trans = shared(("alt", v1), ("ref", v2)) + shared(("ref", v1), ("alt", v2))
+        trans = shared(("alt", v1), ("ref", v2))
+        if "ref" in alleles1:
+            trans += shared(("ref", v1), ("alt", v2))
+        return cis, trans
+
+    def _decide(self, cis, trans):
         if cis >= self.min_shared_fragments_for_phasing and cis > trans:
             return True
         if trans >= self.min_shared_fragments_for_phasing and trans > cis:
