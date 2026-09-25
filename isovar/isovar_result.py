@@ -674,6 +674,73 @@ class IsovarResult(object):
             return None
         return self.top_protein_sequence.contains_deletion
 
+    def _top_protein_source_variants(self, category):
+        if self.top_protein_sequence is None:
+            return set()
+        edits = self.top_protein_sequence._transcript_assembly_edits_by_category()[category]
+        return {edit.source_variant for edit in edits
+                if edit.source_variant is not None and edit.source_variant != self.variant}
+
+    @property
+    def co_somatic_variants_in_top_protein_sequence(self):
+        """
+        Other input somatic variants whose edits are in the assembled cDNA
+        of the top protein sequence, and so phased with this variant on
+        the same RNA.
+
+        Returns set of varcode.Variant
+        """
+        return self._top_protein_source_variants("known_somatic")
+
+    @property
+    def germline_variants_in_top_protein_sequence(self):
+        """
+        Matched germline variants (``run_isovar(germline_variants=...)``)
+        whose edits are in the assembled cDNA of the top protein sequence.
+
+        Returns set of varcode.Variant
+        """
+        return self._top_protein_source_variants("known_germline")
+
+    @property
+    def num_co_somatic_variants_in_top_protein_sequence(self):
+        """
+        Number of other input somatic variants in the top protein's cDNA.
+
+        Returns int or None
+        """
+        if self.top_protein_sequence is None:
+            return None
+        return len(self.co_somatic_variants_in_top_protein_sequence)
+
+    @property
+    def num_germline_variants_in_top_protein_sequence(self):
+        """
+        Number of matched germline variants in the top protein's cDNA.
+
+        Returns int or None
+        """
+        if self.top_protein_sequence is None:
+            return None
+        return len(self.germline_variants_in_top_protein_sequence)
+
+    @property
+    def num_unexplained_edits_in_top_protein_sequence(self):
+        """
+        Differences between the top protein's cDNA and a reference transcript
+        that are neither this variant nor any supplied somatic or germline
+        variant: the most on any one transcript.
+
+        Returns int or None
+        """
+        if self.top_protein_sequence is None:
+            return None
+        per_transcript = {}
+        for edit in self.top_protein_sequence.unexplained_transcript_edits:
+            per_transcript.setdefault(edit.transcript_id, set()).add(
+                (edit.cdna_start, edit.cdna_end, edit.alt_bases))
+        return max((len(edits) for edits in per_transcript.values()), default=0)
+
     @cached_property
     def num_mutant_amino_acids_in_protein_sequence(self):
         """

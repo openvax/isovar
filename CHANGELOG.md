@@ -4,6 +4,35 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.33.0
+
+Assembled cDNA edits are attributed to supplied variants
+([#297](https://github.com/openvax/isovar/issues/297)):
+
+- `run_isovar(germline_variants=...)` and `--germline-vcf` take variants from a
+  matched normal. An edit in an assembled cDNA that is one of them is now in
+  `ProteinSequence.known_germline_transcript_edits`.
+- An edit that is another input variant is co-somatic and is now in
+  `known_somatic_transcript_edits`, where before it was unexplained. Only
+  edits that match no supplied variant stay in `unexplained_transcript_edits`.
+- Matching happens on the transcript. It accepts indels shifted within a repeat,
+  and splits runs of adjacent changes into the supplied variants they contain.
+  A variant may not be both somatic and germline; an edit that is equivalent
+  to one of each stays unexplained.
+- `ProteinSequence` gains `known_variants` and `with_known_variants`.
+  `IsovarResult` gains the co-somatic and germline variant sets of the top
+  protein, and `num_*` counts of them and of unexplained edits, which are new
+  `isovar run` columns and filters.
+- `PhaseGroup.germline_variants` lists the germline variants in the group's
+  assemblies. Protein hypothesis exports label each edit `nominated_variant`,
+  `co_somatic_variant`, `germline_variant` or `unexplained`, with its
+  `source_event_id`.
+- `IsovarMutantTranscript` evidence counts reads and fragments by read-group
+  identity, like other counts, instead of by name.
+- A `min_`/`max_` filter on a property that is None, such as a top-protein
+  measure for a variant with no protein, now fails instead of raising
+  `TypeError`.
+
 ## 1.32.0
 
 - `export_protein_hypotheses` and `isovar protein-hypotheses` export every

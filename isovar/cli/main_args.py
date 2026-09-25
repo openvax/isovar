@@ -22,7 +22,7 @@ from .protein_sequence_args import (
 )
 from .filter_args import add_filter_args, filter_threshold_dict_from_args
 from .rna_args import read_collector_from_args, alignment_file_from_args
-from .validation import variant_collection_from_args
+from .validation import germline_variants_from_args, variant_collection_from_args
 
 def make_isovar_arg_parser(**kwargs):
     """
@@ -35,6 +35,11 @@ def make_isovar_arg_parser(**kwargs):
     """
     parser = make_protein_sequences_arg_parser(**kwargs)
     add_filter_args(parser)
+    parser.add_argument_group("Matched germline").add_argument(
+        "--germline-vcf",
+        help="Variants from a matched normal. Assembled cDNA edits that are one of "
+             "these are reported as known germline; edits that are other input "
+             "variants are co-somatic; the rest stay unexplained.")
     return parser
 
 def run_isovar_from_parsed_args(args):
@@ -45,10 +50,12 @@ def run_isovar_from_parsed_args(args):
     protein_sequence_creator = protein_sequence_creator_from_args(args)
     filter_thresholds = filter_threshold_dict_from_args(args)
     variants = variant_collection_from_args(args)
+    germline_variants = germline_variants_from_args(args, variants)
     alignment_file = alignment_file_from_args(args)
     return run_isovar(
         variants=variants,
         alignment_file=alignment_file,
         read_collector=read_collector,
         protein_sequence_creator=protein_sequence_creator,
-        filter_thresholds=filter_thresholds)
+        filter_thresholds=filter_thresholds,
+        germline_variants=germline_variants)

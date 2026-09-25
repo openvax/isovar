@@ -282,6 +282,27 @@ evidence, not one resolved haplotype. `IsovarReadPhasing` and
 `IsovarMutantTranscript` expose these results through Varcode's phasing and
 mutant-transcript interfaces.
 
+### Other variants in the assembled RNA
+
+An assembled cDNA can differ from the reference transcript at positions besides
+the variant: a nearby germline SNP, another somatic mutation, or an RNA or
+sequencing difference. Each `ProteinSequence` groups these edits by origin:
+
+| Property | Edits |
+|---|---|
+| `known_somatic_transcript_edits` | This variant, plus other input variants in the same RNA (co-somatic) |
+| `known_germline_transcript_edits` | Variants from a matched normal, given as `run_isovar(germline_variants=...)` or `--germline-vcf` |
+| `unexplained_transcript_edits` | Everything else |
+
+An edit counts as a supplied variant only when it is that variant on the
+transcript, including an indel shifted within a repeat. A run of adjacent
+changes is split into the supplied variants it contains. Origin is never guessed
+from allele fraction. The `isovar run` table reports, for the top protein,
+`num_co_somatic_variants_in_top_protein_sequence`,
+`num_germline_variants_in_top_protein_sequence` and
+`num_unexplained_edits_in_top_protein_sequence`. These work as filters too, for
+example `max_num_unexplained_edits_in_top_protein_sequence`.
+
 ### Structural variants and fusions
 
 The small-variant pipeline accepts literal nucleotide alleles, including

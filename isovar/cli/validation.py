@@ -57,6 +57,19 @@ def variant_collection_from_args(args):
         raise CommandInputError(message) from error
 
 
+def germline_variants_from_args(args, variants):
+    """Matched germline variants from --germline-vcf, with the somatic variants' genome."""
+    path = getattr(args, "germline_vcf", None)
+    if path is None:
+        return None
+    from varcode import load_vcf
+    genome = next(iter(variants)).genome if len(variants) else getattr(args, "genome", None)
+    try:
+        return load_vcf(path, genome=genome)
+    except (OSError, ValueError) as error:
+        raise CommandInputError("Cannot load --germline-vcf %s: %s" % (path, error)) from error
+
+
 def check_output_path(path):
     directory = os.path.dirname(os.path.abspath(path))
     if not os.path.isdir(directory):

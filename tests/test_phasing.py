@@ -201,7 +201,8 @@ def test_annotate_phased_variants_creates_explicit_phase_groups():
         eq_(supporting_group.unexplained_transcript_edits, ())
 
         eq_(protein_group.somatic_variants, expected_group_variants)
-        eq_(protein_group.germline_variants, ())
+        # The group's assemblies contain the germline edit.
+        eq_(protein_group.germline_variants, (germline,))
         eq_(protein_group.supporting_read_names, expected_phase_protein_read_names)
         eq_(protein_group.cdna_sequences, expected_cdna_sequences)
         eq_(protein_group.mutant_protein_sequences, expected_protein_sequences)

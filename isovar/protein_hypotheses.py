@@ -80,18 +80,25 @@ def _check_translation(translation):
         raise ValueError("Translation cDNA, frame and amino acids disagree")
 
 
-def _edits(translation):
+def _edits(translation, known_variants):
+    """Each difference from each transcript, with the supplied variant it is, if any."""
+    focal = translation.reference_context.variant
     rows = set()
     for transcript in translation.reference_context.transcripts:
-        categories = categorize_transcript_assembly_edits_from_translation(translation, transcript)
-        for category, origin in (("known_somatic", "nominated_variant"), ("unexplained", "unexplained")):
-            for edit in categories[category]:
-                rows.add((edit.transcript_id, edit.cdna_start, edit.cdna_end, edit.alt_bases, origin))
-    return [dict(transcript_id=t, cdna_interval=[a, b], alt_bases=alt, origin=origin)
-            for t, a, b, alt, origin in sorted(rows)]
+        categories = categorize_transcript_assembly_edits_from_translation(
+            translation, transcript, known_variants)
+        for category, edits in categories.items():
+            for edit in edits:
+                source = edit.source_variant
+                origin = ("unexplained" if source is None else "nominated_variant" if source == focal
+                          else "germline_variant" if category == "known_germline" else "co_somatic_variant")
+                rows.add((edit.transcript_id, edit.cdna_start, edit.cdna_end, edit.alt_bases, origin,
+                          None if source is None else _event_id(source)))
+    return [dict(transcript_id=t, cdna_interval=[a, b], alt_bases=alt, origin=origin, source_event_id=source)
+            for t, a, b, alt, origin, source in sorted(rows, key=lambda row: row[:5])]
 
 
-def _translation(translation, event_id, evidence):
+def _translation(translation, event_id, evidence, known_variants):
     _check_translation(translation)
     orf, context = translation.variant_orf, translation.reference_context
     transcripts = sorted(context.transcripts, key=lambda t: t.id)
@@ -113,7 +120,7 @@ def _translation(translation, event_id, evidence):
             amino_acids_before_variant=context.amino_acids_before_variant),
         mismatches_before_variant=orf.num_mismatches_before_variant,
         mismatches_after_variant=orf.num_mismatches_after_variant,
-        observed_edits=_edits(translation),
+        observed_edits=_edits(translation, known_variants),
         rna_support=evidence.support(translation.reads, "reads_assembled_into_this_cdna"))
 
 
@@ -131,7 +138,8 @@ def _hypothesis_id(protein, event_id):
 
 
 def _protein(protein, rank, event_id, evidence):
-    translations = sorted((_translation(t, event_id, evidence) for t in protein.translations),
+    translations = sorted((_translation(t, event_id, evidence, protein.known_variants)
+                           for t in protein.translations),
                           key=lambda t: t["translation_id"])
     starts = {t["starts_at_annotated_start_codon"] for t in translations}
     interval = [protein.mutation_start_idx, protein.mutation_end_idx]
@@ -167,6 +175,15 @@ def _proteins(proteins, event_id, evidence):
     return rows
 
 
+def _edit_attribution(proteins):
+    """How many supplied variants the edits were checked against; null if none were."""
+    known = {getattr(p, "known_variants", None) for p in proteins} - {None}
+    if len(known) != 1:
+        return None
+    known, = known
+    return dict(somatic_variants=len(known.somatic), germline_variants=len(known.germline))
+
+
 def _completeness(result):
     """Whether the returned proteins are all that Isovar found, given its cap."""
     settings = result.protein_sequence_settings
@@ -195,6 +212,7 @@ def _event(result, evidence):
             supporting_reads=sorted(_event_id(v) for v in result.phased_variants_in_supporting_reads),
             top_protein_sequence=sorted(_event_id(v) for v in result.phased_variants_in_protein_sequence)),
         protein_sequence_limit=limit, protein_hypotheses_complete=complete,
+        edit_attribution=_edit_attribution(result.sorted_protein_sequences),
         protein_sequence_settings=result.protein_sequence_settings,
         protein_hypotheses=_proteins(result.sorted_protein_sequences, event_id, evidence))
 
