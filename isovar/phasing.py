@@ -152,7 +152,11 @@ def _phase_annotations(
 
         phase_group = PhaseGroup(
             somatic_variants=tuple(sorted(component, key=_variant_sort_key)),
-            germline_variants=(),
+            # Germline variants whose edits the group's assemblies contain.
+            germline_variants=tuple(sorted(
+                {edit.source_variant for edit in known_germline_transcript_edits
+                 if edit.source_variant is not None},
+                key=_variant_sort_key)),
             supporting_read_names=supporting_read_names,
             cdna_sequences=tuple(sorted(cdna_sequences)),
             mutant_protein_sequences=tuple(sorted(mutant_protein_sequences)),

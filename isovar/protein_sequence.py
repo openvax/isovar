@@ -41,6 +41,8 @@ class ProteinSequence(TranslationKey):
         # list of all the Translation objects which support this distinct
         # amino acid sequence
         "translations",
+        # KnownVariants used to attribute assembled edits, or None
+        "known_variants",
     ]
 
     def __init__(
@@ -51,7 +53,8 @@ class ProteinSequence(TranslationKey):
             mutation_end_idx,
             ends_with_stop_codon,
             frameshift,
-            translations):
+            translations,
+            known_variants=None):
         """
         Parameters
         ----------
@@ -79,6 +82,11 @@ class ProteinSequence(TranslationKey):
         translations : list of Translation
             Translation objects corresponding to each coding sequence + reading
             frame used to determine this ProteinSequence
+
+        known_variants : KnownVariants or None
+            Supplied somatic and germline variants used to attribute edits in
+            the assembled cDNA. Without them only the translation's own
+            variant is a known edit.
         """
         mutation_start_idx, mutation_end_idx = \
             normalize_base0_range_indices(
@@ -95,11 +103,11 @@ class ProteinSequence(TranslationKey):
             mutation_end_idx=mutation_end_idx,
             ends_with_stop_codon=ends_with_stop_codon,
             frameshift=frameshift,
-            translations=translations)
-
+            translations=translations,
+            known_variants=known_variants)
 
     @classmethod
-    def from_translations(cls, translations):
+    def from_translations(cls, translations, known_variants=None):
         """
         Create ProteinSequence from list of Translation objects.
         Fields inherited from TranslationKey (e.g. frameshift,
@@ -111,6 +119,9 @@ class ProteinSequence(TranslationKey):
         translations : list of Translation
             Equivalent translations which might have different cDNA sequences
             but agree in their amino acid sequences.
+
+        known_variants : KnownVariants or None
+            Supplied variants used to attribute assembled edits.
 
         Returns
         -------
@@ -125,7 +136,7 @@ class ProteinSequence(TranslationKey):
         # other translations are consistent with this
         first_translation = translations[0]
 
-        kwargs = {"translations": translations}
+        kwargs = {"translations": translations, "known_variants": known_variants}
         for field_name in TranslationKey.__slots__:
             field_value = getattr(first_translation, field_name)
             kwargs[field_name] = field_value
@@ -143,6 +154,15 @@ class ProteinSequence(TranslationKey):
 
     def __len__(self):
         return len(self.amino_acids)
+
+    def with_known_variants(self, known_variants):
+        """
+        This protein sequence, with its assembled edits attributed to the
+        supplied somatic and germline variants.
+
+        Returns ProteinSequence
+        """
+        return ProteinSequence.from_translations(self.translations, known_variants=known_variants)
 
     @property
     def supporting_reads(self):
@@ -270,6 +290,7 @@ class ProteinSequence(TranslationKey):
                     categorize_transcript_assembly_edits_from_translation(
                         translation,
                         transcript,
+                        self.known_variants,
                     )
                 )
                 for category, edits in translation_edits.items():
@@ -507,4 +528,5 @@ class ProteinSequence(TranslationKey):
             mutation_end_idx=mutation_end_idx,
             ends_with_stop_codon=ends_with_stop_codon,
             frameshift=frameshift,
-            translations=self.translations)
+            translations=self.translations,
+            known_variants=self.known_variants)

@@ -30,7 +30,8 @@ def evaluate_threshold_filters(isovar_result, filter_thresholds):
         Names like "min_num_alt_reads" or "max_fraction_other_fragments"
         mapped to cutoffs. The text after "min_" or "max_" names a numeric
         property of IsovarResult; "min" filters require value >= cutoff and
-        "max" filters require value <= cutoff.
+        "max" filters require value <= cutoff. A property that is None, such
+        as a top-protein measure when there is no protein, fails the filter.
 
     Returns OrderedDict
     """
@@ -53,7 +54,7 @@ def evaluate_threshold_filters(isovar_result, filter_thresholds):
                 "Invalid filter '%s' IsovarResult does not have property '%s'" % (
                     name,
                     field_name))
-        filter_values_dict[name] = comparison_fn(field_value, threshold)
+        filter_values_dict[name] = field_value is not None and comparison_fn(field_value, threshold)
     return filter_values_dict
 
 

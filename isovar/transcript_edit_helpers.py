@@ -141,34 +141,122 @@ def transcript_edits_from_sequence_diff(
     return tuple(edits)
 
 
-def unexplained_transcript_edits_from_translation(translation, transcript):
-    """
-    Diff the matched local cDNA against the reference transcript window.
-    """
+def _flanks(translation, transcript):
+    """The focal edit and the reference flanks (sequence, transcript offset) around it."""
     focal_edit = transcript_edit_from_variant(
         translation.reference_context.variant,
         transcript,
     )
-
     reference_prefix = translation.reference_cdna_sequence_before_variant
+    reference_suffix = translation.variant_orf.reference_cdna_sequence_after_variant
+    return focal_edit, (
+        (reference_prefix, focal_edit.cdna_start - len(reference_prefix)),
+        (reference_suffix, focal_edit.cdna_end),
+    )
+
+
+def unexplained_transcript_edits_from_translation(translation, transcript):
+    """
+    Diff the matched local cDNA against the reference transcript window.
+    """
+    focal_edit, ((reference_prefix, prefix_start), (reference_suffix, suffix_start)) = \
+        _flanks(translation, transcript)
     observed_prefix = translation.cdna_sequence[:translation.variant_cdna_interval_start]
-    prefix_start = focal_edit.cdna_start - len(reference_prefix)
     prefix_edits = transcript_edits_from_sequence_diff(
         reference_sequence=reference_prefix,
         observed_sequence=observed_prefix,
         start_offset=prefix_start,
     )
 
-    reference_suffix = translation.variant_orf.reference_cdna_sequence_after_variant
     observed_suffix = translation.cdna_sequence[translation.variant_cdna_interval_end:]
     suffix_edits = transcript_edits_from_sequence_diff(
         reference_sequence=reference_suffix,
         observed_sequence=observed_suffix,
-        start_offset=focal_edit.cdna_end,
+        start_offset=suffix_start,
         ignore_terminal_deletions=True,
         ignore_terminal_insertions=True,
     )
     return prefix_edits + suffix_edits
+
+
+def _apply_edit(sequence, offset, edit):
+    """``sequence`` (starting at transcript ``offset``) with ``edit``, or None outside it."""
+    start, end = edit.cdna_start - offset, edit.cdna_end - offset
+    if not 0 <= start <= end <= len(sequence):
+        return None
+    return sequence[:start] + edit.alt_bases + sequence[end:]
+
+
+def _supplied_edits(transcript, known_variants, focal_variant):
+    """Transcript edits of the supplied variants on this transcript's exons."""
+    contig = getattr(transcript, "contig", focal_variant.contig)
+    start, end = getattr(transcript, "start", 0), getattr(transcript, "end", float("inf"))
+    edits = []
+    for variant in known_variants.overlapping(contig, start, end):
+        if variant == focal_variant:
+            continue
+        try:
+            edit = transcript_edit_from_variant(variant, transcript)
+        except ValueError:
+            continue
+        edits.append((edit, variant))
+    return edits
+
+
+def _is_substitution(edit):
+    return 0 < len(edit.alt_bases) == edit.cdna_end - edit.cdna_start
+
+
+def _attribute_edit(edit, flank, offset, supplied, known_variants):
+    """
+    Split one observed edit into (edit, supplied variant or None) pieces.
+
+    An edit is a supplied variant when it gives the same flank sequence, which
+    also matches an indel shifted within a repeat; the supplied representation
+    is reported. A run of substitutions is split into the supplied
+    substitutions it contains, and the rest stays unexplained. Candidates of
+    conflicting origin leave the edit unexplained.
+    """
+    observed = _apply_edit(flank, offset, edit)
+    matches = sorted(
+        ((candidate, variant) for candidate, variant in supplied
+         if _apply_edit(flank, offset, candidate) == observed),
+        key=lambda pair: _source_variant_sort_key(pair[1]))
+    if matches:
+        if len({known_variants.origin(variant) for _, variant in matches}) > 1:
+            return [(edit, None)]
+        candidate, variant = matches[0]
+        return [(TranscriptEdit(cdna_start=candidate.cdna_start, cdna_end=candidate.cdna_end,
+                                alt_bases=candidate.alt_bases, source_variant=variant), variant)]
+    if not _is_substitution(edit):
+        return [(edit, None)]
+    inside = [(candidate, variant) for candidate, variant in supplied
+              if _is_substitution(candidate) and edit.cdna_start <= candidate.cdna_start
+              and candidate.cdna_end <= edit.cdna_end
+              and edit.alt_bases[candidate.cdna_start - edit.cdna_start:
+                                 candidate.cdna_end - edit.cdna_start] == candidate.alt_bases]
+    # Overlapping candidates would each explain the same bases; use neither.
+    unique = [(candidate, variant) for candidate, variant in inside if not any(
+        other is not candidate and other.cdna_start < candidate.cdna_end
+        and candidate.cdna_start < other.cdna_end for other, _ in inside)]
+    if not unique:
+        return [(edit, None)]
+    pieces, position = [], edit.cdna_start
+    for candidate, variant in sorted(unique, key=lambda pair: pair[0].cdna_start):
+        if position < candidate.cdna_start:
+            pieces.append((_sub_edit(edit, position, candidate.cdna_start), None))
+        pieces.append((TranscriptEdit(cdna_start=candidate.cdna_start, cdna_end=candidate.cdna_end,
+                                      alt_bases=candidate.alt_bases, source_variant=variant), variant))
+        position = candidate.cdna_end
+    if position < edit.cdna_end:
+        pieces.append((_sub_edit(edit, position, edit.cdna_end), None))
+    return pieces
+
+
+def _sub_edit(edit, start, end):
+    return TranscriptEdit(
+        cdna_start=start, cdna_end=end,
+        alt_bases=edit.alt_bases[start - edit.cdna_start:end - edit.cdna_start], source_variant=None)
 
 
 def _transcript_assembly_edit(transcript, edit):
@@ -201,20 +289,41 @@ def transcript_assembly_edit_sort_key(transcript_assembly_edit):
     )
 
 
-def categorize_transcript_assembly_edits_from_translation(translation, transcript):
-    known_somatic_edit = _transcript_assembly_edit(
-        transcript,
-        transcript_edit_from_variant(translation.reference_context.variant, transcript),
-    )
-    unexplained_edits = tuple(
-        _transcript_assembly_edit(transcript, edit)
-        for edit in unexplained_transcript_edits_from_translation(
-            translation,
-            transcript,
-        )
-    )
+def categorize_transcript_assembly_edits_from_translation(translation, transcript, known_variants=None):
+    """
+    Group an assembled cDNA's differences from ``transcript`` by origin.
+
+    Parameters
+    ----------
+    translation : Translation
+    transcript : pyensembl.Transcript
+    known_variants : KnownVariants or None
+        Supplied somatic and germline variants. Without them only the
+        translation's own variant is known.
+
+    Returns
+    -------
+    dict
+        ``known_somatic`` (the translation's variant, then co-somatic edits
+        that are other supplied somatic variants), ``known_germline`` and
+        ``unexplained``, each a tuple of TranscriptAssemblyEdit.
+    """
+    focal_variant = translation.reference_context.variant
+    known_somatic = [transcript_edit_from_variant(focal_variant, transcript)]
+    known_germline, unexplained = [], []
+    observed = unexplained_transcript_edits_from_translation(translation, transcript)
+    if known_variants is None or not observed:
+        unexplained = list(observed)
+    else:
+        focal_edit, (prefix, suffix) = _flanks(translation, transcript)
+        supplied = _supplied_edits(transcript, known_variants, focal_variant)
+        for edit in observed:
+            flank, offset = prefix if edit.cdna_end <= focal_edit.cdna_start else suffix
+            for piece, variant in _attribute_edit(edit, flank, offset, supplied, known_variants):
+                origin = None if variant is None else known_variants.origin(variant)
+                {"somatic": known_somatic, "germline": known_germline, None: unexplained}[origin].append(piece)
     return {
-        "known_somatic": (known_somatic_edit,),
-        "known_germline": (),
-        "unexplained": unexplained_edits,
+        "known_somatic": tuple(_transcript_assembly_edit(transcript, edit) for edit in known_somatic),
+        "known_germline": tuple(_transcript_assembly_edit(transcript, edit) for edit in known_germline),
+        "unexplained": tuple(_transcript_assembly_edit(transcript, edit) for edit in unexplained),
     }

@@ -47,6 +47,11 @@ def test_apply_filters_max_fail():
     new_obj = apply_filters(obj, filter_thresholds={"max_x": 1})
     assert not new_obj.filter_values["max_x"]
 
+def test_apply_filters_threshold_on_missing_value_fails_instead_of_raising():
+    obj = MockIsovarResult(x=None)
+    new_obj = apply_filters(obj, filter_thresholds={"max_x": 1, "min_x": 0})
+    assert new_obj.filter_values == {"max_x": False, "min_x": False}
+
 def test_apply_filters_bool_pass():
     obj = MockIsovarResult(x=True)
     new_obj = apply_filters(obj, filter_flags=["x"])

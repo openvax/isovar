@@ -15,6 +15,7 @@ Adapter from IsovarResult collections to varcode's MutantTranscriptSource.
 """
 
 from .isovar_result_provider import IsovarResultProvider
+from .read_identity import count_reads, fragment_ids
 from .transcript_edit_helpers import (
     categorize_transcript_assembly_edits_from_translation,
     transcript_assembly_edit_sort_key,
@@ -41,6 +42,7 @@ class IsovarMutantTranscript(IsovarResultProvider):
                             self._entries_by_variant_and_transcript[key] = (
                                 translation,
                                 transcript,
+                                getattr(protein_sequence, "known_variants", None),
                             )
 
     @staticmethod
@@ -62,21 +64,19 @@ class IsovarMutantTranscript(IsovarResultProvider):
 
         from varcode.mutant_transcript import MutantTranscript
 
-        translation, matched_transcript = entry
+        translation, matched_transcript, known_variants = entry
         categorized_edits = categorize_transcript_assembly_edits_from_translation(
             translation,
             matched_transcript,
+            known_variants,
         )
         transcript_assembly_edits = []
         for category in ("known_somatic", "known_germline", "unexplained"):
             transcript_assembly_edits.extend(categorized_edits[category])
         transcript_assembly_edits.sort(key=transcript_assembly_edit_sort_key)
         evidence = {
-            "num_supporting_reads": sum(
-                getattr(read, "source_read_count", 1)
-                for read in translation.reads
-            ),
-            "num_supporting_fragments": len({read.name for read in translation.reads}),
+            "num_supporting_reads": count_reads(translation.reads),
+            "num_supporting_fragments": len(fragment_ids(translation.reads)),
             "num_cdna_mismatches_before_variant": (
                 translation.num_mismatches_before_variant),
             "num_cdna_mismatches_after_variant": (

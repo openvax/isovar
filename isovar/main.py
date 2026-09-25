@@ -19,6 +19,7 @@ from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
 from .logging import get_logger
 from .isovar_result import IsovarResult
+from .known_variants import KnownVariants
 from .default_parameters import (
     DEFAULT_FILTER_THRESHOLDS as DEFAULT_FILTER_THRESHOLDS,
     DEFAULT_FILTER_FLAGS as DEFAULT_FILTER_FLAGS,
@@ -42,7 +43,8 @@ def run_isovar(
         filter_thresholds=None,
         filter_flags=None,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
-        decompression_threads=NUM_RNA_DECOMPRESSION_THREADS):
+        decompression_threads=NUM_RNA_DECOMPRESSION_THREADS,
+        germline_variants=None):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
@@ -94,6 +96,13 @@ def run_isovar(
         Number of threads used by htslib to decompress BAM/CRAM
         files opened from a path.
 
+    germline_variants : varcode.VariantCollection, iterable of varcode.Variant, str or None
+        Variants from a matched normal sample, or the path of their VCF
+        (loaded with the somatic variants' genome, PASS records only). An
+        assembled cDNA edit that is one of these is reported as known
+        germline. Edits that are other input `variants` are co-somatic;
+        anything else stays unexplained.
+
     Returns
     -------
     list of IsovarResult
@@ -112,6 +121,14 @@ def run_isovar(
     variants = tuple(variants)
     for variant in variants:
         require_literal_variant(variant)
+
+    if isinstance(germline_variants, str):
+        germline_variants = load_vcf(
+            germline_variants, genome=variants[0].genome if variants else None)
+    germline_variants = tuple(germline_variants or ())
+    for variant in germline_variants:
+        require_literal_variant(variant)
+    known_variants = KnownVariants(somatic=variants, germline=germline_variants)
 
     if isinstance(alignment_file, str):
         alignment_file = AlignmentFile(
@@ -138,6 +155,7 @@ def run_isovar(
                 variant=variant,
                 read_evidence=read_evidence,
                 transcript_id_whitelist=transcript_id_whitelist)
+        protein_sequences = [p.with_known_variants(known_variants) for p in protein_sequences]
         predicted_effect = top_varcode_effect(
             variant=variant,
             transcript_id_whitelist=transcript_id_whitelist)

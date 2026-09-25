@@ -24,8 +24,8 @@ isovar protein-hypotheses --vcf variants.vcf --bam tumor-rna.bam \
 ```
 
 This writes `tumor-1.hypotheses.json` and `tumor-1.hypotheses.tsv`, with one TSV
-row per translation. The command takes the same read, assembly and filter
-options as `isovar run`. It keeps every protein by default
+row per translation. The command takes the same read, assembly, filter and
+`--germline-vcf` options as `isovar run`. It keeps every protein by default
 (`--max-protein-sequences-per-variant 0`). `--source` names the read set for the
 evidence IDs and defaults to the `--bam` path.
 
@@ -57,6 +57,7 @@ variant, in input order. Intervals are 0-based and half-open.
 | `allele_support` | Alt reads with their evidence set; ref, other and total as counts |
 | `filters` | Filter outcomes as recorded; they are reported, not applied |
 | `phased_variants` | Event IDs of variants phased with this one |
+| `edit_attribution` | How many supplied somatic and germline variants the edits were checked against; null if none were |
 | `protein_sequence_limit`, `protein_hypotheses_complete` | The protein cap in use, and whether the list below is everything Isovar found. `false` means the cap was reached; null means unknown |
 | `protein_hypotheses` | Every protein, in Isovar's ranked order |
 
@@ -82,10 +83,16 @@ Each **translation** has its `nucleotide_sequence` and ID, the
 `translated_interval` of the cDNA, the `variant_cdna_interval`, whether it
 `starts_at_annotated_start_codon`, the reference context (strand, transcripts,
 start codon and 5′ UTR flags), mismatches against the reference, and
-`observed_edits`. Observed edits are the differences from each transcript: the
-`nominated_variant`, and any `unexplained` change such as a nearby germline or
-somatic variant. Two synonymous cDNAs are two translations of one protein, each
-with its own reads.
+`observed_edits`. Observed edits are the differences from each transcript, each
+with an `origin`:
+
+- `nominated_variant`: the event's own variant;
+- `co_somatic_variant`: another input variant in the same RNA;
+- `germline_variant`: a variant from the matched normal (`--germline-vcf`);
+- `unexplained`: anything else.
+
+Edits from a supplied variant give its `source_event_id`. Two synonymous cDNAs
+are two translations of one protein, each with its own reads.
 
 ## RNA support and evidence sets
 
