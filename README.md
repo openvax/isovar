@@ -282,6 +282,14 @@ evidence, not one resolved haplotype. `IsovarReadPhasing` and
 `IsovarMutantTranscript` expose these results through Varcode's phasing and
 mutant-transcript interfaces.
 
+Not being phased is not evidence of trans: Isovar only compares the variants in
+its run. `IsovarReadPhasing.in_cis(v1, v2)` answers from fragments that cover
+both loci. It returns `True` when fragments carry both alt alleles, `False`
+when they carry one alt allele with the other's reference allele, and `None`
+without enough of either. A matched germline variant is cis when its edit is in
+the variant's top assembled protein, and otherwise unknown. Varcode's
+`MolecularPhaseResolver` uses this method for cis/trans decisions.
+
 ### Other variants in the assembled RNA
 
 An assembled cDNA can differ from the reference transcript at positions besides
