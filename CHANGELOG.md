@@ -4,6 +4,14 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.37.1
+
+- `--genome GRCh38:93` chooses Ensembl release 93 (#122). Isovar now requires
+  Varcode 10.5.0, which reads the release instead of silently using the most
+  recent one (openvax/varcode#512). A release that does not provide the
+  assembly, such as `GRCh38:75`, is a usage error. `--genome GRCh38` still
+  uses the most recent installed release.
+
 ## 1.37.0
 
 Every output reports supporting RNA with one record, and "segments" is renamed
