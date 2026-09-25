@@ -42,6 +42,7 @@ def usage_error(capsys, args):
     (["reference-contexts", "--json-variants", "nope.json"], "No such file"),
     (["allele-counts", "--variant", "chr9", "82927102", "G", "T", "--bam", BAM], "--genome"),
     (["run", "--vcf", VCF, "--bam", BAM, "--genome", "foo"], "specify the reference with --genome"),
+    (["run", "--vcf", VCF, "--bam", BAM, "--genome", "GRCh38:75"], "release 75 of homo_sapiens provides GRCh37"),
     (["run", "--vcf", VCF, "--bam", data_path("data/primary.chr1.unsorted.bam")], "has no index"),
     (["run", "--vcf", VCF, "--bam", data_path("data/b16.f10/b16.combined.sam")], "is not BAM or CRAM"),
     (["run", "--vcf", VCF, "--bam", VCF], "does not contain alignment data"),
@@ -57,6 +58,16 @@ def test_bad_inputs_are_usage_errors(capsys, tmp_path, args, expected):
     if "--output" not in args:
         args = args + ["--output", str(tmp_path / "out.csv")]
     assert expected in usage_error(capsys, args)
+
+
+def test_genome_can_choose_an_ensembl_release():
+    # Previously "GRCh38:93" silently gave the most recent release (#122).
+    from isovar.cli.isovar_allele_counts import parser
+    from isovar.cli.validation import variant_collection_from_args
+
+    args = parser.parse_args(["--variant", "chr9", "82927102", "G", "T", "--bam", BAM,
+                              "--genome", "GRCh38:93"])
+    assert {v.genome.release for v in variant_collection_from_args(args)} == {93}
 
 
 def test_output_directory_is_checked_before_reading_any_input(capsys, tmp_path):
