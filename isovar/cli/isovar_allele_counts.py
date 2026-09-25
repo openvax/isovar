@@ -27,8 +27,8 @@ parser = add_output_args(
 _cells = parser.add_argument_group("Cell/UMI labels (single-cell data)")
 _cells.add_argument(
     "--cell-umi-labels", action="store_true",
-    help="Add num_{ref,alt,other}_{cells,cell_umi_labels,unlabeled_segments} and "
-         "num_cells_with_ref_and_alt columns from CB/UB tags; needs --sample-id")
+    help="Add num_{ref,alt,other}_{cells,cell_umi_labels,unlabeled_segments,unknown_library_segments} "
+         "and num_cells_with_ref_and_alt columns from CB/UB tags; needs --sample-id")
 _cells.add_argument("--sample-id", help="Sample the reads came from; scopes the labels")
 _cells.add_argument("--source", help="Identity of the read set (default: --bam)")
 
@@ -36,6 +36,8 @@ _cells.add_argument("--source", help="Identity of the read set (default: --bam)"
 def _counts(args):
     if args.cell_umi_labels and not args.sample_id:
         raise CommandInputError("--cell-umi-labels needs --sample-id")
+    if not args.cell_umi_labels and (args.sample_id or args.source):
+        raise CommandInputError("--sample-id and --source only apply with --cell-umi-labels")
     return allele_counts_dataframe_from_args(args)
 
 

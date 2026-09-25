@@ -25,34 +25,45 @@ isovar protein-hypotheses --vcf variants.vcf --bam sc-rna.bam --cell-umi-labels 
 
 `allele-counts` adds these columns for each of `ref`, `alt` and `other`:
 
-- `num_*_cells` and `num_*_cell_umi_labels`: distinct cells and cell/UMI labels
-  (lower bounds);
-- `num_*_unlabeled_segments`: reads without a usable label;
-- `num_cells_with_ref_and_alt`: cells with labelled reads of both alleles.
+- `num_*_cells`: distinct cells, from the cell barcode alone, with or without a
+  UMI;
+- `num_*_cell_umi_labels`: distinct cell/UMI labels;
+- `num_*_unlabeled_segments` and `num_*_unknown_library_segments`: reads without
+  a usable label, and reads whose library is unknown;
+- `num_cells_with_ref_and_alt`: cells with reads of both alleles.
 
-`protein-hypotheses` adds an event-level `cell_umi_evidence`, and a
-`cell_umi_support` in every protein's `rna_support`.
+`protein-hypotheses` adds `cell_umi_alleles` to each event (a summary per allele
+and `cells_with_ref_and_alt`), and a `cell_umi_support` to each protein's
+`rna_support`.
 
 From Python, use `cell_umi_allele_evidence(results, alignment_file,
 sample_id=..., source=...)`, or pass `cell_umi_alignment_file=` to
-`export_protein_hypotheses`. Each summary below also gives `observed_cells`,
-and `complete_cell_count` under the same rule as `complete_label_count`.
-Supports carry an `evidence_set_id` rather than read names.
+`export_protein_hypotheses`. Pass the `ReadCollector` the results were collected
+with. A read whose record that collector would reject is reported as
+`metadata_unavailable` and counted as unresolved, with a warning.
 
-Labels come from the eligible records overlapping the variant. A mate outside
-the locus is not consulted for conflicts. Counts from a selected or downsampled
-read set are not cell prevalence.
+A few cautions:
+
+- Labels come from the eligible records overlapping the variant, so a mate
+  outside the locus is not consulted for conflicts.
+- Cells are summarized per allele or protein, with no cell IDs, so do not add
+  `observed_cells` across alleles or proteins that may share cells.
+- Counts from a selected or downsampled read set are not cell prevalence.
+- If no read carries a usable `CB`, all cell counts are zero and a warning is
+  logged; the data are probably not single-cell.
 
 ## Reading the counts
 
 Each summary (a small-variant allele or protein, an SV junction's
 `direct_cell_umi_support`, or an ORF's `full_interval_support.cell_umi_support`)
-contains:
+contains the fields below. Small-variant summaries also give `segments` (the
+supporting reads), `observed_cells` and `complete_cell_count`. The cell count
+uses the same rule as the label count, except that a trusted barcode is enough.
 
 | Field | Meaning |
 | --- | --- |
 | `complete_label_count` | Distinct labels among the supporting reads, if every read has a usable label and a known library; otherwise null |
-| `observed_labels` | Distinct usable labels found, even when some reads lack one; a lower bound |
+| `observed_labels` | Distinct usable labels found, even when some reads lack one. A lower bound only when every library is known: without `LB`, one label in two read groups counts twice |
 | `all_segments_labeled` | Whether every supporting read has a usable label, whether or not its library is known |
 | `unresolved_segments` | Supporting reads without a usable complete label |
 | `unknown_library_segments` | Supporting reads without unambiguous library metadata |
@@ -123,7 +134,7 @@ Records missing tags are counted explicitly. A read is left unresolved when:
 
 ## The evidence record
 
-`cell_umi_evidence.segments` lists every read consulted, with its scope,
+In SV results, `cell_umi_evidence.segments` lists every read consulted, with its scope,
 selected labels, UMI tags, `XM` interpretation and the reasons for its status.
 Visible mates checked for conflicts can appear here without being counted as
 support. Each label's key is the tuple `(source, sample_id, header_sample,

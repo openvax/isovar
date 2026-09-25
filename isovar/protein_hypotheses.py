@@ -268,9 +268,9 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
         and library. Without it their metadata are null (unknown).
     cell_umi_alignment_file : pysam.AlignmentFile, optional
         The alignments the results came from. When given, each event gains
-        ``cell_umi_evidence`` and each protein's ``rna_support`` a
-        ``cell_umi_support``, from the reads' cell barcodes and UMIs (see
-        `isovar.cell_evidence`).
+        ``cell_umi_alleles`` and each protein's ``rna_support`` a
+        ``cell_umi_support``, counting the cells and cell/UMI labels behind
+        them (see `isovar.cell_evidence`).
     read_collector : ReadCollector, optional
         The collector used for the results, for record eligibility when
         resolving cell/UMI labels.
@@ -294,14 +294,13 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
     evidence = _EvidenceSets(scope)
     events = [_event(result, evidence) for result in results]
     if cell_umi_alignment_file is not None:
-        from .cell_evidence import CellUmiAlleles
-        labels = CellUmiAlleles(cell_umi_alignment_file, sample_id=sample_id, source=source,
-                                read_collector=read_collector)
-        for event, result in zip(events, results):
-            cells = labels.evidence(result.variant, result.read_evidence, result.sorted_protein_sequences)
+        from .cell_evidence import cell_umi_allele_evidence
+        cell_evidence = cell_umi_allele_evidence(
+            results, cell_umi_alignment_file, sample_id=sample_id, source=source, read_collector=read_collector)
+        for event, cells in zip(events, cell_evidence):
             for protein, support in zip(event["protein_hypotheses"], cells.pop("protein_hypotheses")):
                 protein["rna_support"]["cell_umi_support"] = support
-            event["cell_umi_evidence"] = cells
+            event["cell_umi_alleles"] = cells
     return dict(
         schema=SCHEMA, isovar_version=__version__, sample_id=sample_id, source=source,
         evidence_scope=scope, interval_convention="zero_based_half_open",
