@@ -43,10 +43,10 @@ def test_parent_and_split_children_share_signal_but_not_segment_identity():
                read("child1", group="b", pi="parent", sp=0, dx=0)]
     evidence = lineage(records)
     result = evidence.support(evidence.groups)
-    assert len(result["segment_ids"]) == 4
-    assert result["resolved_signal_groups"] == 2  # Identical LB does not merge RGs.
-    assert result["unresolved_segments"] == 0
-    assert result["status_counts"] == {"simplex_read": 1, "split_read": 3}
+    assert result["reads"] == 4
+    assert result["signal_groups"] == 2  # Identical LB does not merge RGs.
+    assert result["unresolved_reads"] == 0
+    assert result["statuses"] == {"simplex_read": 1, "split_read": 3}
     assert evidence.segment(("a", "child2", 0))["signal_group"] == ["a", "parent"]
 
 
@@ -54,9 +54,9 @@ def test_duplex_status_does_not_invent_parent_consensus_links_from_names():
     evidence = lineage([read("template", dx=-1), read("complement", dx=-1),
                         read("template;complement", dx=1), read("unpaired", dx=0)])
     result = evidence.support(evidence.groups)
-    assert result["resolved_signal_groups"] == 1 and result["unresolved_segments"] == 3
-    assert not result["all_segments_resolved"]
-    assert result["status_counts"] == {"duplex_parent": 2, "duplex_consensus": 1, "simplex_read": 1}
+    assert result["signal_groups"] == 1 and result["unresolved_reads"] == 3
+    assert not result["all_reads_resolved"]
+    assert result["statuses"] == {"duplex_parent": 2, "duplex_consensus": 1, "simplex_read": 1}
     assert all(row["signal_group"] is None for row in evidence.evidence() if row["duplex_status"] != 0)
 
 
@@ -124,8 +124,8 @@ def test_conflicting_placements_are_order_independent(other):
 def test_visible_parent_chains_resolve_without_promoting_parent_to_support():
     evidence = lineage([read("child", pi="middle"), read("middle", pi="root"), read("root")])
     support = evidence.support([("a", "child", 0)])
-    assert support["segment_ids"] == [["a", "child", 0]]
-    assert support["resolved_signal_groups"] == 1
+    assert support["reads"] == 1
+    assert support["signal_groups"] == 1
     assert len(evidence.evidence()) == 3
     assert evidence.segment(("a", "child", 0))["signal_group"] == ["a", "root"]
 
@@ -133,7 +133,7 @@ def test_visible_parent_chains_resolve_without_promoting_parent_to_support():
 @pytest.mark.parametrize("parent_tags", [dict(dx=1), dict(pi="child")])
 def test_unresolved_or_cyclic_parent_cannot_resolve_a_child(parent_tags):
     evidence = lineage([read("child", pi="parent"), read("parent", **parent_tags)])
-    assert evidence.support(evidence.groups)["unresolved_segments"] == 2
+    assert evidence.support(evidence.groups)["unresolved_reads"] == 2
     assert evidence.segment(("a", "child", 0))["status"] == "unresolved_parent"
 
 
@@ -178,14 +178,15 @@ def test_full_orf_lineage_uses_only_complete_compatible_witnesses():
                               1, 100, lineage=evidence.support)
     candidate, = result["candidates"]
     support = candidate["full_interval_support"]
-    assert support["segments"] == 2 and len(support["witnesses"]) == 2
-    assert support["read_lineage"]["resolved_signal_groups"] == 1
-    assert support["read_lineage"]["segment_ids"] == [["a", "full", 0], ["a", "full2", 0]]
+    assert sorted(observations[w["observation"]].identity for w in support["witnesses"]) == [
+        ("a", "full", 0), ("a", "full2", 0)]
+    assert support["reads"] == support["read_lineage"]["reads"] == 2
+    assert support["read_lineage"]["signal_groups"] == 1
     # The two partial siblings still cannot establish the complete ORF together.
     junction["direct_observations"] = ["left", "right"]
     candidate, = exploratory_orfs(sequence, positions, [junction], observations, [], labels.support,
                                   1, 100, lineage=evidence.support)["candidates"]
-    assert candidate["full_interval_support"]["read_lineage"]["resolved_signal_groups"] == 0
+    assert candidate["full_interval_support"]["read_lineage"]["signal_groups"] == 0
 
 
 def test_sv_junctions_export_signal_ancestry_without_changing_reconstruction(tmp_path):
@@ -205,10 +206,10 @@ def test_sv_junctions_export_signal_ancestry_without_changing_reconstruction(tmp
     result = scenario.run(bam)
     assert result["paths"][0]["sequence"] == scenario.sequence
     junction, = spanning(result, "event_compatible_junction")
-    assert junction["direct_segments"] == junction["direct_fragments"] == 2
-    assert junction["direct_read_lineage"]["resolved_signal_groups"] == 1
-    assert len(result["read_lineage"]["segments"]) == 2
-    assert all(row["signal_group"] == ["a", "parent"] for row in result["read_lineage"]["segments"])
+    assert junction["direct_support"]["reads"] == junction["direct_support"]["fragments"] == 2
+    assert junction["direct_read_lineage"]["signal_groups"] == 1
+    assert len(result["read_lineage"]["reads"]) == 2
+    assert all(row["signal_group"] == ["a", "parent"] for row in result["read_lineage"]["reads"])
 
 
 def test_unbuilt_direct_junction_reads_still_contribute_lineage(tmp_path):
@@ -224,10 +225,10 @@ def test_unbuilt_direct_junction_reads_still_contribute_lineage(tmp_path):
     pysam.index(str(bam))
     result = scenario.run(bam, references=[scenario.donor_ref], max_extension_segments=2)
     junction, = spanning(result, "regional_novel_junction")
-    assert junction["direct_segments"] == 8
-    assert result["observation_counts"]["built_segments"] == 2
-    assert junction["direct_read_lineage"]["resolved_signal_groups"] == 4
-    assert len(result["read_lineage"]["segments"]) == 8
+    assert junction["direct_support"]["reads"] == 8
+    assert result["observation_counts"]["built_reads"] == 2
+    assert junction["direct_read_lineage"]["signal_groups"] == 4
+    assert len(result["read_lineage"]["reads"]) == 8
 
 
 def test_header_lines_without_ids_are_ignored_not_fatal():

@@ -9,6 +9,7 @@ import pytest
 from isovar import export_sv_rna_orfs, write_sv_rna_orfs
 from isovar.cli.isovar_sv_rna import run as cli_run
 from tests.test_sv_rna_orfs import inputs, insertion_inputs, run
+from tests.testing_helpers import LINEAGE_SUMMARY, complete_umis
 
 
 def reconstruction(args=None):
@@ -19,9 +20,10 @@ def reconstruction(args=None):
                 end_reasons={"5prime": ["observations_end"], "3prime": ["observations_end"]})
     observations = {key: dict(identity=list(o.identity), reverse_complement=o.reverse_complement,
                              missing_qualities=o.missing_qualities) for key, o in reads.items()}
-    return dict(schema="isovar.sv_rna_candidates.v4", event_id="D--A", reference_name="synthetic",
+    return dict(schema="isovar.sv_rna_candidates.v5", event_id="D--A", reference_name="synthetic",
                 sample_id="sample", source="source", event_provenance={}, donor={}, acceptor={},
-                reference_models=[], parameters={}, limitations=[], paths=[path], observations=observations)
+                reference_models=[], parameters={}, limitations=[], paths=[path], observations=observations,
+                cell_umi_evidence=dict(policy="isovar.cell_umi_labels.v1", reads=[]), read_lineage=dict(reads=[]))
 
 
 def only(result):
@@ -42,12 +44,10 @@ def test_export_unions_witnesses_across_paths_and_does_not_mutate_input():
     assert len(candidate["occurrences"]) == 2
     assert all(len(o["witnesses"]) == 1 for o in candidate["occurrences"])
     support = candidate["rna_support"]
-    assert support["fragments"] == support["segments"] == 1
-    assert support["cell_umi_support"]["complete_label_count"] is None
-    assert support["cell_umi_support"]["status_counts"] == {"metadata_unavailable": 1}
-    assert "segment_ids" not in support["cell_umi_support"]
-    assert "segment_ids" not in support["read_lineage"]
-    assert support["independent_molecules"] is None
+    assert support["fragments"] == support["reads"] == 1
+    assert complete_umis(support) is None
+    assert support["label_statuses"] == {"metadata_unavailable": 1}
+    assert set(support["read_lineage"]) == LINEAGE_SUMMARY
 
 
 def test_sequence_ids_keep_synonymous_alternatives_and_scope_evidence_independently():
@@ -69,12 +69,12 @@ def test_sequence_ids_keep_synonymous_alternatives_and_scope_evidence_independen
     result["sample_id"] = "another_sample"
     changed = only(result)
     assert changed["candidate_id"] == first["candidate_id"]
-    assert changed["rna_support"]["segment_ids"] != first["rna_support"]["segment_ids"]
+    assert changed["rna_support"]["read_ids"] != first["rna_support"]["read_ids"]
     result["sample_id"] = "sample"
     result["event_id"] = "another_event"
     changed = only(result)
     assert changed["candidate_id"] != first["candidate_id"]
-    assert changed["rna_support"]["segment_ids"] == first["rna_support"]["segment_ids"]
+    assert changed["rna_support"]["read_ids"] == first["rna_support"]["read_ids"]
     result["source"] = "another_source"
     assert only(result)["rna_support"]["fragment_ids"] != first["rna_support"]["fragment_ids"]
 
@@ -94,9 +94,9 @@ def test_mates_and_alternative_orientations_count_segments_and_fragments_separat
     add_witness(result, "placement", ["library", "read", 64])
     candidate = only(result)
     support = candidate["rna_support"]
-    assert support["segments"] == 2 and support["fragments"] == 1
+    assert support["reads"] == 2 and support["fragments"] == 1
     assert support["fragment_query_orientations"] == dict(original_query=0, reverse_complement=0, mixed=1)
-    assert support["missing_quality_segments"] == 1
+    assert support["missing_quality_reads"] == 1
     assert {"mixed_read_orientations", "missing_base_qualities"} <= set(candidate["uncertainty_flags"])
 
 
@@ -104,20 +104,21 @@ def test_known_shared_library_labels_and_signal_descendants_use_the_shared_ledge
     result = reconstruction()
     add_witness(result, "other", ["other_rg", "other_read", 0])
     identities = [o["identity"] for o in result["observations"].values()]
-    result["cell_umi_evidence"] = dict(segments=[dict(identity=i, library_scope_known=True,
+    scope = dict(source="source", sample_id="sample", library="shared_library")
+    result["cell_umi_evidence"] = dict(reads=[dict(identity=i, library_scope_known=True, scope=scope, cell_barcode="cell",
         label=["sample", "source", "shared_library", "cell", "umi"], status="resolved_label") for i in identities])
-    result["read_lineage"] = dict(segments=[dict(identity=i, signal_group=[i[0], "parent"], status="split_read")
-                                           for i in identities])
+    result["read_lineage"] = dict(reads=[dict(identity=i, signal_group=[i[0], "parent"], status="split_read")
+                                        for i in identities])
     support = only(result)["rna_support"]
-    assert support["cell_umi_support"]["complete_label_count"] == 1
-    assert support["read_lineage"]["resolved_signal_groups"] == 2  # RG still partitions signal ancestry.
-    result["read_lineage"]["segments"][1]["signal_group"] = ["library", "parent"]
+    assert complete_umis(support) == 1
+    assert support["read_lineage"]["signal_groups"] == 2  # RG still partitions signal ancestry.
+    result["read_lineage"]["reads"][1]["signal_group"] = ["library", "parent"]
     candidate = only(result)
     assert candidate["rna_support"]["fragments"] == 2
-    assert candidate["rna_support"]["read_lineage"]["resolved_signal_groups"] == 1
+    assert candidate["rna_support"]["read_lineage"]["signal_groups"] == 1
     assert "shared_signal_ancestry" in candidate["uncertainty_flags"]
-    del result["cell_umi_evidence"]["segments"][1]
-    assert only(result)["rna_support"]["cell_umi_support"]["complete_label_count"] is None
+    del result["cell_umi_evidence"]["reads"][1]
+    assert complete_umis(only(result)["rna_support"]) is None
 
 
 def test_partial_unsupported_and_limited_hypotheses_are_exported_with_warnings():
@@ -132,7 +133,10 @@ def test_partial_unsupported_and_limited_hypotheses_are_exported_with_warnings()
     assert {"partial_orf", "no_full_fragment_witness", "orf_candidate_limit_reached",
             "reconstruction_limit:max_paths", "reconstruction_limit:repeated_genomic_position",
             "nondefault_branch_thresholds"} <= set(candidate["uncertainty_flags"])
-    assert candidate["rna_support"]["cell_umi_support"]["complete_label_count"] is None
+    # No witnesses: zero reads and UMIs, and neither count is marked exact.
+    support = candidate["rna_support"]
+    assert support["reads"] == support["umis"] == 0
+    assert not support["umis_complete"] and not support["cells_complete"]
     assert not candidate["initiation_observed"] and not candidate["translation_observed"]
 
 
@@ -146,7 +150,7 @@ def test_stop_only_and_reverse_complement_only_flags_preserve_junction_provenanc
     junction, = candidate["occurrences"][0]["junctions"]
     assert junction["boundaries"] == ["donor_to_unplaced"]
     assert junction["query_interval"] == [45, 57]
-    assert "direct_fragments" not in junction
+    assert "direct_support" not in junction
 
 
 def test_missing_or_disagreeing_start_annotations_do_not_choose_the_best_occurrence(tmp_path):
@@ -191,7 +195,8 @@ def test_writer_round_trip_and_empty_outputs(tmp_path):
     with paths["tsv"].open() as handle:
         row, = csv.DictReader(handle, delimiter="\t")
     assert row["amino_acids"] == "MKMK" and row["nucleotide_sequence"] == "ATGAAAATGAAATAA"
-    assert row["complete_cell_umi_labels"] == row["independent_molecules"] == ""
+    # The one witness has no label row, so it is unlabelled and the UMI count is not exact.
+    assert (row["reads"], row["umis"], row["umis_complete"], row["unlabeled_reads"]) == ("1", "0", "False", "1")
     assert paths["protein"].read_text().splitlines()[1:] == ["MKMK"]
     assert paths["nucleotide"].read_text().splitlines()[1:] == ["ATGAAAATGAAATAA"]
     exported["candidates"] = []

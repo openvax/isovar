@@ -1,5 +1,6 @@
 pyensembl>=1.5.0
-varcode>=9.4.2
+# Varcode 10 is the tested major version (CI and the suite run on 10.x).
+varcode>=10,<11
 pandas>=0.23.0
 pysam>=0.15.2
 psutil

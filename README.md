@@ -155,6 +155,27 @@ How reads are counted:
 - None of these is a molecule count: Isovar does no UMI deduplication. The
   `*_read_names` properties are plain names for display.
 
+Every support in the JSON exports (`protein-hypotheses`,
+`allele-interpretations`, `sv-rna`, the SV ORF export and `fusion`) is one
+**RNA support record**:
+
+| Field | Meaning |
+|---|---|
+| `reads` | Sequenced segments: a mate, a single-end read or a long read |
+| `fragments` | Templates: both mates of a pair count once, so this equals `reads` for single-end or long reads |
+| `umis` | Distinct cell barcode and UMI pairs, within one library |
+| `cells` | Distinct cell barcodes, within one library; a barcode without a UMI still counts |
+| `umis_complete`, `cells_complete` | Whether there are reads and every one contributed, with a known library, so that the count is exact |
+| `unlabeled_reads`, `unknown_library_reads` | Reads without a usable cell/UMI label, or whose library is unknown |
+| `label_statuses` | Reads by label status |
+
+The UMI and cell fields are null unless cell/UMI labels were assessed
+(`--cell-umi-labels`; see [cell/UMI evidence](https://github.com/openvax/isovar/blob/master/docs/cell-umi-evidence.md)).
+Tables use the same names, prefixed: `num_alt_reads`, `num_alt_umis` and
+`alt_umis_complete` in `allele-counts`; `protein_reads` and `translation_cells`
+in the `protein-hypotheses` TSV; and bare `reads`, `umis` and so on in the SV
+ORF TSV. `isovar plot` figure data count the read objects drawn, not this record.
+
 Where overlapping mates disagree at a base, the higher-quality base wins, which
 can change allele support as well as the assembled sequence. Mates stay separate
 when their alignments conflict, or when a disagreement has equal or missing

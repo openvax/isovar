@@ -66,7 +66,7 @@ def _boundaries(junction):
         [("unplaced_to_acceptor", end)] if junction["right"] is not None else [])
 
 
-def exploratory_orfs(sequence, positions, junctions, observations, references, cell_umi_support,
+def exploratory_orfs(sequence, positions, junctions, observations, references, rna_support,
                      min_amino_acids, max_candidates, lineage=None, competing_splices=(), inclusion_thresholds=None):
     """Enumerate bounded ATG candidates crossing an event-related RNA join.
 
@@ -101,7 +101,6 @@ def exploratory_orfs(sequence, positions, junctions, observations, references, c
         aa, _ = standard_genetic_code.translate(sequence[start:coding_end], first_codon_is_start=True)
         witnesses = _witnesses(sequence, positions, start, end, [j for _, j, _ in crossed], observations)
         segments = {observations[w["observation"]].identity for w in witnesses}
-        labels = cell_umi_support(segments)
         start_evidence = annotate_orf_start(sequence, positions, start, references)
         start_evidence = annotate_orf_inclusion(
             start_evidence, sequence, positions, end, references, observations, witnesses,
@@ -110,7 +109,7 @@ def exploratory_orfs(sequence, positions, junctions, observations, references, c
             inclusion = assessment.get("splice_inclusion")
             if inclusion is not None:
                 qualified = {observations[key].identity for key in inclusion["qualified_observations"]}
-                inclusion["cell_umi_support"] = cell_umi_support(qualified)
+                inclusion["support"] = rna_support(qualified)
                 inclusion["read_lineage"] = lineage(qualified) if lineage is not None else None
         comparisons = start_evidence["reference_comparisons"]
         minus_three = sequence[start - 3] if start >= 3 else None
@@ -128,11 +127,10 @@ def exploratory_orfs(sequence, positions, junctions, observations, references, c
                                      termination_only=all(b >= coding_end for _, b in boundaries))
                                 for i, _, boundaries in crossed],
             full_interval_support=dict(
-                segments=len(segments), fragments=len({s[:2] for s in segments}),
-                cell_umi_support=labels,
+                **rna_support(segments),
                 read_lineage=lineage(segments) if lineage is not None else None,
-                missing_quality_segments=len({observations[w["observation"]].identity for w in witnesses
-                                              if observations[w["observation"]].missing_qualities}),
+                missing_quality_reads=len({observations[w["observation"]].identity for w in witnesses
+                                           if observations[w["observation"]].missing_qualities}),
                 scope="built_direct_junction_observations", witnesses=witnesses)))
     return dict(candidates=candidates, candidate_limit_reached=limited,
                 scope="ATG_in_retained_path_crossing_event_related_junction",

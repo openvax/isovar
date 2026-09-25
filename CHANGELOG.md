@@ -4,6 +4,67 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.37.0
+
+Every output reports supporting RNA with one record, and "segments" is renamed
+"reads" throughout.
+
+- **The record.** It has `reads`, `fragments`, `umis`, `cells`,
+  `umis_complete`, `cells_complete`, `unlabeled_reads`, `unknown_library_reads`
+  and `label_statuses`. The UMI and cell fields are null unless cell/UMI labels
+  were assessed. `umis_complete` and `cells_complete` are false when there are
+  no reads, so they never mark unsupported evidence as exact. It is defined
+  once, in `isovar.rna_evidence.rna_support`, and described in the README.
+- **Where it replaces the earlier forms:**
+  - SV junctions: `direct_support` replaces `direct_segments`,
+    `direct_fragments` and `direct_cell_umi_support`.
+  - SV paths: `sequence_evidence.voting_support` replaces the voting counts.
+  - SV ORFs: `full_interval_support`, and splice-inclusion `support`, carry
+    the record's fields.
+  - Fusions: the junction has `direct_support`, and `evidence.support` covers
+    all reads.
+  - Protein hypothesis exports: `rna_support` and every `allele_support`
+    entry are records.
+  - Allele interpretation supports are records too.
+- **Removed:** `observed_labels`, `complete_label_count`, `independent_molecules`,
+  `cell_umi_support`, the export's `cell_umi_alleles`, and raw `segment_ids`
+  in summaries.
+- **Renamed:** lineage summaries use `reads`, `signal_groups`,
+  `unresolved_reads` and `statuses`, and label summaries `label_statuses`
+  (both were `status_counts`). Evidence sets hold `read_ids`. `*_segments`
+  counts become `*_reads` (`missing_quality_reads`, `read_path_notes`, and so
+  on).
+- **Tables** share the record's columns (`reads`, `fragments`, `umis`, `cells`,
+  `umis_complete`, `cells_complete`, `unlabeled_reads`,
+  `unknown_library_reads`):
+  - SV ORF TSV: bare names. `segments`, `observed_cell_umi_labels`,
+    `complete_cell_umi_labels`, `independent_molecules` and
+    `resolved_signal_groups` are gone (`signal_groups` replaces the last), and
+    `missing_quality_segments` is `missing_quality_reads`.
+  - Protein hypothesis TSV: `protein_*` and `translation_*`, so
+    `protein_segments` and `translation_segments` become `protein_reads` and
+    `translation_reads`.
+  - `isovar allele-counts --cell-umi-labels`: `num_*_umis`, `num_*_cells`,
+    `*_umis_complete`, `*_cells_complete`, `num_*_unlabeled_reads` and
+    `num_*_unknown_library_reads`.
+- **Evidence sets:** the protein hypothesis export stores them, as before, for
+  the alternate allele, proteins and translations; the reference, other and
+  total allele supports give counts only. An evidence set ID is null only when
+  reads lack identities: an allele interpretation with no reads now has the
+  empty set's ID.
+- **Larger SV output with labels:** each path's `voting_support` resolves the
+  labels of every voting read, so `cell_umi_evidence.reads` lists them too
+  (134 rows instead of 9 in the synthetic scenario test).
+- **Schema versions:** `sv_rna_candidates.v5`, `sv_rna_orfs.v4`,
+  `sv_rna_prediction_comparison.v3`, `fusion_rna.v3`, `protein_hypotheses.v2`
+  and `allele_interpretations.v2`.
+- **`isovar allele-interpretations --cell-umi-labels`** counts UMIs and cells.
+- The protein hypothesis export and allele interpretations warn, as
+  `allele-counts` does, when reads have no eligible record for their labels.
+- **Varcode:** requires `>=10,<11`. The suite passes on 10.3.0. Vaxrank
+  must move to Varcode 10 and `fusion_rna.v3` to use this release
+  (openvax/vaxrank#517).
+
 ## 1.36.0
 
 - `IsovarReadPhasing.in_cis(v1, v2)` reports cis or trans from fragments that

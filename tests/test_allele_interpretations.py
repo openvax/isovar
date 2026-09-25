@@ -31,8 +31,8 @@ INTERPRETATIONS = {
 }
 
 
-@pytest.fixture
-def bam(tmp_path):
+def synthetic_bam(tmp_path):
+    """Reads carrying GT, GG and AG across the locus, plus set-aside cases."""
     reads = [read("c%d" % i, "GT") for i in range(3)] + [read("s0", "GG")]
     reads += [read("r%d" % i, "AG") for i in range(2)]
     # Overlapping mates of one fragment, both carrying the compound allele.
@@ -41,8 +41,12 @@ def bam(tmp_path):
     reads.append(record("partial", "1", 1000, "21M", REFERENCE[:21]))
     # One segment placed twice, reading different alleles: set aside as conflicting.
     reads += [read("conflict", "GT"), read("conflict", "GT", flag=256, start=999)]
-    path = write_bam(tmp_path / "rna.bam", reads)
-    with pysam.AlignmentFile(str(path)) as alignment_file:
+    return write_bam(tmp_path / "rna.bam", reads)
+
+
+@pytest.fixture
+def bam(tmp_path):
+    with pysam.AlignmentFile(str(synthetic_bam(tmp_path))) as alignment_file:
         yield alignment_file
 
 
@@ -63,7 +67,7 @@ def test_equivalent_representations_share_support_and_others_are_contradicted(ba
     assert mnv["rna_status"] == pair["rna_status"] == "supported"
     assert mnv["indistinguishable_from"] == ["caller SNV pair"] and pair["indistinguishable_from"] == ["caller MNV"]
     # Three single reads plus one merged mate pair; the pair is one fragment of two segments.
-    assert (mnv["rna_support"]["fragments"], mnv["rna_support"]["segments"]) == (4, 5)
+    assert (mnv["rna_support"]["fragments"], mnv["rna_support"]["reads"]) == (4, 5)
     assert mnv["rna_support"]["evidence_set_id"] == pair["rna_support"]["evidence_set_id"]
     # One fragment is below the two needed to call support, so not contradicted either.
     assert candidates["catalog A>G"]["rna_status"] == "insufficient_RNA"
@@ -71,7 +75,7 @@ def test_equivalent_representations_share_support_and_others_are_contradicted(ba
     assert candidates["G>T alone"]["rna_status"] == "contradicted_by_informative_evidence"
     assert result["reference_allele"]["rna_support"]["fragments"] == 2
     assert result["informative"]["fragments"] == 7
-    assert result["set_aside"] == dict(segments_not_spanning_window=1, conflicting_segments=1)
+    assert result["set_aside"] == dict(reads_not_spanning_window=1, conflicting_reads=1)
     assert json.loads(json.dumps(result)) == result
 
 
@@ -124,6 +128,12 @@ def test_command_reads_json_interpretations(bam, tmp_path, capsys):
     result = json.loads(output.read_text())
     assert by_id(result)["caller MNV"]["rna_status"] == "supported"
     assert result["source"] == bam.filename.decode()
+    assert by_id(result)["caller MNV"]["rna_support"]["umis"] is None
+    isovar_cli(["allele-interpretations", "--input", str(path), "--bam", bam.filename.decode(),
+                "--sample-id", "s", "--cell-umi-labels", "--output", str(output), "--log-level", "WARNING"])
+    support = by_id(json.loads(output.read_text()))["caller MNV"]["rna_support"]
+    # These reads carry no CB/UB tags, so every one is unlabelled.
+    assert (support["umis"], support["cells"], support["unlabeled_reads"]) == (0, 0, support["reads"])
     data["interpretations"]["bad"] = [dict(contig="1", start=1021, ref="A")]
     path.write_text(json.dumps(data))
     with pytest.raises(SystemExit) as exit_info:

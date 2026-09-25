@@ -112,8 +112,9 @@ class ReadLineage:
     def support(self, identities):
         """Count resolved signal groups only among the supplied witnesses.
 
-        Every supplied segment is listed for audit, including unresolved ones.
-        A known subset count must not be treated as the total support count.
+        Unresolved reads are counted, and their rows kept in `evidence` for
+        audit. A known subset count must not be treated as the total support
+        count.
         """
         rows = [self.segment(identity) for identity in sorted(set(identities))]
         return summarize_lineage_rows(rows)
@@ -128,7 +129,6 @@ def summarize_lineage_rows(rows):
     rows = list(rows)
     groups = {tuple(row["signal_group"]) for row in rows if row["signal_group"] is not None}
     unresolved = sum(row["signal_group"] is None for row in rows)
-    return dict(segment_ids=[row["identity"] for row in rows],
-                resolved_signal_groups=len(groups), unresolved_segments=unresolved,
-                all_segments_resolved=not unresolved,
-                status_counts=dict(sorted(Counter(row["status"] for row in rows).items())))
+    return dict(reads=len(rows), signal_groups=len(groups), unresolved_reads=unresolved,
+                all_reads_resolved=not unresolved,
+                statuses=dict(sorted(Counter(row["status"] for row in rows).items())))

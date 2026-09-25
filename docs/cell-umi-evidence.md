@@ -6,8 +6,10 @@ same pair of labels may be copies of one RNA molecule. Isovar reports how many
 distinct labels, and cells, support each piece of evidence, alongside the read
 and fragment counts, under one policy, `isovar.cell_umi_labels.v1`:
 
-- for small variants, each allele and protein hypothesis (opt-in, below);
-- for `reconstruct_sv_rna`, each junction and each ORF.
+- for small variants, each allele and protein hypothesis, and each allele
+  interpretation (opt-in, below);
+- for `reconstruct_sv_rna`, each junction, each path's voting reads and each
+  ORF.
 
 A label count is not a molecule count. Isovar uses the labels as the input
 reports them. It does not cluster UMIs, correct barcodes or reconstruct each
@@ -23,57 +25,57 @@ isovar protein-hypotheses --vcf variants.vcf --bam sc-rna.bam --cell-umi-labels 
     --sample-id tumor-1 --output hypotheses.json
 ```
 
-`allele-counts` adds these columns for each of `ref`, `alt` and `other`:
+`allele-counts` adds these columns for each of `ref`, `alt` and `other`, beside
+`num_*_reads` and `num_*_fragments`:
 
-- `num_*_cells`: distinct cells, from the cell barcode alone, with or without a
-  UMI;
-- `num_*_cell_umi_labels`: distinct cell/UMI labels;
-- `num_*_unlabeled_segments` and `num_*_unknown_library_segments`: reads without
-  a usable label, and reads whose library is unknown;
+- `num_*_umis` and `num_*_cells`: distinct cell barcode and UMI pairs, and
+  distinct cells;
+- `*_umis_complete` and `*_cells_complete`: whether those counts are exact;
+- `num_*_unlabeled_reads` and `num_*_unknown_library_reads`: reads without a
+  usable label, and reads whose library is unknown;
 - `num_cells_with_ref_and_alt`: cells with reads of both alleles.
 
-`protein-hypotheses` adds `cell_umi_alleles` to each event (a summary per allele
-and `cells_with_ref_and_alt`), and a `cell_umi_support` to each protein's
-`rna_support`.
+`protein-hypotheses` fills in the cell/UMI fields of every support, alleles,
+proteins and translations alike, and adds `cells_with_ref_and_alt` to each
+event's `allele_support`. `allele-interpretations --cell-umi-labels` does the
+same for each interpretation.
 
 From Python, use `cell_umi_allele_evidence(results, alignment_file,
 sample_id=..., source=...)`, or pass `cell_umi_alignment_file=` to
 `export_protein_hypotheses`. Pass the `ReadCollector` the results were collected
 with. A read whose record that collector would reject is reported as
-`metadata_unavailable` and counted as unresolved, with a warning.
+`metadata_unavailable` and counted as unlabelled, with a warning.
 
 A few cautions:
 
 - Labels come from the eligible records overlapping the variant, so a mate
   outside the locus is not consulted for conflicts.
-- Cells are summarized per allele or protein, with no cell IDs, so do not add
-  `observed_cells` across alleles or proteins that may share cells.
+- Supports are counted separately, with no cell IDs, so do not add `cells`
+  across alleles or proteins that may share cells.
 - Counts from a selected or downsampled read set are not cell prevalence.
 - If no read carries a usable `CB`, all cell counts are zero and a warning is
   logged; the data are probably not single-cell.
 
 ## Reading the counts
 
-Each summary (a small-variant allele or protein, an SV junction's
-`direct_cell_umi_support`, or an ORF's `full_interval_support.cell_umi_support`)
-contains the fields below. Small-variant summaries also give `segments` (the
-supporting reads), `observed_cells` and `complete_cell_count`. The cell count
-uses the same rule as the label count, except that a trusted barcode is enough.
+Every support, whether a small-variant allele or protein, an SV junction's
+`direct_support` or an ORF's `full_interval_support`, is the
+[RNA support record](../README.md#collecting-rna-reads). Its cell/UMI fields:
 
 | Field | Meaning |
 | --- | --- |
-| `complete_label_count` | Distinct labels among the supporting reads, if every read has a usable label and a known library; otherwise null |
-| `observed_labels` | Distinct usable labels found, even when some reads lack one. A lower bound only when every library is known: without `LB`, one label in two read groups counts twice |
-| `all_segments_labeled` | Whether every supporting read has a usable label, whether or not its library is known |
-| `unresolved_segments` | Supporting reads without a usable complete label |
-| `unknown_library_segments` | Supporting reads without unambiguous library metadata |
-| `status_counts` | Supporting reads by resolution status |
-| `segment_ids` | The supporting reads, as `(RG, QNAME, mate bits)`. SV results only; exports and small-variant summaries use hashed IDs instead |
-| `unit` | Always `cell_umi_label` |
-| `independent_molecules` | Always null: labels do not establish independent molecules |
+| `umis` | Distinct cell barcode and UMI pairs among the reads, within their declared library. Without `LB`, one pair in two read groups counts twice |
+| `cells` | Distinct cell barcodes, by the same scoping; a barcode without a UMI still counts |
+| `umis_complete` | Whether there are reads and every one has a usable pair and a known library, so `umis` is exact |
+| `cells_complete` | Whether there are reads and every one has a trusted barcode and a known library, so `cells` is exact |
+| `unlabeled_reads` | Reads without a usable complete label |
+| `unknown_library_reads` | Reads without unambiguous library metadata |
+| `label_statuses` | Reads by resolution status |
 
-Use `complete_label_count` when it is not null. When it is null, look at
-`observed_labels` and the unresolved and unknown-library counts to see why.
+Use `umis` and `cells` as exact counts when their `*_complete` flag is true.
+Otherwise the unlabelled and unknown-library counts show why they are not; with
+no reads, both flags are false and both counts zero. A
+label count is not a molecule count: UMIs are not clustered or corrected.
 
 ## Which labels count as the same
 
@@ -85,7 +87,7 @@ read group header's `SM` and `LB` fields give the sample and library:
 - Different libraries or samples never share labels.
 - Without `LB`, the library is unknown. Labels then stay local to their read
   group, or to the whole input when there is no `RG`. They count toward
-  `observed_labels` but never toward `complete_label_count`.
+  `umis` but leave `umis_complete` false.
 - Without `SM`, the input's `sample_id` names the sample. A missing `SM` is not
   treated as equal to another group's `SM`.
 - Duplicate read group IDs in the header are ambiguous, and their labels stay
@@ -134,7 +136,7 @@ Records missing tags are counted explicitly. A read is left unresolved when:
 
 ## The evidence record
 
-In SV results, `cell_umi_evidence.segments` lists every read consulted, with its scope,
+In SV results, `cell_umi_evidence.reads` lists every read consulted, with its scope,
 selected labels, UMI tags, `XM` interpretation and the reasons for its status.
 Visible mates checked for conflicts can appear here without being counted as
 support. Each label's key is the tuple `(source, sample_id, header_sample,

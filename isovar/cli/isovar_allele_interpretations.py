@@ -27,6 +27,8 @@ def make_parser(prog="isovar allele-interpretations"):
                         help="Exonic bases added on each side of the locus (default: %(default)s)")
     parser.add_argument("--min-fragments", type=positive_int, default=MIN_INTERPRETATION_FRAGMENTS,
                         help="Fragments needed to call an interpretation supported (default: %(default)s)")
+    parser.add_argument("--cell-umi-labels", action="store_true",
+                        help="Also count UMIs and cells from CB/UB tags (single-cell data)")
     add_rna_args(parser)
     add_log_level_arg(parser)
     return parser
@@ -43,7 +45,8 @@ def run(args=None, prog=None):
             result = reconcile_allele_interpretations(
                 interpretations, alignment_file, sample_id=options.sample_id,
                 source=options.source or options.bam, read_collector=read_collector_from_args(options),
-                flank=options.flank, min_fragments=options.min_fragments)
+                flank=options.flank, min_fragments=options.min_fragments,
+                cell_umi_labels=options.cell_umi_labels)
         Path(options.output).expanduser().write_text(json.dumps(result, indent=2) + "\n")
     except (OSError, ValueError, CommandInputError) as error:
         parser.error(str(error))

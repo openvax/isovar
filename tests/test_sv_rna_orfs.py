@@ -12,6 +12,7 @@ from isovar.sv_rna import RnaObservation, _Model
 from isovar.read_metadata import record_evidence
 from isovar.sv_rna_orfs import exploratory_orfs
 from tests.test_sv_rna import long_read_run
+from tests.testing_helpers import complete_umis
 
 
 def observation(key, sequence, positions, **kwargs):
@@ -208,8 +209,8 @@ def test_reverse_observation_offsets_and_library_scoped_cell_umi_labels():
     candidate, = run(seq, pos, reads, junction,
                      cell_umi=CellUmiEvidence(groups, header, "sample", "input"))["candidates"]
     support = candidate["full_interval_support"]
-    assert support["segments"] == support["fragments"] == 3
-    assert support["cell_umi_support"]["complete_label_count"] == 2 and support["missing_quality_segments"] == 2
+    assert support["reads"] == support["fragments"] == 3
+    assert complete_umis(support) == 2 and support["missing_quality_reads"] == 2
     assert all(w["original_query_interval"] == [10, 25] for w in support["witnesses"])
 
 
@@ -279,8 +280,8 @@ def test_original_pacbio_upstream_orf_has_full_span_support_and_retains_tags(tmp
                for a in start["assessments"])
     assert exported["occurrences"][0]["start_evidence"] == start
     support = candidate["full_interval_support"]
-    assert support["cell_umi_support"]["complete_label_count"] is None and support["missing_quality_segments"] == 15
-    assert support["cell_umi_support"]["status_counts"] == {"unresolved_xm": 15}
+    assert complete_umis(support) is None and support["missing_quality_reads"] == 15
+    assert support["label_statuses"] == {"unresolved_xm": 15}
     record_ids = {rid for w in support["witnesses"] for rid in result["observations"][w["observation"]]["records"]}
     evidence = [result["record_evidence"][rid] for rid in record_ids]
     assert all(not r["base_qualities_available"] and r["mapping_quality"] == 60 for r in evidence)

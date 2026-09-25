@@ -1,15 +1,16 @@
 """Cell barcodes and UMIs behind each small variant's allele reads.
 
 Single-cell libraries tag reads with a cell barcode (``CB``) and a UMI (``UB``,
-or an attributable Iso-Seq ``XM``). `CellUmiAlleles` counts, for each variant,
-the distinct cells and cell/UMI labels behind the reference, alternate and
-other alleles, and behind each protein hypothesis. Labels are resolved with the
-same policy as SV reconstruction (``isovar.cell_umi_labels.v1``; see
+or an attributable Iso-Seq ``XM``). `CellUmiAlleles` gives, for each variant,
+the RNA support record (reads, fragments, UMIs and cells; see
+`isovar.rna_evidence.rna_support`) of the reference, alternate and other
+alleles and of each protein hypothesis. Labels are resolved with the same
+policy as SV reconstruction (``isovar.cell_umi_labels.v1``; see
 docs/cell-umi-evidence.md). Sample-level reconstruction is unchanged: this only
 counts labels on reads Isovar already used.
 """
 
-from .cell_umi import CellUmiEvidence, summarize_cell_umi_rows
+from .cell_umi import CellUmiEvidence
 from .logging import get_logger
 from .read_collector import ReadCollector
 from .read_identity import segment_identity, source_read_ids
@@ -21,10 +22,6 @@ ALLELES = ("ref", "alt", "other")
 
 # Tags the label policy reads; keeping only these avoids holding whole records.
 _LABEL_TAGS = ("CB", "UB", "XM", "CR", "XC", "UR", "RX", "OX", "PG")
-
-# Statuses whose cell barcode cannot be trusted, even when one is present.
-_UNRESOLVED_CELL = frozenset(("conflicting_tags", "conflicting_template_labels", "invalid_tags",
-                              "ambiguous_read_group"))
 
 
 class _Tags(object):
@@ -42,10 +39,8 @@ class _Tags(object):
         return self.tags[tag]
 
 
-def _missing_record_row(identity):
-    """A read whose record is not among the eligible records at the locus."""
-    return dict(identity=list(identity), scope=None, label=None, cell_barcode=None,
-                library_scope_known=False, status="metadata_unavailable")
+def _identities(reads):
+    return sorted({key for read in reads for key in source_read_ids(read)})
 
 
 class CellUmiAlleles(object):
@@ -59,8 +54,8 @@ class CellUmiAlleles(object):
         The explicit evidence scope; labels never merge across it.
     read_collector : ReadCollector, optional
         The collector the reads came from, for record eligibility. A read
-        whose record this collector rejects is reported as
-        ``metadata_unavailable``.
+        whose record this collector rejects is unlabelled
+        (``metadata_unavailable``).
     """
 
     def __init__(self, alignment_file, *, sample_id, source, read_collector=None):
@@ -69,36 +64,41 @@ class CellUmiAlleles(object):
         self.scope = [sample_id, source]
         self.read_collector = read_collector or ReadCollector()
 
-    def _labels(self, variant, templates):
-        """Label resolution over eligible records of the needed templates at the variant."""
-        chromosome = self.read_collector._infer_chromosome_name(
-            variant.contig, set(self.alignment_file.references))
+    def labels(self, variant, identities):
+        """
+        The label resolver (`isovar.cell_umi.CellUmiEvidence`) for these reads
+        at a variant. Its ``support(identities)`` gives RNA support records.
+        """
+        start, end = base0_interval_for_variant(variant)
+        return self.labels_at(variant.contig, start, end, identities)
+
+    def labels_at(self, contig, start, end, identities):
+        """
+        The label resolver for these reads over the 0-based interval [start, end).
+
+        Logs a warning when some of the reads have no eligible record there,
+        which usually means they were collected with a different ReadCollector.
+        """
+        identities = {tuple(identity) for identity in identities}
+        templates = {identity[:2] for identity in identities}
+        chromosome = self.read_collector._infer_chromosome_name(contig, set(self.alignment_file.references))
         groups = {}
         if chromosome is not None:
-            start, end = base0_interval_for_variant(variant)
             # The window ReadCollector fetches, so reads ending at an insertion are included.
             for record in self.alignment_file.fetch(chromosome, max(0, start - 1), end + 1):
                 identity = segment_identity(record)
                 if identity[:2] in templates and self.read_collector.alignment_filter_reason(record) is None:
                     groups.setdefault(identity, []).append(_Tags(record))
+        missing = len(identities - groups.keys())
+        if missing:
+            logger.warning(
+                "%d read(s) at %s:%d-%d had no eligible record for cell/UMI labels; pass the ReadCollector "
+                "the reads were collected with", missing, contig, start + 1, end)
         return CellUmiEvidence(groups, self.header, *self.scope)
-
-    @staticmethod
-    def _summary(labels, identities):
-        rows = [labels.segment(identity) if identity in labels.groups else _missing_record_row(identity)
-                for identity in identities]
-        summary = summarize_cell_umi_rows(rows)
-        summary.pop("segment_ids")
-        trusted = [row for row in rows if row["cell_barcode"] is not None and row["status"] not in _UNRESOLVED_CELL]
-        cells = {(*row["scope"].values(), row["cell_barcode"]) for row in trusted}
-        complete = bool(rows) and len(trusted) == len(rows) and all(row["library_scope_known"] for row in rows)
-        summary.update(segments=len(rows), observed_cells=len(cells),
-                       complete_cell_count=len(cells) if complete else None)
-        return summary, cells
 
     def evidence(self, variant, read_evidence, protein_sequences=()):
         """
-        Cell/UMI label support for one variant's alleles and protein hypotheses.
+        RNA support records, with cell/UMI counts, for one variant's alleles and proteins.
 
         Parameters
         ----------
@@ -110,47 +110,36 @@ class CellUmiAlleles(object):
         Returns
         -------
         dict
-            ``policy``; ``alleles`` with a summary for ``ref``, ``alt`` and
-            ``other``; ``cells_with_ref_and_alt``, cells with a trusted barcode
-            on reads of both alleles; and one summary per protein in
-            ``protein_hypotheses``. Each summary gives ``segments``,
-            ``observed_labels`` and ``observed_cells``, ``complete_label_count``
-            and ``complete_cell_count`` (null unless every read is resolved in
-            a known library), unresolved and unknown-library segments and status
-            counts. Cells come from the barcode alone, with or without a UMI.
-            Counts are not molecules or cell prevalence, and must not be added
-            across alleles or proteins that share cells.
+            ``policy``; ``alleles``, the record of each of ``ref``, ``alt`` and
+            ``other``; ``cells_with_ref_and_alt``, cells with reads of both
+            alleles; and ``protein_hypotheses``, one record per protein. Counts
+            are not molecules or cell prevalence, and must not be added across
+            alleles or proteins that share cells.
         """
-        by_allele = {allele: sorted({key for read in getattr(read_evidence, allele + "_reads")
-                                     for key in source_read_ids(read)}) for allele in ALLELES}
-        by_protein = [sorted({key for read in protein.supporting_reads for key in source_read_ids(read)})
-                      for protein in protein_sequences]
-        templates = {identity[:2] for identities in [*by_allele.values(), *by_protein] for identity in identities}
-        labels = self._labels(variant, templates)
-        missing = sum(identity not in labels.groups for identities in by_allele.values() for identity in identities)
-        if missing:
-            logger.warning(
-                "%d read(s) at %s had no eligible record for cell/UMI labels; pass the ReadCollector "
-                "the reads were collected with", missing, variant.short_description)
-        alleles, cells = {}, {}
-        for allele in ALLELES:
-            alleles[allele], cells[allele] = self._summary(labels, by_allele[allele])
+        by_allele = {allele: _identities(getattr(read_evidence, allele + "_reads")) for allele in ALLELES}
+        by_protein = [_identities(protein.supporting_reads) for protein in protein_sequences]
+        labels = self.labels(variant, [i for identities in [*by_allele.values(), *by_protein] for i in identities])
         return dict(
-            policy=CellUmiEvidence.policy, alleles=alleles,
-            cells_with_ref_and_alt=len(cells["ref"] & cells["alt"]),
-            protein_hypotheses=[self._summary(labels, identities)[0] for identities in by_protein])
+            policy=CellUmiEvidence.policy,
+            alleles={allele: labels.support(by_allele[allele]) for allele in ALLELES},
+            cells_with_ref_and_alt=labels.shared_cells(by_allele["ref"], by_allele["alt"]),
+            protein_hypotheses=[labels.support(identities) for identities in by_protein])
 
 
-def warn_if_unlabelled(evidence):
-    """Log a warning when no read carried a cell barcode: likely not single-cell data."""
-    summaries = [summary for item in evidence for summary in item["alleles"].values()]
-    if any(s["segments"] for s in summaries) and not any(s["observed_cells"] for s in summaries):
+def warn_if_unlabelled(supports):
+    """
+    Log a warning when reads with a record carried no usable cell barcode:
+    likely not single-cell data. ``supports`` are RNA support records.
+    """
+    supports = list(supports)
+    with_record = sum(s["reads"] - s["label_statuses"].get("metadata_unavailable", 0) for s in supports)
+    if with_record and not any(s["cells"] for s in supports):
         logger.warning("No read carried a usable CB cell barcode; cell counts are all zero")
 
 
 def cell_umi_allele_evidence(isovar_results, alignment_file, *, sample_id, source, read_collector=None):
     """
-    Cell/UMI label evidence for each result's alleles and protein hypotheses.
+    RNA support records with cell/UMI counts for each result's alleles and proteins.
 
     Parameters
     ----------
@@ -169,5 +158,5 @@ def cell_umi_allele_evidence(isovar_results, alignment_file, *, sample_id, sourc
     """
     labels = CellUmiAlleles(alignment_file, sample_id=sample_id, source=source, read_collector=read_collector)
     evidence = [labels.evidence(r.variant, r.read_evidence, r.sorted_protein_sequences) for r in isovar_results]
-    warn_if_unlabelled(evidence)
+    warn_if_unlabelled(support for e in evidence for support in e["alleles"].values())
     return evidence

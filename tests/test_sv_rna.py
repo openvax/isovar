@@ -18,12 +18,12 @@ import pytest
 from isovar import reconstruct_sv_rna
 from isovar.cli import commands
 from isovar.fusion import FusionBreakpoint, FusionReference, fusion_from_dict, reconstruct_fusion
-from tests.testing_helpers import fusion_input
 from isovar.read_collector import ReadCollector
 from isovar.dna import reverse_complement_dna as reverse_complement
 from isovar.read_end_inference import Adapter, ReadEndProfile
 from isovar.sv_rna import RnaObservation, _extend_both, _ObservationIndex, sv_rna_input_from_dict
 from tests.data.osteosarc.expansion.references import translate
+from tests.testing_helpers import complete_umis, fusion_input
 
 HEADER = pysam.AlignmentHeader.from_dict(dict(
     SQ=[dict(SN="1", LN=20000), dict(SN="2", LN=20000)], RG=[dict(ID="a"), dict(ID="b")]))
@@ -180,7 +180,7 @@ def test_spliced_fusion_is_reconstructed_and_translated_in_the_donor_frame(tmp_p
     assert junction["breakpoint_assignment"] == [350, 500 if acceptor_strand == "+" else 200]
     assert not junction["annotated"] and not junction["forward_splice_geometry"]
     starts = range(0, len(s.sequence) - 99, 10)
-    assert junction["direct_fragments"] == sum(a <= 249 and 250 < a + 100 for a in starts)
+    assert junction["direct_support"]["fragments"] == sum(a <= 249 and 250 < a + 100 for a in starts)
     assert not path["event_linkage"]["somatic_causation_proven"]
 
     assert path["frame_status"] == "translated"
@@ -220,7 +220,7 @@ def test_exact_breakpoint_and_observed_junction_homology(tmp_path):
         assert path["sequence"] == read and junction["query_interval"] == [47, 50]
         assert junction["unplaced_bases"] == read[47:50]  # Placed twice, so by neither piece.
         assert (junction["relation"], junction["breakpoint_assignment"]) == expected
-        assert junction["direct_fragments"] == 2
+        assert junction["direct_support"]["fragments"] == 2
 
 
 def test_one_read_is_enough_to_report_an_event_junction(tmp_path):
@@ -231,7 +231,7 @@ def test_one_read_is_enough_to_report_an_event_junction(tmp_path):
     result = s.run(write_bam(tmp_path / "rna.bam", records), *s.exact)
     assert sorted(p["sequence"] for p in result["paths"]) == sorted([s.sequence[200:300], variant])
     # Both reads make the breakpoint join; a base elsewhere does not split its support.
-    assert all(p["junctions"][0]["direct_fragments"] == 2 for p in result["paths"])
+    assert all(p["junctions"][0]["direct_support"]["fragments"] == 2 for p in result["paths"])
     assert not any(seed.get("minor_variant_of_seeded_junction") for seed in result["seeds"])
     # Against twenty reads, the single-read variant of the same join is pruned.
     records += [r for i in range(20) for r in aligned("m%d" % i, s.sequence[200:300], s.positions[200:300])]
@@ -246,7 +246,7 @@ def test_sa_tag_without_its_observed_record_creates_no_junction(tmp_path):
     bam = write_bam(tmp_path / "rna.bam", primaries)
     result = s.run(bam)
     assert result["status"] == "no_candidate_paths" and result["paths"] == []
-    assert result["segment_path_notes"]["SA_declared_piece_not_linked"] > 0
+    assert result["read_path_notes"]["SA_declared_piece_not_linked"] > 0
     # A soft clip at the nominated breakpoint is unplaced sequence, not a partner.
     result = s.run(bam, *s.exact, read_collector=ReadCollector(use_soft_clipped_bases=True))
     assert result["status"] == "event_linked_candidates"
@@ -277,7 +277,7 @@ def test_breakpoint_soft_clips_inside_terminal_hard_clips(tmp_path, side, flag):
     assert path["sequence"] == sequence
     junction, = path["junctions"]
     assert junction["relation"] == "breakpoint_clip_partner_unplaced"
-    assert junction["direct_fragments"] == 1
+    assert junction["direct_support"]["fragments"] == 1
     assert junction["right" if side == "donor" else "left"] is None
 
 
@@ -316,7 +316,7 @@ def test_alternative_placements_and_duplicate_records_add_no_support(tmp_path):
     reads = s.tile("f", s.sequence, s.positions)
     baseline = s.run(write_bam(tmp_path / "base.bam", reads))
     junction, = spanning(baseline)
-    assert junction["direct_fragments"] == len(junction_reads(s))
+    assert junction["direct_support"]["fragments"] == len(junction_reads(s))
     primaries = {r.query_name: r for r in reads if not r.is_supplementary}
     # Secondary placements elsewhere are other hypotheses for those segments,
     # never additional supporting pieces.
@@ -328,8 +328,8 @@ def test_alternative_placements_and_duplicate_records_add_no_support(tmp_path):
     result = s.run(write_bam(tmp_path / "alt.bam", reads + reads[:6] + secondary + other_group))
     path, = result["paths"]
     assert path["sequence"] == baseline["paths"][0]["sequence"]
-    assert path["junctions"][0]["direct_fragments"] == junction["direct_fragments"] + 3
-    assert path["sequence_evidence"]["secondary_segments"] == 0
+    assert path["junctions"][0]["direct_support"]["fragments"] == junction["direct_support"]["fragments"] + 3
+    assert path["sequence_evidence"]["secondary_reads"] == 0
     dropped = s.run(write_bam(tmp_path / "drop.bam", reads + secondary),
                     read_collector=ReadCollector(use_secondary_alignments=False))
     assert dropped["excluded_records"] == {"secondary": 2}
@@ -341,7 +341,7 @@ def test_missing_qualities_are_kept_unless_policy_requires_them(tmp_path):
     bam = write_bam(tmp_path / "rna.bam", s.tile("f", s.sequence, s.positions, qualities=False))
     result = s.run(bam)
     path, = result["paths"]
-    assert path["sequence"] == s.sequence and path["sequence_evidence"]["missing_quality_segments"] > 0
+    assert path["sequence"] == s.sequence and path["sequence_evidence"]["missing_quality_reads"] > 0
     assert all(o["missing_qualities"] for o in result["observations"].values())
     strict = s.run(bam, read_collector=ReadCollector(use_reads_without_base_qualities=False))
     assert strict["paths"] == [] and set(strict["excluded_records"]) == {"qualities_unavailable"}
@@ -449,8 +449,8 @@ def test_noisy_reads_count_as_direct_support_for_their_own_junction(tmp_path):
     result = s.run(write_bam(tmp_path / "rna.bam", reads))
     junction, = [j for p in result["paths"] for j in p["junctions"] if j["relation"] == "event_compatible_junction"][:1]
     # Almost no read matches the consensus end to end, but each makes the join.
-    assert junction["direct_fragments"] == junction["direct_segments"] == spans
-    assert result["paths"][0]["sequence_evidence"]["voting_fragments"] > 0
+    assert junction["direct_support"]["fragments"] == junction["direct_support"]["reads"] == spans
+    assert result["paths"][0]["sequence_evidence"]["voting_support"]["fragments"] > 0
 
 
 def test_junction_bases_placed_past_the_breakpoint_are_the_same_adjacency(tmp_path):
@@ -464,14 +464,14 @@ def test_junction_bases_placed_past_the_breakpoint_are_the_same_adjacency(tmp_pa
     result = s.run(bam, donor, acceptor)
     junctions = {tuple(j["breakpoint_assignment"]): j for p in result["paths"] for j in p["junctions"]}
     assert set(junctions) <= {(0, 0), (-3, 3)} and all(j["relation"] == "breakpoint_junction" for j in junctions.values())
-    assert all(j["direct_fragments"] == 5 for j in junctions.values())
+    assert all(j["direct_support"]["fragments"] == 5 for j in junctions.values())
     assert [s["minor_variant_of_seeded_junction"] for s in result["seeds"] if "minor_variant_of_seeded_junction" in s] \
         in ([], [True])
     # Beyond the shift tolerance it is a different, unsupported adjacency.
     narrow = s.run(bam, donor, acceptor, max_breakpoint_shift=2)
     assert {tuple(j["breakpoint_assignment"]) for p in narrow["paths"] for j in p["junctions"]
             if j["relation"] == "breakpoint_junction"} == {(0, 0)}
-    assert narrow["paths"][0]["junctions"][0]["direct_fragments"] == 3
+    assert narrow["paths"][0]["junctions"][0]["direct_support"]["fragments"] == 3
 
 
 def test_breakpoint_join_between_annotated_splice_sites_is_read_through_ambiguous(tmp_path):
@@ -505,7 +505,7 @@ def test_unannotated_joins_near_annotated_ones_are_aligner_wobble(tmp_path):
         reads = [r for i in range(3) for r in aligned("w%d" % i, s.donor_ref.sequence[:200], positions)]
         result = s.run(write_bam(tmp_path / ("w%d.bam" % shift), reads))
         assert bool(result["seeds"]) == seeded
-        assert ("join_near_annotated_junction" in result["segment_path_notes"]) != seeded
+        assert ("join_near_annotated_junction" in result["read_path_notes"]) != seeded
 
 
 def test_deep_long_read_locus_builds_only_what_paths_need(tmp_path):
@@ -517,9 +517,9 @@ def test_deep_long_read_locus_builds_only_what_paths_need(tmp_path):
     result = s.run(write_bam(tmp_path / "deep.bam", reads), max_records=20000)
     assert time.perf_counter() - started < 60
     path, = result["paths"]
-    assert path["sequence"] == s.sequence and path["junctions"][0]["direct_fragments"] == 12
+    assert path["sequence"] == s.sequence and path["junctions"][0]["direct_support"]["fragments"] == 12
     counts = result["observation_counts"]
-    assert counts["eligible_segments"] == 8012 and counts["built_segments"] < 1000
+    assert counts["eligible_reads"] == 8012 and counts["built_reads"] < 1000
     assert "extension_segment_limit" in result["limitations"]
 
 
@@ -534,7 +534,7 @@ def test_lazily_queued_joins_beyond_the_path_budget_are_reported_unexplored(tmp_
     assert unexplored["relation"] == "regional_novel_junction" and unexplored["fragments"] == 2
     assert unexplored["left"] == ["1", 1099, "+"] and unexplored["paths"] == []
     # The queued join's reads were never built.
-    assert result["observation_counts"]["built_segments"] < result["observation_counts"]["eligible_segments"]
+    assert result["observation_counts"]["built_reads"] < result["observation_counts"]["eligible_reads"]
 
 
 def genome_base(s, position):
@@ -658,7 +658,7 @@ def test_linked_interval_requires_the_observed_junction_insertion(tmp_path, long
     result = s.run(write_bam(tmp_path / "insertion.bam", reads), *s.exact)
     path, = [p for p in result["paths"] if p["sequence"] == s.sequence[:250] + "TTT" + s.sequence[250:]]
     junction, = path["junctions"]
-    assert junction["direct_fragments"] == 8  # All eight reads make the join.
+    assert junction["direct_support"]["fragments"] == 8  # All eight reads make the join.
     assert junction["linked_interval"] == ([0, 953] if long_insertion == "TTT" else [200, 303])
 
 
@@ -675,9 +675,9 @@ def test_unbuilt_junction_reads_preserve_inserted_sequence(tmp_path, strand, ins
                             cds_start=None, cds_end=None)
     result = s.run(write_bam(tmp_path / "deep-insertion.bam", reads), references=[reference])
     junction, = spanning(result, "regional_novel_junction")
-    assert junction["direct_segments"] == junction["direct_fragments"] == 250
-    assert junction["direct_read_lineage"]["unresolved_segments"] == 250
-    assert result["observation_counts"]["built_segments"] == 200
+    assert junction["direct_support"]["reads"] == junction["direct_support"]["fragments"] == 250
+    assert junction["direct_read_lineage"]["unresolved_reads"] == 250
+    assert result["observation_counts"]["built_reads"] == 200
     assert "seed_segment_limit" in result["limitations"]
     assert junction["direct_junction_sequences"] == [["TTT" if strand == "+" else "AAA", 250]]
 
@@ -691,8 +691,8 @@ def test_reads_whose_build_fails_are_not_direct_support(tmp_path):
     reads += [r for k in range(4) for r in aligned("n%d" % k, ambiguous, skip_positions[40:200])]
     result = s.run(write_bam(tmp_path / "rna.bam", reads))
     junction, = [j for p in result["paths"] for j in p["junctions"]]
-    assert junction["direct_segments"] == len(junction["direct_observations"]) == 3
-    assert result["segment_path_notes"]["ambiguous_bases"] == 4
+    assert junction["direct_support"]["reads"] == len(junction["direct_observations"]) == 3
+    assert result["read_path_notes"]["ambiguous_bases"] == 4
 
 
 def test_record_and_query_limits_are_reported(tmp_path):
@@ -782,7 +782,7 @@ def test_cli_writes_the_api_result(tmp_path):
                                       **sv_rna_input_from_dict(json.loads(json.dumps(data))))
     assert result == json.loads(json.dumps(expected))
     assert result["parameters"]["assemble"] is False and result["status"] == "event_linked_candidates"
-    assert result["schema"] == "isovar.sv_rna_candidates.v4"
+    assert result["schema"] == "isovar.sv_rna_candidates.v5"
     assert result["parameters"]["read_collection"] == dict(
         min_mapping_quality=1, use_duplicate_reads=False, use_secondary_alignments=True,
         use_soft_clipped_bases=False, use_reads_without_base_qualities=True, merge_overlapping_fragments=True,
@@ -833,7 +833,7 @@ def test_original_short_reads_reproduce_the_validated_atp5mg_kmt2a_translation(t
     # strand: read-through splicing makes the same RNA.
     assert junction["relation"] == "splice_ambiguous_event_junction" and junction["breakpoint_assignment"] == [0, 0]
     assert junction["forward_splice_geometry"] and result["status"] == "splice_ambiguous_candidates"
-    assert junction["kinds"] == ["N"] and junction["direct_fragments"] == 2  # STAR's CIGAR N, not SA.
+    assert junction["kinds"] == ["N"] and junction["direct_support"]["fragments"] == 2  # STAR's CIGAR N, not SA.
     assert data["fusion"]["sequence"] in path["sequence"]
     translation, = path["translations"]
     assert translation["amino_acids"] == supplied["amino_acids"] == "MAQFVRNLVEKTPALVNG"
@@ -862,7 +862,7 @@ def test_sa_only_long_reads_do_not_become_a_placed_bcr_abl1_junction(tmp_path):
     result = run_corpus(bam, inputs)
     # The fixture retains primaries whose SA partners were not acquired.
     assert result["status"] == "no_candidate_paths"
-    assert result["segment_path_notes"]["SA_declared_piece_not_linked"] == 2
+    assert result["read_path_notes"]["SA_declared_piece_not_linked"] == 2
     clipped = run_corpus(bam, inputs, read_collector=ReadCollector(use_soft_clipped_bases=True))
     assert clipped["status"] == "event_linked_candidates" and len(clipped["paths"]) == 2  # One per CCS read.
     assert {p["event_linkage"]["status"] for p in clipped["paths"]} == {"breakpoint_clip_partner_unplaced"}
@@ -926,7 +926,7 @@ def long_read_run(tmp_path, event, source):
 
 def adjacency_junction(result):
     return max((j for p in result["paths"] for j in p["junctions"] if j["relation"] == "breakpoint_junction"),
-               key=lambda j: j["direct_fragments"])
+               key=lambda j: j["direct_support"]["fragments"])
 
 
 def test_pacbio_places_homologous_junction_bases_past_the_catalogue_breakpoint(tmp_path):
@@ -934,9 +934,9 @@ def test_pacbio_places_homologous_junction_bases_past_the_catalogue_breakpoint(t
     junction = adjacency_junction(result)
     # pbmm2 assigns all 8 homologous bases to CRCP; ONT reads leave them unplaced.
     assert junction["breakpoint_assignment"] == [3, -3] and junction["unplaced_bases"] == ""
-    assert junction["direct_fragments"] == 20
-    assert junction["direct_cell_umi_support"]["complete_label_count"] is None
-    assert junction["direct_cell_umi_support"]["status_counts"] == {"unresolved_xm": 20}
+    assert junction["direct_support"]["fragments"] == 20
+    assert complete_umis(junction["direct_support"]) is None
+    assert junction["direct_support"]["label_statuses"] == {"unresolved_xm": 20}
     assert result["status"] == "event_linked_candidates"
 
 
@@ -944,11 +944,11 @@ def test_noisy_ont_reads_count_as_direct_junction_support(tmp_path):
     result = long_read_run(tmp_path, "FOXO3--STRADA-CCDC47", "ONT-T1-tagged")
     junction = adjacency_junction(result)
     # v1.20.0 counted 0: no read matched the assembled consensus end to end.
-    assert junction["direct_fragments"] == 12 and junction["direct_cell_umi_support"]["complete_label_count"] is None
-    assert junction["direct_cell_umi_support"]["observed_labels"] == 8
-    assert junction["direct_cell_umi_support"]["unknown_library_segments"] == 12
+    assert junction["direct_support"]["fragments"] == 12 and complete_umis(junction["direct_support"]) is None
+    assert junction["direct_support"]["umis"] == 8
+    assert junction["direct_support"]["unknown_library_reads"] == 12
     assert junction["direct_junction_sequences"][0] == ["GGA", 12]
-    assert junction["direct_read_lineage"]["status_counts"] == {"unknown_producer": 12}
+    assert junction["direct_read_lineage"]["statuses"] == {"unknown_producer": 12}
 
 
 def test_regional_extensions_preserve_directly_witnessed_junction_orf(tmp_path):
@@ -960,7 +960,7 @@ def test_regional_extensions_preserve_directly_witnessed_junction_orf(tmp_path):
     # Alternative paths must not inflate support for the same original RNA.
     witnesses = {w["observation"] for c in candidates for w in c["full_interval_support"]["witnesses"]}
     assert len({tuple(result["observations"][w]["identity"][:2]) for w in witnesses}) == 9
-    assert adjacency_junction(result)["direct_fragments"] == 12
+    assert adjacency_junction(result)["direct_support"]["fragments"] == 12
     assert all(not c["initiation_observed"] and not c["translation_observed"] for c in candidates)
 
 
@@ -968,7 +968,7 @@ def test_long_reads_show_the_atp5mg_kmt2a_join_is_read_through_ambiguous(tmp_pat
     result = long_read_run(tmp_path, "ATP5MG--KMT2A", "PacBio-T1")
     junction, = [j for p in result["paths"] for j in p["junctions"]
                  if j["relation"] == "splice_ambiguous_event_junction" and j["breakpoint_assignment"] == [0, 0]][:1]
-    assert junction["forward_splice_geometry"] and junction["direct_fragments"] == 5
-    assert junction["direct_cell_umi_support"]["complete_label_count"] is None
-    assert junction["direct_cell_umi_support"]["status_counts"] == {"unresolved_xm": 5}
+    assert junction["forward_splice_geometry"] and junction["direct_support"]["fragments"] == 5
+    assert complete_umis(junction["direct_support"]) is None
+    assert junction["direct_support"]["label_statuses"] == {"unresolved_xm": 5}
     assert result["status"] == "splice_ambiguous_candidates"

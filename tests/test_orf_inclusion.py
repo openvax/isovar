@@ -8,8 +8,10 @@ import pysam
 import pytest
 
 from isovar import FusionBreakpoint, export_sv_rna_orfs, reconstruct_sv_rna, write_sv_rna_orfs
+from isovar.rna_evidence import CELL_UMI_FIELDS
 from tests.test_orf_start import reference
 from tests.test_sv_rna import aligned, write_bam
+from tests.testing_helpers import LINEAGE_SUMMARY
 
 
 def inclusion_result(tmp_path, mode, assemble, **options):
@@ -74,8 +76,9 @@ def test_only_qualified_same_read_splice_linkage_promotes_intronic_atg(tmp_path,
     else:
         evidence = assessment["splice_inclusion"]
         assert evidence["qualified_fragments"] == (2 if priority == 3 else 0)
-        assert "segment_ids" not in evidence["cell_umi_support"]
-        assert "segment_ids" not in evidence["read_lineage"]
+        # Counts only: no read identities leave the reconstruction.
+        assert set(evidence["support"]) == {"reads", "fragments", *CELL_UMI_FIELDS}
+        assert set(evidence["read_lineage"]) == LINEAGE_SUMMARY
     if priority == 3:
         assert evidence["mechanisms"] == ["cryptic_donor"]
         assert all(w["minimum_base_quality"] == 30 for w in evidence["witnesses"])

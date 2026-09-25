@@ -10,7 +10,7 @@ from isovar.read_collector import ReadCollector
 MITO_NAMES = ("M", "MT", "chrM", "chrMT", "m", "mt", "chrm", "chrmt", "CHRM", "CHRMT")
 
 
-@pytest.mark.parametrize("variant,bam", product(MITO_NAMES, repeat=2))
+@pytest.mark.parametrize("variant,bam", list(product(MITO_NAMES, repeat=2)))
 def test_unique_mitochondrial_alias(variant, bam):
     assert ReadCollector._infer_chromosome_name(variant, {"1", bam}) == bam
 

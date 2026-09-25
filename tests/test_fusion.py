@@ -135,11 +135,11 @@ def test_incomplete_donor_codon_and_disrupted_start_do_not_claim_a_fusion_protei
 def test_duplicate_products_supplementary_records_and_mates_do_not_inflate_fragments():
     fusion, refs, reads = example()
     result = reconstruct_fusion(fusion, refs, reads + (replace(reads[0], source="processed-copy"),))
-    assert result["evidence"]["reads"] == result["evidence"]["direct_fragments"] == 2
+    assert result["evidence"]["support"]["reads"] == result["paths"][0]["junctions"][0]["direct_support"]["fragments"] == 2
     mates = (reads[0], replace(reads[1], fragment_id=reads[0].fragment_id))
     result = reconstruct_fusion(fusion, refs, mates)
     assert result["status"] == "insufficient_support"
-    assert result["evidence"]["reads"] == 2 and result["evidence"]["fragments"] == 1
+    assert result["evidence"]["support"]["reads"] == 2 and result["evidence"]["support"]["fragments"] == 1
     with pytest.raises(ValueError, match="Conflicting observations"):
         reconstruct_fusion(fusion, refs, reads + (replace(reads[0], source_query_start=1),))
 
@@ -151,15 +151,15 @@ def test_paired_mates_share_query_name_without_becoming_duplicates():
 
     result = reconstruct_fusion(fusion, refs, (first, second))
 
-    assert result["evidence"]["reads"] == 2
-    assert result["evidence"]["fragments"] == 1
-    assert result["evidence"]["direct_fragments"] == 1
+    assert result["evidence"]["support"]["reads"] == 2
+    assert result["evidence"]["support"]["fragments"] == 1
+    assert result["paths"][0]["junctions"][0]["direct_support"]["fragments"] == 1
     assert result["status"] == "insufficient_support"
     duplicate_first = replace(first, source="processed-copy")
     deduplicated = reconstruct_fusion(
         fusion, refs, (first, duplicate_first, second)
     )
-    assert deduplicated["evidence"]["reads"] == 2
+    assert deduplicated["evidence"]["support"]["reads"] == 2
     with pytest.raises(ValueError, match="Conflicting observations"):
         reconstruct_fusion(
             fusion,
@@ -263,7 +263,7 @@ def test_original_osteosarc_rna_windows_remain_unresolved_not_fake_proteins():
         result = reconstruct_fusion(fusion, refs, reads)
         assert result["status"] == "unresolved"
         assert result["paths"][0]["translations"] == []
-        assert result["evidence"]["direct_fragments"] == entry["fragments"]
+        assert result["paths"][0]["junctions"][0]["direct_support"]["fragments"] == entry["fragments"]
         if fusion.event_id.startswith("TPST1"):
             assert "junction_before_donor_CDS:ENST00000304842" in result["reasons"]
         else:
