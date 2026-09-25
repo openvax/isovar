@@ -67,6 +67,11 @@ MIN_VARIANT_SEQUENCE_COVERAGE = 2
 FUSION_PEPTIDE_LENGTHS = (8, 9, 10, 11)
 MIN_FUSION_FRAGMENTS = 2
 
+# Competing interpretations of one locus: exonic bases added on each side of the
+# compared window, and fragments needed to call an interpretation supported.
+INTERPRETATION_FLANK = 10
+MIN_INTERPRETATION_FRAGMENTS = 2
+
 # number of nucleotides shared between reference and variant sequence
 # before variant for reference contexts used to establish ORF
 MIN_TRANSCRIPT_PREFIX_LENGTH = 10

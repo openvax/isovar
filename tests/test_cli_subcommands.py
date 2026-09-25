@@ -13,6 +13,9 @@ from isovar import __version__
 from isovar.cli import commands
 
 
+# JSON-input commands: no --vcf and no hyphenated legacy script.
+JSON_COMMANDS = {"fusion", "sv-rna", "allele-interpretations"}
+
 @pytest.mark.parametrize("name", commands.COMMANDS)
 def test_dispatch_passes_options_unchanged_to_the_existing_handler(name, monkeypatch):
     calls = []
@@ -33,7 +36,7 @@ def test_subcommand_help_uses_correct_program_and_preserves_parser(name, capsys)
     assert error.value.code == 0
     help_text = capsys.readouterr().out
     assert help_text.startswith("usage: isovar " + name + " ")
-    assert ("--input" if name in {"fusion", "sv-rna"} else "--vcf") in help_text
+    assert ("--input" if name in JSON_COMMANDS else "--vcf") in help_text
     if original is not None:
         assert handler.parser.prog == original
 
@@ -88,7 +91,7 @@ def test_entry_points_retain_all_legacy_aliases():
     entries = dict(re.findall(r'^([a-z-]+) = "(isovar\.cli\.[^" ]+)"$', config, re.M))
     assert entries.pop("isovar") == "isovar.cli.commands:run"
     assert entries == {"isovar-" + name: "isovar.cli." + module + ":run"
-                       for name, (module, _) in commands.COMMANDS.items() if name not in {"run", "fusion", "sv-rna"}}
+                       for name, (module, _) in commands.COMMANDS.items() if name not in {"run", *JSON_COMMANDS}}
 
 
 def test_module_help_does_not_load_plotting_or_command_handlers():

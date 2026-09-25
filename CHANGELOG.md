@@ -4,6 +4,21 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.34.0
+
+- `reconcile_allele_interpretations` and `isovar allele-interpretations` compare
+  competing interpretations of one locus with the RNA reads, as
+  `isovar.allele_interpretations.v1`. This is the first stage of
+  [#306](https://github.com/openvax/isovar/issues/306). An interpretation can
+  be an SNV, a multi-base change, several adjacent variants or a deletion.
+  Each is `supported`, `contradicted_by_informative_evidence`,
+  `insufficient_RNA` or `unassessed`. Interpretations with the same RNA
+  sequence are reported as indistinguishable. Every observed allele is listed
+  with its difference from the reference, and support uses hashed evidence
+  sets. On osteosarc RNA, NTF3's reads carry Mutect2's AG>GT (the same as
+  Strelka's two SNVs), not the catalogued A>G. GLIS3's reads carry the
+  catalogued deletion together with a somatic A>T.
+
 ## 1.33.0
 
 Assembled cDNA edits are attributed to supplied variants
