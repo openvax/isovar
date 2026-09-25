@@ -251,8 +251,8 @@ alternate call. Original BAMs and independent CIGAR counts are unchanged.
 To populate the shared OpenVax cache or export the existing 49-case regression
 subset without reacquiring full regional BAMs, use the
 [osteosarc data workflow](../../../../docs/osteosarc-data.md). It uses
-`osteosarc==0.1.2` and preserves this revision's exact BAM/index bytes and
-historical alleles. The full-region audit and selection steps below remain
+osteosarc 0.7 (the corpus was selected with 0.1.2) and preserves this
+revision's exact BAM/index bytes and historical alleles. The full-region audit and selection steps below remain
 separate from that offline export.
 
 All acquisition is opt-in and uses bounded network operations. Normal tests
