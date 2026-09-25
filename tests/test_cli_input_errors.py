@@ -60,13 +60,13 @@ def test_bad_inputs_are_usage_errors(capsys, tmp_path, args, expected):
     assert expected in usage_error(capsys, args)
 
 
-def test_genome_can_choose_an_ensembl_release():
-    # Previously "GRCh38:93" silently gave the most recent release (#122).
+@pytest.mark.parametrize("genome", ["GRCh38:93", "GRCh38.93"])
+def test_genome_can_choose_an_ensembl_release(genome):
+    # Previously these silently gave the most recent release (#122).
     from isovar.cli.isovar_allele_counts import parser
     from isovar.cli.validation import variant_collection_from_args
 
-    args = parser.parse_args(["--variant", "chr9", "82927102", "G", "T", "--bam", BAM,
-                              "--genome", "GRCh38:93"])
+    args = parser.parse_args(["--variant", "chr9", "82927102", "G", "T", "--bam", BAM, "--genome", genome])
     assert {v.genome.release for v in variant_collection_from_args(args)} == {93}
 
 

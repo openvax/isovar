@@ -57,8 +57,9 @@ pyensembl install --release 75 --species human
 
 On the command line, `--genome` names an assembly such as `GRCh38` or `hg19`,
 and the most recent Ensembl release installed for it is used. To choose the
-release, add it after a colon: `--genome GRCh38:93` uses Ensembl 93. A release
-that does not provide the assembly, such as `GRCh38:75`, is an error. From
+release, add it after the assembly: `--genome GRCh38:93` or `GRCh38.93` (as in
+Ensembl's file names) uses Ensembl 93. A release that does not provide the
+assembly, such as `GRCh38:75`, is an error. From
 Python, pass the same name (`genome="GRCh38:93"`) or a PyEnsembl genome when
 loading the variants:
 
