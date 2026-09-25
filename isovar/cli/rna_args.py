@@ -248,10 +248,12 @@ def allele_counts_dataframe_from_args(args):
                 evidence.append(labels.evidence(variant, read_evidence))
                 yield variant, read_evidence
         df = allele_counts_dataframe(pairs())
-    warn_if_unlabelled(evidence)
+    warn_if_unlabelled(support for e in evidence for support in e["alleles"].values())
     for allele in ALLELES:
-        for field in ("umis", "cells", "unlabeled_reads", "unknown_library_reads"):
-            df["num_%s_%s" % (allele, field)] = [e["alleles"][allele][field] for e in evidence]
+        for field in ("umis", "cells", "umis_complete", "cells_complete", "unlabeled_reads",
+                      "unknown_library_reads"):
+            column = ("%s_%s" if field.endswith("_complete") else "num_%s_%s") % (allele, field)
+            df[column] = [e["alleles"][allele][field] for e in evidence]
     df["num_cells_with_ref_and_alt"] = [e["cells_with_ref_and_alt"] for e in evidence]
     return df
 

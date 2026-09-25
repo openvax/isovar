@@ -19,9 +19,9 @@ from pathlib import Path
 from . import __version__
 from .genetic_code import translate_cdna
 from .protein_sequence_helpers import covered_protein_groups
-from .read_identity import count_reads, fragment_ids, source_read_ids
+from .read_identity import source_read_ids
 from .read_metadata import unique_header_entries
-from .rna_evidence import CELL_UMI_FIELDS, content_identifier, evidence_set, rna_support
+from .rna_evidence import SUPPORT_COLUMNS, EvidenceSets, content_identifier, support_columns
 from .transcript_edit_helpers import categorize_transcript_assembly_edits_from_translation
 
 SCHEMA = "isovar.protein_hypotheses.v2"
@@ -29,28 +29,16 @@ SCHEMA = "isovar.protein_hypotheses.v2"
 _EFFECT_FIELDS = ("gene_name", "gene_id", "transcript_id", "transcript_name", "modifies_protein_sequence")
 
 
-class _EvidenceSets:
-    """Collects each distinct read set once, keyed by its evidence set ID."""
-
-    def __init__(self, scope):
-        self.scope, self.sets = scope, {}
+class _EvidenceSets(EvidenceSets):
+    """Support records, each labelled with the reads it describes."""
 
     def support(self, reads, description, labels=None):
-        """
-        The RNA support record and evidence set ID of ``reads``. Cell/UMI
-        fields come from ``labels`` (a `CellUmiEvidence`), or are null. The ID
-        is null when there are no reads or any read lacks an identity.
-        """
-        reads = list(reads)
-        identities = [source_read_ids(read) for read in reads]
-        if not reads or not all(identities):
-            return dict(scope=description, reads=count_reads(reads), fragments=len(fragment_ids(reads)),
-                        **dict.fromkeys(CELL_UMI_FIELDS), evidence_set_id=None)
-        keys = {key for keys in identities for key in keys}
-        evidence = evidence_set(self.scope, keys)
-        self.sets[evidence["evidence_set_id"]] = evidence
-        record = rna_support(keys) if labels is None else labels.support(keys)
-        return dict(scope=description, **record, evidence_set_id=evidence["evidence_set_id"])
+        """The RNA support record and evidence set ID of ``reads``."""
+        return dict(scope=description, **super().support(reads, labels))
+
+    def counts(self, reads, description, labels=None):
+        """The RNA support record alone, storing no evidence set."""
+        return dict(scope=description, **self.record(reads, labels)[0])
 
 
 def _variant(variant):
@@ -195,19 +183,15 @@ def _completeness(result):
 
 
 def _allele_support(reads, evidence, labels):
-    alleles = dict(
-        ref=evidence.support(reads.ref_reads, "ref_allele_reads_at_locus", labels),
+    """Support of each allele at the locus; only the alternate allele stores an evidence set."""
+    return dict(
+        ref=evidence.counts(reads.ref_reads, "ref_allele_reads_at_locus", labels),
         alt=evidence.support(reads.alt_reads, "alt_allele_reads_at_locus", labels),
-        other=evidence.support(reads.other_reads, "other_allele_reads_at_locus", labels),
-        total=evidence.support(list(reads.ref_reads) + list(reads.alt_reads) + list(reads.other_reads),
-                               "all_reads_at_locus", labels))
-    cells = None
-    if labels is not None:
-        from .cell_umi import trusted_cells
-
-        ref, alt = ({key for read in group for key in source_read_ids(read)} for group in (reads.ref_reads, reads.alt_reads))
-        cells = len(trusted_cells([labels.row(k) for k in ref]) & trusted_cells([labels.row(k) for k in alt]))
-    return dict(alleles, cells_with_ref_and_alt=cells)
+        other=evidence.counts(reads.other_reads, "other_allele_reads_at_locus", labels),
+        total=evidence.counts(list(reads.ref_reads) + list(reads.alt_reads) + list(reads.other_reads),
+                              "all_reads_at_locus", labels),
+        cells_with_ref_and_alt=None if labels is None else labels.shared_cells(
+            *({key for read in group for key in source_read_ids(read)} for group in (reads.ref_reads, reads.alt_reads))))
 
 
 def _event(result, evidence, cell_labels):
@@ -316,8 +300,7 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
                                      read_collector=read_collector)
     events = [_event(result, evidence, cell_labels) for result in results]
     if cell_labels is not None:
-        warn_if_unlabelled([dict(alleles={a: e["allele_support"][a] for a in ("ref", "alt", "other")})
-                            for e in events])
+        warn_if_unlabelled(e["allele_support"][a] for e in events for a in ("ref", "alt", "other"))
     return dict(
         schema=SCHEMA, isovar_version=__version__, sample_id=sample_id, source=source,
         evidence_scope=scope, interval_convention="zero_based_half_open",
@@ -333,16 +316,11 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
 _TSV_COLUMNS = (
     "schema", "sample_id", "source", "event_id", "variant", "hypothesis_id", "isovar_rank", "representative",
     "amino_acids", "mutation_start", "mutation_end", "ends_with_stop_codon", "frameshift", "n_terminus",
-    "gene_names", "protein_transcript_ids", "protein_reads", "protein_fragments", "protein_umis",
-    "protein_cells", "protein_evidence_set_id", "translation_id", "nucleotide_sequence", "translated_start",
-    "translated_end", "starts_at_annotated_start_codon", "context_transcript_ids", "translation_reads",
-    "translation_fragments", "translation_umis", "translation_cells", "translation_evidence_set_id",
+    "gene_names", "protein_transcript_ids", *("protein_" + column for column in SUPPORT_COLUMNS),
+    "protein_evidence_set_id", "translation_id", "nucleotide_sequence", "translated_start",
+    "translated_end", "starts_at_annotated_start_codon", "context_transcript_ids",
+    *("translation_" + column for column in SUPPORT_COLUMNS), "translation_evidence_set_id",
     "protein_hypotheses_complete")
-
-
-def _blank(value):
-    """Unknown values are blank in TSV, as in the SV ORF export."""
-    return "" if value is None else value
 
 
 def _tsv_rows(export):
@@ -359,10 +337,7 @@ def _tsv_rows(export):
                     ends_with_stop_codon=protein["ends_with_stop_codon"], frameshift=protein["frameshift"],
                     n_terminus=protein["n_terminus"], gene_names=";".join(protein["gene_names"]),
                     protein_transcript_ids=";".join(protein["transcript_ids"]),
-                    protein_reads=protein["rna_support"]["reads"],
-                    protein_fragments=protein["rna_support"]["fragments"],
-                    protein_umis=_blank(protein["rna_support"]["umis"]),
-                    protein_cells=_blank(protein["rna_support"]["cells"]),
+                    **support_columns(protein["rna_support"], "protein_"),
                     protein_evidence_set_id=protein["rna_support"]["evidence_set_id"] or "",
                     translation_id=translation["translation_id"],
                     nucleotide_sequence=translation["nucleotide_sequence"],
@@ -370,10 +345,7 @@ def _tsv_rows(export):
                     translated_end=translation["translated_interval"][1],
                     starts_at_annotated_start_codon=translation["starts_at_annotated_start_codon"],
                     context_transcript_ids=";".join(translation["reference_context"]["transcript_ids"]),
-                    translation_reads=translation["rna_support"]["reads"],
-                    translation_fragments=translation["rna_support"]["fragments"],
-                    translation_umis=_blank(translation["rna_support"]["umis"]),
-                    translation_cells=_blank(translation["rna_support"]["cells"]),
+                    **support_columns(translation["rna_support"], "translation_"),
                     translation_evidence_set_id=translation["rna_support"]["evidence_set_id"] or "",
                     protein_hypotheses_complete=("" if event["protein_hypotheses_complete"] is None
                                                  else event["protein_hypotheses_complete"]))
@@ -385,7 +357,7 @@ def write_protein_hypotheses(export, path):
     Parameters
     ----------
     export : dict
-        An ``isovar.protein_hypotheses.v1`` export.
+        An ``isovar.protein_hypotheses.v2`` export.
     path : str or Path
         The JSON path; the TSV is written beside it with ``.tsv`` in place of
         the ``.json`` suffix (or appended). Existing files are replaced.

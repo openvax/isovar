@@ -10,7 +10,7 @@ docs/cell-umi-evidence.md). Sample-level reconstruction is unchanged: this only
 counts labels on reads Isovar already used.
 """
 
-from .cell_umi import CellUmiEvidence, trusted_cells
+from .cell_umi import CellUmiEvidence
 from .logging import get_logger
 from .read_collector import ReadCollector
 from .read_identity import segment_identity, source_read_ids
@@ -73,8 +73,14 @@ class CellUmiAlleles(object):
         return self.labels_at(variant.contig, start, end, identities)
 
     def labels_at(self, contig, start, end, identities):
-        """The label resolver for these reads over the 0-based interval [start, end)."""
-        templates = {tuple(identity)[:2] for identity in identities}
+        """
+        The label resolver for these reads over the 0-based interval [start, end).
+
+        Logs a warning when some of the reads have no eligible record there,
+        which usually means they were collected with a different ReadCollector.
+        """
+        identities = {tuple(identity) for identity in identities}
+        templates = {identity[:2] for identity in identities}
         chromosome = self.read_collector._infer_chromosome_name(contig, set(self.alignment_file.references))
         groups = {}
         if chromosome is not None:
@@ -83,6 +89,11 @@ class CellUmiAlleles(object):
                 identity = segment_identity(record)
                 if identity[:2] in templates and self.read_collector.alignment_filter_reason(record) is None:
                     groups.setdefault(identity, []).append(_Tags(record))
+        missing = len(identities - groups.keys())
+        if missing:
+            logger.warning(
+                "%d read(s) at %s:%d-%d had no eligible record for cell/UMI labels; pass the ReadCollector "
+                "the reads were collected with", missing, contig, start + 1, end)
         return CellUmiEvidence(groups, self.header, *self.scope)
 
     def evidence(self, variant, read_evidence, protein_sequences=()):
@@ -108,24 +119,21 @@ class CellUmiAlleles(object):
         by_allele = {allele: _identities(getattr(read_evidence, allele + "_reads")) for allele in ALLELES}
         by_protein = [_identities(protein.supporting_reads) for protein in protein_sequences]
         labels = self.labels(variant, [i for identities in [*by_allele.values(), *by_protein] for i in identities])
-        missing = sum(identity not in labels.groups for identities in by_allele.values() for identity in identities)
-        if missing:
-            logger.warning(
-                "%d read(s) at %s had no eligible record for cell/UMI labels; pass the ReadCollector "
-                "the reads were collected with", missing, variant.short_description)
-        cells = {allele: trusted_cells([labels.row(identity) for identity in by_allele[allele]])
-                 for allele in ("ref", "alt")}
         return dict(
             policy=CellUmiEvidence.policy,
             alleles={allele: labels.support(by_allele[allele]) for allele in ALLELES},
-            cells_with_ref_and_alt=len(cells["ref"] & cells["alt"]),
+            cells_with_ref_and_alt=labels.shared_cells(by_allele["ref"], by_allele["alt"]),
             protein_hypotheses=[labels.support(identities) for identities in by_protein])
 
 
-def warn_if_unlabelled(evidence):
-    """Log a warning when no read carried a cell barcode: likely not single-cell data."""
-    supports = [support for item in evidence for support in item["alleles"].values()]
-    if any(s["reads"] for s in supports) and not any(s["cells"] for s in supports):
+def warn_if_unlabelled(supports):
+    """
+    Log a warning when reads with a record carried no usable cell barcode:
+    likely not single-cell data. ``supports`` are RNA support records.
+    """
+    supports = list(supports)
+    with_record = sum(s["reads"] - s["label_statuses"].get("metadata_unavailable", 0) for s in supports)
+    if with_record and not any(s["cells"] for s in supports):
         logger.warning("No read carried a usable CB cell barcode; cell counts are all zero")
 
 
@@ -150,5 +158,5 @@ def cell_umi_allele_evidence(isovar_results, alignment_file, *, sample_id, sourc
     """
     labels = CellUmiAlleles(alignment_file, sample_id=sample_id, source=source, read_collector=read_collector)
     evidence = [labels.evidence(r.variant, r.read_evidence, r.sorted_protein_sequences) for r in isovar_results]
-    warn_if_unlabelled(evidence)
+    warn_if_unlabelled(support for e in evidence for support in e["alleles"].values())
     return evidence

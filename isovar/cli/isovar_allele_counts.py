@@ -27,8 +27,9 @@ parser = add_output_args(
 _cells = parser.add_argument_group("Cell/UMI labels (single-cell data)")
 _cells.add_argument(
     "--cell-umi-labels", action="store_true",
-    help="Add num_{ref,alt,other}_{umis,cells,unlabeled_reads,unknown_library_reads} and "
-         "num_cells_with_ref_and_alt columns from CB/UB tags; needs --sample-id")
+    help="Add num_{ref,alt,other}_{umis,cells,unlabeled_reads,unknown_library_reads}, "
+         "{ref,alt,other}_{umis,cells}_complete and num_cells_with_ref_and_alt columns from "
+         "CB/UB tags; needs --sample-id")
 _cells.add_argument("--sample-id", help="Sample the reads came from; scopes the labels")
 _cells.add_argument("--source", help="Identity of the read set (default: --bam)")
 

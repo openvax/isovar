@@ -357,7 +357,7 @@ unique `prediction_id` and `amino_acids`, which may be `null` for an unresolved
 prediction. Other fields are kept.
 
 The output's `prediction_comparison` (schema
-`isovar.sv_rna_prediction_comparison.v2`) compares every event-linked
+`isovar.sv_rna_prediction_comparison.v3`) compares every event-linked
 annotated-frame translation and exploratory ORF with each prediction. Statuses
 distinguish identical sequences from exact fragments and from no match.
 A shorter complete ORF is not called a fragment of a longer prediction.
@@ -406,7 +406,7 @@ and each ORF's `full_interval_support` are RNA support records, so they count
 UMIs and cells as well as reads and fragments. ONT signal lineage sits beside
 them (`direct_read_lineage`, `read_lineage`). See
 [cell/UMI evidence](cell-umi-evidence.md) and [ONT read lineage](ont-read-lineage.md).
-`umis_complete` is false when any supporting read lacks a resolved label or library.
+`umis_complete` is false when there are no supporting reads or any lacks a resolved label or library.
 
 ## Regression data
 

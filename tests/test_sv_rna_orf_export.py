@@ -1,7 +1,6 @@
 """Export fidelity and evidence denominators, using only synthetic sequences."""
 
 from copy import deepcopy
-from tests.testing_helpers import complete_umis
 import csv
 import json
 
@@ -10,6 +9,7 @@ import pytest
 from isovar import export_sv_rna_orfs, write_sv_rna_orfs
 from isovar.cli.isovar_sv_rna import run as cli_run
 from tests.test_sv_rna_orfs import inputs, insertion_inputs, run
+from tests.testing_helpers import LINEAGE_SUMMARY, complete_umis
 
 
 def reconstruction(args=None):
@@ -47,7 +47,7 @@ def test_export_unions_witnesses_across_paths_and_does_not_mutate_input():
     assert support["fragments"] == support["reads"] == 1
     assert complete_umis(support) is None
     assert support["label_statuses"] == {"metadata_unavailable": 1}
-    assert "segment_ids" not in support["read_lineage"]
+    assert set(support["read_lineage"]) == LINEAGE_SUMMARY
 
 
 def test_sequence_ids_keep_synonymous_alternatives_and_scope_evidence_independently():
@@ -133,8 +133,10 @@ def test_partial_unsupported_and_limited_hypotheses_are_exported_with_warnings()
     assert {"partial_orf", "no_full_fragment_witness", "orf_candidate_limit_reached",
             "reconstruction_limit:max_paths", "reconstruction_limit:repeated_genomic_position",
             "nondefault_branch_thresholds"} <= set(candidate["uncertainty_flags"])
-    # No witnesses: zero reads, so zero UMIs, exactly.
-    assert candidate["rna_support"]["reads"] == complete_umis(candidate["rna_support"]) == 0
+    # No witnesses: zero reads and UMIs, and neither count is marked exact.
+    support = candidate["rna_support"]
+    assert support["reads"] == support["umis"] == 0
+    assert not support["umis_complete"] and not support["cells_complete"]
     assert not candidate["initiation_observed"] and not candidate["translation_observed"]
 
 

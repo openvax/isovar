@@ -58,3 +58,7 @@ def fusion_input(fixture):
 def complete_umis(support):
     """A support record's UMI count when it is exact (every read labelled), else None."""
     return support["umis"] if support["umis_complete"] else None
+
+
+# The keys of a read lineage summary, which carries no read identities.
+LINEAGE_SUMMARY = {"reads", "signal_groups", "unresolved_reads", "all_reads_resolved", "statuses"}

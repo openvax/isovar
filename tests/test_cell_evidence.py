@@ -1,6 +1,5 @@
 """Cell barcodes and UMIs behind small-variant allele reads (#226)."""
 
-from tests.testing_helpers import complete_umis
 import json
 from types import SimpleNamespace
 
@@ -8,9 +7,11 @@ import pysam
 import pytest
 from varcode import Variant
 
-from isovar import ReadCollector, cell_umi_allele_evidence
+from isovar import ReadCollector, cell_umi_allele_evidence, export_protein_hypotheses, run_isovar
 from isovar.cell_evidence import CellUmiAlleles
+from isovar.rna_evidence import CELL_UMI_FIELDS
 from tests.test_sv_rna import record, write_bam
+from tests.testing_helpers import complete_umis
 
 REFERENCE = "CATCGGATCCTAGGCTTACA" + "AG" + "TCCGATTGCAGTCAGGAT"
 VARIANT = Variant("1", 1021, "A", "G", normalize_contig_names=False)
@@ -56,7 +57,7 @@ def test_labels_and_cells_are_counted_per_allele_within_the_declared_library(tmp
     assert result["cells_with_ref_and_alt"] == 1
     protein, = result["protein_hypotheses"]
     assert (protein["reads"], protein["cells"], (protein["cells"] if protein["cells_complete"] else None)) == (2, 2, 2)
-    assert "segment_ids" not in alt and "evidence_set_id" not in alt
+    assert set(alt) == {"reads", "fragments", *CELL_UMI_FIELDS}
     assert json.loads(json.dumps(result)) == result
 
 
@@ -125,6 +126,9 @@ def test_command_adds_cell_columns_and_requires_a_sample(tmp_path, capsys):
     assert (row.num_alt_reads, row.num_alt_fragments, row.num_alt_umis, row.num_alt_cells) == (4, 4, 3, 2)
     assert row.num_ref_cells == 2 and row.num_cells_with_ref_and_alt == 1
     assert row.num_alt_unlabeled_reads == row.num_alt_unknown_library_reads == 0
+    assert row.alt_umis_complete and row.alt_cells_complete
+    # No read has the other allele, so its counts are zero but not marked exact.
+    assert row.num_other_umis == 0 and not row.other_umis_complete
     with pytest.raises(SystemExit) as exit_info:
         isovar_cli(["allele-counts", "--vcf", str(vcf), "--bam", str(path), "--cell-umi-labels",
                     "--output", str(output)])
@@ -158,8 +162,23 @@ def test_untagged_reads_are_warned_about(tmp_path, caplog):
     from isovar.cell_evidence import warn_if_unlabelled
     with pysam.AlignmentFile(str(path)) as bam, caplog.at_level("WARNING", logger="isovar.cell_evidence"):
         read_evidence = ReadCollector().read_evidence_for_variant(VARIANT, bam)
-        warn_if_unlabelled([CellUmiAlleles(bam, sample_id="s", source="rna.bam").evidence(VARIANT, read_evidence)])
+        warn_if_unlabelled(CellUmiAlleles(bam, sample_id="s", source="rna.bam").evidence(
+            VARIANT, read_evidence)["alleles"].values())
     assert "No read carried a usable CB" in caplog.text
+
+
+def test_protein_export_warns_about_reads_without_an_eligible_record(tmp_path, caplog):
+    # Reads collected with duplicates allowed, then labelled with the default collector.
+    duplicates = [read("d%d" % i, "G", "a", "C%d" % i, "U%d" % i, flag=1024) for i in range(3)]
+    path = write_bam(tmp_path / "rna.bam", duplicates, header=HEADER)
+    with pysam.AlignmentFile(str(path)) as bam, caplog.at_level("WARNING", logger="isovar.cell_evidence"):
+        results = run_isovar([VARIANT], bam, read_collector=ReadCollector(use_duplicate_reads=True))
+        event, = export_protein_hypotheses(results, sample_id="s", source="rna.bam",
+                                           cell_umi_alignment_file=bam)["events"]
+    assert event["allele_support"]["alt"]["label_statuses"] == {"metadata_unavailable": 3}
+    assert "3 read(s) at 1:1021-1021 had no eligible record" in caplog.text
+    # The reads do carry barcodes, so the not-single-cell warning would mislead.
+    assert "No read carried a usable CB" not in caplog.text
 
 
 def test_single_cell_ont_rna_reports_cells_behind_the_alt_allele_and_protein(tmp_path):

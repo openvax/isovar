@@ -5,7 +5,7 @@ SNV, a multi-base substitution, two adjacent SNVs, or a nearby deletion.
 `reconcile_allele_interpretations` compares each read's exact sequence across
 the locus with every interpretation's haplotype. Interpretations that give the
 same sequence cannot be told apart by any RNA and are reported together. The
-result, ``isovar.allele_interpretations.v1``, is a candidate by evidence table;
+result, ``isovar.allele_interpretations.v2``, is a candidate by evidence table;
 it does not choose an interpretation or translate one.
 """
 
@@ -18,8 +18,8 @@ from .allele_read import AlleleRead
 from .default_parameters import INTERPRETATION_FLANK, MIN_INTERPRETATION_FRAGMENTS
 from .dna import complement_dna
 from .read_collector import ReadCollector
-from .read_identity import count_reads, fragment_ids, segment_identity, source_read_ids
-from .rna_evidence import CELL_UMI_FIELDS, evidence_set, rna_support
+from .read_identity import fragment_ids, segment_identity, source_read_ids
+from .rna_evidence import EvidenceSets
 from .variant_helpers import base0_interval_for_variant, require_literal_variant
 
 SCHEMA = "isovar.allele_interpretations.v2"
@@ -94,25 +94,6 @@ def _haplotype(reference, window_start, variants):
         position = end
     sequence.append(reference[position - window_start:])
     return "".join(sequence)
-
-
-class _Supports:
-    """RNA support records (cell/UMI fields from ``labels`` when given) with evidence sets."""
-
-    def __init__(self, scope, labels=None):
-        self.scope, self.labels, self.sets = scope, labels, {}
-
-    def __call__(self, reads):
-        reads = list(reads)
-        identities = [source_read_ids(read) for read in reads]
-        if not reads or not all(identities):
-            return dict(reads=count_reads(reads), fragments=len(fragment_ids(reads)),
-                        **dict.fromkeys(CELL_UMI_FIELDS), evidence_set_id=None)
-        keys = {key for keys in identities for key in keys}
-        evidence = evidence_set(self.scope, keys)
-        self.sets[evidence["evidence_set_id"]] = evidence
-        record = rna_support(keys) if self.labels is None else self.labels.support(keys)
-        return dict(record, evidence_set_id=evidence["evidence_set_id"])
 
 
 def _difference(reference, window_start, allele):
@@ -230,7 +211,11 @@ def reconcile_allele_interpretations(
         labels = CellUmiAlleles(alignment_file, sample_id=sample_id, source=source, read_collector=read_collector
                                 ).labels_at(variants[0].contig, start, end,
                                             [k for read in informative for k in source_read_ids(read)])
-    supports = _Supports(scope, labels)
+    evidence = EvidenceSets(scope)
+
+    def supports(reads):
+        return evidence.support(reads, labels)
+
     by_allele = defaultdict(list)
     for read in informative:
         by_allele[read.allele].append(read)
@@ -264,7 +249,7 @@ def reconcile_allele_interpretations(
         set_aside=dict(
             reads_not_spanning_window=len(overlapping - {k for r in reads for k in source_read_ids(r)}),
             conflicting_reads=len(conflicting)),
-        evidence_sets={key: supports.sets[key] for key in sorted(supports.sets)})
+        evidence_sets={key: evidence.sets[key] for key in sorted(evidence.sets)})
     return result
 
 

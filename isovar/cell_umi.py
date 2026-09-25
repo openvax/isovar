@@ -174,12 +174,15 @@ class CellUmiEvidence:
         """
         from .rna_evidence import rna_support
 
-        identities = sorted({tuple(identity) for identity in identities})
-        return rna_support(identities, [self.row(identity) for identity in identities])
+        return rna_support(identities, self.row)
 
     def row(self, identity):
         """The label row for one read, or a metadata_unavailable row without a record."""
         return self.segment(identity) if identity in self.groups else missing_label_row(identity)
+
+    def shared_cells(self, first, second):
+        """How many trusted cells have reads among both sets of read identities."""
+        return len(trusted_cells(map(self.row, first)) & trusted_cells(map(self.row, second)))
 
     def evidence(self):
         """JSON-ready policy and per-read label rows for consulted reads and mates."""
@@ -210,16 +213,18 @@ def cell_umi_counts(rows):
     ``umis`` counts distinct cell barcode and UMI pairs, and ``cells`` distinct
     cell barcodes, each within its declared library. A barcode without a UMI
     still identifies its cell. ``umis_complete`` and ``cells_complete`` say
-    whether every read contributed, with a known library, so that the count
-    is exact. Neither count is a molecule or prevalence estimate.
+    whether there are reads and every one contributed, with a known library,
+    so that the count is exact; without reads they are False. Neither count
+    is a molecule or prevalence estimate.
     """
     rows = list(rows)
     umis = {tuple(row["label"]) for row in rows if row["label"] is not None}
-    trusted = [row for row in rows if row["cell_barcode"] is not None and row["status"] not in UNTRUSTED_CELL_STATUSES]
+    cells = trusted_cells(rows)
+    untrusted = sum(row["cell_barcode"] is None or row["status"] in UNTRUSTED_CELL_STATUSES for row in rows)
     unlabeled = sum(row["label"] is None for row in rows)
     unknown_library = sum(not row["library_scope_known"] for row in rows)
-    return dict(umis=len(umis), cells=len(trusted_cells(rows)),
-                umis_complete=not unlabeled and not unknown_library,
-                cells_complete=len(trusted) == len(rows) and not unknown_library,
+    return dict(umis=len(umis), cells=len(cells),
+                umis_complete=bool(rows) and not unlabeled and not unknown_library,
+                cells_complete=bool(rows) and not untrusted and not unknown_library,
                 unlabeled_reads=unlabeled, unknown_library_reads=unknown_library,
                 label_statuses=dict(sorted(Counter(row["status"] for row in rows).items())))

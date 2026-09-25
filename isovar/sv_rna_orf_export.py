@@ -14,12 +14,10 @@ from .default_parameters import (
 from .genetic_code import standard_genetic_code
 from .orf_start import summarize_orf_start_evidence
 from .read_lineage import summarize_lineage_rows
-from .rna_evidence import canonical_json as _canonical, content_identifier as _identifier, evidence_set, rna_support
-
-
-# The RNA support record's count columns, as in every other table.
-SUPPORT_COLUMNS = ("reads", "fragments", "umis", "cells", "umis_complete", "cells_complete",
-                   "unlabeled_reads", "unknown_library_reads")
+from .rna_evidence import (
+    SUPPORT_COLUMNS, canonical_json as _canonical, content_identifier as _identifier, evidence_set, rna_support,
+    support_columns,
+)
 
 
 def _unique(rows):
@@ -32,7 +30,6 @@ def _support(result, witnesses):
     identities = sorted({tuple(o["identity"]) for o in observations})
     labels = {tuple(row["identity"]): row for row in result["cell_umi_evidence"]["reads"]}
     lineage = {tuple(row["identity"]): row for row in result["read_lineage"]["reads"]}
-    label_rows = [labels.get(identity) or missing_label_row(identity) for identity in identities]
     lineage_rows = [lineage.get(identity, dict(identity=list(identity), signal_group=None,
                                               status="metadata_unavailable")) for identity in identities]
     ids = evidence_set(scope, identities)
@@ -47,7 +44,7 @@ def _support(result, witnesses):
         orientation_counts[key] += 1
     return dict(
         scope="union_of_full_interval_junction_linked_witnesses_within_input",
-        **rna_support(identities, label_rows),
+        **rna_support(identities, lambda identity: labels.get(identity) or missing_label_row(identity)),
         **{key: ids[key] for key in ("evidence_scope", "read_ids", "fragment_ids", "evidence_set_id")},
         signal_group_ids=signal_ids, read_lineage=summarize_lineage_rows(lineage_rows),
         fragment_query_orientations=orientation_counts,
@@ -217,7 +214,8 @@ def write_sv_rna_orfs(export, prefix):
             row = {key: export[key] for key in ("schema", "event_id", "reference_name", "sample_id", "source")}
             row.update({key: candidate[key] for key in (
                 "candidate_id", "amino_acids", "nucleotide_sequence", "ends_with_stop_codon")})
-            row.update({key: support[key] for key in (*SUPPORT_COLUMNS, "missing_quality_reads", "evidence_set_id")})
+            row.update(support_columns(support), missing_quality_reads=support["missing_quality_reads"],
+                       evidence_set_id=support["evidence_set_id"])
             row.update(signal_groups=support["read_lineage"]["signal_groups"],
                        original_query_fragments=support["fragment_query_orientations"]["original_query"],
                        reverse_complement_fragments=support["fragment_query_orientations"]["reverse_complement"],

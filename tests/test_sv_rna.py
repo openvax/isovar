@@ -5,7 +5,6 @@ is needed because reconstruction never reads reference bases. Real cases use
 the pinned, unchanged original records of the fusion corpora.
 """
 from dataclasses import replace
-from tests.testing_helpers import complete_umis
 import gzip
 from hashlib import sha256
 import json
@@ -19,12 +18,12 @@ import pytest
 from isovar import reconstruct_sv_rna
 from isovar.cli import commands
 from isovar.fusion import FusionBreakpoint, FusionReference, fusion_from_dict, reconstruct_fusion
-from tests.testing_helpers import fusion_input
 from isovar.read_collector import ReadCollector
 from isovar.dna import reverse_complement_dna as reverse_complement
 from isovar.read_end_inference import Adapter, ReadEndProfile
 from isovar.sv_rna import RnaObservation, _extend_both, _ObservationIndex, sv_rna_input_from_dict
 from tests.data.osteosarc.expansion.references import translate
+from tests.testing_helpers import complete_umis, fusion_input
 
 HEADER = pysam.AlignmentHeader.from_dict(dict(
     SQ=[dict(SN="1", LN=20000), dict(SN="2", LN=20000)], RG=[dict(ID="a"), dict(ID="b")]))

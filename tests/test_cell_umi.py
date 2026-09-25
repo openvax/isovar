@@ -1,7 +1,6 @@
 """#334: library-scoped labels and honest junction/ORF evidence denominators."""
 
 from collections import defaultdict
-from tests.testing_helpers import complete_umis
 import json
 
 import pysam
@@ -10,6 +9,7 @@ import pytest
 from isovar.cell_umi import CellUmiEvidence
 from isovar.read_identity import segment_identity
 from tests.test_sv_rna import HEADER, Scenario, aligned, record, write_bam
+from tests.testing_helpers import complete_umis
 
 
 def tagged(name="read", group="a", flag=0, **tags):

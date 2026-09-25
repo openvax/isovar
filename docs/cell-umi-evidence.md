@@ -6,8 +6,10 @@ same pair of labels may be copies of one RNA molecule. Isovar reports how many
 distinct labels, and cells, support each piece of evidence, alongside the read
 and fragment counts, under one policy, `isovar.cell_umi_labels.v1`:
 
-- for small variants, each allele and protein hypothesis (opt-in, below);
-- for `reconstruct_sv_rna`, each junction and each ORF.
+- for small variants, each allele and protein hypothesis, and each allele
+  interpretation (opt-in, below);
+- for `reconstruct_sv_rna`, each junction, each path's voting reads and each
+  ORF.
 
 A label count is not a molecule count. Isovar uses the labels as the input
 reports them. It does not cluster UMIs, correct barcodes or reconstruct each
@@ -28,11 +30,12 @@ isovar protein-hypotheses --vcf variants.vcf --bam sc-rna.bam --cell-umi-labels 
 
 - `num_*_umis` and `num_*_cells`: distinct cell barcode and UMI pairs, and
   distinct cells;
+- `*_umis_complete` and `*_cells_complete`: whether those counts are exact;
 - `num_*_unlabeled_reads` and `num_*_unknown_library_reads`: reads without a
   usable label, and reads whose library is unknown;
 - `num_cells_with_ref_and_alt`: cells with reads of both alleles.
 
-`protein-hypotheses` fills in `umis` and `cells` in every support, alleles,
+`protein-hypotheses` fills in the cell/UMI fields of every support, alleles,
 proteins and translations alike, and adds `cells_with_ref_and_alt` to each
 event's `allele_support`. `allele-interpretations --cell-umi-labels` does the
 same for each interpretation.
@@ -63,14 +66,15 @@ Every support, whether a small-variant allele or protein, an SV junction's
 | --- | --- |
 | `umis` | Distinct cell barcode and UMI pairs among the reads, within their declared library. Without `LB`, one pair in two read groups counts twice |
 | `cells` | Distinct cell barcodes, by the same scoping; a barcode without a UMI still counts |
-| `umis_complete` | Whether every read has a usable pair and a known library, so `umis` is exact |
-| `cells_complete` | Whether every read has a trusted barcode and a known library, so `cells` is exact |
+| `umis_complete` | Whether there are reads and every one has a usable pair and a known library, so `umis` is exact |
+| `cells_complete` | Whether there are reads and every one has a trusted barcode and a known library, so `cells` is exact |
 | `unlabeled_reads` | Reads without a usable complete label |
 | `unknown_library_reads` | Reads without unambiguous library metadata |
 | `label_statuses` | Reads by resolution status |
 
 Use `umis` and `cells` as exact counts when their `*_complete` flag is true.
-Otherwise the unlabelled and unknown-library counts show why they are not. A
+Otherwise the unlabelled and unknown-library counts show why they are not; with
+no reads, both flags are false and both counts zero. A
 label count is not a molecule count: UMIs are not clustered or corrected.
 
 ## Which labels count as the same

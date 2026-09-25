@@ -3,7 +3,6 @@
 from dataclasses import replace
 from copy import deepcopy
 
-from tests.testing_helpers import complete_umis
 import pysam
 import pytest
 
@@ -13,6 +12,7 @@ from isovar.sv_rna import RnaObservation, _Model
 from isovar.read_metadata import record_evidence
 from isovar.sv_rna_orfs import exploratory_orfs
 from tests.test_sv_rna import long_read_run
+from tests.testing_helpers import complete_umis
 
 
 def observation(key, sequence, positions, **kwargs):

@@ -16,6 +16,8 @@ says nothing about whether their reads overlap.
 from hashlib import sha256
 import json
 
+from .read_identity import count_reads, fragment_ids, source_read_ids
+
 
 def canonical_json(value):
     """Compact, key-sorted, ASCII JSON used for every exported identifier."""
@@ -30,8 +32,17 @@ def content_identifier(kind, value):
 CELL_UMI_FIELDS = ("umis", "cells", "umis_complete", "cells_complete", "unlabeled_reads",
                    "unknown_library_reads", "label_statuses")
 
+# The support record's columns in every table, in order.
+SUPPORT_COLUMNS = ("reads", "fragments", "umis", "cells", "umis_complete", "cells_complete",
+                   "unlabeled_reads", "unknown_library_reads")
 
-def rna_support(identities, label_rows=None):
+
+def support_columns(support, prefix=""):
+    """A support record's `SUPPORT_COLUMNS` as table cells, prefixed; null is blank."""
+    return {prefix + key: "" if support[key] is None else support[key] for key in SUPPORT_COLUMNS}
+
+
+def rna_support(identities, label_row=None):
     """
     The RNA support record for a set of reads.
 
@@ -39,9 +50,9 @@ def rna_support(identities, label_rows=None):
     ----------
     identities : iterable of tuple
         Read identities ``(read group, QNAME, mate bits)``; repeats count once.
-    label_rows : list of dict, optional
-        Cell/UMI label rows, one per read (see `isovar.cell_umi`). Without
-        them the cell/UMI fields are null: not assessed.
+    label_row : callable, optional
+        A read identity's cell/UMI label row (see `isovar.cell_umi`). Without
+        it the cell/UMI fields are null: not assessed.
 
     Returns
     -------
@@ -52,9 +63,10 @@ def rna_support(identities, label_rows=None):
     """
     from .cell_umi import cell_umi_counts
 
-    identities = {tuple(identity) for identity in identities}
+    identities = sorted({tuple(identity) for identity in identities})
     support = dict(reads=len(identities), fragments=len({identity[:2] for identity in identities}))
-    support.update(dict.fromkeys(CELL_UMI_FIELDS) if label_rows is None else cell_umi_counts(label_rows))
+    support.update(dict.fromkeys(CELL_UMI_FIELDS) if label_row is None
+                   else cell_umi_counts(label_row(identity) for identity in identities))
     return support
 
 
@@ -83,6 +95,50 @@ def evidence_set(scope, identities):
         evidence_scope=list(scope), reads=len(identities), fragments=len(fragments), read_ids=read_ids,
         fragment_ids=[content_identifier("fragment", [scope, fragment]) for fragment in fragments],
         evidence_set_id=content_identifier("evidence", sorted(read_ids)))
+
+
+class EvidenceSets:
+    """
+    RNA support records for read sets in one evidence scope, storing each
+    set's hashed read IDs once, keyed by its evidence set ID.
+
+    Parameters
+    ----------
+    scope : list
+        ``[sample_id, source]``.
+    """
+
+    def __init__(self, scope):
+        self.scope, self.sets = list(scope), {}
+
+    @staticmethod
+    def record(reads, labels=None):
+        """
+        The RNA support record of ``reads`` (Isovar read objects), and their
+        identities, or None when any read lacks one; such reads are counted
+        without cell/UMI fields. Cell/UMI fields come from ``labels`` (an
+        `isovar.cell_umi.CellUmiEvidence`), or are null.
+        """
+        reads = list(reads)
+        identities = [source_read_ids(read) for read in reads]
+        if not all(identities):
+            return dict(reads=count_reads(reads), fragments=len(fragment_ids(reads)),
+                        **dict.fromkeys(CELL_UMI_FIELDS)), None
+        keys = {key for keys in identities for key in keys}
+        return (rna_support(keys) if labels is None else labels.support(keys)), keys
+
+    def support(self, reads, labels=None):
+        """
+        The RNA support record of ``reads`` plus ``evidence_set_id``, whose
+        hashed read IDs are stored in ``sets``. The ID is null only when a
+        read lacks an identity; no reads is the empty set.
+        """
+        record, keys = self.record(reads, labels)
+        if keys is None:
+            return dict(record, evidence_set_id=None)
+        evidence = evidence_set(self.scope, keys)
+        self.sets[evidence["evidence_set_id"]] = evidence
+        return dict(record, evidence_set_id=evidence["evidence_set_id"])
 
 
 def union_rna_support(supports):

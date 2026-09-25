@@ -178,9 +178,10 @@ def test_full_orf_lineage_uses_only_complete_compatible_witnesses():
                               1, 100, lineage=evidence.support)
     candidate, = result["candidates"]
     support = candidate["full_interval_support"]
-    assert support["reads"] == 2 and len(support["witnesses"]) == 2
+    assert sorted(observations[w["observation"]].identity for w in support["witnesses"]) == [
+        ("a", "full", 0), ("a", "full2", 0)]
+    assert support["reads"] == support["read_lineage"]["reads"] == 2
     assert support["read_lineage"]["signal_groups"] == 1
-    assert support["read_lineage"]["reads"] == 2
     # The two partial siblings still cannot establish the complete ORF together.
     junction["direct_observations"] = ["left", "right"]
     candidate, = exploratory_orfs(sequence, positions, [junction], observations, [], labels.support,

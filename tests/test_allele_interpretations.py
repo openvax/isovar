@@ -128,6 +128,12 @@ def test_command_reads_json_interpretations(bam, tmp_path, capsys):
     result = json.loads(output.read_text())
     assert by_id(result)["caller MNV"]["rna_status"] == "supported"
     assert result["source"] == bam.filename.decode()
+    assert by_id(result)["caller MNV"]["rna_support"]["umis"] is None
+    isovar_cli(["allele-interpretations", "--input", str(path), "--bam", bam.filename.decode(),
+                "--sample-id", "s", "--cell-umi-labels", "--output", str(output), "--log-level", "WARNING"])
+    support = by_id(json.loads(output.read_text()))["caller MNV"]["rna_support"]
+    # These reads carry no CB/UB tags, so every one is unlabelled.
+    assert (support["umis"], support["cells"], support["unlabeled_reads"]) == (0, 0, support["reads"])
     data["interpretations"]["bad"] = [dict(contig="1", start=1021, ref="A")]
     path.write_text(json.dumps(data))
     with pytest.raises(SystemExit) as exit_info:

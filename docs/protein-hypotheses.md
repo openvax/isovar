@@ -97,9 +97,11 @@ are two translations of one protein, each with its own reads.
 ## RNA support and evidence sets
 
 Every support is the [RNA support record](../README.md#collecting-rna-reads):
-`reads`, `fragments`, and, with `--cell-umi-labels`, `umis` and `cells`. Each also
-has an `evidence_set_id`. The export's `evidence_sets` table stores each distinct set
-of reads once:
+`reads`, `fragments`, and, with `--cell-umi-labels`, `umis`, `cells` and their
+completeness. The alternate allele, each protein and each translation also have
+an `evidence_set_id`; the reference, other and total allele supports give counts
+only, since their reads are rarely combined and dominate at deep loci. The
+export's `evidence_sets` table stores each distinct set of reads once:
 
 ```python
 support = export["events"][0]["protein_hypotheses"][0]["rna_support"]
@@ -124,9 +126,9 @@ combined["reads"], combined["fragments"]
 
 `union_rna_support` refuses read sets from different scopes, because their
 overlap cannot be known. Reads reprocessed under another `source`, for example,
-may be the same molecules. An `evidence_set_id` is null when some reads were
-built without alignment identities; their counts are then given but cannot be
-combined.
+may be the same molecules. An `evidence_set_id` is null only when some reads
+were built without alignment identities; their counts are then given but cannot
+be combined. No reads is the empty set, which has an ID.
 
 With `--cell-umi-labels` (Python: `cell_umi_alignment_file=`), the `umis` and
 `cells` of every support are counted, and `allele_support` gives
