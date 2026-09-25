@@ -1,8 +1,8 @@
 pyensembl>=1.5.0
 # Varcode 10 is the tested major version (CI and the suite run on 10.x).
-# 10.5.0 honors an Ensembl release in --genome (GRCh38:93) instead of silently
-# using the latest release.
-varcode>=10.5.0,<11
+# 10.5.2 honors an Ensembl release in --genome (GRCh38:93 or GRCh38.93) instead
+# of silently using the latest release.
+varcode>=10.5.2,<11
 pandas>=0.23.0
 pysam>=0.15.2
 psutil

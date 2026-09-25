@@ -4,6 +4,13 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.37.2
+
+- `--genome GRCh38.93` (Ensembl's file-name spelling), `GRCh38_93` and
+  `hg38.93` choose release 93 like `GRCh38:93`. With Varcode 10.5.0 they
+  silently used the most recent release; Isovar now requires Varcode 10.5.2,
+  which reads them.
+
 ## 1.37.1
 
 - `--genome GRCh38:93` chooses Ensembl release 93 (#122). Isovar now requires
