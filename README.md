@@ -301,7 +301,9 @@ from allele fraction. The `isovar run` table reports, for the top protein,
 `num_co_somatic_variants_in_top_protein_sequence`,
 `num_germline_variants_in_top_protein_sequence` and
 `num_unexplained_edits_in_top_protein_sequence`. These work as filters too, for
-example `max_num_unexplained_edits_in_top_protein_sequence`.
+example `max_num_unexplained_edits_in_top_protein_sequence`. When callers disagree
+about the variant itself, [`isovar allele-interpretations`](https://github.com/openvax/isovar/blob/master/docs/allele-interpretations.md)
+compares their versions with the reads first.
 
 ### Structural variants and fusions
 
@@ -345,6 +347,7 @@ subcommand) also runs the pipeline, and `python -m isovar` works too.
 | `isovar allele-reads` | All reads overlapping each variant |
 | `isovar variant-reads` | Reads supporting each variant's alt allele |
 | `isovar plot` | Protein, coverage, read-overlap and transcript figures for one mutation ([guide](https://github.com/openvax/isovar/blob/master/docs/visualization.md)) |
+| `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](https://github.com/openvax/isovar/blob/master/docs/allele-interpretations.md)) |
 | `isovar sv-rna` | Exploratory RNA paths around one nominated SV, as JSON |
 | `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON |
 
@@ -433,6 +436,7 @@ Multiple distinct variant sequences and reference contexts can generate the same
 |---|---|
 | [Protein context selection](https://github.com/openvax/isovar/blob/master/docs/protein-selection.md) | How much protein context is reported and which candidate comes first |
 | [Protein hypothesis export](https://github.com/openvax/isovar/blob/master/docs/protein-hypotheses.md) | Every protein and translation with scoped RNA evidence, for tools that combine sources |
+| [Competing allele interpretations](https://github.com/openvax/isovar/blob/master/docs/allele-interpretations.md) | Which of several callers' versions of one locus the RNA supports |
 | [Reading frames from aligned reads](https://github.com/openvax/isovar/blob/master/docs/aligned-reading-frame.md) | How an indel upstream of the variant carries into the reading frame |
 | [Adapter and poly-A trimming](https://github.com/openvax/isovar/blob/master/docs/read-end-inference.md) | Opt-in annotation and trimming of technical read ends |
 | [Mutation-evidence figures](https://github.com/openvax/isovar/blob/master/docs/visualization.md) | `isovar plot`, how to read its figures, and the osteosarc gallery |
