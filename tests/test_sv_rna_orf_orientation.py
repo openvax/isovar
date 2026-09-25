@@ -58,7 +58,7 @@ def test_reconstruction_export_json_tsv_orientation_contract(tmp_path, mode, cou
     with paths["tsv"].open() as handle:
         row, = [r for r in csv.DictReader(handle, delimiter="\t")
                 if r["candidate_id"] == candidate["candidate_id"]]
-    assert row["schema"] == "isovar.sv_rna_orfs.v3"
+    assert row["schema"] == "isovar.sv_rna_orfs.v4"
     assert set(row["uncertainty_flags"].split(";")) == flags
     assert int(row["fragments"]) == sum(counts)
     assert tuple(int(row[k]) for k in ("original_query_fragments", "reverse_complement_fragments",

@@ -23,7 +23,7 @@ def test_original_coding_fusion_hypotheses(entry):
     fusion, references, observations = fusion_from_dict(fusion_input(data))
     result = reconstruct_fusion(fusion, references, observations)
     assert result["status"] == entry["expected_status"] == "ambiguous"
-    assert result["evidence"]["direct_fragments"] == entry["fragments"] == 2
+    assert result["paths"][0]["junctions"][0]["direct_support"]["fragments"] == entry["fragments"] == 2
     assert len(result["paths"][0]["translations"]) == 1  # One coding hypothesis, plus noncoding/other-CDS alternatives.
     protein, = result["paths"][0]["translations"]
     assert (protein["amino_acids"], protein["ends_with_stop_codon"]) == translate(

@@ -8,7 +8,7 @@ from tests.test_sv_rna import Scenario, write_bam
 
 TOP_LEVEL = {"schema", "event_id", "reference_name", "sample_id", "status", "paths", "parameters"}
 PATH = {"path_id", "sequence", "junctions", "frame_status", "translations"}
-JUNCTION = {"query_interval", "left", "right", "unplaced_bases", "relation", "direct_fragments"}
+JUNCTION = {"query_interval", "left", "right", "unplaced_bases", "relation", "direct_support"}
 TRANSLATION = {"translation_start", "translation_end", "amino_acids", "ends_with_stop_codon",
                "complete_5prime", "transcript_ids", "frame_evidence", "candidate_peptides",
                "translation_observed"}

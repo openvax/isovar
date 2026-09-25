@@ -7,14 +7,19 @@ import json
 from pathlib import Path
 from urllib.parse import quote
 
-from .cell_umi import summarize_cell_umi_rows
+from .cell_umi import missing_label_row
 from .default_parameters import (
     SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_LOCAL_VARIANT_FRACTION,
 )
 from .genetic_code import standard_genetic_code
 from .orf_start import summarize_orf_start_evidence
 from .read_lineage import summarize_lineage_rows
-from .rna_evidence import canonical_json as _canonical, content_identifier as _identifier, segment_support
+from .rna_evidence import canonical_json as _canonical, content_identifier as _identifier, evidence_set, rna_support
+
+
+# The RNA support record's count columns, as in every other table.
+SUPPORT_COLUMNS = ("reads", "fragments", "umis", "cells", "umis_complete", "cells_complete",
+                   "unlabeled_reads", "unknown_library_reads")
 
 
 def _unique(rows):
@@ -25,18 +30,12 @@ def _support(result, witnesses):
     scope = [result["sample_id"], result["source"]]
     observations = [result["observations"][w["observation"]] for w in witnesses]
     identities = sorted({tuple(o["identity"]) for o in observations})
-    labels = {tuple(row["identity"]): row for row in result.get("cell_umi_evidence", {}).get("segments", [])}
-    lineage = {tuple(row["identity"]): row for row in result.get("read_lineage", {}).get("segments", [])}
-    label_rows = [labels.get(identity, dict(identity=list(identity), label=None, library_scope_known=False,
-                                           status="metadata_unavailable")) for identity in identities]
+    labels = {tuple(row["identity"]): row for row in result["cell_umi_evidence"]["reads"]}
+    lineage = {tuple(row["identity"]): row for row in result["read_lineage"]["reads"]}
+    label_rows = [labels.get(identity) or missing_label_row(identity) for identity in identities]
     lineage_rows = [lineage.get(identity, dict(identity=list(identity), signal_group=None,
                                               status="metadata_unavailable")) for identity in identities]
-    label_summary = summarize_cell_umi_rows(label_rows)
-    lineage_summary = summarize_lineage_rows(lineage_rows)
-    # These legacy summaries carry raw RG/QNAME identities. Membership below
-    # uses explicit source-scoped fingerprints instead.
-    label_summary.pop("segment_ids")
-    lineage_summary.pop("segment_ids")
+    ids = evidence_set(scope, identities)
     signal_ids = sorted({_identifier("signal", [scope, row["signal_group"]]) for row in lineage_rows
                          if row["signal_group"] is not None})
     orientations = defaultdict(set)
@@ -48,10 +47,11 @@ def _support(result, witnesses):
         orientation_counts[key] += 1
     return dict(
         scope="union_of_full_interval_junction_linked_witnesses_within_input",
-        **segment_support(scope, identities),
-        signal_group_ids=signal_ids, cell_umi_support=label_summary, read_lineage=lineage_summary,
-        independent_molecules=None, fragment_query_orientations=orientation_counts,
-        missing_quality_segments=len({tuple(o["identity"]) for o in observations if o["missing_qualities"]}))
+        **rna_support(identities, label_rows),
+        **{key: ids[key] for key in ("evidence_scope", "read_ids", "fragment_ids", "evidence_set_id")},
+        signal_group_ids=signal_ids, read_lineage=summarize_lineage_rows(lineage_rows),
+        fragment_query_orientations=orientation_counts,
+        missing_quality_reads=len({tuple(o["identity"]) for o in observations if o["missing_qualities"]}))
 
 
 def _occurrence(path, candidate):
@@ -62,12 +62,6 @@ def _occurrence(path, candidate):
     row["reconstruction_scopes"] = deepcopy(path["reconstruction_scopes"])
     row["end_reasons"] = deepcopy(path["end_reasons"])
     row["start_evidence"] = deepcopy(candidate["start_evidence"])
-    if row["start_evidence"] is not None:
-        for assessment in row["start_evidence"]["assessments"]:
-            inclusion = assessment.get("splice_inclusion", {})
-            for key in ("cell_umi_support", "read_lineage"):
-                if inclusion.get(key) is not None:
-                    inclusion[key].pop("segment_ids", None)
     row["junctions"] = []
     crossings = {c["junction_index"]: c for c in candidate["junction_crossings"]}
     for index in candidate["crossed_junctions"]:
@@ -96,16 +90,16 @@ def _flags(candidate, result):
         flags.add("partial_orf")
     if support["fragments"] < 2:
         flags.add("no_full_fragment_witness" if not support["fragments"] else "single_full_fragment_witness")
-    if support["missing_quality_segments"]:
+    if support["missing_quality_reads"]:
         flags.add("missing_base_qualities")
-    labels, lineage = support["cell_umi_support"], support["read_lineage"]
-    if labels["unknown_library_segments"]:
+    lineage = support["read_lineage"]
+    if support["unknown_library_reads"]:
         flags.add("library_scope_unresolved")
-    if labels["unresolved_segments"]:
+    if support["unlabeled_reads"]:
         flags.add("cell_umi_labels_unresolved")
-    if lineage["unresolved_segments"]:
+    if lineage["unresolved_reads"]:
         flags.add("signal_lineage_unresolved")
-    if support["segments"] - lineage["unresolved_segments"] > lineage["resolved_signal_groups"]:
+    if support["reads"] - lineage["unresolved_reads"] > lineage["signal_groups"]:
         flags.add("shared_signal_ancestry")
     directions = support["fragment_query_orientations"]
     if support["fragments"] and directions["reverse_complement"] == support["fragments"]:
@@ -140,19 +134,19 @@ def export_sv_rna_orfs(result):
     Parameters
     ----------
     result : dict
-        An ``isovar.sv_rna_candidates.v4`` result. Not modified.
+        An ``isovar.sv_rna_candidates.v5`` result. Not modified.
 
     Returns
     -------
     dict
-        ``isovar.sv_rna_orfs.v3`` sequences, occurrences, evidence and warnings.
+        ``isovar.sv_rna_orfs.v4`` sequences, occurrences, evidence and warnings.
         Exact nucleotide alternatives remain distinct even if their peptides
         agree. Candidate identity excludes sample/source; evidence identity
         includes them and excludes event. Hashes are references, not guarantees
         of anonymization or evidence independence across source aliases.
     """
-    if result.get("schema") != "isovar.sv_rna_candidates.v4":
-        raise ValueError("SV ORF export requires isovar.sv_rna_candidates.v4")
+    if result.get("schema") != "isovar.sv_rna_candidates.v5":
+        raise ValueError("SV ORF export requires isovar.sv_rna_candidates.v5")
     groups = {}
     for path in result["paths"]:
         for candidate in path["exploratory_orfs"]["candidates"]:
@@ -183,7 +177,7 @@ def export_sv_rna_orfs(result):
     export = {key: deepcopy(result[key]) for key in (
         "event_id", "reference_name", "sample_id", "source", "event_provenance", "donor", "acceptor",
         "reference_models", "parameters", "limitations")}
-    export.update(schema="isovar.sv_rna_orfs.v3", reconstruction_schema=result["schema"], candidates=candidates,
+    export.update(schema="isovar.sv_rna_orfs.v4", reconstruction_schema=result["schema"], candidates=candidates,
                   interval_convention="zero_based_half_open",
                   evidence_identity_policy="sha256_of_domain_and_canonical_json; sample/source scoped; event excluded",
                   interpretation="Exploratory sequences; no inferred initiation, translation, presentation, "
@@ -204,17 +198,16 @@ def write_sv_rna_orfs(export, prefix):
     an observed terminal stop; protein excludes it. All alternatives are kept.
     Existing files are replaced. Returns the output paths keyed by format.
     """
-    if export.get("schema") != "isovar.sv_rna_orfs.v3":
-        raise ValueError("Expected an isovar.sv_rna_orfs.v3 export")
+    if export.get("schema") != "isovar.sv_rna_orfs.v4":
+        raise ValueError("Expected an isovar.sv_rna_orfs.v4 export")
     paths = sv_rna_orf_output_paths(prefix)
     for path in paths.values():
         path.parent.mkdir(parents=True, exist_ok=True)
     paths["json"].write_text(json.dumps(export, indent=2) + "\n")
     columns = ["schema", "candidate_id", "event_id", "reference_name", "sample_id", "source", "amino_acids",
-               "nucleotide_sequence", "ends_with_stop_codon", "fragments", "segments", "observed_cell_umi_labels",
-               "complete_cell_umi_labels", "resolved_signal_groups", "independent_molecules",
+               "nucleotide_sequence", "ends_with_stop_codon", *SUPPORT_COLUMNS, "signal_groups",
                "original_query_fragments", "reverse_complement_fragments", "mixed_orientation_fragments",
-               "missing_quality_segments", "evidence_set_id", "uncertainty_flags",
+               "missing_quality_reads", "evidence_set_id", "uncertainty_flags",
                "start_tier_status", "start_tier", "start_priority", "start_evidence_json"]
     with paths["tsv"].open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, delimiter="\t")
@@ -224,11 +217,8 @@ def write_sv_rna_orfs(export, prefix):
             row = {key: export[key] for key in ("schema", "event_id", "reference_name", "sample_id", "source")}
             row.update({key: candidate[key] for key in (
                 "candidate_id", "amino_acids", "nucleotide_sequence", "ends_with_stop_codon")})
-            row.update({key: support[key] for key in (
-                "fragments", "segments", "independent_molecules", "missing_quality_segments", "evidence_set_id")})
-            row.update(observed_cell_umi_labels=support["cell_umi_support"]["observed_labels"],
-                       complete_cell_umi_labels=support["cell_umi_support"]["complete_label_count"],
-                       resolved_signal_groups=support["read_lineage"]["resolved_signal_groups"],
+            row.update({key: support[key] for key in (*SUPPORT_COLUMNS, "missing_quality_reads", "evidence_set_id")})
+            row.update(signal_groups=support["read_lineage"]["signal_groups"],
                        original_query_fragments=support["fragment_query_orientations"]["original_query"],
                        reverse_complement_fragments=support["fragment_query_orientations"]["reverse_complement"],
                        mixed_orientation_fragments=support["fragment_query_orientations"]["mixed"],

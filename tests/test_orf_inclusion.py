@@ -74,7 +74,7 @@ def test_only_qualified_same_read_splice_linkage_promotes_intronic_atg(tmp_path,
     else:
         evidence = assessment["splice_inclusion"]
         assert evidence["qualified_fragments"] == (2 if priority == 3 else 0)
-        assert "segment_ids" not in evidence["cell_umi_support"]
+        assert "segment_ids" not in evidence["support"]
         assert "segment_ids" not in evidence["read_lineage"]
     if priority == 3:
         assert evidence["mechanisms"] == ["cryptic_donor"]

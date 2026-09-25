@@ -4,6 +4,42 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.37.0
+
+Every output reports supporting RNA with one record, and "segments" is renamed
+"reads" throughout.
+
+- **The record.** It has `reads`, `fragments`, `umis`, `cells`,
+  `umis_complete`, `cells_complete`, `unlabeled_reads`, `unknown_library_reads`
+  and `label_statuses`. The UMI and cell fields are null unless cell/UMI labels
+  were assessed. It is defined once, in `isovar.rna_evidence.rna_support`, and
+  described in the README.
+- **Where it replaces the earlier forms:**
+  - SV junctions: `direct_support` replaces `direct_segments`,
+    `direct_fragments` and `direct_cell_umi_support`.
+  - SV paths: `sequence_evidence.voting_support` replaces the voting counts.
+  - SV ORFs: `full_interval_support`, and splice-inclusion `support`, carry
+    the record's fields.
+  - Fusions: the junction has `direct_support`, and `evidence.support` covers
+    all reads.
+  - Protein hypothesis exports: `rna_support` and every `allele_support`
+    entry are records.
+  - Allele interpretation supports are records too.
+- **Removed:** `observed_labels`, `complete_label_count`, `independent_molecules`,
+  `cell_umi_support`, the export's `cell_umi_alleles`, and raw `segment_ids`
+  in summaries.
+- **Renamed:** lineage summaries use `reads`, `signal_groups` and
+  `unresolved_reads`. Evidence sets hold `read_ids`. `*_segments` counts become
+  `*_reads` (`missing_quality_reads`, `read_path_notes`, and so on).
+- **Schema versions:** `sv_rna_candidates.v5`, `sv_rna_orfs.v4` (with new TSV
+  count columns), `fusion_rna.v3`, `protein_hypotheses.v2` and
+  `allele_interpretations.v2`.
+- **`isovar allele-counts --cell-umi-labels`** columns are
+  `num_*_umis`, `num_*_cells`, `num_*_unlabeled_reads` and
+  `num_*_unknown_library_reads`.
+- **`isovar allele-interpretations --cell-umi-labels`** counts UMIs and cells.
+- **Varcode:** requires `>=10,<11`. The suite passes on 10.3.0.
+
 ## 1.36.0
 
 - `IsovarReadPhasing.in_cis(v1, v2)` reports cis or trans from fragments that

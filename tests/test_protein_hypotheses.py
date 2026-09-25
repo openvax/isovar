@@ -113,10 +113,10 @@ def test_synonymous_translations_share_one_protein_with_distinct_nucleotide_prov
     assert {(e["cdna_interval"][0], e["alt_bases"], e["origin"]) for e in synonymous["observed_edits"]} == {
         (8, "C", "nominated_variant"), (7, "C", "unexplained")}
     # Each translation keeps its own reads; the protein counts their union once.
-    assert [(t["rna_support"]["segments"], t["rna_support"]["fragments"]) for t in sorted(
+    assert [(t["rna_support"]["reads"], t["rna_support"]["fragments"]) for t in sorted(
         first["translations"], key=lambda t: t["mismatches_before_variant"])] == [(3, 2), (1, 1)]
-    assert (first["rna_support"]["segments"], first["rna_support"]["fragments"]) == (4, 3)
-    assert (alternative["rna_support"]["segments"], alternative["rna_support"]["fragments"]) == (2, 2)
+    assert (first["rna_support"]["reads"], first["rna_support"]["fragments"]) == (4, 3)
+    assert (alternative["rna_support"]["reads"], alternative["rna_support"]["fragments"]) == (2, 2)
     assert first["protein_sequence_id"] != alternative["protein_sequence_id"]
     assert first["mutation_interval"] == [2, 3] and window["mutation_interval"] == [1, 2]
     assert json.loads(json.dumps(export)) == export
@@ -140,7 +140,7 @@ def test_shorter_windows_are_marked_covered_without_losing_them():
     assert covering["hypothesis_id"] == first["hypothesis_id"]
     start, end = covering["protein_interval"]
     assert first["amino_acids"][start:end] == window["amino_acids"]
-    assert window["translations"] and window["rna_support"]["segments"] == 1
+    assert window["translations"] and window["rna_support"]["reads"] == 1
 
 
 def test_combining_hypotheses_counts_shared_reads_once():
@@ -150,7 +150,7 @@ def test_combining_hypotheses_counts_shared_reads_once():
     combined = union_rna_support([evidence(export, first["rna_support"]),
                                   evidence(export, alternative["rna_support"])])
     # Read b supports both proteins; adding the counts would give 6 and 5.
-    assert (combined["segments"], combined["fragments"]) == (5, 4)
+    assert (combined["reads"], combined["fragments"]) == (5, 4)
     assert combined["evidence_set_id"] == event["allele_support"]["alt"]["evidence_set_id"]
 
 
@@ -162,7 +162,7 @@ def test_exports_of_the_same_reads_share_ids_and_other_scopes_cannot_combine():
     assert support["evidence_set_id"] in two["evidence_sets"]
     assert support["evidence_set_id"] not in other["evidence_sets"]
     same = union_rna_support([evidence(one, support), evidence(two, support)])
-    assert same["segments"] == support["segments"]
+    assert same["reads"] == support["reads"]
     with pytest.raises(ValueError, match="different evidence scopes"):
         union_rna_support([evidence(one, support), next(iter(other["evidence_sets"].values()))])
     with pytest.raises(ValueError, match="No RNA supports"):
@@ -183,7 +183,7 @@ def test_unknown_library_metadata_and_reads_without_identity_stay_unknown():
     legacy = {name: read(name, with_identity=False) for name in ("a1", "a2", "b", "c", "d")}
     unscoped = export_protein_hypotheses([synthetic_result(reads=legacy)], sample_id="s", source="rna.bam")
     support = unscoped["events"][0]["protein_hypotheses"][0]["rna_support"]
-    assert support["evidence_set_id"] is None and support["segments"] == 4
+    assert support["evidence_set_id"] is None and support["reads"] == 4
     assert unscoped["evidence_sets"] == {}
 
 
@@ -211,18 +211,18 @@ def test_real_rna_export_keeps_every_hypothesis_and_records_settings(tmp_path):
     assert all(r.protein_sequence_settings == creator.settings() for r in results)
     export = export_protein_hypotheses(results, sample_id="b16", source="b16.bam",
                                        alignment_header=AlignmentFile(BAM).header)
-    assert export["schema"] == "isovar.protein_hypotheses.v1"
+    assert export["schema"] == "isovar.protein_hypotheses.v2"
     assert export["read_groups"]["Tumor_B16_F10_0810_127A"]["sample"] == "Tumor_B16_F10_0810_127A"
     events = [e for e in export["events"] if e["protein_hypotheses"]]
     assert events and all(e["protein_hypotheses_complete"] for e in export["events"])
     for event, result in zip(export["events"], results):
         assert len(event["protein_hypotheses"]) == len(result.sorted_protein_sequences)
         alt = event["allele_support"]["alt"]
-        assert (alt["segments"], alt["fragments"]) == (result.num_alt_reads, result.num_alt_fragments)
+        assert (alt["reads"], alt["fragments"]) == (result.num_alt_reads, result.num_alt_fragments)
         if event["protein_hypotheses"]:
             assert any(p["representative"] for p in event["protein_hypotheses"])
             union = union_rna_support([evidence(export, p["rna_support"]) for p in event["protein_hypotheses"]])
-            assert union["segments"] <= alt["segments"]
+            assert union["reads"] <= alt["reads"]
     paths = write_protein_hypotheses(export, tmp_path / "hypotheses.json")
     assert json.loads(paths["json"].read_text()) == export
     with paths["tsv"].open() as handle:
@@ -240,13 +240,13 @@ def test_two_reconstruction_modes_of_the_same_reads_combine_without_inflation():
                     for p in event["protein_hypotheses"]]
         if supports:
             combined = union_rna_support(supports)
-            assert combined["segments"] <= events[0]["allele_support"]["alt"]["segments"]
-            assert combined["segments"] < sum(s["segments"] for s in supports)
+            assert combined["reads"] <= events[0]["allele_support"]["alt"]["reads"]
+            assert combined["reads"] < sum(s["reads"] for s in supports)
 
 
 def test_write_rejects_other_schemas(tmp_path):
-    with pytest.raises(ValueError, match="protein_hypotheses.v1"):
-        write_protein_hypotheses({"schema": "isovar.sv_rna_orfs.v3"}, tmp_path / "x.json")
+    with pytest.raises(ValueError, match="protein_hypotheses.v2"):
+        write_protein_hypotheses({"schema": "isovar.sv_rna_orfs.v4"}, tmp_path / "x.json")
 
 
 def test_command_keeps_all_proteins_by_default(tmp_path):
@@ -268,8 +268,8 @@ def test_sv_and_small_variant_exports_of_one_read_set_share_read_ids():
     shared = dict(READS, b=read("full", group="library"))
     small = export_protein_hypotheses([synthetic_result(reads=shared)], sample_id="sample", source="source")
     support = evidence(small, small["events"][0]["protein_hypotheses"][0]["rna_support"])
-    assert set(sv["segment_ids"]) <= set(support["segment_ids"])
-    assert union_rna_support([sv, support])["segments"] == support["segments"]
+    assert set(sv["read_ids"]) <= set(support["read_ids"])
+    assert union_rna_support([sv, support])["reads"] == support["reads"]
 
 
 def test_command_reports_unusable_output_as_a_usage_error(tmp_path, capsys):

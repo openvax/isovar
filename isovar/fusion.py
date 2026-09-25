@@ -11,6 +11,7 @@ from typing import Optional, Tuple
 
 from .default_parameters import FUSION_PEPTIDE_LENGTHS, MIN_FUSION_FRAGMENTS
 from .genetic_code import standard_genetic_code
+from .rna_evidence import CELL_UMI_FIELDS
 
 
 def _integer(value, name):
@@ -249,6 +250,11 @@ def _match_reference(fusion, reference, side):
     return start
 
 
+def _support(reads, fragments):
+    """The RNA support record; supplied fusion reads carry no cell/UMI labels."""
+    return dict(reads=reads, fragments=fragments, **dict.fromkeys(CELL_UMI_FIELDS))
+
+
 def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_PEPTIDE_LENGTHS,
                        min_fragments=MIN_FUSION_FRAGMENTS):
     """Validate supplied fusion RNA and return a JSON-serializable evidence result.
@@ -262,7 +268,7 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
     Returns
     -------
     dict
-        An ``isovar.fusion_rna.v2`` result with the same path structure as
+        An ``isovar.fusion_rna.v3`` result with the same path structure as
         ``reconstruct_sv_rna``: one supplied path with its junction, direct
         support, ``frame_status`` and every supported translation hypothesis.
         Only ``status == 'translated'`` has one resolved translation;
@@ -283,7 +289,7 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
     if len(set(ids)) != len(ids):
         raise ValueError("Duplicate reference transcript identity")
     coordinates = _coordinates(fusion.blocks)
-    observations, fragments, direct, seen = [], set(), set(), {}
+    observations, fragments, direct, direct_reads, seen = [], set(), set(), 0, {}
     covered = set()
     for read in reads:
         if read.sample_id != fusion.provenance["sample_id"]:
@@ -315,6 +321,7 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
                  fusion.junction_start - 1 - start in mapping and fusion.junction_end - start in mapping)
         if spans:
             direct.add(fragment)
+            direct_reads += 1
         observations.append(dict(asdict(read), directly_spans_junction=spans))
     matches = {side: [(ref, offset) for ref in references
                      if (offset := _match_reference(fusion, ref, side)) is not None]
@@ -322,19 +329,18 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
     junction = dict(query_interval=[fusion.junction_start, fusion.junction_end],
                     left=list(coordinates[fusion.junction_start - 1]), right=list(coordinates[fusion.junction_end]),
                     unplaced_bases=fusion.sequence[fusion.junction_start:fusion.junction_end],
-                    relation="breakpoint_junction", direct_fragments=len(direct))
+                    relation="breakpoint_junction", direct_support=_support(direct_reads, len(direct)))
     path = dict(path_id="supplied", sequence=fusion.sequence,
                 sequence_sha256=sha256(fusion.sequence.encode()).hexdigest(),
                 blocks=[asdict(b) for b in fusion.blocks], junctions=[junction],
                 frame_status="not_assessed", translations=[],
                 compatible_transcripts={side: [r.transcript_id for r, _ in rows] for side, rows in matches.items()})
-    result = dict(schema="isovar.fusion_rna.v2", event_id=fusion.event_id, reference_name=fusion.reference_name,
+    result = dict(schema="isovar.fusion_rna.v3", event_id=fusion.event_id, reference_name=fusion.reference_name,
                   sample_id=fusion.provenance["sample_id"], provenance=fusion.provenance,
                   donor=asdict(fusion.donor), acceptor=asdict(fusion.acceptor),
                   status="unresolved", reasons=[], paths=[path],
                   reference_annotations=sorted({r.annotation for r in references}),
-                  evidence=dict(reads=len(observations), fragments=len(fragments),
-                                direct_fragments=len(direct), observations=observations),
+                  evidence=dict(support=_support(len(observations), len(fragments)), observations=observations),
                   parameters=dict(peptide_lengths=lengths, min_fragments=min_fragments, genetic_code=1))
     if len(direct) < min_fragments:
         result.update(status="insufficient_support", reasons=["insufficient_direct_junction_fragments"])

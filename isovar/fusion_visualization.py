@@ -58,7 +58,7 @@ def fusion_figures(result, references=(), transcript_names=None):
            xlabel="Supplied cDNA offset (nt, 5' to 3')")
     status = result["status"].replace("_", " ")
     note = ("%d spanning fragments\n%d shown\n\n%s\n\nBlue: donor RNA\nGreen: acceptor RNA" %
-            (result["evidence"]["direct_fragments"], len(shown), status))
+            (result["paths"][0]["junctions"][0]["direct_support"]["fragments"], len(shown), status))
     if j1 > j0:
         note += "\nOrange: %d-nt insert" % (j1-j0)
     _side_note(ax, note)

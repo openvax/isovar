@@ -167,29 +167,59 @@ class CellUmiEvidence:
         return self.cache[identity]
 
     def support(self, identities):
-        """Count reported labels only among the supplied segment witnesses.
+        """The RNA support record for these reads, with their cell/UMI counts.
 
-        ``observed_labels`` is a subset count. ``complete_label_count`` is null
-        unless every witness has a label and known library scope. Neither is
-        an independent molecule count; no clustering or collision model is used.
+        Reads without an eligible record here count as unlabelled
+        (``metadata_unavailable``). See `isovar.rna_evidence.rna_support`.
         """
-        rows = [self.segment(key) for key in sorted(set(identities))]
-        return summarize_cell_umi_rows(rows)
+        from .rna_evidence import rna_support
+
+        identities = sorted({tuple(identity) for identity in identities})
+        return rna_support(identities, [self.row(identity) for identity in identities])
+
+    def row(self, identity):
+        """The label row for one read, or a metadata_unavailable row without a record."""
+        return self.segment(identity) if identity in self.groups else missing_label_row(identity)
 
     def evidence(self):
-        """JSON-ready policy and evidence for consulted segments and mates."""
-        return dict(policy=self.policy, segments=[self.cache[key] for key in sorted(self.cache)])
+        """JSON-ready policy and per-read label rows for consulted reads and mates."""
+        return dict(policy=self.policy, reads=[self.cache[key] for key in sorted(self.cache)])
 
 
-def summarize_cell_umi_rows(rows):
-    """Summarize unique serialized segment rows using the reconstruction policy."""
+# Statuses whose cell barcode cannot be trusted, even when one is present.
+UNTRUSTED_CELL_STATUSES = frozenset(("conflicting_tags", "conflicting_template_labels", "invalid_tags",
+                                     "ambiguous_read_group", "metadata_unavailable"))
+
+
+def missing_label_row(identity):
+    """A read whose record was not available to resolve its label."""
+    return dict(identity=list(identity), scope=None, label=None, cell_barcode=None,
+                library_scope_known=False, status="metadata_unavailable")
+
+
+def trusted_cells(rows):
+    """Cells, keyed by label scope and barcode, from rows with a trusted barcode."""
+    return {(*row["scope"].values(), row["cell_barcode"]) for row in rows
+            if row["cell_barcode"] is not None and row["status"] not in UNTRUSTED_CELL_STATUSES}
+
+
+def cell_umi_counts(rows):
+    """
+    Cell/UMI fields of an RNA support record from label rows, one per read.
+
+    ``umis`` counts distinct cell barcode and UMI pairs, and ``cells`` distinct
+    cell barcodes, each within its declared library. A barcode without a UMI
+    still identifies its cell. ``umis_complete`` and ``cells_complete`` say
+    whether every read contributed, with a known library, so that the count
+    is exact. Neither count is a molecule or prevalence estimate.
+    """
     rows = list(rows)
-    labels = {tuple(row["label"]) for row in rows if row["label"] is not None}
-    unresolved = sum(row["label"] is None for row in rows)
-    unknown_scope = sum(not row["library_scope_known"] for row in rows)
-    return dict(unit="cell_umi_label", segment_ids=[row["identity"] for row in rows],
-                observed_labels=len(labels), unresolved_segments=unresolved,
-                unknown_library_segments=unknown_scope, all_segments_labeled=not unresolved,
-                complete_label_count=len(labels) if rows and not unresolved and not unknown_scope else None,
-                independent_molecules=None,
-                status_counts=dict(sorted(Counter(row["status"] for row in rows).items())))
+    umis = {tuple(row["label"]) for row in rows if row["label"] is not None}
+    trusted = [row for row in rows if row["cell_barcode"] is not None and row["status"] not in UNTRUSTED_CELL_STATUSES]
+    unlabeled = sum(row["label"] is None for row in rows)
+    unknown_library = sum(not row["library_scope_known"] for row in rows)
+    return dict(umis=len(umis), cells=len(trusted_cells(rows)),
+                umis_complete=not unlabeled and not unknown_library,
+                cells_complete=len(trusted) == len(rows) and not unknown_library,
+                unlabeled_reads=unlabeled, unknown_library_reads=unknown_library,
+                label_statuses=dict(sorted(Counter(row["status"] for row in rows).items())))

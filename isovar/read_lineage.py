@@ -128,7 +128,6 @@ def summarize_lineage_rows(rows):
     rows = list(rows)
     groups = {tuple(row["signal_group"]) for row in rows if row["signal_group"] is not None}
     unresolved = sum(row["signal_group"] is None for row in rows)
-    return dict(segment_ids=[row["identity"] for row in rows],
-                resolved_signal_groups=len(groups), unresolved_segments=unresolved,
-                all_segments_resolved=not unresolved,
-                status_counts=dict(sorted(Counter(row["status"] for row in rows).items())))
+    return dict(reads=len(rows), signal_groups=len(groups), unresolved_reads=unresolved,
+                all_reads_resolved=not unresolved,
+                statuses=dict(sorted(Counter(row["status"] for row in rows).items())))

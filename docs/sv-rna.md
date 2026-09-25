@@ -102,8 +102,8 @@ Annotated junctions that happen to cross the event are listed in
 Isovar reports sequence, frame and event linkage as separate kinds of evidence.
 Check each on its own:
 
-1. **Is the junction real?** `direct_fragments` counts read fragments whose *own*
-   alignment makes that join. One or two fragments is thin evidence.
+1. **Is the junction real?** `direct_support` counts the reads and fragments
+   whose *own* alignment makes that join (with UMIs and cells for single-cell data). One or two fragments is thin evidence.
    `direct_junction_sequences` shows every junction-base variant seen.
 2. **Is it linked to the event?** Prefer `breakpoint_junction` and
    `event_compatible_junction`; treat `splice_ambiguous_event_junction` with care.
@@ -117,20 +117,20 @@ Check each on its own:
    `observations_end` means that end was truncated. Also check the top-level
    `limitations` (for example `record_limit`, `path_limit`).
 
-Counts of segments, fragments, cell/UMI labels and ONT signal groups are
+Counts of reads, fragments, UMIs, cells and ONT signal groups are
 different units. None of them is a count of independent RNA molecules.
 
 ## The RNA path format
 
-`isovar sv-rna` (schema `isovar.sv_rna_candidates.v4`) and `isovar fusion`
-(schema `isovar.fusion_rna.v2`) share these fields. Every interval is 0-based
+`isovar sv-rna` (schema `isovar.sv_rna_candidates.v5`) and `isovar fusion`
+(schema `isovar.fusion_rna.v3`) share these fields. Every interval is 0-based
 and half-open (`[start, end)`) in path coordinates.
 
 | Level | Fields |
 |---|---|
 | Result | `schema`, `event_id`, `reference_name`, `sample_id`, `status`, `paths`, `parameters` |
 | Path | `path_id`, `sequence`, `junctions`, `frame_status`, `translations` |
-| Junction | `query_interval`: the unplaced bases between the two partners (empty for a direct join); `left`/`right`: the placed bases on either side as `[contig, position, strand]`; `unplaced_bases`; `relation`; `direct_fragments` |
+| Junction | `query_interval`: the unplaced bases between the two partners (empty for a direct join); `left`/`right`: the placed bases on either side as `[contig, position, strand]`; `unplaced_bases`; `relation`; `direct_support`, the [RNA support record](../README.md#collecting-rna-reads) of reads spanning the join |
 | Translation | `translation_start`, `translation_end`, `amino_acids`, `ends_with_stop_codon`, `complete_5prime`, `transcript_ids`, `frame_evidence`, `candidate_peptides` (`sequence`, `protein_interval`), `translation_observed` (always false) |
 
 `path["sequence"][start:end]` for a junction's `query_interval` equals its
@@ -303,13 +303,13 @@ Add `--orf-output-prefix sample.orfs` to also write `sample.orfs.json`,
 `sample.orfs.tsv`, `sample.orfs.protein.fasta` and `sample.orfs.nucleotide.fasta`.
 Existing files are replaced. From Python, use `isovar.export_sv_rna_orfs(result)`
 and `isovar.write_sv_rna_orfs(export, prefix)`. The export (schema
-`isovar.sv_rna_orfs.v3`) keeps every hypothesis, including partial ORFs and
+`isovar.sv_rna_orfs.v4`) keeps every hypothesis, including partial ORFs and
 ORFs without a full witness:
 
 - Identical sequences found on several paths become one candidate, with each
   path listed as an occurrence. Synonymous alternatives stay separate.
-- Support is recomputed from the union of original read segments, never by
-  adding path counts.
+- Support (`rna_support`, the same record as everywhere else) is recomputed
+  from the union of original reads, never by adding path counts.
 - The nucleotide FASTA includes an observed stop codon; the protein FASTA does not.
 - `start_evidence_summary` agrees with every occurrence's start tier, or reports
   `ambiguous` with no priority.
@@ -334,7 +334,7 @@ ORFs without a full witness:
 
 These are prompts for review, not automatic rejections. IDs are full SHA-256
 hashes of canonical JSON: candidate IDs hash the event, reference, sequence,
-protein and stop status; segment and fragment IDs are scoped to the sample and
+protein and stop status; read and fragment IDs are scoped to the sample and
 source. Hashes are references, not anonymization.
 
 ## Compare with predicted proteins
@@ -401,11 +401,12 @@ collector = ReadCollector(read_filter=lambda read: not read.has_tag("NH") or rea
 The result records that a custom filter was used; describe it in
 `event_provenance` so the run can be reproduced.
 
-Cell/UMI labels and ONT signal lineage are reported on each junction
-(`direct_cell_umi_support`, `direct_read_lineage`) and each ORF's full-interval
-support. They are described in [cell/UMI evidence](cell-umi-evidence.md) and
-[ONT read lineage](ont-read-lineage.md). Their `complete_label_count` is null
-when any supporting segment lacks a resolved label or library.
+Each junction's `direct_support`, each path's `sequence_evidence.voting_support`
+and each ORF's `full_interval_support` are RNA support records, so they count
+UMIs and cells as well as reads and fragments. ONT signal lineage sits beside
+them (`direct_read_lineage`, `read_lineage`). See
+[cell/UMI evidence](cell-umi-evidence.md) and [ONT read lineage](ont-read-lineage.md).
+`umis_complete` is false when any supporting read lacks a resolved label or library.
 
 ## Regression data
 

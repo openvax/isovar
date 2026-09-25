@@ -1233,7 +1233,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
                                       if identity in unbuilt)
             junction_sequences.update(reverse_complement_dna(inserted) for identity, inserted in
                                       store.gaps.get((_flip(right), _flip(left)), {}).items() if identity in unbuilt)
-        cell_umi_support = store.cell_umi.support(segments)
+        direct_support = store.cell_umi.support(segments)
         # Bases co-observed with the join in single reads; annotated splices are context only.
         spans = [] if is_annotated else [q for q in (span(o) for o, *_ in direct) if q]
         clip = relation == "breakpoint_clip_partner_unplaced"
@@ -1243,8 +1243,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
             right=positions[j] and list(positions[j]), unplaced_bases=sequence[i + 1:j],
             forward_splice_geometry=bool(positions[i] and positions[j] and _forward_splice(positions[i], positions[j])),
             kinds=sorted(kinds), annotated=is_annotated, relation=relation, breakpoint_assignment=assignment,
-            direct_segments=len(segments), direct_fragments=len({s[:2] for s in segments}),
-            direct_cell_umi_support=cell_umi_support,
+            direct_support=direct_support,
             direct_read_lineage=store.lineage.support(segments),
             direct_observations=sorted({o.key for o, *_ in direct}),
             direct_junction_sequences=None if clip else [
@@ -1269,9 +1268,9 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
                                                      if j["relation"] == status and not j["annotated"]],
                            somatic_causation_proven=False),
         sequence_evidence=dict(
-            voting_segments=len(segments), voting_fragments=len({s[:2] for s in segments}),
-            missing_quality_segments=len({o.identity for o in voting if o.missing_qualities}),
-            secondary_segments=len({o.identity for o in voting if o.secondary}),
+            voting_support=store.cell_umi.support(segments),
+            missing_quality_reads=len({o.identity for o in voting if o.missing_qualities}),
+            secondary_reads=len({o.identity for o in voting if o.secondary}),
             assembly_phase="hypothesis_not_proven_long_range_phase"),
         exploratory_orfs=orf_evidence(sequence, positions, junctions, evidence),
         **frame), evidence
@@ -1517,7 +1516,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                        left=list(core_positions[0]) if core_positions[0] else None,
                        right=list(core_positions[-1]) if core_positions[-1] else None,
                        unplaced_bases=core_sequence[1:-1], fragments=len(seed["fragments"]),
-                       segments=len({o.identity for o, _ in seed["observations"]}), paths=[])
+                       reads=len({o.identity for o, _ in seed["observations"]}), paths=[])
             seed_rows.append(row)
             # Joins at or across the event may rest on one fragment; ordinary
             # splices and regional joins need support.
@@ -1608,20 +1607,20 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         used.update(evidence)
     rank = {status: i for i, status in enumerate(LINKAGE_STATUSES)}
     results.sort(key=lambda r: (rank.get(r["event_linkage"]["status"], len(rank)),
-                                -max([j["direct_fragments"] for j in r["junctions"]], default=0),
+                                -max([j["direct_support"]["fragments"] for j in r["junctions"]], default=0),
                                 r["sequence"], r["path_id"]))
     record_ids = {rid for o in used.values() for rid in o.records}
     cited_reads = {rid: r for identity in {o.identity for o in used.values()}
              for r in store.groups[identity] if (rid := _record_id(r)) in record_ids}
     best = next((s for s in LINKAGE_STATUSES if s in {r["event_linkage"]["status"] for r in results}), None)
     return dict(
-        schema="isovar.sv_rna_candidates.v4",
+        schema="isovar.sv_rna_candidates.v5",
         status=("event_linked_candidates" if best in EVENT_LINKED_RELATIONS
                 else "splice_ambiguous_candidates" if best == "splice_ambiguous_event_junction"
                 else "regional_candidates_only" if results else "no_candidate_paths"),
         event_id=event_id, reference_name=reference_name, sample_id=sample_id, source=source,
         alignment_metadata=dict(read_groups=header.get("RG", []), programs=header.get("PG", [])),
-        read_lineage=dict(scope="eligible_records_within_input_read_group", segments=store.lineage.evidence()),
+        read_lineage=dict(scope="eligible_records_within_input_read_group", reads=store.lineage.evidence()),
         cell_umi_evidence=store.cell_umi.evidence(),
         event_provenance=event_provenance, donor=asdict(donor), acceptor=asdict(acceptor),
         reference_models=[dict(transcript_id=r.transcript_id, annotation=r.annotation, contig=r.contig,
@@ -1648,8 +1647,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                                 original_query_interval=list(o.query_interval),
                                 missing_qualities=o.missing_qualities, secondary=o.secondary)
                       for key, o in sorted(used.items())},
-        observation_counts=dict(eligible_segments=len(store.groups), built_segments=len(store.built)),
-        excluded_records=dict(store.excluded), segment_path_notes=dict(store.reasons),
+        observation_counts=dict(eligible_reads=len(store.groups), built_reads=len(store.built)),
+        excluded_records=dict(store.excluded), read_path_notes=dict(store.reasons),
         record_evidence={rid: record_evidence(read) for rid, read in sorted(cited_reads.items())},
         original_records={rid: read.to_string() for rid, read in sorted(cited_reads.items())})
 

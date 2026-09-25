@@ -250,10 +250,8 @@ def allele_counts_dataframe_from_args(args):
         df = allele_counts_dataframe(pairs())
     warn_if_unlabelled(evidence)
     for allele in ALLELES:
-        for column, field in (("cells", "observed_cells"), ("cell_umi_labels", "observed_labels"),
-                              ("unlabeled_segments", "unresolved_segments"),
-                              ("unknown_library_segments", "unknown_library_segments")):
-            df["num_%s_%s" % (allele, column)] = [e["alleles"][allele][field] for e in evidence]
+        for field in ("umis", "cells", "unlabeled_reads", "unknown_library_reads"):
+            df["num_%s_%s" % (allele, field)] = [e["alleles"][allele][field] for e in evidence]
     df["num_cells_with_ref_and_alt"] = [e["cells_with_ref_and_alt"] for e in evidence]
     return df
 

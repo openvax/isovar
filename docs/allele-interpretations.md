@@ -50,8 +50,11 @@ sample_id=..., source=...)` with a dict of interpretation ID to varcode Variants
 | `candidates[].indistinguishable_from` | Other interpretations with the same haplotype, which no RNA can tell apart |
 | `reference_allele` | Support for the reference sequence |
 | `observed_alleles` | Every sequence read across the window: its support, the interpretations or reference it `matches`, and its `difference_from_reference` as one trimmed replacement |
-| `informative`, `set_aside` | Reads spanning the whole window; segments that overlap it without spanning it, and segments whose alternative placements read different alleles |
+| `informative`, `set_aside` | The support of reads spanning the whole window; reads that overlap it without spanning it, and reads whose alternative placements read different alleles |
 | `evidence_sets` | Hashed read IDs for each support, scoped by `[sample_id, source]`, as in the [protein hypothesis export](protein-hypotheses.md#rna-support-and-evidence-sets) |
+
+Every `rna_support` is the [RNA support record](../README.md#collecting-rna-reads):
+`reads` and `fragments`, and, with `--cell-umi-labels`, `umis` and `cells`.
 
 | `rna_status` | Meaning |
 |---|---|
@@ -61,7 +64,7 @@ sample_id=..., source=...)` with a dict of interpretation ID to varcode Variants
 | `unassessed` | The locus could not be compared; `reason` says why, for example unknown reference bases between distant variants |
 
 Only reads that span the whole window count. That makes the comparison exact,
-but long windows lose reads. Check `set_aside.segments_not_spanning_window`. An
+but long windows lose reads. Check `set_aside.reads_not_spanning_window`. An
 allele that matches no interpretation is still listed, with its difference from
 the reference: the RNA may carry something no caller reported. Absence of RNA
 support is not evidence that a DNA variant is absent; the gene may simply not be

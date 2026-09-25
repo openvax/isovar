@@ -53,3 +53,8 @@ def fusion_input(fixture):
     """The isovar fusion input keys of a fixture that also carries audit fields."""
     from isovar.fusion import FUSION_INPUT_KEYS
     return {key: value for key, value in fixture.items() if key in FUSION_INPUT_KEYS}
+
+
+def complete_umis(support):
+    """A support record's UMI count when it is exact (every read labelled), else None."""
+    return support["umis"] if support["umis_complete"] else None

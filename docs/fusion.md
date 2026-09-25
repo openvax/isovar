@@ -87,7 +87,7 @@ unknown. Only NCBI genetic code 1 is supported.
 
 ## Result
 
-The result (schema `isovar.fusion_rna.v2`) has one path, `paths[0]`, the
+The result (schema `isovar.fusion_rna.v3`) has one path, `paths[0]`, the
 supplied transcript, in the same structure as `isovar sv-rna`:
 
 | Field | Meaning |
@@ -95,11 +95,11 @@ supplied transcript, in the same structure as `isovar sv-rna`:
 | `status` | `translated`, `ambiguous`, `unresolved` or `insufficient_support` (below) |
 | `reasons` | Why a frame could not be used, per transcript model |
 | `paths[0].sequence`, `sequence_sha256`, `blocks` | The supplied RNA and its alignment |
-| `paths[0].junctions[0]` | `query_interval` of the inserted bases, flanking genomic positions `left`/`right`, `unplaced_bases`, `relation` (`breakpoint_junction`) and `direct_fragments` |
+| `paths[0].junctions[0]` | `query_interval` of the inserted bases, flanking genomic positions `left`/`right`, `unplaced_bases`, `relation` (`breakpoint_junction`) and `direct_support`, the reads spanning the junction |
 | `paths[0].frame_status` | As `status`, or `not_assessed` when support was insufficient |
 | `paths[0].translations` | Every justified protein hypothesis |
 | `paths[0].compatible_transcripts` | Reference models whose exons exactly match each partner |
-| `evidence` | `reads`, `fragments`, `direct_fragments` and every observation, marked with whether it spans the junction |
+| `evidence` | `support`, for all reads, and every observation, marked with whether it spans the junction |
 | `parameters` | `peptide_lengths`, `min_fragments` and `genetic_code` |
 
 ### Status

@@ -47,14 +47,14 @@ group's sample and library.
 
 ## Reading the export
 
-The file (schema `isovar.protein_hypotheses.v1`) has one **event** per input
+The file (schema `isovar.protein_hypotheses.v2`) has one **event** per input
 variant, in input order. Intervals are 0-based and half-open.
 
 | Event field | Meaning |
 |---|---|
 | `event_id`, `variant` | A stable ID and the variant as given (`start` is Varcode's 1-based position) |
 | `reference_prediction` | Varcode's reference-plus-edit effect, for comparison only |
-| `allele_support` | Alt reads with their evidence set; ref, other and total as counts |
+| `allele_support` | The support of the `ref`, `alt` and `other` alleles and their `total`, and `cells_with_ref_and_alt` |
 | `filters` | Filter outcomes as recorded; they are reported, not applied |
 | `phased_variants` | Event IDs of variants phased with this one |
 | `edit_attribution` | How many supplied somatic and germline variants the edits were checked against; null if none were |
@@ -96,15 +96,15 @@ are two translations of one protein, each with its own reads.
 
 ## RNA support and evidence sets
 
-Every `rna_support` gives `segments` (sequenced segments: a mate or a single
-read) and `fragments` (templates: both mates count once), with an
-`evidence_set_id`. The export's `evidence_sets` table stores each distinct set
+Every support is the [RNA support record](../README.md#collecting-rna-reads):
+`reads`, `fragments`, and, with `--cell-umi-labels`, `umis` and `cells`. Each also
+has an `evidence_set_id`. The export's `evidence_sets` table stores each distinct set
 of reads once:
 
 ```python
 support = export["events"][0]["protein_hypotheses"][0]["rna_support"]
 reads = export["evidence_sets"][support["evidence_set_id"]]
-# reads["segment_ids"], reads["fragment_ids"], reads["evidence_scope"]
+# reads["read_ids"], reads["fragment_ids"], reads["evidence_scope"]
 ```
 
 A read's ID is the SHA-256 of its read group, name and mate flags, together with
@@ -119,7 +119,7 @@ from isovar import union_rna_support
 combined = union_rna_support(
     [export["evidence_sets"][p["rna_support"]["evidence_set_id"]]
      for p in export["events"][0]["protein_hypotheses"]])
-combined["segments"], combined["fragments"]
+combined["reads"], combined["fragments"]
 ```
 
 `union_rna_support` refuses read sets from different scopes, because their
@@ -128,10 +128,9 @@ may be the same molecules. An `evidence_set_id` is null when some reads were
 built without alignment identities; their counts are then given but cannot be
 combined.
 
-With `--cell-umi-labels` (Python: `cell_umi_alignment_file=`), each protein's
-`rna_support` gets a `cell_umi_support`, and each event a `cell_umi_alleles`. Both
-count the distinct cells and cell/UMI labels behind the reads; see
-[cell/UMI evidence](cell-umi-evidence.md#small-variants). Read and fragment
+With `--cell-umi-labels` (Python: `cell_umi_alignment_file=`), the `umis` and
+`cells` of every support are counted, and `allele_support` gives
+`cells_with_ref_and_alt`; see [cell/UMI evidence](cell-umi-evidence.md#small-variants). Read and fragment
 counts are not molecule counts, abundance or TPM. The
 `read_groups` table gives each read group's sample, library and platform from
 the BAM header, or null when unknown.
