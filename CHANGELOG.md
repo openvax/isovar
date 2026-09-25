@@ -4,6 +4,15 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.37.3
+
+- Requires osteosarc 0.7 (`>=0.7.0,<0.8`, #386), so Isovar installs alongside
+  current osteosarc, Varcode's test data and Vaxrank. The packaged Sid read
+  recipe and bundle were regenerated with osteosarc 0.7.0: the recipe records
+  0.7.0 and a new snapshot, and every selected record is byte-identical. The
+  long-read and three-fusion fixtures rebuild byte-identically with 0.7.0, and
+  the `vaccine-rna-v1` corpus imports, exports and verifies unchanged.
+
 ## 1.37.2
 
 - `--genome GRCh38.93` (Ensembl's file-name spelling), `GRCh38_93` and

@@ -28,10 +28,11 @@ Two test-data sets exist; this page is about the first:
   expectations are unchanged.
 
 Acquisition, record selection, transport and integrity checks are handled by the
-installed `osteosarc` package (0.2.3 or later), through snapshot Assets and
-indexed Region extraction. The shipped bundle was generated with osteosarc 0.1.0,
-which its recipe records; its read bytes are unchanged since. New recipe
-compilations record the installed osteosarc version.
+installed `osteosarc` package (0.7.x), through snapshot Assets and indexed
+Region extraction. The shipped recipe and bundle were regenerated with
+osteosarc 0.7.0, which the recipe records; the selected records are
+byte-identical to those first generated with 0.1.0. New recipe compilations
+record the installed osteosarc version.
 
 ## Use the installed package offline
 
@@ -105,7 +106,7 @@ Other generation options:
   NEW_DIRECTORY --offline`, with one `--panel-source` per local original input.
   Panel output contains indexed BAMs, checksums, record multiplicities, source
   and header identities, and selection reasons. See osteosarc's
-  [shared fixture workflow](https://github.com/iskandr/osteosarc/blob/v0.2.3/docs/fixture-migration.md)
+  [shared fixture workflow](https://github.com/iskandr/osteosarc/blob/v0.7.0/docs/fixture-migration.md)
   and [Osteosarc #15](https://github.com/iskandr/osteosarc/issues/15).
 
 Write each regeneration to a new destination. The checked-in scientific
