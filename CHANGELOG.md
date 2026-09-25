@@ -4,6 +4,33 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.38.0
+
+- A matched germline variant can now be **trans** with a somatic variant, not
+  only cis (#387). With `run_isovar(germline_variants=...)` or
+  `--germline-vcf`, Isovar collects reads at each germline variant that the
+  somatic variant's alt reads cover, outside skipped introns, into the new
+  `IsovarResult.germline_read_evidence`.
+  - The collected reads are those from fragments that also carry the somatic
+    alt allele.
+  - `IsovarReadPhasing.in_cis` counts those fragments: with the germline alt
+    allele they are cis, with its reference allele trans. It applies the usual
+    `min_shared_fragments_for_phasing` threshold and majority rule.
+  - Fragments with the somatic reference allele are not counted, since the
+    germline alt allele also comes from normal cells, other subclones and
+    homozygous sites.
+  - Without decisive reads, a germline edit in the top assembled protein is
+    still cis. When the reads say trans but the protein has the edit, the
+    answer is unknown.
+  - Previously a germline variant outside the assembly was always unknown, so
+    Varcode's `MolecularPhaseResolver` kept every phase hypothesis even when the
+    RNA showed the reference allele there.
+- Each covered germline locus is collected once, with the run's
+  `ReadCollector`, and its full reads are released after use.
+- `IsovarReadPhasing.in_cis` caches its answer per pair. Varcode asks once per
+  transcript.
+- A germline locus reached only by an unmerged mate is not examined yet (#392).
+
 ## 1.37.3
 
 - Requires osteosarc 0.7 (`>=0.7.0,<0.8`, #386), so Isovar installs alongside

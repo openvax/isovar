@@ -311,8 +311,19 @@ Not being phased is not evidence of trans: Isovar only compares the variants in
 its run. `IsovarReadPhasing.in_cis(v1, v2)` answers from fragments that cover
 both loci. It returns `True` when fragments carry both alt alleles, `False`
 when they carry one alt allele with the other's reference allele, and `None`
-without enough of either. A matched germline variant is cis when its edit is in
-the variant's top assembled protein, and otherwise unknown. Varcode's
+without enough of either.
+
+With `run_isovar(germline_variants=...)` (or `--germline-vcf`), Isovar also
+collects reads at each matched germline variant that a variant's alt reads
+cover, outside skipped introns (`IsovarResult.germline_read_evidence`). Only
+fragments carrying the somatic alt allele count: with the germline alt allele
+they are cis, with its reference allele trans. Fragments with the somatic
+reference allele say nothing about its copy, because the germline alt allele
+also comes from cells without the somatic variant (normal contamination, other
+subclones) and from both copies of a homozygous variant. Without decisive reads,
+a germline edit in the variant's top assembled protein is cis; if the reads say
+trans but the protein has the edit, the answer is unknown. A germline locus
+reached only by an unmerged mate is not examined. Varcode's
 `MolecularPhaseResolver` uses this method for cis/trans decisions.
 
 ### Other variants in the assembled RNA
