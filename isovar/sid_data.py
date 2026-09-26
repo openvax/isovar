@@ -2,14 +2,15 @@
 
 Isovar's regression reads from the public Sid osteosarcoma data (CC0) are
 members of the ``openvax-v1`` bundle named ``isovar/<path>``, after the files
-Isovar's tests read (``<path>`` is relative to ``tests/data``). `path` downloads
-and verifies the bundle once, into osteosarc's cache, exports Isovar's read
-files in their original formats, and returns a local file. Tests need network
-access only the first time.
+Isovar's tests read (``<path>`` is relative to ``tests/data``). `path` returns
+one as a local file, through osteosarc's ``bundle_file``: the bundle is
+downloaded and verified once, and each member is exported once into
+osteosarc's cache, read-only, and reused offline. Tests need network access
+only the first time.
 
 An exported file holds exactly the member's original records, but coordinate
-sorted and under the source's full header, so its bytes differ from any older
-copy. Reads embedded in JSON fixtures stay in those fixtures; tests check them
+sorted and under the source's full header, and is named ``<member>.<format>``.
+Reads embedded in JSON fixtures stay in those fixtures; tests check them
 against the bundle.
 
 The acquisition helpers below (`open_dataset`, `fetch_metadata`,
@@ -17,16 +18,9 @@ The acquisition helpers below (`open_dataset`, `fetch_metadata`,
 metadata snapshot.
 """
 
-from osteosarc.legacy_fixtures import (
-    read_json as read_json,
-    write_json as write_json,
-    sam_digest as sam_digest,
-    sam_regions as sam_regions,
-    minimal_header as minimal_header,
-)
-
 import argparse
 from functools import lru_cache
+import gzip
 from hashlib import sha256
 import json
 import os
@@ -39,8 +33,6 @@ BUNDLE = "openvax-v1"
 # The exact published bundle Isovar's tests were checked against (its manifest's SHA-256).
 BUNDLE_MANIFEST_SHA256 = "193623c040fa85e9dae5733fe0939358b9b7119da0e6563183bf5a9727f2d7d4"
 PREFIX = "isovar/"
-# Bump when the export layout changes, so older exports are never reused.
-EXPORT_LAYOUT = 1
 # Exported file formats by suffix.
 _FORMATS = ((".sam.gz", "sam.gz"), (".sam", "sam"), (".bam", "bam"))
 
@@ -54,11 +46,6 @@ class SidDataUnavailable(RuntimeError):
 
 def _key(cache):
     return cache if isinstance(cache, (str, Path, type(None))) else id(cache)
-
-
-def _cache(cache):
-    from osteosarc import Cache
-    return cache if isinstance(cache, Cache) else Cache(cache)
 
 
 def bundle(cache=None):
@@ -100,53 +87,9 @@ def _format(name):
     return next((fmt for suffix, fmt in _FORMATS if name.endswith(suffix)), None)
 
 
-def _digests(folder, names):
-    return {name: sha256((folder / name).read_bytes()).hexdigest() for name in names}
-
-
-@lru_cache(maxsize=4)
-def _exported(key, cache):
-    """Isovar's read files, exported under their original names once per bundle and layout."""
-    from osteosarc import export_bundle
-    from osteosarc.cache import file_lock
-    root = bundle(cache)
-    names = [name for name in members(cache) if "#" not in name]
-    expected = {name for name in names} | {name + ".bai" for name in names if _format(name) == "bam"}
-    exports = _cache(cache).root / "isovar" / ("sid-%s-files-v%d" % (root.name, EXPORT_LAYOUT))
-    exports.parent.mkdir(parents=True, exist_ok=True)
-    with file_lock(exports.with_name(exports.name + ".lock")):
-        if not exports.exists():
-            work = Path(tempfile.mkdtemp(dir=exports.parent, prefix=".sid-export-"))
-            try:
-                for fmt in {_format(name) for name in names}:
-                    chosen = [PREFIX + name for name in names if _format(name) == fmt]
-                    for member, path in export_bundle(root, work / "raw", members=chosen, format=fmt).items():
-                        target = work / "files" / member[len(PREFIX):]
-                        target.parent.mkdir(parents=True, exist_ok=True)
-                        os.replace(path, target)
-                        if fmt == "bam":
-                            os.replace(str(path) + ".bai", str(target) + ".bai")
-                files = work / "files"
-                (files / "digests.json").write_text(json.dumps(_digests(files, sorted(expected)), indent=1) + "\n")
-                for path in files.rglob("*"):
-                    if path.is_file():
-                        path.chmod(0o444)
-                os.rename(files, exports)
-            finally:
-                shutil.rmtree(work, ignore_errors=True)
-        _verify_exports(exports, expected)
-    return exports
-
-
-def _verify_exports(exports, expected):
-    """Every expected file is present and unchanged since export."""
-    try:
-        recorded = json.loads((exports / "digests.json").read_text())
-        intact = set(recorded) == set(expected) and _digests(exports, sorted(expected)) == recorded
-    except (OSError, ValueError):
-        intact = False
-    if not intact:
-        raise SidDataUnavailable("%s doesn't match the exported reads; delete it to export them again" % exports)
+def _file(name, fmt, cache):
+    from osteosarc import bundle_file
+    return Path(bundle_file(bundle(cache), PREFIX + name, format=fmt, cache=cache))
 
 
 def path(name, cache=None):
@@ -165,7 +108,8 @@ def path(name, cache=None):
     Returns
     -------
     pathlib.Path
-        The file, with its ``.bai`` index beside it for BAM.
+        A read-only file in the original format, named ``<member>.<format>``,
+        with its ``.bai`` index beside it for BAM.
 
     Raises
     ------
@@ -177,7 +121,7 @@ def path(name, cache=None):
         raise KeyError("%s selects reads inside a file; use sid_data.export" % name)
     if name not in members(cache):
         raise KeyError("%s is not an Isovar read file in %s" % (name, BUNDLE))
-    return _exported(_key(cache), cache) / name
+    return _file(name, _format(name), cache)
 
 
 def export(name, output, cache=None):
@@ -198,7 +142,6 @@ def export(name, output, cache=None):
     -------
     pathlib.Path
     """
-    from osteosarc import export_bundle
     output = Path(output)
     fmt = _format(output.name)
     if fmt is None:
@@ -211,15 +154,88 @@ def export(name, output, cache=None):
     for target in targets:
         if target.exists():
             raise FileExistsError(target)
-    with tempfile.TemporaryDirectory(dir=output.parent, prefix=".isovar-export-") as work:
-        written = export_bundle(bundle(cache), work, members=[PREFIX + name], format=fmt)
-        if not written:
-            raise KeyError("%s has no reads in %s" % (name, BUNDLE))
-        source, = written.values()
-        # A hard link never replaces an existing file, even one created meanwhile.
-        for suffix, target in zip(("", ".bai"), targets):
-            os.link(str(source) + suffix, target)
+    source = _file(name, fmt, cache)
+    for suffix, target in zip(("", ".bai"), targets):
+        # "x" never replaces a file, even one created meanwhile.
+        with open(str(source) + suffix, "rb") as reader, open(target, "xb") as writer:
+            shutil.copyfileobj(reader, writer)
     return output
+
+
+def read_json(path):
+    """JSON from a file, gzip-compressed when its name ends ``.gz``."""
+    with gzip.open(path, "rt") if str(path).endswith(".gz") else open(path) as handle:
+        return json.load(handle)
+
+
+def write_json(path, value):
+    """Publish deterministic gzip JSON atomically, never overwriting a file."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=path.parent, prefix=".sid-json-") as temporary:
+        staged = Path(temporary) / "data.gz"
+        with staged.open("wb") as raw:
+            with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as handle:
+                handle.write(json.dumps(value, sort_keys=True, separators=(",", ":")).encode())
+        if staged.stat().st_size > 64 * 1024 * 1024:
+            raise ValueError("Fixture exceeds its 64 MiB size budget")
+        os.link(staged, path)
+
+
+def sam_digest(line):
+    """SHA-256 of one SAM record's text."""
+    return sha256(line.encode("ascii")).hexdigest()
+
+
+def sam_regions(regions, assembly, reference_lengths=None):
+    """Convert explicit 1-based inclusive SAM intervals (``contig:start-end``) to osteosarc Regions."""
+    from osteosarc import Region
+    result = []
+    for region in regions:
+        contig, span = region.rsplit(":", 1)
+        start, end = map(int, span.split("-"))
+        result.append(Region(contig, start - 1, end, assembly,
+                             reference_length=(reference_lengths or {}).get(contig)))
+    if not result:
+        raise ValueError("An explicit nonempty list of locus intervals is required")
+    return result
+
+
+def minimal_header(header, records):
+    """
+    The part of a SAM header that decodes ``records``: their references
+    (including SA targets), read groups, and program chains.
+    """
+    references, groups, programs = set(), set(), set()
+    for line in records:
+        fields = line.split("\t")
+        references.update(v for v in (fields[2], fields[6]) if v not in ("*", "="))
+        groups.update(v[5:] for v in fields[11:] if v.startswith("RG:Z:"))
+        programs.update(v[5:] for v in fields[11:] if v.startswith("PG:Z:"))
+        for tag in fields[11:]:
+            if tag.startswith("SA:Z:"):
+                references.update(row.split(",", 1)[0] for row in tag[5:].split(";") if row)
+    sq = [row for row in header.get("SQ", []) if row["SN"] in references]
+    if {row["SN"] for row in sq} != references:
+        raise ValueError("Source header is missing a required reference sequence")
+    # Some source records have RG tags absent from their header. Keep that
+    # condition rather than inventing read-group metadata.
+    result = {"HD": {"VN": "1.6", "SO": "unknown"}, "SQ": sq}
+    rg = [row for row in header.get("RG", []) if row["ID"] in groups]
+    if rg:
+        result["RG"] = rg
+    programs.update(row["PG"] for row in rg if "PG" in row)
+    by_id = {row["ID"]: row for row in header.get("PG", [])}
+    pending = list(programs)
+    while pending:
+        previous = by_id.get(pending.pop(), {}).get("PP")
+        if previous and previous not in programs:
+            programs.add(previous)
+            pending.append(previous)
+    pg = [row for row in header.get("PG", []) if row["ID"] in programs]
+    if pg:
+        result["PG"] = pg
+    return result
 
 
 def open_dataset(snapshot=None, cache=None, offline=False):

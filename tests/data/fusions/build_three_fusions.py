@@ -17,8 +17,8 @@ import pysam
 import pyensembl
 from pyensembl import EnsemblRelease
 
-from osteosarc.legacy_fixtures import segment_key as segment
 
+from isovar.read_identity import segment_identity as segment
 from isovar.sid_data import extract_regions, minimal_header, open_dataset, sam_digest
 
 HERE = Path(__file__).parent

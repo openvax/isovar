@@ -4,6 +4,24 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.2
+
+- `isovar.sid_data` uses osteosarc 0.12's `bundle_file` (#401).
+  - Each read file is exported once into osteosarc's cache, read-only, and
+    reused offline. Isovar's own export folder, lock and digest checks are
+    gone.
+  - `path` now returns `<member>.<format>`, such as
+    `bulk_star_t0.sam.gz.sam.gz`, in the same format as before.
+  - The cache grows to about 184 MB.
+  - The bundle stays pinned by its manifest hash.
+- `sid_data` no longer imports `osteosarc.legacy_fixtures`, which osteosarc
+  plans to retire (iskandr/osteosarc#72). The five small helpers the audit
+  builders use (`read_json`, `write_json`, `sam_digest`, `sam_regions` and
+  `minimal_header`) now live in `sid_data`.
+- The three-fusions builder uses Isovar's own `segment_identity`.
+- `tests/test_sid_data.py` checks the reads embedded in JSON fixtures with
+  osteosarc's `check_fixtures`.
+
 ## 1.39.1
 
 - Requires osteosarc 0.12 (`>=0.12.0,<0.13`), in step with Varcode, Topiary
