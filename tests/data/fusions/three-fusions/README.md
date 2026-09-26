@@ -1,43 +1,26 @@
 # Three-event original RNA fixtures
 
-The builder and audit are checked in **beside the data**, and the regression
-suite is `tests/test_sv_rna_three_fusions.py`. These fixtures preserve the
+The audit is checked in **beside the data**, and the regression suite is
+`tests/test_sv_rna_three_fusions.py`, which also re-applies the selection rule
+below to each fixture's records. These fixtures preserve the
 September 22–23, 2026 investigation of PARD3B/CDKN2B, GABBR1/SLC29A1 and
 OTUD7A/FMN1. They support candidate short ORFs, not observed protein expression.
 
-## Rebuild
+## Provenance
 
-From the repository root, with Ensembl 115 annotation/cDNA/ncRNA cached:
-
-```sh
-python -m tests.data.fusions.build_three_fusions \
-  --local-corpus /path/to/dataset \
-  --output /tmp/three-fusions
-```
-
-The local corpus must contain `source_inventory.json` and indexed
-`alignments/<source_id>/reads.bam`. The manifest records each source URL,
-local BAM hash, source-header hash, explicit query regions, selection rule,
-annotation URLs and fixture hashes. Original inventory entries are retained in
-the hash-pinned `source-inventory.json.gz`. Only the four
-specified original tagged ONT / mapped PacBio products are used; deduplicated
-alternatives are never pooled with their predecessors.
-
-For fresh bounded acquisition (osteosarc is installed with Isovar), explicitly create an
-osteosarc snapshot containing those assets, then use:
-
-```sh
-python -m tests.data.fusions.build_three_fusions \
-  --snapshot SNAPSHOT_NAME --cache /path/to/osteosarc-cache \
-  --output /tmp/three-fusions
-```
-
-This delegates indexed range acquisition to `isovar.sid_data.extract_regions`
-and retains its receipts. It does not create a snapshot or download whole
-alignment files. Local-corpus and snapshot acquisition receipts differ;
-compare the selected SAM checksums and reference models when comparing modes.
-If source objects or regional corpus coverage differ, selections may differ:
-regeneration is explicit, never an automatic golden-file update during tests.
+The fixtures were built on September 22–23, 2026 by a builder that has since
+been retired: its reads are members of osteosarc's openvax-v1 bundle
+(`isovar/fusions/three-fusions/<file>#/records`), which now owns them, and
+`tests/test_sid_data.py` checks every fixture's records against it. See
+[Sid test reads](../../../../docs/sid-test-reads.md). The builder, including
+exactly how it derived the pinned Ensembl 115 models in `references.json.gz`,
+is in the repository history:
+`git show v1.39.2:tests/data/fusions/build_three_fusions.py`. The manifest still
+records each source URL, local BAM hash, source-header hash, explicit query
+regions, selection rule, annotation URLs and fixture hashes, and the hash-pinned
+`source-inventory.json.gz` keeps the original inventory entries. Only the four
+specified original tagged ONT / mapped PacBio products were used; deduplicated
+alternatives were never pooled with their predecessors.
 
 Reproduce the interpretation, offline from the checked-in fixtures:
 
@@ -65,7 +48,7 @@ python -m tests.data.fusions.audit_three_fusions \
 3. Full Ensembl 115 transcript models for the listed overlapping/nearby genes
    are pinned, including the neighboring MYMX locus and unnamed CDKN2B-region
    transcript. Exons are 0-based half-open; only complete annotated transcripts
-   have CDS bounds. The builder skips transcripts without an A/C/G/T sequence.
+   have CDS bounds. The builder skipped transcripts without an A/C/G/T sequence.
    These models constrain interpretation; they never fill missing RNA bases.
 4. Reconstruction is run in both orientations, with `assemble=False`, default
    read filtering, `min_orf_amino_acids=8`, `max_records=50000`, `max_paths=200`

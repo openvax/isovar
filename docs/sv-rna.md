@@ -450,11 +450,10 @@ comparison JSON per event and orientation plus `protein_comparison.csv`. To use 
 full indexed T1 alignment instead, pass `--bam PATH_OR_URL` (and `--source URL`
 for a local copy). Gene-pair labels do not assert a coding fusion.
 
-The long-read fixtures come from osteosarc's openvax-v1 bundle
-([Sid test reads](sid-test-reads.md)). The other fixture builders live with the
-tests: `tests/data/fusions/build_osteosarc.py`, `build_three_fusions.py`,
-`audit_three_fusions.py`, and `validation-events.json` with its generator
-`build_validation_events.py`.
+The long-read and three-fusion reads come from osteosarc's openvax-v1 bundle
+([Sid test reads](sid-test-reads.md)). The other fixture tools live with the
+tests: `tests/data/fusions/build_osteosarc.py`, `audit_three_fusions.py`, and
+`validation-events.json` with its generator `build_validation_events.py`.
 
 Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf) and
 [SAM tags](https://samtools.github.io/hts-specs/SAMtags.pdf),
