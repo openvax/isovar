@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pysam
+from isovar import sid_data
 import pytest
 from varcode import Variant
 
@@ -18,6 +19,11 @@ from tests.test_osteosarc_expansion_corpus import canonical_result
 
 
 DIRECTORY = Path(__file__).parent / "data/osteosarc/expansion/stress-corpus"
+
+
+def stress_bam(name):
+    """A stress-corpus BAM, exported from openvax-v1."""
+    return sid_data.path("osteosarc/expansion/stress-corpus/" + name)
 CASES = json.loads((DIRECTORY / "manifest.json").read_text())["cases"]
 
 
@@ -55,11 +61,10 @@ def test_reference_subset_identities_are_distinct_and_annotation_order_independe
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["case_id"])
 def test_stress_original_records_and_independent_cigar(case):
-    for name, checksum in case["files"].items():
-        assert digest(DIRECTORY / name) == checksum
-    with pysam.AlignmentFile(DIRECTORY / case["bam"]) as bam:
+    # openvax-v1 exports coordinate-sorted files, so compare the records, not their order.
+    with pysam.AlignmentFile(stress_bam(case["bam"])) as bam:
         reads = list(bam)
-    assert [record_digest(r) for r in reads] == [r["sam_sha256"] for r in case["selected_records"]]
+    assert Counter(map(record_digest, reads)) == Counter(r["sam_sha256"] for r in case["selected_records"])
     _, ref, alt = minimal_edit(case["variant"])
     counts = Counter()
     for read in reads:
@@ -76,7 +81,7 @@ def test_stress_public_protein_pipeline(case, stress_reference):
     record = case["variant"]
     variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], ensembl=genome)
     expected = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}
-    actual = audit_mode(DIRECTORY / case["bam"], variant, expected)
+    actual = audit_mode(stress_bam(case["bam"]), variant, expected)
     assert canonical_result(actual) == canonical_result(case["defaults"])
     assert actual["status"] == "ok"
     assert all(p["validation_status"] == "ok" for p in actual["proteins"])
@@ -95,7 +100,7 @@ def test_compound_definition_explains_ntf3_rna_without_inventing_vaccine_members
 def test_pacbio_compound_evidence_survives_missing_qualities_but_not_support_floor():
     case = next(c for c in CASES if c["source_id"] == "0066232879babe83" and c["variant"]["gene"] == "NTF3")
     assert case["independent_primary"]["counts"] == dict(ref=1, alt=1, other=0, uncallable=0)
-    with pysam.AlignmentFile(DIRECTORY / case["bam"]) as bam:
+    with pysam.AlignmentFile(stress_bam(case["bam"])) as bam:
         assert all(r.query_qualities is None for r in bam)
     assert case["defaults"]["outcome"] == "no_rna_candidate"
     assert case["defaults"]["counts"]["reads"] == dict(ref=1, alt=1, other=0)

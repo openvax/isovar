@@ -117,8 +117,8 @@ regional SAM record for the union of names; do not fetch off-region mates or
 deduplicate records. Template lists for both selections are recorded in the
 manifest. **The final selected collection is not a VAF estimator.**
 
-`rebuild.py` writes reproducible gzip streams with original SAM headers and
-all retained records. The independent CIGAR walker in `tests/real_rna_helpers.py`
+The retired `rebuild.py` wrote the SAM fixtures, now openvax-v1 members, with
+original SAM headers and all retained records. The independent CIGAR walker in `tests/real_rna_helpers.py`
 imports no isovar code and distinguishes D from N, records exact alleles,
 SAM-oriented query offsets and original quality indices, and requires both
 anchors for indels. It does not repeat-normalize or perform local realignment.
@@ -129,25 +129,19 @@ manual recipe, not recomputed from the small CI fixtures.
 
 ## Reproduce and test
 
-For the package's exact test-only selections, use the
-[minimal Sid bundle generator](../../../docs/sid-test-reads.md). The following
-commands rebuild the historical broader selection.
-
-Requires HTTPS-enabled samtools and a named osteosarc snapshot
-configured with `ISOVAR_SID_SNAPSHOT` and optionally `ISOVAR_SID_CACHE`. The first
-command downloads only indexed regions and small metadata files; it requires
-a **new** destination directory. Metadata checksum drift fails explicitly
-and needs review. There are no downloads during tests.
+The SAM fixtures, `bulk_star_t0.sam.gz` and `ont_t1.sam.gz`, are no longer
+checked in. They are members of osteosarc's openvax-v1 bundle, with exactly
+the same records, and tests read them through `isovar.sid_data.path`
+([Sid test reads](../../../docs/sid-test-reads.md)). `manifest.json`,
+`selection.json` and the source counts here still hold the selection and the
+expected results. `fetch_sources.py` still refreshes those source metadata from
+a named osteosarc snapshot (`ISOVAR_SID_SNAPSHOT`, optionally
+`ISOVAR_SID_CACHE`); it downloads only indexed regions and small metadata
+files, into a **new** directory.
 
 ```sh
-python tests/data/osteosarc/fetch_sources.py /tmp/osteosarc-new-source
-python tests/data/osteosarc/rebuild.py /tmp/osteosarc-new-source /tmp/osteosarc-rebuilt
 python -m pytest tests/test_osteosarc_rna.py -q -rx
 ```
-
-Compare generated `.sam.gz`, `manifest.json`, `source_variant_counts.tsv`,
-`source_variant_counts.columns.tsv`, `source_registry.yaml` and
-`source_checksums.json` byte-for-byte against this directory.
 
 The tests cover integrity, chromosome identity, exact allele/query-quality
 extraction, indexed SNP partitioning at several MAPQ thresholds, low-BQ

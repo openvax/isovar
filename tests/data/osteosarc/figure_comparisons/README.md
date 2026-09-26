@@ -31,34 +31,15 @@ Source definitions: [osteosarc data catalogue](https://osteosarc.com/data/),
 
 ## Reproduce acquisition
 
-Set `ISOVAR_SID_SNAPSHOT` to an existing osteosarc
-snapshot (and optionally `ISOVAR_SID_CACHE`). All Sid acquisition below uses
-osteosarc. The [packaged test-read generator](../../../../docs/sid-test-reads.md)
-selects only the records required by tests.
-
-From the repository root, using HTTPS-enabled samtools and Python with pysam:
-
-```python
-import gzip, json, tempfile
-from pathlib import Path
-from tests.data.osteosarc.expansion.acquire import acquire_regions
-from tests.data.osteosarc.figure_comparisons.rebuild import rebuild
-
-matrix = json.loads(gzip.decompress(Path(
-    "tests/data/osteosarc/expansion/audit/matrix.json.gz").read_bytes()))
-variants = [v for v in matrix["variants"] if v["gene"] == "PIP5K1A"]
-acquisition = tempfile.mkdtemp(prefix="isovar-pip5k1a-acquisition-")
-for source in matrix["sources"]:
-    if source["source_id"] in {"53f498a544883d51", "c89442609fffd3f1"}:
-        receipt = acquire_regions(source, variants, acquisition, assembly="GRCh38")
-        assert receipt["status"] == "ok"
-rebuild(acquisition, "/tmp/pip5k1a-new-fixtures")  # destination must not exist
-```
-
-The acquisition tool downloads indexes and bounded regions, never the whole
-remote BAM. Compare retained record hashes and header/allele identity as well
-as archive checksums (BAM compression can vary by tool version).
-Tests and figure generation use only the pinned offline derivatives.
+The PIP5K1A BAMs (`PIP5K1A-T1-ONT.primary.bam`, `PIP5K1A-T1-Illumina.primary.bam`)
+and `pacbio-indels.bam` are no longer checked in: they are members of
+osteosarc's openvax-v1 bundle, and tests read them through
+`isovar.sid_data.path` ([Sid test reads](../../../../docs/sid-test-reads.md)).
+Their manifests here still record the original acquisition, selection and
+retained record hashes. The regional acquisition tool
+(`tests.data.osteosarc.expansion.acquire.acquire_regions`, with
+`ISOVAR_SID_SNAPSHOT`) still fetches bounded regions for research, never whole
+remote BAMs.
 
 ## Context, phasing and haplotype extension
 

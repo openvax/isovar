@@ -1,4 +1,4 @@
-"""Composed, network-free regressions for all 44 vaccine loci and native MT references."""
+"""Composed regressions for all 44 vaccine loci and native MT references (reads from openvax-v1)."""
 
 from collections import Counter
 from copy import deepcopy
@@ -10,14 +10,19 @@ import pysam
 import pytest
 from varcode import Variant
 
-from tests.data.osteosarc.expansion.inventory import digest
 from tests.data.osteosarc.expansion.references import apply_variant, load_reference, reference_genome, translate
 from tests.data.osteosarc.expansion.runner import audit_mode, independent_counts, PRIMARY_EXCLUDE_FLAGS
 from tests.real_rna_helpers import record_digest
 from tests.test_shared_support_index import exhaustive_support
+from isovar import sid_data
 
 
 CORPUS = Path(__file__).parent / "data/osteosarc/expansion/corpus"
+
+
+def corpus_bam(name):
+    """A corpus BAM, exported from openvax-v1."""
+    return sid_data.path("osteosarc/expansion/corpus/" + name)
 MANIFEST = json.loads((CORPUS / "manifest.json").read_text())
 CASES = MANIFEST["cases"]
 
@@ -44,20 +49,20 @@ def canonical_result(value):
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["case_id"])
 def test_original_records_and_primary_derivative_are_unchanged(case):
-    for name, checksum in case["files"].items():
-        assert digest(CORPUS / name) == checksum
-    with pysam.AlignmentFile(CORPUS / case["bam"]) as bam:
-        reads = list(bam)
-    assert [record_digest(r) for r in reads] == [r["sam_sha256"] for r in case["selected_records"]]
-    with pysam.AlignmentFile(CORPUS / case["primary_bam"]) as bam:
+    # openvax-v1 exports coordinate-sorted files, so compare the records, not their order.
+    with pysam.AlignmentFile(corpus_bam(case["bam"])) as bam:
+        selected = list(bam)
+    assert Counter(map(record_digest, selected)) == Counter(r["sam_sha256"] for r in case["selected_records"])
+    with pysam.AlignmentFile(corpus_bam(case["primary_bam"])) as bam:
         primary = list(bam)
-    assert [record_digest(r) for r in primary] == [record_digest(r) for r in reads if not r.flag & PRIMARY_EXCLUDE_FLAGS]
+    assert Counter(map(record_digest, primary)) == Counter(
+        record_digest(r) for r in selected if not r.flag & PRIMARY_EXCLUDE_FLAGS)
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["case_id"])
 def test_independent_exact_cigar_and_quality_counts(case):
     record = case["variant"]
-    with pysam.AlignmentFile(CORPUS / case["bam"]) as bam:
+    with pysam.AlignmentFile(corpus_bam(case["bam"])) as bam:
         canonical = record["chrom"].removeprefix("chr")
         aliases = {"M", "MT", "chrM", "chrMT"} if canonical in ("M", "MT") else {canonical, "chr" + canonical}
         names = aliases & set(bam.references)
@@ -75,7 +80,7 @@ def test_public_read_to_ranked_protein_pipeline(case, mode, cohort_references):
     variant = Variant(contig, record["pos"], record["ref"], record["alt"], ensembl=genome)
     expected = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}
     filename = case["bam"] if mode == "defaults" else case["primary_bam"]
-    actual = audit_mode(CORPUS / filename, variant, expected)
+    actual = audit_mode(corpus_bam(filename), variant, expected)
     assert actual["status"] == "ok"
     assert canonical_result(actual) == canonical_result(case[mode])
     for protein in actual["proteins"]:
@@ -90,7 +95,7 @@ def test_uncapped_ranking_capture_preserves_exact_public_default(case, cohort_re
     contig = "MT" if record["chrom"] == "chrM" else record["chrom"].removeprefix("chr")
     variant = Variant(contig, record["pos"], record["ref"], record["alt"], ensembl=genome)
     expected = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}
-    actual = audit_mode(CORPUS / case["bam"], variant, expected, capture_all_ranked=True)
+    actual = audit_mode(corpus_bam(case["bam"]), variant, expected, capture_all_ranked=True)
     uncapped = actual.pop("uncapped_ranked_proteins")
     assert actual.pop("returned_protein_limit") == 1
     assert actual.pop("uncapped_validation_status") == "ok"
@@ -110,7 +115,7 @@ def test_all_original_read_rankings_match_exhaustive_support(case, mode, cohort_
     contig = "MT" if record["chrom"] == "chrM" else record["chrom"].removeprefix("chr")
     variant = Variant(contig, record["pos"], record["ref"], record["alt"], ensembl=genome)
     expected = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}
-    path = CORPUS / case["bam" if mode == "defaults" else "primary_bam"]
+    path = corpus_bam(case["bam" if mode == "defaults" else "primary_bam"])
     actual = audit_mode(path, variant, expected, capture_all_ranked=True)
     with patch("isovar.variant_sequence_helpers._variant_sequences_with_shared_read_support", exhaustive_support):
         baseline = audit_mode(path, variant, expected, capture_all_ranked=True)

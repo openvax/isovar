@@ -1,7 +1,9 @@
 # Original Sid long-read records at nominated fusion breakpoints
 
 Unchanged SAM records from the public Sid Sijbrandij osteosarcoma bucket,
-retrieved 2026-09-18 by `build_long_read.py`. The script queries each
+first retrieved 2026-09-18 by the now retired `build_long_read.py`. The SAM
+files are no longer checked in: they are members of osteosarc's openvax-v1
+bundle, and tests read them through `isovar.sid_data.path`. The script queried each
 event's breakpoint windows (±1000 bp) and every supplied reference exon with
 indexed `samtools view -M`. It keeps segments (read group, QNAME, mate) that
 have records overlapping **both** breakpoint windows: split and spliced-through

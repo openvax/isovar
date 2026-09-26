@@ -1,8 +1,8 @@
-"""Reproduce TPST1's candidate upstream ORFs from the packaged Sid reads.
+"""Reproduce TPST1's candidate upstream ORFs from the original Sid reads.
 
 Run from a repository checkout: python -m examples.osteosarc_sv_orfs output.json
-Only reference/event metadata comes from tests/data; RNA is exported from the
-minimal osteosarc-derived package bundle. No acquisition or network is needed.
+Only reference/event metadata comes from tests/data; the RNA is exported from
+osteosarc's openvax-v1 bundle (downloaded once, then offline).
 """
 
 import argparse
@@ -14,7 +14,7 @@ import tempfile
 import pysam
 
 from isovar import __version__
-from isovar.sid_data import export_fixture
+from isovar.sid_data import export
 from isovar.sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 
 
@@ -35,7 +35,7 @@ def main():
         event_provenance=dict(fixture=entry["file"])))
     with tempfile.TemporaryDirectory(prefix="isovar-sv-orfs-") as temporary:
         sam, bam = Path(temporary) / "selected.sam", Path(temporary) / "selected.bam"
-        export_fixture("fusions/long-read/" + entry["file"], sam)
+        export("fusions/long-read/" + entry["file"], sam)
         pysam.sort("-o", str(bam), str(sam))
         pysam.index(str(bam))
         with pysam.AlignmentFile(str(bam)) as alignments:

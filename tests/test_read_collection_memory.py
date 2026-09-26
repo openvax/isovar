@@ -14,6 +14,7 @@ from isovar.allele_read_helpers import allele_reads_from_locus_reads
 import isovar.read_collector as read_collector_module
 from isovar.locus_read import LocusRead
 from isovar.read_collector import ReadCollector
+from isovar import sid_data
 from tests.mock_objects import MockAlignmentFile, make_pysam_read
 
 
@@ -74,7 +75,7 @@ def test_original_locus_and_allele_reads_match_182(case, mode, merge):
     start, end = base0_interval_for_variant_fields(position, ref, alt)
     results = []
     for cls in (UnsharedCollector, ReadCollector):
-        with pysam.AlignmentFile(CORPUS / case["bam" if mode == "defaults" else "primary_bam"]) as bam:
+        with pysam.AlignmentFile(sid_data.path("osteosarc/expansion/corpus/" + case["bam" if mode == "defaults" else "primary_bam"])) as bam:
             chromosome = cls._infer_chromosome_name(record["chrom"], bam.references)
             results.append(cls(merge_overlapping_fragments=merge).get_locus_reads(
                 bam, chromosome, start, end, position, ref, alt))
@@ -345,7 +346,7 @@ def test_compact_evidence_matches_public_subclass_path(case, merge):
     )
     results = []
     for collector_class in (ReadCollector, PublicEvidenceCollector):
-        with pysam.AlignmentFile(CORPUS / case["bam"]) as bam:
+        with pysam.AlignmentFile(sid_data.path("osteosarc/expansion/corpus/" + case["bam"])) as bam:
             results.append(collector_class(
                 merge_overlapping_fragments=merge,
             ).read_evidence_for_variant(variant, bam))

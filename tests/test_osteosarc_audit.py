@@ -10,6 +10,7 @@ import pysam
 import pytest
 
 from .data.osteosarc import audit
+from isovar import sid_data
 
 
 DATA = Path(__file__).parent / "data" / "osteosarc"
@@ -73,7 +74,7 @@ def fixture_results(tmp_path_factory):
     result = {}
     for name, data in MANIFEST["datasets"].items():
         sam = directory / (name + ".sam")
-        sam.write_bytes(gzip.decompress((DATA / data["file"]).read_bytes()))
+        sam.write_bytes(gzip.decompress(sid_data.path("osteosarc/" + data["file"]).read_bytes()))
         full = directory / (name + ".bam")
         primary = directory / (name + ".primary.bam")
         pysam.sort("--no-PG", "-o", str(full), str(sam))

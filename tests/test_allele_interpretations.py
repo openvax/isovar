@@ -155,7 +155,7 @@ def real_case(gene):
     case = next(c for c in manifest["cases"] if c["variant"]["gene"] == gene
                 and c.get("reference", "GRCh38") == "GRCh38")
     genome = reference_genome(figures.CORPUS / "references" / "GRCh38", Path(tempfile.mkdtemp()))
-    return figures.CORPUS / case["primary_bam"], genome
+    return figures.corpus_file(case["primary_bam"]), genome
 
 
 def run_real(gene, calls):

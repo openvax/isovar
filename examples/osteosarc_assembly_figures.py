@@ -13,7 +13,7 @@ import tempfile
 import pysam
 from varcode import Variant
 
-from isovar import ProteinSequenceCreator, ReadCollector
+from isovar import ProteinSequenceCreator, ReadCollector, sid_data
 from isovar.default_parameters import PLOT_DPI
 from isovar.protein_comparison import save_protein_comparison
 from isovar.variant_helpers import base0_interval_for_variant
@@ -23,7 +23,9 @@ from tests.data.osteosarc.expansion.references import apply_variant, load_refere
 from tests.data.osteosarc.expansion.runner import protein_check
 
 
-CORPUS = Path(__file__).resolve().parents[1] / "tests/data/osteosarc/expansion/corpus"
+DATA = Path(__file__).resolve().parents[1] / "tests/data"
+# Case manifests and references; the reads themselves come from openvax-v1.
+CORPUS = DATA / "osteosarc/expansion/corpus"
 CASE_IDS = (
     "09-DIAPH1-chr5-141526090-1b66c15da594a3ef",
     "34-SLC25A12-chr2-171813470-fbea0bf403520431",
@@ -39,6 +41,11 @@ ADDITIONAL_CASE_IDS = (
     "48-NR2F2-chr15-96332299-fbeb5d8a415e4d18",
 )
 PAIR_CORPUS = CORPUS.parents[1] / "figure_comparisons/corpus"
+
+
+def corpus_file(name, corpus=CORPUS):
+    """A corpus read file, such as a case's ``primary_bam``, exported from openvax-v1."""
+    return sid_data.path((corpus / name).relative_to(DATA).as_posix())
 PAIR_CASE_IDS = ("PIP5K1A-T1-ONT", "PIP5K1A-T1-Illumina")
 SOURCE_LABELS = {
     "1b66c15da594a3ef": "Illumina / timepoint unresolved",
@@ -155,10 +162,8 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
             reference_manifest, models, genome = reference_data[reference_name]
             case_corpus = PAIR_CORPUS if case_id in PAIR_CASE_IDS else CORPUS
             r = case["variant"]
-            bam_path = case_corpus / case["primary_bam"]
-            for filename in (case["primary_bam"], case["primary_bam"] + ".bai"):
-                if digest(case_corpus / filename) != case["files"][filename]:
-                    raise ValueError("Fixture checksum mismatch: " + filename)
+            # osteosarc verifies the bundle, so the exported reads are the pinned originals.
+            bam_path = corpus_file(case["primary_bam"], case_corpus)
             variant = Variant(r["chrom"].removeprefix("chr"), r["pos"], r["ref"], r["alt"], ensembl=genome)
             expected = {tid: apply_variant(r, models[tid])
                         for tid in reference_manifest["variant_transcripts"][r["variant_id"]]}
@@ -198,7 +203,7 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
             data["provenance"] = dict(
                 case_id=case_id, source_id=case["source_id"], source_variant_url=r["source_url"],
                 source_bam_url=case["source_url"],
-                fixture=case["primary_bam"], fixture_sha256=digest(bam_path),
+                fixture=case["primary_bam"], fixture_bundle=sid_data.BUNDLE,
                 corpus_manifest_sha256=digest(case_corpus / "manifest.json"),
                 reference_manifest_sha256=digest(reference_dir / "manifest.json"),
                 reference_files=reference_manifest["files"],
