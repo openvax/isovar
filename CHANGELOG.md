@@ -4,6 +4,12 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.38.1
+
+- Requires osteosarc 0.9, which renamed `Dataset.asset()` to `Dataset.file()`.
+  Only the calls changed: the packaged Sid read recipe and bundle weren't
+  regenerated, so they still record osteosarc 0.7.0, the version that built them.
+
 ## 1.38.0
 
 - A matched germline variant can now be **trans** with a somatic variant, not
