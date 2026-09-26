@@ -4,6 +4,12 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.3
+
+- Requires osteosarc 0.13 (`>=0.13.0,<0.14`), in step with Varcode, Topiary
+  and Vaxrank. 0.13 only removes osteosarc code Isovar doesn't use, and the
+  openvax-v1 test reads are the same.
+
 ## 1.39.2
 
 - `isovar.sid_data` uses osteosarc 0.12's `bundle_file` (#401).
