@@ -127,7 +127,7 @@ def test_compiled_recipe_records_installed_acquisition_version(packaged, monkeyp
     original_source = recipe["sources"][selected["source"]]
     asset = SimpleNamespace(**original_source["asset"])
     dataset = SimpleNamespace(
-        id=recipe["snapshot_id"], asset=lambda url: asset,
+        id=recipe["snapshot_id"], file=lambda url: asset,
         inspect_alignment=lambda key: SimpleNamespace(
             assembly=original_source["assembly"], header=bundle["sources"][selected["source"]]["header"]))
     monkeypatch.setattr(recipe_compiler, "fixture_inputs", lambda: iter([fixture]))
@@ -158,7 +158,7 @@ def test_regeneration_delegates_explicit_intervals_then_drops_background(tmp_pat
         calls.append(regions)
         return SimpleNamespace(receipt={"records": 2}, open=lambda: pysam.AlignmentFile(path))
 
-    dataset = SimpleNamespace(id="snapshot", asset=lambda key: asset, extract_reads=extract)
+    dataset = SimpleNamespace(id="snapshot", file=lambda key: asset, extract_reads=extract)
     destination = tmp_path / "selected"
     sid_data.generate(recipe, destination, dataset)
     assert calls == [[osteosarc.Region("chr1", 9, 10, "GRCh38")]]
@@ -192,7 +192,7 @@ def test_snapshot_bound_metadata_and_index_paths(tmp_path, monkeypatch):
     asset = SimpleNamespace(id="index-id")
     url = "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/source.bam.bai"
     downloaded = []
-    dataset = SimpleNamespace(id="snapshot", manifest={"sources": {}}, asset=lambda u: asset,
+    dataset = SimpleNamespace(id="snapshot", manifest={"sources": {}}, file=lambda u: asset,
                               download=lambda a: downloaded.append(a) or path)
     monkeypatch.setattr(sid_data, "open_dataset", lambda: dataset)
     actual_path, receipt = sid_data.fetch_metadata(url)

@@ -138,7 +138,7 @@ def compile_recipe(dataset):
         for test in fixture["tests"]:
             if not (ROOT / test).is_file():
                 raise ValueError("Unknown consuming test: " + test)
-        asset = dataset.asset(fixture["url"])
+        asset = dataset.file(fixture["url"])
         identity = asset.id[:16]
         source = sources.setdefault(identity, dict(asset=asset_identity(asset), assembly=None,
                                                   reference_lengths={}))

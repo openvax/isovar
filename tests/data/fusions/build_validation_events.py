@@ -50,7 +50,7 @@ def main():
         acquire = lambda url: args.source_directory / Path(urlsplit(url).path).name
     else:
         dataset = open_dataset(args.snapshot, args.cache)
-        acquire = lambda url: dataset.download(dataset.asset(url))
+        acquire = lambda url: dataset.download(dataset.file(url))
     output = regenerate(json.loads(RECIPE.read_text()), acquire)
     with args.output.open("x") as handle:
         json.dump(output, handle, indent=2)
