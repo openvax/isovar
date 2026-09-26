@@ -1,7 +1,5 @@
 """Isovar's Sid test reads come from openvax-v1, record for record."""
 
-from collections import Counter
-import gzip
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -24,34 +22,13 @@ def _records(path):
         return handle.header, [r.to_string() for r in handle]
 
 
-def _embedded_lines(value):
-    """SAM lines inside a JSON fixture value: strings, lists, {digest: line} maps and sam/partner_sam fields."""
-    if isinstance(value, str):
-        if len(value.split("\t")) >= 11:
-            yield value
-    elif isinstance(value, list):
-        for item in value:
-            yield from _embedded_lines(item)
-    elif isinstance(value, dict):
-        for key, item in value.items():
-            if key in ("sam", "partner_sam") or isinstance(item, (list, dict)) or len(str(key)) == 64:
-                yield from _embedded_lines(item)
-
-
-def _pointer(document, pointer):
-    for part in pointer.lstrip("/").split("/"):
-        if part:
-            part = part.replace("~1", "/").replace("~0", "~")
-            document = document[int(part)] if isinstance(document, list) else document[part]
-    return document
-
-
-def test_every_read_file_is_exported_under_its_original_name(members):
+def test_every_read_file_is_exported_in_its_original_format(members):
     files = [name for name in members if "#" not in name]
     assert len(files) == 124
     for name in files:
         path = sid_data.path(name)
-        assert path.name == Path(name).name
+        # osteosarc names each export <member>.<format>, keeping the original suffix.
+        assert path.name == "%s.%s" % (Path(name).name, sid_data._format(name))
         if name.endswith(".bam"):
             assert Path(str(path) + ".bai").exists()
         _records(path)
@@ -62,25 +39,23 @@ def test_every_read_file_is_exported_under_its_original_name(members):
 
 
 def test_embedded_and_selected_reads_match_the_bundle(members, tmp_path):
-    from osteosarc import export_bundle
+    from osteosarc import check_fixtures
     selections = [name for name in members if "#" in name]
     assert len(selections) == 221
-    exported = export_bundle(sid_data.bundle(), tmp_path, format="bam",
-                             members=[sid_data.PREFIX + name for name in selections])
+    fixtures = {}
     for name in selections:
-        header, expected = _records(exported[sid_data.PREFIX + name])
         path, _, selector = name.partition("#")
         if selector.startswith("/"):
-            opener = gzip.open if path.endswith(".gz") else open
-            with opener(DATA / path, "rt") as handle:
-                lines = list(_embedded_lines(_pointer(json.load(handle), selector)))
+            fixtures[sid_data.PREFIX + name] = {"json": str(DATA / path), "pointer": selector}
         else:
             # One read of a SAM file; ":" in its name is "-" in the member name.
-            _, records = _records(DATA / path)
-            lines = [r for r in records if r.split("\t")[0] in (selector, selector.replace("-", ":"))]
-        # Compare through one header, so text details such as float formatting agree.
-        observed = [pysam.AlignedSegment.fromstring(line, header).to_string() for line in lines]
-        assert Counter(observed) == Counter(expected), name
+            with open(DATA / path) as handle:
+                lines = [line for line in handle if line.startswith("@") or
+                         line.split("\t")[0] in (selector, selector.replace("-", ":"))]
+            single = tmp_path / ("%d.sam" % len(fixtures))
+            single.write_text("".join(lines))
+            fixtures[sid_data.PREFIX + name] = str(single)
+    assert check_fixtures(sid_data.bundle(), fixtures) == {}
 
 
 @pytest.mark.parametrize("name", ["osteosarc/no-such-file.bam", "osteosarc", "", "/etc/hosts",
@@ -105,20 +80,6 @@ def test_export_never_overwrites_and_needs_a_known_format(tmp_path):
             sid_data.export("chimeric/osteosarc-ont.sam", tmp_path / name)
     with pytest.raises(FileNotFoundError):
         sid_data.export("chimeric/osteosarc-ont.sam", tmp_path / "missing" / "reads.sam")
-
-
-def test_damaged_exports_are_detected(tmp_path):
-    for name, text in (("a.sam", "one"), ("b/c.sam", "two")):
-        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / name).write_text(text)
-    (tmp_path / "digests.json").write_text(json.dumps(sid_data._digests(tmp_path, ["a.sam", "b/c.sam"])))
-    sid_data._verify_exports(tmp_path, {"a.sam", "b/c.sam"})
-    (tmp_path / "b/c.sam").write_text("edited")
-    with pytest.raises(sid_data.SidDataUnavailable, match="delete it"):
-        sid_data._verify_exports(tmp_path, {"a.sam", "b/c.sam"})
-    (tmp_path / "b/c.sam").unlink()
-    with pytest.raises(sid_data.SidDataUnavailable):
-        sid_data._verify_exports(tmp_path, {"a.sam", "b/c.sam"})
 
 
 def test_an_unreachable_bundle_fails_once_with_a_hint(tmp_path, monkeypatch):

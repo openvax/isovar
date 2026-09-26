@@ -32,14 +32,14 @@ protein expectations are unchanged.
 ## Using the reads
 
 The first time a test needs the reads, `isovar.sid_data` downloads openvax-v1
-(28 MB), checks it against the pinned manifest hash, and exports Isovar's read
-files in their original formats. The cache then holds about 117 MB. Later runs
+(28 MB) and checks it against the pinned manifest hash. Each read file is then
+exported by osteosarc's `bundle_file`, once, in its original format. Later runs
 are offline:
 
 ```python
 from isovar import sid_data
 
-path = sid_data.path("osteosarc/bulk_star_t0.sam.gz")   # a local file
+path = sid_data.path("osteosarc/bulk_star_t0.sam.gz")   # .../bulk_star_t0.sam.gz.sam.gz
 sid_data.export("fusions/corpus/TPST1--CRCP-T1.input.json.gz#/original_records", "reads.sam")
 sid_data.members()                                      # every Isovar member
 ```
@@ -50,21 +50,22 @@ python -m isovar.sid_data path osteosarc/expansion/corpus/28-NTF3-chr12-5494381-
 python -m isovar.sid_data export chimeric/osteosarc-ont.sam --output /tmp/chimeric.sam
 ```
 
-The files live in osteosarc's cache: `OSTEOSARC_CACHE`, or the shared OpenVax
-cache (`OPENVAX_DATA_CACHE`, or the platform's `openvax` cache directory). CI
-caches that folder.
-- The exports sit in the cache's `isovar/` folder. They are read-only, and
-  checked against their recorded digests the first time each process uses them.
-  A damaged export raises an error that names the folder to delete.
-- Without network on the first run, the first test to need the reads fails
+- **Where the files live.** In osteosarc's cache: `OSTEOSARC_CACHE`, or the
+  shared OpenVax cache (`OPENVAX_DATA_CACHE`, or the platform's `openvax`
+  cache directory). CI caches that folder.
+- **Size.** osteosarc exports every member of each source BAM it reads, so the
+  cache grows to about 184 MB.
+- **Names.** Exported files are read-only and named `<member>.<format>`, such
+  as `bulk_star_t0.sam.gz.sam.gz`; `path` returns them.
+- **No network on the first run.** The first test that needs the reads fails
   with a hint, and the rest fail at once.
 
 An exported file holds exactly the member's original records, but it is
 coordinate-sorted and carries the source's full header. So its bytes, and the
 order of records at the same position, differ from the old copies. Tests
 compare records, not file checksums. `tests/test_sid_data.py` checks every
-embedded or selected read against the bundle, so the JSON fixtures can't drift
-from it.
+embedded or selected read against the bundle with osteosarc's `check_fixtures`,
+so the JSON fixtures can't drift from it.
 
 ## Changing the reads
 
