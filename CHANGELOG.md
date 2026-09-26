@@ -4,6 +4,17 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.4
+
+- Isovar no longer uses `osteosarc.legacy_fixtures`, which osteosarc can now
+  retire (iskandr/osteosarc#72).
+  - The three-fusions fixture builder is retired (part of #399). Its reads are
+    openvax-v1 members, checked by `tests/test_sid_data.py`.
+  - The fixtures' selection rule (segments touching both ±2 kb windows,
+    identical SAM lines once) now lives in `tests/test_sv_rna_three_fusions.py`,
+    which re-applies it to every fixture.
+  - `audit_three_fusions.py` uses Isovar's `segment_identity`.
+
 ## 1.39.3
 
 - Requires osteosarc 0.13 (`>=0.13.0,<0.14`), in step with Varcode, Topiary

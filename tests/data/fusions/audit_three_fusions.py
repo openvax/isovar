@@ -1,6 +1,6 @@
 """Reconstruct both orientations and independently audit original ORF witnesses.
 
-This analysis helper is deliberately kept with the test-data construction code.
+This analysis helper is kept beside the fixtures it audits.
 Native query orientation and poly(A) tails are RNA polarity evidence, not proof
 of translation; reverse-complement ORFs are retained and labelled separately.
 """
@@ -14,9 +14,9 @@ import tempfile
 
 import pysam
 
+from isovar.read_identity import segment_identity as segment
 from isovar.sid_data import sam_digest
 from isovar.sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
-from tests.data.fusions.build_three_fusions import segment
 from tests.data.osteosarc.expansion.references import translate
 from tests.osteosarc_protein_helpers import reverse_complement
 

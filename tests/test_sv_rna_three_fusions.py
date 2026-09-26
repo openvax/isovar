@@ -1,12 +1,13 @@
-"""Original RNA regressions with reproducible selection and annotation builders."""
+"""Original RNA regressions for three osteosarc fusion events, with their selection rule."""
+from collections import defaultdict
 import json
 
 import pysam
 import pytest
 
+from isovar.read_identity import segment_identity
 from isovar.sid_data import sam_digest
 from tests.data.fusions.audit_three_fusions import DATA, audit_candidates, pinned_json, run_case
-from tests.data.fusions.build_three_fusions import select
 from tests.data.osteosarc.expansion.references import translate
 
 MANIFEST = json.loads((DATA / "manifest.json").read_text())
@@ -16,6 +17,36 @@ OTUD = "OTUD7A--FMN1"
 GABBR_PEPTIDE = "MKRLVSSSRAWWRMPVIPAPTEAEAGESLESGRRRLQ"
 OTUD_PEPTIDE = "MAAKAGTSLEARSLRPAWPTC"
 PARD_PEPTIDE = "MNISNIHISTQKKKKKKSRF"
+
+
+def windows(event):
+    """The donor and acceptor windows, +/- the manifest's window around each boundary."""
+    return [(event[side]["contig"], event[side]["position"] - MANIFEST["window"],
+             event[side]["position"] + MANIFEST["window"]) for side in ("donor", "acceptor")]
+
+
+def select(bam, event):
+    """
+    The fixtures' documented selection rule: the original SAM lines of every
+    read-group/QNAME/mate segment whose mapped records touch both windows,
+    identical lines once. Returns the lines and the number of segments.
+
+    Reads the whole BAM from its start, so one handle can serve several events.
+    """
+    event_windows = windows(event)
+    touched, lines = defaultdict(set), []
+    bam.reset()
+    for read in bam:
+        if read.is_unmapped:
+            continue
+        key = segment_identity(read)
+        sides = {i for i, (contig, start, end) in enumerate(event_windows)
+                 if read.reference_name == contig and read.reference_start < end and start < read.reference_end}
+        if sides:
+            lines.append((read.to_string(), key))
+        touched[key] |= sides
+    selected = {key for key, sides in touched.items() if sides == {0, 1}}
+    return sorted({line for line, key in lines if key in selected}), len(selected)
 
 
 @pytest.fixture(scope="module")
@@ -47,7 +78,9 @@ def test_original_records_and_selection_survive_fixture_roundtrip(entry, tmp_pat
     pysam.sort("--no-PG", "-o", str(bam), str(unsorted))
     pysam.index(str(bam))
     with pysam.AlignmentFile(str(bam)) as handle:
-        selected, segments = select(handle, MANIFEST["events"][entry["event"]])
+        event = MANIFEST["events"][entry["event"]]
+        assert entry["regions"] == [list(w) for w in windows(event)]
+        selected, segments = select(handle, event)
     assert set(selected) == set(data["records"].values())
     assert len(selected) == entry["records"] and segments == entry["segments"]
 
