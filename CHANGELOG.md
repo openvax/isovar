@@ -4,6 +4,13 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.38.2
+
+- Requires osteosarc 0.11 (`>=0.11.1,<0.12`), in step with Varcode, Topiary
+  and Vaxrank. Every osteosarc name Isovar uses is unchanged in 0.11; the
+  packaged Sid read recipe and bundle are unchanged and still record the
+  osteosarc version that built them.
+
 ## 1.38.1
 
 - Requires osteosarc 0.9, which renamed `Dataset.asset()` to `Dataset.file()`.
