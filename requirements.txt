@@ -9,4 +9,4 @@ psutil
 edlib>=1.3.9.post1,<2
 
 # Test reads (the openvax-v1 bundle) and regional acquisition for research audits.
-osteosarc>=0.11.1,<0.12
+osteosarc>=0.12.0,<0.13
