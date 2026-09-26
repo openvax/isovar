@@ -2,9 +2,9 @@
 
 python -m examples.osteosarc_sv_validation OUTPUT_DIRECTORY
 Requires Varcode >=9.4.2 and installed Ensembl 95. Original RNA and Ensembl 87/115
-RNA-model metadata are checked in; RNA acquisition/selection recipes live in
-isovar.sid_data and tests/data/fusions/build_long_read.py. No local report,
-sibling checkout, downloaded analysis script, or network is required.
+RNA-model metadata are checked in; the original RNA comes from osteosarc's
+openvax-v1 bundle through isovar.sid_data (downloaded once, then offline). No
+local report, sibling checkout or downloaded analysis script is required.
 """
 import argparse
 import csv
@@ -20,7 +20,7 @@ import varcode
 from varcode.sv_allele_parser import parse_symbolic_alt
 
 from isovar import __version__
-from isovar.sid_data import export_fixture
+from isovar.sid_data import export
 from isovar.sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 from isovar.sv_rna_comparison import compare_sv_rna_predictions
 
@@ -83,7 +83,7 @@ def validate(entry, output, bam_path=None, rna_source=None, orientation="forward
         with tempfile.TemporaryDirectory(prefix="isovar-sv-validation-") as temporary:
             sam, bam = Path(temporary) / "reads.sam", Path(temporary) / "reads.bam"
             if bam_path is None:
-                export_fixture(fixture, sam)
+                export(fixture, sam)
                 pysam.sort("-o", str(bam), str(sam))
                 pysam.index(str(bam))
             with pysam.AlignmentFile(str(bam_path or bam)) as alignments:

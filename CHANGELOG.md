@@ -4,6 +4,48 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.0
+
+Isovar's Sid test reads now come from osteosarc's shared **openvax-v1** bundle
+(part of #395; step 3 of iskandr/osteosarc#56). Isovar no longer ships or
+builds its own copy.
+
+- **`isovar.sid_data` now reads openvax-v1:**
+  - `path(name)` downloads the bundle once, digest-verified, and returns one of
+    Isovar's read files in its original format and under its original name.
+    - The download is 28 MB; the cache holds about 117 MB, counting the
+      unpacked bundle and the exports.
+    - The bundle is pinned by its manifest hash (`BUNDLE_MANIFEST_SHA256`).
+    - The exports are versioned, read-only, digest-checked on first use, and
+      written under a lock.
+    - An unreachable bundle fails once per process with a hint about
+      `OSTEOSARC_CACHE`.
+  - `export(name, output)` writes any member, including reads embedded in JSON
+    (`file#/pointer`).
+  - `members()` lists Isovar's 345 members.
+  - The CLI is `list`, `path` and `export`.
+  - `open_dataset`, `extract_regions` and `fetch_metadata` stay for the
+    regional audit builders.
+- **Removed:**
+  - the packaged `sid-reads.json.gz` and `sid-read-recipe.json.gz` (7.4 MB);
+  - `verify`, `export_fixture`, `generate`, `pack` and the panel recipe;
+  - the 124 read files checked in under `tests/data` (5.8 MB), and their 117
+    indexes (10.6 MB in all);
+  - the builders that wrote them: `tests/data/osteosarc/bundle.py`,
+    `rebuild.py`, `figure_comparisons/rebuild.py`, `expansion/fixtures.py`,
+    `fusions/build_long_read.py` and `extended_footprints --pin-pacbio`.
+- **Removed `isovar.osteosarc_data`** and its `vaccine-rna-v1` manifest.
+  openvax-v1 supersedes it, and its commit-pinned file URLs stay downloadable.
+- **Same reads, new bytes.** Every member holds exactly Isovar's original
+  records, but exports are coordinate-sorted and carry the source's full
+  header. Tests that pinned file checksums or record order now compare records,
+  and every scientific expectation is unchanged.
+- **JSON fixtures keep their embedded reads for now.** `tests/test_sid_data.py`
+  checks all 221 embedded and single-read selections against the bundle.
+- **Tests need network the first time,** to download the bundle. CI caches it
+  (`OSTEOSARC_CACHE`), keyed on `requirements.txt` and `isovar/sid_data.py`.
+- The reads embedded in JSON fixtures are #399.
+
 ## 1.38.2
 
 - Requires osteosarc 0.11 (`>=0.11.1,<0.12`), in step with Varcode, Topiary

@@ -1,6 +1,5 @@
 """#286: supplementary pieces, paired mates, and alternatives are distinct."""
 
-from pathlib import Path
 
 import pysam
 import pytest
@@ -19,6 +18,7 @@ from isovar.phasing import annotate_phased_variants
 from tests.mock_objects import MockAlignmentFile
 from tests.test_phasing import DummyProteinSequence, assert_placement_phasing
 from isovar.isovar_result import IsovarResult
+from isovar import sid_data
 
 
 HEADER = pysam.AlignmentHeader.from_references(["1", "2"], [10000, 10000])
@@ -238,7 +238,7 @@ def test_source_metadata_keeps_segment_flags_separate_from_alignment_flags():
 
 @pytest.mark.parametrize("kind", ["ont", "short"])
 def test_original_osteosarc_rna_records_phase_only_with_observed_reciprocal_links(kind):
-    with pysam.AlignmentFile(Path(__file__).parent / "data/chimeric" / f"osteosarc-{kind}.sam") as sam:
+    with pysam.AlignmentFile(sid_data.path(f"chimeric/osteosarc-{kind}.sam")) as sam:
         records = [r for r in sam if r.has_tag("SA")]
         references = sam.references
     assert len(records) == 2

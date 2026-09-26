@@ -1,16 +1,16 @@
 """#288: junction bases come from observed full CIGARs, never SA summaries."""
 
-from pathlib import Path
 
 import pysam
 import pytest
+from isovar import sid_data
 
 from tests.data.fusions.build_osteosarc import extract, query_mapping, blocks
 from tests.test_chimeric_phasing import link, record
 
 
 def test_original_sid_insertion_is_not_relocated_to_sa_end():
-    path = Path(__file__).parent / 'data/chimeric/osteosarc-ont.sam'
+    path = sid_data.path('chimeric/osteosarc-ont.sam')
     with pysam.AlignmentFile(path) as bam:
         reads = [r for r in bam if r.query_name == '46de198c-6f57-490f-9f0e-1679fb487660_0']
     partner, = [r for r in reads if r.is_supplementary]

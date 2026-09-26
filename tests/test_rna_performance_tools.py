@@ -13,6 +13,7 @@ import pytest
 
 from isovar.allele_read import AlleleRead
 from isovar.variant_sequence import VariantSequence
+from isovar import sid_data
 from tests.data.osteosarc.expansion import benchmark, collection_benchmark, collection_report, performance_report
 from tests.data.osteosarc.expansion.inventory import write_json
 
@@ -62,11 +63,10 @@ def benchmark_inputs(tmp_path):
         case = next(c for c in cases if c["variant"]["variant_id"] == variant_id and c["reference"] == "GRCh38")
         source = destination / "alignments" / case["source_id"]
         source.mkdir(parents=True)
+        bam = sid_data.path("osteosarc/expansion/corpus/" + case["bam"])
         for suffix in ("", ".bai"):
-            name = case["bam"] + suffix
-            assert benchmark.digest(corpus / name) == case["files"][name]
-            shutil.copyfile(corpus / name, source / ("regions-GRCh38.bam" + suffix))
-        write_json(source / "regions-GRCh38.json", dict(bam_sha256=case["files"][case["bam"]]))
+            shutil.copyfile(str(bam) + suffix, source / ("regions-GRCh38.bam" + suffix))
+        write_json(source / "regions-GRCh38.json", dict(bam_sha256=benchmark.digest(bam)))
         write_json(destination / "inventory-GRCh38-validated.json", dict(variants=[case["variant"]]))
         return case, SimpleNamespace(destination=destination, source_id=case["source_id"],
                                      variant_id=variant_id, mode=mode, output=tmp_path / "run",

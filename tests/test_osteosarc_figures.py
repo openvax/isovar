@@ -113,9 +113,11 @@ def test_t1_long_short_comparison_uses_complete_original_regions(tmp_path, monke
     monkeypatch.setattr(osteosarc_assembly_figures, "save_protein_comparison", record_comparison)
     corpus = osteosarc_assembly_figures.PAIR_CORPUS
     for case in json.loads((corpus / "manifest.json").read_text())["cases"]:
-        with pysam.AlignmentFile(corpus / case["primary_bam"]) as bam:
+        with pysam.AlignmentFile(osteosarc_assembly_figures.corpus_file(case["primary_bam"], corpus)) as bam:
             reads = list(bam)
-        assert [sha256(r.to_string().encode()).hexdigest() for r in reads] == case["retained_record_sha256"]
+        # openvax-v1 exports coordinate-sorted files, so compare the records, not their order.
+        assert sorted(sha256(r.to_string().encode()).hexdigest() for r in reads) == sorted(
+            case["retained_record_sha256"])
         assert all(not r.flag & (256 | 1024 | 2048) for r in reads)
         assert len(case["original_record_sha256"]) == case["acquisition"]["region_records"]
     output = osteosarc_assembly_figures.generate(tmp_path, case_ids=osteosarc_assembly_figures.PAIR_CASE_IDS)

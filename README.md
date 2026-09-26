@@ -501,8 +501,7 @@ Multiple distinct variant sequences and reference contexts can generate the same
 | Guide | What it covers |
 |---|---|
 | [Library responsibilities](https://github.com/openvax/isovar/blob/master/docs/library-responsibilities.md) | How Varcode, Isovar and Vaxrank divide the work |
-| [Minimal Sid test reads](https://github.com/openvax/isovar/blob/master/docs/sid-test-reads.md) | The offline test-read bundle shipped in the package, and how to regenerate it |
-| [Shared osteosarc data](https://github.com/openvax/isovar/blob/master/docs/osteosarc-data.md) | The pinned 49-case BAM regression set that Vaxrank also uses |
+| [Sid test reads](https://github.com/openvax/isovar/blob/master/docs/sid-test-reads.md) | The original Sid reads Isovar's tests use, from osteosarc's shared openvax-v1 bundle |
 | [Changelog](https://github.com/openvax/isovar/blob/master/CHANGELOG.md) | Behavior changes by release |
 
 ## Sequencing recommendations

@@ -27,9 +27,6 @@ dependencies = {file = ["requirements.txt"]}
 [tool.setuptools.packages.find]
 include = ["isovar", "isovar.*"]
 
-[tool.setuptools.package-data]
-isovar = ["data/*.json", "data/sid-*.json.gz"]
-
 [project.urls]
 "Homepage" = "https://github.com/openvax/isovar"
 "Bug Tracker" = "https://github.com/openvax/isovar/issues"

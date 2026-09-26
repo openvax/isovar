@@ -1,6 +1,7 @@
-Regeneration uses the installed osteosarc dependency: set
-`ISOVAR_SID_SNAPSHOT` (optionally `ISOVAR_SID_CACHE`). To regenerate only the
-reads bundled with Isovar, see [Minimal Sid test reads](../../../../docs/sid-test-reads.md).
+Acquisition uses the installed osteosarc dependency: set
+`ISOVAR_SID_SNAPSHOT` (optionally `ISOVAR_SID_CACHE`). The test reads
+themselves come from osteosarc's openvax-v1 bundle; see
+[Sid test reads](../../../../docs/sid-test-reads.md).
 The wider audits described below remain outside the package.
 
 # Expanded osteosarc RNA/protein audit (#218)
@@ -248,15 +249,15 @@ alternate call. Original BAMs and independent CIGAR counts are unchanged.
 
 ## Reproduction
 
-To populate the shared OpenVax cache or export the existing 49-case regression
-subset without reacquiring full regional BAMs, use the
-[osteosarc data workflow](../../../../docs/osteosarc-data.md). It uses
-osteosarc 0.7 (the corpus was selected with 0.1.2) and preserves this
-revision's exact BAM/index bytes and historical alleles. The full-region audit and selection steps below remain
-separate from that offline export.
+The 49-case corpus and stress-corpus BAMs are no longer checked in. They are
+members of osteosarc's openvax-v1 bundle, with exactly the same records, and
+tests read them through `isovar.sid_data.path` ([Sid test reads](../../../../docs/sid-test-reads.md)).
+The manifests and references here still hold each case's selection and expected
+results. The full-region audit and selection steps below are research
+workflows, separate from the test data.
 
 All acquisition is opt-in and uses bounded network operations. Normal tests
-are network-free. Start with a fresh task-specific cache; existing cached
+download only the openvax-v1 bundle, once. Start with a fresh task-specific cache; existing cached
 snapshots must match their receipts. A partial/unreceipted artifact requires
 inspection or a new cache, never silent overwrite. Do not edit audited source
 code while a runner is active: checkpoints pin code, dependencies, settings,
@@ -284,8 +285,9 @@ The command-line entry points (each has `--help`) are, in order:
    retry partitions. Never mix their coordinate systems.
 6. `stress.py CACHE`, then `--observe`; build its references with
    `inventory-stress.json`, and use `--corpus OUTPUT --cache REFERENCE_CACHE`
-   to preserve complete original stress regions. `fixtures.py` builds the
-   main bounded corpus from explicitly chosen baseline selection rows.
+   to preserve complete original stress regions. The main bounded corpus was
+   built from explicitly chosen baseline selection rows by the now retired
+   `fixtures.py`; its reads are now members of openvax-v1.
 7. `mitochondrial.py CACHE OUTPUT_JSON` generates the limited origin
    diagnostics; `report.py CACHE OUTPUT --audit RUN_DIRECTORY` (repeat the
    audit option for each assembly/partition) assembles the matrix. It refuses

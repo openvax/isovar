@@ -134,11 +134,9 @@ def test_original_pacbio_indels_recount_with_unknown_quality_not_imputed_phred()
     from varcode import Variant
     from isovar import ReadCollector
     from isovar.read_identity import fragment_ids
-    from tests.data.osteosarc.expansion.inventory import digest
+    from isovar import sid_data
     manifest = json.loads((CORPUS / "pacbio-indels-manifest.json").read_text())
-    path = CORPUS / manifest["file"]
-    assert digest(path) == manifest["sha256"]
-    assert digest(CORPUS / (manifest["file"] + ".bai")) == manifest["index_sha256"]
+    path = sid_data.path("osteosarc/figure_comparisons/corpus/" + manifest["file"])
     with pysam.AlignmentFile(path) as bam:
         assert any("groupdedup" in p.get("ID", "") for p in bam.header.to_dict()["PG"])
         for entry in load()["indels"]:

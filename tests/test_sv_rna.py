@@ -6,7 +6,6 @@ the pinned, unchanged original records of the fusion corpora.
 """
 from dataclasses import replace
 import gzip
-from hashlib import sha256
 import json
 from pathlib import Path
 import random
@@ -22,6 +21,7 @@ from isovar.read_collector import ReadCollector
 from isovar.dna import reverse_complement_dna as reverse_complement
 from isovar.read_end_inference import Adapter, ReadEndProfile
 from isovar.sv_rna import RnaObservation, _extend_both, _ObservationIndex, sv_rna_input_from_dict
+from isovar import sid_data
 from tests.data.osteosarc.expansion.references import translate
 from tests.testing_helpers import complete_umis, fusion_input
 
@@ -904,8 +904,7 @@ LONG_READ_ENTRIES = {(e["event"], e["source"]): e for e in json.loads((LONG_READ
 
 def long_read_run(tmp_path, event, source):
     entry = LONG_READ_ENTRIES[event, source]
-    raw = (LONG_READ / entry["file"]).read_bytes()
-    assert sha256(raw).hexdigest() == entry["sha256"]
+    raw = sid_data.path("fusions/long-read/" + entry["file"]).read_bytes()
     lines = gzip.decompress(raw).decode().splitlines()
     header = pysam.AlignmentHeader.from_text("".join(line + "\n" for line in lines if line.startswith("@")))
     unsorted, path = tmp_path / "unsorted.bam", tmp_path / "long-read.bam"

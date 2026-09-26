@@ -11,6 +11,7 @@ from varcode import Variant
 
 from isovar.protein_sequence_creator import ProteinSequenceCreator
 from isovar.read_collector import ReadCollector
+from isovar import sid_data
 
 from .data.osteosarc import audit
 from .osteosarc_protein_helpers import (
@@ -31,7 +32,7 @@ def protein_cases(tmp_path_factory):
     cases = {}
     for name, metadata in MANIFEST["datasets"].items():
         sam = directory / (name + ".sam")
-        sam.write_bytes(gzip.decompress((DATA / metadata["file"]).read_bytes()))
+        sam.write_bytes(gzip.decompress(sid_data.path("osteosarc/" + metadata["file"]).read_bytes()))
         bam_path = directory / (name + ".bam")
         pysam.sort("--no-PG", "-o", str(bam_path), str(sam))
         pysam.index(str(bam_path))

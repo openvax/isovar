@@ -22,7 +22,7 @@ import pysam
 
 from isovar import __version__
 from isovar.read_collector import ReadCollector
-from isovar.sid_data import BUNDLE, RECIPE, read_json, verify
+from isovar import sid_data
 from isovar.read_metadata import record_evidence
 from isovar.variant_helpers import trim_variant
 
@@ -75,21 +75,17 @@ def main():
         parser.error("--repeats must be positive")
     logging.disable(logging.CRITICAL)
     root = Path(__file__).resolve().parents[1]
-    recipe, bundle = read_json(RECIPE), read_json(BUNDLE)
-    verify(recipe, bundle)
     cases = json.loads((root / "tests/data/osteosarc/expansion/corpus/manifest.json").read_text())["cases"]
-    inputs = [("osteosarc/expansion/corpus/" + c["bam"], c["variant"]) for c in cases]
-    inputs += [("osteosarc/figure_comparisons/corpus/pacbio-indels.bam", c["variant"])
+    inputs = [("osteosarc/expansion/corpus/" + c["bam"], c["variant"], c["source_url"]) for c in cases]
+    inputs += [("osteosarc/figure_comparisons/corpus/pacbio-indels.bam", c["variant"], "pacbio")
                for c in cases if c["variant"]["pos"] in (3856149, 55627965, 80327830)]
     groups = defaultdict(list)
-    for fixture, variant in inputs:
-        selection = recipe["fixtures"][fixture]
-        source = bundle["sources"][selection["source"]]
-        header = pysam.AlignmentHeader.from_dict(source["header"])
-        reads = [pysam.AlignedSegment.fromstring(source["records"][key], header)
-                 for key in selection["records"]]
+    for fixture, variant, url in inputs:
+        # Exported from openvax-v1: exactly the fixture's original records.
+        with pysam.AlignmentFile(str(sid_data.path(fixture))) as handle:
+            reads = list(handle)
         # Platform is a benchmark grouping only, never a collection policy.
-        url = source["asset"]["url"].lower()
+        url = url.lower()
         technology = "PacBio" if "pacbio" in url else "ONT" if "ont" in url else "Illumina"
         v = SimpleNamespace(contig=variant["chrom"], start=variant["pos"],
                             ref=variant["ref"], alt=variant["alt"])
@@ -104,7 +100,7 @@ def main():
         extractors["baseline"] = baseline_module(args.baseline, "sv_rna_orfs").record_evidence
     report = dict(version=__version__, python=platform.python_version(), platform=platform.platform(),
                   benchmark_sha256=sha256(Path(__file__).read_bytes()).hexdigest(),
-                  bundle_sha256=sha256(BUNDLE.read_bytes()).hexdigest(), groups={})
+                  bundle=sid_data.BUNDLE, groups={})
     if args.baseline:
         report["baseline_read_collector_sha256"] = sha256(
             (args.baseline / "isovar/read_collector.py").read_bytes()).hexdigest()

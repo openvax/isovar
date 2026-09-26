@@ -52,7 +52,17 @@ jobs:
           bash .github/scripts/install_ensembl_data.sh
           echo "After installing Ensembl releases" && df -h
 
+      # Isovar's Sid test reads come from osteosarc's openvax-v1 bundle
+      # (about 28 MB), downloaded once and verified by digest.
+      - name: Cache osteosarc test data
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/osteosarc
+          # A new pin or export layout gets a new cache.
+          key: ${{ runner.os }}-osteosarc-${{ hashFiles('requirements.txt', 'isovar/sid_data.py') }}
       - name: Run unit tests
+        env:
+          OSTEOSARC_CACHE: ${{ runner.temp }}/osteosarc
         run: |
           ./test.sh
       # The coveralls package comes from PyPI with the other test tools, so

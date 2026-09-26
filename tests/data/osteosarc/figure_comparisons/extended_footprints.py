@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 import shutil
 
-import pysam
 
 from tests.data.osteosarc.expansion.inventory import digest
 from tests.data.osteosarc.figure_comparisons import footprints
@@ -92,23 +91,6 @@ def pin(audit_directory, name):
         handle.write("\n")
 
 
-def pin_pacbio(inputs):
-    """Retain original four-locus records, including absent QUAL and Iso-Seq tags."""
-    source = inputs / "T1-PacBio" / "regions.bam"
-    path = CORPUS / "pacbio-indels.bam"
-    if path.exists():
-        raise FileExistsError(path)
-    regions = ["%s:%d-%d" % (r["contig"], r["start"] - 100, r["start"] + 100) for r in footprints.INDELS]
-    receipt = json.loads(source.with_name("receipt.json").read_text())
-    if digest(source) != receipt["bam_sha256"]:
-        raise ValueError("PacBio source checksum mismatch")
-    pysam.view("-b", "-M", "--no-PG", str(source), *regions, "-o", str(path), catch_stdout=False)
-    pysam.index(str(path))
-    (CORPUS / "pacbio-indels-manifest.json").write_text(json.dumps(dict(
-        source=receipt, regions=regions, file=path.name, sha256=digest(path),
-        index_sha256=digest(Path(str(path) + ".bai"))), indent=2) + "\n")
-
-
 def main():
     import logging
     logging.disable(logging.INFO)
@@ -118,12 +100,9 @@ def main():
     parser.add_argument("--inputs", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--pin", type=Path, help="Completed audit directory to pin offline")
-    parser.add_argument("--pin-pacbio", type=Path, help="Acquired RNA input directory for original PacBio indel fixtures")
     parser.add_argument("--pin-name", choices=("extended-footprints", "dlg5"))
     args = parser.parse_args()
-    if args.pin_pacbio:
-        pin_pacbio(args.pin_pacbio)
-    elif args.pin:
+    if args.pin:
         if not args.pin_name:
             parser.error("--pin requires --pin-name")
         pin(args.pin, args.pin_name)

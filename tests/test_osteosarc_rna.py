@@ -1,13 +1,13 @@
 """Original CC0 tumor RNA reads at osteosarc.com somatic mutation loci.
 
 The independent ledger describes CIGAR evidence, not somatic truth or
-immunogenicity. No network, transcript annotation or reference downloads.
+immunogenicity. The reads come from osteosarc's openvax-v1 bundle (downloaded
+once); no transcript annotation or reference downloads.
 """
 
 from collections import Counter
 import csv
 import gzip
-from hashlib import sha256
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,6 +19,7 @@ from isovar.allele_read import AlleleRead
 from isovar.read_collector import ReadCollector
 from isovar.variant_helpers import base0_interval_for_variant
 from isovar.variant_sequence_creator import VariantSequenceCreator
+from isovar import sid_data
 
 from .real_rna_helpers import cigar_observation, record_digest
 
@@ -49,7 +50,7 @@ def alignments(tmp_path_factory):
     result = {}
     for name, data in DATASETS.items():
         sam = directory / (name + ".sam")
-        sam.write_bytes(gzip.decompress((DATA / data["file"]).read_bytes()))
+        sam.write_bytes(gzip.decompress(sid_data.path("osteosarc/" + data["file"]).read_bytes()))
         bam = directory / (name + ".bam")
         pysam.sort("--no-PG", "-o", str(bam), str(sam))
         pysam.index(str(bam))
@@ -60,8 +61,6 @@ def alignments(tmp_path_factory):
 @pytest.mark.parametrize("name", DATASETS)
 def test_osteosarc_original_records_and_selection_are_preserved(name, alignments):
     data = DATASETS[name]
-    raw = gzip.decompress((DATA / data["file"]).read_bytes())
-    assert sha256(raw).hexdigest() == data["sam_sha256"]
     with pysam.AlignmentFile(alignments[name]) as bam:
         reads = list(bam)
     assert len(reads) == data["fixture_records"]
