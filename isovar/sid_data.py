@@ -59,7 +59,7 @@ def fetch_metadata(url):
         if receipt["url"] == url:
             return dataset.cache.path(receipt), receipt
     if "sid-sijbrandij-osteosarc-dataset" in url:
-        asset = dataset.asset(url)
+        asset = dataset.file(url)
         path = dataset.download(asset)
         receipt = dict(url=url, sha256=sha256(path.read_bytes()).hexdigest(),
                        size=path.stat().st_size, snapshot_id=dataset.id, asset_id=asset.id)
@@ -73,7 +73,7 @@ def extract_regions(url, regions, assembly, output=None, *, dataset=None,
                     reference_lengths=None, timeout=600):
     """Delegate header/index/range acquisition to the snapshot's exact Asset."""
     dataset = dataset or open_dataset()
-    asset = dataset.asset(url)
+    asset = dataset.file(url)
     subset = dataset.extract_reads(
         asset, sam_regions(regions, assembly, reference_lengths), timeout=timeout)
     if output is not None:

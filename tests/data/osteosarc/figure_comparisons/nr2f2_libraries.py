@@ -129,7 +129,7 @@ def acquire(output, source_metadata, index_cache=None):
             )
             # Import an explicitly supplied, verified old index into the shared
             # cache; snapshot-bound extraction still validates the source Asset.
-            asset = dataset.asset(url)
+            asset = dataset.file(url)
             for candidate in indices.get(identity, []):
                 meta = json.loads(candidate.with_name(candidate.name + ".receipt.json").read_text())
                 if meta["url"] in asset.index_urls and sha256(candidate.read_bytes()).hexdigest() == meta["sha256"]:
