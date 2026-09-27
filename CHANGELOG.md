@@ -4,6 +4,12 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.5
+
+- Requires osteosarc 0.14 (`>=0.14.0,<0.15`), in step with Varcode, Topiary
+  and Vaxrank. 0.14 removes `osteosarc.legacy_fixtures`, which Isovar no longer
+  uses, and the openvax-v1 test reads are the same.
+
 ## 1.39.4
 
 - Isovar no longer uses `osteosarc.legacy_fixtures`, which osteosarc can now
