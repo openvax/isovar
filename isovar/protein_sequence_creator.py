@@ -28,6 +28,7 @@ from .default_parameters import (
     protein_sequence_length_for_peptide_length,
 )
 
+from .assembly import merge_identical_sequences
 from .genetic_code import translate_cdna
 from .protein_sequence_helpers import (
     sort_protein_sequences,
@@ -46,17 +47,6 @@ from .variant_helpers import require_literal_variant
 from .logging import get_logger
 
 logger = get_logger(__name__)
-
-
-def _variant_sequence_key(sequence):
-    """Deterministic cDNA and transcript-path identity."""
-    transcript_ids = sequence.compatible_transcript_ids
-    return (
-        sequence.prefix,
-        sequence.alt,
-        sequence.suffix,
-        transcript_ids is not None,
-        tuple(sorted(transcript_ids or ())))
 
 
 class ProteinSequenceCreator(object):
@@ -231,6 +221,8 @@ class ProteinSequenceCreator(object):
         A shorter context may match the reference when longer noisy flanks do
         not. Supporting reads are set unions of the same original objects,
         never duplicated counts or incompatible extensions of a short sequence.
+        Alternative placements of the same segment remain separate candidates,
+        using the same compatibility rule as the underlying assembler.
         """
         reads = list(reads)
         if not reads:
@@ -239,17 +231,12 @@ class ProteinSequenceCreator(object):
             # One context length, in the creator's own candidate order
             # (protein support ties are stable).
             return self._variant_sequence_creator.reads_to_variant_sequences(variant, reads)
-        sequences = {}
+        sequences = []
         for length in self.candidate_context_lengths():
             creator = (self._variant_sequence_creator if length == self.protein_sequence_length
                        else self._make_variant_sequence_creator(3 * length + 2))
-            for sequence in creator.reads_to_variant_sequences(variant, reads):
-                key = _variant_sequence_key(sequence)
-                if key in sequences:
-                    sequences[key] = sequences[key].add_reads(sequence.reads)
-                else:
-                    sequences[key] = sequence
-        return [sequences[key] for key in sorted(sequences)]
+            sequences.extend(creator.reads_to_variant_sequences(variant, reads))
+        return merge_identical_sequences(sequences)
 
     def variant_sequences_from_reads(self, variant, reads):
         """Assemble each distinct compatible-transcript read group once."""
@@ -261,16 +248,11 @@ class ProteinSequenceCreator(object):
         if transcript_read_groups is None:
             return self._variant_sequences_from_compatible_reads(variant, reads)
 
-        sequences = {}
+        sequences = []
         for _transcript_ids, compatible_reads in transcript_read_groups:
-            for sequence in self._variant_sequences_from_compatible_reads(
-                    variant, compatible_reads):
-                key = _variant_sequence_key(sequence)
-                if key in sequences:
-                    sequences[key] = sequences[key].add_reads(sequence.reads)
-                else:
-                    sequences[key] = sequence
-        return [sequences[key] for key in sorted(sequences)]
+            sequences.extend(self._variant_sequences_from_compatible_reads(
+                variant, compatible_reads))
+        return merge_identical_sequences(sequences)
 
     def translation_from_variant_sequence_and_reference_context(
                 self,

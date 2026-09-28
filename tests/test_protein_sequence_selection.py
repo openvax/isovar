@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 from varcode import Variant
 
+from isovar.allele_read import AlleleRead
 from isovar.cli.protein_sequence_args import (
     make_protein_sequences_arg_parser, protein_sequence_creator_from_args,
 )
@@ -200,6 +201,37 @@ def test_context_ladder_is_bounded_and_includes_requested_target():
             legacy = ProteinSequenceCreator(protein_sequence_length=target, protein_sequence_preference="support")
             assert legacy.candidate_context_lengths() == [target]
             assert legacy._cdna_sequence_length == 3 * target + 3
+
+
+@pytest.mark.parametrize("preference", ["balanced", "context", "support"])
+@pytest.mark.parametrize("transcripts", [None, {"tx1", "tx2"}])
+@pytest.mark.parametrize("assembly", [False, True])
+def test_context_merge_preserves_alternative_alignments(preference, transcripts, assembly):
+    # Two placements of one segment have identical local RNA strings. They
+    # must survive context/transcript-group deduplication as two hypotheses,
+    # each with one observation, rather than being unioned into one assembly.
+    reads = [AlleleRead(
+        "AAA", "C", "GGG", "same-fragment", compatible_transcript_ids=transcripts,
+        source_alignments=((("rg", "same-fragment", 0), (0, start, "7M", False)),))
+        for start in (100, 101)]
+    creator = ProteinSequenceCreator(
+        protein_sequence_preference=preference,
+        variant_sequence_assembly=assembly,
+        min_variant_sequence_coverage=1)
+    fingerprints = []
+    for ordered in (reads, list(reversed(reads))):
+        sequences = creator.variant_sequences_from_reads(None, ordered)
+        assert len(sequences) == 2
+        assert all(s.sequence == "AAACGGG" and len(s.reads) == 1 for s in sequences)
+        assert all(max(s.coverage()) == 1 for s in sequences)
+        fingerprints.append({tuple(s._source_alignments.items()) for s in sequences})
+    assert fingerprints[0] == fingerprints[1]
+    # Alternative placements cannot satisfy a floor of two observations.
+    creator = ProteinSequenceCreator(
+        protein_sequence_preference=preference,
+        variant_sequence_assembly=assembly,
+        min_variant_sequence_coverage=2)
+    assert creator.variant_sequences_from_reads(None, reads) == []
 
 
 @pytest.mark.parametrize("strand", ["+", "-"])
