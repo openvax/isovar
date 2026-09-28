@@ -4,6 +4,14 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.11
+
+- Fragments with conflicting ref/alt and third-allele mate observations no
+  longer contribute definite phase evidence. This extends 1.39.8's conflict
+  filter to `other_reads` before building the four-cell statistical table;
+  previously, discarding these observations could still produce false cis
+  calls, including partner/group annotations and matched-germline phasing.
+
 ## 1.39.10
 
 - Adaptive protein reconstruction now preserves separate candidates when

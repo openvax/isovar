@@ -41,7 +41,7 @@ def _binomial_tail(count, trials, rate):
 
 
 def _allele_reads(result, allele):
-    """``result``'s reads for ``"ref"`` or ``"alt"``; names for legacy inputs."""
+    """``result``'s ref/alt/other reads; names for legacy inputs."""
     reads = getattr(result, allele + "_reads", None)
     if reads is None:
         reads = getattr(result, allele + "_read_names", ())
@@ -140,19 +140,21 @@ def _allele_table(v1, reads1, v2, reads2):
     """Unambiguous fragment counts: both alt, first only, second only, neither."""
     support, _ = _phasing_support({
         (allele, variant): _allele_reads(reads, allele)
-        for variant, reads in ((v1, reads1), (v2, reads2)) for allele in ("alt", "ref")
+        for variant, reads in ((v1, reads1), (v2, reads2)) for allele in ("alt", "ref", "other")
     })
-    cells = [support[(a, v1)].get((b, v2), set())
-             for a, b in (("alt", "alt"), ("alt", "ref"), ("ref", "alt"), ("ref", "ref"))]
+    cells = {(a, b): support[(a, v1)].get((b, v2), set())
+             for a in ("alt", "ref", "other") for b in ("alt", "ref", "other")}
     # Unmerged, disagreeing mates can support multiple combinations. A
     # physical fragment has only one combination; keep these observations
-    # in the results but exclude them from phase counts. Consider all four
-    # cells even when the caller only uses the somatic-alt row.
+    # in the results but exclude them from phase counts. Include other-allele
+    # observations before projecting onto the four ref/alt cells, even when
+    # the caller only uses the somatic-alt row.
     seen, ambiguous = set(), set()
-    for cell in cells:
+    for cell in cells.values():
         ambiguous.update(seen & cell)
         seen.update(cell)
-    return tuple(len(cell - ambiguous) for cell in cells)
+    return tuple(len(cells[alleles] - ambiguous) for alleles in (
+        ("alt", "alt"), ("alt", "ref"), ("ref", "alt"), ("ref", "ref")))
 
 
 def _phase_annotations(
