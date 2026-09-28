@@ -312,10 +312,10 @@ its run. `IsovarReadPhasing.in_cis(v1, v2)` answers from fragments that cover
 both loci. It returns `True` when fragments carry both alt alleles, `False`
 when fragments show each alt allele with the other's reference allele, and
 `None` without enough of either. The fragments for trans are counted in the
-direction with fewer. A variant that arose in a subclone of the other's cells
-is cis with it on every molecule. Cells without it still give the earlier
-variant's alt allele with its reference allele, so fragments in one direction
-alone don't separate the two.
+direction with fewer. A variant that arose in a subclone of the other's cells,
+on the other's copy, is cis with it on every molecule it's on. Cells without
+it still give the earlier variant's alt allele with its reference allele, so
+fragments in one direction alone don't separate the two.
 
 With `run_isovar(germline_variants=...)` (or `--germline-vcf`), Isovar also
 collects reads at each matched germline variant that a variant's alt reads

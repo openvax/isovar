@@ -175,10 +175,12 @@ class IsovarReadPhasing(IsovarResultProvider):
         variant's alt allele without the other's: it counts the fragments
         with one variant's alt allele and the other's reference allele, in
         the direction with fewer. A variant that arose in a subclone of the
-        other's cells has all its alt molecules cis with the other's alt
-        allele. Cells without it still give the earlier variant's alt allele
-        with its reference allele, so fragments in one direction alone don't
-        separate the two (Nik-Zainal et al. 2012, Cell 149:994).
+        other's cells, on the other's copy, has all its alt molecules cis
+        with the other's alt allele. Cells without it still give the earlier
+        variant's alt allele with its reference allele, so fragments in one
+        direction alone don't separate the two (Nik-Zainal et al. 2012, Cell
+        149:994). Sequencing errors at a deeply covered locus can still fake
+        a few both-alt fragments (#410).
 
         For a variant in the run and a matched germline variant
         (``run_isovar(germline_variants=...)``) that its alt reads cover,

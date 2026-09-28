@@ -397,9 +397,9 @@ def test_in_cis_false_when_each_alt_comes_with_the_other_reference():
 
 
 def test_a_subclone_nested_in_the_others_clone_is_cis():
-    # #393: V1 arose in a subclone of V2's cells. Every V1 molecule carries V2;
-    # V2's other cells give (V1 ref, V2 alt) fragments, which outnumber the
-    # both-alt ones but aren't trans evidence.
+    # #393: V1 arose on V2's copy in a subclone of V2's cells. Every V1
+    # molecule carries V2; V2's other cells give (V1 ref, V2 alt) fragments,
+    # which outnumber the both-alt ones but aren't trans evidence.
     nested = ["n%d" % i for i in range(5)]
     subclone = IsovarReadPhasing([
         _make_result(V1, alt_read_names={"b1", "b2"}, ref_read_names=set(nested)),
@@ -416,10 +416,21 @@ def test_a_subclone_nested_in_the_others_clone_is_cis():
 
 
 def test_in_cis_none_when_only_one_alt_is_seen_without_the_other():
-    # V2 in trans, or in a subclone of V1's cells that these fragments missed.
+    # V2 in trans, or on V1's copy in a subclone these fragments missed.
     phasing = IsovarReadPhasing([
         _make_result(V1, alt_read_names={"f1", "f2"}),
         _make_result(V2, alt_read_names={"f3"}, ref_read_names={"f1", "f2"}),
+    ])
+    assert phasing.in_cis(V1, V2) is None
+
+
+def test_in_cis_none_when_the_smaller_direction_is_below_the_minimum():
+    # Ten fragments with V1's alt allele alone, one with V2's: the old summed
+    # rule said trans, but one fragment doesn't separate the pair.
+    alone = ["a%d" % i for i in range(10)]
+    phasing = IsovarReadPhasing([
+        _make_result(V1, alt_read_names=set(alone), ref_read_names={"b1"}),
+        _make_result(V2, alt_read_names={"b1"}, ref_read_names=set(alone)),
     ])
     assert phasing.in_cis(V1, V2) is None
 

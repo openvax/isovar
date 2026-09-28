@@ -7,7 +7,7 @@ releases that only fix bugs or add fixtures are omitted; see the
 ## 1.39.7
 
 - `IsovarReadPhasing.in_cis` no longer calls trans for two variants when one
-  arose in a subclone of the other's cells (#393).
+  arose in a subclone of the other's cells, on the other's copy (#393).
   - Trans now needs each alt allele seen without the other. It counts the
     fragments with one variant's alt allele and the other's reference
     allele, in the direction with fewer; cis is still the both-alt count.
@@ -15,8 +15,14 @@ releases that only fix bugs or add fixtures are omitted; see the
   - Previously, the earlier clone's cells without the later variant gave
     (earlier alt, later ref) fragments that could outnumber the both-alt ones
     and flip a cis pair to `False`.
-  - Pairs where only one alt allele is ever seen without the other are now
-    `None` rather than `False`.
+  - Some answers change:
+    - A pair whose smaller direction has fewer than
+      `min_shared_fragments_for_phasing` fragments is now `None` rather than
+      `False`; this includes a pair seen apart in one direction only.
+    - A pair whose both-alt fragments outnumber the smaller direction is now
+      `True`, even when the larger direction outnumbers them.
+  - Errors at a deeply covered locus can fake a few both-alt fragments, and
+    `True`, when the other variant's own direction is small (#410).
   - The matched-germline rule is unchanged.
 ## 1.39.6
 
