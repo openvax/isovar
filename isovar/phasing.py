@@ -12,12 +12,68 @@
 
 from collections import defaultdict
 from itertools import combinations
+from math import exp, lgamma, log, log1p
 
-from .default_parameters import MIN_SHARED_FRAGMENTS_FOR_PHASING
+from .default_parameters import (
+    MAX_P_VALUE_FOR_PHASING,
+    MIN_SHARED_FRAGMENTS_FOR_PHASING,
+    PHASING_ERROR_RATE,
+)
 from .phase_group import PhaseGroup
 from .read_identity import alignment_constraints, fragment_ids
 from .chimeric_alignment import compatible_phasing_alignments
 from .transcript_edit_helpers import transcript_assembly_edit_sort_key
+
+
+def _binomial_tail(count, trials, rate):
+    """P(X >= count) for X ~ Binomial(trials, rate), with 0 < rate < 1."""
+    if count <= 0:
+        return 1.0
+    total, scale = 0.0, lgamma(trials + 1)
+    for successes in range(count, trials + 1):
+        term = exp(scale - lgamma(successes + 1) - lgamma(trials - successes + 1)
+                   + successes * log(rate) + (trials - successes) * log1p(-rate))
+        total += term
+        # Past the mean the terms only shrink.
+        if successes > trials * rate and term <= 1e-17 * total:
+            break
+    return min(total, 1.0)
+
+
+def _allele_reads(result, allele):
+    """``result``'s reads for ``"ref"`` or ``"alt"``; names for legacy inputs."""
+    reads = getattr(result, allele + "_reads", None)
+    if reads is None:
+        reads = getattr(result, allele + "_read_names", ())
+    return reads
+
+
+def _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing):
+    for name, value in (("phasing_error_rate", phasing_error_rate),
+                        ("max_p_value_for_phasing", max_p_value_for_phasing)):
+        if not 0 < value < 1:
+            raise ValueError("%s must be between 0 and 1, not %r" % (name, value))
+
+
+def _four_gamete(
+        both, first, second, neither,
+        min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
+        phasing_error_rate=PHASING_ERROR_RATE,
+        max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING):
+    """Cis, trans or ``None`` for two variants in the run, from their fragment table."""
+    def present(count, neighbour, other_neighbour):
+        # Enough fragments, and more than errors at either locus leak in
+        # from the two neighbouring combinations' fragments together.
+        return (count >= min_shared_fragments_for_phasing and _binomial_tail(
+            count, count + neighbour + other_neighbour, phasing_error_rate)
+            <= max_p_value_for_phasing)
+    together = present(both, first, second)
+    first_alone, second_alone = present(first, neither, both), present(second, neither, both)
+    if together and not (first_alone and second_alone):
+        return True
+    if first_alone and second_alone and not together:
+        return False
+    return None
 
 
 def _variant_sort_key(variant):
@@ -80,20 +136,43 @@ def _phasing_support(variant_to_reads):
     return support, names_by_id
 
 
+def _allele_table(v1, reads1, v2, reads2):
+    """Unambiguous fragment counts: both alt, first only, second only, neither."""
+    support, _ = _phasing_support({
+        (allele, variant): _allele_reads(reads, allele)
+        for variant, reads in ((v1, reads1), (v2, reads2)) for allele in ("alt", "ref")
+    })
+    cells = [support[(a, v1)].get((b, v2), set())
+             for a, b in (("alt", "alt"), ("alt", "ref"), ("ref", "alt"), ("ref", "ref"))]
+    # Unmerged, disagreeing mates can support multiple combinations. A
+    # physical fragment has only one combination; keep these observations
+    # in the results but exclude them from phase counts. Consider all four
+    # cells even when the caller only uses the somatic-alt row.
+    seen, ambiguous = set(), set()
+    for cell in cells:
+        ambiguous.update(seen & cell)
+        seen.update(cell)
+    return tuple(len(cell - ambiguous) for cell in cells)
+
+
 def _phase_annotations(
         variant_to_reads,
         min_shared_fragments_for_phasing,
-        variant_to_top_protein_sequence_dict=None):
+        variant_to_top_protein_sequence_dict=None,
+        in_cis=None):
     """Derive neighbors and groups from the same validated fragment edges.
 
     ``variant_to_reads`` maps each variant to its reads, or to plain read
     names for callers without alignment metadata. Returns the phased
     neighbors of every variant and the PhaseGroup of each grouped variant.
+    When supplied, ``in_cis`` must confirm each edge against the complete
+    reference/alternate allele evidence.
     """
     support, names_by_id = _phasing_support(variant_to_reads)
     phased_neighbors = {
         variant: {other for other, ids in support[variant].items()
-                  if len(ids) >= min_shared_fragments_for_phasing}
+                  if len(ids) >= min_shared_fragments_for_phasing
+                  and (in_cis is None or in_cis(variant, other))}
         for variant in variant_to_reads
     }
 
@@ -202,12 +281,15 @@ def _variant_reads(isovar_results, protein=False):
 
 def annotate_phased_variants(
         unphased_isovar_results,
-        min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING):
+        min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
+        phasing_error_rate=PHASING_ERROR_RATE,
+        max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING):
     """
-    Annotate IsovarResult objects with phasing information. Phasing
-    is determined by looking at RNA fragments used for assembled protein
-    sequences and counting the number of shared fragments with compatible
-    placements, scoped by SAM read group. Public read-name sets remain display
+    Annotate IsovarResult objects with phasing information. Pairs must pass
+    the same error-aware test as IsovarReadPhasing.in_cis, using all reference
+    and alternate reads. Protein-sequence edges additionally require enough
+    shared protein-supporting fragments with compatible placements, scoped
+    by SAM read group. Public read-name sets remain display
     names, not evidence IDs. Legacy caller-created objects without alignment
     metadata retain name-only phasing;
     they are not equated with scoped collected fragments.
@@ -217,11 +299,36 @@ def annotate_phased_variants(
     unphased_isovar_results : list of IsovarResult
 
     min_shared_fragments_for_phasing : int
+        Minimum shared fragments for an edge.
+
+    phasing_error_rate : float
+        Probability of an incorrect allele at either locus.
+
+    max_p_value_for_phasing : float
+        Maximum binomial p-value for an allele combination to exceed errors.
 
     Returns
     -------
     list of IsovarResult
     """
+
+    _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
+    unphased_isovar_results = tuple(unphased_isovar_results)
+    # Assess every pair against the full allele evidence, including reference
+    # reads. Selecting only protein-supporting reads would discard the error
+    # background and could turn two sequencing errors into a cis edge.
+    by_variant = {result.variant: result for result in unphased_isovar_results}
+    calls = {}
+
+    def in_cis(v1, v2):
+        key = frozenset((v1, v2))
+        if key not in calls:
+            calls[key] = _four_gamete(
+                *_allele_table(v1, by_variant[v1], v2, by_variant[v2]),
+                min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
+                phasing_error_rate=phasing_error_rate,
+                max_p_value_for_phasing=max_p_value_for_phasing)
+        return calls[key] is True
 
     updates = {result.variant: {} for result in unphased_isovar_results}
     for source in ("supporting_reads", "protein_sequence"):
@@ -229,7 +336,8 @@ def annotate_phased_variants(
         neighbors, groups = _phase_annotations(
             _variant_reads(unphased_isovar_results, protein=protein),
             min_shared_fragments_for_phasing,
-            create_variant_to_top_protein_sequence_dict(unphased_isovar_results) if protein else None)
+            create_variant_to_top_protein_sequence_dict(unphased_isovar_results) if protein else None,
+            in_cis=in_cis)
         for variant, fields in updates.items():
             fields["phased_variants_in_" + source] = neighbors[variant]
             fields["phase_group_from_" + source] = groups.get(variant)

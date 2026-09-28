@@ -286,7 +286,7 @@ def test_threshold_filter_propagates_through_adapter():
 # germline calls should be reported as partners.
 
 
-def test_synthetic_somatic_and_germline_phased_on_rna_reads():
+def test_two_input_variants_with_competing_alleles_remain_unphased():
     chromosome = "1"
     somatic = Variant(
         chromosome, 4, "T", "G", grcm38, normalize_contig_names=False)
@@ -358,8 +358,13 @@ def test_synthetic_somatic_and_germline_phased_on_rna_reads():
 
     assert phasing.has_evidence(somatic)
     assert phasing.has_evidence(germline)
-    eq_(phasing.partners_in_cis(somatic), (germline,))
-    eq_(phasing.partners_in_cis(germline), (somatic,))
+    # Both variants are input results, so use the four-combination rule.
+    # (3 both, 2 first alone, 2 second alone) is ambiguous despite sharing
+    # three alternate fragments. This is not the matched-germline path.
+    assert phasing.in_cis(somatic, germline) is None
+    eq_(phasing.partners_in_cis(somatic), ())
+    eq_(phasing.partners_in_cis(germline), ())
+    assert all(result.phase_group_from_supporting_reads is None for result in annotated)
 
 
 def test_b16_in_cis_is_unknown_across_chromosomes(b16_results):
@@ -499,7 +504,7 @@ def test_error_prone_reads_need_their_error_rate():
 
 
 def test_binomial_tail():
-    from isovar.read_phasing import _binomial_tail
+    from isovar.phasing import _binomial_tail
     assert _binomial_tail(0, 5, 0.01) == 1.0
     assert _binomial_tail(6, 5, 0.01) == 0.0
     assert abs(_binomial_tail(1, 1, 0.01) - 0.01) < 1e-15
@@ -513,6 +518,74 @@ def test_phasing_rates_are_probabilities():
         for rate in (0, 1, -0.1):
             with pytest.raises(ValueError, match=name):
                 IsovarReadPhasing([], **{name: rate})
+
+
+@pytest.mark.parametrize("rate, p_value, expected", [
+    (0.01, 0.05, None),
+    (0.001, 0.05, True),
+    (0.001, 0.01, None),
+])
+def test_run_isovar_uses_phasing_thresholds_on_collected_reads(monkeypatch, rate, p_value, expected):
+    # Hold translation out of this miniature reference: exercise the actual
+    # collector -> result -> phase annotation path on the #410 fragment table.
+    monkeypatch.setattr("isovar.main.top_varcode_effect", lambda **kwargs: None)
+    creator = SimpleNamespace(
+        sorted_protein_sequences_for_variant=lambda **kwargs: [],
+        settings=lambda: {})
+    v1 = Variant("1", 4, "T", "G", grcm38, normalize_contig_names=False)
+    v2 = Variant("1", 8, "T", "A", grcm38, normalize_contig_names=False)
+    reads = []
+    for label, count, sequence, md in (
+            ("both", 2, "ACCGTGAACG", "3T3T2"),
+            ("first", 198, "ACCGTGATCG", "3T6"),
+            ("neither", 20, "ACCTTGATCG", "10")):
+        reads.extend(make_pysam_read(
+            seq=sequence, cigar="10M", mdtag=md, name="%s%d" % (label, i), reference_start=0)
+            for i in range(count))
+    thresholds = dict(phasing_error_rate=rate, max_p_value_for_phasing=p_value)
+    results = run_isovar(
+        [v1, v2], MockAlignmentFile(references=("1",), reads=reads),
+        protein_sequence_creator=creator, **thresholds)
+    assert [r.num_alt_fragments for r in results] == [200, 2]
+    phasing = IsovarReadPhasing(results, **thresholds)
+    assert phasing.in_cis(v1, v2) is expected
+    assert phasing.partners_in_cis(v1) == ((v2,) if expected else ())
+    assert (results[0].phase_group_from_supporting_reads is not None) == (expected is True)
+
+
+@pytest.mark.parametrize("disputed_locus", [0, 1])
+@pytest.mark.parametrize("clean_fragments, expected", [(0, None), (1, None), (2, True)])
+def test_conflicting_mates_do_not_supply_phase_evidence(disputed_locus, clean_fragments, expected):
+    v1 = Variant("1", 4, "T", "G", grcm38, normalize_contig_names=False)
+    v2 = Variant("1", 8, "T", "A", grcm38, normalize_contig_names=False)
+    disagreement = ("ACCTTGAACG", "7T2") if disputed_locus == 0 else ("ACCGTGATCG", "3T6")
+    reads = []
+    for name in ("conflict1", "conflict2"):
+        for flag, (sequence, md) in ((65, ("ACCGTGAACG", "3T3T2")), (129, disagreement)):
+            read = make_pysam_read(seq=sequence, cigar="10M", mdtag=md, name=name, reference_start=0)
+            read.flag = flag
+            reads.append(read)
+    reads.extend(make_pysam_read(seq="ACCGTGAACG", cigar="10M", mdtag="3T3T2",
+                                 name="clean%d" % i, reference_start=0)
+                 for i in range(clean_fragments))
+    for ordered_reads in (reads, list(reversed(reads))):
+        bam = MockAlignmentFile(references=("1",), reads=ordered_reads)
+        results = [IsovarResult(
+            variant=v, predicted_effect=None,
+            read_evidence=ReadCollector().read_evidence_for_variant(v, bam)) for v in (v1, v2)]
+        # Preserve the contradictory observations for auditing; they just
+        # cannot be counted as two independent allele combinations.
+        assert results[disputed_locus].num_ref_fragments == 2
+        assert all(result.num_alt_fragments == 2 + clean_fragments for result in results)
+        for ordered_results in (results, list(reversed(results))):
+            phasing = IsovarReadPhasing(annotate_phased_variants(ordered_results))
+            assert phasing.in_cis(v1, v2) is expected
+            assert phasing.in_cis(v2, v1) is expected
+            assert phasing.partners_in_cis(v1) == ((v2,) if expected else ())
+        # A somatic ref/alt conflict must not count toward germline phasing,
+        # even though only somatic-alt fragments decide that call.
+        somatic = results[0].clone_with_updates(germline_read_evidence={v2: results[1].read_evidence})
+        assert IsovarReadPhasing([somatic]).in_cis(v1, v2) is expected
 
 
 def test_in_cis_none_without_fragments_covering_both_loci():
@@ -556,4 +629,3 @@ def test_varcode_resolver_uses_in_cis_for_trans():
         _make_result(V2, alt_read_names={"f3", "f4"}, ref_read_names={"f1", "f2"}),
     ])
     assert MolecularPhaseResolver(phasing).in_cis(V1, V2) is False
-

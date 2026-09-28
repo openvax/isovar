@@ -4,6 +4,23 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.8
+
+- Fragments whose unmerged mates support conflicting allele combinations
+  no longer count in cis/trans decisions (#414). Previously the same
+  fragment could occupy multiple table cells and yield a false cis call.
+  This also applies to matched-germline phasing; the underlying reads and
+  allele counts remain available for auditing.
+- Partner lists and phase groups now require the same error-aware cis call
+  as `IsovarReadPhasing.in_cis` (#412). Two shared alternate fragments alone
+  no longer create a link when the full allele table is consistent with
+  read errors or conflicting haplotypes. Protein groups also use the full
+  allele table, then require shared support for the top proteins.
+- `run_isovar` and `annotate_phased_variants` accept `phasing_error_rate` and
+  `max_p_value_for_phasing`, with the adapter's defaults. Pass matching
+  thresholds to `IsovarReadPhasing` when overriding them. Protein sequences
+  are unchanged.
+
 ## 1.39.7
 
 - `IsovarReadPhasing.in_cis` decides two variants in the run with a
