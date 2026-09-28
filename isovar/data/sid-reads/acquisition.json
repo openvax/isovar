@@ -1,0 +1,119 @@
+{
+  "2024.06.11.bostongene.align.tcga.protocol.dr32Aligned.sorted": {
+    "archive_sha256": "e30ae5f7817cdd8708b65941bb15f2c7625bd967535edae488a96368f12b72f2"
+  },
+  "25.03.23.rna.ucla.2025.01.resection.tcga.d32.protocolAligned.sorted": {
+    "archive_sha256": "497fa52f82279b4a8b9af38bab44af84ba4fe58b038b42d552e6779b1c078066"
+  },
+  "BAM.tumor24.recal": {
+    "archive_sha256": "0839fd875f8c269a6f61dba2ddedb81429a1e918194b4f3b2c25da6deb4da169"
+  },
+  "BG003082.Aligned.sortedByCoord.out": {
+    "archive_sha256": "2aafad048f43326dfec880388f40449c022bb1ed08202387855620f00643e0b3"
+  },
+  "BG003082.Aligned.sortedByCoord.out.md": {
+    "archive_sha256": "42169ada92adc4c46d0ab4ad65ce7dad109112bb964d81d6b18ad82156b653a9"
+  },
+  "BG009368.Aligned.sortedByCoord.out.md": {
+    "archive_sha256": "025dbcc37a16c2a7b07b65445b50c6b6c01e75b00f793d580de8aeea02f7b8ea"
+  },
+  "IPISRC044_T1_sclrs_ONT.tagged": {
+    "archive_sha256": "1c7094461fb6a34bbb6bc600f4ba7b5d202c4cf2053ee449c61bc4f915b0caae"
+  },
+  "IPISRC044_T1_sclrs_ONT_dedup": {
+    "archive_sha256": "1ed1fa3c0d38daafc97283ba8eedae583a3b6585a3bd95096af68931dc2eae2f"
+  },
+  "IPISRC044_T1_sclrs_live_pbmm2_mapped": {
+    "archive_sha256": "2c9f4a19cb5b6ac25a895eca051fad2ac798e234e9d4a467895ea487fb3583f1"
+  },
+  "IPISRC044_T2_sclrs_ONT.tagged": {
+    "archive_sha256": "246ce8d8d9b8e3f172eec9778664c9321d0ea2430533709c4918ea4b6243d00d"
+  },
+  "IPISRC044_T2_sclrs_ONT_dedup": {
+    "archive_sha256": "9c9f78b5d2d38883d8b1d10f359324e711a41c97278e0b5853e64b0f74a7a9a1"
+  },
+  "IPISRC044_T3_sclrs_ONT.tagged": {
+    "archive_sha256": "747d4b7c7710de089aadb91597d0261214dabba2b1e68866140a67d545fdae08"
+  },
+  "IPISRC044_T3_sclrs_ONT_dedup": {
+    "archive_sha256": "71cf6de3975c71688e854173d2d5344144f2ef9a8432e2b80d9388a2940ea7f0"
+  },
+  "IPISRC044_tumor_T0_personalis_rna.md": {
+    "archive_sha256": "e381c8c053b995241f5212b48582d25ca8c2f978c95033cf7f02dcf43f75cb65"
+  },
+  "IPISRC044_tumor_T1_ucla_rna.md": {
+    "archive_sha256": "41925de5d996872d6cb1b72eba96b5ccf48493df1e69e2846735ea17e56bf1f4"
+  },
+  "IPISRC044_tumor_T2_ucla_rna.md": {
+    "archive_sha256": "4c5ddd0c722e6ef1b8100dd7c34d25b7f2ce07131930090b5d0d2f75be87cc7c"
+  },
+  "P116686_1": {
+    "archive_sha256": "d11a1457bbebf1930a70ecfae506ecb7d0c60625793a523bc3588e420634face"
+  },
+  "P116686_2": {
+    "archive_sha256": "00ef0c8dc3e6c7c88c2a843f48d90d9e41a33e934618f6715fc2d3b96ccf4606"
+  },
+  "P116686_3": {
+    "archive_sha256": "ba119487ea85842fc2e4f0d2e9887fb3106d96597838127a25be225c771ab9ba"
+  },
+  "SARC0277.Aligned.sortedByCoord.out": {
+    "archive_sha256": "8818b3d0792b53b0f92cd627b7095e5707437bfb8f9ce34696b7a900957cdb4d"
+  },
+  "SARC0277.Aligned.sortedByCoord.out.md": {
+    "archive_sha256": "520de4f457680620ccc64497c8d97b9955f4ff48e5e7695d1b41078bc7c8274e"
+  },
+  "T1.sample_alignments": {
+    "archive_sha256": "22508dd6ec9ec6dcc8e6c4e3dd6c87ddda2813cfd2e71eaee4006931376be6dc"
+  },
+  "T2.sample_alignments": {
+    "archive_sha256": "6ffb9fcb6c6299743061f8799b2d2bb9bedfaee6be9dd1ca821666573754f93f"
+  },
+  "T2_sample_alignments": {
+    "archive_sha256": "80fe06ad46dadb50206e9329c296de1773a369071f61cbbc8992349c63b10431"
+  },
+  "T3.sample_alignments": {
+    "archive_sha256": "12a73494d13ba1e62992b3137a085706ca17cdcd42bf721342ca7e3b2e5940ed"
+  },
+  "T3_CD45neg.sample_alignments": {
+    "archive_sha256": "2a2c1a2958403c46f4357b5930f4d8ddc732f57894a0fa95c2a7472b182e8f9b"
+  },
+  "TL-24-KCVBE1UI1P.Aligned.sortedByCoord.out": {
+    "archive_sha256": "3d6a2f5118ea09ba164e4cb25778162ff254a264f46153eac844a085306f7219"
+  },
+  "TL-24-KCVBE1UI1P.Aligned.sortedByCoord.out.md": {
+    "archive_sha256": "1762eeb13afe0446232c9854ea347357cdc6659be21e612942a439d338cc463f"
+  },
+  "illumina_bams.June2024_pfo-004-SYS2": {
+    "archive_sha256": "cc241276173f4aec243d39ba9176e5777f81668b5851b0c3f4e9bb98a0a4ee0c"
+  },
+  "normal-personalis_tumor-personalis-T0": {
+    "archive_sha256": "62e5371b2d0297986f4371936026fbd14c2d91008213938a5daca98b87915285"
+  },
+  "normal-personalis_tumor-personalis-T0_tumor": {
+    "archive_sha256": "5213459d8e43639ef219ddcf223d2aab49e52988fc7a50bcd3e7ee3f5ba06f2d"
+  },
+  "normal-ucla_tumor-ucla-T1": {
+    "archive_sha256": "5ce032bb50f388e023f0f06f790825ef00e734c2a9ef7e406098fd226ee8700a"
+  },
+  "normal-ucla_tumor-ucla-T1-organoid_tumor": {
+    "archive_sha256": "12faf95474d7073097375b05645228362f6652eb0ae1138a401cddb0ed9170e9"
+  },
+  "normal-ucla_tumor-ucla-T1_tumor": {
+    "archive_sha256": "af784334ec3daf2047450ff298317601660ddd858d8c57dd8a1efeb48535378a"
+  },
+  "normal-ucla_tumor-ucla-T2_tumor": {
+    "archive_sha256": "3fdae8b56579042a6f1548fa820909164faed78a8dc4a32acb998ee7c3351f70"
+  },
+  "rna-seq.TL-24-ALMY2X4KMV_T_sorted": {
+    "archive_sha256": "e46923bb201964689ce2280c103eff213b70df2e1c40d35e17724b67947b8a65"
+  },
+  "vendor.TL-24-ALMY2X4KMV_T_sorted": {
+    "archive_sha256": "86785cc4d41c38155e540e03590c399bd94573ffabed98d10b62b19eeca04c0c"
+  },
+  "vendor.TL-24-KCVBE1UI1P_T_sorted": {
+    "archive_sha256": "eec2ba60cdaac7b01791465007a2f55e2ee0ec45cec4c928b0bc7cf4be832887"
+  },
+  "wgs_cleaned.SG.wgs.UCLA.2025.01.tumor_cleaned.recal": {
+    "archive_sha256": "f11a8efe4a6dc56be2386c3cd4557067bea85df007cc89305e32d10c86306b80"
+  }
+}

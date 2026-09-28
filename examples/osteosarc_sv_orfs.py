@@ -2,7 +2,7 @@
 
 Run from a repository checkout: python -m examples.osteosarc_sv_orfs output.json
 Only reference/event metadata comes from tests/data; the RNA is exported from
-osteosarc's openvax-v1 bundle (downloaded once, then offline).
+Isovar's packaged Sid reads (openvax-v1 members), through isovar.sid_data.
 """
 
 import argparse

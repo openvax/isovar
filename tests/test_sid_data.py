@@ -1,4 +1,4 @@
-"""Isovar's Sid test reads come from openvax-v1, record for record."""
+"""Isovar's packaged Sid test reads: openvax-v1's members, record for record, which osteosarc makes again."""
 
 import json
 from pathlib import Path
@@ -82,21 +82,47 @@ def test_export_never_overwrites_and_needs_a_known_format(tmp_path):
         sid_data.export("chimeric/osteosarc-ont.sam", tmp_path / "missing" / "reads.sam")
 
 
-def test_an_unreachable_bundle_fails_once_with_a_hint(tmp_path, monkeypatch):
-    import osteosarc
-    calls = []
+def test_a_missing_or_changed_packaged_bundle_fails_with_a_hint(tmp_path, monkeypatch):
+    monkeypatch.setattr(sid_data, "PACKAGED", tmp_path / "missing")
+    with pytest.raises(sid_data.SidDataUnavailable, match="python -m isovar.sid_data build"):
+        sid_data.bundle()
+    changed = tmp_path / "changed"
+    changed.mkdir()
+    (changed / "manifest.json").write_text("{}")
+    monkeypatch.setattr(sid_data, "PACKAGED", changed)
+    with pytest.raises(sid_data.SidDataUnavailable, match="reinstall Isovar"):
+        sid_data.bundle()
 
-    def unreachable(*args, **kwargs):
-        calls.append(args)
-        raise OSError("network is unreachable")
 
-    monkeypatch.setattr(osteosarc, "fetch_bundle", unreachable)
-    cache = str(tmp_path / "empty-cache")
-    for _ in range(2):
-        with pytest.raises(sid_data.SidDataUnavailable, match="OSTEOSARC_CACHE"):
-            sid_data.bundle(cache)
-    assert len(calls) == 1
-    sid_data._failures.pop(cache)
+def test_osteosarc_makes_the_packaged_bundle_again(capsys):
+    # From the packaged bundle's own recipe and records, offline. CI also makes
+    # it again from openvax-v1 (python -m isovar.sid_data check).
+    assert sid_data.main(["check", "--from", str(sid_data.PACKAGED)]) is None
+    assert "makes Isovar's packaged bundle again" in capsys.readouterr().out
+
+
+def test_acquiring_again_needs_the_recipes_snapshot(tmp_path):
+    with pytest.raises(sid_data.SidDataUnavailable, match="snapshot 2026-09-25"):
+        sid_data.build(tmp_path / "bundle", sid_data.PACKAGED, sid=True, cache=str(tmp_path / "empty-cache"))
+    assert not (tmp_path / "bundle").exists()
+
+
+def test_isovars_recipe_keeps_its_members_and_what_they_use():
+    isovar_target, other_target = "fixture:isovar/reads.sam", "KRAS-chr12-25245350"
+    shared = dict(
+        schema_version=1, id="openvax-v2", kind="shared", snapshot={"id": "snapshot"},
+        aliases={"old-reads": isovar_target, "KRAS-old": other_target},
+        targets={isovar_target: {"kind": "fixture"}, other_target: {"kind": "small_variant"}},
+        sources={"rna": {"sample": "T1"}, "wgs": {"sample": "T2"}},
+        members={"isovar/reads.sam": dict(source="rna", target=isovar_target),
+                 "varcode/reads.sam": dict(source="wgs", target=other_target),
+                 "topiary/isovar/reads.sam": dict(source="wgs", target=other_target)})
+    mine = sid_data.recipe(shared)
+    assert mine == dict(shared, id="isovar", aliases={"old-reads": isovar_target},
+                        targets={isovar_target: {"kind": "fixture"}}, sources={"rna": {"sample": "T1"}},
+                        members={"isovar/reads.sam": dict(source="rna", target=isovar_target)})
+    assert sid_data.recipe(mine) == mine
+    assert "aliases" not in sid_data.recipe({k: v for k, v in shared.items() if k != "aliases"})
 
 
 def test_reduced_header_keeps_read_group_program_chain_and_sa_target():

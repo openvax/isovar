@@ -1,17 +1,22 @@
-"""Isovar's Sid test reads, from osteosarc's shared OpenVax bundle, openvax-v1.
+"""Isovar's Sid test reads, packaged with Isovar and made with osteosarc.
 
-Isovar's regression reads from the public Sid osteosarcoma data (CC0) are
-members of the ``openvax-v1`` bundle named ``isovar/<path>``, after the files
-Isovar's tests read (``<path>`` is relative to ``tests/data``). `path` returns
-one as a local file, through osteosarc's ``bundle_file``: the bundle is
-downloaded and verified once, and each member is exported once into
-osteosarc's cache, read-only, and reused offline. Tests need network access
-only the first time.
+Isovar's regression reads from the public Sid osteosarcoma data (CC0) ship
+with Isovar in ``isovar/data/sid-reads``, so its tests never need network
+access. That folder is an osteosarc fixture bundle of Isovar's members of
+osteosarc's shared OpenVax bundle, ``openvax-v1``: they are named
+``isovar/<path>``, after the files Isovar's tests read (``<path>`` is relative
+to ``tests/data``). `path` returns one as a local file, through osteosarc's
+``bundle_file``, which exports each member once into osteosarc's cache,
+read-only, and reuses it.
 
 An exported file holds exactly the member's original records, but coordinate
 sorted and under the source's full header, and is named ``<member>.<format>``.
 Reads embedded in JSON fixtures stay in those fixtures; tests check them
 against the bundle.
+
+`build` makes the packaged bundle again with osteosarc, from a shared bundle's
+records or from Sid's original BAMs, and `check` compares such a build with
+the packaged bundle.
 
 The acquisition helpers below (`open_dataset`, `fetch_metadata`,
 `extract_regions`) serve the regional audit builders, which need an osteosarc
@@ -26,61 +31,52 @@ import json
 import os
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 
 
 BUNDLE = "openvax-v1"
-# The exact published bundle Isovar's tests were checked against (its manifest's SHA-256).
+# The shared bundle Isovar's members come from (its manifest's SHA-256).
 BUNDLE_MANIFEST_SHA256 = "193623c040fa85e9dae5733fe0939358b9b7119da0e6563183bf5a9727f2d7d4"
+# Isovar's own bundle of those members, packaged with Isovar, and its manifest's SHA-256.
+PACKAGED = Path(__file__).parent / "data" / "sid-reads"
+PACKAGED_MANIFEST_SHA256 = "4b7b9b57029f91ec36fa7b4570149f750cf1479291633946c026651277e6ca3c"
 PREFIX = "isovar/"
 # Exported file formats by suffix.
 _FORMATS = ((".sam.gz", "sam.gz"), (".sam", "sam"), (".bam", "bam"))
 
-# Fetch failures, per cache, so an offline test run fails once per process, not per test.
-_failures = {}
-
 
 class SidDataUnavailable(RuntimeError):
-    """openvax-v1 couldn't be fetched, or isn't the bundle Isovar expects."""
+    """Isovar's packaged test reads are missing or changed, or can't be made again."""
 
 
-def _key(cache):
-    return cache if isinstance(cache, (str, Path, type(None))) else id(cache)
+def _digest(path):
+    return sha256(Path(path).read_bytes()).hexdigest()
 
 
-def bundle(cache=None):
-    """The verified ``openvax-v1`` folder, downloaded into osteosarc's cache on first use."""
-    from osteosarc import fetch_bundle
-    key = _key(cache)
-    if key in _failures:
-        raise _failures[key]
-    try:
-        root = Path(fetch_bundle(BUNDLE, cache=cache))
-    except Exception as error:
-        _failures[key] = SidDataUnavailable(
-            "Could not fetch osteosarc's %s test data (%s). Tests need network access once; to run "
-            "offline, set OSTEOSARC_CACHE to a cache that already holds it." % (BUNDLE, error))
-        raise _failures[key] from error
-    if sha256((root / "manifest.json").read_bytes()).hexdigest() != BUNDLE_MANIFEST_SHA256:
+def bundle():
+    """The packaged bundle's folder, checked against its pinned manifest hash."""
+    manifest = PACKAGED / "manifest.json"
+    if not manifest.is_file() or _digest(manifest) != PACKAGED_MANIFEST_SHA256:
         raise SidDataUnavailable(
-            "The installed osteosarc publishes a different %s (%s); Isovar expects manifest %s"
-            % (BUNDLE, root, BUNDLE_MANIFEST_SHA256))
-    return root
+            "Isovar's packaged Sid test reads (%s) are missing or have changed: reinstall Isovar, "
+            "or make them again with `python -m isovar.sid_data build`" % PACKAGED)
+    return PACKAGED
 
 
-@lru_cache(maxsize=4)
-def _members(key, cache):
+@lru_cache(maxsize=1)
+def _members():
     from osteosarc import list_bundle
-    return tuple(sorted(name[len(PREFIX):] for name in list_bundle(bundle(cache)) if name.startswith(PREFIX)))
+    return tuple(sorted(name[len(PREFIX):] for name in list_bundle(bundle()) if name.startswith(PREFIX)))
 
 
-def members(cache=None):
+def members():
     """Isovar's member names in the bundle, without the ``isovar/`` prefix.
 
     A name with ``#`` selects records inside a file that stays in the
     repository: a JSON pointer, or one read.
     """
-    return list(_members(_key(cache), cache))
+    return list(_members())
 
 
 def _format(name):
@@ -89,12 +85,12 @@ def _format(name):
 
 def _file(name, fmt, cache):
     from osteosarc import bundle_file
-    return Path(bundle_file(bundle(cache), PREFIX + name, format=fmt, cache=cache))
+    return Path(bundle_file(bundle(), PREFIX + name, format=fmt, cache=cache))
 
 
 def path(name, cache=None):
     """
-    Local copy of one of Isovar's Sid read files, exported from openvax-v1.
+    Local copy of one of Isovar's Sid read files, exported from the packaged bundle.
 
     Parameters
     ----------
@@ -102,8 +98,8 @@ def path(name, cache=None):
         The file's path under ``tests/data``, such as
         ``"osteosarc/bulk_star_t0.sam.gz"``.
     cache : str or osteosarc.Cache, optional
-        osteosarc's cache root; by default ``OSTEOSARC_CACHE``, else the shared
-        OpenVax cache.
+        osteosarc's cache root, where exports are kept; by default
+        ``OSTEOSARC_CACHE``, else the shared OpenVax cache.
 
     Returns
     -------
@@ -119,8 +115,8 @@ def path(name, cache=None):
     """
     if "#" in name:
         raise KeyError("%s selects reads inside a file; use sid_data.export" % name)
-    if name not in members(cache):
-        raise KeyError("%s is not an Isovar read file in %s" % (name, BUNDLE))
+    if name not in members():
+        raise KeyError("%s is not one of Isovar's Sid read files" % name)
     return _file(name, _format(name), cache)
 
 
@@ -148,8 +144,8 @@ def export(name, output, cache=None):
         raise ValueError("Export to a .bam, .sam or .sam.gz file, not %s" % output.name)
     if not output.parent.is_dir():
         raise FileNotFoundError(output.parent)
-    if name not in members(cache):
-        raise KeyError("%s is not an Isovar member of %s" % (name, BUNDLE))
+    if name not in members():
+        raise KeyError("%s is not one of Isovar's Sid test read members" % name)
     targets = [output] + ([Path(str(output) + ".bai")] if fmt == "bam" else [])
     for target in targets:
         if target.exists():
@@ -160,6 +156,118 @@ def export(name, output, cache=None):
         with open(str(source) + suffix, "rb") as reader, open(target, "xb") as writer:
             shutil.copyfileobj(reader, writer)
     return output
+
+
+def recipe(shared):
+    """
+    Isovar's part of a bundle recipe: its ``isovar/`` members, with the
+    sources and targets they use.
+
+    Parameters
+    ----------
+    shared : dict
+        A bundle's recipe, such as openvax-v1's ``recipe.json``.
+
+    Returns
+    -------
+    dict
+        A recipe named ``isovar``, which osteosarc makes Isovar's bundle from.
+    """
+    members = {name: member for name, member in shared["members"].items() if name.startswith(PREFIX)}
+    sources = {member["source"] for member in members.values()}
+    targets = {member["target"] for member in members.values()}
+    result = dict(shared, id="isovar", members=members,
+                  sources={name: s for name, s in shared["sources"].items() if name in sources},
+                  targets={name: t for name, t in shared["targets"].items() if name in targets})
+    if "aliases" in shared:
+        # Old target names, by the target each now names.
+        result["aliases"] = {old: new for old, new in shared["aliases"].items() if new in targets}
+    return result
+
+
+def build(destination, shared=BUNDLE, *, sid=False, cache=None):
+    """
+    Make Isovar's bundle of Sid test reads again with osteosarc, in a new folder.
+
+    Parameters
+    ----------
+    destination : str or Path
+        A new folder.
+    shared : str or Path
+        The bundle to take Isovar's members and their recipe from: a published
+        bundle's name, or a bundle folder, given as a Path or a path with a
+        slash (such as `PACKAGED`). openvax-v1 must be the one Isovar pins,
+        `BUNDLE_MANIFEST_SHA256`.
+    sid : bool
+        Acquire every record again from Sid's original BAMs, reading their
+        indexed windows over the network, instead of taking the records from
+        ``shared``. This needs the osteosarc metadata snapshot the recipe was
+        made from.
+    cache : str or osteosarc.Cache, optional
+        osteosarc's cache root.
+
+    Returns
+    -------
+    dict
+        The new bundle's manifest. To package the bundle, put it in place of
+        `PACKAGED` and pin its ``manifest.json``'s SHA-256 as
+        `PACKAGED_MANIFEST_SHA256`.
+    """
+    from osteosarc import fetch_bundle, generate_bundle, verify_bundle
+    local = isinstance(shared, Path) or "/" in str(shared)
+    folder = Path(shared) if local else Path(fetch_bundle(shared, cache=cache))
+    manifest = verify_bundle(folder, sha256=BUNDLE_MANIFEST_SHA256 if shared == BUNDLE else None)
+    whole = read_json(folder / "recipe.json")
+    mine = recipe(whole)
+    if sid:
+        from osteosarc import Dataset
+        snapshot = whole["snapshot"]
+        try:
+            # Each source's index comes from the metadata snapshot the recipe was made from.
+            dataset, sources = Dataset.open(snapshot["id"], cache=cache, offline=False), None
+        except FileNotFoundError as error:
+            raise SidDataUnavailable(
+                "Acquiring the reads again needs osteosarc's metadata snapshot %s (%s), which %s was made "
+                "from (%s). A new snapshot won't do: the recipe pins each BAM to that one."
+                % (snapshot["name"], snapshot["id"], whole["id"], error)) from error
+    else:
+        dataset, sources = None, {name: folder / manifest["sources"][name]["bam"] for name in mine["sources"]}
+    return generate_bundle(mine, destination, sources=sources, cache=cache, dataset=dataset,
+                           parent=dict(bundle=whole["id"], manifest_sha256=_digest(folder / "manifest.json")))
+
+
+def check(shared=BUNDLE, *, sid=False, cache=None):
+    """
+    Make Isovar's bundle again with `build`, and compare it with the packaged one.
+
+    Parameters
+    ----------
+    shared, sid, cache
+        As for `build`.
+
+    Returns
+    -------
+    list of str
+        How the new bundle's recipe, members or sources differ from the
+        packaged bundle's: empty when osteosarc makes the same records, under
+        the same headers, for the same members. How records were acquired
+        (the members' ``acquisition_status``) may differ.
+    """
+    from osteosarc import verify_bundle
+    packaged = verify_bundle(bundle())
+    with tempfile.TemporaryDirectory(prefix="isovar-sid-reads-") as work:
+        built = build(Path(work) / "bundle", shared, sid=sid, cache=cache)
+
+    def held(manifest, part, name):
+        entry = manifest[part].get(name)
+        return entry if part == "sources" or entry is None else {
+            key: value for key, value in entry.items() if key != "acquisition_status"}
+    problems = ["recipe differs"] if built["recipe_sha256"] != packaged["recipe_sha256"] else []
+    for part in ("members", "sources"):
+        for name in sorted(built[part].keys() | packaged[part].keys()):
+            if held(built, part, name) != held(packaged, part, name):
+                problems.append("%s %s differs" % (part[:-1], name))
+    return problems
 
 
 def read_json(path):
@@ -290,15 +398,36 @@ def extract_regions(url, regions, assembly, output=None, *, dataset=None,
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=("list", "path", "export"),
-                        help="list members; print a read file's local path; export any member")
+    parser.add_argument("command", choices=("list", "path", "export", "build", "check"),
+                        help="list members; print a read file's local path; export any member; make the "
+                             "packaged bundle again in a new folder; compare a new build with it")
     parser.add_argument("name", nargs="?", help="A member, as listed; path takes whole read files only")
-    parser.add_argument("--output", type=Path, help="export: the .bam, .sam or .sam.gz file to write")
+    parser.add_argument("--output", type=Path,
+                        help="export: the .bam, .sam or .sam.gz file to write; build: a new folder")
+    parser.add_argument("--from", dest="shared", default=BUNDLE,
+                        help="build, check: the bundle to take Isovar's members from, a published "
+                             "bundle's name or a folder's path (default: %(default)s)")
+    parser.add_argument("--sid", action="store_true",
+                        help="build, check: acquire every record again from Sid's original BAMs (slow; "
+                             "needs network access and the osteosarc snapshot the recipe names)")
     parser.add_argument("--cache", help="osteosarc cache root")
     args = parser.parse_args(argv)
     if args.command == "list":
-        for name in members(args.cache):
+        for name in members():
             print(name)
+    elif args.command == "build":
+        if args.output is None:
+            parser.error("build requires --output")
+        build(args.output, args.shared, sid=args.sid, cache=args.cache)
+        # The hash to pin as PACKAGED_MANIFEST_SHA256.
+        print("%s  %s" % (_digest(args.output / "manifest.json"), args.output / "manifest.json"))
+    elif args.command == "check":
+        problems = check(args.shared, sid=args.sid, cache=args.cache)
+        for problem in problems:
+            print(problem, file=sys.stderr)
+        if problems:
+            return 1
+        print("osteosarc makes Isovar's packaged bundle again from %s" % args.shared)
     elif args.name is None:
         parser.error("%s requires a member name" % args.command)
     elif args.command == "path":
@@ -312,4 +441,4 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

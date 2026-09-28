@@ -1,0 +1,370 @@
+{
+  "CO": [
+    "user command line: STAR --runThreadN 8 --genomeDir /reference/refs/STAR/STAR-txome --outFileNamePrefix /opt/tempus/transform/bin/data/star. --outSAMunmapped Within --outSAMtype BAM SortedByCoordinate --readFilesIn /opt/tempus/transform/bin/data/1860d214-2052-4a64-aafa-eab71a8cc3c5/1860d214-2052-4a64-aafa-eab71a8cc3c5-trimmed-pair1.fastq.gz /opt/tempus/transform/bin/data/1860d214-2052-4a64-aafa-eab71a8cc3c5/1860d214-2052-4a64-aafa-eab71a8cc3c5-trimmed-pair2.fastq.gz --outSAMattrRGline ID:tumor SM:tumor LB:1860d214-2052-4a64-aafa-eab71a8cc3c5 PU:1 --twopassMode Basic --readFilesCommand /usr/local/lib/python3.8/dist-packages/jane/scripts/add_barcode_readFilesCommand.sh --outSAMattributes All"
+  ],
+  "HD": {
+    "SO": "coordinate",
+    "VN": "1.4"
+  },
+  "PG": [
+    {
+      "CL": "STAR   --runThreadN 8   --genomeDir /reference/refs/STAR/STAR-txome   --readFilesIn /opt/tempus/transform/bin/data/1860d214-2052-4a64-aafa-eab71a8cc3c5/1860d214-2052-4a64-aafa-eab71a8cc3c5-trimmed-pair1.fastq.gz   /opt/tempus/transform/bin/data/1860d214-2052-4a64-aafa-eab71a8cc3c5/1860d214-2052-4a64-aafa-eab71a8cc3c5-trimmed-pair2.fastq.gz      --readFilesCommand /usr/local/lib/python3.8/dist-packages/jane/scripts/add_barcode_readFilesCommand.sh      --outFileNamePrefix /opt/tempus/transform/bin/data/star.   --outSAMtype BAM   SortedByCoordinate      --outSAMattributes All      --outSAMunmapped Within      --outSAMattrRGline ID:tumor   SM:tumor   LB:1860d214-2052-4a64-aafa-eab71a8cc3c5   PU:1      --twopassMode Basic",
+      "ID": "STAR",
+      "PN": "STAR",
+      "VN": "STAR_2.5.4a"
+    },
+    {
+      "CL": "samtools reheader -i /opt/tempus/transform/bin/data/1860d214-2052-4a64-aafa-eab71a8cc3c5/deid_header /opt/tempus/transform/bin/data/star.Aligned.sortedByCoord.out.bam",
+      "ID": "samtools",
+      "PN": "samtools",
+      "PP": "STAR",
+      "VN": "1.9"
+    }
+  ],
+  "RG": [
+    {
+      "ID": "tumor",
+      "LB": "1860d214-2052-4a64-aafa-eab71a8cc3c5",
+      "PU": "1",
+      "SM": "tumor"
+    }
+  ],
+  "SQ": [
+    {
+      "LN": 249250621,
+      "SN": "1"
+    },
+    {
+      "LN": 243199373,
+      "SN": "2"
+    },
+    {
+      "LN": 198022430,
+      "SN": "3"
+    },
+    {
+      "LN": 191154276,
+      "SN": "4"
+    },
+    {
+      "LN": 180915260,
+      "SN": "5"
+    },
+    {
+      "LN": 171115067,
+      "SN": "6"
+    },
+    {
+      "LN": 159138663,
+      "SN": "7"
+    },
+    {
+      "LN": 146364022,
+      "SN": "8"
+    },
+    {
+      "LN": 141213431,
+      "SN": "9"
+    },
+    {
+      "LN": 135534747,
+      "SN": "10"
+    },
+    {
+      "LN": 135006516,
+      "SN": "11"
+    },
+    {
+      "LN": 133851895,
+      "SN": "12"
+    },
+    {
+      "LN": 115169878,
+      "SN": "13"
+    },
+    {
+      "LN": 107349540,
+      "SN": "14"
+    },
+    {
+      "LN": 102531392,
+      "SN": "15"
+    },
+    {
+      "LN": 90354753,
+      "SN": "16"
+    },
+    {
+      "LN": 81195210,
+      "SN": "17"
+    },
+    {
+      "LN": 78077248,
+      "SN": "18"
+    },
+    {
+      "LN": 59128983,
+      "SN": "19"
+    },
+    {
+      "LN": 63025520,
+      "SN": "20"
+    },
+    {
+      "LN": 48129895,
+      "SN": "21"
+    },
+    {
+      "LN": 51304566,
+      "SN": "22"
+    },
+    {
+      "LN": 155270560,
+      "SN": "X"
+    },
+    {
+      "LN": 59373566,
+      "SN": "Y"
+    },
+    {
+      "LN": 16569,
+      "SN": "MT"
+    },
+    {
+      "LN": 4262,
+      "SN": "GL000207.1"
+    },
+    {
+      "LN": 15008,
+      "SN": "GL000226.1"
+    },
+    {
+      "LN": 19913,
+      "SN": "GL000229.1"
+    },
+    {
+      "LN": 27386,
+      "SN": "GL000231.1"
+    },
+    {
+      "LN": 27682,
+      "SN": "GL000210.1"
+    },
+    {
+      "LN": 33824,
+      "SN": "GL000239.1"
+    },
+    {
+      "LN": 34474,
+      "SN": "GL000235.1"
+    },
+    {
+      "LN": 36148,
+      "SN": "GL000201.1"
+    },
+    {
+      "LN": 36422,
+      "SN": "GL000247.1"
+    },
+    {
+      "LN": 36651,
+      "SN": "GL000245.1"
+    },
+    {
+      "LN": 37175,
+      "SN": "GL000197.1"
+    },
+    {
+      "LN": 37498,
+      "SN": "GL000203.1"
+    },
+    {
+      "LN": 38154,
+      "SN": "GL000246.1"
+    },
+    {
+      "LN": 38502,
+      "SN": "GL000249.1"
+    },
+    {
+      "LN": 38914,
+      "SN": "GL000196.1"
+    },
+    {
+      "LN": 39786,
+      "SN": "GL000248.1"
+    },
+    {
+      "LN": 39929,
+      "SN": "GL000244.1"
+    },
+    {
+      "LN": 39939,
+      "SN": "GL000238.1"
+    },
+    {
+      "LN": 40103,
+      "SN": "GL000202.1"
+    },
+    {
+      "LN": 40531,
+      "SN": "GL000234.1"
+    },
+    {
+      "LN": 40652,
+      "SN": "GL000232.1"
+    },
+    {
+      "LN": 41001,
+      "SN": "GL000206.1"
+    },
+    {
+      "LN": 41933,
+      "SN": "GL000240.1"
+    },
+    {
+      "LN": 41934,
+      "SN": "GL000236.1"
+    },
+    {
+      "LN": 42152,
+      "SN": "GL000241.1"
+    },
+    {
+      "LN": 43341,
+      "SN": "GL000243.1"
+    },
+    {
+      "LN": 43523,
+      "SN": "GL000242.1"
+    },
+    {
+      "LN": 43691,
+      "SN": "GL000230.1"
+    },
+    {
+      "LN": 45867,
+      "SN": "GL000237.1"
+    },
+    {
+      "LN": 45941,
+      "SN": "GL000233.1"
+    },
+    {
+      "LN": 81310,
+      "SN": "GL000204.1"
+    },
+    {
+      "LN": 90085,
+      "SN": "GL000198.1"
+    },
+    {
+      "LN": 92689,
+      "SN": "GL000208.1"
+    },
+    {
+      "LN": 106433,
+      "SN": "GL000191.1"
+    },
+    {
+      "LN": 128374,
+      "SN": "GL000227.1"
+    },
+    {
+      "LN": 129120,
+      "SN": "GL000228.1"
+    },
+    {
+      "LN": 137718,
+      "SN": "GL000214.1"
+    },
+    {
+      "LN": 155397,
+      "SN": "GL000221.1"
+    },
+    {
+      "LN": 159169,
+      "SN": "GL000209.1"
+    },
+    {
+      "LN": 161147,
+      "SN": "GL000218.1"
+    },
+    {
+      "LN": 161802,
+      "SN": "GL000220.1"
+    },
+    {
+      "LN": 164239,
+      "SN": "GL000213.1"
+    },
+    {
+      "LN": 166566,
+      "SN": "GL000211.1"
+    },
+    {
+      "LN": 169874,
+      "SN": "GL000199.1"
+    },
+    {
+      "LN": 172149,
+      "SN": "GL000217.1"
+    },
+    {
+      "LN": 172294,
+      "SN": "GL000216.1"
+    },
+    {
+      "LN": 172545,
+      "SN": "GL000215.1"
+    },
+    {
+      "LN": 174588,
+      "SN": "GL000205.1"
+    },
+    {
+      "LN": 179198,
+      "SN": "GL000219.1"
+    },
+    {
+      "LN": 179693,
+      "SN": "GL000224.1"
+    },
+    {
+      "LN": 180455,
+      "SN": "GL000223.1"
+    },
+    {
+      "LN": 182896,
+      "SN": "GL000195.1"
+    },
+    {
+      "LN": 186858,
+      "SN": "GL000212.1"
+    },
+    {
+      "LN": 186861,
+      "SN": "GL000222.1"
+    },
+    {
+      "LN": 187035,
+      "SN": "GL000200.1"
+    },
+    {
+      "LN": 189789,
+      "SN": "GL000193.1"
+    },
+    {
+      "LN": 191469,
+      "SN": "GL000194.1"
+    },
+    {
+      "LN": 211173,
+      "SN": "GL000225.1"
+    },
+    {
+      "LN": 547496,
+      "SN": "GL000192.1"
+    }
+  ]
+}

@@ -501,7 +501,7 @@ Multiple distinct variant sequences and reference contexts can generate the same
 | Guide | What it covers |
 |---|---|
 | [Library responsibilities](https://github.com/openvax/isovar/blob/master/docs/library-responsibilities.md) | How Varcode, Isovar and Vaxrank divide the work |
-| [Sid test reads](https://github.com/openvax/isovar/blob/master/docs/sid-test-reads.md) | The original Sid reads Isovar's tests use, from osteosarc's shared openvax-v1 bundle |
+| [Sid test reads](https://github.com/openvax/isovar/blob/master/docs/sid-test-reads.md) | The original Sid reads Isovar's tests use, packaged with Isovar: its members of osteosarc's shared openvax-v1 bundle, and how to make them again |
 | [Changelog](https://github.com/openvax/isovar/blob/master/CHANGELOG.md) | Behavior changes by release |
 
 ## Sequencing recommendations

@@ -1,8 +1,8 @@
 """Original CC0 tumor RNA reads at osteosarc.com somatic mutation loci.
 
 The independent ledger describes CIGAR evidence, not somatic truth or
-immunogenicity. The reads come from osteosarc's openvax-v1 bundle (downloaded
-once); no transcript annotation or reference downloads.
+immunogenicity. The reads are openvax-v1 members packaged with Isovar
+(isovar.sid_data); no transcript annotation or reference downloads.
 """
 
 from collections import Counter
