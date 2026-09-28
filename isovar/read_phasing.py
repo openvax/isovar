@@ -244,7 +244,7 @@ class IsovarReadPhasing(IsovarResultProvider):
             return None
         if r1 is not None and r2 is not None:
             return _four_gamete(
-                *_allele_table(v1, r1, v2, r2, alleles1=("alt", "ref")),
+                *_allele_table(v1, r1, v2, r2),
                 min_shared_fragments_for_phasing=self.min_shared_fragments_for_phasing,
                 phasing_error_rate=self.phasing_error_rate,
                 max_p_value_for_phasing=self.max_p_value_for_phasing)
@@ -253,7 +253,7 @@ class IsovarReadPhasing(IsovarResultProvider):
         call = None
         if evidence is not None:
             # Only the somatic alt allele's fragments: with the germline alt allele, or its reference.
-            cis, trans = _allele_table(result.variant, result, germline, evidence, alleles1=("alt",))[:2]
+            cis, trans = _allele_table(result.variant, result, germline, evidence)[:2]
             call = self._decide(cis, trans)
         in_protein = germline in getattr(result, "germline_variants_in_top_protein_sequence", ())
         if in_protein:

@@ -6,6 +6,11 @@ releases that only fix bugs or add fixtures are omitted; see the
 
 ## 1.39.8
 
+- Fragments whose unmerged mates support conflicting allele combinations
+  no longer count in cis/trans decisions (#414). Previously the same
+  fragment could occupy multiple table cells and yield a false cis call.
+  This also applies to matched-germline phasing; the underlying reads and
+  allele counts remain available for auditing.
 - Partner lists and phase groups now require the same error-aware cis call
   as `IsovarReadPhasing.in_cis` (#412). Two shared alternate fragments alone
   no longer create a link when the full allele table is consistent with
@@ -14,7 +19,7 @@ releases that only fix bugs or add fixtures are omitted; see the
 - `run_isovar` and `annotate_phased_variants` accept `phasing_error_rate` and
   `max_p_value_for_phasing`, with the adapter's defaults. Pass matching
   thresholds to `IsovarReadPhasing` when overriding them. Protein sequences
-  and matched-germline phasing are unchanged.
+  are unchanged.
 
 ## 1.39.7
 

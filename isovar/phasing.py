@@ -136,13 +136,23 @@ def _phasing_support(variant_to_reads):
     return support, names_by_id
 
 
-def _allele_table(v1, reads1, v2, reads2, alleles1=("alt", "ref")):
-    """Compatible fragment counts: both alt, first only, second only, neither."""
-    support, _ = _phasing_support(dict(
-        [(("alt", v2), _allele_reads(reads2, "alt")), (("ref", v2), _allele_reads(reads2, "ref"))]
-        + [((allele, v1), _allele_reads(reads1, allele)) for allele in alleles1]))
-    return tuple(len(support[(a, v1)].get((b, v2), ()))
-                 for a, b in (("alt", "alt"), ("alt", "ref"), ("ref", "alt"), ("ref", "ref")))
+def _allele_table(v1, reads1, v2, reads2):
+    """Unambiguous fragment counts: both alt, first only, second only, neither."""
+    support, _ = _phasing_support({
+        (allele, variant): _allele_reads(reads, allele)
+        for variant, reads in ((v1, reads1), (v2, reads2)) for allele in ("alt", "ref")
+    })
+    cells = [support[(a, v1)].get((b, v2), set())
+             for a, b in (("alt", "alt"), ("alt", "ref"), ("ref", "alt"), ("ref", "ref"))]
+    # Unmerged, disagreeing mates can support multiple combinations. A
+    # physical fragment has only one combination; keep these observations
+    # in the results but exclude them from phase counts. Consider all four
+    # cells even when the caller only uses the somatic-alt row.
+    seen, ambiguous = set(), set()
+    for cell in cells:
+        ambiguous.update(seen & cell)
+        seen.update(cell)
+    return tuple(len(cell - ambiguous) for cell in cells)
 
 
 def _phase_annotations(

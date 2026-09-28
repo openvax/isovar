@@ -313,7 +313,9 @@ mutant-transcript interfaces.
 Not being phased is not evidence of trans: Isovar only compares the variants in
 its run. `IsovarReadPhasing.in_cis(v1, v2)` answers from fragments that cover
 both loci. Each carries one of four combinations: both alt alleles, either alt
-allele alone, or neither. A combination counts when it's on at least
+allele alone, or neither. A fragment whose unmerged mates support conflicting
+combinations is excluded from the phase counts, while its reads remain in
+the result for inspection. A combination counts when it's on at least
 `min_shared_fragments_for_phasing` fragments. It must also be on more than
 reads showing the wrong allele leak into it from its two neighbouring
 combinations (`phasing_error_rate`, 1% by default; raise it for ONT).

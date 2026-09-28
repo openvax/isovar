@@ -553,6 +553,41 @@ def test_run_isovar_uses_phasing_thresholds_on_collected_reads(monkeypatch, rate
     assert (results[0].phase_group_from_supporting_reads is not None) == (expected is True)
 
 
+@pytest.mark.parametrize("disputed_locus", [0, 1])
+@pytest.mark.parametrize("clean_fragments, expected", [(0, None), (1, None), (2, True)])
+def test_conflicting_mates_do_not_supply_phase_evidence(disputed_locus, clean_fragments, expected):
+    v1 = Variant("1", 4, "T", "G", grcm38, normalize_contig_names=False)
+    v2 = Variant("1", 8, "T", "A", grcm38, normalize_contig_names=False)
+    disagreement = ("ACCTTGAACG", "7T2") if disputed_locus == 0 else ("ACCGTGATCG", "3T6")
+    reads = []
+    for name in ("conflict1", "conflict2"):
+        for flag, (sequence, md) in ((65, ("ACCGTGAACG", "3T3T2")), (129, disagreement)):
+            read = make_pysam_read(seq=sequence, cigar="10M", mdtag=md, name=name, reference_start=0)
+            read.flag = flag
+            reads.append(read)
+    reads.extend(make_pysam_read(seq="ACCGTGAACG", cigar="10M", mdtag="3T3T2",
+                                 name="clean%d" % i, reference_start=0)
+                 for i in range(clean_fragments))
+    for ordered_reads in (reads, list(reversed(reads))):
+        bam = MockAlignmentFile(references=("1",), reads=ordered_reads)
+        results = [IsovarResult(
+            variant=v, predicted_effect=None,
+            read_evidence=ReadCollector().read_evidence_for_variant(v, bam)) for v in (v1, v2)]
+        # Preserve the contradictory observations for auditing; they just
+        # cannot be counted as two independent allele combinations.
+        assert results[disputed_locus].num_ref_fragments == 2
+        assert all(result.num_alt_fragments == 2 + clean_fragments for result in results)
+        for ordered_results in (results, list(reversed(results))):
+            phasing = IsovarReadPhasing(annotate_phased_variants(ordered_results))
+            assert phasing.in_cis(v1, v2) is expected
+            assert phasing.in_cis(v2, v1) is expected
+            assert phasing.partners_in_cis(v1) == ((v2,) if expected else ())
+        # A somatic ref/alt conflict must not count toward germline phasing,
+        # even though only somatic-alt fragments decide that call.
+        somatic = results[0].clone_with_updates(germline_read_evidence={v2: results[1].read_evidence})
+        assert IsovarReadPhasing([somatic]).in_cis(v1, v2) is expected
+
+
 def test_in_cis_none_without_fragments_covering_both_loci():
     phasing = IsovarReadPhasing([
         _make_result(V1, alt_read_names={"f1", "f2"}),
