@@ -4,6 +4,40 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.7
+
+- `IsovarReadPhasing.in_cis` decides two variants in the run with a
+  four-gamete test that allows for read errors (#393, #410).
+  - Fragments covering both loci carry both alt alleles, either alt allele
+    alone, or neither.
+  - A combination counts when it's on at least
+    `min_shared_fragments_for_phasing` fragments. It must also be on more than
+    errors at either locus leak into it from its two neighbouring combinations
+    together.
+  - That is a one-sided binomial test at `phasing_error_rate` (default 1%) and
+    `max_p_value_for_phasing` (default 0.05), both new `IsovarReadPhasing`
+    parameters. Raise the error rate for error-prone reads such as ONT's.
+  - Cis: both alt alleles count together and not each alone. Trans: each
+    counts alone and not together. Otherwise `None`, including when all three
+    count.
+  - Previously, trans counted fragments with one alt allele and the other's
+    reference allele in both directions. When one variant arose in a
+    subclone of the other's cells, on the other's copy, the earlier clone's
+    other cells gave such fragments in one direction. They could outnumber
+    the both-alt fragments and flip a cis pair to `False` (#393).
+  - A variant's alt allele on a small fraction of the other's alt fragments,
+    as read errors put it there, is no longer cis (#410).
+  - Answers that change:
+    - `False` becomes `None` when only one alt allele is seen alone, or when
+      one direction has fewer than `min_shared_fragments_for_phasing`
+      fragments.
+    - Nested cis pairs, such as (both alt, first alone, second alone,
+      neither) = (2, 0, 3, 0), become `True` instead of `False`.
+    - Ties such as (2, 0, 2, 0) become `True` instead of `None`.
+    - Tables where all three alt combinations count, such as (5, 2, 2, 0),
+      become `None` instead of `True`.
+  - The matched-germline rule is unchanged.
+
 ## 1.39.6
 
 - Isovar's Sid test reads ship with Isovar again, in `isovar/data/sid-reads`,

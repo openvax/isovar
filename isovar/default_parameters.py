@@ -178,6 +178,16 @@ MIN_RATIO_RNA_ALT_TO_OTHER_FRAGMENTS = 3.0
 # before we say that they are phased
 MIN_SHARED_FRAGMENTS_FOR_PHASING = 2
 
+# chance that an RNA read shows the wrong allele (ref or alt) at a variant's
+# locus, from sequencing error, RNA editing or mismapping; IsovarReadPhasing.in_cis
+# counts a combination of two variants' alleles as present only when it's on
+# more fragments than such errors explain
+PHASING_ERROR_RATE = 0.01
+
+# one-sided binomial p-value at or below which those fragments aren't errors:
+# about the chance of a false cis or trans per pair when the error rate is right
+MAX_P_VALUE_FOR_PHASING = 0.05
+
 
 DEFAULT_FILTER_THRESHOLDS = OrderedDict([
     ("min_num_alt_reads", MIN_NUM_RNA_ALT_READS),

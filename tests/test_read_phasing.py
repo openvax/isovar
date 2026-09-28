@@ -387,13 +387,132 @@ def test_in_cis_true_when_fragments_carry_both_alts():
     assert phasing.in_cis(V2, V1) is True
 
 
-def test_in_cis_false_when_fragments_carry_one_alt_and_other_reference():
+def test_in_cis_false_when_each_alt_comes_with_the_other_reference():
+    phasing = IsovarReadPhasing([
+        _make_result(V1, alt_read_names={"f1", "f2"}, ref_read_names={"f3", "f4"}),
+        _make_result(V2, alt_read_names={"f3", "f4"}, ref_read_names={"f1", "f2"}),
+    ])
+    assert phasing.in_cis(V1, V2) is False
+    assert phasing.in_cis(V2, V1) is False
+
+
+def test_a_subclone_nested_in_the_others_clone_is_cis():
+    # #393: V1 arose on V2's copy in a subclone of V2's cells. Every V1
+    # molecule carries V2; V2's other cells give (V1 ref, V2 alt) fragments,
+    # which outnumber the both-alt ones but aren't trans evidence.
+    nested = ["n%d" % i for i in range(5)]
+    subclone = IsovarReadPhasing([
+        _make_result(V1, alt_read_names={"b1", "b2"}, ref_read_names=set(nested)),
+        _make_result(V2, alt_read_names={"b1", "b2", *nested}),
+    ])
+    assert subclone.in_cis(V1, V2) is True
+    assert subclone.in_cis(V2, V1) is True
+    # Nested the other way round.
+    ancestor = IsovarReadPhasing([
+        _make_result(V1, alt_read_names={"b1", "b2", *nested}),
+        _make_result(V2, alt_read_names={"b1", "b2"}, ref_read_names=set(nested)),
+    ])
+    assert ancestor.in_cis(V1, V2) is True
+
+
+def test_in_cis_none_when_only_one_alt_is_seen_without_the_other():
+    # V2 in trans, or on V1's copy in a subclone these fragments missed.
     phasing = IsovarReadPhasing([
         _make_result(V1, alt_read_names={"f1", "f2"}),
         _make_result(V2, alt_read_names={"f3"}, ref_read_names={"f1", "f2"}),
     ])
-    assert phasing.in_cis(V1, V2) is False
-    assert phasing.in_cis(V2, V1) is False
+    assert phasing.in_cis(V1, V2) is None
+
+
+def test_in_cis_none_when_the_smaller_direction_is_below_the_minimum():
+    # Ten fragments with V1's alt allele alone, one with V2's: the old summed
+    # rule said trans, but one fragment doesn't separate the pair.
+    alone = ["a%d" % i for i in range(10)]
+    phasing = IsovarReadPhasing([
+        _make_result(V1, alt_read_names=set(alone), ref_read_names={"b1"}),
+        _make_result(V2, alt_read_names={"b1"}, ref_read_names=set(alone)),
+    ])
+    assert phasing.in_cis(V1, V2) is None
+
+
+def _phasing_of_table(both, first, second, neither, **kwargs):
+    """Phasing of V1 and V2 over fragments with (alt, alt), (alt, ref), (ref, alt) and (ref, ref)."""
+    def names(prefix, count):
+        return {"%s%d" % (prefix, i) for i in range(count)}
+    together, alone1, alone2, reference = (
+        names("c", both), names("a", first), names("b", second), names("z", neither))
+    return IsovarReadPhasing([
+        _make_result(V1, alt_read_names=together | alone1, ref_read_names=alone2 | reference),
+        _make_result(V2, alt_read_names=together | alone2, ref_read_names=alone1 | reference),
+    ], **kwargs)
+
+
+def test_errors_on_the_others_alt_fragments_are_not_cis():
+    # #410: V2 unexpressed, or a subclone on the other copy; 1% errors put its
+    # alt allele on two of V1's 200 alt fragments.
+    assert _phasing_of_table(2, 198, 0, 20).in_cis(V1, V2) is None
+    assert _phasing_of_table(2, 200, 1, 100).in_cis(V1, V2) is None
+    # Two in 200 is more than errors at a rate of 0.1%.
+    assert _phasing_of_table(2, 198, 0, 20, phasing_error_rate=0.001).in_cis(V1, V2) is True
+
+
+def test_trans_despite_errors_on_the_dominant_copy():
+    # V1's copy amplified: its errors give 10 both-alt fragments in 1000.
+    assert _phasing_of_table(10, 990, 6, 94).in_cis(V1, V2) is False
+
+
+def test_a_small_subclone_on_the_other_copy_is_trans():
+    assert _phasing_of_table(0, 50, 3, 40).in_cis(V1, V2) is False
+
+
+def test_all_four_combinations_have_no_single_lineage():
+    assert _phasing_of_table(3, 10, 2, 5).in_cis(V1, V2) is None
+
+
+def test_nested_cis_with_few_reference_fragments():
+    # A subclone in a quarter of V1's alt fragments, few (ref, ref) fragments.
+    assert _phasing_of_table(3, 10, 0, 5).in_cis(V1, V2) is True
+    assert _phasing_of_table(2, 5, 0, 50).in_cis(V1, V2) is True
+
+
+def test_nested_cis_either_way_round():
+    assert _phasing_of_table(3, 0, 10, 8).in_cis(V1, V2) is True
+    assert _phasing_of_table(3, 10, 0, 8).in_cis(V1, V2) is True
+
+
+def test_errors_leak_into_a_combination_from_both_neighbours():
+    # Clonal pairs at depth with 1% errors: 100 fragments of each alt allele
+    # alone are errors from the both-alt and neither fragments together.
+    assert _phasing_of_table(3500, 100, 100, 6300).in_cis(V1, V2) is True
+    assert _phasing_of_table(70, 3500, 3500, 3000).in_cis(V1, V2) is False
+
+
+def test_one_stray_fragment_does_not_veto():
+    assert _phasing_of_table(3, 1, 1, 0).in_cis(V1, V2) is True
+
+
+def test_error_prone_reads_need_their_error_rate():
+    # Trans with B's copy barely expressed, from reads with 5% errors: at the
+    # default 1% those errors look like cis.
+    assert _phasing_of_table(3, 47, 2, 48).in_cis(V1, V2) is True
+    assert _phasing_of_table(3, 47, 2, 48, phasing_error_rate=0.05).in_cis(V1, V2) is None
+
+
+def test_binomial_tail():
+    from isovar.read_phasing import _binomial_tail
+    assert _binomial_tail(0, 5, 0.01) == 1.0
+    assert _binomial_tail(6, 5, 0.01) == 0.0
+    assert abs(_binomial_tail(1, 1, 0.01) - 0.01) < 1e-15
+    # 1 - P(0) - P(1) for Binomial(200, 0.01)
+    assert abs(_binomial_tail(2, 200, 0.01) - (1 - 0.99 ** 200 - 200 * 0.01 * 0.99 ** 199)) < 1e-12
+    assert _binomial_tail(3000, 200000, 0.01) < 1e-90
+
+
+def test_phasing_rates_are_probabilities():
+    for name in ("phasing_error_rate", "max_p_value_for_phasing"):
+        for rate in (0, 1, -0.1):
+            with pytest.raises(ValueError, match=name):
+                IsovarReadPhasing([], **{name: rate})
 
 
 def test_in_cis_none_without_fragments_covering_both_loci():
@@ -405,7 +524,7 @@ def test_in_cis_none_without_fragments_covering_both_loci():
     assert phasing.in_cis(V1, V2) is None
 
 
-def test_in_cis_needs_min_shared_fragments_and_a_majority():
+def test_in_cis_needs_min_shared_fragments():
     results = [
         _make_result(V1, alt_read_names={"f1", "f2", "f3"}),
         _make_result(V2, alt_read_names={"f1"}, ref_read_names={"f2"}),
@@ -433,8 +552,8 @@ def test_matched_germline_edit_in_assembly_is_cis():
 
 def test_varcode_resolver_uses_in_cis_for_trans():
     phasing = IsovarReadPhasing([
-        _make_result(V1, alt_read_names={"f1", "f2"}),
-        _make_result(V2, alt_read_names={"f3"}, ref_read_names={"f1", "f2"}),
+        _make_result(V1, alt_read_names={"f1", "f2"}, ref_read_names={"f3", "f4"}),
+        _make_result(V2, alt_read_names={"f3", "f4"}, ref_read_names={"f1", "f2"}),
     ])
     assert MolecularPhaseResolver(phasing).in_cis(V1, V2) is False
 
