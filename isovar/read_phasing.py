@@ -171,9 +171,14 @@ class IsovarReadPhasing(IsovarResultProvider):
         Whether ``v1`` and ``v2`` are on the same RNA molecules.
 
         For two variants in the run, counts fragments with compatible
-        placements that carry both alt alleles (cis) and fragments that
-        carry one alt allele with the other variant's reference allele
-        (trans).
+        placements that carry both alt alleles (cis). Trans needs each
+        variant's alt allele without the other's: it counts the fragments
+        with one variant's alt allele and the other's reference allele, in
+        the direction with fewer. A variant that arose in a subclone of the
+        other's cells has all its alt molecules cis with the other's alt
+        allele. Cells without it still give the earlier variant's alt allele
+        with its reference allele, so fragments in one direction alone don't
+        separate the two (Nik-Zainal et al. 2012, Cell 149:994).
 
         For a variant in the run and a matched germline variant
         (``run_isovar(germline_variants=...)``) that its alt reads cover,
@@ -230,7 +235,9 @@ class IsovarReadPhasing(IsovarResultProvider):
         cis = shared(("alt", v1), ("alt", v2))
         trans = shared(("alt", v1), ("ref", v2))
         if "ref" in alleles1:
-            trans += shared(("ref", v1), ("alt", v2))
+            # Either variant may be nested in the other's clone, so trans
+            # needs each alt allele seen without the other.
+            trans = min(trans, shared(("ref", v1), ("alt", v2)))
         return cis, trans
 
     def _decide(self, cis, trans):

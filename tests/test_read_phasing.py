@@ -387,13 +387,41 @@ def test_in_cis_true_when_fragments_carry_both_alts():
     assert phasing.in_cis(V2, V1) is True
 
 
-def test_in_cis_false_when_fragments_carry_one_alt_and_other_reference():
+def test_in_cis_false_when_each_alt_comes_with_the_other_reference():
+    phasing = IsovarReadPhasing([
+        _make_result(V1, alt_read_names={"f1", "f2"}, ref_read_names={"f3", "f4"}),
+        _make_result(V2, alt_read_names={"f3", "f4"}, ref_read_names={"f1", "f2"}),
+    ])
+    assert phasing.in_cis(V1, V2) is False
+    assert phasing.in_cis(V2, V1) is False
+
+
+def test_a_subclone_nested_in_the_others_clone_is_cis():
+    # #393: V1 arose in a subclone of V2's cells. Every V1 molecule carries V2;
+    # V2's other cells give (V1 ref, V2 alt) fragments, which outnumber the
+    # both-alt ones but aren't trans evidence.
+    nested = ["n%d" % i for i in range(5)]
+    subclone = IsovarReadPhasing([
+        _make_result(V1, alt_read_names={"b1", "b2"}, ref_read_names=set(nested)),
+        _make_result(V2, alt_read_names={"b1", "b2", *nested}),
+    ])
+    assert subclone.in_cis(V1, V2) is True
+    assert subclone.in_cis(V2, V1) is True
+    # Nested the other way round.
+    ancestor = IsovarReadPhasing([
+        _make_result(V1, alt_read_names={"b1", "b2", *nested}),
+        _make_result(V2, alt_read_names={"b1", "b2"}, ref_read_names=set(nested)),
+    ])
+    assert ancestor.in_cis(V1, V2) is True
+
+
+def test_in_cis_none_when_only_one_alt_is_seen_without_the_other():
+    # V2 in trans, or in a subclone of V1's cells that these fragments missed.
     phasing = IsovarReadPhasing([
         _make_result(V1, alt_read_names={"f1", "f2"}),
         _make_result(V2, alt_read_names={"f3"}, ref_read_names={"f1", "f2"}),
     ])
-    assert phasing.in_cis(V1, V2) is False
-    assert phasing.in_cis(V2, V1) is False
+    assert phasing.in_cis(V1, V2) is None
 
 
 def test_in_cis_none_without_fragments_covering_both_loci():
@@ -433,8 +461,8 @@ def test_matched_germline_edit_in_assembly_is_cis():
 
 def test_varcode_resolver_uses_in_cis_for_trans():
     phasing = IsovarReadPhasing([
-        _make_result(V1, alt_read_names={"f1", "f2"}),
-        _make_result(V2, alt_read_names={"f3"}, ref_read_names={"f1", "f2"}),
+        _make_result(V1, alt_read_names={"f1", "f2"}, ref_read_names={"f3", "f4"}),
+        _make_result(V2, alt_read_names={"f3", "f4"}, ref_read_names={"f1", "f2"}),
     ])
     assert MolecularPhaseResolver(phasing).in_cis(V1, V2) is False
 

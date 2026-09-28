@@ -4,6 +4,20 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.7
+
+- `IsovarReadPhasing.in_cis` no longer calls trans for two variants when one
+  arose in a subclone of the other's cells (#393).
+  - Trans now needs each alt allele seen without the other. It counts the
+    fragments with one variant's alt allele and the other's reference
+    allele, in the direction with fewer; cis is still the both-alt count.
+  - The rule is the read-phasing logic of Nik-Zainal et al. 2012.
+  - Previously, the earlier clone's cells without the later variant gave
+    (earlier alt, later ref) fragments that could outnumber the both-alt ones
+    and flip a cis pair to `False`.
+  - Pairs where only one alt allele is ever seen without the other are now
+    `None` rather than `False`.
+  - The matched-germline rule is unchanged.
 ## 1.39.6
 
 - Isovar's Sid test reads ship with Isovar again, in `isovar/data/sid-reads`,
