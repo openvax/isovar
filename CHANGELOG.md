@@ -9,7 +9,8 @@ releases that only fix bugs or add fixtures are omitted; see the
 - Isovar's Sid test reads ship with Isovar again, in `isovar/data/sid-reads`,
   so its tests never need network access.
   - The folder is an osteosarc fixture bundle of Isovar's 345 openvax-v1
-    members. Its records and headers are the same as openvax-v1's.
+    members. Its members, records and exported headers are the same as
+    openvax-v1's.
   - It adds about 10 MB to the wheel.
   - `sid_data.bundle()` returns the folder, pinned by
     `PACKAGED_MANIFEST_SHA256`, and no longer takes a cache. `members()` takes

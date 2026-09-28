@@ -55,19 +55,20 @@ def _digest(path):
 
 
 def bundle():
-    """The packaged bundle's folder, checked against its pinned manifest hash."""
-    manifest = PACKAGED / "manifest.json"
-    if not manifest.is_file() or _digest(manifest) != PACKAGED_MANIFEST_SHA256:
-        raise SidDataUnavailable(
-            "Isovar's packaged Sid test reads (%s) are missing or have changed: reinstall Isovar, "
-            "or make them again with `python -m isovar.sid_data build`" % PACKAGED)
+    """The packaged bundle's folder, verified once against its pinned manifest hash."""
+    _verified(PACKAGED)
     return PACKAGED
 
 
-@lru_cache(maxsize=1)
-def _members():
-    from osteosarc import list_bundle
-    return tuple(sorted(name[len(PREFIX):] for name in list_bundle(bundle()) if name.startswith(PREFIX)))
+@lru_cache(maxsize=2)
+def _verified(folder):
+    from osteosarc import verify_bundle
+    try:
+        return verify_bundle(folder, sha256=PACKAGED_MANIFEST_SHA256)
+    except (OSError, ValueError) as error:  # osteosarc's IntegrityError is a ValueError.
+        raise SidDataUnavailable(
+            "Isovar's packaged Sid test reads (%s) are missing or damaged (%s): reinstall Isovar, "
+            "or make them again with `python -m isovar.sid_data build`" % (folder, error)) from error
 
 
 def members():
@@ -76,7 +77,7 @@ def members():
     A name with ``#`` selects records inside a file that stays in the
     repository: a JSON pointer, or one read.
     """
-    return list(_members())
+    return sorted(name[len(PREFIX):] for name in _verified(bundle())["members"] if name.startswith(PREFIX))
 
 
 def _format(name):
@@ -195,8 +196,8 @@ def build(destination, shared=BUNDLE, *, sid=False, cache=None):
         A new folder.
     shared : str or Path
         The bundle to take Isovar's members and their recipe from: a published
-        bundle's name, or a bundle folder, given as a Path or a path with a
-        slash (such as `PACKAGED`). openvax-v1 must be the one Isovar pins,
+        bundle's name or a bundle folder (such as `PACKAGED`), as osteosarc
+        reads them. openvax-v1 must be the one Isovar pins,
         `BUNDLE_MANIFEST_SHA256`.
     sid : bool
         Acquire every record again from Sid's original BAMs, reading their
@@ -213,11 +214,12 @@ def build(destination, shared=BUNDLE, *, sid=False, cache=None):
         `PACKAGED` and pin its ``manifest.json``'s SHA-256 as
         `PACKAGED_MANIFEST_SHA256`.
     """
-    from osteosarc import fetch_bundle, generate_bundle, verify_bundle
-    local = isinstance(shared, Path) or "/" in str(shared)
-    folder = Path(shared) if local else Path(fetch_bundle(shared, cache=cache))
-    manifest = verify_bundle(folder, sha256=BUNDLE_MANIFEST_SHA256 if shared == BUNDLE else None)
+    from osteosarc import generate_bundle, verify_bundle
+    from osteosarc.shared import bundle_folder
+    folder = Path(bundle_folder(shared, cache=cache))
     whole = read_json(folder / "recipe.json")
+    # openvax-v1 must be the one Isovar pins, whatever folder it's in.
+    manifest = verify_bundle(folder, sha256=BUNDLE_MANIFEST_SHA256 if whole["id"] == BUNDLE else None)
     mine = recipe(whole)
     if sid:
         from osteosarc import Dataset
@@ -231,7 +233,9 @@ def build(destination, shared=BUNDLE, *, sid=False, cache=None):
                 "from (%s). A new snapshot won't do: the recipe pins each BAM to that one."
                 % (snapshot["name"], snapshot["id"], whole["id"], error)) from error
     else:
-        dataset, sources = None, {name: folder / manifest["sources"][name]["bam"] for name in mine["sources"]}
+        # Sources whose members are all omitted or unresolved hold no records, and aren't read.
+        dataset, sources = None, {name: folder / manifest["sources"][name]["bam"]
+                                  for name in mine["sources"] if name in manifest["sources"]}
     return generate_bundle(mine, destination, sources=sources, cache=cache, dataset=dataset,
                            parent=dict(bundle=whole["id"], manifest_sha256=_digest(folder / "manifest.json")))
 
@@ -250,11 +254,12 @@ def check(shared=BUNDLE, *, sid=False, cache=None):
     list of str
         How the new bundle's recipe, members or sources differ from the
         packaged bundle's: empty when osteosarc makes the same records, under
-        the same headers, for the same members. How records were acquired
-        (the members' ``acquisition_status``) may differ.
+        the same exported headers, for the same members. How records were
+        acquired may differ: the members' ``acquisition_status``, the
+        acquisition receipts, and the archived original headers (a bundle
+        carved from another keeps its exported headers as the originals).
     """
-    from osteosarc import verify_bundle
-    packaged = verify_bundle(bundle())
+    packaged = _verified(bundle())
     with tempfile.TemporaryDirectory(prefix="isovar-sid-reads-") as work:
         built = build(Path(work) / "bundle", shared, sid=sid, cache=cache)
 

@@ -81,7 +81,7 @@ def main():
                for c in cases if c["variant"]["pos"] in (3856149, 55627965, 80327830)]
     groups = defaultdict(list)
     for fixture, variant, url in inputs:
-        # Exported from openvax-v1: exactly the fixture's original records.
+        # Exported from Isovar's packaged Sid reads: exactly the fixture's original records.
         with pysam.AlignmentFile(str(sid_data.path(fixture))) as handle:
             reads = list(handle)
         # Platform is a benchmark grouping only, never a collection policy.

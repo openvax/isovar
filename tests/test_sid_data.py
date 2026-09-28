@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import shutil
 from types import SimpleNamespace
 
 import pysam
@@ -82,7 +83,8 @@ def test_export_never_overwrites_and_needs_a_known_format(tmp_path):
         sid_data.export("chimeric/osteosarc-ont.sam", tmp_path / "missing" / "reads.sam")
 
 
-def test_a_missing_or_changed_packaged_bundle_fails_with_a_hint(tmp_path, monkeypatch):
+def test_a_missing_or_damaged_packaged_bundle_fails_with_a_hint(tmp_path, monkeypatch):
+    packaged = sid_data.PACKAGED
     monkeypatch.setattr(sid_data, "PACKAGED", tmp_path / "missing")
     with pytest.raises(sid_data.SidDataUnavailable, match="python -m isovar.sid_data build"):
         sid_data.bundle()
@@ -92,6 +94,13 @@ def test_a_missing_or_changed_packaged_bundle_fails_with_a_hint(tmp_path, monkey
     monkeypatch.setattr(sid_data, "PACKAGED", changed)
     with pytest.raises(sid_data.SidDataUnavailable, match="reinstall Isovar"):
         sid_data.bundle()
+    # A file the manifest doesn't list, as macOS Finder leaves in a checkout.
+    damaged = tmp_path / "damaged"
+    shutil.copytree(packaged, damaged)
+    (damaged / ".DS_Store").write_bytes(b"")
+    monkeypatch.setattr(sid_data, "PACKAGED", damaged)
+    with pytest.raises(sid_data.SidDataUnavailable, match="unlisted"):
+        sid_data.members()
 
 
 def test_osteosarc_makes_the_packaged_bundle_again(capsys):

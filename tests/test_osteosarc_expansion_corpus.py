@@ -21,7 +21,7 @@ CORPUS = Path(__file__).parent / "data/osteosarc/expansion/corpus"
 
 
 def corpus_bam(name):
-    """A corpus BAM, exported from openvax-v1."""
+    """A corpus BAM, exported from Isovar's packaged Sid reads."""
     return sid_data.path("osteosarc/expansion/corpus/" + name)
 MANIFEST = json.loads((CORPUS / "manifest.json").read_text())
 CASES = MANIFEST["cases"]

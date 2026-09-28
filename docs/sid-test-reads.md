@@ -59,8 +59,9 @@ python -m isovar.sid_data export chimeric/osteosarc-ont.sam --output /tmp/chimer
   reads, so the exports take about 35 MB.
 - **Names.** Exported files are read-only and named `<member>.<format>`, such
   as `bulk_star_t0.sam.gz.sam.gz`; `path` returns them.
-- **A missing or changed bundle** raises `SidDataUnavailable`, which says to
-  reinstall Isovar or build the bundle again.
+- **A missing, changed or damaged bundle** (even one with an extra file, such
+  as a `.DS_Store`) raises `SidDataUnavailable`, which says to reinstall Isovar
+  or build the bundle again.
 
 An exported file holds exactly the member's original records, but it is
 coordinate-sorted and carries the source's full header. So its bytes, and the
@@ -91,8 +92,12 @@ ID, and the recipe pins each BAM to the old one
 
 `--from` takes Isovar's members from another bundle: a newer published one, or
 a folder such as `isovar/data/sid-reads` itself. `check` compares the members,
-their records and the sources' headers, not file bytes (the toolchain versions
-in a manifest can differ). `build` prints the new manifest's SHA-256. To package a new
+their records and the sources' exported headers, not file bytes (the toolchain
+versions in a manifest can differ). A bundle carved from another archives its
+sources' exported headers as their originals, and records the shared bundle's
+source BAMs rather than the original acquisitions; two of openvax-v1's 39
+sources thus lose `GO:none` from their archived header
+([iskandr/osteosarc#90](https://github.com/iskandr/osteosarc/issues/90)). `build` prints the new manifest's SHA-256. To package a new
 bundle, put the folder in place of `isovar/data/sid-reads` and pin that hash as
 `PACKAGED_MANIFEST_SHA256`.
 
