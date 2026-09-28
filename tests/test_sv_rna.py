@@ -167,6 +167,24 @@ def spanning(result, relation=None):
 
 
 @pytest.mark.parametrize("acceptor_strand", ["+", "-"])
+def test_reordered_contigs_preserve_reconstruction_and_witnesses(tmp_path, acceptor_strand):
+    scenario = Scenario(acceptor_strand)
+    reads = scenario.reads()
+    path = tmp_path / "rna.bam"
+    original = scenario.run(write_bam(path, reads))
+    assert original["paths"] and original["status"] == "event_linked_candidates"
+    header = HEADER.to_dict()
+    header["SQ"].reverse()
+    reordered = pysam.AlignmentHeader.from_dict(header)
+    remapped = [pysam.AlignedSegment.fromstring(read.to_string(), reordered) for read in reads]
+    # Re-encode the records by contig name: changing SQ order without
+    # remapping BAM reference IDs would change the alignments themselves.
+    assert reads[0].reference_id != remapped[0].reference_id
+    result = scenario.run(write_bam(path, remapped, header=reordered))
+    assert result == original
+
+
+@pytest.mark.parametrize("acceptor_strand", ["+", "-"])
 def test_spliced_fusion_is_reconstructed_and_translated_in_the_donor_frame(tmp_path, acceptor_strand):
     s = Scenario(acceptor_strand)
     result = s.run(write_bam(tmp_path / "rna.bam", s.reads()))

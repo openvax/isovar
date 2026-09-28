@@ -61,7 +61,7 @@ def _record_id(read):
 
 def _record_key(read):
     """Cheap identity of one SAM record, for deduplicating repeated fetches."""
-    return (read.query_name, read.flag, read.reference_id, read.reference_start, read.cigarstring or "",
+    return (read.query_name, read.flag, read.reference_name, read.reference_start, read.cigarstring or "",
             read_group(read))
 
 
