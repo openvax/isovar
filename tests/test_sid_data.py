@@ -175,3 +175,36 @@ def test_existing_expansion_api_uses_osteosarc_and_keeps_receipts(tmp_path, monk
     assert calls == [(source["url"], ["chr1:9-11"], "GRCh38", {"chr1": 248956422, "chr2": 242193529})]
     assert acquire.acquire_regions(source, variants, tmp_path, "GRCh38") == result
     assert len(calls) == 1
+
+
+def test_isovar_imports_and_works_without_osteosarc():
+    """osteosarc is the optional `data` extra; no Isovar module may need it on import."""
+    import subprocess
+    import sys
+    root = Path(__file__).resolve().parents[1]
+    assert "osteosarc" not in (root / "requirements.txt").read_text()
+    assert 'data = ["osteosarc' in (root / "pyproject.toml").read_text()
+    code = """
+import importlib, importlib.abc, pkgutil, sys
+
+class Block(importlib.abc.MetaPathFinder):
+    def find_spec(self, name, path=None, target=None):
+        if name == "osteosarc" or name.startswith("osteosarc."):
+            raise ImportError("osteosarc is not installed")
+
+sys.meta_path.insert(0, Block())
+import isovar
+for module in pkgutil.walk_packages(isovar.__path__, "isovar."):
+    importlib.import_module(module.name)
+from isovar import sid_data
+try:
+    sid_data.bundle()
+except ImportError as error:
+    assert "isovar[data]" in str(error), error
+else:
+    raise AssertionError("sid_data.bundle() should need osteosarc")
+assert not [m for m in sys.modules if m == "osteosarc" or m.startswith("osteosarc.")]
+print("ok")
+"""
+    result = subprocess.run([sys.executable, "-c", code], cwd=str(root), capture_output=True, text=True)
+    assert result.returncode == 0 and result.stdout.strip() == "ok", result.stderr[-2000:]

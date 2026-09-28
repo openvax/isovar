@@ -45,6 +45,8 @@ for the shared contract.
 pip install isovar
 # Optional figure rendering for `isovar plot` and `isovar fusion --plot-dir`:
 pip install 'isovar[plot]'
+# Optional Sid test reads (isovar.sid_data), needed to run the test suite:
+pip install 'isovar[data]'
 ```
 
 Isovar requires Python 3.9 or later. Reference annotation comes from

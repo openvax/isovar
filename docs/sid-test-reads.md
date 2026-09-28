@@ -31,6 +31,9 @@ protein expectations are unchanged.
 
 ## Using the reads
 
+`isovar.sid_data` needs osteosarc, which the `data` extra installs
+(`pip install 'isovar[data]'`); Isovar itself never imports it.
+
 The first time a test needs the reads, `isovar.sid_data` downloads openvax-v1
 (28 MB) and checks it against the pinned manifest hash. Each read file is then
 exported by osteosarc's `bundle_file`, once, in its original format. Later runs

@@ -40,6 +40,15 @@ _FORMATS = ((".sam.gz", "sam.gz"), (".sam", "sam"), (".bam", "bam"))
 _failures = {}
 
 
+def _osteosarc():
+    """osteosarc, which only this module needs; ``isovar[data]`` installs it."""
+    try:
+        import osteosarc
+    except ImportError as error:
+        raise ImportError("isovar.sid_data needs osteosarc: pip install 'isovar[data]'") from error
+    return osteosarc
+
+
 class SidDataUnavailable(RuntimeError):
     """openvax-v1 couldn't be fetched, or isn't the bundle Isovar expects."""
 
@@ -50,7 +59,7 @@ def _key(cache):
 
 def bundle(cache=None):
     """The verified ``openvax-v1`` folder, downloaded into osteosarc's cache on first use."""
-    from osteosarc import fetch_bundle
+    fetch_bundle = _osteosarc().fetch_bundle
     key = _key(cache)
     if key in _failures:
         raise _failures[key]
@@ -70,7 +79,7 @@ def bundle(cache=None):
 
 @lru_cache(maxsize=4)
 def _members(key, cache):
-    from osteosarc import list_bundle
+    list_bundle = _osteosarc().list_bundle
     return tuple(sorted(name[len(PREFIX):] for name in list_bundle(bundle(cache)) if name.startswith(PREFIX)))
 
 
@@ -88,7 +97,7 @@ def _format(name):
 
 
 def _file(name, fmt, cache):
-    from osteosarc import bundle_file
+    bundle_file = _osteosarc().bundle_file
     return Path(bundle_file(bundle(cache), PREFIX + name, format=fmt, cache=cache))
 
 
@@ -189,7 +198,7 @@ def sam_digest(line):
 
 def sam_regions(regions, assembly, reference_lengths=None):
     """Convert explicit 1-based inclusive SAM intervals (``contig:start-end``) to osteosarc Regions."""
-    from osteosarc import Region
+    Region = _osteosarc().Region
     result = []
     for region in regions:
         contig, span = region.rsplit(":", 1)
@@ -248,7 +257,8 @@ def open_dataset(snapshot=None, cache=None, offline=False):
 
 @lru_cache(maxsize=4)
 def _open_dataset(name, cache, offline):
-    from osteosarc import Cache, Dataset
+    osteosarc = _osteosarc()
+    Cache, Dataset = osteosarc.Cache, osteosarc.Dataset
     return Dataset.open(name, cache=Cache(cache, offline=offline), offline=offline)
 
 

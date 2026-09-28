@@ -4,6 +4,21 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.6
+
+- **osteosarc is optional.** It moved from Isovar's requirements into the
+  `data` extra (`pip install 'isovar[data]'`), which was empty until now.
+  - Only `isovar.sid_data` uses osteosarc: the Sid test reads and the regional
+    audit builders. It now raises an `ImportError` naming the extra when
+    osteosarc is missing.
+  - `pip install isovar` no longer installs osteosarc or its requests,
+    beautifulsoup4 and datacache dependencies. Isovar can be installed beside
+    any osteosarc version.
+  - osteosarc releases no longer force an Isovar release. The last five Isovar
+    patches were osteosarc pin moves.
+  - A test imports every Isovar module with osteosarc unavailable.
+- CI and the test suite install the extra: `.[plot,data]`, as before.
+
 ## 1.39.5
 
 - Requires osteosarc 0.14 (`>=0.14.0,<0.15`), in step with Varcode, Topiary

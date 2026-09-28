@@ -33,7 +33,9 @@ include = ["isovar", "isovar.*"]
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.6,<4", "pypdf>=5,<7"]
-data = []  # Compatibility extra; shared fixture support is installed normally.
+# osteosarc serves only isovar.sid_data: the Sid test reads (openvax-v1) and
+# the regional audit builders. Isovar itself never imports it.
+data = ["osteosarc>=0.14.0,<0.15"]
 
 [project.scripts]
 isovar = "isovar.cli.commands:run"
