@@ -68,38 +68,18 @@ have shared supporting reads, which implies positive alt-fragment counts
 on both sides.
 """
 
-from math import exp, lgamma, log, log1p
-
 from .default_parameters import (
     MAX_P_VALUE_FOR_PHASING,
     MIN_SHARED_FRAGMENTS_FOR_PHASING,
     PHASING_ERROR_RATE,
 )
 from .isovar_result_provider import IsovarResultProvider
-from .phasing import _phasing_support, _variant_sort_key
-
-
-def _binomial_tail(count, trials, rate):
-    """P(X >= count) for X ~ Binomial(trials, rate), with 0 < rate < 1."""
-    if count <= 0:
-        return 1.0
-    total, scale = 0.0, lgamma(trials + 1)
-    for successes in range(count, trials + 1):
-        term = exp(scale - lgamma(successes + 1) - lgamma(trials - successes + 1)
-                   + successes * log(rate) + (trials - successes) * log1p(-rate))
-        total += term
-        # Past the mean the terms only shrink.
-        if successes > trials * rate and term <= 1e-17 * total:
-            break
-    return min(total, 1.0)
-
-
-def _allele_reads(result, allele):
-    """``result``'s reads for ``"ref"`` or ``"alt"``; names for legacy inputs."""
-    reads = getattr(result, allele + "_reads", None)
-    if reads is None:
-        reads = getattr(result, allele + "_read_names", ())
-    return reads
+from .phasing import (
+    _allele_table,
+    _four_gamete,
+    _validate_phasing_rates,
+    _variant_sort_key,
+)
 
 
 class IsovarReadPhasing(IsovarResultProvider):
@@ -161,10 +141,7 @@ class IsovarReadPhasing(IsovarResultProvider):
             errors; about the chance, per pair, of a false cis or trans when
             ``phasing_error_rate`` is the true error rate.
         """
-        for name, value in (("phasing_error_rate", phasing_error_rate),
-                            ("max_p_value_for_phasing", max_p_value_for_phasing)):
-            if not 0 < value < 1:
-                raise ValueError("%s must be between 0 and 1, not %r" % (name, value))
+        _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
         isovar_results = tuple(isovar_results)
         super().__init__(isovar_results, *args, **kwargs)
         self._by_variant = {
@@ -266,47 +243,22 @@ class IsovarReadPhasing(IsovarResultProvider):
         if r1 is None and r2 is None:
             return None
         if r1 is not None and r2 is not None:
-            return self._four_gamete(*self._table(v1, r1, v2, r2, alleles1=("alt", "ref")))
+            return _four_gamete(
+                *_allele_table(v1, r1, v2, r2, alleles1=("alt", "ref")),
+                min_shared_fragments_for_phasing=self.min_shared_fragments_for_phasing,
+                phasing_error_rate=self.phasing_error_rate,
+                max_p_value_for_phasing=self.max_p_value_for_phasing)
         result, germline = (r1, v2) if r2 is None else (r2, v1)
         evidence = (getattr(result, "germline_read_evidence", None) or {}).get(germline)
         call = None
         if evidence is not None:
             # Only the somatic alt allele's fragments: with the germline alt allele, or its reference.
-            cis, trans = self._table(result.variant, result, germline, evidence, alleles1=("alt",))[:2]
+            cis, trans = _allele_table(result.variant, result, germline, evidence, alleles1=("alt",))[:2]
             call = self._decide(cis, trans)
         in_protein = germline in getattr(result, "germline_variants_in_top_protein_sequence", ())
         if in_protein:
             return None if call is False else True
         return call
-
-    @staticmethod
-    def _table(v1, reads1, v2, reads2, alleles1):
-        """
-        Fragments with (v1 alt, v2 alt), (v1 alt, v2 ref), (v1 ref, v2 alt)
-        and (v1 ref, v2 ref), from ``v1``'s reads with the given alleles.
-        """
-        support, _ = _phasing_support(dict(
-            [(("alt", v2), _allele_reads(reads2, "alt")), (("ref", v2), _allele_reads(reads2, "ref"))]
-            + [((allele, v1), _allele_reads(reads1, allele)) for allele in alleles1]))
-
-        return tuple(len(support[(allele1, v1)].get((allele2, v2), ()))
-                     for allele1, allele2 in (("alt", "alt"), ("alt", "ref"), ("ref", "alt"), ("ref", "ref")))
-
-    def _four_gamete(self, both, first, second, neither):
-        """Cis, trans or ``None`` for two variants in the run, from their fragment table."""
-        def present(count, neighbour, other_neighbour):
-            # Enough fragments, and more than errors at either locus leak in
-            # from the two neighbouring combinations' fragments together.
-            return (count >= self.min_shared_fragments_for_phasing and _binomial_tail(
-                count, count + neighbour + other_neighbour, self.phasing_error_rate)
-                <= self.max_p_value_for_phasing)
-        together = present(both, first, second)
-        first_alone, second_alone = present(first, neither, both), present(second, neither, both)
-        if together and not (first_alone and second_alone):
-            return True
-        if first_alone and second_alone and not together:
-            return False
-        return None
 
     def _decide(self, cis, trans):
         if cis >= self.min_shared_fragments_for_phasing and cis > trans:

@@ -18,6 +18,7 @@ from isovar.allele_read import AlleleRead
 from isovar.isovar_result import IsovarResult
 from isovar.phasing import _phase_annotations, annotate_phased_variants
 from isovar.read_evidence import ReadEvidence
+from isovar.read_phasing import IsovarReadPhasing
 from isovar.transcript_assembly_edit import TranscriptAssemblyEdit
 
 from .common import eq_
@@ -74,12 +75,16 @@ def make_isovar_result(
         transcript_names=(),
         known_somatic_transcript_edits=(),
         known_germline_transcript_edits=(),
-        unexplained_transcript_edits=()):
+        unexplained_transcript_edits=(),
+        ref_read_names=()):
     read_evidence = ReadEvidence(
         trimmed_base1_start=variant.start,
         trimmed_ref=variant.ref,
         trimmed_alt=variant.alt,
-        ref_reads=[],
+        ref_reads=[
+            AlleleRead(prefix="A", allele=variant.ref, suffix="T", name=name)
+            for name in ref_read_names
+        ],
         alt_reads=[
             AlleleRead(prefix="A", allele=variant.alt, suffix="T", name=read_name)
             for read_name in alt_read_names
@@ -101,6 +106,44 @@ def make_isovar_result(
             unexplained_transcript_edits=unexplained_transcript_edits,
         )],
     )
+
+
+@pytest.mark.parametrize("counts, expected, error_rate", [
+    ((2, 198, 0, 20), None, 0.01),
+    ((10, 990, 6, 94), False, 0.01),
+    ((3, 10, 2, 5), None, 0.01),
+    ((2, 5, 0, 50), True, 0.01),
+    ((3, 0, 10, 8), True, 0.01),
+    ((2, 198, 0, 20), True, 0.001),
+    ((3, 47, 2, 48), None, 0.05),
+])
+def test_phase_groups_and_partners_use_all_allele_evidence(counts, expected, error_rate):
+    v1 = Variant("1", 10, "A", "C", normalize_contig_names=False)
+    v2 = Variant("1", 11, "G", "T", normalize_contig_names=False)
+    both, first, second, neither = [
+        {"%s%d" % (label, i) for i in range(count)}
+        for label, count in zip("cabz", counts)
+    ]
+    results = [
+        make_isovar_result(v1, both | first, both, ref_read_names=second | neither),
+        make_isovar_result(v2, both | second, both, ref_read_names=first | neither),
+    ]
+    # Only the both-alt reads support the top proteins. Their phase call
+    # must still account for errors and competing alleles in all the reads.
+    annotated = annotate_phased_variants(results, phasing_error_rate=error_rate)
+    phasing = IsovarReadPhasing(annotated, phasing_error_rate=error_rate)
+    assert phasing.in_cis(v1, v2) is expected
+    for result, other in zip(annotated, (v2, v1)):
+        partners = {other} if expected is True else set()
+        assert set(phasing.partners_in_cis(result.variant)) == partners
+        assert result.phased_variants_in_supporting_reads == partners
+        assert result.phased_variants_in_protein_sequence == partners
+        for group in (result.phase_group_from_supporting_reads, result.phase_group_from_protein_sequence):
+            if expected is True:
+                assert group.somatic_variants == (v1, v2)
+                assert group.supporting_read_names == frozenset(both)
+            else:
+                assert group is None
 
 
 def test_annotate_phased_variants_creates_explicit_phase_groups():

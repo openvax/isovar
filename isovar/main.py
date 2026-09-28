@@ -24,12 +24,14 @@ from .default_parameters import (
     DEFAULT_FILTER_THRESHOLDS as DEFAULT_FILTER_THRESHOLDS,
     DEFAULT_FILTER_FLAGS as DEFAULT_FILTER_FLAGS,
     MIN_SHARED_FRAGMENTS_FOR_PHASING,
+    MAX_P_VALUE_FOR_PHASING,
+    PHASING_ERROR_RATE,
     NUM_RNA_DECOMPRESSION_THREADS,
 )
 from .effect_prediction import top_varcode_effect
 from .filtering import apply_filters
 from .germline_evidence import germline_read_evidence
-from .phasing import annotate_phased_variants
+from .phasing import annotate_phased_variants, _validate_phasing_rates
 from .variant_helpers import require_literal_variant
 
 logger = get_logger(__name__)
@@ -45,7 +47,9 @@ def run_isovar(
         filter_flags=None,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
         decompression_threads=NUM_RNA_DECOMPRESSION_THREADS,
-        germline_variants=None):
+        germline_variants=None,
+        phasing_error_rate=PHASING_ERROR_RATE,
+        max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
@@ -91,7 +95,16 @@ def run_isovar(
 
     min_shared_fragments_for_phasing : int
         Number of RNA fragments two variants must share, with compatible
-        placements, before they are reported as phased.
+        placements, before they are reported as phased. Shared alleles must
+        also exceed the read-error background, as in IsovarReadPhasing.in_cis.
+
+    phasing_error_rate : float
+        Probability of a wrong allele at a locus, used for partner lists and
+        phase groups. Use the same value when constructing IsovarReadPhasing.
+
+    max_p_value_for_phasing : float
+        Maximum one-sided binomial p-value for an allele combination to count
+        beyond errors. Use the same value in IsovarReadPhasing.
 
     decompression_threads : int
         Number of threads used by htslib to decompress BAM/CRAM
@@ -113,6 +126,7 @@ def run_isovar(
         One per variant, in input order. `sorted_protein_sequences` is
         empty if no sequences could be determined.
     """
+    _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
     if filter_thresholds is None:
         filter_thresholds = OrderedDict(DEFAULT_FILTER_THRESHOLDS)
 
@@ -181,5 +195,7 @@ def run_isovar(
                 results, germline_variants, alignment_file, read_collector))]
     results = annotate_phased_variants(
         results,
-        min_shared_fragments_for_phasing)
+        min_shared_fragments_for_phasing,
+        phasing_error_rate=phasing_error_rate,
+        max_p_value_for_phasing=max_p_value_for_phasing)
     return results

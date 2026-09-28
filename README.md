@@ -292,7 +292,10 @@ and update it.
 
 Two variants are phased when their alt reads share at least
 `min_shared_fragments_for_phasing` (default 2) fragments with compatible
-alignments.
+alignments and pass the error-aware cis test described below. Both partner
+lists and phase groups use all reference and alternate reads for that test;
+protein-sequence links additionally need enough shared protein-supporting
+fragments.
 
 | `IsovarResult` property | Reads used |
 |---|---|
@@ -319,6 +322,12 @@ combinations (`phasing_error_rate`, 1% by default; raise it for ONT).
 - `True` when both alt alleles count together and not each alone;
 - `False` (never on one molecule) when each counts alone and not together;
 - `None` otherwise, including when all three count.
+
+`run_isovar`, `annotate_phased_variants`, and `IsovarReadPhasing` accept
+`phasing_error_rate` and `max_p_value_for_phasing` (default 0.05). Pass the
+same thresholds to the run and the adapter when overriding them.
+`partners_in_cis` exposes the run's annotated partners, including for legacy
+caller-created results that supply partner lists without allele reads.
 
 This is the four-gamete test (Hudson and Kaplan 1985), read as Nik-Zainal et
 al. 2012 read phased pairs:
