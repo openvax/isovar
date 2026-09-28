@@ -156,11 +156,15 @@ class IsovarReadPhasing(IsovarResultProvider):
             error-prone reads, such as ONT's.
 
         max_p_value_for_phasing : float
-            One-sided binomial p-value below which :meth:`in_cis` counts a
-            combination of two variants' alleles as more than such errors.
+            One-sided binomial p-value at or below which :meth:`in_cis`
+            counts a combination of two variants' alleles as more than such
+            errors; about the chance, per pair, of a false cis or trans when
+            ``phasing_error_rate`` is the true error rate.
         """
-        if not 0 < phasing_error_rate < 1:
-            raise ValueError("phasing_error_rate must be between 0 and 1, not %r" % (phasing_error_rate,))
+        for name, value in (("phasing_error_rate", phasing_error_rate),
+                            ("max_p_value_for_phasing", max_p_value_for_phasing)):
+            if not 0 < value < 1:
+                raise ValueError("%s must be between 0 and 1, not %r" % (name, value))
         isovar_results = tuple(isovar_results)
         super().__init__(isovar_results, *args, **kwargs)
         self._by_variant = {
@@ -209,23 +213,27 @@ class IsovarReadPhasing(IsovarResultProvider):
         For two variants in the run, the fragments with compatible
         placements that cover both loci carry one of four combinations: both
         alt alleles, either variant's alt allele alone, or neither. A
-        combination is present when it's on more fragments than errors on
-        either neighbouring combination explain: reads showing the wrong
-        allele at one locus, at ``phasing_error_rate``, tested one-sided at
-        ``max_p_value_for_phasing``. The pair is cis when both alt alleles
-        are present together, on at least ``min_shared_fragments_for_phasing``
-        fragments, and trans when each is present alone, on at least that
-        many fragments each, and never together.
+        combination is present when it's on at least
+        ``min_shared_fragments_for_phasing`` fragments, more than reads
+        showing the wrong allele at either locus leak into it from its two
+        neighbouring combinations: a one-sided binomial test at
+        ``phasing_error_rate`` and ``max_p_value_for_phasing``. The pair is
+        cis when both alt alleles are present together and not each alone,
+        and trans (never on one molecule) when each is present alone and not
+        together. Otherwise, including when all three are present, the
+        answer is ``None``.
 
-        This is the read-phasing logic of Nik-Zainal et al. 2012 (Cell
-        149:994), a four-gamete test. A variant that arose in a subclone of
-        the other's cells, on the other's copy, has all its alt molecules cis
-        with the other's alt allele. Cells without it still give the earlier
-        variant's alt allele alone, so one alt allele seen alone is not trans
-        (#393). Errors put a variant's alt allele on a small fraction of the
-        other's alt fragments, which is not cis (#410). When both-alt and
-        each alt allele alone are all present, no single lineage explains
-        the reads, and the answer is ``None``.
+        This is the four-gamete test (Hudson and Kaplan 1985) applied to
+        read-phased variant pairs, as Nik-Zainal et al. 2012 (Cell 149:994)
+        read them: reads with the earlier variant alone and with both mean
+        nesting; reads with either variant alone and never both mean
+        separate molecules (another copy, or a sibling subclone). A variant
+        that arose in a subclone of the other's cells, on the other's copy,
+        has all its alt molecules cis with the other's alt allele; the
+        earlier variant's alt allele alone is not trans (#393). Errors put a
+        variant's alt allele on a small fraction of the other's alt
+        fragments, which is not cis (#410). All three combinations present
+        fit no single lineage.
 
         For a variant in the run and a matched germline variant
         (``run_isovar(germline_variants=...)``) that its alt reads cover,
@@ -263,8 +271,9 @@ class IsovarReadPhasing(IsovarResultProvider):
         evidence = (getattr(result, "germline_read_evidence", None) or {}).get(germline)
         call = None
         if evidence is not None:
-            both, alone = self._table(result.variant, result, germline, evidence, alleles1=("alt",))[:2]
-            call = self._decide(both, alone)
+            # Only the somatic alt allele's fragments: with the germline alt allele, or its reference.
+            cis, trans = self._table(result.variant, result, germline, evidence, alleles1=("alt",))[:2]
+            call = self._decide(cis, trans)
         in_protein = germline in getattr(result, "germline_variants_in_top_protein_sequence", ())
         if in_protein:
             return None if call is False else True
@@ -280,24 +289,22 @@ class IsovarReadPhasing(IsovarResultProvider):
             [(("alt", v2), _allele_reads(reads2, "alt")), (("ref", v2), _allele_reads(reads2, "ref"))]
             + [((allele, v1), _allele_reads(reads1, allele)) for allele in alleles1]))
 
-        def shared(allele1, allele2):
-            return len(support[(allele1, v1)].get((allele2, v2), ()))
-        return tuple(shared(allele1, allele2) if allele1 in alleles1 else 0
+        return tuple(len(support[(allele1, v1)].get((allele2, v2), ()))
                      for allele1, allele2 in (("alt", "alt"), ("alt", "ref"), ("ref", "alt"), ("ref", "ref")))
 
     def _four_gamete(self, both, first, second, neither):
         """Cis, trans or ``None`` for two variants in the run, from their fragment table."""
-        def present(count, *neighbours):
-            # Not errors at either locus on the neighbouring combinations' fragments.
-            return count > 0 and all(
-                _binomial_tail(count, count + other, self.phasing_error_rate) <= self.max_p_value_for_phasing
-                for other in neighbours)
+        def present(count, neighbour, other_neighbour):
+            # Enough fragments, and more than errors at either locus leak in
+            # from the two neighbouring combinations' fragments together.
+            return (count >= self.min_shared_fragments_for_phasing and _binomial_tail(
+                count, count + neighbour + other_neighbour, self.phasing_error_rate)
+                <= self.max_p_value_for_phasing)
         together = present(both, first, second)
         first_alone, second_alone = present(first, neither, both), present(second, neither, both)
-        enough = self.min_shared_fragments_for_phasing
         if together and not (first_alone and second_alone):
-            return True if both >= enough else None
-        if first_alone and second_alone and not together and min(first, second) >= enough:
+            return True
+        if first_alone and second_alone and not together:
             return False
         return None
 

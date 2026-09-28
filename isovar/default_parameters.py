@@ -184,7 +184,8 @@ MIN_SHARED_FRAGMENTS_FOR_PHASING = 2
 # more fragments than such errors explain
 PHASING_ERROR_RATE = 0.01
 
-# one-sided binomial p-value below which those fragments aren't errors
+# one-sided binomial p-value at or below which those fragments aren't errors:
+# about the chance of a false cis or trans per pair when the error rate is right
 MAX_P_VALUE_FOR_PHASING = 0.05
 
 
