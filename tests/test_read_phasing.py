@@ -435,6 +435,52 @@ def test_in_cis_none_when_the_smaller_direction_is_below_the_minimum():
     assert phasing.in_cis(V1, V2) is None
 
 
+def _table(both, first, second, neither, **kwargs):
+    """Phasing of V1 and V2 over fragments with (alt, alt), (alt, ref), (ref, alt) and (ref, ref)."""
+    def names(prefix, count):
+        return {"%s%d" % (prefix, i) for i in range(count)}
+    together, alone1, alone2, reference = (
+        names("c", both), names("a", first), names("b", second), names("z", neither))
+    return IsovarReadPhasing([
+        _make_result(V1, alt_read_names=together | alone1, ref_read_names=alone2 | reference),
+        _make_result(V2, alt_read_names=together | alone2, ref_read_names=alone1 | reference),
+    ], **kwargs)
+
+
+def test_errors_on_the_others_alt_fragments_are_not_cis():
+    # #410: V2 unexpressed, or a subclone on the other copy; 1% errors put its
+    # alt allele on two of V1's 200 alt fragments.
+    assert _table(2, 198, 0, 20).in_cis(V1, V2) is None
+    assert _table(2, 200, 1, 100).in_cis(V1, V2) is None
+    # Two in 200 is more than errors at a rate of 0.1%.
+    assert _table(2, 198, 0, 20, phasing_error_rate=0.001).in_cis(V1, V2) is True
+
+
+def test_trans_despite_errors_on_the_dominant_copy():
+    # V1's copy amplified: its errors give 10 both-alt fragments in 1000.
+    assert _table(10, 990, 6, 94).in_cis(V1, V2) is False
+
+
+def test_a_small_subclone_on_the_other_copy_is_trans():
+    assert _table(0, 50, 3, 40).in_cis(V1, V2) is False
+
+
+def test_all_four_combinations_have_no_single_lineage():
+    assert _table(3, 10, 2, 5).in_cis(V1, V2) is None
+
+
+def test_nested_cis_with_few_reference_fragments():
+    # A subclone in a quarter of V1's alt fragments, few (ref, ref) fragments.
+    assert _table(3, 10, 0, 5).in_cis(V1, V2) is True
+    assert _table(2, 5, 0, 50).in_cis(V1, V2) is True
+
+
+def test_phasing_error_rate_is_a_probability():
+    for rate in (0, 1, -0.1):
+        with pytest.raises(ValueError, match="phasing_error_rate"):
+            IsovarReadPhasing([], phasing_error_rate=rate)
+
+
 def test_in_cis_none_without_fragments_covering_both_loci():
     phasing = IsovarReadPhasing([
         _make_result(V1, alt_read_names={"f1", "f2"}),

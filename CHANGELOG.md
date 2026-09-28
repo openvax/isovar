@@ -6,24 +6,33 @@ releases that only fix bugs or add fixtures are omitted; see the
 
 ## 1.39.7
 
-- `IsovarReadPhasing.in_cis` no longer calls trans for two variants when one
-  arose in a subclone of the other's cells, on the other's copy (#393).
-  - Trans now needs each alt allele seen without the other. It counts the
-    fragments with one variant's alt allele and the other's reference
-    allele, in the direction with fewer; cis is still the both-alt count.
-  - The rule is the read-phasing logic of Nik-Zainal et al. 2012.
-  - Previously, the earlier clone's cells without the later variant gave
-    (earlier alt, later ref) fragments that could outnumber the both-alt ones
-    and flip a cis pair to `False`.
+- `IsovarReadPhasing.in_cis` decides two variants in the run with a
+  four-gamete test that allows for read errors (#393, #410).
+  - Fragments covering both loci carry both alt alleles, either alt allele
+    alone, or neither. A combination counts only when it's on more fragments
+    than errors at either locus explain: `phasing_error_rate` (default 1%),
+    tested one-sided at `max_p_value_for_phasing` (default 0.05). Both are
+    new `IsovarReadPhasing` parameters.
+  - Cis: both alt alleles together, on at least
+    `min_shared_fragments_for_phasing` fragments. Trans: each alt allele
+    alone, on at least that many fragments each, and never together. All
+    three together is `None`.
+  - Previously, trans counted fragments with one alt allele and the other's
+    reference allele in both directions. When one variant arose in a
+    subclone of the other's cells, on the other's copy, the earlier clone's
+    other cells gave such fragments in one direction. They could outnumber
+    the both-alt fragments and flip a cis pair to `False` (#393).
+  - A variant's alt allele on a small fraction of the other's alt fragments,
+    as read errors put it there, is no longer cis (#410).
   - Some answers change:
-    - A pair whose smaller direction has fewer than
-      `min_shared_fragments_for_phasing` fragments is now `None` rather than
-      `False`; this includes a pair seen apart in one direction only.
-    - A pair whose both-alt fragments outnumber the smaller direction is now
-      `True`, even when the larger direction outnumbers them.
-  - Errors at a deeply covered locus can fake a few both-alt fragments, and
-    `True`, when the other variant's own direction is small (#410).
+    - A pair with only one alt allele ever seen alone, or with fewer than
+      `min_shared_fragments_for_phasing` fragments in one direction, is now
+      `None` rather than `False`.
+    - Nested cis pairs, such as (both alt, first alone, second alone) =
+      (2, 5, 0), are now `True` rather than `False`.
+    - Tables with all three alt combinations are now `None`.
   - The matched-germline rule is unchanged.
+
 ## 1.39.6
 
 - Isovar's Sid test reads ship with Isovar again, in `isovar/data/sid-reads`,

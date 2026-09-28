@@ -309,13 +309,18 @@ mutant-transcript interfaces.
 
 Not being phased is not evidence of trans: Isovar only compares the variants in
 its run. `IsovarReadPhasing.in_cis(v1, v2)` answers from fragments that cover
-both loci. It returns `True` when fragments carry both alt alleles, `False`
-when fragments show each alt allele with the other's reference allele, and
-`None` without enough of either. The fragments for trans are counted in the
-direction with fewer. A variant that arose in a subclone of the other's cells,
-on the other's copy, is cis with it on every molecule it's on. Cells without
-it still give the earlier variant's alt allele with its reference allele, so
-fragments in one direction alone don't separate the two.
+both loci, each carrying one of four combinations: both alt alleles, either
+alt allele alone, or neither. A combination counts only when it's on more
+fragments than reads showing the wrong allele explain (`phasing_error_rate`,
+1% by default; raise it for ONT). `in_cis` returns `True` when both alt alleles
+occur together, `False` when each occurs alone and never together, and `None`
+otherwise, including when all three occur. This is a four-gamete test (as in
+Nik-Zainal et al. 2012):
+- A variant that arose in a subclone of the other's cells, on the other's
+  copy, is cis with it on every molecule it's on. Cells without it still give
+  the earlier variant's alt allele alone, so that alone isn't trans.
+- Errors put a variant's alt allele on a small fraction of the other's alt
+  fragments, which isn't cis.
 
 With `run_isovar(germline_variants=...)` (or `--germline-vcf`), Isovar also
 collects reads at each matched germline variant that a variant's alt reads
