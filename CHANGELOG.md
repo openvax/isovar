@@ -4,6 +4,15 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.10
+
+- Adaptive protein reconstruction now preserves separate candidates when
+  identical local RNA sequences have incompatible alignments of the same
+  read segment (#415). Previously, merging candidates across context lengths
+  or transcript groups could raise `ValueError` on full-source Sid MT-ND5
+  reads. The shared assembly compatibility rule keeps these alternatives
+  separate without counting them as independent support.
+
 ## 1.39.9
 
 - SV record and observation IDs now use contig names rather than their
