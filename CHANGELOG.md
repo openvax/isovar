@@ -4,6 +4,15 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.9
+
+- SV record and observation IDs now use contig names rather than their
+  positions in the BAM header (#400). Reordering the header's contigs
+  preserves reconstruction output, including representative witnesses.
+  IDs change once relative to older Isovar releases.
+- Remove the unused `psutil` dependency and the obsolete Sid expansion plan,
+  completing the remaining cleanup from #244 and #245.
+
 ## 1.39.8
 
 - Fragments whose unmerged mates support conflicting allele combinations
