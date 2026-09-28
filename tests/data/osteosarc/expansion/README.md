@@ -257,7 +257,7 @@ results. The full-region audit and selection steps below are research
 workflows, separate from the test data.
 
 All acquisition is opt-in and uses bounded network operations. Normal tests
-download only the openvax-v1 bundle, once. Start with a fresh task-specific cache; existing cached
+download nothing: their reads are packaged with Isovar. Start with a fresh task-specific cache; existing cached
 snapshots must match their receipts. A partial/unreceipted artifact requires
 inspection or a new cache, never silent overwrite. Do not edit audited source
 code while a runner is active: checkpoints pin code, dependencies, settings,

@@ -22,7 +22,7 @@ DIRECTORY = Path(__file__).parent / "data/osteosarc/expansion/stress-corpus"
 
 
 def stress_bam(name):
-    """A stress-corpus BAM, exported from openvax-v1."""
+    """A stress-corpus BAM, exported from Isovar's packaged Sid reads."""
     return sid_data.path("osteosarc/expansion/stress-corpus/" + name)
 CASES = json.loads((DIRECTORY / "manifest.json").read_text())["cases"]
 

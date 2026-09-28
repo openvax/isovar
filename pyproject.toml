@@ -27,6 +27,10 @@ dependencies = {file = ["requirements.txt"]}
 [tool.setuptools.packages.find]
 include = ["isovar", "isovar.*"]
 
+[tool.setuptools.package-data]
+# Isovar's Sid test reads: an osteosarc bundle (docs/sid-test-reads.md).
+isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*"]
+
 [project.urls]
 "Homepage" = "https://github.com/openvax/isovar"
 "Bug Tracker" = "https://github.com/openvax/isovar/issues"

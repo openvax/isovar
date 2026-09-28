@@ -44,7 +44,7 @@ PAIR_CORPUS = CORPUS.parents[1] / "figure_comparisons/corpus"
 
 
 def corpus_file(name, corpus=CORPUS):
-    """A corpus read file, such as a case's ``primary_bam``, exported from openvax-v1."""
+    """A corpus read file, such as a case's ``primary_bam``, exported from Isovar's packaged Sid reads."""
     return sid_data.path((corpus / name).relative_to(DATA).as_posix())
 PAIR_CASE_IDS = ("PIP5K1A-T1-ONT", "PIP5K1A-T1-Illumina")
 SOURCE_LABELS = {

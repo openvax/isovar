@@ -1,0 +1,123 @@
+{
+  "CO": [
+    "CEGAT::NovaSeq_A00275_20230322_PairedEnd_FC104_S000048_P116686Nr2",
+    "MAPPER=bwa-mem2 2.1",
+    "REF=/data/persistent/references/bwamem2/hg19_maskPARonY/hg19_maskPARonY",
+    "MAPPED=20230325",
+    "PIPE=default",
+    "bwacomplete release 1430 - /local/preabra_P116686Nr2_S000048_jCGhe.bam -COCEGAT::NovaSeq_A00275_20230322_PairedEnd_FC104_S000048_P116686Nr2 -COMAPPER=bwa-mem2 2.1 -COREF=/data/persistent/references/bwamem2/hg19_maskPARonY/hg19_maskPARonY -COMAPPED=20230325 -COPIPE=default -TMP/local/ -index -m 2 -d 2"
+  ],
+  "HD": {
+    "SO": "coordinate",
+    "VN": "1.5"
+  },
+  "PG": [
+    {
+      "CL": "/data/bioinfo/abra2.jar --in /local/preabra_P116686Nr2_S000048_jCGhe.bam --targets /local/preabra_P116686Nr2_S000048_jCGhe.bam_realigntargets.bed --ref /data/persistent/references/hg19/genome/human_hg19.fa --threads 10 --mrr 200000 --log warn --out ./Final/NovaSeq_A00275_20230322_PairedEnd_FC104/NovaSeq_A00275_20230322_PairedEnd_FC104_S000048_P116686Nr2.bam --index --mnf 2 --mad 250 --mbq 60 --maxn 9000 --mer 0.02 --tmpdir /local/",
+      "ID": "ABRA2",
+      "VN": "2.21_release 1374 8a9ee0d0e9291c7655fba6c03712531dc05e5c52"
+    }
+  ],
+  "SQ": [
+    {
+      "LN": 249250621,
+      "SN": "chr1"
+    },
+    {
+      "LN": 243199373,
+      "SN": "chr2"
+    },
+    {
+      "LN": 198022430,
+      "SN": "chr3"
+    },
+    {
+      "LN": 191154276,
+      "SN": "chr4"
+    },
+    {
+      "LN": 180915260,
+      "SN": "chr5"
+    },
+    {
+      "LN": 171115067,
+      "SN": "chr6"
+    },
+    {
+      "LN": 159138663,
+      "SN": "chr7"
+    },
+    {
+      "LN": 146364022,
+      "SN": "chr8"
+    },
+    {
+      "LN": 141213431,
+      "SN": "chr9"
+    },
+    {
+      "LN": 135534747,
+      "SN": "chr10"
+    },
+    {
+      "LN": 135006516,
+      "SN": "chr11"
+    },
+    {
+      "LN": 133851895,
+      "SN": "chr12"
+    },
+    {
+      "LN": 115169878,
+      "SN": "chr13"
+    },
+    {
+      "LN": 107349540,
+      "SN": "chr14"
+    },
+    {
+      "LN": 102531392,
+      "SN": "chr15"
+    },
+    {
+      "LN": 90354753,
+      "SN": "chr16"
+    },
+    {
+      "LN": 81195210,
+      "SN": "chr17"
+    },
+    {
+      "LN": 78077248,
+      "SN": "chr18"
+    },
+    {
+      "LN": 59128983,
+      "SN": "chr19"
+    },
+    {
+      "LN": 63025520,
+      "SN": "chr20"
+    },
+    {
+      "LN": 48129895,
+      "SN": "chr21"
+    },
+    {
+      "LN": 51304566,
+      "SN": "chr22"
+    },
+    {
+      "LN": 155270560,
+      "SN": "chrX"
+    },
+    {
+      "LN": 59373566,
+      "SN": "chrY"
+    },
+    {
+      "LN": 16571,
+      "SN": "chrM"
+    }
+  ]
+}

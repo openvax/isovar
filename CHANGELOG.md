@@ -4,6 +4,26 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.39.6
+
+- Isovar's Sid test reads ship with Isovar again, in `isovar/data/sid-reads`,
+  so its tests never need network access.
+  - The folder is an osteosarc fixture bundle of Isovar's 345 openvax-v1
+    members. Its members, records and exported headers are the same as
+    openvax-v1's.
+  - It adds about 10 MB to the wheel.
+  - `sid_data.bundle()` returns the folder, pinned by
+    `PACKAGED_MANIFEST_SHA256`, and no longer takes a cache. `members()` takes
+    no cache either.
+  - `path` and `export` are unchanged.
+- `python -m isovar.sid_data build` makes the bundle again with osteosarc.
+  - By default, from openvax-v1's records.
+  - With `--sid`, every record is acquired again from Sid's original BAMs.
+  - With `--from`, from another bundle.
+- `check` compares a new build with the packaged bundle. CI runs it against
+  openvax-v1.
+- osteosarc stays a required dependency.
+
 ## 1.39.5
 
 - Requires osteosarc 0.14 (`>=0.14.0,<0.15`), in step with Varcode, Topiary

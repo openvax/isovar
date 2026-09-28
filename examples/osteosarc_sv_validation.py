@@ -2,8 +2,8 @@
 
 python -m examples.osteosarc_sv_validation OUTPUT_DIRECTORY
 Requires Varcode >=9.4.2 and installed Ensembl 95. Original RNA and Ensembl 87/115
-RNA-model metadata are checked in; the original RNA comes from osteosarc's
-openvax-v1 bundle through isovar.sid_data (downloaded once, then offline). No
+RNA-model metadata are checked in; the original RNA is openvax-v1 members
+packaged with Isovar, read through isovar.sid_data. No
 local report, sibling checkout or downloaded analysis script is required.
 """
 import argparse

@@ -1,11 +1,13 @@
 # Sid test reads
 
 Isovar's tests use original reads from the public Sid osteosarcoma data (CC0).
-Those reads now come from **openvax-v1**, the test-data bundle osteosarc
-publishes for all four OpenVax libraries (Isovar, Varcode, Vaxrank and
-Topiary). Isovar no longer ships or builds its own copy.
+They ship with Isovar, in `isovar/data/sid-reads`, so the tests never need
+network access. That folder is an osteosarc fixture bundle holding Isovar's
+members of **openvax-v1**, the test-data bundle osteosarc publishes for all four
+OpenVax libraries (Isovar, Varcode, Vaxrank and Topiary). osteosarc makes it
+from openvax-v1, and CI checks that it still does, record for record.
 
-## What openvax-v1 holds for Isovar
+## What Isovar's bundle holds
 
 - **345 members, named `isovar/<path>`** after the files Isovar's tests read
   (`<path>` is relative to `tests/data`). They hold exactly the same records.
@@ -20,7 +22,7 @@ Topiary). Isovar no longer ships or builds its own copy.
   names reads embedded in a JSON fixture, and `file#READ` names one read of a
   SAM file.
 - **Selection and provenance.** osteosarc owns read selection and records the
-  source, snapshot and reason for every template. The bundle also covers all
+  source, snapshot and reason for every template. openvax-v1 also covers all
   187 osteosarc site variants and the other libraries' fixtures. See
   [osteosarc's shared test data](https://iskandr.github.io/osteosarc/test-data/#shared-test-data-openvax-v1)
   and [iskandr/osteosarc#56](https://github.com/iskandr/osteosarc/issues/56).
@@ -31,10 +33,9 @@ protein expectations are unchanged.
 
 ## Using the reads
 
-The first time a test needs the reads, `isovar.sid_data` downloads openvax-v1
-(28 MB) and checks it against the pinned manifest hash. Each read file is then
-exported by osteosarc's `bundle_file`, once, in its original format. Later runs
-are offline:
+`isovar.sid_data` checks the packaged bundle against its pinned manifest hash
+(`PACKAGED_MANIFEST_SHA256`). osteosarc's `bundle_file` exports each read file
+from it once, in its original format, and later runs reuse the export:
 
 ```python
 from isovar import sid_data
@@ -50,15 +51,17 @@ python -m isovar.sid_data path osteosarc/expansion/corpus/28-NTF3-chr12-5494381-
 python -m isovar.sid_data export chimeric/osteosarc-ont.sam --output /tmp/chimeric.sam
 ```
 
-- **Where the files live.** In osteosarc's cache: `OSTEOSARC_CACHE`, or the
+- **Size.** The bundle is 33 MB, mostly JSON (its manifest, recipe and the
+  sources' original headers), and adds about 10 MB to the wheel.
+- **Where the exports live.** In osteosarc's cache: `OSTEOSARC_CACHE`, or the
   shared OpenVax cache (`OPENVAX_DATA_CACHE`, or the platform's `openvax`
-  cache directory). CI caches that folder.
-- **Size.** osteosarc exports every member of each source BAM it reads, so the
-  cache grows to about 184 MB.
+  cache directory). osteosarc exports every member of each source BAM it
+  reads, so the exports take about 35 MB.
 - **Names.** Exported files are read-only and named `<member>.<format>`, such
   as `bulk_star_t0.sam.gz.sam.gz`; `path` returns them.
-- **No network on the first run.** The first test that needs the reads fails
-  with a hint, and the rest fail at once.
+- **A missing, changed or damaged bundle** (even one with an extra file, such
+  as a `.DS_Store`) raises `SidDataUnavailable`, which says to reinstall Isovar
+  or build the bundle again.
 
 An exported file holds exactly the member's original records, but it is
 coordinate-sorted and carries the source's full header. So its bytes, and the
@@ -67,14 +70,43 @@ compare records, not file checksums. `tests/test_sid_data.py` checks every
 embedded or selected read against the bundle with osteosarc's `check_fixtures`,
 so the JSON fixtures can't drift from it.
 
-## Changing the reads
+## Making the reads again
 
-Reads are selected in osteosarc, not here. To add or change a test's reads, add
-them to osteosarc's openvax recipe and release a new bundle; Isovar then moves
-to that bundle name. Check a local fixture against a bundle with:
+osteosarc makes Isovar's bundle from a recipe: Isovar's `isovar/` members of a
+shared bundle's recipe, with the sources and targets they use
+(`sid_data.recipe`). Every member pins its exact records by checksum.
 
 ```sh
-osteosarc test-data check openvax-v1 fixtures.json
+# From openvax-v1's records (downloaded once, 28 MB; then offline).
+python -m isovar.sid_data build --output /tmp/sid-reads
+# Every record acquired again from Sid's original BAMs: slow, needs network access
+# and the osteosarc metadata snapshot the recipe names (2026-09-25).
+python -m isovar.sid_data build --output /tmp/sid-reads --sid
+# A new build compared with the packaged bundle; exits 1 if they differ. CI runs this.
+python -m isovar.sid_data check
+```
+
+Only a cache that holds that snapshot can use `--sid`: a new snapshot has a new
+ID, and the recipe pins each BAM to the old one
+([iskandr/osteosarc#89](https://github.com/iskandr/osteosarc/issues/89)).
+
+`--from` takes Isovar's members from another bundle: a newer published one, or
+a folder such as `isovar/data/sid-reads` itself. `check` compares the members,
+their records and the sources' exported headers, not file bytes (the toolchain
+versions in a manifest can differ). A bundle carved from another archives its
+sources' exported headers as their originals, and records the shared bundle's
+source BAMs rather than the original acquisitions; two of openvax-v1's 39
+sources thus lose `GO:none` from their archived header
+([iskandr/osteosarc#90](https://github.com/iskandr/osteosarc/issues/90)). `build` prints the new manifest's SHA-256. To package a new
+bundle, put the folder in place of `isovar/data/sid-reads` and pin that hash as
+`PACKAGED_MANIFEST_SHA256`.
+
+Reads are still selected in osteosarc, not here. To add or change a test's
+reads, add them to osteosarc's openvax recipe and release a new bundle; then
+build Isovar's bundle `--from` it. Check a local fixture against a bundle with:
+
+```sh
+osteosarc test-data check isovar/data/sid-reads fixtures.json
 ```
 
 `fixtures.json` maps member names to files, or to `{"json": path, "pointer": "/records"}`
