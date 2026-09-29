@@ -38,6 +38,7 @@ class IsovarResult(object):
 
     # Results pickled before 1.38.0 lack this field; they have none.
     germline_read_evidence = {}
+    phasing_settings = None
 
     # Varcode effect properties exported with a "predicted_effect_" prefix.
     _PREDICTED_EFFECT_FIELDS = (
@@ -74,7 +75,8 @@ class IsovarResult(object):
             phase_group_from_supporting_reads=None,
             phase_group_from_protein_sequence=None,
             protein_sequence_settings=None,
-            germline_read_evidence=None):
+            germline_read_evidence=None,
+            phasing_settings=None):
         """
         Parameters
         ----------
@@ -122,12 +124,17 @@ class IsovarResult(object):
             `sorted_protein_sequences`, recorded by `run_isovar`. None when
             unknown, as for a result built by hand.
 
+        phasing_settings : dict or None
+            Error calibration and thresholds used for phase annotation. Retained
+            when cloning/pickling so downstream read-phasing adapters inherit them.
+
         germline_read_evidence : dict or None
             For each matched germline variant
             (``run_isovar(germline_variants=...)``) that this variant's alt
             reads cover, its ReadEvidence from the fragments carrying this
             variant's alt allele, for telling cis from trans.
         """
+        self.phasing_settings = phasing_settings
         self.variant = variant
         self.read_evidence = read_evidence
         self.predicted_effect = predicted_effect
@@ -176,6 +183,7 @@ class IsovarResult(object):
             "phase_group_from_protein_sequence",
             "protein_sequence_settings",
             "germline_read_evidence",
+            "phasing_settings",
         ]
 
     def __str__(self):

@@ -31,7 +31,7 @@ from .default_parameters import (
 from .effect_prediction import top_varcode_effect
 from .filtering import apply_filters
 from .germline_evidence import germline_read_evidence
-from .phasing import annotate_phased_variants, _validate_phasing_rates
+from .phasing import annotate_phased_variants, _validate_phasing_rates, _validate_locus_error_rates
 from .variant_helpers import require_literal_variant
 
 logger = get_logger(__name__)
@@ -49,7 +49,8 @@ def run_isovar(
         decompression_threads=NUM_RNA_DECOMPRESSION_THREADS,
         germline_variants=None,
         phasing_error_rate=PHASING_ERROR_RATE,
-        max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING):
+        max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING,
+        phasing_error_rates=None):
     """
     This is the main entrypoint into the Isovar library, which collects
     RNA reads supporting variants and translates their coding sequence
@@ -100,11 +101,16 @@ def run_isovar(
 
     phasing_error_rate : float
         Probability of a wrong allele at a locus, used for partner lists and
-        phase groups. Use the same value when constructing IsovarReadPhasing.
+        phase groups. Downstream IsovarReadPhasing adapters inherit this value.
+
+    phasing_error_rates : dict or None
+        Variant to (ref-to-alt, alt-to-ref) error probabilities from external
+        calibration. Each direction is bounded below by phasing_error_rate.
+        Other-allele counts alone cannot calibrate target-specific RNA editing.
 
     max_p_value_for_phasing : float
         Maximum one-sided binomial p-value for an allele combination to count
-        beyond errors. Use the same value in IsovarReadPhasing.
+        beyond errors. Downstream adapters inherit this value.
 
     decompression_threads : int
         Number of threads used by htslib to decompress BAM/CRAM
@@ -127,6 +133,7 @@ def run_isovar(
         empty if no sequences could be determined.
     """
     _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
+    phasing_error_rates = _validate_locus_error_rates(phasing_error_rates)
     if filter_thresholds is None:
         filter_thresholds = OrderedDict(DEFAULT_FILTER_THRESHOLDS)
 
@@ -197,5 +204,6 @@ def run_isovar(
         results,
         min_shared_fragments_for_phasing,
         phasing_error_rate=phasing_error_rate,
-        max_p_value_for_phasing=max_p_value_for_phasing)
+        max_p_value_for_phasing=max_p_value_for_phasing,
+        phasing_error_rates=phasing_error_rates)
     return results

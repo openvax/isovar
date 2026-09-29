@@ -191,3 +191,31 @@ def test_reference_context_command_passes_size_to_api(monkeypatch):
     reference_context_args.reference_contexts_dataframe_from_args(
         parser.parse_args(["--reference-context-size", "7"]))
     assert calls == [{"variants": ["variant"], "context_size": 7}]
+
+
+
+def test_phasing_calibration_cli(monkeypatch, tmp_path):
+    import json
+    from varcode import Variant
+    from isovar.cli import main_args
+    variant = Variant("1", 10, "A", "G", normalize_contig_names=False)
+    profile = tmp_path / "calibration.json"
+    profile.write_text(json.dumps([dict(contig="1", start=10, ref="A", alt="G",
+                                       ref_to_alt=0.1, alt_to_ref=0.02)]))
+    args = make_isovar_arg_parser().parse_args([
+        "--bam", "unused.bam", "--phasing-error-rate", "0.03",
+        "--max-p-value-for-phasing", "0.01", "--phasing-error-rates", str(profile)])
+    for name in ("read_collector_from_args", "protein_sequence_creator_from_args",
+                 "filter_threshold_dict_from_args", "alignment_file_from_args"):
+        monkeypatch.setattr(main_args, name, lambda args: None)
+    monkeypatch.setattr(main_args, "variant_collection_from_args", lambda args: [variant])
+    monkeypatch.setattr(main_args, "germline_variants_from_args", lambda *args: [])
+    monkeypatch.setattr(main_args, "run_isovar", lambda **kwargs: kwargs)
+    received = main_args.run_isovar_from_parsed_args(args)
+    assert received["phasing_error_rate"] == 0.03
+    assert received["max_p_value_for_phasing"] == 0.01
+    assert received["phasing_error_rates"] == {variant: (0.1, 0.02)}
+    profile.write_text(json.dumps([dict(contig="unknown", start=10, ref="A", alt="G",
+                                       ref_to_alt=0.1, alt_to_ref=0.02)]))
+    with pytest.raises(ValueError, match="does not match"):
+        main_args.run_isovar_from_parsed_args(args)

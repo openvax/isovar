@@ -58,8 +58,8 @@ directions with the same minimum, so
 input set.
 
 ``partners_in_cis`` and ``has_evidence`` answer independent questions and
-are not cross-checked: ``partners_in_cis`` returns
-``phased_variants_in_supporting_reads`` as-is from the input results, so
+are not cross-checked for legacy inputs: without calibration overrides,
+``partners_in_cis`` returns the supplied partner lists, so
 a caller constructing inputs by hand could observe ``has_evidence(v)``
 return ``False`` while ``partners_in_cis(v)`` returns a non-empty tuple.
 Outputs from ``run_isovar``/``annotate_phased_variants`` never exhibit
@@ -76,6 +76,10 @@ from .default_parameters import (
 from .isovar_result_provider import IsovarResultProvider
 from .phasing import (
     _allele_table,
+    _allele_reads,
+    _phasing_support,
+    _locus_error_rates,
+    _validate_locus_error_rates,
     _four_gamete,
     _validate_phasing_rates,
     _variant_sort_key,
@@ -115,9 +119,10 @@ class IsovarReadPhasing(IsovarResultProvider):
             self,
             isovar_results,
             *args,
-            min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
-            phasing_error_rate=PHASING_ERROR_RATE,
-            max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING,
+            min_shared_fragments_for_phasing=None,
+            phasing_error_rate=None,
+            max_p_value_for_phasing=None,
+            phasing_error_rates=None,
             **kwargs):
         """
         Parameters
@@ -130,7 +135,14 @@ class IsovarReadPhasing(IsovarResultProvider):
             Fragments needed for :meth:`in_cis` to call cis or trans; the
             same default as :func:`isovar.run_isovar`.
 
-        phasing_error_rate : float
+        phasing_error_rates : dict or None
+            Variant to externally calibrated (ref-to-alt, alt-to-ref) probabilities.
+            Values cannot lower the scalar floor. Omitted settings inherit the
+            calibration stored by run_isovar/annotate_phased_variants, or use
+            library defaults for older results. Conflicting runs require an
+            explicit override or reannotation. Overrides recompute partner lists.
+
+        phasing_error_rate : float or None
             Chance that a read shows the wrong allele at a variant's locus,
             from sequencing error, RNA editing or mismapping. Raise it for
             error-prone reads, such as ONT's.
@@ -141,8 +153,36 @@ class IsovarReadPhasing(IsovarResultProvider):
             errors; about the chance, per pair, of a false cis or trans when
             ``phasing_error_rate`` is the true error rate.
         """
-        _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
         isovar_results = tuple(isovar_results)
+        stored = [getattr(r, "phasing_settings", None) or {} for r in isovar_results]
+        requested = dict(
+            min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
+            phasing_error_rate=phasing_error_rate,
+            max_p_value_for_phasing=max_p_value_for_phasing,
+            phasing_error_rates=phasing_error_rates)
+        defaults = dict(
+            min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
+            phasing_error_rate=PHASING_ERROR_RATE,
+            max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING,
+            phasing_error_rates={})
+        settings = {}
+        for name, default in defaults.items():
+            value = requested[name]
+            if value is None:
+                values = [s.get(name, default) for s in stored] or [default]
+                if any(v != values[0] for v in values[1:]):
+                    raise ValueError("Results have different %s; reannotate or set it explicitly" % name)
+                value = values[0]
+            settings[name] = value
+        min_shared_fragments_for_phasing = settings["min_shared_fragments_for_phasing"]
+        phasing_error_rate = settings["phasing_error_rate"]
+        max_p_value_for_phasing = settings["max_p_value_for_phasing"]
+        self.phasing_error_rates = _validate_locus_error_rates(settings["phasing_error_rates"])
+        _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
+        self._rephase = any(
+            requested[name] is not None and requested[name] != s.get(name, defaults[name])
+            for s in (stored or [{}]) for name in defaults)
+        self._partner_support = None
         super().__init__(isovar_results, *args, **kwargs)
         self._by_variant = {
             result.variant: result
@@ -179,9 +219,14 @@ class IsovarReadPhasing(IsovarResultProvider):
         result = self._by_variant.get(variant)
         if result is None:
             return ()
-        return tuple(sorted(
-            result.phased_variants_in_supporting_reads,
-            key=_variant_sort_key))
+        partners = result.phased_variants_in_supporting_reads
+        if self._rephase:
+            if self._partner_support is None:
+                self._partner_support, _ = _phasing_support({
+                    v: _allele_reads(r, "alt") for v, r in self._by_variant.items()})
+            partners = (other for other in self._partner_support[variant]
+                        if self.in_cis(variant, other) is True)
+        return tuple(sorted(partners, key=_variant_sort_key))
 
     def in_cis(self, v1, v2, transcript=None):
         """
@@ -194,7 +239,8 @@ class IsovarReadPhasing(IsovarResultProvider):
         ``min_shared_fragments_for_phasing`` fragments, more than reads
         showing the wrong allele at either locus leak into it from its two
         neighbouring combinations: a one-sided binomial test at
-        ``phasing_error_rate`` and ``max_p_value_for_phasing``. The pair is
+        the incoming directional error bounds (or ``phasing_error_rate``)
+        and ``max_p_value_for_phasing``. The pair is
         cis when both alt alleles are present together and not each alone,
         and trans (never on one molecule) when each is present alone and not
         together. Otherwise, including when all three are present, the
@@ -247,7 +293,9 @@ class IsovarReadPhasing(IsovarResultProvider):
                 *_allele_table(v1, r1, v2, r2),
                 min_shared_fragments_for_phasing=self.min_shared_fragments_for_phasing,
                 phasing_error_rate=self.phasing_error_rate,
-                max_p_value_for_phasing=self.max_p_value_for_phasing)
+                max_p_value_for_phasing=self.max_p_value_for_phasing,
+                first_error_rates=_locus_error_rates(v1, self.phasing_error_rates, self.phasing_error_rate),
+                second_error_rates=_locus_error_rates(v2, self.phasing_error_rates, self.phasing_error_rate))
         result, germline = (r1, v2) if r2 is None else (r2, v1)
         evidence = (getattr(result, "germline_read_evidence", None) or {}).get(germline)
         call = None
