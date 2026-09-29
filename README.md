@@ -326,10 +326,43 @@ combinations (`phasing_error_rate`, 1% by default; raise it for ONT).
 - `None` otherwise, including when all three count.
 
 `run_isovar`, `annotate_phased_variants`, and `IsovarReadPhasing` accept
-`phasing_error_rate` and `max_p_value_for_phasing` (default 0.05). Pass the
-same thresholds to the run and the adapter when overriding them.
-`partners_in_cis` exposes the run's annotated partners, including for legacy
-caller-created results that supply partner lists without allele reads.
+`phasing_error_rate` and `max_p_value_for_phasing` (default 0.05). The run stores
+these thresholds in `result.phasing_settings`; adapters inherit them, including
+after cloning or pickling. Explicit adapter overrides recompute partner lists.
+Legacy results without settings retain the default thresholds and supplied lists.
+Results from runs with conflicting settings require explicit overrides or
+reannotation.
+
+For calibrated locus-specific errors, pass
+`phasing_error_rates={variant: (ref_to_alt, alt_to_ref)}` to any of these three
+entry points. Both directions use at least the scalar `phasing_error_rate` floor.
+Each allele combination is tested against the larger of its two incoming error
+rates; this conservatively bounds leakage under the independent-error model.
+An alt-to-ref bias therefore does not inflate the error threshold for both-alt
+support. This calibration currently applies to pairs of variants in the run;
+matched-germline majority decisions retain their separate interpretation below.
+
+The CLI exposes `--phasing-error-rate`, `--max-p-value-for-phasing`, and
+`--phasing-error-rates calibration.json`. The JSON file is a list of records:
+
+```json
+[{"contig": "1", "start": 123, "ref": "A", "alt": "G",
+  "ref_to_alt": 0.10, "alt_to_ref": 0.02}]
+```
+
+Coordinates/alleles must match the normalized input variants (1-based start).
+These numbers illustrate the format; they are not recommended platform rates.
+Retain the control dataset, library, basecaller, context and calibration method
+alongside the profile. For mixed read groups, supply a bound covering every
+included group or analyze them separately.
+
+**Calibration limits:** the default 1% is not an automatic ONT/PacBio calibration.
+Non-ref/non-alt reads alone cannot identify target-specific A→G editing or a
+homopolymer deletion bias. Nanopore error rates are directional and depend on
+sequence context ([primary study](https://doi.org/10.1186/s12864-024-10440-w)).
+Use appropriate control-derived bounds; do not interpret an uncalibrated definite
+call as evidence that these errors were excluded. Correlated RT/PCR artifacts
+and uncertain calibration are not covered by the independent binomial model.
 
 This is the four-gamete test (Hudson and Kaplan 1985), read as Nik-Zainal et
 al. 2012 read phased pairs:
@@ -348,8 +381,9 @@ reference allele say nothing about its copy, because the germline alt allele
 also comes from cells without the somatic variant (normal contamination, other
 subclones) and from both copies of a homozygous variant. Without decisive reads,
 a germline edit in the variant's top assembled protein is cis; if the reads say
-trans but the protein has the edit, the answer is unknown. A germline locus
-reached only by an unmerged mate is not examined. Varcode's
+trans but the protein has the edit, the answer is unknown. Unmerged mates also
+nominate germline loci through their primary aligned blocks (MC or a matching
+mate lookup), excluding skipped introns and unsequenced inserts. Varcode's
 `MolecularPhaseResolver` uses this method for cis/trans decisions.
 
 ### Other variants in the assembled RNA

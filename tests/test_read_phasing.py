@@ -547,7 +547,7 @@ def test_run_isovar_uses_phasing_thresholds_on_collected_reads(monkeypatch, rate
         [v1, v2], MockAlignmentFile(references=("1",), reads=reads),
         protein_sequence_creator=creator, **thresholds)
     assert [r.num_alt_fragments for r in results] == [200, 2]
-    phasing = IsovarReadPhasing(results, **thresholds)
+    phasing = IsovarReadPhasing(results)
     assert phasing.in_cis(v1, v2) is expected
     assert phasing.partners_in_cis(v1) == ((v2,) if expected else ())
     assert (results[0].phase_group_from_supporting_reads is not None) == (expected is True)
@@ -634,3 +634,68 @@ def test_varcode_resolver_uses_in_cis_for_trans():
         _make_result(V2, alt_read_names={"f3", "f4"}, ref_read_names={"f1", "f2"}),
     ])
     assert MolecularPhaseResolver(phasing).in_cis(V1, V2) is False
+
+
+@pytest.mark.parametrize("table,rates", [
+    ((3, 47, 2, 48), {V2: (0.05, 0.05)}),
+    ((4, 48, 1, 47), {V2: (0.03, 0.01)}),
+    ((1, 3, 33, 63), {V1: (0.05, 0.05), V2: (0.05, 0.05)}),
+])
+def test_locus_calibration_abstains_on_issue_411_tables(table, rates):
+    phasing = _phasing_of_table(*table, phasing_error_rates=rates)
+    assert phasing.in_cis(V1, V2) is None
+    # Fresh adapter tests reversal before any cached answer exists.
+    assert _phasing_of_table(*table, phasing_error_rates=rates).in_cis(V2, V1) is None
+
+
+def test_alt_to_ref_bias_does_not_raise_the_both_alt_error_rate():
+    # Direction matters: only ref-to-alt errors can manufacture both alt.
+    assert _phasing_of_table(3, 47, 2, 48, phasing_error_rates={V2: (0, 0.1)}).in_cis(V1, V2) is True
+    assert _phasing_of_table(3, 47, 2, 48, phasing_error_rates={V2: (0.1, 0)}).in_cis(V1, V2) is None
+
+
+def test_calibration_survives_pickle_and_clone_and_overrides_recompute_partners():
+    import pickle
+    raw = list(_phasing_of_table(3, 47, 2, 48)._by_variant.values())
+    results = annotate_phased_variants(raw, phasing_error_rates={V2: (0.05, 0.05)})
+    restored = [r.clone() for r in pickle.loads(pickle.dumps(results))]
+    phasing = IsovarReadPhasing(restored)
+    assert phasing.in_cis(V1, V2) is None
+    assert phasing.partners_in_cis(V1) == ()
+    assert all(r.phase_group_from_supporting_reads is None for r in restored)
+    # An intentional replacement can both add and remove partner links.
+    lower = IsovarReadPhasing(restored, phasing_error_rates={})
+    assert lower.in_cis(V1, V2) is True
+    assert lower.partners_in_cis(V1) == (V2,)
+    default_results = annotate_phased_variants(raw)
+    higher = IsovarReadPhasing(default_results, phasing_error_rates={V2: (0.05, 0.05)})
+    assert higher.partners_in_cis(V1) == ()
+
+
+def test_mixed_run_calibration_requires_an_explicit_choice():
+    raw = list(_phasing_of_table(3, 47, 2, 48)._by_variant.values())
+    calibrated = annotate_phased_variants(raw, phasing_error_rate=0.05)
+    default = annotate_phased_variants(raw)
+    with pytest.raises(ValueError, match="different phasing_error_rate"):
+        IsovarReadPhasing([calibrated[0], default[1]])
+    assert IsovarReadPhasing([calibrated[0], default[1]], phasing_error_rate=0.05).in_cis(V1, V2) is None
+
+
+@pytest.mark.parametrize("rates", [(0.01,), (0.01, 0.02, 0.03), (float("nan"), 0.1),
+                                    (0.1, float("inf")), (-0.1, 0), (1, 0), ("bad", 0.1)])
+def test_invalid_directional_calibration_is_rejected(rates):
+    with pytest.raises(ValueError, match="phasing_error_rates"):
+        IsovarReadPhasing([], phasing_error_rates={V1: rates})
+
+
+def test_directional_rates_cannot_lower_the_run_floor():
+    assert _phasing_of_table(3, 47, 2, 48, phasing_error_rate=0.05,
+                             phasing_error_rates={V1: (0, 0), V2: (0, 0)}).in_cis(V1, V2) is None
+
+
+def test_legacy_pickles_without_calibration_still_clone():
+    import pickle
+    result = _make_result(V1, {"a", "b"})
+    del result.phasing_settings
+    restored = pickle.loads(pickle.dumps(result))
+    assert restored.clone().phasing_settings is None

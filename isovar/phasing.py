@@ -11,6 +11,7 @@
 # limitations under the License.
 
 from collections import defaultdict
+from collections.abc import Mapping
 from itertools import combinations
 from math import exp, lgamma, log, log1p
 
@@ -55,20 +56,48 @@ def _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing):
             raise ValueError("%s must be between 0 and 1, not %r" % (name, value))
 
 
+def _validate_locus_error_rates(error_rates):
+    """Copy externally calibrated (ref-to-alt, alt-to-ref) probabilities."""
+    if error_rates is not None and not isinstance(error_rates, Mapping):
+        raise ValueError("phasing_error_rates must be a mapping from variants to rate pairs")
+    result = {}
+    for variant, rates in (error_rates or {}).items():
+        try:
+            ref_to_alt, alt_to_ref = rates
+            valid = all(0 <= value < 1 for value in (ref_to_alt, alt_to_ref))
+        except (TypeError, ValueError):
+            valid = False
+        if not valid:
+            raise ValueError("phasing_error_rates must contain two probabilities in [0, 1)")
+        result[variant] = (float(ref_to_alt), float(alt_to_ref))
+    return result
+
+
+def _locus_error_rates(variant, error_rates, floor):
+    return tuple(max(floor, rate) for rate in error_rates.get(variant, (floor, floor)))
+
+
 def _four_gamete(
         both, first, second, neither,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
         phasing_error_rate=PHASING_ERROR_RATE,
-        max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING):
+        max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING,
+        first_error_rates=None, second_error_rates=None):
     """Cis, trans or ``None`` for two variants in the run, from their fragment table."""
-    def present(count, neighbour, other_neighbour):
+    first_ra, first_ar = first_error_rates or (phasing_error_rate,) * 2
+    second_ra, second_ar = second_error_rates or (phasing_error_rate,) * 2
+
+    def present(count, neighbour, other_neighbour, rate):
         # Enough fragments, and more than errors at either locus leak in
         # from the two neighbouring combinations' fragments together.
         return (count >= min_shared_fragments_for_phasing and _binomial_tail(
-            count, count + neighbour + other_neighbour, phasing_error_rate)
+            count, count + neighbour + other_neighbour, rate)
             <= max_p_value_for_phasing)
-    together = present(both, first, second)
-    first_alone, second_alone = present(first, neither, both), present(second, neither, both)
+    # A binomial with the larger incoming error probability dominates either
+    # neighbour's leakage. Preserve the previous conservative trial count.
+    together = present(both, first, second, max(first_ra, second_ra))
+    first_alone = present(first, neither, both, max(first_ra, second_ar))
+    second_alone = present(second, neither, both, max(second_ra, first_ar))
     if together and not (first_alone and second_alone):
         return True
     if first_alone and second_alone and not together:
@@ -285,7 +314,8 @@ def annotate_phased_variants(
         unphased_isovar_results,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
         phasing_error_rate=PHASING_ERROR_RATE,
-        max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING):
+        max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING,
+        phasing_error_rates=None):
     """
     Annotate IsovarResult objects with phasing information. Pairs must pass
     the same error-aware test as IsovarReadPhasing.in_cis, using all reference
@@ -306,6 +336,12 @@ def annotate_phased_variants(
     phasing_error_rate : float
         Probability of an incorrect allele at either locus.
 
+    phasing_error_rates : dict or None
+        Variant to externally calibrated (ref-to-alt, alt-to-ref) probabilities.
+        Each direction uses at least the scalar floor. Settings are retained in
+        each result for downstream adapters; this does not infer error rates
+        from variant allele fractions or other-allele counts.
+
     max_p_value_for_phasing : float
         Maximum binomial p-value for an allele combination to exceed errors.
 
@@ -315,6 +351,7 @@ def annotate_phased_variants(
     """
 
     _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
+    phasing_error_rates = _validate_locus_error_rates(phasing_error_rates)
     unphased_isovar_results = tuple(unphased_isovar_results)
     # Assess every pair against the full allele evidence, including reference
     # reads. Selecting only protein-supporting reads would discard the error
@@ -329,10 +366,17 @@ def annotate_phased_variants(
                 *_allele_table(v1, by_variant[v1], v2, by_variant[v2]),
                 min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
                 phasing_error_rate=phasing_error_rate,
-                max_p_value_for_phasing=max_p_value_for_phasing)
+                max_p_value_for_phasing=max_p_value_for_phasing,
+                first_error_rates=_locus_error_rates(v1, phasing_error_rates, phasing_error_rate),
+                second_error_rates=_locus_error_rates(v2, phasing_error_rates, phasing_error_rate))
         return calls[key] is True
 
-    updates = {result.variant: {} for result in unphased_isovar_results}
+    settings = dict(
+        min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
+        phasing_error_rate=phasing_error_rate,
+        max_p_value_for_phasing=max_p_value_for_phasing,
+        phasing_error_rates=phasing_error_rates)
+    updates = {result.variant: {"phasing_settings": settings} for result in unphased_isovar_results}
     for source in ("supporting_reads", "protein_sequence"):
         protein = source == "protein_sequence"
         neighbors, groups = _phase_annotations(
