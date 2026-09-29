@@ -15,8 +15,8 @@ and from both copies of a homozygous variant. `IsovarReadPhasing.in_cis`
 therefore counts somatic-alt fragments carrying the germline alt (cis) against
 those carrying the germline reference (trans).
 
-A germline locus reached only by an unmerged mate is not examined, since the
-mate's placement is not among the reads at the somatic locus.
+Unmerged mates contribute candidate loci through their declared primary
+placement. Their actual alleles still come from the same read collector.
 """
 
 from bisect import bisect_left
@@ -25,7 +25,7 @@ import re
 
 from .logging import get_logger
 from .read_evidence import ReadEvidence
-from .read_identity import fragment_ids
+from .read_identity import fragment_ids, segment_identity, source_alignments_from_pysam
 from .variant_helpers import base0_interval_for_variant
 
 logger = get_logger(__name__)
@@ -47,6 +47,53 @@ def _reference_blocks(start, cigar):
     if position > block_start:
         blocks.append((block_start, position))
     return blocks
+
+
+def _mate_reference_blocks(result, alignment_file):
+    """Aligned blocks of primary mates of the collected somatic-alt segments."""
+    sources = {
+        source for read in result.read_evidence.alt_reads
+        for source in getattr(read, "source_alignments", ())
+        if source[0][2] in (0x40, 0x80)
+    }
+    if not sources:
+        return
+    start, end = base0_interval_for_variant(result.variant)
+    # Materialize the source records before fetching mates: another fetch on
+    # this handle must not move the iterator that is discovering the sources.
+    records = [
+        read
+        for reference_id in sorted({placement[0] for _, placement in sources})
+        for read in alignment_file.fetch(
+            alignment_file.references[reference_id], max(0, start - 1), max(start + 1, end))
+        if not read.is_secondary and not read.is_supplementary
+        and source_alignments_from_pysam(read, read.query_name)[0] in sources
+    ]
+    seen = set()
+    for read in records:
+        if read.mate_is_unmapped or read.next_reference_id < 0 or read.next_reference_start < 0:
+            continue
+        mate_reference = alignment_file.references[read.next_reference_id]
+        mate_start = read.next_reference_start
+        segment = segment_identity(read)
+        mate_segment = segment[:2] + (0x80 if segment[2] == 0x40 else 0x40,)
+        key = (mate_segment, read.next_reference_id, mate_start)
+        if key in seen:
+            continue
+        seen.add(key)
+        # SAM v1 RNEXT/PNEXT identify the primary mate; SAMtags defines MC.
+        # https://samtools.github.io/hts-specs/SAMtags.pdf
+        # Never use TLEN: the unsequenced insert and skipped introns do not
+        # establish coverage of a germline allele.
+        cigar = read.get_tag("MC") if read.has_tag("MC") else None
+        if isinstance(cigar, str) and re.fullmatch(r"(?:[1-9][0-9]*[MIDNSHP=X])+", cigar):
+            yield mate_reference, _reference_blocks(mate_start, cigar)
+            continue
+        for mate in alignment_file.fetch(mate_reference, mate_start, mate_start + 1):
+            if (mate.reference_start == mate_start and not mate.is_secondary
+                    and not mate.is_supplementary and not mate.is_unmapped
+                    and segment_identity(mate) == mate_segment):
+                yield mate_reference, _reference_blocks(mate_start, mate.cigarstring)
 
 
 def _covers(block_start, block_end, start, end):
@@ -139,6 +186,8 @@ def germline_read_evidence(results, germline_variants, alignment_file, read_coll
         for read in result.read_evidence.alt_reads:
             for _, (reference_id, start, cigar, _) in getattr(read, "source_alignments", ()):
                 blocks[references[reference_id]].update(_reference_blocks(start, cigar))
+        for reference, mate_blocks in _mate_reference_blocks(result, alignment_file):
+            blocks[reference].update(mate_blocks)
         covered = set()
         for reference, reference_blocks in blocks.items():
             covered |= index.covered(reference, sorted(reference_blocks))

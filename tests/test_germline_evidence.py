@@ -194,3 +194,83 @@ def test_results_pickled_before_the_field_existed_still_work():
     assert restored.to_dict()["germline_read_evidence"] == {} and restored == restored.clone()
     shaped_none = IsovarReadPhasing([restored])
     assert shaped_none.in_cis(SOMATIC, GERMLINE) is None
+
+
+MATE_GERMLINE = Variant("1", 1321, "G", "T", normalize_contig_names=False)
+
+
+def separated_pair(name, allele="T", mc=True, mate_cigar="40M", mate_group="a"):
+    left = record(name, "1", 1000, "20M", REFERENCE[:10] + "G" + REFERENCE[11:20], flag=0x41)
+    mate_sequence = list("G" * (20 if "N" in mate_cigar else 40))
+    if "N" not in mate_cigar:
+        mate_sequence[20] = allele
+    right = record(name, "1", 1300, mate_cigar, "".join(mate_sequence), flag=0x81, group=mate_group)
+    for current, mate in ((left, right), (right, left)):
+        current.next_reference_id = mate.reference_id
+        current.next_reference_start = mate.reference_start
+        if mc:
+            current.set_tag("MC", mate.cigarstring)
+    return left, right
+
+
+@pytest.mark.parametrize("mc", [True, False])
+@pytest.mark.parametrize("allele,expected", [("T", True), ("G", False)])
+def test_unmerged_mate_germline_alleles_phase(tmp_path, mc, allele, expected):
+    reads = [r for i in range(3) for r in separated_pair("p%d" % i, allele, mc)]
+    result, = results_for(tmp_path, reads, germline=(MATE_GERMLINE,))
+    evidence = result.germline_read_evidence[MATE_GERMLINE]
+    names = evidence.alt_read_names if expected else evidence.ref_read_names
+    assert names == {"p0", "p1", "p2"}
+    assert IsovarReadPhasing([result]).in_cis(SOMATIC, MATE_GERMLINE) is expected
+
+
+@pytest.mark.parametrize("mc", [True, False])
+def test_mate_intron_is_excluded_but_next_exon_is_examined(tmp_path, mc):
+    exon = Variant("1", 1345, "G", "T", normalize_contig_names=False)
+    reads = [r for i in range(3) for r in separated_pair("n%d" % i, mc=mc, mate_cigar="10M30N10M")]
+    result, = results_for(tmp_path, reads, germline=(MATE_GERMLINE, exon))
+    assert set(result.germline_read_evidence) == {exon}
+    assert IsovarReadPhasing([result]).in_cis(SOMATIC, exon) is False
+
+
+@pytest.mark.parametrize("mc", [True, False])
+def test_mate_read_group_collision_never_provides_evidence(tmp_path, mc):
+    reads = [r for i in range(3) for r in separated_pair("g%d" % i, mc=mc, mate_group="b")]
+    result, = results_for(tmp_path, reads, germline=(MATE_GERMLINE,))
+    assert IsovarReadPhasing([result]).in_cis(SOMATIC, MATE_GERMLINE) is None
+    assert all(not (e.alt_reads or e.ref_reads or e.other_reads)
+               for e in result.germline_read_evidence.values())
+
+
+@pytest.mark.parametrize("missing", [True, False])
+def test_missing_or_unmapped_mates_do_not_create_coverage(tmp_path, missing):
+    reads = []
+    for i in range(3):
+        left, right = separated_pair("u%d" % i, mc=False)
+        if not missing:
+            left.flag |= 0x8
+            reads.append(right)
+        reads.append(left)
+    result, = results_for(tmp_path, reads, germline=(MATE_GERMLINE,))
+    assert result.germline_read_evidence == {}
+    assert IsovarReadPhasing([result]).in_cis(SOMATIC, MATE_GERMLINE) is None
+
+
+def test_invalid_mate_cigar_falls_back_to_the_actual_primary_mate(tmp_path):
+    reads = []
+    for i in range(3):
+        left, right = separated_pair("bad%d" % i)
+        left.set_tag("MC", "not-a-cigar")
+        reads.extend([left, right])
+    result, = results_for(tmp_path, reads, germline=(MATE_GERMLINE,))
+    assert IsovarReadPhasing([result]).in_cis(SOMATIC, MATE_GERMLINE) is True
+
+
+def test_second_segment_can_find_its_first_segment_mate(tmp_path):
+    reads = []
+    for i in range(3):
+        left, right = separated_pair("reverse%d" % i, mc=False)
+        left.flag, right.flag = 0x81, 0x41
+        reads.extend([left, right])
+    result, = results_for(tmp_path, reads, germline=(MATE_GERMLINE,))
+    assert IsovarReadPhasing([result]).in_cis(SOMATIC, MATE_GERMLINE) is True
