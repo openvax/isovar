@@ -1,8 +1,9 @@
 # Sid read-end regression records
 
-`osteosarc.sam` contains four unchanged primary SAM records selected from the
-cached T1 BAM subsets below. The header is reduced to their reference sequences
-and original read groups. Sequence, flags, CIGAR, qualities (including missing
+The packaged Sid bundle contains four unchanged primary records selected from the
+cached T1 BAM subsets below, under `read_ends/osteosarc.sam#<read-name>`.
+Tests use `isovar.sid_data.export` to read them with their source headers.
+Sequence, flags, CIGAR, qualities (including missing
 QUAL), tags and read names are unchanged. These are not simulated adapter reads.
 
 - ONT: `a81a7468-ebc9-440f-a8de-e5f6c6591852_0` and

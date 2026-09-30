@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 
 
+from isovar.sid_data import restore_records
 from tests.data.osteosarc.expansion.inventory import digest
 from tests.data.osteosarc.figure_comparisons import footprints
 from tests.data.osteosarc.figure_comparisons.nr2f2_libraries import load as load_libraries
@@ -76,7 +77,7 @@ def load():
     path = CORPUS / manifest["file"]
     if digest(path) != manifest["sha256"]:
         raise ValueError("Extended footprint evidence checksum mismatch")
-    return json.loads(gzip.decompress(path.read_bytes()))
+    return restore_records(json.loads(gzip.decompress(path.read_bytes())))
 
 
 def pin(audit_directory, name):

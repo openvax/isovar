@@ -13,6 +13,7 @@ import tempfile
 
 import pysam
 
+from isovar.sid_data import restore_records
 from isovar import __version__
 from isovar.sid_data import export
 from isovar.sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
@@ -27,7 +28,7 @@ def main():
     entries = json.loads((directory / "long-read/manifest.json").read_text())
     entry, = [e for e in entries if (e["event"], e["source"]) == ("TPST1--CRCP", "PacBio-T1")]
     with gzip.open(directory / entry["input"], "rt") as handle:
-        data = json.load(handle)
+        data = restore_records(json.load(handle))
     fusion = data["fusion"]
     inputs = sv_rna_input_from_dict(dict(
         event_id=entry["event"], reference_name="GRCh38", sample_id="Sid-T1",

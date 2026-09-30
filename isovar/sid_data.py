@@ -11,8 +11,8 @@ read-only, and reuses it.
 
 An exported file holds exactly the member's original records, but coordinate
 sorted and under the source's full header, and is named ``<member>.<format>``.
-Reads embedded in JSON fixtures stay in those fixtures; tests check them
-against the bundle.
+JSON fixtures refer to these records by member name and SAM digest. `read_fixture`
+restores them without changing record order, multiplicity or adjacent metadata.
 
 `build` makes the packaged bundle again with osteosarc, from a shared bundle's
 records or from Sid's original BAMs, and `check` compares such a build with
@@ -24,6 +24,7 @@ metadata snapshot.
 """
 
 import argparse
+from collections import Counter
 from functools import lru_cache
 import gzip
 from hashlib import sha256
@@ -279,6 +280,62 @@ def read_json(path):
     """JSON from a file, gzip-compressed when its name ends ``.gz``."""
     with gzip.open(path, "rt") if str(path).endswith(".gz") else open(path) as handle:
         return json.load(handle)
+
+
+def records(name, cache=None):
+    """Return one member's original SAM text, keyed by its SHA-256 digest.
+
+    Accepts whole-file and ``#`` member names. The packaged bundle and the
+    exported records are verified before use; no network access is needed.
+    Duplicate records share a digest, while the member's multiplicities are
+    checked before constructing the lookup.
+    """
+    from osteosarc.records import read_records
+
+    manifest = _verified(bundle())
+    member = manifest["members"][PREFIX + name]
+    rows = list(read_records(_file(name, "bam", cache)))
+    # The bundle uses lossless BAM identities, which are deliberately distinct
+    # from the SAM-text digests used by the JSON fixtures.
+    counts = Counter(row.digest for row in rows)
+    if counts != member["records"]:
+        raise SidDataUnavailable("Exported Sid records differ from the packaged member: %s" % name)
+    lines = [row.read.to_string() for row in rows]
+    return {sam_digest(line): line for line in lines}
+
+
+def restore_records(value, cache=None):
+    """Decode explicit Sid record references in a JSON value, leaving it unchanged.
+
+    A record reference is exactly ``{"sid_member": name, "sam_sha256": digest}``.
+    Only that member may supply the record. Other dictionaries, lists, scalar
+    values and their order are preserved in the returned copy. A missing member
+    or digest raises ``KeyError``; malformed references raise ``ValueError``.
+    """
+    by_member = {}
+
+    def restore(item):
+        if isinstance(item, list):
+            return [restore(child) for child in item]
+        if isinstance(item, dict):
+            if "sid_member" in item:
+                if (set(item) != {"sid_member", "sam_sha256"}
+                        or not isinstance(item["sid_member"], str)
+                        or not isinstance(item["sam_sha256"], str)):
+                    raise ValueError("Invalid Sid record reference: %r" % item)
+                name = item["sid_member"]
+                if name not in by_member:
+                    by_member[name] = records(name, cache=cache)
+                return by_member[name][item["sam_sha256"]]
+            return {key: restore(child) for key, child in item.items()}
+        return item
+
+    return restore(value)
+
+
+def read_fixture(path, cache=None):
+    """Read plain or gzip JSON and restore its explicit Sid record references."""
+    return restore_records(read_json(path), cache=cache)
 
 
 def write_json(path, value):

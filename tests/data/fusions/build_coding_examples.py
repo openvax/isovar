@@ -9,6 +9,7 @@ from pathlib import Path
 import pysam
 import tempfile
 
+from isovar.sid_data import restore_records
 from isovar.sid_data import extract_regions
 from pyensembl import EnsemblRelease
 
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as scratch:
         sid_bam = args.sid_bam
         if sid_bam is None:
-            source = json.loads(gzip.decompress((Path(__file__).parent / "coding-corpus/ATP5MG--KMT2A.input.json.gz").read_bytes()))
+            source = restore_records(json.loads(gzip.decompress((Path(__file__).parent / "coding-corpus/ATP5MG--KMT2A.input.json.gz").read_bytes())))
             url = source["fusion"]["provenance"]["source"]
             sid_bam = Path(scratch) / "sid.bam"
             subset = extract_regions(url, ["chr11:118400717-118402717", "chr11:118467774-118469774"], "GRCh38", sid_bam)

@@ -78,7 +78,7 @@
         ]
       ],
       "segments": 38,
-      "sha256": "f40b54386700fca3237dffa53eda5a6d474b1e41ec0d4f35bb8a59ed5d40a39a",
+      "sha256": "8debb3f34b22500756cd9173de79622b2406171037f9e154d0085f74c5a452da",
       "source": "ONT-T1",
       "source_header_sha256": "4bd8902e10b9d437224ee4a0fa2ff99660af4fe1e93ec673cbe6a28d56fbf701"
     },
@@ -99,7 +99,7 @@
         ]
       ],
       "segments": 2,
-      "sha256": "76274635f8394dd03320a6ef8088a0344f8f36013869564fa4ac72c57a046658",
+      "sha256": "6d09855fbe1afabd47b48e5aa595c2c7718abecdfba7cfa0bccbf8efb84ff803",
       "source": "ONT-T1",
       "source_header_sha256": "4bd8902e10b9d437224ee4a0fa2ff99660af4fe1e93ec673cbe6a28d56fbf701"
     },
@@ -141,7 +141,7 @@
         ]
       ],
       "segments": 22,
-      "sha256": "2aef31982046e964c709cc5e1835fb0f4d3f4ab1fd9fae3dbd4aadf444d50e09",
+      "sha256": "5cf52cbe76839e2716ff813d9263cfa4d2d29c5fb4312a720241c142d960255f",
       "source": "ONT-T2",
       "source_header_sha256": "931b560e7c39d5cdd3505e0a71039e3685ba603f9b7064ea06b7d6a19363c842"
     },
@@ -162,7 +162,7 @@
         ]
       ],
       "segments": 3,
-      "sha256": "2d0c41aea23f62bc5b8623fe81dd0e6cb43265793e8a0d0a3dffb1b67ae18c0c",
+      "sha256": "05e460446233d88d447fe50263fb26140ea5328dec40a95e3010f44ea57ba7fd",
       "source": "ONT-T2",
       "source_header_sha256": "931b560e7c39d5cdd3505e0a71039e3685ba603f9b7064ea06b7d6a19363c842"
     },
@@ -183,7 +183,7 @@
         ]
       ],
       "segments": 11,
-      "sha256": "a3538bd9e8b4e678430568f93da8344a5a86ac164b15d2a20ffaf8ec5385cc21",
+      "sha256": "86fd407aac32575ac3937e64173f97b121b00bc382117b88b18a4a766b899432",
       "source": "ONT-T2",
       "source_header_sha256": "931b560e7c39d5cdd3505e0a71039e3685ba603f9b7064ea06b7d6a19363c842"
     },
@@ -204,7 +204,7 @@
         ]
       ],
       "segments": 8,
-      "sha256": "fc35f507736a065ed7a4184194c94bc45fa4e1bd86e182353b0daa39f5d5c6c6",
+      "sha256": "896473247e0c8001a972bba3c98a43b0bb4d10d264c08001110031dea8822264",
       "source": "ONT-T3",
       "source_header_sha256": "f8e7daaa2294a1874538e34665df257f9e134ba2888d075b578ac523783c8ce9"
     },
@@ -225,7 +225,7 @@
         ]
       ],
       "segments": 1,
-      "sha256": "d025156dce53ebd6c573cab67bf4909d55ab8678e03dc379df67948d83f9e62c",
+      "sha256": "4245e8a0f0249931b1c526096564a3001c5a41e9db9020f9bb96c3f4577451d4",
       "source": "ONT-T3",
       "source_header_sha256": "f8e7daaa2294a1874538e34665df257f9e134ba2888d075b578ac523783c8ce9"
     },
@@ -267,7 +267,7 @@
         ]
       ],
       "segments": 5,
-      "sha256": "53ad95370fe99a377265f6a9ca3faa71eb6462635fa8f0d0a60eb2d5a6ce09ca",
+      "sha256": "81701a216fa6119738aa48539c1bc802c5b78a92ba8a82f5cb83ddb9014987ac",
       "source": "PacBio-T1",
       "source_header_sha256": "d9e49ea876c4392385dbf2dd29dc6b4eee1258632e831d5265d7edc40bdc81ad"
     },

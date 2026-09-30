@@ -19,6 +19,7 @@ from pyensembl import cached_release
 import varcode
 from varcode.sv_allele_parser import parse_symbolic_alt
 
+from isovar.sid_data import restore_records
 from isovar import __version__
 from isovar.sid_data import export
 from isovar.sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
@@ -63,7 +64,7 @@ def validate(entry, output, bam_path=None, rna_source=None, orientation="forward
         predictions = predict(entry)
     else:
         reference_path = DATA / "corpus" / (event + "-T1.input.json.gz")
-        data = json.loads(gzip.decompress(reference_path.read_bytes()))
+        data = restore_records(json.loads(gzip.decompress(reference_path.read_bytes())))
         long_reads = json.loads((DATA / "long-read/manifest.json").read_text())
         selected = next((r for r in long_reads if r["event"] == event), None)
         fixture = ("fusions/long-read/" + selected["file"] if selected else

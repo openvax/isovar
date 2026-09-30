@@ -4,6 +4,7 @@ import pysam
 import pytest
 from varcode import Variant
 
+from isovar.sid_data import restore_records
 from isovar import ReadCollector
 from isovar.allele_read import AlleleRead
 from .genomes_for_testing import grch38
@@ -96,7 +97,7 @@ def test_original_sid_ktn1_endpoints_and_false_alternative_conflict():
     manifest = json.loads((corpus / "insertion-boundaries-manifest.json").read_text())
     raw = (corpus / manifest["file"]).read_bytes()
     assert hashlib.sha256(raw).hexdigest() == manifest["sha256"]
-    data = json.loads(gzip.decompress(raw))
+    data = restore_records(json.loads(gzip.decompress(raw)))
     variant = Variant(ensembl=grch38, **data["variant"])
     for product in data["products"]:
         header = pysam.AlignmentHeader.from_dict(product["header"])

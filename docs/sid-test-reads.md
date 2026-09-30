@@ -18,9 +18,11 @@ from openvax-v1, and CI checks that it still does, record for record.
   - the PIP5K1A and PacBio comparisons;
   - the long-read fusions;
   - the chimeric examples.
-- **221 selections inside files that stay in the repository**: `file#/pointer`
-  names reads embedded in a JSON fixture, and `file#READ` names one read of a
-  SAM file.
+- **217 selections referenced by JSON fixtures**: `file#/pointer` names the
+  original location of the records. The 25 JSON files now store member names
+  and SAM-text digests instead of duplicate SAM lines.
+- **4 single-read selections**, named `read_ends/osteosarc.sam#READ`, consumed
+  directly from the bundle. The former SAM copy is removed.
 - **Selection and provenance.** osteosarc owns read selection and records the
   source, snapshot and reason for every template. openvax-v1 also covers all
   187 osteosarc site variants and the other libraries' fixtures. See
@@ -43,6 +45,8 @@ from isovar import sid_data
 path = sid_data.path("osteosarc/bulk_star_t0.sam.gz")   # .../bulk_star_t0.sam.gz.sam.gz
 sid_data.export("fusions/corpus/TPST1--CRCP-T1.input.json.gz#/original_records", "reads.sam")
 sid_data.members()                                      # every Isovar member
+records = sid_data.records("chimeric/osteosarc-ont.sam")  # SAM digest -> SAM text
+fixture = sid_data.read_fixture("tests/data/fusions/corpus/TPST1--CRCP-T1.input.json.gz")
 ```
 
 ```sh
@@ -67,8 +71,20 @@ An exported file holds exactly the member's original records, but it is
 coordinate-sorted and carries the source's full header. So its bytes, and the
 order of records at the same position, differ from the old copies. Tests
 compare records, not file checksums. `tests/test_sid_data.py` checks every
-embedded or selected read against the bundle with osteosarc's `check_fixtures`,
-so the JSON fixtures can't drift from it.
+decoded selection against the bundle with osteosarc's `check_fixtures`.
+It also checks fingerprints captured before removing the embedded records:
+every decoded JSON value, record order, repeated record and metadata field is
+preserved.
+
+In a JSON fixture, a SAM string is represented as exactly
+`{"sid_member": "<member>", "sam_sha256": "<digest>"}`. `read_fixture` reads
+plain or compressed JSON and restores these references; `restore_records`
+does the same for an already parsed value. Both leave ordinary JSON values
+unchanged. A missing member or a digest absent from that member fails rather
+than searching other members. The digest is SHA-256 of the ASCII SAM text,
+without a trailing newline. It is distinct from Osteosarc's lossless BAM
+record identity: `records` first verifies the exported BAM record identities
+and multiplicities against the packaged manifest, then builds the SAM lookup.
 
 ## Making the reads again
 
@@ -110,7 +126,8 @@ osteosarc test-data check isovar/data/sid-reads fixtures.json
 ```
 
 `fixtures.json` maps member names to files, or to `{"json": path, "pointer": "/records"}`
-for reads embedded in JSON.
+for reads embedded in JSON. Decode reference-based fixtures with `read_fixture`
+before passing their JSON to this external checker, as the Isovar test does.
 
 The regional audit builders under `tests/data` still acquire larger research
 inputs through osteosarc (`sid_data.open_dataset`, `extract_regions` and

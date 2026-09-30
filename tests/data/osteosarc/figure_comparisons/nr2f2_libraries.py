@@ -12,6 +12,7 @@ from urllib.parse import quote
 
 import pysam
 
+from isovar.sid_data import restore_records
 from isovar.sid_data import open_dataset, extract_regions
 from tests.data.osteosarc.expansion.inventory import fetch_snapshot
 from tests.data.osteosarc.expansion.liftover import (
@@ -225,7 +226,7 @@ def load():
     raw = (nr2f2.CORPUS / manifest["file"]).read_bytes()
     if sha256(raw).hexdigest() != manifest["sha256"]:
         raise ValueError("NR2F2 library evidence checksum mismatch")
-    return json.loads(gzip.decompress(raw))
+    return restore_records(json.loads(gzip.decompress(raw)))
 
 
 if __name__ == "__main__":
