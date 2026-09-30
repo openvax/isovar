@@ -6,6 +6,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
+from isovar.sid_data import restore_records
 from isovar.fusion import FUSION_INPUT_KEYS, fusion_from_dict, reconstruct_fusion
 from isovar.fusion_visualization import _canvas, save_fusion_figures
 from isovar.visualization import BLUE, GRAY, ORANGE, _plot_imports, _side_note, save_variant_figures
@@ -19,7 +20,7 @@ def load():
     raw=(CORPUS/manifest['file']).read_bytes()
     if sha256(raw).hexdigest()!=manifest['sha256']:
         raise ValueError('RNA footprint fixture digest mismatch')
-    return json.loads(gzip.decompress(raw))
+    return restore_records(json.loads(gzip.decompress(raw)))
 
 
 def indel_panel(entry):

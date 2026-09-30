@@ -4,6 +4,7 @@ import gzip
 import json
 from pathlib import Path
 
+from isovar.sid_data import restore_records
 from isovar.fusion_visualization import _canvas
 from isovar.protein_comparison import save_protein_comparison
 from isovar.visualization import BLUE, GRAY, ORANGE, _side_note
@@ -26,7 +27,7 @@ def load_dlg5():
     path = CORPUS / manifest["file"]
     if digest(path) != manifest["sha256"]:
         raise ValueError("DLG5 evidence checksum mismatch")
-    return json.loads(gzip.decompress(path.read_bytes()))
+    return restore_records(json.loads(gzip.decompress(path.read_bytes())))
 
 
 def table_panel(title, subtitle, columns, rows, note, footer):

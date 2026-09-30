@@ -14,6 +14,7 @@ import time
 import pysam
 import pytest
 
+from isovar.sid_data import restore_records
 from isovar import reconstruct_sv_rna
 from isovar.cli import commands
 from isovar.fusion import FusionBreakpoint, FusionReference, fusion_from_dict, reconstruct_fusion
@@ -816,7 +817,7 @@ def test_cli_writes_the_api_result(tmp_path):
 
 
 def corpus_bam(tmp_path, name, directory="coding-corpus"):
-    data = json.loads(gzip.decompress((FUSIONS / directory / (name + ".input.json.gz")).read_bytes()))
+    data = restore_records(json.loads(gzip.decompress((FUSIONS / directory / (name + ".input.json.gz")).read_bytes())))
     contigs = sorted({r["contig"] for r in data["references"]} | {data["fusion"]["donor"]["contig"],
                                                                    data["fusion"]["acceptor"]["contig"]})
     header = pysam.AlignmentHeader.from_dict(dict(SQ=[dict(SN=c, LN=300000000) for c in contigs]))
@@ -932,7 +933,7 @@ def long_read_run(tmp_path, event, source):
                 out.write(pysam.AlignedSegment.fromstring(line, header))
     pysam.sort("-o", str(path), str(unsorted))
     pysam.index(str(path))
-    data = json.loads(gzip.decompress((FUSIONS / entry["input"]).read_bytes()))
+    data = restore_records(json.loads(gzip.decompress((FUSIONS / entry["input"]).read_bytes())))
     fusion = data["fusion"]
     inputs = sv_rna_input_from_dict(dict(
         event_id=event, reference_name="GRCh38", sample_id="Sid-T1", donor=fusion["donor"],

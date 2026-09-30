@@ -14,6 +14,7 @@ import tempfile
 
 import pysam
 
+from isovar.sid_data import restore_records
 from isovar.read_identity import segment_identity as segment
 from isovar.sid_data import sam_digest
 from isovar.sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
@@ -27,7 +28,7 @@ def pinned_json(directory, entry):
     raw = (directory / entry["file"]).read_bytes()
     if sha256(raw).hexdigest() != entry["sha256"]:
         raise ValueError("Fixture checksum mismatch: " + entry["file"])
-    return json.loads(gzip.decompress(raw))
+    return restore_records(json.loads(gzip.decompress(raw)))
 
 
 def run_case(directory, event, source, orientation, scratch):

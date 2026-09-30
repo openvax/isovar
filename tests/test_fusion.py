@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 import pysam
 
+from isovar.sid_data import restore_records
 from isovar import FusionBlock, FusionBreakpoint, FusionRead, FusionReference, FusionTranscript, reconstruct_fusion
 from isovar.cli import commands
 from isovar.cli.isovar_fusion import make_parser
@@ -258,7 +259,7 @@ def test_original_osteosarc_rna_windows_remain_unresolved_not_fake_proteins():
             continue
         path = corpus / entry["input"]
         assert hashlib.sha256(path.read_bytes()).hexdigest() == entry["sha256"]
-        data = json.loads(gzip.decompress(path.read_bytes()))
+        data = restore_records(json.loads(gzip.decompress(path.read_bytes())))
         fusion, refs, reads = fusion_from_dict(fusion_input(data))
         result = reconstruct_fusion(fusion, refs, reads)
         assert result["status"] == "unresolved"

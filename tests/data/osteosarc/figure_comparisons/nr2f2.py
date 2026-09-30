@@ -15,6 +15,7 @@ from pathlib import Path
 import shutil
 
 import pysam
+from isovar.sid_data import restore_records
 from isovar.sid_data import extract_regions, fetch_metadata
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -153,7 +154,7 @@ def load():
     raw = (CORPUS / manifest["file"]).read_bytes()
     if sha256(raw).hexdigest() != manifest["sha256"]:
         raise ValueError("NR2F2 evidence checksum mismatch")
-    return json.loads(gzip.decompress(raw))
+    return restore_records(json.loads(gzip.decompress(raw)))
 
 
 if __name__ == "__main__":

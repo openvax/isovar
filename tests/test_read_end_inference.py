@@ -365,9 +365,16 @@ def test_invalid_adapter_profile_fails_explicitly(kwargs):
         Adapter("invalid", **kwargs)
 
 
-def test_actual_sid_records_preserved_and_tails_do_not_trim_mapped_a_bases():
-    with pysam.AlignmentFile(Path(__file__).parent / "data/read_ends/osteosarc.sam") as bam:
-        reads = list(bam)
+def test_actual_sid_records_preserved_and_tails_do_not_trim_mapped_a_bases(tmp_path):
+    from isovar import sid_data
+    members = [n for n in sid_data.members() if n.startswith("read_ends/osteosarc.sam#")]
+    assert len(members) == 4
+    reads = []
+    for i, name in enumerate(members):
+        path = sid_data.export(name, tmp_path / ("%d.bam" % i))
+        with pysam.AlignmentFile(path) as bam:
+            read, = list(bam)
+            reads.append(read)
     profile = ReadEndProfile("Illumina-TruSeq-R2", adapters=(
         Adapter("TruSeq-R2", "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT", mate=2),))
     collector = ReadCollector(read_end_profile=profile, trim_adapters=True, trim_poly_a=True)

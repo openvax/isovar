@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pysam
 
+from isovar.sid_data import restore_records
 from isovar.fusion import FUSION_INPUT_KEYS, fusion_from_dict, reconstruct_fusion
 from isovar.fusion_visualization import GREEN, _canvas, save_fusion_figures
 from isovar.visualization import BLUE, GRAY, ORANGE, _plot_imports, _protein_disagreements, _side_note
@@ -30,7 +31,7 @@ def load_context():
     raw = (CORPUS/manifest["file"]).read_bytes()
     if sha256(raw).hexdigest() != manifest["sha256"]:
         raise ValueError("Context fixture digest mismatch")
-    return json.loads(gzip.decompress(raw))
+    return restore_records(json.loads(gzip.decompress(raw)))
 
 
 def original_reads(source):
@@ -287,7 +288,7 @@ def generate(output_dir):
             continue
         raw=(corpus/entry["input"]).read_bytes()
         assert sha256(raw).hexdigest()==entry["sha256"]
-        supplied=json.loads(gzip.decompress(raw))
+        supplied=restore_records(json.loads(gzip.decompress(raw)))
         fusion,refs,reads=fusion_from_dict({k: v for k, v in supplied.items() if k in FUSION_INPUT_KEYS})
         result=reconstruct_fusion(fusion,refs,reads)
         directory=save_fusion_figures(result,output/"fusion-rna",refs,supplied.get("reference_names"))

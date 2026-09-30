@@ -7,6 +7,7 @@ from pathlib import Path
 import pysam
 import pytest
 
+from isovar.sid_data import restore_records
 from isovar.fusion import fusion_from_dict, reconstruct_fusion
 from tests.testing_helpers import fusion_input
 from tests.data.osteosarc.expansion.references import translate
@@ -19,7 +20,7 @@ ENTRIES = json.loads((CORPUS / "manifest.json").read_text())
 def test_original_coding_fusion_hypotheses(entry):
     raw = (CORPUS / entry["input"]).read_bytes()
     assert sha256(raw).hexdigest() == entry["sha256"]
-    data = json.loads(gzip.decompress(raw))
+    data = restore_records(json.loads(gzip.decompress(raw)))
     fusion, references, observations = fusion_from_dict(fusion_input(data))
     result = reconstruct_fusion(fusion, references, observations)
     assert result["status"] == entry["expected_status"] == "ambiguous"
