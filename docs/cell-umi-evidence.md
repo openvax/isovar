@@ -12,9 +12,10 @@ and fragment counts, under one policy, `isovar.cell_umi_labels.v1`:
   ORF.
 
 A label count is not a molecule count. Isovar uses the labels as the input
-reports them. It does not cluster UMIs, correct barcodes or reconstruct each
-cell separately ([#226](https://github.com/openvax/isovar/issues/226)). A
-missing or unresolved label never removes a read or changes the reconstruction.
+reports them. Label reporting does not cluster UMIs or correct barcodes. A missing or
+unresolved label never changes ordinary sample reconstruction. The separate
+opt-in [pool reconstruction](#pooled-reconstruction-with-per-cell-attribution)
+analysis uses these labels to define reconstruction boundaries (#226).
 
 ## Small variants
 
@@ -160,3 +161,103 @@ The original records and their tags are not modified.
   the sequence/alignment evidence used beyond matching barcode strings.
 - [Bismark alignment output](https://github.com/FelixKrueger/Bismark/blob/master/docs/src/content/docs/usage/alignment.md):
   XM methylation-call semantics.
+
+## Pooled reconstruction with per-cell attribution
+
+`protein-hypotheses --cell-reconstruction sample` adds a separate
+`cell_reconstruction` object to the JSON. The ordinary sample result and TSV
+keep their existing meaning. This opt-in analysis reconstructs local protein
+candidates within explicit pools and compares the original observations with
+the discovered candidate catalog:
+
+```sh
+isovar protein-hypotheses --vcf variants.vcf --bam sc-rna.bam \
+    --sample-id tumor-T1 --source library-set-T1 \
+    --cell-reconstruction sample --cell-max-edits 1 \
+    --output hypotheses.json
+```
+
+Python callers can use `reconstruct_cell_groups(results, alignment_file,
+sample_id=..., source=..., mode="sample")`. Pass the original `ReadCollector`
+and transcript whitelist if customized. The input results must record their
+`protein_sequence_settings`. Discovery reuses those settings but keeps all
+protein hypotheses, independently of the ordinary output's top-protein cap.
+The configured per-base coverage floor applies inside each pool; it is never
+lowered to obtain a per-cell result.
+
+The pooling modes are:
+
+| Mode | Discovery scope |
+| --- | --- |
+| `sample` | Explicit sample/source plus header `SM`; different declared samples stay separate |
+| `library` | Existing sample/library namespace, with RG fallback when the library is unknown |
+| `cell` | One trusted, scoped barcode; unresolved cells are excluded from discovery |
+| `group` | An external cell-group name within a declared sample |
+
+For group mode, supply `--cell-groups groups.json`, a JSON object mapping the
+exported `cell_id` values to group names. Obtain those IDs from a first sample
+export with the same `--sample-id` and `--source`. Identical barcode strings
+from different libraries have different IDs. Explicit group membership may
+pool their reads for discovery, but it never merges their cell identities.
+Cells absent from the mapping are excluded from discovery and still receive
+attribution against candidates from their declared sample. Supply distinct
+sample/source identities for timepoints and separate biological inputs; missing
+metadata cannot recover distinctions that were already lost upstream.
+
+Each event reports reconstruction pools (including no-protein reasons), the
+union of nucleotide candidates and their protein hypothesis IDs, and a row for
+each observed trusted cell. Reads without trusted cell identities are included
+in `unresolved_cell_support`; reads without the requested pool are included in
+`excluded_from_pool`. These sets may overlap. No read is silently dropped.
+The export includes hashed evidence sets for tracing and deduplicating support.
+
+Attribution is separate from discovery. Four cells with one informative read
+each can reconstruct a candidate at a two-read coverage floor and each retain
+one supporting observation. A noisy read excluded from assembly can still be
+compatible during attribution. Conversely, reads covering only shared sequence
+remain ambiguous between candidates. Cells can support multiple sequences.
+
+`score_policy=anchored_edit_compatibility.v1` compares the observed prefix,
+allele and suffix with each candidate, anchored at the nominated variant.
+Only overlapping flanks are compared. Each part uses unit-cost edit distance;
+splice compatibility is checked against candidate transcripts. The default
+maximum total cost is 1 (`--cell-max-edits`); the default minimum number of
+compared read bases is 10 (`--cell-min-overlap`). Non-ACGT observations in the
+compared interval remain unassessed. The `comparisons` report costs and the
+candidate interval covered; `spans_candidate` refers to that local nucleotide
+candidate, potentially supported by merged mates, not necessarily a full ORF.
+
+Every candidate also has a paired reference-allele competitor with the same
+flanks. An observation whose reference cost is equal or better cannot provide
+mutant-specific support. All candidates within the tolerance remain possible;
+the implementation does not force a winner by majority abundance. Alternative
+placements of one observation must agree for a unique assignment.
+
+`unique_within_catalog` means one compatible candidate after these checks.
+`ambiguous` retains the candidate set, including disagreements between
+placements. Other statuses report no candidate, inadequate coverage/path,
+reference-or-other allele evidence, or excessive edit distance. Candidate
+`unique_cell_ids` and `ambiguous_cell_ids` list cells with at least one such
+observation; a cell may appear in both lists or support multiple candidates.
+Do not add these lists or interpret them as mutually exclusive cell states.
+`num_unique_cells` and `num_ambiguous_cells` are the corresponding observed
+counts. `protein_attribution` aggregates the same evidence by protein hypothesis:
+ambiguity between synonymous nucleotide candidates can still identify one
+protein. Observation `hypothesis_ids` and `protein_status` record this decision.
+Multiple protein hypotheses for one nucleotide candidate remain unresolved.
+
+These are compatibility costs, not posterior probabilities or validated
+expression calls. The first implementation does not model base qualities,
+ambient RNA, barcode errors or systematic platform errors. Reference competition
+covers the focal allele in each discovered context, not an exhaustive catalog
+of wild-type isoforms. Discovery still uses the existing exact-overlap assembler;
+edit-tolerant attribution does not perform noisy-read consensus correction.
+Cells without an informative read are unknown, and cells absent from the locus
+are not enumerated. Observed cell counts are not an estimate of the total number
+of expressing cells. Local RNA support does not establish protein translation.
+
+The discovery/quantification separation follows
+[IsoQuant](https://ablab.github.io/IsoQuant/cmd.html) and
+[FLAMES](https://doi.org/10.1186/s13059-021-02525-6).
+[Longcell](https://doi.org/10.1038/s41467-025-60902-2) describes the UMI and mapping
+errors that require additional modeling for quantitative single-cell inference.
