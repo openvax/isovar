@@ -3,11 +3,14 @@
 Isovar's regression reads from the public Sid osteosarcoma data (CC0) ship
 with Isovar in ``isovar/data/sid-reads``, so its tests never need network
 access. That folder is an osteosarc fixture bundle of Isovar's members of
-osteosarc's shared OpenVax bundle, ``openvax-v1``: they are named
+osteosarc's shared OpenVax bundle, ``openvax-v1``. Legacy members are named
 ``isovar/<path>``, after the files Isovar's tests read (``<path>`` is relative
 to ``tests/data``). `path` returns one as a local file, through osteosarc's
 ``bundle_file``, which exports each member once into osteosarc's cache,
 read-only, and reuses it.
+
+The bundle also holds the shared T2 small-variant panel under its original
+member names. These are exported with ``osteosarc.bundle_file(bundle(), name)``.
 
 An exported file holds exactly the member's original records, but coordinate
 sorted and under the source's full header, and is named ``<member>.<format>``.
@@ -41,8 +44,10 @@ BUNDLE = "openvax-v1"
 BUNDLE_MANIFEST_SHA256 = "193623c040fa85e9dae5733fe0939358b9b7119da0e6563183bf5a9727f2d7d4"
 # Isovar's own bundle of those members, packaged with Isovar, and its manifest's SHA-256.
 PACKAGED = Path(__file__).parent / "data" / "sid-reads"
-PACKAGED_MANIFEST_SHA256 = "4b7b9b57029f91ec36fa7b4570149f750cf1479291633946c026651277e6ca3c"
+PACKAGED_MANIFEST_SHA256 = "0e299b970dfaf9df8ca42300db482dd9058642c307ccfca9cca6bc08b078a8c5"
 PREFIX = "isovar/"
+# Published T2 short-read selection, retained under its upstream member names.
+PANEL_SOURCE = "25.03.23.rna.ucla.2025.01.resection.tcga.d32.protocolAligned.sorted"
 # Exported file formats by suffix.
 _FORMATS = ((".sam.gz", "sam.gz"), (".sam", "sam"), (".bam", "bam"))
 
@@ -162,8 +167,11 @@ def export(name, output, cache=None):
 
 def recipe(shared):
     """
-    Isovar's part of a bundle recipe: its ``isovar/`` members, with the
-    sources and targets they use.
+    Isovar's fixtures and the T2 small-variant panel, without reselecting reads.
+
+    Keep all small-variant target definitions, including reference-specific
+    targets without a T2 member and unresolved catalog alleles. Their absence
+    must remain distinguishable from an observed lack of alternate reads.
 
     Parameters
     ----------
@@ -175,9 +183,14 @@ def recipe(shared):
     dict
         A recipe named ``isovar``, which osteosarc makes Isovar's bundle from.
     """
-    members = {name: member for name, member in shared["members"].items() if name.startswith(PREFIX)}
+    panel_targets = {name for name, target in shared["targets"].items()
+                     if target["kind"] == "small_variant"
+                     or (target["kind"] == "unresolved" and target.get("label") == "current")}
+    members = {name: member for name, member in shared["members"].items()
+               if name.startswith(PREFIX)
+               or (member["source"] == PANEL_SOURCE and member["target"] in panel_targets)}
     sources = {member["source"] for member in members.values()}
-    targets = {member["target"] for member in members.values()}
+    targets = {member["target"] for member in members.values()} | panel_targets
     result = dict(shared, id="isovar", members=members,
                   sources={name: s for name, s in shared["sources"].items() if name in sources},
                   targets={name: t for name, t in shared["targets"].items() if name in targets})

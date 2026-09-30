@@ -9,7 +9,7 @@ from openvax-v1, and CI checks that it still does, record for record.
 
 ## What Isovar's bundle holds
 
-- **345 members, named `isovar/<path>`** after the files Isovar's tests read
+- **345 legacy members, named `isovar/<path>`** after the files Isovar's tests read
   (`<path>` is relative to `tests/data`). They hold exactly the same records.
 - **124 whole read files**, 5.8 MB of SAM and BAM:
   - the six-locus RNA;
@@ -23,6 +23,12 @@ from openvax-v1, and CI checks that it still does, record for record.
   and SAM-text digests instead of duplicate SAM lines.
 - **4 single-read selections**, named `read_ends/osteosarc.sam#READ`, consumed
   directly from the bundle. The former SAM copy is removed.
+- **184 T2 short-read members** retain their upstream names and original
+  selection, bringing the packaged total to **529 members**. They cover every
+  literal GRCh38 small-variant target in openvax-v1. The complete inventory also
+  retains three GRCh37/hg19 targets without a corresponding T2 member and two
+  unresolved catalog alleles. The [full-panel regression](../tests/data/osteosarc/union/README.md)
+  accounts for all of them and pins independent allele and protein checks.
 - **Selection and provenance.** osteosarc owns read selection and records the
   source, snapshot and reason for every template. openvax-v1 also covers all
   187 osteosarc site variants and the other libraries' fixtures. See
@@ -55,8 +61,8 @@ python -m isovar.sid_data path osteosarc/expansion/corpus/28-NTF3-chr12-5494381-
 python -m isovar.sid_data export chimeric/osteosarc-ont.sam --output /tmp/chimeric.sam
 ```
 
-- **Size.** The bundle is 33 MB, mostly JSON (its manifest, recipe and the
-  sources' original headers), and adds about 10 MB to the wheel.
+- **Size.** The bundle is about 37 MB, mostly JSON (its manifest, recipe and the
+  sources' original headers).
 - **Where the exports live.** In osteosarc's cache: `OSTEOSARC_CACHE`, or the
   shared OpenVax cache (`OPENVAX_DATA_CACHE`, or the platform's `openvax`
   cache directory). osteosarc exports every member of each source BAM it
@@ -88,8 +94,9 @@ and multiplicities against the packaged manifest, then builds the SAM lookup.
 
 ## Making the reads again
 
-osteosarc makes Isovar's bundle from a recipe: Isovar's `isovar/` members of a
-shared bundle's recipe, with the sources and targets they use
+osteosarc makes Isovar's bundle from a recipe: Isovar's `isovar/` members and
+the published T2 small-variant members of a shared bundle's recipe, with the
+sources they use and the complete small-variant target inventory
 (`sid_data.recipe`). Every member pins its exact records by checksum.
 
 ```sh
@@ -117,8 +124,9 @@ sources thus lose `GO:none` from their archived header
 bundle, put the folder in place of `isovar/data/sid-reads` and pin that hash as
 `PACKAGED_MANIFEST_SHA256`.
 
-Reads are still selected in osteosarc, not here. To add or change a test's
-reads, add them to osteosarc's openvax recipe and release a new bundle; then
+Reads are still selected in osteosarc, not here. Tests may consume additional
+existing shared members without reselecting their reads. To change the selection,
+add it to osteosarc's openvax recipe and release a new bundle; then
 build Isovar's bundle `--from` it. Check a local fixture against a bundle with:
 
 ```sh
