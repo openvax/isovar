@@ -1,6 +1,7 @@
 """Isovar's packaged Sid test reads: openvax-v1's members, record for record, which osteosarc makes again."""
 
 import json
+import re
 from hashlib import sha256
 from pathlib import Path
 import shutil
@@ -304,7 +305,7 @@ def test_record_lookup_rejects_changed_cached_bam(tmp_path, monkeypatch):
 def test_converted_fixtures_do_not_embed_sam_records():
     def check(value):
         if isinstance(value, str):
-            assert value.count("\t") < 10
+            assert not re.match(r"^[^\t\n]+\t\d+\t[^\t\n]+\t\d+\t\d+\t", value)
         elif isinstance(value, list):
             for child in value:
                 check(child)
