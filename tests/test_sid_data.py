@@ -163,11 +163,20 @@ def test_isovars_recipe_keeps_its_members_and_what_they_use():
                  "varcode/reads.sam": dict(source="wgs", target=other_target),
                  "topiary/isovar/reads.sam": dict(source="wgs", target=other_target)})
     mine = sid_data.recipe(shared)
-    assert mine == dict(shared, id="isovar", aliases={"old-reads": isovar_target},
-                        targets={isovar_target: {"kind": "fixture"}}, sources={"rna": {"sample": "T1"}},
+    assert mine == dict(shared, id="isovar", sources={"rna": {"sample": "T1"}},
                         members={"isovar/reads.sam": dict(source="rna", target=isovar_target)})
     assert sid_data.recipe(mine) == mine
     assert "aliases" not in sid_data.recipe({k: v for k, v in shared.items() if k != "aliases"})
+
+
+def test_expanded_panel_preserves_every_legacy_member():
+    manifest = json.loads((sid_data.bundle() / "manifest.json").read_text())
+    legacy = {n: m for n, m in manifest["members"].items() if n.startswith(sid_data.PREFIX)}
+    assert len(legacy) == 345
+    # Captured from 1.39.14 before adding any panel records. Includes exact
+    # record identities, multiplicities, reasons, source and target identities.
+    assert sha256(json.dumps(legacy, sort_keys=True, separators=(",", ":")).encode()).hexdigest() == (
+        "f5776534d55f62944b66e5491a2e7056067f909052fb6093c14abab0513ff52d")
 
 
 def test_reduced_header_keeps_read_group_program_chain_and_sa_target():

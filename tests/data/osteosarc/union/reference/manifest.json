@@ -1,0 +1,1441 @@
+{
+  "assembly": "GRCh38",
+  "dataset_identity": "GRCh38-osteosarc-vaccine-cohort-ensembl87",
+  "ensembl_release": 87,
+  "files": {
+    "models.json.gz": "e47b0068e32acd7f0c672bbe65e0bb07ff9a82d51e25e6bf5817bc2c0cb3bb4c",
+    "reference.cdna.fa.gz": "fd79b21690297aa5d0a9678b75d58c7a6db72d4a18496c10840282bdc767714d",
+    "reference.gtf.gz": "d87df741665471f314c28e05b8096573417c8a24ef49d8151f8c47d551dd8c85",
+    "reference.pep.fa.gz": "84fb25ec6eb8982557d6a844f91a903060d8fb09ee89a42c08edfbd7bc380ed3"
+  },
+  "scope": "all independently validated complete coding models at the pinned variant loci; explicit model exclusions",
+  "sources": {
+    "cdna": {
+      "filename": "Homo_sapiens.GRCh38.cdna.all.fa.gz",
+      "sha256": "9d77df788bc30aa86d6aa8d4b8d5bbe9d9c2a0ae6c0a8eda600524685aa11875",
+      "url": "https://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz"
+    },
+    "gtf": {
+      "filename": "Homo_sapiens.GRCh38.87.gtf.gz",
+      "sha256": "9e8643982742980f81277865b5a1d543a02fa2bfe889acffaf797436950d9ebe",
+      "url": "https://ftp.ensembl.org/pub/release-87/gtf/homo_sapiens/Homo_sapiens.GRCh38.87.gtf.gz"
+    },
+    "pep": {
+      "filename": "Homo_sapiens.GRCh38.pep.all.fa.gz",
+      "sha256": "d873c199d5dbf20869db3f2cbd6ac726259215d91c2782f9f1ddcad4bb117cf9",
+      "url": "https://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/pep/Homo_sapiens.GRCh38.pep.all.fa.gz"
+    }
+  },
+  "transcript_count": 571,
+  "unavailable_transcripts": {
+    "ENST00000328568": "incomplete_or_noncoding_reference_model",
+    "ENST00000357232": "incomplete_or_noncoding_reference_model",
+    "ENST00000361558": "incomplete_or_noncoding_reference_model",
+    "ENST00000373851": "incomplete_or_noncoding_reference_model",
+    "ENST00000373865": "original_cdna_peptide_translation_mismatch",
+    "ENST00000375117": "incomplete_or_noncoding_reference_model",
+    "ENST00000376681": "incomplete_or_noncoding_reference_model",
+    "ENST00000391845": "incomplete_or_noncoding_reference_model",
+    "ENST00000393895": "incomplete_or_noncoding_reference_model",
+    "ENST00000395103": "incomplete_or_noncoding_reference_model",
+    "ENST00000397996": "incomplete_or_noncoding_reference_model",
+    "ENST00000410100": "incomplete_or_noncoding_reference_model",
+    "ENST00000418725": "incomplete_or_noncoding_reference_model",
+    "ENST00000420636": "incomplete_or_noncoding_reference_model",
+    "ENST00000420692": "incomplete_or_noncoding_reference_model",
+    "ENST00000421632": "incomplete_or_noncoding_reference_model",
+    "ENST00000427392": "incomplete_or_noncoding_reference_model",
+    "ENST00000427538": "incomplete_or_noncoding_reference_model",
+    "ENST00000428597": "incomplete_or_noncoding_reference_model",
+    "ENST00000430831": "incomplete_or_noncoding_reference_model",
+    "ENST00000432258": "incomplete_or_noncoding_reference_model",
+    "ENST00000433332": "incomplete_or_noncoding_reference_model",
+    "ENST00000436322": "incomplete_or_noncoding_reference_model",
+    "ENST00000436687": "incomplete_or_noncoding_reference_model",
+    "ENST00000437462": "incomplete_or_noncoding_reference_model",
+    "ENST00000445340": "incomplete_or_noncoding_reference_model",
+    "ENST00000446192": "incomplete_or_noncoding_reference_model",
+    "ENST00000446636": "incomplete_or_noncoding_reference_model",
+    "ENST00000448451": "incomplete_or_noncoding_reference_model",
+    "ENST00000451399": "incomplete_or_noncoding_reference_model",
+    "ENST00000452717": "incomplete_or_noncoding_reference_model",
+    "ENST00000453246": "incomplete_or_noncoding_reference_model",
+    "ENST00000455933": "incomplete_or_noncoding_reference_model",
+    "ENST00000455971": "incomplete_or_noncoding_reference_model",
+    "ENST00000459682": "incomplete_or_noncoding_reference_model",
+    "ENST00000460816": "incomplete_or_noncoding_reference_model",
+    "ENST00000461864": "incomplete_or_noncoding_reference_model",
+    "ENST00000461870": "incomplete_or_noncoding_reference_model",
+    "ENST00000462055": "incomplete_or_noncoding_reference_model",
+    "ENST00000463470": "incomplete_or_noncoding_reference_model",
+    "ENST00000463648": "incomplete_or_noncoding_reference_model",
+    "ENST00000464262": "incomplete_or_noncoding_reference_model",
+    "ENST00000465188": "incomplete_or_noncoding_reference_model",
+    "ENST00000466106": "incomplete_or_noncoding_reference_model",
+    "ENST00000467068": "incomplete_or_noncoding_reference_model",
+    "ENST00000467259": "incomplete_or_noncoding_reference_model",
+    "ENST00000467497": "incomplete_or_noncoding_reference_model",
+    "ENST00000467558": "incomplete_or_noncoding_reference_model",
+    "ENST00000469068": "incomplete_or_noncoding_reference_model",
+    "ENST00000469233": "incomplete_or_noncoding_reference_model",
+    "ENST00000469750": "incomplete_or_noncoding_reference_model",
+    "ENST00000469789": "incomplete_or_noncoding_reference_model",
+    "ENST00000470236": "incomplete_or_noncoding_reference_model",
+    "ENST00000470462": "incomplete_or_noncoding_reference_model",
+    "ENST00000470951": "incomplete_or_noncoding_reference_model",
+    "ENST00000471161": "incomplete_or_noncoding_reference_model",
+    "ENST00000471261": "incomplete_or_noncoding_reference_model",
+    "ENST00000471322": "incomplete_or_noncoding_reference_model",
+    "ENST00000471397": "incomplete_or_noncoding_reference_model",
+    "ENST00000471423": "incomplete_or_noncoding_reference_model",
+    "ENST00000471619": "incomplete_or_noncoding_reference_model",
+    "ENST00000471893": "incomplete_or_noncoding_reference_model",
+    "ENST00000472232": "original_cdna_peptide_translation_mismatch",
+    "ENST00000473434": "incomplete_or_noncoding_reference_model",
+    "ENST00000474250": "incomplete_or_noncoding_reference_model",
+    "ENST00000474298": "incomplete_or_noncoding_reference_model",
+    "ENST00000475006": "incomplete_or_noncoding_reference_model",
+    "ENST00000475084": "incomplete_or_noncoding_reference_model",
+    "ENST00000476266": "incomplete_or_noncoding_reference_model",
+    "ENST00000477194": "incomplete_or_noncoding_reference_model",
+    "ENST00000478126": "incomplete_or_noncoding_reference_model",
+    "ENST00000479159": "incomplete_or_noncoding_reference_model",
+    "ENST00000480110": "incomplete_or_noncoding_reference_model",
+    "ENST00000480421": "incomplete_or_noncoding_reference_model",
+    "ENST00000480878": "incomplete_or_noncoding_reference_model",
+    "ENST00000482392": "incomplete_or_noncoding_reference_model",
+    "ENST00000482420": "incomplete_or_noncoding_reference_model",
+    "ENST00000482864": "incomplete_or_noncoding_reference_model",
+    "ENST00000483166": "incomplete_or_noncoding_reference_model",
+    "ENST00000483179": "incomplete_or_noncoding_reference_model",
+    "ENST00000484221": "incomplete_or_noncoding_reference_model",
+    "ENST00000484920": "incomplete_or_noncoding_reference_model",
+    "ENST00000485151": "incomplete_or_noncoding_reference_model",
+    "ENST00000485803": "incomplete_or_noncoding_reference_model",
+    "ENST00000485964": "incomplete_or_noncoding_reference_model",
+    "ENST00000486013": "incomplete_or_noncoding_reference_model",
+    "ENST00000486034": "incomplete_or_noncoding_reference_model",
+    "ENST00000487010": "incomplete_or_noncoding_reference_model",
+    "ENST00000487419": "incomplete_or_noncoding_reference_model",
+    "ENST00000487481": "incomplete_or_noncoding_reference_model",
+    "ENST00000487682": "incomplete_or_noncoding_reference_model",
+    "ENST00000487843": "incomplete_or_noncoding_reference_model",
+    "ENST00000488487": "incomplete_or_noncoding_reference_model",
+    "ENST00000489625": "incomplete_or_noncoding_reference_model",
+    "ENST00000489842": "incomplete_or_noncoding_reference_model",
+    "ENST00000490027": "incomplete_or_noncoding_reference_model",
+    "ENST00000490109": "incomplete_or_noncoding_reference_model",
+    "ENST00000490886": "incomplete_or_noncoding_reference_model",
+    "ENST00000490918": "incomplete_or_noncoding_reference_model",
+    "ENST00000490991": "incomplete_or_noncoding_reference_model",
+    "ENST00000491094": "incomplete_or_noncoding_reference_model",
+    "ENST00000491145": "incomplete_or_noncoding_reference_model",
+    "ENST00000492326": "incomplete_or_noncoding_reference_model",
+    "ENST00000492363": "incomplete_or_noncoding_reference_model",
+    "ENST00000493232": "incomplete_or_noncoding_reference_model",
+    "ENST00000493233": "incomplete_or_noncoding_reference_model",
+    "ENST00000494395": "incomplete_or_noncoding_reference_model",
+    "ENST00000495334": "incomplete_or_noncoding_reference_model",
+    "ENST00000496480": "incomplete_or_noncoding_reference_model",
+    "ENST00000496683": "incomplete_or_noncoding_reference_model",
+    "ENST00000496809": "incomplete_or_noncoding_reference_model",
+    "ENST00000498012": "incomplete_or_noncoding_reference_model",
+    "ENST00000498419": "incomplete_or_noncoding_reference_model",
+    "ENST00000502574": "incomplete_or_noncoding_reference_model",
+    "ENST00000505649": "incomplete_or_noncoding_reference_model",
+    "ENST00000505883": "incomplete_or_noncoding_reference_model",
+    "ENST00000506507": "incomplete_or_noncoding_reference_model",
+    "ENST00000507673": "incomplete_or_noncoding_reference_model",
+    "ENST00000507996": "incomplete_or_noncoding_reference_model",
+    "ENST00000509522": "incomplete_or_noncoding_reference_model",
+    "ENST00000509587": "incomplete_or_noncoding_reference_model",
+    "ENST00000510841": "incomplete_or_noncoding_reference_model",
+    "ENST00000510866": "incomplete_or_noncoding_reference_model",
+    "ENST00000511370": "incomplete_or_noncoding_reference_model",
+    "ENST00000511425": "incomplete_or_noncoding_reference_model",
+    "ENST00000512768": "incomplete_or_noncoding_reference_model",
+    "ENST00000513133": "incomplete_or_noncoding_reference_model",
+    "ENST00000513932": "incomplete_or_noncoding_reference_model",
+    "ENST00000514435": "incomplete_or_noncoding_reference_model",
+    "ENST00000515773": "incomplete_or_noncoding_reference_model",
+    "ENST00000523043": "incomplete_or_noncoding_reference_model",
+    "ENST00000523302": "incomplete_or_noncoding_reference_model",
+    "ENST00000523457": "incomplete_or_noncoding_reference_model",
+    "ENST00000524471": "incomplete_or_noncoding_reference_model",
+    "ENST00000525073": "incomplete_or_noncoding_reference_model",
+    "ENST00000525843": "incomplete_or_noncoding_reference_model",
+    "ENST00000526307": "incomplete_or_noncoding_reference_model",
+    "ENST00000526481": "incomplete_or_noncoding_reference_model",
+    "ENST00000526593": "incomplete_or_noncoding_reference_model",
+    "ENST00000527031": "incomplete_or_noncoding_reference_model",
+    "ENST00000528305": "incomplete_or_noncoding_reference_model",
+    "ENST00000530061": "incomplete_or_noncoding_reference_model",
+    "ENST00000531478": "incomplete_or_noncoding_reference_model",
+    "ENST00000532678": "incomplete_or_noncoding_reference_model",
+    "ENST00000533855": "incomplete_or_noncoding_reference_model",
+    "ENST00000534190": "incomplete_or_noncoding_reference_model",
+    "ENST00000535299": "incomplete_or_noncoding_reference_model",
+    "ENST00000537796": "incomplete_or_noncoding_reference_model",
+    "ENST00000543548": "incomplete_or_noncoding_reference_model",
+    "ENST00000544596": "incomplete_or_noncoding_reference_model",
+    "ENST00000546656": "incomplete_or_noncoding_reference_model",
+    "ENST00000547043": "incomplete_or_noncoding_reference_model",
+    "ENST00000548316": "incomplete_or_noncoding_reference_model",
+    "ENST00000548496": "incomplete_or_noncoding_reference_model",
+    "ENST00000549078": "incomplete_or_noncoding_reference_model",
+    "ENST00000553281": "incomplete_or_noncoding_reference_model",
+    "ENST00000553578": "incomplete_or_noncoding_reference_model",
+    "ENST00000553816": "incomplete_or_noncoding_reference_model",
+    "ENST00000554035": "incomplete_or_noncoding_reference_model",
+    "ENST00000558099": "incomplete_or_noncoding_reference_model",
+    "ENST00000558247": "incomplete_or_noncoding_reference_model",
+    "ENST00000558609": "incomplete_or_noncoding_reference_model",
+    "ENST00000559070": "incomplete_or_noncoding_reference_model",
+    "ENST00000560999": "incomplete_or_noncoding_reference_model",
+    "ENST00000563542": "incomplete_or_noncoding_reference_model",
+    "ENST00000567560": "incomplete_or_noncoding_reference_model",
+    "ENST00000568333": "incomplete_or_noncoding_reference_model",
+    "ENST00000568391": "incomplete_or_noncoding_reference_model",
+    "ENST00000572253": "incomplete_or_noncoding_reference_model",
+    "ENST00000573903": "incomplete_or_noncoding_reference_model",
+    "ENST00000574451": "incomplete_or_noncoding_reference_model",
+    "ENST00000574799": "incomplete_or_noncoding_reference_model",
+    "ENST00000575431": "incomplete_or_noncoding_reference_model",
+    "ENST00000575475": "incomplete_or_noncoding_reference_model",
+    "ENST00000577474": "incomplete_or_noncoding_reference_model",
+    "ENST00000577551": "incomplete_or_noncoding_reference_model",
+    "ENST00000578282": "incomplete_or_noncoding_reference_model",
+    "ENST00000578310": "incomplete_or_noncoding_reference_model",
+    "ENST00000578615": "incomplete_or_noncoding_reference_model",
+    "ENST00000579345": "incomplete_or_noncoding_reference_model",
+    "ENST00000580467": "incomplete_or_noncoding_reference_model",
+    "ENST00000580576": "incomplete_or_noncoding_reference_model",
+    "ENST00000580878": "incomplete_or_noncoding_reference_model",
+    "ENST00000581051": "incomplete_or_noncoding_reference_model",
+    "ENST00000582072": "incomplete_or_noncoding_reference_model",
+    "ENST00000582301": "incomplete_or_noncoding_reference_model",
+    "ENST00000583719": "incomplete_or_noncoding_reference_model",
+    "ENST00000584020": "incomplete_or_noncoding_reference_model",
+    "ENST00000584351": "incomplete_or_noncoding_reference_model",
+    "ENST00000584637": "incomplete_or_noncoding_reference_model",
+    "ENST00000584816": "incomplete_or_noncoding_reference_model",
+    "ENST00000585267": "incomplete_or_noncoding_reference_model",
+    "ENST00000585593": "incomplete_or_noncoding_reference_model",
+    "ENST00000585661": "incomplete_or_noncoding_reference_model",
+    "ENST00000586024": "incomplete_or_noncoding_reference_model",
+    "ENST00000586349": "incomplete_or_noncoding_reference_model",
+    "ENST00000587974": "incomplete_or_noncoding_reference_model",
+    "ENST00000589437": "incomplete_or_noncoding_reference_model",
+    "ENST00000590226": "incomplete_or_noncoding_reference_model",
+    "ENST00000591341": "incomplete_or_noncoding_reference_model",
+    "ENST00000591498": "incomplete_or_noncoding_reference_model",
+    "ENST00000593155": "incomplete_or_noncoding_reference_model",
+    "ENST00000601166": "incomplete_or_noncoding_reference_model",
+    "ENST00000606893": "incomplete_or_noncoding_reference_model",
+    "ENST00000608122": "incomplete_or_noncoding_reference_model",
+    "ENST00000611417": "incomplete_or_noncoding_reference_model",
+    "ENST00000611776": "incomplete_or_noncoding_reference_model",
+    "ENST00000612569": "incomplete_or_noncoding_reference_model",
+    "ENST00000613187": "incomplete_or_noncoding_reference_model",
+    "ENST00000614793": "incomplete_or_noncoding_reference_model",
+    "ENST00000623316": "incomplete_or_noncoding_reference_model",
+    "ENST00000634734": "original_cdna_peptide_translation_mismatch",
+    "ENST00000637618": "incomplete_or_noncoding_reference_model"
+  },
+  "variant_transcript_gaps": {
+    "ABCA13-chr7-48410588": {},
+    "ABCA7-chr19-1065339": {},
+    "ABCF2-chr7-151218156": {},
+    "ABI3BP-chr3-100850671": {},
+    "ACE-chr17-63497361": {
+      "ENST00000428043": "Variant is outside the annotated coding region",
+      "ENST00000577647": "Position 63497361 is outside the pinned transcript exons",
+      "ENST00000578839": "Variant is outside the annotated coding region",
+      "ENST00000579314": "Variant is outside the annotated coding region"
+    },
+    "ACSL6-chr5-131988563": {
+      "ENST00000296869": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000357096": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000379240": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000379244": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000379246": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000379255": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000379264": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000413683": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000430403": "Position 131988563 is outside the pinned transcript exons",
+      "ENST00000434099": "Position 131988563 is outside the pinned transcript exons"
+    },
+    "ACVRL1-chr12-51913344": {
+      "ENST00000419526": "Position 51913344 is outside the pinned transcript exons"
+    },
+    "ADAM17-chr2-9521241": {},
+    "ADCY10-chr1-167824546": {},
+    "ADGRF5-chr6-46856758": {},
+    "AGAP2-chr12-57732961": {},
+    "AKT2-chr19-40238080": {
+      "ENST00000391844": "Variant is outside the annotated coding region",
+      "ENST00000584288": "Variant is outside the annotated coding region"
+    },
+    "ALB-chr4-73412066": {
+      "ENST00000476441": "Variant is outside the annotated coding region",
+      "ENST00000621085": "Position 73412066 is outside the pinned transcript exons",
+      "ENST00000621628": "Position 73412066 is outside the pinned transcript exons"
+    },
+    "ANKDD1A-chr15-64915850": {
+      "ENST00000437723": "Position 64915850 is outside the pinned transcript exons",
+      "ENST00000496660": "Position 64915850 is outside the pinned transcript exons"
+    },
+    "ANKRD17-chr4-73097139": {},
+    "ANKRD20A8P-chr2-94813391": {},
+    "ARHGEF11-chr1-156940285": {},
+    "ARMC9-chr2-231215145": {
+      "ENST00000349938": "Position 231215145 is outside the pinned transcript exons",
+      "ENST00000440107": "Position 231215145 is outside the pinned transcript exons",
+      "ENST00000611582": "Position 231215145 is outside the pinned transcript exons",
+      "ENST00000614261": "Position 231215145 is outside the pinned transcript exons"
+    },
+    "ASPM-chr1-197102716": {
+      "ENST00000294732": "Position 197102716 is outside the pinned transcript exons",
+      "ENST00000367408": "Position 197102716 is outside the pinned transcript exons",
+      "ENST00000612785": "Position 197102716 is outside the pinned transcript exons"
+    },
+    "ATRX-chrX-77599465": {
+      "ENST00000480283": "Variant is outside the annotated coding region"
+    },
+    "BAG1-chr9-33262750": {},
+    "BAZ1B-chr7-73498699": {
+      "ENST00000339594": "Position 73498699 is outside the pinned transcript exons",
+      "ENST00000404251": "Position 73498699 is outside the pinned transcript exons"
+    },
+    "BMP1-chr8-22192067": {
+      "ENST00000354870": "Variant is outside the annotated coding region",
+      "ENST00000483364": "Variant is outside the annotated coding region",
+      "ENST00000518913": "Variant is outside the annotated coding region",
+      "ENST00000520626": "Variant is outside the annotated coding region",
+      "ENST00000520982": "Variant is outside the annotated coding region"
+    },
+    "BPHL-chr6-3129127": {
+      "ENST00000424847": "Variant is outside the annotated coding region",
+      "ENST00000430655": "Variant is outside the annotated coding region"
+    },
+    "BRAP-chr12-111644377": {},
+    "BRAT1-chr7-2541029": {},
+    "BTBD11-chr12-107642169": {},
+    "BTD-chr3-15645183": {},
+    "BTN3A3-chr6-26448446": {
+      "ENST00000490254": "Position 26448446 is outside the pinned transcript exons"
+    },
+    "CABLES1-chr18-23135764": {
+      "ENST00000400473": "Position 23135764 is outside the pinned transcript exons",
+      "ENST00000579963": "Position 23135764 is outside the pinned transcript exons",
+      "ENST00000580153": "Position 23135764 is outside the pinned transcript exons"
+    },
+    "CASP10-chr2-201209100": {
+      "ENST00000360132": "Variant is outside the annotated coding region"
+    },
+    "CCDC15-chr11-125038474": {},
+    "CCDC40-chr17-80090148": {
+      "ENST00000397545": "Position 80090148 is outside the pinned transcript exons"
+    },
+    "CD109-chr6-73818405": {},
+    "CDC40-chr6-110228838": {},
+    "CDHR18P-chr3-63770421": {},
+    "CDKN2B_AS1-chr9-22056251": {},
+    "CENPL-chr1-173811223": {},
+    "CGNL1-chr15-57451531": {},
+    "CNTRL-chr9-121115135": {},
+    "COL3A1-Splice": {
+      "ENST00000304636": "Position 189010891 is outside the pinned transcript exons",
+      "ENST00000317840": "Position 189010891 is outside the pinned transcript exons"
+    },
+    "COL4A2-chr13-110449715": {},
+    "CSHL1-chr17-63910807": {
+      "ENST00000259003": "Position 63910807 is outside the pinned transcript exons",
+      "ENST00000346606": "Position 63910807 is outside the pinned transcript exons",
+      "ENST00000438387": "Position 63910807 is outside the pinned transcript exons",
+      "ENST00000450719": "Position 63910807 is outside the pinned transcript exons",
+      "ENST00000561003": "Position 63910807 is outside the pinned transcript exons"
+    },
+    "CTSB-chr8-11844219": {
+      "ENST00000353047": "Variant is outside the annotated coding region",
+      "ENST00000530640": "Variant is outside the annotated coding region",
+      "ENST00000531089": "Variant is outside the annotated coding region"
+    },
+    "CTSE-chr1-206022947": {},
+    "CTTNBP2-chr7-117791756": {},
+    "CUL9-chr6-43186384": {},
+    "DBH-chr9-133652279": {},
+    "DCHS2-chr4-154323273": {
+      "ENST00000339452": "Position 154323330 is outside the pinned transcript exons",
+      "ENST00000623607": "Position 154323273 is outside the pinned transcript exons"
+    },
+    "DCST2-chr1-155033677": {},
+    "DEFB131A-chr4-9450500": {},
+    "DIAPH1-chr5-141526090": {},
+    "DOT1L-chr19-2214506": {},
+    "DRD1-chr5-175441851": {},
+    "DYNC1H1-chr14-101980529": {},
+    "DYNC1H1-chr14-102030200": {},
+    "EDNRB-chr13-77918105": {},
+    "ELMO1-chr7-36894915": {},
+    "EML5-chr14-88681945": {},
+    "EPG5-chr18-45925851": {},
+    "EPPK1-chr8-143870409": {},
+    "EXD3-chr9-137373504": {
+      "ENST00000460390": "Variant is outside the annotated coding region"
+    },
+    "EXOC4-chr7-133274996": {},
+    "EYS-chr6-65405193": {},
+    "F8-chrX-154930861": {},
+    "FAM157A-p_W70_Q71ins_14": {},
+    "FAM83B-chr6-54940265": {},
+    "FAM83H-chr8-143728543": {},
+    "FBXO33-chr14-39431722": {},
+    "FCGBP-chr19-39876804": {},
+    "FCGBP-chr19-39879706": {},
+    "FGFR3-chr4-1805817": {
+      "ENST00000613647": "Variant is outside the annotated coding region"
+    },
+    "FHL3-chr1-37998037": {},
+    "FJX1-chr11-35619371": {},
+    "FRMPD4-chrX-12717076": {},
+    "FZD9-chr7-73434684": {},
+    "GABBR1-chr6-29630494": {
+      "ENST00000377016": "Position 29630494 is outside the pinned transcript exons",
+      "ENST00000472823": "Position 29630494 is outside the pinned transcript exons",
+      "ENST00000485508": "Position 29630494 is outside the pinned transcript exons",
+      "ENST00000491829": "Position 29630494 is outside the pinned transcript exons"
+    },
+    "GABBR1-chr6-29630575": {
+      "ENST00000377016": "Position 29630575 is outside the pinned transcript exons",
+      "ENST00000472823": "Position 29630575 is outside the pinned transcript exons",
+      "ENST00000485508": "Position 29630575 is outside the pinned transcript exons"
+    },
+    "GAPVD1-chr9-125301980": {
+      "ENST00000297933": "Position 125301980 is outside the pinned transcript exons",
+      "ENST00000312123": "Position 125301980 is outside the pinned transcript exons",
+      "ENST00000394083": "Position 125301980 is outside the pinned transcript exons",
+      "ENST00000394084": "Position 125301980 is outside the pinned transcript exons",
+      "ENST00000394104": "Position 125301980 is outside the pinned transcript exons",
+      "ENST00000394105": "Position 125301980 is outside the pinned transcript exons",
+      "ENST00000461379": "Position 125301980 is outside the pinned transcript exons",
+      "ENST00000467750": "Position 125301980 is outside the pinned transcript exons",
+      "ENST00000470056": "Position 125301980 is outside the pinned transcript exons",
+      "ENST00000495955": "Position 125301980 is outside the pinned transcript exons",
+      "ENST00000497580": "Position 125301980 is outside the pinned transcript exons"
+    },
+    "GDF2-chr10-47325480": {},
+    "GLB1L3-chr11-134311149": {},
+    "GLIS3-chr9-3856149": {},
+    "GOLGA6L2-chr15-23440197": {
+      "ENST00000312015": "Position 23440197 is outside the pinned transcript exons",
+      "ENST00000345070": "Position 23440197 is outside the pinned transcript exons",
+      "ENST00000566571": "Variant is outside the annotated coding region"
+    },
+    "GTF3C5-chr9-133057893": {},
+    "H1_2-chr6-26055824": {},
+    "HIC2-chr22-21446352": {},
+    "HSFX3-chrX-149548470": {
+      "ENST00000422892": "Position 149548470 is outside the pinned transcript exons",
+      "ENST00000434353": "Position 149548470 is outside the pinned transcript exons",
+      "ENST00000514208": "Position 149548470 is outside the pinned transcript exons"
+    },
+    "HSPG2-chr1-21834891": {},
+    "IFT122-chr3-129502728": {
+      "ENST00000512220": "Variant is outside the annotated coding region"
+    },
+    "ITGB1-chr10-32911945": {},
+    "ITPR3-chr6-33688135": {},
+    "JAK3-chr19-17830035": {
+      "ENST00000458235": "Position 17830035 is outside the pinned transcript exons",
+      "ENST00000527670": "Position 17830035 is outside the pinned transcript exons"
+    },
+    "KDM3B-chr5-138391529": {
+      "ENST00000542866": "Position 138391529 is outside the pinned transcript exons"
+    },
+    "KIF1C-chr17-5007293": {},
+    "KLHL33-chr14-20429267": {
+      "ENST00000637228": "Variant is outside the annotated coding region"
+    },
+    "KMT2D-chr12-49034200": {},
+    "KRT18-chr12-52951767": {},
+    "KRT37-chr17-41422418": {},
+    "KTN1-chr14-55627965": {
+      "ENST00000554567": "Variant is outside the annotated coding region"
+    },
+    "LCE1B-chr1-152812486": {},
+    "LEPR-chr1-65636606": {},
+    "LINGO4-chr1-151801914": {},
+    "LRBA-chr4-151014497": {},
+    "LY75-chr2-159840947": {},
+    "MAP2-chr2-209694768": {
+      "ENST00000199940": "Position 209694769 is outside the pinned transcript exons",
+      "ENST00000361559": "Position 209694769 is outside the pinned transcript exons",
+      "ENST00000392194": "Position 209694769 is outside the pinned transcript exons"
+    },
+    "MAP2-chr2-209694768-historical": {
+      "ENST00000199940": "Position 209694769 is outside the pinned transcript exons",
+      "ENST00000361559": "Position 209694769 is outside the pinned transcript exons",
+      "ENST00000392194": "Position 209694769 is outside the pinned transcript exons"
+    },
+    "MAP2-chr2-209694772": {
+      "ENST00000199940": "Position 209694773 is outside the pinned transcript exons",
+      "ENST00000361559": "Position 209694773 is outside the pinned transcript exons",
+      "ENST00000392194": "Position 209694773 is outside the pinned transcript exons"
+    },
+    "MARCOL-chr5-148242907": {},
+    "MBD4-chr3-129437921": {
+      "ENST00000509828": "Position 129437921 is outside the pinned transcript exons"
+    },
+    "MSL2-chr3-136151340": {},
+    "MT_ND5-chrM-12994": {},
+    "MUC2-chr11-1095629": {},
+    "MYO15B-chr17-75589953": {},
+    "MYO9A-chr15-71994488": {},
+    "NAV2-chr11-20080142": {},
+    "NBPF1-chr1-16563989": {},
+    "NBPF1-chr1-16564149": {},
+    "NDST4-chr4-114870902": {},
+    "NDUFA11-chr19-5896456": {
+      "ENST00000593233": "Variant is outside the annotated coding region"
+    },
+    "NECAP1-chr12-8092892": {
+      "ENST00000450991": "Variant is outside the annotated coding region"
+    },
+    "NLRP4-chr19-55861444": {},
+    "NME1-chr17-51154443": {
+      "ENST00000376392": "Position 51154443 is outside the pinned transcript exons",
+      "ENST00000393193": "Position 51154443 is outside the pinned transcript exons",
+      "ENST00000393196": "Position 51154443 is outside the pinned transcript exons",
+      "ENST00000475573": "Position 51154443 is outside the pinned transcript exons",
+      "ENST00000511355": "Position 51154443 is outside the pinned transcript exons"
+    },
+    "NNT-chr5-43612993": {
+      "ENST00000512996": "Variant is outside the annotated coding region"
+    },
+    "NR2F2-chr15-96332299": {
+      "ENST00000421109": "Position 96332299 is outside the pinned transcript exons"
+    },
+    "NTF3-chr12-5494381": {},
+    "NTF3-chr12-5494381-compound": {},
+    "ODF1-chr8-102560579": {
+      "ENST00000518835": "Position 102560579 is outside the pinned transcript exons"
+    },
+    "OR10H1-chr19-15807703": {},
+    "OR10P1-chr12-55637502": {},
+    "OR2T12-chr1-248294753": {},
+    "PCDH15-chr10-54079389": {
+      "ENST00000395440": "Position 54079389 is outside the pinned transcript exons",
+      "ENST00000395442": "Position 54079389 is outside the pinned transcript exons",
+      "ENST00000414367": "Position 54079389 is outside the pinned transcript exons",
+      "ENST00000495484": "Position 54079389 is outside the pinned transcript exons"
+    },
+    "PCDH19-chrX-100341898": {
+      "ENST00000255531": "Position 100341898 is outside the pinned transcript exons",
+      "ENST00000373034": "Position 100341898 is outside the pinned transcript exons",
+      "ENST00000420881": "Position 100341898 is outside the pinned transcript exons"
+    },
+    "PDZRN4-chr12-41572809": {},
+    "PEX7-chr6-136826422": {},
+    "PIP5K1A-chr1-151242178": {
+      "ENST00000368890": "Position 151242179 is outside the pinned transcript exons"
+    },
+    "PLA2G7-chr6-46708091": {},
+    "PLK4-chr4-127886717": {
+      "ENST00000507249": "Position 127886717 is outside the pinned transcript exons"
+    },
+    "PPP1R3F-chrX-49270761": {
+      "ENST00000466508": "Variant is outside the annotated coding region",
+      "ENST00000495799": "Position 49270761 is outside the pinned transcript exons"
+    },
+    "PPP6R3-chr11-68601969": {},
+    "PRICKLE2-chr3-64198863": {},
+    "PRPSAP2-chr17-18930658": {
+      "ENST00000395656": "Variant is outside the annotated coding region",
+      "ENST00000492129": "Variant is outside the annotated coding region"
+    },
+    "PRRC2C-chr1-171540477": {},
+    "PTH1R-chr3-46898732": {},
+    "PUM1-chr1-30995054": {
+      "ENST00000424085": "Position 30995054 is outside the pinned transcript exons",
+      "ENST00000525948": "Variant is outside the annotated coding region",
+      "ENST00000526215": "Position 30995054 is outside the pinned transcript exons"
+    },
+    "RABEP1-chr17-5350565": {},
+    "RCSD1-chr1-167685445": {
+      "ENST00000537350": "Position 167685445 is outside the pinned transcript exons"
+    },
+    "RDH11-chr14-67691154": {
+      "ENST00000554731": "Position 67691154 is outside the pinned transcript exons",
+      "ENST00000557273": "Position 67691154 is outside the pinned transcript exons",
+      "ENST00000557331": "Variant is outside the annotated coding region"
+    },
+    "RECK-chr9-36087719": {},
+    "RNF157-chr17-76161924": {},
+    "RNF213-chr17-80327830": {},
+    "ROBO2-chr3-77607853": {
+      "ENST00000473767": "Variant is outside the annotated coding region"
+    },
+    "ROS1-chr6-117301021": {},
+    "RP1L1-chr8-10611724": {},
+    "SAMD9-chr7-93101611": {},
+    "SERPINB10-chr18-63915540": {},
+    "SHC4-chr15-48843429": {
+      "ENST00000557797": "Variant is outside the annotated coding region"
+    },
+    "SLAMF7-chr1-160751438": {
+      "ENST00000359331": "Position 160751438 is outside the pinned transcript exons",
+      "ENST00000444090": "Position 160751438 is outside the pinned transcript exons",
+      "ENST00000458104": "Position 160751438 is outside the pinned transcript exons"
+    },
+    "SLC17A4-chr6-25769158": {},
+    "SLC25A12-chr2-171813470": {
+      "ENST00000263812": "Variant is outside the annotated coding region"
+    },
+    "SLC35G2-chr3-136855622": {},
+    "SLC7A1-chr13-29522401": {},
+    "SMC5-chr9-70298024": {},
+    "SPAG1-chr8-100213209": {},
+    "SPG11-chr15-44660435": {},
+    "SRGAP3-chr3-9104715": {},
+    "STYXL2-chr1-167126143": {
+      "ENST00000632571": "Position 167126143 is outside the pinned transcript exons"
+    },
+    "SULT6B1-chr2-37171433": {
+      "ENST00000407963": "Position 37171433 is outside the pinned transcript exons",
+      "ENST00000535679": "Position 37171433 is outside the pinned transcript exons"
+    },
+    "TAF7L-chrX-101286650": {},
+    "TECPR1-chr7-98241127": {},
+    "TMEM139-chr7-143286139": {},
+    "TMRO-chr9-97910412": {},
+    "TRABD2A-chr2-84880932": {},
+    "TRAPPC8-chr18-31874592": {},
+    "TTLL6-chr17-48816988": {},
+    "USH2A-chr1-215650752": {},
+    "VPS13B-chr8-99861923": {},
+    "VPS72-chr1-151185547": {},
+    "VSIG4-chrX-66032555": {
+      "ENST00000412866": "Position 66032555 is outside the pinned transcript exons"
+    },
+    "WWC1-chr5-168399513": {},
+    "ZAR1-chr4-48490989": {},
+    "ZNF436-chr1-23362762": {},
+    "ZNF674-chrX-46501045": {},
+    "ZNF764-chr16-30557995": {},
+    "ZNRF3-chr22-29049913": {}
+  },
+  "variant_transcripts": {
+    "ABCA13-chr7-48410588": [
+      "ENST00000435803"
+    ],
+    "ABCA7-chr19-1065339": [
+      "ENST00000263094",
+      "ENST00000433129",
+      "ENST00000435683"
+    ],
+    "ABCF2-chr7-151218156": [
+      "ENST00000222388",
+      "ENST00000287844"
+    ],
+    "ABI3BP-chr3-100850671": [
+      "ENST00000284322",
+      "ENST00000471714",
+      "ENST00000495063"
+    ],
+    "ACE-chr17-63497361": [
+      "ENST00000290863",
+      "ENST00000290866",
+      "ENST00000413513"
+    ],
+    "ACSL6-chr5-131988563": [
+      "ENST00000431707",
+      "ENST00000543479"
+    ],
+    "ACVRL1-chr12-51913344": [
+      "ENST00000388922",
+      "ENST00000547400",
+      "ENST00000550683"
+    ],
+    "ADAM17-chr2-9521241": [
+      "ENST00000310823"
+    ],
+    "ADCY10-chr1-167824546": [
+      "ENST00000367848",
+      "ENST00000367851",
+      "ENST00000545172"
+    ],
+    "ADGRF5-chr6-46856758": [
+      "ENST00000265417",
+      "ENST00000283296"
+    ],
+    "AGAP2-chr12-57732961": [
+      "ENST00000257897",
+      "ENST00000547588"
+    ],
+    "AKT2-chr19-40238080": [
+      "ENST00000311278",
+      "ENST00000392038",
+      "ENST00000424901",
+      "ENST00000579047"
+    ],
+    "ALB-chr4-73412066": [
+      "ENST00000295897",
+      "ENST00000401494",
+      "ENST00000415165",
+      "ENST00000503124",
+      "ENST00000509063"
+    ],
+    "ANKDD1A-chr15-64915850": [
+      "ENST00000319580",
+      "ENST00000513267"
+    ],
+    "ANKRD17-chr4-73097139": [
+      "ENST00000330838",
+      "ENST00000358602",
+      "ENST00000509867"
+    ],
+    "ANKRD20A8P-chr2-94813391": [],
+    "ARHGEF11-chr1-156940285": [
+      "ENST00000361409",
+      "ENST00000368194"
+    ],
+    "ARMC9-chr2-231215145": [],
+    "ASPM-chr1-197102716": [
+      "ENST00000367409"
+    ],
+    "ATRX-chrX-77599465": [
+      "ENST00000373344",
+      "ENST00000395603"
+    ],
+    "BAG1-chr9-33262750": [
+      "ENST00000379704",
+      "ENST00000379707",
+      "ENST00000473781",
+      "ENST00000488499",
+      "ENST00000635077"
+    ],
+    "BAZ1B-chr7-73498699": [],
+    "BMP1-chr8-22192067": [
+      "ENST00000306349",
+      "ENST00000306385",
+      "ENST00000471755",
+      "ENST00000520970",
+      "ENST00000521385"
+    ],
+    "BPHL-chr6-3129127": [
+      "ENST00000380368",
+      "ENST00000380375",
+      "ENST00000380379",
+      "ENST00000433912",
+      "ENST00000434640"
+    ],
+    "BRAP-chr12-111644377": [
+      "ENST00000327551",
+      "ENST00000419234"
+    ],
+    "BRAT1-chr7-2541029": [
+      "ENST00000340611"
+    ],
+    "BTBD11-chr12-107642169": [
+      "ENST00000280758",
+      "ENST00000357167",
+      "ENST00000420571",
+      "ENST00000490090",
+      "ENST00000494235"
+    ],
+    "BTD-chr3-15645183": [
+      "ENST00000303498",
+      "ENST00000383778",
+      "ENST00000437172",
+      "ENST00000449107"
+    ],
+    "BTN3A3-chr6-26448446": [
+      "ENST00000244519",
+      "ENST00000361232"
+    ],
+    "CABLES1-chr18-23135764": [
+      "ENST00000256925"
+    ],
+    "CASP10-chr2-201209100": [
+      "ENST00000272879",
+      "ENST00000286186",
+      "ENST00000313728",
+      "ENST00000346817",
+      "ENST00000448480"
+    ],
+    "CCDC15-chr11-125038474": [
+      "ENST00000344762",
+      "ENST00000529051"
+    ],
+    "CCDC40-chr17-80090148": [
+      "ENST00000374877"
+    ],
+    "CD109-chr6-73818405": [
+      "ENST00000287097",
+      "ENST00000422508",
+      "ENST00000437994"
+    ],
+    "CDC40-chr6-110228838": [
+      "ENST00000307731",
+      "ENST00000368930",
+      "ENST00000368932"
+    ],
+    "CDHR18P-chr3-63770421": [],
+    "CDKN2B_AS1-chr9-22056251": [],
+    "CENPL-chr1-173811223": [
+      "ENST00000345664",
+      "ENST00000356198",
+      "ENST00000367710"
+    ],
+    "CGNL1-chr15-57451531": [
+      "ENST00000281282"
+    ],
+    "CNTRL-chr9-121115135": [
+      "ENST00000238341",
+      "ENST00000373855"
+    ],
+    "COL3A1-Splice": [],
+    "COL4A2-chr13-110449715": [
+      "ENST00000360467"
+    ],
+    "CSHL1-chr17-63910807": [
+      "ENST00000309894",
+      "ENST00000392824"
+    ],
+    "CTSB-chr8-11844219": [],
+    "CTSE-chr1-206022947": [
+      "ENST00000358184",
+      "ENST00000360218"
+    ],
+    "CTTNBP2-chr7-117791756": [
+      "ENST00000160373",
+      "ENST00000441556"
+    ],
+    "CUL9-chr6-43186384": [
+      "ENST00000252050",
+      "ENST00000372647"
+    ],
+    "DBH-chr9-133652279": [
+      "ENST00000393056"
+    ],
+    "DCHS2-chr4-154323273": [],
+    "DCST2-chr1-155033677": [
+      "ENST00000368424",
+      "ENST00000485982"
+    ],
+    "DEFB131A-chr4-9450500": [
+      "ENST00000334879"
+    ],
+    "DIAPH1-chr5-141526090": [
+      "ENST00000253811",
+      "ENST00000389054",
+      "ENST00000389057",
+      "ENST00000398557",
+      "ENST00000518047"
+    ],
+    "DOT1L-chr19-2214506": [
+      "ENST00000398665"
+    ],
+    "DRD1-chr5-175441851": [
+      "ENST00000393752"
+    ],
+    "DYNC1H1-chr14-101980529": [
+      "ENST00000360184"
+    ],
+    "DYNC1H1-chr14-102030200": [
+      "ENST00000360184"
+    ],
+    "EDNRB-chr13-77918105": [
+      "ENST00000334286",
+      "ENST00000377211",
+      "ENST00000626030"
+    ],
+    "ELMO1-chr7-36894915": [
+      "ENST00000310758",
+      "ENST00000396040",
+      "ENST00000396045",
+      "ENST00000442504",
+      "ENST00000448602"
+    ],
+    "EML5-chr14-88681945": [
+      "ENST00000380664",
+      "ENST00000554922"
+    ],
+    "EPG5-chr18-45925851": [
+      "ENST00000282041"
+    ],
+    "EPPK1-chr8-143870409": [
+      "ENST00000568225",
+      "ENST00000615648"
+    ],
+    "EXD3-chr9-137373504": [
+      "ENST00000340951",
+      "ENST00000479452"
+    ],
+    "EXOC4-chr7-133274996": [
+      "ENST00000253861",
+      "ENST00000393161"
+    ],
+    "EYS-chr6-65405193": [
+      "ENST00000342421",
+      "ENST00000370621",
+      "ENST00000393380",
+      "ENST00000503581"
+    ],
+    "F8-chrX-154930861": [
+      "ENST00000360256"
+    ],
+    "FAM157A-p_W70_Q71ins_14": [],
+    "FAM83B-chr6-54940265": [
+      "ENST00000306858"
+    ],
+    "FAM83H-chr8-143728543": [
+      "ENST00000388913"
+    ],
+    "FBXO33-chr14-39431722": [
+      "ENST00000298097",
+      "ENST00000554190"
+    ],
+    "FCGBP-chr19-39876804": [
+      "ENST00000616721"
+    ],
+    "FCGBP-chr19-39879706": [
+      "ENST00000616721"
+    ],
+    "FGFR3-chr4-1805817": [
+      "ENST00000260795",
+      "ENST00000340107",
+      "ENST00000352904",
+      "ENST00000412135",
+      "ENST00000440486",
+      "ENST00000481110"
+    ],
+    "FHL3-chr1-37998037": [
+      "ENST00000373016"
+    ],
+    "FJX1-chr11-35619371": [
+      "ENST00000317811"
+    ],
+    "FRMPD4-chrX-12717076": [
+      "ENST00000380682",
+      "ENST00000616992"
+    ],
+    "FZD9-chr7-73434684": [
+      "ENST00000344575"
+    ],
+    "GABBR1-chr6-29630494": [
+      "ENST00000376977",
+      "ENST00000377034",
+      "ENST00000462632",
+      "ENST00000489385",
+      "ENST00000494877"
+    ],
+    "GABBR1-chr6-29630575": [
+      "ENST00000376977",
+      "ENST00000377034",
+      "ENST00000462632",
+      "ENST00000476670",
+      "ENST00000489385",
+      "ENST00000491829",
+      "ENST00000494877"
+    ],
+    "GAPVD1-chr9-125301980": [],
+    "GDF2-chr10-47325480": [
+      "ENST00000581492"
+    ],
+    "GLB1L3-chr11-134311149": [
+      "ENST00000431683"
+    ],
+    "GLIS3-chr9-3856149": [
+      "ENST00000324333",
+      "ENST00000381971"
+    ],
+    "GOLGA6L2-chr15-23440197": [
+      "ENST00000567107"
+    ],
+    "GTF3C5-chr9-133057893": [
+      "ENST00000342018",
+      "ENST00000372097",
+      "ENST00000372099",
+      "ENST00000372108"
+    ],
+    "H1_2-chr6-26055824": [
+      "ENST00000343677"
+    ],
+    "HIC2-chr22-21446352": [
+      "ENST00000407464",
+      "ENST00000407598",
+      "ENST00000443632"
+    ],
+    "HSFX3-chrX-149548470": [
+      "ENST00000431993"
+    ],
+    "HSPG2-chr1-21834891": [
+      "ENST00000374695"
+    ],
+    "IFT122-chr3-129502728": [
+      "ENST00000296266",
+      "ENST00000347300",
+      "ENST00000348417",
+      "ENST00000349441",
+      "ENST00000431818",
+      "ENST00000440957",
+      "ENST00000504021",
+      "ENST00000507221",
+      "ENST00000507564"
+    ],
+    "ITGB1-chr10-32911945": [
+      "ENST00000302278",
+      "ENST00000396033",
+      "ENST00000423113"
+    ],
+    "ITPR3-chr6-33688135": [
+      "ENST00000374316",
+      "ENST00000605930"
+    ],
+    "JAK3-chr19-17830035": [
+      "ENST00000534444"
+    ],
+    "KDM3B-chr5-138391529": [
+      "ENST00000314358"
+    ],
+    "KIF1C-chr17-5007293": [
+      "ENST00000320785"
+    ],
+    "KLHL33-chr14-20429267": [
+      "ENST00000344581",
+      "ENST00000636854"
+    ],
+    "KMT2D-chr12-49034200": [
+      "ENST00000301067"
+    ],
+    "KRT18-chr12-52951767": [
+      "ENST00000388835",
+      "ENST00000388837",
+      "ENST00000550600"
+    ],
+    "KRT37-chr17-41422418": [
+      "ENST00000225550"
+    ],
+    "KTN1-chr14-55627965": [
+      "ENST00000395308",
+      "ENST00000395309",
+      "ENST00000395311",
+      "ENST00000395314",
+      "ENST00000413890",
+      "ENST00000438792",
+      "ENST00000459737"
+    ],
+    "LCE1B-chr1-152812486": [
+      "ENST00000360090"
+    ],
+    "LEPR-chr1-65636606": [
+      "ENST00000349533",
+      "ENST00000406510"
+    ],
+    "LINGO4-chr1-151801914": [
+      "ENST00000368820"
+    ],
+    "LRBA-chr4-151014497": [
+      "ENST00000357115",
+      "ENST00000507224",
+      "ENST00000510413"
+    ],
+    "LY75-chr2-159840947": [
+      "ENST00000263636",
+      "ENST00000504764",
+      "ENST00000505052"
+    ],
+    "MAP2-chr2-209694768": [
+      "ENST00000360351",
+      "ENST00000447185"
+    ],
+    "MAP2-chr2-209694768-historical": [
+      "ENST00000360351",
+      "ENST00000447185"
+    ],
+    "MAP2-chr2-209694772": [
+      "ENST00000360351",
+      "ENST00000447185"
+    ],
+    "MARCOL-chr5-148242907": [
+      "ENST00000638059",
+      "ENST00000638089"
+    ],
+    "MBD4-chr3-129437921": [
+      "ENST00000249910",
+      "ENST00000393278",
+      "ENST00000429544",
+      "ENST00000503197",
+      "ENST00000507208"
+    ],
+    "MSL2-chr3-136151340": [
+      "ENST00000309993",
+      "ENST00000434835"
+    ],
+    "MT_ND5-chrM-12994": [
+      "ENST00000361567"
+    ],
+    "MUC2-chr11-1095629": [],
+    "MYO15B-chr17-75589953": [
+      "ENST00000584516",
+      "ENST00000610510",
+      "ENST00000619501",
+      "ENST00000621743"
+    ],
+    "MYO9A-chr15-71994488": [
+      "ENST00000356056",
+      "ENST00000424560",
+      "ENST00000444904",
+      "ENST00000564571",
+      "ENST00000566885"
+    ],
+    "NAV2-chr11-20080142": [
+      "ENST00000349880",
+      "ENST00000360655",
+      "ENST00000396085",
+      "ENST00000396087",
+      "ENST00000525322",
+      "ENST00000527559",
+      "ENST00000533917",
+      "ENST00000540292"
+    ],
+    "NBPF1-chr1-16563989": [
+      "ENST00000430580"
+    ],
+    "NBPF1-chr1-16564149": [
+      "ENST00000430580",
+      "ENST00000432949"
+    ],
+    "NDST4-chr4-114870902": [
+      "ENST00000264363",
+      "ENST00000504854",
+      "ENST00000613194"
+    ],
+    "NDUFA11-chr19-5896456": [
+      "ENST00000308961",
+      "ENST00000418389",
+      "ENST00000592091",
+      "ENST00000592634"
+    ],
+    "NECAP1-chr12-8092892": [
+      "ENST00000339754",
+      "ENST00000540083",
+      "ENST00000541948"
+    ],
+    "NLRP4-chr19-55861444": [
+      "ENST00000301295",
+      "ENST00000587891"
+    ],
+    "NME1-chr17-51154443": [
+      "ENST00000013034",
+      "ENST00000336097",
+      "ENST00000456492",
+      "ENST00000480143",
+      "ENST00000555572"
+    ],
+    "NNT-chr5-43612993": [
+      "ENST00000264663",
+      "ENST00000344920",
+      "ENST00000505678",
+      "ENST00000512422"
+    ],
+    "NR2F2-chr15-96332299": [
+      "ENST00000394166"
+    ],
+    "NTF3-chr12-5494381": [
+      "ENST00000331010",
+      "ENST00000423158"
+    ],
+    "NTF3-chr12-5494381-compound": [
+      "ENST00000331010",
+      "ENST00000423158"
+    ],
+    "ODF1-chr8-102560579": [
+      "ENST00000285402"
+    ],
+    "OR10H1-chr19-15807703": [
+      "ENST00000334920"
+    ],
+    "OR10P1-chr12-55637502": [
+      "ENST00000309675"
+    ],
+    "OR2T12-chr1-248294753": [
+      "ENST00000317996"
+    ],
+    "PCDH15-chr10-54079389": [
+      "ENST00000320301",
+      "ENST00000361849",
+      "ENST00000373955",
+      "ENST00000373956",
+      "ENST00000373957",
+      "ENST00000373965",
+      "ENST00000395430",
+      "ENST00000395432",
+      "ENST00000395433",
+      "ENST00000395438",
+      "ENST00000395445",
+      "ENST00000395446",
+      "ENST00000409834",
+      "ENST00000414778",
+      "ENST00000437009",
+      "ENST00000448885",
+      "ENST00000612394",
+      "ENST00000613657",
+      "ENST00000614895",
+      "ENST00000616114",
+      "ENST00000617051",
+      "ENST00000617271",
+      "ENST00000621708",
+      "ENST00000622048"
+    ],
+    "PCDH19-chrX-100341898": [],
+    "PDZRN4-chr12-41572809": [
+      "ENST00000298919",
+      "ENST00000402685",
+      "ENST00000539469"
+    ],
+    "PEX7-chr6-136826422": [
+      "ENST00000318471",
+      "ENST00000367756",
+      "ENST00000541292"
+    ],
+    "PIP5K1A-chr1-151242178": [
+      "ENST00000349792",
+      "ENST00000368888",
+      "ENST00000409426",
+      "ENST00000441902"
+    ],
+    "PLA2G7-chr6-46708091": [
+      "ENST00000274793",
+      "ENST00000537365"
+    ],
+    "PLK4-chr4-127886717": [
+      "ENST00000270861",
+      "ENST00000513090",
+      "ENST00000514379",
+      "ENST00000515069"
+    ],
+    "PPP1R3F-chrX-49270761": [
+      "ENST00000055335"
+    ],
+    "PPP6R3-chr11-68601969": [
+      "ENST00000265636",
+      "ENST00000265637",
+      "ENST00000393800",
+      "ENST00000393801",
+      "ENST00000524845",
+      "ENST00000524904",
+      "ENST00000527403",
+      "ENST00000529710",
+      "ENST00000534534"
+    ],
+    "PRICKLE2-chr3-64198863": [
+      "ENST00000295902",
+      "ENST00000498162",
+      "ENST00000564377",
+      "ENST00000569824"
+    ],
+    "PRPSAP2-chr17-18930658": [
+      "ENST00000268835",
+      "ENST00000419071",
+      "ENST00000536323",
+      "ENST00000542013",
+      "ENST00000610773"
+    ],
+    "PRRC2C-chr1-171540477": [
+      "ENST00000338920",
+      "ENST00000367742",
+      "ENST00000426496"
+    ],
+    "PTH1R-chr3-46898732": [
+      "ENST00000313049",
+      "ENST00000418619",
+      "ENST00000427125",
+      "ENST00000428220",
+      "ENST00000430002",
+      "ENST00000449590"
+    ],
+    "PUM1-chr1-30995054": [
+      "ENST00000257075",
+      "ENST00000373741",
+      "ENST00000373742",
+      "ENST00000373747",
+      "ENST00000426105",
+      "ENST00000440538"
+    ],
+    "RABEP1-chr17-5350565": [
+      "ENST00000341923",
+      "ENST00000537505"
+    ],
+    "RCSD1-chr1-167685445": [
+      "ENST00000361496",
+      "ENST00000367854"
+    ],
+    "RDH11-chr14-67691154": [
+      "ENST00000381346",
+      "ENST00000428130",
+      "ENST00000553384",
+      "ENST00000557726"
+    ],
+    "RECK-chr9-36087719": [
+      "ENST00000377966"
+    ],
+    "RNF157-chr17-76161924": [
+      "ENST00000269391",
+      "ENST00000319945"
+    ],
+    "RNF213-chr17-80327830": [
+      "ENST00000508628",
+      "ENST00000582970"
+    ],
+    "ROBO2-chr3-77607853": [
+      "ENST00000332191",
+      "ENST00000461745",
+      "ENST00000487694"
+    ],
+    "ROS1-chr6-117301021": [
+      "ENST00000368507",
+      "ENST00000368508"
+    ],
+    "RP1L1-chr8-10611724": [
+      "ENST00000382483"
+    ],
+    "SAMD9-chr7-93101611": [
+      "ENST00000379958",
+      "ENST00000620985"
+    ],
+    "SERPINB10-chr18-63915540": [
+      "ENST00000238508",
+      "ENST00000619595"
+    ],
+    "SHC4-chr15-48843429": [
+      "ENST00000332408",
+      "ENST00000396535",
+      "ENST00000537958"
+    ],
+    "SLAMF7-chr1-160751438": [
+      "ENST00000368042",
+      "ENST00000368043",
+      "ENST00000441662",
+      "ENST00000458602",
+      "ENST00000621377"
+    ],
+    "SLC17A4-chr6-25769158": [
+      "ENST00000377905",
+      "ENST00000397076",
+      "ENST00000439485"
+    ],
+    "SLC25A12-chr2-171813470": [
+      "ENST00000422440"
+    ],
+    "SLC35G2-chr3-136855622": [
+      "ENST00000393079",
+      "ENST00000446465"
+    ],
+    "SLC7A1-chr13-29522401": [
+      "ENST00000380752"
+    ],
+    "SMC5-chr9-70298024": [
+      "ENST00000361138"
+    ],
+    "SPAG1-chr8-100213209": [
+      "ENST00000251809",
+      "ENST00000388798"
+    ],
+    "SPG11-chr15-44660435": [
+      "ENST00000261866",
+      "ENST00000427534",
+      "ENST00000535302",
+      "ENST00000558319",
+      "ENST00000559193"
+    ],
+    "SRGAP3-chr3-9104715": [
+      "ENST00000360413",
+      "ENST00000383836",
+      "ENST00000618999"
+    ],
+    "STYXL2-chr1-167126143": [
+      "ENST00000271385",
+      "ENST00000361200",
+      "ENST00000443333"
+    ],
+    "SULT6B1-chr2-37171433": [],
+    "TAF7L-chrX-101286650": [
+      "ENST00000324762",
+      "ENST00000356784",
+      "ENST00000372907"
+    ],
+    "TECPR1-chr7-98241127": [
+      "ENST00000447648"
+    ],
+    "TMEM139-chr7-143286139": [
+      "ENST00000359333",
+      "ENST00000409102",
+      "ENST00000409244",
+      "ENST00000409541",
+      "ENST00000410004"
+    ],
+    "TMRO-chr9-97910412": [
+      "ENST00000375118",
+      "ENST00000375119",
+      "ENST00000611338"
+    ],
+    "TRABD2A-chr2-84880932": [
+      "ENST00000335459",
+      "ENST00000409133",
+      "ENST00000409520"
+    ],
+    "TRAPPC8-chr18-31874592": [
+      "ENST00000283351",
+      "ENST00000580104",
+      "ENST00000582513",
+      "ENST00000582539"
+    ],
+    "TTLL6-chr17-48816988": [
+      "ENST00000393382",
+      "ENST00000456415"
+    ],
+    "USH2A-chr1-215650752": [
+      "ENST00000307340"
+    ],
+    "VPS13B-chr8-99861923": [
+      "ENST00000357162",
+      "ENST00000358544"
+    ],
+    "VPS72-chr1-151185547": [
+      "ENST00000354473",
+      "ENST00000368892"
+    ],
+    "VSIG4-chrX-66032555": [
+      "ENST00000374737",
+      "ENST00000455586"
+    ],
+    "WWC1-chr5-168399513": [
+      "ENST00000265293",
+      "ENST00000521089"
+    ],
+    "ZAR1-chr4-48490989": [
+      "ENST00000327939"
+    ],
+    "ZNF436-chr1-23362762": [
+      "ENST00000314011",
+      "ENST00000374608"
+    ],
+    "ZNF674-chrX-46501045": [
+      "ENST00000414387",
+      "ENST00000523374"
+    ],
+    "ZNF764-chr16-30557995": [
+      "ENST00000252797",
+      "ENST00000395091",
+      "ENST00000568114"
+    ],
+    "ZNRF3-chr22-29049913": [
+      "ENST00000402174",
+      "ENST00000406323",
+      "ENST00000544604"
+    ]
+  }
+}
