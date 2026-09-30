@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.39.15"
+__version__ = "1.40.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -23,6 +23,7 @@ from .main import run_isovar
 from .mutant_transcript_source import IsovarMutantTranscript
 from .phase_group import PhaseGroup
 from .protein_hypotheses import export_protein_hypotheses, read_group_metadata, write_protein_hypotheses
+from .cell_reconstruction import reconstruct_cell_groups
 from .protein_sequence import ProteinSequence
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
@@ -49,6 +50,7 @@ __all__ = [
     "run_isovar",
     "reconcile_allele_interpretations",
     "cell_umi_allele_evidence",
+    "reconstruct_cell_groups",
     "export_protein_hypotheses",
     "write_protein_hypotheses",
     "read_group_metadata",
