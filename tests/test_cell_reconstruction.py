@@ -265,9 +265,17 @@ def test_original_ont_single_cell_records_and_pinned_reference(tmp_path, monkeyp
     with pysam.AlignmentFile(str(bam_path)) as bam:
         results = run_isovar([variant], bam, read_collector=collector, transcript_id_whitelist=whitelist)
         export = reconstruct_cell_groups(results, bam, sample_id="sid-T1", source="nme1-original",
-                                         read_collector=collector, transcript_id_whitelist=whitelist)
+                                         read_collector=collector, transcript_id_whitelist=whitelist,
+                                         partial_read_support=True)
     event, = export["events"]
     assert event["input_support"]["reads"] == 68
+    summary = event["partial_read_support"]
+    assert summary["input_fragments"] == 68
+    assert summary["scored_fragments"] > 0
+    assert summary["scored_fragments"] + summary["unscored_fragments"] == 68
+    assert sum(s["fractional_fragments"] for s in summary["protein_scores"]) == pytest.approx(summary["scored_fragments"])
+    assert sum(c["partial_read_support"]["input_fragments"] for c in event["cells"]) == 68
+    assert summary["unresolved_cell_fragments"] == 0
     assert event["unresolved_cell_support"]["reads"] == 0
     assert sum(o["rna_support"]["reads"] for c in event["cells"] for o in c["observations"]) == 68
     assert all(not c["library_scope_known"] for c in event["cells"])
@@ -357,3 +365,82 @@ def test_quality_assessments_preserve_pooled_orfs_and_sparse_cell_attribution(tm
                                           base_quality_policy=BaseQualityPolicy(20))
     assert without_quality(missing) == without_quality(raw)
     assert missing["events"][0]["candidates"][0]["base_quality"]["unassessed"]["num_unique_cells"] == 4
+
+
+def test_partial_scores_support_sparse_cells_and_preserve_sample_boundaries(tmp_path, reference):
+    from isovar import BaseQualityPolicy
+
+    alternative = MUTANT[:21] + "TTC" + MUTANT[24:]
+    specs = [(MUTANT, "A1", "a"), (MUTANT, "A2", "a"),
+             (alternative, "B1", "a"), (alternative, "B2", "a"),
+             (MUTANT, "foreign", "c"), (MUTANT, None, "a")]
+    records = reads_for(reference, specs)
+    strand, variant = reference
+    # Original transcript positions 0:20 cover the focal allele at 15 but not
+    # the distinguishing codon at 21:24. Place the reverse read correctly.
+    partial = MUTANT[:20] if strand == "+" else reverse_complement_dna(MUTANT[:20])
+    singleton = record("partial", "1", 1000 if strand == "+" else 1013, "20M", partial)
+    singleton.set_tag("CB", "shared")
+    singleton.set_tag("UB", "one")
+    singleton.query_qualities = None
+    records.append(singleton)
+    path = write_bam(tmp_path / "partial.bam", records, header=HEADER)
+    with pysam.AlignmentFile(path) as bam:
+        reads = ReadCollector().read_evidence_for_variant(variant, bam)
+        creator = ProteinSequenceCreator(protein_sequence_length=20, min_transcript_prefix_length=3,
+                                         min_variant_sequence_coverage=2)
+        result = IsovarResult(variant, reads, None, protein_sequence_settings=creator.settings())
+        raw = reconstruct_cell_groups([result], bam, sample_id="s", source="input")
+        scored = reconstruct_cell_groups([result], bam, sample_id="s", source="input", partial_read_support=True,
+                                          base_quality_policy=BaseQualityPolicy(20))
+    event, = scored["events"]
+    summary = event["partial_read_support"]
+    assert summary["input_fragments"] == 7
+    assert summary["scored_fragments"] == 6
+    assert summary["unresolved_cell_fragments"] == 1
+    cells = {c["cell_barcode"]: c for c in event["cells"]}
+    assert cells["foreign"]["partial_read_support"]["scored_fragments"] == 0
+    shared = cells["shared"]["partial_read_support"]
+    assert shared["input_fragments"] == shared["scored_fragments"] == 1
+    scores = [s for s in shared["protein_scores"] if s["fractional_fragments"]]
+    assert len(scores) >= 2
+    assert all(s["unique_fragments"] == 0 for s in scores)
+    assert sum(s["fractional_fragments"] for s in scores) == pytest.approx(1)
+    assert sum(s["base_quality_fractional_fragments"]["unassessed"] for s in scores) == pytest.approx(1)
+    # Opt-in scores and quality categories must leave original discovery and
+    # compatibility assignments intact.
+    def original(value):
+        if isinstance(value, dict):
+            return {k: original(v) for k, v in value.items()
+                    if k not in ("partial_read_support", "base_quality", "base_quality_policy", "evidence_sets")}
+        return [original(v) for v in value] if isinstance(value, list) else value
+    assert original(scored) == original(raw)
+    assert json.loads(json.dumps(scored)) == scored
+
+
+def test_partial_support_cli_and_shared_comparison_options(tmp_path):
+    from isovar.cli.commands import run
+    from tests.test_cell_evidence import ALT, REF, HEADER as COUNTS_HEADER
+
+    bam = write_bam(tmp_path / "rna.bam", ALT + REF, header=COUNTS_HEADER)
+    output = tmp_path / "proteins.json"
+    args = ["protein-hypotheses", "--variant", "1", "1021", "A", "G", "--genome", "GRCh38",
+            "--bam", str(bam), "--sample-id", "sample", "--output", str(output), "--log-level", "ERROR"]
+    run(args)
+    assert "partial_read_support" not in json.loads(output.read_text())
+    run(args + ["--partial-read-support", "--support-max-edits", "0", "--support-min-overlap", "5",
+                "--cell-reconstruction", "sample"])
+    scored = json.loads(output.read_text())
+    assert scored["partial_read_support"] == {"max_edits": 0, "min_overlap": 5}
+    assert scored["events"][0]["partial_read_support"]["policy"]["max_edits"] == 0
+    cell_event, = scored["cell_reconstruction"]["events"]
+    assert cell_event["partial_read_support"]["policy"]["max_edits"] == 0
+    assert cell_event["partial_read_support"]["input_fragments"] == 6
+    # This intergenic fixture deliberately produces no candidate, so all
+    # original fragments remain visible with a reason instead of a fake score.
+    assert cell_event["partial_read_support"]["unscored_fragments"] == 6
+    assert "protein_fractional_fragments" in output.with_suffix(".tsv").read_text().splitlines()[0]
+    for extra in (["--support-min-overlap", "0", "--partial-read-support"], ["--support-max-edits", "2"]):
+        with pytest.raises(SystemExit) as error:
+            run(args + extra)
+        assert error.value.code == 2

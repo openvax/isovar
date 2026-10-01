@@ -44,6 +44,10 @@ class Transcript:
     def spliced_offset(self, dna_pos):
         return dna_pos - self.genomic_offset
 
+    @property
+    def exon_intervals(self):
+        return [(self.genomic_offset, self.genomic_offset + 16)]
+
 
 VARIANT = Variant("1", 108, "A", "C", normalize_contig_names=False)
 TRANSCRIPT = Transcript(id="tx-1", name="TX1", gene=Gene(id="gene-1", name="GENE1"))
@@ -278,3 +282,43 @@ def test_command_reports_unusable_output_as_a_usage_error(tmp_path, capsys):
                     "--output", str(tmp_path / "missing" / "b16.json")])
     assert exit_info.value.code == 2
     assert "Output directory does not exist" in capsys.readouterr().err
+
+
+def test_partial_support_reconsiders_original_reads_and_exports_separate_rank(tmp_path):
+    result = synthetic_result(settings=dict(max_protein_sequences_per_variant=0))
+    # This informative partial read was not used in any stored assembly.
+    informative = AlleleRead("GCT", "C", "AAGACTAA", "extra", source_alignments=(
+        (("rg1", "extra", 0), (0, 104, "12M", False)),))
+    result.read_evidence.alt_reads.append(informative)
+    raw = export_protein_hypotheses([result], sample_id="s", source="input")
+    scored = export_protein_hypotheses([result], sample_id="s", source="input", partial_read_support=True,
+                                      support_max_edits=0, support_min_overlap=3)
+    event, = scored["events"]
+    summary = event["partial_read_support"]
+    assert summary["catalog_complete"] is True
+    assert (summary["input_fragments"], summary["scored_fragments"]) == (5, 5)
+    assert len(summary["candidates"]) == 4  # includes the synonymous RNA hypothesis
+    first, alternative, window = event["protein_hypotheses"]
+    assert [p["partial_read_support"]["rank"] for p in (first, alternative, window)] == [2, 1, 2]
+    assert [p["partial_read_support"]["fractional_fragments"] for p in (first, alternative, window)] == pytest.approx(
+        [4 / 3, 7 / 3, 4 / 3])
+    assert alternative["partial_read_support"]["unique_fragments"] == 1
+    for before, after in zip(raw["events"][0]["protein_hypotheses"], event["protein_hypotheses"]):
+        assert {k: v for k, v in after.items() if k != "partial_read_support"} == before
+    assert json.loads(json.dumps(scored)) == scored
+    paths = write_protein_hypotheses(scored, tmp_path / "scores.json")
+    with paths["tsv"].open() as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    assert {int(r["protein_support_score_rank"]) for r in rows if r["amino_acids"] == "MAQD"} == {1}
+    assert {float(r["protein_fractional_fragments"]) for r in rows if r["amino_acids"] == "MAQD"} == {7 / 3}
+    assert "partial_read_support" not in raw
+    paths = write_protein_hypotheses(raw, tmp_path / "raw.json")
+    assert "protein_fractional_fragments" not in paths["tsv"].read_text().splitlines()[0]
+
+
+@pytest.mark.parametrize("limit,complete", [(0, True), (3, False), (4, True)])
+def test_partial_scores_report_catalog_caps(limit, complete):
+    result = synthetic_result(settings=dict(max_protein_sequences_per_variant=limit))
+    exported = export_protein_hypotheses([result], sample_id="s", source="input", partial_read_support=True,
+                                        support_min_overlap=3)
+    assert exported["events"][0]["partial_read_support"]["catalog_complete"] is complete

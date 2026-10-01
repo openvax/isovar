@@ -148,6 +148,9 @@ for how quality tags from each platform are treated.
 Optional [base-quality assessments](docs/base-quality.md) report focal-allele
 support meeting an explicit threshold alongside raw counts. Missing qualities
 remain unknown; reconstruction uses the same pipeline across platforms.
+Optional [partial-read support scores](docs/partial-read-support.md) divide each
+fragment's support among compatible RNA/protein hypotheses and report per-cell
+summaries alongside raw counts.
 
 How reads are counted:
 

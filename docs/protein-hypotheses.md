@@ -145,3 +145,12 @@ the BAM header, or null when unknown.
   `protein_hypotheses_complete`.
 - A `local_window` protein is not a complete ORF. Neither `n_terminus` nor
   `c_terminus` establishes translation, presentation or tumor specificity.
+
+## Partial-read support scores
+
+`--partial-read-support` adds catalog-relative fractional fragment scores and a
+separate score rank to JSON and TSV. It evaluates original partial reads against
+all exported candidates while preserving raw counts and Isovar ordering. With
+`--cell-reconstruction`, the same score is also summarized per cell.
+See [partial-read support](partial-read-support.md) for counting, ambiguity,
+quality categories and comparison settings.

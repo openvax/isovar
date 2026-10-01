@@ -241,3 +241,39 @@ def test_real_splice_skip_is_not_deletion_evidence(name, alignments):
                 if op in (0, 2, 3, 7, 8):
                     pos += length
     pytest.fail("Fixture did not contain a suitable real splice junction")
+
+
+@pytest.mark.parametrize("name,record", [(n, v) for n, v in CASES if len(v["ref"]) == len(v["alt"]) == 1])
+def test_partial_fragment_budget_matches_independent_real_snv_ledger(name, record, alignments):
+    from isovar.protein_hypotheses import _EvidenceSets
+    from isovar.rna_candidate_support import score_fragments
+
+    expected_observations = {o["record"]: o for o in record["observations"]}
+    fragments = {}
+    with pysam.AlignmentFile(alignments[name]) as bam:
+        for original in bam:
+            obs = expected_observations.get(record_digest(original))
+            if obs is None or original.is_secondary or original.is_duplicate or "N" in obs["allele"]:
+                continue
+            key = (original.get_tag("RG") if original.has_tag("RG") else "", original.query_name)
+            fragments.setdefault(key, []).append(obs)
+    expected = [observations for observations in fragments.values()
+                if all(o["allele"] == record["alt"] for o in observations)]
+    collector = ReadCollector(min_mapping_quality=0, use_secondary_alignments=False, merge_overlapping_fragments=False)
+    with pysam.AlignmentFile(alignments[name]) as bam:
+        reads = collector.read_evidence_for_variant(variant_from_record(record), bam)
+    catalog = [dict(candidate_id="alt", sequence=record["alt"], variant_interval=[0, 1],
+                    hypothesis_ids=["protein"], transcript_ids=["local"])]
+    # A focal-base-only catalog tests fragment accounting against the independent
+    # CIGAR ledger; it makes no claim about the remainder of a transcript/ORF.
+    transcripts = {"alt": [SimpleNamespace(id="local", exon_intervals=[(1, 1_000_000_000)])]}
+    scored = score_fragments(reads.ref_reads + reads.alt_reads + reads.other_reads, catalog, transcripts,
+                             record["ref"], _EvidenceSets([name, "fixture"], BaseQualityPolicy(20)),
+                             min_overlap=1, max_edits=0)
+    assert scored["input_fragments"] == len(fragments)
+    assert scored["scored_fragments"] == len(expected)
+    assert scored["protein_scores"][0]["fractional_fragments"] == len(expected)
+    quality = scored["protein_scores"][0]["base_quality_fractional_fragments"]
+    assert quality["passed"] == sum(all(min(o["qualities"]) >= 20 for o in group) for group in expected)
+    assert quality["failed"] == sum(any(min(o["qualities"]) < 20 for o in group) for group in expected)
+    assert quality["unassessed"] == 0
