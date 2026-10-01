@@ -21,6 +21,7 @@ from .genetic_code import translate_cdna
 from .protein_sequence_helpers import covered_protein_groups
 from .read_identity import source_read_ids
 from .read_metadata import unique_header_entries
+from .rna_candidate_support import candidate_catalog, score_fragments, validate_comparison_settings
 from .rna_evidence import SUPPORT_COLUMNS, EvidenceSets, content_identifier, support_columns
 from .transcript_edit_helpers import categorize_transcript_assembly_edits_from_translation
 
@@ -198,7 +199,7 @@ def _allele_support(reads, evidence, labels):
             *({key for read in group for key in source_read_ids(read)} for group in (reads.ref_reads, reads.alt_reads))))
 
 
-def _event(result, evidence, cell_labels):
+def _event(result, evidence, cell_labels, partial_read_support=False, support_max_edits=1, support_min_overlap=10):
     variant, reads = result.variant, result.read_evidence
     event_id = _event_id(variant)
     effect = result.predicted_effect
@@ -206,7 +207,7 @@ def _event(result, evidence, cell_labels):
     labels = None if cell_labels is None else cell_labels.labels(variant, [
         key for group in (reads.ref_reads, reads.alt_reads, reads.other_reads)
         for read in group for key in source_read_ids(read)])
-    return dict(
+    row = dict(
         event_id=event_id, variant=_variant(variant),
         reference_prediction=None if effect is None else dict(
             effect_class=type(effect).__name__, description=getattr(effect, "short_description", None),
@@ -220,6 +221,17 @@ def _event(result, evidence, cell_labels):
         edit_attribution=_edit_attribution(result.sorted_protein_sequences),
         protein_sequence_settings=result.protein_sequence_settings,
         protein_hypotheses=_proteins(result.sorted_protein_sequences, event_id, evidence, labels))
+
+    if partial_read_support:
+        candidates, transcripts = candidate_catalog(result.sorted_protein_sequences, row["protein_hypotheses"], event_id)
+        row["partial_read_support"] = score_fragments(
+            reads.ref_reads + reads.alt_reads + reads.other_reads, candidates, transcripts,
+            reads.trimmed_ref, evidence, labels, max_edits=support_max_edits,
+            min_overlap=support_min_overlap, catalog_complete=complete)
+        scores = {score["hypothesis_id"]: score for score in row["partial_read_support"]["protein_scores"]}
+        for protein in row["protein_hypotheses"]:
+            protein["partial_read_support"] = scores[protein["hypothesis_id"]]
+    return row
 
 
 def read_group_metadata(alignment_header):
@@ -253,7 +265,8 @@ def _read_groups(results, alignment_header):
 
 
 def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_header=None,
-                              cell_umi_alignment_file=None, read_collector=None, base_quality_policy=None):
+                              cell_umi_alignment_file=None, read_collector=None, base_quality_policy=None,
+                              partial_read_support=False, support_max_edits=1, support_min_overlap=10):
     """Export every protein hypothesis and translation, with scoped RNA evidence.
 
     Parameters
@@ -282,6 +295,12 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
     base_quality_policy : BaseQualityPolicy, optional
         Add focal-allele quality support alongside raw RNA support in JSON.
         Reconstruction, ranking and the TSV's raw support are unchanged.
+    partial_read_support : bool
+        Add separate fractional fragment scores and dense ranks using original
+        partial reads and all exported candidates. Default False.
+    support_max_edits, support_min_overlap : int
+        Edit tolerance and minimum compared bases for partial-read scoring.
+        Defaults are 1 and 10, as in cell attribution. These are not probabilities.
 
     Returns
     -------
@@ -297,6 +316,8 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
     ValueError
         If a translation's cDNA and frame do not give its amino acids.
     """
+    if partial_read_support:
+        validate_comparison_settings(support_max_edits, support_min_overlap)
     results = list(isovar_results)
     scope = [sample_id, source]
     evidence = _EvidenceSets(scope, base_quality_policy)
@@ -305,11 +326,14 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
         from .cell_evidence import CellUmiAlleles, warn_if_unlabelled
         cell_labels = CellUmiAlleles(cell_umi_alignment_file, sample_id=sample_id, source=source,
                                      read_collector=read_collector)
-    events = [_event(result, evidence, cell_labels) for result in results]
+    events = [_event(result, evidence, cell_labels, partial_read_support, support_max_edits, support_min_overlap)
+              for result in results]
     if cell_labels is not None:
         warn_if_unlabelled(e["allele_support"][a] for e in events for a in ("ref", "alt", "other"))
     return dict(
         **({} if base_quality_policy is None else dict(base_quality_policy=base_quality_policy.description())),
+        **({} if not partial_read_support else dict(partial_read_support=dict(
+            max_edits=support_max_edits, min_overlap=support_min_overlap))),
         schema=SCHEMA, isovar_version=__version__, sample_id=sample_id, source=source,
         evidence_scope=scope, interval_convention="zero_based_half_open",
         evidence_identity_policy="sha256_of_domain_and_canonical_json; sample/source scoped",
@@ -331,11 +355,15 @@ _TSV_COLUMNS = (
     "protein_hypotheses_complete")
 
 
+_SCORE_TSV_COLUMNS = ("protein_fractional_fragments", "protein_unique_support_fragments",
+                      "protein_ambiguous_support_fragments", "protein_support_score_rank")
+
+
 def _tsv_rows(export):
     for event in export["events"]:
         for protein in event["protein_hypotheses"]:
             for translation in protein["translations"]:
-                yield dict(
+                row = dict(
                     schema=export["schema"], sample_id=export["sample_id"], source=export["source"],
                     event_id=event["event_id"], variant=event["variant"]["description"],
                     hypothesis_id=protein["hypothesis_id"], isovar_rank=protein["isovar_rank"],
@@ -357,6 +385,12 @@ def _tsv_rows(export):
                     translation_evidence_set_id=translation["rna_support"]["evidence_set_id"] or "",
                     protein_hypotheses_complete=("" if event["protein_hypotheses_complete"] is None
                                                  else event["protein_hypotheses_complete"]))
+
+                if export.get("partial_read_support") is not None:
+                    score = protein["partial_read_support"]
+                    row.update(zip(_SCORE_TSV_COLUMNS, (score[key] for key in (
+                        "fractional_fragments", "unique_fragments", "ambiguous_fragments", "rank"))))
+                yield row
 
 
 def write_protein_hypotheses(export, path):
@@ -382,7 +416,8 @@ def write_protein_hypotheses(export, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(export, indent=2) + "\n")
     with tsv.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=_TSV_COLUMNS, delimiter="\t")
+        columns = _TSV_COLUMNS + (_SCORE_TSV_COLUMNS if export.get("partial_read_support") is not None else ())
+        writer = csv.DictWriter(handle, fieldnames=columns, delimiter="\t")
         writer.writeheader()
         writer.writerows(_tsv_rows(export))
     return dict(json=path, tsv=tsv)

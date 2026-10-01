@@ -38,8 +38,12 @@ _group.add_argument(
     "--cell-reconstruction", choices=MODES,
     help="Also reconstruct by this pool and attribute original reads to scoped cells (JSON)")
 _group.add_argument("--cell-groups", metavar="JSON", help="Scoped cell ID to group-name mapping for group mode")
-_group.add_argument("--cell-max-edits", type=int, help="Cell attribution edit tolerance (default: 1)")
-_group.add_argument("--cell-min-overlap", type=int, help="Minimum compared bases for cell attribution (default: 10)")
+_group.add_argument("--partial-read-support", action="store_true",
+                    help="Also score partial-read support as fractional fragments across compatible hypotheses")
+_group.add_argument("--cell-max-edits", "--support-max-edits", type=int,
+                    help="Edit tolerance for cell attribution/partial-read scoring (default: 1)")
+_group.add_argument("--cell-min-overlap", "--support-min-overlap", type=int,
+                    help="Minimum compared bases for cell attribution/partial-read scoring (default: 10)")
 
 
 def run(args=None, *, prog=None):
@@ -49,9 +53,12 @@ def run(args=None, *, prog=None):
     try:
         check_output_path(args.output)
         quality_policy = base_quality_policy_from_args(args)
-        if not args.cell_reconstruction and any(value is not None for value in
-                                                (args.cell_groups, args.cell_max_edits, args.cell_min_overlap)):
-            raise ValueError("Cell attribution options require --cell-reconstruction")
+        if not args.cell_reconstruction and (args.cell_groups is not None or (
+                not args.partial_read_support and any(value is not None for value in
+                                                      (args.cell_max_edits, args.cell_min_overlap)))):
+            raise ValueError("Cell attribution options require --cell-reconstruction or --partial-read-support")
+        max_edits = 1 if args.cell_max_edits is None else args.cell_max_edits
+        min_overlap = 10 if args.cell_min_overlap is None else args.cell_min_overlap
         if bool(args.cell_groups) != (args.cell_reconstruction == "group"):
             raise ValueError("--cell-groups is required exactly with --cell-reconstruction group")
         groups = None
@@ -64,14 +71,16 @@ def run(args=None, *, prog=None):
                 results, sample_id=args.sample_id, source=args.source or args.bam,
                 alignment_header=alignment_file.header.to_dict(),
                 cell_umi_alignment_file=alignment_file if args.cell_umi_labels else None,
-                read_collector=read_collector_from_args(args), base_quality_policy=quality_policy)
+                read_collector=read_collector_from_args(args), base_quality_policy=quality_policy,
+                partial_read_support=args.partial_read_support, support_max_edits=max_edits,
+                support_min_overlap=min_overlap)
             if args.cell_reconstruction:
                 export["cell_reconstruction"] = reconstruct_cell_groups(
                     results, alignment_file, sample_id=args.sample_id, source=args.source or args.bam,
                     mode=args.cell_reconstruction, cell_groups=groups,
-                    max_edits=1 if args.cell_max_edits is None else args.cell_max_edits,
-                    min_overlap=10 if args.cell_min_overlap is None else args.cell_min_overlap,
-                    read_collector=read_collector_from_args(args), base_quality_policy=quality_policy)
+                    max_edits=max_edits, min_overlap=min_overlap,
+                    read_collector=read_collector_from_args(args), base_quality_policy=quality_policy,
+                    partial_read_support=args.partial_read_support)
         write_protein_hypotheses(export, args.output)
     except (CommandInputError, ValueError, OSError) as error:
         command.error(str(error))

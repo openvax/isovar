@@ -5,20 +5,18 @@ original observations against all discovered candidates, including reference
 allele competitors, without turning pooled support into per-cell confidence.
 """
 
-from numbers import Integral
-
-import edlib
-
 from .base_quality import STATUSES
 from .cell_evidence import CellUmiAlleles
 from .cell_umi import UNTRUSTED_CELL_STATUSES
-from .dna import reverse_complement_dna
 from .protein_hypotheses import _EvidenceSets, _event_id, _proteins
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_evidence import ReadEvidence
 from .read_identity import observation_groups, read_sort_key, source_read_ids
 from .rna_evidence import canonical_json, content_identifier
-from .transcript_compatibility import annotate_reads_with_transcript_compatibility
+from .rna_candidate_support import (
+    _attribute, _candidate, _comparison as _comparison, _protein_assignment,
+    score_fragments, summarize_fragments, validate_comparison_settings,
+)
 
 SCHEMA = "isovar.cell_reconstruction.v1"
 MODES = ("sample", "library", "cell", "group")
@@ -71,88 +69,6 @@ def _partition(reads, labels, mode, cell_groups):
     return pools, excluded
 
 
-def _candidate(translation, event_id):
-    orf = translation.variant_orf
-    sequence = orf.cdna_sequence
-    start, end = orf.variant_cdna_interval_start, orf.variant_cdna_interval_end
-    if translation.reference_context.strand == "-":
-        sequence = reverse_complement_dna(sequence)
-        start, end = len(sequence) - end, len(sequence) - start
-    transcripts = tuple(sorted(translation.reference_context.transcripts, key=lambda t: t.id))
-    identity = [event_id, sequence, start, end, sorted(t.id for t in transcripts)]
-    return dict(candidate_id=content_identifier("cell_candidate", identity),
-                sequence=sequence, variant_interval=[start, end],
-                transcript_ids=[t.id for t in transcripts], pool_ids=[], hypothesis_ids=[]), transcripts
-
-
-def _distance(a, b):
-    if not a or not b:
-        return max(len(a), len(b))
-    return edlib.align(a, b, mode="NW", task="distance")["editDistance"]
-
-
-def _comparison(read, candidate, ref, transcripts, max_edits, min_overlap):
-    sequence = candidate["sequence"]
-    start, end = candidate["variant_interval"]
-    before, after = min(len(read.prefix), start), min(len(read.suffix), len(sequence) - end)
-    # Anchor the comparison at the nominated locus. Unobserved flanks are
-    # omitted rather than penalized as deletions or imputed into a cell.
-    left = read.prefix[-before:] if before else ""
-    right = read.suffix[:after]
-    prefix = sequence[start - before:start]
-    suffix = sequence[end:end + after]
-    overlap = before + len(read.allele) + after
-    if overlap < min_overlap or set(left + read.allele + right + prefix + suffix + sequence[start:end] + ref) - set("ACGT"):
-        return None
-    classified, = annotate_reads_with_transcript_compatibility(
-        [read], transcripts, max_prefix_size=before, max_suffix_size=after)
-    if not classified.compatible_transcript_ids:
-        return None
-    flanks = _distance(left, prefix) + _distance(right, suffix)
-    alt_cost = flanks + _distance(read.allele, sequence[start:end])
-    ref_cost = flanks + _distance(read.allele, ref)
-    return dict(candidate_id=candidate["candidate_id"], edit_distance=alt_cost,
-                reference_edit_distance=ref_cost, within_tolerance=alt_cost <= max_edits,
-                candidate_interval=[start - before, end + after],
-                spans_candidate=before == start and after == len(sequence) - end,
-                reference_preferred=ref_cost <= alt_cost)
-
-
-def _attribute(reads, candidates, transcripts, ref, max_edits, min_overlap):
-    comparisons = []
-    for read in reads:
-        comparisons.append([comparison for candidate in candidates
-                            if (comparison := _comparison(read, candidate, ref, transcripts[candidate["candidate_id"]],
-                                                          max_edits, min_overlap)) is not None])
-    # Alternative placements of one observation must all agree before it is
-    # called unique. Keep the union visible if any placement disagrees.
-    supports = [{c["candidate_id"] for c in rows if c["within_tolerance"] and not c["reference_preferred"]}
-                for rows in comparisons]
-    supported = set.union(*supports) if supports else set()
-    if not candidates:
-        status = "no_candidate"
-    elif not any(comparisons):
-        status = "insufficient_coverage_or_incompatible_path"
-    elif not supported:
-        status = ("reference_or_other_allele" if any(c["reference_preferred"] for rows in comparisons for c in rows)
-                  else "outside_tolerance")
-    elif len(supported) > 1 or any(s != supported for s in supports):
-        status = "ambiguous"
-    else:
-        status = "unique_within_catalog"
-    return dict(status=status, candidate_ids=sorted(supported), comparisons=comparisons,
-                placement_ambiguous=any(s != supported for s in supports))
-
-
-def _protein_assignment(attribution, candidates):
-    ids = {hypothesis for candidate in candidates if candidate["candidate_id"] in attribution["candidate_ids"]
-           for hypothesis in candidate["hypothesis_ids"]}
-    status = attribution["status"]
-    if ids:
-        status = "unique_within_catalog" if len(ids) == 1 and not attribution["placement_ambiguous"] else "ambiguous"
-    return dict(hypothesis_ids=sorted(ids), protein_status=status)
-
-
 def _cell_support(cells, key, ids_field, status_field, quality_enabled=False):
     result = {}
     if quality_enabled:
@@ -173,7 +89,8 @@ def _cell_support(cells, key, ids_field, status_field, quality_enabled=False):
     return result
 
 
-def _event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap, transcript_id_whitelist):
+def _event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap, transcript_id_whitelist,
+           partial_read_support=False):
     read_evidence, variant = result.read_evidence, result.variant
     reads = sorted(set(read_evidence.ref_reads + read_evidence.alt_reads + read_evidence.other_reads), key=read_sort_key)
     event_id = _event_id(variant)
@@ -239,17 +156,54 @@ def _event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap, 
                        for key in sorted({h for c in candidates for h in c["hypothesis_ids"]})]
     no_result = ("no_reads" if not reads else "no_eligible_pools" if not pools
                  else "no_reconstructed_candidates" if not candidates else None)
-    return dict(event_id=event_id, reconstruction_settings=creator.settings(), pools=pool_rows, candidates=candidates,
+    event = dict(event_id=event_id, reconstruction_settings=creator.settings(), pools=pool_rows, candidates=candidates,
                 no_result_reason=no_result, protein_attribution=protein_support,
                 cells=[cells[key] for key in sorted(cells)],
                 excluded_from_pool=evidence.support(excluded, "reads_without_requested_pool", labels),
                 unresolved_cell_support=evidence.support(unassigned, "reads_without_resolved_cell", labels),
                 input_support=evidence.support(reads, "all_input_observations", labels))
 
+    if partial_read_support:
+        def eligible(group):
+            scopes = [_pool(read, labels, "sample", {}) for read in group]
+            if any(scope is None for scope in scopes):
+                return []
+            samples = {scope["scope"]["header_sample"] for scope in scopes}
+            if len(samples) != 1:
+                return []
+            sample, = samples
+            eligible_pools = {key for key, (description, _) in pools.items()
+                              if description.get("header_sample", description.get("scope", {}).get("header_sample"))
+                              == sample}
+            return [c for c in candidates if eligible_pools.intersection(c["pool_ids"])]
+
+        def cell_id(group):
+            rows = [_read_cell(read, labels) for read in group]
+            return rows[0]["cell_id"] if rows and rows[0] is not None and all(r == rows[0] for r in rows) else None
+
+        scored = score_fragments(reads, candidates, transcripts, read_evidence.trimmed_ref, evidence, labels,
+                                 max_edits=max_edits, min_overlap=min_overlap, catalog_complete=True,
+                                 eligible_candidates=eligible, cell_for_fragment=cell_id)
+        event["partial_read_support"] = scored
+        # The enclosing event already exports this exact candidate catalog.
+        del scored["candidates"]
+        scored["unresolved_cell_fragments"] = sum(f["cell_id"] is None for f in scored["fragments"])
+        rna_scores = {r["candidate_id"]: r for r in scored["candidate_scores"]}
+        protein_scores = {r["hypothesis_id"]: r for r in scored["protein_scores"]}
+        for candidate in candidates:
+            candidate["partial_read_support"] = rna_scores[candidate["candidate_id"]]
+        for protein in protein_support:
+            protein["partial_read_support"] = protein_scores[protein["hypothesis_id"]]
+        for cell in event["cells"]:
+            cell["partial_read_support"] = summarize_fragments(
+                [f for f in scored["fragments"] if f["cell_id"] == cell["cell_id"]],
+                rna_scores, protein_scores, evidence.base_quality_policy is not None)
+    return event
+
 
 def reconstruct_cell_groups(isovar_results, alignment_file, *, sample_id, source, mode="sample",
                             cell_groups=None, max_edits=1, min_overlap=10, read_collector=None,
-                            transcript_id_whitelist=None, base_quality_policy=None):
+                            transcript_id_whitelist=None, base_quality_policy=None, partial_read_support=False):
     """Reconstruct local protein candidates by pool and attribute original cell evidence.
 
     Parameters
@@ -279,6 +233,9 @@ def reconstruct_cell_groups(isovar_results, alignment_file, *, sample_id, source
     base_quality_policy : BaseQualityPolicy, optional
         Add reported focal-allele quality categories to support and cell counts.
         Does not filter reconstruction or attribution, or score the full ORF.
+    partial_read_support : bool
+        Add catalog-relative fractional fragment scores for RNA and protein
+        hypotheses, including per-cell summaries. Default False.
 
     Returns
     -------
@@ -289,9 +246,7 @@ def reconstruct_cell_groups(isovar_results, alignment_file, *, sample_id, source
     """
     if mode not in MODES:
         raise ValueError("Unknown cell reconstruction mode: %s" % mode)
-    for name, value, minimum in (("max_edits", max_edits, 0), ("min_overlap", min_overlap, 1)):
-        if isinstance(value, bool) or not isinstance(value, Integral) or value < minimum:
-            raise ValueError("%s must be an integer >= %d" % (name, minimum))
+    validate_comparison_settings(max_edits, min_overlap)
     if mode == "group":
         if not isinstance(cell_groups, dict) or any(not isinstance(k, str) or not isinstance(v, str) or not v.strip()
                                                   for k, v in cell_groups.items()):
@@ -305,8 +260,10 @@ def reconstruct_cell_groups(isovar_results, alignment_file, *, sample_id, source
         reads = result.read_evidence
         identities = {key for read in reads.ref_reads + reads.alt_reads + reads.other_reads for key in source_read_ids(read)}
         labels = resolver.labels(result.variant, identities)
-        events.append(_event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap, transcript_id_whitelist))
+        events.append(_event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap,
+                             transcript_id_whitelist, partial_read_support))
     return dict(**({} if base_quality_policy is None else dict(base_quality_policy=base_quality_policy.description())),
+                **({} if not partial_read_support else dict(partial_read_support=True)),
                 schema=SCHEMA, mode=mode, sample_id=sample_id, source=source, max_edits=max_edits,
                 min_overlap=min_overlap, cell_groups=cell_groups, score_policy="anchored_edit_compatibility.v1",
                 interpretation="Observed RNA compatibility within a discovered local candidate catalog; "
