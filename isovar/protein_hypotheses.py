@@ -38,7 +38,11 @@ class _EvidenceSets(EvidenceSets):
 
     def counts(self, reads, description, labels=None):
         """The RNA support record alone, storing no evidence set."""
-        return dict(scope=description, **self.record(reads, labels)[0])
+        reads = list(reads)
+        record = dict(scope=description, **self.record(reads, labels)[0])
+        if self.base_quality_policy is not None:
+            record["base_quality"] = self.quality_support(reads, labels, store_sets=False)
+        return record
 
 
 def _variant(variant):
@@ -249,7 +253,7 @@ def _read_groups(results, alignment_header):
 
 
 def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_header=None,
-                              cell_umi_alignment_file=None, read_collector=None):
+                              cell_umi_alignment_file=None, read_collector=None, base_quality_policy=None):
     """Export every protein hypothesis and translation, with scoped RNA evidence.
 
     Parameters
@@ -275,6 +279,9 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
     read_collector : ReadCollector, optional
         The collector used for the results, for record eligibility when
         resolving cell/UMI labels.
+    base_quality_policy : BaseQualityPolicy, optional
+        Add focal-allele quality support alongside raw RNA support in JSON.
+        Reconstruction, ranking and the TSV's raw support are unchanged.
 
     Returns
     -------
@@ -292,7 +299,7 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
     """
     results = list(isovar_results)
     scope = [sample_id, source]
-    evidence = _EvidenceSets(scope)
+    evidence = _EvidenceSets(scope, base_quality_policy)
     cell_labels = None
     if cell_umi_alignment_file is not None:
         from .cell_evidence import CellUmiAlleles, warn_if_unlabelled
@@ -302,6 +309,7 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
     if cell_labels is not None:
         warn_if_unlabelled(e["allele_support"][a] for e in events for a in ("ref", "alt", "other"))
     return dict(
+        **({} if base_quality_policy is None else dict(base_quality_policy=base_quality_policy.description())),
         schema=SCHEMA, isovar_version=__version__, sample_id=sample_id, source=source,
         evidence_scope=scope, interval_convention="zero_based_half_open",
         evidence_identity_policy="sha256_of_domain_and_canonical_json; sample/source scoped",

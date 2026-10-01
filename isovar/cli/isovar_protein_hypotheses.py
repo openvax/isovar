@@ -12,12 +12,14 @@ from ..cell_reconstruction import MODES, reconstruct_cell_groups
 from ..logging import configure_cli_logging
 from ..protein_hypotheses import export_protein_hypotheses, write_protein_hypotheses
 from .commands import parser_for_program
+from .base_quality_args import add_base_quality_args, base_quality_policy_from_args
 from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
 from .output_args import add_log_level_arg
 from .rna_args import alignment_file_from_args, read_collector_from_args
 from .validation import CommandInputError, check_output_path
 
 parser = make_isovar_arg_parser(description=__doc__)
+add_base_quality_args(parser)
 parser.set_defaults(max_protein_sequences_per_variant=0)
 add_log_level_arg(parser)
 _group = parser.add_argument_group("Protein hypothesis export")
@@ -46,6 +48,7 @@ def run(args=None, *, prog=None):
     configure_cli_logging(args.log_level)
     try:
         check_output_path(args.output)
+        quality_policy = base_quality_policy_from_args(args)
         if not args.cell_reconstruction and any(value is not None for value in
                                                 (args.cell_groups, args.cell_max_edits, args.cell_min_overlap)):
             raise ValueError("Cell attribution options require --cell-reconstruction")
@@ -61,14 +64,14 @@ def run(args=None, *, prog=None):
                 results, sample_id=args.sample_id, source=args.source or args.bam,
                 alignment_header=alignment_file.header.to_dict(),
                 cell_umi_alignment_file=alignment_file if args.cell_umi_labels else None,
-                read_collector=read_collector_from_args(args))
+                read_collector=read_collector_from_args(args), base_quality_policy=quality_policy)
             if args.cell_reconstruction:
                 export["cell_reconstruction"] = reconstruct_cell_groups(
                     results, alignment_file, sample_id=args.sample_id, source=args.source or args.bam,
                     mode=args.cell_reconstruction, cell_groups=groups,
                     max_edits=1 if args.cell_max_edits is None else args.cell_max_edits,
                     min_overlap=10 if args.cell_min_overlap is None else args.cell_min_overlap,
-                    read_collector=read_collector_from_args(args))
+                    read_collector=read_collector_from_args(args), base_quality_policy=quality_policy)
         write_protein_hypotheses(export, args.output)
     except (CommandInputError, ValueError, OSError) as error:
         command.error(str(error))

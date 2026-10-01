@@ -39,6 +39,13 @@ class AlleleRead(ValueObject):
     observations must deduplicate segment IDs, not sum ``source_read_count``.
     Optional ``source_alignment_paths`` retains validated supplementary-path
     declarations separately; they allow cross-record phasing, not linear assembly.
+
+    ``quality_scores`` is aligned to this view's sequence (None if unavailable;
+    individual missing scores can also be None). Merged mates use the existing
+    consensus qualities. ``source_allele_qualities`` instead preserves each
+    original alignment's focal-allele footprint, before normalization, trimming
+    and merging, for optional BaseQualityPolicy assessments. Neither quality
+    field participates in observation identity or default table columns.
     """
     __slots__ = [
         "prefix",
@@ -53,6 +60,8 @@ class AlleleRead(ValueObject):
         "source_alignments",
         "source_alignment_paths",
         "source_read_views",
+        "quality_scores",
+        "source_allele_qualities",
     ]
 
     def __init__(
@@ -67,7 +76,9 @@ class AlleleRead(ValueObject):
             compatible_transcript_ids=None,
             source_alignments=(),
             source_alignment_paths=(),
-            source_read_views=()):
+            source_read_views=(),
+            quality_scores=None,
+            source_allele_qualities=()):
         self.prefix = prefix
         self.allele = allele
         self.suffix = suffix
@@ -77,6 +88,10 @@ class AlleleRead(ValueObject):
         self.source_alignments = tuple(source_alignments)
         self.source_alignment_paths = tuple(source_alignment_paths)
         self.source_read_views = tuple(source_read_views)
+        self.quality_scores = None if quality_scores is None else tuple(quality_scores)
+        if self.quality_scores is not None and len(self.quality_scores) != len(self.sequence):
+            raise ValueError("quality_scores must match the allele read sequence length")
+        self.source_allele_qualities = tuple(source_allele_qualities)
         self.reference_blocks = tuple(reference_blocks)
         self.splice_junctions = tuple(splice_junctions)
         self.compatible_transcript_ids = (
@@ -100,7 +115,9 @@ class AlleleRead(ValueObject):
             compatible_transcript_ids=transcript_ids,
             source_alignments=self.source_alignments,
             source_alignment_paths=self.source_alignment_paths,
-            source_read_views=self.source_read_views)
+            source_read_views=self.source_read_views,
+            quality_scores=getattr(self, "quality_scores", None),
+            source_allele_qualities=getattr(self, "source_allele_qualities", ()))
 
     @staticmethod
     def _reference_blocks(reference_positions):
@@ -239,7 +256,10 @@ class AlleleRead(ValueObject):
             splice_junctions=splice_junctions,
             source_alignments=locus_read.source_alignments,
             source_alignment_paths=locus_read.source_alignment_paths,
-            source_read_views=getattr(locus_read, "source_read_views", ()))
+            source_read_views=getattr(locus_read, "source_read_views", ()),
+            quality_scores=(None if locus_read.quality_scores is None
+                            else locus_read.quality_scores[retained_start:retained_end]),
+            source_allele_qualities=getattr(locus_read, "source_allele_qualities", ()))
 
 
 # Branch-local transcript classifications are not distinct observations.
@@ -253,5 +273,7 @@ AlleleRead._fields = tuple(
         "splice_junctions",
         "compatible_transcript_ids",
         "source_read_views",
+        "quality_scores",
+        "source_allele_qualities",
     }
 )

@@ -11,6 +11,7 @@ import pysam
 import pytest
 
 from isovar.allele_read import AlleleRead
+from isovar.base_quality import BaseQualityPolicy
 from isovar.read_collector import ReadCollector
 from isovar.variant_helpers import base0_interval_for_variant, trim_variant
 from isovar.variant_sequence_creator import VariantSequenceCreator
@@ -88,6 +89,18 @@ def test_public_rna_direct_observation_preserves_allele_and_quality(name, record
             assert allele.allele == obs["allele"], (record["pos"], read.query_name)
             assert [locus.read_base0_start_inclusive, locus.read_base0_end_exclusive] == obs["query_interval"]
             assert [locus.quality_scores[i] for i in obs["quality_indices"]] == obs["qualities"]
+            footprint, = allele.source_allele_qualities
+            assert list(footprint.quality_indices) == obs["quality_indices"]
+            assert list(footprint.quality_scores) == obs["qualities"]
+            for threshold in (0, 10, 20, 30):
+                assert BaseQualityPolicy(threshold).assess(allele)[0].status == (
+                    "passed" if min(obs["qualities"]) >= threshold else "failed")
+            # Removing QUAL changes assessment only, not the original allele.
+            read.query_qualities = None
+            missing = AlleleRead.from_locus_read(collector.locus_read_from_pysam_aligned_segment(read, start, end))
+            assert missing == allele
+            assert all(q is None for q in missing.quality_scores)
+            assert BaseQualityPolicy(0).assess(missing)[0].status == "unassessed"
             tested += 1
     assert tested > 0
 
@@ -170,7 +183,14 @@ def test_real_star_repeat_shifted_insertion_keeps_canonical_sequence_and_origina
     assert locus.read_base0_start_inclusive == 51
     assert locus.read_base0_end_exclusive == 52
     assert list(locus.quality_scores[51:53]) == [28, 35]
-    assert AlleleRead.from_locus_read(locus).allele == "C"
+    allele = AlleleRead.from_locus_read(locus)
+    assert allele.allele == "C"
+    footprint, = allele.source_allele_qualities
+    assert footprint.canonical_query_interval == (51, 52)
+    assert footprint.query_interval == (52, 53)
+    assert footprint.quality_indices == (52,) and footprint.quality_scores == (35,)
+    assert BaseQualityPolicy(30).assess(allele)[0].status == "passed"
+    assert BaseQualityPolicy(36).assess(allele)[0].status == "failed"
 
 
 @pytest.mark.parametrize("name,record", [(n, v) for n, v in CASES if len(v["ref"]) != len(v["alt"])])

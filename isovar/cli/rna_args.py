@@ -16,6 +16,7 @@ Common command-line arguments for all Isovar commands which use RNA
 
 from pysam import AlignmentFile
 from argparse import ArgumentTypeError
+from contextlib import ExitStack
 
 from varcode.cli import make_variants_parser
 
@@ -234,27 +235,47 @@ def allele_counts_dataframe_from_args(args):
     Collect read and fragment counts for each variant and turn them into a
     DataFrame, with cell/UMI label counts when ``--cell-umi-labels`` is given.
     """
-    if not getattr(args, "cell_umi_labels", False):
-        return allele_counts_dataframe(read_evidence_generator_from_args(args))
+    from ..base_quality import STATUSES
     from ..cell_evidence import ALLELES, CellUmiAlleles, warn_if_unlabelled
+    from ..rna_evidence import SUPPORT_COLUMNS, EvidenceSets
+    from .base_quality_args import base_quality_policy_from_args
+
+    policy = base_quality_policy_from_args(args)
+    cell_labels = getattr(args, "cell_umi_labels", False)
     evidence = []
-    with alignment_file_from_args(args) as alignment_file:
-        labels = CellUmiAlleles(alignment_file, sample_id=args.sample_id, source=args.source or args.bam,
-                                read_collector=read_collector_from_args(args))
+    with ExitStack() as stack:
+        labels = None
+        if cell_labels:
+            alignment_file = stack.enter_context(alignment_file_from_args(args))
+            labels = CellUmiAlleles(alignment_file, sample_id=args.sample_id, source=args.source or args.bam,
+                                    read_collector=read_collector_from_args(args))
+        quality = EvidenceSets([], policy)
 
         def pairs():
-            # Count each variant's labels as it streams past, keeping only the counts.
+            # Keep only summaries as each variant streams past.
             for variant, read_evidence in read_evidence_generator_from_args(args):
-                evidence.append(labels.evidence(variant, read_evidence))
+                if labels is not None:
+                    evidence.append(labels.evidence(variant, read_evidence, base_quality_policy=policy))
+                elif policy is not None:
+                    evidence.append(dict(alleles={allele: dict(base_quality=quality.quality_support(
+                        getattr(read_evidence, allele + "_reads"), store_sets=False)) for allele in ALLELES}))
                 yield variant, read_evidence
         df = allele_counts_dataframe(pairs())
-    warn_if_unlabelled(support for e in evidence for support in e["alleles"].values())
-    for allele in ALLELES:
-        for field in ("umis", "cells", "umis_complete", "cells_complete", "unlabeled_reads",
-                      "unknown_library_reads"):
-            column = ("%s_%s" if field.endswith("_complete") else "num_%s_%s") % (allele, field)
-            df[column] = [e["alleles"][allele][field] for e in evidence]
-    df["num_cells_with_ref_and_alt"] = [e["cells_with_ref_and_alt"] for e in evidence]
+    if cell_labels:
+        warn_if_unlabelled(support for e in evidence for support in e["alleles"].values())
+        for allele in ALLELES:
+            for field in ("umis", "cells", "umis_complete", "cells_complete", "unlabeled_reads",
+                          "unknown_library_reads"):
+                column = ("%s_%s" if field.endswith("_complete") else "num_%s_%s") % (allele, field)
+                df[column] = [e["alleles"][allele][field] for e in evidence]
+        df["num_cells_with_ref_and_alt"] = [e["cells_with_ref_and_alt"] for e in evidence]
+    if policy is not None:
+        df["min_base_quality"] = policy.min_base_quality
+        for allele in ALLELES:
+            for status in STATUSES:
+                for field in SUPPORT_COLUMNS if cell_labels else ("reads", "fragments"):
+                    df["%s_base_quality_%s_%s" % (allele, status, field)] = [
+                        e["alleles"][allele]["base_quality"][status][field] for e in evidence]
     return df
 
 

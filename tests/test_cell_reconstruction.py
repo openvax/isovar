@@ -292,3 +292,68 @@ def test_synonymous_rna_ambiguity_can_identify_one_protein():
     attribution["placement_ambiguous"] = False
     candidates[1]["hypothesis_ids"].append("other-frame")
     assert _protein_assignment(attribution, candidates)["protein_status"] == "ambiguous"
+
+
+def test_quality_assessments_preserve_pooled_orfs_and_sparse_cell_attribution(tmp_path, reference):
+    from isovar import BaseQualityPolicy, export_protein_hypotheses
+
+    noisy = MUTANT[:6] + "A" + MUTANT[7:]
+    specs = [(MUTANT, "high", "a"), (MUTANT, "boundary", "a"),
+             (noisy, "low-noisy", "a"), (MUTANT, "unknown", "a")]
+    records = reads_for(reference, specs)
+    for read, quality in zip(records, (40, 20, 0, None)):
+        read.query_qualities = None if quality is None else [quality] * len(read.query_sequence)
+    path = write_bam(tmp_path / "quality.bam", records, header=HEADER)
+    _, variant = reference
+    with pysam.AlignmentFile(path) as bam:
+        reads = ReadCollector().read_evidence_for_variant(variant, bam)
+        creator = ProteinSequenceCreator(protein_sequence_length=20, min_transcript_prefix_length=3,
+                                         min_variant_sequence_coverage=2)
+        proteins = creator.sorted_protein_sequences_for_variant(variant, reads)
+        result = IsovarResult(variant, reads, proteins, protein_sequence_settings=creator.settings())
+        raw = reconstruct_cell_groups([result], bam, sample_id="s", source="input")
+        assessed = reconstruct_cell_groups([result], bam, sample_id="s", source="input",
+                                           base_quality_policy=BaseQualityPolicy(20))
+        sample_raw = export_protein_hypotheses([result], sample_id="s", source="input")
+        sample_assessed = export_protein_hypotheses([result], sample_id="s", source="input",
+                                                   base_quality_policy=BaseQualityPolicy(20))
+    event, = assessed["events"]
+    candidate, = event["candidates"]
+    assert candidate["num_unique_cells"] == 4
+    assert [candidate["base_quality"][s]["num_unique_cells"] for s in ("passed", "failed", "unassessed")] == [2, 1, 1]
+    assert event["protein_attribution"][0]["base_quality"] == candidate["base_quality"]
+    protein, = event["pools"][0]["protein_hypotheses"]
+    assert protein["amino_acids"] == "MAAAAQGGGG"
+    assert protein["rna_support"]["reads"] == 3  # noisy singleton only attributed afterward
+    assert protein["rna_support"]["base_quality"]["unassessed"]["reads"] == 1
+    assert protein["rna_support"]["base_quality"]["failed"]["reads"] == 0
+    for cell in event["cells"]:
+        observation, = cell["observations"]
+        assert observation["status"] == "unique_within_catalog"
+        support = observation["rna_support"]
+        assert support["reads"] == 1
+        for status in ("passed", "failed", "unassessed"):
+            subset = support["base_quality"][status]
+            evidence = assessed["evidence_sets"][subset["evidence_set_id"]]
+            assert len(evidence["read_ids"]) == subset["reads"]
+    assert json.loads(json.dumps(assessed)) == assessed
+
+    def without_quality(value):
+        if isinstance(value, dict):
+            return {key: without_quality(item) for key, item in value.items()
+                    if key not in ("base_quality", "base_quality_policy", "evidence_sets")}
+        return [without_quality(v) for v in value] if isinstance(value, list) else value
+
+    assert without_quality(raw) == without_quality(assessed)
+    assert without_quality(sample_raw) == without_quality(sample_assessed)
+    # No QUAL still gives the same ORFs and sparse assignments through one pipeline.
+    for read in records:
+        read.query_qualities = None
+    missing_path = write_bam(tmp_path / "missing-quality.bam", records, header=HEADER)
+    with pysam.AlignmentFile(missing_path) as bam:
+        missing_reads = ReadCollector().read_evidence_for_variant(variant, bam)
+        missing_result = IsovarResult(variant, missing_reads, None, protein_sequence_settings=creator.settings())
+        missing = reconstruct_cell_groups([missing_result], bam, sample_id="s", source="input",
+                                          base_quality_policy=BaseQualityPolicy(20))
+    assert without_quality(missing) == without_quality(raw)
+    assert missing["events"][0]["candidates"][0]["base_quality"]["unassessed"]["num_unique_cells"] == 4

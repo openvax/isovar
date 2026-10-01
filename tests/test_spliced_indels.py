@@ -49,7 +49,7 @@ def test_normalization_keeps_real_events_and_query_quality_indices(reverse, ciga
     read = make_pysam_read(seq, cigar, mdtag=md)
     read.flag = 16 if reverse else 0
     read.query_qualities = list(range(10, 10 + len(seq)))
-    assert ReadCollector._left_aligned_indel_interval_for_variant(read, position, ref, alt) == expected
+    assert ReadCollector._left_aligned_indel_intervals_for_variant(read, position, ref, alt)[0] == expected
     # The raw read is not rewritten when the canonical query split changes.
     assert list(read.query_qualities) == list(range(10, 10 + len(seq)))
 
@@ -64,7 +64,7 @@ def test_normalization_keeps_real_events_and_query_quality_indices(reverse, ciga
 ])
 def test_normalization_cannot_jump_discontinuities_or_invent_insertions(cigar, seq, md, position, ref, alt):
     read = make_pysam_read(seq, cigar, mdtag=md)
-    assert ReadCollector._left_aligned_indel_interval_for_variant(read, position, ref, alt) is None
+    assert ReadCollector._left_aligned_indel_intervals_for_variant(read, position, ref, alt) is None
 
 
 @pytest.mark.parametrize("md", [None, "3^A3"])
@@ -87,7 +87,7 @@ def test_normalization_does_not_expand_long_introns():
             pytest.fail("Normalization expanded the skipped intron")
 
     read = NoExpandedPairs(make_pysam_read("CCCAAACCC", "3M10000000N3M1D3M", mdtag="6^A3"))
-    assert ReadCollector._left_aligned_indel_interval_for_variant(read, 10000004, "A", "") == (3, 3)
+    assert ReadCollector._left_aligned_indel_intervals_for_variant(read, 10000004, "A", "") == ((3, 3), (6, 6))
 
 
 def test_normalization_rejects_inconsistent_md_reference_length():
@@ -102,10 +102,10 @@ def test_normalization_rejects_inconsistent_md_reference_length():
             return "A"  # not the 7 reference bases consumed by M/D
 
     read = InconsistentReference(make_pysam_read("AAACCC", "3M1D3M", mdtag="3^A3"))
-    assert ReadCollector._left_aligned_indel_interval_for_variant(read, 1, "A", "") is None
+    assert ReadCollector._left_aligned_indel_intervals_for_variant(read, 1, "A", "") is None
 
 
 def test_normalization_without_query_sequence_is_not_an_exception():
     read = make_pysam_read("AAACCC", "3M1D3M", mdtag="3^A3")
     read.query_sequence = None
-    assert ReadCollector._left_aligned_indel_interval_for_variant(read, 1, "A", "") is None
+    assert ReadCollector._left_aligned_indel_intervals_for_variant(read, 1, "A", "") is None

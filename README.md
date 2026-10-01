@@ -145,6 +145,9 @@ always skipped. MAPQ is compared as a number, so STAR's 255 for a unique
 alignment passes the default minimum of 1. See
 [read eligibility](https://github.com/openvax/isovar/blob/master/docs/read-processing-audit.md)
 for how quality tags from each platform are treated.
+Optional [base-quality assessments](docs/base-quality.md) report focal-allele
+support meeting an explicit threshold alongside raw counts. Missing qualities
+remain unknown; reconstruction uses the same pipeline across platforms.
 
 How reads are counted:
 

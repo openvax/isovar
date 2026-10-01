@@ -108,8 +108,9 @@ class EvidenceSets:
         ``[sample_id, source]``.
     """
 
-    def __init__(self, scope):
+    def __init__(self, scope, base_quality_policy=None):
         self.scope, self.sets = list(scope), {}
+        self.base_quality_policy = base_quality_policy
 
     @staticmethod
     def record(reads, labels=None):
@@ -133,12 +134,38 @@ class EvidenceSets:
         hashed read IDs are stored in ``sets``. The ID is null only when a
         read lacks an identity; no reads is the empty set.
         """
+        reads = list(reads)
         record, keys = self.record(reads, labels)
+        if self.base_quality_policy is not None:
+            record["base_quality"] = self.quality_support(reads, labels)
         if keys is None:
             return dict(record, evidence_set_id=None)
         evidence = evidence_set(self.scope, keys)
         self.sets[evidence["evidence_set_id"]] = evidence
         return dict(record, evidence_set_id=evidence["evidence_set_id"])
+
+    def quality_support(self, reads, labels=None, *, store_sets=True):
+        """Optional focal-allele quality categories; raw support is unchanged.
+
+        Read identities partition into passed/failed/unassessed. Fragments,
+        UMIs and cells can overlap categories, so their counts are not additive.
+        """
+        partitions, legacy = self.base_quality_policy.partition(reads)
+        result = dict(policy=self.base_quality_policy.description())
+        for status, keys in partitions.items():
+            record = rna_support(keys) if labels is None else labels.support(keys)
+            if legacy[status]:
+                record.update(reads=record["reads"] + count_reads(legacy[status]),
+                              fragments=record["fragments"] + len(fragment_ids(legacy[status])),
+                              **dict.fromkeys(CELL_UMI_FIELDS))
+                if store_sets:
+                    record["evidence_set_id"] = None
+            elif store_sets:
+                evidence = evidence_set(self.scope, keys)
+                self.sets[evidence["evidence_set_id"]] = evidence
+                record["evidence_set_id"] = evidence["evidence_set_id"]
+            result[status] = record
+        return result
 
 
 def union_rna_support(supports):
