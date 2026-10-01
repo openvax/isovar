@@ -43,6 +43,7 @@ class LocusRead(ValueObject):
         "is_primary",
         "source_alignment_paths",
         "source_read_views",
+        "source_allele_qualities",
     ]
 
     def __init__(
@@ -60,7 +61,8 @@ class LocusRead(ValueObject):
             source_alignments=(),
             is_primary=False,
             source_alignment_paths=(),
-            source_read_views=()):
+            source_read_views=(),
+            source_allele_qualities=()):
         """
         Parameters
         ----------
@@ -99,6 +101,10 @@ class LocusRead(ValueObject):
         source_read_views : tuple
             Optional (source alignment, ReadSequenceView) provenance for opt-in
             end inference. Views index original SAM SEQ, not merged coordinates.
+
+        source_allele_qualities : tuple
+            Original AlleleQualityFootprint objects, before normalization,
+            trimming or merging. Empty for legacy caller-created observations.
 
         is_primary : bool
             Whether this view contains primary alignments. Mate merging also
@@ -184,3 +190,9 @@ class LocusRead(ValueObject):
         self.is_primary = is_primary
         self.source_alignment_paths = tuple(source_alignment_paths)
         self.source_read_views = tuple(source_read_views)
+        self.source_allele_qualities = tuple(source_allele_qualities)
+
+
+# Additional quality provenance must not change existing observation identity
+# or field-based output (including caller-created and older serialized reads).
+LocusRead._fields = tuple(field for field in LocusRead._fields if field != "source_allele_qualities")

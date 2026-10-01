@@ -23,6 +23,7 @@ from .default_parameters import (
     MERGE_OVERLAPPING_FRAGMENTS,
     INFER_READ_ENDS, TRIM_ADAPTERS, TRIM_POLY_A, READ_END_PROFILE,
 )
+from .base_quality import AlleleQualityFootprint
 from .locus_read import LocusRead
 from .logging import get_logger
 from .allele_read import AlleleRead
@@ -53,6 +54,7 @@ class _CompactLocusRead(object):
         "is_primary",
         "source_alignment_paths",
         "source_read_views",
+        "source_allele_qualities",
     ]
 
     def __init__(
@@ -70,7 +72,8 @@ class _CompactLocusRead(object):
             source_alignments=(),
             is_primary=False,
             source_alignment_paths=(),
-            source_read_views=()):
+            source_read_views=(),
+            source_allele_qualities=()):
         self.name = name
         self.sequence = sequence
         self.reference_blocks = tuple(reference_blocks)
@@ -85,6 +88,7 @@ class _CompactLocusRead(object):
         self.is_primary = is_primary
         self.source_alignment_paths = tuple(source_alignment_paths)
         self.source_read_views = tuple(source_read_views)
+        self.source_allele_qualities = tuple(source_allele_qualities)
 
     @classmethod
     def from_locus_read(cls, read):
@@ -103,6 +107,7 @@ class _CompactLocusRead(object):
             is_primary=read.is_primary,
             source_alignment_paths=read.source_alignment_paths,
             source_read_views=read.source_read_views,
+            source_allele_qualities=getattr(read, "source_allele_qualities", ()),
         )
 
 class ReadCollector(object):
@@ -270,7 +275,7 @@ class ReadCollector(object):
             yield base1_start, ref, alt, read_start, read_end
 
     @classmethod
-    def _left_aligned_indel_interval_for_variant(
+    def _left_aligned_indel_intervals_for_variant(
         cls,
         pysam_aligned_segment,
         trimmed_base1_start,
@@ -280,7 +285,7 @@ class ReadCollector(object):
         """
         If the read contains an equivalent indel aligned to the right of the
         queried variant locus, return the canonical read interval for the
-        left-aligned representation of that indel.
+        left-aligned representation and its original CIGAR query interval.
         """
         is_insertion = len(trimmed_ref) == 0 and len(trimmed_alt) > 0
         is_deletion = len(trimmed_alt) == 0 and len(trimmed_ref) > 0
@@ -330,7 +335,7 @@ class ReadCollector(object):
                         read_start=query_pos, read_end=query_pos + (length if operation == 1 else 0)):
                     if (position == trimmed_base1_start and ref == trimmed_ref.upper()
                             and alt == trimmed_alt.upper()):
-                        return start, end
+                        return (start, end), (query_pos, query_pos + len(event_alt))
             # N, I, D, S, H and P all break the contiguous shifting context.
             preceding_reference = ""
             if operation in (1, 4):
@@ -453,7 +458,7 @@ class ReadCollector(object):
             and trimmed_ref is not None
             and trimmed_alt is not None
         ):
-            normalized_indel_interval = self._left_aligned_indel_interval_for_variant(
+            normalized_indel_interval = self._left_aligned_indel_intervals_for_variant(
                 pysam_aligned_segment=pysam_aligned_segment,
                 trimmed_base1_start=trimmed_base1_start,
                 trimmed_ref=trimmed_ref,
@@ -465,7 +470,7 @@ class ReadCollector(object):
         # half-open interval into a half-open interval on the read.
         if normalized_indel_interval is not None:
             read_base0_start_inclusive, read_base0_end_exclusive = (
-                normalized_indel_interval
+                normalized_indel_interval[0]
             )
         elif reference_interval_size == 0:
             # Only CIGAR I supplies inserted bases. Missing anchors can be a
@@ -543,6 +548,10 @@ class ReadCollector(object):
 
         query_interval = (None if read_base0_start_inclusive is None else
                           (read_base0_start_inclusive, read_base0_end_exclusive))
+        source_alignments = source_alignments_from_pysam(pysam_aligned_segment, name)
+        footprint = AlleleQualityFootprint.from_alignment(
+            source_alignments[0], sequence, base_qualities, base0_reference_positions, query_interval,
+            None if normalized_indel_interval is None else normalized_indel_interval[1])
         view = None
         retained_start, retained_end = 0, len(sequence)
         if (self.infer_read_ends or self.read_end_profile is not None
@@ -563,7 +572,6 @@ class ReadCollector(object):
             read_base0_end_exclusive -= retained_start
         if view is not None:
             view = view._replace(start=retained_start, end=retained_end)
-        source_alignments = source_alignments_from_pysam(pysam_aligned_segment, name)
         return LocusRead(
             name=name,
             sequence=sequence,
@@ -579,6 +587,7 @@ class ReadCollector(object):
             source_alignment_paths=source_alignment_paths_from_pysam(
                 pysam_aligned_segment, source_alignments, query_interval),
             source_read_views=() if view is None else ((source_alignments[0], view),),
+            source_allele_qualities=() if footprint is None else (footprint,),
             is_primary=not (pysam_aligned_segment.is_secondary
                             or pysam_aligned_segment.is_supplementary),
         )
@@ -841,6 +850,8 @@ class ReadCollector(object):
             source_alignments=tuple(sorted(first.source_alignments + second.source_alignments)),
             source_alignment_paths=tuple(sorted(first.source_alignment_paths + second.source_alignment_paths)),
             source_read_views=first.source_read_views + second.source_read_views,
+            source_allele_qualities=(getattr(first, "source_allele_qualities", ())
+                                     + getattr(second, "source_allele_qualities", ())),
             is_primary=True,
         )
         if isinstance(first, _CompactLocusRead) and isinstance(second, _CompactLocusRead):

@@ -211,3 +211,43 @@ def test_single_cell_ont_rna_reports_cells_behind_the_alt_allele_and_protein(tmp
     top = event["protein_hypotheses"][0]["rna_support"]
     assert {k: top[k] for k in cells["protein_hypotheses"][0]} == cells["protein_hypotheses"][0]
     assert top["cells"] == 38 and top["evidence_set_id"] in export["evidence_sets"]
+
+
+@pytest.mark.parametrize("cell_labels", [False, True])
+def test_optional_quality_cli_keeps_raw_counts_and_reports_unknowns(tmp_path, cell_labels):
+    import pandas as pd
+    from isovar.cli.commands import run as isovar_cli
+
+    reads = [read("high", "G", cell="C1", umi="U1"), read("low", "G", cell="C1", umi="U2"),
+             read("missing", "G", cell="C2", umi="U3"), read("ref", "A", cell="C3", umi="U4"),
+             read("other", "T", cell="C4", umi="U5")]
+    reads[1].query_qualities = [0] * 40
+    reads[2].query_qualities = None
+    path = write_bam(tmp_path / "quality.bam", reads, header=HEADER)
+    args = ["allele-counts", "--variant", "1", "1021", "A", "G", "--genome", "GRCh38", "--bam", str(path),
+            "--log-level", "WARNING"] + (["--cell-umi-labels", "--sample-id", "s"] if cell_labels else [])
+    raw_path, quality_path = tmp_path / "raw.csv", tmp_path / "quality.csv"
+    isovar_cli(args + ["--output", str(raw_path)])
+    isovar_cli(args + ["--min-base-quality", "20", "--output", str(quality_path)])
+    raw, quality = pd.read_csv(raw_path), pd.read_csv(quality_path)
+    pd.testing.assert_frame_equal(raw, quality[raw.columns])
+    row = quality.iloc[0]
+    assert row.num_alt_reads == 3
+    for status in ("passed", "failed", "unassessed"):
+        assert row["alt_base_quality_%s_reads" % status] == 1
+        if cell_labels:
+            assert row["alt_base_quality_%s_cells" % status] == 1
+    assert row.ref_base_quality_passed_reads == row.other_base_quality_passed_reads == 1
+    if cell_labels:
+        output = tmp_path / "hypotheses.json"
+        isovar_cli(["protein-hypotheses", *args[1:], "--cell-reconstruction", "sample",
+                    "--min-base-quality", "20", "--output", str(output)])
+        exported = json.loads(output.read_text())
+        assert exported["base_quality_policy"] == exported["cell_reconstruction"]["base_quality_policy"]
+        alt = exported["events"][0]["allele_support"]["alt"]["base_quality"]
+        assert [alt[status]["reads"] for status in ("passed", "failed", "unassessed")] == [1, 1, 1]
+        pooled = exported["cell_reconstruction"]["events"][0]["input_support"]["base_quality"]
+        assert [pooled[status]["reads"] for status in ("passed", "failed", "unassessed")] == [3, 1, 1]
+    with pytest.raises(SystemExit) as exc:
+        isovar_cli(args + ["--min-base-quality", "255", "--output", str(quality_path)])
+    assert exc.value.code == 2

@@ -14,6 +14,7 @@ from .cell_umi import CellUmiEvidence
 from .logging import get_logger
 from .read_collector import ReadCollector
 from .read_identity import segment_identity, source_read_ids
+from .rna_evidence import EvidenceSets
 from .variant_helpers import base0_interval_for_variant
 
 logger = get_logger(__name__)
@@ -96,7 +97,7 @@ class CellUmiAlleles(object):
                 "the reads were collected with", missing, contig, start + 1, end)
         return CellUmiEvidence(groups, self.header, *self.scope)
 
-    def evidence(self, variant, read_evidence, protein_sequences=()):
+    def evidence(self, variant, read_evidence, protein_sequences=(), base_quality_policy=None):
         """
         RNA support records, with cell/UMI counts, for one variant's alleles and proteins.
 
@@ -106,6 +107,8 @@ class CellUmiAlleles(object):
         read_evidence : ReadEvidence
         protein_sequences : sequence of ProteinSequence
             Proteins to summarize, in order.
+        base_quality_policy : BaseQualityPolicy, optional
+            Also summarize reported focal-allele quality, without changing counts.
 
         Returns
         -------
@@ -119,11 +122,19 @@ class CellUmiAlleles(object):
         by_allele = {allele: _identities(getattr(read_evidence, allele + "_reads")) for allele in ALLELES}
         by_protein = [_identities(protein.supporting_reads) for protein in protein_sequences]
         labels = self.labels(variant, [i for identities in [*by_allele.values(), *by_protein] for i in identities])
-        return dict(
+        result = dict(
             policy=CellUmiEvidence.policy,
             alleles={allele: labels.support(by_allele[allele]) for allele in ALLELES},
             cells_with_ref_and_alt=labels.shared_cells(by_allele["ref"], by_allele["alt"]),
             protein_hypotheses=[labels.support(identities) for identities in by_protein])
+        if base_quality_policy is not None:
+            evidence = EvidenceSets(self.scope, base_quality_policy)
+            for allele in ALLELES:
+                result["alleles"][allele]["base_quality"] = evidence.quality_support(
+                    getattr(read_evidence, allele + "_reads"), labels, store_sets=False)
+            for protein, support in zip(protein_sequences, result["protein_hypotheses"]):
+                support["base_quality"] = evidence.quality_support(protein.supporting_reads, labels, store_sets=False)
+        return result
 
 
 def warn_if_unlabelled(supports):

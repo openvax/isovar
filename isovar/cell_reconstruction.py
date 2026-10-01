@@ -9,6 +9,7 @@ from numbers import Integral
 
 import edlib
 
+from .base_quality import STATUSES
 from .cell_evidence import CellUmiAlleles
 from .cell_umi import UNTRUSTED_CELL_STATUSES
 from .dna import reverse_complement_dna
@@ -152,13 +153,23 @@ def _protein_assignment(attribution, candidates):
     return dict(hypothesis_ids=sorted(ids), protein_status=status)
 
 
-def _cell_support(cells, key, ids_field, status_field):
+def _cell_support(cells, key, ids_field, status_field, quality_enabled=False):
     result = {}
+    if quality_enabled:
+        result["base_quality"] = {status: {} for status in STATUSES}
     for category, status in (("unique", "unique_within_catalog"), ("ambiguous", "ambiguous")):
         cell_ids = sorted(cell_id for cell_id, cell in cells.items()
                           if any(o[status_field] == status and key in o[ids_field] for o in cell["observations"]))
         result[category + "_cell_ids"] = cell_ids
         result["num_" + category + "_cells"] = len(cell_ids)
+        if quality_enabled:
+            for quality_status in STATUSES:
+                qualified = [cell_id for cell_id in cell_ids if any(
+                    o[status_field] == status and key in o[ids_field]
+                    and o["rna_support"]["base_quality"][quality_status]["reads"] > 0
+                    for o in cells[cell_id]["observations"])]
+                result["base_quality"][quality_status].update({
+                    category + "_cell_ids": qualified, "num_" + category + "_cells": len(qualified)})
     return result
 
 
@@ -221,8 +232,10 @@ def _event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap, 
     # A synonymous RNA ambiguity may still identify one protein. A cell can
     # carry unique and ambiguous observations, or express multiple proteins.
     for candidate in candidates:
-        candidate.update(_cell_support(cells, candidate["candidate_id"], "candidate_ids", "status"))
-    protein_support = [dict(hypothesis_id=key, **_cell_support(cells, key, "hypothesis_ids", "protein_status"))
+        candidate.update(_cell_support(cells, candidate["candidate_id"], "candidate_ids", "status",
+                                       evidence.base_quality_policy is not None))
+    protein_support = [dict(hypothesis_id=key, **_cell_support(cells, key, "hypothesis_ids", "protein_status",
+                                                            evidence.base_quality_policy is not None))
                        for key in sorted({h for c in candidates for h in c["hypothesis_ids"]})]
     no_result = ("no_reads" if not reads else "no_eligible_pools" if not pools
                  else "no_reconstructed_candidates" if not candidates else None)
@@ -236,7 +249,7 @@ def _event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap, 
 
 def reconstruct_cell_groups(isovar_results, alignment_file, *, sample_id, source, mode="sample",
                             cell_groups=None, max_edits=1, min_overlap=10, read_collector=None,
-                            transcript_id_whitelist=None):
+                            transcript_id_whitelist=None, base_quality_policy=None):
     """Reconstruct local protein candidates by pool and attribute original cell evidence.
 
     Parameters
@@ -263,6 +276,9 @@ def reconstruct_cell_groups(isovar_results, alignment_file, *, sample_id, source
         Collector used for the input, for metadata eligibility.
     transcript_id_whitelist : set of str, optional
         Restrict reconstruction to these reference transcripts.
+    base_quality_policy : BaseQualityPolicy, optional
+        Add reported focal-allele quality categories to support and cell counts.
+        Does not filter reconstruction or attribution, or score the full ORF.
 
     Returns
     -------
@@ -282,7 +298,7 @@ def reconstruct_cell_groups(isovar_results, alignment_file, *, sample_id, source
             raise ValueError("group mode requires a cell ID to nonempty group-name mapping")
     elif cell_groups is not None:
         raise ValueError("cell_groups applies only to group mode")
-    evidence = _EvidenceSets([sample_id, source])
+    evidence = _EvidenceSets([sample_id, source], base_quality_policy)
     resolver = CellUmiAlleles(alignment_file, sample_id=sample_id, source=source, read_collector=read_collector)
     events = []
     for result in isovar_results:
@@ -290,7 +306,8 @@ def reconstruct_cell_groups(isovar_results, alignment_file, *, sample_id, source
         identities = {key for read in reads.ref_reads + reads.alt_reads + reads.other_reads for key in source_read_ids(read)}
         labels = resolver.labels(result.variant, identities)
         events.append(_event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap, transcript_id_whitelist))
-    return dict(schema=SCHEMA, mode=mode, sample_id=sample_id, source=source, max_edits=max_edits,
+    return dict(**({} if base_quality_policy is None else dict(base_quality_policy=base_quality_policy.description())),
+                schema=SCHEMA, mode=mode, sample_id=sample_id, source=source, max_edits=max_edits,
                 min_overlap=min_overlap, cell_groups=cell_groups, score_policy="anchored_edit_compatibility.v1",
                 interpretation="Observed RNA compatibility within a discovered local candidate catalog; "
                                "not calibrated expression probabilities, independent molecules or cell prevalence.",

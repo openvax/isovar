@@ -19,6 +19,7 @@ from .commands import run_dataframe_command
 from .output_args import add_output_args
 from .rna_args import make_rna_reads_arg_parser, allele_counts_dataframe_from_args
 from .validation import CommandInputError
+from .base_quality_args import add_base_quality_args
 
 parser = add_output_args(
     make_rna_reads_arg_parser(description=__doc__),
@@ -32,6 +33,7 @@ _cells.add_argument(
          "CB/UB tags; needs --sample-id")
 _cells.add_argument("--sample-id", help="Sample the reads came from; scopes the labels")
 _cells.add_argument("--source", help="Identity of the read set (default: --bam)")
+add_base_quality_args(parser)
 
 
 def _counts(args):
