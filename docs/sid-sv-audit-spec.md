@@ -67,3 +67,14 @@ the partition tree and bind each result to its leaf receipt. Only a single
 geometry still exceeding the cap receives a terminal record-limit failure.
 An interrupted partition stays pending, and missing children cannot pass the
 coverage check. This changes request scheduling, not which reads qualify.
+
+Publish each immutable checkpoint atomically from a temporary file in the same
+directory, without replacing different existing content. Apply the per-view
+deadline only to reconstruction and summarization; persist after cancelling the
+alarm. Interrupted writes must leave no final checkpoint, and timeouts must not
+retain a partially computed candidate summary (review issue #435).
+
+The four-platform pilot also exposed duplicated upstream query-name lists in
+acquisition receipts and command input files (osteosarc issue #107). Measure and
+deduplicate this metadata before allocating storage for the full catalogue;
+preserve original read hashes, semantic request identities and all provenance.

@@ -11,8 +11,10 @@ import gzip
 from hashlib import sha256
 import io
 import json
+import os
 from pathlib import Path
 import re
+import tempfile
 
 
 RNA_ASSAYS = {"rna-seq", "scrna-seq", "cite-seq"}
@@ -37,18 +39,29 @@ def digest(path):
 
 
 def write_json(path, value):
-    """Deterministic JSON; existing content may only be reused unchanged."""
+    """Publish complete deterministic JSON without replacing different content."""
     path = Path(path)
     data = canonical(value) + b"\n"
     if path.suffix == ".gz":
         data = gzip.compress(data, mtime=0)
-    if path.exists():
-        if path.read_bytes() != data:
-            raise ValueError("Refusing to replace different audit content: %s" % path)
-    else:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("xb") as handle:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".checkpoint-", delete=False) as handle:
+            temporary = Path(handle.name)
             handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            # A hard link publishes the complete file atomically and, unlike
+            # replace(), cannot overwrite a concurrent writer's checkpoint.
+            os.link(temporary, path)
+        except FileExistsError:
+            if path.read_bytes() != data:
+                raise ValueError("Refusing to replace different audit content: %s" % path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def read_json(path):

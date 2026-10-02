@@ -7,7 +7,7 @@ from pathlib import Path
 import shutil
 import subprocess
 
-from osteosarc import Cache, File, RecoveryPolicy, Region, extract_reads, inspect_alignment
+from osteosarc import Cache, File, RecoveryPolicy, Region, extract_reads, inspect_alignment, read_receipt_files
 from osteosarc.models import SampleClaim
 from osteosarc.errors import OsteosarcError, RecordLimitError
 
@@ -16,6 +16,24 @@ from .inventory import digest, identity, load_inventory, read_json, write_json
 from . import references
 
 USABLE_STATUSES = ("acquired", "incomplete", "truncated")
+
+
+def receipt_summary(receipt):
+    """Keep reporting fields inline; pin the complete upstream provenance once."""
+    return {key: receipt[key] for key in ("status", "scope", "records", "complete_template",
+                                        "limits", "failed_queries") if key in receipt}
+
+
+def upstream_provenance(subset):
+    path = subset.receipt_path
+    return [dict(path=str(p), sha256=checksum) for p, checksum in
+            read_receipt_files(path, path.parents[2]).items()]
+
+
+def verify_upstream(acquired):
+    for pin in acquired.get("upstream_receipt_files", []):
+        if digest(pin["path"]) != pin["sha256"]:
+            raise ValueError("Upstream acquisition provenance checksum mismatch")
 
 
 def input_limitations(acquired):
@@ -123,6 +141,7 @@ def acquisition_tree(directory, source_id, batch_id):
         result = read_json(Path(directory) / "sources" / source_id / (bid + ".json"))
         if result["source_id"] != source_id or result["batch_id"] != bid:
             raise ValueError("Acquisition is filed under the wrong identity")
+        verify_upstream(result)
         receipts[bid] = result
         if result["status"] != "partitioned":
             leaves[bid] = result
@@ -154,13 +173,14 @@ def acquire_batch(directory, source, batch, cache, policy, timeout=300,
                   manifest=None, reference=None, min_free_gib=0):
     """Keep context and verified mate/SA partners; limits stay in the receipt."""
     directory = Path(directory)
-    request = dict(source_identity=identity(source), batch=batch, policy=asdict(policy),
+    request = dict(source_identity=identity(source), batch=batch, policy=asdict(policy), timeout=timeout,
                    partition_on_record_limit=manifest is not None)
     path = directory / "sources" / source["id"] / (batch["id"] + ".json")
     if path.exists():
         result = read_json(path)
         if result["request"] != request:
             raise ValueError("Acquisition request drift")
+        verify_upstream(result)
         if result["status"] in USABLE_STATUSES:
             for key in ("bam", "index"):
                 if digest(result[key]["path"]) != result[key]["sha256"]:
@@ -201,7 +221,8 @@ def acquire_batch(directory, source, batch, cache, policy, timeout=300,
                                        recovery=policy, timeout=timeout)
                 status = subset.receipt.get("status")
                 result.update(status=status if status in ("incomplete", "truncated") else "acquired",
-                              receipt=subset.receipt, contig_aliases=aliases,
+                              receipt=receipt_summary(subset.receipt), upstream_receipt_files=upstream_provenance(subset),
+                              contig_aliases=aliases,
                               bam=dict(path=str(subset.path), sha256=digest(subset.path)),
                               index=dict(path=str(subset.index_path), sha256=digest(subset.index_path)))
             except (OSError, ValueError, OsteosarcError, subprocess.SubprocessError) as error:
@@ -217,6 +238,10 @@ def acquire_batch(directory, source, batch, cache, policy, timeout=300,
                     result.update(status="partitioned", reason="record_limit", children=children)
                 else:
                     result.update(status="acquisition_error", error=dict(type=type(error).__name__, message=str(error)))
+                    stderr = getattr(error, "stderr", None)
+                    if stderr:
+                        result["error"]["stderr"] = (stderr.decode(errors="replace") if isinstance(stderr, bytes)
+                                                     else str(stderr))
     write_json(path, result)
     return result
 

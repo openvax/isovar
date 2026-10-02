@@ -4,6 +4,7 @@ from copy import deepcopy
 import gzip
 import json
 from pathlib import Path
+import shutil
 from types import SimpleNamespace
 
 import osteosarc
@@ -18,8 +19,62 @@ from examples.sid_sv_audit.report import coverage
 from examples.sid_sv_audit.reconstruct import reconstruct_one, summarize
 from isovar import sid_data
 
-from examples.sid_sv_audit import acquisition, reconstruct, report
+from examples.sid_sv_audit import acquisition, inventory, reconstruct, report
 from examples.sid_sv_audit.inventory import digest, identity, read_json, write_json
+
+
+def fake_subset(bam, receipt):
+    path = bam.parent / "receipt.json"
+    write_json(path, receipt)
+    return osteosarc.ReadSubset(bam, Path(str(bam) + ".bai"), receipt)
+
+
+@pytest.mark.parametrize("name", ["result.json", "result.json.gz"])
+def test_checkpoint_write_interruption_never_publishes_partial_content(tmp_path, monkeypatch, name):
+    path = tmp_path / name
+    original = inventory.tempfile.NamedTemporaryFile
+
+    class InterruptedWrite:
+        def __init__(self, **kwargs):
+            self.handle = original(**kwargs)
+            self.name = self.handle.name
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            self.handle.close()
+
+        def write(self, data):
+            self.handle.write(data[:len(data) // 2])
+            self.handle.flush()
+            raise KeyboardInterrupt()
+
+    monkeypatch.setattr(inventory.tempfile, "NamedTemporaryFile", InterruptedWrite)
+    with pytest.raises(KeyboardInterrupt):
+        write_json(path, {"complete": True})
+    assert not path.exists()
+    assert not list(tmp_path.glob(".checkpoint-*"))
+    monkeypatch.setattr(inventory.tempfile, "NamedTemporaryFile", original)
+    write_json(path, {"complete": True})
+    write_json(path, {"complete": True})
+    with pytest.raises(ValueError, match="Refusing to replace"):
+        write_json(path, {"complete": False})
+    assert read_json(path) == {"complete": True}
+
+
+def test_checkpoint_preserves_a_concurrent_writers_different_result(tmp_path, monkeypatch):
+    path = tmp_path / "result.json"
+    link = inventory.os.link
+
+    def competing_writer(source, destination):
+        Path(destination).write_bytes(b'{"winner":true}\n')
+        link(source, destination)
+
+    monkeypatch.setattr(inventory.os, "link", competing_writer)
+    with pytest.raises(ValueError, match="Refusing to replace"):
+        write_json(path, {"winner": False})
+    assert read_json(path) == {"winner": True}
 
 
 def test_retained_flanks_determine_both_views_including_inversions():
@@ -181,8 +236,7 @@ def empty_audit(tmp_path):
 def test_bounded_inputs_remain_explicit_through_offline_report(tmp_path, monkeypatch, empty_audit, status, limits):
     source, batch, bam = empty_audit
     monkeypatch.setattr(acquisition, "source_file", lambda source: source)
-    monkeypatch.setattr(acquisition, "extract_reads", lambda *args, **kwargs: SimpleNamespace(
-        path=bam, index_path=Path(str(bam) + ".bai"), receipt=dict(status=status, limits=limits)))
+    monkeypatch.setattr(acquisition, "extract_reads", lambda *args, **kwargs: fake_subset(bam, dict(status=status, limits=limits)))
     result = acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy())
     expected = "acquired" if status == "bounded" else status
     assert result["status"] == expected
@@ -209,7 +263,7 @@ def test_absent_contig_keeps_other_targets_and_cannot_become_a_negative(tmp_path
 
     def extract(source, regions, **kwargs):
         captured.extend(regions)
-        return SimpleNamespace(path=bam, index_path=Path(str(bam) + ".bai"), receipt=dict(status="bounded"))
+        return fake_subset(bam, dict(status="bounded"))
 
     monkeypatch.setattr(acquisition, "extract_reads", extract)
     result = acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy())
@@ -235,8 +289,7 @@ def test_absent_contig_keeps_other_targets_and_cannot_become_a_negative(tmp_path
 def test_report_rejects_mixed_engines_and_corrupted_details(tmp_path, monkeypatch, empty_audit):
     source, batch, bam = empty_audit
     monkeypatch.setattr(acquisition, "source_file", lambda source: source)
-    monkeypatch.setattr(acquisition, "extract_reads", lambda *args, **kwargs: SimpleNamespace(
-        path=bam, index_path=Path(str(bam) + ".bai"), receipt=dict(status="bounded")))
+    monkeypatch.setattr(acquisition, "extract_reads", lambda *args, **kwargs: fake_subset(bam, dict(status="bounded")))
     acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy())
     reconstruct.run_batch(tmp_path, "source", "batch", reconstruct.PARAMETERS, 30, "engine")
     path = reconstruct.result_path(tmp_path, "source", "g", "reverse")
@@ -254,6 +307,39 @@ def test_report_rejects_mixed_engines_and_corrupted_details(tmp_path, monkeypatc
         report.report(tmp_path, tmp_path / "report")
 
 
+@pytest.mark.parametrize("timeout", [False, True])
+def test_deadline_excludes_persistence_and_timeout_has_no_partial_candidates(
+        tmp_path, monkeypatch, empty_audit, timeout):
+    source, batch, bam = empty_audit
+    monkeypatch.setattr(acquisition, "source_file", lambda source: source)
+    monkeypatch.setattr(acquisition, "extract_reads", lambda *args, **kwargs: fake_subset(bam, dict(status="bounded")))
+    acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy())
+    armed = []
+    monkeypatch.setattr(reconstruct.signal, "alarm", lambda seconds: armed.append(seconds))
+    persist = reconstruct.write_json
+
+    def check_persistence(path, value):
+        assert armed[-1] == 0
+        persist(path, value)
+
+    monkeypatch.setattr(reconstruct, "write_json", check_persistence)
+    if timeout:
+        def interrupted_summary(result):
+            assert armed[-1] == 30
+            raise TimeoutError("interrupted summary")
+        monkeypatch.setattr(reconstruct, "summarize", interrupted_summary)
+    reconstruct.run_batch(tmp_path, "source", "batch", reconstruct.PARAMETERS, 30, "engine")
+    for orientation in ("forward", "reverse"):
+        result = read_json(reconstruct.result_path(tmp_path, "source", "g", orientation))
+        if timeout:
+            assert result["status"] == "reconstruction_timeout"
+            assert "candidates" not in result and "reconstruction" not in result
+            assert not (tmp_path / "reconstructions").exists()
+        else:
+            assert result["status"] == "no_candidate_paths"
+            assert "reconstruction" in result
+
+
 def test_insufficient_cache_space_leaves_work_pending(tmp_path, monkeypatch, empty_audit):
     _, batch, _ = empty_audit
     monkeypatch.setattr(acquisition, "planned_batches", lambda *args: [batch])
@@ -265,6 +351,37 @@ def test_insufficient_cache_space_leaves_work_pending(tmp_path, monkeypatch, emp
         report.report(tmp_path, tmp_path / "report", require_complete=True)
     ledger = read_json(tmp_path / "report" / "coverage.json.gz")
     assert ledger["counts"] == {"pending_reconstruction": 1}
+
+
+def test_acquisition_pins_shared_provenance_and_rejects_modified_assets(tmp_path, monkeypatch, empty_audit):
+    from osteosarc.read_receipts import write_read_receipt
+
+    source, batch, bam = empty_audit
+    workspace = tmp_path / "cache" / "osteosarc"
+    derived = workspace / "derived" / "subset"
+    derived.mkdir(parents=True)
+    for suffix in ("", ".bai"):
+        shutil.copyfile(str(bam) + suffix, str(derived / "reads.bam") + suffix)
+    receipt = dict(status="bounded", records=0, limits=[], acquisition=[
+        dict(request=dict(filters=dict(query_names=["a", "b"]))) for _ in range(5)])
+    write_read_receipt(derived / "receipt.json", receipt, workspace)
+    subset = osteosarc.ReadSubset(derived / "reads.bam", derived / "reads.bam.bai", receipt)
+    monkeypatch.setattr(acquisition, "source_file", lambda source: source)
+    monkeypatch.setattr(acquisition, "extract_reads", lambda *args, **kwargs: subset)
+    saved = acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy())
+    assert saved["receipt"] == dict(status="bounded", records=0, limits=[])
+    assert len(saved["upstream_receipt_files"]) == 2
+    with pytest.raises(ValueError, match="request drift"):
+        acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy(), timeout=301)
+    reconstruct.run_batch(tmp_path, "source", "batch", reconstruct.PARAMETERS, 30, "engine")
+    asset, = (workspace / "query-names").glob("*.txt")
+    asset.write_text("corrupt\n")
+    with pytest.raises(ValueError, match="provenance checksum"):
+        acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy())
+    with pytest.raises(ValueError, match="provenance checksum"):
+        reconstruct.run_batch(tmp_path, "source", "batch", reconstruct.PARAMETERS, 30, "engine")
+    with pytest.raises(ValueError, match="provenance checksum"):
+        report.report(tmp_path, tmp_path / "report")
 
 
 def test_oversized_batch_is_partitioned_without_losing_targets_or_context(tmp_path, monkeypatch, empty_audit):
@@ -292,7 +409,7 @@ def test_oversized_batch_is_partitioned_without_losing_targets_or_context(tmp_pa
         queried.append(regions)
         if len(regions) > 1:
             raise acquisition.RecordLimitError("Acquisition exceeds record limit")
-        return SimpleNamespace(path=bam, index_path=Path(str(bam) + ".bai"), receipt=dict(status="bounded"))
+        return fake_subset(bam, dict(status="bounded"))
 
     monkeypatch.setattr(acquisition, "extract_reads", extract)
     result = acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy(),

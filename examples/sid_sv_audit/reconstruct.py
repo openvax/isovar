@@ -2,6 +2,7 @@
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from collections import Counter
+from contextlib import contextmanager
 from copy import deepcopy
 from hashlib import sha256
 import inspect
@@ -89,6 +90,18 @@ def _expired(signum, frame):
     raise TimeoutError("SV reconstruction exceeded the recorded per-view wall-time limit")
 
 
+@contextmanager
+def reconstruction_deadline(seconds):
+    """Bound computation without interrupting publication of a checkpoint."""
+    previous = signal.signal(signal.SIGALRM, _expired)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
+
+
 def run_batch(directory, source_id, batch_id, parameters, seconds, engine_id):
     """One process per acquisition batch; all reconstruction reads are local."""
     leaves, receipts = acquisition_tree(directory, source_id, batch_id)
@@ -139,19 +152,22 @@ def _run_leaf(directory, source_id, batch_id, parameters, seconds, engine_id):
                 result.update(status="not_assessable", reason="missing_or_ambiguous_contig",
                               contigs=sorted(missing_contigs))
             else:
-                previous = signal.signal(signal.SIGALRM, _expired)
-                signal.alarm(seconds)
                 try:
-                    with pysam.AlignmentFile(acquired["bam"]["path"]) as bam:
-                        reconstruction = reconstruct_one(bam, group_id, manifest["geometries"][group_id],
-                                                         source, reference, orientation, parameters)
-                    reconstruction["limitations"] = sorted(set(reconstruction["limitations"]) |
-                                                           set(result["input_limitations"]))
-                    reconstruction["upstream_acquisition"] = dict(
-                        status=acquired["status"], receipt_sha256=identity(acquired),
-                        limits=acquired.get("receipt", {}).get("limits", []),
-                        failed_queries=acquired.get("receipt", {}).get("failed_queries", []))
-                    result.update(summarize(reconstruction))
+                    with reconstruction_deadline(seconds):
+                        with pysam.AlignmentFile(acquired["bam"]["path"]) as bam:
+                            reconstruction = reconstruct_one(bam, group_id, manifest["geometries"][group_id],
+                                                             source, reference, orientation, parameters)
+                        reconstruction["limitations"] = sorted(set(reconstruction["limitations"]) |
+                                                               set(result["input_limitations"]))
+                        reconstruction["upstream_acquisition"] = dict(
+                            status=acquired["status"], receipt_sha256=identity(acquired),
+                            limits=acquired.get("receipt", {}).get("limits", []),
+                            failed_queries=acquired.get("receipt", {}).get("failed_queries", []))
+                        summary = summarize(reconstruction)
+                except TimeoutError as error:
+                    result.update(status="reconstruction_timeout", error=str(error))
+                else:
+                    result.update(summary)
                     details = directory / "reconstructions" / source_id / path.name
                     write_json(details, reconstruction)
                     result["reconstruction"] = dict(path=str(details.relative_to(directory)), sha256=digest(details))
@@ -159,11 +175,6 @@ def _run_leaf(directory, source_id, batch_id, parameters, seconds, engine_id):
                     result["unsupported_reference_cds"] = sorted(
                         set(reference.get("unsupported_cds", {})) &
                         set(reference["assignments"][group_id]["transcripts"]))
-                except TimeoutError as error:
-                    result.update(status="reconstruction_timeout", error=str(error))
-                finally:
-                    signal.alarm(0)
-                    signal.signal(signal.SIGALRM, previous)
             write_json(path, result)
             counts[result["status"]] = counts.get(result["status"], 0) + 1
     return dict(source=source_id, batch=batch_id, outcomes=counts)

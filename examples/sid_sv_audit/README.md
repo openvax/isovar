@@ -25,7 +25,7 @@ nomination. RNA-only calls are not promoted to DNA-confirmed SVs.
 ## Reproduce
 
 Run from the repository root with Isovar's dependencies installed. Inventory
-acquisition requires osteosarc 0.15.1; offline tests never fetch metadata or reads.
+acquisition requires osteosarc 0.15.2; offline tests never fetch metadata or reads.
 Create an explicit osteosarc metadata snapshot first. The original run used
 `sid-sv-audit-2026-10-02`, snapshot ID
 `7526b8ab16a806769d5f1868df9931e8dd45d74c2cec4eef0bfe4e59267fdb27`.
@@ -67,6 +67,10 @@ failure. Offline reconstruction and reports verify the entire partition tree.
 
 `run` operates on verified local BAMs and pinned references; it needs no network.
 Checkpoints bind the input hashes, engine source hashes, version and parameters.
+Checkpoint publication is atomic and happens after the reconstruction deadline
+is cancelled. Acquisition pins the upstream receipt and shared query-name assets
+instead of embedding repeated read-name lists. These files must travel with the
+BAM cache for offline verification; changing or dropping one invalidates reuse.
 Use a new run directory when changing frozen inputs or parameters. A partial
 acquisition or wall-time limit is an explicit outcome, not a negative RNA call.
 
@@ -100,3 +104,7 @@ Known upstream metadata drift is tracked in
 [osteosarc #103](https://github.com/iskandr/osteosarc/issues/103); overlapping
 Tempus evidence remains tracked in
 [osteosarc #100](https://github.com/iskandr/osteosarc/issues/100).
+
+The four-platform pilot and current storage estimate are documented in
+[the pilot report](../../docs/sid-sv-four-platform-pilot.md). Full-catalogue
+execution remains a separate required step before this PR ships.
