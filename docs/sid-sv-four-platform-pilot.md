@@ -3,7 +3,10 @@
 This is the completed pilot, **not the full-catalogue result**. The pilot covers
 50 retained-flank geometries (71 original nominations), four RNA alignment
 products and both orientations: **400 intended views**. Every view has an
-outcome. There are 356 reconstructed views and 44 unassessable views after
+outcome. A second offline run with the reviewed checkpoint and compact-provenance
+implementation reproduced all 400 scientific results exactly; the full candidate
+JSON and CSV are byte-identical. The published pins describe this second run.
+There are 356 reconstructed views and 44 unassessable views after
 bounded acquisition failures. No failed acquisition counts as negative RNA
 evidence.
 
