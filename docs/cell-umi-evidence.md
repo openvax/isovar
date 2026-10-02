@@ -217,15 +217,28 @@ one supporting observation. A noisy read excluded from assembly can still be
 compatible during attribution. Conversely, reads covering only shared sequence
 remain ambiguous between candidates. Cells can support multiple sequences.
 
-`score_policy=anchored_edit_compatibility.v1` compares the observed prefix,
+`score_policy=anchored_edit_compatibility.v2` compares the observed prefix,
 allele and suffix with each candidate, anchored at the nominated variant.
-Only overlapping flanks are compared. Each part uses unit-cost edit distance;
-splice compatibility is checked against candidate transcripts. The default
+Each flank aligns outward from the allele until either sequence ends, using
+unit-cost edits and free distal overhangs. A flanking insertion or deletion
+therefore does not create an extra error by shifting an equal-length window.
+The focal allele remains globally aligned; gaps at the focal end are charged.
+Splice compatibility is checked against candidate transcripts. The default
 maximum total cost is 1 (`--cell-max-edits`); the default minimum number of
 compared read bases is 10 (`--cell-min-overlap`). Non-ACGT observations in the
 compared interval remain unassessed. The `comparisons` report costs and the
-candidate interval covered; `spans_candidate` refers to that local nucleotide
+candidate interval spanned; `spans_candidate` refers to that local nucleotide
 candidate, potentially supported by merged mates, not necessarily a full ORF.
+
+`flank_alignments` records the prefix and suffix cost and every optimal endpoint
+as `[read_bases, candidate_bases]`, measured outward from the allele.
+`compared_read_bases` uses the minimum read span across tied endpoints (including
+insertions); the overlap floor uses this count. The candidate interval and
+full-span flag likewise use the minimum candidate span. Path and A/C/G/T checks
+use the maximum spans, so an endpoint tie cannot hide an incompatible splice
+or unknown base. Terminal gaps at the distal boundary remain unobserved
+overhangs; sequence alone cannot distinguish them from incomplete coverage.
+See the [comparison specification](flanking-indel-matching-spec.md).
 
 Every candidate also has a paired reference-allele competitor with the same
 flanks. An observation whose reference cost is equal or better cannot provide

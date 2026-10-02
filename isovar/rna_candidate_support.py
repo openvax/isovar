@@ -14,6 +14,8 @@ from .read_identity import fragment_ids, observation_groups, read_sort_key, sour
 from .rna_evidence import canonical_json, content_identifier
 from .transcript_compatibility import annotate_reads_with_transcript_compatibility
 
+COMPARISON_POLICY = "anchored_edit_compatibility.v2"
+
 def _candidate(translation, event_id):
     orf = translation.variant_orf
     sequence = orf.cdna_sequence
@@ -34,30 +36,57 @@ def _distance(a, b):
     return edlib.align(a, b, mode="NW", task="distance")["editDistance"]
 
 
+def _flank_alignment(read, candidate):
+    """Align outward from the allele until either flank ends.
+
+    Both starts are fixed; only distal overhangs are free. Prefix alignment in
+    both directions considers either sequence ending first, even at equal
+    lengths. Retain all optimal (read bases, candidate bases) endpoint pairs
+    so tied alignments cannot invent certain coverage.
+    """
+    best, endpoints = -1, set()
+    directions = sorted(((read, candidate, False), (candidate, read, True)), key=lambda row: len(row[0]))
+    for query, target, swapped in directions:
+        result = edlib.align(query, target, mode="SHW", task="distance", k=best)
+        cost = result["editDistance"]
+        if cost < 0 or (best >= 0 and cost > best):
+            continue
+        if best < 0 or cost < best:
+            best, endpoints = cost, set()
+        for _, end in result["locations"]:
+            pair = (len(query), end + 1)
+            endpoints.add(pair[::-1] if swapped else pair)
+    return dict(edit_distance=best, endpoints=[list(pair) for pair in sorted(endpoints)])
+
+
 def _comparison(read, candidate, ref, transcripts, max_edits, min_overlap):
     sequence = candidate["sequence"]
     start, end = candidate["variant_interval"]
-    before, after = min(len(read.prefix), start), min(len(read.suffix), len(sequence) - end)
-    # Anchor the comparison at the nominated locus. Unobserved flanks are
-    # omitted rather than penalized as deletions or imputed into a cell.
-    left = read.prefix[-before:] if before else ""
-    right = read.suffix[:after]
-    prefix = sequence[start - before:start]
-    suffix = sequence[end:end + after]
+    left = _flank_alignment(read.prefix[::-1], sequence[:start][::-1])
+    right = _flank_alignment(read.suffix, sequence[end:])
+    before, after = [min(q for q, _ in flank["endpoints"]) for flank in (left, right)]
+    candidate_before, candidate_after = [min(c for _, c in flank["endpoints"]) for flank in (left, right)]
+    # Coverage uses the intersection of tied endpoint spans. Path and alphabet
+    # checks use their union: no tie may hide an incompatible path/unknown base.
+    query_before, query_after = [max(q for q, _ in flank["endpoints"]) for flank in (left, right)]
+    target_before, target_after = [max(c for _, c in flank["endpoints"]) for flank in (left, right)]
     overlap = before + len(read.allele) + after
-    if overlap < min_overlap or set(left + read.allele + right + prefix + suffix + sequence[start:end] + ref) - set("ACGT"):
+    compared = (read.prefix[len(read.prefix) - query_before:] + read.allele + read.suffix[:query_after]
+                + sequence[start - target_before:end + target_after] + ref)
+    if overlap < min_overlap or set(compared) - set("ACGT"):
         return None
     classified, = annotate_reads_with_transcript_compatibility(
-        [read], transcripts, max_prefix_size=before, max_suffix_size=after)
+        [read], transcripts, max_prefix_size=query_before, max_suffix_size=query_after)
     if not classified.compatible_transcript_ids:
         return None
-    flanks = _distance(left, prefix) + _distance(right, suffix)
+    flanks = left["edit_distance"] + right["edit_distance"]
     alt_cost = flanks + _distance(read.allele, sequence[start:end])
     ref_cost = flanks + _distance(read.allele, ref)
     return dict(candidate_id=candidate["candidate_id"], edit_distance=alt_cost,
                 reference_edit_distance=ref_cost, within_tolerance=alt_cost <= max_edits,
-                candidate_interval=[start - before, end + after],
-                spans_candidate=before == start and after == len(sequence) - end,
+                candidate_interval=[start - candidate_before, end + candidate_after],
+                spans_candidate=candidate_before == start and candidate_after == len(sequence) - end,
+                compared_read_bases=overlap, flank_alignments=dict(prefix=left, suffix=right),
                 reference_preferred=ref_cost <= alt_cost)
 
 
@@ -259,6 +288,7 @@ def score_fragments(reads, candidates, transcripts, ref, evidence, labels=None, 
                                   [h for c in candidates for h in c["hypothesis_ids"]],
                                   evidence.base_quality_policy is not None)
     return dict(policy=dict(name="fractional_compatible_fragments.v1", unit="fragment",
+                            comparison=COMPARISON_POLICY,
                             max_edits=max_edits, min_overlap=min_overlap,
                             allocation="equal_share_of_compatible_hypotheses",
                             length_weighted=False, calibrated_probability=False,

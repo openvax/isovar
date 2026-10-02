@@ -47,7 +47,10 @@ candidates within the configured tolerance remain alternatives: an exact match
 and a one-edit match remain ambiguous when both pass that policy.
 
 The matcher uses the observed prefix/allele/suffix, the focal reference-allele
-competitor and compatible transcript paths. A fragment's jointly compatible
+competitor and compatible transcript paths. The recorded comparison policy is
+`anchored_edit_compatibility.v2`: flanks align outward from the focal allele
+until either sequence ends, allowing free distal overhangs while charging
+internal and focal-adjacent edits. A fragment's jointly compatible
 RNA candidates are the intersection across its observed mates. Alternative
 placements must agree on their compatibility sets. Conflicting observations,
 disagreeing placements, or any observation lacking a usable comparison leave
@@ -107,11 +110,15 @@ abundance/error model and posterior inference used by tools such as
 probability, cell prevalence estimate or automatic pooling policy. Calibration
 and quality-weighted likelihoods require additional modeling and controls.
 
-The shared anchored matcher retains its existing behavior. Its known boundary
-limitation for flanking indels is tracked separately in
-[#428](https://github.com/openvax/isovar/issues/428): equal-length flank clipping
-can count one insertion as two edits. Original comparisons and unscored
-fragments remain available for inspection.
+Since 1.42.1 the shared anchored matcher corrects the equal-length clipping bug
+in [#428](https://github.com/openvax/isovar/issues/428), which could count one
+flanking insertion as two edits. Each comparison records `flank_alignments`
+with all optimal `[read_bases, candidate_bases]` endpoint pairs, measured outward
+from the allele, plus `compared_read_bases`. Coverage uses the minimum span
+across tied endpoints, while transcript-path and A/C/G/T checks use the maximum
+span. This prevents an endpoint tie from claiming certain full-candidate
+coverage or hiding incompatible evidence. The focal allele remains globally
+aligned, and unscored fragments stay available for inspection.
 
 ## Python API
 
