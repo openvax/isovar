@@ -59,3 +59,11 @@ option. It must keep the same collected context, overlap extension and ambiguous
 event-compatible splices, and report excluded unrelated seeds. The general API
 default remains the broader search. Acquisition failures stay visible; do not
 turn timeout-truncated inputs into negative evidence.
+
+The same 50-geometry batch exceeded the 500,000-record acquisition cap in ONT
+T2, bulk RNA T2 and 10x T2. Partition oversized batches recursively, preserving
+the original windows, transcript context and intended geometry matrix. Store
+the partition tree and bind each result to its leaf receipt. Only a single
+geometry still exceeding the cap receives a terminal record-limit failure.
+An interrupted partition stays pending, and missing children cannot pass the
+coverage check. This changes request scheduling, not which reads qualify.

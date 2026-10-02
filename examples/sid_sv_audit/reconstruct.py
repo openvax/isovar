@@ -1,6 +1,7 @@
 """Offline reconstruction with a checkpoint for every geometry/product/view."""
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from collections import Counter
 from copy import deepcopy
 from hashlib import sha256
 import inspect
@@ -12,7 +13,7 @@ import pysam
 import isovar
 from isovar import export_sv_rna_orfs
 from isovar.sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
-from .acquisition import selected_sources
+from .acquisition import USABLE_STATUSES, acquisition_tree, input_limitations, selected_sources
 from .inventory import canonical, digest, identity, load_inventory, oriented_breakpoints, read_json, write_json
 from . import references
 
@@ -90,6 +91,18 @@ def _expired(signum, frame):
 
 def run_batch(directory, source_id, batch_id, parameters, seconds, engine_id):
     """One process per acquisition batch; all reconstruction reads are local."""
+    leaves, receipts = acquisition_tree(directory, source_id, batch_id)
+    source_identity = identity(load_inventory(directory)["sources"][source_id])
+    if any(row["request"]["source_identity"] != source_identity for row in receipts.values()):
+        raise ValueError("Acquisition belongs to another source")
+    counts = Counter()
+    for bid in leaves:
+        result = _run_leaf(directory, source_id, bid, parameters, seconds, engine_id)
+        counts.update(result["outcomes"])
+    return dict(source=source_id, batch=batch_id, outcomes=dict(counts), acquisition_leaves=len(leaves))
+
+
+def _run_leaf(directory, source_id, batch_id, parameters, seconds, engine_id):
     directory = Path(directory)
     manifest, reference = load_inventory(directory), references.load(directory)
     source = manifest["sources"][source_id]
@@ -104,6 +117,11 @@ def run_batch(directory, source_id, batch_id, parameters, seconds, engine_id):
                         isovar_version=isovar.__version__, engine_id=engine_id, max_seconds=seconds)
     counts = {}
     for group_id in batch["geometries"]:
+        group = manifest["geometries"][group_id]
+        needed_contigs = {end["contig"] for end in group["breakends"]}
+        needed_contigs.update(reference["models"][tid]["contig"]
+                              for tid in reference["assignments"][group_id]["transcripts"])
+        missing_contigs = needed_contigs & set(acquired.get("unavailable_contigs", []))
         for orientation in ("forward", "reverse"):
             request = dict(request_base, source_id=source_id, geometry_id=group_id, orientation=orientation)
             path = result_path(directory, source_id, group_id, orientation)
@@ -113,9 +131,13 @@ def run_batch(directory, source_id, batch_id, parameters, seconds, engine_id):
                     raise ValueError("Reconstruction request drift: " + str(path))
                 counts["reused"] = counts.get("reused", 0) + 1
                 continue
-            result = dict(request=request, acquisition_status=acquired["status"])
-            if acquired["status"] not in ("acquired", "incomplete"):
+            result = dict(request=request, acquisition_status=acquired["status"],
+                          input_limitations=input_limitations(acquired))
+            if acquired["status"] not in USABLE_STATUSES:
                 result.update(status="not_assessable", reason=acquired["status"])
+            elif missing_contigs:
+                result.update(status="not_assessable", reason="missing_or_ambiguous_contig",
+                              contigs=sorted(missing_contigs))
             else:
                 previous = signal.signal(signal.SIGALRM, _expired)
                 signal.alarm(seconds)
@@ -123,9 +145,8 @@ def run_batch(directory, source_id, batch_id, parameters, seconds, engine_id):
                     with pysam.AlignmentFile(acquired["bam"]["path"]) as bam:
                         reconstruction = reconstruct_one(bam, group_id, manifest["geometries"][group_id],
                                                          source, reference, orientation, parameters)
-                    if acquired["status"] == "incomplete":
-                        reconstruction["limitations"] = sorted(set(reconstruction["limitations"]) |
-                                                               {"input_acquisition_incomplete"})
+                    reconstruction["limitations"] = sorted(set(reconstruction["limitations"]) |
+                                                           set(result["input_limitations"]))
                     reconstruction["upstream_acquisition"] = dict(
                         status=acquired["status"], receipt_sha256=identity(acquired),
                         limits=acquired.get("receipt", {}).get("limits", []),

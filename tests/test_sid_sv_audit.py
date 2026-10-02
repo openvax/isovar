@@ -4,6 +4,7 @@ from copy import deepcopy
 import gzip
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import osteosarc
 import pytest
@@ -16,6 +17,9 @@ from examples.sid_sv_audit.inventory import (
 from examples.sid_sv_audit.report import coverage
 from examples.sid_sv_audit.reconstruct import reconstruct_one, summarize
 from isovar import sid_data
+
+from examples.sid_sv_audit import acquisition, reconstruct, report
+from examples.sid_sv_audit.inventory import digest, identity, read_json, write_json
 
 
 def test_retained_flanks_determine_both_views_including_inversions():
@@ -139,3 +143,169 @@ def test_new_audit_reconstructs_original_pacbio_orf_without_qualities(tmp_path):
         junction["relation"] = "regional_novel_junction"
     result["paths"].append(duplicate)
     assert summarize(result)["candidates"] == before["candidates"]
+    result["limitations"].append("input_acquisition_truncated")
+    candidate, = [c for c in summarize(result)["candidates"]
+                   if c["amino_acids"] == "MPSRRRGGSSLIPGRMPILRFSVTTRYFSY"]
+    assert "reconstruction_limit:input_acquisition_truncated" in candidate["uncertainty_flags"]
+    assert candidate["rna_support"]["fragments"] == 15
+
+
+@pytest.fixture
+def empty_audit(tmp_path):
+    """Real indexed BAM and pinned inputs for the offline acquisition/run/report path."""
+    source = dict(id="source", url="original.bam", claims=[], selection=dict(cohort="tumor_candidate"))
+    group = dict(breakends=[dict(contig="chr1", position=100, retained_side="left"),
+                           dict(contig="chr1", position=200, retained_side="right")], nominations=["target"])
+    manifest = dict(nominations={"target": dict(geometry_id="g")}, geometries={"g": group},
+                    sources={"source": source})
+    write_json(tmp_path / "inventory.json.gz", manifest)
+    write_json(tmp_path / "inventory-pin.json", dict(sha256=digest(tmp_path / "inventory.json.gz")))
+    reference = dict(models={}, assignments={"g": dict(transcripts=[], excluded_transcripts=[])},
+                     inventory_sha256=digest(tmp_path / "inventory.json.gz"))
+    write_json(tmp_path / "references.json.gz", reference)
+    write_json(tmp_path / "references-pin.json", dict(sha256=digest(tmp_path / "references.json.gz")))
+    bam = tmp_path / "empty.bam"
+    header = dict(HD=dict(SO="coordinate"), SQ=[dict(SN="chr1", LN=1000)])
+    with pysam.AlignmentFile(str(bam), "wb", header=header):
+        pass
+    pysam.index(str(bam))
+    write_json(tmp_path / "sources" / "source" / "header.json",
+               dict(source_id="source", source_identity=identity(source), status="ready", header=header))
+    batch = dict(id="batch", geometries=["g"], regions=[["chr1", 0, 300]], window=100)
+    write_json(tmp_path / "batches.json", [batch])
+    return source, batch, bam
+
+
+@pytest.mark.parametrize("status,limits", [("bounded", []), ("truncated", ["max_partner_queries"]),
+                                         ("incomplete", ["max_rounds"])])
+def test_bounded_inputs_remain_explicit_through_offline_report(tmp_path, monkeypatch, empty_audit, status, limits):
+    source, batch, bam = empty_audit
+    monkeypatch.setattr(acquisition, "source_file", lambda source: source)
+    monkeypatch.setattr(acquisition, "extract_reads", lambda *args, **kwargs: SimpleNamespace(
+        path=bam, index_path=Path(str(bam) + ".bai"), receipt=dict(status=status, limits=limits)))
+    result = acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy())
+    expected = "acquired" if status == "bounded" else status
+    assert result["status"] == expected
+    reconstruct.run_batch(tmp_path, "source", "batch", reconstruct.PARAMETERS, 30, "engine")
+    for view in ("forward", "reverse"):
+        result = read_json(reconstruct.result_path(tmp_path, "source", "g", view))
+        assert result["status"] == "no_candidate_paths"
+        assert result["acquisition_status"] == expected
+        assert result["input_limitations"] == acquisition.input_limitations(dict(status=expected, receipt=dict(limits=limits)))
+        assert set(result["input_limitations"]) <= set(result["limitations"])
+    outcome = report.report(tmp_path, tmp_path / "report", require_complete=True)
+    assert outcome["all_pairs_accounted"]
+    ledger = read_json(tmp_path / "report" / "coverage.json.gz")
+    assert {row["acquisition_status"] for row in ledger["outcomes"]} == {expected}
+    # This confirms jobs ran, not that incomplete inputs establish biological absence.
+    assert ledger["counts"] == {"accounted": 1}
+
+
+def test_absent_contig_keeps_other_targets_and_cannot_become_a_negative(tmp_path, monkeypatch, empty_audit):
+    source, batch, bam = empty_audit
+    batch["regions"].append(["chrMissing", 0, 100])
+    captured = []
+    monkeypatch.setattr(acquisition, "source_file", lambda source: source)
+
+    def extract(source, regions, **kwargs):
+        captured.extend(regions)
+        return SimpleNamespace(path=bam, index_path=Path(str(bam) + ".bai"), receipt=dict(status="bounded"))
+
+    monkeypatch.setattr(acquisition, "extract_reads", extract)
+    result = acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy())
+    assert result["status"] == "acquired"
+    assert result["unavailable_contigs"] == ["chrMissing"]
+    assert [r.contig for r in captured] == ["chr1"]
+    reconstruct.run_batch(tmp_path, "source", "batch", reconstruct.PARAMETERS, 30, "engine")
+    result = read_json(reconstruct.result_path(tmp_path, "source", "g", "forward"))
+    assert result["status"] == "no_candidate_paths"  # The unaffected target was still queried.
+    assert "input_acquisition_missing_contigs" in result["limitations"]
+    # The same missing contig at the nominated event is explicitly unassessable.
+    manifest = load_inventory(tmp_path)
+    manifest["geometries"]["g"]["breakends"][0]["contig"] = "chrMissing"
+    monkeypatch.setattr(reconstruct, "load_inventory", lambda directory: manifest)
+    for view in ("forward", "reverse"):
+        reconstruct.result_path(tmp_path, "source", "g", view).unlink()
+    reconstruct.run_batch(tmp_path, "source", "batch", reconstruct.PARAMETERS, 30, "engine")
+    result = read_json(reconstruct.result_path(tmp_path, "source", "g", "forward"))
+    assert result["status"] == "not_assessable"
+    assert result["reason"] == "missing_or_ambiguous_contig"
+
+
+def test_report_rejects_mixed_engines_and_corrupted_details(tmp_path, monkeypatch, empty_audit):
+    source, batch, bam = empty_audit
+    monkeypatch.setattr(acquisition, "source_file", lambda source: source)
+    monkeypatch.setattr(acquisition, "extract_reads", lambda *args, **kwargs: SimpleNamespace(
+        path=bam, index_path=Path(str(bam) + ".bai"), receipt=dict(status="bounded")))
+    acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy())
+    reconstruct.run_batch(tmp_path, "source", "batch", reconstruct.PARAMETERS, 30, "engine")
+    path = reconstruct.result_path(tmp_path, "source", "g", "reverse")
+    original = read_json(path)
+    changed = deepcopy(original)
+    changed["request"]["engine_id"] = "different-engine"
+    path.unlink()
+    write_json(path, changed)
+    with pytest.raises(ValueError, match="mix engine"):
+        report.report(tmp_path, tmp_path / "report")
+    path.unlink()
+    write_json(path, original)
+    (tmp_path / original["reconstruction"]["path"]).write_bytes(b"corrupt")
+    with pytest.raises(ValueError, match="checksum mismatch"):
+        report.report(tmp_path, tmp_path / "report")
+
+
+def test_insufficient_cache_space_leaves_work_pending(tmp_path, monkeypatch, empty_audit):
+    _, batch, _ = empty_audit
+    monkeypatch.setattr(acquisition, "planned_batches", lambda *args: [batch])
+    monkeypatch.setattr(acquisition.shutil, "disk_usage", lambda path: SimpleNamespace(free=0))
+    with pytest.raises(OSError, match="Acquisition paused"):
+        acquisition.acquire(tmp_path, tmp_path / "cache", workers=1)
+    assert not (tmp_path / "sources" / "source" / "batch.json").exists()
+    with pytest.raises(ValueError, match="Audit is incomplete"):
+        report.report(tmp_path, tmp_path / "report", require_complete=True)
+    ledger = read_json(tmp_path / "report" / "coverage.json.gz")
+    assert ledger["counts"] == {"pending_reconstruction": 1}
+
+
+def test_oversized_batch_is_partitioned_without_losing_targets_or_context(tmp_path, monkeypatch, empty_audit):
+    source, _, bam = empty_audit
+    manifest = load_inventory(tmp_path)
+    manifest["geometries"]["other"] = deepcopy(manifest["geometries"]["g"])
+    for end in manifest["geometries"]["other"]["breakends"]:
+        end["position"] += 500
+    manifest["nominations"]["other"] = dict(geometry_id="other")
+    reference = read_json(tmp_path / "references.json.gz")
+    reference["assignments"]["other"] = dict(transcripts=[], excluded_transcripts=[])
+    for name in ("inventory.json.gz", "inventory-pin.json", "references.json.gz", "references-pin.json", "batches.json"):
+        (tmp_path / name).unlink()
+    write_json(tmp_path / "inventory.json.gz", manifest)
+    write_json(tmp_path / "inventory-pin.json", dict(sha256=digest(tmp_path / "inventory.json.gz")))
+    reference["inventory_sha256"] = digest(tmp_path / "inventory.json.gz")
+    write_json(tmp_path / "references.json.gz", reference)
+    write_json(tmp_path / "references-pin.json", dict(sha256=digest(tmp_path / "references.json.gz")))
+    batch = acquisition.make_batch(manifest, reference, ["g", "other"], window=50)
+    write_json(tmp_path / "batches.json", [batch])
+    queried = []
+    monkeypatch.setattr(acquisition, "source_file", lambda source: source)
+
+    def extract(source, regions, **kwargs):
+        queried.append(regions)
+        if len(regions) > 1:
+            raise acquisition.RecordLimitError("Acquisition exceeds record limit")
+        return SimpleNamespace(path=bam, index_path=Path(str(bam) + ".bai"), receipt=dict(status="bounded"))
+
+    monkeypatch.setattr(acquisition, "extract_reads", extract)
+    result = acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy(),
+                                       manifest=manifest, reference=reference)
+    assert result["status"] == "partitioned"
+    assert len(queried) == 3
+    leaves, receipts = acquisition.acquisition_tree(tmp_path, "source", batch["id"])
+    assert len(leaves) == 2 and len(receipts) == 3
+    outcome = reconstruct.run_batch(tmp_path, "source", batch["id"], reconstruct.PARAMETERS, 30, "engine")
+    assert outcome["outcomes"] == {"no_candidate_paths": 4}
+    assert report.report(tmp_path, tmp_path / "report", require_complete=True)["expected_pairs"] == 2
+    # A successful sibling does not excuse a missing child receipt.
+    child_id = next(iter(leaves))
+    (tmp_path / "sources" / "source" / (child_id + ".json")).unlink()
+    with pytest.raises(FileNotFoundError):
+        report.report(tmp_path, tmp_path / "missing-child")

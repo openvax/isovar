@@ -25,7 +25,7 @@ nomination. RNA-only calls are not promoted to DNA-confirmed SVs.
 ## Reproduce
 
 Run from the repository root with Isovar's dependencies installed. Inventory
-acquisition requires osteosarc 0.15; offline tests never fetch metadata or reads.
+acquisition requires osteosarc 0.15.1; offline tests never fetch metadata or reads.
 Create an explicit osteosarc metadata snapshot first. The original run used
 `sid-sv-audit-2026-10-02`, snapshot ID
 `7526b8ab16a806769d5f1868df9931e8dd45d74c2cec4eef0bfe4e59267fdb27`.
@@ -50,6 +50,20 @@ original mate/SA records through osteosarc. Original qualities and labels are
 preserved. It never falls back to downloading an entire remote BAM. Resource
 limits and failed requests are recorded. A successful local query cannot prove
 that a partner absent from an incomplete acquisition was absent upstream.
+Partner queries default to batches of 64 regions, at most 128 queries per
+acquisition batch, with a 30-second timeout each. These are explicit resource
+bounds, adjustable with `--partner-batch-size`, `--max-partner-queries` and
+`--partner-timeout`. Both timed-out and budget-truncated inputs remain usable
+but carry acquisition limitations through the ORF export and report.
+Use `acquire --source-id ID --batch-id ID` to distribute or pilot individual
+acquisitions without changing the intended matrix. Acquisition stops scheduling
+new batches when the cache volume falls below `--min-free-gib` (default 8).
+This leaves unattempted work pending; it does not manufacture a terminal outcome.
+If a request exceeds its record budget, the runner recursively partitions its
+geometries, preserving every requested window and transcript exon. The saved
+partition tree accounts for each geometry exactly once and pins each child
+receipt. A single geometry still exceeding the budget remains an explicit
+failure. Offline reconstruction and reports verify the entire partition tree.
 
 `run` operates on verified local BAMs and pinned references; it needs no network.
 Checkpoints bind the input hashes, engine source hashes, version and parameters.
@@ -62,6 +76,10 @@ acquisition or wall-time limit is an explicit outcome, not a negative RNA call.
 reconstruction keeps the audit incomplete. Unresolved geometry, incompatible
 reference builds and missing indexes are recorded as unassessable. Acquisition
 limitations remain separate from the reconstruction status.
+`all_pairs_accounted` means every pair has a terminal outcome, including
+unassessable or limited outcomes; it does not certify unrestricted read recovery
+or biological absence. Reports reject mixed reference snapshots, engine versions
+or reconstruction settings and verify detailed result checksums.
 
 `candidate-orfs.json.gz` retains exact nucleotide alternatives, protein sequences,
 all contributing paths, full-interval witnesses, cell/UMI and read-lineage
