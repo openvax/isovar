@@ -14,7 +14,7 @@ from .read_evidence import ReadEvidence
 from .read_identity import observation_groups, read_sort_key, source_read_ids
 from .rna_evidence import canonical_json, content_identifier
 from .rna_candidate_support import (
-    _attribute, _candidate, _comparison as _comparison, _protein_assignment,
+    COMPARISON_POLICY, _attribute, _candidate, _comparison as _comparison, _protein_assignment,
     score_fragments, summarize_fragments, validate_comparison_settings,
 )
 
@@ -265,7 +265,7 @@ def reconstruct_cell_groups(isovar_results, alignment_file, *, sample_id, source
     return dict(**({} if base_quality_policy is None else dict(base_quality_policy=base_quality_policy.description())),
                 **({} if not partial_read_support else dict(partial_read_support=True)),
                 schema=SCHEMA, mode=mode, sample_id=sample_id, source=source, max_edits=max_edits,
-                min_overlap=min_overlap, cell_groups=cell_groups, score_policy="anchored_edit_compatibility.v1",
+                min_overlap=min_overlap, cell_groups=cell_groups, score_policy=COMPARISON_POLICY,
                 interpretation="Observed RNA compatibility within a discovered local candidate catalog; "
                                "not calibrated expression probabilities, independent molecules or cell prevalence.",
                 events=events, evidence_sets={key: evidence.sets[key] for key in sorted(evidence.sets)})

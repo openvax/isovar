@@ -111,6 +111,62 @@ def test_noisy_singleton_attribution_is_separate_from_discovery(tmp_path, refere
     assert next(c for c in strict["cells"] if c["cell_barcode"] == "noisy")["observations"][0]["status"] == "outside_tolerance"
 
 
+@pytest.mark.parametrize("operation", ["I", "D"])
+@pytest.mark.parametrize("position", [6, 24])
+def test_original_flanking_indels_support_pooled_protein_and_sparse_cell(tmp_path, reference, operation, position):
+    from isovar import BaseQualityPolicy, export_protein_hypotheses
+
+    strand, variant = reference
+    records = reads_for(reference, [(MUTANT, "clean1", "a"), (MUTANT, "clean2", "a")])
+    sequence = (MUTANT[:position] + "A" + MUTANT[position:] if operation == "I"
+                else MUTANT[:position] + MUTANT[position + 1:])
+    operations = [(position, "M"), (1, operation), (len(MUTANT) - position - (operation == "D"), "M")]
+    if strand == "-":
+        sequence, operations = reverse_complement_dna(sequence), operations[::-1]
+    noisy = record("indel", "1", 1000, "".join("%d%s" % op for op in operations), sequence,
+                   flag=16 if strand == "-" else 0, qualities=False)
+    noisy.set_tag("CB", "indel-cell")
+    path = write_bam(tmp_path / "indel.bam", records + [noisy], header=HEADER)
+    with pysam.AlignmentFile(path) as bam:
+        reads = ReadCollector().read_evidence_for_variant(variant, bam)
+        assert len(reads.alt_reads) == 3
+        creator = ProteinSequenceCreator(protein_sequence_length=20, min_transcript_prefix_length=3,
+                                         min_variant_sequence_coverage=2)
+        proteins = creator.sorted_protein_sequences_for_variant(variant, reads)
+        result = IsovarResult(variant, reads, predicted_effect=None, sorted_protein_sequences=proteins,
+                              protein_sequence_settings=creator.settings())
+        raw = export_protein_hypotheses([result], sample_id="s", source="input")
+        sample = export_protein_hypotheses([result], sample_id="s", source="input", partial_read_support=True)
+        pooled = reconstruct_cell_groups([result], bam, sample_id="s", source="input", partial_read_support=True,
+                                         base_quality_policy=BaseQualityPolicy(20))
+        strict = reconstruct_cell_groups([result], bam, sample_id="s", source="input", max_edits=0,
+                                         partial_read_support=True)
+
+    assert pooled["score_policy"] == "anchored_edit_compatibility.v2"
+    event, = pooled["events"]
+    protein, = event["pools"][0]["protein_hypotheses"]
+    assert protein["amino_acids"] == "MAAAAQGGGG"  # Independent standard-code expectation.
+    assert protein["rna_support"]["reads"] == 2  # Only the two exact reads assemble this protein.
+    cell = next(c for c in event["cells"] if c["cell_barcode"] == "indel-cell")
+    observation, = cell["observations"]
+    assert observation["status"] == "unique_within_catalog"
+    comparison, = observation["comparisons"][0]
+    assert comparison["edit_distance"] == 1 and comparison["reference_edit_distance"] == 2
+    assert cell["partial_read_support"]["scored_fragments"] == 1
+    score, = cell["partial_read_support"]["protein_scores"]
+    assert score["fractional_fragments"] == 1
+    assert score["base_quality_fractional_fragments"] == dict(passed=0, failed=0, unassessed=1)
+    assert event["partial_read_support"]["scored_fragments"] == 3
+    assert event["partial_read_support"]["policy"]["comparison"] == pooled["score_policy"]
+    strict_cell = next(c for c in strict["events"][0]["cells"] if c["cell_barcode"] == "indel-cell")
+    assert strict_cell["observations"][0]["status"] == "outside_tolerance"
+    assert strict_cell["partial_read_support"]["unscored_fragments"] == 1
+    sample_protein, = sample["events"][0]["protein_hypotheses"]
+    assert sample_protein["partial_read_support"]["fractional_fragments"] == 3
+    assert {k: v for k, v in sample_protein.items() if k != "partial_read_support"} == raw["events"][0]["protein_hypotheses"][0]
+    assert json.loads(json.dumps(pooled)) == pooled
+
+
 def test_library_collision_missing_labels_and_repeated_umis(tmp_path, reference):
     specs = [(MUTANT, "C1", "a"), (MUTANT, "C1", "a"), (MUTANT, "C1", "b"),
              (MUTANT, "C1", "b"), (MUTANT, None, "a"), (MUTANT, "C1", "unknown")]
@@ -318,13 +374,19 @@ def test_quality_assessments_preserve_pooled_orfs_and_sparse_cell_attribution(tm
         creator = ProteinSequenceCreator(protein_sequence_length=20, min_transcript_prefix_length=3,
                                          min_variant_sequence_coverage=2)
         proteins = creator.sorted_protein_sequences_for_variant(variant, reads)
-        result = IsovarResult(variant, reads, proteins, protein_sequence_settings=creator.settings())
+        result = IsovarResult(variant, reads, predicted_effect=None, sorted_protein_sequences=proteins,
+                              protein_sequence_settings=creator.settings())
         raw = reconstruct_cell_groups([result], bam, sample_id="s", source="input")
         assessed = reconstruct_cell_groups([result], bam, sample_id="s", source="input",
                                            base_quality_policy=BaseQualityPolicy(20))
         sample_raw = export_protein_hypotheses([result], sample_id="s", source="input")
         sample_assessed = export_protein_hypotheses([result], sample_id="s", source="input",
                                                    base_quality_policy=BaseQualityPolicy(20))
+    sample_protein, = sample_assessed["events"][0]["protein_hypotheses"]
+    assert sample_protein["amino_acids"] == "MAAAAQGGGG"
+    assert sample_protein["rna_support"]["reads"] == 3
+    assert sample_protein["rna_support"]["base_quality"]["passed"]["reads"] == 2
+    assert sample_protein["rna_support"]["base_quality"]["unassessed"]["reads"] == 1
     event, = assessed["events"]
     candidate, = event["candidates"]
     assert candidate["num_unique_cells"] == 4
