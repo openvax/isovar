@@ -78,3 +78,23 @@ The four-platform pilot also exposed duplicated upstream query-name lists in
 acquisition receipts and command input files (osteosarc issue #107). Measure and
 deduplicate this metadata before allocating storage for the full catalogue;
 preserve original read hashes, semantic request identities and all provenance.
+
+## Failed pilot acquisitions
+
+Diagnose all 22 failed geometry/product combinations (44 views), including the
+13-target 10x batch. Reproduce failures with subprocess stderr and elapsed time;
+measure regional record counts separately from event-supporting evidence. Check
+pipe ownership/cleanup on overflow and timeout, and verify the original exception
+survives without publishing a partial derivative. Retry transient failures in a
+fresh, pinned acquisition run; preserve the original failed run. Partition large
+requests without removing any original interval or target. Set evidence-based
+limits for individually dense targets rather than treating the pilot's fixed
+500,000-record limit as a biological exclusion. Reconstruct recovered inputs and
+publish a before/after ledger with remaining input/search limitations.
+
+The failed 13-target 10x batch is now recovered and independently repeated in
+`sid-sv-acquisition-recovery.md`. Upstream releases 0.15.3 and 0.15.4 address dense
+seed memory and a reproduced pipe-header cleanup failure. Partition subprocess
+failures/timeouts as well as overflow; retain parent diagnostics. Expose explicit
+seed time/record budgets and pin them. Keep the distinct 50,000-record
+reconstruction limit visible (follow-up #437).

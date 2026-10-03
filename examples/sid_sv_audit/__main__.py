@@ -23,6 +23,9 @@ def main():
     parser.add_argument("--partner-batch-size", type=int, default=64)
     parser.add_argument("--max-partner-queries", type=int, default=128)
     parser.add_argument("--partner-timeout", type=int, default=30)
+    parser.add_argument("--max-acquisition-records", type=int, default=500_000,
+                        help="Seed plus partner record budget; use measured counts for dense targets")
+    parser.add_argument("--seed-timeout", type=int, default=300)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--require-complete", action="store_true")
     args = parser.parse_args()
@@ -41,7 +44,7 @@ def main():
     elif args.command == "acquire":
         acquisition.acquire(args.directory, args.cache, args.cohort, args.workers, args.source_id,
                             args.partner_batch_size, args.max_partner_queries, args.partner_timeout,
-                            args.batch_id, args.min_free_gib)
+                            args.batch_id, args.min_free_gib, args.max_acquisition_records, args.seed_timeout)
     elif args.command == "run":
         reconstruct.run(args.directory, args.cohort, args.workers, args.source_id, args.max_seconds)
     elif args.command == "report":

@@ -384,7 +384,12 @@ def test_acquisition_pins_shared_provenance_and_rejects_modified_assets(tmp_path
         report.report(tmp_path, tmp_path / "report")
 
 
-def test_oversized_batch_is_partitioned_without_losing_targets_or_context(tmp_path, monkeypatch, empty_audit):
+@pytest.mark.parametrize("failure", [
+    acquisition.RecordLimitError("Acquisition exceeds record limit"),
+    acquisition.subprocess.TimeoutExpired("samtools", 300, stderr=b"source stalled"),
+    acquisition.subprocess.CalledProcessError(1, "samtools", stderr=b"source failed"),
+])
+def test_failed_batch_is_partitioned_without_losing_targets_or_context(tmp_path, monkeypatch, empty_audit, failure):
     source, _, bam = empty_audit
     manifest = load_inventory(tmp_path)
     manifest["geometries"]["other"] = deepcopy(manifest["geometries"]["g"])
@@ -408,13 +413,16 @@ def test_oversized_batch_is_partitioned_without_losing_targets_or_context(tmp_pa
     def extract(source, regions, **kwargs):
         queried.append(regions)
         if len(regions) > 1:
-            raise acquisition.RecordLimitError("Acquisition exceeds record limit")
+            raise failure
         return fake_subset(bam, dict(status="bounded"))
 
     monkeypatch.setattr(acquisition, "extract_reads", extract)
     result = acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy(),
                                        manifest=manifest, reference=reference)
     assert result["status"] == "partitioned"
+    assert result["error"]["type"] == type(failure).__name__
+    if getattr(failure, "stderr", None):
+        assert result["error"]["stderr"] == failure.stderr.decode()
     assert len(queried) == 3
     leaves, receipts = acquisition.acquisition_tree(tmp_path, "source", batch["id"])
     assert len(leaves) == 2 and len(receipts) == 3
@@ -426,3 +434,19 @@ def test_oversized_batch_is_partitioned_without_losing_targets_or_context(tmp_pa
     (tmp_path / "sources" / "source" / (child_id + ".json")).unlink()
     with pytest.raises(FileNotFoundError):
         report.report(tmp_path, tmp_path / "missing-child")
+
+
+def test_dense_acquisition_budgets_are_pinned(tmp_path, monkeypatch, empty_audit):
+    _, batch, bam = empty_audit
+    monkeypatch.setattr(acquisition, "planned_batches", lambda *args: [batch])
+    monkeypatch.setattr(acquisition, "source_file", lambda source: source)
+    def extract(source, regions, **kwargs):
+        assert kwargs["recovery"].max_records == 6_500_000
+        assert kwargs["timeout"] == 600
+        return fake_subset(bam, dict(status="bounded"))
+    monkeypatch.setattr(acquisition, "extract_reads", extract)
+    acquisition.acquire(tmp_path, tmp_path / "cache", workers=1, min_free_gib=0,
+                        max_acquisition_records=6_500_000, seed_timeout=600)
+    receipt = read_json(tmp_path / "sources" / "source" / "batch.json")
+    assert receipt["request"]["policy"]["max_records"] == 6_500_000
+    assert receipt["request"]["timeout"] == 600

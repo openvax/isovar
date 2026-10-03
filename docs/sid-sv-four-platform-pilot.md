@@ -10,6 +10,10 @@ There are 356 reconstructed views and 44 unassessable views after
 bounded acquisition failures. No failed acquisition counts as negative RNA
 evidence.
 
+The [acquisition recovery follow-up](sid-sv-acquisition-recovery.md) subsequently
+recovered and reconstructed all 13 targets in the failed 10x batch, with an
+independent offline repeat. The table here preserves the original pilot run.
+
 | RNA product | No candidate paths | Splice-ambiguous candidates | Event-linked candidates | Unassessable | Candidate sequences |
 |---|---:|---:|---:|---:|---:|
 | PacBio T1 (`8275c5f21164`) | 74 | 14 | 12 | 0 | 144 |

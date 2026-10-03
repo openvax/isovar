@@ -174,7 +174,8 @@ def acquire_batch(directory, source, batch, cache, policy, timeout=300,
     """Keep context and verified mate/SA partners; limits stay in the receipt."""
     directory = Path(directory)
     request = dict(source_identity=identity(source), batch=batch, policy=asdict(policy), timeout=timeout,
-                   partition_on_record_limit=manifest is not None)
+                   partition_on_record_limit=manifest is not None,
+                   partition_on_process_error=manifest is not None)
     path = directory / "sources" / source["id"] / (batch["id"] + ".json")
     if path.exists():
         result = read_json(path)
@@ -226,7 +227,13 @@ def acquire_batch(directory, source, batch, cache, policy, timeout=300,
                               bam=dict(path=str(subset.path), sha256=digest(subset.path)),
                               index=dict(path=str(subset.index_path), sha256=digest(subset.index_path)))
             except (OSError, ValueError, OsteosarcError, subprocess.SubprocessError) as error:
-                if isinstance(error, RecordLimitError) and manifest is not None and len(batch["geometries"]) > 1:
+                failure = dict(type=type(error).__name__, message=str(error))
+                stderr = getattr(error, "stderr", None)
+                if stderr:
+                    failure["stderr"] = stderr.decode(errors="replace") if isinstance(stderr, bytes) else str(stderr)
+                partitionable = isinstance(error, (RecordLimitError, subprocess.TimeoutExpired,
+                                                    subprocess.CalledProcessError))
+                if partitionable and manifest is not None and len(batch["geometries"]) > 1:
                     names = batch["geometries"]
                     midpoint = len(names) // 2
                     children = []
@@ -235,22 +242,25 @@ def acquire_batch(directory, source, batch, cache, policy, timeout=300,
                         saved = acquire_batch(directory, source, child, cache, policy, timeout,
                                               manifest, reference, min_free_gib)
                         children.append(dict(batch=child, receipt_sha256=identity(saved)))
-                    result.update(status="partitioned", reason="record_limit", children=children)
+                    reason = "record_limit" if isinstance(error, RecordLimitError) else "process_error"
+                    result.update(status="partitioned", reason=reason, error=failure, children=children)
                 else:
-                    result.update(status="acquisition_error", error=dict(type=type(error).__name__, message=str(error)))
-                    stderr = getattr(error, "stderr", None)
-                    if stderr:
-                        result["error"]["stderr"] = (stderr.decode(errors="replace") if isinstance(stderr, bytes)
-                                                     else str(stderr))
+                    result.update(status="acquisition_error", error=failure)
     write_json(path, result)
     return result
 
 
 def acquire(directory, cache, cohort="tumor_candidate", workers=2, source_id=None,
             partner_batch_size=64, max_partner_queries=128, partner_timeout=30,
-            batch_id=None, min_free_gib=8):
+            batch_id=None, min_free_gib=8, max_acquisition_records=500_000, seed_timeout=300):
     if min_free_gib < 0:
         raise ValueError("Minimum free disk space cannot be negative")
+    if type(seed_timeout) is not int or seed_timeout < 1:
+        raise ValueError("Seed timeout must be a positive integer")
+    policy = RecoveryPolicy(max_rounds=4, max_intervals=20000, max_bases=20_000_000,
+                            max_records=max_acquisition_records, on_timeout="incomplete",
+                            partner_batch_size=partner_batch_size, max_partner_queries=max_partner_queries,
+                            partner_timeout=partner_timeout)
     manifest, reference = load_inventory(directory), references.load(directory)
     batches = planned_batches(manifest, reference)
     write_json(Path(directory) / "batches.json", batches)
@@ -263,16 +273,12 @@ def acquire(directory, cache, cohort="tumor_candidate", workers=2, source_id=Non
         if source_id not in sources:
             raise ValueError("Source not in selected cohort")
         sources = {source_id: sources[source_id]}
-    policy = RecoveryPolicy(max_rounds=4, max_intervals=20000, max_bases=20_000_000,
-                            max_records=500_000, on_timeout="incomplete",
-                            partner_batch_size=partner_batch_size, max_partner_queries=max_partner_queries,
-                            partner_timeout=partner_timeout)
     cache = Cache(cache)
     cache.root.mkdir(parents=True, exist_ok=True)
     # A source's batches run serially: bounded memory and no shared-index races.
     def run_source(source):
         for batch in batches:
-            result = acquire_batch(directory, source, batch, cache, policy,
+            result = acquire_batch(directory, source, batch, cache, policy, timeout=seed_timeout,
                                    manifest=manifest, reference=reference, min_free_gib=min_free_gib)
             print(source["id"][:12], batch["id"], result["status"], flush=True)
     with ThreadPoolExecutor(max_workers=workers) as pool:
