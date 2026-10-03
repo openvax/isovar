@@ -9,4 +9,4 @@ edlib>=1.3.9.post1,<2
 
 # Reads Isovar's packaged Sid test reads and makes them again, and acquires regions
 # for research audits.
-osteosarc>=0.14.4,<0.15
+osteosarc>=0.15.4,<0.16
