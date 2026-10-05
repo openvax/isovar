@@ -1312,6 +1312,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                        min_local_variant_fraction=SV_MIN_LOCAL_VARIANT_FRACTION, max_records=SV_MAX_RECORDS,
                        max_queries=SV_MAX_QUERIES, max_paths=SV_MAX_PATHS,
                        max_extension_segments=SV_MAX_EXTENSION_SEGMENTS, assemble=SV_ASSEMBLE,
+                       include_regional_candidates=True,
                        breakpoint_window=SV_BREAKPOINT_WINDOW, max_breakpoint_shift=SV_MAX_BREAKPOINT_SHIFT,
                        annotated_junction_tolerance=SV_ANNOTATED_JUNCTION_TOLERANCE,
                        peptide_lengths=FUSION_PEPTIDE_LENGTHS,
@@ -1375,6 +1376,11 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         Extend through overlapping observations which do not span the seed.
         Also retain seed-spanning reconstructions not contained in a regional
         assembly, subject to the same path limit.
+    include_regional_candidates : bool
+        Also seed paths at novel regional junctions unrelated to the nominated
+        event (default True). False still collects regional context, extends
+        event paths through overlaps and assesses competing ordinary splices;
+        skipped regional seeds remain explicit in the result.
     breakpoint_window : int
         Bases searched to either side of each nominated breakpoint.
     max_breakpoint_shift : int
@@ -1446,6 +1452,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     lengths = tuple(sorted(set(peptide_lengths)))
     if not lengths or any(type(n) is not int or n < 1 for n in lengths):
         raise ValueError("Peptide lengths must be positive integers")
+    if type(include_regional_candidates) is not bool:
+        raise ValueError("include_regional_candidates must be a boolean")
     references = tuple(references)
     if any(not isinstance(r, FusionReference) or r.reference_name != reference_name
            for r in references):
@@ -1500,6 +1508,12 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
              if len({i[:2] for i in ids}) >= min_alternative_fragments]
     thresholds = (min_alternative_fragments, min_alternative_fraction, min_local_variant_fraction)
     paths, pruned, notes, seed_rows, strongest, seen = {}, [], set(acquisition["limitations"]), [], {}, set()
+    if not include_regional_candidates:
+        seed_rows.extend(dict(relation=relation, left=list(left), right=list(right),
+                              fragments=len({i[:2] for i in ids}), unexplored=True, paths=[],
+                              reason="regional_candidate_search_disabled")
+                         for relation, (left, right), ids in queue if relation == "regional_novel_junction")
+        queue = [row for row in queue if row[0] != "regional_novel_junction"]
     if not references:
         notes.add("reference_models_unavailable")
     if mapq_255_excluded:
@@ -1649,6 +1663,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                         min_local_variant_fraction=min_local_variant_fraction, max_records=max_records,
                         max_queries=max_queries, max_paths=max_paths,
                         max_extension_segments=max_extension_segments, assemble=assemble,
+                        include_regional_candidates=include_regional_candidates,
                         breakpoint_window=breakpoint_window, max_breakpoint_shift=max_breakpoint_shift,
                         annotated_junction_tolerance=annotated_junction_tolerance,
                         peptide_lengths=lengths, genetic_code=1,

@@ -4,6 +4,15 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.45.0
+
+- Enable dense original-record support counting in the Sid SV audit. Discovery
+  limits and upstream acquisition limits remain separate from candidate support.
+- Add resumable regional acquisition for the union of Sid vaccine claims, RNA
+  controls and selected fusion geometries, with source/input pins, explicit
+  partition outcomes and independent original-read witness checks. The selected
+  four-product scope does not complete the full SV catalogue (#433, #437).
+
 ## 1.44.2
 
 - SV collection and record IDs distinguish complete original SAM payloads,

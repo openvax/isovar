@@ -556,6 +556,29 @@ def test_lazily_queued_joins_beyond_the_path_budget_are_reported_unexplored(tmp_
     assert result["observation_counts"]["built_reads"] < result["observation_counts"]["eligible_reads"]
 
 
+def test_event_scope_preserves_assembly_and_reports_unrelated_seeds(tmp_path):
+    s = Scenario()
+    skip = s.donor_ref.sequence[:100] + s.donor_ref.sequence[250:]
+    skip_positions = s.donor_positions[:100] + s.donor_positions[250:]
+    reads = s.tile("f", s.sequence, s.positions) + s.tile("s", skip, skip_positions, step=40)
+    bam = write_bam(tmp_path / "rna.bam", reads)
+    broad = s.run(bam)
+    focused = s.run(bam, include_regional_candidates=False)
+    assert focused["parameters"]["include_regional_candidates"] is False
+    assert focused["acquisition"] == broad["acquisition"]
+    assert focused["competing_annotated_junctions"] == broad["competing_annotated_junctions"]
+    expected = [p for p in broad["paths"] if p["event_linkage"]["status"] != "regional_novel_junction"]
+    assert focused["paths"] == expected
+    skipped, = [r for r in focused["seeds"] if r.get("reason") == "regional_candidate_search_disabled"]
+    assert skipped["fragments"] == 2 and skipped["paths"] == [] and skipped["unexplored"]
+    assert "path_limit" not in focused["limitations"]
+    # The same RNA join is relevant when nominated as an intronic deletion:
+    # mature RNA can fit deletion or ordinary splicing, and both stay ambiguous.
+    ambiguous = s.run(bam, FusionBreakpoint("1", 1500, "+"), FusionBreakpoint("1", 2600, "+"),
+                      include_regional_candidates=False)
+    assert any(p["event_linkage"]["status"] == "splice_ambiguous_event_junction" for p in ambiguous["paths"])
+
+
 def genome_base(s, position):
     """Transcript bases where annotated; a fixed pseudo-random base elsewhere."""
     if not hasattr(s, "bases"):
@@ -773,7 +796,8 @@ def test_inputs_and_parameters_are_validated(tmp_path):
         reconstruct_sv_rna(None, event_id="e", reference_name="test", donor=s.donor, acceptor=s.acceptor,
                            regions=[], references=[s.donor_ref], sample_id="s", source="x", event_provenance={})
     for options in [dict(max_paths=0), dict(min_anchor_bases=2), dict(min_alternative_fraction=1.5),
-                    dict(peptide_lengths=[]), dict(min_orf_amino_acids=0), dict(max_orf_candidates=0)]:
+                    dict(peptide_lengths=[]), dict(min_orf_amino_acids=0), dict(max_orf_candidates=0),
+                    dict(include_regional_candidates="false")]:
         with pytest.raises(ValueError):
             s.run(bam, **options)
     with pytest.raises(ValueError, match="interval"):
@@ -793,10 +817,11 @@ def test_cli_writes_the_api_result(tmp_path):
     output = tmp_path / "result.json"
     commands.run(["sv-rna", "--bam", str(bam), "--input", str(tmp_path / "event.json"),
                   "--output", str(output), "--orf-output-prefix", str(tmp_path / "orfs"),
-                  "--no-assembly", "--min-orf-amino-acids", "5", "--max-orf-candidates", "2"])
+                  "--no-assembly", "--event-only", "--min-orf-amino-acids", "5", "--max-orf-candidates", "2"])
     result = json.loads(output.read_text())
     with pysam.AlignmentFile(str(bam)) as alignments:
         expected = reconstruct_sv_rna(alignments, source=str(bam), assemble=False,
+                                      include_regional_candidates=False,
                                       min_orf_amino_acids=5, max_orf_candidates=2,
                                       **sv_rna_input_from_dict(json.loads(json.dumps(data))))
     assert result == json.loads(json.dumps(expected))
