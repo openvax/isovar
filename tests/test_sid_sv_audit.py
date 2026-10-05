@@ -564,12 +564,13 @@ def test_priority_acquisition_partitions_without_losing_vaccine_targets(tmp_path
     assert len(queries) == before
 
 
-def test_priority_interrupt_stops_workers_without_publishing_empty_results(tmp_path, monkeypatch):
+@pytest.mark.parametrize("failure", [KeyboardInterrupt, RuntimeError])
+def test_priority_failure_stops_workers_without_publishing_empty_results(tmp_path, monkeypatch, failure):
     from examples import acquire_sid_priority_reads as priority
 
     class InterruptedFuture:
         def result(self):
-            raise KeyboardInterrupt()
+            raise failure()
 
     class Pool:
         def __init__(self, **kwargs):
@@ -588,9 +589,10 @@ def test_priority_interrupt_stops_workers_without_publishing_empty_results(tmp_p
     child = SimpleNamespace(pid=123, is_alive=lambda: True, join=lambda **kwargs: None,
                             terminate=lambda: stopped.append(123))
     monkeypatch.setattr(priority, "ProcessPoolExecutor", Pool)
+    monkeypatch.setattr(priority, "as_completed", lambda futures: futures)
     monkeypatch.setattr(priority.multiprocessing, "active_children", lambda: [child])
     monkeypatch.setattr(priority.os, "kill", lambda pid, signum: signals.append((pid, signum)))
-    with pytest.raises(KeyboardInterrupt):
+    with pytest.raises(failure):
         priority.run_selected_sources(tmp_path, tmp_path, ["source"], "selection", 30, 1)
     assert signals == [(123, priority.signal.SIGINT)]
     assert stopped == [123]

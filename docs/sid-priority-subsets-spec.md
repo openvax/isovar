@@ -14,8 +14,8 @@ Keep ::IGKC separately as a dense-engine validation, not a vaccine nomination.
 
 Acquire indexed regional windows for small variants and existing pinned event/
 transcript context for the selected fusions, including original linked mates and
-supplementary records. Start with the four pilot platforms, measure cache size,
-then expand to other compatible ready RNA products while enforcing free space.
+supplementary records. Start with the four pilot platforms and measure cache size
+before considering other compatible ready RNA products while enforcing free space.
 Record exact selection, source, reference, acquisition policy and input hashes;
 retain failed, incomplete and unavailable outcomes. No whole BAM downloads.
 

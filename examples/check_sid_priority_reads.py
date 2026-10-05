@@ -2,6 +2,7 @@
 
 import argparse
 from collections import Counter
+import csv
 from hashlib import sha256
 from pathlib import Path
 import subprocess
@@ -41,6 +42,7 @@ def verify(directory, output):
 
     for sid in selection["source_ids"]:
         source = manifest["sources"][sid]
+        pin(directory / "sources" / sid / "header.json")
         files = list((directory / "small-variants" / sid).glob("*.json"))
         saved = {p.name: (p, read_json(p)) for p in files}
         roots = [(p, r) for p, r in saved.values() if set(r["request"]["targets"]) == ready]
@@ -50,6 +52,7 @@ def verify(directory, output):
             pin(path)
             assert receipt["request"]["source_identity"] == identity(source)
             assert receipt["request"]["selection_id"] == selection_id
+            assert receipt["request"]["padding"] == selection["variant_padding"]
             verify_input(receipt)
             if receipt["status"] == "partitioned":
                 names = []
@@ -71,7 +74,8 @@ def verify(directory, output):
                 if "bam" in receipt:
                     count = int(subprocess.run(["samtools", "view", "-c", receipt["bam"]["path"]],
                                                capture_output=True, check=True).stdout)
-                    row.update(original_records=count, bam_sha256=receipt["bam"]["sha256"])
+                    row.update(original_records=count, bam_sha256=receipt["bam"]["sha256"],
+                               bam_path=str(Path(receipt["bam"]["path"]).relative_to(directory)))
                 rows.append(row)
         visit(*roots[0])
         assert acquired == ready
@@ -86,12 +90,20 @@ def verify(directory, output):
             verify_input(receipt)
             for bid in receipts:
                 pin(directory / "sources" / sid / (bid + ".json"))
+            native_total = None
+            if "bam" in receipt:
+                native_total = int(subprocess.run(["samtools", "view", "-c", receipt["bam"]["path"]],
+                                                  capture_output=True, check=True).stdout)
             for view in ("forward", "reverse"):
                 path = reconstruct.result_path(directory, sid, gid, view)
                 result = read_json(path)
                 pin(path)
                 req = result["request"]
                 assert req["acquisition_sha256"] == identity(receipt)
+                assert req["inventory_sha256"] == pins["inventory.json.gz"]
+                assert req["references_sha256"] == pins["references.json.gz"]
+                assert req["source_id"] == sid and req["geometry_id"] == gid
+                assert req["orientation"] == view
                 assert req["parameters"]["dense_support"]
                 if engine is not None:
                     assert engine == req["engine_id"]
@@ -100,8 +112,14 @@ def verify(directory, output):
                                   candidates=len(result.get("candidates", [])),
                                   limitations=result.get("limitations", []),
                                   input_limitations=result.get("input_limitations", []),
+                                  acquisition_status=receipt["status"],
+                                  bam_path=(str(Path(receipt["bam"]["path"]).relative_to(directory))
+                                            if "bam" in receipt else None),
+                                  original_input_records=native_total,
                                   discovery=result.get("discovery"), support_acquisition=result.get("support_acquisition")))
                 if "reconstruction" in result:
+                    support = result["support_acquisition"]
+                    assert support["records_complete"] and support["records_scanned"] == native_total
                     details = directory / result["reconstruction"]["path"]
                     assert digest(details) == result["reconstruction"]["sha256"]
                     pin(details)
@@ -127,6 +145,20 @@ def verify(directory, output):
         checks.append(check)
     expected_views = 2 * len(selection["geometries"]) * len(selection["source_ids"])
     assert len(views) == expected_views
+    output.mkdir(parents=True, exist_ok=True)
+    manifest_path = output / "input-files.tsv"
+    with manifest_path.open("w", newline="") as handle:
+        writer = csv.writer(handle, delimiter="\t")
+        writer.writerow(["source_id", "source_key", "target_type", "targets", "status", "original_records", "bam_path"])
+        for row in rows:
+            writer.writerow([row["source_id"], manifest["sources"][row["source_id"]]["key"], "small_variants",
+                             ";".join(row["targets"]), row["acquisition_status"],
+                             row.get("original_records", ""), row.get("bam_path", "")])
+        for row in views:
+            if row["orientation"] == "forward":
+                writer.writerow([row["source_id"], manifest["sources"][row["source_id"]]["key"], "fusion_geometry",
+                                 row["geometry_id"], row["acquisition_status"],
+                                 row["original_input_records"], row["bam_path"]])
     ledger = dict(scope=selection["scope"], selection_sha256=digest(directory / "priority-selection.json"),
                   selection=selection, selected_variant_product_pairs=len(ready) * len(selection["source_ids"]),
                   selected_geometry_product_pairs=expected_views // 2, intended_fusion_views=expected_views,
@@ -134,6 +166,7 @@ def verify(directory, output):
                   small_variant_inputs=rows, fusion_views=views,
                   fusion_outcome_counts=dict(Counter(v["status"] for v in views)),
                   candidates=len(candidates), independent_checks=checks, engine_id=engine, pins=pins,
+                  input_files_manifest=dict(path=manifest_path.name, sha256=digest(manifest_path)),
                   pinned_logical_bytes=sum((directory / name).stat().st_size for name in pins))
     write_json(output / "priority-subsets.json.gz", ledger)
     print("Focused subset accounted:", ledger["selected_variant_product_pairs"], "variant/product pairs,",

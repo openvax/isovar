@@ -6,7 +6,7 @@ downloaded. Vaccine claims are historical metadata, not a new treatment ranking.
 """
 
 import argparse
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict
 import multiprocessing
 import os
@@ -124,13 +124,13 @@ def run_source(directory, cache_root, source_id, selection_id, max_seconds):
 
 
 def run_selected_sources(directory, cache, sources, selection_id, seconds, workers):
-    """Stop owned workers on interruption; uncompleted targets remain pending."""
+    """Stop owned workers on interruption/failure; unfinished targets stay pending."""
     with ProcessPoolExecutor(max_workers=workers) as pool:
         try:
             futures = [pool.submit(run_source, directory, cache, sid, selection_id, seconds) for sid in sources]
-            for future in futures:
+            for future in as_completed(futures):
                 future.result()
-        except KeyboardInterrupt:
+        except BaseException:
             children = multiprocessing.active_children()
             for child in children:
                 if child.is_alive():
