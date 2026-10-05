@@ -203,7 +203,7 @@ def test_duplicate_fetches_and_alternative_placements_do_not_create_support(tmp_
     assert candidate(ambiguous)['full_interval_support']['fragments'] == 4
 
 
-def test_conflicting_records_and_interrupted_scan_leave_no_partial_result(tmp_path, monkeypatch):
+def test_interrupted_scan_leaves_no_partial_result(tmp_path, monkeypatch):
     from isovar import sv_rna_dense
     scenario = Scenario()
     reads = dense_reads(scenario, 3)
@@ -218,13 +218,49 @@ def test_conflicting_records_and_interrupted_scan_leave_no_partial_result(tmp_pa
     with pytest.raises(OSError, match='injected scan interruption'):
         scenario.run(bam, dense_support=True, scratch_dir=tmp_path)
     assert not list(tmp_path.glob('isovar-sv-*'))
-    monkeypatch.setattr(sv_rna_dense, '_spool', original)
+
+
+@pytest.mark.parametrize('dense', [False, True])
+def test_distinct_original_payloads_preserve_ambiguous_labels_without_extra_fragments(tmp_path, dense):
+    scenario = Scenario()
+    reads = dense_reads(scenario, 3)
     conflict = pysam.AlignedSegment.fromstring(reads[-1].to_string(), reads[-1].header)
     conflict.set_tag('CB', 'another-cell')
     bam = write_bam(tmp_path / 'conflicting.bam', reads + [conflict])
-    with pytest.raises(ValueError, match='Conflicting original SAM'):
-        scenario.run(bam, dense_support=True, scratch_dir=tmp_path)
+    result = scenario.run(bam, dense_support=dense, assemble=False, **({'scratch_dir': tmp_path} if dense else {}))
+    path = candidate(result)
+    assert path['junctions'][0]['direct_support']['fragments'] == 3
+    assert path['junctions'][0]['direct_support']['cells'] == 2
+    assert path['junctions'][0]['direct_support']['label_statuses']['conflicting_tags'] == 1
+    assert {read.to_string() for read in reads if read.query_name.startswith('event-')} | {
+        conflict.to_string()} <= set(result['original_records'].values())
+    if dense:
+        assert path['full_interval_support']['fragments'] == 3
+        assert path['full_interval_support']['cells'] == 2
+        assert result['support_acquisition']['unique_records'] == len(reads) + 1
     assert not list(tmp_path.glob('isovar-sv-*'))
+
+
+@pytest.mark.parametrize('field', ['mapping_quality', 'next_reference_id', 'next_reference_start',
+                                 'template_length', 'query_sequence', 'query_qualities', 'CB', 'UB', 'custom'])
+def test_indexed_collection_keeps_distinct_sam_payloads_and_deduplicates_repeat_fetches(tmp_path, field):
+    from isovar.sv_rna import _record_id, collect_sv_records
+    original = record('same-segment', '1', 100, '90M', 'A' * 90)
+    different = pysam.AlignedSegment.fromstring(original.to_string(), original.header)
+    if field == 'query_sequence':
+        different.query_sequence = 'C' + 'A' * 89
+    elif field == 'query_qualities':
+        different.query_qualities = [17] * 90
+    elif field in ('CB', 'UB', 'custom'):
+        different.set_tag('ZZ' if field == 'custom' else field, 'changed')
+    else:
+        setattr(different, field, 1 if field == 'next_reference_id' else 123)
+    assert _record_id(original) != _record_id(different)
+    bam_path = write_bam(tmp_path / 'distinct.bam', [original, different, original])
+    with pysam.AlignmentFile(bam_path) as bam:
+        records, _ = collect_sv_records(bam, [('1', 100, 150), ('1', 110, 190)], [])
+    assert {read.to_string() for read in records} == {original.to_string(), different.to_string()}
+    assert len(records) == 2
 
 
 def test_original_short_read_fixture_keeps_pinned_translation_and_support(tmp_path):

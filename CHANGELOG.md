@@ -13,6 +13,14 @@ releases that only fix bugs or add fixtures are omitted; see the
   partition outcomes and independent original-read witness checks. The selected
   four-product scope does not complete the full SV catalogue (#433, #437).
 
+## 1.44.2
+
+- SV collection and record IDs distinguish complete original SAM payloads,
+  preserving records with different mate fields, qualities or tags instead of
+  silently collapsing them or aborting dense reconstruction. Exact repeat
+  fetches still deduplicate; fragment identities and ambiguity handling are
+  unchanged. Serialized record and observation IDs change once (#438).
+
 ## 1.44.1
 
 - Dense SV discovery prioritizes splice-ambiguous event-compatible joins with
