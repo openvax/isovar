@@ -14,6 +14,20 @@ SARC0277, tagged ONT T2, Kamil 10x T2 and PacBio T1. Support is scoped to each
 product and is never summed across these products or treated as independent
 biological replicates.
 
+The vaccine/control panels retain the following original records. These are
+counts of acquired context across all 55 loci, not alternate-allele support:
+
+| Product | Original records | Acquisition status | Timed-out linked queries |
+| --- | ---: | --- | ---: |
+| SARC0277 bulk RNA | 132,224 | incomplete | 3 |
+| Tagged ONT T2 | 197,191 | incomplete | 70 |
+| Kamil 10x T2 | 117,060 | bounded | 0 |
+| PacBio T1 | 12,057 | incomplete | 1 |
+
+The source metadata claims and discrepancies remain in the frozen inventory.
+The 458,532 records above are a storage/input total across four products; they
+are not pooled biological support. Original qualities and tags are retained.
+
 The selected denominator is **220 small-variant/product pairs and 20
 geometry/product pairs (40 fusion views)**. This is separate from the complete
 catalogue's 173,866 nomination/product pairs. The full catalogue remains pending.
@@ -56,8 +70,29 @@ version and settings; changed runs require fresh result directories. The checker
 independently recounts original BAM records, validates acquisition partitions and
 source/input pins, and checks representative RNA witnesses and translations.
 Keep the cache and pinned assets together when moving or backing up the subsets.
+The published relative file pins can verify a relocated copy; resumable replay
+still uses original receipt paths. Portable replay remains tracked in #440.
 
 The current durable working directory is
 `/Users/iskander/code/isovar/.cache/sid-priority-local-20261005`.
-Acquisition and its final checked ledger are in progress. Measured size,
-outcomes and independent-check totals will be published after verification.
+The October 5 run is checked in the [receipt ledger](data/sid-priority/priority-subsets.json.gz)
+and [original BAM file index](data/sid-priority/input-files.tsv). All 220 selected
+small-variant/product pairs and 40 fusion views are accounted for. Every
+completed dense reconstruction scans exactly its independently recounted BAM
+record total. The 197 pinned input/provenance/result files total **524 MiB**;
+the working cache, including intermediate queries and preserved prior attempts,
+occupies approximately **851 MB**. Original BAMs stay in the durable directory,
+not Git. No whole library was downloaded.
+
+The fusion run returns 193 event-related ORF hypotheses: 18 views have
+event-linked candidates, four have splice-ambiguous candidates, and 18 have no
+candidate paths under the recorded search settings. Five representatives, one
+per geometry, pass independent original-query sequence, translation, fragment,
+label, missing-quality and original-BAM witness checks. These checks establish
+RNA sequence/count evidence; they do not establish translation or SV origin.
+Upstream incomplete recovery and bounded discovery remain visible in every view.
+
+The complete catalogue and the all-source vaccine allele/protein audit in #218
+remain pending. This focused acquisition does not convert those unexamined pairs
+to negative results. Earlier engine results and sandbox network-denied attempts
+are preserved separately and excluded from the checked current ledger.
