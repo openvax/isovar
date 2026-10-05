@@ -96,3 +96,8 @@ The complete catalogue and the all-source vaccine allele/protein audit in #218
 remain pending. This focused acquisition does not convert those unexamined pairs
 to negative results. Earlier engine results and sandbox network-denied attempts
 are preserved separately and excluded from the checked current ledger.
+
+The [non-SNV additions](sid-neoorf-read-subsets.md) extend the regional inputs to
+the remaining indel/splice nominations and FOXO3/ATP5MG RNA candidates. They keep
+this original selection and archive unchanged; broader neoORF discovery and the
+small-variant allele/protein audit remain separate work.
