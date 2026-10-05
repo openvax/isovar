@@ -4,6 +4,15 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.45.1
+
+- Extend the focused Sid regional inputs to remaining indel/splice nominations
+  and FOXO3/ATP5MG joins; retain unassessable alleles explicitly (#446).
+- Publish the selected SV/frameshift RNA candidate screen, pinned annotated
+  proteome comparison and independent original-SAM coding-window checks. No
+  translation or tumor-specificity inference is added.
+- Declare Biopython in the data extra for independent audit checks (#448).
+
 ## 1.45.0
 
 - Enable dense original-record support counting in the Sid SV audit. Discovery

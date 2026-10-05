@@ -25,3 +25,11 @@ denominators, checksums, native BAM recounts and independent candidate checks.
 The complete SV catalogue and general cryptic/intron-retention/exonization ORF
 discovery remain separate, pending work. Lint, full tests, CI, merge and PyPI
 deployment are required for the follow-up PR.
+
+The user subsequently clarified: "Just look for SVs and neoORFs." Focus the
+result on actual RNA-derived candidates. Screen the completed SV reconstructions
+and the indel/splice inputs for novel sequence, retain sample-specific evidence,
+and compare candidate peptides to checksum-pinned Ensembl 115 proteins. Check
+full candidate witnesses independently. Report altered upstream and frameshift
+ORFs separately from short unframed hypotheses and splice-compatible joins;
+none establishes translation, tumor specificity or antigen presentation.
