@@ -22,7 +22,7 @@ from . import references
 PARAMETERS = dict(assemble=True, breakpoint_window=2000, min_orf_amino_acids=8,
                   max_records=50000, max_queries=10000, max_paths=200,
                   max_extension_segments=500, max_orf_candidates=1000,
-                  include_regional_candidates=False)
+                  include_regional_candidates=False, dense_support=True)
 
 EVENT_RELATIONS = {"breakpoint_junction", "event_compatible_junction",
                    "splice_ambiguous_event_junction", "breakpoint_clip_partner_unplaced"}
@@ -79,6 +79,8 @@ def summarize(result):
                                 for p in result["paths"]),
                 candidates=export["candidates"], reference_models=result["reference_models"],
                 excluded_records=result["excluded_records"],
+                discovery=result.get("discovery"),
+                support_acquisition=result.get("support_acquisition"),
                 orf_search_truncated=any(p["exploratory_orfs"]["candidate_limit_reached"] for p in result["paths"]))
 
 

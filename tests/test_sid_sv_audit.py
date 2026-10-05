@@ -450,3 +450,65 @@ def test_dense_acquisition_budgets_are_pinned(tmp_path, monkeypatch, empty_audit
     receipt = read_json(tmp_path / "sources" / "source" / "batch.json")
     assert receipt["request"]["policy"]["max_records"] == 6_500_000
     assert receipt["request"]["timeout"] == 600
+
+
+@pytest.mark.parametrize("status", ["bounded", "incomplete"])
+def test_dense_support_survives_audit_adapter_checkpoints_and_report(
+        tmp_path, monkeypatch, status):
+    from dataclasses import asdict
+    from tests.test_sv_rna import Scenario, aligned, record, write_bam
+
+    scenario = Scenario()
+    source = dict(id="source", url="original.bam", claims=[], selection=dict(cohort="tumor_candidate"))
+    ends = [dict(contig="1", position=2500, retained_side="left"),
+            dict(contig="2", position=5500, retained_side="right")]
+    group = dict(breakends=ends, nominations=["target"])
+    manifest = dict(nominations={"target": dict(geometry_id="g")}, geometries={"g": group},
+                    sources={"source": source})
+    write_json(tmp_path / "inventory.json.gz", manifest)
+    write_json(tmp_path / "inventory-pin.json", dict(sha256=digest(tmp_path / "inventory.json.gz")))
+    models = {r.transcript_id: dict(asdict(r), reference_name="GRCh38")
+              for r in (scenario.donor_ref, scenario.acceptor_ref)}
+    reference = dict(models=models, assignments={"g": dict(transcripts=sorted(models), excluded_transcripts=[])},
+                     inventory_sha256=digest(tmp_path / "inventory.json.gz"))
+    write_json(tmp_path / "references.json.gz", reference)
+    write_json(tmp_path / "references-pin.json", dict(sha256=digest(tmp_path / "references.json.gz")))
+    reads = [record("background-%d" % i, "1", 2000, "90M", scenario.donor_ref.sequence[100:190])
+             for i in range(100)]
+    for i in range(9):
+        pieces = aligned("event-%d" % i, scenario.sequence, scenario.positions, qualities=False)
+        for read in pieces:
+            read.set_tag("CB", "cell-%d" % i)
+            read.set_tag("UB", "umi-%d" % i)
+        reads.extend(pieces)
+    bam = write_bam(tmp_path / "original.bam", reads)
+    with pysam.AlignmentFile(str(bam)) as alignment:
+        header = alignment.header.to_dict()
+    write_json(tmp_path / "sources" / "source" / "header.json",
+               dict(source_id="source", source_identity=identity(source), status="ready", header=header))
+    batch = acquisition.make_batch(manifest, reference, ["g"], 2000)
+    write_json(tmp_path / "batches.json", [batch])
+    monkeypatch.setattr(acquisition, "source_file", lambda source: source)
+    monkeypatch.setattr(acquisition, "extract_reads", lambda *args, **kwargs: fake_subset(
+        bam, dict(status=status, limits=["max_rounds"] if status == "incomplete" else [])))
+    acquisition.acquire_batch(tmp_path, source, batch, None, osteosarc.RecoveryPolicy())
+    assert reconstruct.PARAMETERS["dense_support"] is True
+    parameters = dict(reconstruct.PARAMETERS, max_records=4, assemble=False)
+    reconstruct.run_batch(tmp_path, "source", batch["id"], parameters, 30, "engine")
+    result = read_json(reconstruct.result_path(tmp_path, "source", "g", "forward"))
+    assert result["discovery"]["omitted_records"] > 100
+    assert result["support_acquisition"]["records_scanned"] == len(reads)
+    assert result["support_acquisition"]["complete"]
+    candidate = max(result["candidates"], key=lambda c: c["rna_support"]["fragments"])
+    assert candidate["rna_support"]["fragments"] == candidate["rna_support"]["cells"] == 9
+    assert candidate["rna_support"]["missing_quality_reads"] == 9
+    report.report(tmp_path, tmp_path / "report", require_complete=True)
+    ledger = read_json(tmp_path / "report" / "coverage.json.gz")
+    assert all(row["support_acquisition"]["records_scanned"] == len(reads) for row in ledger["outcomes"])
+    exported = read_json(tmp_path / "report" / "candidate-orfs.json.gz")
+    assert exported and all(c["discovery"]["omitted_records"] > 100 for c in exported)
+    assert all(c["support_acquisition"]["complete"] for c in exported)
+    if status == "incomplete":
+        assert all("input_acquisition_incomplete" in c["input_limitations"] for c in exported)
+    with pytest.raises(ValueError, match="request drift"):
+        reconstruct.run_batch(tmp_path, "source", batch["id"], dict(parameters, dense_support=False), 30, "engine")

@@ -66,6 +66,18 @@ receipt. A single geometry still exceeding the budget remains an explicit
 failure. Offline reconstruction and reports verify the entire partition tree.
 
 `run` operates on verified local BAMs and pinned references; it needs no network.
+It enables `dense_support=True`: up to 50,000 representative records seed
+hypotheses, then every supplied original BAM record is scanned to recount retained
+candidate junction and exact-interval support. `records` describes discovery;
+`support_acquisition.records_scanned` describes the separate complete-input pass.
+Coverage outcomes and candidate JSON retain both `discovery` and
+`support_acquisition`. Full acquired-input scanning does not remove upstream
+acquisition limits or make discovery exhaustive. A bounded no-candidate result
+remains a limited search, not evidence of biological absence.
+The disk-backed spool uses the system temporary directory (`TMPDIR` can place it
+on the audit volume) and is removed after each view, including interrupted views.
+Run changed settings in a fresh audit directory; old bounded checkpoints are
+preserved and cannot be silently reused for dense results.
 Checkpoints bind the input hashes, engine source hashes, version and parameters.
 Checkpoint publication is atomic and happens after the reconstruction deadline
 is cancelled. Acquisition pins the upstream receipt and shared query-name assets

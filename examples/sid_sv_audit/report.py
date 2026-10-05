@@ -117,6 +117,7 @@ def report(directory, output, cohort="tumor_candidate", require_complete=False):
                 outcomes[sid, gid, view] = dict(status=result["status"],
                     limitations=result.get("limitations", []), acquisition_status=result["acquisition_status"],
                     input_limitations=result.get("input_limitations", []), reason=result.get("reason"),
+                    discovery=result.get("discovery"), support_acquisition=result.get("support_acquisition"),
                     orf_search_truncated=result.get("orf_search_truncated"),
                     reference_exclusions=result.get("reference_exclusions", []),
                     unsupported_reference_cds=result.get("unsupported_reference_cds", []))
@@ -124,7 +125,9 @@ def report(directory, output, cohort="tumor_candidate", require_complete=False):
                 for candidate in result.get("candidates", []):
                     candidates.append(dict(source_id=sid, source_url=sources[sid]["url"], geometry_id=gid,
                                            orientation=view, acquisition_status=result["acquisition_status"],
-                                           input_limitations=result.get("input_limitations", []), **candidate))
+                                           input_limitations=result.get("input_limitations", []),
+                                           discovery=result.get("discovery"),
+                                           support_acquisition=result.get("support_acquisition"), **candidate))
     ledger = coverage(manifest, sources, outcomes, headers)
     ledger.update(inventory_sha256=inventory_sha256, references_sha256=references_sha256,
                   run_identity=run_identity, cohort=cohort,
