@@ -174,6 +174,9 @@ def export_sv_rna_orfs(result):
     export = {key: deepcopy(result[key]) for key in (
         "event_id", "reference_name", "sample_id", "source", "event_provenance", "donor", "acceptor",
         "reference_models", "parameters", "limitations")}
+    for key in ("discovery", "support_acquisition", "inclusion_competing_splice_scope"):
+        if key in result:
+            export[key] = deepcopy(result[key])
     export.update(schema="isovar.sv_rna_orfs.v4", reconstruction_schema=result["schema"], candidates=candidates,
                   interval_convention="zero_based_half_open",
                   evidence_identity_policy="sha256_of_domain_and_canonical_json; sample/source scoped; event excluded",

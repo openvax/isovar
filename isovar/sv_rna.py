@@ -1269,6 +1269,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
                            somatic_causation_proven=False),
         sequence_evidence=dict(
             voting_support=store.cell_umi.support(segments),
+            voting_observations=sorted(voters),
             missing_quality_reads=len({o.identity for o in voting if o.missing_qualities}),
             secondary_reads=len({o.identity for o in voting if o.secondary}),
             assembly_phase="hypothesis_not_proven_long_range_phase"),
@@ -1324,7 +1325,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                        inclusion_min_splice_anchor_bases=SV_INCLUSION_MIN_SPLICE_ANCHOR_BASES,
                        inclusion_min_base_quality=SV_INCLUSION_MIN_BASE_QUALITY,
                        inclusion_min_mapping_quality=SV_INCLUSION_MIN_MAPPING_QUALITY,
-                       inclusion_mapq_255_is_unique=SV_INCLUSION_MAPQ_255_IS_UNIQUE):
+                       inclusion_mapq_255_is_unique=SV_INCLUSION_MAPQ_255_IS_UNIQUE,
+                       dense_support=False, scratch_dir=None):
     """Reconstruct RNA paths for one nominated, oriented DNA adjacency.
 
     Paths start at unannotated RNA junctions (and, when soft-clipped bases are
@@ -1402,6 +1404,14 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         in those gates. False treats it as unavailable, per the SAM
         specification; excluded 255 records are then reported as
         ``mapq_255_excluded_from_inclusion``.
+    dense_support : bool
+        Scan the complete original input into a disk spool, select bounded,
+        event-first discovery representatives, then count candidate junction
+        and full-interval witnesses across every original eligible segment.
+        Discovery and intron-competition limits remain explicit.
+    scratch_dir : str or pathlib.Path, optional
+        Existing directory for the dense-mode temporary spool and discovery
+        BAM. Scratch space scales with the complete input, not max_records.
 
     Returns
     -------
@@ -1410,6 +1420,11 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         frame and event-linkage evidence, original records and limitations.
         This is not the validated supplied-fusion result consumed by Vaxrank.
     """
+    options = locals().copy()
+    if not isinstance(dense_support, bool):
+        raise ValueError("dense_support must be True or False")
+    if scratch_dir is not None and not dense_support:
+        raise ValueError("scratch_dir requires dense_support")
     if not all((event_id, reference_name, sample_id, source)) or not isinstance(event_provenance, dict) \
             or not event_provenance:
         raise ValueError("SV reconstruction requires event, reference, sample, source and event provenance")
@@ -1444,6 +1459,13 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     if len({(r.annotation, r.transcript_id) for r in references}) != len(references):
         raise ValueError("Duplicate reference transcript identity")
     collector = ReadCollector() if read_collector is None else read_collector
+    if dense_support:
+        from .sv_rna_dense import reconstruct_dense_sv_rna
+
+        options.pop("bam")
+        options.update(references=references, regions=tuple(regions), read_collector=collector,
+                       peptide_lengths=lengths)
+        return reconstruct_dense_sv_rna(bam, options)
     models = [_Model(r) for r in references]
     annotated = set().union(*(m.junctions() for m in models))
     reference_peptides = {m.protein[i:i + k] for m in models if m.protein

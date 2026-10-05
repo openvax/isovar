@@ -464,3 +464,58 @@ Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf) and
 [fusion reconstruction assessment](https://pmc.ncbi.nlm.nih.gov/articles/PMC6802306/),
 [NCBI translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi),
 [Kozak 1986](https://pubmed.ncbi.nlm.nih.gov/3943125/).
+
+## Dense inputs: discovery and complete-input support
+
+`--dense-support` (Python: `dense_support=True`) scans the **entire original
+alignment file**, including records outside the nominated regions. It groups
+actual records by segment on disk, gives placed event junctions first priority, followed by breakpoint
+clips, and reserves representative bundles for distinct
+sequence/placement classes before spending the discovery budget on repeated
+copies. A late event need not fall within the first `--max-records` records.
+Supplementary and alternative records of a selected segment stay together;
+an SA tag alone still supplies no observed partner ([SAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf)).
+
+```bash
+isovar sv-rna --input event.json --bam original-regional.bam --output dense.json \
+    --dense-support --sv-scratch-dir /path/to/scratch --max-records 50000
+```
+
+The temporary SQLite spool and discovery BAM require scratch space proportional
+to the whole input, and are removed on success or failure. Without
+`--sv-scratch-dir`, the system temporary directory is used. Only the bounded
+discovery records and retained candidate witnesses are held in memory;
+witness-heavy results and their JSON can still be large. Use an original
+regional BAM to avoid unnecessarily scanning a whole-genome alignment file.
+
+After bounded reconstruction, a separate pass visits all original eligible
+segments to count support for the fixed candidate paths:
+
+- `junctions[].direct_support` counts the complete input's observed junctions,
+  retaining alternative junction-base sequences. A shared junction does not
+  establish the complete candidate sequence.
+- `paths[].full_interval_support` requires one exact, placement-compatible
+  observation spanning the **entire path and its junction**. The exploratory
+  ORFs' `full_interval_support` uses the same rule for each ORF interval.
+  Partial context reads do not become complete witnesses.
+- Original SAM records, query intervals, missing QUAL, cell/UMI evidence and
+  producer-aware signal ancestry remain available. Visible conflicting mate
+  labels remain unresolved, including mates outside the discovery regions.
+- `sequence_evidence.voting_support` and seed counts remain discovery counts.
+  `voting_observations` identifies the retained voters; their labels and ancestry
+  consult the complete input, including distant visible mates and parents.
+  ORF start/inclusion assessments and competing annotated splices also remain
+  scoped to discovery records; their scope is recorded explicitly.
+- `support_acquisition` describes the complete-input pass and its exclusions
+  and segment-build notes. `discovery` reports selected and omitted regional
+  records. `discovery_record_limit`, query/path/extension limits and any
+  `support_segment_grouping_limit` remain explicit. ORF exports retain both
+  discovery and support-pass metadata.
+
+Complete support for a returned candidate does not make hypothesis discovery
+exhaustive. A `no_candidate_paths` result with discovery limits remains
+unassessed evidence, not absence of an event or expression. Counts remain
+input-scoped segments, fragments and labels, not independent molecules.
+
+Support-pass completion refers to the supplied alignment file. It cannot recover
+original reads omitted during upstream acquisition, filtering or processing.

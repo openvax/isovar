@@ -4,6 +4,16 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.44.0
+
+- Add opt-in `isovar sv-rna --dense-support` / `dense_support=True`: scan
+  original alignments on disk, select event-first sequence/placement bundles
+  under the discovery cap, then count direct junction and exact full-path/ORF
+  witnesses across the complete eligible input. Original records, missing
+  qualities, cell/UMI ambiguity and signal ancestry remain auditable. Discovery
+  and ORF-start assessment limits remain explicit; complete candidate support
+  does not imply exhaustive discovery. Defaults are unchanged (#437).
+
 ## 1.39.11
 
 - Fragments with conflicting ref/alt and third-allele mate observations no
