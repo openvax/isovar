@@ -512,3 +512,53 @@ def test_dense_support_survives_audit_adapter_checkpoints_and_report(
         assert all("input_acquisition_incomplete" in c["input_limitations"] for c in exported)
     with pytest.raises(ValueError, match="request drift"):
         reconstruct.run_batch(tmp_path, "source", batch["id"], dict(parameters, dense_support=False), 30, "engine")
+
+
+def test_priority_selection_unions_vaccine_claims_and_keeps_distinct_fusion_geometries():
+    from osteosarc.models import Variant
+    from examples.acquire_sid_priority_reads import select_targets
+
+    def variant(name, **kwargs):
+        return Variant(name, name, "GRCh38", (("chr1", 100, "A", "C"),), "ready", **kwargs)
+
+    variants = [variant("index-only", vaccine_count=1), variant("overlap-only", vaccines=("mRNA",)),
+                variant("source-only", on_site=False, annotations={"source_vaccines": ["JLF V2"]}),
+                variant("unselected")]
+    manifest = dict(nominations={
+        "one": dict(geometry_id="g", original=dict(name="TPST1::CRCP")),
+        "alias": dict(geometry_id="g", original=dict(name="TPST1::CRCP")),
+        "alternative": dict(geometry_id="h", original=dict(name="TPST1::CRCP")),
+        "background": dict(geometry_id="other", original=dict(name="FTH1::FTL"))})
+    selected = select_targets(variants, manifest)
+    assert set(selected["small_variants"]) == {"index-only", "overlap-only", "source-only"}
+    assert selected["geometries"] == ["g", "h"]
+    assert selected["small_variants"]["index-only"]["vaccine_claims"]["overlap"] == []
+
+
+def test_priority_acquisition_partitions_without_losing_vaccine_targets(tmp_path, monkeypatch, empty_audit):
+    from dataclasses import asdict
+    from osteosarc.models import Variant
+    from examples import acquire_sid_priority_reads as priority
+
+    source, _, bam = empty_audit
+    targets = {name: dict(variant=asdict(Variant(name, name, "GRCh38", (("chr1", pos, "A", "C"),), "ready")))
+               for name, pos in [("first", 100), ("second", 200)]}
+    queries = []
+    monkeypatch.setattr(acquisition, "source_file", lambda source: source)
+
+    def extract(source, regions, **kwargs):
+        queries.append(regions)
+        if len(regions) > 1:
+            raise acquisition.RecordLimitError("dense vaccine context")
+        return fake_subset(bam, dict(status="bounded", records=0, limits=[]))
+
+    monkeypatch.setattr(priority, "extract_reads", extract)
+    result = priority.acquire_variant_batch(tmp_path, source, targets, SimpleNamespace(root=tmp_path),
+                                           osteosarc.RecoveryPolicy(), "selection")
+    assert result["status"] == "partitioned"
+    assert [n for child in result["children"] for n in child["targets"]] == ["first", "second"]
+    assert len(queries) == 3
+    before = len(queries)
+    assert priority.acquire_variant_batch(tmp_path, source, targets, SimpleNamespace(root=tmp_path),
+                                          osteosarc.RecoveryPolicy(), "selection") == result
+    assert len(queries) == before

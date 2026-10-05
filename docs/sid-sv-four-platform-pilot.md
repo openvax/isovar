@@ -81,8 +81,10 @@ biological observations.
 The pilot accounts for 284 nomination/product pairs; 93,788 remain pending
 reconstruction, 9,240 have unresolved geometry, and 70,554 are unassessable from
 source availability/reference checks. Consequently, the full audit's
-`all_pairs_accounted` remains **false**. Full execution and its results report
-are required before merging and deploying PR #433.
+`all_pairs_accounted` remains **false**. The requested shipment scope is now the
+[focused vaccine/control and selected-fusion subsets](sid-priority-read-subsets.md).
+Those selected pairs have a separate completion ledger; they do not complete the
+full catalogue or turn pending work into negative evidence.
 
 ## Storage measured before the full run
 

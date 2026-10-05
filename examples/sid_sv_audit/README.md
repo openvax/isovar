@@ -117,6 +117,9 @@ Known upstream metadata drift is tracked in
 Tempus evidence remains tracked in
 [osteosarc #100](https://github.com/iskandr/osteosarc/issues/100).
 
-The four-platform pilot and current storage estimate are documented in
-[the pilot report](../../docs/sid-sv-four-platform-pilot.md). Full-catalogue
-execution remains a separate required step before this PR ships.
+The four-platform pilot and full-catalogue storage estimate are documented in
+[the pilot report](../../docs/sid-sv-four-platform-pilot.md). The shipment scope
+is the requested focused vaccine/control and selected-fusion subsets described
+in [the subset report](../../docs/sid-priority-read-subsets.md). The complete
+catalogue inventory remains available for future work; it is not completed by
+the focused subset.

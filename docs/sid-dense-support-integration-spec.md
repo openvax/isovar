@@ -14,9 +14,9 @@ audit without replacing its original bounded pilot outcomes.
    rerun affected dense inputs in both orientations. Independently verify
    original witnesses and per-cell counts, retain input/engine/result pins, and
    publish measured results alongside the original pilot.
-4. Run lint and the full suite, update PR #433 and verify its CI. Full-catalogue
-   execution and publication remain required before that draft can merge and
-   deploy; the current local storage budget cannot hold the estimated full run.
+4. Run lint and the full suite, update PR #433 and verify its CI. The user has
+   narrowed shipment to the focused subsets in `sid-priority-subsets-spec.md`;
+   the full catalogue remains pending with its denominator unchanged.
 
 Full-input support means all supplied acquired records were scanned for retained
 candidate hypotheses. It does not remove acquisition limits, guarantee complete
