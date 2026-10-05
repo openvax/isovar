@@ -9,7 +9,33 @@ import pytest
 from isovar import export_sv_rna_orfs
 from isovar.cli.isovar_sv_rna import run as cli_run
 from isovar.read_collector import ReadCollector
+from isovar.fusion import FusionBreakpoint
+from isovar.sv_rna import reconstruct_sv_rna
 from tests.test_sv_rna import Scenario, aligned, record, write_bam
+
+
+def test_splice_ambiguous_event_joins_survive_abundant_breakpoint_clips(tmp_path):
+    sequence = "ATG" + "GCT" * 29
+    reads = [record("clip-%02d" % i, "1", 10, "90M10S", "C" * 90 + "A" * 10)
+             for i in range(20)]
+    for i in range(7):
+        read = record("ambiguous-%02d" % i, "1", 60, "40M200N50M", sequence, qualities=False)
+        read.set_tag("CB", "cell-%d" % i)
+        reads.append(read)
+    with pysam.AlignmentFile(str(write_bam(tmp_path / "ambiguous.bam", reads))) as bam:
+        result = reconstruct_sv_rna(
+            bam, event_id="ordinary-splice-compatible", reference_name="test",
+            donor=FusionBreakpoint("1", 100, "+"), acceptor=FusionBreakpoint("1", 200, "+"),
+            regions=[], references=[], sample_id="sample", source="pinned-original",
+            event_provenance={"test": "dense-splice-priority"}, dense_support=True, assemble=False, max_records=2,
+            read_collector=ReadCollector(use_soft_clipped_bases=True))
+    path, = [p for p in result["paths"] if p["sequence"] == sequence]
+    assert path["junctions"][0]["relation"] == "splice_ambiguous_event_junction"
+    assert path["full_interval_support"]["fragments"] == 7
+    assert path["full_interval_support"]["cells"] == 7
+    assert path["full_interval_support"]["missing_quality_reads"] == 7
+    assert result["support_acquisition"]["records_scanned"] == len(reads)
+    assert result["discovery"]["selected_records"] == 2
 
 
 def dense_reads(scenario, n=13):
