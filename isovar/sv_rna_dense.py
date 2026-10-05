@@ -109,7 +109,7 @@ def _search_regions(bam, options):
 
 
 def _priority(records, collector, event, annotated):
-    """Placed event joins, breakpoint clips, other novel joins, then context."""
+    """Placed event-related joins, breakpoint clips, other joins, then context."""
     clip = False
     possible_clip = collector.use_soft_clipped_bases and any(
         any(op == 4 for op, _ in read.cigartuples)
@@ -124,7 +124,7 @@ def _priority(records, collector, event, annotated):
             for o in store.build(identity):
                 clip |= bool(event.clips(o.positions, len(o.sequence)))
                 if any(_join_class(event, annotated, o.positions[i], o.positions[j], j - i - 1, kind)[0]
-                       == 'event' for i, j, kind in o.breaks):
+                       in ('event', 'lazy') for i, j, kind in o.breaks):
                     return 0
     priority = 3
     for read in records:
@@ -132,7 +132,7 @@ def _priority(records, collector, event, annotated):
             classes = [_join_class(event, annotated, left, right, len(inserted), kind),
                        _join_class(event, annotated, (right[0], right[1], '-'),
                                    (left[0], left[1], '-'), len(inserted), kind)]
-            if any(use == 'event' for use, _ in classes):
+            if any(use in ('event', 'lazy') for use, _ in classes):
                 return 0
             if not any(use in ('annotated', 'wobble') for use, _ in classes) and kind != 'D':
                 priority = 2

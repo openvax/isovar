@@ -4,6 +4,12 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.44.1
+
+- Dense SV discovery prioritizes splice-ambiguous event-compatible joins with
+  other placed event joins, preserving these hypotheses when abundant context
+  would otherwise exhaust the discovery budget (#441).
+
 ## 1.44.0
 
 - Add opt-in `isovar sv-rna --dense-support` / `dense_support=True`: scan
