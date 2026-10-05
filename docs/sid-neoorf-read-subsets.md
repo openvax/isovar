@@ -55,13 +55,13 @@ The durable directory is
 `/Users/iskander/code/isovar/.cache/sid-neoorf-additions-20261005`.
 Its 99 pinned input/provenance/result files total **328 MiB**. A separate
 **256 MiB** archive at
-`/Users/iskander/code/isovar/.cache/sid-neoorf-additions-20261005.tar.gz`
+`/Users/iskander/code/isovar/.cache/sid-neoorf-additions-20261005-checked.tar.gz`
 contains those inputs, the addition ledger, the successful 124-allele screen,
 candidate comparison and native checks. All 228 archive members pass SHA-256
 verification; the [file manifest](data/sid-neoorf/bundle-files.tsv) lists the
 227 payload files and the archive also contains the manifest itself.
 The archive SHA-256 is
-`8025a503fd7ab475896092c1169ed1bb282e5bf08b8858c0c21f68e82a948ad3`.
+`aeedf92f08b507f1dd2c9d965a73bacb7014ffd271969e1a776b2d868e284e87`.
 The combined candidate comparison additionally depends on the original focused
 archive, corrected dense audit and pinned installed Ensembl sources/indexes;
 those existing inputs are not duplicated in this additions archive.

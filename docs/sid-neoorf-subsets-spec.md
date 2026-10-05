@@ -33,3 +33,9 @@ and compare candidate peptides to checksum-pinned Ensembl 115 proteins. Check
 full candidate witnesses independently. Report altered upstream and frameshift
 ORFs separately from short unframed hypotheses and splice-compatible joins;
 none establishes translation, tumor specificity or antigen presentation.
+
+Final audit review reproduced a synonymous-sequence quality-witness mismatch.
+Preserve the actual nucleotide interval that earned each Q20 fragment count,
+add a regression, then rerun the reference-pinned screen and native checks
+before publishing the final ledger. The production reconstruction engine is
+outside this example-counter fix.

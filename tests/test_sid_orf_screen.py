@@ -77,3 +77,18 @@ def test_native_window_check_requires_original_nt_and_preserves_missing_quality(
     protein["witnesses"][0]["nucleotide_sha256"] = sha256(b"ATGGTGTAA").hexdigest()
     with pytest.raises(ValueError, match="absent"):
         check_window(protein, path)
+
+
+def test_full_window_witness_retains_the_nt_that_earned_quality_support():
+    translations = []
+    for suffix, quality in [("GCTTAA", 30), ("GCCTAA", 5)]:
+        read = AlleleRead("", "ATG", suffix, "same_fragment", quality_scores=(quality,) * 9,
+                         source_alignments=((("rg", "same_fragment", 0), (0, 100, "9M", False)),))
+        translations.append(SimpleNamespace(
+            variant_orf=SimpleNamespace(offset_to_first_complete_codon=0,
+                                        cdna_sequence=read.sequence, variant_cdna_interval_start=0),
+            reference_context=SimpleNamespace(strand="+", mitochondrial=False), reads=[read]))
+    protein = SimpleNamespace(translations=translations, amino_acids="MA", ends_with_stop_codon=True)
+    support = full_window_support(protein)
+    assert support["full_window_fragments"] == support["q20_full_window_fragments"] == 1
+    assert support["witnesses"][0]["nucleotide_sha256"] == sha256(b"ATGGCTTAA").hexdigest()

@@ -40,7 +40,8 @@ def full_window_support(protein):
                 continue
             for key in fragment_ids([read]):
                 fid = sha256(repr(key).encode()).hexdigest()
-                witnesses[fid] = dict(fragment_id=fid, nucleotide_sha256=sha256(nt.encode()).hexdigest())
+                witness = dict(fragment_id=fid, nucleotide_sha256=sha256(nt.encode()).hexdigest())
+                witnesses.setdefault(fid, witness)
                 scores = read.quality_scores
                 if scores is None:
                     unknown_quality.add(fid)
@@ -50,7 +51,10 @@ def full_window_support(protein):
                     if any(q is None for q in interval):
                         unknown_quality.add(fid)
                     elif min(interval) >= 20:
-                        quality_witnesses[fid] = witnesses[fid]
+                        quality_witnesses[fid] = witness
+                        # A later synonymous low-quality interval must not replace
+                        # the nucleotide witness that earned this quality count.
+                        witnesses[fid] = witness
     return dict(full_window_fragments=len(witnesses), q20_full_window_fragments=len(quality_witnesses),
                 fragments_with_unavailable_qualities=len(unknown_quality),
                 independent_translation_checks=checked, witnesses=[witnesses[k] for k in sorted(witnesses)])

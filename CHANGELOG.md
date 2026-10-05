@@ -12,6 +12,8 @@ releases that only fix bugs or add fixtures are omitted; see the
   proteome comparison and independent original-SAM coding-window checks. No
   translation or tumor-specificity inference is added.
 - Declare Biopython in the data extra for independent audit checks (#448).
+- Preserve the nucleotide witness that earned a Q20 full-window count when
+  synonymous intervals share a fragment in the example counter (#449).
 
 ## 1.45.0
 
