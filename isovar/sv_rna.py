@@ -39,7 +39,7 @@ from .fusion import FusionBlock, FusionBreakpoint, FusionReference
 from .genetic_code import standard_genetic_code
 from .read_collector import ReadCollector
 from .dna import reverse_complement_dna
-from .read_identity import read_group, segment_identity, source_alignments_from_pysam
+from .read_identity import segment_identity, source_alignments_from_pysam
 from .read_metadata import record_evidence
 from .sv_rna_relations import EVENT_LINKED_RELATIONS, LINKAGE_STATUSES
 from .sv_rna_orfs import exploratory_orfs
@@ -55,14 +55,8 @@ _MAX_SEGMENT_PATHS = 64  # Alternative supplementary groupings per segment.
 
 
 def _record_id(read):
-    """Stable record ID; hashing the key avoids hashing long reads' SEQ/QUAL."""
-    return sha256(repr(_record_key(read)).encode()).hexdigest()
-
-
-def _record_key(read):
-    """Cheap identity of one SAM record, for deduplicating repeated fetches."""
-    return (read.query_name, read.flag, read.reference_name, read.reference_start, read.cigarstring or "",
-            read_group(read))
+    """Identify an original SAM payload, independently of header contig order."""
+    return sha256(read.to_string().encode()).hexdigest()
 
 
 def _merge(intervals):
@@ -172,7 +166,7 @@ def collect_sv_records(bam, regions, references, max_records=SV_MAX_RECORDS, max
                 fragment = segment_identity(read)[:2]
                 if fragments is not None and fragment not in fragments:
                     continue
-                key = _record_key(read)
+                key = _record_id(read)
                 if key in records:
                     continue
                 if len(records) >= max_records:
