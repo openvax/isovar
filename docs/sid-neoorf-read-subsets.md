@@ -58,7 +58,8 @@ Its 99 pinned input/provenance/result files total **328 MiB**. A separate
 `/Users/iskander/code/isovar/.cache/sid-neoorf-additions-20261005.tar.gz`
 contains those inputs, the addition ledger, the successful 124-allele screen,
 candidate comparison and native checks. All 228 archive members pass SHA-256
-verification against the [file manifest](data/sid-neoorf/bundle-files.tsv).
+verification; the [file manifest](data/sid-neoorf/bundle-files.tsv) lists the
+227 payload files and the archive also contains the manifest itself.
 The archive SHA-256 is
 `8025a503fd7ab475896092c1169ed1bb282e5bf08b8858c0c21f68e82a948ad3`.
 The combined candidate comparison additionally depends on the original focused
