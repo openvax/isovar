@@ -15,9 +15,11 @@ from tempfile import TemporaryDirectory
 
 import pysam
 
+from .cell_umi import CellUmiEvidence
 from .read_identity import segment_identity
 from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
+from .rna_evidence import rna_support
 from .sv_rna import (
     _Event, _Model, _Observations, _ineligible, _join_class, _record_gaps, _record_id,
     _path_result, reconstruct_sv_rna,
@@ -54,6 +56,15 @@ class _DiskGroups(Mapping):
             'SELECT rg, name, segment, sam FROM records WHERE excluded IS NULL ORDER BY rg, name, segment, rid')
         for _, template in groupby(rows, key=lambda row: row[:2]):
             yield [pysam.AlignedSegment.fromstring(row[3], self.header) for row in template]
+
+    def template(self, fragment):
+        """All eligible original mates/placements of one consulted template."""
+        groups = defaultdict(list)
+        for segment, sam in self.connection.execute(
+                'SELECT segment, sam FROM records WHERE rg=? AND name=? AND excluded IS NULL ORDER BY segment, rid',
+                fragment):
+            groups[(*fragment, segment)].append(pysam.AlignedSegment.fromstring(sam, self.header))
+        return groups
 
 
 def _spool(bam, db, collector):
@@ -98,19 +109,24 @@ def _search_regions(bam, options):
 
 
 def _priority(records, collector, event, annotated):
-    """Event joins/clips first, other novel joins second, ordinary context last."""
-    if len(records) > 1:
+    """Placed event joins, breakpoint clips, other novel joins, then context."""
+    clip = False
+    possible_clip = collector.use_soft_clipped_bases and any(
+        any(op == 4 for op, _ in read.cigartuples)
+        and any(read.reference_name == b.contig and abs(edge - b.position) <= 1
+                for b in (event.donor, event.acceptor) for edge in (read.reference_start, read.reference_end))
+        for read in records)
+    if len(records) > 1 or possible_clip:
         # Actual supplementary/alternative records stay together. An SA hint
         # alone neither raises priority nor fabricates its missing record.
         store = _Observations(records, collector, 1, {}, '', '')
         for identity in store.groups:
             for o in store.build(identity):
-                if event.clips(o.positions, len(o.sequence)):
-                    return 0
+                clip |= bool(event.clips(o.positions, len(o.sequence)))
                 if any(_join_class(event, annotated, o.positions[i], o.positions[j], j - i - 1, kind)[0]
                        == 'event' for i, j, kind in o.breaks):
                     return 0
-    priority = 2
+    priority = 3
     for read in records:
         for left, right, kind, inserted in _record_gaps(read):
             classes = [_join_class(event, annotated, left, right, len(inserted), kind),
@@ -119,12 +135,8 @@ def _priority(records, collector, event, annotated):
             if any(use == 'event' for use, _ in classes):
                 return 0
             if not any(use in ('annotated', 'wobble') for use, _ in classes) and kind != 'D':
-                priority = 1
-        if collector.use_soft_clipped_bases and any(op == 4 for op, _ in read.cigartuples):
-            if any(read.reference_name == b.contig and abs(edge - b.position) <= 1
-                   for b in (event.donor, event.acceptor) for edge in (read.reference_start, read.reference_end)):
-                return 0
-    return priority
+                priority = 2
+    return 1 if clip else priority
 
 
 def _select(groups, db, options, collector, spans, event, annotated):
@@ -141,7 +153,8 @@ def _select(groups, db, options, collector, spans, event, annotated):
             # orientation, mate, quality and available path structure.
             signature = sha256(repr((identity[0], identity[2], sorted(
                 (r.reference_name, r.reference_start, r.flag, r.cigarstring, r.query_sequence,
-                 r.qual, r.mapping_quality) for r in records))).encode()).hexdigest()
+                 r.qual, r.mapping_quality, r.get_tag('SA') if r.has_tag('SA') else '')
+                for r in records))).encode()).hexdigest()
             db.execute('INSERT INTO discovery VALUES (?, ?, ?, ?, ?, ?)',
                        (*identity, _priority(records, collector, event, annotated), signature, len(records)))
     db.commit()
@@ -230,11 +243,26 @@ def _support(groups, result, collector, event, annotated, options):
             crossed = [path['junctions'][i] for i in candidate['crossed_junctions']]
             candidate['full_interval_support'] = support(_witnesses(path['sequence'], positions, start, end,
                                                                   crossed, evidence))
-    labels = {tuple(row['identity']): row for row in result['cell_umi_evidence']['reads']}
+    # Discovery-only context also needs original visible mates/parents. Its
+    # voting counts remain explicitly scoped to the bounded discovery set.
+    consulted = {tuple(row['identity']) for row in result['cell_umi_evidence']['reads']}
+    labels = {}
+    for fragment in sorted({identity[:2] for identity in consulted}):
+        original = CellUmiEvidence(groups.template(fragment), header, options['sample_id'], options['source'])
+        for identity in original.groups:
+            if identity in consulted:
+                original.segment(identity)
+        labels.update((tuple(row['identity']), row) for row in original.evidence()['reads'])
     labels.update((tuple(row['identity']), row) for row in store.cell_umi.evidence()['reads'])
     result['cell_umi_evidence']['reads'] = [labels[key] for key in sorted(labels)]
-    lineage = {tuple(row['identity']): row for row in result['read_lineage']['reads']}
-    lineage.update((tuple(row['identity']), row) for row in store.lineage.evidence())
+    for path in result['paths']:
+        voting = {tuple(result['observations'][key]['identity'])
+                  for key in path['sequence_evidence']['voting_observations']}
+        path['sequence_evidence']['voting_support'] = rna_support(voting, labels.__getitem__)
+        path['sequence_evidence']['label_resolution_scope'] = 'complete_eligible_input'
+    for row in result['read_lineage']['reads']:
+        store.lineage.segment(tuple(row['identity']))
+    lineage = {tuple(row['identity']): row for row in store.lineage.evidence()}
     result['read_lineage'] = dict(scope='complete_eligible_input', reads=[lineage[key] for key in sorted(lineage)])
     for key, o in sorted(used.items()):
         result['observations'][key] = dict(identity=list(o.identity), records=list(o.records),

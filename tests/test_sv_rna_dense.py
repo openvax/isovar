@@ -203,6 +203,7 @@ def test_conflicting_records_and_interrupted_scan_leave_no_partial_result(tmp_pa
 
 def test_original_short_read_fixture_keeps_pinned_translation_and_support(tmp_path):
     from tests.test_sv_rna import corpus_bam, run_corpus
+    from isovar.read_end_inference import Adapter, ReadEndProfile
     _, bam, inputs = corpus_bam(tmp_path, 'ATP5MG--KMT2A')
     original = run_corpus(bam, inputs)
     result = run_corpus(bam, inputs, dense_support=True, max_records=10)
@@ -213,6 +214,10 @@ def test_original_short_read_fixture_keeps_pinned_translation_and_support(tmp_pa
     assert path['full_interval_support']['fragments'] <= 2
     assert result['support_acquisition']['records_complete']
     assert export_sv_rna_orfs(result)['support_acquisition'] == result['support_acquisition']
+    profile = ReadEndProfile('TruSeq', '1', (Adapter('TruSeq', 'AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC'),))
+    trimmed = run_corpus(bam, inputs, dense_support=True, max_records=10, read_collector=ReadCollector(
+        use_soft_clipped_bases=True, read_end_profile=profile, trim_adapters=True))
+    assert [p['sequence'] for p in trimmed['paths']] == [path['sequence']]
 
 
 def test_iterable_parameters_and_input_scoped_signal_parents(tmp_path):
@@ -243,3 +248,38 @@ def test_iterable_parameters_and_input_scoped_signal_parents(tmp_path):
     assert support['read_lineage']['signal_groups'] == 0
     assert support['read_lineage']['statuses'] == {'unresolved_parent': 3}
     assert any(r['identity'][1] == 'parent' for r in result['read_lineage']['reads'])
+
+
+def test_discovery_context_labels_consult_original_mates_outside_search_regions(tmp_path):
+    scenario = Scenario()
+    reads = aligned('event', scenario.sequence[200:300], scenario.positions[200:300])
+    context = record('context', '1', 2090, '60M', scenario.donor_ref.sequence[190:250], flag=65)
+    mate = record('context', '2', 18000, '60M', 'A' * 60, flag=129)
+    for read, cell in [(context, 'cell-A'), (mate, 'cell-B')]:
+        read.set_tag('CB', cell)
+        read.set_tag('UB', 'umi')
+    reads.extend([context, mate])
+    result = scenario.run(write_bam(tmp_path / 'context.bam', reads), dense_support=True,
+                          max_records=3, min_alternative_fragments=1, min_overlap=20)
+    rows = [row for row in result['cell_umi_evidence']['reads'] if row['identity'][1] == 'context']
+    assert len(rows) == 2
+    assert {row['status'] for row in rows} == {'conflicting_template_labels'}
+    assert all(path['sequence_evidence']['voting_support']['cells'] == 0 for path in result['paths'])
+
+
+def test_placed_rare_event_precedes_unlinked_breakpoint_clips(tmp_path):
+    scenario = Scenario()
+    reads = []
+    for i in range(40):
+        pieces = aligned('unlinked-%03d' % i, scenario.sequence[200:300], scenario.positions[200:300])
+        for read in pieces:
+            read.set_tag('SA', '1,17000,+,100M,60,0;')
+        reads += pieces
+    reads += aligned('rare-linked', scenario.sequence[200:300], scenario.positions[200:300])
+    result = scenario.run(write_bam(tmp_path / 'clips.bam', reads), *scenario.exact,
+                          dense_support=True, max_records=2, assemble=False,
+                          read_collector=ReadCollector(use_soft_clipped_bases=True))
+    path = candidate(result)
+    assert path['sequence'] == scenario.sequence[200:300]
+    assert path['event_linkage']['status'] == 'breakpoint_junction'
+    assert path['full_interval_support']['fragments'] == 1

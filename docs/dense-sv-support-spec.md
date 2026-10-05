@@ -4,7 +4,7 @@ Add an opt-in `dense_support` API / `--dense-support` CLI mode. Scan the entire
 original alignment input into a temporary SQLite spool, retaining original SAM
 records and input-scoped segment identities. Group supplementary/alternative
 records before selection. Search the requested breakpoint/exon/explicit regions;
-prioritize event-bearing groups over ordinary context, then select deterministic
+prioritize placed event joins, then breakpoint clips, over ordinary context, then select deterministic
 sequence/placement representatives under `max_records`. Duplicate abundance and
 coordinate order must not hide a late rare event. Keep omitted discovery groups,
 failed segment builds, query/path/extension limits explicit.

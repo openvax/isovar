@@ -469,8 +469,8 @@ Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf) and
 
 `--dense-support` (Python: `dense_support=True`) scans the **entire original
 alignment file**, including records outside the nominated regions. It groups
-actual records by segment on disk, gives event-bearing junctions and breakpoint
-clips first priority, and reserves representative bundles for distinct
+actual records by segment on disk, gives placed event junctions first priority, followed by breakpoint
+clips, and reserves representative bundles for distinct
 sequence/placement classes before spending the discovery budget on repeated
 copies. A late event need not fall within the first `--max-records` records.
 Supplementary and alternative records of a selected segment stay together;
@@ -502,6 +502,8 @@ segments to count support for the fixed candidate paths:
   producer-aware signal ancestry remain available. Visible conflicting mate
   labels remain unresolved, including mates outside the discovery regions.
 - `sequence_evidence.voting_support` and seed counts remain discovery counts.
+  `voting_observations` identifies the retained voters; their labels and ancestry
+  consult the complete input, including distant visible mates and parents.
   ORF start/inclusion assessments and competing annotated splices also remain
   scoped to discovery records; their scope is recorded explicitly.
 - `support_acquisition` describes the complete-input pass and its exclusions

@@ -1269,6 +1269,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
                            somatic_causation_proven=False),
         sequence_evidence=dict(
             voting_support=store.cell_umi.support(segments),
+            voting_observations=sorted(voters),
             missing_quality_reads=len({o.identity for o in voting if o.missing_qualities}),
             secondary_reads=len({o.identity for o in voting if o.secondary}),
             assembly_phase="hypothesis_not_proven_long_range_phase"),
