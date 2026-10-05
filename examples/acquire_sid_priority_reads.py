@@ -8,8 +8,11 @@ downloaded. Vaccine claims are historical metadata, not a new treatment ranking.
 import argparse
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict
+import multiprocessing
+import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 
 from osteosarc import Cache, Dataset, RecoveryPolicy, extract_reads, read_receipt_files
@@ -41,11 +44,11 @@ def select_targets(variants, manifest):
     return dict(small_variants=selected, geometries=sorted(geometries))
 
 
-def acquire_variant_batch(directory, source, targets, cache, policy, selection_id):
+def acquire_variant_batch(directory, source, targets, cache, policy, selection_id, padding=150):
     """Partition oversized requests while keeping every target and original record."""
     names = sorted(targets)
     request = dict(source_identity=identity(source), targets=names, selection_id=selection_id,
-                   padding=2000, policy=asdict(policy), timeout=600)
+                   padding=padding, policy=asdict(policy), timeout=600)
     path = Path(directory) / "small-variants" / source["id"] / (identity(request)[:24] + ".json")
     if path.exists():
         saved = read_json(path)
@@ -58,7 +61,7 @@ def acquire_variant_batch(directory, source, targets, cache, policy, selection_i
         if saved["status"] == "partitioned":
             for group in saved["children"]:
                 child = acquire_variant_batch(directory, source, {n: targets[n] for n in group["targets"]},
-                                              cache, policy, selection_id)
+                                              cache, policy, selection_id, padding)
                 if identity(child) != group["receipt_sha256"]:
                     raise ValueError("Focused partition child changed")
         return saved
@@ -69,7 +72,7 @@ def acquire_variant_batch(directory, source, targets, cache, policy, selection_i
     if header["status"] != "ready":
         result.update(status=header["status"])
     else:
-        regions = [Variant(**targets[name]["variant"]).region(padding=2000) for name in names]
+        regions = [Variant(**targets[name]["variant"]).region(padding=padding) for name in names]
         try:
             subset = extract_reads(acquisition.source_file(source), regions, cache=cache,
                                    recovery=policy, timeout=600)
@@ -79,7 +82,7 @@ def acquire_variant_batch(directory, source, targets, cache, policy, selection_i
                 children = []
                 for group in (names[:len(names) // 2], names[len(names) // 2:]):
                     child = acquire_variant_batch(directory, source, {n: targets[n] for n in group},
-                                                  cache, policy, selection_id)
+                                                  cache, policy, selection_id, padding)
                     children.append(dict(targets=group, receipt_sha256=identity(child)))
                 result.update(status="partitioned", children=children)
             else:
@@ -106,7 +109,8 @@ def run_source(directory, cache_root, source_id, selection_id, max_seconds):
                             partner_batch_size=64, max_partner_queries=128, partner_timeout=30)
     ready = {name: row for name, row in selection["small_variants"].items()
              if row["variant"]["status"] == "ready" and row["variant"]["assembly"] == "GRCh38"}
-    variants = acquire_variant_batch(directory, source, ready, cache, policy, selection_id)
+    variants = acquire_variant_batch(directory, source, ready, cache, policy, selection_id,
+                                     selection["variant_padding"])
     print(source_id[:12], "vaccine/control reads", variants["status"], flush=True)
     batches = {b["geometries"][0]: b for b in read_json(Path(directory) / "batches.json")}
     engine = reconstruct.implementation_identity()
@@ -119,6 +123,25 @@ def run_source(directory, cache_root, source_id, selection_id, max_seconds):
         print(source_id[:12], gid, result["outcomes"], flush=True)
 
 
+def run_selected_sources(directory, cache, sources, selection_id, seconds, workers):
+    """Stop owned workers on interruption; uncompleted targets remain pending."""
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        try:
+            futures = [pool.submit(run_source, directory, cache, sid, selection_id, seconds) for sid in sources]
+            for future in futures:
+                future.result()
+        except KeyboardInterrupt:
+            children = multiprocessing.active_children()
+            for child in children:
+                if child.is_alive():
+                    os.kill(child.pid, signal.SIGINT)
+            for child in children:
+                child.join(timeout=1)
+                if child.is_alive():
+                    child.terminate()
+            raise
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
@@ -126,14 +149,18 @@ def main():
     parser.add_argument("--cache", required=True)
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--max-seconds", type=int, default=3600)
+    parser.add_argument("--variant-padding", type=int, default=150)
     args = parser.parse_args()
     if not 1 <= args.workers <= 4 or not 1 <= args.max_seconds <= 3600:
         parser.error("Use 1 through 4 workers and 1 through 3600 seconds per view")
+    if args.variant_padding < 0:
+        parser.error("Variant padding must be nonnegative")
     manifest, reference = load_inventory(args.directory), references.load(args.directory)
     data = Dataset.open(cache=Cache(args.metadata_cache, offline=True))
     selection = select_targets(data.variants(set="all"), manifest)
     selection.update(metadata_snapshot_id=data.manifest["id"], inventory_sha256=digest(args.directory / "inventory.json.gz"),
                      source_ids=sorted(sid for sid in manifest["sources"] if sid.startswith(PRODUCT_PREFIXES)),
+                     variant_padding=args.variant_padding,
                      scope="selected_vaccine_claims_controls_and_fusions_four_platform_products")
     if len(selection["source_ids"]) != 4:
         raise ValueError("Expected all four pinned pilot products")
@@ -141,11 +168,8 @@ def main():
     batches = [acquisition.make_batch(manifest, reference, [gid], 2000) for gid in sorted(manifest["geometries"])]
     write_json(args.directory / "batches.json", batches)
     Path(args.cache).mkdir(parents=True, exist_ok=True)
-    with ProcessPoolExecutor(max_workers=args.workers) as pool:
-        futures = [pool.submit(run_source, args.directory, args.cache, sid, identity(selection), args.max_seconds)
-                   for sid in selection["source_ids"]]
-        for future in futures:
-            future.result()
+    run_selected_sources(args.directory, args.cache, selection["source_ids"], identity(selection),
+                         args.max_seconds, args.workers)
 
 
 if __name__ == "__main__":

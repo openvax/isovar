@@ -562,3 +562,36 @@ def test_priority_acquisition_partitions_without_losing_vaccine_targets(tmp_path
     assert priority.acquire_variant_batch(tmp_path, source, targets, SimpleNamespace(root=tmp_path),
                                           osteosarc.RecoveryPolicy(), "selection") == result
     assert len(queries) == before
+
+
+def test_priority_interrupt_stops_workers_without_publishing_empty_results(tmp_path, monkeypatch):
+    from examples import acquire_sid_priority_reads as priority
+
+    class InterruptedFuture:
+        def result(self):
+            raise KeyboardInterrupt()
+
+    class Pool:
+        def __init__(self, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def submit(self, *args):
+            return InterruptedFuture()
+
+    stopped, signals = [], []
+    child = SimpleNamespace(pid=123, is_alive=lambda: True, join=lambda **kwargs: None,
+                            terminate=lambda: stopped.append(123))
+    monkeypatch.setattr(priority, "ProcessPoolExecutor", Pool)
+    monkeypatch.setattr(priority.multiprocessing, "active_children", lambda: [child])
+    monkeypatch.setattr(priority.os, "kill", lambda pid, signum: signals.append((pid, signum)))
+    with pytest.raises(KeyboardInterrupt):
+        priority.run_selected_sources(tmp_path, tmp_path, ["source"], "selection", 30, 1)
+    assert signals == [(123, priority.signal.SIGINT)]
+    assert stopped == [123]
+    assert not (tmp_path / "small-variants").exists()

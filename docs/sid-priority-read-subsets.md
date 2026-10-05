@@ -19,7 +19,7 @@ geometry/product pairs (40 fusion views)**. This is separate from the complete
 catalogue's 173,866 nomination/product pairs. The full catalogue remains pending.
 No unselected target becomes a negative RNA result.
 
-Small-variant requests use the original VCF allele interval with 2,000-base
+Small-variant requests use the original VCF allele interval with 150-base
 flanks. Fusion requests retain the existing breakend windows and pinned
 transcript exons. Osteosarc recovers linked original mates and supplementary
 records, preserving SAM payloads, qualities and labels. Oversized small-variant
@@ -58,6 +58,6 @@ source/input pins, and checks representative RNA witnesses and translations.
 Keep the cache and pinned assets together when moving or backing up the subsets.
 
 The current durable working directory is
-`/Users/iskander/code/isovar/.cache/sid-priority-20261005`.
+`/Users/iskander/code/isovar/.cache/sid-priority-local-20261005`.
 Acquisition and its final checked ledger are in progress. Measured size,
 outcomes and independent-check totals will be published after verification.
