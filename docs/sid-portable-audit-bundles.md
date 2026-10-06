@@ -6,6 +6,8 @@ reconstruction checkpoints in three independently movable bundles. Original
 receipt/result bytes are unchanged; runtime files are resolved from logical
 names in the bundle. The compressed manifests below are checked into Git.
 The regional reads and annotation archives remain in durable local storage.
+Their three backups total **2,172,408,842 bytes (2.02 GiB)**; exact archive
+sizes, SHA-256 and bundle identities are in [the archive index](data/sid-portable-bundles/archives.json).
 
 | Bundle | Verified files | Payload bytes | SV replay views | Frozen manifest |
 | --- | ---: | ---: | ---: | --- |
