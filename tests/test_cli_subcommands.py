@@ -36,7 +36,8 @@ def test_subcommand_help_uses_correct_program_and_preserves_parser(name, capsys)
     assert error.value.code == 0
     help_text = capsys.readouterr().out
     assert help_text.startswith("usage: isovar " + name + " ")
-    assert ("--input" if name in JSON_COMMANDS else "--vcf") in help_text
+    expected_input = "import-sid" if name == "audit-bundle" else "--input" if name in JSON_COMMANDS else "--vcf"
+    assert expected_input in help_text
     if original is not None:
         assert handler.parser.prog == original
 

@@ -4,6 +4,18 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.45.2
+
+- Add the installed `AuditBundle` API and `isovar audit-bundle` CLI for
+  checksum-verified portable inputs, tar.gz backups and offline SV RNA replay.
+  Import existing Sid regional subsets and frozen transcript models without
+  changing receipt bytes or depending on their original absolute paths (#440).
+- Compare complete replay results with frozen reconstructions and reject
+  changed inputs, software identities or resume checkpoints explicitly.
+- Normalize native results at the JSON checkpoint boundary (#452); verify
+  repeated annotation/input pins once per unique file, retaining expected-pin
+  verification during publication (#453).
+
 ## 1.45.1
 
 - Extend the focused Sid regional inputs to remaining indel/splice nominations

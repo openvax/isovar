@@ -69,6 +69,14 @@ The combined candidate comparison additionally depends on the original focused
 archive, corrected dense audit and pinned installed Ensembl sources/indexes;
 those existing inputs are not duplicated in this additions archive.
 
+For portable backup and offline SV reconstruction, use the installed
+[audit-bundle API and CLI](audit-bundles.md), importing each original/additions/
+dense audit separately. It preserves original receipts and resolves runtime
+files within the bundle. The SV plans include frozen transcript models;
+additional annotation files needed by the downstream neoORF report must be
+selected explicitly. The report exporter and small-variant screen have their
+own recorded reproduction commands below and in the candidate guide.
+
 ## Reproduce the additions
 
 Use the original audit as immutable input and a new durable directory:

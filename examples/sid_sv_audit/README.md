@@ -1,5 +1,10 @@
 # Sid structural-variant RNA audit
 
+For installed, portable preservation and offline replay, use
+[`isovar audit-bundle`](../../docs/audit-bundles.md). Its Python API and CLI
+restore original regional inputs and compare completed SV reconstructions from
+any directory, without depending on this example runner's original paths.
+
 This runner freezes all shared SV nominations and the broader fusion survey,
 then reconstructs each retained-flank geometry in both directions for each RNA
 processing product. It calls Isovar's existing reconstruction and ORF exporter.
