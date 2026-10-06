@@ -73,3 +73,70 @@ def test_intronic_deletion_is_not_presented_as_a_mature_rna_deletion():
     assert "`AAA`" not in description
     event["anatomy"] = [dict(location="exon", strand="-", exons=[dict(at_exon_boundary=False)])]
     assert "`TTT` → `∅`" in rna_edit_description(event)
+
+
+def test_published_index_counts_unresolved_events(tmp_path):
+    from examples.report_sid_neoorf_events import publish
+
+    event = dict(id="unknown", kind="SV", names=["Unknown partner"],
+                 dna_origin="unknown_RNA_only_nomination", breakends=[], nominations=[],
+                 original_dna_calls=[], anatomy=[], outcomes=[])
+    publish(dict(events={event["id"]: event}, candidates=[], sequences={}), tmp_path)
+    index = (tmp_path / "README.md").read_text()
+    assert "All 1 nominations/geometry entries" in index
+    assert "Unknown partner" in index
+    assert "All 41" not in index
+
+
+@pytest.mark.parametrize("status", ["not_assessable", "reconstruction_timeout", "no_candidate_paths"])
+def test_report_preserves_unresolved_counts_and_completed_negative(tmp_path, monkeypatch, status):
+    from types import SimpleNamespace
+    import pyensembl
+    from examples.report_sid_neoorf_events import build, publish, PRODUCTS
+    from examples.sid_sv_audit.inventory import digest, write_json
+
+    sid = next(iter(PRODUCTS))
+    audit = tmp_path / "audit"
+    inventory = dict(sources={sid: dict(id=sid)},
+                     nominations={"n": dict(original=dict(name="Unresolved join"))},
+                     geometries={"g": dict(nominations=["n"], breakends=[
+                         dict(contig="chr1", position=100, retained_side="left"),
+                         dict(contig="chr1", position=200, retained_side="right")])})
+    write_json(audit / "inventory.json.gz", inventory)
+    write_json(audit / "references.json.gz", dict(
+        inventory_sha256=digest(audit / "inventory.json.gz"), models={}, unsupported_cds={},
+        assignments={"g": dict(transcripts=[], excluded_transcripts=[])}))
+    result = dict(request=dict(source_id=sid, geometry_id="g", orientation="forward"),
+                  status=status, acquisition_status="acquired", input_limitations=[])
+    if status == "no_candidate_paths":
+        result.update(candidates=[], records=0, paths=0, event_paths=0, discovery={}, support_acquisition={})
+    elif status == "not_assessable":
+        result.update(acquisition_status="acquisition_error", reason="acquisition_error")
+    else:
+        result["error"] = "Per-view wall-time limit exceeded"
+    result_path = audit / "results" / sid / "g.forward.json.gz"
+    write_json(result_path, result)
+    gtf = tmp_path / "annotation.gtf"
+    gtf.write_text("# no overlapping transcripts in this fixture\n")
+    genome = SimpleNamespace(gtf_path=str(gtf), transcript_fasta_paths=[],
+                             gene_ids_at_locus=lambda *args: [])
+    monkeypatch.setattr(pyensembl, "EnsemblRelease", lambda release: genome)
+    screen = tmp_path / "screen.json.gz"
+    write_json(screen, dict(scope="selected_regions", candidates=[], small_variant_outcomes=[], comparison={},
+                            input_pins={str(result_path): digest(result_path), str(gtf): digest(gtf)}))
+    checks = tmp_path / "checks.json"
+    write_json(checks, {})
+    ledger = build(screen, [audit], checks)
+    outcome, = ledger["events"]["g"]["outcomes"]
+    expected = 0 if status == "no_candidate_paths" else None
+    assert outcome["candidates"] == outcome["records"] == outcome["paths"] == outcome["event_paths"] == expected
+    assert outcome["status"] == status
+    if status == "not_assessable":
+        assert outcome["reason"] == "acquisition_error"
+    elif status == "reconstruction_timeout":
+        assert outcome["error"] == result["error"]
+    publish(ledger, tmp_path / "report")
+    sheet = (tmp_path / "report/events/g.md").read_text()
+    assert "Unresolved join" in sheet and status in sheet
+    if expected is None:
+        assert "unknown / unknown / unknown" in sheet
