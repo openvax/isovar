@@ -14,6 +14,11 @@ releases that only fix bugs or add fixtures are omitted; see the
 - Declare Biopython in the data extra for independent audit checks (#448).
 - Preserve the nucleotide witness that earned a Q20 full-window count when
   synonymous intervals share a fragment in the example counter (#449).
+- Report every selected SV/indel/splice event from original DNA provenance
+  through transcript anatomy and protein-window sequence/support, including
+  unknown DNA origins, unresolved splice outcomes and zero-candidate entries.
+- Make mocked audit acquisition tests independent of host free disk space;
+  retain explicit rejection and boundary coverage for the production guard (#450).
 
 ## 1.45.0
 

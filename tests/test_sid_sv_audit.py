@@ -206,8 +206,11 @@ def test_new_audit_reconstructs_original_pacbio_orf_without_qualities(tmp_path):
 
 
 @pytest.fixture
-def empty_audit(tmp_path):
+def empty_audit(tmp_path, monkeypatch):
     """Real indexed BAM and pinned inputs for the offline acquisition/run/report path."""
+    # Acquisition is mocked; host storage must not decide whether these tiny
+    # offline fixtures reach the behavior under test. Guard tests override this.
+    monkeypatch.setattr(shutil, "disk_usage", lambda path: SimpleNamespace(free=16 * 1024 ** 3))
     source = dict(id="source", key="test.bam", url="original.bam", claims=[], selection=dict(cohort="tumor_candidate"))
     group = dict(breakends=[dict(contig="chr1", position=100, retained_side="left"),
                            dict(contig="chr1", position=200, retained_side="right")], nominations=["target"])
@@ -629,6 +632,35 @@ def test_priority_acquisition_partitions_without_losing_vaccine_targets(tmp_path
     assert priority.acquire_variant_batch(tmp_path, source, targets, SimpleNamespace(root=tmp_path),
                                           osteosarc.RecoveryPolicy(), "selection") == result
     assert len(queries) == before
+
+
+@pytest.mark.parametrize("free", [0, 8 * 1024 ** 3 - 1, 8 * 1024 ** 3])
+def test_priority_disk_guard_rejects_low_space_before_acquisition(tmp_path, monkeypatch, empty_audit, free):
+    from dataclasses import asdict
+    from osteosarc.models import Variant
+    from examples import acquire_sid_priority_reads as priority
+
+    source, _, bam = empty_audit
+    targets = dict(target=dict(variant=asdict(Variant(
+        "target", "gene", "GRCh38", (("chr1", 100, "A", "C"),), "ready"))))
+    calls = []
+    monkeypatch.setattr(shutil, "disk_usage", lambda path: SimpleNamespace(free=free))
+    monkeypatch.setattr(acquisition, "source_file", lambda s: s)
+
+    def extract(*args, **kwargs):
+        calls.append(args)
+        return fake_subset(bam, dict(status="bounded", records=0))
+
+    monkeypatch.setattr(priority, "extract_reads", extract)
+    if free < 8 * 1024 ** 3:
+        with pytest.raises(OSError, match="less than 8 GiB"):
+            priority.acquire_variant_batch(tmp_path, source, targets, SimpleNamespace(root=tmp_path),
+                                           osteosarc.RecoveryPolicy(), "selection")
+        assert not calls and not (tmp_path / "small-variants").exists()
+    else:
+        result = priority.acquire_variant_batch(tmp_path, source, targets, SimpleNamespace(root=tmp_path),
+                                               osteosarc.RecoveryPolicy(), "selection")
+        assert result["status"] == "bounded" and len(calls) == 1
 
 
 @pytest.mark.parametrize("failure", [KeyboardInterrupt, RuntimeError])

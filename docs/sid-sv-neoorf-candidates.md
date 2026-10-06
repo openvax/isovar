@@ -6,6 +6,10 @@ SPAG1 is an additional non-vaccine frameshift lead. The evidence below is
 original RNA sequence covering each stated interval. Translation, tumor
 specificity and antigen presentation have not been demonstrated.
 
+The [complete DNA → RNA → ORF report](sid-neoorf-event-report.md) adds original
+DNA calls/alleles and support, transcript/event anatomy, every sequence and
+per-product support, including unresolved and zero-candidate entries.
+
 ## Main candidates
 
 Fragment counts refer to complete coverage of the stated sequence window,
