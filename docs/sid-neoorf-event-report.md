@@ -53,7 +53,8 @@ derivative chromosome. Definitions follow the
 [HMF VCF tags](https://github.com/hartwigmedical/hmftools/blob/master/hmf-common/src/main/java/com/hartwig/hmftools/common/sv/SvVcfTags.java).
 
 RNA **alternate-allele fragments** can exceed **complete protein-window
-fragments**. Q20 requires recorded quality ≥20 at every base of that exact
+fragments**. RNA fragments use read-group/query-name identities; independent
+RNA molecule abundance is unresolved. Q20 requires recorded quality ≥20 at every base of that exact
 window. SV quality was not assessed across the ORF interval; PacBio qualities
 are unavailable. Barcode counts are labels, not verified malignant cells.
 Counts are kept separate for bulk SARC0277 T2, tagged ONT T2, Kamil 10x T2
@@ -179,6 +180,11 @@ remain in the ledger; the full 1,493-geometry catalogue is outside this focused
 report, not a negative result.
 
 With the frozen selected input directories and pinned Ensembl 115 installed:
+
+Install `isovar[data]` for the independent sequence/proteome checks. The
+original-BAM/SAM witness checkers also require the **SAMtools CLI** on `PATH`;
+CI installs it explicitly. The report generator itself reads frozen JSON and
+annotation, without invoking SAMtools or downloading whole libraries.
 
 ```sh
 python -m examples.report_sid_neoorf_events OUTPUT \

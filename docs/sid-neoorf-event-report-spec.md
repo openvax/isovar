@@ -28,3 +28,7 @@ Validation adjustment (#450): the full run exposed two mocked-acquisition tests
 depending on actual host free disk space. Control that value in the offline
 fixture and test low-space rejection/the exact 8 GiB boundary explicitly. Keep
 the production acquisition guard unchanged; re-run the final gates.
+
+CI adjustment (#451): all three Python jobs exposed the original-BAM checker's
+undeclared SAMtools CLI prerequisite. Install SAMtools in CI and document the
+requirement; keep the native verification/test enabled and repeat final-head CI.

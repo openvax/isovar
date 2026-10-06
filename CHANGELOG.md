@@ -19,6 +19,7 @@ releases that only fix bugs or add fixtures are omitted; see the
   unknown DNA origins, unresolved splice outcomes and zero-candidate entries.
 - Make mocked audit acquisition tests independent of host free disk space;
   retain explicit rejection and boundary coverage for the production guard (#450).
+- Install SAMtools in CI for the independent original-BAM/SAM audit checks (#451).
 
 ## 1.45.0
 

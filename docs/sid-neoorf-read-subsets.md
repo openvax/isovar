@@ -1,5 +1,8 @@
 # Additional Sid non-SNV and fusion RNA inputs
 
+The independent original-BAM/SAM witness checkers require the SAMtools CLI on
+`PATH`, plus `isovar[data]` for Biopython sequence checks.
+
 The completed [SV and neoORF candidate search](sid-sv-neoorf-candidates.md)
 reports actual RNA-derived sequences and native full-window support, including
 the additional SPAG1 frameshift lead.
