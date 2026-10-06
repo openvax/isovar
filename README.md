@@ -459,6 +459,7 @@ subcommand) also runs the pipeline, and `python -m isovar` works too.
 | `isovar plot` | Protein, coverage, read-overlap and transcript figures for one mutation ([guide](https://github.com/openvax/isovar/blob/master/docs/visualization.md)) |
 | `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](https://github.com/openvax/isovar/blob/master/docs/allele-interpretations.md)) |
 | `isovar sv-rna` | Exploratory RNA paths around one nominated SV, as JSON |
+| `isovar audit-bundle` | Portable audit inputs, verified backups and offline reconstruction replay ([guide](https://github.com/openvax/isovar/blob/master/docs/audit-bundles.md)) |
 | `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON |
 
 Except `isovar run`, the table and plot commands also install as hyphenated
@@ -557,6 +558,7 @@ Multiple distinct variant sequences and reference contexts can generate the same
 | Guide | What it covers |
 |---|---|
 | [SV RNA reconstruction](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md) | `isovar sv-rna`: RNA paths around an SV call, their frames and ORFs, export and comparison |
+| [Portable audit bundles](https://github.com/openvax/isovar/blob/master/docs/audit-bundles.md) | Installed Python API and CLI for preserving inputs, backup/restore and offline SV RNA replay |
 | [Supplied fusion RNA](https://github.com/openvax/isovar/blob/master/docs/fusion.md) | `isovar fusion`: checking a fusion transcript assembled by another tool |
 | [ORF start evidence](https://github.com/openvax/isovar/blob/master/docs/orf-start-evidence.md) | Where an SV ORF's start codon comes from, in four tiers |
 | [Cell/UMI evidence](https://github.com/openvax/isovar/blob/master/docs/cell-umi-evidence.md) | Cell barcode and UMI labels behind small-variant alleles and SV support |

@@ -1,0 +1,35 @@
+[
+  {
+    "archive": "portable-sid-priority-final-20261006.tar.gz",
+    "archive_bytes": 422310387,
+    "archive_sha256": "a3092e8d4651cb2b0c849ab260a72dd839b50c025ce6224432a6409c31ce06ad",
+    "bundle_id": "80d26a4fbb722a965ac35831b116f44711487de8e52f450ab135a1a9902980d7",
+    "files": 239,
+    "name": "priority",
+    "outcomes": 40,
+    "payload_bytes": 556079597,
+    "replay_views": 40
+  },
+  {
+    "archive": "portable-sid-additions-20261006.tar.gz",
+    "archive_bytes": 941233032,
+    "archive_sha256": "f983c9c857603c0c15a3f24ab1614248532629e8eb0560db0ee45dbc87c720b3",
+    "bundle_id": "2d5f9eeaf6b4d2c37dbbbb8b9415589efeca77c5836ec9c960bb91da986a0638",
+    "files": 535,
+    "name": "additions",
+    "outcomes": 16,
+    "payload_bytes": 3858891048,
+    "replay_views": 16
+  },
+  {
+    "archive": "portable-sid-dense-final-20261006.tar.gz",
+    "archive_bytes": 808865423,
+    "archive_sha256": "0992619606a248e50a9f311e41fb73ad994ef7bd08a58cfdd861e3e104d51b9a",
+    "bundle_id": "ffd95c2ed575c078b74a8247f572d979c73f83a07f8d2f78d762839f46b4ef49",
+    "files": 34,
+    "name": "dense",
+    "outcomes": 4,
+    "payload_bytes": 1376437179,
+    "replay_views": 4
+  }
+]

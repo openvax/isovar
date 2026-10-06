@@ -70,8 +70,11 @@ version and settings; changed runs require fresh result directories. The checker
 independently recounts original BAM records, validates acquisition partitions and
 source/input pins, and checks representative RNA witnesses and translations.
 Keep the cache and pinned assets together when moving or backing up the subsets.
-The published relative file pins can verify a relocated copy; resumable replay
-still uses original receipt paths. Portable replay remains tracked in #440.
+The published relative file pins can verify a relocated copy. The installed
+[audit-bundle API and CLI](audit-bundles.md) can preserve this directory and its
+referenced inputs, restore it elsewhere and replay completed SV views without
+using the original receipt paths. The legacy example runner retains its original
+path contract; use `isovar audit-bundle replay` for portable offline replay.
 
 The current durable working directory is
 `/Users/iskander/code/isovar/.cache/sid-priority-local-20261005`.

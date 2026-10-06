@@ -40,6 +40,7 @@ plot = ["matplotlib>=3.6,<4", "pypdf>=5,<7"]
 data = ["biopython>=1.80,<2"]  # Independent SAM/ORF and annotated-proteome checks.
 
 [project.scripts]
+isovar-audit-bundle = "isovar.cli.isovar_audit_bundle:run"
 isovar = "isovar.cli.commands:run"
 isovar-protein-sequences = "isovar.cli.isovar_protein_sequences:run"
 isovar-protein-hypotheses = "isovar.cli.isovar_protein_hypotheses:run"

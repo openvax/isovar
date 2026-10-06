@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 
 
 COMMANDS = {
+    "audit-bundle": ("isovar_audit_bundle", "Create, verify, archive and replay portable offline audit inputs"),
     "run": ("isovar_main", "Run the complete RNA-to-protein pipeline and result filters"),
     "protein-sequences": ("isovar_protein_sequences", "Export candidate protein sequences"),
     "protein-hypotheses": ("isovar_protein_hypotheses",
