@@ -20,12 +20,17 @@ def verify(directory, output):
     selection_id = identity(selection)
     ready = {n for n, r in selection["small_variants"].items()
              if r["variant"]["status"] == "ready" and r["variant"]["assembly"] == "GRCh38"}
-    if ready != set(selection["small_variants"]):
-        raise ValueError("Selected unresolved/reference-mismatched alleles need explicit outcomes")
+    unavailable = set(selection["small_variants"]) - ready
     rows, checks, pins, candidates = [], [], {}, []
     for filename in ("inventory.json.gz", "inventory-pin.json", "references.json.gz", "references-pin.json",
                      "priority-selection.json", "batches.json"):
         pins[filename] = digest(directory / filename)
+    if "parent_selection_sha256" in selection:
+        assert digest(directory / "parent-priority-selection.json") == selection["parent_selection_sha256"]
+        pins["parent-priority-selection.json"] = selection["parent_selection_sha256"]
+        for asset in [manifest["parent_inventory"], *manifest["supplemental_inputs"]]:
+            assert digest(directory / asset["path"]) == asset["sha256"]
+            pins[asset["path"]] = asset["sha256"]
 
     def pin(path):
         path = Path(path)
@@ -42,6 +47,11 @@ def verify(directory, output):
 
     for sid in selection["source_ids"]:
         source = manifest["sources"][sid]
+        for name in sorted(unavailable):
+            variant = selection["small_variants"][name]["variant"]
+            rows.append(dict(source_id=sid, targets=[name], acquisition_status="not_assessable",
+                             reason=variant["status"] if variant["status"] != "ready" else "reference_mismatch",
+                             input_limitations=["unresolved_or_reference_mismatched_allele"]))
         pin(directory / "sources" / sid / "header.json")
         files = list((directory / "small-variants" / sid).glob("*.json"))
         saved = {p.name: (p, read_json(p)) for p in files}
@@ -160,7 +170,8 @@ def verify(directory, output):
                                  row["geometry_id"], row["acquisition_status"],
                                  row["original_input_records"], row["bam_path"]])
     ledger = dict(scope=selection["scope"], selection_sha256=digest(directory / "priority-selection.json"),
-                  selection=selection, selected_variant_product_pairs=len(ready) * len(selection["source_ids"]),
+                  selection=selection, selected_variant_product_pairs=len(selection["small_variants"]) * len(selection["source_ids"]),
+                  ready_variant_product_pairs=len(ready) * len(selection["source_ids"]),
                   selected_geometry_product_pairs=expected_views // 2, intended_fusion_views=expected_views,
                   all_selected_pairs_accounted=True, full_catalogue_completed=False,
                   small_variant_inputs=rows, fusion_views=views,

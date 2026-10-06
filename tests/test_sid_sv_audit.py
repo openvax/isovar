@@ -206,9 +206,12 @@ def test_new_audit_reconstructs_original_pacbio_orf_without_qualities(tmp_path):
 
 
 @pytest.fixture
-def empty_audit(tmp_path):
+def empty_audit(tmp_path, monkeypatch):
     """Real indexed BAM and pinned inputs for the offline acquisition/run/report path."""
-    source = dict(id="source", url="original.bam", claims=[], selection=dict(cohort="tumor_candidate"))
+    # Acquisition is mocked; host storage must not decide whether these tiny
+    # offline fixtures reach the behavior under test. Guard tests override this.
+    monkeypatch.setattr(shutil, "disk_usage", lambda path: SimpleNamespace(free=16 * 1024 ** 3))
+    source = dict(id="source", key="test.bam", url="original.bam", claims=[], selection=dict(cohort="tumor_candidate"))
     group = dict(breakends=[dict(contig="chr1", position=100, retained_side="left"),
                            dict(contig="chr1", position=200, retained_side="right")], nominations=["target"])
     manifest = dict(nominations={"target": dict(geometry_id="g")}, geometries={"g": group},
@@ -535,6 +538,73 @@ def test_priority_selection_unions_vaccine_claims_and_keeps_distinct_fusion_geom
     assert selected["small_variants"]["index-only"]["vaccine_claims"]["overlap"] == []
 
 
+def test_expanded_priority_keeps_distinct_alleles_splice_sites_and_unresolved_nominations():
+    from osteosarc.models import Variant
+    from examples.acquire_sid_priority_reads import select_targets
+
+    variants = [Variant("vaccine-fs", "A", "GRCh38", (("chr1", 100, "AG", "A"),), "ready", vaccine_count=1),
+                Variant("different-fs", "A", "GRCh38", (("chr1", 101, "GA", "G"),), "ready"),
+                Variant("inframe", "B", "GRCh38", (("chr1", 200, "ATGC", "A"),), "ready"),
+                Variant("splice", "C", "GRCh38", (("chr1", 300, "A", "C"),), "ready",
+                        annotations={"consequence": "splice_donor_variant&intron_variant"}),
+                Variant("unresolved", "D", "GRCh38", (("chr1", 400, "A", "dup"),), "non_literal_allele"),
+                Variant("missense", "E", "GRCh38", (("chr1", 500, "A", "C"),), "ready")]
+    manifest = dict(nominations={
+        "f": dict(geometry_id="foxo3", original=dict(name="FOXO3::STRADA;CCDC47")),
+        "a": dict(geometry_id="atp5mg", original=dict(name="ATP5MG::KMT2A")),
+        "other": dict(geometry_id="other", original=dict(name="FOXO3::LINC00222"))})
+    previous = select_targets(variants, manifest)
+    assert set(previous["small_variants"]) == {"vaccine-fs"} and previous["geometries"] == []
+    expanded = select_targets(variants, manifest, include_neo_orfs=True)
+    assert set(expanded["small_variants"]) == {"vaccine-fs", "different-fs", "inframe", "splice", "unresolved"}
+    assert expanded["small_variants"]["vaccine-fs"]["reasons"] == ["vaccine_membership", "indel_nomination"]
+    assert expanded["small_variants"]["unresolved"]["variant"]["status"] == "non_literal_allele"
+    assert expanded["geometries"] == ["atp5mg", "foxo3"]
+
+
+def test_supplemental_atp5mg_uses_original_fixture_without_changing_parent():
+    from copy import deepcopy
+    from examples.acquire_sid_neoorf_reads import FIXTURE, supplemental_inventory
+
+    parent = dict(nominations={}, geometries={})
+    before = deepcopy(parent)
+    fixture = read_json(FIXTURE)
+    derived = supplemental_inventory(parent, fixture, digest(FIXTURE), "parent-hash")
+    assert parent == before
+    gid = derived["nominations"]["fixture:ATP5MG--KMT2A"]["geometry_id"]
+    assert oriented_breakpoints(derived["geometries"][gid]["breakends"]) == (
+        fixture["fusion"]["donor"], fixture["fusion"]["acceptor"])
+    assert derived["nominations"]["fixture:ATP5MG--KMT2A"]["original"]["fusion"] == fixture["fusion"]
+    fixture["fusion"]["reference_name"] = "GRCh37"
+    with pytest.raises(ValueError, match="assembly"):
+        supplemental_inventory(parent, fixture, "other-hash", "parent-hash")
+
+
+def test_priority_checker_retains_nonliteral_allele_as_unassessable(tmp_path, monkeypatch, empty_audit):
+    from dataclasses import asdict
+    from osteosarc.models import Variant
+    from examples import acquire_sid_priority_reads as priority
+    from examples.check_sid_priority_reads import verify
+
+    source, _, bam = empty_audit
+    selected = dict(scope="test", geometries=[], source_ids=["source"], variant_padding=150,
+        small_variants={v.id: dict(variant=asdict(v)) for v in [
+            Variant("literal", "A", "GRCh38", (("chr1", 100, "A", "C"),), "ready"),
+            Variant("nonliteral", "B", "GRCh38", (("chr1", 200, "A", "dup"),), "non_literal_allele")]})
+    write_json(tmp_path / "priority-selection.json", selected)
+    monkeypatch.setattr(acquisition, "source_file", lambda s: s)
+    monkeypatch.setattr(priority, "extract_reads", lambda *a, **kw: fake_subset(bam, dict(status="bounded", records=0)))
+    priority.acquire_variant_batch(tmp_path, source, {"literal": selected["small_variants"]["literal"]},
+                                   SimpleNamespace(root=tmp_path), osteosarc.RecoveryPolicy(), identity(selected))
+    verify(tmp_path, tmp_path / "report")
+    ledger = read_json(tmp_path / "report/priority-subsets.json.gz")
+    assert ledger["selected_variant_product_pairs"] == 2
+    assert ledger["ready_variant_product_pairs"] == 1
+    unavailable, = [row for row in ledger["small_variant_inputs"] if row["acquisition_status"] == "not_assessable"]
+    assert unavailable["targets"] == ["nonliteral"] and unavailable["reason"] == "non_literal_allele"
+    assert "original_records" not in unavailable
+
+
 def test_priority_acquisition_partitions_without_losing_vaccine_targets(tmp_path, monkeypatch, empty_audit):
     from dataclasses import asdict
     from osteosarc.models import Variant
@@ -562,6 +632,35 @@ def test_priority_acquisition_partitions_without_losing_vaccine_targets(tmp_path
     assert priority.acquire_variant_batch(tmp_path, source, targets, SimpleNamespace(root=tmp_path),
                                           osteosarc.RecoveryPolicy(), "selection") == result
     assert len(queries) == before
+
+
+@pytest.mark.parametrize("free", [0, 8 * 1024 ** 3 - 1, 8 * 1024 ** 3])
+def test_priority_disk_guard_rejects_low_space_before_acquisition(tmp_path, monkeypatch, empty_audit, free):
+    from dataclasses import asdict
+    from osteosarc.models import Variant
+    from examples import acquire_sid_priority_reads as priority
+
+    source, _, bam = empty_audit
+    targets = dict(target=dict(variant=asdict(Variant(
+        "target", "gene", "GRCh38", (("chr1", 100, "A", "C"),), "ready"))))
+    calls = []
+    monkeypatch.setattr(shutil, "disk_usage", lambda path: SimpleNamespace(free=free))
+    monkeypatch.setattr(acquisition, "source_file", lambda s: s)
+
+    def extract(*args, **kwargs):
+        calls.append(args)
+        return fake_subset(bam, dict(status="bounded", records=0))
+
+    monkeypatch.setattr(priority, "extract_reads", extract)
+    if free < 8 * 1024 ** 3:
+        with pytest.raises(OSError, match="less than 8 GiB"):
+            priority.acquire_variant_batch(tmp_path, source, targets, SimpleNamespace(root=tmp_path),
+                                           osteosarc.RecoveryPolicy(), "selection")
+        assert not calls and not (tmp_path / "small-variants").exists()
+    else:
+        result = priority.acquire_variant_batch(tmp_path, source, targets, SimpleNamespace(root=tmp_path),
+                                               osteosarc.RecoveryPolicy(), "selection")
+        assert result["status"] == "bounded" and len(calls) == 1
 
 
 @pytest.mark.parametrize("failure", [KeyboardInterrupt, RuntimeError])

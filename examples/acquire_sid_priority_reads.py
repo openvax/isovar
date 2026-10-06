@@ -28,19 +28,25 @@ FUSIONS = {"TPST1::CRCP", "GABBR1::SLC29A1", "PARD3B::CDKN2B-AS1;CDKN2B", "OTUD7
 PRODUCT_PREFIXES = ("8275c5f21164", "58f81602ec2f", "40a3ceff825d", "6e9147690525")
 
 
-def select_targets(variants, manifest):
+def select_targets(variants, manifest, include_neo_orfs=False):
     """Union vaccine claims, keep controls, and preserve distinct fusion geometries."""
     selected = {}
     for variant in variants:
         claims = dict(index_count=variant.vaccine_count, overlap=list(variant.vaccines),
                       source_variants=list(variant.annotations.get("source_vaccines", ())))
         vaccinated = bool((variant.vaccine_count or 0) > 0 or claims["overlap"] or claims["source_variants"])
-        if vaccinated or variant.id in AUDIT_SNVS:
+        indel = include_neo_orfs and any(len(ref) != len(alt) for _, _, ref, alt in variant.alleles)
+        splice = include_neo_orfs and any(c.startswith("splice_") for c in
+                                         variant.annotations.get("consequence", "").split("&"))
+        if vaccinated or variant.id in AUDIT_SNVS or indel or splice:
             selected[variant.id] = dict(variant=asdict(variant), vaccine_claims=claims,
                                        reasons=(["vaccine_membership"] if vaccinated else []) +
-                                               (["RNA_control"] if variant.id in AUDIT_SNVS else []))
+                                               (["RNA_control"] if variant.id in AUDIT_SNVS else []) +
+                                               (["indel_nomination"] if indel else []) +
+                                               (["splice_site_nomination"] if splice else []))
+    fusion_names = FUSIONS | ({"FOXO3::STRADA;CCDC47", "ATP5MG::KMT2A"} if include_neo_orfs else set())
     geometries = {row["geometry_id"] for row in manifest["nominations"].values()
-                  if row["original"].get("name") in FUSIONS and row["geometry_id"] is not None}
+                  if row["original"].get("name") in fusion_names and row["geometry_id"] is not None}
     return dict(small_variants=selected, geometries=sorted(geometries))
 
 

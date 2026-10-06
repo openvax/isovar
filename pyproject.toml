@@ -37,7 +37,7 @@ isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*"]
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.6,<4", "pypdf>=5,<7"]
-data = []  # Compatibility extra; shared fixture support is installed normally.
+data = ["biopython>=1.80,<2"]  # Independent SAM/ORF and annotated-proteome checks.
 
 [project.scripts]
 isovar = "isovar.cli.commands:run"
