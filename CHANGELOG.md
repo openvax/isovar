@@ -4,6 +4,25 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.45.3
+
+- Reject mixed-checkout Sid recovery invocations before input preparation or
+  acquisition; producing versions and original receipts remain explicit (#462).
+
+- Require osteosarc 0.15.5 for snapshot modification-date checks during selected
+  Sid read acquisition (iskandr/osteosarc#112).
+- Add staged, targeted recovery for the original SV pilot's acquisition-failed
+  source/geometry pairs, retaining the complete selected denominator, original
+  failures, declared budgets and verified input provenance (#436).
+- Preserve pending and completed coverage as immutable snapshots, including
+  explicit timeout outcomes and separate acquired-record/support scope (#456).
+- Generate the neoORF report's event count from its ledger, retaining unresolved
+  nominations when the selected search expands (#457).
+- Retain timed-out/unassessable SV outcomes in event sheets with their reasons
+  and unknown reconstruction counts, distinct from completed negative screens (#458).
+- Keep candidate counts unknown in recovery coverage when a reconstruction has
+  not completed, rather than reporting zero (#459).
+
 ## 1.45.2
 
 - Add the installed `AuditBundle` API and `isovar audit-bundle` CLI for
