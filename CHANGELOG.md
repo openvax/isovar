@@ -6,6 +6,9 @@ releases that only fix bugs or add fixtures are omitted; see the
 
 ## 1.45.3
 
+- Reject mixed-checkout Sid recovery invocations before input preparation or
+  acquisition; producing versions and original receipts remain explicit (#462).
+
 - Require osteosarc 0.15.5 for snapshot modification-date checks during selected
   Sid read acquisition (iskandr/osteosarc#112).
 - Add staged, targeted recovery for the original SV pilot's acquisition-failed

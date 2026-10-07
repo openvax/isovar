@@ -159,3 +159,21 @@ def test_independent_recovery_checker_requires_completed_views(tmp_path, empty_a
     assert ledger["rows"][0]["acquired_records"] == ledger["rows"][0]["regional_alignment_records"] == 0
     assert ledger["independent_orf_translations"] == 0
     assert ledger["independent_checks"] == []
+
+
+def test_mixed_checkout_is_rejected_before_preparation(tmp_path, monkeypatch, capsys):
+    import examples.recover_sid_sv_pilot as runner
+
+    monkeypatch.setattr(runner.isovar, "__file__", str(tmp_path / "other/isovar/__init__.py"))
+    def unexpected_preparation(*args):
+        raise AssertionError("Mixed package must be rejected before input preparation")
+    monkeypatch.setattr(runner, "prepare", unexpected_preparation)
+    monkeypatch.setattr("sys.argv", ["recover", str(tmp_path / "output"),
+                                   "--base-audit", str(tmp_path / "base"),
+                                   "--pilot-coverage", str(tmp_path / "pilot.json"),
+                                   "--cache", str(tmp_path / "cache")])
+    with pytest.raises(SystemExit) as error:
+        runner.main()
+    assert error.value.code == 2
+    assert "same checkout" in capsys.readouterr().err
+    assert not (tmp_path / "output").exists() and not (tmp_path / "cache").exists()

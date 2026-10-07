@@ -154,6 +154,10 @@ def main():
     parser.add_argument("--max-seconds", type=int, default=3600)
     parser.add_argument("--min-free-gib", type=int, default=8)
     args = parser.parse_args()
+    checkout_package = Path(__file__).resolve().parents[1] / "isovar"
+    if Path(isovar.__file__).resolve().parent != checkout_package:
+        parser.error("Run this example and the isovar package from the same checkout; "
+                     "change to that checkout before invoking python -m examples.recover_sid_sv_pilot")
     if min(args.max_acquisition_records, args.seed_timeout, args.max_seconds) < 1 or args.min_free_gib < 0:
         parser.error("Record/time budgets must be positive; the free-space guard cannot be negative")
     if Version(version("osteosarc")) < Version("0.15.5"):
