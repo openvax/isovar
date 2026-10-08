@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 import subprocess
 import tarfile
+import tempfile
 import urllib.request
 import zipfile
 
@@ -108,18 +109,16 @@ def prepare_sources(directory):
     if not mappings.exists():
         # The source Rdata is ~825 MiB. Load in an isolated R environment,
         # export only the small HLA mapping table, then remove this scratch file.
-        rdata = directory / "filtered_peptides.Rdata"
-        with tarfile.open(directory / "filtered_peptides.tar.bz2", "r:bz2") as archive:
-            with archive.extractfile("filtered_peptides.Rdata") as source, rdata.open("wb") as out:
-                while block := source.read(1024 * 1024):
-                    out.write(block)
-        try:
+        with tempfile.TemporaryDirectory(prefix="uorf-rdata-", dir=directory) as scratch:
+            rdata = Path(scratch) / "filtered_peptides.Rdata"
+            with tarfile.open(directory / "filtered_peptides.tar.bz2", "r:bz2") as archive:
+                with archive.extractfile("filtered_peptides.Rdata") as source, rdata.open("wb") as out:
+                    while block := source.read(1024 * 1024):
+                        out.write(block)
             script = ('e<-new.env();load(commandArgs(TRUE)[1],envir=e);'
                       'write.table(e$pep_nonc_long,commandArgs(TRUE)[2],sep="\\t",'
                       'quote=FALSE,row.names=FALSE,na="")')
             subprocess.run(["Rscript", "-e", script, str(rdata), str(mappings)], check=True)
-        finally:
-            rdata.unlink()
     verify(mappings)
     counts_path = directory / "author-hla-counts.json"
     if not counts_path.exists():

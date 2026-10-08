@@ -6,6 +6,9 @@ import gzip
 import hashlib
 from importlib.resources import files
 import json
+import io
+from pathlib import Path
+import tarfile
 
 import pytest
 
@@ -13,6 +16,7 @@ from isovar import UORFCatalog, UORFPeptide, UORFRecord, load_uorf_catalog
 from isovar.cli.commands import run as command
 from isovar.cli.isovar_uorf_evidence import run
 from examples.build_uorf_catalog import intervals
+from examples import build_uorf_catalog as builder
 
 
 @pytest.fixture(scope="module")
@@ -222,3 +226,27 @@ def test_cli_invalid_inputs_fail_explicitly(args):
     with pytest.raises(SystemExit) as error:
         run(args)
     assert error.value.code == 2
+
+
+def test_source_preparation_preserves_an_existing_Rdata_file(tmp_path, monkeypatch):
+    # A user's existing unpacked source is not the builder's scratch file.
+    existing = tmp_path / "filtered_peptides.Rdata"
+    existing.write_bytes(b"keep this existing source")
+    for name in ("ncorf_list.xlsx", "peptide_sample_msrun_counts.tar.bz2",
+                 "author-hla-counts.json", "media-4_with_dot_products.csv"):
+        (tmp_path / name).write_bytes(b"cached")
+    with tarfile.open(tmp_path / "filtered_peptides.tar.bz2", "w:bz2") as archive:
+        member = tarfile.TarInfo("filtered_peptides.Rdata")
+        member.size = 5
+        archive.addfile(member, io.BytesIO(b"input"))
+    monkeypatch.setattr(builder, "verify", lambda path: None)
+
+    def run_R(args, **kwargs):
+        scratch = Path(args[-2])
+        assert scratch != existing and scratch.read_bytes() == b"input"
+        Path(args[-1]).write_text("exported mappings\n")
+
+    monkeypatch.setattr(builder.subprocess, "run", run_R)
+    builder.prepare_sources(tmp_path)
+    assert existing.read_bytes() == b"keep this existing source"
+    assert not list(tmp_path.glob("uorf-rdata-*"))
