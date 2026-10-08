@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.45.2"
+__version__ = "1.46.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -45,9 +45,14 @@ from .sv_rna_orf_export import export_sv_rna_orfs, write_sv_rna_orfs
 from .sv_rna_comparison import compare_sv_rna_predictions
 from .orf_inclusion import annotate_orf_inclusion
 from .orf_start import annotate_orf_start, summarize_orf_start_evidence
+from .uorf_catalog import UORFCatalog, UORFRecord, UORFPeptide, load_uorf_catalog
 
 
 __all__ = [
+    "UORFCatalog",
+    "UORFRecord",
+    "UORFPeptide",
+    "load_uorf_catalog",
     "BaseQualityPolicy",
     "AlleleQualityFootprint",
     "run_isovar",
