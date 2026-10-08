@@ -1,0 +1,24 @@
+{
+  "catalog_sha256": "941495828f12a5f8a150be6e166c5aca61d881249ade590ddf7f58e176cadff5",
+  "dataset_version": "2026-10-08.1",
+  "excluded_assignments": [],
+  "schema": "isovar.uorf_manifest.v1",
+  "source_sha256": {
+    "author-hla-counts.json": "b1e8e79e74e90d205224cc86663ebf9d64ed97cf0e0290cd86117756ee46a4b6",
+    "author-hla-mappings.tsv": "7f97f4ea675ac6abc97217c865019d73135358f448533ad8d98c9479fee9fb8f",
+    "filtered_peptides.tar.bz2": "a97d73b08b4ee7376a064f9fee3480b3d73639ebe0bd238a6dd0099df6a9e30c",
+    "media-4_with_dot_products.csv": "9e2cbb54765f8a9886cdcbf0bdfefa772f4623f54291add2bf3c47c26b17250f",
+    "ncorf_list.xlsx": "ca2e2f9389052c62f48ec6f81d53ca88c64152edb5940e556813d4a7bf1e6c62",
+    "peptide_sample_msrun_counts.tar.bz2": "290658de32de2579d17f0b75c3fcc39b4d50c5e6ce1ceea9ce9f411ccc8a98ba"
+  },
+  "statistics": {
+    "excluded_legacy_assignments": 0,
+    "hla_orfs": 1059,
+    "ms_orfs": 1219,
+    "peptides": 2414,
+    "records": 3771,
+    "reviewed_ms_orfs": 16,
+    "ribosome_orfs": 3771,
+    "shotgun_orfs": 31
+  }
+}

@@ -4,6 +4,15 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.46.0
+
+- Package a versioned, offline human uORF evidence dataset with exact reference
+  protein sequences, spliced GRCh38 coding blocks, source-pinned ribosome/MS
+  evidence, peptide intervals, spectrum reviews and explicit mapping ambiguity.
+- Add the public `load_uorf_catalog` API and `isovar uorf-evidence` command with
+  JSON/TSV/FASTA exports and strand-aware genomic-position annotation. Native
+  peptide evidence remains separate from mutant translation and presentation.
+
 ## 1.45.2
 
 - Add the installed `AuditBundle` API and `isovar audit-bundle` CLI for

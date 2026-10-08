@@ -1,0 +1,25 @@
+Isovar uORF evidence catalogue, dataset version 2026-10-08.1.
+
+The Isovar API and builder are Apache-2.0. Source data retain their own licenses.
+
+GENCODE Phase I models and legacy MS annotations, plus HLA mapping/count data:
+Copyright (c) 2025 Leron Kok. MIT license, included as AUTHOR-LICENSE.txt.
+VanHeeschLab/deutsch_kok_et_al_2024, commit
+b65ae0c09a53e9efe083d806d617581e6139bdde.
+https://github.com/VanHeeschLab/deutsch_kok_et_al_2024
+Associated studies: Mudge et al. 2022, DOI 10.1038/s41587-022-01369-0;
+Deutsch et al. 2026, DOI 10.1038/s41586-026-10459-x.
+
+Community spectrum review input:
+Aaron Wacholder and the community assessment authors, archived dataset version 1.
+https://doi.org/10.6084/m9.figshare.30131869.v1
+License: Creative Commons Attribution 4.0 International (CC BY 4.0).
+https://creativecommons.org/licenses/by/4.0/
+Associated study: Wacholder et al. 2026, DOI 10.1038/s41467-025-68002-x.
+
+Changes: selected uORF/uoORF models; normalized coordinates and source metadata;
+joined sequence-compatible peptide observations; retained individual reviews,
+source attribution and unknown mapping counts; calculated peptide intervals and
+conservative review labels. Full original article text and supplementary
+curation tables are not redistributed. Source URLs, SHA256 pins, evidence scope
+and exclusions are in catalog metadata and manifest.json.

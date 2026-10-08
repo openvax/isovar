@@ -7,6 +7,8 @@ include test.sh
 include examples/osteosarc_sv_validation.py
 include docs/sv-rna.md
 include docs/audit-bundles.md
+include examples/build_uorf_catalog.py
+include docs/uorf-evidence.md
 include tests/__init__.py
 include tests/osteosarc_protein_helpers.py
 include tests/reference_identity.py
