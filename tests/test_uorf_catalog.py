@@ -233,7 +233,7 @@ def test_source_preparation_preserves_an_existing_Rdata_file(tmp_path, monkeypat
     existing = tmp_path / "filtered_peptides.Rdata"
     existing.write_bytes(b"keep this existing source")
     for name in ("ncorf_list.xlsx", "peptide_sample_msrun_counts.tar.bz2",
-                 "author-hla-counts.json", "media-4_with_dot_products.csv"):
+                 "author-hla-counts.json", "media-4_with_dot_products.csv", *builder.ENSEMBL_INPUTS):
         (tmp_path / name).write_bytes(b"cached")
     with tarfile.open(tmp_path / "filtered_peptides.tar.bz2", "w:bz2") as archive:
         member = tarfile.TarInfo("filtered_peptides.Rdata")

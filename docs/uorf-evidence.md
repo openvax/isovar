@@ -7,7 +7,7 @@ exact reference protein sequence, ribosome-profiling studies, and available MS
 peptide observations. It is an evidence reference for investigating variants in
 5′ UTRs, rather than a list of validated mutant antigens.
 
-The first dataset (`2026-10-08.1`) has 1,219 models with supporting reported MS
+The dataset (`2026-10-08.2`) has 1,219 models with supporting reported MS
 observations, including 1,059 with HLA peptides and 31 with clearly classified
 shotgun reports. Categories overlap. Legacy mixed-assay reports remain
 `ms_unclassified`. There are 16 models with compatible peptides receiving
@@ -55,6 +55,51 @@ against its manifest on load. To pin a local compatible JSON/JSON.gz catalogue:
 catalog = load_uorf_catalog("reference.json.gz", expected_sha256="<your-pin>")
 ```
 
+## Initiation context and mutations
+
+Every current model has a reference initiation context from checksum-pinned
+Ensembl 101 transcripts. The entire spliced ORF path and protein are validated
+before flanking sequence is attached. Context provenance retains the resolved
+transcript version. No adjacent intronic sequence or alternative isoform is
+silently substituted. Complete/partial/unavailable status and failure reasons
+are explicit. This reference release supplies historical model contexts,
+rather than proving the patient's transcript or its biological 5-prime end.
+
+```python
+from isovar import annotate_initiation_context, load_uorf_catalog
+
+# Also works on reconstructed mutant RNA or partial read/assembly sequence.
+context = annotate_initiation_context("ATGG", 0)
+print(context.assessment)  # Partial; +4 G observed; cap distance unknown.
+
+native = load_uorf_catalog().get("c7riboseqorf56")
+print(native.initiation_context.assessment["display"])
+# GAGGCCAGG[ATG]CCGTCC
+print(native.annotate_initiation_snv(
+    66205480, "A", "C", genome_build="GRCh38")["sequence_changes"])
+# ['kozak_preference_lost']; -3, no coding-residue change.
+```
+
+`InitiationContext` is immutable and serializes raw sequence, spliced genomic
+placements, source identity and its assessment. Preferred positions are
+individually true/false/null; missing and ambiguous bases remain unknown.
+The -3/+4 counts provide a loose interpretation, with no exclusion threshold
+or calibrated initiation probability. Non-ATG and zero-offset starts are
+retained. `five_prime_complete=True` requires caller evidence of the biological
+5-prime end; only then is `cap_distance_nt` populated.
+
+`map_initiation_position` distinguishes context/start/coding roles. The SNV
+API takes single forward-genomic REF/ALT bases, validates REF and converts
+minus-strand alleles. A +4 SNV can have both context and coding effects.
+Its alternate context and codon consequence are predictions, not mutant
+translation evidence. `query(include_initiation_context=True, ...)` includes
+placed spliced flanks; the default continues to query coding blocks only.
+Neither includes intervening introns. Old v1 catalogues without contexts
+remain loadable, with unknown context rather than inferred sequence.
+
+See [the mutation annotation guide](uorf-mutation-annotations.md) for the
+identity/location/consequence/evidence organization and the Varcode proposal.
+
 ## Command line and dataset exports
 
 ```sh
@@ -62,10 +107,11 @@ isovar uorf-evidence --gene TPST1
 isovar-uorf-evidence --evidence shotgun --format tsv > shotgun-uorfs.tsv
 isovar-uorf-evidence --evidence hla --require-reviewed --format fasta > reviewed.fasta
 isovar-uorf-evidence --position chr7:66240380 --genome-build GRCh38
+isovar-uorf-evidence --position chr7:66205480 --genome-build GRCh38 --ref A --alt C
 ```
 
 JSON retains provenance and nested evidence. TSV uses explicit JSON columns for
-coding blocks, study IDs and peptides, so exports retain those relationships.
+coding blocks, study IDs, peptides and initiation contexts, so exports retain those relationships.
 FASTA exports exact reference proteins. All commands work offline after an
 ordinary Isovar install. The dataset and its source manifest are installed under
 `isovar/data/uorf-evidence/`; the builder and this guide are also in the source
@@ -103,7 +149,7 @@ RNA-supported mutant ORF establishes tumor specificity or mutant presentation.
 
 ## Source curation and limits
 
-The build joins three independently pinned inputs:
+The build joins the following independently pinned inputs:
 
 1. The author's MIT-licensed copy of the
    [GENCODE Phase I ORF reference](https://github.com/VanHeeschLab/deutsch_kok_et_al_2024/blob/b65ae0c09a53e9efe083d806d617581e6139bdde/raw/ncorf_list.xlsx),
@@ -135,6 +181,11 @@ The build joins three independently pinned inputs:
    The [2026 correction](https://doi.org/10.1038/s41467-026-73431-3) concerns figure
    labels, rather than source spectrum data.
 
+4. Ensembl release 101 GRCh38 GTF and cDNA sequences, used only after exact
+   entire-ORF path/protein validation. Source URLs and SHA256 pins are in the
+   manifest; per-context transcript IDs retain their versions. Ensembl makes
+   its generated data [available without restriction](https://www.ensembl.org/info/about/legal/disclaimer.html).
+
 An unreviewed `reported` observation is searchable evidence with its original
 provenance, not an independently validated identification. `require_reviewed`
 and `require_unique` apply to the **same observation**; a review on one spectrum
@@ -160,7 +211,7 @@ python -m pip install '.[uorf-build]'
 python -m examples.build_uorf_catalog --source-dir /tmp/isovar-uorf-sources --prepare-sources
 ```
 
-Preparation retrieves about 135 MB of pinned author inputs and a small benchmark
+Preparation retrieves about 246 MB of pinned author inputs and a small benchmark
 CSV through HTTP byte ranges, rather than its 4.8 GB archive. It temporarily
 extracts the author's ~825 MiB Rdata, exports only HLA mappings, removes that
 scratch file, and streams the large count table without unpacking it. It
