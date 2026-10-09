@@ -1,4 +1,4 @@
-Isovar uORF evidence catalogue, dataset version 2026-10-08.1.
+Isovar uORF evidence catalogue, dataset version 2026-10-08.2.
 
 The Isovar API and builder are Apache-2.0. Source data retain their own licenses.
 
@@ -23,3 +23,10 @@ source attribution and unknown mapping counts; calculated peptide intervals and
 conservative review labels. Full original article text and supplementary
 curation tables are not redistributed. Source URLs, SHA256 pins, evidence scope
 and exclusions are in catalog metadata and manifest.json.
+
+Initiation-context sequence: Ensembl release 101, human GRCh38 GTF/cDNA.
+Ensembl-generated data are available without restriction:
+https://www.ensembl.org/info/about/legal/disclaimer.html
+Changes: exact ORF path/protein validation; extracted transcript-oriented start
+flanks and genomic placements; added partial-context/positional Kozak priors.
+Sequence priors are not measurements of translation or protein abundance.

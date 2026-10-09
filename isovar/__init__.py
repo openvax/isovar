@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.46.0"
+__version__ = "1.47.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -46,9 +46,12 @@ from .sv_rna_comparison import compare_sv_rna_predictions
 from .orf_inclusion import annotate_orf_inclusion
 from .orf_start import annotate_orf_start, summarize_orf_start_evidence
 from .uorf_catalog import UORFCatalog, UORFRecord, UORFPeptide, load_uorf_catalog
+from .initiation_context import InitiationContext, annotate_initiation_context
 
 
 __all__ = [
+    "InitiationContext",
+    "annotate_initiation_context",
     "UORFCatalog",
     "UORFRecord",
     "UORFPeptide",

@@ -22,6 +22,9 @@ def run(argv=None, prog=None):
     parser.add_argument("--biotype", choices=("uORF", "uoORF"))
     parser.add_argument("--region", help="1-based inclusive interval: chr7:66205483-66205522")
     parser.add_argument("--position", help="Map a 1-based variant position: chr7:66205483 (JSON only)")
+    parser.add_argument("--include-initiation-context", action="store_true", help="Include spliced start flanks in locus lookup")
+    parser.add_argument("--ref", help="Forward-genomic SNV REF; requires --alt and --position")
+    parser.add_argument("--alt", help="Forward-genomic SNV ALT; compare initiation contexts")
     parser.add_argument("--genome-build", help="Required for genomic queries; packaged data use GRCh38")
     parser.add_argument("--format", choices=("json", "tsv", "fasta"), default="json")
     args = parser.parse_args(argv)
@@ -29,12 +32,17 @@ def run(argv=None, prog=None):
         parser.error("Choose --region or --position")
     if args.position and args.format != "json":
         parser.error("--position requires --format json")
+    if (args.ref is not None or args.alt is not None) and (not args.ref or not args.alt or not args.position):
+        parser.error("SNV annotation requires --position, --ref and --alt")
+    if args.ref and (args.ref not in ("A", "C", "G", "T") or args.alt not in ("A", "C", "G", "T") or args.ref == args.alt):
+        parser.error("Provide distinct single-base forward-genomic REF and ALT")
     try:
         catalog = load_uorf_catalog(args.catalog)
         options = dict(gene=args.gene, transcript_id=args.transcript,
                        evidence=args.evidence, require_unique=args.require_unique,
                        require_reviewed=args.require_reviewed,
-                       biotype=args.biotype, genome_build=args.genome_build)
+                       biotype=args.biotype, genome_build=args.genome_build,
+                       include_initiation_context=args.include_initiation_context or bool(args.ref))
         locus = args.region or args.position
         if locus:
             pattern = r"([^:]+):([0-9]+)-([0-9]+)" if args.region else r"([^:]+):([0-9]+)"
@@ -48,6 +56,16 @@ def run(argv=None, prog=None):
         if args.orf_id:
             catalog.get(args.orf_id)  # A misspelled ID is an error, not empty evidence.
             records = tuple(r for r in records if r.orf_id == args.orf_id)
+        initiation_annotations = None
+        if args.position:
+            initiation_annotations = []
+            for r in records:
+                annotation = r.map_initiation_position(options["start"], genome_build=args.genome_build)
+                if args.ref and annotation is not None:
+                    annotation = r.annotate_initiation_snv(options["start"], args.ref, args.alt, genome_build=args.genome_build)
+                initiation_annotations.append(annotation)
+            if args.ref and not any(a is not None for a in initiation_annotations):
+                raise ValueError("No mapped initiation context covers the SNV; coding consequences require full transcript reconstruction")
     except (ValueError, KeyError, OSError) as exc:
         parser.error(str(exc))
     if args.format == "json":
@@ -57,6 +75,7 @@ def run(argv=None, prog=None):
             output["position_annotations"] = [
                 r.map_genomic_position(options["start"], genome_build=args.genome_build)
                 for r in records]
+            output["initiation_annotations"] = initiation_annotations
         json.dump(output, sys.stdout, indent=2)
         sys.stdout.write("\n")
     elif args.format == "fasta":
@@ -66,12 +85,12 @@ def run(argv=None, prog=None):
     else:
         fields = ("orf_id", "gene_id", "gene_name", "transcript_id", "genome_build",
                   "contig", "strand", "biotype", "protein_sequence", "coding_blocks_json",
-                  "ribosome_studies_json", "peptides_json")
+                  "ribosome_studies_json", "peptides_json", "initiation_context_json")
         writer = csv.DictWriter(sys.stdout, fieldnames=fields, delimiter="\t", lineterminator="\n")
         writer.writeheader()
         for r in records:
             row = r.to_dict()
-            for field in ("coding_blocks", "ribosome_studies", "peptides"):
+            for field in ("coding_blocks", "ribosome_studies", "peptides", "initiation_context"):
                 row[field + "_json"] = json.dumps(row.pop(field), separators=(",", ":"))
             writer.writerow(row)
 

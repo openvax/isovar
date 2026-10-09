@@ -1,11 +1,13 @@
 {
-  "catalog_sha256": "941495828f12a5f8a150be6e166c5aca61d881249ade590ddf7f58e176cadff5",
-  "dataset_version": "2026-10-08.1",
+  "catalog_sha256": "408d79631214f3872b1fb886bf2aa117228d4ae6179d59113af8ce336244bedd",
+  "dataset_version": "2026-10-08.2",
   "excluded_assignments": [],
   "schema": "isovar.uorf_manifest.v1",
   "source_sha256": {
     "author-hla-counts.json": "b1e8e79e74e90d205224cc86663ebf9d64ed97cf0e0290cd86117756ee46a4b6",
     "author-hla-mappings.tsv": "7f97f4ea675ac6abc97217c865019d73135358f448533ad8d98c9479fee9fb8f",
+    "ensembl101.cdna.fa.gz": "519cb4398f7a7904531a0eaaf16a8252f0487f101e00087f6316017bd51a1093",
+    "ensembl101.gtf.gz": "6f63da87a7f2f7b5e6940f7e2bd9dd2e7aee37494430e6ac7274f7ef8dc214ba",
     "filtered_peptides.tar.bz2": "a97d73b08b4ee7376a064f9fee3480b3d73639ebe0bd238a6dd0099df6a9e30c",
     "media-4_with_dot_products.csv": "9e2cbb54765f8a9886cdcbf0bdfefa772f4623f54291add2bf3c47c26b17250f",
     "ncorf_list.xlsx": "ca2e2f9389052c62f48ec6f81d53ca88c64152edb5940e556813d4a7bf1e6c62",
@@ -14,6 +16,9 @@
   "statistics": {
     "excluded_legacy_assignments": 0,
     "hla_orfs": 1059,
+    "initiation_context_complete": 3598,
+    "initiation_context_partial": 173,
+    "initiation_context_unavailable": 0,
     "ms_orfs": 1219,
     "peptides": 2414,
     "records": 3771,

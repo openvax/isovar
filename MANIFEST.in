@@ -16,3 +16,4 @@ include tests/data/osteosarc/protein_references.py
 include tests/data/osteosarc/expansion/references.py
 include tests/data/osteosarc/expansion/inventory.py
 recursive-include tests/data/fusions *.py *.md *.json *.gz
+include docs/uorf-mutation-annotations.md
