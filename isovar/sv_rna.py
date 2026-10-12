@@ -358,16 +358,53 @@ def _record_placements(read, view, intern):
     return placements, kinds
 
 
-def _segment_path(records, collector, intern):
+def _cache_geometry(cache, key, value):
+    """Bound transient reuse independently of input size and retained witnesses."""
+    if cache is not None:
+        if len(cache) >= 128:
+            cache.pop(next(iter(cache)))
+        cache[key] = value
+
+
+def _segment_path(records, collector, intern, cache=None):
     """Join one segment's linked records by original query offset.
 
     Returns (sequence, positions, breaks, query interval, qualities), where each
     base's quality is the lowest any record reports, or a rejection reason.
     """
+    views = [collector.read_sequence_view(read) for read in records]
+    key = (collector.use_soft_clipped_bases, tuple(
+        (read.reference_name, read.reference_start, read.is_reverse, read.cigarstring,
+         view.sequence if len(records) > 1 else None,
+         view.sequenced_interval(0, len(view.sequence))) for read, view in zip(records, views)))
+    if cache is not None and key in cache:
+        geometry = cache[key]
+        lo, hi = geometry[3]
+        if len(records) == 1:
+            # Same placement, different alleles: reuse coordinates, never bases.
+            read, view = records[0], views[0]
+            start, _ = view.sequenced_interval(0, len(view.sequence))
+            sequence = (reverse_complement_dna(view.sequence) if read.is_reverse else view.sequence).upper()
+            sequence = sequence[lo - start:hi - start]
+            if set(sequence) - set('ACGT'):
+                return 'ambiguous_bases'
+            geometry = (sequence, *geometry[1:])
+        # Only geometry is shared. Quality gates still see this read's original
+        # qualities (including unknown values), never a representative's QUAL.
+        qualities = [None] * (hi - lo)
+        for read, view in zip(records, views):
+            if view.qualities is None:
+                continue
+            start, _ = view.sequenced_interval(0, len(view.sequence))
+            values = view.qualities[::-1] if read.is_reverse else view.qualities
+            for q in range(max(lo, start), min(hi, start + len(values))):
+                value = values[q - start]
+                previous = qualities[q - lo]
+                qualities[q - lo] = value if previous is None else min(previous, value)
+        return (*geometry, tuple(qualities))
     bases, placements, sources, kinds = {}, defaultdict(set), defaultdict(set), {}
     quality_votes = defaultdict(list)
-    for index, read in enumerate(records):
-        view = collector.read_sequence_view(read)
+    for index, (read, view) in enumerate(zip(records, views)):
         start, _ = view.sequenced_interval(0, len(view.sequence))
         sequence = (reverse_complement_dna(view.sequence) if read.is_reverse else view.sequence).upper()
         for q, base in enumerate(sequence, start):
@@ -398,10 +435,11 @@ def _segment_path(records, collector, intern):
         (i, j, kinds.get((i + lo, j + lo), "split" if sources[i + lo].isdisjoint(sources[j + lo]) else "gap"))
         for i, j in _breaks(positions))
     qualities = tuple(min(quality_votes[q]) if quality_votes[q] else None for q in range(lo, hi))
+    _cache_geometry(cache, key, (sequence, positions, breaks, (lo, hi)))
     return sequence, positions, breaks, (lo, hi), qualities
 
 
-def _build_segment(identity, records, collector, reasons, intern):
+def _build_segment(identity, records, collector, reasons, intern, cache=None):
     """Both orientations of each linked grouping of one segment's records.
 
     ``intern`` shares one tuple per placement: deep reads cover the same bases.
@@ -410,7 +448,7 @@ def _build_segment(identity, records, collector, reasons, intern):
     for members in _segment_groupings(sorted(records, key=_record_id), reasons):
         if len(records) > 1 and len(members) == 1 and members[0].has_tag("SA"):
             reasons["SA_declared_piece_not_linked"] += 1
-        built = _segment_path(members, collector, intern)
+        built = _segment_path(members, collector, intern, cache)
         if isinstance(built, str):
             reasons[built] += 1
             continue
@@ -426,8 +464,17 @@ def _build_segment(identity, records, collector, reasons, intern):
         n = len(sequence)
         observations.append(RnaObservation(key + "+", sequence=sequence, positions=positions,
                                            breaks=breaks, reverse_complement=False, qualities=qualities, **common))
-        sequence, positions = _mirror(sequence, positions)
-        positions = tuple(None if p is None else intern.setdefault(p, p) for p in positions)
+        mirror_key = ('mirror', id(positions), breaks)
+        mirror = cache.get(mirror_key) if cache is not None else None
+        if mirror is None:
+            original_positions = positions
+            positions = tuple(None if p is None else intern.setdefault(_flip(p), _flip(p))
+                              for p in reversed(positions))
+            # Hold the original tuple so its id cannot be recycled while cached.
+            _cache_geometry(cache, mirror_key, (original_positions, positions))
+        else:
+            positions = mirror[1]
+        sequence = reverse_complement_dna(sequence)
         observations.append(RnaObservation(
             key + "-", sequence=sequence, positions=positions, reverse_complement=True,
             qualities=qualities[::-1],
@@ -498,13 +545,14 @@ class _Observations:
     reaching the cap is reported.
     """
 
-    def __init__(self, records, collector, cap, header, sample_id, source):
+    def __init__(self, records, collector, cap, header, sample_id, source, *, geometry_cache=None):
         self.collector, self.cap, self.limited = collector, cap, False
         self.groups, self.excluded, self.reasons = defaultdict(list), Counter(), Counter()
         self.extent, self.bins, self.gaps = defaultdict(dict), defaultdict(list), defaultdict(dict)
         self.gap_kinds = defaultdict(set)
         self.built, self.observations, self.joins, self.runs = {}, {}, defaultdict(list), {}
         self.intern, self.windows = {}, {}
+        self.geometry_cache = {} if geometry_cache is None else geometry_cache
         for read in records:
             reason = _ineligible(read, collector)
             if reason:
@@ -524,7 +572,7 @@ class _Observations:
     def build(self, identity):
         if identity not in self.built:
             self.built[identity] = _build_segment(identity, self.groups[identity], self.collector, self.reasons,
-                                                  self.intern)
+                                                  self.intern, self.geometry_cache)
             for o in self.built[identity]:
                 self.observations[o.key] = o
                 for i, j, kind in o.breaks:
@@ -1405,13 +1453,17 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         specification; excluded 255 records are then reported as
         ``mapq_255_excluded_from_inclusion``.
     dense_support : bool
-        Scan the complete original input into a disk spool, select bounded,
-        event-first discovery representatives, then count candidate junction
-        and full-interval witnesses across every original eligible segment.
-        Discovery and intron-competition limits remain explicit.
+        False (default) searches a bounded set of regional reads. True uses
+        temporary disk space to search large inputs: automatically group reads
+        by full sequence and alignment, share repeated calculations within
+        max_records, then count candidate support across all eligible original
+        reads. Grouping needs no separate tuning. Discovery and intron-competition
+        limits remain explicit.
     scratch_dir : str or pathlib.Path, optional
-        Existing directory for the dense-mode temporary spool and discovery
-        BAM. Scratch space scales with the complete input, not max_records.
+        Optional location for temporary files when dense_support is True.
+        None uses the system temporary directory. Set an existing directory on
+        another disk when more space is needed; this does not change results.
+        Space scales with the complete input, not max_records.
 
     Returns
     -------

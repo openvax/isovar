@@ -4,6 +4,19 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.49.0
+
+- Automatically bin dense SV discovery by complete sequence and alignment
+  structure, ignoring names and quality strings when scheduling equivalent
+  evidence. Keep original voters and allele proportions within the existing
+  record budget; report represented and omitted groups (#464).
+- Reuse bounded coordinate calculations across same-placement reads while
+  preserving their individual bases, qualities and identities. Screen impossible
+  complete-input junction witnesses before building detailed observations.
+- Clarify full-input mode and temporary-storage options without adding another
+  discovery parameter. Tight record caps may select different representatives;
+  discovery remains bounded and complete-input support uses original reads.
+
 ## 1.48.0
 
 - Add explicit independent filesystem clones for portable bundle creation and

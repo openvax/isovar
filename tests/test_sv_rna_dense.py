@@ -90,6 +90,114 @@ def test_late_rare_event_and_complete_support_do_not_depend_on_discovery_cap_or_
     assert not list(tmp_path.glob('isovar-sv-*'))
 
 
+def test_quality_and_label_variation_share_discovery_work_but_keep_all_support(tmp_path, monkeypatch):
+    from isovar import sv_rna_dense
+
+    scenario = Scenario()
+    reads = dense_reads(scenario, 30)
+    for i, read in enumerate(reads):
+        if read.query_qualities is not None:
+            read.query_qualities = [1 + i % 40] * len(read.query_sequence)
+    calls = []
+    priority = sv_rna_dense._priority
+
+    def counted(records, *args):
+        calls.append(records[0].query_name)
+        return priority(records, *args)
+
+    monkeypatch.setattr(sv_rna_dense, '_priority', counted)
+    result = scenario.run(write_bam(tmp_path / 'quality.bam', reads), dense_support=True, assemble=False)
+    assert len(calls) == 2  # Background and event, independent of quality/name/labels.
+    assert result['discovery']['eligible_regional_groups'] == 2
+    assert result['discovery']['selected_records'] == len(reads)
+    assert result['discovery']['represented_records'] == len(reads)
+    assert result['discovery']['groups_complete']
+    assert result['discovery']['complete']
+    path = candidate(result)
+    assert path['full_interval_support']['fragments'] == 30
+    assert path['full_interval_support']['cells'] == path['full_interval_support']['umis'] == 30
+    assert path['full_interval_support']['missing_quality_reads'] == 1
+    assert set(result['original_records'].values()) == {
+        read.to_string() for read in reads if read.query_name.startswith('event-')}
+
+
+def test_grouping_preserves_major_minor_allele_proportions(tmp_path):
+    scenario = Scenario()
+    major = scenario.sequence[200:300]
+    minor = major[:20] + ('A' if major[20] != 'A' else 'C') + major[21:]
+    reads = [r for name, count, sequence in [('major', 20, major), ('minor', 2, minor)]
+             for i in range(count) for r in aligned('%s-%d' % (name, i), sequence, scenario.positions[200:300])]
+    result = scenario.run(write_bam(tmp_path / 'proportions.bam', reads), dense_support=True, assemble=False)
+    path = candidate(result)
+    assert path['sequence'] == major
+    assert path['full_interval_support']['fragments'] == 20
+    assert path['junctions'][0]['direct_support']['fragments'] == 22
+
+
+@pytest.mark.parametrize('reverse', [False, True])
+def test_structural_cache_shares_positions_but_preserves_bases_and_quality(reverse, monkeypatch):
+    from collections import Counter
+    from isovar import sv_rna
+    from isovar.read_identity import segment_identity
+
+    collector, cache = ReadCollector(use_soft_clipped_bases=True), {}
+    reads = [record('read-%d' % i, '1', 100, '5S40M100N50M5S', 'A' * 100,
+                    flag=16 if reverse else 0, qualities=i != 2) for i in range(3)]
+    reads[1].query_sequence = 'A' * 60 + 'C' + 'A' * 39
+    reads[1].query_qualities = [7] * 100
+    expected = [sv_rna._build_segment(segment_identity(r), [r], collector, Counter(), {}) for r in reads]
+    calls, placements = [], sv_rna._record_placements
+
+    def counted(*args):
+        calls.append(1)
+        return placements(*args)
+
+    monkeypatch.setattr(sv_rna, '_record_placements', counted)
+    observed = [sv_rna._build_segment(segment_identity(r), [r], collector, Counter(), {}, cache) for r in reads]
+    assert [[asdict(o) for o in group] for group in observed] == [[asdict(o) for o in group] for group in expected]
+    assert len(calls) == 1
+    assert observed[0][0].positions is observed[1][0].positions
+    assert observed[0][1].positions is observed[2][1].positions
+
+
+def test_support_screen_skips_overlapping_background_without_changing_evidence(tmp_path, monkeypatch):
+    from isovar import sv_rna_dense
+
+    scenario = Scenario()
+    reads = dense_reads(scenario, 5)
+    bam = write_bam(tmp_path / 'background.bam', reads)
+    screened = scenario.run(bam, dense_support=True, assemble=False)
+    monkeypatch.setattr(sv_rna_dense, '_may_support', lambda *args: True)
+    exhaustive = scenario.run(bam, dense_support=True, assemble=False)
+    assert screened == exhaustive
+
+
+@pytest.mark.parametrize('change', ['base', 'insertion', 'coverage', 'placement', 'supplementary'])
+def test_grouping_keeps_full_alleles_and_actual_alignment_paths(change):
+    from isovar.sv_rna_dense import _group_signatures
+
+    original = record('a', '1', 100, '90M', 'A' * 90)
+    other = record('b', '1', 100, '90M', 'A' * 90)
+    records = [other]
+    if change == 'base':
+        # Even a distal difference, outside a breakpoint fingerprint, stays distinct.
+        other.query_sequence = 'A' * 89 + 'C'
+    elif change == 'insertion':
+        other.cigarstring = '45M1I45M'
+        other.query_sequence = 'A' * 45 + 'C' + 'A' * 45
+    elif change == 'coverage':
+        other.cigarstring = '80M'
+        other.query_sequence = 'A' * 80
+    elif change == 'placement':
+        other.reference_start += 1
+    else:
+        records.append(record('b', '2', 100, '90M', 'A' * 90, flag=2048))
+    structure, allele = _group_signatures(('a', 'a', 0), [original])
+    other_structure, other_allele = _group_signatures(('a', 'b', 0), records)
+    assert (structure == other_structure) == (change == 'base')
+    assert allele != other_allele
+
+
 @pytest.mark.parametrize('strand', ['+', '-'])
 def test_original_query_witnesses_and_orf_export_use_all_records(tmp_path, strand):
     scenario = Scenario(strand)
