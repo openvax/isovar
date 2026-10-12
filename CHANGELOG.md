@@ -6,7 +6,7 @@ releases that only fix bugs or add fixtures are omitted; see the
 
 ## 1.48.0
 
-- Use oncoref as the single owner of the upstream-ORF evidence catalogue,
+- Use orfdata as the single owner of the upstream-ORF evidence catalogue,
   keeping existing Isovar imports and query/export commands compatible.
 - Add `annotate_sv_uorf_evidence` to connect reconstructed RNA candidates to
   Varcode's validated alternative frames and native peptide retention. JSON
@@ -763,7 +763,7 @@ Read support counts sequenced segments, not alternative SAM alignments.
 - Reads keep their aligned exon blocks and splice junctions; assembly and
   translation are restricted to compatible transcripts.
 
-## 1.9.0
+## 0.1.0
 
 - Overlap assembly is on by default in the Python API and CLI. Pass
   `variant_sequence_assembly=False` or `--disable-variant-sequence-assembly` to disable it.

@@ -1,5 +1,5 @@
-"""Compatibility imports for the shared oncoref upstream-ORF reference."""
+"""Compatibility imports for the shared orfdata upstream-ORF reference."""
 
-from oncoref.uorf_catalog import (  # noqa: F401
+from orfdata.catalog import (  # noqa: F401
     EVIDENCE_METHODS, UORFCatalog, UORFPeptide, UORFRecord, load_uorf_catalog,
 )

@@ -127,7 +127,7 @@ outside this focused search, not negative results.
 
 ## Reference uORF MS overlay
 
-Isovar 1.48 adds `annotate_sv_uorf_evidence` using the shared oncoref catalogue
+Isovar 1.48 adds `annotate_sv_uorf_evidence` using the shared orfdata catalogue
 and Varcode's mapped uORF annotation. Native TPST1 has a reported HLA peptide,
 `KIILSKISV` (residues 31–39; 28 PSMs in the pinned author export). This is a
 different source from the earlier Kowar processed-table search above. The

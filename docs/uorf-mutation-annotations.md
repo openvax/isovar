@@ -27,7 +27,7 @@ change initiation context without changing a protein residue.
 | Stop loss | Extend along the actual transcript path to the next in-frame stop. | Incomplete downstream sequence means an unresolved extension, not a complete protein. |
 | Splice/fusion/SV | Reconstruct every supported RNA path, retained native frame and new sequence. | An initiation prior does not establish transcript inclusion, DNA-event linkage or somatic specificity. |
 
-The shared oncoref catalogue maps positions and REF-validates context SNVs.
+The shared orfdata catalogue maps positions and REF-validates context SNVs.
 Varcode 10.12 adds full-transcript upstream-frame variant consequences and
 mapped RNA-product annotation. Use `variant.orf_effects()` for additive DNA
 annotations, and the RNA overlay below for reconstructed Isovar candidates.

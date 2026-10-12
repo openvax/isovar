@@ -59,7 +59,7 @@ def _occurrence(path, candidate):
     row["reconstruction_scopes"] = deepcopy(path["reconstruction_scopes"])
     row["end_reasons"] = deepcopy(path["end_reasons"])
     row["start_evidence"] = deepcopy(candidate["start_evidence"])
-    for key in ("reference_uorf_annotations", "reference_uorf_lookup"):
+    for key in ("reference_orf_annotations", "reference_orf_lookup", "reference_uorf_annotations", "reference_uorf_lookup"):
         if key in candidate:
             row[key] = deepcopy(candidate[key])
     row["junctions"] = []
@@ -177,7 +177,7 @@ def export_sv_rna_orfs(result):
     export = {key: deepcopy(result[key]) for key in (
         "event_id", "reference_name", "sample_id", "source", "event_provenance", "donor", "acceptor",
         "reference_models", "parameters", "limitations")}
-    for key in ("discovery", "support_acquisition", "inclusion_competing_splice_scope", "uorf_catalogue_metadata"):
+    for key in ("discovery", "support_acquisition", "inclusion_competing_splice_scope", "uorf_catalogue_metadata", "orf_catalogue_metadata"):
         if key in result:
             export[key] = deepcopy(result[key])
     export.update(schema="isovar.sv_rna_orfs.v4", reconstruction_schema=result["schema"], candidates=candidates,
@@ -212,7 +212,7 @@ def write_sv_rna_orfs(export, prefix):
                "original_query_fragments", "reverse_complement_fragments", "mixed_orientation_fragments",
                "missing_quality_reads", "evidence_set_id", "uncertainty_flags",
                "start_tier_status", "start_tier", "start_priority", "start_evidence_json",
-               "reference_uorf_annotations_json"]
+               "reference_uorf_annotations_json", "reference_orf_annotations_json"]
     with paths["tsv"].open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, delimiter="\t")
         writer.writeheader()
@@ -234,10 +234,11 @@ def write_sv_rna_orfs(export, prefix):
                        start_evidence_json=_canonical([dict(path_id=o["path_id"],
                                                            start_evidence=o["start_evidence"])
                                                        for o in candidate["occurrences"]]))
-            row["reference_uorf_annotations_json"] = _canonical([
-                dict(path_id=o["path_id"], annotations=o.get("reference_uorf_annotations"),
-                     lookup=o.get("reference_uorf_lookup", "not_assessed"))
-                for o in candidate["occurrences"]])
+            for prefix in ("reference_orf", "reference_uorf"):
+                row[prefix + "_annotations_json"] = _canonical([
+                    dict(path_id=o["path_id"], annotations=o.get(prefix + "_annotations"),
+                         lookup=o.get(prefix + "_lookup", "not_assessed"))
+                    for o in candidate["occurrences"]])
             writer.writerow(row)
     for kind, field in (("protein", "amino_acids"), ("nucleotide", "nucleotide_sequence")):
         with paths[kind].open("w") as handle:

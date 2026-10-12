@@ -50,6 +50,7 @@ from .initiation_context import InitiationContext, annotate_initiation_context
 
 
 __all__ = [
+    "annotate_sv_orf_evidence",
     "annotate_sv_uorf_evidence",
     "InitiationContext",
     "annotate_initiation_context",
@@ -104,3 +105,5 @@ __all__ = [
 ]
 
 from .uorf_annotation import annotate_sv_uorf_evidence
+
+from .orf_annotation import annotate_sv_orf_evidence

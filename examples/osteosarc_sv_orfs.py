@@ -14,7 +14,7 @@ import tempfile
 import pysam
 
 from isovar.sid_data import restore_records
-from isovar import __version__, annotate_sv_uorf_evidence
+from isovar import __version__, annotate_sv_orf_evidence
 from pyensembl import cached_release
 from isovar.sid_data import export
 from isovar.sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
@@ -23,7 +23,7 @@ from isovar.sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
-    parser.add_argument("--uorf-evidence", action="store_true",
+    parser.add_argument("--orf-evidence", "--uorf-evidence", dest="orf_evidence", action="store_true",
                         help="Overlay reference uORF/MS evidence using installed Ensembl 95")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
@@ -44,9 +44,9 @@ def main():
         pysam.index(str(bam))
         with pysam.AlignmentFile(str(bam)) as alignments:
             result = reconstruct_sv_rna(alignments, source=entry["url"], **inputs)
-    if args.uorf_evidence:
+    if args.orf_evidence:
         transcript = cached_release(95).transcript_by_id("ENST00000304842")
-        result = annotate_sv_uorf_evidence(result, [transcript])
+        result = annotate_sv_orf_evidence(result, [transcript])
     with args.output.open("x") as handle:
         json.dump(dict(isovar_version=__version__, result=result), handle, indent=2)
         handle.write("\n")
