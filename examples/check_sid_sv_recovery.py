@@ -22,6 +22,37 @@ from examples.sid_sv_audit import acquisition, reconstruct, references
 from examples.sid_sv_audit.inventory import digest, identity, load_inventory, read_json, write_json
 
 
+def view_producer(directory, result, default_run, producers, pins):
+    """Validate an explicitly pinned successor to a preserved unresolved view."""
+    request = result['request']
+    key = '/'.join(request[field] for field in ('source_id', 'geometry_id', 'orientation'))
+    if key not in producers:
+        return default_run
+
+    def pinned(entry):
+        path = (directory / entry['path']).resolve()
+        if not path.is_relative_to(directory.resolve()) or digest(path) != entry['sha256']:
+            raise ValueError('Changed or outside recovery producer control')
+        pins[str(path.relative_to(directory.resolve()))] = entry['sha256']
+        return read_json(path)
+
+    producer = producers[key]
+    previous, run = pinned(producer['previous_outcome']), pinned(producer['run'])
+    if ('reconstruction' in previous or 'candidates' in previous or 'support_acquisition' in previous
+            or previous['status'] not in {'reconstruction_timeout', 'reconstruction_interrupted', 'not_assessable'}):
+        raise ValueError('Recovery successor must preserve a previously unresolved outcome')
+    scientific = ('inventory_sha256', 'references_sha256', 'acquisition_sha256', 'parameters',
+                  'source_id', 'geometry_id', 'orientation')
+    if any(previous['request'][field] != request[field] for field in scientific):
+        raise ValueError('Recovery successor changed scientific inputs or discovery settings')
+    if any(request[field] != run[field] for field in ('engine_id', 'isovar_version', 'parameters', 'max_seconds')):
+        raise ValueError('Recovery successor does not match its declared producer')
+    if producer['result_sha256'] != digest(reconstruct.result_path(
+            directory, request['source_id'], request['geometry_id'], request['orientation'])):
+        raise ValueError('Recovery successor outcome changed')
+    return run
+
+
 def verify(directory, output, *, allow_unresolved=False):
     """Verify completed views and, when requested, account for recorded failures."""
     directory, output = Path(directory), Path(output)
@@ -37,6 +68,16 @@ def verify(directory, output, *, allow_unresolved=False):
         raise ValueError("Recovery verification requires a recorded outcome for every selected view")
     pins = {name: digest(directory / name) for name in (
         "inventory.json.gz", "references.json.gz", "recovery-selection.json", "recovery-run.json", "batches.json")}
+    producer_path = directory / 'reconstruction-producers.json'
+    producers = {}
+    if producer_path.exists():
+        declared = read_json(producer_path)
+        producers = declared['views']
+        expected = {'/'.join(row[field] for field in ('source_id', 'geometry_id', 'orientation'))
+                    for row in observed['outcomes']}
+        if declared['schema_version'] != 1 or not set(producers) <= expected:
+            raise ValueError('Invalid reconstruction producer declarations')
+        pins[producer_path.name] = digest(producer_path)
     rows, checks, outcomes = [], [], Counter()
     translations = completed_views = 0
     for pair in selection["pairs"]:
@@ -66,7 +107,8 @@ def verify(directory, output, *, allow_unresolved=False):
             path = reconstruct.result_path(directory, sid, gid, orientation)
             result = read_json(path)
             request = result["request"]
-            assert request["engine_id"] == run["engine_id"]
+            producer = view_producer(directory, result, run, producers, pins)
+            assert request["engine_id"] == producer["engine_id"]
             assert request["parameters"]["dense_support"]
             assert request["acquisition_sha256"] == identity(receipt)
             assert request["inventory_sha256"] == pins["inventory.json.gz"]
