@@ -8,7 +8,7 @@ from varcode.orf import annotate_orf_product
 from orfdata import load_catalog
 
 
-def annotate_sv_orf_evidence(result, transcripts, *, catalog=None):
+def annotate_sv_orf_evidence(result, transcripts, *, catalog=None, reference_context=None):
     """Return a copy with per-candidate reference-ORF annotations.
 
     ``transcripts`` supplies full reference transcript objects for validating
@@ -16,11 +16,18 @@ def annotate_sv_orf_evidence(result, transcripts, *, catalog=None):
     is implicit. Isovar path blocks are zero-based half-open; the Varcode
     interchange uses one-based base origins. Each candidate keeps its own
     complete-interval RNA support. Reference MS never proves mutant translation.
+    ``reference_context`` declares missing metadata on custom reference Genomes.
+    Supplied transcript identifiers must be unambiguous across their contexts.
     """
     catalog = load_catalog() if catalog is None else catalog
     if result["reference_name"] != catalog.genome_build:
         raise ValueError("RNA result and ORF catalogue assemblies differ")
-    by_id = {str(t.id).split(".")[0]: t for t in transcripts}
+    by_id = {}
+    for transcript in transcripts:
+        key = str(transcript.id).split(".")[0]
+        if key in by_id:
+            raise ValueError("Ambiguous supplied transcript identifier: %s" % key)
+        by_id[key] = transcript
     annotated = deepcopy(result)
     for path in annotated.get("paths", ()):
         sequence = path["sequence"]
@@ -46,7 +53,7 @@ def annotate_sv_orf_evidence(result, transcripts, *, catalog=None):
                     mapped = record.map_genomic_position(position, genome_build=result["reference_name"])
                     if record.strand != strand or mapped["coding_nucleotide_offset"] != 0:
                         continue
-                    transcript = by_id.get(record.transcript_id)
+                    transcript = by_id.get(record.transcript_id.split(".")[0])
                     if transcript is None:
                         annotations.append(dict(orf_id=record.orf_id, status="unresolved",
                                                 reason="reference_transcript_not_supplied"))
@@ -63,7 +70,8 @@ def annotate_sv_orf_evidence(result, transcripts, *, catalog=None):
                                       initiation_observed=candidate["initiation_observed"],
                                       translation_observed=candidate["translation_observed"]))
                     try:
-                        annotation = annotate_orf_product(record.bind(transcript), product)
+                        annotation = annotate_orf_product(
+                            record.bind(transcript, context=reference_context), product)
                     except ValueError as error:
                         annotation = dict(orf_id=record.orf_id, status="unresolved", reason=str(error))
                     if (annotation.get("status") == "conditional_translation"

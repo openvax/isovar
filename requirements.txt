@@ -2,7 +2,7 @@ pyensembl>=2.27.2
 # Varcode 10 is the tested major version (CI and the suite run on 10.x).
 # 10.5.2 honors an Ensembl release in --genome (GRCh38:93 or GRCh38.93) instead
 # of silently using the latest release.
-varcode>=10.12.0,<11
+varcode>=10.13.0,<11
 pandas>=0.23.0
 pysam>=0.15.2
 edlib>=1.3.9.post1,<2
@@ -12,4 +12,4 @@ edlib>=1.3.9.post1,<2
 osteosarc>=0.15.5,<0.16
 
 # Shared species-scoped ORF models and reference MS observations.
-orfdata>=0.1.0,<1
+orfdata>=0.2.0,<1

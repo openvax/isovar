@@ -4,6 +4,14 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.51.0
+
+- Preserve ORFdata reference contexts and sequence fingerprints in native ORF
+  and RNA-product exports. Support explicit contexts for custom Genomes.
+- Resolve versioned source transcript IDs before validating their full identity,
+  and reject ambiguous supplied transcript IDs instead of overwriting them (#477).
+- Require ORFdata 0.2 and Varcode 10.13 for shared taxonomy/reference validation.
+
 ## 1.50.0
 
 - Use orfdata as the single owner of the upstream-ORF evidence catalogue,
