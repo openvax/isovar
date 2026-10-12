@@ -4,7 +4,13 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
-## 1.45.3
+## 1.47.1
+
+- Publish 42 completed recovery views and retain two unresolved IGKC outcomes
+  with unknown support, tracked in #470; independently check all 22 inputs and
+  420 exported ORFs. Expand the report to 55 events without shrinking scope.
+- Distinguish observed pilot views from the expected full-catalogue denominator
+  in new recovery selections; preserve the original producing requests (#471).
 
 - Reject mixed-checkout Sid recovery invocations before input preparation or
   acquisition; producing versions and original receipts remain explicit (#462).
@@ -22,6 +28,15 @@ releases that only fix bugs or add fixtures are omitted; see the
   and unknown reconstruction counts, distinct from completed negative screens (#458).
 - Keep candidate counts unknown in recovery coverage when a reconstruction has
   not completed, rather than reporting zero (#459).
+
+## 1.46.0
+
+- Package a versioned, offline human uORF evidence dataset with exact reference
+  protein sequences, spliced GRCh38 coding blocks, source-pinned ribosome/MS
+  evidence, peptide intervals, spectrum reviews and explicit mapping ambiguity.
+- Add the public `load_uorf_catalog` API and `isovar uorf-evidence` command with
+  JSON/TSV/FASTA exports and strand-aware genomic-position annotation. Native
+  peptide evidence remains separate from mutant translation and presentation.
 
 ## 1.45.2
 

@@ -29,7 +29,7 @@ include = ["isovar", "isovar.*"]
 
 [tool.setuptools.package-data]
 # Isovar's Sid test reads: an osteosarc bundle (docs/sid-test-reads.md).
-isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*"]
+isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*", "data/uorf-evidence/*"]
 
 [project.urls]
 "Homepage" = "https://github.com/openvax/isovar"
@@ -38,8 +38,10 @@ isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*"]
 [project.optional-dependencies]
 plot = ["matplotlib>=3.6,<4", "pypdf>=5,<7"]
 data = ["biopython>=1.80,<2"]  # Independent SAM/ORF and annotated-proteome checks.
+uorf-build = ["openpyxl>=3.1,<4"]  # Optional source-data builder; never needed to query the catalogue.
 
 [project.scripts]
+isovar-uorf-evidence = "isovar.cli.isovar_uorf_evidence:run"
 isovar-audit-bundle = "isovar.cli.isovar_audit_bundle:run"
 isovar = "isovar.cli.commands:run"
 isovar-protein-sequences = "isovar.cli.isovar_protein_sequences:run"
