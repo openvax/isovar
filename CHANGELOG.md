@@ -4,6 +4,21 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.52.0
+
+- Execute equivalent SV assembly votes, placement searches, junction summaries
+  and full-interval support comparisons once per group, retaining every original
+  contributor, allele difference, query interval, quality and metadata label.
+  Keep the existing discovery record limits and deterministic placement ties.
+- Use binary BAM scratch with indexed template offsets and shared signatures
+  instead of expanded SAM text. Reuse support observations and resolve original
+  mate labels lazily. These optimizations apply automatically without new knobs.
+- Write compact SV CLI JSON with unchanged fields and values. Benchmark output
+  reports serialization separately from reconstruction and can profile or limit
+  temporary-storage use.
+- Fix dense reconstruction of local SAM inputs, whose reset previously exposed
+  header lines to the alignment iterator (#480).
+
 ## 1.51.0
 
 - Preserve ORFdata reference contexts and sequence fingerprints in native ORF

@@ -93,7 +93,7 @@ def _spool(bam, db, collector, directory):
         source = str(directory / 'original.bam')
         if not bam.is_sam:
             bam.reset()
-        with pysam.AlignmentFile(source, 'wb', header=bam.header) as original:
+        with pysam.AlignmentFile(source, 'wb', header=bam.header, format_options=[b'level=1']) as original:
             for read in bam.fetch(until_eof=True):
                 original.write(read)
     # Normal collation retains supplementary, secondary and unpaired records;
@@ -102,7 +102,8 @@ def _spool(bam, db, collector, directory):
     db.execute('CREATE TABLE templates (rg TEXT, name TEXT, offset INTEGER, records INTEGER, '
                'segments INTEGER, PRIMARY KEY (rg, name)) WITHOUT ROWID')
     scanned, unique, segment_count, excluded = 0, 0, 0, Counter()
-    with pysam.AlignmentFile(name_sorted, 'rb') as reader, pysam.AlignmentFile(eligible, 'wb', header=bam.header) as output:
+    with pysam.AlignmentFile(name_sorted, 'rb') as reader, pysam.AlignmentFile(
+            eligible, 'wb', header=bam.header, format_options=[b'level=1']) as output:
         for _, name_records in groupby(reader.fetch(until_eof=True), key=lambda r: r.query_name):
             name_records = list(name_records)
             originals, fragments = {}, defaultdict(list)

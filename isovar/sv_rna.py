@@ -26,6 +26,8 @@ from hashlib import sha256
 from itertools import combinations, islice, repeat
 from types import SimpleNamespace
 
+import numpy as np
+
 from .cell_umi import CellUmiEvidence
 from .chimeric_alignment import compatible_phasing_alignments, sa_entries, source_alignment_paths_from_pysam
 from .default_parameters import (
@@ -714,7 +716,7 @@ class _Observations:
             for start, end, identity in entries:
                 blocks[identity].add((contig, start, end))
         grouped = {}
-        self.placement_groups, self.placement_bins = [], defaultdict(set)
+        self.placement_groups, intervals_by_contig = [], defaultdict(list)
         for identity, intervals in blocks.items():
             key = tuple(sorted(intervals)), tuple(sorted(self.extent[identity].items()))
             if key not in grouped:
@@ -722,11 +724,12 @@ class _Observations:
                 grouped[key] = group_id
                 self.placement_groups.append(([], self.extent[identity]))
                 for contig, start, end in intervals:
-                    for b in range(start // _RECORD_BIN, (end - 1) // _RECORD_BIN + 1):
-                        self.placement_bins[contig, b].add((start, end, group_id))
+                    intervals_by_contig[contig].append((start, end, group_id))
             self.placement_groups[grouped[key]][0].append(identity)
         for members, _ in self.placement_groups:
             members.sort()
+        self.placement_intervals = {contig: np.asarray(intervals, dtype=np.int64).T
+                                    for contig, intervals in intervals_by_contig.items()}
         self.bins.clear()
 
     def classify(self, event, annotated, anchored):
@@ -798,12 +801,17 @@ class _Observations:
         if self.placement_groups is None:
             self._index_placement_groups()
         runs = _runs(window)
-        covered = Counter()  # Window bases each segment's aligned blocks cover.
+        coverage = np.zeros(len(self.placement_groups), dtype=np.int64)
         for _, _, contig, low, high, _ in runs:
-            blocks = {block for b in range(low // _RECORD_BIN, (high - 1) // _RECORD_BIN + 1)
-                      for block in self.placement_bins.get((contig, b), ()) if block[0] < high and low < block[1]}
-            for start, end, group_id in blocks:
-                covered[group_id] += min(end, high) - max(start, low)
+            blocks = self.placement_intervals.get(contig)
+            if blocks is not None:
+                starts, ends, groups = blocks
+                overlap = np.minimum(ends, high) - np.maximum(starts, low)
+                hits = overlap > 0
+                # Integer accumulation preserves overlapping alternate blocks;
+                # this is exactly the original per-segment coverage score.
+                np.add.at(coverage, groups[hits], overlap[hits])
+        covered = {int(g): int(coverage[g]) for g in np.flatnonzero(coverage)}
         count = sum(len(self.placement_groups[g][0]) for g in covered)
         if count > self.cap:
             # Extenders must overlap the whole window (``min_overlap``): prefer

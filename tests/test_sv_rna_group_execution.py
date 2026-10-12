@@ -1,6 +1,7 @@
 """Grouped computation keeps original identity, ordering, and interval evidence."""
 
 from dataclasses import replace
+import random
 import sqlite3
 
 import pysam
@@ -9,7 +10,7 @@ import pytest
 from isovar.read_collector import ReadCollector
 from isovar.read_identity import segment_identity
 from isovar.read_lineage import ReadLineage
-from isovar.sv_rna import _GeometryCache, _Observations, _segment_path
+from isovar.sv_rna import _GeometryCache, _Observations, _offsets, _runs, _segment_path
 from isovar.sv_rna_dense import _DiskGroups, _spool
 from isovar.sv_rna_orfs import _witnesses
 from tests.test_sv_rna import HEADER, record, write_bam
@@ -66,6 +67,36 @@ def test_grouped_geometry_keeps_the_original_overlap_cap_and_ties():
     reverse = tuple(('1', q, '-') for q in range(109, 99, -1))
     found = store.overlapping(reverse, 0, len(reverse))
     assert {store.observations[key].identity[1] for key, _ in found} == {'a-long', 'b-long', 'terminal-gap'}
+
+
+def test_array_coverage_matches_original_segment_ranking_across_spliced_windows():
+    rng = random.Random(714)
+    for trial in range(20):
+        reads = []
+        for i in range(40):
+            start, length, gap = rng.randrange(80, 125), rng.randrange(8, 30), rng.randrange(25, 50)
+            name = 'read-%02d' % i
+            reads.append(record(name, '1', start, '%dM%dN%dM' % (length, gap, length), 'A' * (2 * length)))
+            if i % 5 == 0:
+                reads.append(record(name, '1', start + 3, '50M', 'A' * 50, flag=256))
+        store = _Observations(reads, ReadCollector(), 7, HEADER.to_dict(), 'sample', 'source')
+        bases = list(range(110, 121)) + list(range(160, 171))
+        strand = '-' if trial % 2 else '+'
+        window = tuple(('1', p, strand) for p in (reversed(bases) if strand == '-' else bases))
+        runs = _runs(window)
+        scores = {}
+        for identity, records in store.groups.items():
+            blocks = {(r.reference_name, a, b) for r in records for a, b in r.get_blocks()}
+            score = sum(max(0, min(b, high) - max(a, low))
+                        for _, _, contig, low, high, _ in runs for c, a, b in blocks if c == contig)
+            if score:
+                low, high = store.extent[identity]['1']
+                scores[identity] = (-score, -high if strand == '+' else low, identity)
+        selected = sorted(scores, key=scores.__getitem__)[:7]
+        expected = {pair for identity in selected for o in store.build(identity)
+                    for pair in _offsets(runs, 0, o.key, _runs(o.positions))}
+        assert store.overlapping(window, 0, len(window)) == expected
+        assert store.limited == (len(scores) > 7)
 
 
 def test_shared_interval_comparison_keeps_each_original_orientation_and_query_offset():
