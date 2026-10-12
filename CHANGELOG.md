@@ -4,7 +4,7 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
-## 1.49.0
+## 1.50.0
 
 - Use orfdata as the single owner of the upstream-ORF evidence catalogue,
   keeping existing Isovar imports and query/export commands compatible.
@@ -15,6 +15,21 @@ releases that only fix bugs or add fixtures are omitted; see the
   reads, preserving their 15/1/1 full-interval witnesses and missing qualities.
   None retains the catalogue's native MS peptide; mutant translation remains
   unassessed.
+
+## 1.49.0
+
+- Automatically bin dense SV discovery by complete sequence and alignment
+  structure, ignoring names and quality strings when scheduling equivalent
+  evidence. Keep original voters and allele proportions within the existing
+  record budget; report represented and omitted groups (#464).
+- Reuse bounded coordinate calculations across same-placement reads while
+  preserving their individual bases, qualities and identities. Screen impossible
+  complete-input junction witnesses before building detailed observations.
+- Clarify full-input mode and temporary-storage options without adding another
+  discovery parameter. Tight record caps may select different representatives;
+  discovery remains bounded and complete-input support uses original reads.
+- Use observed aligned block edges to screen breakpoint clips, retaining clips
+  beside terminal CIGAR deletions/skips in discovery and complete support (#476).
 
 ## 1.48.0
 

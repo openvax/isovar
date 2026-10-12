@@ -45,10 +45,11 @@ def make_parser(prog="isovar sv-rna"):
     group.add_argument("--max-records", type=int, default=SV_MAX_RECORDS,
                        help="Alignment records examined; reaching the limit is reported (default: %(default)s)")
     group.add_argument("--dense-support", action="store_true",
-                       help="Scan the full original input on disk, prioritize diverse event seeds, and count "
-                            "candidate support across all eligible original records")
+                       help="Use temporary disk space for large inputs: automatically group equivalent reads "
+                            "for search, then count candidate support across all original reads")
     group.add_argument("--sv-scratch-dir", type=Path,
-                       help="Existing scratch directory for --dense-support (space scales with the input)")
+                       help="Optional directory for --dense-support temporary files (default: system temporary "
+                            "directory); choose another disk if more space is needed")
     group.add_argument("--max-queries", type=int, default=SV_MAX_QUERIES,
                        help="Region/mate/supplementary lookups; reaching the limit is reported (default: %(default)s)")
     group.add_argument("--max-paths", type=int, default=SV_MAX_PATHS,

@@ -471,15 +471,28 @@ Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf) and
 alignment file**, including records outside the nominated regions. It groups
 actual records by segment on disk, gives placed event junctions first priority, followed by breakpoint
 clips, and reserves representative bundles for distinct
-sequence/placement classes before spending the discovery budget on repeated
-copies. A late event need not fall within the first `--max-records` records.
+full-sequence/placement groups. Grouping is automatic: different names, qualities
+and cell/UMI labels do not consume another group, but even a single sequence
+difference, another placement or partial coverage remains distinct. A late event
+need not fall within the first `--max-records` records. Each group contributes
+original representatives before the remaining record budget is spent on copies.
+Within the budget, every original still votes: equalizing common and rare groups
+would distort allele proportions. Instead, a bounded cache shares coordinate
+calculations across reads with the same alignment structure, while retaining
+each read's sequence, qualities and identity. Complete-input support still uses
+all originals. Grouping changes which records may be selected under a tight cap;
+discovery votes remain explicitly bounded and the policy is recorded.
 Supplementary and alternative records of a selected segment stay together;
 an SA tag alone still supplies no observed partner ([SAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf)).
 
 ```bash
 isovar sv-rna --input event.json --bam original-regional.bam --output dense.json \
-    --dense-support --sv-scratch-dir /path/to/scratch --max-records 50000
+    --dense-support
 ```
+
+Start with this command; there is no clustering threshold to choose. The existing
+`--max-records` limits memory used for candidate search. `--sv-scratch-dir` only
+chooses where temporary files are stored; set it when another disk has more space.
 
 The temporary SQLite spool and discovery BAM require scratch space proportional
 to the whole input, and are removed on success or failure. Without
@@ -508,7 +521,10 @@ segments to count support for the fixed candidate paths:
   scoped to discovery records; their scope is recorded explicitly.
 - `support_acquisition` describes the complete-input pass and its exclusions
   and segment-build notes. `discovery` reports selected and omitted regional
-  records. `discovery_record_limit`, query/path/extension limits and any
+  records, distinct groups, and groups represented by the selected originals.
+  `groups_complete` means every group has a representative; it does not mean
+  exhaustive hypothesis search.
+  `discovery_record_limit`, query/path/extension limits and any
   `support_segment_grouping_limit` remain explicit. ORF exports retain both
   discovery and support-pass metadata.
 
