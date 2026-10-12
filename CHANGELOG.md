@@ -4,6 +4,14 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.48.0
+
+- Add explicit independent filesystem clones for portable bundle creation and
+  Sid audit import, retaining checksum/size verification and failing without
+  full-copy fallback when native cloning is unavailable (#461).
+- Expose logical payload estimates before allocating generic bundles through
+  `AuditBundle.estimate_size` and `isovar audit-bundle create --estimate`.
+
 ## 1.47.1
 
 - Publish 42 completed recovery views and retain two unresolved IGKC outcomes

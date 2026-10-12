@@ -14,11 +14,16 @@ def make_parser(prog="isovar audit-bundle"):
     commands = parser.add_subparsers(dest="command", required=True)
     create = commands.add_parser("create", help="Freeze explicitly selected files from a JSON specification")
     create.add_argument("--spec", required=True, type=Path)
-    create.add_argument("--output", required=True, type=Path)
+    create_output = create.add_mutually_exclusive_group(required=True)
+    create_output.add_argument("--output", type=Path)
+    create_output.add_argument("--estimate", action="store_true", help="Print logical payload size without writing a bundle")
     sid = commands.add_parser("import-sid", help="Freeze existing Sid audit receipts, subsets and replay plans")
     sid.add_argument("--audit", required=True, type=Path)
     sid.add_argument("--output", required=True, type=Path)
     sid.add_argument("--extra-file", action="append", default=[], metavar="NAME=PATH")
+    for sub in (create, sid):
+        sub.add_argument("--copy-method", choices=("copy", "clone"), default="copy",
+                         help="Full copy (default) or native independent clone; clones fail if unsupported")
     for command in ("inspect", "verify", "pack", "replay"):
         sub = commands.add_parser(command, help={
             "inspect": "List bundle identity, files, replay runs and preserved outcomes",
@@ -53,8 +58,11 @@ def run(args=None, prog=None):
             if not isinstance(spec.get("files"), dict) or any(not isinstance(path, str) for path in spec["files"].values()):
                 raise AuditBundleError("Specification files must map logical names to local path strings")
             files = {name: args.spec.parent / path for name, path in spec["files"].items()}
+            if args.estimate:
+                print(json.dumps(AuditBundle.estimate_size(files), sort_keys=True))
+                return
             bundle = AuditBundle.create(args.output, files, spec.get("metadata"),
-                                        expected_sha256=spec.get("expected_sha256"))
+                                        expected_sha256=spec.get("expected_sha256"), copy_method=args.copy_method)
         elif args.command == "import-sid":
             extra = {}
             for value in args.extra_file:
@@ -62,7 +70,7 @@ def run(args=None, prog=None):
                 if not separator or not name or not path or name in extra:
                     raise AuditBundleError("Use distinct --extra-file NAME=PATH values")
                 extra[name] = Path(path)
-            bundle = bundle_sid_audit(args.audit, args.output, extra_files=extra)
+            bundle = bundle_sid_audit(args.audit, args.output, extra_files=extra, copy_method=args.copy_method)
         elif args.command == "unpack":
             bundle = AuditBundle.unpack(args.archive, args.output)
         else:
