@@ -1,0 +1,146 @@
+{
+  "created_at": "2026-10-07T20:08:17.669448+00:00",
+  "scope": "sampled_storage_codec_test_not_variant_discovery_or_support_counts",
+  "sampling": {
+    "fraction": 0.005,
+    "seed": 21,
+    "unit": "samtools_template_name_hash"
+  },
+  "tool": {
+    "path": "/opt/homebrew/bin/samtools",
+    "sha256": "b775a81650b17c7e6da9ded606620166afd28e0662314bd2fb9754f82f095e33",
+    "version": "samtools 1.21"
+  },
+  "helper": {
+    "path": "/Users/iskander/code/isovar/.cache/sid-compression-benchmark-20261007.py",
+    "sha256": "81741b593f42ed8fb94c618b8563bdc37858ec7b7ecdf6807209f2794f879f4a"
+  },
+  "pysam": "0.24.1",
+  "profiles": [
+    {
+      "target": "FTH",
+      "source": {
+        "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-20261006/cache/osteosarc/derived/ecad8af4d5510664722dba792027da784ffa3aa5de579bd41741aee95e047abb/reads.bam",
+        "sha256": "f1f0d885a45116191d8c6ccad4c6eb729dbad23541487e93c9a999746eca3f12",
+        "bytes": 1197109709
+      },
+      "receipt": {
+        "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/sources/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/84a49ccc669610cdbd486c24.json",
+        "sha256": "5b416678e31393b37d78954dcfe26f8cc798e308f53a878755eaed0e86b9008c"
+      },
+      "sample": {
+        "path": "/Users/iskander/code/isovar/.cache/sid-compression-benchmark-20261007/FTH.sample.bam",
+        "sha256": "3bc6f90a2f499141c91cd708a49fb7dc439137105e1a97b004c23514d9c47bf7",
+        "bytes": 6015431,
+        "sampling_seconds": 6.079,
+        "records": 7860,
+        "canonical_alignment_sha256": "9fe9430453b090019843eb86f630d1187b5fdc65f95f0474a27a04deed98ece1",
+        "all_alignment_fields_and_tags_preserved": true
+      },
+      "formats": [
+        {
+          "profile": "bam9",
+          "format_options": "BAM,level=9",
+          "path": "/Users/iskander/code/isovar/.cache/sid-compression-benchmark-20261007/FTH.bam9.bam",
+          "sha256": "8a1fa91cc9a7eb1108440ef83ec9a6b50a18d915722fdef092c242b58849ba61",
+          "bytes": 5797967,
+          "encode_seconds": 2.349,
+          "ratio_to_sample_bam6": 0.9638489744126397,
+          "records": 7860,
+          "canonical_alignment_sha256": "9fe9430453b090019843eb86f630d1187b5fdc65f95f0474a27a04deed98ece1",
+          "all_alignment_fields_and_tags_preserved": true
+        },
+        {
+          "profile": "cram_normal",
+          "format_options": "CRAM,version=3.1,normal,no_ref=1,store_md=1,store_nm=1,lossy_names=0",
+          "path": "/Users/iskander/code/isovar/.cache/sid-compression-benchmark-20261007/FTH.cram_normal.cram",
+          "sha256": "3d881d137eebb2849db13d7563aa44efeaa4ebc90b34c6b8abeb8e5dccab327f",
+          "bytes": 4079088,
+          "encode_seconds": 0.613,
+          "ratio_to_sample_bam6": 0.6781040294535836,
+          "records": 7860,
+          "canonical_alignment_sha256": "9fe9430453b090019843eb86f630d1187b5fdc65f95f0474a27a04deed98ece1",
+          "all_alignment_fields_and_tags_preserved": true
+        },
+        {
+          "profile": "cram_archive",
+          "format_options": "CRAM,version=3.1,archive,no_ref=1,store_md=1,store_nm=1,lossy_names=0",
+          "path": "/Users/iskander/code/isovar/.cache/sid-compression-benchmark-20261007/FTH.cram_archive.cram",
+          "sha256": "37a648163734b9d6792408e49894093863c4a6f1dabdd9ff60cd8c5a0eccbc48",
+          "bytes": 4006445,
+          "encode_seconds": 5.544,
+          "ratio_to_sample_bam6": 0.6660279205263929,
+          "records": 7860,
+          "canonical_alignment_sha256": "9fe9430453b090019843eb86f630d1187b5fdc65f95f0474a27a04deed98ece1",
+          "all_alignment_fields_and_tags_preserved": true
+        }
+      ]
+    },
+    {
+      "target": "IGKC",
+      "source": {
+        "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-igkc-hts124-20261006/cache/osteosarc/derived/db95dc342dba9f95c3284eb4c7390930e0f40987810a3c9d33573132ec795245/reads.bam",
+        "sha256": "fe1e7ff81aaa74405810556fbb9e3a89fd7cba88b12ff2c7938aa3f675ff93b3",
+        "bytes": 2331979166
+      },
+      "receipt": {
+        "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/sources/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/278ae77311dadb402ae7e168.json",
+        "sha256": "5e2758e5243ece7b1df829e3dfe603e1ecc68a7c97fe610909ff5583ba03b2fd"
+      },
+      "sample": {
+        "path": "/Users/iskander/code/isovar/.cache/sid-compression-benchmark-20261007/IGKC.sample.bam",
+        "sha256": "77a2330ef3e13839551ef4a374722f59d48dcd431d9c0e346eb8d9ebc256ce00",
+        "bytes": 11793579,
+        "sampling_seconds": 10.277,
+        "records": 13817,
+        "canonical_alignment_sha256": "f7138ce41467d49f34f32b31c349c1a9ba1fc1a0a9a2f5ca278cd2c0801df165",
+        "all_alignment_fields_and_tags_preserved": true
+      },
+      "formats": [
+        {
+          "profile": "bam9",
+          "format_options": "BAM,level=9",
+          "path": "/Users/iskander/code/isovar/.cache/sid-compression-benchmark-20261007/IGKC.bam9.bam",
+          "sha256": "d4d5ad7b9b9b3302fa0f92df03f8613d2749107f6fdadbd2dd1020d88d95f13a",
+          "bytes": 11375305,
+          "encode_seconds": 3.772,
+          "ratio_to_sample_bam6": 0.9645337517983302,
+          "records": 13817,
+          "canonical_alignment_sha256": "f7138ce41467d49f34f32b31c349c1a9ba1fc1a0a9a2f5ca278cd2c0801df165",
+          "all_alignment_fields_and_tags_preserved": true
+        },
+        {
+          "profile": "cram_normal",
+          "format_options": "CRAM,version=3.1,normal,no_ref=1,store_md=1,store_nm=1,lossy_names=0",
+          "path": "/Users/iskander/code/isovar/.cache/sid-compression-benchmark-20261007/IGKC.cram_normal.cram",
+          "sha256": "435d58eb7f027dfe24ffc592d423d455ff749aedaecfdd3be935baaa67ac3f65",
+          "bytes": 7737995,
+          "encode_seconds": 0.724,
+          "ratio_to_sample_bam6": 0.6561193171301095,
+          "records": 13817,
+          "canonical_alignment_sha256": "f7138ce41467d49f34f32b31c349c1a9ba1fc1a0a9a2f5ca278cd2c0801df165",
+          "all_alignment_fields_and_tags_preserved": true
+        },
+        {
+          "profile": "cram_archive",
+          "format_options": "CRAM,version=3.1,archive,no_ref=1,store_md=1,store_nm=1,lossy_names=0",
+          "path": "/Users/iskander/code/isovar/.cache/sid-compression-benchmark-20261007/IGKC.cram_archive.cram",
+          "sha256": "59721eb9a0c1d71f1c7ad9b48cfd1d29c8a89cc85a9241dbba4cf47b5014bef3",
+          "bytes": 7328280,
+          "encode_seconds": 10.397,
+          "ratio_to_sample_bam6": 0.6213788028214335,
+          "records": 13817,
+          "canonical_alignment_sha256": "f7138ce41467d49f34f32b31c349c1a9ba1fc1a0a9a2f5ca278cd2c0801df165",
+          "all_alignment_fields_and_tags_preserved": true
+        }
+      ]
+    }
+  ],
+  "source_byte_changes": false,
+  "caveats": [
+    "Sample compression ratios are not measured full-input savings.",
+    "Optional tag order is normalized; all decoded alignment fields and tag values are compared.",
+    "Self-contained CRAM has no external reference dependency; no read-name/quality/tag loss enabled.",
+    "Original frozen acquisition receipts and BAM/index bytes remain unchanged."
+  ]
+}

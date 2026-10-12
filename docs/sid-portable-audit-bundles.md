@@ -2,11 +2,11 @@
 
 The installed [audit-bundle API and CLI](audit-bundles.md) preserve the selected
 original inputs, frozen references, receipts, screen/report artifacts and SV
-reconstruction checkpoints in three independently movable bundles. Original
+reconstruction checkpoints in independently movable bundles. Original
 receipt/result bytes are unchanged; runtime files are resolved from logical
 names in the bundle. The compressed manifests below are checked into Git.
 The regional reads and annotation archives remain in durable local storage.
-Their three backups total **2,172,408,842 bytes (2.02 GiB)**; exact archive
+The three historical backups below total **2,172,408,842 bytes (2.02 GiB)**; exact archive
 sizes, SHA-256 and bundle identities are in [the archive index](data/sid-portable-bundles/archives.json).
 
 | Bundle | Verified files | Payload bytes | SV replay views | Frozen manifest |
@@ -20,18 +20,19 @@ The additions include all eight pinned Ensembl annotation files used by the
 validated once during import; copying still checks the expected source checksum
 and the copied bytes. No whole RNA library was downloaded for this export.
 
-The durable directories/archives are under this checkout's `.cache/`:
+The durable archives are under this checkout's `.cache/`. Regenerable export
+and validation-restore directories were reclaimed after every payload byte was
+verified in a retained archive; original audit inputs and manifests remain:
 
 ```text
-portable-sid-priority-final-20261006/
 portable-sid-priority-final-20261006.tar.gz
-portable-sid-additions-20261006/
 portable-sid-additions-20261006.tar.gz
-portable-sid-dense-final-20261006/
 portable-sid-dense-final-20261006.tar.gz
 ```
 
-Copy an archive to your backup storage using ordinary tools. After relocation,
+Copy an archive to your backup storage using ordinary tools. The three historical
+bundles pin Isovar 1.45.2; use that version to reproduce their original software
+identity. After relocation,
 restore it to a new directory, compare its identity with the frozen manifest,
 inspect its run IDs and replay a selected SV view:
 
@@ -55,7 +56,7 @@ validation are in [the replay ledger](data/sid-portable-bundles/wheel-replay.jso
 
 The offline regression also restores real original PARD3B SAM reads after
 deleting its original directory and verifies the expected sequence and four
-full-ORF supporting fragments. All 5,794 tests and lint pass. A stale module in
+full-ORF supporting fragments. A stale module in
 an existing developer `build/lib` directory was detected by software identity
 checks ([#454](https://github.com/openvax/isovar/issues/454)); final wheel
 validation uses a clean checkout, matching the canonical deployment workflow.
@@ -65,3 +66,34 @@ Other unfinished or unselected catalogue targets remain outside this saved
 scope. The importer preserves small-variant and report assets, while the public
 replay command implements SV RNA reconstruction; downstream report/small-variant
 commands retain their separately documented input/annotation requirements.
+
+## Dense recovery publication
+
+The fourth archive, `portable-sid-recovery-final-20261011.tar.gz`, preserves
+all 44 selected recovery outcomes, with 42 executable replay plans. The ONT
+IGKC timeout and interrupted scan retain unknown support; they do not have
+replay plans. [Follow-up #470](https://github.com/openvax/isovar/issues/470)
+tracks those unfinished views.
+
+The [producer-wheel proof](data/sid-portable-bundles/recovery-wheel-replay.json)
+verifies every archived payload byte, relocation of the full bundle, installed
+CLI restoration of a complete selected view, offline reconstruction and CLI
+checkpoint reuse. Both wheel checks matched the same complete result hash.
+
+It contains **722 verified files / 11,348,954,838 payload bytes**.
+The archive is **7,043,781,669 bytes**; its SHA-256 and bundle identity
+are in the [archive index](data/sid-portable-bundles/archives.json) and
+[frozen manifest](data/sid-portable-bundles/recovery.manifest.json.gz).
+The [report dependency ledger](data/sid-portable-bundles/recovery-report-dependencies.json.gz)
+accounts for all 284 frozen inputs across the four declared bundles. Preserve
+all four archives to retain the combined report's original inputs.
+
+The recovery producer was an **unreleased 1.45.3 development build**. Its
+preserved wheel is `.cache/sid-recovery-wheel-20261006/isovar-1.45.3-py3-none-any.whl`;
+it is not a PyPI release. The installed 1.47.1 wheel also reproduced the complete
+selected ONT CDK11 forward view after archive restoration with Python networking
+blocked. The comparison explicitly allowed the software change and matched the
+entire frozen result; see the [release-wheel proof](data/sid-portable-bundles/recovery-release-wheel-replay.json).
+With 1.47.1, restore and inspect the recovery archive using the commands above,
+then replay a selected run with `--allow-software-change`. A changed result
+still fails comparison.
