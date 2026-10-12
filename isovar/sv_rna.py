@@ -23,7 +23,7 @@ from heapq import merge
 from dataclasses import asdict, dataclass
 from functools import cached_property
 from hashlib import sha256
-from itertools import combinations, islice, repeat
+from itertools import chain, combinations, islice, repeat
 from types import SimpleNamespace
 
 import numpy as np
@@ -730,6 +730,12 @@ class _Observations:
             members.sort()
         self.placement_intervals = {contig: np.asarray(intervals, dtype=np.int64).T
                                     for contig, intervals in intervals_by_contig.items()}
+        self.placement_counts = np.asarray([len(members) for members, _ in self.placement_groups], dtype=np.int64)
+        self.placement_extents = {}
+        self.placement_first_rank = np.empty(len(self.placement_groups), dtype=np.int64)
+        for rank, group in enumerate(sorted(range(len(self.placement_groups)),
+                                             key=lambda g: self.placement_groups[g][0][0])):
+            self.placement_first_rank[group] = rank
         self.bins.clear()
 
     def classify(self, event, annotated, anchored):
@@ -811,8 +817,8 @@ class _Observations:
                 # Integer accumulation preserves overlapping alternate blocks;
                 # this is exactly the original per-segment coverage score.
                 np.add.at(coverage, groups[hits], overlap[hits])
-        covered = {int(g): int(coverage[g]) for g in np.flatnonzero(coverage)}
-        count = sum(len(self.placement_groups[g][0]) for g in covered)
+        covered = np.flatnonzero(coverage)
+        count = self.placement_counts[covered].sum()
         if count > self.cap:
             # Extenders must overlap the whole window (``min_overlap``): prefer
             # segments covering most of it (e.g. both sides of a junction),
@@ -820,14 +826,27 @@ class _Observations:
             self.limited = True
             _, _, contig, _, _, strand = runs[-1]
 
-            ranked = defaultdict(list)
-            for group_id, coverage in covered.items():
-                members, extent = self.placement_groups[group_id]
-                low, high = extent.get(contig, (float("inf"), float("-inf")))
-                ranked[-coverage, -(high if strand == "+" else -low)].append(members)
+            if contig not in self.placement_extents:
+                infinity = np.iinfo(np.int64).max
+                self.placement_extents[contig] = np.asarray(
+                    [extent.get(contig, (infinity, -infinity)) for _, extent in self.placement_groups],
+                    dtype=np.int64).T
+            lows, highs = self.placement_extents[contig]
+            reach = highs if strand == '+' else -lows
+            ordered = covered[np.lexsort((-reach[covered], -coverage[covered]))]
+            scores, reaches = coverage[ordered], reach[ordered]
+            boundaries = np.flatnonzero((scores[1:] != scores[:-1]) | (reaches[1:] != reaches[:-1])) + 1
             candidates = []
-            for rank in sorted(ranked):
-                candidates.extend(islice(merge(*ranked[rank]), self.cap - len(candidates)))
+            start = 0
+            for end in chain(boundaries, [len(ordered)]):
+                tied, start = ordered[start:end], end
+                remaining = self.cap - len(candidates)
+                if len(tied) > remaining:
+                    # A group whose smallest ID trails `remaining` other group
+                    # minima cannot contribute to the first `remaining` IDs.
+                    chosen = np.argpartition(self.placement_first_rank[tied], remaining - 1)[:remaining]
+                    tied = tied[chosen]
+                candidates.extend(islice(merge(*(self.placement_groups[g][0] for g in tied)), remaining))
                 if len(candidates) == self.cap:
                     break
         else:

@@ -37,25 +37,27 @@ times overlap and are not end-to-end speedup measurements.
 - Share frozen junction summaries and exact interval comparisons across paths;
   expand successful witnesses to their original query intervals and identities.
 - Reuse support observations and bound geometry reuse by both entries and bases.
-- Collate complete BAM records and index template offsets; normalize repeated
-  discovery signatures into an allele table. Preserve all alternate placements,
-  mates and supplementary records. Never use collate's primary-only fast mode.
+- Index original BAM offsets and normalize repeated discovery signatures into
+  an allele table. Preserve all alternate placements, mates and supplementary
+  records; convert SAM/CRAM once without dropping original records.
 - Skip ancestry record lookup only when the declared platform already excludes
   that producer model. Preserve original tags and unknown ancestry status.
 
-Alignment semantics follow the [SAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf)
-and [SAM tags](https://samtools.github.io/hts-specs/SAMtags.pdf). Binary grouping
-uses [standard samtools collate](https://www.htslib.org/doc/samtools-collate.html).
+Alignment and BGZF virtual-offset semantics follow the
+[SAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf) and
+[SAM tags](https://samtools.github.io/hts-specs/SAMtags.pdf).
 
-The 2.7-million-record ONT profile changes the next priorities: its first 600
-seconds include 316 seconds of spooling and 186 seconds of selection, followed
-by expensive repeated overlap queries. Use low compression for private BAM
-scratch and array arithmetic for exact block coverage. The latter must preserve
-overlapping alternative-block multiplicity, original segment caps and ties.
+Further profiling motivates low-compression scratch for converted inputs and
+integer array arithmetic for exact block coverage. Preserve overlapping
+alternative-block multiplicity, original segment caps and ties.
 
-The subsequent matched small cases show little short-read improvement and only
-1.5x on ONT. Replace the collated BAM copy with an index of virtual offsets in
-the original BAM. Hash only records sharing a template (the only possible exact
-duplicates), visit them in physical order, and retain distant mates/pieces via
-indexed lookup. SAM/CRAM inputs require one private BAM conversion. This removes
-collation and recompression for existing BAM inputs; inputs remain read-only.
+Replace collation and BAM payload copying with virtual offsets in the original
+BAM. Hash only records sharing a template (the only possible exact duplicates),
+visit them in physical order, and retain distant mates/pieces via indexed
+lookup. SAM/CRAM inputs require one private BAM conversion. Inputs remain
+read-only. Private-input diagnostics remain outside published benchmark data.
+
+Move overlap ranking into integer arrays too. Rank groups by the same coverage
+and directional extent, then merge original IDs within tied ranks. A tied group
+whose minimum ID follows at least the remaining cap's worth of other minima
+cannot contribute a selected identity; partial selection bounds that merge.

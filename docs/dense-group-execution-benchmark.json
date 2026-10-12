@@ -1,0 +1,1059 @@
+{
+  "schema": "dense_sv_benchmark_comparison.v1",
+  "target_speedup": 10,
+  "target_met_all_cases": false,
+  "method": "Fresh processes, identical verified inputs and parameters, same Python environment; single-run shared-machine timings. Required local tests overlapped final current-engine runs; an independent diagnostic overlapped the 100k baseline. Original full result objects compared by canonical SHA-256 of each top-level field and each full candidate path, preserving list order.",
+  "comparisons": [
+    {
+      "case": "short",
+      "max_records": 50000,
+      "baseline": {
+        "version": "1.49.0",
+        "python": "3.11.12",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "driver_sha256": "6dfa0bbf84a208797d19fbc844c7ee7df754c5f6cd171038d0d693af1f6254fb",
+        "bundle_id": "744b38a81f2c8775896bc21e5975bea148e006ec10051ac915afe2c8528e8630",
+        "run_id": "6e9147690525529f9591602afd1191f9862f4df16117a865c6726654456c9368/adj-03b9fc802bfa90900b74a750/forward",
+        "input_files": {
+          "bam": {
+            "sha256": "f393fc830126fe5be46f8375672dc1ad8bf2e63ec87146333fe144118c6f8ef4",
+            "size": 1933202
+          },
+          "index": {
+            "sha256": "d5240da3f63881e452e760c80e0cd5bac0271165a13139fe329ec396faf25d17",
+            "size": 3912
+          },
+          "input": {
+            "sha256": "d1fb5b43ccc8a7101c50fcac4b625ea1b5b9db5eb58e3e14d5dd12eba7d70374",
+            "size": 131471
+          }
+        },
+        "parameters": {
+          "annotated_junction_tolerance": 5,
+          "assemble": true,
+          "breakpoint_window": 2000,
+          "dense_support": true,
+          "include_regional_candidates": false,
+          "inclusion_mapq_255_is_unique": true,
+          "inclusion_min_base_quality": 20,
+          "inclusion_min_mapping_quality": 20,
+          "inclusion_min_splice_anchor_bases": 8,
+          "max_breakpoint_shift": 10,
+          "max_extension_segments": 500,
+          "max_orf_candidates": 1000,
+          "max_paths": 200,
+          "max_queries": 10000,
+          "max_records": 50000,
+          "min_alternative_fraction": 0.1,
+          "min_alternative_fragments": 2,
+          "min_anchor_bases": 18,
+          "min_local_variant_fraction": 0.5,
+          "min_orf_amino_acids": 8,
+          "min_overlap": 30,
+          "peptide_lengths": [
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "read_collection": {
+          "infer_read_ends": false,
+          "merge_overlapping_fragments": true,
+          "min_mapping_quality": 1,
+          "trim_adapters": false,
+          "trim_poly_a": false,
+          "use_duplicate_reads": false,
+          "use_reads_without_base_qualities": true,
+          "use_secondary_alignments": true,
+          "use_soft_clipped_bases": false
+        },
+        "engine_sha256": {
+          "sv_rna.py": "a045c434e59d006304b51e7d11c8339cdf18e754f50cccb10b560948ff601fda",
+          "sv_rna_dense.py": "68954bbe91191cf8d7fa5099eb9c6a0a8f10caacf0dc4a07ead553947b0939c1",
+          "sv_rna_orfs.py": "3dd2695d07a0bf012e71203ddf9b4559cdc150723f639ffbad6b08e0a6de5c10",
+          "read_identity.py": "4b0a63941d4d7a745a1ff9c7f8e0a09dabba560072b46fdca8e44e2abd1b3769",
+          "read_lineage.py": "ade67f5033e32d92a2a23d2faaabfe2389933991e89a6fb8bd6d2b11912d86cd",
+          "cell_umi.py": "e765197f20f84941c7f7c150629190800d9f6e2a21769a01bd3e3736c30c00e6"
+        },
+        "status": "completed",
+        "seconds": 25.078684374995646,
+        "cpu_seconds": 25.037053999999998,
+        "stages_seconds": {
+          "_spool": 0.35635616700164974,
+          "_select": 0.7774529169982998,
+          "_support": 5.055102040998463
+        },
+        "peak_rss_bytes": 635305984,
+        "sampled_peak_scratch_bytes": 48519353,
+        "result_serialization_seconds": 5.126328708000074,
+        "seconds_budget": 900,
+        "scratch_bytes_budget": 8589934592,
+        "profiled": false,
+        "original_input_limitations": [],
+        "discovery": {
+          "policy": "event_first_full_allele_groups.v1",
+          "eligible_structural_bins": 8818,
+          "eligible_regional_groups": 10086,
+          "selected_groups": 10086,
+          "omitted_groups": 0,
+          "represented_records": 29920,
+          "groups_complete": true,
+          "record_limit_reached": false,
+          "initial_representatives_per_group": 2,
+          "eligible_regional_records": 29920,
+          "selected_records": 29920,
+          "omitted_records": 0,
+          "complete": true
+        },
+        "support_acquisition": {
+          "scope": "all_original_input_records",
+          "records_complete": true,
+          "complete": true,
+          "records_scanned": 35301,
+          "unique_records": 35301,
+          "eligible_segments": 29980,
+          "excluded_records": {
+            "duplicate": 5315,
+            "mapping_quality": 6
+          },
+          "read_path_notes": {}
+        },
+        "limitations": [
+          "extension_segment_limit"
+        ]
+      },
+      "current": {
+        "version": "1.52.0",
+        "python": "3.11.12",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "dependencies": {
+          "numpy": "2.4.6",
+          "pysam": "0.24.1",
+          "pyensembl": "2.27.2",
+          "varcode": "10.13.0"
+        },
+        "driver_sha256": "830a0f868777423acc6611c0c0402ddab32806b62d96ddc0226c4aa688bfd54e",
+        "bundle_id": "744b38a81f2c8775896bc21e5975bea148e006ec10051ac915afe2c8528e8630",
+        "run_id": "6e9147690525529f9591602afd1191f9862f4df16117a865c6726654456c9368/adj-03b9fc802bfa90900b74a750/forward",
+        "input_files": {
+          "bam": {
+            "sha256": "f393fc830126fe5be46f8375672dc1ad8bf2e63ec87146333fe144118c6f8ef4",
+            "size": 1933202
+          },
+          "index": {
+            "sha256": "d5240da3f63881e452e760c80e0cd5bac0271165a13139fe329ec396faf25d17",
+            "size": 3912
+          },
+          "input": {
+            "sha256": "d1fb5b43ccc8a7101c50fcac4b625ea1b5b9db5eb58e3e14d5dd12eba7d70374",
+            "size": 131471
+          }
+        },
+        "parameters": {
+          "annotated_junction_tolerance": 5,
+          "assemble": true,
+          "breakpoint_window": 2000,
+          "dense_support": true,
+          "include_regional_candidates": false,
+          "inclusion_mapq_255_is_unique": true,
+          "inclusion_min_base_quality": 20,
+          "inclusion_min_mapping_quality": 20,
+          "inclusion_min_splice_anchor_bases": 8,
+          "max_breakpoint_shift": 10,
+          "max_extension_segments": 500,
+          "max_orf_candidates": 1000,
+          "max_paths": 200,
+          "max_queries": 10000,
+          "max_records": 50000,
+          "min_alternative_fraction": 0.1,
+          "min_alternative_fragments": 2,
+          "min_anchor_bases": 18,
+          "min_local_variant_fraction": 0.5,
+          "min_orf_amino_acids": 8,
+          "min_overlap": 30,
+          "peptide_lengths": [
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "read_collection": {
+          "infer_read_ends": false,
+          "merge_overlapping_fragments": true,
+          "min_mapping_quality": 1,
+          "trim_adapters": false,
+          "trim_poly_a": false,
+          "use_duplicate_reads": false,
+          "use_reads_without_base_qualities": true,
+          "use_secondary_alignments": true,
+          "use_soft_clipped_bases": false
+        },
+        "engine_sha256": {
+          "sv_rna.py": "bb8bf8cf16ec6a3d2b57087d3aa6610dba5ab688a0cb7fac65677752bcbfde6d",
+          "sv_rna_dense.py": "47bb87bdd39567ecbb9b42ac7931b7d3859077e505d2b95ead0a1437380752a9",
+          "sv_rna_orfs.py": "f50abf17ec61188d3cae12fae128decb48d5cc5d25de4de16818598438834fdb",
+          "read_identity.py": "2714d5352c822e2f6793edae65c5974c21254e71e6c1d0a0c098c8d5034387ee",
+          "read_lineage.py": "ee3e0e82e96d322243146971524a1018fab5b5f7b2e9d907c9fd4615cdfe2e83",
+          "cell_umi.py": "6b563ea5af6b4a56a023ca99bc77d369f500a8d336a037359e80097ae89466dd",
+          "rna_evidence.py": "bfa6ebf1816dfe62c695caa0b479e1d53dc5ea192c91e6913d4eeb3896ee74b1"
+        },
+        "status": "completed",
+        "seconds": 21.979515833001642,
+        "cpu_seconds": 22.017975,
+        "stages_seconds": {
+          "_spool": 0.18947620899416506,
+          "_select": 1.4641420830012066,
+          "_support": 5.329061582997383
+        },
+        "peak_rss_bytes": 665042944,
+        "sampled_peak_scratch_bytes": 17349025,
+        "result_serialization_seconds": 5.339408749998256,
+        "seconds_budget": 900,
+        "scratch_bytes_budget": 8589934592,
+        "profiled": false,
+        "original_input_limitations": [],
+        "discovery": {
+          "policy": "event_first_full_allele_groups.v1",
+          "eligible_structural_bins": 8818,
+          "eligible_regional_groups": 10086,
+          "selected_groups": 10086,
+          "omitted_groups": 0,
+          "represented_records": 29920,
+          "groups_complete": true,
+          "record_limit_reached": false,
+          "initial_representatives_per_group": 2,
+          "eligible_regional_records": 29920,
+          "selected_records": 29920,
+          "omitted_records": 0,
+          "complete": true
+        },
+        "support_acquisition": {
+          "scope": "all_original_input_records",
+          "records_complete": true,
+          "complete": true,
+          "records_scanned": 35301,
+          "unique_records": 35301,
+          "eligible_segments": 29980,
+          "excluded_records": {
+            "duplicate": 5315,
+            "mapping_quality": 6
+          },
+          "read_path_notes": {}
+        },
+        "limitations": [
+          "extension_segment_limit"
+        ]
+      },
+      "speedup": 1.1410025846584249,
+      "candidate_support_equal": true,
+      "discovery_equal": true,
+      "support_acquisition_equal": true,
+      "candidate_count": 195,
+      "baseline_candidate_support_sha256": "e4a8bfeccd19c4ef4020be4e14fa80b6e17330e5bebc6509956bc465b077334f",
+      "current_candidate_support_sha256": "e4a8bfeccd19c4ef4020be4e14fa80b6e17330e5bebc6509956bc465b077334f",
+      "whole_result_equal": true,
+      "different_top_level_keys": [],
+      "baseline_whole_result_summary_sha256": "51365dd1e9d96a2acfaf36feb4965c77c5f48111311725a0d1557ef947584b83",
+      "current_whole_result_summary_sha256": "51365dd1e9d96a2acfaf36feb4965c77c5f48111311725a0d1557ef947584b83"
+    },
+    {
+      "case": "ont",
+      "max_records": 50000,
+      "baseline": {
+        "version": "1.49.0",
+        "python": "3.11.12",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "driver_sha256": "6dfa0bbf84a208797d19fbc844c7ee7df754c5f6cd171038d0d693af1f6254fb",
+        "bundle_id": "744b38a81f2c8775896bc21e5975bea148e006ec10051ac915afe2c8528e8630",
+        "run_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-03b9fc802bfa90900b74a750/forward",
+        "input_files": {
+          "bam": {
+            "sha256": "d6450a290f5ff9aaddfd4b60584fb81f807f96b4deee6e4b652e82fa394242fb",
+            "size": 8929188
+          },
+          "index": {
+            "sha256": "f99fcc92c2136dc9ac59f2c846446ffedd499c68b7122d541a8b3543fd808cbd",
+            "size": 7368
+          },
+          "input": {
+            "sha256": "320111b627d1ace0358e458deed2144ba6e1375d6a264ddc79b5c59ff7334022",
+            "size": 131067
+          }
+        },
+        "parameters": {
+          "annotated_junction_tolerance": 5,
+          "assemble": true,
+          "breakpoint_window": 2000,
+          "dense_support": true,
+          "include_regional_candidates": false,
+          "inclusion_mapq_255_is_unique": true,
+          "inclusion_min_base_quality": 20,
+          "inclusion_min_mapping_quality": 20,
+          "inclusion_min_splice_anchor_bases": 8,
+          "max_breakpoint_shift": 10,
+          "max_extension_segments": 500,
+          "max_orf_candidates": 1000,
+          "max_paths": 200,
+          "max_queries": 10000,
+          "max_records": 50000,
+          "min_alternative_fraction": 0.1,
+          "min_alternative_fragments": 2,
+          "min_anchor_bases": 18,
+          "min_local_variant_fraction": 0.5,
+          "min_orf_amino_acids": 8,
+          "min_overlap": 30,
+          "peptide_lengths": [
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "read_collection": {
+          "infer_read_ends": false,
+          "merge_overlapping_fragments": true,
+          "min_mapping_quality": 1,
+          "trim_adapters": false,
+          "trim_poly_a": false,
+          "use_duplicate_reads": false,
+          "use_reads_without_base_qualities": true,
+          "use_secondary_alignments": true,
+          "use_soft_clipped_bases": false
+        },
+        "engine_sha256": {
+          "sv_rna.py": "a045c434e59d006304b51e7d11c8339cdf18e754f50cccb10b560948ff601fda",
+          "sv_rna_dense.py": "68954bbe91191cf8d7fa5099eb9c6a0a8f10caacf0dc4a07ead553947b0939c1",
+          "sv_rna_orfs.py": "3dd2695d07a0bf012e71203ddf9b4559cdc150723f639ffbad6b08e0a6de5c10",
+          "read_identity.py": "4b0a63941d4d7a745a1ff9c7f8e0a09dabba560072b46fdca8e44e2abd1b3769",
+          "read_lineage.py": "ade67f5033e32d92a2a23d2faaabfe2389933991e89a6fb8bd6d2b11912d86cd",
+          "cell_umi.py": "e765197f20f84941c7f7c150629190800d9f6e2a21769a01bd3e3736c30c00e6"
+        },
+        "status": "completed",
+        "seconds": 28.668381875002524,
+        "cpu_seconds": 28.628504,
+        "stages_seconds": {
+          "_spool": 0.2337925410029129,
+          "_select": 0.656755083000462,
+          "_support": 3.5770422909990884
+        },
+        "peak_rss_bytes": 678969344,
+        "sampled_peak_scratch_bytes": 56317572,
+        "result_serialization_seconds": 0.3336169160029385,
+        "seconds_budget": 900,
+        "scratch_bytes_budget": 8589934592,
+        "profiled": false,
+        "original_input_limitations": [
+          "input_acquisition_incomplete"
+        ],
+        "discovery": {
+          "policy": "event_first_full_allele_groups.v1",
+          "eligible_structural_bins": 11939,
+          "eligible_regional_groups": 12014,
+          "selected_groups": 12014,
+          "omitted_groups": 0,
+          "represented_records": 12032,
+          "groups_complete": true,
+          "record_limit_reached": false,
+          "initial_representatives_per_group": 2,
+          "eligible_regional_records": 12032,
+          "selected_records": 12032,
+          "omitted_records": 0,
+          "complete": true
+        },
+        "support_acquisition": {
+          "scope": "all_original_input_records",
+          "records_complete": true,
+          "complete": true,
+          "records_scanned": 12747,
+          "unique_records": 12747,
+          "eligible_segments": 12119,
+          "excluded_records": {
+            "mapping_quality": 620
+          },
+          "read_path_notes": {
+            "SA_declared_piece_not_linked": 2
+          }
+        },
+        "limitations": [
+          "extension_segment_limit",
+          "repeated_genomic_position"
+        ]
+      },
+      "current": {
+        "version": "1.52.0",
+        "python": "3.11.12",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "dependencies": {
+          "numpy": "2.4.6",
+          "pysam": "0.24.1",
+          "pyensembl": "2.27.2",
+          "varcode": "10.13.0"
+        },
+        "driver_sha256": "830a0f868777423acc6611c0c0402ddab32806b62d96ddc0226c4aa688bfd54e",
+        "bundle_id": "744b38a81f2c8775896bc21e5975bea148e006ec10051ac915afe2c8528e8630",
+        "run_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-03b9fc802bfa90900b74a750/forward",
+        "input_files": {
+          "bam": {
+            "sha256": "d6450a290f5ff9aaddfd4b60584fb81f807f96b4deee6e4b652e82fa394242fb",
+            "size": 8929188
+          },
+          "index": {
+            "sha256": "f99fcc92c2136dc9ac59f2c846446ffedd499c68b7122d541a8b3543fd808cbd",
+            "size": 7368
+          },
+          "input": {
+            "sha256": "320111b627d1ace0358e458deed2144ba6e1375d6a264ddc79b5c59ff7334022",
+            "size": 131067
+          }
+        },
+        "parameters": {
+          "annotated_junction_tolerance": 5,
+          "assemble": true,
+          "breakpoint_window": 2000,
+          "dense_support": true,
+          "include_regional_candidates": false,
+          "inclusion_mapq_255_is_unique": true,
+          "inclusion_min_base_quality": 20,
+          "inclusion_min_mapping_quality": 20,
+          "inclusion_min_splice_anchor_bases": 8,
+          "max_breakpoint_shift": 10,
+          "max_extension_segments": 500,
+          "max_orf_candidates": 1000,
+          "max_paths": 200,
+          "max_queries": 10000,
+          "max_records": 50000,
+          "min_alternative_fraction": 0.1,
+          "min_alternative_fragments": 2,
+          "min_anchor_bases": 18,
+          "min_local_variant_fraction": 0.5,
+          "min_orf_amino_acids": 8,
+          "min_overlap": 30,
+          "peptide_lengths": [
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "read_collection": {
+          "infer_read_ends": false,
+          "merge_overlapping_fragments": true,
+          "min_mapping_quality": 1,
+          "trim_adapters": false,
+          "trim_poly_a": false,
+          "use_duplicate_reads": false,
+          "use_reads_without_base_qualities": true,
+          "use_secondary_alignments": true,
+          "use_soft_clipped_bases": false
+        },
+        "engine_sha256": {
+          "sv_rna.py": "bb8bf8cf16ec6a3d2b57087d3aa6610dba5ab688a0cb7fac65677752bcbfde6d",
+          "sv_rna_dense.py": "47bb87bdd39567ecbb9b42ac7931b7d3859077e505d2b95ead0a1437380752a9",
+          "sv_rna_orfs.py": "f50abf17ec61188d3cae12fae128decb48d5cc5d25de4de16818598438834fdb",
+          "read_identity.py": "2714d5352c822e2f6793edae65c5974c21254e71e6c1d0a0c098c8d5034387ee",
+          "read_lineage.py": "ee3e0e82e96d322243146971524a1018fab5b5f7b2e9d907c9fd4615cdfe2e83",
+          "cell_umi.py": "6b563ea5af6b4a56a023ca99bc77d369f500a8d336a037359e80097ae89466dd",
+          "rna_evidence.py": "bfa6ebf1816dfe62c695caa0b479e1d53dc5ea192c91e6913d4eeb3896ee74b1"
+        },
+        "status": "completed",
+        "seconds": 18.56661724999867,
+        "cpu_seconds": 18.58864,
+        "stages_seconds": {
+          "_spool": 0.10464345799846342,
+          "_select": 2.2207732499955455,
+          "_support": 1.5442371250028373
+        },
+        "peak_rss_bytes": 730349568,
+        "sampled_peak_scratch_bytes": 22791284,
+        "result_serialization_seconds": 0.3512872499995865,
+        "seconds_budget": 900,
+        "scratch_bytes_budget": 8589934592,
+        "profiled": false,
+        "original_input_limitations": [
+          "input_acquisition_incomplete"
+        ],
+        "discovery": {
+          "policy": "event_first_full_allele_groups.v1",
+          "eligible_structural_bins": 11939,
+          "eligible_regional_groups": 12014,
+          "selected_groups": 12014,
+          "omitted_groups": 0,
+          "represented_records": 12032,
+          "groups_complete": true,
+          "record_limit_reached": false,
+          "initial_representatives_per_group": 2,
+          "eligible_regional_records": 12032,
+          "selected_records": 12032,
+          "omitted_records": 0,
+          "complete": true
+        },
+        "support_acquisition": {
+          "scope": "all_original_input_records",
+          "records_complete": true,
+          "complete": true,
+          "records_scanned": 12747,
+          "unique_records": 12747,
+          "eligible_segments": 12119,
+          "excluded_records": {
+            "mapping_quality": 620
+          },
+          "read_path_notes": {
+            "SA_declared_piece_not_linked": 2
+          }
+        },
+        "limitations": [
+          "extension_segment_limit",
+          "repeated_genomic_position"
+        ]
+      },
+      "speedup": 1.544082128100345,
+      "candidate_support_equal": true,
+      "discovery_equal": true,
+      "support_acquisition_equal": true,
+      "candidate_count": 111,
+      "baseline_candidate_support_sha256": "b8c082167704f2f865f7b7abd2a6282f4af0468c038e6fd221117642d168efbb",
+      "current_candidate_support_sha256": "b8c082167704f2f865f7b7abd2a6282f4af0468c038e6fd221117642d168efbb",
+      "whole_result_equal": true,
+      "different_top_level_keys": [],
+      "baseline_whole_result_summary_sha256": "f669eb662b7887f31ce8d740e3ab255f83493ca332dd9c9ceab5a83a7c6a7bd7",
+      "current_whole_result_summary_sha256": "f669eb662b7887f31ce8d740e3ab255f83493ca332dd9c9ceab5a83a7c6a7bd7"
+    },
+    {
+      "case": "igkc",
+      "max_records": 50000,
+      "baseline": {
+        "version": "1.49.0",
+        "python": "3.11.12",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "driver_sha256": "6dfa0bbf84a208797d19fbc844c7ee7df754c5f6cd171038d0d693af1f6254fb",
+        "bundle_id": "744b38a81f2c8775896bc21e5975bea148e006ec10051ac915afe2c8528e8630",
+        "run_id": "6e9147690525529f9591602afd1191f9862f4df16117a865c6726654456c9368/adj-041dbfbb2239d183a5982838/forward",
+        "input_files": {
+          "bam": {
+            "sha256": "996d4449bf8ec34e405b3a11e8f315d477d35814695c2570df2ea12db78ae360",
+            "size": 33169501
+          },
+          "index": {
+            "sha256": "a9c42390ac57e0c94b8bb7cc23ff73a157a20fdaf70f5a3a9840a66309cef716",
+            "size": 92944
+          },
+          "input": {
+            "sha256": "cb4b81c19fd931a29c7d548d6f2c7bfee6b17c962bad8e127c9504ca187f6a08",
+            "size": 4513
+          }
+        },
+        "parameters": {
+          "annotated_junction_tolerance": 5,
+          "assemble": true,
+          "breakpoint_window": 2000,
+          "dense_support": true,
+          "include_regional_candidates": false,
+          "inclusion_mapq_255_is_unique": true,
+          "inclusion_min_base_quality": 20,
+          "inclusion_min_mapping_quality": 20,
+          "inclusion_min_splice_anchor_bases": 8,
+          "max_breakpoint_shift": 10,
+          "max_extension_segments": 500,
+          "max_orf_candidates": 1000,
+          "max_paths": 200,
+          "max_queries": 10000,
+          "max_records": 50000,
+          "min_alternative_fraction": 0.1,
+          "min_alternative_fragments": 2,
+          "min_anchor_bases": 18,
+          "min_local_variant_fraction": 0.5,
+          "min_orf_amino_acids": 8,
+          "min_overlap": 30,
+          "peptide_lengths": [
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "read_collection": {
+          "infer_read_ends": false,
+          "merge_overlapping_fragments": true,
+          "min_mapping_quality": 1,
+          "trim_adapters": false,
+          "trim_poly_a": false,
+          "use_duplicate_reads": false,
+          "use_reads_without_base_qualities": true,
+          "use_secondary_alignments": true,
+          "use_soft_clipped_bases": false
+        },
+        "engine_sha256": {
+          "sv_rna.py": "a045c434e59d006304b51e7d11c8339cdf18e754f50cccb10b560948ff601fda",
+          "sv_rna_dense.py": "68954bbe91191cf8d7fa5099eb9c6a0a8f10caacf0dc4a07ead553947b0939c1",
+          "sv_rna_orfs.py": "3dd2695d07a0bf012e71203ddf9b4559cdc150723f639ffbad6b08e0a6de5c10",
+          "read_identity.py": "4b0a63941d4d7a745a1ff9c7f8e0a09dabba560072b46fdca8e44e2abd1b3769",
+          "read_lineage.py": "ade67f5033e32d92a2a23d2faaabfe2389933991e89a6fb8bd6d2b11912d86cd",
+          "cell_umi.py": "e765197f20f84941c7f7c150629190800d9f6e2a21769a01bd3e3736c30c00e6"
+        },
+        "status": "completed",
+        "seconds": 192.28952158299944,
+        "cpu_seconds": 186.265446,
+        "stages_seconds": {
+          "_spool": 22.62155758299923,
+          "_select": 10.773202459000458,
+          "_support": 74.62828041700413
+        },
+        "peak_rss_bytes": 2587590656,
+        "sampled_peak_scratch_bytes": 823120404,
+        "result_serialization_seconds": 15.390423125005327,
+        "seconds_budget": 900,
+        "scratch_bytes_budget": 8589934592,
+        "profiled": false,
+        "original_input_limitations": [],
+        "discovery": {
+          "policy": "event_first_full_allele_groups.v1",
+          "eligible_structural_bins": 13358,
+          "eligible_regional_groups": 39099,
+          "selected_groups": 9570,
+          "omitted_groups": 29529,
+          "represented_records": 185388,
+          "groups_complete": false,
+          "record_limit_reached": true,
+          "initial_representatives_per_group": 2,
+          "eligible_regional_records": 599070,
+          "selected_records": 50000,
+          "omitted_records": 549070,
+          "complete": false
+        },
+        "support_acquisition": {
+          "scope": "all_original_input_records",
+          "records_complete": true,
+          "complete": true,
+          "records_scanned": 773288,
+          "unique_records": 773288,
+          "eligible_segments": 602157,
+          "excluded_records": {
+            "duplicate": 170998,
+            "mapping_quality": 133
+          },
+          "read_path_notes": {
+            "ambiguous_bases": 327
+          }
+        },
+        "limitations": [
+          "discovery_record_limit",
+          "extension_segment_limit",
+          "path_limit",
+          "seed_segment_limit"
+        ]
+      },
+      "current": {
+        "version": "1.52.0",
+        "python": "3.11.12",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "dependencies": {
+          "numpy": "2.4.6",
+          "pysam": "0.24.1",
+          "pyensembl": "2.27.2",
+          "varcode": "10.13.0"
+        },
+        "driver_sha256": "830a0f868777423acc6611c0c0402ddab32806b62d96ddc0226c4aa688bfd54e",
+        "bundle_id": "744b38a81f2c8775896bc21e5975bea148e006ec10051ac915afe2c8528e8630",
+        "run_id": "6e9147690525529f9591602afd1191f9862f4df16117a865c6726654456c9368/adj-041dbfbb2239d183a5982838/forward",
+        "input_files": {
+          "bam": {
+            "sha256": "996d4449bf8ec34e405b3a11e8f315d477d35814695c2570df2ea12db78ae360",
+            "size": 33169501
+          },
+          "index": {
+            "sha256": "a9c42390ac57e0c94b8bb7cc23ff73a157a20fdaf70f5a3a9840a66309cef716",
+            "size": 92944
+          },
+          "input": {
+            "sha256": "cb4b81c19fd931a29c7d548d6f2c7bfee6b17c962bad8e127c9504ca187f6a08",
+            "size": 4513
+          }
+        },
+        "parameters": {
+          "annotated_junction_tolerance": 5,
+          "assemble": true,
+          "breakpoint_window": 2000,
+          "dense_support": true,
+          "include_regional_candidates": false,
+          "inclusion_mapq_255_is_unique": true,
+          "inclusion_min_base_quality": 20,
+          "inclusion_min_mapping_quality": 20,
+          "inclusion_min_splice_anchor_bases": 8,
+          "max_breakpoint_shift": 10,
+          "max_extension_segments": 500,
+          "max_orf_candidates": 1000,
+          "max_paths": 200,
+          "max_queries": 10000,
+          "max_records": 50000,
+          "min_alternative_fraction": 0.1,
+          "min_alternative_fragments": 2,
+          "min_anchor_bases": 18,
+          "min_local_variant_fraction": 0.5,
+          "min_orf_amino_acids": 8,
+          "min_overlap": 30,
+          "peptide_lengths": [
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "read_collection": {
+          "infer_read_ends": false,
+          "merge_overlapping_fragments": true,
+          "min_mapping_quality": 1,
+          "trim_adapters": false,
+          "trim_poly_a": false,
+          "use_duplicate_reads": false,
+          "use_reads_without_base_qualities": true,
+          "use_secondary_alignments": true,
+          "use_soft_clipped_bases": false
+        },
+        "engine_sha256": {
+          "sv_rna.py": "bb8bf8cf16ec6a3d2b57087d3aa6610dba5ab688a0cb7fac65677752bcbfde6d",
+          "sv_rna_dense.py": "47bb87bdd39567ecbb9b42ac7931b7d3859077e505d2b95ead0a1437380752a9",
+          "sv_rna_orfs.py": "f50abf17ec61188d3cae12fae128decb48d5cc5d25de4de16818598438834fdb",
+          "read_identity.py": "2714d5352c822e2f6793edae65c5974c21254e71e6c1d0a0c098c8d5034387ee",
+          "read_lineage.py": "ee3e0e82e96d322243146971524a1018fab5b5f7b2e9d907c9fd4615cdfe2e83",
+          "cell_umi.py": "6b563ea5af6b4a56a023ca99bc77d369f500a8d336a037359e80097ae89466dd",
+          "rna_evidence.py": "bfa6ebf1816dfe62c695caa0b479e1d53dc5ea192c91e6913d4eeb3896ee74b1"
+        },
+        "status": "completed",
+        "seconds": 59.67787249999674,
+        "cpu_seconds": 59.770546,
+        "stages_seconds": {
+          "_spool": 6.142512457998237,
+          "_select": 10.121805875001883,
+          "_support": 26.475650833002874
+        },
+        "peak_rss_bytes": 2573795328,
+        "sampled_peak_scratch_bytes": 254099239,
+        "result_serialization_seconds": 15.286315082994406,
+        "seconds_budget": 900,
+        "scratch_bytes_budget": 8589934592,
+        "profiled": false,
+        "original_input_limitations": [],
+        "discovery": {
+          "policy": "event_first_full_allele_groups.v1",
+          "eligible_structural_bins": 13358,
+          "eligible_regional_groups": 39099,
+          "selected_groups": 9570,
+          "omitted_groups": 29529,
+          "represented_records": 185388,
+          "groups_complete": false,
+          "record_limit_reached": true,
+          "initial_representatives_per_group": 2,
+          "eligible_regional_records": 599070,
+          "selected_records": 50000,
+          "omitted_records": 549070,
+          "complete": false
+        },
+        "support_acquisition": {
+          "scope": "all_original_input_records",
+          "records_complete": true,
+          "complete": true,
+          "records_scanned": 773288,
+          "unique_records": 773288,
+          "eligible_segments": 602157,
+          "excluded_records": {
+            "duplicate": 170998,
+            "mapping_quality": 133
+          },
+          "read_path_notes": {
+            "ambiguous_bases": 327
+          }
+        },
+        "limitations": [
+          "discovery_record_limit",
+          "extension_segment_limit",
+          "path_limit",
+          "seed_segment_limit"
+        ]
+      },
+      "speedup": 3.2221242736662563,
+      "candidate_support_equal": true,
+      "discovery_equal": true,
+      "support_acquisition_equal": true,
+      "candidate_count": 200,
+      "baseline_candidate_support_sha256": "f75c86de378210cc2eeaf696eaf815bd4e1477b6e9e07f7fc7ff1e2f66783127",
+      "current_candidate_support_sha256": "f75c86de378210cc2eeaf696eaf815bd4e1477b6e9e07f7fc7ff1e2f66783127",
+      "whole_result_equal": true,
+      "different_top_level_keys": [],
+      "baseline_whole_result_summary_sha256": "45afe3b42d6cc43d9aa5a85d3bded0ecede113e169d188b727aad9dd4aed3a63",
+      "current_whole_result_summary_sha256": "45afe3b42d6cc43d9aa5a85d3bded0ecede113e169d188b727aad9dd4aed3a63"
+    },
+    {
+      "case": "igkc",
+      "max_records": 100000,
+      "baseline": {
+        "version": "1.49.0",
+        "python": "3.11.12",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "dependencies": {
+          "numpy": "2.4.6",
+          "pysam": "0.24.1",
+          "pyensembl": "2.27.2",
+          "varcode": "10.13.0"
+        },
+        "driver_sha256": "830a0f868777423acc6611c0c0402ddab32806b62d96ddc0226c4aa688bfd54e",
+        "bundle_id": "744b38a81f2c8775896bc21e5975bea148e006ec10051ac915afe2c8528e8630",
+        "run_id": "6e9147690525529f9591602afd1191f9862f4df16117a865c6726654456c9368/adj-041dbfbb2239d183a5982838/forward",
+        "input_files": {
+          "bam": {
+            "sha256": "996d4449bf8ec34e405b3a11e8f315d477d35814695c2570df2ea12db78ae360",
+            "size": 33169501
+          },
+          "index": {
+            "sha256": "a9c42390ac57e0c94b8bb7cc23ff73a157a20fdaf70f5a3a9840a66309cef716",
+            "size": 92944
+          },
+          "input": {
+            "sha256": "cb4b81c19fd931a29c7d548d6f2c7bfee6b17c962bad8e127c9504ca187f6a08",
+            "size": 4513
+          }
+        },
+        "parameters": {
+          "annotated_junction_tolerance": 5,
+          "assemble": true,
+          "breakpoint_window": 2000,
+          "dense_support": true,
+          "include_regional_candidates": false,
+          "inclusion_mapq_255_is_unique": true,
+          "inclusion_min_base_quality": 20,
+          "inclusion_min_mapping_quality": 20,
+          "inclusion_min_splice_anchor_bases": 8,
+          "max_breakpoint_shift": 10,
+          "max_extension_segments": 500,
+          "max_orf_candidates": 1000,
+          "max_paths": 200,
+          "max_queries": 10000,
+          "max_records": 100000,
+          "min_alternative_fraction": 0.1,
+          "min_alternative_fragments": 2,
+          "min_anchor_bases": 18,
+          "min_local_variant_fraction": 0.5,
+          "min_orf_amino_acids": 8,
+          "min_overlap": 30,
+          "peptide_lengths": [
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "read_collection": {
+          "infer_read_ends": false,
+          "merge_overlapping_fragments": true,
+          "min_mapping_quality": 1,
+          "trim_adapters": false,
+          "trim_poly_a": false,
+          "use_duplicate_reads": false,
+          "use_reads_without_base_qualities": true,
+          "use_secondary_alignments": true,
+          "use_soft_clipped_bases": false
+        },
+        "engine_sha256": {
+          "sv_rna.py": "a045c434e59d006304b51e7d11c8339cdf18e754f50cccb10b560948ff601fda",
+          "sv_rna_dense.py": "68954bbe91191cf8d7fa5099eb9c6a0a8f10caacf0dc4a07ead553947b0939c1",
+          "sv_rna_orfs.py": "3dd2695d07a0bf012e71203ddf9b4559cdc150723f639ffbad6b08e0a6de5c10",
+          "read_identity.py": "4b0a63941d4d7a745a1ff9c7f8e0a09dabba560072b46fdca8e44e2abd1b3769",
+          "read_lineage.py": "ade67f5033e32d92a2a23d2faaabfe2389933991e89a6fb8bd6d2b11912d86cd",
+          "cell_umi.py": "e765197f20f84941c7f7c150629190800d9f6e2a21769a01bd3e3736c30c00e6",
+          "rna_evidence.py": "36837f5cafe2886bc6e5f5a27e1a5304cf6b8697e07d3edde3c7d37c0b63055b"
+        },
+        "status": "completed",
+        "seconds": 360.4961317080015,
+        "cpu_seconds": 348.873625,
+        "stages_seconds": {
+          "_spool": 27.96751229200163,
+          "_select": 11.741197333001764,
+          "_support": 83.5704035000017
+        },
+        "peak_rss_bytes": 2514632704,
+        "sampled_peak_scratch_bytes": 827161090,
+        "result_serialization_seconds": 17.87075249999907,
+        "seconds_budget": 900,
+        "scratch_bytes_budget": 8589934592,
+        "profiled": false,
+        "original_input_limitations": [],
+        "discovery": {
+          "policy": "event_first_full_allele_groups.v1",
+          "eligible_structural_bins": 13358,
+          "eligible_regional_groups": 39099,
+          "selected_groups": 9570,
+          "omitted_groups": 29529,
+          "represented_records": 185388,
+          "groups_complete": false,
+          "record_limit_reached": true,
+          "initial_representatives_per_group": 2,
+          "eligible_regional_records": 599070,
+          "selected_records": 100000,
+          "omitted_records": 499070,
+          "complete": false
+        },
+        "support_acquisition": {
+          "scope": "all_original_input_records",
+          "records_complete": true,
+          "complete": true,
+          "records_scanned": 773288,
+          "unique_records": 773288,
+          "eligible_segments": 602157,
+          "excluded_records": {
+            "duplicate": 170998,
+            "mapping_quality": 133
+          },
+          "read_path_notes": {
+            "ambiguous_bases": 327
+          }
+        },
+        "limitations": [
+          "discovery_record_limit",
+          "extension_segment_limit",
+          "path_limit",
+          "seed_segment_limit"
+        ]
+      },
+      "current": {
+        "version": "1.52.0",
+        "python": "3.11.12",
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "dependencies": {
+          "numpy": "2.4.6",
+          "pysam": "0.24.1",
+          "pyensembl": "2.27.2",
+          "varcode": "10.13.0"
+        },
+        "driver_sha256": "830a0f868777423acc6611c0c0402ddab32806b62d96ddc0226c4aa688bfd54e",
+        "bundle_id": "744b38a81f2c8775896bc21e5975bea148e006ec10051ac915afe2c8528e8630",
+        "run_id": "6e9147690525529f9591602afd1191f9862f4df16117a865c6726654456c9368/adj-041dbfbb2239d183a5982838/forward",
+        "input_files": {
+          "bam": {
+            "sha256": "996d4449bf8ec34e405b3a11e8f315d477d35814695c2570df2ea12db78ae360",
+            "size": 33169501
+          },
+          "index": {
+            "sha256": "a9c42390ac57e0c94b8bb7cc23ff73a157a20fdaf70f5a3a9840a66309cef716",
+            "size": 92944
+          },
+          "input": {
+            "sha256": "cb4b81c19fd931a29c7d548d6f2c7bfee6b17c962bad8e127c9504ca187f6a08",
+            "size": 4513
+          }
+        },
+        "parameters": {
+          "annotated_junction_tolerance": 5,
+          "assemble": true,
+          "breakpoint_window": 2000,
+          "dense_support": true,
+          "include_regional_candidates": false,
+          "inclusion_mapq_255_is_unique": true,
+          "inclusion_min_base_quality": 20,
+          "inclusion_min_mapping_quality": 20,
+          "inclusion_min_splice_anchor_bases": 8,
+          "max_breakpoint_shift": 10,
+          "max_extension_segments": 500,
+          "max_orf_candidates": 1000,
+          "max_paths": 200,
+          "max_queries": 10000,
+          "max_records": 100000,
+          "min_alternative_fraction": 0.1,
+          "min_alternative_fragments": 2,
+          "min_anchor_bases": 18,
+          "min_local_variant_fraction": 0.5,
+          "min_orf_amino_acids": 8,
+          "min_overlap": 30,
+          "peptide_lengths": [
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "read_collection": {
+          "infer_read_ends": false,
+          "merge_overlapping_fragments": true,
+          "min_mapping_quality": 1,
+          "trim_adapters": false,
+          "trim_poly_a": false,
+          "use_duplicate_reads": false,
+          "use_reads_without_base_qualities": true,
+          "use_secondary_alignments": true,
+          "use_soft_clipped_bases": false
+        },
+        "engine_sha256": {
+          "sv_rna.py": "bb8bf8cf16ec6a3d2b57087d3aa6610dba5ab688a0cb7fac65677752bcbfde6d",
+          "sv_rna_dense.py": "47bb87bdd39567ecbb9b42ac7931b7d3859077e505d2b95ead0a1437380752a9",
+          "sv_rna_orfs.py": "f50abf17ec61188d3cae12fae128decb48d5cc5d25de4de16818598438834fdb",
+          "read_identity.py": "2714d5352c822e2f6793edae65c5974c21254e71e6c1d0a0c098c8d5034387ee",
+          "read_lineage.py": "ee3e0e82e96d322243146971524a1018fab5b5f7b2e9d907c9fd4615cdfe2e83",
+          "cell_umi.py": "6b563ea5af6b4a56a023ca99bc77d369f500a8d336a037359e80097ae89466dd",
+          "rna_evidence.py": "bfa6ebf1816dfe62c695caa0b479e1d53dc5ea192c91e6913d4eeb3896ee74b1"
+        },
+        "status": "completed",
+        "seconds": 83.2804796249984,
+        "cpu_seconds": 83.40707400000001,
+        "stages_seconds": {
+          "_spool": 6.161057083001651,
+          "_select": 12.073018708004383,
+          "_support": 29.740648500002862
+        },
+        "peak_rss_bytes": 2838183936,
+        "sampled_peak_scratch_bytes": 258161330,
+        "result_serialization_seconds": 16.26272266700107,
+        "seconds_budget": 900,
+        "scratch_bytes_budget": 8589934592,
+        "profiled": false,
+        "original_input_limitations": [],
+        "discovery": {
+          "policy": "event_first_full_allele_groups.v1",
+          "eligible_structural_bins": 13358,
+          "eligible_regional_groups": 39099,
+          "selected_groups": 9570,
+          "omitted_groups": 29529,
+          "represented_records": 185388,
+          "groups_complete": false,
+          "record_limit_reached": true,
+          "initial_representatives_per_group": 2,
+          "eligible_regional_records": 599070,
+          "selected_records": 100000,
+          "omitted_records": 499070,
+          "complete": false
+        },
+        "support_acquisition": {
+          "scope": "all_original_input_records",
+          "records_complete": true,
+          "complete": true,
+          "records_scanned": 773288,
+          "unique_records": 773288,
+          "eligible_segments": 602157,
+          "excluded_records": {
+            "duplicate": 170998,
+            "mapping_quality": 133
+          },
+          "read_path_notes": {
+            "ambiguous_bases": 327
+          }
+        },
+        "limitations": [
+          "discovery_record_limit",
+          "extension_segment_limit",
+          "path_limit",
+          "seed_segment_limit"
+        ]
+      },
+      "speedup": 4.328699034050603,
+      "candidate_support_equal": true,
+      "discovery_equal": true,
+      "support_acquisition_equal": true,
+      "candidate_count": 200,
+      "baseline_candidate_support_sha256": "bfe671b722d43c3330d7cecf502bdc12efc3a057d61ad8042703f64533779be9",
+      "current_candidate_support_sha256": "bfe671b722d43c3330d7cecf502bdc12efc3a057d61ad8042703f64533779be9",
+      "whole_result_equal": true,
+      "different_top_level_keys": [],
+      "baseline_whole_result_summary_sha256": "51f83a3d82e9eaca501c99cc6e5c8f3c79b88b315e44b9ad1095acc1a63951a1",
+      "current_whole_result_summary_sha256": "51f83a3d82e9eaca501c99cc6e5c8f3c79b88b315e44b9ad1095acc1a63951a1"
+    }
+  ]
+}

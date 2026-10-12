@@ -104,6 +104,20 @@ def test_array_coverage_matches_original_segment_ranking_across_spliced_windows(
         assert store.limited == (len(scores) > 7)
 
 
+def test_large_rank_tie_selects_original_ids_across_unequal_groups():
+    reads = []
+    for i in range(30):
+        names = ['read-%02d' % (29 - i)] + ['z-extra-%02d-%d' % (i, j) for j in range(i % 4)]
+        for name in names:
+            reads.append(record(name, '1', 60 + i, '%dM' % (140 - i), 'A' * (140 - i)))
+    store = _Observations(reads, ReadCollector(), 5, HEADER.to_dict(), 'sample', 'source')
+    window = tuple(('1', q, '+') for q in range(100, 110))
+    found = store.overlapping(window, 0, len(window))
+    assert {store.observations[key].identity[1] for key, _ in found} == {
+        'read-%02d' % i for i in range(5)}
+    assert store.limited
+
+
 def test_shared_interval_comparison_keeps_each_original_orientation_and_query_offset():
     sequence, positions, observations, junction = inputs()
     original = observations.pop('full')
