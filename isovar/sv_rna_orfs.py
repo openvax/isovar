@@ -6,7 +6,7 @@ from .orf_start import annotate_orf_start
 from .sv_rna_relations import EVENT_CROSSING_RELATIONS
 
 
-def _witnesses(sequence, positions, start, end, junctions, observations):
+def _witnesses(sequence, positions, start, end, junctions, observations, group_cache=None):
     """Exact full-interval witnesses with compatible placements at this join.
 
     Sequence agreement includes unplaced bases. Two partial reads never
@@ -15,13 +15,23 @@ def _witnesses(sequence, positions, start, end, junctions, observations):
     available side. A shorter ORF may need additional sequence to link it to
     the other flank; that interval must also match in this same observation.
     """
+    # One cache belongs to one frozen observation store. Quality/metadata do
+    # not affect sequence matching and are read from each original afterwards.
+    group_cache = {} if group_cache is None else group_cache
     dna = sequence[start:end]
     witnesses = {}
     for junction in junctions:
         # Flanking placed bases around the junction's unplaced interval.
         left, right = junction["query_interval"][0] - 1, junction["query_interval"][1]
-        for key in junction["direct_observations"]:
-            observation = observations[key]
+        keys = tuple(junction["direct_observations"])
+        if keys not in group_cache:
+            groups = {}
+            for key in keys:
+                observation = observations[key]
+                groups.setdefault(observation.comparison_key, []).append(observation)
+            group_cache[keys] = list(groups.values())
+        for members in group_cache[keys]:
+            observation = members[0]
             offset = observation.sequence.find(dna)
             while offset >= 0:
                 shift = offset - start
@@ -44,15 +54,16 @@ def _witnesses(sequence, positions, start, end, junctions, observations):
                     consistent = False
                 if consistent:
                     link_interval = [a + shift, b + shift]
-                    a = (observation.query_interval[1] - offset - len(dna) if observation.reverse_complement
-                         else observation.query_interval[0] + offset)
-                    witness = witnesses.setdefault((key, offset), dict(
-                        observation=key, observation_interval=[offset, offset + len(dna)],
-                        original_query_interval=[a, a + len(dna)], junction_links=[]))
-                    link = dict(junction_query_interval=list(junction["query_interval"]),
-                                observation_interval=link_interval)
-                    if link not in witness["junction_links"]:
-                        witness["junction_links"].append(link)
+                    for original in members:
+                        a = (original.query_interval[1] - offset - len(dna) if original.reverse_complement
+                             else original.query_interval[0] + offset)
+                        witness = witnesses.setdefault((original.key, offset), dict(
+                            observation=original.key, observation_interval=[offset, offset + len(dna)],
+                            original_query_interval=[a, a + len(dna)], junction_links=[]))
+                        link = dict(junction_query_interval=list(junction["query_interval"]),
+                                    observation_interval=list(link_interval))
+                        if link not in witness["junction_links"]:
+                            witness["junction_links"].append(link)
                 offset = observation.sequence.find(dna, offset + 1)
     return [witnesses[key] for key in sorted(witnesses)]
 
@@ -67,7 +78,8 @@ def _boundaries(junction):
 
 
 def exploratory_orfs(sequence, positions, junctions, observations, references, rna_support,
-                     min_amino_acids, max_candidates, lineage=None, competing_splices=(), inclusion_thresholds=None):
+                     min_amino_acids, max_candidates, lineage=None, competing_splices=(), inclusion_thresholds=None,
+                     witness_groups=None):
     """Enumerate bounded ATG candidates crossing an event-related RNA join.
 
     These are potential translations of observed sequence, separate from
@@ -99,7 +111,8 @@ def exploratory_orfs(sequence, positions, junctions, observations, references, r
     for start, coding_end, has_stop, crossed in reversed(starts[-max_candidates:]):
         end = coding_end + (3 if has_stop else 0)
         aa, _ = standard_genetic_code.translate(sequence[start:coding_end], first_codon_is_start=True)
-        witnesses = _witnesses(sequence, positions, start, end, [j for _, j, _ in crossed], observations)
+        witnesses = _witnesses(sequence, positions, start, end, [j for _, j, _ in crossed], observations,
+                              group_cache=witness_groups)
         segments = {observations[w["observation"]].identity for w in witnesses}
         start_evidence = annotate_orf_start(sequence, positions, start, references)
         start_evidence = annotate_orf_inclusion(

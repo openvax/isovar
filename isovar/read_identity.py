@@ -23,7 +23,7 @@ def source_alignments_from_pysam(read, name):
 
 def segment_identity(read):
     """(read group, QNAME, mate bits): one sequenced segment in one library."""
-    return source_alignments_from_pysam(read, read.query_name)[0][0]
+    return read_group(read), read.query_name, read.flag & 0xC0 if read.is_paired else 0
 
 
 def source_read_ids(read):

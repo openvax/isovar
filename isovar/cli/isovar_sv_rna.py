@@ -120,7 +120,7 @@ def run(args=None, prog=None):
             from ..sv_rna_comparison import compare_sv_rna_predictions
             result["prediction_comparison"] = compare_sv_rna_predictions(
                 result, predictions)
-        Path(options.output).expanduser().write_text(json.dumps(result, indent=2) + "\n")
+        Path(options.output).expanduser().write_text(json.dumps(result, separators=(",", ":")) + "\n")
         if options.orf_output_prefix:
             write_sv_rna_orfs(export_sv_rna_orfs(result), options.orf_output_prefix)
     except (OSError, ValueError) as error:

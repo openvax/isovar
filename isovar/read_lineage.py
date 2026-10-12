@@ -61,6 +61,10 @@ class ReadLineage:
         group = self.read_groups.get(identity[0], {})
         row = dict(identity=list(identity), producer=None, status="unknown_producer",
                    parent_read_id=None, duplex_status=None, split_signal_start=None, signal_group=None)
+        if group.get("PL", "").upper() != "ONT":
+            if identity not in self.groups:
+                raise KeyError(identity)
+            return row
         records = self.groups[identity]
         if not all(self._producer(read, group) for read in records):
             return row
