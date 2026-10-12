@@ -4,6 +4,18 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.48.0
+
+- Use oncoref as the single owner of the upstream-ORF evidence catalogue,
+  keeping existing Isovar imports and query/export commands compatible.
+- Add `annotate_sv_uorf_evidence` to connect reconstructed RNA candidates to
+  Varcode's validated alternative frames and native peptide retention. JSON
+  and TSV exports preserve this evidence and its catalogue provenance.
+- Verify Sid TPST1–CRCP's 30/61/72-aa alternatives against original PacBio
+  reads, preserving their 15/1/1 full-interval witnesses and missing qualities.
+  None retains the catalogue's native MS peptide; mutant translation remains
+  unassessed.
+
 ## 1.46.0
 
 - Package a versioned, offline human uORF evidence dataset with exact reference

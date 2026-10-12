@@ -305,3 +305,43 @@ def test_anchored_reading_that_departs_at_an_indel_is_not_reported_as_no_gene_an
     assert result["readings_departing_elsewhere"] == 1 and not result["translations"]
     unanchored = _frame_evidence(path[:17], positions[:17], {}, [_Model(ref)], 18, set(), (9,))
     assert unanchored["frame_status"] == "no_gene_anchor"
+
+
+def test_sid_native_uorf_ms_overlay_keeps_candidate_specific_rna_support(tmp_path):
+    import json
+    from pyensembl import cached_release
+    from isovar import annotate_sv_uorf_evidence, load_uorf_catalog
+
+    result = long_read_run(tmp_path, "TPST1--CRCP", "PacBio-T1")
+    transcript = cached_release(95).transcript_by_id("ENST00000304842")
+    annotated = annotate_sv_uorf_evidence(result, [transcript])
+    rows = [c for path in annotated["paths"] for c in path["exploratory_orfs"]["candidates"]
+            if c["reference_uorf_annotations"]]
+    assert sorted((len(c["amino_acids"]), c["full_interval_support"]["fragments"]) for c in rows) == [(30, 15), (61, 1), (72, 1)]
+    for candidate in rows:
+        annotation, = candidate["reference_uorf_annotations"]
+        assert annotation["status"] == "conditional_translation"
+        product = annotation["product"]
+        assert product["protein_sequence"] == candidate["amino_acids"]
+        assert product["evidence"]["rna_support"] == candidate["full_interval_support"]
+        assert product["reference_evidence"]["mutant_translation_evidence"] == "not_assessed"
+        assert not product["reference_evidence"]["reference_ms_support_on_retained_sequence"]
+        peptide, = product["reference_evidence"]["peptide_observations"]
+        assert peptide["reference_observation"]["sequence"] == "KIILSKISV"
+        assert peptide["reference_observation"]["protein_intervals"] == ((31, 39),)
+        assert peptide["retained_mutant_intervals"] == []
+        assert product["evidence"]["rna_polarity"] == "unresolved"
+    assert "uorf_catalogue_metadata" not in result  # Do not mutate caller-owned reconstruction.
+    assert json.loads(json.dumps(annotated))["uorf_catalogue_metadata"] == load_uorf_catalog().metadata
+    unavailable = annotate_sv_uorf_evidence(result, [])
+    assert all(a["reason"] == "reference_transcript_not_supplied"
+               for p in unavailable["paths"] for c in p["exploratory_orfs"]["candidates"]
+               for a in c["reference_uorf_annotations"])
+
+    exported = export_sv_rna_orfs(annotated)
+    assert exported["uorf_catalogue_metadata"] == annotated["uorf_catalogue_metadata"]
+    assert any(o.get("reference_uorf_annotations") for c in exported["candidates"] for o in c["occurrences"])
+    from isovar import write_sv_rna_orfs
+    paths = write_sv_rna_orfs(exported, tmp_path / "uorf-evidence")
+    assert "KIILSKISV" in paths["tsv"].read_text()
+    assert json.loads(paths["json"].read_text())["uorf_catalogue_metadata"] == exported["uorf_catalogue_metadata"]

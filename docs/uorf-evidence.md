@@ -1,6 +1,6 @@
 # Human uORFs with translation evidence
 
-Isovar packages an offline, versioned reference catalogue of **3,771 human
+Isovar exposes the shared oncoref offline, versioned reference catalogue of **3,771 human
 upstream ORFs**, including upstream ORFs that overlap the canonical CDS
 (`uoORF`). Each entry has its reported transcript, GRCh38 spliced coding blocks,
 exact reference protein sequence, ribosome-profiling studies, and available MS
@@ -114,8 +114,9 @@ JSON retains provenance and nested evidence. TSV uses explicit JSON columns for
 coding blocks, study IDs, peptides and initiation contexts, so exports retain those relationships.
 FASTA exports exact reference proteins. All commands work offline after an
 ordinary Isovar install. The dataset and its source manifest are installed under
-`isovar/data/uorf-evidence/`; the builder and this guide are also in the source
-distribution.
+`oncoref/data/uorf-evidence/`. Oncoref owns the empirical reference and builder;
+Isovar keeps its existing Python imports and CLI as compatibility entry points.
+Varcode owns variant consequences, without depending on Isovar.
 
 ## Interpreting evidence and mutations
 
@@ -208,7 +209,7 @@ From an Isovar checkout with the optional builder extra and `Rscript` installed:
 
 ```sh
 python -m pip install '.[uorf-build]'
-python -m examples.build_uorf_catalog --source-dir /tmp/isovar-uorf-sources --prepare-sources
+python -m oncoref.uorf_build --source-dir /tmp/isovar-uorf-sources --prepare-sources
 ```
 
 Preparation retrieves about 246 MB of pinned author inputs and a small benchmark

@@ -27,11 +27,12 @@ change initiation context without changing a protein residue.
 | Stop loss | Extend along the actual transcript path to the next in-frame stop. | Incomplete downstream sequence means an unresolved extension, not a complete protein. |
 | Splice/fusion/SV | Reconstruct every supported RNA path, retained native frame and new sequence. | An initiation prior does not establish transcript inclusion, DNA-event linkage or somatic specificity. |
 
-Isovar's catalogue API currently maps coding positions and REF-validates SNVs
-in the retained initiation window. It does not yet reconstruct arbitrary uORF
-indels, stop extensions or rearranged proteins from catalogue entries. Those
-require full reference/patient transcript reconstruction. The proposed Varcode
-implementation is tracked in [Varcode #583](https://github.com/openvax/varcode/issues/583).
+The shared oncoref catalogue maps positions and REF-validates context SNVs.
+Varcode 10.12 adds full-transcript upstream-frame variant consequences and
+mapped RNA-product annotation. Use `variant.orf_effects()` for additive DNA
+annotations, and the RNA overlay below for reconstructed Isovar candidates.
+[Varcode #583](https://github.com/openvax/varcode/issues/583) tracks further
+composition and de novo start discovery.
 
 ## 3. Initiation plausibility
 
@@ -84,3 +85,30 @@ source pins and unresolved reasons together. A sequence-only newly created
 start must remain distinguishable from a reference model with experimental
 support. See [Varcode #583](https://github.com/openvax/varcode/issues/583) for
 staging and acceptance cases.
+
+## Annotating reconstructed Sid candidates
+
+```python
+from isovar import annotate_sv_uorf_evidence, export_sv_rna_orfs
+from pyensembl import cached_release
+
+# result is the output of reconstruct_sv_rna, with original mapped RNA paths.
+transcript = cached_release(95).transcript_by_id("ENST00000304842")
+annotated = annotate_sv_uorf_evidence(result, [transcript])
+export = export_sv_rna_orfs(annotated)
+```
+
+The overlay validates the entire reference model against the supplied transcript.
+It converts Isovar's zero-based mapped blocks to Varcode's one-based ancestry,
+keeps every candidate's full-interval witnesses, and attaches
+`reference_uorf_annotations` to each candidate/occurrence. The export retains
+`uorf_catalogue_metadata`, and TSV includes `reference_uorf_annotations_json`.
+Absent models and unavailable transcripts are explicit. Empty reference lookup
+is not evidence against a sequence-only candidate.
+
+Reproduce the original-read example from the repository with
+`python -m examples.osteosarc_sv_orfs output.json --uorf-evidence` (installed
+Ensembl 95). The 30/61/72-aa TPST1–CRCP products have 15/1/1 full-interval
+witnesses in this packaged PacBio subset. None retains native `KIILSKISV`.
+Their RNA polarity, initiation, mutant translation and presentation remain
+unresolved. These counts are specific to the subset, not whole-library abundance.

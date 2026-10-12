@@ -29,7 +29,7 @@ include = ["isovar", "isovar.*"]
 
 [tool.setuptools.package-data]
 # Isovar's Sid test reads: an osteosarc bundle (docs/sid-test-reads.md).
-isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*", "data/uorf-evidence/*"]
+isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*"]
 
 [project.urls]
 "Homepage" = "https://github.com/openvax/isovar"
