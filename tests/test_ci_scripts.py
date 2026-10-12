@@ -67,8 +67,8 @@ def test_ensembl_installer_retries_each_release(tmp_path):
     result, installs, sleeps = run_installer(tmp_path)
 
     assert result.returncode == 0, result.stderr
-    assert installs == ["87:1", "87:2", "75:1", "75:2", "102:1", "102:2"]
-    assert sleeps == ["15", "15", "15"]
+    assert installs == ["87:1", "87:2", "95:1", "95:2", "75:1", "75:2", "102:1", "102:2"]
+    assert sleeps == ["15", "15", "15", "15"]
 
 
 def test_ensembl_installer_stops_after_bounded_attempts(tmp_path):
