@@ -9,6 +9,7 @@ import argparse
 import cProfile
 import gzip
 from hashlib import sha256
+from importlib.metadata import version
 import json
 import os
 from pathlib import Path
@@ -93,13 +94,14 @@ def main():
 
     signal.signal(signal.SIGALRM, timeout)
     report = dict(version=isovar.__version__, python=platform.python_version(), platform=platform.platform(),
+                  dependencies={name: version(name) for name in ('numpy', 'pysam', 'pyensembl', 'varcode')},
                   driver_sha256=checksum(Path(__file__)), bundle_id=bundle.bundle_id, run_id=args.run,
                   input_files=pins, parameters=parameters, read_collection=plan.get('read_collection', {}),
                   seconds_budget=args.seconds, scratch_bytes_budget=args.max_scratch_bytes,
                   profiled=bool(args.profile), original_input_limitations=plan.get('input_limitations', []),
                   engine_sha256={name: checksum(args.checkout / 'isovar' / name)
                                  for name in ('sv_rna.py', 'sv_rna_dense.py', 'sv_rna_orfs.py',
-                                              'read_identity.py', 'read_lineage.py', 'cell_umi.py')})
+                                              'read_identity.py', 'read_lineage.py', 'cell_umi.py', 'rna_evidence.py')})
     with tempfile.TemporaryDirectory(prefix='dense-benchmark-', dir=args.scratch_dir) as scratch:
         def monitor():
             while not stopped.wait(0.2):

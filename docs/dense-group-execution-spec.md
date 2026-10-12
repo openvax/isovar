@@ -52,3 +52,10 @@ seconds include 316 seconds of spooling and 186 seconds of selection, followed
 by expensive repeated overlap queries. Use low compression for private BAM
 scratch and array arithmetic for exact block coverage. The latter must preserve
 overlapping alternative-block multiplicity, original segment caps and ties.
+
+The subsequent matched small cases show little short-read improvement and only
+1.5x on ONT. Replace the collated BAM copy with an index of virtual offsets in
+the original BAM. Hash only records sharing a template (the only possible exact
+duplicates), visit them in physical order, and retain distant mates/pieces via
+indexed lookup. SAM/CRAM inputs require one private BAM conversion. This removes
+collation and recompression for existing BAM inputs; inputs remain read-only.

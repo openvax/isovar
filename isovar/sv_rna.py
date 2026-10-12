@@ -619,7 +619,7 @@ def _record_gaps(read):
     for q, r, n, gap, inserted in _aligned_blocks(read):
         if last is not None and gap is not None:
             gaps.append(((read.reference_name, last, "+"), (read.reference_name, r, "+"), _gap_kind(*gap),
-                         read.query_sequence[q - inserted:q].upper()))
+                         read.query_sequence[q - inserted:q].upper() if inserted else ''))
         last = r + n - 1
     return gaps
 

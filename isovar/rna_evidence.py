@@ -63,7 +63,7 @@ def rna_support(identities, label_row=None):
     """
     from .cell_umi import cell_umi_counts
 
-    identities = sorted({tuple(identity) for identity in identities})
+    identities = {tuple(identity) for identity in identities}
     support = dict(reads=len(identities), fragments=len({identity[:2] for identity in identities}))
     support.update(dict.fromkeys(CELL_UMI_FIELDS) if label_row is None
                    else cell_umi_counts(label_row(identity) for identity in identities))

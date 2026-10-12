@@ -1,14 +1,13 @@
 """Disk-backed, bounded discovery followed by complete-input SV support.
 
 Only candidate witnesses are retained in memory during support reporting. The
-SQLite spool keeps unrelated background and arbitrarily distant pieces on disk.
+SQLite index keeps unrelated background and arbitrarily distant pieces on disk.
 """
 
 from collections import Counter, defaultdict
 from collections.abc import Mapping
 from contextlib import ExitStack, closing
 from hashlib import sha256
-from itertools import groupby
 from os import fsdecode
 from pathlib import Path
 import sqlite3
@@ -29,8 +28,20 @@ from .sv_rna_orfs import _witnesses
 from .sv_rna_relations import LINKAGE_STATUSES
 
 
+def _read_at(reader, offset):
+    """Read one original record, reusing an already decompressed BGZF block."""
+    current = reader.tell()
+    if current != offset:
+        if current < offset and current >> 16 == offset >> 16:
+            while reader.tell() < offset:
+                next(reader)
+        else:
+            reader.seek(offset)
+    return next(reader)
+
+
 class _DiskGroups(Mapping):
-    """Original eligible BAM records with one seek per consulted template."""
+    """Original eligible BAM records, indexed without copying their payloads."""
 
     def __init__(self, connection, reader, header, segment_count):
         self.connection, self.reader, self.header = connection, reader, header
@@ -59,82 +70,94 @@ class _DiskGroups(Mapping):
         return self.segment_count
 
     def templates(self):
+        # Traverse first appearances in physical input order. Singletons need
+        # neither a second SQL lookup nor a random seek for every record.
         with pysam.AlignmentFile(self.reader.filename, 'rb') as reader:
-            for _, records in groupby(reader.fetch(until_eof=True), key=lambda r: segment_identity(r)[:2]):
-                yield list(records)
+            for rg, name, offset, count in self.connection.execute(
+                    'SELECT rg, name, offset, records FROM templates ORDER BY offset'):
+                if count == 1:
+                    yield [_read_at(reader, offset)]
+                else:
+                    yield [r for records in self.template((rg, name)).values() for r in records]
 
     def template(self, fragment):
         """All eligible original mates/placements of one consulted template."""
-        row = self.connection.execute('SELECT offset, records FROM templates WHERE rg=? AND name=?',
-                                      fragment).fetchone()
         groups = defaultdict(list)
-        if row is not None:
-            offset, count = row
-            self.reader.seek(offset)
-            for _ in range(count):
-                read = next(self.reader)
-                groups[segment_identity(read)].append(read)
+        for offset, in self.connection.execute(
+                'SELECT o.offset FROM offsets o LEFT JOIN record_ids r USING (offset) '
+                'WHERE o.rg=? AND o.name=? AND o.excluded=0 ORDER BY o.segment, r.rid', fragment):
+            read = _read_at(self.reader, offset)
+            groups[segment_identity(read)].append(read)
         return groups
 
 
 def _spool(bam, db, collector, directory):
-    """Collate binary originals; index template offsets, not expanded SAM text.
+    """Index original BAM offsets; serialize only potential duplicate payloads.
 
-    Equal SAM payloads are deduplicated only inside their original query-name
-    group. Sorting cannot separate identical records, so no genome-sized set of
-    record hashes or text copy is needed. Exclusion counts still count every
-    input record; unique counts include excluded originals.
+    QNAME/RG identify the only records that could share an original SAM payload.
+    Singletons therefore need no SAM serialization, hash, or copied BAM. All
+    records in repeated templates are hashed in physical file order; identical
+    originals are deduplicated while exclusions still count every input record.
     """
     directory = Path(directory)
-    name_sorted, eligible = directory / 'name-sorted.bam', directory / 'eligible.bam'
-    if (bam.is_bam or bam.is_sam) and bam.filename and Path(fsdecode(bam.filename)).is_file():
-        source = bam.filename
+    if bam.is_bam and bam.filename and Path(fsdecode(bam.filename)).is_file():
+        source = Path(fsdecode(bam.filename))
     else:
-        source = str(directory / 'original.bam')
-        if not bam.is_sam:
-            bam.reset()
-        with pysam.AlignmentFile(source, 'wb', header=bam.header, format_options=[b'level=1']) as original:
-            for read in bam.fetch(until_eof=True):
-                original.write(read)
-    # Normal collation retains supplementary, secondary and unpaired records;
-    # its primary-only fast mode would discard evidence and is never used.
-    pysam.collate('--no-PG', '-o', str(name_sorted), source, str(directory / 'collate'))
+        source = directory / 'original.bam'
+        with ExitStack() as stack:
+            reader = bam
+            if bam.is_sam and bam.filename and Path(fsdecode(bam.filename)).is_file():
+                reader = stack.enter_context(pysam.AlignmentFile(bam.filename))
+            elif not bam.is_sam:
+                bam.reset()
+            output = stack.enter_context(pysam.AlignmentFile(
+                source, 'wb', header=bam.header, format_options=[b'level=1']))
+            for read in reader.fetch(until_eof=True):
+                output.write(read)
+    db.execute('CREATE TABLE offsets (offset INTEGER PRIMARY KEY, rg TEXT, name TEXT, segment INTEGER, excluded INTEGER)')
+    scanned, excluded = 0, Counter()
+    with pysam.AlignmentFile(source, 'rb') as reader:
+        while True:
+            offset = reader.tell()
+            read = next(reader, None)
+            if read is None:
+                break
+            scanned += 1
+            reason = 'unnamed_record' if read.query_name is None else _ineligible(read, collector)
+            if reason:
+                excluded[reason] += 1
+            rg, name, segment = segment_identity(read)
+            db.execute('INSERT INTO offsets VALUES (?, ?, ?, ?, ?)',
+                       (offset, rg, name or '', segment, int(reason is not None)))
+    db.execute('CREATE INDEX fragments ON offsets (rg, name)')
+    db.execute('CREATE TABLE repeated (rg TEXT, name TEXT, PRIMARY KEY (rg, name)) WITHOUT ROWID')
+    db.execute('INSERT INTO repeated SELECT rg, name FROM offsets GROUP BY rg, name HAVING count(*) > 1')
+    db.execute('CREATE TABLE record_ids (rid BLOB PRIMARY KEY, offset INTEGER UNIQUE)')
+    db.execute('CREATE TABLE duplicates (offset INTEGER PRIMARY KEY)')
+    duplicates = 0
+    with pysam.AlignmentFile(source, 'rb') as reader, pysam.AlignmentFile(source, 'rb') as previous:
+        for offset, in db.execute('SELECT o.offset FROM offsets o JOIN repeated USING (rg, name) ORDER BY o.offset'):
+            sam = _read_at(reader, offset).to_string()
+            rid = sha256(sam.encode()).digest()
+            row = db.execute('INSERT OR IGNORE INTO record_ids VALUES (?, ?)', (rid, offset))
+            if not row.rowcount:
+                old_offset, = db.execute('SELECT offset FROM record_ids WHERE rid=?', (rid,)).fetchone()
+                if _read_at(previous, old_offset).to_string() != sam:
+                    raise ValueError('Conflicting original SAM records share SV record identity %s' % rid.hex())
+                db.execute('INSERT INTO duplicates VALUES (?)', (offset,))
+                duplicates += 1
+    db.execute('DELETE FROM offsets WHERE offset IN (SELECT offset FROM duplicates)')
+    db.execute('DROP TABLE duplicates')
+    db.execute('DROP TABLE repeated')
     db.execute('CREATE TABLE templates (rg TEXT, name TEXT, offset INTEGER, records INTEGER, '
                'segments INTEGER, PRIMARY KEY (rg, name)) WITHOUT ROWID')
-    scanned, unique, segment_count, excluded = 0, 0, 0, Counter()
-    with pysam.AlignmentFile(name_sorted, 'rb') as reader, pysam.AlignmentFile(
-            eligible, 'wb', header=bam.header, format_options=[b'level=1']) as output:
-        for _, name_records in groupby(reader.fetch(until_eof=True), key=lambda r: r.query_name):
-            name_records = list(name_records)
-            originals, fragments = {}, defaultdict(list)
-            for read in name_records:
-                scanned += 1
-                reason = 'unnamed_record' if read.query_name is None else _ineligible(read, collector)
-                if reason:
-                    excluded[reason] += 1
-                rid = None
-                if len(name_records) > 1:
-                    sam = read.to_string()
-                    rid = sha256(sam.encode()).hexdigest()
-                    if rid in originals:
-                        if originals[rid] != sam:
-                            raise ValueError('Conflicting original SAM records share SV record identity %s' % rid)
-                        continue
-                    originals[rid] = sam
-                unique += 1
-                if reason is None:
-                    fragments[segment_identity(read)[:2]].append((rid, read))
-            for fragment, records in sorted(fragments.items()):
-                offset, segments = output.tell(), set()
-                for _, read in sorted(records, key=lambda row: row[0]):
-                    output.write(read)
-                    segments.add(segment_identity(read)[2])
-                segment_count += len(segments)
-                db.execute('INSERT INTO templates VALUES (?, ?, ?, ?, ?)',
-                           (*fragment, offset, len(records), sum(1 << (segment >> 6) for segment in segments)))
+    db.execute('INSERT INTO templates SELECT rg, name, min(offset), count(*), '
+               'sum(DISTINCT (1 << (segment >> 6))) FROM offsets WHERE excluded=0 GROUP BY rg, name')
+    db.execute('CREATE INDEX traversal ON templates (offset)')
+    segment_count, = db.execute('SELECT count(*) FROM (SELECT rg, name, segment FROM offsets '
+                                'WHERE excluded=0 GROUP BY rg, name, segment)').fetchone()
     db.commit()
-    name_sorted.unlink()
-    return scanned, dict(sorted(excluded.items())), unique, segment_count, eligible
+    return scanned, dict(sorted(excluded.items())), scanned - duplicates, segment_count, source
 
 
 def _search_regions(bam, options):

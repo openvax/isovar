@@ -223,14 +223,22 @@ def cell_umi_counts(rows):
     so that the count is exact; without reads they are False. Neither count
     is a molecule or prevalence estimate.
     """
-    rows = list(rows)
-    umis = {tuple(row["label"]) for row in rows if row["label"] is not None}
-    cells = trusted_cells(rows)
-    untrusted = sum(row["cell_barcode"] is None or row["status"] in UNTRUSTED_CELL_STATUSES for row in rows)
-    unlabeled = sum(row["label"] is None for row in rows)
-    unknown_library = sum(not row["library_scope_known"] for row in rows)
+    umis, cells, statuses = set(), set(), Counter()
+    count = untrusted = unlabeled = unknown_library = 0
+    for row in rows:
+        count += 1
+        statuses[row['status']] += 1
+        if row['label'] is None:
+            unlabeled += 1
+        else:
+            umis.add(tuple(row['label']))
+        if row['cell_barcode'] is None or row['status'] in UNTRUSTED_CELL_STATUSES:
+            untrusted += 1
+        else:
+            cells.add((*row['scope'].values(), row['cell_barcode']))
+        unknown_library += not row['library_scope_known']
     return dict(umis=len(umis), cells=len(cells),
-                umis_complete=bool(rows) and not unlabeled and not unknown_library,
-                cells_complete=bool(rows) and not untrusted and not unknown_library,
+                umis_complete=bool(count) and not unlabeled and not unknown_library,
+                cells_complete=bool(count) and not untrusted and not unknown_library,
                 unlabeled_reads=unlabeled, unknown_library_reads=unknown_library,
-                label_statuses=dict(sorted(Counter(row["status"] for row in rows).items())))
+                label_statuses=dict(sorted(statuses.items())))

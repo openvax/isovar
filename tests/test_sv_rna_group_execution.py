@@ -1,6 +1,7 @@
 """Grouped computation keeps original identity, ordering, and interval evidence."""
 
 from dataclasses import replace
+from hashlib import sha256
 import random
 import sqlite3
 
@@ -18,7 +19,7 @@ from tests.test_sv_rna_orfs import inputs
 
 
 @pytest.mark.parametrize('input_format', ['bam', 'sam'])
-def test_binary_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, input_format):
+def test_offset_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, input_format):
     reads = []
     for name in ('read1', 'read01', 'read001'):
         for flag in (65, 129, 2113, 321):
@@ -36,6 +37,7 @@ def test_binary_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, inpu
         with pysam.AlignmentFile(bam_path, 'wh', header=HEADER) as output:
             for read in reads:
                 output.write(read)
+    original_digest = sha256(bam_path.read_bytes()).digest()
     with pysam.AlignmentFile(bam_path) as bam, sqlite3.connect(':memory:') as db:
         scanned, reasons, unique, segments, path = _spool(bam, db, ReadCollector(), tmp_path)
         assert scanned == len(reads)
@@ -50,6 +52,9 @@ def test_binary_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, inpu
                 assert identity in groups
                 assert {r.to_string() for r in groups[identity]} == {
                     r.to_string() for r in reads if segment_identity(r) == identity and not r.is_duplicate}
+        if input_format == 'bam':
+            assert path == bam_path  # No copied BAM or rewritten input.
+    assert sha256(bam_path.read_bytes()).digest() == original_digest
 
 
 def test_grouped_geometry_keeps_the_original_overlap_cap_and_ties():

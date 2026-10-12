@@ -10,9 +10,10 @@ releases that only fix bugs or add fixtures are omitted; see the
   and full-interval support comparisons once per group, retaining every original
   contributor, allele difference, query interval, quality and metadata label.
   Keep the existing discovery record limits and deterministic placement ties.
-- Use binary BAM scratch with indexed template offsets and shared signatures
-  instead of expanded SAM text. Reuse support observations and resolve original
-  mate labels lazily. These optimizations apply automatically without new knobs.
+- Index original BAM offsets and shared signatures instead of copying and
+  recompressing input or expanding SAM text. Reuse support observations, resolve
+  original mate labels lazily, and count cell/UMI rows in one pass. These
+  optimizations apply automatically without new knobs.
 - Write compact SV CLI JSON with unchanged fields and values. Benchmark output
   reports serialization separately from reconstruction and can profile or limit
   temporary-storage use.
