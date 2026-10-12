@@ -172,6 +172,27 @@ def test_support_screen_skips_overlapping_background_without_changing_evidence(t
     assert screened == exhaustive
 
 
+@pytest.mark.parametrize('dense', [False, True])
+@pytest.mark.parametrize('leading', [False, True])
+@pytest.mark.parametrize('operation', ['D', 'N'])
+def test_clip_discovery_and_support_use_actual_aligned_edges(tmp_path, dense, leading, operation):
+    scenario = Scenario()
+    contig, start, cigar = ('2', 5995, '50S5%s50M' % operation) if leading else (
+        '1', 2100, '50M5%s50S' % operation)
+    reads = [record('terminal-%d' % i, contig, start, cigar, scenario.sequence[200:300]) for i in range(3)]
+    options = dict(dense_support=dense, assemble=False, read_collector=ReadCollector(use_soft_clipped_bases=True))
+    result = scenario.run(write_bam(tmp_path / 'terminal.bam', reads), *scenario.exact, **options)
+    path = candidate(result)
+    assert path['junctions'][0]['relation'] == 'breakpoint_clip_partner_unplaced'
+    assert path['junctions'][0]['direct_support']['fragments'] == 3
+    if dense:
+        assert path['full_interval_support']['fragments'] == 3
+    reads.append(record('ordinary', contig, 6000 if leading else 2100,
+                        '50S50M' if leading else '50M50S', scenario.sequence[200:300]))
+    result = scenario.run(write_bam(tmp_path / 'mixed.bam', reads), *scenario.exact, **options)
+    assert candidate(result)['junctions'][0]['direct_support']['fragments'] == 4
+
+
 @pytest.mark.parametrize('change', ['base', 'insertion', 'coverage', 'placement', 'supplementary'])
 def test_grouping_keeps_full_alleles_and_actual_alignment_paths(change):
     from isovar.sv_rna_dense import _group_signatures

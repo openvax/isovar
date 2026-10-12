@@ -518,6 +518,16 @@ def _record_gaps(read):
     return gaps
 
 
+def _possible_breakpoint_clip(read, breakpoints):
+    """Conservative clip screen using observed blocks, not terminal D/N spans."""
+    if not any(op == 4 for op, _ in read.cigartuples):
+        return False
+    blocks = read.get_blocks()
+    return bool(blocks) and any(
+        read.reference_name == contig and abs(edge - position) <= 1
+        for contig, position in breakpoints for edge in (blocks[0][0], blocks[-1][1]))
+
+
 def _offsets(query_runs, lo, key, runs):
     """(key, path offset of the observation start) for each shared placed base run."""
     found = set()
@@ -621,9 +631,7 @@ class _Observations:
                         anchored(p) for p in (left, right, _flip(left), _flip(right))):
                     lazy["regional_novel_junction"][_canonical(left, right)].add(identity)
             # SAM permits soft clips inside terminal hard clips.
-            if (self.collector.use_soft_clipped_bases and any(op == 4 for op, _ in read.cigartuples)
-                    and any(read.reference_name == contig and abs(edge - position) <= 1
-                            for contig, position in breakpoints for edge in (read.reference_start, read.reference_end))):
+            if self.collector.use_soft_clipped_bases and _possible_breakpoint_clip(read, breakpoints):
                 now.add(identity)
         return now, lazy, competing
 

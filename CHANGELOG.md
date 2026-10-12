@@ -16,6 +16,8 @@ releases that only fix bugs or add fixtures are omitted; see the
 - Clarify full-input mode and temporary-storage options without adding another
   discovery parameter. Tight record caps may select different representatives;
   discovery remains bounded and complete-input support uses original reads.
+- Use observed aligned block edges to screen breakpoint clips, retaining clips
+  beside terminal CIGAR deletions/skips in discovery and complete support (#476).
 
 ## 1.48.0
 

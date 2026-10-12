@@ -22,7 +22,7 @@ from .read_metadata import record_evidence
 from .rna_evidence import rna_support
 from .sv_rna import (
     _Event, _Model, _Observations, _flip, _ineligible, _join_class, _record_gaps, _record_id,
-    _path_result, reconstruct_sv_rna,
+    _path_result, _possible_breakpoint_clip, reconstruct_sv_rna,
 )
 from .sv_rna_orfs import _witnesses
 from .sv_rna_relations import LINKAGE_STATUSES
@@ -112,9 +112,7 @@ def _priority(records, collector, event, annotated):
     """Placed event-related joins, breakpoint clips, other joins, then context."""
     clip = False
     possible_clip = collector.use_soft_clipped_bases and any(
-        any(op == 4 for op, _ in read.cigartuples)
-        and any(read.reference_name == b.contig and abs(edge - b.position) <= 1
-                for b in (event.donor, event.acceptor) for edge in (read.reference_start, read.reference_end))
+        _possible_breakpoint_clip(read, [(b.contig, b.position) for b in (event.donor, event.acceptor)])
         for read in records)
     if len(records) > 1 or possible_clip:
         # Actual supplementary/alternative records stay together. An SA hint
@@ -242,11 +240,9 @@ def _may_support(template, joins, collector, event):
         if identity in identities:
             return True
         identities.add(identity)
-        if collector.use_soft_clipped_bases and any(op == 4 for op, _ in read.cigartuples):
-            if any(read.reference_name == b.contig and abs(edge - b.position) <= 1
-                   for b in (event.donor, event.acceptor)
-                   for edge in (read.reference_start, read.reference_end)):
-                return True
+        if collector.use_soft_clipped_bases and _possible_breakpoint_clip(
+                read, [(b.contig, b.position) for b in (event.donor, event.acceptor)]):
+            return True
         for left, right, _, inserted in _record_gaps(read):
             for a, b in ((left, right), (_flip(right), _flip(left))):
                 if (a, b) in joins or event.relation(a, b, len(inserted))[0] == 'breakpoint_junction':
