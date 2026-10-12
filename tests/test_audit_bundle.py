@@ -1,6 +1,7 @@
 """Portable evidence must replay without original paths or silent drift."""
 
 from copy import deepcopy
+import errno
 import json
 from pathlib import Path
 import shutil
@@ -35,6 +36,90 @@ def test_bundle_archive_roundtrip_survives_removal_of_originals(tmp_path):
     manifest = restored.manifest
     manifest["files"].clear()
     assert len(restored.manifest["files"]) == 1
+
+
+def test_native_clone_is_independent_and_keeps_portable_archive(tmp_path):
+    original = source_file(tmp_path)
+    contents = original.read_bytes()
+    try:
+        bundle = AuditBundle.create(tmp_path / "bundle", {"input": original}, copy_method="clone")
+    except OSError as error:
+        if error.errno in {errno.ENOTSUP, errno.EXDEV, errno.ENOTTY, errno.ENOSYS}:
+            pytest.skip("Test filesystem does not support native clones")
+        raise
+    copied = bundle.path("input")
+    assert not copied.samefile(original)
+    original.write_bytes(b"changed source")
+    assert copied.read_bytes() == contents
+    bundle.pack(tmp_path / "backup.tar.gz")
+    copied.write_bytes(b"changed destination")
+    assert original.read_bytes() == b"changed source"
+    shutil.rmtree(bundle.directory)
+    original.unlink()
+    restored = AuditBundle.unpack(tmp_path / "backup.tar.gz", tmp_path / "restored")
+    assert restored.bundle_id == bundle.bundle_id
+    assert restored.path("input").read_bytes() == contents
+
+
+def test_clone_failure_cleans_up_without_copy_fallback(tmp_path, monkeypatch):
+    from isovar import audit_bundle
+
+    def unsupported(source, target):
+        target.write_bytes(b"partial clone")
+        raise OSError(errno.ENOTSUP, "cloning unavailable")
+
+    def unexpected_copy(*args):
+        raise AssertionError("Clone mode must never allocate a fallback copy")
+
+    monkeypatch.setattr(audit_bundle, "_clone_file", unsupported)
+    monkeypatch.setattr(shutil, "copyfile", unexpected_copy)
+    with pytest.raises(OSError, match="cloning unavailable"):
+        AuditBundle.create(tmp_path / "bundle", {"input": source_file(tmp_path)}, copy_method="clone")
+    assert not (tmp_path / "bundle").exists()
+
+
+@pytest.mark.parametrize("corruption", [b"truncated", b"X" * 27])
+def test_clone_bytes_are_verified_before_publication(tmp_path, monkeypatch, corruption):
+    from isovar import audit_bundle
+
+    monkeypatch.setattr(audit_bundle, "_clone_file", lambda source, target: target.write_bytes(corruption))
+    with pytest.raises(AuditBundleError, match="Input changed during copy"):
+        AuditBundle.create(tmp_path / "bundle", {"input": source_file(tmp_path)}, copy_method="clone")
+    assert not (tmp_path / "bundle").exists()
+
+
+def test_payload_estimate_does_not_allocate_or_deduplicate_logical_files(tmp_path, capsys):
+    original = source_file(tmp_path)
+    assert AuditBundle.estimate_size({"a": original, "b": original}) == dict(files=2, payload_bytes=54)
+    spec = tmp_path / "inputs.json"
+    spec.write_text(json.dumps(dict(files={"input": original.name})))
+    before = set(tmp_path.iterdir())
+    run(["create", "--spec", str(spec), "--estimate"])
+    assert json.loads(capsys.readouterr().out) == dict(files=1, payload_bytes=27)
+    assert set(tmp_path.iterdir()) == before
+    with pytest.raises(AuditBundleError, match="Missing input"):
+        AuditBundle.estimate_size({"missing": tmp_path / "absent"})
+    with pytest.raises(AuditBundleError, match="copy_method"):
+        AuditBundle.create(tmp_path / "bundle", {"input": original}, copy_method="hardlink")
+    assert not (tmp_path / "bundle").exists()
+
+
+def test_sid_cli_clone_passes_every_file_through_verification(tmp_path, original_sid_audit, monkeypatch, capsys):
+    from isovar import audit_bundle
+
+    original, _, expected = original_sid_audit
+    copied = []
+    def independent_copy(source, target):
+        copied.append(target)
+        shutil.copyfile(source, target)
+    monkeypatch.setattr(audit_bundle, "_clone_file", independent_copy)
+    destination = tmp_path / "bundle"
+    run(["import-sid", "--audit", str(original), "--output", str(destination), "--copy-method", "clone"])
+    result = json.loads(capsys.readouterr().out)
+    assert result["files"] == len(copied) and len(copied) > 1
+    bundle = AuditBundle.open(destination)
+    plan, = bundle.manifest["metadata"]["sv_rna_runs"].values()
+    assert read_json(bundle.path(plan["expected"])) == expected
 
 
 @pytest.mark.parametrize("name", ["../outside", "/absolute", "a/../../outside", "a//b", "./a", "a\\b", ""])

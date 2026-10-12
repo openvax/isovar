@@ -4,17 +4,50 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
-## 1.48.0
+## 1.49.0
 
 - Use orfdata as the single owner of the upstream-ORF evidence catalogue,
   keeping existing Isovar imports and query/export commands compatible.
-- Add `annotate_sv_uorf_evidence` to connect reconstructed RNA candidates to
+- Add `annotate_sv_orf_evidence` to connect reconstructed RNA candidates to
   Varcode's validated alternative frames and native peptide retention. JSON
   and TSV exports preserve this evidence and its catalogue provenance.
 - Verify Sid TPST1–CRCP's 30/61/72-aa alternatives against original PacBio
   reads, preserving their 15/1/1 full-interval witnesses and missing qualities.
   None retains the catalogue's native MS peptide; mutant translation remains
   unassessed.
+
+## 1.48.0
+
+- Add explicit independent filesystem clones for portable bundle creation and
+  Sid audit import, retaining checksum/size verification and failing without
+  full-copy fallback when native cloning is unavailable (#461).
+- Expose logical payload estimates before allocating generic bundles through
+  `AuditBundle.estimate_size` and `isovar audit-bundle create --estimate`.
+
+## 1.47.1
+
+- Publish 42 completed recovery views and retain two unresolved IGKC outcomes
+  with unknown support, tracked in #470; independently check all 22 inputs and
+  420 exported ORFs. Expand the report to 55 events without shrinking scope.
+- Distinguish observed pilot views from the expected full-catalogue denominator
+  in new recovery selections; preserve the original producing requests (#471).
+
+- Reject mixed-checkout Sid recovery invocations before input preparation or
+  acquisition; producing versions and original receipts remain explicit (#462).
+
+- Require osteosarc 0.15.5 for snapshot modification-date checks during selected
+  Sid read acquisition (iskandr/osteosarc#112).
+- Add staged, targeted recovery for the original SV pilot's acquisition-failed
+  source/geometry pairs, retaining the complete selected denominator, original
+  failures, declared budgets and verified input provenance (#436).
+- Preserve pending and completed coverage as immutable snapshots, including
+  explicit timeout outcomes and separate acquired-record/support scope (#456).
+- Generate the neoORF report's event count from its ledger, retaining unresolved
+  nominations when the selected search expands (#457).
+- Retain timed-out/unassessable SV outcomes in event sheets with their reasons
+  and unknown reconstruction counts, distinct from completed negative screens (#458).
+- Keep candidate counts unknown in recovery coverage when a reconstruction has
+  not completed, rather than reporting zero (#459).
 
 ## 1.46.0
 

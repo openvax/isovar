@@ -50,4 +50,4 @@ Side 2 has no overlapping supplied Ensembl 115 transcript at its adjacent retain
 | 10x Kamil T2 | forward | no_candidate_paths | 50000 / 0 / 0 | 0 |
 | 10x Kamil T2 | reverse | no_candidate_paths | 50000 / 0 / 0 | 0 |
 
-No resolved ORF/coding window in these acquired inputs and search bounds. For splice nominations, alternate exon use, intron retention and exonization have not been comprehensively reconstructed. Protein sequence and altered transcript structure remain unknown; reference anatomy above is the available description.
+No protein sequence is resolved for this event in these recorded outcomes and search bounds. For splice nominations, alternate exon use, intron retention and exonization have not been comprehensively reconstructed. Protein sequence and altered transcript structure remain unknown; reference anatomy above is the available description.

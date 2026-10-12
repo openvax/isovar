@@ -1,0 +1,72 @@
+{
+  "package": "/Users/iskander/code/isovar/.cache/portable-audit-wheel-env-20261006/lib/python3.11/site-packages/isovar/__init__.py",
+  "version": "1.45.3",
+  "bundle": {
+    "bundle_id": "744b38a81f2c8775896bc21e5975bea148e006ec10051ac915afe2c8528e8630",
+    "files": 722,
+    "bytes": 11348954838
+  },
+  "archive_sha256": "06c2c635724febe06c5386d07e0f140361f95756d512fab05ee356219b814a6f",
+  "archive_stream_verified": true,
+  "full_bundle_relocated": true,
+  "verified_relocated_plans": 42,
+  "selected_view_restored_with_installed_cli": true,
+  "selected_view_bundle": {
+    "bundle_id": "f4da2938060a6c2c531c607b13e286223b9a3b445b2ea5af7f981c2b5cc13c79",
+    "files": 4,
+    "bytes": 11385988
+  },
+  "selected_view_archive_sha256": "57c0e3f639bb0d7e0319987459a6e665533c3724864364934b3e9a4df331dc08",
+  "run_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-03b9fc802bfa90900b74a750/forward",
+  "comparison": "matched",
+  "candidate_sequences": 17,
+  "representative_amino_acids": "MATMPTFLFSLFIFSVMSFFFPRHLLGWFDGQRIIFFSSVFHRVFSSIRGVPYCDLHAVISQLPCHLPSLLSFPFPASFILFFSMPFPTFVLSF",
+  "representative_rna_support": {
+    "scope": "union_of_full_interval_junction_linked_witnesses_within_input",
+    "reads": 2,
+    "fragments": 2,
+    "umis": 1,
+    "cells": 1,
+    "umis_complete": false,
+    "cells_complete": false,
+    "unlabeled_reads": 0,
+    "unknown_library_reads": 2,
+    "label_statuses": {
+      "resolved_label": 2
+    },
+    "evidence_scope": [
+      "product:58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+      "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT.tagged.bam"
+    ],
+    "read_ids": [
+      "segment_36c93a7d4eb24fe140a6be7ff963e34d1ec6d0426ea86c6186cdb817259ab169",
+      "segment_763b9e363515b8421f9d9d594ae9ae6a57e031c5a3fbbfe29bfbcae12a4130f7"
+    ],
+    "fragment_ids": [
+      "fragment_fdfe89f596207cf73a6bb24b0d0ff5bb4fc848fafa71008534919c101eb9937f",
+      "fragment_3310ced885862fea63a1cd84a1788f24df84fb7c9fc45d87562a1c3caee9c671"
+    ],
+    "evidence_set_id": "evidence_90334b7c420fcf9ba75ebfa7500d1286c4ceb615c2337e159f89aba40d133450",
+    "signal_group_ids": [],
+    "read_lineage": {
+      "reads": 2,
+      "signal_groups": 0,
+      "unresolved_reads": 2,
+      "all_reads_resolved": false,
+      "statuses": {
+        "unknown_producer": 2
+      }
+    },
+    "fragment_query_orientations": {
+      "original_query": 0,
+      "reverse_complement": 2,
+      "mixed": 0
+    },
+    "missing_quality_reads": 0
+  },
+  "result_sha256": "d5d9149bda3cb473b59e7717d7ad529f47c818cee8aafd2f777c47bab414118f",
+  "cli_resume": true,
+  "offline_python_replay": true,
+  "driver_sha256": "e8ffd4b6a26486267801edf7d36d14337d9a96be3f537ff20f4d8baf6ed837dc",
+  "wheel_sha256": "e237da73c6d1ab65ac25a045d3d52d192eea8c0d6330ab66290ba02776ed4091"
+}

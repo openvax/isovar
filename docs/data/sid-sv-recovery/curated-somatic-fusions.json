@@ -1,0 +1,5070 @@
+{
+  "annotated_proteome_comparison": {
+    "amino_acids_scanned": 116853147,
+    "peptide_length": 8,
+    "proteins_scanned": 245535,
+    "proteome_sha256": "7991ab37d09986eefdb5c77032b15370ab0e99918b78f235f3230c0302851c96"
+  },
+  "events": [
+    {
+      "ORFs": [
+        {
+          "altered_sequence": {
+            "comparison": "potential_reference_UTR_ORFs; initiation not observed",
+            "divergent_continuation_amino_acids": 17,
+            "divergent_continuation_sequence": "GRMPILRFSVTTRYFSY",
+            "reference_ORFs": [
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 290,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000304842",
+                "transcript_offset": 149
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPEMGVLLCCPDWS",
+                "annotated_cds_start": 291,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000649664",
+                "transcript_offset": 98
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 293,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904436",
+                "transcript_offset": 152
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPEMGVLLCCPDWS",
+                "annotated_cds_start": 338,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904437",
+                "transcript_offset": 145
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 289,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904438",
+                "transcript_offset": 148
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 335,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904439",
+                "transcript_offset": 194
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 327,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904440",
+                "transcript_offset": 186
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 321,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904441",
+                "transcript_offset": 180
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 307,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904442",
+                "transcript_offset": 166
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 317,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904443",
+                "transcript_offset": 176
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 293,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904444",
+                "transcript_offset": 152
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPEMGVLLCCPDWS",
+                "annotated_cds_start": 341,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904445",
+                "transcript_offset": 148
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPALGPRPSPAVPWDETLVSPGSDICPHVYPGCAS",
+                "annotated_cds_start": 472,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904446",
+                "transcript_offset": 151
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDDGSKKSSVHRDLTLPEEWYGRWQEKLVNSSKAIK",
+                "annotated_cds_start": 397,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904447",
+                "transcript_offset": 150
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 307,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000904448",
+                "transcript_offset": 166
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 293,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000935281",
+                "transcript_offset": 152
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 307,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000935282",
+                "transcript_offset": 166
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 290,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000935283",
+                "transcript_offset": 149
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPALGPRPSPAVPWDETLVSPGSDICPHVYPGCAS",
+                "annotated_cds_start": 1066,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000935284",
+                "transcript_offset": 147
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 290,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000935285",
+                "transcript_offset": 149
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 289,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000967658",
+                "transcript_offset": 148
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 293,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000967659",
+                "transcript_offset": 152
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 291,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000967660",
+                "transcript_offset": 150
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+                "annotated_cds_start": 320,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000967661",
+                "transcript_offset": 179
+              },
+              {
+                "amino_acids": "MPSRRRGGSSLIPANQLRCWLSF",
+                "annotated_cds_start": 321,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 13,
+                "start_kind": "five_prime_UTR",
+                "transcript_id": "ENST00000967662",
+                "transcript_offset": 167
+              }
+            ],
+            "shared_prefix_amino_acids": 13,
+            "variant_dependent_8mers_absent_from_supplied_reference_ORFs": [
+              "FSVTTRYF",
+              "GGSSLIPG",
+              "GRMPILRF",
+              "GSSLIPGR",
+              "ILRFSVTT",
+              "IPGRMPIL",
+              "LIPGRMPI",
+              "LRFSVTTR",
+              "MPILRFSV",
+              "PGRMPILR",
+              "PILRFSVT",
+              "RFSVTTRY",
+              "RMPILRFS",
+              "SLIPGRMP",
+              "SSLIPGRM",
+              "SVTTRYFS",
+              "VTTRYFSY"
+            ],
+            "variant_dependent_8mers_also_absent_from_annotated_proteome": [
+              "FSVTTRYF",
+              "GGSSLIPG",
+              "GRMPILRF",
+              "GSSLIPGR",
+              "ILRFSVTT",
+              "IPGRMPIL",
+              "LIPGRMPI",
+              "LRFSVTTR",
+              "MPILRFSV",
+              "PGRMPILR",
+              "PILRFSVT",
+              "RFSVTTRY",
+              "RMPILRFS",
+              "SLIPGRMP",
+              "SSLIPGRM",
+              "SVTTRYFS",
+              "VTTRYFSY"
+            ]
+          },
+          "amino_acid_length": 30,
+          "amino_acids": "MPSRRRGGSSLIPGRMPILRFSVTTRYFSY",
+          "annotated_protein_comparison": {
+            "exact_full_sequence_hits": [],
+            "il_collapsed_full_sequence_hits": [],
+            "novel_exact_peptides": [
+              "FSVTTRYF",
+              "GGSSLIPG",
+              "GRMPILRF",
+              "GSSLIPGR",
+              "ILRFSVTT",
+              "IPGRMPIL",
+              "LIPGRMPI",
+              "LRFSVTTR",
+              "MPILRFSV",
+              "MPSRRRGG",
+              "PGRMPILR",
+              "PILRFSVT",
+              "PSRRRGGS",
+              "RFSVTTRY",
+              "RGGSSLIP",
+              "RMPILRFS",
+              "RRGGSSLI",
+              "RRRGGSSL",
+              "SLIPGRMP",
+              "SRRRGGSS",
+              "SSLIPGRM",
+              "SVTTRYFS",
+              "VTTRYFSY"
+            ],
+            "novel_il_collapsed_peptides": [
+              "FSVTTRYF",
+              "GGSSLIPG",
+              "GRMPILRF",
+              "GSSLIPGR",
+              "ILRFSVTT",
+              "IPGRMPIL",
+              "LIPGRMPI",
+              "LRFSVTTR",
+              "MPILRFSV",
+              "MPSRRRGG",
+              "PGRMPILR",
+              "PILRFSVT",
+              "PSRRRGGS",
+              "RFSVTTRY",
+              "RGGSSLIP",
+              "RMPILRFS",
+              "RRGGSSLI",
+              "RRRGGSSL",
+              "SLIPGRMP",
+              "SRRRGGSS",
+              "SSLIPGRM",
+              "SVTTRYFS",
+              "VTTRYFSY"
+            ]
+          },
+          "ends_with_stop_codon": true,
+          "exact_ORF_recurrent_T1_T2": true,
+          "examples": [
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr7",
+                  "query_end": 794,
+                  "query_start": 757,
+                  "reference_end": 66205519,
+                  "reference_start": 66205482,
+                  "strand": "+"
+                },
+                {
+                  "contig": "chr7",
+                  "query_end": 834,
+                  "query_start": 802,
+                  "reference_end": 66127740,
+                  "reference_start": 66127708,
+                  "strand": "+"
+                },
+                {
+                  "contig": "chr7",
+                  "query_end": 850,
+                  "query_start": 834,
+                  "reference_end": 66130759,
+                  "reference_start": 66130743,
+                  "strand": "+"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr7",
+                    66205518,
+                    "+"
+                  ],
+                  "query_interval": [
+                    794,
+                    802
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr7",
+                    66127708,
+                    "+"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": "CAGGAAGG"
+                }
+              ],
+              "library": "T2 ONT",
+              "query_interval": [
+                757,
+                850
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr7",
+                  66205482,
+                  "+"
+                ],
+                [
+                  "chr7",
+                  66205483,
+                  "+"
+                ],
+                [
+                  "chr7",
+                  66205484,
+                  "+"
+                ]
+              ],
+              "start_regions": [
+                "five_prime_UTR",
+                "noncoding_transcript"
+              ]
+            },
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr7",
+                  "query_end": 240,
+                  "query_start": 203,
+                  "reference_end": 66205519,
+                  "reference_start": 66205482,
+                  "strand": "+"
+                },
+                {
+                  "contig": "chr7",
+                  "query_end": 280,
+                  "query_start": 240,
+                  "reference_end": 66127740,
+                  "reference_start": 66127700,
+                  "strand": "+"
+                },
+                {
+                  "contig": "chr7",
+                  "query_end": 296,
+                  "query_start": 280,
+                  "reference_end": 66130759,
+                  "reference_start": 66130743,
+                  "strand": "+"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr7",
+                    66205518,
+                    "+"
+                  ],
+                  "query_interval": [
+                    240,
+                    240
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr7",
+                    66127700,
+                    "+"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": ""
+                }
+              ],
+              "library": "T1 PacBio",
+              "query_interval": [
+                203,
+                296
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr7",
+                  66205482,
+                  "+"
+                ],
+                [
+                  "chr7",
+                  66205483,
+                  "+"
+                ],
+                [
+                  "chr7",
+                  66205484,
+                  "+"
+                ]
+              ],
+              "start_regions": [
+                "five_prime_UTR",
+                "noncoding_transcript"
+              ]
+            }
+          ],
+          "nucleotide_sequence": "ATGCCGTCCAGGCGGCGCGGCGGCTCCTCACTCATCCCAGGAAGGATGCCAATTCTGCGCTTCTCAGTAACTACGAGGTATTTCAGTTACTAA",
+          "sequence_id": "seq-2bcd01de4caed6d1be33",
+          "support": [
+            {
+              "candidate_id": "sv_orf_8131f47e3215c21498292fa4124c8cfe25e403e886ae0f6b5d43b67dcc6c85c3",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 1215,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 1215
+              },
+              "evidence_set_id": "evidence_4171e77882a7a8bc3b077c310ba3fb39d41e8628d0ac2b9181c5c4cc48c9fb0b",
+              "full_interval_fragments": 15,
+              "library": "T1 PacBio",
+              "missing_quality_reads": 15,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 15,
+                "reverse_complement": 0
+              },
+              "row_index": 132,
+              "source_id": "8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 1200,
+                "excluded_records": {},
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 1242,
+                "scope": "all_original_input_records",
+                "unique_records": 1242
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "cell_umi_labels_unresolved",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "missing_base_qualities",
+                "no_annotated_start_in_supplied_models",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:extension_segment_limit",
+                "reconstruction_limit:repeated_genomic_position",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "start_tier_ambiguous",
+                "translation_unobserved"
+              ]
+            },
+            {
+              "candidate_id": "sv_orf_8131f47e3215c21498292fa4124c8cfe25e403e886ae0f6b5d43b67dcc6c85c3",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 8260,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 8260
+              },
+              "evidence_set_id": "evidence_423e80cdaed887463a49f0b59c09470177fed45c027d3dcad401878b8c52a885",
+              "full_interval_fragments": 172,
+              "library": "T2 ONT",
+              "missing_quality_reads": 0,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 172,
+                "reverse_complement": 0
+              },
+              "row_index": 18,
+              "source_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 8069,
+                "excluded_records": {},
+                "read_path_notes": {
+                  "unavailable_query_bases": 1
+                },
+                "records_complete": true,
+                "records_scanned": 8390,
+                "scope": "all_original_input_records",
+                "unique_records": 8390
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "no_annotated_start_in_supplied_models",
+                "path_end_truncated",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:extension_segment_limit",
+                "reconstruction_limit:input_acquisition_incomplete",
+                "reconstruction_limit:path_limit",
+                "reconstruction_limit:repeated_genomic_position",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "start_tier_ambiguous",
+                "translation_unobserved",
+                "unplaced_junction_sequence"
+              ]
+            }
+          ]
+        }
+      ],
+      "event_id": "adj-13d954785c89a21a1e8e937b",
+      "matched_blood_probe": "no DNA split reads reported",
+      "name": "TPST1\u2013CRCP region",
+      "original_DNA_calls": [],
+      "priority": "highest RNA/altered-uORF priority; exact RNA-to-DNA linkage conditional",
+      "probe_evidence_method": "published primary analysis transcribed on 2026-10-08; not recomputed here",
+      "probe_source": "https://osteosarc.com/fusions/",
+      "published_probe_DNA_samples": [
+        "T1",
+        "T1-organoid",
+        "T2"
+      ],
+      "published_probe_RNA_timepoints": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "selected_entry_DNA_origin": "unknown_RNA_only_nomination"
+    },
+    {
+      "ORFs": [
+        {
+          "altered_sequence": {
+            "comparison": "potential_reference_UTR_ORFs; initiation not observed",
+            "divergent_continuation_amino_acids": 4,
+            "divergent_continuation_sequence": "GIFL",
+            "reference_ORFs": [
+              {
+                "amino_acids": "MAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 8,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000225726",
+                "transcript_offset": 2536
+              },
+              {
+                "amino_acids": "MAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 482,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 8,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878791",
+                "transcript_offset": 2813
+              },
+              {
+                "amino_acids": "MAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 244,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 8,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878792",
+                "transcript_offset": 2467
+              },
+              {
+                "amino_acids": "MAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 219,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 8,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878793",
+                "transcript_offset": 2550
+              },
+              {
+                "amino_acids": "MAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 226,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 8,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878794",
+                "transcript_offset": 2572
+              },
+              {
+                "amino_acids": "MAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 207,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 8,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878795",
+                "transcript_offset": 2325
+              },
+              {
+                "amino_acids": "MAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 8,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878796",
+                "transcript_offset": 2533
+              },
+              {
+                "amino_acids": "MAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 301,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 8,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878797",
+                "transcript_offset": 2632
+              },
+              {
+                "amino_acids": "MAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 485,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 8,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000916946",
+                "transcript_offset": 2816
+              },
+              {
+                "amino_acids": "MAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 161,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 8,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000960670",
+                "transcript_offset": 2480
+              }
+            ],
+            "shared_prefix_amino_acids": 8,
+            "variant_dependent_8mers_absent_from_supplied_reference_ORFs": [
+              "AVCRCFSG",
+              "CRCFSGIF",
+              "RCFSGIFL",
+              "VCRCFSGI"
+            ],
+            "variant_dependent_8mers_also_absent_from_annotated_proteome": [
+              "AVCRCFSG",
+              "CRCFSGIF",
+              "RCFSGIFL",
+              "VCRCFSGI"
+            ]
+          },
+          "amino_acid_length": 12,
+          "amino_acids": "MAVCRCFSGIFL",
+          "annotated_protein_comparison": {
+            "exact_full_sequence_hits": [],
+            "il_collapsed_full_sequence_hits": [],
+            "novel_exact_peptides": [
+              "AVCRCFSG",
+              "CRCFSGIF",
+              "MAVCRCFS",
+              "RCFSGIFL",
+              "VCRCFSGI"
+            ],
+            "novel_il_collapsed_peptides": [
+              "AVCRCFSG",
+              "CRCFSGIF",
+              "MAVCRCFS",
+              "RCFSGIFL",
+              "VCRCFSGI"
+            ]
+          },
+          "ends_with_stop_codon": true,
+          "exact_ORF_recurrent_T1_T2": true,
+          "examples": [
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 2655,
+                  "query_start": 2634,
+                  "reference_end": 63746001,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 2673,
+                  "query_start": 2658,
+                  "reference_end": 108611243,
+                  "reference_start": 108611228,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    2655,
+                    2658
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611242,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": "TCC"
+                }
+              ],
+              "library": "T2 ONT",
+              "query_interval": [
+                2634,
+                2673
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746000,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63745999,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63745998,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            },
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 740,
+                  "query_start": 719,
+                  "reference_end": 63746001,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 758,
+                  "query_start": 740,
+                  "reference_end": 108611246,
+                  "reference_start": 108611228,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    740,
+                    740
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611245,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": ""
+                }
+              ],
+              "library": "T1 PacBio",
+              "query_interval": [
+                719,
+                758
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746000,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63745999,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63745998,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            }
+          ],
+          "nucleotide_sequence": "ATGGCTGTGTGCCGTTGCTTCTCCGGTATATTTCTATAA",
+          "sequence_id": "seq-ffe3d70a824253242731",
+          "support": [
+            {
+              "candidate_id": "sv_orf_e3a27d68ae90bd72578558f19dcc4262323a21fd86f555d0315acc9a0b5a78c6",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 1665,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 1665
+              },
+              "evidence_set_id": "evidence_bc4e67d3774ca9bb3d5e3ede308ce92b0250faa6637a9e5d58e792b5e75d386c",
+              "full_interval_fragments": 3,
+              "library": "T1 PacBio",
+              "missing_quality_reads": 3,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 3
+              },
+              "row_index": 233,
+              "source_id": "8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 2064,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 2100,
+                "scope": "all_original_input_records",
+                "unique_records": 2100
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "cell_umi_labels_unresolved",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "missing_base_qualities",
+                "no_annotated_start_in_supplied_models",
+                "peptide_novelty_unassessed",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved"
+              ]
+            },
+            {
+              "candidate_id": "sv_orf_e3a27d68ae90bd72578558f19dcc4262323a21fd86f555d0315acc9a0b5a78c6",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 12065,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 12065
+              },
+              "evidence_set_id": "evidence_c17739946a25ffe28f76e6ea9784fc683bc204d57ab4009c2af6dd08a4f15764",
+              "full_interval_fragments": 5,
+              "library": "T2 ONT",
+              "missing_quality_reads": 0,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 5
+              },
+              "row_index": 197,
+              "source_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 16259,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {
+                  "SA_declared_piece_not_linked": 2
+                },
+                "records_complete": true,
+                "records_scanned": 16328,
+                "scope": "all_original_input_records",
+                "unique_records": 16328
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "no_annotated_start_in_supplied_models",
+                "path_end_truncated",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:extension_segment_limit",
+                "reconstruction_limit:input_acquisition_incomplete",
+                "reconstruction_limit:repeated_genomic_position",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved",
+                "unplaced_junction_sequence"
+              ]
+            }
+          ]
+        },
+        {
+          "altered_sequence": {
+            "comparison": "potential_reference_UTR_ORFs; initiation not observed",
+            "divergent_continuation_amino_acids": 18,
+            "divergent_continuation_sequence": "RYISITEYPYNNGILLSN",
+            "reference_ORFs": [
+              {
+                "amino_acids": "MEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 16,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000225726",
+                "transcript_offset": 2511
+              },
+              {
+                "amino_acids": "MEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 482,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 16,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878791",
+                "transcript_offset": 2788
+              },
+              {
+                "amino_acids": "MEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 244,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 16,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878792",
+                "transcript_offset": 2442
+              },
+              {
+                "amino_acids": "MEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 219,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 16,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878793",
+                "transcript_offset": 2525
+              },
+              {
+                "amino_acids": "MEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 226,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 16,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878794",
+                "transcript_offset": 2547
+              },
+              {
+                "amino_acids": "MEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 207,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 16,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878795",
+                "transcript_offset": 2300
+              },
+              {
+                "amino_acids": "MEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 16,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878796",
+                "transcript_offset": 2508
+              },
+              {
+                "amino_acids": "MEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 301,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 16,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878797",
+                "transcript_offset": 2607
+              },
+              {
+                "amino_acids": "MEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 485,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 16,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000916946",
+                "transcript_offset": 2791
+              },
+              {
+                "amino_acids": "MEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 161,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 16,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000960670",
+                "transcript_offset": 2455
+              }
+            ],
+            "shared_prefix_amino_acids": 16,
+            "variant_dependent_8mers_absent_from_supplied_reference_ORFs": [
+              "CVPLLLRY",
+              "EYPYNNGI",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL"
+            ],
+            "variant_dependent_8mers_also_absent_from_annotated_proteome": [
+              "CVPLLLRY",
+              "EYPYNNGI",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL"
+            ]
+          },
+          "amino_acid_length": 34,
+          "amino_acids": "MEKLCSLYYGCVPLLLRYISITEYPYNNGILLSN",
+          "annotated_protein_comparison": {
+            "exact_full_sequence_hits": [],
+            "il_collapsed_full_sequence_hits": [],
+            "novel_exact_peptides": [
+              "CSLYYGCV",
+              "CVPLLLRY",
+              "EKLCSLYY",
+              "EYPYNNGI",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "KLCSLYYG",
+              "LCSLYYGC",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "LYYGCVPL",
+              "MEKLCSLY",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "SLYYGCVP",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YGCVPLLL",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL",
+              "YYGCVPLL"
+            ],
+            "novel_il_collapsed_peptides": [
+              "CSLYYGCV",
+              "CVPLLLRY",
+              "EKLCSLYY",
+              "EYPYNNGI",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "KLCSLYYG",
+              "LCSLYYGC",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "LYYGCVPL",
+              "MEKLCSLY",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "SLYYGCVP",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YGCVPLLL",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL",
+              "YYGCVPLL"
+            ]
+          },
+          "ends_with_stop_codon": true,
+          "exact_ORF_recurrent_T1_T2": true,
+          "examples": [
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 2655,
+                  "query_start": 2609,
+                  "reference_end": 63746026,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 2714,
+                  "query_start": 2658,
+                  "reference_end": 108611243,
+                  "reference_start": 108611187,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    2655,
+                    2658
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611242,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": "TCC"
+                }
+              ],
+              "library": "T2 ONT",
+              "query_interval": [
+                2609,
+                2714
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746025,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746024,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746023,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            },
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 740,
+                  "query_start": 694,
+                  "reference_end": 63746026,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 799,
+                  "query_start": 740,
+                  "reference_end": 108611246,
+                  "reference_start": 108611187,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    740,
+                    740
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611245,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": ""
+                }
+              ],
+              "library": "T1 PacBio",
+              "query_interval": [
+                694,
+                799
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746025,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746024,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746023,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            }
+          ],
+          "nucleotide_sequence": "ATGGAGAAGCTCTGTTCTCTATATTATGGCTGTGTGCCGTTGCTTCTCCGGTATATTTCTATAACAGAATATCCATACAACAATGGCATACTTCTCAGCAATTAA",
+          "sequence_id": "seq-24422f0ebf90d14d5b54",
+          "support": [
+            {
+              "candidate_id": "sv_orf_6832444639a0a60b2444111f0c3d490ef24ce28a6f3ad8d05cee8da6390334e9",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 1665,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 1665
+              },
+              "evidence_set_id": "evidence_bc4e67d3774ca9bb3d5e3ede308ce92b0250faa6637a9e5d58e792b5e75d386c",
+              "full_interval_fragments": 3,
+              "library": "T1 PacBio",
+              "missing_quality_reads": 3,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 3
+              },
+              "row_index": 230,
+              "source_id": "8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 2064,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 2100,
+                "scope": "all_original_input_records",
+                "unique_records": 2100
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "cell_umi_labels_unresolved",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "missing_base_qualities",
+                "no_annotated_start_in_supplied_models",
+                "peptide_novelty_unassessed",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved"
+              ]
+            },
+            {
+              "candidate_id": "sv_orf_6832444639a0a60b2444111f0c3d490ef24ce28a6f3ad8d05cee8da6390334e9",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 12065,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 12065
+              },
+              "evidence_set_id": "evidence_c17739946a25ffe28f76e6ea9784fc683bc204d57ab4009c2af6dd08a4f15764",
+              "full_interval_fragments": 5,
+              "library": "T2 ONT",
+              "missing_quality_reads": 0,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 5
+              },
+              "row_index": 194,
+              "source_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 16259,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {
+                  "SA_declared_piece_not_linked": 2
+                },
+                "records_complete": true,
+                "records_scanned": 16328,
+                "scope": "all_original_input_records",
+                "unique_records": 16328
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "no_annotated_start_in_supplied_models",
+                "path_end_truncated",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:extension_segment_limit",
+                "reconstruction_limit:input_acquisition_incomplete",
+                "reconstruction_limit:repeated_genomic_position",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved",
+                "unplaced_junction_sequence"
+              ]
+            }
+          ]
+        },
+        {
+          "altered_sequence": {
+            "comparison": "potential_reference_UTR_ORFs; initiation not observed",
+            "divergent_continuation_amino_acids": 18,
+            "divergent_continuation_sequence": "RYISITEYPYNNGILLSN",
+            "reference_ORFs": [
+              {
+                "amino_acids": "MFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 18,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000225726",
+                "transcript_offset": 2505
+              },
+              {
+                "amino_acids": "MFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 482,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 18,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878791",
+                "transcript_offset": 2782
+              },
+              {
+                "amino_acids": "MFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 244,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 18,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878792",
+                "transcript_offset": 2436
+              },
+              {
+                "amino_acids": "MFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 219,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 18,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878793",
+                "transcript_offset": 2519
+              },
+              {
+                "amino_acids": "MFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 226,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 18,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878794",
+                "transcript_offset": 2541
+              },
+              {
+                "amino_acids": "MFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 207,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 18,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878795",
+                "transcript_offset": 2294
+              },
+              {
+                "amino_acids": "MFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 18,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878796",
+                "transcript_offset": 2502
+              },
+              {
+                "amino_acids": "MFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 301,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 18,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878797",
+                "transcript_offset": 2601
+              },
+              {
+                "amino_acids": "MFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 485,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 18,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000916946",
+                "transcript_offset": 2785
+              },
+              {
+                "amino_acids": "MFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 161,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 18,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000960670",
+                "transcript_offset": 2449
+              }
+            ],
+            "shared_prefix_amino_acids": 18,
+            "variant_dependent_8mers_absent_from_supplied_reference_ORFs": [
+              "CVPLLLRY",
+              "EYPYNNGI",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL"
+            ],
+            "variant_dependent_8mers_also_absent_from_annotated_proteome": [
+              "CVPLLLRY",
+              "EYPYNNGI",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL"
+            ]
+          },
+          "amino_acid_length": 36,
+          "amino_acids": "MFMEKLCSLYYGCVPLLLRYISITEYPYNNGILLSN",
+          "annotated_protein_comparison": {
+            "exact_full_sequence_hits": [],
+            "il_collapsed_full_sequence_hits": [],
+            "novel_exact_peptides": [
+              "CSLYYGCV",
+              "CVPLLLRY",
+              "EKLCSLYY",
+              "EYPYNNGI",
+              "FMEKLCSL",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "KLCSLYYG",
+              "LCSLYYGC",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "LYYGCVPL",
+              "MEKLCSLY",
+              "MFMEKLCS",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "SLYYGCVP",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YGCVPLLL",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL",
+              "YYGCVPLL"
+            ],
+            "novel_il_collapsed_peptides": [
+              "CSLYYGCV",
+              "CVPLLLRY",
+              "EKLCSLYY",
+              "EYPYNNGI",
+              "FMEKLCSL",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "KLCSLYYG",
+              "LCSLYYGC",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "LYYGCVPL",
+              "MEKLCSLY",
+              "MFMEKLCS",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "SLYYGCVP",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YGCVPLLL",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL",
+              "YYGCVPLL"
+            ]
+          },
+          "ends_with_stop_codon": true,
+          "exact_ORF_recurrent_T1_T2": true,
+          "examples": [
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 2655,
+                  "query_start": 2603,
+                  "reference_end": 63746032,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 2714,
+                  "query_start": 2658,
+                  "reference_end": 108611243,
+                  "reference_start": 108611187,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    2655,
+                    2658
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611242,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": "TCC"
+                }
+              ],
+              "library": "T2 ONT",
+              "query_interval": [
+                2603,
+                2714
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746031,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746030,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746029,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            },
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 740,
+                  "query_start": 688,
+                  "reference_end": 63746032,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 799,
+                  "query_start": 740,
+                  "reference_end": 108611246,
+                  "reference_start": 108611187,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    740,
+                    740
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611245,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": ""
+                }
+              ],
+              "library": "T1 PacBio",
+              "query_interval": [
+                688,
+                799
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746031,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746030,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746029,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            }
+          ],
+          "nucleotide_sequence": "ATGTTCATGGAGAAGCTCTGTTCTCTATATTATGGCTGTGTGCCGTTGCTTCTCCGGTATATTTCTATAACAGAATATCCATACAACAATGGCATACTTCTCAGCAATTAA",
+          "sequence_id": "seq-05aac5a3ad5ed45771cd",
+          "support": [
+            {
+              "candidate_id": "sv_orf_bc61554675ae3de6486055127ff862078d18dba4c6dd7a8dfb93689f368f3514",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 1665,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 1665
+              },
+              "evidence_set_id": "evidence_bc4e67d3774ca9bb3d5e3ede308ce92b0250faa6637a9e5d58e792b5e75d386c",
+              "full_interval_fragments": 3,
+              "library": "T1 PacBio",
+              "missing_quality_reads": 3,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 3
+              },
+              "row_index": 232,
+              "source_id": "8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 2064,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 2100,
+                "scope": "all_original_input_records",
+                "unique_records": 2100
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "cell_umi_labels_unresolved",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "missing_base_qualities",
+                "no_annotated_start_in_supplied_models",
+                "peptide_novelty_unassessed",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved"
+              ]
+            },
+            {
+              "candidate_id": "sv_orf_bc61554675ae3de6486055127ff862078d18dba4c6dd7a8dfb93689f368f3514",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 12065,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 12065
+              },
+              "evidence_set_id": "evidence_c17739946a25ffe28f76e6ea9784fc683bc204d57ab4009c2af6dd08a4f15764",
+              "full_interval_fragments": 5,
+              "library": "T2 ONT",
+              "missing_quality_reads": 0,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 5
+              },
+              "row_index": 196,
+              "source_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 16259,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {
+                  "SA_declared_piece_not_linked": 2
+                },
+                "records_complete": true,
+                "records_scanned": 16328,
+                "scope": "all_original_input_records",
+                "unique_records": 16328
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "no_annotated_start_in_supplied_models",
+                "path_end_truncated",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:extension_segment_limit",
+                "reconstruction_limit:input_acquisition_incomplete",
+                "reconstruction_limit:repeated_genomic_position",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved",
+                "unplaced_junction_sequence"
+              ]
+            }
+          ]
+        },
+        {
+          "altered_sequence": null,
+          "amino_acid_length": 21,
+          "amino_acids": "MPLLYGYSVIEIYRRSNGTQP",
+          "annotated_protein_comparison": {
+            "exact_full_sequence_hits": [],
+            "il_collapsed_full_sequence_hits": [],
+            "novel_exact_peptides": [
+              "EIYRRSNG",
+              "GYSVIEIY",
+              "IEIYRRSN",
+              "IYRRSNGT",
+              "LLYGYSVI",
+              "LYGYSVIE",
+              "MPLLYGYS",
+              "PLLYGYSV",
+              "RRSNGTQP",
+              "SVIEIYRR",
+              "VIEIYRRS",
+              "YGYSVIEI",
+              "YRRSNGTQ",
+              "YSVIEIYR"
+            ],
+            "novel_il_collapsed_peptides": [
+              "EIYRRSNG",
+              "GYSVIEIY",
+              "IEIYRRSN",
+              "IYRRSNGT",
+              "LLYGYSVI",
+              "LYGYSVIE",
+              "MPLLYGYS",
+              "PLLYGYSV",
+              "RRSNGTQP",
+              "SVIEIYRR",
+              "VIEIYRRS",
+              "YGYSVIEI",
+              "YRRSNGTQ",
+              "YSVIEIYR"
+            ]
+          },
+          "ends_with_stop_codon": true,
+          "exact_ORF_recurrent_T1_T2": true,
+          "examples": [
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr6",
+                  "query_end": 2353,
+                  "query_start": 2313,
+                  "reference_end": 108611243,
+                  "reference_start": 108611203,
+                  "strand": "+"
+                },
+                {
+                  "contig": "chr17",
+                  "query_end": 2379,
+                  "query_start": 2356,
+                  "reference_end": 63746003,
+                  "reference_start": 63745980,
+                  "strand": "+"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr6",
+                    108611242,
+                    "+"
+                  ],
+                  "query_interval": [
+                    2353,
+                    2356
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr17",
+                    63745980,
+                    "+"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": "GGA"
+                }
+              ],
+              "library": "T2 ONT",
+              "query_interval": [
+                2313,
+                2379
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr6",
+                  108611203,
+                  "+"
+                ],
+                [
+                  "chr6",
+                  108611204,
+                  "+"
+                ],
+                [
+                  "chr6",
+                  108611205,
+                  "+"
+                ]
+              ],
+              "start_regions": [
+                "intronic"
+              ]
+            },
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr6",
+                  "query_end": 1373,
+                  "query_start": 1330,
+                  "reference_end": 108611246,
+                  "reference_start": 108611203,
+                  "strand": "+"
+                },
+                {
+                  "contig": "chr17",
+                  "query_end": 1396,
+                  "query_start": 1373,
+                  "reference_end": 63746003,
+                  "reference_start": 63745980,
+                  "strand": "+"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr6",
+                    108611245,
+                    "+"
+                  ],
+                  "query_interval": [
+                    1373,
+                    1373
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr17",
+                    63745980,
+                    "+"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": ""
+                }
+              ],
+              "library": "T1 PacBio",
+              "query_interval": [
+                1330,
+                1396
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr6",
+                  108611203,
+                  "+"
+                ],
+                [
+                  "chr6",
+                  108611204,
+                  "+"
+                ],
+                [
+                  "chr6",
+                  108611205,
+                  "+"
+                ]
+              ],
+              "start_regions": [
+                "intronic"
+              ]
+            }
+          ],
+          "nucleotide_sequence": "ATGCCATTGTTGTATGGATATTCTGTTATAGAAATATACCGGAGAAGCAACGGCACACAGCCATAA",
+          "sequence_id": "seq-1d9f4d069edece638b7f",
+          "support": [
+            {
+              "candidate_id": "sv_orf_92b395da33d82eb060db78fe55039cee487d0b813e1d18bf5d6c4cb757d10f7b",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 1665,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 1665
+              },
+              "evidence_set_id": "evidence_bc4e67d3774ca9bb3d5e3ede308ce92b0250faa6637a9e5d58e792b5e75d386c",
+              "full_interval_fragments": 3,
+              "library": "T1 PacBio",
+              "missing_quality_reads": 3,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 3,
+                "reverse_complement": 0
+              },
+              "row_index": 235,
+              "source_id": "8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 2064,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 2100,
+                "scope": "all_original_input_records",
+                "unique_records": 2100
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "cell_umi_labels_unresolved",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "missing_base_qualities",
+                "no_annotated_start_in_supplied_models",
+                "peptide_novelty_unassessed",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved"
+              ]
+            },
+            {
+              "candidate_id": "sv_orf_92b395da33d82eb060db78fe55039cee487d0b813e1d18bf5d6c4cb757d10f7b",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 12065,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 12065
+              },
+              "evidence_set_id": "evidence_c17739946a25ffe28f76e6ea9784fc683bc204d57ab4009c2af6dd08a4f15764",
+              "full_interval_fragments": 5,
+              "library": "T2 ONT",
+              "missing_quality_reads": 0,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 5,
+                "reverse_complement": 0
+              },
+              "row_index": 199,
+              "source_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 16259,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {
+                  "SA_declared_piece_not_linked": 2
+                },
+                "records_complete": true,
+                "records_scanned": 16328,
+                "scope": "all_original_input_records",
+                "unique_records": 16328
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "no_annotated_start_in_supplied_models",
+                "path_end_truncated",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:extension_segment_limit",
+                "reconstruction_limit:input_acquisition_incomplete",
+                "reconstruction_limit:repeated_genomic_position",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved",
+                "unplaced_junction_sequence"
+              ]
+            }
+          ]
+        },
+        {
+          "altered_sequence": {
+            "comparison": "potential_reference_UTR_ORFs; initiation not observed",
+            "divergent_continuation_amino_acids": 4,
+            "divergent_continuation_sequence": "GIFL",
+            "reference_ORFs": [
+              {
+                "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 30,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000225726",
+                "transcript_offset": 2470
+              },
+              {
+                "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 482,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 30,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878791",
+                "transcript_offset": 2747
+              },
+              {
+                "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 244,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 30,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878792",
+                "transcript_offset": 2401
+              },
+              {
+                "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 219,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 30,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878793",
+                "transcript_offset": 2484
+              },
+              {
+                "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 226,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 30,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878794",
+                "transcript_offset": 2506
+              },
+              {
+                "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 207,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 30,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878795",
+                "transcript_offset": 2259
+              },
+              {
+                "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 30,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878796",
+                "transcript_offset": 2467
+              },
+              {
+                "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 301,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 30,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878797",
+                "transcript_offset": 2566
+              },
+              {
+                "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 485,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 30,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000916946",
+                "transcript_offset": 2750
+              },
+              {
+                "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSLCFYLFHS",
+                "annotated_cds_start": 161,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 30,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000960670",
+                "transcript_offset": 2414
+              }
+            ],
+            "shared_prefix_amino_acids": 30,
+            "variant_dependent_8mers_absent_from_supplied_reference_ORFs": [
+              "AVCRCFSG",
+              "CRCFSGIF",
+              "RCFSGIFL",
+              "VCRCFSGI"
+            ],
+            "variant_dependent_8mers_also_absent_from_annotated_proteome": [
+              "AVCRCFSG",
+              "CRCFSGIF",
+              "RCFSGIFL",
+              "VCRCFSGI"
+            ]
+          },
+          "amino_acid_length": 34,
+          "amino_acids": "MFFPSWLLQPGGCSWRSSVLYIMAVCRCFSGIFL",
+          "annotated_protein_comparison": {
+            "exact_full_sequence_hits": [],
+            "il_collapsed_full_sequence_hits": [],
+            "novel_exact_peptides": [
+              "AVCRCFSG",
+              "CRCFSGIF",
+              "CSWRSSVL",
+              "FFPSWLLQ",
+              "FPSWLLQP",
+              "GCSWRSSV",
+              "GGCSWRSS",
+              "IMAVCRCF",
+              "LLQPGGCS",
+              "LQPGGCSW",
+              "LYIMAVCR",
+              "MAVCRCFS",
+              "MFFPSWLL",
+              "PGGCSWRS",
+              "PSWLLQPG",
+              "QPGGCSWR",
+              "RCFSGIFL",
+              "RSSVLYIM",
+              "SSVLYIMA",
+              "SVLYIMAV",
+              "SWLLQPGG",
+              "SWRSSVLY",
+              "VCRCFSGI",
+              "VLYIMAVC",
+              "WLLQPGGC",
+              "WRSSVLYI",
+              "YIMAVCRC"
+            ],
+            "novel_il_collapsed_peptides": [
+              "AVCRCFSG",
+              "CRCFSGIF",
+              "CSWRSSVL",
+              "FFPSWLLQ",
+              "FPSWLLQP",
+              "GCSWRSSV",
+              "GGCSWRSS",
+              "IMAVCRCF",
+              "LLQPGGCS",
+              "LQPGGCSW",
+              "LYIMAVCR",
+              "MAVCRCFS",
+              "MFFPSWLL",
+              "PGGCSWRS",
+              "PSWLLQPG",
+              "QPGGCSWR",
+              "RCFSGIFL",
+              "RSSVLYIM",
+              "SSVLYIMA",
+              "SVLYIMAV",
+              "SWLLQPGG",
+              "SWRSSVLY",
+              "VCRCFSGI",
+              "VLYIMAVC",
+              "WLLQPGGC",
+              "WRSSVLYI",
+              "YIMAVCRC"
+            ]
+          },
+          "ends_with_stop_codon": true,
+          "exact_ORF_recurrent_T1_T2": true,
+          "examples": [
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 2655,
+                  "query_start": 2568,
+                  "reference_end": 63746067,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 2673,
+                  "query_start": 2658,
+                  "reference_end": 108611243,
+                  "reference_start": 108611228,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    2655,
+                    2658
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611242,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": "TCC"
+                }
+              ],
+              "library": "T2 ONT",
+              "query_interval": [
+                2568,
+                2673
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746066,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746065,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746064,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            },
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 740,
+                  "query_start": 653,
+                  "reference_end": 63746067,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 758,
+                  "query_start": 740,
+                  "reference_end": 108611246,
+                  "reference_start": 108611228,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    740,
+                    740
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611245,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": ""
+                }
+              ],
+              "library": "T1 PacBio",
+              "query_interval": [
+                653,
+                758
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746066,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746065,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746064,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            }
+          ],
+          "nucleotide_sequence": "ATGTTTTTTCCTTCTTGGTTGCTGCAGCCTGGTGGATGTTCATGGAGAAGCTCTGTTCTCTATATTATGGCTGTGTGCCGTTGCTTCTCCGGTATATTTCTATAA",
+          "sequence_id": "seq-2653c83de29063fa2517",
+          "support": [
+            {
+              "candidate_id": "sv_orf_3b006234de89b4d2bdb3f7977e023e7eace92048a27820b0fdf4dece3ce46af5",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 1665,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 1665
+              },
+              "evidence_set_id": "evidence_bc4e67d3774ca9bb3d5e3ede308ce92b0250faa6637a9e5d58e792b5e75d386c",
+              "full_interval_fragments": 3,
+              "library": "T1 PacBio",
+              "missing_quality_reads": 3,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 3
+              },
+              "row_index": 229,
+              "source_id": "8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 2064,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 2100,
+                "scope": "all_original_input_records",
+                "unique_records": 2100
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "cell_umi_labels_unresolved",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "missing_base_qualities",
+                "no_annotated_start_in_supplied_models",
+                "peptide_novelty_unassessed",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved"
+              ]
+            },
+            {
+              "candidate_id": "sv_orf_3b006234de89b4d2bdb3f7977e023e7eace92048a27820b0fdf4dece3ce46af5",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 12065,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 12065
+              },
+              "evidence_set_id": "evidence_9ccd068d43c0d576c8c31c1b634197724e46b1a724a4c6c14346a58968ac7dc4",
+              "full_interval_fragments": 4,
+              "library": "T2 ONT",
+              "missing_quality_reads": 0,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 4
+              },
+              "row_index": 193,
+              "source_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 16259,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {
+                  "SA_declared_piece_not_linked": 2
+                },
+                "records_complete": true,
+                "records_scanned": 16328,
+                "scope": "all_original_input_records",
+                "unique_records": 16328
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "no_annotated_start_in_supplied_models",
+                "path_end_truncated",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:extension_segment_limit",
+                "reconstruction_limit:input_acquisition_incomplete",
+                "reconstruction_limit:repeated_genomic_position",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved",
+                "unplaced_junction_sequence"
+              ]
+            }
+          ]
+        },
+        {
+          "altered_sequence": {
+            "comparison": "potential_reference_UTR_ORFs; initiation not observed",
+            "divergent_continuation_amino_acids": 18,
+            "divergent_continuation_sequence": "RYISITEYPYNNGILLSN",
+            "reference_ORFs": [
+              {
+                "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 49,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000225726",
+                "transcript_offset": 2412
+              },
+              {
+                "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 482,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 49,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878791",
+                "transcript_offset": 2689
+              },
+              {
+                "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 244,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 49,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878792",
+                "transcript_offset": 2343
+              },
+              {
+                "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 219,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 49,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878793",
+                "transcript_offset": 2426
+              },
+              {
+                "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 226,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 49,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878794",
+                "transcript_offset": 2448
+              },
+              {
+                "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 207,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 49,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878795",
+                "transcript_offset": 2201
+              },
+              {
+                "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 49,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878796",
+                "transcript_offset": 2409
+              },
+              {
+                "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 301,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 49,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878797",
+                "transcript_offset": 2508
+              },
+              {
+                "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 485,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 49,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000916946",
+                "transcript_offset": 2692
+              },
+              {
+                "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 161,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 49,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000960670",
+                "transcript_offset": 2356
+              }
+            ],
+            "shared_prefix_amino_acids": 49,
+            "variant_dependent_8mers_absent_from_supplied_reference_ORFs": [
+              "CVPLLLRY",
+              "EYPYNNGI",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL"
+            ],
+            "variant_dependent_8mers_also_absent_from_annotated_proteome": [
+              "CVPLLLRY",
+              "EYPYNNGI",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL"
+            ]
+          },
+          "amino_acid_length": 67,
+          "amino_acids": "MHEKLMLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLRYISITEYPYNNGILLSN",
+          "annotated_protein_comparison": {
+            "exact_full_sequence_hits": [],
+            "il_collapsed_full_sequence_hits": [],
+            "novel_exact_peptides": [
+              "AAAWWMFM",
+              "AAWWMFME",
+              "AWWMFMEK",
+              "CEITNVFS",
+              "CSLYYGCV",
+              "CVPLLLRY",
+              "EITNVFSF",
+              "EKLCSLYY",
+              "EKLMLHLG",
+              "EYPYNNGI",
+              "FLVAAAWW",
+              "FMEKLCSL",
+              "FSFLVAAA",
+              "GCVPLLLR",
+              "GKIIGLCE",
+              "GLCEITNV",
+              "HEKLMLHL",
+              "HLGKIIGL",
+              "IGLCEITN",
+              "IIGLCEIT",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "ITNVFSFL",
+              "KIIGLCEI",
+              "KLCSLYYG",
+              "KLMLHLGK",
+              "LCEITNVF",
+              "LCSLYYGC",
+              "LGKIIGLC",
+              "LHLGKIIG",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LMLHLGKI",
+              "LRYISITE",
+              "LVAAAWWM",
+              "LYYGCVPL",
+              "MEKLCSLY",
+              "MFMEKLCS",
+              "MHEKLMLH",
+              "MLHLGKII",
+              "NNGILLSN",
+              "NVFSFLVA",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SFLVAAAW",
+              "SITEYPYN",
+              "SLYYGCVP",
+              "TEYPYNNG",
+              "TNVFSFLV",
+              "VAAAWWMF",
+              "VFSFLVAA",
+              "VPLLLRYI",
+              "WMFMEKLC",
+              "WWMFMEKL",
+              "YGCVPLLL",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL",
+              "YYGCVPLL"
+            ],
+            "novel_il_collapsed_peptides": [
+              "AAAWWMFM",
+              "AAWWMFME",
+              "AWWMFMEK",
+              "CEITNVFS",
+              "CSLYYGCV",
+              "CVPLLLRY",
+              "EITNVFSF",
+              "EKLCSLYY",
+              "EKLMLHLG",
+              "EYPYNNGI",
+              "FLVAAAWW",
+              "FMEKLCSL",
+              "FSFLVAAA",
+              "GCVPLLLR",
+              "GKIIGLCE",
+              "GLCEITNV",
+              "HEKLMLHL",
+              "HLGKIIGL",
+              "IGLCEITN",
+              "IIGLCEIT",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "ITNVFSFL",
+              "KIIGLCEI",
+              "KLCSLYYG",
+              "KLMLHLGK",
+              "LCEITNVF",
+              "LCSLYYGC",
+              "LGKIIGLC",
+              "LHLGKIIG",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LMLHLGKI",
+              "LRYISITE",
+              "LVAAAWWM",
+              "LYYGCVPL",
+              "MEKLCSLY",
+              "MFMEKLCS",
+              "MHEKLMLH",
+              "MLHLGKII",
+              "NNGILLSN",
+              "NVFSFLVA",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SFLVAAAW",
+              "SITEYPYN",
+              "SLYYGCVP",
+              "TEYPYNNG",
+              "TNVFSFLV",
+              "VAAAWWMF",
+              "VFSFLVAA",
+              "VPLLLRYI",
+              "WMFMEKLC",
+              "WWMFMEKL",
+              "YGCVPLLL",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL",
+              "YYGCVPLL"
+            ]
+          },
+          "ends_with_stop_codon": true,
+          "exact_ORF_recurrent_T1_T2": true,
+          "examples": [
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 2655,
+                  "query_start": 2510,
+                  "reference_end": 63746125,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 2714,
+                  "query_start": 2658,
+                  "reference_end": 108611243,
+                  "reference_start": 108611187,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    2655,
+                    2658
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611242,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": "TCC"
+                }
+              ],
+              "library": "T2 ONT",
+              "query_interval": [
+                2510,
+                2714
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746124,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746123,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746122,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            },
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 740,
+                  "query_start": 595,
+                  "reference_end": 63746125,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 799,
+                  "query_start": 740,
+                  "reference_end": 108611246,
+                  "reference_start": 108611187,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    740,
+                    740
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611245,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": ""
+                }
+              ],
+              "library": "T1 PacBio",
+              "query_interval": [
+                595,
+                799
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746124,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746123,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746122,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            }
+          ],
+          "nucleotide_sequence": "ATGCATGAAAAATTAATGCTTCACCTAGGTAAGATCATTGGTCTGTGTGAAATCACAAATGTTTTTTCCTTCTTGGTTGCTGCAGCCTGGTGGATGTTCATGGAGAAGCTCTGTTCTCTATATTATGGCTGTGTGCCGTTGCTTCTCCGGTATATTTCTATAACAGAATATCCATACAACAATGGCATACTTCTCAGCAATTAA",
+          "sequence_id": "seq-622d53070b0e972a4504",
+          "support": [
+            {
+              "candidate_id": "sv_orf_b1ebeb2f1adb0f408820694c8d9fdef4d199be45136c55d11410c617bcff3da9",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 1665,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 1665
+              },
+              "evidence_set_id": "evidence_bc4e67d3774ca9bb3d5e3ede308ce92b0250faa6637a9e5d58e792b5e75d386c",
+              "full_interval_fragments": 3,
+              "library": "T1 PacBio",
+              "missing_quality_reads": 3,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 3
+              },
+              "row_index": 231,
+              "source_id": "8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 2064,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 2100,
+                "scope": "all_original_input_records",
+                "unique_records": 2100
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "cell_umi_labels_unresolved",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "missing_base_qualities",
+                "no_annotated_start_in_supplied_models",
+                "peptide_novelty_unassessed",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved"
+              ]
+            },
+            {
+              "candidate_id": "sv_orf_b1ebeb2f1adb0f408820694c8d9fdef4d199be45136c55d11410c617bcff3da9",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 12065,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 12065
+              },
+              "evidence_set_id": "evidence_01ad8b8f68907959fa353512010738db2738158e3028eec44d21685609f3514f",
+              "full_interval_fragments": 3,
+              "library": "T2 ONT",
+              "missing_quality_reads": 0,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 3
+              },
+              "row_index": 195,
+              "source_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 16259,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {
+                  "SA_declared_piece_not_linked": 2
+                },
+                "records_complete": true,
+                "records_scanned": 16328,
+                "scope": "all_original_input_records",
+                "unique_records": 16328
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "no_annotated_start_in_supplied_models",
+                "path_end_truncated",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:extension_segment_limit",
+                "reconstruction_limit:input_acquisition_incomplete",
+                "reconstruction_limit:repeated_genomic_position",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved",
+                "unplaced_junction_sequence"
+              ]
+            }
+          ]
+        },
+        {
+          "altered_sequence": {
+            "comparison": "potential_reference_UTR_ORFs; initiation not observed",
+            "divergent_continuation_amino_acids": 18,
+            "divergent_continuation_sequence": "RYISITEYPYNNGILLSN",
+            "reference_ORFs": [
+              {
+                "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 44,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000225726",
+                "transcript_offset": 2427
+              },
+              {
+                "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 482,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 44,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878791",
+                "transcript_offset": 2704
+              },
+              {
+                "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 244,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 44,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878792",
+                "transcript_offset": 2358
+              },
+              {
+                "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 219,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 44,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878793",
+                "transcript_offset": 2441
+              },
+              {
+                "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 226,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 44,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878794",
+                "transcript_offset": 2463
+              },
+              {
+                "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 207,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 44,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878795",
+                "transcript_offset": 2216
+              },
+              {
+                "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 205,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 44,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878796",
+                "transcript_offset": 2424
+              },
+              {
+                "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 301,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 44,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000878797",
+                "transcript_offset": 2523
+              },
+              {
+                "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 485,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 44,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000916946",
+                "transcript_offset": 2707
+              },
+              {
+                "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLPLLLSFPQLRLGMFFQRNGHEYV",
+                "annotated_cds_start": 161,
+                "annotation": "Ensembl 115",
+                "differs_from_reference_orf": true,
+                "ends_with_stop_codon": true,
+                "shared_prefix_amino_acids": 44,
+                "start_kind": "three_prime_UTR",
+                "transcript_id": "ENST00000960670",
+                "transcript_offset": 2371
+              }
+            ],
+            "shared_prefix_amino_acids": 44,
+            "variant_dependent_8mers_absent_from_supplied_reference_ORFs": [
+              "CVPLLLRY",
+              "EYPYNNGI",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL"
+            ],
+            "variant_dependent_8mers_also_absent_from_annotated_proteome": [
+              "CVPLLLRY",
+              "EYPYNNGI",
+              "GCVPLLLR",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "NNGILLSN",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SITEYPYN",
+              "TEYPYNNG",
+              "VPLLLRYI",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL"
+            ]
+          },
+          "amino_acid_length": 62,
+          "amino_acids": "MLHLGKIIGLCEITNVFSFLVAAAWWMFMEKLCSLYYGCVPLLLRYISITEYPYNNGILLSN",
+          "annotated_protein_comparison": {
+            "exact_full_sequence_hits": [],
+            "il_collapsed_full_sequence_hits": [],
+            "novel_exact_peptides": [
+              "AAAWWMFM",
+              "AAWWMFME",
+              "AWWMFMEK",
+              "CEITNVFS",
+              "CSLYYGCV",
+              "CVPLLLRY",
+              "EITNVFSF",
+              "EKLCSLYY",
+              "EYPYNNGI",
+              "FLVAAAWW",
+              "FMEKLCSL",
+              "FSFLVAAA",
+              "GCVPLLLR",
+              "GKIIGLCE",
+              "GLCEITNV",
+              "HLGKIIGL",
+              "IGLCEITN",
+              "IIGLCEIT",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "ITNVFSFL",
+              "KIIGLCEI",
+              "KLCSLYYG",
+              "LCEITNVF",
+              "LCSLYYGC",
+              "LGKIIGLC",
+              "LHLGKIIG",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "LVAAAWWM",
+              "LYYGCVPL",
+              "MEKLCSLY",
+              "MFMEKLCS",
+              "MLHLGKII",
+              "NNGILLSN",
+              "NVFSFLVA",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SFLVAAAW",
+              "SITEYPYN",
+              "SLYYGCVP",
+              "TEYPYNNG",
+              "TNVFSFLV",
+              "VAAAWWMF",
+              "VFSFLVAA",
+              "VPLLLRYI",
+              "WMFMEKLC",
+              "WWMFMEKL",
+              "YGCVPLLL",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL",
+              "YYGCVPLL"
+            ],
+            "novel_il_collapsed_peptides": [
+              "AAAWWMFM",
+              "AAWWMFME",
+              "AWWMFMEK",
+              "CEITNVFS",
+              "CSLYYGCV",
+              "CVPLLLRY",
+              "EITNVFSF",
+              "EKLCSLYY",
+              "EYPYNNGI",
+              "FLVAAAWW",
+              "FMEKLCSL",
+              "FSFLVAAA",
+              "GCVPLLLR",
+              "GKIIGLCE",
+              "GLCEITNV",
+              "HLGKIIGL",
+              "IGLCEITN",
+              "IIGLCEIT",
+              "ISITEYPY",
+              "ITEYPYNN",
+              "ITNVFSFL",
+              "KIIGLCEI",
+              "KLCSLYYG",
+              "LCEITNVF",
+              "LCSLYYGC",
+              "LGKIIGLC",
+              "LHLGKIIG",
+              "LLLRYISI",
+              "LLRYISIT",
+              "LRYISITE",
+              "LVAAAWWM",
+              "LYYGCVPL",
+              "MEKLCSLY",
+              "MFMEKLCS",
+              "MLHLGKII",
+              "NNGILLSN",
+              "NVFSFLVA",
+              "PLLLRYIS",
+              "PYNNGILL",
+              "RYISITEY",
+              "SFLVAAAW",
+              "SITEYPYN",
+              "SLYYGCVP",
+              "TEYPYNNG",
+              "TNVFSFLV",
+              "VAAAWWMF",
+              "VFSFLVAA",
+              "VPLLLRYI",
+              "WMFMEKLC",
+              "WWMFMEKL",
+              "YGCVPLLL",
+              "YISITEYP",
+              "YNNGILLS",
+              "YPYNNGIL",
+              "YYGCVPLL"
+            ]
+          },
+          "ends_with_stop_codon": true,
+          "exact_ORF_recurrent_T1_T2": true,
+          "examples": [
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 2655,
+                  "query_start": 2525,
+                  "reference_end": 63746110,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 2714,
+                  "query_start": 2658,
+                  "reference_end": 108611243,
+                  "reference_start": 108611187,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    2655,
+                    2658
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611242,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": "TCC"
+                }
+              ],
+              "library": "T2 ONT",
+              "query_interval": [
+                2525,
+                2714
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746109,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746108,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746107,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            },
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr17",
+                  "query_end": 740,
+                  "query_start": 610,
+                  "reference_end": 63746110,
+                  "reference_start": 63745980,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 799,
+                  "query_start": 740,
+                  "reference_end": 108611246,
+                  "reference_start": 108611187,
+                  "strand": "-"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr17",
+                    63745980,
+                    "-"
+                  ],
+                  "query_interval": [
+                    740,
+                    740
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    108611245,
+                    "-"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": ""
+                }
+              ],
+              "library": "T1 PacBio",
+              "query_interval": [
+                610,
+                799
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr17",
+                  63746109,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746108,
+                  "-"
+                ],
+                [
+                  "chr17",
+                  63746107,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic",
+                "three_prime_UTR"
+              ]
+            }
+          ],
+          "nucleotide_sequence": "ATGCTTCACCTAGGTAAGATCATTGGTCTGTGTGAAATCACAAATGTTTTTTCCTTCTTGGTTGCTGCAGCCTGGTGGATGTTCATGGAGAAGCTCTGTTCTCTATATTATGGCTGTGTGCCGTTGCTTCTCCGGTATATTTCTATAACAGAATATCCATACAACAATGGCATACTTCTCAGCAATTAA",
+          "sequence_id": "seq-31d69fef02430faed403",
+          "support": [
+            {
+              "candidate_id": "sv_orf_ea2d6608190facebee656a9da7c0d2902d32193539317fb0f5af60592ff85661",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 1665,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 1665
+              },
+              "evidence_set_id": "evidence_bc4e67d3774ca9bb3d5e3ede308ce92b0250faa6637a9e5d58e792b5e75d386c",
+              "full_interval_fragments": 3,
+              "library": "T1 PacBio",
+              "missing_quality_reads": 3,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 3
+              },
+              "row_index": 234,
+              "source_id": "8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 2064,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 2100,
+                "scope": "all_original_input_records",
+                "unique_records": 2100
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "cell_umi_labels_unresolved",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "missing_base_qualities",
+                "no_annotated_start_in_supplied_models",
+                "peptide_novelty_unassessed",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved"
+              ]
+            },
+            {
+              "candidate_id": "sv_orf_ea2d6608190facebee656a9da7c0d2902d32193539317fb0f5af60592ff85661",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 12065,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 12065
+              },
+              "evidence_set_id": "evidence_01ad8b8f68907959fa353512010738db2738158e3028eec44d21685609f3514f",
+              "full_interval_fragments": 3,
+              "library": "T2 ONT",
+              "missing_quality_reads": 0,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 3
+              },
+              "row_index": 198,
+              "source_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 16259,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {
+                  "SA_declared_piece_not_linked": 2
+                },
+                "records_complete": true,
+                "records_scanned": 16328,
+                "scope": "all_original_input_records",
+                "unique_records": 16328
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "no_annotated_start_in_supplied_models",
+                "path_end_truncated",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:extension_segment_limit",
+                "reconstruction_limit:input_acquisition_incomplete",
+                "reconstruction_limit:repeated_genomic_position",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved",
+                "unplaced_junction_sequence"
+              ]
+            }
+          ]
+        }
+      ],
+      "event_id": "adj-191e5810b18446510e1bbd6b",
+      "matched_blood_probe": "no DNA split reads reported",
+      "name": "FOXO3\u2013STRADA/CCDC47",
+      "original_DNA_calls": [
+        {
+          "row": {
+            "chrom1": "chr6",
+            "chrom2": "chr17",
+            "cluster_id": "86",
+            "cluster_resolved_type": "LINE",
+            "cluster_size": "3",
+            "fragile_end": "False",
+            "fragile_start": "False",
+            "fusion_names": "",
+            "fusion_phased": "",
+            "fusion_reported": "False",
+            "gene_a": "FOXO3",
+            "gene_b": "STRADA;CCDC47",
+            "hotspot": "False",
+            "is_driver": "False",
+            "is_foldback": "False",
+            "jcn_max": "2.3725",
+            "jcn_min": "-0.17",
+            "length_bp": "",
+            "line": "False",
+            "line_end": "SUSPECT",
+            "line_start": "NONE",
+            "pair": "ucla_T2",
+            "pos1": "108611245",
+            "pos2": "63745980.0",
+            "purple_jcn": "1.25",
+            "rna_confirmed": "False",
+            "rna_total_frags": "0",
+            "sv_id": "334",
+            "svtype": "BND",
+            "vcf_id": "16765"
+          },
+          "source": "ESVEE_PURPLE_LINX_PASS",
+          "vcf": {
+            "alt": "G[chr17:63745980[",
+            "caller": "ESVEE_PURPLE",
+            "chrom": "chr6",
+            "filter": "PASS",
+            "info": {
+              "ASMID": "28564",
+              "ASMLEN": "571",
+              "ASMSEG": "0",
+              "AVGLEN": "282",
+              "BEAOR": "1",
+              "BEAPOS": "0",
+              "BEOR": "1",
+              "CIPOS": "-2,1",
+              "DF": "2",
+              "HOMSEQ": "GGA",
+              "IHOMPOS": "-2,1",
+              "MATEID": "39256",
+              "PURPLE_AF": "0.358,0.313",
+              "PURPLE_CN": "3.68,3.79",
+              "PURPLE_CN_CHANGE": "0.781,1.20",
+              "PURPLE_JCN": "1.25",
+              "REF": "189",
+              "REFPAIR": "21",
+              "SEGALEN": "356",
+              "SEGID": "28564_0",
+              "SEGMAPQ": "60",
+              "SEGRL": "325",
+              "SEGSCO": "349",
+              "SF": "12",
+              "SVID": "16765_39256",
+              "SVTYPE": "BND",
+              "UFP": "11",
+              "VF": "14"
+            },
+            "pos": 108611245,
+            "ref": "G",
+            "sample": "ucla_T2",
+            "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T2_ucla/purple/IPISRC044_tumor_T2_ucla.purple.sv.vcf.gz",
+            "vcf_id": "16765"
+          }
+        },
+        {
+          "row": {
+            "chrom1": "chr6",
+            "chrom2": "chr17",
+            "cluster_id": "60",
+            "cluster_resolved_type": "UNBAL_TRANS",
+            "cluster_size": "2",
+            "fragile_end": "False",
+            "fragile_start": "False",
+            "fusion_names": "",
+            "fusion_phased": "",
+            "fusion_reported": "False",
+            "gene_a": "FOXO3",
+            "gene_b": "STRADA;CCDC47",
+            "hotspot": "False",
+            "is_driver": "False",
+            "is_foldback": "False",
+            "jcn_max": "0.682",
+            "jcn_min": "0.0",
+            "length_bp": "",
+            "line": "False",
+            "line_end": "NONE",
+            "line_start": "NONE",
+            "pair": "ucla_T1_organoid",
+            "pos1": "108611245",
+            "pos2": "63745980.0",
+            "purple_jcn": "0.682",
+            "rna_confirmed": "False",
+            "rna_total_frags": "0",
+            "sv_id": "186",
+            "svtype": "BND",
+            "vcf_id": "19143"
+          },
+          "source": "ESVEE_PURPLE_LINX_PASS",
+          "vcf": {
+            "alt": "G[chr17:63745980[",
+            "caller": "ESVEE_PURPLE",
+            "chrom": "chr6",
+            "filter": "PASS",
+            "info": {
+              "ASMID": "18727",
+              "ASMLEN": "337",
+              "ASMSEG": "0",
+              "AVGLEN": "271",
+              "BEAOR": "1",
+              "BEAPOS": "0",
+              "BEOR": "1",
+              "CIPOS": "-2,1",
+              "DF": "0",
+              "HOMSEQ": "GGA",
+              "IHOMPOS": "-2,1",
+              "MATEID": "44502",
+              "PURPLE_AF": "0.211,0.185",
+              "PURPLE_CN": "2.94,4.02",
+              "PURPLE_CN_CHANGE": "-1.109e-01,1.82",
+              "PURPLE_JCN": "0.682",
+              "REF": "115",
+              "REFPAIR": "8",
+              "SEGALEN": "129",
+              "SEGID": "18727_0",
+              "SEGMAPQ": "60",
+              "SEGRL": "122",
+              "SEGSCO": "129",
+              "SF": "5",
+              "SVID": "19143_44502",
+              "SVTYPE": "BND",
+              "UFP": "4",
+              "VF": "5"
+            },
+            "pos": 108611245,
+            "ref": "G",
+            "sample": "ucla_T1_organoid",
+            "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T1_organoid_ucla/purple/IPISRC044_tumor_T1_organoid_ucla.purple.sv.vcf.gz",
+            "vcf_id": "19143"
+          }
+        },
+        {
+          "row": {
+            "chrom1": "chr6",
+            "chrom2": "chr17",
+            "cluster_id": "203",
+            "cluster_resolved_type": "LINE",
+            "cluster_size": "3",
+            "fragile_end": "False",
+            "fragile_start": "False",
+            "fusion_names": "",
+            "fusion_phased": "",
+            "fusion_reported": "False",
+            "gene_a": "FOXO3",
+            "gene_b": "STRADA;CCDC47",
+            "hotspot": "False",
+            "is_driver": "False",
+            "is_foldback": "False",
+            "jcn_max": "2.1091",
+            "jcn_min": "-0.3218",
+            "length_bp": "",
+            "line": "False",
+            "line_end": "SUSPECT",
+            "line_start": "NONE",
+            "pair": "ucla_T1",
+            "pos1": "108611245",
+            "pos2": "63745980.0",
+            "purple_jcn": "0.558",
+            "rna_confirmed": "False",
+            "rna_total_frags": "0",
+            "sv_id": "390",
+            "svtype": "BND",
+            "vcf_id": "16258"
+          },
+          "source": "ESVEE_PURPLE_LINX_PASS",
+          "vcf": {
+            "alt": "G[chr17:63745980[",
+            "caller": "ESVEE_PURPLE",
+            "chrom": "chr6",
+            "filter": "PASS",
+            "info": {
+              "ASMID": "5401",
+              "ASMLEN": "463",
+              "ASMSEG": "0",
+              "AVGLEN": "282",
+              "BEAOR": "1",
+              "BEAPOS": "0",
+              "BEOR": "1",
+              "CIPOS": "-2,1",
+              "DF": "0",
+              "HOMSEQ": "GGA",
+              "IHOMPOS": "-2,1",
+              "MATEID": "37931",
+              "PURPLE_AF": "0.167,0.144",
+              "PURPLE_CN": "3.43,3.78",
+              "PURPLE_CN_CHANGE": "0.287,2.18",
+              "PURPLE_JCN": "0.558",
+              "REF": "140",
+              "REFPAIR": "11",
+              "SEGALEN": "126",
+              "SEGID": "5401_0",
+              "SEGMAPQ": "60",
+              "SEGRL": "119",
+              "SEGSCO": "126",
+              "SF": "7",
+              "SVID": "16258_37931",
+              "SVTYPE": "BND",
+              "UFP": "6",
+              "VF": "7"
+            },
+            "pos": 108611245,
+            "ref": "G",
+            "sample": "ucla_T1",
+            "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T1_ucla/purple/IPISRC044_tumor_T1_ucla.purple.sv.vcf.gz",
+            "vcf_id": "16258"
+          }
+        }
+      ],
+      "priority": "strong somatic event; conditional downstream-UTR ORFs",
+      "probe_evidence_method": "published primary analysis transcribed on 2026-10-08; not recomputed here",
+      "probe_source": "https://osteosarc.com/fusions/",
+      "published_probe_DNA_samples": [
+        "T1",
+        "T1-organoid",
+        "T2"
+      ],
+      "published_probe_RNA_timepoints": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "selected_entry_DNA_origin": "DNA_VCF_linked"
+    },
+    {
+      "ORFs": [
+        {
+          "altered_sequence": null,
+          "amino_acid_length": 10,
+          "amino_acids": "MNIRNVHFIS",
+          "annotated_protein_comparison": {
+            "exact_full_sequence_hits": [],
+            "il_collapsed_full_sequence_hits": [],
+            "novel_exact_peptides": [
+              "IRNVHFIS",
+              "MNIRNVHF",
+              "NIRNVHFI"
+            ],
+            "novel_il_collapsed_peptides": [
+              "IRNVHFIS",
+              "MNIRNVHF",
+              "NIRNVHFI"
+            ]
+          },
+          "ends_with_stop_codon": true,
+          "exact_ORF_recurrent_T1_T2": true,
+          "examples": [
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr9",
+                  "query_end": 1060,
+                  "query_start": 1030,
+                  "reference_end": 22007677,
+                  "reference_start": 22007647,
+                  "strand": "+"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr2",
+                    205310100,
+                    "+"
+                  ],
+                  "query_interval": [
+                    1017,
+                    1030
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr9",
+                    22007647,
+                    "+"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": "GTGTGCTGATATG"
+                }
+              ],
+              "library": "T2 ONT",
+              "query_interval": [
+                1027,
+                1060
+              ],
+              "start_genomic_positions": [
+                null,
+                null,
+                null
+              ],
+              "start_regions": [
+                "unplaced"
+              ]
+            },
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr9",
+                  "query_end": 1043,
+                  "query_start": 1013,
+                  "reference_end": 22007677,
+                  "reference_start": 22007647,
+                  "strand": "+"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr2",
+                    205310102,
+                    "+"
+                  ],
+                  "query_interval": [
+                    1001,
+                    1013
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr9",
+                    22007647,
+                    "+"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": "TGTGCTGATATG"
+                }
+              ],
+              "library": "T1 PacBio",
+              "query_interval": [
+                1010,
+                1043
+              ],
+              "start_genomic_positions": [
+                null,
+                null,
+                null
+              ],
+              "start_regions": [
+                "unplaced"
+              ]
+            }
+          ],
+          "nucleotide_sequence": "ATGAATATTAGAAATGTTCATTTCATCTCTTAA",
+          "sequence_id": "seq-296e0431e153db79b8c2",
+          "support": [
+            {
+              "candidate_id": "sv_orf_2da7a5fd5585177c0f7088c31dadece32e8a3b05caa7eda0343a0fcb5f8fd73c",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 724,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 724
+              },
+              "evidence_set_id": "evidence_d6983ecac386cf21e86f3c6310205d068e5862f028d389a288c38ad596793c06",
+              "full_interval_fragments": 5,
+              "library": "T1 PacBio",
+              "missing_quality_reads": 5,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 5
+              },
+              "row_index": 177,
+              "source_id": "8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 699,
+                "excluded_records": {},
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 730,
+                "scope": "all_original_input_records",
+                "unique_records": 730
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "cell_umi_labels_unresolved",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "missing_base_qualities",
+                "no_annotated_start_in_supplied_models",
+                "path_end_truncated",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:repeated_genomic_position",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved",
+                "unplaced_junction_sequence"
+              ]
+            },
+            {
+              "candidate_id": "sv_orf_2da7a5fd5585177c0f7088c31dadece32e8a3b05caa7eda0343a0fcb5f8fd73c",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 4475,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 4475
+              },
+              "evidence_set_id": "evidence_54655a534102989647899e6aeddbb16da8822f1c3528d5775c767b43253a94b1",
+              "full_interval_fragments": 11,
+              "library": "T2 ONT",
+              "missing_quality_reads": 0,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 0,
+                "reverse_complement": 11
+              },
+              "row_index": 44,
+              "source_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 4481,
+                "excluded_records": {
+                  "mapping_quality": 1
+                },
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 4528,
+                "scope": "all_original_input_records",
+                "unique_records": 4528
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "no_annotated_start_in_supplied_models",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:input_acquisition_incomplete",
+                "reverse_complement_support_only",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved",
+                "unplaced_junction_sequence"
+              ]
+            }
+          ]
+        }
+      ],
+      "event_id": "adj-5a298314b0272623da8eb76a",
+      "matched_blood_probe": "no DNA split reads reported",
+      "name": "PARD3B\u2013CDKN2B-AS1/CDKN2B",
+      "original_DNA_calls": [
+        {
+          "row": {
+            "chrom1": "chr2",
+            "chrom2": "chr9",
+            "cluster_id": "2391",
+            "cluster_resolved_type": "COMPLEX",
+            "cluster_size": "7",
+            "fragile_end": "False",
+            "fragile_start": "False",
+            "fusion_names": "",
+            "fusion_phased": "",
+            "fusion_reported": "False",
+            "gene_a": "PARD3B",
+            "gene_b": "CDKN2B-AS1;CDKN2B",
+            "hotspot": "False",
+            "is_driver": "True",
+            "is_foldback": "False",
+            "jcn_max": "2.6403",
+            "jcn_min": "1.6126",
+            "length_bp": "",
+            "line": "False",
+            "line_end": "NONE",
+            "line_start": "NONE",
+            "pair": "personalis",
+            "pos1": "205310103",
+            "pos2": "22007648.0",
+            "purple_jcn": "2.26",
+            "rna_confirmed": "False",
+            "rna_total_frags": "0",
+            "sv_id": "1862",
+            "svtype": "BND",
+            "vcf_id": "6417"
+          },
+          "source": "ESVEE_PURPLE_LINX_PASS",
+          "vcf": {
+            "alt": "GTGTGCTGATATG[chr9:22007648[",
+            "caller": "ESVEE_PURPLE",
+            "chrom": "chr2",
+            "filter": "PASS",
+            "info": {
+              "ASMID": "11756",
+              "ASMLEN": "438",
+              "ASMSEG": "0",
+              "AVGLEN": "222",
+              "BEAOR": "1",
+              "BEAPOS": "0",
+              "BEOR": "1",
+              "CIPOS": "0,0",
+              "DF": "0",
+              "IHOMPOS": "0,0",
+              "MATEID": "24662",
+              "PURPLE_AF": "0.352,0.502",
+              "PURPLE_CN": "5.06,5.46",
+              "PURPLE_CN_CHANGE": "2.39,0.337",
+              "PURPLE_JCN": "2.26",
+              "REF": "72",
+              "REFPAIR": "1",
+              "SEGALEN": "194",
+              "SEGID": "11756_0",
+              "SEGMAPQ": "60",
+              "SEGRL": "151",
+              "SEGSCO": "194",
+              "SF": "18",
+              "SVID": "6417_24662",
+              "SVTYPE": "BND",
+              "UFP": "9",
+              "VF": "18"
+            },
+            "pos": 205310103,
+            "ref": "G",
+            "sample": "personalis",
+            "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T0_personalis/purple/IPISRC044_tumor_T0_personalis.purple.sv.vcf.gz",
+            "vcf_id": "6417"
+          }
+        },
+        {
+          "row": {
+            "chrom1": "chr2",
+            "chrom2": "chr9",
+            "cluster_id": "23",
+            "cluster_resolved_type": "COMPLEX",
+            "cluster_size": "5",
+            "fragile_end": "False",
+            "fragile_start": "False",
+            "fusion_names": "",
+            "fusion_phased": "",
+            "fusion_reported": "False",
+            "gene_a": "PARD3B",
+            "gene_b": "CDKN2B-AS1;CDKN2B",
+            "hotspot": "False",
+            "is_driver": "True",
+            "is_foldback": "False",
+            "jcn_max": "2.2757",
+            "jcn_min": "1.6295",
+            "length_bp": "",
+            "line": "False",
+            "line_end": "NONE",
+            "line_start": "NONE",
+            "pair": "ucla_T2",
+            "pos1": "205310103",
+            "pos2": "22007648.0",
+            "purple_jcn": "1.66",
+            "rna_confirmed": "False",
+            "rna_total_frags": "0",
+            "sv_id": "180",
+            "svtype": "BND",
+            "vcf_id": "6316"
+          },
+          "source": "ESVEE_PURPLE_LINX_PASS",
+          "vcf": {
+            "alt": "GTGTGCTGATATG[chr9:22007648[",
+            "caller": "ESVEE_PURPLE",
+            "chrom": "chr2",
+            "filter": "PASS",
+            "info": {
+              "ASMID": "5246",
+              "ASMLEN": "483",
+              "ASMSEG": "0",
+              "AVGLEN": "399",
+              "BEAOR": "1",
+              "BEAPOS": "0",
+              "BEOR": "1",
+              "CIPOS": "0,0",
+              "DF": "6",
+              "IHOMPOS": "0,0",
+              "MATEID": "23161",
+              "PURPLE_AF": "0.405,0.409",
+              "PURPLE_CN": "3.92,4.26",
+              "PURPLE_CN_CHANGE": "1.84,2.10",
+              "PURPLE_JCN": "1.66",
+              "REF": "160",
+              "REFPAIR": "26",
+              "SEGALEN": "194",
+              "SEGID": "5246_0",
+              "SEGMAPQ": "60",
+              "SEGRL": "151",
+              "SEGSCO": "194",
+              "SF": "9",
+              "SVID": "6316_23161",
+              "SVTYPE": "BND",
+              "UFP": "4",
+              "VF": "15"
+            },
+            "pos": 205310103,
+            "ref": "G",
+            "sample": "ucla_T2",
+            "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T2_ucla/purple/IPISRC044_tumor_T2_ucla.purple.sv.vcf.gz",
+            "vcf_id": "6316"
+          }
+        },
+        {
+          "row": {
+            "chrom1": "chr2",
+            "chrom2": "chr9",
+            "cluster_id": "130",
+            "cluster_resolved_type": "COMPLEX",
+            "cluster_size": "6",
+            "fragile_end": "False",
+            "fragile_start": "False",
+            "fusion_names": "",
+            "fusion_phased": "",
+            "fusion_reported": "False",
+            "gene_a": "PARD3B",
+            "gene_b": "CDKN2B-AS1;CDKN2B",
+            "hotspot": "False",
+            "is_driver": "True",
+            "is_foldback": "False",
+            "jcn_max": "2.4638",
+            "jcn_min": "1.804",
+            "length_bp": "",
+            "line": "False",
+            "line_end": "NONE",
+            "line_start": "NONE",
+            "pair": "ucla_T1",
+            "pos1": "205310103",
+            "pos2": "22007648.0",
+            "purple_jcn": "1.64",
+            "rna_confirmed": "False",
+            "rna_total_frags": "0",
+            "sv_id": "238",
+            "svtype": "BND",
+            "vcf_id": "6037"
+          },
+          "source": "ESVEE_PURPLE_LINX_PASS",
+          "vcf": {
+            "alt": "GTGTGCTGATATG[chr9:22007648[",
+            "caller": "ESVEE_PURPLE",
+            "chrom": "chr2",
+            "filter": "PASS",
+            "info": {
+              "ASMID": "26913",
+              "ASMLEN": "381",
+              "ASMSEG": "0",
+              "AVGLEN": "303",
+              "BEAOR": "1",
+              "BEAPOS": "0",
+              "BEOR": "1",
+              "CIPOS": "0,0",
+              "DF": "3",
+              "IHOMPOS": "0,0",
+              "MATEID": "22435",
+              "PURPLE_AF": "0.374,0.398",
+              "PURPLE_CN": "4.27,4.22",
+              "PURPLE_CN_CHANGE": "2.29,2.04",
+              "PURPLE_JCN": "1.64",
+              "REF": "125",
+              "REFPAIR": "14",
+              "SEGALEN": "173",
+              "SEGID": "26913_0",
+              "SEGMAPQ": "60",
+              "SEGRL": "138",
+              "SEGSCO": "173",
+              "SF": "16",
+              "SVID": "6037_22435",
+              "SVTYPE": "BND",
+              "UFP": "10",
+              "VF": "19"
+            },
+            "pos": 205310103,
+            "ref": "G",
+            "sample": "ucla_T1",
+            "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T1_ucla/purple/IPISRC044_tumor_T1_ucla.purple.sv.vcf.gz",
+            "vcf_id": "6037"
+          }
+        },
+        {
+          "row": {
+            "chrom1": "chr2",
+            "chrom2": "chr9",
+            "cluster_id": "22",
+            "cluster_resolved_type": "COMPLEX",
+            "cluster_size": "5",
+            "fragile_end": "False",
+            "fragile_start": "False",
+            "fusion_names": "",
+            "fusion_phased": "",
+            "fusion_reported": "False",
+            "gene_a": "PARD3B",
+            "gene_b": "CDKN2B-AS1;CDKN2B",
+            "hotspot": "False",
+            "is_driver": "True",
+            "is_foldback": "False",
+            "jcn_max": "2.2355",
+            "jcn_min": "1.6088",
+            "length_bp": "",
+            "line": "False",
+            "line_end": "NONE",
+            "line_start": "NONE",
+            "pair": "ucla_T1_organoid",
+            "pos1": "205310101",
+            "pos2": "22007648.0",
+            "purple_jcn": "1.04",
+            "rna_confirmed": "False",
+            "rna_total_frags": "0",
+            "sv_id": "95",
+            "svtype": "BND",
+            "vcf_id": "7441"
+          },
+          "source": "ESVEE_PURPLE_LINX_PASS",
+          "vcf": {
+            "alt": "TGTGTGCTGATATG[chr9:22007648[",
+            "caller": "ESVEE_PURPLE",
+            "chrom": "chr2",
+            "filter": "PASS",
+            "info": {
+              "ASMID": "14915",
+              "ASMLEN": "449",
+              "ASMSEG": "0",
+              "AVGLEN": "343",
+              "BEAOR": "1",
+              "BEAPOS": "0",
+              "BEOR": "1",
+              "CIPOS": "0,0",
+              "DF": "0",
+              "IHOMPOS": "0,0",
+              "MATEID": "25956",
+              "PURPLE_AF": "0.258,0.261",
+              "PURPLE_CN": "3.95,4.04",
+              "PURPLE_CN_CHANGE": "1.91,2.00",
+              "PURPLE_JCN": "1.04",
+              "REF": "95",
+              "REFPAIR": "6",
+              "SEGALEN": "164",
+              "SEGID": "14915_0",
+              "SEGMAPQ": "60",
+              "SEGRL": "133",
+              "SEGSCO": "164",
+              "SF": "6",
+              "SVID": "7441_25956",
+              "SVTYPE": "BND",
+              "UFP": "0",
+              "VF": "6"
+            },
+            "pos": 205310101,
+            "ref": "T",
+            "sample": "ucla_T1_organoid",
+            "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T1_organoid_ucla/purple/IPISRC044_tumor_T1_organoid_ucla.purple.sv.vcf.gz",
+            "vcf_id": "7441"
+          }
+        }
+      ],
+      "priority": "strongest longitudinal DNA event; short insertion-start ORF",
+      "probe_evidence_method": "published primary analysis transcribed on 2026-10-08; not recomputed here",
+      "probe_source": "https://osteosarc.com/fusions/",
+      "published_probe_DNA_samples": [
+        "T0",
+        "T1",
+        "T1-organoid",
+        "T2"
+      ],
+      "published_probe_RNA_timepoints": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "selected_entry_DNA_origin": "DNA_VCF_linked"
+    },
+    {
+      "ORFs": [
+        {
+          "altered_sequence": null,
+          "amino_acid_length": 37,
+          "amino_acids": "MKRLVSSSRAWWRMPVIPAPTEAEAGESLESGRRRLQ",
+          "annotated_protein_comparison": {
+            "exact_full_sequence_hits": [],
+            "il_collapsed_full_sequence_hits": [],
+            "novel_exact_peptides": [
+              "AGESLESG",
+              "APTEAEAG",
+              "AWWRMPVI",
+              "EAGESLES",
+              "ESGRRRLQ",
+              "ESLESGRR",
+              "GESLESGR",
+              "IPAPTEAE",
+              "KRLVSSSR",
+              "LESGRRRL",
+              "LVSSSRAW",
+              "MKRLVSSS",
+              "MPVIPAPT",
+              "PAPTEAEA",
+              "PTEAEAGE",
+              "PVIPAPTE",
+              "RAWWRMPV",
+              "RLVSSSRA",
+              "RMPVIPAP",
+              "SLESGRRR",
+              "SRAWWRMP",
+              "SSRAWWRM",
+              "SSSRAWWR",
+              "TEAEAGES",
+              "VIPAPTEA",
+              "VSSSRAWW",
+              "WRMPVIPA",
+              "WWRMPVIP"
+            ],
+            "novel_il_collapsed_peptides": [
+              "AGESLESG",
+              "APTEAEAG",
+              "AWWRMPVI",
+              "EAGESLES",
+              "ESGRRRLQ",
+              "ESLESGRR",
+              "GESLESGR",
+              "IPAPTEAE",
+              "KRLVSSSR",
+              "LESGRRRL",
+              "LVSSSRAW",
+              "MKRLVSSS",
+              "MPVIPAPT",
+              "PAPTEAEA",
+              "PTEAEAGE",
+              "PVIPAPTE",
+              "RAWWRMPV",
+              "RLVSSSRA",
+              "RMPVIPAP",
+              "SLESGRRR",
+              "SRAWWRMP",
+              "SSRAWWRM",
+              "SSSRAWWR",
+              "TEAEAGES",
+              "VIPAPTEA",
+              "VSSSRAWW",
+              "WRMPVIPA",
+              "WWRMPVIP"
+            ]
+          },
+          "ends_with_stop_codon": true,
+          "exact_ORF_recurrent_T1_T2": false,
+          "examples": [
+            {
+              "genomic_blocks": [
+                {
+                  "contig": "chr6",
+                  "query_end": 1909,
+                  "query_start": 1889,
+                  "reference_end": 29612925,
+                  "reference_start": 29612905,
+                  "strand": "-"
+                },
+                {
+                  "contig": "chr6",
+                  "query_end": 2003,
+                  "query_start": 1909,
+                  "reference_end": 44219001,
+                  "reference_start": 44218907,
+                  "strand": "+"
+                }
+              ],
+              "junctions": [
+                {
+                  "left": [
+                    "chr6",
+                    29612905,
+                    "-"
+                  ],
+                  "query_interval": [
+                    1909,
+                    1909
+                  ],
+                  "relation": "breakpoint_junction",
+                  "right": [
+                    "chr6",
+                    44218907,
+                    "+"
+                  ],
+                  "termination_only": false,
+                  "unplaced_bases": ""
+                }
+              ],
+              "library": "T2 ONT",
+              "query_interval": [
+                1889,
+                2003
+              ],
+              "start_genomic_positions": [
+                [
+                  "chr6",
+                  29612924,
+                  "-"
+                ],
+                [
+                  "chr6",
+                  29612923,
+                  "-"
+                ],
+                [
+                  "chr6",
+                  29612922,
+                  "-"
+                ]
+              ],
+              "start_regions": [
+                "intronic"
+              ]
+            }
+          ],
+          "nucleotide_sequence": "ATGAAAAGATTAGTTTCCAGTAGCCGGGCGTGGTGGCGTATGCCTGTAATCCCAGCTCCTACGGAGGCTGAGGCAGGAGAATCGCTTGAATCCGGGAGGCGGAGGTTGCAGTGA",
+          "sequence_id": "seq-b46b49b974f528eaf2d8",
+          "support": [
+            {
+              "candidate_id": "sv_orf_5af92530102c664278f9aac80000d2714be6a6f598a8bbe52c7fefee6690f558",
+              "discovery": {
+                "complete": true,
+                "eligible_regional_records": 23204,
+                "omitted_records": 0,
+                "policy": "event_first_sequence_placement_bundles.v1",
+                "selected_records": 23204
+              },
+              "evidence_set_id": "evidence_232c2cf2705a578d267954297cc24b407703e853f4690dd87d51ebde7ea05cfa",
+              "full_interval_fragments": 3,
+              "library": "T2 ONT",
+              "missing_quality_reads": 0,
+              "query_orientations": {
+                "mixed": 0,
+                "original_query": 3,
+                "reverse_complement": 0
+              },
+              "row_index": 41,
+              "source_id": "58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+              "support_acquisition": {
+                "complete": true,
+                "eligible_segments": 23191,
+                "excluded_records": {},
+                "read_path_notes": {},
+                "records_complete": true,
+                "records_scanned": 23207,
+                "scope": "all_original_input_records",
+                "unique_records": 23207
+              },
+              "uncertainty_flags": [
+                "annotated_path_frame_unresolved_or_ambiguous",
+                "initiation_unobserved",
+                "interval_base_quality_unassessed",
+                "library_scope_unresolved",
+                "no_annotated_start_in_supplied_models",
+                "path_end_truncated",
+                "peptide_novelty_unassessed",
+                "reconstruction_limit:extension_segment_limit",
+                "reconstruction_limit:input_acquisition_incomplete",
+                "reconstruction_limit:repeated_genomic_position",
+                "rna_strand_unresolved",
+                "signal_lineage_unresolved",
+                "translation_unobserved"
+              ]
+            }
+          ]
+        }
+      ],
+      "event_id": "adj-52ace853d3c63e505e9e5bba",
+      "matched_blood_probe": "no DNA split reads reported",
+      "name": "GABBR1\u2013SLC29A1",
+      "original_DNA_calls": [
+        {
+          "row": {
+            "chrom1": "chr6",
+            "chrom2": "chr6",
+            "cluster_id": "51",
+            "cluster_resolved_type": "COMPLEX",
+            "cluster_size": "5",
+            "fragile_end": "False",
+            "fragile_start": "False",
+            "fusion_names": "GABBR1_SLC29A1;GABBR1_SLC29A1",
+            "fusion_phased": "SKIPPED_EXONS",
+            "fusion_reported": "False",
+            "gene_a": "GABBR1",
+            "gene_b": "SLC29A1",
+            "hotspot": "False",
+            "is_driver": "False",
+            "is_foldback": "False",
+            "jcn_max": "1.5686",
+            "jcn_min": "0.4791",
+            "length_bp": "14606002.0",
+            "line": "False",
+            "line_end": "NONE",
+            "line_start": "NONE",
+            "pair": "ucla_T1_organoid",
+            "pos1": "29612906",
+            "pos2": "44218908.0",
+            "purple_jcn": "1.02",
+            "rna_confirmed": "False",
+            "rna_total_frags": "0",
+            "sv_id": "63",
+            "svtype": "INV",
+            "vcf_id": "17723"
+          },
+          "source": "ESVEE_PURPLE_LINX_PASS",
+          "vcf": {
+            "alt": "[chr6:44218908[C",
+            "caller": "ESVEE_PURPLE",
+            "chrom": "chr6",
+            "filter": "PASS",
+            "info": {
+              "ASMID": "12529",
+              "ASMLEN": "467",
+              "ASMSEG": "0",
+              "AVGLEN": "269",
+              "BEAOR": "-1",
+              "BEAPOS": "0",
+              "BEOR": "-1",
+              "CIPOS": "0,0",
+              "DF": "0",
+              "IHOMPOS": "0,0",
+              "MATEID": "18214",
+              "PURPLE_AF": "0.158,0.171",
+              "PURPLE_CN": "6.50,5.92",
+              "PURPLE_CN_CHANGE": "1.37,0.773",
+              "PURPLE_JCN": "1.02",
+              "REF": "134",
+              "REFPAIR": "6",
+              "SEGALEN": "327",
+              "SEGID": "12529_0",
+              "SEGMAPQ": "60",
+              "SEGRL": "291",
+              "SEGSCO": "327",
+              "SF": "8",
+              "SVID": "17723_18214",
+              "SVTYPE": "INV",
+              "UFP": "7",
+              "VF": "8"
+            },
+            "pos": 29612906,
+            "ref": "C",
+            "sample": "ucla_T1_organoid",
+            "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T1_organoid_ucla/purple/IPISRC044_tumor_T1_organoid_ucla.purple.sv.vcf.gz",
+            "vcf_id": "17723"
+          }
+        },
+        {
+          "row": {
+            "chrom1": "chr6",
+            "chrom2": "chr6",
+            "cluster_id": "77",
+            "cluster_resolved_type": "PAIR_OTHER",
+            "cluster_size": "2",
+            "fragile_end": "False",
+            "fragile_start": "False",
+            "fusion_names": "GABBR1_SLC29A1;GABBR1_SLC29A1",
+            "fusion_phased": "SKIPPED_EXONS",
+            "fusion_reported": "False",
+            "gene_a": "GABBR1",
+            "gene_b": "SLC29A1",
+            "hotspot": "False",
+            "is_driver": "False",
+            "is_foldback": "False",
+            "jcn_max": "1.5915",
+            "jcn_min": "0.4976",
+            "length_bp": "14606002.0",
+            "line": "False",
+            "line_end": "NONE",
+            "line_start": "NONE",
+            "pair": "ucla_T2",
+            "pos1": "29612906",
+            "pos2": "44218908.0",
+            "purple_jcn": "0.903",
+            "rna_confirmed": "False",
+            "rna_total_frags": "0",
+            "sv_id": "118",
+            "svtype": "INV",
+            "vcf_id": "15486"
+          },
+          "source": "ESVEE_PURPLE_LINX_PASS",
+          "vcf": {
+            "alt": "[chr6:44218908[C",
+            "caller": "ESVEE_PURPLE",
+            "chrom": "chr6",
+            "filter": "PASS",
+            "info": {
+              "ASMID": "11059",
+              "ASMLEN": "544",
+              "ASMSEG": "0",
+              "AVGLEN": "330",
+              "BEAOR": "-1",
+              "BEAPOS": "0",
+              "BEOR": "-1",
+              "CIPOS": "0,0",
+              "DF": "1",
+              "IHOMPOS": "0,0",
+              "MATEID": "15863",
+              "PURPLE_AF": "0.121,0.162",
+              "PURPLE_CN": "6.63,6.19",
+              "PURPLE_CN_CHANGE": "1.21,0.954",
+              "PURPLE_JCN": "0.903",
+              "REF": "248",
+              "REFPAIR": "21",
+              "SEGALEN": "390",
+              "SEGID": "11059_0",
+              "SEGMAPQ": "60",
+              "SEGRL": "352",
+              "SEGSCO": "390",
+              "SF": "9",
+              "SVID": "15486_15863",
+              "SVTYPE": "INV",
+              "UFP": "8",
+              "VF": "10"
+            },
+            "pos": 29612906,
+            "ref": "C",
+            "sample": "ucla_T2",
+            "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T2_ucla/purple/IPISRC044_tumor_T2_ucla.purple.sv.vcf.gz",
+            "vcf_id": "15486"
+          }
+        },
+        {
+          "row": {
+            "chrom1": "chr6",
+            "chrom2": "chr6",
+            "cluster_id": "193",
+            "cluster_resolved_type": "COMPLEX",
+            "cluster_size": "4",
+            "fragile_end": "False",
+            "fragile_start": "False",
+            "fusion_names": "GABBR1_SLC29A1;GABBR1_SLC29A1",
+            "fusion_phased": "SKIPPED_EXONS",
+            "fusion_reported": "False",
+            "gene_a": "GABBR1",
+            "gene_b": "SLC29A1",
+            "hotspot": "False",
+            "is_driver": "False",
+            "is_foldback": "False",
+            "jcn_max": "1.9224",
+            "jcn_min": "0.6991",
+            "length_bp": "14606002.0",
+            "line": "False",
+            "line_end": "NONE",
+            "line_start": "NONE",
+            "pair": "ucla_T1",
+            "pos1": "29612906",
+            "pos2": "44218908.0",
+            "purple_jcn": "1.07",
+            "rna_confirmed": "False",
+            "rna_total_frags": "0",
+            "sv_id": "157",
+            "svtype": "INV",
+            "vcf_id": "14988"
+          },
+          "source": "ESVEE_PURPLE_LINX_PASS",
+          "vcf": {
+            "alt": "[chr6:44218908[C",
+            "caller": "ESVEE_PURPLE",
+            "chrom": "chr6",
+            "filter": "PASS",
+            "info": {
+              "ASMID": "18445",
+              "ASMLEN": "613",
+              "ASMSEG": "0",
+              "AVGLEN": "268",
+              "BEAOR": "-1",
+              "BEAPOS": "0",
+              "BEOR": "-1",
+              "CIPOS": "0,0",
+              "DF": "0",
+              "IHOMPOS": "0,0",
+              "MATEID": "15351",
+              "PURPLE_AF": "0.161,0.205",
+              "PURPLE_CN": "5.79,5.93",
+              "PURPLE_CN_CHANGE": "0.711,1.84",
+              "PURPLE_JCN": "1.07",
+              "REF": "166",
+              "REFPAIR": "9",
+              "SEGALEN": "332",
+              "SEGID": "18445_0",
+              "SEGMAPQ": "60",
+              "SEGRL": "294",
+              "SEGSCO": "332",
+              "SF": "12",
+              "SVID": "14988_15351",
+              "SVTYPE": "INV",
+              "UFP": "10",
+              "VF": "12"
+            },
+            "pos": 29612906,
+            "ref": "C",
+            "sample": "ucla_T1",
+            "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T1_ucla/purple/IPISRC044_tumor_T1_ucla.purple.sv.vcf.gz",
+            "vcf_id": "14988"
+          }
+        }
+      ],
+      "priority": "somatic event watchlist; exact breakpoint-linked ORF recurrence unresolved",
+      "probe_evidence_method": "published primary analysis transcribed on 2026-10-08; not recomputed here",
+      "probe_source": "https://osteosarc.com/fusions/",
+      "published_probe_DNA_samples": [
+        "T1",
+        "T1-organoid",
+        "T2"
+      ],
+      "published_probe_RNA_timepoints": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "selected_entry_DNA_origin": "DNA_VCF_linked"
+    }
+  ],
+  "excluded_or_deprioritized": [
+    {
+      "event": "FTH1\u2013FTL",
+      "reason": "interesting 179-aa coding fusion; exact ORF has two T2 witnesses, no established T1/T3 recurrence or linked somatic DNA"
+    },
+    {
+      "event": "IGKC/TRAC/immune-receptor signals",
+      "reason": "normal immune-cell origin remains plausible; no demonstrated longitudinal tumor-specific protein"
+    },
+    {
+      "event": "TALAM1 and repeat/paralog/pseudogene partners",
+      "reason": "RNA recurrence alone and/or ambiguous partner placement do not establish somatic origin"
+    },
+    {
+      "event": "DSCAML1\u2013ESRRG and SPRED1 ITD",
+      "reason": "recurrent DNA events, without positive recurrent RNA evidence in the published probe"
+    },
+    {
+      "event": "67-aa GABBR1-region PacBio ORF",
+      "reason": "9 T1 fragments support a local SLC29A1-region path, not a direct GABBR1 breakpoint bridge"
+    }
+  ],
+  "input_pins": [
+    {
+      "path": "/Users/iskander/code/isovar/docs/data/sid-neoorf-event-report/events.json.gz",
+      "sha256": "8711563c8b115efb93ec0a3c26a299990d2f342882d147a60c4ea3ccdfcb80d8"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-neoorf-additions-20261005/results/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-191e5810b18446510e1bbd6b.forward.json.gz",
+      "sha256": "8be0f822a25f8b51ee154e56bf8ff3255600348f617c8096f6dfde99ae741eae"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-neoorf-additions-20261005/results/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-191e5810b18446510e1bbd6b.reverse.json.gz",
+      "sha256": "049da7fb864f0a7dcdf307726e9c8c58c250476faedc8c5fe49f8cfbddb2d841"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-neoorf-additions-20261005/results/8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b/adj-191e5810b18446510e1bbd6b.forward.json.gz",
+      "sha256": "8a944666f171d7d2f39d769024dcfb73396d028a23f47f8c1fa50ffbe97a23a3"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-neoorf-additions-20261005/results/8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b/adj-191e5810b18446510e1bbd6b.reverse.json.gz",
+      "sha256": "89b7104c05852f3a6bb40096caf888b14e227c5950736307983f953942eaf823"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-priority-local-20261005/results/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-13d954785c89a21a1e8e937b.reverse.json.gz",
+      "sha256": "8bbb6d2337f3225e3d98d3bff1c6fdf70e8c756b051f0247a5525348492232e3"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-priority-local-20261005/results/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-52ace853d3c63e505e9e5bba.forward.json.gz",
+      "sha256": "b26fc30b776d0208a07aa130f191a28be66e8064688a9d81ef954ef86cad9547"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-priority-local-20261005/results/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-5a298314b0272623da8eb76a.forward.json.gz",
+      "sha256": "e69adb0858da851e2bffb7fc87cd94a9ae806664f2136060f1f899ecdd4d471c"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-priority-local-20261005/results/8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b/adj-13d954785c89a21a1e8e937b.reverse.json.gz",
+      "sha256": "6987a4381b3fa4a132cc631100116eb08a23339105dd674378c3071ec70651c4"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-priority-local-20261005/results/8275c5f211640cb978ef5f54e7cf22e71dd96efc8a8f84fb14039c097182989b/adj-5a298314b0272623da8eb76a.forward.json.gz",
+      "sha256": "199d9c52f880f959d0fe37584ca862964f37b5072355eddfdca4d7611bf0d242"
+    }
+  ],
+  "limitations": [
+    "Likely somatic event assessment uses the published DNA probe; exact TPST1 RNA splice-to-DNA phasing remains unresolved.",
+    "RNA junction recurrence at T3 does not establish the same ORF at T3; exact ORF support was examined at T1/T2 only.",
+    "Full interval fragment counts are within the preserved recovered inputs, not normalized expression or independent signal molecules.",
+    "Nested starts, alternative frames, repeated alignments and geometry aliases can reuse witnesses; do not add their counts.",
+    "Reference UTR ORFs are hypothetical translations; divergent continuation length is not the number of individually substituted residues.",
+    "PacBio base qualities are unavailable; initiation, RNA polarity, complete mature transcripts and translation remain unresolved.",
+    "Novel eight-mers are sequence comparisons, not HLA binding, antigen presentation or T-cell recognition predictions."
+  ],
+  "producer": {
+    "path": "/Users/iskander/code/isovar/.cache/sid-somatic-recurrent-fusion-shortlist-20261008.py",
+    "sha256": "c6ea1dc7b979b9edc75532237fddd37c3191d7c643f18e75a175ca879fead480"
+  },
+  "schema": "sid.curated_somatic_recurrent_fusions.v1",
+  "selection": "recurrent tumor DNA plus RNA, with exact stopped breakpoint-linked ORFs supported by at least two fragments per library at T1 and T2; GABBR1 retained separately as event watchlist",
+  "specification": {
+    "path": "/Users/iskander/code/isovar/.cache/sid-somatic-recurrent-fusion-shortlist-spec-20261008.txt",
+    "sha256": "1f507aa16658e7c23a789466ea4c489584b8d4d98daff4525347b691f6df28b6"
+  }
+}

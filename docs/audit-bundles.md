@@ -34,6 +34,22 @@ be local. Existing destinations are never overwritten. Interrupted creation
 does not publish a complete manifest. Keep the archive on persistent storage
 and copy it to your backup destination using ordinary file-copy tools.
 
+For large local inputs, `copy_method="clone"` uses independent copy-on-write
+files through macOS `clonefile` or Linux `FICLONE`. Source and destination must
+be on a filesystem supporting native clones. Unsupported systems, cross-device
+copies and cloning errors fail explicitly; no full-copy fallback is attempted.
+The default `copy_method="copy"` retains ordinary copying. Both modes verify
+source pins, destination sizes and SHA-256; editing a clone does not edit its
+source. Manifests and tar.gz archives stay portable and use the same format.
+`bundle_sid_audit` accepts the same option.
+
+`AuditBundle.estimate_size(files)` returns `files` and `payload_bytes` before
+allocating a bundle. This is the logical payload, counting each declared name.
+Full copies additionally need space for filesystem and manifest overhead;
+clone allocation and compressed archive sizes depend on the filesystem and
+data. The estimate is not a capacity guarantee. Packing still allocates an
+ordinary self-contained archive.
+
 The equivalent CLI reads a JSON specification. File paths are relative to the
 specification file, so it can be run from any working directory:
 
@@ -53,6 +69,9 @@ isovar audit-bundle verify saved-audit
 isovar audit-bundle pack saved-audit --output saved-audit.tar.gz
 isovar audit-bundle unpack saved-audit.tar.gz --output another-location
 ```
+
+Use `create --spec inputs.json --estimate` to inspect logical payload size, or
+add `--copy-method clone` to `create` or `import-sid` to require native clones.
 
 ## Import and replay an existing Sid audit
 

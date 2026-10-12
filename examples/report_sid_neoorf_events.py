@@ -214,12 +214,13 @@ def build(screen_path, audits, checks_path):
                     unsupported_cds={t: refs["unsupported_cds"][t] for t in refs["assignments"][gid]["transcripts"]
                                      if t in refs["unsupported_cds"]}, outcomes=[])
             events[gid]["outcomes"].append(dict(source_id=sid, orientation=request["orientation"],
-                status=result["status"], candidates=len(result["candidates"]), records=result["records"],
-                paths=result["paths"], event_paths=result["event_paths"],
+                status=result["status"], candidates=len(result["candidates"]) if "candidates" in result else None,
+                records=result.get("records"), paths=result.get("paths"), event_paths=result.get("event_paths"),
                 acquisition_status=result["acquisition_status"], input_limitations=result["input_limitations"],
-                discovery=result["discovery"], support_acquisition=result["support_acquisition"]))
-            result_cache[str(path.resolve())] = {c["candidate_id"]: c for c in result["candidates"]}
-            if result["candidates"]:
+                discovery=result.get("discovery"), support_acquisition=result.get("support_acquisition"),
+                reason=result.get("reason"), error=result.get("error")))
+            result_cache[str(path.resolve())] = {c["candidate_id"]: c for c in result.get("candidates", [])}
+            if result.get("candidates"):
                 detail_path = directory / result["reconstruction"]["path"]
                 expected = result["reconstruction"]["sha256"]
                 if digest(detail_path) != expected:
@@ -400,14 +401,20 @@ def event_markdown(event, ledger):
     if event["kind"] == "SV":
         out += [table(["Product", "Orientation", "Status", "Records / paths / event paths", "ORF hypotheses"],
                       [(PRODUCTS[o["source_id"]], o["orientation"], o["status"],
-                        "%s / %s / %s" % (o["records"], o["paths"], o["event_paths"]), o["candidates"]) for o in event["outcomes"]])]
+                        " / ".join(str(o[k]) if o[k] is not None else "unknown" for k in ("records", "paths", "event_paths")),
+                        o["candidates"]) for o in event["outcomes"]])]
+        for outcome in event["outcomes"]:
+            if outcome.get("reason") or outcome.get("error"):
+                out += ["%s / %s: `%s`; %s. Counts unavailable from this outcome remain unknown." % (
+                    PRODUCTS[outcome["source_id"]], outcome["orientation"], outcome["status"],
+                    outcome.get("error") or outcome["reason"]), ""]
     else:
         out += [table(["Product", "Status", "RNA ref / alt / other fragments", "Coding windows"],
                       [(PRODUCTS[o["source_id"]], o["status"],
                         " / ".join(str(o["allele_support"][k]["fragments"]) for k in ("ref", "alt", "other"))
                         if o.get("allele_support") else "unassessable", o["proteins"]) for o in event["outcomes"]])]
     if not seqs:
-        out += ["No resolved ORF/coding window in these acquired inputs and search bounds. "
+        out += ["No protein sequence is resolved for this event in these recorded outcomes and search bounds. "
                 "For splice nominations, alternate exon use, intron retention and exonization have not been comprehensively reconstructed. "
                 "Protein sequence and altered transcript structure remain unknown; reference anatomy above is the available description.", ""]
     else:
@@ -479,7 +486,7 @@ def publish(ledger, output):
     (output / "README.md").write_text(
         "# Sid DNA → RNA → ORF event sheets\n\n"
         "[Interpretation and counting definitions](../../sid-neoorf-event-report.md). "
-        "All 41 nominations/geometry entries, including unresolved and zero-candidate outcomes, are below. "
+        "All %d nominations/geometry entries, including unresolved and zero-candidate outcomes, are below. " % len(ledger["events"]) +
         "Sequence groups distinguish event, frame/window, stop and SV nucleotide sequence; they are not independent neoORFs.\n\n"
         "[Full proteins/windows FASTA](proteins.fasta), [SV ORF nucleotides](sv-orfs.fna), "
         "[all source-specific support rows](support.tsv), [complete event/placement ledger](events.json.gz).\n\n" +
