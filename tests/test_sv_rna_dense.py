@@ -16,6 +16,34 @@ from tests.test_sv_rna import Scenario, aligned, record, write_bam
 
 
 @pytest.mark.parametrize('strand', ['+', '-'])
+def test_frozen_span_index_keeps_nested_and_repeated_genomic_blocks(strand):
+    from isovar.sv_rna import _PathSpans, _Positions
+
+    positions = []
+    for low, high in [(1000, 1010), (100, 150), (105, 110), (100, 150)]:
+        bases = range(low, high) if strand == '+' else range(high - 1, low - 1, -1)
+        positions.extend(('1', base, strand) for base in bases)
+    span = _PathSpans('A' * len(positions), _Positions(positions))
+    assert {start for start, _, _ in span.overlapping_runs('1', strand, 108, 109)} == {10, 60, 65}
+    assert span.overlapping_runs('1', strand, 150, 1000) == []
+    assert not span.overlapping_runs('2', strand, 100, 1001)
+    assert not span.overlapping_runs('1', '+' if strand == '-' else '-', 100, 1001)
+
+
+def test_fragmented_candidate_span_queries_skip_disjoint_blocks():
+    from types import SimpleNamespace
+    from isovar.sv_rna import _PathSpans, _Positions
+
+    positions = _Positions([('1', q + q // 10, '+') for q in range(4000)])
+    span = _PathSpans('A' * 4000, positions)
+    assert len(span.overlapping_runs('1', '+', 110, 120)) == 1
+    # Placed-base alleles do not alter the co-observed interval; exact sequence
+    # agreement remains the separate full-interval witness calculation.
+    observation = SimpleNamespace(key='original', positions=positions, sequence='C' * 4000)
+    assert span(observation) == (0, 3999)
+
+
+@pytest.mark.parametrize('strand', ['+', '-'])
 @pytest.mark.parametrize('batch_bases', [1, 400, 1700])
 def test_stream_batches_preserve_whole_results_and_release_observations(tmp_path, monkeypatch, strand, batch_bases):
     from isovar import sv_rna_dense, sv_rna_stream

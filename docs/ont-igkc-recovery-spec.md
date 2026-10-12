@@ -24,3 +24,15 @@ portable replay plans and validate a packaged offline replay. Do not convert
 timeouts, missing partners or bounded discovery into negative biological claims.
 
 Run lint, full tests and CI, then merge and release the separate recovery PR.
+
+## Re-plan after the first streaming attempt
+
+Preserve the operator-interrupted first attempt and its corrected diagnosis.
+The initial missing-run-cache hypothesis was incorrect: coordinate objects
+already cache their runs. CPU sampling instead identified repeated span work;
+the current span matcher compares every read block with every candidate block
+on the same contig/strand, including disjoint intervals. Index frozen blocks by
+start and prefix maximum end, retaining nested/repeated placements and the exact
+existing interval tests. Validate against the preceding brute-force matcher and
+whole-result fixtures before declaring a new producing attempt. Keep the first
+attempt's unknown support and all earlier failures in its provenance.
