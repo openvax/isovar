@@ -333,14 +333,18 @@ def _support(groups, result, collector, event, annotated, options):
     placements = {(b['contig'], b['reference_start'], b['reference_end'])
                   for path in result['paths'] for b in path['blocks']}
     stream = sv_rna_stream._SupportStream(result['paths'], [_positions(p) for p in result['paths']], event, annotated)
-    reasons, geometry_cache, batch, bases = Counter(), _GeometryCache(), [], 0
+    reasons, geometry_cache, batch, bases, intern = Counter(), _GeometryCache(), [], 0, {}
     for template in groups.templates() if result['paths'] else ():
         if not any(read.reference_name == contig and a < high and low < b
                    for read in template for a, b in read.get_blocks() for contig, low, high in placements):
             continue
         if not _may_support(template, joins, collector, event):
             continue
-        members, intern = defaultdict(list), {}
+        members = defaultdict(list)
+        # Share overlapping coordinates without accumulating an input-wide
+        # interning table. An indivisible template can exceed this bound.
+        if len(intern) >= sv_rna_stream._SUPPORT_BATCH_BASES:
+            intern.clear()
         for read in template:
             members[segment_identity(read)].append(read)
         observations = [o for identity, records in members.items()
