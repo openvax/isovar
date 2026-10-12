@@ -3,30 +3,39 @@
 The strongest leads in the focused screen are the altered **TPST1–CRCP upstream
 ORF**, **SPAG1, TECPR1 and PIP5K1A frameshift windows**, and exploratory
 **FOXO3–STRADA/CCDC47 ORFs**. KTN1 has a shorter shifted tail with a stop.
+The newly recovered **FTH1–FTL** sequence is a conventional in-frame fusion
+ORF lead with an annotated FTH1 start and the normal FTL stop; its exact
+complete-ORF support is two ONT T2 fragments. Its coding anatomy is clearer
+than the aggregate ambiguous-model label alone suggests.
 These are RNA sequence observations and coding hypotheses; none has demonstrated
 protein translation or antigen presentation in this analysis.
 
 This report includes **every entry in the selected SV/indel/splice search**,
 including unknown DNA origins, unresolved transcripts and zero-candidate
-outcomes. It covers **nine SV geometries and 32 small-variant nominations**,
+outcomes. It covers **23 SV geometries and 32 small-variant nominations**,
 not all possible neoORFs in Sid's tumors. The
-[41 event sheets](data/sid-neoorf-event-report/README.md) contain original
+[55 event sheets](data/sid-neoorf-event-report/README.md) contain original
 alleles/calls, DNA support, transcript anatomy, RNA outcomes, every protein
 sequence/window and support by product. Their index includes the unresolved
 entries as well as the leads.
 
+The dense recovery contributes 42 completed views and two unresolved ONT IGKC
+outcomes (a timeout and an interrupted scan), with unknown support counts.
+[Follow-up #470](https://github.com/openvax/isovar/issues/470) tracks completion;
+the full 100-view selected SV outcome ledger is retained.
+
 ## Complete, downloadable sequences and evidence
 
 - [Every protein/window, FASTA](data/sid-neoorf-event-report/proteins.fasta):
-  1,222 event-specific sequence groups, including 723 in-frame control groups.
+  1,466 event-specific sequence groups, including 723 in-frame control groups.
 - [SV ORF nucleotide sequences, FASTA](data/sid-neoorf-event-report/sv-orfs.fna):
-  385 groups with exact reconstructed ORF nucleotides.
-- [Support table, TSV](data/sid-neoorf-event-report/support.tsv): all 1,302
-  source-specific hypotheses: 412 SV ORFs, 116 frameshift windows and 774
+  629 groups with exact reconstructed ORF nucleotides.
+- [Support table, TSV](data/sid-neoorf-event-report/support.tsv): all 1,546
+  source-specific hypotheses: 656 SV ORFs, 116 frameshift windows and 774
   in-frame windows.
 - [Full event/placement ledger](data/sid-neoorf-event-report/events.json.gz):
   original DNA provenance, all transcript models at each event, per-product
-  outcomes, all 3,118 SV ORF occurrences with genomic RNA blocks and junctions,
+  outcomes, all 5,114 SV ORF occurrences with genomic RNA blocks and junctions,
   sequence identities, stop/start/frame flags and input hashes.
 - [File checksums](data/sid-neoorf-event-report/files.json).
 
@@ -39,7 +48,7 @@ Their full altered mature transcript and full protein sequence remain unknown.
 ## How to read support and coordinates
 
 DNA evidence and RNA evidence answer different questions. Original DNA VCF
-records are retained for five SV geometries; four have RNA-only nominations.
+records are retained for nine SV geometries; 14 have RNA-only nominations.
 Small-variant DNA depth/VAF comes from the frozen catalogue, with each library
 kept separately. It has not been recounted here. A missing DNA call or unavailable
 VAF means **unknown**, not DNA-negative. Processing copies are not added.
@@ -98,6 +107,18 @@ MRSNLVSCPAWNSTATTSSSSLKDPGSRRPSWTSLAKERSQEQAKRNLEFQSPTLSPPMKATLSKPS*
 ::IGKC control: MKTDGAATVRLISTLVPWPNVHHLLYC*
 ```
 
+IGKC is the antibody kappa constant-region gene in the chromosome-2
+[B-cell receptor locus](https://www.imgt.org/IMGTrepertoire/LocusGenes/locusdesc/human/IGK/Hu_IGKdesc.html).
+Its 27-aa computational candidate is antisense to the supplied IGKC models
+and has no annotated coding start. The 279 complete fragments / 12 barcode
+labels come from T2 10x; the nomination and additional ONT input are also T2.
+Neither longitudinal recurrence nor malignant-cell assignment is
+established. This entry remains an immune-receptor control, rather than a
+prioritized tumor neoORF. A normal BCR origin for this exact short antisense
+ORF is also unproven. The
+[anatomy ledger](data/sid-sv-recovery/fth-igkc-candidate-anatomy-v2.json)
+retains the start assessments, support and source claims.
+
 For TPST1, an example RNA join has eight unplaced bases `CAGGAAGG` and
 alignment endpoints chr7:66205519(+) → chr7:66127709(+). These are retained
 as RNA placements, not rewritten as a DNA insertion. Its potential reference
@@ -107,6 +128,102 @@ candidate. The [earlier annotation analysis](../figures/osteosarc/neo-orfs-and-l
 documents that comparison. Regional Ribo-seq in
 [Kowar et al.](https://doi.org/10.1038/s41467-025-63405-2) does not establish
 initiation at this internal ATG or translation of Sid's altered sequence.
+
+## Recovered original-pilot targets
+
+The [targeted recovery](sid-sv-dense-recovery.md) adds the original pilot's
+22 acquisition-failed source/geometry pairs, preserving both orientations and
+the full original denominator. The expanded sheets describe all 14 additional
+SV geometries, including entries without a resolved RNA path or protein.
+Source/product counts remain separate, and partner-recovery limits remain
+attached to the ONT results.
+
+The recovered **FTH1–FTL** candidate joins minus-strand FTH1 on chromosome 11
+to plus-strand FTL on chromosome 19. It starts at the annotated FTH1 ATG in
+ENST00000273550, cDNA offset 209 (zero-based), with genomic start-codon bases
+chr11:61967425, 61967424 and 61967423 in translation order (one-based).
+Its entire 540-nt ORF matches **FTH1 codons 1–17 followed in frame by FTL
+codons 14–175 and the normal FTL stop**, using ENST00000331825. The resulting
+179-aa sequence is:
+
+```text
+MTTASTSQVRQNYHQDSEAAVNSLVNLYLQASYTYLSLGFYFDRDDVALEGVSHFFRELAEEKREGYERLLKMQNQRGGRALFQDIKKPAEDEWGKTPDAMKAAMALEKKLNQALLDLHALGSARTDPHLCDFLETHFLDEEVKLIKKMGDHLTNLHRLGGPEAGLGEYLFERLTLKHD*
+```
+
+The first 20 residues also match FTH1 because `EAA` is shared with the FTL
+segment. This describes sequence composition, not a uniquely placed genomic
+fusion boundary. The representative RNA alignment has 63 unplaced bases
+between chr11:61967374(−) and chr19:48965769(+) (zero-based boundaries).
+They encode residues 18–38 and match FTL; a DNA insertion is not established.
+The [exact comparison and annotation ledger](data/sid-sv-recovery/fth-igkc-candidate-anatomy-v2.json)
+shows why the candidate has an annotated FTH1 start while its aggregate
+start/frame labels remain ambiguous across overlapping transcript models.
+**Two complete ONT T2 fragments** support this exact ORF; independent molecule
+lineage, initiation and translation remain unresolved or unobserved. There is
+no linked original DNA call and no established recurrence of this exact ORF
+across timepoints. The historical 45-read T2 fusion-caller nomination measures
+different evidence and is not a count of complete witnesses for this sequence.
+
+The [published CTAT-LR-FUSION results](https://osteosarc.com/ctat_lr_fusion/FTH1--FTL/)
+already call this gene pair in ONT T2, with 45 reads at the main nominated
+junction and two other FTH1–FTL junctions supported by 18 and 12 reads. The
+main call uses canonical splice boundaries and carries TCGA/CCLE catalogue
+tags. In the matching published T2 concordance table, Isofox has no gene-pair
+match, LINX has no DNA-driven gene-pair fusion, and PURPLE has no DNA SV
+breakend within 10 kb of either nominated RNA breakpoint. These are the
+reported caller/filter/window results, not a proof of DNA absence.
+The two original query names supporting this exact 179-aa ORF are absent from
+the exported CTAT supporting-read lists; processing lineage remains unresolved.
+Thus CTAT corroborates the gene pair, but does not establish 45 complete
+witnesses for this exact protein sequence.
+
+As of October 8, 2026, this fusion is absent from the available public
+[vaccine target records](https://osteosarc.com/vaccines/). A separate comparison
+checked the current 183 source-variant entries, 37 overlap rows, and 95 recorded
+vaccine-peptide sequences: no FTH1/FTL target or exact candidate peptide match
+was found. None of the recorded peptides contains the candidate's 22
+8–11-aa junction windows absent from both supplied normal parent proteins.
+These parent-specific windows are not a whole-proteome novelty or presentation
+assessment. The
+[vaccine/caller comparison ledger](data/sid-sv-recovery/fth-vaccine-caller-comparison.json)
+preserves the source hashes, exact matching rules, caller read IDs and results;
+unprovided manufacturing construct sequences remain outside this check.
+
+A [separate follow-up](sid-fth-fusion-followup.md) records the new junction
+prediction screen and longitudinal comparison. For this exact 179-aa isoform,
+NetMHCpan 4.2c found no junction-spanning 8–11-aa peptide below its default
+class-I EL rank threshold for the five documented patient alleles. NetMHCIIpan
+4.3e predicted five overlapping strong DRB3*01:01 15-mers sharing the core
+`YHQDSEAAV` (best EL rank 0.07%); those overlapping windows are not independent
+epitopes. These model-specific results do not establish presentation or explain
+historical vaccine selection. No explicit rejection reason was found.
+The preserved filtered CTAT table has 16 exact junctions shared across time
+points (13 gene pairs); FTH1–FTL itself is called only at T2. T3 already has 24
+filtered RNA calls, despite the fusion page's pending-mapping placeholder.
+
+
+Four added events have original DNA calls but no resolved ORF in the recovered
+10x views:
+
+| Complete sheet | Original DNA event and available transcript anatomy |
+| --- | --- |
+| [SV0096](data/sid-neoorf-event-report/events/adj-01f832abce6755e57a037305.md) | Personalis BND: chr4:74716515 `G` → `G[chr11:54805939[`, VF 4. Neither retained endpoint overlaps a supplied Ensembl transcript. |
+| [CNTNAP2 / SV0453](data/sid-neoorf-event-report/events/adj-02d0c8701be92d25ba193912.md) | T2 deletion adjacency: chr7:146504421 `T` → `T[chr7:146504535[`, VF 7. Both endpoints lie inside the same CNTNAP2 intron; the genomic deletion does not establish a translated frameshift. |
+| [SV0271](data/sid-neoorf-event-report/events/adj-0323090002a789fe5398004e.md) | T1 deletion adjacency with unplaced `AT`: chr4:160600455 `A` → `AAT[chr4:160600600[`, VF 5. No overlapping supplied transcript at the endpoints. |
+| [SV0406](data/sid-neoorf-event-report/events/adj-035949d7e8f1561d5e9bf526.md) | T2 BND: chr4:15847377 `G` → `[chr20:31245990[GG`, VF 13. The chr4 endpoint is intronic in CD38 and opposite-strand models; the chr20 retained base has no supplied transcript assignment. |
+
+New exploratory 10x sequences include `MKQISRSLTLPCTS*` at
+[TRDV1–TRAC](data/sid-neoorf-event-report/events/adj-020512ee5df1e1d9d00edcba.md)
+(one complete fragment / one barcode label), `MQQNHPEVTAAMALTDIDLQLQF` at
+[UBE2Q2P6–CSPG4P10](data/sid-neoorf-event-report/events/adj-02f752de4e9fd2a55e4924f5.md)
+(one / one), `MILWPSNHPSKCLGKKR*` at
+[CDK11A–CDK11B](data/sid-neoorf-event-report/events/adj-03b9fc802bfa90900b74a750.md)
+(two / one), and `MQFLHKLILRENNLTELHKDSFEGL` at
+[LRRC37A–LRRC37A2](data/sid-neoorf-event-report/events/adj-03db542e1425ff6d0005c1ab.md)
+(three / two). Joins are splice ambiguous, frames are unresolved or ambiguous,
+and the original DNA events are unknown. These observations do not establish
+tumor-specific fusion proteins. The complete sheets give genomic RNA blocks,
+reference transcript placement and every alternative sequence/support row.
 
 ## Frameshifts: DNA allele, local transcript change and sequence
 
@@ -162,7 +279,7 @@ explicitly marked as controls rather than frameshift neoORFs.
 
 ## Limits, verification and reproduction
 
-The selected search has 60 oriented SV views and 124 completed literal
+The selected search has 100 oriented SV views and 124 completed literal
 allele/product screens, plus four unassessable MUC3A outcomes. Every frozen
 sequence/support row is retained. The generator checks input hashes and verifies
 each SV ORF nucleotide interval against its original RNA reconstruction before
@@ -188,9 +305,9 @@ annotation, without invoking SAMtools or downloading whole libraries.
 
 ```sh
 python -m examples.report_sid_neoorf_events OUTPUT \
-  --screen docs/data/sid-neoorf/candidate-screen.json.gz \
+  --screen docs/data/sid-neoorf/candidate-screen.recovered-final.json.gz \
   --checks docs/data/sid-neoorf/coding-window-checks.json.gz \
-  --audit PRIOR_AUDIT --audit ADDITIONS_AUDIT --audit DENSE_CORRECTED_AUDIT
+  --audit PRIOR_AUDIT --audit ADDITIONS_AUDIT --audit RECOVERY_AUDIT
 ```
 
 Use a fresh output directory; audit JSON is immutable. The

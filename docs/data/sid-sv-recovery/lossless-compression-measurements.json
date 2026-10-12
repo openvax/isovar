@@ -1,0 +1,21 @@
+{
+  "scope": "canonical_decoded_alignment_content_lossless_on_deterministic_samples_only",
+  "results": {
+    "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/search/performance/lossless-compression-samples.json",
+    "sha256": "c551133a3f8996bce237e8f06e3e404433a731551df5395601711654dd2123de"
+  },
+  "helper": {
+    "path": "/Users/iskander/code/isovar/.cache/sid-compression-benchmark-20261007.py",
+    "sha256": "81741b593f42ed8fb94c618b8563bdc37858ec7b7ecdf6807209f2794f879f4a"
+  },
+  "tool": {
+    "path": "/opt/homebrew/bin/samtools",
+    "sha256": "b775a81650b17c7e6da9ded606620166afd28e0662314bd2fb9754f82f095e33",
+    "version": "samtools 1.21"
+  },
+  "full_input_BAM_bytes_preserved": true,
+  "full_input_compression_not_measured": true,
+  "CRAM_does_not_reproduce_original_BAM_byte_hash": true,
+  "native_complete_input_and_ORF_replay_still_use_original_frozen_BAMs": true,
+  "no_public_format_API_change": true
+}

@@ -31,5 +31,16 @@
     "outcomes": 4,
     "payload_bytes": 1376437179,
     "replay_views": 4
+  },
+  {
+    "name": "recovery",
+    "archive": "portable-sid-recovery-final-20261011.tar.gz",
+    "archive_bytes": 7043781669,
+    "archive_sha256": "06c2c635724febe06c5386d07e0f140361f95756d512fab05ee356219b814a6f",
+    "bundle_id": "744b38a81f2c8775896bc21e5975bea148e006ec10051ac915afe2c8528e8630",
+    "files": 722,
+    "payload_bytes": 11348954838,
+    "outcomes": 44,
+    "replay_views": 42
   }
 ]

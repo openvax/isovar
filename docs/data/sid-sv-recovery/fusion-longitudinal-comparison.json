@@ -1,0 +1,649 @@
+{
+  "FTH1_FTL_filtered_calls": [
+    {
+      "left_chrom": "chr11",
+      "left_pos": "61967312",
+      "left_strand": "-",
+      "num_lr": "45",
+      "right_chrom": "chr19",
+      "right_pos": "48965770",
+      "right_strand": "+",
+      "sample": "T2_ont"
+    },
+    {
+      "left_chrom": "chr11",
+      "left_pos": "61964823",
+      "left_strand": "-",
+      "num_lr": "18",
+      "right_chrom": "chr19",
+      "right_pos": "48966652",
+      "right_strand": "+",
+      "sample": "T2_ont"
+    },
+    {
+      "left_chrom": "chr11",
+      "left_pos": "61967402",
+      "left_strand": "-",
+      "num_lr": "12",
+      "right_chrom": "chr19",
+      "right_pos": "48965520",
+      "right_strand": "+",
+      "sample": "T2_ont"
+    }
+  ],
+  "T3_preserved_source_metadata": [
+    {
+      "claims": [
+        {
+          "assay": "scrna-seq",
+          "basis": "published",
+          "date": "2025-04",
+          "label": "T3 UCSF Tumor ONT 2025-04",
+          "library": null,
+          "platform": "ont",
+          "provider": "UCSF",
+          "source": "bams",
+          "timepoint": "T3",
+          "tissue": "tumor"
+        },
+        {
+          "assay": "scrna-seq",
+          "basis": "published",
+          "date": "2025-04",
+          "label": "T3 UCSF Tumor ONT 2025-04",
+          "library": null,
+          "platform": "ont",
+          "provider": "UCSF",
+          "source": "bam_metadata",
+          "timepoint": "T3",
+          "tissue": "tumor"
+        },
+        {
+          "assay": "scrna-seq",
+          "basis": "published",
+          "date": null,
+          "label": "Single Cell RNA-seq (Tumor) / Oxford Nanopore (ONT) Long-Read RNA-seq / Apr 2025 (T3) | BAMs",
+          "library": null,
+          "platform": "ont",
+          "provider": null,
+          "source": "data_page",
+          "timepoint": "T3",
+          "tissue": null
+        },
+        {
+          "assay": "scrna-seq",
+          "basis": "published",
+          "date": "2025-04",
+          "label": "T3 UCSF Tumor ONT 2025-04",
+          "library": null,
+          "platform": "ont",
+          "provider": "UCSF",
+          "source": "vafs",
+          "timepoint": "T3",
+          "tissue": "tumor"
+        },
+        {
+          "assay": null,
+          "basis": "inferred",
+          "date": null,
+          "label": "ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT_dedup/IPISRC044_T3_sclrs_ONT_dedup.bam",
+          "library": null,
+          "platform": null,
+          "provider": null,
+          "source": "bucket_path",
+          "timepoint": "T3",
+          "tissue": null
+        }
+      ],
+      "key": "ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT_dedup/IPISRC044_T3_sclrs_ONT_dedup.bam"
+    },
+    {
+      "claims": [
+        {
+          "assay": "scrna-seq",
+          "basis": "published",
+          "date": null,
+          "label": "Single Cell RNA-seq (Tumor) / Oxford Nanopore (ONT) Long-Read RNA-seq / Apr 2025 (T3) | BAMs",
+          "library": null,
+          "platform": "ont",
+          "provider": null,
+          "source": "data_page",
+          "timepoint": "T3",
+          "tissue": null
+        },
+        {
+          "assay": null,
+          "basis": "inferred",
+          "date": null,
+          "label": "ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT.tagged.bam",
+          "library": null,
+          "platform": null,
+          "provider": null,
+          "source": "bucket_path",
+          "timepoint": "T3",
+          "tissue": null
+        }
+      ],
+      "key": "ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT.tagged.bam"
+    }
+  ],
+  "input_pins": [
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-fth-vaccine-caller-check-20261008/live/lr-fusions.tsv",
+      "sha256": "80a6680bad7a1279117f7ba132507017d532a07f56b29a74711e75a33d9e6006"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/inventory.json.gz",
+      "sha256": "121e8d1b29dc6f32b3556791b7468a5a600c469e9c8ad53075eb96e26fb3d775"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-fth-junction-predictions-20261008/shared-junctions.json",
+      "sha256": "22bdda70d49d54f23ef080889d65b80c4499c59820dcd8788630034ca84ebc09"
+    }
+  ],
+  "limitations": [
+    "Filtered caller output; an absent call is not a zero-support measurement or evidence of biological absence.",
+    "No T0 long-read CTAT library in this table.",
+    "Same genomic junction does not establish identical transcript, protein, tumor origin or antigen presentation.",
+    "Counts for separate junctions are retained separately, not added into an independent-molecule total.",
+    "Shared TALAM1 calls involving three ENSG partners may include ambiguous mapping; recurrence does not establish independent events.",
+    "Published CTAT T3 date/provider placeholder disagrees with April 2025 ONT metadata; exact library-to-specimen linkage was not newly verified."
+  ],
+  "producer": {
+    "path": "/Users/iskander/code/isovar/.cache/sid-fth-junction-predictions-20261008/longitudinal.py",
+    "sha256": "e6502d6ad10c8d13fcef2e9cfcba7b4e654c995d5ea1cfdd46da827711aa5ed3"
+  },
+  "sample_call_rows": {
+    "T1_ont": 21,
+    "T2_ont": 51,
+    "T3_ont": 24
+  },
+  "schema": "sid.fusion_longitudinal_comparison.v1",
+  "shared_strand_aware_junctions": [
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.357",
+          "num_lr": "17",
+          "sample": "T1_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.347",
+          "num_lr": "31",
+          "sample": "T2_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        }
+      ],
+      "fusion": "MAF--ENSG00000261722",
+      "junction": {
+        "left_chrom": "chr16",
+        "left_pos": "79585880",
+        "left_strand": "-",
+        "right_chrom": "chr16",
+        "right_pos": "79212901",
+        "right_strand": "-"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.797",
+          "num_lr": "38",
+          "sample": "T1_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.639",
+          "num_lr": "57",
+          "sample": "T2_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        }
+      ],
+      "fusion": "MROCKI--LINC02541",
+      "junction": {
+        "left_chrom": "chr6",
+        "left_pos": "113870304",
+        "left_strand": "-",
+        "right_chrom": "chr6",
+        "right_pos": "113627675",
+        "right_strand": "-"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.63",
+          "num_lr": "30",
+          "sample": "T1_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.46",
+          "num_lr": "41",
+          "sample": "T2_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.913",
+          "num_lr": "57",
+          "sample": "T3_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        }
+      ],
+      "fusion": "ENSG00000279880--BPTF",
+      "junction": {
+        "left_chrom": "chr17",
+        "left_pos": "67975958",
+        "left_strand": "+",
+        "right_chrom": "chr17",
+        "right_pos": "67945409",
+        "right_strand": "+"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.147",
+          "num_lr": "7",
+          "sample": "T1_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.157",
+          "num_lr": "14",
+          "sample": "T2_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        }
+      ],
+      "fusion": "FRG1HP--ENSG00000291075",
+      "junction": {
+        "left_chrom": "chr9",
+        "left_pos": "41011730",
+        "left_strand": "+",
+        "right_chrom": "chr9",
+        "right_pos": "40993253",
+        "right_strand": "+"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.105",
+          "num_lr": "5",
+          "sample": "T1_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.168",
+          "num_lr": "15",
+          "sample": "T2_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        }
+      ],
+      "fusion": "ENSG00000266869--RGS6",
+      "junction": {
+        "left_chrom": "chr14",
+        "left_pos": "71848736",
+        "left_strand": "+",
+        "right_chrom": "chr14",
+        "right_pos": "71964772",
+        "right_strand": "+"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.105",
+          "num_lr": "5",
+          "sample": "T1_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.112",
+          "num_lr": "10",
+          "sample": "T2_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        }
+      ],
+      "fusion": "HAND2-AS1--LINC02269",
+      "junction": {
+        "left_chrom": "chr4",
+        "left_pos": "173634744",
+        "left_strand": "+",
+        "right_chrom": "chr4",
+        "right_pos": "173856284",
+        "right_strand": "+"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "True",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.567",
+          "num_lr": "27",
+          "sample": "T1_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "True",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.247",
+          "num_lr": "22",
+          "sample": "T2_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        }
+      ],
+      "fusion": "TPST1--CRCP",
+      "junction": {
+        "left_chrom": "chr7",
+        "left_pos": "66205522",
+        "left_strand": "+",
+        "right_chrom": "chr7",
+        "right_pos": "66127704",
+        "right_strand": "+"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "True",
+          "lr_ffpm": "0.126",
+          "num_lr": "6",
+          "sample": "T1_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "True",
+          "lr_ffpm": "0.28",
+          "num_lr": "25",
+          "sample": "T2_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "True",
+          "lr_ffpm": "0.641",
+          "num_lr": "40",
+          "sample": "T3_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        }
+      ],
+      "fusion": "ENSG00000289495--TRAC",
+      "junction": {
+        "left_chrom": "chr14",
+        "left_pos": "22229971",
+        "left_strand": "+",
+        "right_chrom": "chr14",
+        "right_pos": "22547506",
+        "right_strand": "+"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.123",
+          "num_lr": "11",
+          "sample": "T2_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.208",
+          "num_lr": "13",
+          "sample": "T3_ont",
+          "splice_type": "ONLY_REF_SPLICE"
+        }
+      ],
+      "fusion": "OAZ1--SCO2",
+      "junction": {
+        "left_chrom": "chr19",
+        "left_pos": "2269744",
+        "left_strand": "+",
+        "right_chrom": "chr22",
+        "right_pos": "50524424",
+        "right_strand": "-"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.516",
+          "num_lr": "46",
+          "sample": "T2_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.352",
+          "num_lr": "22",
+          "sample": "T3_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        }
+      ],
+      "fusion": "TALAM1--RPL23A",
+      "junction": {
+        "left_chrom": "chr11",
+        "left_pos": "65499068",
+        "left_strand": "-",
+        "right_chrom": "chr17",
+        "right_pos": "28720732",
+        "right_strand": "+"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.347",
+          "num_lr": "31",
+          "sample": "T2_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.304",
+          "num_lr": "19",
+          "sample": "T3_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        }
+      ],
+      "fusion": "TALAM1--ENSG00000281181",
+      "junction": {
+        "left_chrom": "chr11",
+        "left_pos": "65499047",
+        "left_strand": "-",
+        "right_chrom": "chr21",
+        "right_pos": "8437784",
+        "right_strand": "-"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.347",
+          "num_lr": "31",
+          "sample": "T2_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.304",
+          "num_lr": "19",
+          "sample": "T3_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        }
+      ],
+      "fusion": "TALAM1--ENSG00000280614",
+      "junction": {
+        "left_chrom": "chr11",
+        "left_pos": "65499047",
+        "left_strand": "-",
+        "right_chrom": "chr21",
+        "right_pos": "8393574",
+        "right_strand": "-"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.347",
+          "num_lr": "31",
+          "sample": "T2_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.304",
+          "num_lr": "19",
+          "sample": "T3_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        }
+      ],
+      "fusion": "TALAM1--ENSG00000280800",
+      "junction": {
+        "left_chrom": "chr11",
+        "left_pos": "65499047",
+        "left_strand": "-",
+        "right_chrom": "chr21",
+        "right_pos": "8210539",
+        "right_strand": "-"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.224",
+          "num_lr": "20",
+          "sample": "T2_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.192",
+          "num_lr": "12",
+          "sample": "T3_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        }
+      ],
+      "fusion": "TALAM1--ENSG00000280614",
+      "junction": {
+        "left_chrom": "chr11",
+        "left_pos": "65499089",
+        "left_strand": "-",
+        "right_chrom": "chr21",
+        "right_pos": "8394013",
+        "right_strand": "-"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.224",
+          "num_lr": "20",
+          "sample": "T2_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.192",
+          "num_lr": "12",
+          "sample": "T3_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        }
+      ],
+      "fusion": "TALAM1--ENSG00000280800",
+      "junction": {
+        "left_chrom": "chr11",
+        "left_pos": "65499089",
+        "left_strand": "-",
+        "right_chrom": "chr21",
+        "right_pos": "8210978",
+        "right_strand": "-"
+      }
+    },
+    {
+      "calls": [
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.224",
+          "num_lr": "20",
+          "sample": "T2_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        },
+        {
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "lr_ffpm": "0.176",
+          "num_lr": "11",
+          "sample": "T3_ont",
+          "splice_type": "INCL_NON_REF_SPLICE"
+        }
+      ],
+      "fusion": "TALAM1--ENSG00000281181",
+      "junction": {
+        "left_chrom": "chr11",
+        "left_pos": "65499089",
+        "left_strand": "-",
+        "right_chrom": "chr21",
+        "right_pos": "8438223",
+        "right_strand": "-"
+      }
+    }
+  ],
+  "specification": {
+    "path": "/Users/iskander/code/isovar/.cache/sid-fth-junction-predictions-20261008/spec.txt",
+    "sha256": "71f9b4d1eada74202d1abb94ba884d41d79537baaa2f2ded559c07933e514997"
+  },
+  "table_source": "https://osteosarc.com/ctat_lr_fusion/tables/lr_fusions.tsv"
+}
