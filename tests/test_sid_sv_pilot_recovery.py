@@ -30,6 +30,13 @@ def test_frozen_original_pilot_accounts_for_all_failed_pairs():
     assert {row["source_id"][:12] for row in pairs} == {"58f81602ec2f", "6e9147690525"}
 
 
+def test_recovery_keeps_pilot_and_catalogue_denominators_separate(tmp_path, empty_audit):
+    path = pilot(tmp_path)
+    _, _, selection, _ = prepare(tmp_path / "recovery", tmp_path, path)
+    assert selection["original_pilot_views"] == 2
+    assert selection["original_catalogue_views"] == 400
+
+
 def test_a_single_failed_orientation_cannot_shrink_the_scope():
     data = dict(outcomes=[dict(source_id="source", geometry_id="g", orientation="forward",
                               status="not_assessable")])
@@ -159,6 +166,29 @@ def test_independent_recovery_checker_requires_completed_views(tmp_path, empty_a
     assert ledger["rows"][0]["acquired_records"] == ledger["rows"][0]["regional_alignment_records"] == 0
     assert ledger["independent_orf_translations"] == 0
     assert ledger["independent_checks"] == []
+    assert ledger["verified_reconstructed_views"] == 2 and ledger["unresolved_views"] == 0
+
+    forward = directory / "results/source/g.forward.json.gz"
+    completed = read_json(forward)
+    failed = dict(request=completed["request"], acquisition_status="acquired",
+                  input_limitations=[], status="reconstruction_timeout", error="wall-time budget exceeded")
+    forward.unlink()
+    write_json(forward, failed)
+    with pytest.raises(ValueError, match="every selected input and reconstruction"):
+        verify(directory, tmp_path / "strict-checks")
+    partial = verify(directory, tmp_path / "partial-checks", allow_unresolved=True)
+    assert partial["accounted_views"] == 2 and partial["verified_reconstructed_views"] == 1
+    assert partial["unresolved_views"] == 1 and not partial["all_views_reconstructed"]
+    assert partial["rows"][0]["views"]["forward"]["candidates"] is None
+    assert partial["rows"][0]["views"]["reverse"]["candidates"] == 0
+    assert partial["pins"]["results/source/g.forward.json.gz"] == digest(forward)
+    forward.unlink()
+    write_json(forward, dict(failed, candidates=[]))
+    with pytest.raises(ValueError, match="unknown reconstruction/support counts"):
+        verify(directory, tmp_path / "invalid-checks", allow_unresolved=True)
+    forward.unlink()
+    with pytest.raises(ValueError, match="recorded outcome for every selected view"):
+        verify(directory, tmp_path / "missing-checks", allow_unresolved=True)
 
 
 def test_mixed_checkout_is_rejected_before_preparation(tmp_path, monkeypatch, capsys):

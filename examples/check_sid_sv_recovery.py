@@ -22,20 +22,23 @@ from examples.sid_sv_audit import acquisition, reconstruct, references
 from examples.sid_sv_audit.inventory import digest, identity, load_inventory, read_json, write_json
 
 
-def verify(directory, output):
-    """Require all selected reconstructions and verify counts without pooling."""
+def verify(directory, output, *, allow_unresolved=False):
+    """Verify completed views and, when requested, account for recorded failures."""
     directory, output = Path(directory), Path(output)
     manifest, reference = load_inventory(directory), references.load(directory)
     selection = read_json(directory / "recovery-selection.json")
     run = read_json(directory / "recovery-run.json")
     batches = {b["geometries"][0]: b for b in read_json(directory / "batches.json")}
     observed = coverage(directory, selection, batches)
-    if not observed["all_inputs_acquired"] or not observed["all_views_reconstructed"]:
+    if not observed["all_inputs_acquired"] or (
+            not allow_unresolved and not observed["all_views_reconstructed"]):
         raise ValueError("Recovery verification requires every selected input and reconstruction")
+    if any("result_sha256" not in row for row in observed["outcomes"]):
+        raise ValueError("Recovery verification requires a recorded outcome for every selected view")
     pins = {name: digest(directory / name) for name in (
         "inventory.json.gz", "references.json.gz", "recovery-selection.json", "recovery-run.json", "batches.json")}
     rows, checks, outcomes = [], [], Counter()
-    translations = 0
+    translations = completed_views = 0
     for pair in selection["pairs"]:
         sid, gid = pair["source_id"], pair["geometry_id"]
         batch = batches[gid]
@@ -69,6 +72,18 @@ def verify(directory, output):
             assert request["inventory_sha256"] == pins["inventory.json.gz"]
             assert request["references_sha256"] == pins["references.json.gz"]
             assert (request["source_id"], request["geometry_id"], request["orientation"]) == (sid, gid, orientation)
+            pins[str(path.relative_to(directory))] = digest(path)
+            outcomes[result["status"]] += 1
+            if "reconstruction" not in result:
+                if (result["status"] not in {"reconstruction_timeout", "reconstruction_interrupted", "not_assessable"}
+                        or "candidates" in result or "support_acquisition" in result):
+                    raise ValueError("Unresolved outcome must retain unknown reconstruction/support counts")
+                views[orientation] = dict(status=result["status"], candidates=None,
+                                          records=None, support_acquisition=None,
+                                          reason=result.get("reason", result.get("error")),
+                                          input_limitations=result["input_limitations"], reconstructed=False)
+                continue
+            completed_views += 1
             support = result["support_acquisition"]
             assert support["records_complete"] and support["records_scanned"] == native_total
             detail_path = directory / result["reconstruction"]["path"]
@@ -77,7 +92,7 @@ def verify(directory, output):
             views[orientation] = {key: result[key] for key in (
                 "status", "records", "discovery", "support_acquisition", "input_limitations")}
             views[orientation]["candidates"] = len(result["candidates"])
-            outcomes[result["status"]] += 1
+            views[orientation]["reconstructed"] = True
             for candidate in result["candidates"]:
                 nt = candidate["nucleotide_sequence"]
                 aa = str(Seq(nt[:len(nt) // 3 * 3]).translate(table=1))
@@ -107,6 +122,9 @@ def verify(directory, output):
                          acquired_records=native_total, bam_sha256=receipt["bam"]["sha256"], views=views))
     ledger = dict(scope=selection["scope"], intended_pairs=observed["expected_pairs"],
                   intended_views=observed["expected_views"], accounted_views=sum(outcomes.values()),
+                  verified_reconstructed_views=completed_views,
+                  unresolved_views=observed["expected_views"] - completed_views,
+                  all_views_reconstructed=observed["all_views_reconstructed"],
                   outcome_counts=dict(outcomes), rows=rows, independent_checks=checks,
                   independent_orf_translations=translations, pins=pins,
                   code_sha256=digest(__file__), full_catalogue_complete=False)
@@ -119,8 +137,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--allow-unresolved", action="store_true",
+                        help="Retain recorded failures with unknown support; still verify every acquired input")
     args = parser.parse_args()
-    ledger = verify(args.directory, args.output)
+    ledger = verify(args.directory, args.output, allow_unresolved=args.allow_unresolved)
     print(ledger["outcome_counts"], "independently translated ORFs:", ledger["independent_orf_translations"])
 
 

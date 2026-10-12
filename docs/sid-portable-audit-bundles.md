@@ -2,7 +2,7 @@
 
 The installed [audit-bundle API and CLI](audit-bundles.md) preserve the selected
 original inputs, frozen references, receipts, screen/report artifacts and SV
-reconstruction checkpoints in three independently movable bundles. Original
+reconstruction checkpoints in independently movable bundles. Original
 receipt/result bytes are unchanged; runtime files are resolved from logical
 names in the bundle. The compressed manifests below are checked into Git.
 The regional reads and annotation archives remain in durable local storage.
@@ -20,18 +20,19 @@ The additions include all eight pinned Ensembl annotation files used by the
 validated once during import; copying still checks the expected source checksum
 and the copied bytes. No whole RNA library was downloaded for this export.
 
-The durable directories/archives are under this checkout's `.cache/`:
+The durable archives are under this checkout's `.cache/`. Regenerable export
+and validation-restore directories were reclaimed after every payload byte was
+verified in a retained archive; original audit inputs and manifests remain:
 
 ```text
-portable-sid-priority-final-20261006/
 portable-sid-priority-final-20261006.tar.gz
-portable-sid-additions-20261006/
 portable-sid-additions-20261006.tar.gz
-portable-sid-dense-final-20261006/
 portable-sid-dense-final-20261006.tar.gz
 ```
 
-Copy an archive to your backup storage using ordinary tools. After relocation,
+Copy an archive to your backup storage using ordinary tools. The three historical
+bundles pin Isovar 1.45.2; use that version to reproduce their original software
+identity. After relocation,
 restore it to a new directory, compare its identity with the frozen manifest,
 inspect its run IDs and replay a selected SV view:
 
@@ -55,7 +56,7 @@ validation are in [the replay ledger](data/sid-portable-bundles/wheel-replay.jso
 
 The offline regression also restores real original PARD3B SAM reads after
 deleting its original directory and verifies the expected sequence and four
-full-ORF supporting fragments. All 5,794 tests and lint pass. A stale module in
+full-ORF supporting fragments. A stale module in
 an existing developer `build/lib` directory was detected by software identity
 checks ([#454](https://github.com/openvax/isovar/issues/454)); final wheel
 validation uses a clean checkout, matching the canonical deployment workflow.

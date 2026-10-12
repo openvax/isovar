@@ -52,7 +52,8 @@ def prepare(directory, base_audit, pilot_path):
     batches = [acquisition.make_batch(manifest, reference, [gid], 2000) for gid in gids]
     selection = dict(scope="original_acquisition_failed_pilot_pairs", pairs=pairs,
                      original_pilot_sha256=digest(pilot_path),
-                     original_pilot_views=pilot["expected_geometry_views"],
+                     original_pilot_views=len(pilot["outcomes"]),
+                     original_catalogue_views=pilot["expected_geometry_views"],
                      inventory_sha256=pilot["inventory_sha256"],
                      references_sha256=pilot["references_sha256"])
     files = ("inventory.json.gz", "inventory-pin.json", "references.json.gz", "references-pin.json")

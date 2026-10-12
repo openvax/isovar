@@ -1,0 +1,2132 @@
+{
+  "FTH1_FTL": {
+    "amino_acids": "MTTASTSQVRQNYHQDSEAAVNSLVNLYLQASYTYLSLGFYFDRDDVALEGVSHFFRELAEEKREGYERLLKMQNQRGGRALFQDIKKPAEDEWGKTPDAMKAAMALEKKLNQALLDLHALGSARTDPHLCDFLETHFLDEEVKLIKKMGDHLTNLHRLGGPEAGLGEYLFERLTLKHD",
+    "annotated_start_cdna_zero_based": 209,
+    "annotated_start_genomic_one_based_in_translation_order": [
+      61967425,
+      61967424,
+      61967423
+    ],
+    "annotated_start_transcript": "ENST00000273550",
+    "candidate_id": "sv_orf_3098b6d0d617764ada9a341c168c138ed9580272a67eeb1fd35a198ea5ce275f",
+    "canonical_sequence_composition": {
+      "FTH1_amino_acids_one_based": [
+        1,
+        17
+      ],
+      "FTH1_transcript": "ENST00000273550",
+      "FTL_amino_acids_one_based": [
+        14,
+        175
+      ],
+      "FTL_transcript": "ENST00000331825",
+      "basis": "exact_entire_nucleotide_sequence_comparison",
+      "first_20_amino_acids_also_match_FTH1": true,
+      "genomic_origin_of_unplaced_RNA_bases_resolved": false,
+      "shared_boundary_amino_acids": "EAA",
+      "terminal_stop": "TAA",
+      "total_amino_acids": 179
+    },
+    "geometry_id": "adj-06dc27c7e4a9fbf7768d2c26",
+    "historical_adjacency_screen": [
+      {
+        "deletion_gap_templates": 0,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": 0,
+        "nearby_split_templates": 0,
+        "sample_id": "T1",
+        "source_id": "T1-ONT-tagged",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T1_sclrs_ONT/IPISRC044_T1_sclrs_ONT/IPISRC044_T1_sclrs_ONT.tagged.bam",
+        "splice_gap_templates": 0,
+        "split_path_templates": 0,
+        "status": "no_observed_adjacency"
+      },
+      {
+        "deletion_gap_templates": 0,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": 0,
+        "nearby_split_templates": 0,
+        "sample_id": "T1",
+        "source_id": "T1-short",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T1_ucla/alignments/rna/IPISRC044_tumor_T1_ucla_rna.md.bam",
+        "splice_gap_templates": 0,
+        "split_path_templates": 0,
+        "status": "no_observed_adjacency"
+      },
+      {
+        "deletion_gap_templates": 0,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": 0,
+        "nearby_split_templates": 0,
+        "sample_id": "T2",
+        "source_id": "T2-ONT-tagged",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT.tagged.bam",
+        "splice_gap_templates": 0,
+        "split_path_templates": 1,
+        "status": "adjacency_geometry_observed"
+      },
+      {
+        "deletion_gap_templates": 0,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": 0,
+        "nearby_split_templates": 0,
+        "sample_id": "T2",
+        "source_id": "T2-short",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T2_ucla/alignments/rna/IPISRC044_tumor_T2_ucla_rna.md.bam",
+        "splice_gap_templates": 0,
+        "split_path_templates": 0,
+        "status": "no_observed_adjacency"
+      },
+      {
+        "deletion_gap_templates": 0,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": 0,
+        "nearby_split_templates": 0,
+        "sample_id": "T0",
+        "source_id": "T0-BostonGene",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/rna-seq/reprocessed/BG003082/BG003082.Aligned.sortedByCoord.out.md.bam",
+        "splice_gap_templates": 0,
+        "split_path_templates": 0,
+        "status": "no_observed_adjacency"
+      },
+      {
+        "deletion_gap_templates": 0,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": 0,
+        "nearby_split_templates": 0,
+        "sample_id": "T0",
+        "source_id": "T0-Personalis",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/oncoanalyser/IPISRC044_T0_personalis/alignments/rna/IPISRC044_tumor_T0_personalis_rna.md.bam",
+        "splice_gap_templates": 0,
+        "split_path_templates": 0,
+        "status": "no_observed_adjacency"
+      },
+      {
+        "deletion_gap_templates": 0,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": 0,
+        "nearby_split_templates": 0,
+        "sample_id": "T1",
+        "source_id": "T1-Tempus",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/rna-seq/reprocessed/TL-24-KCVBE1UI1P/TL-24-KCVBE1UI1P.Aligned.sortedByCoord.out.md.bam",
+        "splice_gap_templates": 0,
+        "split_path_templates": 0,
+        "status": "no_observed_adjacency"
+      },
+      {
+        "deletion_gap_templates": 0,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": 0,
+        "nearby_split_templates": 0,
+        "sample_id": "T1",
+        "source_id": "T1-PacBio",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/pacbio/IPISRC044_T1_sclrs_live_pbmm2_mapped.bam",
+        "splice_gap_templates": 0,
+        "split_path_templates": 0,
+        "status": "no_observed_adjacency"
+      },
+      {
+        "deletion_gap_templates": null,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": null,
+        "nearby_split_templates": null,
+        "sample_id": "T3",
+        "source_id": "T3-ONT-tagged",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT/IPISRC044_T3_sclrs_ONT.tagged.bam",
+        "splice_gap_templates": null,
+        "split_path_templates": null,
+        "status": "not_complete"
+      },
+      {
+        "deletion_gap_templates": null,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": null,
+        "nearby_split_templates": null,
+        "sample_id": "T3",
+        "source_id": "T3-scRNA",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/tumor/output/T3/outs/per_sample_outs/T3/sample_alignments.bam",
+        "splice_gap_templates": null,
+        "split_path_templates": null,
+        "status": "not_complete"
+      },
+      {
+        "deletion_gap_templates": null,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": null,
+        "nearby_split_templates": null,
+        "sample_id": "T3",
+        "source_id": "T3-CD45neg",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/tumor/output/T3_CD45neg/outs/per_sample_outs/T3_CD45neg/sample_alignments.bam",
+        "splice_gap_templates": null,
+        "split_path_templates": null,
+        "status": "not_complete"
+      },
+      {
+        "deletion_gap_templates": null,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": null,
+        "nearby_split_templates": null,
+        "sample_id": "T1",
+        "source_id": "T1-scRNA",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/tumor/output/T1/outs/per_sample_outs/T1/sample_alignments.bam",
+        "splice_gap_templates": null,
+        "split_path_templates": null,
+        "status": "not_complete"
+      },
+      {
+        "deletion_gap_templates": null,
+        "exact_DNA_allele_20bp_Q10_templates": null,
+        "exact_DNA_allele_20bp_templates": null,
+        "nearby_gap_templates": null,
+        "nearby_split_templates": null,
+        "sample_id": "T2",
+        "source_id": "T2-scRNA",
+        "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/tumor/output/T2/outs/per_sample_outs/T2/sample_alignments.bam",
+        "splice_gap_templates": null,
+        "split_path_templates": null,
+        "status": "not_complete"
+      }
+    ],
+    "historical_caller_support": [
+      {
+        "omitted_fields": [
+          "lr_accessions"
+        ],
+        "row": {
+          "above_frac_dom_iso": "True",
+          "annots_raw": "[\"TCGA_StarF2019\",\"CCLE_StarF2019\"];INTERCHROMOSOMAL[chr11--chr19]",
+          "db_tags": "TCGA_StarF2019;CCLE_StarF2019",
+          "frac_dom_iso": "1.0",
+          "fusion_name": "FTH1--FTL",
+          "gene_tags": "",
+          "has_oncogene_tag": "False",
+          "in_cancer_db": "True",
+          "interchromosomal": "True",
+          "intrachromosomal": "False",
+          "intrachromosomal_mb": "",
+          "is_readthrough": "False",
+          "is_tr_ig": "False",
+          "left_chrom": "chr11",
+          "left_gene": "FTH1",
+          "left_pos": "61967312",
+          "left_strand": "-",
+          "lr_ffpm": "0.504",
+          "max_lr_ffpm": "0.504",
+          "num_lr": "45",
+          "right_chrom": "chr19",
+          "right_gene": "FTL",
+          "right_pos": "48965770",
+          "right_strand": "+",
+          "sample": "T2_ont",
+          "splice_type": "ONLY_REF_SPLICE",
+          "total_lr_reads": "89210881"
+        },
+        "source": "CTAT_LR_RNA"
+      }
+    ],
+    "historical_screen_limitations": "Copied nomination metadata, not a new exhaustive negative screen.",
+    "initiation_observed": false,
+    "longitudinal_recurrence_of_this_exact_ORF_established": false,
+    "nucleotide_sequence": "ATGACGACCGCGTCCACCTCGCAGGTGCGCCAGAACTACCACCAGGACTCAGAGGCAGCCGTCAACAGCCTGGTCAATTTGTACCTGCAGGCCTCCTACACCTACCTCTCTCTGGGCTTCTATTTCGACCGCGATGATGTGGCTCTGGAAGGCGTGAGCCACTTCTTCCGCGAATTGGCCGAGGAGAAGCGCGAGGGCTACGAGCGTCTCCTGAAGATGCAAAACCAGCGTGGCGGCCGCGCTCTCTTCCAGGACATCAAGAAGCCAGCTGAAGATGAGTGGGGTAAAACCCCAGACGCCATGAAAGCTGCCATGGCCCTGGAGAAAAAGCTGAACCAGGCCCTTTTGGATCTTCATGCCCTGGGTTCTGCCCGCACGGACCCCCATCTCTGTGACTTCCTGGAGACTCACTTCCTAGATGAGGAAGTGAAGCTTATCAAGAAGATGGGTGACCACCTGACCAACCTCCACAGGCTGGGTGGCCCGGAGGCTGGGCTGGGCGAGTATCTCTTCGAAAGGCTCACTCTCAAGCACGACTAA",
+    "occurrences": [
+      {
+        "annotated_start": true,
+        "blocks": [
+          {
+            "contig": "chr11",
+            "query_end": 61,
+            "query_start": 0,
+            "reference_end": 61967631,
+            "reference_start": 61967570,
+            "strand": "-"
+          },
+          {
+            "contig": "chr11",
+            "query_end": 256,
+            "query_start": 61,
+            "reference_end": 61967569,
+            "reference_start": 61967374,
+            "strand": "-"
+          },
+          {
+            "contig": "chr19",
+            "query_end": 320,
+            "query_start": 319,
+            "reference_end": 48965770,
+            "reference_start": 48965769,
+            "strand": "+"
+          },
+          {
+            "contig": "chr19",
+            "query_end": 466,
+            "query_start": 349,
+            "reference_end": 48965916,
+            "reference_start": 48965799,
+            "strand": "+"
+          },
+          {
+            "contig": "chr19",
+            "query_end": 592,
+            "query_start": 466,
+            "reference_end": 48966406,
+            "reference_start": 48966280,
+            "strand": "+"
+          },
+          {
+            "contig": "chr19",
+            "query_end": 890,
+            "query_start": 592,
+            "reference_end": 48966880,
+            "reference_start": 48966582,
+            "strand": "+"
+          }
+        ],
+        "competing_models": [
+          {
+            "anchors": [
+              [
+                0,
+                54,
+                0
+              ],
+              [
+                66,
+                173,
+                67
+              ]
+            ],
+            "annotation": "Ensembl 115",
+            "reason": "CDS_unavailable",
+            "transcript_id": "ENST00000529548"
+          },
+          {
+            "anchors": [
+              [
+                0,
+                54,
+                0
+              ],
+              [
+                66,
+                256,
+                67
+              ]
+            ],
+            "annotation": "Ensembl 115",
+            "reason": "CDS_unavailable",
+            "transcript_id": "ENST00000530019"
+          },
+          {
+            "anchors": [
+              [
+                18,
+                54,
+                0
+              ],
+              [
+                66,
+                256,
+                49
+              ]
+            ],
+            "annotation": "Ensembl 115",
+            "reason": "CDS_unavailable",
+            "transcript_id": "ENST00000533138"
+          },
+          {
+            "anchors": [
+              [
+                66,
+                256,
+                22
+              ]
+            ],
+            "annotation": "Ensembl 115",
+            "reason": "CDS_unavailable",
+            "transcript_id": "ENST00000534719"
+          }
+        ],
+        "frame_transfer_evidence": [
+          [
+            {
+              "anchors": [
+                [
+                  66,
+                  256,
+                  70
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 261,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000273550",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  66,
+                  256,
+                  67
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 261,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000529191",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  66,
+                  256,
+                  67
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 261,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000529631",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  66,
+                  256,
+                  67
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 261,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000532829",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  66,
+                  256,
+                  69
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 261,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000534180",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  168,
+                  256,
+                  80
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 261,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000620041",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  66,
+                  256,
+                  67
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 261,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000897064",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  66,
+                  256,
+                  67
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 261,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000897065",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  66,
+                  256,
+                  67
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 261,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000897066",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  66,
+                  256,
+                  67
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 261,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000897067",
+              "upstream_frame_assumed": false
+            }
+          ]
+        ],
+        "junction_intervals_relative_to_ORF": [
+          [
+            51,
+            114
+          ]
+        ],
+        "junctions": [
+          {
+            "annotated": false,
+            "boundaries": [
+              "donor_to_unplaced",
+              "unplaced_to_acceptor"
+            ],
+            "breakpoint_assignment": [
+              63,
+              0
+            ],
+            "forward_splice_geometry": false,
+            "junction_index": 0,
+            "kinds": [
+              "split"
+            ],
+            "left": [
+              "chr11",
+              61967374,
+              "-"
+            ],
+            "query_interval": [
+              256,
+              319
+            ],
+            "relation": "breakpoint_junction",
+            "right": [
+              "chr19",
+              48965769,
+              "+"
+            ],
+            "termination_only": false,
+            "unplaced_bases": "GAGGCAGCCGTCAACAGCCTGGTCAATTTGTACCTGCAGGCCTCCTACACCTACCTCTCTCTG"
+          }
+        ],
+        "path_frame_status": "ambiguous",
+        "path_id": "d293f76ed7971029b4491172",
+        "query_interval": [
+          205,
+          745
+        ],
+        "start_assessments": [
+          {
+            "annotated_cds_start": 209,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000273550",
+            "transcript_offset": 209
+          },
+          {
+            "annotated_cds_start": 182,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000526640",
+            "transcript_offset": 182
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000529191",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "intronic",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000529548",
+            "transcript_offset": null
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000529631",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "noncoding_transcript",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000530019",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000532829",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "noncoding_transcript",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000533138",
+            "transcript_offset": 188
+          },
+          {
+            "annotated_cds_start": 208,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000534180",
+            "transcript_offset": 208
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "noncoding_transcript",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000534719",
+            "transcript_offset": 161
+          },
+          {
+            "annotated_cds_start": 117,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000620041",
+            "transcript_offset": 117
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "antisense",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000796889",
+            "transcript_offset": null
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "antisense",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000796890",
+            "transcript_offset": null
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "antisense",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000796891",
+            "transcript_offset": null
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000897064",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000897065",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000897066",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000897067",
+            "transcript_offset": 206
+          }
+        ],
+        "start_genomic_positions_zero_based": [
+          [
+            "chr11",
+            61967424,
+            "-"
+          ],
+          [
+            "chr11",
+            61967423,
+            "-"
+          ],
+          [
+            "chr11",
+            61967422,
+            "-"
+          ]
+        ],
+        "start_summary": {
+          "priority": null,
+          "status": "ambiguous",
+          "tier": null
+        }
+      },
+      {
+        "annotated_start": true,
+        "blocks": [
+          {
+            "contig": "chr11",
+            "query_end": 80,
+            "query_start": 0,
+            "reference_end": 61967632,
+            "reference_start": 61967552,
+            "strand": "-"
+          },
+          {
+            "contig": "chr11",
+            "query_end": 259,
+            "query_start": 81,
+            "reference_end": 61967552,
+            "reference_start": 61967374,
+            "strand": "-"
+          },
+          {
+            "contig": "chr19",
+            "query_end": 323,
+            "query_start": 322,
+            "reference_end": 48965770,
+            "reference_start": 48965769,
+            "strand": "+"
+          },
+          {
+            "contig": "chr19",
+            "query_end": 469,
+            "query_start": 352,
+            "reference_end": 48965916,
+            "reference_start": 48965799,
+            "strand": "+"
+          },
+          {
+            "contig": "chr19",
+            "query_end": 595,
+            "query_start": 469,
+            "reference_end": 48966406,
+            "reference_start": 48966280,
+            "strand": "+"
+          },
+          {
+            "contig": "chr19",
+            "query_end": 893,
+            "query_start": 595,
+            "reference_end": 48966880,
+            "reference_start": 48966582,
+            "strand": "+"
+          }
+        ],
+        "competing_models": [
+          {
+            "anchors": [
+              [
+                1,
+                80,
+                0
+              ],
+              [
+                81,
+                176,
+                79
+              ]
+            ],
+            "annotation": "Ensembl 115",
+            "reason": "CDS_unavailable",
+            "transcript_id": "ENST00000529548"
+          },
+          {
+            "anchors": [
+              [
+                1,
+                80,
+                0
+              ],
+              [
+                81,
+                259,
+                79
+              ]
+            ],
+            "annotation": "Ensembl 115",
+            "reason": "CDS_unavailable",
+            "transcript_id": "ENST00000530019"
+          },
+          {
+            "anchors": [
+              [
+                19,
+                80,
+                0
+              ],
+              [
+                81,
+                259,
+                61
+              ]
+            ],
+            "annotation": "Ensembl 115",
+            "reason": "CDS_unavailable",
+            "transcript_id": "ENST00000533138"
+          },
+          {
+            "anchors": [
+              [
+                46,
+                80,
+                0
+              ],
+              [
+                81,
+                259,
+                34
+              ]
+            ],
+            "annotation": "Ensembl 115",
+            "reason": "CDS_unavailable",
+            "transcript_id": "ENST00000534719"
+          }
+        ],
+        "frame_transfer_evidence": [
+          [
+            {
+              "anchors": [
+                [
+                  81,
+                  259,
+                  82
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 264,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000273550",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  81,
+                  259,
+                  79
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 264,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000529191",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  81,
+                  259,
+                  79
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 264,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000529631",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  81,
+                  259,
+                  79
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 264,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000532829",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  81,
+                  259,
+                  81
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 264,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000534180",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  171,
+                  259,
+                  80
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 264,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000620041",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  81,
+                  259,
+                  79
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 264,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000897064",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  81,
+                  259,
+                  79
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 264,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000897065",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  81,
+                  259,
+                  79
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 264,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000897066",
+              "upstream_frame_assumed": false
+            },
+            {
+              "anchors": [
+                [
+                  81,
+                  259,
+                  79
+                ]
+              ],
+              "annotation": "Ensembl 115",
+              "basis": "exact_collinear_CDS_anchor",
+              "complete_5prime": true,
+              "departure": 264,
+              "departure_relation": "breakpoint_junction",
+              "frame_preserving_substitutions": [],
+              "transcript_id": "ENST00000897067",
+              "upstream_frame_assumed": false
+            }
+          ]
+        ],
+        "junction_intervals_relative_to_ORF": [
+          [
+            51,
+            114
+          ]
+        ],
+        "junctions": [
+          {
+            "annotated": false,
+            "boundaries": [
+              "donor_to_unplaced",
+              "unplaced_to_acceptor"
+            ],
+            "breakpoint_assignment": [
+              63,
+              0
+            ],
+            "forward_splice_geometry": false,
+            "junction_index": 0,
+            "kinds": [
+              "split"
+            ],
+            "left": [
+              "chr11",
+              61967374,
+              "-"
+            ],
+            "query_interval": [
+              259,
+              322
+            ],
+            "relation": "breakpoint_junction",
+            "right": [
+              "chr19",
+              48965769,
+              "+"
+            ],
+            "termination_only": false,
+            "unplaced_bases": "GAGGCAGCCGTCAACAGCCTGGTCAATTTGTACCTGCAGGCCTCCTACACCTACCTCTCTCTG"
+          }
+        ],
+        "path_frame_status": "ambiguous",
+        "path_id": "cc01ec82570850ae2c996dfa",
+        "query_interval": [
+          208,
+          748
+        ],
+        "start_assessments": [
+          {
+            "annotated_cds_start": 209,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000273550",
+            "transcript_offset": 209
+          },
+          {
+            "annotated_cds_start": 182,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000526640",
+            "transcript_offset": 182
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000529191",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "intronic",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000529548",
+            "transcript_offset": null
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000529631",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "noncoding_transcript",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000530019",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000532829",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "noncoding_transcript",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000533138",
+            "transcript_offset": 188
+          },
+          {
+            "annotated_cds_start": 208,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000534180",
+            "transcript_offset": 208
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "noncoding_transcript",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000534719",
+            "transcript_offset": 161
+          },
+          {
+            "annotated_cds_start": 117,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000620041",
+            "transcript_offset": 117
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "antisense",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000796889",
+            "transcript_offset": null
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "antisense",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000796890",
+            "transcript_offset": null
+          },
+          {
+            "annotated_cds_start": null,
+            "region": "antisense",
+            "tier": "sequence_only",
+            "transcript_id": "ENST00000796891",
+            "transcript_offset": null
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000897064",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000897065",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000897066",
+            "transcript_offset": 206
+          },
+          {
+            "annotated_cds_start": 206,
+            "region": "annotated_CDS_start",
+            "tier": "annotated_CDS_start",
+            "transcript_id": "ENST00000897067",
+            "transcript_offset": 206
+          }
+        ],
+        "start_genomic_positions_zero_based": [
+          [
+            "chr11",
+            61967424,
+            "-"
+          ],
+          [
+            "chr11",
+            61967423,
+            "-"
+          ],
+          [
+            "chr11",
+            61967422,
+            "-"
+          ]
+        ],
+        "start_summary": {
+          "priority": null,
+          "status": "ambiguous",
+          "tier": null
+        }
+      }
+    ],
+    "original_DNA_call_linked": false,
+    "rna_support": {
+      "cells": 2,
+      "cells_complete": false,
+      "evidence_scope": [
+        "product:58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de",
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT.tagged.bam"
+      ],
+      "evidence_set_id": "evidence_8cbb865ff8e5efe61bbb7a177576b72fc6a1dd2e33e5dfd363721b74a2da3a78",
+      "fragment_ids": [
+        "fragment_3b13cc7f7a95f3f6df1e758d47acd70fd21b8fe8e20526ebf75000a69922737b",
+        "fragment_5325f9bbdc26f8cb3cd3a830b04b82e8a5cd63fcfa2a690b069fab373d988bc9"
+      ],
+      "fragment_query_orientations": {
+        "mixed": 0,
+        "original_query": 2,
+        "reverse_complement": 0
+      },
+      "fragments": 2,
+      "label_statuses": {
+        "resolved_label": 2
+      },
+      "missing_quality_reads": 0,
+      "read_ids": [
+        "segment_aef7f5d22d52de6ae27e926621a0dc06e53f476adae7cc32b53150dddb812122",
+        "segment_b58780aac8b2b6552a64a7e2e7d7af8c2d65f4a0ac466915d32dd55a1f262773"
+      ],
+      "read_lineage": {
+        "all_reads_resolved": false,
+        "reads": 2,
+        "signal_groups": 0,
+        "statuses": {
+          "unknown_producer": 2
+        },
+        "unresolved_reads": 2
+      },
+      "reads": 2,
+      "scope": "union_of_full_interval_junction_linked_witnesses_within_input",
+      "signal_group_ids": [],
+      "umis": 2,
+      "umis_complete": false,
+      "unknown_library_reads": 2,
+      "unlabeled_reads": 0
+    },
+    "source_claims": [
+      {
+        "assay": "scrna-seq",
+        "basis": "published",
+        "date": null,
+        "label": "Single Cell RNA-seq (Tumor) / Oxford Nanopore (ONT) Long-Read RNA-seq / Jan 2025 (T2) | BAMs",
+        "library": null,
+        "platform": "ont",
+        "provider": null,
+        "source": "data_page",
+        "timepoint": "T2",
+        "tissue": null
+      },
+      {
+        "assay": null,
+        "basis": "inferred",
+        "date": null,
+        "label": "ONT/IPISRC044_ONT_upload/IPISRC044_ONT/processed/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT/IPISRC044_T2_sclrs_ONT.tagged.bam",
+        "library": null,
+        "platform": null,
+        "provider": null,
+        "source": "bucket_path",
+        "timepoint": "T2",
+        "tissue": null
+      }
+    ],
+    "translation_observed": false
+  },
+  "IGKC": {
+    "amino_acids": "MKTDGAATVRLISTLVPWPNVHHLLYC",
+    "candidate_id": "sv_orf_d3b72d6bfed7c5327e1be943acf7062a19d393cffdeaff1a9b0d074cdcdd7b1d",
+    "geometry_id": "adj-041dbfbb2239d183a5982838",
+    "initiation_observed": false,
+    "longitudinal_tumor_specificity_established": false,
+    "malignant_cell_assignment_established": false,
+    "normal_BCR_origin_of_this_exact_short_antisense_ORF_established": false,
+    "nucleotide_sequence": "ATGAAGACAGATGGTGCAGCCACAGTTCGTTTGATTTCCACCTTGGTCCCTTGGCCGAACGTCCACCACTTATTATACTGCTGA",
+    "occurrences": [
+      {
+        "annotated_start": false,
+        "frame_status": "no_gene_anchor",
+        "junctions": [
+          {
+            "annotated": false,
+            "boundaries": [
+              "flank_to_flank"
+            ],
+            "breakpoint_assignment": [
+              0,
+              665
+            ],
+            "forward_splice_geometry": true,
+            "junction_index": 0,
+            "kinds": [
+              "N"
+            ],
+            "left": [
+              "chr2",
+              88857682,
+              "+"
+            ],
+            "query_interval": [
+              80,
+              80
+            ],
+            "relation": "splice_ambiguous_event_junction",
+            "right": [
+              "chr2",
+              88861885,
+              "+"
+            ],
+            "termination_only": false,
+            "unplaced_bases": ""
+          }
+        ],
+        "path_id": "b814716dc2e2acfc51f043de",
+        "query_interval": [
+          52,
+          136
+        ],
+        "start_evidence": {
+          "assessments": [
+            {
+              "annotated_cds_start": null,
+              "annotation": "Ensembl 115",
+              "priority": 4,
+              "reference_name": "GRCh38",
+              "reference_orf_type": null,
+              "reference_start_codon": null,
+              "region": "antisense",
+              "splice_inference": "not_assessed",
+              "tier": "sequence_only",
+              "transcript_id": "ENST00000390237",
+              "transcript_inclusion": "unresolved",
+              "transcript_offset": null,
+              "transcript_strand": "-"
+            },
+            {
+              "annotated_cds_start": null,
+              "annotation": "Ensembl 115",
+              "priority": 4,
+              "reference_name": "GRCh38",
+              "reference_orf_type": null,
+              "reference_start_codon": null,
+              "region": "antisense",
+              "splice_inference": "not_assessed",
+              "tier": "sequence_only",
+              "transcript_id": "ENST00000624935",
+              "transcript_inclusion": "unresolved",
+              "transcript_offset": null,
+              "transcript_strand": "-"
+            }
+          ],
+          "genomic_positions": [
+            [
+              "chr2",
+              88857655,
+              "+"
+            ],
+            [
+              "chr2",
+              88857656,
+              "+"
+            ],
+            [
+              "chr2",
+              88857657,
+              "+"
+            ]
+          ],
+          "initiation_observed": false,
+          "observation_scope": "bounded_discovery",
+          "policy": "isovar.orf_start.v1",
+          "priority": 4,
+          "query_offset": 52,
+          "reference_comparisons": [],
+          "rna_polarity": "unresolved",
+          "status": "consistent",
+          "tier": "sequence_only",
+          "translation_observed": false
+        }
+      }
+    ],
+    "original_DNA_call_linked": false,
+    "original_nomination": {
+      "catalogue": "fusion-survey",
+      "geometry_id": "adj-041dbfbb2239d183a5982838",
+      "original": {
+        "caller": "isofox",
+        "chrA": "chr2",
+        "chrD": "chr2",
+        "extra": "OTHER",
+        "flank": "200",
+        "fusion_seq": "ATTCCCAGGTTAGGTACAGAGGAGGGGAAATTGTTCCACAGGACGCTAGCTTGTGGCTAATTTTTAAGATTTCTAAATCAAAATAACTTCATTGGGGGAAAGAGGCTTGCTGAGCTTTCAGGGAGGTTTTTGTAAAGGGAAAAGTTAAGACGAATCACTGTGATTCACTTTCGGCCCTGGGACCAAAGTGGATATCAAACGAACTGTGGCTGCACCATCTGTCTTCATCTTCCCGCCATCTGATGAGCAGTTGAAATCTGGAACTGCCTCTGTTGTGTGCCTGCTGAATAACTTCTATCCCAGAGAGGCCAAAGTACAGTGGAAGGTGGATAACGCCCTCCAATCGGGTAACTCCCAGGAGAGTGTCACAGAGCAGGACAGCAAGGACAGCACCTACAGC",
+        "insert": "",
+        "junction_seq": "ATTCCCAGGTTAGGTACAGAGGAGGGGAAATTGTTCCACAGGACGCTAGCTTGTGGCTAATTTTTAAGATTTCTAAATCAAAATAACTTCATTGGGGGAAAGAGGCTTGCTGAGCTTTCAGGGAGGTTTTTGTAAAGGGAAAAGTTAAGACGAATCACTGTGATTCACTTTCGGCCCTGGGACCAAAGTGGATATCAAAC|GAACTGTGGCTGCACCATCTGTCTTCATCTTCCCGCCATCTGATGAGCAGTTGAAATCTGGAACTGCCTCTGTTGTGTGCCTGCTGAATAACTTCTATCCCAGAGAGGCCAAAGTACAGTGGAAGGTGGATAACGCCCTCCAATCGGGTAACTCCCAGGAGAGTGTCACAGAGCAGGACAGCAAGGACAGCACCTACAGC",
+        "name": "::IGKC",
+        "posA": "88857683",
+        "posD": "88861221",
+        "retainA": "left",
+        "retainD": "right",
+        "sample": "IPISRC044_T2_ucla",
+        "support": "156"
+      }
+    },
+    "priority_interpretation": "immune_receptor_control_not_prioritized_tumor_neoORF",
+    "rna_support": {
+      "cells": 12,
+      "cells_complete": true,
+      "evidence_scope": [
+        "product:6e9147690525529f9591602afd1191f9862f4df16117a865c6726654456c9368",
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/tumor/output/T2/outs/per_sample_outs/T2/sample_alignments.bam"
+      ],
+      "evidence_set_id": "evidence_88aedab2cc4e34877a0fe507976bcda2099e46f2214da1d896dc573fcff0b8f3",
+      "fragment_ids": [
+        "fragment_2ecadacc54395d330acc10605c4cc0cc624984b63aa17b74a2e33840c89df8a4",
+        "fragment_7cae6dccaad38c5062d86aada456cd9be0be9cfa318002b4380ce3ad42285844",
+        "fragment_03ad6cbc1c1400a93ef63144835fc23975d9a4067d8e2c87334207ff4b8a095c",
+        "fragment_186cb59485fe260e74d24f3b4985b1456df69402538416a11a08b2ba77b198c1",
+        "fragment_6b1dedaef8616097d3b13ec5439dcb8f07bb9cea2944361270413bbe4e871911",
+        "fragment_ffdc21972704650b899572d48d198e9e10685cd3f9535ad19bbf27b164a8c206",
+        "fragment_833a6dee355651798859baec1964db5cac1a328c10fa5ef099d7f594df840bf9",
+        "fragment_664c889942742b81e6ec70062d80dd1ffcaa86e1e2beff85075593780d53c890",
+        "fragment_aa6592c7e1825c481f652388071fb043e1e474845cc9ed02036836764ad65aea",
+        "fragment_9d18d4d28deb9dc47581bd230f9a58fc8c7d5a1ad07f526d6585eda2732d7e29",
+        "fragment_45838aaaf59940bf52e389935a3a1de581ae005e756176dbf7f310826dbb64e2",
+        "fragment_c59ff5e14096b2e2e563a21c8917edd30e22b96e6a4d18c25f448a771093a58a",
+        "fragment_77a59a41cbd281d09e4eecbd45b9cf24e89bbb4ec335e4c3a833ff6b22dfac5f",
+        "fragment_dd02c9b0812ff4132687454b62dc7b874a26277fb1e3405295f05ade417e6e0f",
+        "fragment_8a05ec46eae83c3a63a9a39e8ae2ce59db2aa17107147d44e9dfefd2e8dda841",
+        "fragment_4ac9b606df06c276162e3d22ad6210c9b4c08bcdd673ef01d805436b9702799e",
+        "fragment_e931b1fb51f771f60668dcfc40733b9cc80eaae9251c0168a272fb133500e6aa",
+        "fragment_26302b7b545c7013e8ff90f5a7ba7df24056b794272936e6e9519afd371deeee",
+        "fragment_59b9dd710ae251dc783e3fbf6c14f4d86374c47dd7563b82a42a6996d70992c1",
+        "fragment_ebb01868f8bc3a4ac36cca3b2bf06f2f70f2438dd383aba59d718859fdb7fcb4",
+        "fragment_f58ee62714979ace55a232726abdf7f26971e85f4a46f02e4f0c56fec9cc45ea",
+        "fragment_81df374ba5771247d4bfe7a3b45808201b22852ad0777d2df0abe0543300ec15",
+        "fragment_7fd41dcbb5cc61479e3e239457968d292fbb2cd9b95a6f584961e2db25803f56",
+        "fragment_c81d194def835965f014ee0404e56e623fa7000f469b6c87b989378299113327",
+        "fragment_ccf2cd8c551ad2bb87b73a321cf1e07c596f4f5ea421556f4f5f72a793c843fa",
+        "fragment_9ae617a5bcc298504d3c9e72591261fc2f557ddd8895966fe3a1169f6269cc46",
+        "fragment_369bad28d50a063a05798dfc49c37f8a994c1a83571920879ed9e296499e5d36",
+        "fragment_818fefc154c531c3a68ee618b055afccbd2d1c6e5c6de1305ac2b3eefa318f0f",
+        "fragment_f7430d7be8d560ee177971fb44f5e1520be16fe1b14b59cf576b3f3a2bacb776",
+        "fragment_21b2ecc59bdd63ad345e57b6251554fda56c35ffd0d422c24daccb7cffea2a35",
+        "fragment_4d2e365383c2e4a37fb01e28cee856f6347377c2a6ba96f77be5624402fde744",
+        "fragment_8870372b13f7df84bbd1ce6b3ac4d7a06db9f194ea122c703d4af2e14e22d1d8",
+        "fragment_f7768d95ee2e65e054bcd7cdde643933142e1909af6b2ee78ee8068486b2b30b",
+        "fragment_776b2dc3b69e4316733219e91b9876fd56a5d1dd0f4325d3628a2024220d2a2a",
+        "fragment_c0b7a3595c9378b66b183026ebf6e4feec09e02ec1abc29a9985c60b6d749ac6",
+        "fragment_4f8bed669696f237158abbe602a8bc497818ee1bfb09f70aef0985f54d9b97b1",
+        "fragment_c3d27fa7ba52c361f9af6ab66e88a1be6a466d41c26a4e47f45c318a0d490012",
+        "fragment_e2d7fcbc571ac7f5928afc47c8f011e8eaf12da6e8d61f2059922859497fe289",
+        "fragment_001dde51f2885819a57fb20e33a1908fee6df93494cdbde5642cda44bb0e79ab",
+        "fragment_c1d24116d9a36a45ff47d6e5cfed3145a41a702fd7d18e717bec0f386d0eaec5",
+        "fragment_1a74526630f1eb0ac0d9349591d0c47ac8e7a20f578e4b926d04084bcf19ea90",
+        "fragment_5272ec15922a50f6340536646529694576bbac2b15ab55ff66c307f7824ecd31",
+        "fragment_3b0b24d6a38906e6e8b73d5305766c442870f6f28a60d15b1662355ec80ba8cb",
+        "fragment_69708e00836fd8cae78e7189f470e1f0694e3656515427e71c23085d8d34ccc3",
+        "fragment_1fa5d9b1bc750503dac510d217b2773e6ac52aa6a4bb754dd878e0df8961e3ed",
+        "fragment_5f9a0cc6394f40aa7022849d6530142e357430af431027f8a1db99ad64804864",
+        "fragment_4b25b50aeafd3a5c6ec11a85eba932d5302a13b3e516b69015f20d599465ce21",
+        "fragment_dcadecab3ffb1f15e39c8753c3ff084590cb6fa633981b7d7f4ac0df8c8a597d",
+        "fragment_e8fd36d881b9ede131bc5740fe114a4b77f7debe7980908723e3746a7eb41f50",
+        "fragment_b4d2df9187eb6af0d56d5013028da4e32951d2a5a4244bce06cc0b2f92a5e14c",
+        "fragment_7f14d2cd70a07e16bb4144214b1412c78a2ea4b24043eda91d47c2eb3687da36",
+        "fragment_f2aadda43400c1748232ebb1e76bd6f2fc8dae50f4c5a956cee458ccfab361e9",
+        "fragment_344de307c07d8de49fa446017dd25bccbcd4903e9042be5f40034663eb31db95",
+        "fragment_2dddbe7f7c5896ea4997b3af851154a0729399a4077da6bab2f3f7ec18347f82",
+        "fragment_7c7e655edafba109eeb40c05f154dbd8af401ef8ad49e924a3089b3a016d84ef",
+        "fragment_8cff156d8af6314086562244e41c0f1d521515b7994f3285150d806e10cefe44",
+        "fragment_84bb4f35b29e4de241bdaa7afa2f9228573df0c184ad420cc98f7138f59bcb74",
+        "fragment_9c17b8901d5b4e27010002033caed017d29b19aa96a7d0e574626cf9ecc77521",
+        "fragment_2c2256125dbd4a3f4f7315143690071b620a40f96c25f730351a952d2c00f245",
+        "fragment_4abc5547fdd164d03ce6eefeb0f1ffdc4fdb29d466c2443283ce1ef5978b0aaa",
+        "fragment_5a268f7f123a96d79538f511a2f3eb71eed91fc1212541ca1f8e04b95fd2bf49",
+        "fragment_2f2b322b35c74a51e8d6504a424458129fecad891895e2b28727ed3d4c58fc3e",
+        "fragment_2a9f6acf22b062b13d6049b8d14ce038bd1b358747164b216af0c064b971971a",
+        "fragment_0fb27d4b97a09e294cf4f890e9eaf984cb11fb07d37aebd8af41fa124ee28f1a",
+        "fragment_332706620032e58ffe844e8d6dec9d0b2128be094499012b07ec4d4ad9598cf4",
+        "fragment_70ed50ff49e0a22c37d00fa1ababb2a8ccb4748df7330c6671593e294e046656",
+        "fragment_da34b93e6521ec05975ff44f59fd8a6bc6276229a84934ee4dc5588cea77357e",
+        "fragment_cea3a15f2fabeff259b1b506e46f607c95d0d008a065ceaef50194ae9d404826",
+        "fragment_809a6887ac519578d9ea2f8c778288c2b1c12fc0479bb63afcd8608a1ac39f81",
+        "fragment_6d85ad62e7c75360e2debfa30ca47d91e0568713514e41bd04d04f93a94079a1",
+        "fragment_c45bf065d58c98015e73e667fc91d6fdf0f19964c1b2638f456bdd3aeee71f19",
+        "fragment_fe38816f24ba8dfd39a6e6a7f95d34cc45df76474b1a6a4ec352bdd2aca629f7",
+        "fragment_f849c045302845e8f8a67c172b0e213e7e684bb5d9df0106ede2cd52dc5dbedb",
+        "fragment_9bfae80f40c7b36d1f0329bf9ec643d2d66239e1e2d583063b5b34a72449023c",
+        "fragment_25418444c6959e565a4b81922262dbfe4f7a4964faff64cac4cd3db7362fcc0c",
+        "fragment_f3b36d62f6e9b9466c18123b0b61b7efacd90067bf606b2cef91acbdf45a1706",
+        "fragment_27a147e4e6bfb0048bc3f78dd25699c2bd7aca5fea87b1545cb4aec00356d36d",
+        "fragment_e5bf6a3f47b8bb618b365aaaf6f52249300fdf6a0e0f1e01b8a1257f08b38969",
+        "fragment_8a0286b60c3a3f4f1e7a7f88fa6bfeffd3d538d4dbdace7e35ab837eda873dde",
+        "fragment_28fbd86c47ad0d78b3a149d89d5337108f596dbfa8be268b85a6f4ee9e94f714",
+        "fragment_3e4910afba5bf341949a6c67ab73d129c45772dd35c8ba2f00d2f65c646bc35a",
+        "fragment_e1a246e49e56777dc8d42e2a5b49674f34a21ca4f07d206e9ba23bb5555adab4",
+        "fragment_d81b04cfd306f5eef194e35332bfd4a828b29711b129ee2bd5dcbafaf874f043",
+        "fragment_ee9833196099f4cd803420de0a58e193c1b0c2eaadbcbebb18c27238e6613e80",
+        "fragment_aba8ff161ee9e75a17686f553e7b58d2ac2a7cf8dab753283eb5b13243597c0e",
+        "fragment_cd8a9f8d66d31634969523ce7c22b77c754570a0d46003b7a452b33c99953174",
+        "fragment_ddbabdcc4aa0e631e4d6251f8d8a32dcbc2895d25b39f95bafeae78906a3334e",
+        "fragment_515bacc96545f15e0130115bcae3858edc61f53259339b45658fd42e2c8e0442",
+        "fragment_306350c2f6a19722900c900addc61b58b89f79212b2a444d999922686fb71e94",
+        "fragment_45d8f92e329443c7f5537e9a1c5ecf12ecf169689f135367c233b1739dcc51ab",
+        "fragment_0127a612c2a8d8e152d1420642cd634cc41d3c3329e1e4add71b37b96c333ed3",
+        "fragment_2dfa55ab7db0fc003e3520e74a0ebc9cd7da66c2965aa0e22606ba33392e689d",
+        "fragment_f925b8369623ddba01ca4169755a777e791e26eae405c0d78b607b21fd691349",
+        "fragment_87beed2fc025ad4dd4cedacb8b4d37b4354b27a3fe2fd2921ef86a7ee2e16050",
+        "fragment_83a8cf532a84f2fe7de1bd0b90bff5bb2d59db956e1d4744df0dbd29e2f571c0",
+        "fragment_7b3b6845187878550d0dadb33b24eba9c5de292e056894e3aabf52ca7a80b9dd",
+        "fragment_a00fc29faf6564135d813947761f96d6020a92db424e9a185529730cba573063",
+        "fragment_48cb3b15e3824f7e61039fb940647bfb6f27b56ac871f18ef28762381cdde886",
+        "fragment_39bada0e84034f11f7943ec721e2e2d847b8db55a8fe40c7962471665a76a6c2",
+        "fragment_bc653da71e8a884114db459e7a5ffebaae37904dc3e0483cff86d8a05671e9f0",
+        "fragment_c08f56725cd758ea82cc56f9618be119f037f9ef1791599774ea7d6132bd4da8",
+        "fragment_3248b5933faf42094d8ea638941d02165fcca05be011d0b3787e3686877154a0",
+        "fragment_9996a44689f274aa1bd75353653c260f01291075bf9751b3faab22ade8c83258",
+        "fragment_d9c644cda1ea21e57c26d6cc5658c4a2ec6eecfd4b927ae9eb39d186b2ed3962",
+        "fragment_bc58d21598940aed49090b0455317cc5a96a3e685121efb6a743eda6485c39a7",
+        "fragment_7753001a5a1ada933beb99e72eebbab3113bea6b0f28e4205172aa7b4e71788c",
+        "fragment_07d6340859871a2252642b5b64de740a4fea5424fb538f7ce1168cb10bb918d7",
+        "fragment_301d20f095aee5705e5aa933adc98a50d44ceb447e7e7d6d0ea7eee7d6b7d8c3",
+        "fragment_902c2c8217f723715d3113e9a24442516d4b3f8d9df40f97377b4e9a6908e49b",
+        "fragment_64d0387c8385c58a47be14b6af4c29ce7afd01b54fd185e81212cc2480d61d80",
+        "fragment_39b0c45fce7ff461fce92c65c8b8668dc4d6ee4179c6696c2ca716cf5ab22291",
+        "fragment_7beb70b38e24f4617bff552522b1a9202f19b66b2eb6820256ab8572a8380e9b",
+        "fragment_0bd91b583acfccd4f13b1ec42e8835d892e61acb38caf5beedd547c6698a0151",
+        "fragment_132bf75605fa241d4f74b6db6945493c42ace75b1e5453e2e8e70f105c4b1b7e",
+        "fragment_b5622fdbbdcfe68b6660c80b9b5374c27e948d110a514b55eaa9ff22a70f2a1c",
+        "fragment_b34fa26207f1b16b9c5a2bad46a8bffaa1699ec2849f5db727832d1ce548bae7",
+        "fragment_6d00247c7eaf99f2617a52332466b85d68241a80935abc0b9ab492c0c34d7f8b",
+        "fragment_b6d2f38be96bc4ed659a516c4a9fc632fcdb6d780582a83f85156c8c69bbea35",
+        "fragment_548bccb25b4feb4d522fd6c0635cf5090fbe225cef4bb70f74cd52be6085c18c",
+        "fragment_fb6d7cd661e031498a364899a58d9a84fa017dfe9d55c966e978bd6cfd5bb944",
+        "fragment_12a0b018d95b523fc191ffc9eef5cc8aef5d001df1bb6898a51e62fa8e4ac184",
+        "fragment_14104db691299abc8e54540687152dad0922d6b5d80aa6797261cc5efc3bc3ee",
+        "fragment_91d93a09e4ee05325a722caf04205a8c2a4d5f98decbbff5d9865cf84884d9b1",
+        "fragment_233c7ed26000a509c366d6a000e308a2af2760097c4be074d4f3793b949dcc06",
+        "fragment_6841927883e1f5ea9ec9389f62110a0ee4a2f5e64a1dc4aeab813b5d2cd90de5",
+        "fragment_2924b0b2ee92138401655a1bf86fdcde95f82cb939e66dfe1c6ff75ac70e62f7",
+        "fragment_1f3bef7ba94762eed5ed368efcd7d150c92a3a649fd1e885a4906d97efffad8c",
+        "fragment_109befa73420c72c9465b94c492e42d8dcbf30bd551354eeb347d60427fbe1df",
+        "fragment_2a11d229da0f71bc3279652d9c924973ecbfb49eaab4b37e348075063d21f949",
+        "fragment_8f329d1bb2b34b456d70a7eb2389b027cf95e13735ce6de21598ae46704224b3",
+        "fragment_121ea2dfb3d9139075528f9cd6dee79e70515c973fb3552b2a715759d0a3eaf4",
+        "fragment_d0c2aead01d81dee79c6bd502c3c527d725c746e59054220d2826f0e128fcf19",
+        "fragment_a530b12ec57c50ab8e3ca1eb54f03d4452ef3180a23a351d199c983735b3aaa1",
+        "fragment_b414f18aee6d865c7c2170b38abdb12ce8bd3f192a02e1202fdb7a7fc55013e4",
+        "fragment_68b4c6ac4f245ffb0aa765fc755a51c03e2f7a3dbd37c418f560cdff4807c005",
+        "fragment_c1b32dedd61db5b10107bfa3bca413aac587611bed7a3bbbc941d1b780eb3809",
+        "fragment_cedb2263522534a3a783dec46f743acdeb494142ee9067aa9a826dd912f16c79",
+        "fragment_4f01036b79bbae7eec32eb167ac693f513f4da52e25c8e9d418c5721133b6ad1",
+        "fragment_3e10e5e9bb3309c7f365992ed28cb8c418231e67f7cf355fd1394a7a776512e0",
+        "fragment_3f05b87cd88dc0c6de17adf54051d00a1268f2f20cca0a0de711977c2adbb21c",
+        "fragment_00559c3e47b670e0d54c6246ca9c8b7c1736a3535d149b0b3390c5e43338cad7",
+        "fragment_a1902dbed147976b4c3ad35d8de70cc873017e9b4f83f30361c758e2e24a4e80",
+        "fragment_7a93ee38854698a28f54606c69a2c43f25f900be89ddc16fd6d3a371350966ef",
+        "fragment_3298f6c2ffcc35b7827bf8bfae1def0879b74fcf5f94c05a66d9aba21460d1ed",
+        "fragment_ff3d230a8cff4f3cb14e2e23a3115dd57bcd24cb2b24f07dcd41943239068825",
+        "fragment_bad5cdb6c41652f3c87e7883c5ef81984c915052ef912d211a3358131ceaf5df",
+        "fragment_458e1060c5f91084d4c603e9f6fdae226eafbc4882bf0a6c3f17fa295d695e07",
+        "fragment_738c0eed3db2cbc1cdf2408f26b473609947d7da88c17695c72a8b86ce504471",
+        "fragment_6ae0543d518412b25508f79f6bbbb4892034ac7ac5ad932cc6bc0c7c1f08a2cf",
+        "fragment_4282cc5452db4e0b4c1dea26b3318a9e8685f489dc4077ecb2b7f9896aacdfc8",
+        "fragment_3e039e16a5c8f11245b179d6caf95be60954a1bd2e05278392fc724740d4e2dc",
+        "fragment_2cafa826e2a0925588749be062ba43b27de37eece280b6ed63963119c6592cba",
+        "fragment_c833f7cce90155f2fb28245e04777082a93cce5329aa7f5c91a2682629ac0b30",
+        "fragment_250711036b6b497a0656e30cf9f46dc3caf6532a9d45b65e5b8cc9e9bab006d8",
+        "fragment_b65eeb3dc2cd505d0fc58d75112d0beb7ce4862e12e76dc55cc68779ad7c4bc9",
+        "fragment_5d222d09b48139de3078494cb75a14ef1f8f28b84bd7e40ef5d00d28dd604f2a",
+        "fragment_21075496df3a3fcf19f0958887ceb1566dee79ee980d0444ba02b6f5244a6237",
+        "fragment_d5c4ba95efd6d400dd62c5f37673812ba96554b9a423a66964615b862a9020c3",
+        "fragment_b7fa995507fc8561c329470916e0166bdfeb3f04f3c8e907edf37f9d31a8baf7",
+        "fragment_b081118ae8357996a729e0b584c73c1f2ad8cf84629c5421d4b1f81743317273",
+        "fragment_40c58c5a1b65b12c5607af244af315d77a65d31cb8c938dfecd9705f73885fae",
+        "fragment_8d8d5c0af83b4c2d6c5a60c4d3751df53cfa2a3bb2210e474488a88a3273e46d",
+        "fragment_476c8fa58834904bbe9b850bef3d7cb8da2a0902de406affeb28007ebe990d88",
+        "fragment_4f29148d6bafc33dd0947b975da77e77922657e6d2a4d9a2080ab37cf1e4c957",
+        "fragment_50d9493c4bbbb9f0616a60141f9e372f12f851c0151bd33c6339ba0cfa1e2d15",
+        "fragment_56b33385dc95e458d55ced39648d9ae7f6b9a59a39e8d457df4d8b25fe631757",
+        "fragment_8cc0e935b0eb4cdb0fc72631f95ee54583374dbc59d5bc5f59c84ec8d9641dde",
+        "fragment_6feb37a9543626582caf73e96d1644d0e268154adf138db303f666bbe96d128e",
+        "fragment_fc407e641b9eb45d31ed54c75ce53853d0a4706caf4eabc8099869b0f65a07a8",
+        "fragment_1dd879b7594c0b8fa4762af0b977f972180a8efefee8c7d1740acfa7d4b7f702",
+        "fragment_cde31df48bfb7570f5fa3e8c394b869d48194e651f6d5531f62d1b4f5d980ecb",
+        "fragment_98bf19aa73782dd3ea32b0587d6c6a815bbbd7da7b70c5b04e2f40e6bbbea1eb",
+        "fragment_60ec47f4223ab3a7a6a40e78e84fa103158c1c98ddf57c97c76790072243f493",
+        "fragment_b91f9e47a12efc682189a2bdfaca11284db05fe0fe27941cad1e2f6fb075505e",
+        "fragment_ce83e185ab93bcc15db1197ba4c62b92c6aaff2119d53983c0692cc253005a3c",
+        "fragment_6a6a5db8486453c516d6078d15b28f9ddd0e1699a24fc31c113e74836ea1b1ca",
+        "fragment_aa766cdfb4dd1f12208d83497b231203698c2854bfaa768731c6d6023289b90c",
+        "fragment_084dd3e391c0e1bf2bb5ec7bcaf8151fe294e3fe47920e3706c579e24e1748ce",
+        "fragment_7bb845c0ab817601ff9ba627ca21c02f019c144d05a4cd4ee84d2d97e106e6c7",
+        "fragment_2906898a20fd3ff9b4385f79359e0e4e019c6614e4da4711c4380711657d48d6",
+        "fragment_63c0a6cb16ba8af24b5294a5d1d544c52d3da1a33442604bf141a26878b92590",
+        "fragment_5f2b4aa3aee6a039b53f3dbbe608c01cb9a1df1eaf71f689f18ad6e952aa3b45",
+        "fragment_2309613b9e5b66dd465f71f579276f52c8c01e3c1f3eed0cf67432633f7ccdc1",
+        "fragment_37b0cf583da8d8091899d8c410e35e42588552f9699404eed86bde9a2563c56d",
+        "fragment_603cb9250ae0c05017951add1c82643f775aab34d4a0b37e290ebab5d3509cde",
+        "fragment_bcf1906ab19cf3932468057789c311a862500da5a2f232e6970ac65aa8dd7f78",
+        "fragment_b72235dc866a673d7c41133f91e253a903c30e0e15bca90775b67aece354dcd3",
+        "fragment_e5b71b4ec5731d32d1116bd01ea82e67af738e3bd59fbc022f33d36063397b5e",
+        "fragment_b4262f3215a6d57a9b9349ee4f4208b7599778983b06bcddd8155d8dc7892949",
+        "fragment_21c63b08e4b69ff52ade804d4be0a846f172db63804160f122e1057b67c6c9cd",
+        "fragment_ec140cda5619d5bfdba3f8508b82cec8f161dc6bcb0285686fbec322e81c4df4",
+        "fragment_85d2c3e00ebed74153d1db1e23db502135a21c9eb88b2caac1b836e57a04675f",
+        "fragment_9245f341b0eafa35600365ffd381d1db1bf8cabe0f16c08ffd601ec2200ac204",
+        "fragment_313d3dbea1366479460b34f9a3f6c7c1f0512e4500bbf5889dc39a63a0d659f7",
+        "fragment_f629395ea173299aa3e93cbe91a6c789474d6d933c2738d0b2031fbb623ce90f",
+        "fragment_fd1004e8ec913acadf4a68f531c4433d0dc4a1e78c3adbfae356ed0c3149394d",
+        "fragment_1cc01d2d1688bc780b3bc65b58864cf037b8c36ed59054e6e7e57c797bb5455c",
+        "fragment_af9ea9b565cc53b24ad507a3cb97fe51a294e3785e8cfe91f75628723ca1891e",
+        "fragment_7cfd6d5e8c3cfe1dfa08c48255ad48467889f6405423bcadca9fe67b54bda684",
+        "fragment_ce68f7ccc7c16e2548776cccff32fe5352bf744f02849f1f33ab61ede75aaf32",
+        "fragment_b16ff20cfcfe9826ec2e105633ae69100a29f3641a7988c0826a32e2a97b8788",
+        "fragment_2d6c2c47e86ba23dd86cd8e79d96e93168dab0687dc91c458859a627b000a96b",
+        "fragment_2386eb9fede88fb8c67b93e9b9d40f927c804528ea7ebff686e82d581773e8ef",
+        "fragment_f3dfdb83d9b31b2e76730069976d138b2b59055b40a7053142c62356c9a4110b",
+        "fragment_9a93eb437052b854aea9e07853fa901c4ae7d98bd9d8dd6ffa721802d9bdfaf9",
+        "fragment_627f0c4281a50e5d2664293f51d53798df65b4f0905be73737456cc2baa87dfb",
+        "fragment_63ca2c7c70c3ab1b56f471e61293550c6a1af74b6703608b484c3e3fb67c7703",
+        "fragment_2b49e933c123d353ac3d04ccdbf3d7c5f70881df53eb177f0c8a187f60f895cd",
+        "fragment_c07cf4ef481ef40aa243b9cddcb284b848209edd1662dc5d25922d00cd17bcf1",
+        "fragment_9a4e557a7ea5d23124e1f30efe3651fc4cc69c02fe385e829fc8e81a0cb152ee",
+        "fragment_369bd18830d075ad4d9fb1caa5dfc48726f70c84c58acb26284a9183b15a423b",
+        "fragment_e5a80b265aa20e620001a385c61dc7bfef05bcecf6cb38830b2d5aefb348af76",
+        "fragment_8ff0f70afb8b27a6117e139fa56edc5e1ce6183f9543a2089f8ff1e926f60293",
+        "fragment_3acf9d9ae344d4b58594f7fefd8540e6f24ce5d46b62596154a6eb183c6b2c6e",
+        "fragment_e4a0092ec50e146da968025feba845b466b5a2f7178eed87dc8d9f9b1dea7849",
+        "fragment_ccf8d70b8f7d5c2530a0b708dc474beae1b8b7cee50d45eb72025093120af027",
+        "fragment_a2ea731761825cd90a5b4a55055e2ae6046e24e0826f474b32ff53b873a447c4",
+        "fragment_4b19a14a606f03f143a5a242b42968f0fb96f53fb710bc4f739064271fbd65b8",
+        "fragment_9bac0d65666e49c728b79bb37623dc65fcd09685da7a17eaf55d57adc7f43e92",
+        "fragment_2366912963b8c80c0e7469da7561ef8637cae6ea581615a6b422f5fa559a16da",
+        "fragment_ae30d3f18eccc615579a0403d730a8c86774e53f24370d8680a1b77dbe5f8872",
+        "fragment_227b16f3a32f3620ae7e2d7b2bad34ae458e2a0cad777994a730f72c1d84daa4",
+        "fragment_5cb38b85c546a1a1d57a216a5346536dd563d3c2e10292ce339fa901dae33677",
+        "fragment_e690bbbb8fe0c97c6a0adc3d4c3c06eb593d4513ab04e5cac9a9b85f7bf3ea18",
+        "fragment_1503178e6fc740fbf34a82a642c43e4d412f7dafa6f20fe5871f1c41ea519bcc",
+        "fragment_65398e67f4ee0b98946b52e4b43cf2aad99d298ee69b0963ec5a321c0d101622",
+        "fragment_47b6081138eacf765b0faac548d619c86223bbadf101ca5fe77c9864043a2b9e",
+        "fragment_4b185b3e46ea7a93ceab8a763156bb464b44f2975a31a2f7514e02932a1c19ce",
+        "fragment_7f0557d280556c7dfba1454a41353d5bbbf00e4d7bac1acf2701d16f89a1f8e4",
+        "fragment_07c8d9fa97f19f28710239e6544f9def256ed491a6f645ba5aadd9e79b9c63e4",
+        "fragment_fdb93a87e0b30d2256e3aa35de77980187c2826a777fa24710811dfb2051bebb",
+        "fragment_108c40a46899d9c9de393908f8c39adaf79c147cf1de78ecf63039c843d93306",
+        "fragment_f2a01b67b519948e3970f3892de3d6875afe3bed283974e4acbcd59ad2e46a12",
+        "fragment_5781ec442032f7aff0f59956819ffb305ad622654814b1b54624bae21a7fef52",
+        "fragment_ed1179ad2e51f91084d7eba13c1ab853826d0541d58272d2e4e7ee06a9bdb509",
+        "fragment_567fe215d44952fe64ddc4e0ade26891930885051f7f13325cfd4de1fd3e1c28",
+        "fragment_ccf18e9ef928ab64c1824aad5bd18f3ae25c18f89eb87368d810f6f75f6bc05e",
+        "fragment_9278d5bd0a889cdf3335a1c759aac121597a6f35fc61aeb45d567139f01fd5fe",
+        "fragment_71267d7c62f9edb125b9a411f6a59e351ad2cce566627f9ddea9982f7fd066fd",
+        "fragment_cae3d77fd1356330c8a46b66ed2e7ee2ba475274564cdef896bd3c19d4e79368",
+        "fragment_a6faf05e3d7bffc51bab7be9d2627ca2d8ba1d58c074cadd74ad0aeba3578f6e",
+        "fragment_ac962d73659f1ff2e6f153c52441862ae9ca6f5ef82d554226179034ffb0ef27",
+        "fragment_443a7062c0deea12bdf540d3318db17d35129fcf00539f77a05e6285fbc20989",
+        "fragment_4a951b0190a7b26c5125cfa038ce5e2f9b8ab8c91551c0eac7819e70ad6aae3d",
+        "fragment_7138cb0cecbfee0d74c9de8b73dba30dfb7fd3e6de720e30d9c3ea14887f2bc2",
+        "fragment_c714cbc4e395f6f54244bbcadb71bc7b3fe45a5eb3b942a86e6dff868d6a3127",
+        "fragment_ab6b80996ffc74d59e53f0bd7e61f89c76db1f3ce389986a488c4864153152fc",
+        "fragment_596389f3b1e09404087233d65ff8b9b349ccb63edc1837f764903748ddca6331",
+        "fragment_cd24f7edd07eae0ebaddaeb2bf2f319c644bc0349859c895663097380a81fbda",
+        "fragment_5203d929b33a96c4f65458e5b468e5a90b4e0451f07485efd3c5b65c06386bbb",
+        "fragment_539ff0e29cd78f4a0a8f8be6eba587bfd18e7370cffd038388eb6e4ab91ad892",
+        "fragment_decb58705db00900955f12fdac78d05c71c69bd8d91903d63e39eb68ed58fc0f",
+        "fragment_386894c66f163e61e1fa164bdd8bc14b2a783f4dd4ef13a33e8e3b5233547fe5",
+        "fragment_bcb73763f86025ce4d3d2b8e5ee6f92dad186ede9ecf7a991c33876351230e99",
+        "fragment_4b91293839f31a98ef6bb2bdc5f162520190e31cfeff73d5b357dfd0a9f735cc",
+        "fragment_fbedfdf1b8bac37fa980ae12d0ec9bf065904de9b3a55b0a1026dfbb6792d38d",
+        "fragment_8047cf1f05d0999b5f5e0591376e883d4f25ba041b21d26741d37291df8caa71",
+        "fragment_a8d46eb687b4d9065051249c77db3bbc3b6d2f099b336def7b241b2af1bc04ed",
+        "fragment_8197124eb0cc42993b76665526aaac5b9614b3abddf18667ffbcf15957bc43e1",
+        "fragment_c19545c46c75e30634b525e8fdcd84cda32cb1e69f6b3cce2a868e701b7319cd",
+        "fragment_2ca76d47140a59f261d5ac961c76cc60ac5435f5b8a08648c8f28d523a0a5698",
+        "fragment_f5fa665617f0bc09eb272a66765671e1227f2db328e047cf2222da0c4ba4ed37",
+        "fragment_54c9a13d963198ef14f1cffd66ab4fef6371e84961acb6f2141720e9376e5823",
+        "fragment_dbbeb08861c1ec3ccf9a2eb08ce6726e73b845d97c223a777d568873a2e795e3",
+        "fragment_ab3140532bf2cc98c628e1d60d095d2e1e86af5deb9f86dceb978ff97c20fe5c",
+        "fragment_630a1270dc8caa2df968372a328031e8aad8214164bd0cbee65201c19c20308f",
+        "fragment_3f595526a49c11e9da069946d803366b488f7754d76368fffc3993c7a67f978c",
+        "fragment_e0c21ec512dfa151db7acb64674f1479a2d99996454c6e070650ad6631c7c625",
+        "fragment_8175b23eb8c347ecc52952abf6ef6c164e429de4838b46bbfa1d2f9386645f0f",
+        "fragment_994d64f191295bd073bea67fde9c18fbede095a8213aa534f9a2a6881f28e4f2",
+        "fragment_6aca4f426917908630e48f2c610361512bfc7fd404555a54b73c0d1d0000f459",
+        "fragment_76438392608e3f95c8bf16c485cb8f64ee69d7417dcd813f5bc8f0da15183056",
+        "fragment_a7e670ca584374ea0db909f4ee00d63ee280e4e6b27eb4afb6c9a101b46f7865",
+        "fragment_cd1501e3216a9c7808580ff65b257fb2ea7fb33ad6126f2f10c05dffa06e5712",
+        "fragment_f0d8b7a3821a1456c668d2806d9d84be114fcb371131d65eb35785f02c120408",
+        "fragment_330c17a23351aaa3a6712a9a5a7dc89e19413193e2691386a27d3fc02db6adfd",
+        "fragment_5988ac9672b777a6a50db28b80acbbe9e938a0aef32af78ecd31cf4eed5e606b",
+        "fragment_0234fbd0932bb34fc9ceaaef8075e4a53f6f8258bcb4a628fcffc4ddedfbd39f",
+        "fragment_b01d21db3d020c12995a7c4a23de3cadef2e904dac28da499c518eb2aafbe856"
+      ],
+      "fragment_query_orientations": {
+        "mixed": 0,
+        "original_query": 277,
+        "reverse_complement": 2
+      },
+      "fragments": 279,
+      "label_statuses": {
+        "raw_umi_only": 4,
+        "resolved_label": 275
+      },
+      "missing_quality_reads": 0,
+      "read_ids": [
+        "segment_867ad3ff65f4ec81bc023c8f29ba5228473b223471086f70bb8969c13f965557",
+        "segment_c908b88fc9d64e6f0cc78075dbdbd630319b9231d86f1abad76adb725715fdf8",
+        "segment_a6ffc17e24e2c7c1d257825dae9e8005ca917686077dff799055e5cc2c8c3030",
+        "segment_56bd7836ab399619b63846d90de0d66abc7d171c8ea593147ecd03225e330879",
+        "segment_10642c11f31d0f0dbb06850b96e4403103e48221878c6b04be8c82a211b6489d",
+        "segment_646a068a2bab2cf6e08114897300577556c4be596dd6926e98111094c8ee7183",
+        "segment_c1d191bbb3b474c51e19a75ae380e8b3aaf39b728026cb2bf9a7a26e53453ab6",
+        "segment_35965561d91ff98bc8561a14a0ba3d7d0af020d0df6dc01477e15e1be2316896",
+        "segment_43c99a2516128aeb4fc7c0136cd038649394f0ed7586886abd4dec2ee220cee4",
+        "segment_40375dd1bc35d9e3951a8dd97e411cffcdfc945fab79cae1607a24d5eea1db99",
+        "segment_3e7c0615d12346948a2d1f86b0ca5c00d2f803fcc7e48ebbe5dbf3a924d52222",
+        "segment_e5222e671dcaf355e6eb9575ba36dd6ae4a52dd05cda0f32d974330b6de1a375",
+        "segment_e32102a0367281d5863c23ce5e775762e9706142b0540d2cdedcdeb7f7eefca8",
+        "segment_5a66164b1819d45b28c62ec9830983210591a23729e7b6cbd64eedef966c8cf2",
+        "segment_7a335f7694809b851e632b35e27f5dded3b5f698bf143424b0f4c69d260aca2c",
+        "segment_8102bce92a937e2367113aad86253df1b4b37e78d909c6ecf21349c9a120d61b",
+        "segment_d391b960f9e4803ef1acfcf34ea7f7ef52bc9391a54eb89763975a174464ff4a",
+        "segment_ad828b912288d4f21fae4e5a2441285d1317dc0738e7fa097a1c7caad9a2906a",
+        "segment_9f14641fc697dc8a9af003277f7e63027ad9c5795c582e7467b11f9cc4013b98",
+        "segment_bb11efd7e83ca52e34d1fb7a6ef69931f17f9ece349575903304a0b0d1e5e4bf",
+        "segment_241a3a642caa9c3c082033510f52d87c6bd87d1d5f58e9f0b059e315fe916447",
+        "segment_309b6b53699c00e6b22960748c0f392e95bdfe32348d822463761414ecfaed74",
+        "segment_e4070c43e08ab75a917c56ea465acd618244d56c4de45d3838a382cee6901111",
+        "segment_d852a7ad6c54fd298995fff26ed1194ef2cfc632e8e7ce57d2dfd26dc1e97c65",
+        "segment_0fac60088be4e2a4e4187f3619e4be8007bcf2eff6f3ddb48c9bc2f879091b1b",
+        "segment_8a14659df28b6a5a8ebb602390d027b234b6f0a1ddd3c5f9fe127476da0e110f",
+        "segment_4f3c6ca1ee7f8c8364e704323eefc99573a5d3372a0b06f3db707be6455379fc",
+        "segment_908523b34481dc15f4860ce0bb427abab9b571d12ee63d048064ded628d324ea",
+        "segment_e4c006253d09000c13422058005bd2cd5085f08e6ababf23213fec3537a492fd",
+        "segment_ddf5b5719a5017a6cbb02778d06a16d1e5a8c66ddd54da0d0c7d7ad46bbc989e",
+        "segment_9e9cda30a2506e2dcff318c61335fd07cb987b8b6fce70473a876ad0f4bc2a6b",
+        "segment_fa9c0c02c2ab4805ced3d56ed91823c7edc3d2ce1b0544abc674b081ac3f8d39",
+        "segment_2936b08e7e9ef68c12d5cab033dc654c64850fdf95b6eeb1d9cee6e22d96790c",
+        "segment_3ad26d53c0ca5a9fbe41c1ed17c533078da3099690fe6d9d1f2c0c78cab10492",
+        "segment_7f5880a37d9a482da86c9ea7f9a1c8540f5f5e5e8337772935d9630deca74228",
+        "segment_fc3517abfca1b297f6ea5efeaca2022863af0359f119f2bd10e1262fc8149842",
+        "segment_94e8aa5956e488d159bf454de124da88633453cb3af19cecc29b2ea6335797e7",
+        "segment_0a08662491837b787748151ae06cd376fbe41dc067167451cbfa273bf530cd35",
+        "segment_a00885d6ad64520296c846868414e493f1b515b1f990167b6b14e1ae2344e735",
+        "segment_dd9e82eebf8786c5ce9d0d80843d7b465cb86721dbf32d192bd26c2649d700ba",
+        "segment_d1cdfc1be21368731bf61a0c78a0187f9beca718af6ea4083d39705c129ed54d",
+        "segment_949e2f23b64fd323e0b09792c111155037b9a68239e94531317bd9c4045898a8",
+        "segment_bdfd77cee45fb982ca52c512d6b6f0f03007176c33e87fb4e9575d08c856bde0",
+        "segment_bec5f18fa62fec0781e3e40e47f08af492841796184030cf87e7fab4fcc3a54b",
+        "segment_a31c8eea5b775d126f8b56483a001778dda14d4d953fbc7a414f4614ae7b3187",
+        "segment_b864cf98a017fa7d5df528c2ebbe6a38373f356d078e7a2f7388471cd992820d",
+        "segment_4c0b166362012ca5313855335242962fbb1b0a45490e28a2b89283d635c8ed5a",
+        "segment_019c01efd112552d5588e584d49cdd8966de744886e14598968cea27d94956cf",
+        "segment_c5b942c167c7c4002a48544ccce7d51b39d8bd22e06f527c5f1b4a155e384fd9",
+        "segment_fb2af6e69d84ac83c58307423d3a9270467ef4d25d3b8cd972b3e7d2ddbc0891",
+        "segment_49689511432e82b1a9ae30312eb7b3f7a81b069f147b8f0f78b525e1adc720ee",
+        "segment_c84eb63ff798d993fdb819c633b11104ed7a3bf3c214bffc66724eb184343106",
+        "segment_f71ca31df3e8216495ef93a78bd5b5abdce81058937fb3b63768577c4e6acf86",
+        "segment_ecca43180f45db30eb641705d1c2c143d95eeaadf1838f96ac8603ed36cbee1a",
+        "segment_a84dee00bcdb2e138280e10d0499451aa02be4bfccbecdb0ad5d3b47fbe18d34",
+        "segment_01faf604bd856a93bc0a83a972b095f5e26e7136ad472bb347666be0518106c8",
+        "segment_b32111379aa7c12419a924ba62268d0dcf337e3732a5245cc4b328a97cc25164",
+        "segment_7f3dfa9a6d19b224f350fff5e407ea73a64960f1d20d33e1e004d2b149be188f",
+        "segment_7d218a54636ee6eb83500e4eb8ca11446f50022842bae4db660ef85c091a010d",
+        "segment_f077025836a8326f5be87df78076b1ea8f5a4ba4dcd2eaaa8882b7d2355255b5",
+        "segment_6b555f156921f56d1faaffd3aa23e235a4a15dfaf9d3fa7f35a6c20fddf97179",
+        "segment_9bfff47a38fb195fa9f55a7800770c692e6d71c6a9ffc89592ccf58ce464a821",
+        "segment_8f18162b53320cf8e442054367bc25e3dcb2ef5e31a3844f938705e562df7c12",
+        "segment_fb660b8293b79ce7bea9f982f88743fc01c4d6239916a0a9b1ba8420bc448cc1",
+        "segment_86457cbd572a2945582ffdd42142ecca4e00448ca8aea2d7f8082188edacc3e1",
+        "segment_9379ba6d9181c8ace1f8cd815ae735993b92118381512a8260f2aabd8ccb326f",
+        "segment_a4b0699149f9cfc58f90211528c779c56e3b7244f2089c1babd3450a49e1ed4f",
+        "segment_1a569d87792c01f775a62b6da4a4d6a199f35e2338a54e6cc3839caf8472bdf6",
+        "segment_ca58043e859e74c74a38d146cea25f0603066235715d642a0f316bf794319e45",
+        "segment_2aa5c0774d7b5b280bc6868350158b9e22b10cef9635670b6cc680b2b0eac80e",
+        "segment_69f10a7788217a264dd56aed1b5d7e2a22000d055af0e829957b1e3fcf4fdb61",
+        "segment_e2af649c95d63e9697374007a2605bfed64de73388ecad122c2b07f02d82afd9",
+        "segment_80f4f7458c92f105043541509a1d5b0f94dca60bb009a80a81b5aa76d1338b50",
+        "segment_7410cadacf707a9189543058a450002ad554120a340015ce23b51b64212902f0",
+        "segment_672576c91441eee544229d4232145fb18b01b29b8ee31cb6195541f01f0dacf2",
+        "segment_e0f04600b51102773b833c88aa64d60e19ee4b0eeec5884b18cf11aed1f3fabe",
+        "segment_8d0b68b1d93dc8667ab8bd10e462a4a4a2859a244119f2c3b0392c5091ec4651",
+        "segment_0e78e6525d771f22a3c436ea5535f202b88e8d5487ac25a9ba2fd3b6ceb1efd5",
+        "segment_8639dd60033e172faaa205f5dfa3af1d5190932b76d909d9d5c3145c9ecf93fc",
+        "segment_5e086757321526f731a1eb3a2acad621c985f5d213d23ee46787f86756c3e12b",
+        "segment_0b20106d74e0c3a9b4fb0070aa3a807427b4030fd2af47bd8ee3b85c9308ce18",
+        "segment_4b64adc21ecb0f7ad245b7709962258b83cb46fc4bf58164ab9a359d3d177c70",
+        "segment_58df0affa8358e6d84e7bb4f3f3c4aa36e1c7ee35695834c99d806012d2fc14b",
+        "segment_6a955e1f4f42d17fea105d580917ef33d27b7eb2f6d17b3899ccf9d106ef5263",
+        "segment_d38ff7a3fd5c622a10c3982923aa0a06e8c47ae5a1de04bc46ec0ab09b6fac83",
+        "segment_a5faf70af6d806e4cdaad845598d91e4b3a1e0859909064b8b87ada7b42ceb71",
+        "segment_93f4940ac3d62c3b305716a65ac939b5295896af99d2a3e6e2236dc106daa297",
+        "segment_b6ccaf360fb31bfddd7524228849a5bb4067f78a4f18cdefccccd98f42bf9e5f",
+        "segment_aa313676a323be41b4da1ba12b3bd2174d08eff9457c7c79e83c08d2e22c414a",
+        "segment_15d2212b9977ce4d49dee8f19cf1ff4d33703c82052f035900554fbf41bc349a",
+        "segment_dce206309b3e7510e23ae93fd756e33f1bafe2a5dadd7df50d540dc9350490c4",
+        "segment_b38aca5b7cb62cc47800258693aa378e72661fbb679cbe9c2d2b442817541681",
+        "segment_b34be4b2489c39438b579f72ca9799ee0f0a614711857a918d87848fc1bb7337",
+        "segment_a5a19d8e7d92b27416535942a213816f56deb00719c2953204c528910a5bcdd0",
+        "segment_bd118e2894219ca8a3a3448265f51d5b5423032f992d4c62e6f222c118910a34",
+        "segment_1e832bd596e814d5cb0097b274b8eede58b6d8f21ae41ea490547cdbf36cc154",
+        "segment_b43de8fda8416fc9803e82a7a410fcd39f658263c007ba506ef3e1dd67b378f7",
+        "segment_1dea77e9a21fed0f37ecf5cde2d23d2c7d8af2d5da2016da5ba9f09cf08615b7",
+        "segment_d6a767bf22ec918c7fa5463eec7d8a4904f6c79fac2d31a9d4184dd83f3f3ba3",
+        "segment_7c4b499480317e621e0b21697ea0276e0e0761cee02c8d422c81a9b4c826698d",
+        "segment_a8a87541f58a5203941de5a68e4fbe336eabe10d3f5fe7ed6d64e1332cff4810",
+        "segment_038542883b124d9c45bc9fa61bbbf69224599ed81d553e808d3b7959f87950d3",
+        "segment_fe5af1926b3ff56f6474b7882b0fd7bb9740b388afd92b29c2113a2197e644dd",
+        "segment_0f4fc7d195ef28fe9af0827e2dea0984d7717c7a98b79c538c68ca82a4bdc584",
+        "segment_c9446581edd7676e7b58d5b33e8e30a51fcaeb52e36ab93cf3ec80669609566c",
+        "segment_147166896616f6a093ac952f10312b653a8a55712d907ce2af4f396d2d656840",
+        "segment_7b18dc6b712d98173b59baaf645aecfba3070d576604c7906ea97fb6f0a731ad",
+        "segment_c49093b14b0cb03e426fa98fb36fb53f3fdd46bbf88b783d2be15d569e4d94b6",
+        "segment_ca095e7fd7b398a30d05a6931d32d060bcb92072ce08f99528b1a5265961787f",
+        "segment_39aba7b6c9947160572ac9f4888625d314a83705f7d8249d37ebe4d1223242b9",
+        "segment_470ebf67ad08c2850d8226ac9b01897b14d234b622b5d8b42370405a2614c859",
+        "segment_bba9183b3baedd0b2f5f2db0d510554cc0cf481b77858d896397399a62216ad1",
+        "segment_b2f0a7198f8b14f63c583cc39adf30be44e2f51b2af9b537c32c52cda63b239f",
+        "segment_9f7464dfdec21813c132a1a39a170bdcc0417ddeeab4de4ea215b8c7ad925889",
+        "segment_17b4f22713e6c5a640f8c0f5093b06422f89e5e219cb9d763ab95e02e165799c",
+        "segment_4e9604ab8e84d9397072e268778eb4aed152e611ef7f05b7c40f98ee4b16bc34",
+        "segment_c8103fa76821b8d86eb7d29eef8c2e4b58c08b0eb3dfb1a478a7067c778bea03",
+        "segment_38493cc325b1c3a1a95708feebf7e443dc843e443dd9b3681db97decd3ce4bbd",
+        "segment_7fd770ad4119f94d7e22ec04c07446dafef45d205cf1989c9f15098a1cdb3224",
+        "segment_539c28681d6151009fa18d431adfeed82d205e62ae8e90d1e06e1982f3ee1bfb",
+        "segment_1dad4883c0b57ad67832f7f1f5392a8f601f61e6fd7df8017ed3fbe33c5861a4",
+        "segment_fe3b6e41e9f49c9908ee05e1942f422e1a26d3b56608b5c309ef534f3c2f2de0",
+        "segment_a3d05d5be18d62942628bd81e8f1130131eb119a66b340ef5e8dff4a6324f30c",
+        "segment_1ff3ede4ee52bcfe74d0770d1f4593ac680b4ea5632ede61d3912fd178e4a7ac",
+        "segment_14d92b3073cdc911e5914256e09da86989b77350e1ec9b1d55d38f1021388864",
+        "segment_cdc3624fa7c1698a2f76507b51e0eb7db8d5567a290b96982d51c787d18202e6",
+        "segment_ccd86d6f1fd7fcb3e84a7de119344f0b5da7aaa67f89b1996d7e3bc8ce27383f",
+        "segment_18827ac11ff19e492c754e600dc64ff791f2e2f8aa8d035ce745c10469021742",
+        "segment_00cb35bcbb41a8e68c416d18557ead7f3d52c2e1b8a9d58e94ee3cbf37216d2b",
+        "segment_e2bb0f34efa38e3561b1bfd051b04ede1a5e7930789785824c8923c1bc680788",
+        "segment_4d98321850c0da1758b0bc3eaf01c82d7d63b97562fb02217d6ff3bef29c4896",
+        "segment_c6d09422923d4e83a3c31b1a959fadbd4d5c5ac3b215f2cd44978e935c04a15f",
+        "segment_3349e178e34e4da5321b21ceff211583cf74daa63b8a198b8268a9fd875201ec",
+        "segment_3c4da9af4a8d666c52ca10066a69d76f3db1cf9483e13ac77a25b3821810adf1",
+        "segment_621d8fee6e366269050c49728c96ad3c0d25a16745dc0f558f494dd9450eb9e3",
+        "segment_395ef01f717d504dffb6db5e6f156a2457227a3b6149db40971b85ef84bfa8f0",
+        "segment_6edadc688ab797477e4f847fbcf391116f133ffc069906d45678d4062b7b4177",
+        "segment_05235598504ff65cdd5e53684301925e172e5c73a3484ec008e1f10c632e4ed9",
+        "segment_f958bddef404d4a303c70ab3438dfcaa1e03a8be9998e9df28387291c670319b",
+        "segment_9943bcf9fd92a54b0a680c9b9abc5b87a71c5f17f0591f76976c946a31f0e9f3",
+        "segment_372aa4007bd61809bbae61acf1f9c52546307435c8ca6f89ac8c2bdcad2d0c11",
+        "segment_af70dfb6d48e46d5e3542d7b52a1e85fc8f4c2b86d2a28f5fcf8b6b8d82a809c",
+        "segment_231caa802f6d9d26f1fc00c3679b0708b3a8cfb1df544fbc8331dcb6a8225ff6",
+        "segment_eff60c18cd723a8f150e96b9c4cb20600d16ae3a94d34c470761bb787a31b6c4",
+        "segment_46311384affa5651f4cbc60c7aaacfa036f8f57c484b7d4b398a935e7a342e46",
+        "segment_1908158c4436da68138aae100e4fcd09cb8f63c72e5f6b172ffcf10e130cba98",
+        "segment_51e4e1b6f47e5d3327d51fc14239222db6be85e5b2711e8966b879cd278ffd3a",
+        "segment_f5eeba05dbd375076a9c41ef8c30927fdccd2aa670deae6baca5747cfee008ed",
+        "segment_e1d43414d0deb394bb4c2376a442cbd57bb7243336220caedb85069b2303d293",
+        "segment_6b4899e99cf89e3d13212550e4eeff64fc9029cb049dadcb7d8e3482d24becd1",
+        "segment_a07740edbde4bff10d1bce7fd0496f39a9c378ec2c1dec235a89053ca91d02ab",
+        "segment_6b1d8b0fe20ea5dfcabf3ae3922c5861da47b9776fecd62a6867870aa555d10b",
+        "segment_748501d2f682baf2cf79baca52f640a9639c582eb296bace7208366ffa2316c5",
+        "segment_c5f76d819f4d2d8da4210cfdadc788693f51b65356ef2cefdefbec7404b76897",
+        "segment_b1e7b28a6a15670be4e8cbe31cc9fb7ba52dd189c17a17d38129f6a9e3c693c6",
+        "segment_84e86905c2e7ea2972e0318b6bb6b80eba5aa4efa41ea7f1d82f02e9d0972929",
+        "segment_2f6b965392e553a483fbf8743143cebe2dee49afc26471d292d00792f1987beb",
+        "segment_3b56e0ad4f27d8c0eff77525d167ddc2b853025313f78d4d5d4c23a1c414a1fe",
+        "segment_69e7e22ec5c84c969c56f7b96bbf8b5c224970cfbecf13eab6a5d71c28a80d9f",
+        "segment_6b4ea70b5242cc4c3c608e8b692f99b09557730da369b07b497234206bfe36b1",
+        "segment_a6ffdac5a05105f32c126bb66a3d8e72dd725ca754a0215d76e9c395663fb774",
+        "segment_efd78d2a08bfcc41e1f94c988bcfdfc5b93078163a8ff0d676f667e8d86957f6",
+        "segment_624878278cdc0fdc86412c76bfad0c59ff816bb6f799ea52fe5238fdcb665583",
+        "segment_87599fac0415308c4bdbc2194aea71fbfea2add3df5480d33cd6b56d6b0bd459",
+        "segment_8e1b6bd9b734b5a53ce24db2380cd97a2facea1959a9081a04d116f6f24fcd09",
+        "segment_43385147151de2739a2d0d89918cd05da3825a9a0a53222c08f90db9201fb941",
+        "segment_84ea306e1c7f83e24e9a7f7828a35e21c0186807619d0ba4e9da64ec9392e1af",
+        "segment_94346e2d4281aa56ffcc7f4cfbd27f8e901afb55c59bf538bfa3fc56816ad0cb",
+        "segment_74adbfd208a1f46af7ab9a0e4b3131aad251cb2cfc88432752399bed3e31288f",
+        "segment_e7b161c0f897cf9775be1dd44b461b5d13b9621be0d43a56f6af5e79bba6b7af",
+        "segment_48e899b313203e21b1d52054cce5ac3aa77ebcd2bd9a890ff731289be60bc138",
+        "segment_21bfea71d84caefa288455faaaf13423c86458b938c5a54dad1f6063c62798ca",
+        "segment_a7d7c91bcafdb483e8daf0a81e02f9808f6dacfb83fbec1717b692eb88645fd3",
+        "segment_7370d3bca33f74deb0adfc3041ccda34371269a26cd053f20620bfb2e0222988",
+        "segment_0e346835ec4f2dfa30aff8e8a2db7b46ad83f4281b11160f92cf5d9f81954030",
+        "segment_8936d5b3d445c62144bb625e874d6153e4043e39445b1cb68a6cc3a91b62067d",
+        "segment_9f7c9ee192ae8d18a714d0f044eec70bd01b8de4478796f0fbb72c76ccfee341",
+        "segment_3e2d1dcc6875e8331cbc2ff1283d3954c192fa5cae26ec0aae9690e2d462db5c",
+        "segment_78e6ac687912967632a4167be4417302964df89537ae58104e309b22cc43baeb",
+        "segment_7dbf1d9ba834ae7da7bd6be29c7175c5a075090df329552779fc2da252ddebbd",
+        "segment_6cfe41d6d13f5739aeb08c098eaeb4b0b5926af0a56e140fb58c1330ad6c3d95",
+        "segment_0dbf790ed6d68807873ae08f17923d600be7068330e3fb64ea82359e0ad49d3f",
+        "segment_0a4c5cdc1bafa49143c5bf88e449e8b440d1784925c969f9c5b672aaba1ae915",
+        "segment_65d8ca5797dab217557df223d2d8ba6a8bfc115c684fee8b358aaf13f5272bdd",
+        "segment_2050ba5faf105a8a99edc7936dfdad94bad47dd36feff293f0609a87d2adeb83",
+        "segment_f5282dff5e83a349792b74314558fac1067364cd60c94edeb583c1167c4c98c1",
+        "segment_f102dfe65b161a266df038ed63a596cc3771c1989bea20def97fcb59e2373e8c",
+        "segment_18eebaaa84b6ee99aa079a7a0eed467d8b046d2fa52d6a619e17fd71dc562d71",
+        "segment_901fd13a75a9d1b8fe42bb6d0e147e99c288e451a5aae89c413f763202013ff4",
+        "segment_64232e0ed9fc1c35cc559792d4c6c274c837bdcab703579dffb39ee1f343eac6",
+        "segment_2e6da30e6eeeb0d22a0202896022ed9bd150f2787f6789bea78c644ffe077c46",
+        "segment_6c2ea15ab404a0fccf13e66487f0f83803815f78d2aaddb1ae38e250054201b1",
+        "segment_4ddd3d730924aea1df201919de75b4ca7addcecc603dbe072096ee8ff6d4ac6d",
+        "segment_6c34ce9e01cd73e7a71b0ea70cce8d8f28f6281be91cb78db374019e14193095",
+        "segment_b61d59349752f14f9a772bcaefa9530b8931b2b9d27262692f44b0cd837fb174",
+        "segment_c6e2eff658f7667aba031210af40b8e06175e9bfaacb738284c2cc088f952bf3",
+        "segment_d19676ef21b7d2d0697c976052d8e9583392cce76fc10aaeba960bb5a7dbc764",
+        "segment_2b1daf488d56d96a124ea3c0d577e24d04575f21ff6fe5b695f6ebe31b88b551",
+        "segment_cc769ed3ca6083c3e0279e0d5b760ecdf7256a0af06b22fcf8fa6480b87d9fda",
+        "segment_0440b71340cd676dff1bd823fc46f3f1bedca3925cf1e5eaa33729ae99b48a7d",
+        "segment_4538bd1bec34ed900a8186871c83cad5940bd152a815329b2b5aa913dc3728ef",
+        "segment_fa284c0e0b6ab1421526871fb90005adc44bbc2db3c196a4b83358560749eb2e",
+        "segment_171f06152f4ea58dd148f93484837739f5af9a0ac2e3433fa98578a7de9ba49f",
+        "segment_7e8d7588fa6f87a31a177e1893187df6b5f587b64b32968f1d1d2ff999b31c8b",
+        "segment_2e9a565dcc8b3ac4a1af54189b1cd899e250f794537c64e592e4b537c46ff5bf",
+        "segment_ff45e9aa90ac34063c3091c43353dce13cc3a11c39dd38f275b993930b371ad2",
+        "segment_fb439ecd49dbe1660cf20a84ee315c7915d805ca6043676480f27c05ae5e444d",
+        "segment_4e276f4de7e8c24aaf5fe11b382f3c54977a2e4d4212a4a63df89c1f373db35c",
+        "segment_ef32743bf68027af0dabbed276e76459c328d240fdd4b1aad47e018129e7296d",
+        "segment_560612e4cde58cefe99e715a4b0c55a2fa9d9481f76be49d91a1d5450aba2146",
+        "segment_eb6b49a04f02048d732ab64da5fd39267c56a1e847a3191e10086ea90694503c",
+        "segment_b256b257124451e259c77d5cbcbb6a8866e0a3958ed17f6861bb3df999a40782",
+        "segment_c69420b04b2f4c808389982b61e2399e1a0475879a21ad8a0b89fd6c2a3a230c",
+        "segment_d8d371af6510ab00a52c393dc2caa8189f3fa33bf5b8c818e5b5b69a30e92f53",
+        "segment_3539df0f19b91ecac131faf4b1fa16ff9dd5c931455d63faafbf67b44ee6709c",
+        "segment_43a96535065d58b0895d7ad29e76574c943a308ac42783a7b089047976c3a050",
+        "segment_2efa18e4687c682f24f8c1207f3622b697d3c41cdcc5e42cc311b553111a04b4",
+        "segment_bb470552e86af7dac4922cf808bd8126e422e3d7aa8dce3665c70ce667c5c16d",
+        "segment_992de82fc096abfb91dec2545d31f02ad329acb844a7d044e3c6ecde724dcf1c",
+        "segment_107a7f7915b41da7da8c33ec28acc6b0195c5eef14b4cd0b3155592e942db520",
+        "segment_73de384c8bce9ce64686b0101739fbc4ad5154b361e67c8ebbe481290f5fac2e",
+        "segment_6b2ef5de73f505ca8b681d117c023e498e18592feca9adfbc8b99e075c885272",
+        "segment_40dd55d615dece6afce6591b447bd39149357b377f2d47b8b252bf24ca9e450f",
+        "segment_720517bec14f14e6fa132e4c9526f82c855c873ea68beb56cc99e7bb53297344",
+        "segment_e2134404e8b24c607b4ea89f992db5283d4210cf1193959d696e5eb26e4bf826",
+        "segment_ef72adcf7366e5b56e1fa3a61efc1640f6258331780c9c4724e497c993ee44c9",
+        "segment_da29d4129ea12c394b536d9869232376bb2dc9e3ef000e1a973effb45f434e70",
+        "segment_a04c57e58067d2e1aa9701443c6a4e67c4327cac1d1d86ce638e7d43fc29b80e",
+        "segment_d7515694c9b670b5e5dce06ed5133923976041b6b2166dfde58ad912000cd5e1",
+        "segment_cc3de7f1c7cbe22b87c9c8de5cf31b5dec36d057949465ed6320cd386c1520c3",
+        "segment_996749477f83966b8ae8841d1952db491d3c8fe3cdcc31bad6c89caed33b6e2f",
+        "segment_5d6e5fa9f7fcea3d76ae1b276072f196294fc13516337f5de5ca29e365239fed",
+        "segment_8864c55b0b936dd47edab04a5de995d8a5c99d6b241eb3349dd22116f4f703a0",
+        "segment_f01ff91423177700b3b2d777bc7dc75835965a266e1b556b3f2a85aff8896a89",
+        "segment_edbb8155b280f34f0d539f529c580d772f38f939a40a584475522af5e0adfd02",
+        "segment_b373b9284492e426788f5450862fde2a37f2642ef943e3fe27cc971a1bf85125",
+        "segment_6bcbbc1ea7bf21567dff08140002fd3d998748f98094ebeff4c39434be0b9ff1",
+        "segment_c0253db27618624bc1bed9e7aaaa8d3cf7522545199425ba5fa36ef6f3a3ebf6",
+        "segment_a8c05040656efbe795b5e3ad6682ccb3603f9d74c2326a900af1caa1b011290f",
+        "segment_8dc81b6d3d56e3f58240301ecee85a580754709614969ec62660d5fc2481616c",
+        "segment_260c6ffbdb21df610f862587a37f3d89c2570b9e72b330f62880bad8f31ba01e",
+        "segment_0dd41915800802a4cb8b2cc0b0d99fca5d221e2e697b9ca3cf9fa885eb53cd59",
+        "segment_bffa7211a095cc35e3a910e8fbd79d9051d3b00994db806969e0e258cc60174f",
+        "segment_f56e03707cef3f3ea171c34ee2890cd560ab85e55ea61bbc2c58a58022ba4040",
+        "segment_429ac74ae4140ab4a6f9412a06d22fc3bec9eb539ffabe89c2f93115a1335e37",
+        "segment_6a2c4062df90a9e679ad7352c8690b1739ade6be92a984059eb3eae5e5b4fff8",
+        "segment_cdc14132cb4f99a3ee2bf19acc06d816cf5f3f736a31e4b09d0015ee9d946dd3",
+        "segment_4e0f185066d9f584307d2e4201351cbfb381e5262325bbb6d068650d19793d39",
+        "segment_dbc8ed78b0f646c91735f73561ed289e96553ba9f736c3747b4af6f9064d015f",
+        "segment_7901f7be12b9d37ec78f8e96fa7a81a560270a12628051b918d66664a709c823",
+        "segment_618249b64818329186aaf6639a71c5ae7021e085efe4c2e5d39b24f28e2fc4fd",
+        "segment_261f99075d6ad6aeae056b09304cfe6ccd22536795def38626629d4a554d1ce0",
+        "segment_80b8be737f071080b977d8fca5041cb30746c3e0d42e95d9cc5ff525ac3e2489",
+        "segment_9fb2cf95b367e196312414672d0bc7ed4328169a88821ea98e99c444ece6a40a",
+        "segment_a049501874ccdd5ecec766f6e100766c18f6c7ee3670823aa6d958ff41a9f7c5",
+        "segment_9d544678cd4abec674215d0721b0d43b50ac1dcd61bb0048df9509c23b770e4f",
+        "segment_f99002431adebc21a0896ce113f07be1607d3548d51b26ee534e6bf69808332a",
+        "segment_23319556ac8c47880e342ac77b4a0ae0ecae629491fedc8f112051ef100cf9cd",
+        "segment_74ce2e51f972f3a64ec8ecdf88c7ad81bfd1afb399272ea8c4ae8839dfaba98d",
+        "segment_bee4f2e1b72ebdfbc753f5db5a129ad701199dc7b94cc8ff2781142427158179",
+        "segment_8149e20fca834558d4f96328cb761e7aa4ddfca27dafbbd025dbf540b783a81b",
+        "segment_5a2774c9f8a79af0c2111533fedf1f39b36327c023d43391c3fb54e4b0916d95",
+        "segment_8e2eb959d84023d97b0d4908d305a4f599a1bbc5ea827db6d340b6c37913a224",
+        "segment_318155346fe49d8f77cec6180948f822649a404964553e02b460e3feadf7f005",
+        "segment_5495870f9376c572d17c720f86c7e287c44de67644b43126bcbd146ed3b67851",
+        "segment_bad8b3cd5485be619dcaa0d2f51379c74a10ff6eafe072c9c6aa4fbe662953fd",
+        "segment_f54954773126faf0447a07a1219605bcafff0356357b3541e31ec6a35cb0f119",
+        "segment_7ae5b60be37b1e25b68745ff70a29f5da76d21ccb49580c2143b2b5a597305c3",
+        "segment_48ef6f92a4e574c873824754ed421f7d7db2cff4a57ad29a1a07fff2a2bcab06",
+        "segment_d9aa3a5fec6eeacea02b5bbac1ad0a2b2fbd5cd9a4674d8855d23031bbdab3d5",
+        "segment_832a4a9f8a53a7cef95f5ae578d2f1ceb9b74d5852655c72089cb4bd3f79a7e1",
+        "segment_fed94a18b835bfd86b38265e2dc8ecb84a84171dbb1cc02eab0aa79627663bfa",
+        "segment_6911aef038b5433a7f4c4548c60b77049532c1b022bf7da3f907790b07d50ff9",
+        "segment_b46080c3e4a97b772e1a779c2613761f1f37e8b272fb388e5961ce139cdcb5fb",
+        "segment_a68a400c3756c3c25c7753b08ec306f244ff65d6708176e99c797f67cd625509",
+        "segment_230ff47f213a83212880eb9825e68ab4199e354aba114dab20f326a016bd0daf",
+        "segment_6fcc98ce0c0662129edb0327ec4dbcfd5014a5c1b677942466655d64ffc813c7",
+        "segment_88440b5ed6fca704b466500d48c02a92f5e021ba4cafd5cb305acc4bf74b3288",
+        "segment_b88ef09d9a58748df6fb80d63a5fed5632b6aace2eac255cdf0bebd2aeba0b4d"
+      ],
+      "read_lineage": {
+        "all_reads_resolved": false,
+        "reads": 279,
+        "signal_groups": 0,
+        "statuses": {
+          "unknown_producer": 279
+        },
+        "unresolved_reads": 279
+      },
+      "reads": 279,
+      "scope": "union_of_full_interval_junction_linked_witnesses_within_input",
+      "signal_group_ids": [],
+      "umis": 221,
+      "umis_complete": false,
+      "unknown_library_reads": 0,
+      "unlabeled_reads": 4
+    },
+    "source_claims": [
+      {
+        "assay": "scrna-seq",
+        "basis": "published",
+        "date": "2025-01",
+        "label": "T2 UCSF Tumor scRNA 2025-01 (Kamil CellRanger)",
+        "library": null,
+        "platform": null,
+        "provider": "UCSF",
+        "source": "bams",
+        "timepoint": "T2",
+        "tissue": "tumor"
+      },
+      {
+        "assay": "scrna-seq",
+        "basis": "published",
+        "date": "2025-01",
+        "label": "T2 UCSF Tumor scRNA 2025-01 (Kamil CellRanger)",
+        "library": null,
+        "platform": null,
+        "provider": "UCSF",
+        "source": "bam_metadata",
+        "timepoint": "T2",
+        "tissue": "tumor"
+      },
+      {
+        "assay": "scrna-seq",
+        "basis": "published",
+        "date": null,
+        "label": "Single Cell RNA-seq (Tumor) / Kamil\u2019s Tumor scRNA-seq Analysis (GEX, TCR, CNV) / Jan 2025 (T2) | Cell Ranger output",
+        "library": null,
+        "platform": null,
+        "provider": null,
+        "source": "data_page",
+        "timepoint": "T2",
+        "tissue": null
+      },
+      {
+        "assay": null,
+        "basis": "inferred",
+        "date": null,
+        "label": "kamil/tumor/output/T2/outs/per_sample_outs/T2/sample_alignments.bam",
+        "library": null,
+        "platform": null,
+        "provider": null,
+        "source": "bucket_path",
+        "timepoint": "T2",
+        "tissue": null
+      }
+    ],
+    "translation_observed": false
+  },
+  "input_pins": [
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/inventory.json.gz",
+      "root_relative_path": ".cache/sid-sv-pilot-recovery-published-long-20261006/inventory.json.gz",
+      "sha256": "121e8d1b29dc6f32b3556791b7468a5a600c469e9c8ad53075eb96e26fb3d775"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/references.json.gz",
+      "root_relative_path": ".cache/sid-sv-pilot-recovery-published-long-20261006/references.json.gz",
+      "sha256": "70bf1ed4c16c058d6c64de772959b5b9fc4bd6e2eea4020ce8b1b592c28da4a7"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/results/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-06dc27c7e4a9fbf7768d2c26.forward.json.gz",
+      "root_relative_path": ".cache/sid-sv-pilot-recovery-published-long-20261006/results/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-06dc27c7e4a9fbf7768d2c26.forward.json.gz",
+      "sha256": "e6baf79bd30c8e4e14d95bc83b56a00e98f729958593d70365619a93f89ccc2a"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/reconstructions/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-06dc27c7e4a9fbf7768d2c26.forward.json.gz",
+      "root_relative_path": ".cache/sid-sv-pilot-recovery-published-long-20261006/reconstructions/58f81602ec2f87b86a032cf869f1abefc9f4235dbb1ce082e0b6bbc085b155de/adj-06dc27c7e4a9fbf7768d2c26.forward.json.gz",
+      "sha256": "7d1179bf0b4d0a26f6d8a7fb406590a4c7f59fd18ac336b145c6cc58220dbce0"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/results/6e9147690525529f9591602afd1191f9862f4df16117a865c6726654456c9368/adj-041dbfbb2239d183a5982838.forward.json.gz",
+      "root_relative_path": ".cache/sid-sv-pilot-recovery-published-long-20261006/results/6e9147690525529f9591602afd1191f9862f4df16117a865c6726654456c9368/adj-041dbfbb2239d183a5982838.forward.json.gz",
+      "sha256": "04f765cb19bc82383e5dea591c12c839b7f0063fba880ec0c7c2f70529db1df5"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/search/reference-comparisons/P02794.fasta",
+      "root_relative_path": ".cache/sid-sv-pilot-recovery-published-long-20261006/search/reference-comparisons/P02794.fasta",
+      "sha256": "c065296782524e8c8f6f846042e8543410952eb854a4d58015e8c8194c436446"
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/sid-sv-pilot-recovery-published-long-20261006/search/reference-comparisons/P02792.fasta",
+      "root_relative_path": ".cache/sid-sv-pilot-recovery-published-long-20261006/search/reference-comparisons/P02792.fasta",
+      "sha256": "76af1b383158103028639b03f2d5188ddf20a6f04e6a788025f7811471229a89"
+    }
+  ],
+  "producer": {
+    "path": "/Users/iskander/code/isovar/.cache/sid-fth-igkc-interpretation-v2-20261008.py",
+    "root_relative_path": ".cache/sid-fth-igkc-interpretation-v2-20261008.py",
+    "sha256": "e5f359beea7e5db9aac0ef9942acbeb3b6fcdcd66c4d457cac24c8ad3284ed47"
+  },
+  "schema": "sid.candidate_anatomy_explanation.v1",
+  "scope": "explanation_of_frozen_results_not_new_discovery_or_translation_evidence"
+}

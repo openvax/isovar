@@ -1,0 +1,289 @@
+{
+  "schema": "sid.tpst1_native_uorf_proteomics.v1",
+  "analysis_date": "2026-10-08",
+  "conclusion": "Direct HLA class I MS peptide evidence supports translation of native TPST1 uORF sequence; exact initiation at its internal ATG and translation of the patient fusion remain unresolved.",
+  "native_sequence": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+  "patient_fusion_candidate_sequence": "MPSRRRGGSSLIPGRMPILRFSVTTRYFSY",
+  "published_orf_id": "c7riboseqorf56",
+  "transcript": "ENST00000304842",
+  "detected_peptide": {
+    "sequence": "KIILSKISV",
+    "native_residues_1based": [
+      31,
+      39
+    ],
+    "peptide_spectrum_matches": 28,
+    "distinct_peptides": 1,
+    "hla_class": "I",
+    "representative_usi": "mzspec:PXD013649:20180222_QE_HFX_LC2_HLAIp_JMI_SA_Me290_R1:scan:35162:KIILSKISV/2",
+    "representative_source": "Me290 melanoma cell line, PXD013649",
+    "patient_fusion_contains_peptide": false
+  },
+  "evidence_tier": {
+    "value": "2B",
+    "definition": "One peptide in HLA immunopeptidomics data with Ribo-seq data",
+    "source": "https://www.nature.com/articles/s41586-026-10459-x"
+  },
+  "sources": [
+    {
+      "doi": "10.1038/s41586-026-10459-x",
+      "title": "Expanding the human proteome with microproteins and peptideins",
+      "published": "2026-05-06",
+      "table_6_row": 2760,
+      "table_7_row": 869,
+      "table_9_row": 1575
+    },
+    {
+      "doi": "10.1038/s41467-020-14968-9",
+      "title": "Integrated proteogenomic deep sequencing and analytics accurately identify non-canonical peptides in tumor immunopeptidomes",
+      "role": "Origin of representative MS dataset; primary methods identify Me290 as a melanoma cell line; no assertion that the original publication itself made this specific ORF assignment."
+    },
+    {
+      "doi": "10.1038/s41467-025-63405-2",
+      "dataset": "PXD057839",
+      "role": "Scope-limited earlier negative search revalidated; no native-ORF peptide in the three processed tables despite inclusion of its sequence in the FASTA search database."
+    }
+  ],
+  "limitations": [
+    "28 peptide-spectrum matches are not 28 biological samples, distinct peptides, or a quantitative measure of protein abundance.",
+    "An HLA-eluted fragment supports synthesis and presentation of this sequence; intact stable 39-aa protein abundance and function are not established.",
+    "This C-terminal peptide does not distinguish initiation at the candidate ATG from initiation upstream in the same frame.",
+    "The peptide is absent from the 30-aa fusion candidate and provides no direct fusion-specific translation or antigen-presentation evidence.",
+    "This analysis inspects published processed tables, not a new raw-MS reanalysis."
+  ],
+  "method": "Scan published ORF/gene identifiers and reported peptide sequences; peptides of at least seven residues were compared as exact and I/L-equivalent substrings against the native 39-aa sequence. XLS-labelled PRIDE tables are tab-delimited text. Exact sequence and peptide position are checked by string comparison.",
+  "table_results": {
+    "deutsch-2026-table-2.xlsx": {
+      "rows": 999,
+      "hits": [],
+      "sha256": "5ec6353c2f8fdb5a2cc74a5e8758e92fd1e5ba95e58652138527067c9d0f66a8"
+    },
+    "deutsch-2026-table-3.xlsx": {
+      "rows": 999,
+      "hits": [],
+      "sha256": "21aec0f2fc963c9125b948aa6a6b876f585b6b533e79b3bb0ce718f61db3c155"
+    },
+    "deutsch-2026-table-6.xlsx": {
+      "rows": 3116,
+      "hits": [
+        {
+          "xlsx_row": 2760,
+          "values": {
+            "PeptideAtlas.identifier": "CONTRIB_GENCODE_c7riboseqorf56",
+            "Ribo-Seq_ORF": "c7riboseqorf56",
+            "orf_biotype": "uORF",
+            "chrm": "7",
+            "starts": "66205483;66240325",
+            "ends": "66205522;66240404",
+            "strand": "+",
+            "transcript": "ENST00000304842",
+            "gene_id": "ENSG00000169902",
+            "gene_name": "TPST1",
+            "gene_biotype": "protein_coding",
+            "rank": 5.0,
+            "n_peptides_in_entry": 1.0,
+            "protein_category": "weak",
+            "peptide_PSMs": 28.0,
+            "sequence": "KIILSKISV",
+            "length": 9.0,
+            "msrun_hla_classes": "I",
+            "notes": "Very Nice",
+            "USI": "mzspec:PXD013649:20180222_QE_HFX_LC2_HLAIp_JMI_SA_Me290_R1:scan:35162:KIILSKISV/2",
+            "n_orf_per_peptide": 1.0,
+            "n_peptide_per_orf": 1.0,
+            "n_other_mappings": 0.0
+          }
+        }
+      ],
+      "sha256": "2d2f4c140d9853478115dc2bb5b54a85708d7045956baffc7a5f2c6ebd4766e9"
+    },
+    "deutsch-2026-table-7.xlsx": {
+      "rows": 1785,
+      "hits": [
+        {
+          "xlsx_row": 869,
+          "values": {
+            "PeptideAtlas.identifier": "CONTRIB_GENCODE_c7riboseqorf56",
+            "Ribo-Seq_ORF": "c7riboseqorf56",
+            "orf_biotype": "uORF",
+            "chrm": "7",
+            "starts": "66205483;66240325",
+            "ends": "66205522;66240404",
+            "strand": "+",
+            "transcript": "ENST00000304842",
+            "gene_id": "ENSG00000169902",
+            "gene_name": "TPST1",
+            "gene_biotype": "protein_coding",
+            "n_peptides_in_entry": 1.0,
+            "orf_length": 39.0,
+            "Initial.tier.for.level.of.evidence.prior.to.manual.inspection": "Tier 2B",
+            "Final.tier.for.level.of.evidence": "Tier 2B",
+            "Category": "1PepCandidate",
+            "n_psms": 28.0,
+            "n_covered_residues": 9.0,
+            "Percent.coverage": 0.230769230769231,
+            "n_other_mappings": 0.0,
+            "other_mappings": null,
+            "Manual.inspection.of.GWIPS-Viz.RiboSeq.Data": null,
+            "PIF": 0.701711,
+            "Uniformity": 0.875,
+            "Riboseq_data_source": "Ji_et_al_2015,Calviello_et_al_2016,VanHeesch_et_al_2019,Martinez_et_al_2020,Chen_et_al_2020,Gaertner_et_al_2020",
+            "Riboseq notes": null,
+            "HLA_class": "I"
+          }
+        }
+      ],
+      "sha256": "31139f75c6e9e2e2d1005a955afdc8dfd883174c6a2b090618631d849aa69a65"
+    },
+    "deutsch-2026-table-9.xlsx": {
+      "rows": 7264,
+      "hits": [
+        {
+          "xlsx_row": 1575,
+          "values": {
+            "group(d=1, u=0)": 1.0,
+            "orf_name": "c7riboseqorf56",
+            "sequence": "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV",
+            "aa_length": 39.0,
+            "orf_biotype1": 0.0,
+            "orf_biotype2": 1.0,
+            "orf_biotype3": 0.0,
+            "orf_biotype4": 0.0,
+            "orf_biotype5": 0.0,
+            "orf_biotype6": 0.0,
+            "orf_biotype7": 0.0,
+            "MolWeight_div_aaLength": 129.554359,
+            "n_predHLAbinders_div_aaLength": 0.46153846,
+            "netCharge": 0.02564103,
+            "pI": 6.21897436,
+            "log10RelMutab": 1.89790892,
+            "percent_disorder": 46.1538462,
+            "InstabilityIndex": 69.8333333,
+            "SolubilityIndex": -0.1410256,
+            "AliphaticIndex": 25.6410256,
+            "StabilityScale": 2.93307692,
+            "PhyloCSF": -654.7,
+            "SideChainContrib_ProtStab": 10.4871795,
+            "AlphaHelix_Propensity": 0.03846154,
+            "PositiveCharge": 0.15384615,
+            "Avrg_FlexibilityIndices": 0.45789744,
+            "MeanPolarity": 0.14076923,
+            "8AcontactNumber": 0.03641026,
+            "NormFreqAlphaHelixUnweight": 0.93461539,
+            "NormFreqBetaSheetUnweight": 1.00589744,
+            "percentage_basic_amino_acids": 15.3846154,
+            "percentage_amino_acids_in_Helix": 33.3333333,
+            "percentage_amino_acids_in_Turn": 35.8974359,
+            "percentage_amino_acids_in_Sheet": 15.3846154,
+            "Flexibility": -0.1410256,
+            "NormFreqAlphaHelix": 0.95615385,
+            "ElectrIonInteracPotentialVal": 0.04217949,
+            "RelStabilScale": 3.00589744,
+            "AmphiphilicityIndex": 0.78641026,
+            "RatioAccesBuriedMolfrac": 1.40769231,
+            "PercExposedResidues": 33.2564103,
+            "FreeESol_inWater": 0.23035897,
+            "SignalSeqHelicalPotential": 0.99615385,
+            "ratioAvrgComputedComp": 1.13179487,
+            "AvrgVolResidues": 142.807692,
+            "NEIGIndex": 49.8769231,
+            "group": 1.0,
+            "Probability": 0.5743742
+          }
+        }
+      ],
+      "sha256": "eef5025630824486ca2993c3b786b86a9a69ef3bf2f1d51618696743cb184263"
+    }
+  },
+  "prior_processed_table_results": {
+    "159_uORFs_PTX_all-reps_directDIA_generic-uORF-DB_Report_immunopeptidomics_v2_Pivot.xls": {
+      "precursor_rows": 30314,
+      "minimum_peptide_length": 7,
+      "comparison": "exact and I/L-equivalent",
+      "hits": [],
+      "sha256": "0321356adbcc7c8a92439e0545c23515b4d52cdff05c0490ba023b8b8c980d73"
+    },
+    "231_uORFs_PTX_all-reps_directDIA_generic-uORF-DB_Report_immunopeptidomics_v2_Pivot.xls": {
+      "precursor_rows": 20294,
+      "minimum_peptide_length": 7,
+      "comparison": "exact and I/L-equivalent",
+      "hits": [],
+      "sha256": "2bf6d33c9ce5147da9d1a37ce32dc281242ed0fae2d45fb7c0650dec0010da83"
+    },
+    "U2OS_uORFs_PTX_all-reps_directDIA_generic-uORF-DB_Report_immunopeptidomics_v2_Pivot.xls": {
+      "precursor_rows": 15880,
+      "minimum_peptide_length": 7,
+      "comparison": "exact and I/L-equivalent",
+      "hits": [],
+      "sha256": "8843ea1b5802579a847031a4792fcdba828bc8cda624a02c90735eb45c8f2ae5"
+    }
+  },
+  "inputs": [
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/kowar-fulltext.xml",
+      "sha256": "288584ce34afd2f52ccaaf87b4356ef50be3eb9fe56e4a336c1abc4f2d8ba530",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12391379/fullTextXML",
+      "bytes": 204346
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/pride-files.json",
+      "sha256": "d4c950bdd6378a90a5808a393349b80e6dca70b136d44443d262c52b733e2489",
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD057839/files?page=0&pageSize=100",
+      "bytes": 64263
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/deutsch-2026-table-2.xlsx",
+      "sha256": "5ec6353c2f8fdb5a2cc74a5e8758e92fd1e5ba95e58652138527067c9d0f66a8",
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-026-10459-x/MediaObjects/41586_2026_10459_MOESM4_ESM.xlsx",
+      "bytes": 93426
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/deutsch-2026-table-3.xlsx",
+      "sha256": "21aec0f2fc963c9125b948aa6a6b876f585b6b533e79b3bb0ce718f61db3c155",
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-026-10459-x/MediaObjects/41586_2026_10459_MOESM5_ESM.xlsx",
+      "bytes": 55715
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/deutsch-2026-table-6.xlsx",
+      "sha256": "2d2f4c140d9853478115dc2bb5b54a85708d7045956baffc7a5f2c6ebd4766e9",
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-026-10459-x/MediaObjects/41586_2026_10459_MOESM8_ESM.xlsx",
+      "bytes": 393170
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/deutsch-2026-table-7.xlsx",
+      "sha256": "31139f75c6e9e2e2d1005a955afdc8dfd883174c6a2b090618631d849aa69a65",
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-026-10459-x/MediaObjects/41586_2026_10459_MOESM9_ESM.xlsx",
+      "bytes": 282174
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/deutsch-2026-table-9.xlsx",
+      "sha256": "eef5025630824486ca2993c3b786b86a9a69ef3bf2f1d51618696743cb184263",
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-026-10459-x/MediaObjects/41586_2026_10459_MOESM11_ESM.xlsx",
+      "bytes": 2444412
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/159_uORFs_PTX_all-reps_directDIA_generic-uORF-DB_Report_immunopeptidomics_v2_Pivot.xls",
+      "sha256": "0321356adbcc7c8a92439e0545c23515b4d52cdff05c0490ba023b8b8c980d73",
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/06/PXD057839/159_uORFs_PTX_all-reps_directDIA_generic-uORF-DB_Report_immunopeptidomics_v2_Pivot.xls",
+      "bytes": 23445502
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/231_uORFs_PTX_all-reps_directDIA_generic-uORF-DB_Report_immunopeptidomics_v2_Pivot.xls",
+      "sha256": "2bf6d33c9ce5147da9d1a37ce32dc281242ed0fae2d45fb7c0650dec0010da83",
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/06/PXD057839/231_uORFs_PTX_all-reps_directDIA_generic-uORF-DB_Report_immunopeptidomics_v2_Pivot.xls",
+      "bytes": 15934176
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/U2OS_uORFs_PTX_all-reps_directDIA_generic-uORF-DB_Report_immunopeptidomics_v2_Pivot.xls",
+      "sha256": "8843ea1b5802579a847031a4792fcdba828bc8cda624a02c90735eb45c8f2ae5",
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/06/PXD057839/U2OS_uORFs_PTX_all-reps_directDIA_generic-uORF-DB_Report_immunopeptidomics_v2_Pivot.xls",
+      "bytes": 12227429
+    },
+    {
+      "path": "/Users/iskander/code/isovar/.cache/tpst1-native-proteomics-evidence-20261008/B250_PTX_dB_modified.fasta",
+      "sha256": "e0d5c300bcf455f94dd1dc89f891d0f5882d339b24f682cea75d840d11c8a373",
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/06/PXD057839/B250_PTX_dB_modified.fasta",
+      "bytes": 594761
+    }
+  ]
+}
