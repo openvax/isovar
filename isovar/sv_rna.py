@@ -1515,6 +1515,7 @@ class _PathSpans:
         """
         if observation.key not in self.cache:
             shared, shared_runs = 0, []
+            shift = None
             runs = _runs(observation.positions)
             for own, _, contig, other_low, other_high, strand in runs:
                 for q0, low, high in self.overlapping_runs(contig, strand, other_low, other_high):
@@ -1525,6 +1526,13 @@ class _PathSpans:
                             start, own_start = q0 + a - low, own + a - other_low
                         else:
                             start, own_start = q0 + high - b, own + other_high - b
+                        offset = own_start - start
+                        if shift is not None and offset != shift:
+                            # Equal intervening query lengths require one
+                            # read-minus-path offset across every shared block.
+                            self.cache[observation.key] = ()
+                            return ()
+                        shift = offset
                         shared_runs.append((start, start + b - a, own_start, own_start + b - a))
             result = ()
             if shared:

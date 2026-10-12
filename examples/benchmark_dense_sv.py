@@ -33,7 +33,10 @@ def checksum(path):
 
 
 def fingerprint(value):
-    return sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    result = sha256()
+    for part in json.JSONEncoder(sort_keys=True, separators=(',', ':')).iterencode(value):
+        result.update(part.encode())
+    return result.hexdigest()
 
 
 def main():

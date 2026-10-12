@@ -44,6 +44,32 @@ def test_fragmented_candidate_span_queries_skip_disjoint_blocks():
 
 
 @pytest.mark.parametrize('strand', ['+', '-'])
+def test_span_rejects_incompatible_query_offsets_before_remaining_blocks(strand):
+    from types import SimpleNamespace
+    from isovar.sv_rna import _PathSpans, _Positions
+
+    bases = [q + q // 10 for q in range(4000)]
+    if strand == '-':
+        bases.reverse()
+    positions = _Positions([('1', q, strand) for q in bases])
+    span = _PathSpans('A' * 4000, positions)
+    original = span.overlapping_runs
+    visited = []
+
+    def record(*args):
+        visited.append(args)
+        return original(*args)
+
+    span.overlapping_runs = record
+    # One inserted query base changes the offset after the first block. The
+    # old equal-gap-length rule rejects it regardless of all later blocks.
+    observed = _Positions(positions[:10] + (None,) + positions[10:])
+    observation = SimpleNamespace(key='indel', positions=observed, sequence='A' * 4001)
+    assert span(observation) == ()
+    assert len(visited) == 2
+
+
+@pytest.mark.parametrize('strand', ['+', '-'])
 @pytest.mark.parametrize('batch_bases', [1, 400, 1700])
 def test_stream_batches_preserve_whole_results_and_release_observations(tmp_path, monkeypatch, strand, batch_bases):
     from isovar import sv_rna_dense, sv_rna_stream

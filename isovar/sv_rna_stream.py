@@ -3,7 +3,7 @@
 from collections import Counter, defaultdict
 
 from .sv_rna import _PathSpans, _breaks
-from .sv_rna_orfs import _witnesses
+from .sv_rna_orfs import _PLACEMENT_INDEX, _PlacementIndex, _witnesses
 
 
 # Internal working-set bound, independent of discovery and scientific settings.
@@ -39,6 +39,7 @@ class _SupportStream:
         self.cache_keys, self.rows, self.counts, self.kinds = {}, {}, defaultdict(Counter), defaultdict(set)
         self.direct = defaultdict(dict)
         self.spans = [_PathSpans(p['sequence'], pos) for p, pos in zip(paths, positions)]
+        self.placement_indices = {(_PLACEMENT_INDEX, id(pos)): _PlacementIndex(pos) for pos in positions}
         self.linked = [dict() for _ in paths]
         self.witnesses = [defaultdict(list) for _ in paths]
         for path_index, (path, pos) in enumerate(zip(paths, positions)):
@@ -79,7 +80,7 @@ class _SupportStream:
                 key = ('clip', 'donor' if assignment[0] == 0 else 'acceptor')
                 if key in self.queries:
                     direct[key].append((o, i, j, 'clip'))
-        by_key, affected, groups = {}, set(), {}
+        by_key, affected, groups = {}, set(), dict(self.placement_indices)
         for key, entries in direct.items():
             evidence = {o.key: o for o, *_ in entries}
             by_key[key] = evidence
