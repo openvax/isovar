@@ -13,6 +13,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import shutil
+import sys
 import tarfile
 import tempfile
 
@@ -41,6 +42,29 @@ def digest(path):
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             result.update(chunk)
     return result.hexdigest()
+
+
+def _clone_file(source, target):
+    """Create an independent native clone, failing without a full-copy fallback."""
+    if sys.platform == "darwin":
+        import ctypes
+
+        clone = ctypes.CDLL(None, use_errno=True).clonefile
+        clone.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint32]
+        clone.restype = ctypes.c_int
+        if clone(os.fsencode(source), os.fsencode(target), 0) != 0:
+            code = ctypes.get_errno()
+            raise OSError(code, os.strerror(code), str(target))
+    elif sys.platform.startswith("linux"):
+        import fcntl
+
+        # Linux UAPI: _IOW(0x94, 9, int), clone the complete source file.
+        with source.open("rb") as original, target.open("xb") as copied:
+            fcntl.ioctl(copied.fileno(), 0x40049409, original.fileno())
+    else:
+        raise AuditBundleError("Native file cloning is supported only on macOS and Linux")
+    if source.samefile(target):
+        raise AuditBundleError("Cloned inputs must be independent files")
 
 
 def software_identity():
@@ -122,7 +146,7 @@ class AuditBundle:
         return self._manifest["bundle_id"]
 
     @classmethod
-    def create(cls, destination, files, metadata=None, *, expected_sha256=None):
+    def create(cls, destination, files, metadata=None, *, expected_sha256=None, copy_method="copy"):
         """Copy explicitly selected files and publish a complete manifest.
 
         Parameters
@@ -137,12 +161,18 @@ class AuditBundle:
         expected_sha256 : mapping of str to str, optional
             Expected checksums for logical file names. Supplied pins are checked
             during copying, before a complete bundle can be published.
+        copy_method : {"copy", "clone"}, optional
+            Full copying by default. ``clone`` requires native copy-on-write
+            files on macOS/Linux; unsupported filesystems fail without falling
+            back to full copying. Both methods verify the copied bytes.
 
         Returns
         -------
         AuditBundle
             The published bundle, with its copied files verified.
         """
+        if copy_method not in ("copy", "clone"):
+            raise AuditBundleError("copy_method must be 'copy' or 'clone'")
         if not isinstance(files, Mapping):
             raise AuditBundleError("Files must be a mapping of logical names to local paths")
         files = {_name(name): Path(path) for name, path in files.items()}
@@ -161,13 +191,16 @@ class AuditBundle:
             for name, source in sorted(files.items()):
                 if not source.is_file():
                     raise AuditBundleError("Missing input file: " + str(source))
-                checksum = digest(source)
+                size, checksum = source.stat().st_size, digest(source)
                 if name in expected_sha256 and checksum != expected_sha256[name]:
                     raise AuditBundleError("Input checksum mismatch: " + name)
                 target = destination / "files" / name
                 target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(source, target)
-                if digest(target) != checksum:
+                if copy_method == "clone":
+                    _clone_file(source.resolve(), target)
+                else:
+                    shutil.copyfile(source, target)
+                if target.stat().st_size != size or digest(target) != checksum:
                     raise AuditBundleError("Input changed during copy: " + str(source))
                 pins[name] = dict(sha256=checksum, size=target.stat().st_size)
             manifest = dict(format=FORMAT, schema_version=SCHEMA_VERSION, files=pins,
@@ -178,6 +211,25 @@ class AuditBundle:
         except BaseException:
             shutil.rmtree(destination)
             raise
+
+    @staticmethod
+    def estimate_size(files):
+        """Return file count and logical payload bytes before allocating a bundle.
+
+        Full copies need at least these payload bytes plus filesystem and
+        manifest overhead. Clone allocation and compressed archive size cannot
+        be predicted from logical sizes; this is not a free-space guarantee.
+        """
+        if not isinstance(files, Mapping):
+            raise AuditBundleError("Files must be a mapping of logical names to local paths")
+        total = 0
+        for name, source in files.items():
+            _name(name)
+            source = Path(source)
+            if not source.is_file():
+                raise AuditBundleError("Missing input file: " + str(source))
+            total += source.stat().st_size
+        return dict(files=len(files), payload_bytes=total)
 
     @classmethod
     def open(cls, directory, verify=True):

@@ -32,7 +32,7 @@ def _replay_parameters(result):
     return parameters, collector
 
 
-def bundle_sid_audit(directory, destination, *, extra_files=None):
+def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="copy"):
     """Freeze an existing Sid audit and generate installed offline SV replay plans.
 
     Parameters
@@ -44,6 +44,9 @@ def bundle_sid_audit(directory, destination, *, extra_files=None):
         New bundle directory. Original receipts and results are copied verbatim.
     extra_files : mapping of str to path-like, optional
         Additional explicitly selected annotations, provenance or analysis files.
+    copy_method : {"copy", "clone"}, optional
+        See :meth:`AuditBundle.create`. Clones are independent files; unsupported
+        filesystems fail explicitly without allocating full copies.
 
     Returns
     -------
@@ -155,4 +158,5 @@ def bundle_sid_audit(directory, destination, *, extra_files=None):
         metadata = dict(kind="sid-sv-audit", original_directory=str(directory), original_paths=aliases,
                         outcomes=outcomes, sv_rna_runs=plans,
                         scope="preserved_existing_audit_inputs_and_outcomes; no new acquisition")
-        return AuditBundle.create(destination, files, metadata, expected_sha256=checksums)
+        return AuditBundle.create(destination, files, metadata, expected_sha256=checksums,
+                                  copy_method=copy_method)
