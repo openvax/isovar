@@ -60,3 +60,30 @@ def test_witness_cache_exhaustion_keeps_repeated_occurrences_and_links(monkeypat
     witnesses = _witnesses('A' * 6, positions, 1, 3, [junction, junction], {'original': observation})
     assert [row['original_query_interval'] for row in witnesses] == [[3, 5], [11, 13]]
     assert all(len(row['junction_links']) == 1 for row in witnesses)
+
+
+@pytest.mark.parametrize('entries,bases', [(4096, 250_000), (1, 250_000), (4096, 1)])
+def test_shared_exact_search_keeps_junction_membership_and_repeated_witnesses(monkeypatch, entries, bases):
+    from isovar import sv_rna_orfs
+
+    monkeypatch.setattr(sv_rna_orfs, '_WITNESS_CACHE_ENTRIES', entries)
+    monkeypatch.setattr(sv_rna_orfs, '_WITNESS_CACHE_BASES', bases)
+    positions = tuple(('1', q, '+') for q in range(6))
+    observed = (None,) * 2 + positions + (None,) * 2 + positions
+    observations = {
+        name: SimpleNamespace(key=name, positions=observed, sequence='A' * 16,
+                              query_interval=(0, 16), reverse_complement=False,
+                              comparison_key=('A' * 16, observed))
+        for name in ('first', 'second', 'unrelated')}
+    junction = dict(query_interval=[2, 2], left=list(positions[1]), right=list(positions[2]),
+                    direct_observations=['first'])
+    other = dict(junction, direct_observations=['second'])
+    search = sv_rna_orfs._SequenceMatches(o.sequence for o in observations.values())
+    cache = {sv_rna_orfs._SEQUENCE_MATCHES: search}
+    for start, end in ((1, 3), (2, 4)):
+        got = _witnesses('A' * 6, positions, start, end, [junction, other], observations, group_cache=cache)
+        expected = _witnesses('A' * 6, positions, start, end, [junction, other], observations)
+        assert got == expected
+        assert [row['observation'] for row in got] == ['first', 'first', 'second', 'second']
+        assert all(len(row['junction_links']) == 1 for row in got)
+    assert search.entries <= entries and search.bases <= bases

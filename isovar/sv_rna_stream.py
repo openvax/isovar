@@ -3,12 +3,13 @@
 from collections import Counter, defaultdict
 
 from .sv_rna import _PathSpans, _breaks
-from .sv_rna_orfs import _PLACEMENT_INDEX, _PlacementIndex, _witnesses
+from .sv_rna_orfs import _PLACEMENT_INDEX, _SEQUENCE_MATCHES, _PlacementIndex, _SequenceMatches, _witnesses
 
 
 # Internal working-set bound, independent of discovery and scientific settings.
 # Templates are indivisible; a single oversized template is consumed on its own.
 _SUPPORT_BATCH_BASES = 250_000
+_SHARED_WITNESS_ROWS = 4096
 
 
 def _observation_row(o):
@@ -22,6 +23,18 @@ def _merge_interval(previous, interval):
     if not interval:
         return previous
     return (min(previous[0], interval[0]), max(previous[1], interval[1])) if previous else interval
+
+
+def _share_witness(row, cache):
+    """Share equal output rows; never combine distinct original observations."""
+    key = (row['observation'], tuple(row['observation_interval']), tuple(row['original_query_interval']),
+           tuple((tuple(link['junction_query_interval']), tuple(link['observation_interval']))
+                 for link in row['junction_links']))
+    if key in cache:
+        return cache[key]
+    if len(cache) < _SHARED_WITNESS_ROWS:
+        cache[key] = row
+    return row
 
 
 class _SupportStream:
@@ -80,7 +93,7 @@ class _SupportStream:
                 key = ('clip', 'donor' if assignment[0] == 0 else 'acceptor')
                 if key in self.queries:
                     direct[key].append((o, i, j, 'clip'))
-        by_key, affected, groups = {}, set(), dict(self.placement_indices)
+        by_key, affected, groups, shared_rows = {}, set(), dict(self.placement_indices), {}
         for key, entries in direct.items():
             evidence = {o.key: o for o, *_ in entries}
             by_key[key] = evidence
@@ -97,6 +110,7 @@ class _SupportStream:
                 for o in equivalent.values():
                     interval = _merge_interval(interval, span(o))
                 self.linked[path_index][key] = interval
+        groups[_SEQUENCE_MATCHES] = _SequenceMatches(o.sequence for evidence in by_key.values() for o in evidence.values())
         for path_index in affected:
             path, pos = self.paths[path_index], self.positions[path_index]
             junctions = [dict(q, direct_observations=sorted(by_key[q['key']]))
@@ -105,6 +119,7 @@ class _SupportStream:
             intervals = {(0, len(pos))} | {tuple(c['query_interval']) for c in path['exploratory_orfs']['candidates']}
             for start, end in intervals:
                 self.witnesses[path_index][start, end].extend(
+                    _share_witness(row, shared_rows) for row in
                     _witnesses(path['sequence'], pos, start, end, junctions, evidence, group_cache=groups))
             self.spans[path_index].cache.clear()
 
@@ -135,5 +150,5 @@ class _SupportStream:
         for witness in self.witnesses[path_index][start, end]:
             links = [link for link in witness['junction_links'] if tuple(link['junction_query_interval']) in selected]
             if links:
-                rows.append(dict(witness, junction_links=links))
+                rows.append(witness if len(links) == len(witness['junction_links']) else dict(witness, junction_links=links))
         return sorted(rows, key=lambda row: (row['observation'], row['observation_interval'][0]))

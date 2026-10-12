@@ -10,7 +10,9 @@ from .sv_rna_relations import EVENT_CROSSING_RELATIONS
 
 
 _PLACEMENT_INDEX = object()
+_SEQUENCE_MATCHES = object()
 _WITNESS_CACHE_ENTRIES = 4096
+_WITNESS_CACHE_BASES = 250_000
 
 
 def _sequence_offsets(sequence, dna):
@@ -18,6 +20,36 @@ def _sequence_offsets(sequence, dna):
     while offset >= 0:
         yield offset
         offset = sequence.find(dna, offset + 1)
+
+
+class _SequenceMatches:
+    """Batch-local exact offsets shared by identical candidate DNA queries."""
+
+    def __init__(self, sequences):
+        self.sequences = set(sequences)
+        self.matches, self.entries, self.bases = {}, 0, 0
+
+    def find(self, dna):
+        if dna in self.matches:
+            return self.matches[dna]
+        room = _WITNESS_CACHE_ENTRIES - self.entries
+        if room <= 0 or self.bases + len(dna) > _WITNESS_CACHE_BASES:
+            return None
+        matches, size = {}, 1
+        for text in self.sequences:
+            found = tuple(islice(_sequence_offsets(text, dna), room + 1))
+            if found:
+                size += len(found) + 1
+                if size > room:
+                    self.matches[dna] = None
+                    self.entries += 1
+                    self.bases += len(dna)
+                    return None
+                matches[text] = found
+        self.matches[dna] = matches
+        self.entries += size
+        self.bases += len(dna)
+        return matches
 
 
 class _PlacementIndex:
@@ -68,12 +100,18 @@ def _witnesses(sequence, positions, start, end, junctions, observations, group_c
     # not affect sequence matching and are read from each original afterwards.
     group_cache = {} if group_cache is None else group_cache
     dna = sequence[start:end]
+    search = group_cache.get(_SEQUENCE_MATCHES)
+    shared_matches = search.find(dna) if search is not None else None
+    if shared_matches == {}:
+        return []
     witnesses = {}
     matches, consistent_intervals = {}, {}
     cached_matches = 0
 
     def offsets(text):
         nonlocal cached_matches
+        if shared_matches is not None:
+            return iter(shared_matches.get(text, ()))
         if text in matches:
             return iter(matches[text])
         iterator = _sequence_offsets(text, dna)
@@ -107,9 +145,20 @@ def _witnesses(sequence, positions, start, end, junctions, observations, group_c
             group_cache[keys] = list(groups.values())
         for members in group_cache[keys]:
             observation = members[0]
+            if shared_matches is not None and observation.sequence not in shared_matches:
+                continue
             comparison = observation.comparison_key
             for offset in offsets(observation.sequence):
                 shift = offset - start
+                core = comparison, shift, start, end
+                if core in consistent_intervals:
+                    compatible = consistent_intervals[core]
+                else:
+                    compatible = index(positions).agrees(index(observation.positions), start, end, shift)
+                    if len(consistent_intervals) < _WITNESS_CACHE_ENTRIES:
+                        consistent_intervals[core] = compatible
+                if not compatible:
+                    continue
                 lo, hi = max(0, -shift), min(len(sequence), len(observation.sequence) - shift)
 
                 def shared(q):

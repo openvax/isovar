@@ -153,7 +153,7 @@ def main():
                     exceeded.append('scratch_limit')
                 if args.max_rss_bytes is not None and peak_rss() > args.max_rss_bytes:
                     exceeded.append('memory_limit')
-                if shutil.disk_usage(scratch).free < args.min_free_bytes:
+                if shutil.disk_usage(args.output.parent).free < args.min_free_bytes:
                     exceeded.append('free_space_limit')
                 if exceeded:
                     os.kill(os.getpid(), signal.SIGALRM)
@@ -187,18 +187,36 @@ def main():
             if profile is not None:
                 profile.dump_stats(args.profile)
     if result is not None:
-        report['paths'] = [dict(
-            path_id=p['path_id'], sequence_sha256=fingerprint(p['sequence']),
-            complete_support_sha256=fingerprint(dict(
-                blocks=p['blocks'], junctions=p['junctions'], full_interval_support=p['full_interval_support'],
-                orfs=[dict(sequence=o['amino_acids'], query_interval=o['query_interval'],
-                           full_interval_support=o['full_interval_support'])
-                      for o in p['exploratory_orfs']['candidates']])),
-            full_interval_fragments=p['full_interval_support']['fragments']) for p in result['paths']]
-        serialized = time.perf_counter()
-        with gzip.open(str(args.output) + '.result.json.gz', 'wt') as handle:
-            json.dump(result, handle, separators=(',', ':'))
-        report['result_serialization_seconds'] = time.perf_counter() - serialized
+        # Fingerprinting and serialization must preserve the same resource
+        # reserve, even after the disposable reconstruction spool is removed.
+        stopped.clear()
+        thread = threading.Thread(target=monitor, daemon=True)
+        thread.start()
+        artifact = Path(str(args.output) + '.result.json.gz')
+        try:
+            report['paths'] = [dict(
+                path_id=p['path_id'], sequence_sha256=fingerprint(p['sequence']),
+                complete_support_sha256=fingerprint(dict(
+                    blocks=p['blocks'], junctions=p['junctions'], full_interval_support=p['full_interval_support'],
+                    orfs=[dict(sequence=o['amino_acids'], query_interval=o['query_interval'],
+                               full_interval_support=o['full_interval_support'])
+                          for o in p['exploratory_orfs']['candidates']])),
+                full_interval_fragments=p['full_interval_support']['fragments']) for p in result['paths']]
+            serialized = time.perf_counter()
+            with gzip.open(artifact, 'wt') as handle:
+                json.dump(result, handle, separators=(',', ':'))
+            report['result_serialization_seconds'] = time.perf_counter() - serialized
+        except TimeoutError:
+            report['reconstruction_status'] = report['status']
+            report['status'] = 'result_' + (exceeded[0] if exceeded else 'timeout')
+            if artifact.exists():
+                partial = artifact.with_name(artifact.name + '.partial')
+                artifact.rename(partial)
+                report['partial_result'] = str(partial)
+        finally:
+            stopped.set()
+            thread.join()
+            report['export_peak_rss_bytes'] = peak_rss()
     args.output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: report[k] for k in ('status', 'seconds', 'cpu_seconds', 'peak_rss_bytes', 'stages_seconds')}))
     return 0 if report['status'] == 'completed' else 2

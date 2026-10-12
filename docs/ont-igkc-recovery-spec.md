@@ -36,3 +36,15 @@ start and prefix maximum end, retaining nested/repeated placements and the exact
 existing interval tests. Validate against the preceding brute-force matcher and
 whole-result fixtures before declaring a new producing attempt. Keep the first
 attempt's unknown support and all earlier failures in its provenance.
+
+## Producing attempt after exact query and row sharing
+
+Preserve the index-only forward one-hour timeout, its operator-interrupted
+reverse comparison, and the separately recorded interruption of the preceding
+refinement. After full validation, declare a new producer with the same 14,400
+seconds of reconstruction time used by the original failed attempt. Keep the
+2 GiB scratch, 16 GiB process-memory and 8 GiB disk-reserve limits, extending
+resource monitoring through result export (#487). Partial exports remain
+explicit failures. Keep scientific settings and original input pins unchanged.
+Record monotonic reconstruction time and CPU time; host suspension is not
+included in the monotonic timings on this macOS host.
