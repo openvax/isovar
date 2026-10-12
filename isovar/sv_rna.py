@@ -1476,25 +1476,17 @@ def _junction_summary(direct, segments, kinds, left, right, store):
                     junction_sequences.items(), key=lambda item: (-item[1], item[0]))])
 
 
-def _path_result(sequence, positions, voters, store, event, annotated, adjacency, clip_support, frame_evidence,
-                 orf_evidence, junction_cache=None):
-    """Serialize one path with junction, sequence and frame evidence.
+class _PathSpans:
+    """Compile one frozen candidate for exact co-observed interval comparisons."""
 
-    Direct support for a junction is every segment whose own observed path
-    makes that join, whatever its other bases (so noisy long reads count).
-    All assignments of the nominated adjacency's junction bases support its
-    breakpoint junction. Counts include single records not yet built, whose
-    CIGAR makes the join; built observations are cited individually.
-    Returns the result and the observations it cites.
-    """
-    junction_cache = {} if junction_cache is None else junction_cache
-    path_runs, spans_seen, placed = defaultdict(list), {}, [0]
-    for q0, _, contig, low, high, strand in _runs(positions):
-        path_runs[contig, strand].append((q0, low, high))
-    for position in positions:
-        placed.append(placed[-1] + (position is not None))
+    def __init__(self, sequence, positions):
+        self.sequence, self.runs, self.placed, self.cache = sequence, defaultdict(list), [0], {}
+        for q0, _, contig, low, high, strand in _runs(positions):
+            self.runs[contig, strand].append((q0, low, high))
+        for position in positions:
+            self.placed.append(self.placed[-1] + (position is not None))
 
-    def span(observation):
+    def __call__(self, observation):
         """First and last path offsets co-observed by one read, if it agrees with the path there.
 
         The read must observe every placed path base between them, and place
@@ -1502,11 +1494,11 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
         extra exon). Intervening unplaced query spans must also agree in
         length and sequence; otherwise it contributes no interval.
         """
-        if observation.key not in spans_seen:
+        if observation.key not in self.cache:
             shared, shared_runs = 0, []
-            runs = store.observation_runs(observation)
+            runs = _runs(observation.positions)
             for own, _, contig, other_low, other_high, strand in runs:
-                for q0, low, high in path_runs.get((contig, strand), ()):
+                for q0, low, high in self.runs.get((contig, strand), ()):
                     a, b = max(low, other_low), min(high, other_high)
                     if a < b:
                         shared += b - a
@@ -1522,14 +1514,29 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
                 own_first = min(a for _, _, a, _ in shared_runs)
                 own_last = max(b for _, _, _, b in shared_runs) - 1
                 own_placed = sum(max(0, min(end, own_last + 1) - max(start, own_first)) for start, end, *_ in runs)
-                if (shared == placed[last + 1] - placed[first] == own_placed
+                if (shared == self.placed[last + 1] - self.placed[first] == own_placed
                         and all(start - end == own_start - own_end >= 0
-                                and sequence[end:start] == observation.sequence[own_end:own_start]
+                                and self.sequence[end:start] == observation.sequence[own_end:own_start]
                                 for (_, end, _, own_end), (start, _, own_start, _)
                                 in zip(shared_runs, shared_runs[1:]))):
                     result = (first, last)
-            spans_seen[observation.key] = result
-        return spans_seen[observation.key]
+            self.cache[observation.key] = result
+        return self.cache[observation.key]
+
+
+def _path_result(sequence, positions, voters, store, event, annotated, adjacency, clip_support, frame_evidence,
+                 orf_evidence, junction_cache=None, linked_intervals=None):
+    """Serialize one path with junction, sequence and frame evidence.
+
+    Direct support for a junction is every segment whose own observed path
+    makes that join, whatever its other bases (so noisy long reads count).
+    All assignments of the nominated adjacency's junction bases support its
+    breakpoint junction. Counts include single records not yet built, whose
+    CIGAR makes the join; built observations are cited individually.
+    Returns the result and the observations it cites.
+    """
+    junction_cache = {} if junction_cache is None else junction_cache
+    span = _PathSpans(sequence, positions)
     rows = []
     for i, j in _breaks(positions):
         left, right = positions[i], positions[j]
@@ -1565,7 +1572,8 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
     for i, j, relation, assignment, is_annotated, summary in sorted(rows, key=lambda row: row[:2]):
         evidence.update(summary['evidence'])
         # Bases co-observed with the join in single reads; annotated splices are context only.
-        spans = [] if is_annotated else [q for q in (span(o) for o in summary['spanning']) if q]
+        spans = ([] if is_annotated else linked_intervals.get(id(summary), []) if linked_intervals is not None
+                 else [q for q in (span(o) for o in summary['spanning']) if q])
         clip = relation == "breakpoint_clip_partner_unplaced"
         junctions.append(dict(
             # Half-open: the unplaced bases between the partners (empty for a direct join).

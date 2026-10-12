@@ -2,6 +2,7 @@
 
 from dataclasses import asdict
 import json
+import weakref
 
 import pysam
 import pytest
@@ -12,6 +13,51 @@ from isovar.read_collector import ReadCollector
 from isovar.fusion import FusionBreakpoint
 from isovar.sv_rna import reconstruct_sv_rna
 from tests.test_sv_rna import Scenario, aligned, record, write_bam
+
+
+@pytest.mark.parametrize('strand', ['+', '-'])
+@pytest.mark.parametrize('batch_bases', [1, 400, 1700])
+def test_stream_batches_preserve_whole_results_and_release_observations(tmp_path, monkeypatch, strand, batch_bases):
+    from isovar import sv_rna_dense, sv_rna_stream
+
+    scenario = Scenario(strand)
+    reads = dense_reads(scenario, 23)
+    # Shared cell labels across batches must count once, while individual
+    # qualities and an allele difference still belong to their original reads.
+    for read in reads:
+        if read.query_name.startswith('event-'):
+            read.set_tag('CB', 'shared-cell')
+            read.set_tag('UB', 'shared-umi')
+    for read in reads[-4:-2]:
+        quality = read.query_qualities
+        read.query_sequence = 'A' + read.query_sequence[1:]
+        read.query_qualities = quality
+    bam = write_bam(tmp_path / 'batches.bam', reads)
+    expected = scenario.run(bam, dense_support=True, max_records=4, assemble=False)
+    monkeypatch.setattr(sv_rna_stream, '_SUPPORT_BATCH_BASES', batch_bases)
+    live, sizes = weakref.WeakSet(), []
+    build, consume = sv_rna_dense._build_segment, sv_rna_stream._SupportStream.consume
+
+    def tracked(*args):
+        built = build(*args)
+        live.update(built)
+        # One indivisible template may exceed the base budget; the next
+        # template may be built before the previous batch is consumed.
+        assert sum(len(o.sequence) for o in live) <= max(batch_bases, 400) + 400
+        return built
+
+    def counted(self, observations):
+        sizes.append(sum(len(o.sequence) for o in observations))
+        return consume(self, observations)
+
+    monkeypatch.setattr(sv_rna_dense, '_build_segment', tracked)
+    monkeypatch.setattr(sv_rna_stream._SupportStream, 'consume', counted)
+    observed = scenario.run(bam, dense_support=True, max_records=4, assemble=False)
+    assert observed == expected
+    assert not live
+    assert len(sizes) > 1
+    assert max(sizes) <= max(batch_bases, 400)
+    assert candidate(observed)['junctions'][0]['direct_support']['cells'] == 1
 
 
 def test_splice_ambiguous_event_joins_survive_abundant_breakpoint_clips(tmp_path):
