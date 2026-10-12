@@ -21,8 +21,8 @@ from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
 from .rna_evidence import rna_support
 from .sv_rna import (
-    _Event, _Model, _Observations, _ineligible, _join_class, _record_gaps, _record_id,
-    _path_result, reconstruct_sv_rna,
+    _Event, _Model, _Observations, _flip, _ineligible, _join_class, _record_gaps, _record_id,
+    _path_result, _possible_breakpoint_clip, reconstruct_sv_rna,
 )
 from .sv_rna_orfs import _witnesses
 from .sv_rna_relations import LINKAGE_STATUSES
@@ -112,9 +112,7 @@ def _priority(records, collector, event, annotated):
     """Placed event-related joins, breakpoint clips, other joins, then context."""
     clip = False
     possible_clip = collector.use_soft_clipped_bases and any(
-        any(op == 4 for op, _ in read.cigartuples)
-        and any(read.reference_name == b.contig and abs(edge - b.position) <= 1
-                for b in (event.donor, event.acceptor) for edge in (read.reference_start, read.reference_end))
+        _possible_breakpoint_clip(read, [(b.contig, b.position) for b in (event.donor, event.acceptor)])
         for read in records)
     if len(records) > 1 or possible_clip:
         # Actual supplementary/alternative records stay together. An SA hint
@@ -139,8 +137,26 @@ def _priority(records, collector, event, annotated):
     return 1 if clip else priority
 
 
+def _group_signatures(identity, records):
+    """Full placement bins subdivided by every observed base, without QUAL/labels.
+
+    Actual alternative/supplementary pieces, SA linkage hints and trimming tags
+    remain in the key. No sketch, local window or consensus replaces an allele.
+    Original qualities, names and labels remain in the spool, not in this key.
+    """
+    placed = sorted((r.reference_name, r.reference_start, r.flag, r.cigarstring,
+                     r.get_tag('SA') if r.has_tag('SA') else '',
+                     repr(r.get_tag('pt')) if r.has_tag('pt') else '', r.query_sequence)
+                    for r in records)
+    structure = (identity[0], identity[2], [r[:-1] for r in placed])
+    return (sha256(repr(structure).encode()).hexdigest(),
+            sha256(repr((identity[0], identity[2], placed)).encode()).hexdigest())
+
+
 def _select(groups, db, options, collector, spans, event, annotated):
-    db.execute('CREATE TABLE discovery (rg TEXT, name TEXT, segment INTEGER, priority INTEGER, signature TEXT, size INTEGER)')
+    priorities = {}
+    db.execute('CREATE TABLE discovery (rg TEXT, name TEXT, segment INTEGER, priority INTEGER, '
+               'signature TEXT, size INTEGER, structure TEXT)')
     for template in groups.templates():
         members = defaultdict(list)
         for read in template:
@@ -149,27 +165,56 @@ def _select(groups, db, options, collector, spans, event, annotated):
             if not any(a < end and start < b for read in records for a, b in read.get_blocks()
                        for start, end in spans.get(read.reference_name, ())):
                 continue
-            # Ignore read name/labels, but retain library, sequence, placements,
-            # orientation, mate, quality and available path structure.
-            signature = sha256(repr((identity[0], identity[2], sorted(
-                (r.reference_name, r.reference_start, r.flag, r.cigarstring, r.query_sequence,
-                 r.qual, r.mapping_quality, r.get_tag('SA') if r.has_tag('SA') else '')
-                for r in records))).encode()).hexdigest()
-            db.execute('INSERT INTO discovery VALUES (?, ?, ?, ?, ?, ?)',
-                       (*identity, _priority(records, collector, event, annotated), signature, len(records)))
+            structure, signature = _group_signatures(identity, records)
+            # QUAL and labels do not affect junction/clip priority. Six pieces
+            # have at most 64 subsets, below the segment-grouping truncation
+            # boundary; larger bundles must be validated separately because
+            # ordering under that boundary can depend on original record IDs.
+            cacheable = len(records) <= 6
+            priority = priorities.get(signature) if cacheable else None
+            if priority is None:
+                priority = _priority(records, collector, event, annotated)
+                if cacheable:
+                    if len(priorities) >= 4096:
+                        priorities.pop(next(iter(priorities)))
+                    priorities[signature] = priority
+            db.execute('INSERT INTO discovery VALUES (?, ?, ?, ?, ?, ?, ?)',
+                       (*identity, priority, signature, len(records), structure))
     db.commit()
-    # Reserve a threshold-sized bundle per sequence/placement class before
-    # spending the remaining budget on abundant copies of any one class.
-    query = '''SELECT rg, name, segment, size FROM (
+    total = db.execute('SELECT coalesce(sum(size), 0) FROM discovery').fetchone()[0]
+    selected, details = _select_group_representatives(groups, db, options)
+    return selected, total, details
+
+
+def _select_group_representatives(groups, db, options):
+    """Visit distinct alleles first, retaining abundance inside the record cap.
+
+    Representative-only sampling would flatten major/minor allele ratios. Keep
+    the original voters; binning shares calculations, not biological counts.
+    """
+    query = '''SELECT priority, signature, rg, name, segment, size FROM (
         SELECT *, row_number() OVER (PARTITION BY priority, signature ORDER BY rg, name, segment) AS copy
         FROM discovery) ORDER BY priority, (copy - 1) / ?, signature, copy'''
-    selected, count = [], 0
-    for rg, name, segment, size in db.execute(query, (options['min_alternative_fragments'],)):
-        if count + size <= options['max_records']:
-            selected.extend(groups[rg, name, segment])
-            count += size
-    total = db.execute('SELECT coalesce(sum(size), 0) FROM discovery').fetchone()[0]
-    return selected, total
+    rows = db.execute(query, (options['min_alternative_fragments'],))
+    selected, selected_groups, count, record_limited = [], set(), 0, False
+    for priority, signature, rg, name, segment, size in rows:
+        if count + size > options['max_records']:
+            record_limited = True
+            continue
+        selected.extend(groups[rg, name, segment])
+        count += size
+        selected_groups.add((priority, signature))
+    db.execute('CREATE TABLE selected_groups (priority INTEGER, signature TEXT)')
+    db.executemany('INSERT INTO selected_groups VALUES (?, ?)', selected_groups)
+    total_groups = db.execute('SELECT count(*) FROM (SELECT DISTINCT priority, signature FROM discovery)').fetchone()[0]
+    represented = db.execute('SELECT coalesce(sum(size), 0) FROM discovery '
+                             'JOIN selected_groups USING (priority, signature)').fetchone()[0]
+    return selected, dict(
+        eligible_structural_bins=db.execute('SELECT count(DISTINCT structure) FROM discovery').fetchone()[0],
+        eligible_regional_groups=total_groups, selected_groups=len(selected_groups),
+        omitted_groups=total_groups - len(selected_groups), represented_records=represented,
+        groups_complete=total_groups == len(selected_groups), record_limit_reached=record_limited,
+        initial_representatives_per_group=options['min_alternative_fragments'])
 
 
 def _positions(path):
@@ -183,6 +228,28 @@ def _positions(path):
     return tuple(positions)
 
 
+def _may_support(template, joins, collector, event):
+    """Conservative CIGAR screen: false positives are built and checked normally.
+
+    Mates never form a split read. More than one actual record of a segment
+    needs full validation, including alternative placements and missing pieces.
+    """
+    identities = set()
+    for read in template:
+        identity = segment_identity(read)
+        if identity in identities:
+            return True
+        identities.add(identity)
+        if collector.use_soft_clipped_bases and _possible_breakpoint_clip(
+                read, [(b.contig, b.position) for b in (event.donor, event.acceptor)]):
+            return True
+        for left, right, _, inserted in _record_gaps(read):
+            for a, b in ((left, right), (_flip(right), _flip(left))):
+                if (a, b) in joins or event.relation(a, b, len(inserted))[0] == 'breakpoint_junction':
+                    return True
+    return False
+
+
 def _support(groups, result, collector, event, annotated, options):
     """Stream complete templates, keeping only candidate junction witnesses."""
     header = groups.header.to_dict()
@@ -190,14 +257,16 @@ def _support(groups, result, collector, event, annotated, options):
              if j['left'] is not None and j['right'] is not None}
     placements = {(b['contig'], b['reference_start'], b['reference_end'])
                   for path in result['paths'] for b in path['blocks']}
-    records, reasons = [], Counter()
+    records, reasons, geometry_cache = [], Counter(), {}
     for template in groups.templates() if result['paths'] else ():
         # No per-base path building for unrelated genomic background.
         if not any(read.reference_name == contig and a < high and low < b
                    for read in template for a, b in read.get_blocks() for contig, low, high in placements):
             continue
+        if not _may_support(template, joins, collector, event):
+            continue
         store = _Observations(template, collector, options['max_extension_segments'], header,
-                              options['sample_id'], options['source'])
+                              options['sample_id'], options['source'], geometry_cache=geometry_cache)
         observations = [o for identity in store.groups for o in store.build(identity)]
         reasons.update(store.reasons)
         hit = any((o.positions[i], o.positions[j]) in joins
@@ -295,7 +364,7 @@ def reconstruct_dense_sv_rna(bam, options):
             db.execute('PRAGMA cache_size=-8192')
             scanned, excluded = _spool(bam, db, collector)
             groups = _DiskGroups(db, bam.header)
-            selected, available = _select(groups, db, options, collector, spans, event, annotated)
+            selected, available, grouping = _select(groups, db, options, collector, spans, event, annotated)
             unsorted, discovery = str(Path(directory) / 'discovery.unsorted.bam'), str(Path(directory) / 'discovery.bam')
             with pysam.AlignmentFile(unsorted, 'wb', header=bam.header) as output:
                 for read in selected:
@@ -312,11 +381,11 @@ def reconstruct_dense_sv_rna(bam, options):
                                                   records_scanned=scanned, unique_records=db.execute('SELECT count(*) FROM records').fetchone()[0],
                                                   eligible_segments=len(groups),
                                                   excluded_records=excluded, read_path_notes=support_notes)
-            result['discovery'] = dict(policy='event_first_sequence_placement_bundles.v1',
+            result['discovery'] = dict(policy='event_first_full_allele_groups.v1', **grouping,
                                        eligible_regional_records=available, selected_records=len(selected),
                                        omitted_records=available - len(selected),
                                        complete=available == len(selected) and not result['acquisition']['limitations'])
-            if available > len(selected):
+            if grouping['record_limit_reached']:
                 result['limitations'] = sorted(set(result['limitations']) | {'discovery_record_limit'})
             if support_notes.get('segment_grouping_limit'):
                 result['limitations'] = sorted(set(result['limitations']) | {'support_segment_grouping_limit'})
