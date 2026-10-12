@@ -24,7 +24,7 @@ from .sv_rna import (
     _Event, _GeometryCache, _Model, _Observations, _build_segment, _flip, _ineligible, _join_class, _record_gaps, _record_id,
     _path_result, _possible_breakpoint_clip, reconstruct_sv_rna,
 )
-from .sv_rna_orfs import _witnesses
+from . import sv_rna_stream
 from .sv_rna_relations import LINKAGE_STATUSES
 
 
@@ -332,62 +332,73 @@ def _support(groups, result, collector, event, annotated, options):
              if j['left'] is not None and j['right'] is not None}
     placements = {(b['contig'], b['reference_start'], b['reference_end'])
                   for path in result['paths'] for b in path['blocks']}
-    records, reasons, geometry_cache, prebuilt, intern = [], Counter(), _GeometryCache(), {}, {}
+    stream = sv_rna_stream._SupportStream(result['paths'], [_positions(p) for p in result['paths']], event, annotated)
+    reasons, geometry_cache, batch, bases, intern = Counter(), _GeometryCache(), [], 0, {}
     for template in groups.templates() if result['paths'] else ():
-        # No per-base path building for unrelated genomic background.
         if not any(read.reference_name == contig and a < high and low < b
                    for read in template for a, b in read.get_blocks() for contig, low, high in placements):
             continue
         if not _may_support(template, joins, collector, event):
             continue
         members = defaultdict(list)
+        # Share overlapping coordinates without accumulating an input-wide
+        # interning table. An indivisible template can exceed this bound.
+        if len(intern) >= sv_rna_stream._SUPPORT_BATCH_BASES:
+            intern.clear()
         for read in template:
             members[segment_identity(read)].append(read)
-        built = {identity: _build_segment(identity, group, collector, reasons, intern, geometry_cache)
-                 for identity, group in members.items()}
-        observations = [o for group in built.values() for o in group]
+        observations = [o for identity, records in members.items()
+                        for o in _build_segment(identity, records, collector, reasons, intern, geometry_cache)]
         hit = any((o.positions[i], o.positions[j]) in joins
                   or event.relation(o.positions[i], o.positions[j], j - i - 1)[0] == 'breakpoint_junction'
                   for o in observations for i, j, _ in o.breaks)
         hit |= any(event.clips(o.positions, len(o.sequence)) for o in observations)
         if hit:
-            records.extend(template)  # Include visible mates when resolving labels.
-            prebuilt.update(built)
-    store = _Observations(records, collector, options['max_extension_segments'], header,
-                          options['sample_id'], options['source'], prebuilt=prebuilt)
-    # Parents can be outside the candidates' intervals; keep original producer
-    # and ancestry resolution over the complete eligible input, without loading it.
+            size = sum(len(o.sequence) for o in observations)
+            if batch and bases + size > sv_rna_stream._SUPPORT_BATCH_BASES:
+                stream.consume(batch)
+                batch, bases = [], 0
+            batch.extend(observations)
+            bases += size
+            if bases >= sv_rna_stream._SUPPORT_BATCH_BASES:
+                stream.consume(batch)
+                batch, bases = [], 0
+    stream.consume(batch)
+    batch.clear()
+    observations, intern = [], {}
+    del geometry_cache
+    # Only output metadata persists. Parents and mates resolve from the original
+    # disk-backed input, including records outside every candidate's intervals.
+    store = _Observations([], collector, options['max_extension_segments'], header,
+                          options['sample_id'], options['source'])
     store.lineage = ReadLineage(groups, header)
-    adjacency = [entry for (left, right), entries in store.joins.items() for entry in entries
-                 if event.relation(left, right, entry[2] - entry[1] - 1)[0] == 'breakpoint_junction']
-    clips = defaultdict(list)
-    for o in store.observations.values():
-        for i, j, assignment in event.clips(o.positions, len(o.sequence)):
-            clips['donor' if assignment[0] == 0 else 'acceptor'].append((o, i, j, 'clip'))
-    used, junction_cache, witness_groups = {}, {}, {}
+    store.cell_umi = CellUmiEvidence(groups, header, options['sample_id'], options['source'],
+                                   template_loader=groups.template)
+    junction_cache, linked = stream.summaries(store.cell_umi, store.lineage)
+    used = {}
 
     def support(witnesses):
-        identities = {store.observations[w['observation']].identity for w in witnesses}
+        identities = {tuple(stream.rows[w['observation']]['identity']) for w in witnesses}
         return dict(**store.cell_umi.support(identities), read_lineage=store.lineage.support(identities),
-                    missing_quality_reads=len({store.observations[w['observation']].identity for w in witnesses
-                                               if store.observations[w['observation']].missing_qualities}),
+                    missing_quality_reads=len({tuple(stream.rows[w['observation']]['identity']) for w in witnesses
+                                               if stream.rows[w['observation']]['missing_qualities']}),
                     scope='complete_input_direct_junction_observations', witnesses=witnesses)
 
-    for path in result['paths']:
-        positions = _positions(path)
-        reported, evidence = _path_result(path['sequence'], positions, set(), store, event, annotated, adjacency, clips,
-                                          lambda *args: {}, lambda *args: None, junction_cache=junction_cache)
+    for index, path in enumerate(result['paths']):
+        positions = stream.positions[index]
+        reported, evidence = _path_result(path['sequence'], positions, set(), store, event, annotated, [], {},
+                                          lambda *args: {}, lambda *args: None, junction_cache=junction_cache,
+                                          linked_intervals=linked[index])
         path['junctions'] = reported['junctions']
         used.update(evidence)
         path['sequence_evidence']['voting_support_scope'] = 'bounded_discovery'
-        path['full_interval_support'] = support(_witnesses(path['sequence'], positions, 0, len(positions),
-                                                         path['junctions'], evidence, group_cache=witness_groups))
+        path['full_interval_support'] = support(stream.interval_witnesses(index, 0, len(positions), path['junctions']))
         for candidate in path['exploratory_orfs']['candidates']:
             candidate['start_evidence']['observation_scope'] = 'bounded_discovery'
             start, end = candidate['query_interval']
             crossed = [path['junctions'][i] for i in candidate['crossed_junctions']]
-            candidate['full_interval_support'] = support(_witnesses(path['sequence'], positions, start, end,
-                                                                  crossed, evidence, group_cache=witness_groups))
+            candidate['full_interval_support'] = support(stream.interval_witnesses(index, start, end, crossed))
+        stream.witnesses[index].clear()
     # Discovery-only context also needs original visible mates/parents. Its
     # voting counts remain explicitly scoped to the bounded discovery set.
     consulted = {tuple(row['identity']) for row in result['cell_umi_evidence']['reads']}
@@ -406,14 +417,10 @@ def _support(groups, result, collector, event, annotated, options):
         store.lineage.segment(tuple(row['identity']))
     lineage = {tuple(row['identity']): row for row in store.lineage.evidence()}
     result['read_lineage'] = dict(scope='complete_eligible_input', reads=[lineage[key] for key in sorted(lineage)])
-    for key, o in sorted(used.items()):
-        result['observations'][key] = dict(identity=list(o.identity), records=list(o.records),
-                                          reverse_complement=o.reverse_complement,
-                                          original_query_interval=list(o.query_interval),
-                                          missing_qualities=o.missing_qualities, secondary=o.secondary)
-    cited = {rid for o in used.values() for rid in o.records}
-    for identity in {o.identity for o in used.values()}:
-        for read in store.groups[identity]:
+    result['observations'].update(sorted(used.items()))
+    cited = {rid for row in used.values() for rid in row['records']}
+    for identity in {tuple(row['identity']) for row in used.values()}:
+        for read in groups[identity]:
             rid = _record_id(read)
             if rid in cited and rid not in result['original_records']:
                 result['original_records'][rid] = read.to_string()
@@ -450,6 +457,8 @@ def reconstruct_dense_sv_rna(bam, options):
             with pysam.AlignmentFile(unsorted, 'wb', header=bam.header) as output:
                 for read in selected:
                     output.write(read)
+            selected_count = len(selected)
+            del selected
             pysam.sort('--no-PG', '-o', discovery, unsorted)
             pysam.index(discovery)
             with pysam.AlignmentFile(discovery) as discovery_bam:
@@ -463,9 +472,9 @@ def reconstruct_dense_sv_rna(bam, options):
                                                   eligible_segments=len(groups),
                                                   excluded_records=excluded, read_path_notes=support_notes)
             result['discovery'] = dict(policy='event_first_full_allele_groups.v1', **grouping,
-                                       eligible_regional_records=available, selected_records=len(selected),
-                                       omitted_records=available - len(selected),
-                                       complete=available == len(selected) and not result['acquisition']['limitations'])
+                                       eligible_regional_records=available, selected_records=selected_count,
+                                       omitted_records=available - selected_count,
+                                       complete=available == selected_count and not result['acquisition']['limitations'])
             if grouping['record_limit_reached']:
                 result['limitations'] = sorted(set(result['limitations']) | {'discovery_record_limit'})
             if support_notes.get('segment_grouping_limit'):

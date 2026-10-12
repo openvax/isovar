@@ -46,8 +46,10 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--profile', type=Path, help='Profile reconstruction only; excludes report serialization')
     parser.add_argument('--max-scratch-bytes', type=int, help='Abort if sampled temporary storage exceeds this budget')
+    parser.add_argument('--max-rss-bytes', type=int, help='Abort if sampled process peak RSS exceeds this budget')
     args = parser.parse_args()
-    if args.max_records < 1 or args.seconds < 1 or (args.max_scratch_bytes is not None and args.max_scratch_bytes < 1):
+    if (args.max_records < 1 or args.seconds < 1
+            or any(v is not None and v < 1 for v in (args.max_scratch_bytes, args.max_rss_bytes))):
         parser.error('Budgets must be positive')
     sys.path.insert(0, str(args.checkout.resolve()))
     import pysam
@@ -69,7 +71,27 @@ def main():
     inputs = sv_rna_input_from_dict(read_json(bundle.path(plan['input'])))
     parameters = dict(plan['parameters'], dense_support=True, max_records=args.max_records)
     collector = ReadCollector(**plan.get('read_collection', {}))
-    stages, scratch_peak, scratch_exceeded, stopped = {}, [0], [False], threading.Event()
+    stages, scratch_peak, exceeded, stopped = {}, [0], [], threading.Event()
+    batches = dict(count=0, peak_observed_bases=0, peak_observations=0, retained_observation_rows=0)
+    try:
+        from isovar import sv_rna_stream
+    except ImportError:
+        pass  # The identical driver also benchmarks engines predating streaming.
+    else:
+        consume = sv_rna_stream._SupportStream.consume
+
+        def measured_consume(stream, observations):
+            batches['count'] += 1
+            batches['peak_observed_bases'] = max(batches['peak_observed_bases'],
+                                               sum(len(o.sequence) for o in observations))
+            batches['peak_observations'] = max(batches['peak_observations'], len(observations))
+            consume(stream, observations)
+            batches['retained_observation_rows'] = len(stream.rows)
+
+        sv_rna_stream._SupportStream.consume = measured_consume
+
+    def peak_rss():
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if sys.platform == 'darwin' else 1024)
 
     def timed(name, function):
         def run(*values, **kwargs):
@@ -98,10 +120,14 @@ def main():
                   driver_sha256=checksum(Path(__file__)), bundle_id=bundle.bundle_id, run_id=args.run,
                   input_files=pins, parameters=parameters, read_collection=plan.get('read_collection', {}),
                   seconds_budget=args.seconds, scratch_bytes_budget=args.max_scratch_bytes,
+                  rss_bytes_budget=args.max_rss_bytes,
                   profiled=bool(args.profile), original_input_limitations=plan.get('input_limitations', []),
                   engine_sha256={name: checksum(args.checkout / 'isovar' / name)
                                  for name in ('sv_rna.py', 'sv_rna_dense.py', 'sv_rna_orfs.py',
                                               'read_identity.py', 'read_lineage.py', 'cell_umi.py', 'rna_evidence.py')})
+    stream_source = args.checkout / 'isovar' / 'sv_rna_stream.py'
+    if stream_source.exists():
+        report['engine_sha256']['sv_rna_stream.py'] = checksum(stream_source)
     with tempfile.TemporaryDirectory(prefix='dense-benchmark-', dir=args.scratch_dir) as scratch:
         def monitor():
             while not stopped.wait(0.2):
@@ -114,7 +140,10 @@ def main():
                         pass
                 scratch_peak[0] = max(scratch_peak[0], total)
                 if args.max_scratch_bytes is not None and total > args.max_scratch_bytes:
-                    scratch_exceeded[0] = True
+                    exceeded.append('scratch_limit')
+                if args.max_rss_bytes is not None and peak_rss() > args.max_rss_bytes:
+                    exceeded.append('memory_limit')
+                if exceeded:
                     os.kill(os.getpid(), signal.SIGALRM)
                     return
 
@@ -132,7 +161,7 @@ def main():
             report.update(status='completed', discovery=result['discovery'],
                           support_acquisition=result['support_acquisition'], limitations=result['limitations'])
         except TimeoutError:
-            report['status'] = 'scratch_limit' if scratch_exceeded[0] else 'timeout'
+            report['status'] = exceeded[0] if exceeded else 'timeout'
             result = None
         finally:
             signal.alarm(0)
@@ -140,8 +169,7 @@ def main():
                 profile.disable()
             report.update(seconds=time.perf_counter() - start, cpu_seconds=time.process_time() - cpu,
                           stages_seconds=stages, sampled_peak_scratch_bytes=scratch_peak[0],
-                          peak_rss_bytes=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-                          * (1 if sys.platform == 'darwin' else 1024))
+                          peak_rss_bytes=peak_rss(), support_batches=batches)
             stopped.set()
             thread.join()
             if profile is not None:
