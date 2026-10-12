@@ -8,7 +8,7 @@ import pytest
 
 from isovar import InitiationContext, UORFCatalog, UORFRecord, annotate_initiation_context, load_uorf_catalog
 from isovar.cli.isovar_uorf_evidence import run
-from examples.build_uorf_catalog import load_transcript_reference, model_initiation_context
+from orfdata.build import load_transcript_reference, model_initiation_context
 
 
 def test_partial_and_ambiguous_positions_are_not_mismatches():

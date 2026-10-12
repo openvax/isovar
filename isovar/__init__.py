@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.49.0"
+__version__ = "1.50.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -50,6 +50,8 @@ from .initiation_context import InitiationContext, annotate_initiation_context
 
 
 __all__ = [
+    "annotate_sv_orf_evidence",
+    "annotate_sv_uorf_evidence",
     "InitiationContext",
     "annotate_initiation_context",
     "UORFCatalog",
@@ -101,3 +103,7 @@ __all__ = [
     "VariantSequence",
     "VariantSequenceCreator",
 ]
+
+from .uorf_annotation import annotate_sv_uorf_evidence
+
+from .orf_annotation import annotate_sv_orf_evidence

@@ -4,6 +4,18 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.50.0
+
+- Use orfdata as the single owner of the upstream-ORF evidence catalogue,
+  keeping existing Isovar imports and query/export commands compatible.
+- Add `annotate_sv_orf_evidence` to connect reconstructed RNA candidates to
+  Varcode's validated alternative frames and native peptide retention. JSON
+  and TSV exports preserve this evidence and its catalogue provenance.
+- Verify Sid TPST1–CRCP's 30/61/72-aa alternatives against original PacBio
+  reads, preserving their 15/1/1 full-interval witnesses and missing qualities.
+  None retains the catalogue's native MS peptide; mutant translation remains
+  unassessed.
+
 ## 1.49.0
 
 - Automatically bin dense SV discovery by complete sequence and alignment
@@ -799,7 +811,7 @@ Read support counts sequenced segments, not alternative SAM alignments.
 - Reads keep their aligned exon blocks and splice junctions; assembly and
   translation are restricted to compatible transcripts.
 
-## 1.9.0
+## 0.1.0
 
 - Overlap assembly is on by default in the Python API and CLI. Pass
   `variant_sequence_assembly=False` or `--disable-variant-sequence-assembly` to disable it.

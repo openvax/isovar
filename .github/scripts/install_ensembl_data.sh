@@ -27,6 +27,8 @@ install_release() {
 
 install_release 87 homo_sapiens \
   https://github.com/openvax/ensembl-data/releases/download/GRCh38.87/
+install_release 95 human \
+  https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
 install_release 75 human \
   https://github.com/openvax/ensembl-data/releases/download/GRCh37.75/
 install_release 102 mouse \

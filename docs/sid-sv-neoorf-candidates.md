@@ -124,3 +124,15 @@ original paths; portable replay remains tracked in
 [#440](https://github.com/openvax/isovar/issues/440).
 The complete 1,493-geometry catalogue and general neoORF discovery remain
 outside this focused search, not negative results.
+
+## Reference uORF MS overlay
+
+Isovar 1.48 adds `annotate_sv_uorf_evidence` using the shared orfdata catalogue
+and Varcode's mapped uORF annotation. Native TPST1 has a reported HLA peptide,
+`KIILSKISV` (residues 31–39; 28 PSMs in the pinned author export). This is a
+different source from the earlier Kowar processed-table search above. The
+TPST1–CRCP alternatives do not retain this peptide: it supplies no direct MS
+evidence for their altered sequence. The original packaged PacBio regression
+reproduces 30/61/72-aa alternatives with 15/1/1 full-interval witnesses, preserving
+missing qualities and unresolved RNA polarity. See [usage and evidence
+scope](uorf-mutation-annotations.md#annotating-reconstructed-sid-candidates).

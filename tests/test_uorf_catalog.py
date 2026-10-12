@@ -15,8 +15,8 @@ import pytest
 from isovar import UORFCatalog, UORFPeptide, UORFRecord, load_uorf_catalog
 from isovar.cli.commands import run as command
 from isovar.cli.isovar_uorf_evidence import run
-from examples.build_uorf_catalog import intervals
-from examples import build_uorf_catalog as builder
+from orfdata.build import intervals
+from orfdata import build as builder
 
 
 @pytest.fixture(scope="module")
@@ -170,7 +170,7 @@ def test_multiple_I_L_equivalent_intervals_and_invalid_assignments():
 
 
 def test_packaged_dataset_manifest_and_local_replay(catalog, tmp_path):
-    root = files("isovar").joinpath("data/uorf-evidence")
+    root = files("orfdata").joinpath("data/uorf-evidence")
     raw = root.joinpath("catalog.json.gz").read_bytes()
     manifest = json.loads(root.joinpath("manifest.json").read_text())
     assert hashlib.sha256(raw).hexdigest() == manifest["catalog_sha256"]
