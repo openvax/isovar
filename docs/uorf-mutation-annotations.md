@@ -99,6 +99,13 @@ export = export_sv_rna_orfs(annotated)
 ```
 
 The overlay validates the entire reference model against the supplied transcript.
+Isovar 1.51 uses ORFdata's resolved species/strain, assembly and annotation
+context throughout binding and export. The same API works for other species
+when supplied a matching catalogue and transcripts. Custom PyEnsembl Genomes
+without complete metadata accept an explicit `reference_context=ReferenceContext(...)`
+on `annotate_sv_orf_evidence` or the legacy `annotate_sv_uorf_evidence` wrapper.
+Conflicting metadata and ambiguous supplied transcript IDs are rejected;
+versioned source transcript IDs are looked up and then validated in full.
 It converts Isovar's zero-based mapped blocks to Varcode's one-based ancestry,
 keeps every candidate's full-interval witnesses, and attaches
 `reference_uorf_annotations` to each candidate/occurrence. The export retains
