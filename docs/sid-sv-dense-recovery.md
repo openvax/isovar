@@ -202,6 +202,11 @@ python -m examples.recover_sid_sv_pilot RECOVERY \
 python -m examples.check_sid_sv_recovery RECOVERY CHECKS
 ```
 
+The checker requires every view to be reconstructed by default. To verify a
+publication that explicitly retains recorded failures, as this one does, add
+`--allow-unresolved`. Every selected input and outcome is still required;
+the ledger reports completed and unresolved views separately.
+
 The default free-space guard is 8 GiB. Partner recovery allows four rounds,
 20,000 intervals, 20 million bases and 128 queries of at most 30 seconds each;
 seed acquisition has its separate 1,200-second budget. Each reconstruction

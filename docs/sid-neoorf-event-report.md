@@ -19,6 +19,11 @@ alleles/calls, DNA support, transcript anatomy, RNA outcomes, every protein
 sequence/window and support by product. Their index includes the unresolved
 entries as well as the leads.
 
+The dense recovery contributes 42 completed views and two unresolved ONT IGKC
+outcomes (a timeout and an interrupted scan), with unknown support counts.
+[Follow-up #470](https://github.com/openvax/isovar/issues/470) tracks completion;
+the full 100-view selected SV outcome ledger is retained.
+
 ## Complete, downloadable sequences and evidence
 
 - [Every protein/window, FASTA](data/sid-neoorf-event-report/proteins.fasta):
