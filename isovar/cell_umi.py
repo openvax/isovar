@@ -34,6 +34,9 @@ class CellUmiEvidence:
         SAM header. Matching SM/LB identify a shared declared library across RGs.
     sample_id, source : str
         Explicit input sample and source namespaces; not inferred from paths.
+    template_loader : callable, optional
+        Load all eligible segment groups for an ``(RG, QNAME)`` pair lazily.
+        Used by the disk-backed reconstruction spool to avoid a full key scan.
 
     Notes
     -----
@@ -45,16 +48,18 @@ class CellUmiEvidence:
 
     policy = "isovar.cell_umi_labels.v1"
 
-    def __init__(self, groups, header, sample_id, source):
+    def __init__(self, groups, header, sample_id, source, *, template_loader=None):
         self.groups, self.sample_id, self.source = groups, sample_id, source
         self.read_groups = unique_header_entries(header.get("RG", []))
         self.ambiguous_groups = {r.get("ID") for r in header.get("RG", [])} - self.read_groups.keys()
         self.history = ProgramHistory(header)
         self.program_cache, self.cache = {}, {}
         self.header_xm_producer = False
+        self.template_loader = template_loader
         self.templates = defaultdict(list)
-        for identity in groups:
-            self.templates[identity[:2]].append(identity)
+        if template_loader is None:
+            for identity in groups:
+                self.templates[identity[:2]].append(identity)
 
     def _xm_program(self, key):
         if key not in self.program_cache:
@@ -92,7 +97,7 @@ class CellUmiEvidence:
                 and self.history.leaves_cover_all() else None)
         return self.header_xm_producer
 
-    def _metadata(self, identity):
+    def _metadata(self, identity, records=None):
         group = self.read_groups.get(identity[0], {})
         library, sample = group.get("LB") or None, group.get("SM") or None
         scope_known = bool(library) and identity[0] not in self.ambiguous_groups
@@ -104,7 +109,7 @@ class CellUmiEvidence:
                    xm_semantics=[], records_without_complete_label=0, label=None)
         cells, umis, pairs, tags, xm_states = set(), set(), set(), set(), set()
         invalid, raw_cell, raw_umi = False, False, False
-        for read in self.groups[identity]:
+        for read in self.groups[identity] if records is None else records:
             values = {tag: read.get_tag(tag) if read.has_tag(tag) else None for tag in ("CB", "UB", "XM")}
             raw_cell |= read.has_tag("CR") or read.has_tag("XC")
             raw_umi |= any(read.has_tag(tag) for tag in ("UR", "RX", "OX"))
@@ -154,7 +159,8 @@ class CellUmiEvidence:
     def segment(self, identity):
         """Resolve a segment and check conflicting labels on its visible mates."""
         if identity not in self.cache:
-            rows = [self._metadata(key) for key in self.templates[identity[:2]]]
+            rows = ([self._metadata(key) for key in self.templates[identity[:2]]] if self.template_loader is None else
+                    [self._metadata(key, records) for key, records in self.template_loader(identity[:2]).items()])
             # One template cannot acquire two cell/UMI labels merely because
             # its mates or alternative placements disagree.
             conflict = (len(rows) > 1 and (any(r["status"] == "conflicting_tags" for r in rows)

@@ -17,12 +17,13 @@ placement exists (insertions, soft clips, junction homology).
 """
 
 from bisect import bisect_right
-from collections import Counter, defaultdict, deque
+from collections import Counter, OrderedDict, defaultdict, deque
 from collections.abc import Mapping
-from heapq import nsmallest
+from heapq import merge
 from dataclasses import asdict, dataclass
+from functools import cached_property
 from hashlib import sha256
-from itertools import combinations
+from itertools import combinations, islice, repeat
 from types import SimpleNamespace
 
 from .cell_umi import CellUmiEvidence
@@ -231,6 +232,19 @@ def collect_sv_records(bam, regions, references, max_records=SV_MAX_RECORDS, max
         genome_wide_competing_placements_assessed=False)
 
 
+class _Positions(tuple):
+    """Immutable placements with a cached hash and compact collinear runs."""
+
+    def __new__(cls, values, runs=None):
+        result = super().__new__(cls, values)
+        result.hash_value = tuple.__hash__(result)
+        result.runs = runs
+        return result
+
+    def __hash__(self):
+        return self.hash_value
+
+
 @dataclass(frozen=True, eq=False)
 class RnaObservation:
     """One sequenced segment's observed path, in one orientation.
@@ -261,6 +275,10 @@ class RnaObservation:
     def fragment(self):
         return self.identity[:2]
 
+    @cached_property
+    def comparison_key(self):
+        return self.sequence, self.positions
+
 
 def _flip(position):
     contig, base, strand = position
@@ -278,6 +296,8 @@ def _successor(position):
 
 def _runs(positions):
     """Collinear placed runs: (query start, query end, contig, low, high, strand)."""
+    if isinstance(positions, _Positions) and positions.runs is not None:
+        return positions.runs
     runs = []
     for q, position in enumerate(positions):
         if position is None:
@@ -287,6 +307,8 @@ def _runs(positions):
             runs[-1] = (start, q + 1, contig, min(low, position[1]), max(high, position[1] + 1), strand)
         else:
             runs.append((q, q + 1, position[0], position[1], position[1] + 1, position[2]))
+    if isinstance(positions, _Positions):
+        positions.runs = runs
     return runs
 
 
@@ -358,10 +380,78 @@ def _record_placements(read, view, intern):
     return placements, kinds
 
 
+def _single_record_geometry(read, view, keep_clips, intern):
+    """Construct single-record geometry by CIGAR runs without per-base dictionaries."""
+    blocks = list(_aligned_blocks(read))
+    visible = [(max(q, view.start), min(q + n, view.end), r - q)
+               for q, r, n, _, _ in blocks if max(q, view.start) < min(q + n, view.end)]
+    if not visible:
+        return None
+    first, last = (view.start, view.end) if keep_clips else (visible[0][0], visible[-1][1])
+    lo, hi = view.sequenced_interval(first - view.start, last - view.start)
+    contig, strand = read.reference_name, '-' if read.is_reverse else '+'
+    positions, runs = [None] * (last - first), []
+    for a, b, shift in visible:
+        positions[a - first:b - first] = [intern.setdefault(p, p) for p in
+            zip(repeat(contig), range(a + shift, b + shift), repeat(strand))]
+        start, end = (last - b, last - a) if read.is_reverse else (a - first, b - first)
+        runs.append((start, end, contig, a + shift, b + shift, strand))
+    if read.is_reverse:
+        positions.reverse()
+    runs.sort()
+    merged = []
+    for run in runs:
+        if (merged and merged[-1][1] == run[0]
+                and (merged[-1][3] == run[4] if read.is_reverse else merged[-1][4] == run[3])):
+            previous = merged[-1]
+            merged[-1] = (previous[0], run[1], contig, min(previous[3], run[3]), max(previous[4], run[4]), strand)
+        else:
+            merged.append(run)
+    kinds, previous = {}, None
+    for q, _, n, gap, _ in blocks:
+        if previous is not None and gap is not None:
+            pair = (last - 1 - q, last - 1 - previous) if read.is_reverse else (previous - first, q - first)
+            kinds[pair] = _gap_kind(*gap)
+        previous = q + n - 1
+    positions = _Positions(positions, merged)
+    breaks = tuple((a[1] - 1, b[0], kinds.get((a[1] - 1, b[0]), 'gap')) for a, b in zip(merged, merged[1:])
+                   if positions[b[0]] != _successor(positions[a[1] - 1]))
+    return positions, breaks, (lo, hi)
+
+
+class _GeometryCache(OrderedDict):
+    """Reuse short-read geometry without allowing long reads to grow the cache."""
+
+    def __init__(self):
+        super().__init__()
+        self.bases = 0
+
+    def get(self, key, default=None):
+        if key not in self:
+            return default
+        self.move_to_end(key)
+        return self[key]
+
+    def __setitem__(self, key, value):
+        if key in self:
+            self.bases -= self._size(self[key])
+        self.bases += self._size(value)
+        super().__setitem__(key, value)
+        self.move_to_end(key)
+        while len(self) > 8192 or self.bases > 2_000_000:
+            _, previous = self.popitem(last=False)
+            self.bases -= self._size(previous)
+
+    @staticmethod
+    def _size(value):
+        # Mirrors retain both coordinate tuples to protect against ID reuse.
+        return len(value[1]) + (len(value[0]) if len(value) == 2 else 0)
+
+
 def _cache_geometry(cache, key, value):
     """Bound transient reuse independently of input size and retained witnesses."""
     if cache is not None:
-        if len(cache) >= 128:
+        if not isinstance(cache, _GeometryCache) and len(cache) >= 128:
             cache.pop(next(iter(cache)))
         cache[key] = value
 
@@ -377,18 +467,30 @@ def _segment_path(records, collector, intern, cache=None):
         (read.reference_name, read.reference_start, read.is_reverse, read.cigarstring,
          view.sequence if len(records) > 1 else None,
          view.sequenced_interval(0, len(view.sequence))) for read, view in zip(records, views)))
+    if len(records) == 1:
+        read, view = records[0], views[0]
+        start, end = view.sequenced_interval(0, len(view.sequence))
+        geometry = cache.get(key) if cache is not None else None
+        if geometry is None:
+            built = _single_record_geometry(read, view, collector.use_soft_clipped_bases, intern)
+            if built is None:
+                return 'no_unique_placement'
+            geometry = (None, *built)
+            _cache_geometry(cache, key, geometry)
+        lo, hi = geometry[3]
+        sequence = (reverse_complement_dna(view.sequence) if read.is_reverse else view.sequence).upper()
+        sequence = sequence[lo - start:hi - start]
+        if set(sequence) - set('ACGT'):
+            return 'ambiguous_bases'
+        qualities = view.qualities
+        if qualities is None:
+            qualities = (None,) * (hi - lo)
+        else:
+            qualities = (qualities[::-1] if read.is_reverse else qualities)[lo - start:hi - start]
+        return sequence, *geometry[1:], qualities
     if cache is not None and key in cache:
         geometry = cache[key]
         lo, hi = geometry[3]
-        if len(records) == 1:
-            # Same placement, different alleles: reuse coordinates, never bases.
-            read, view = records[0], views[0]
-            start, _ = view.sequenced_interval(0, len(view.sequence))
-            sequence = (reverse_complement_dna(view.sequence) if read.is_reverse else view.sequence).upper()
-            sequence = sequence[lo - start:hi - start]
-            if set(sequence) - set('ACGT'):
-                return 'ambiguous_bases'
-            geometry = (sequence, *geometry[1:])
         # Only geometry is shared. Quality gates still see this read's original
         # qualities (including unknown values), never a representative's QUAL.
         qualities = [None] * (hi - lo)
@@ -430,7 +532,7 @@ def _segment_path(records, collector, intern, cache=None):
     sequence = "".join(bases[q] for q in range(lo, hi))
     if set(sequence) - set("ACGT"):
         return "ambiguous_bases"
-    positions = tuple(unique.get(q) for q in range(lo, hi))
+    positions = _Positions(unique.get(q) for q in range(lo, hi))
     breaks = tuple(
         (i, j, kinds.get((i + lo, j + lo), "split" if sources[i + lo].isdisjoint(sources[j + lo]) else "gap"))
         for i, j in _breaks(positions))
@@ -468,8 +570,10 @@ def _build_segment(identity, records, collector, reasons, intern, cache=None):
         mirror = cache.get(mirror_key) if cache is not None else None
         if mirror is None:
             original_positions = positions
-            positions = tuple(None if p is None else intern.setdefault(_flip(p), _flip(p))
-                              for p in reversed(positions))
+            positions = _Positions((None if p is None else intern.setdefault(_flip(p), _flip(p))
+                                    for p in reversed(positions)),
+                                   [(n - b, n - a, contig, low, high, '-' if strand == '+' else '+')
+                                    for a, b, contig, low, high, strand in reversed(_runs(original_positions))])
             # Hold the original tuple so its id cannot be recycled while cached.
             _cache_geometry(cache, mirror_key, (original_positions, positions))
         else:
@@ -555,14 +659,14 @@ class _Observations:
     reaching the cap is reported.
     """
 
-    def __init__(self, records, collector, cap, header, sample_id, source, *, geometry_cache=None):
+    def __init__(self, records, collector, cap, header, sample_id, source, *, geometry_cache=None, prebuilt=None):
         self.collector, self.cap, self.limited = collector, cap, False
         self.groups, self.excluded, self.reasons = defaultdict(list), Counter(), Counter()
         self.extent, self.bins, self.gaps = defaultdict(dict), defaultdict(list), defaultdict(dict)
         self.gap_kinds = defaultdict(set)
         self.built, self.observations, self.joins, self.runs = {}, {}, defaultdict(list), {}
-        self.intern, self.windows = {}, {}
-        self.geometry_cache = {} if geometry_cache is None else geometry_cache
+        self.intern, self.windows, self.geometry_runs = {}, {}, {}
+        self.geometry_cache = _GeometryCache() if geometry_cache is None else geometry_cache
         for read in records:
             reason = _ineligible(read, collector)
             if reason:
@@ -576,23 +680,54 @@ class _Observations:
                     self.bins[contig, b].append((start, end, identity))
             low, high = self.extent[identity].get(contig, (read.reference_start, read.reference_end))
             self.extent[identity][contig] = (min(low, read.reference_start), max(high, read.reference_end))
+        self.placement_groups = None
         self.lineage = ReadLineage(self.groups, header)
         self.cell_umi = CellUmiEvidence(self.groups, header, sample_id, source)
+        if prebuilt is not None:
+            for identity, observations in prebuilt.items():
+                self._register(identity, observations)
+
+    def _register(self, identity, observations):
+        self.built[identity] = observations
+        for o in observations:
+            self.observations[o.key] = o
+            for i, j, kind in o.breaks:
+                self.joins[o.positions[i], o.positions[j]].append((o, i, j, kind))
 
     def build(self, identity):
         if identity not in self.built:
-            self.built[identity] = _build_segment(identity, self.groups[identity], self.collector, self.reasons,
-                                                  self.intern, self.geometry_cache)
-            for o in self.built[identity]:
-                self.observations[o.key] = o
-                for i, j, kind in o.breaks:
-                    self.joins[o.positions[i], o.positions[j]].append((o, i, j, kind))
+            self._register(identity, _build_segment(identity, self.groups[identity], self.collector, self.reasons,
+                                                    self.intern, self.geometry_cache))
         return self.built[identity]
 
     def observation_runs(self, observation):
         if observation.key not in self.runs:
-            self.runs[observation.key] = _runs(observation.positions)
+            if observation.positions not in self.geometry_runs:
+                self.geometry_runs[observation.positions] = _runs(observation.positions)
+            self.runs[observation.key] = self.geometry_runs[observation.positions]
         return self.runs[observation.key]
+
+    def _index_placement_groups(self):
+        """Bin identical block/extent geometry once, retaining sorted original IDs."""
+        blocks = defaultdict(set)
+        for (contig, _), entries in self.bins.items():
+            for start, end, identity in entries:
+                blocks[identity].add((contig, start, end))
+        grouped = {}
+        self.placement_groups, self.placement_bins = [], defaultdict(set)
+        for identity, intervals in blocks.items():
+            key = tuple(sorted(intervals)), tuple(sorted(self.extent[identity].items()))
+            if key not in grouped:
+                group_id = len(self.placement_groups)
+                grouped[key] = group_id
+                self.placement_groups.append(([], self.extent[identity]))
+                for contig, start, end in intervals:
+                    for b in range(start // _RECORD_BIN, (end - 1) // _RECORD_BIN + 1):
+                        self.placement_bins[contig, b].add((start, end, group_id))
+            self.placement_groups[grouped[key]][0].append(identity)
+        for members, _ in self.placement_groups:
+            members.sort()
+        self.bins.clear()
 
     def classify(self, event, annotated, anchored):
         """Sort segments by their CIGAR joins, without building single records.
@@ -649,31 +784,46 @@ class _Observations:
 
         Forked branches re-query shared windows; results are memoized.
         """
+        return {(o.key, offset) for _, offset, members in self.grouped_overlapping(positions, lo, hi)
+                for o in members.values()}
+
+    def grouped_overlapping(self, positions, lo, hi):
         window = positions[lo:hi]
         if window not in self.windows:
-            self.windows[window] = self._overlapping(window)
-        return {(key, lo + offset) for key, offset in self.windows[window]}
+            self.windows[window] = _group_extenders(
+                (self.observations[key], offset) for key, offset in self._overlapping(window))
+        return [(o, lo + offset, members) for o, offset, members in self.windows[window]]
 
     def _overlapping(self, window):
+        if self.placement_groups is None:
+            self._index_placement_groups()
         runs = _runs(window)
         covered = Counter()  # Window bases each segment's aligned blocks cover.
         for _, _, contig, low, high, _ in runs:
             blocks = {block for b in range(low // _RECORD_BIN, (high - 1) // _RECORD_BIN + 1)
-                      for block in self.bins.get((contig, b), ()) if block[0] < high and low < block[1]}
-            for start, end, identity in blocks:
-                covered[identity] += min(end, high) - max(start, low)
-        candidates = set(covered)
-        if len(candidates) > self.cap:
+                      for block in self.placement_bins.get((contig, b), ()) if block[0] < high and low < block[1]}
+            for start, end, group_id in blocks:
+                covered[group_id] += min(end, high) - max(start, low)
+        count = sum(len(self.placement_groups[g][0]) for g in covered)
+        if count > self.cap:
             # Extenders must overlap the whole window (``min_overlap``): prefer
             # segments covering most of it (e.g. both sides of a junction),
             # then those reaching furthest beyond it.
             self.limited = True
             _, _, contig, _, _, strand = runs[-1]
 
-            def rank(identity):
-                low, high = self.extent[identity].get(contig, (float("inf"), float("-inf")))
-                return -covered[identity], -(high if strand == "+" else -low), identity
-            candidates = nsmallest(self.cap, candidates, key=rank)
+            ranked = defaultdict(list)
+            for group_id, coverage in covered.items():
+                members, extent = self.placement_groups[group_id]
+                low, high = extent.get(contig, (float("inf"), float("-inf")))
+                ranked[-coverage, -(high if strand == "+" else -low)].append(members)
+            candidates = []
+            for rank in sorted(ranked):
+                candidates.extend(islice(merge(*ranked[rank]), self.cap - len(candidates)))
+                if len(candidates) == self.cap:
+                    break
+        else:
+            candidates = [identity for g in covered for identity in self.placement_groups[g][0]]
         found = set()
         for identity in candidates:
             for o in self.build(identity):
@@ -686,19 +836,31 @@ class _ObservationIndex:
 
     def __init__(self, observations):
         self.observations = {o.key: o for o in observations}
-        self.runs = {o.key: _runs(o.positions) for o in observations}
+        grouped = {}
+        for o in observations:
+            grouped.setdefault(o.positions, set()).add(o.key)
+        self.geometry = [(_runs(positions), keys) for positions, keys in grouped.items()]
+        self.windows = {}
         self.bins = defaultdict(set)
-        for key, runs in self.runs.items():
+        for group_id, (runs, _) in enumerate(self.geometry):
             for _, _, contig, low, high, strand in runs:
                 for b in range(low // _BIN, (high - 1) // _BIN + 1):
-                    self.bins[contig, strand, b].add(key)
+                    self.bins[contig, strand, b].add(group_id)
 
     def overlapping(self, positions, lo, hi):
         """(key, path offset of the observation start) sharing a placed base in positions[lo:hi]."""
         runs = _runs(positions[lo:hi])
-        keys = {key for _, _, contig, low, high, strand in runs
-                for b in range(low // _BIN, (high - 1) // _BIN + 1) for key in self.bins.get((contig, strand, b), ())}
-        return {found for key in keys for found in _offsets(runs, lo, key, self.runs[key])}
+        groups = {g for _, _, contig, low, high, strand in runs
+                  for b in range(low // _BIN, (high - 1) // _BIN + 1) for g in self.bins.get((contig, strand, b), ())}
+        return {(key, offset) for g in groups for _, offset in _offsets(runs, lo, g, self.geometry[g][0])
+                for key in self.geometry[g][1]}
+
+    def grouped_overlapping(self, positions, lo, hi):
+        window = positions[lo:hi]
+        if window not in self.windows:
+            self.windows[window] = _group_extenders(
+                (self.observations[key], offset) for key, offset in self.overlapping(window, 0, len(window)))
+        return [(o, lo + offset, members) for o, offset, members in self.windows[window]]
 
 
 def _agrees(sequence, positions, observation, offset, lo, hi):
@@ -732,6 +894,85 @@ def _supported(support, min_fragments, min_fraction, min_local_fraction):
             and (key == best_key or not local(key) or count >= min_local_fraction * best)}
 
 
+class _VotingMembers(dict):
+    """Original observation membership, with reusable fragment/choice summaries."""
+
+    @cached_property
+    def fragments(self):
+        return {o.fragment for o in self.values()}
+
+    @cached_property
+    def choices(self):
+        choices = {}
+        for o in self.values():
+            if o.identity not in choices or o.key < choices[o.identity]:
+                choices[o.identity] = o.key
+        return choices
+
+
+def _group_extenders(extenders):
+    groups = {}
+    for observation, offset in extenders:
+        key = observation.comparison_key, offset
+        if key not in groups:
+            groups[key] = (observation, offset, _VotingMembers())
+        groups[key][2][observation.key] = observation
+    return list(groups.values())
+
+
+def _vote_members(groups):
+    return ((observation, offset) for _, offset, members in groups for observation in members.values())
+
+
+def _gather_extenders(sequence, positions, index, need, used, carried):
+    """Compare each sequence/placement once, including already agreeing groups."""
+    n = len(sequence)
+    found = {(o.comparison_key, offset): (o, offset, members) for o, offset, members in carried
+             if offset <= n - need and offset + len(o.sequence) > n}
+    for o, offset, members in index.grouped_overlapping(positions, n - need, n):
+        if offset > n - need or offset + len(o.sequence) <= n:
+            continue
+        key = o.comparison_key, offset
+        previous = found.get(key)
+        keys = members.keys() - previous[2].keys() if previous else members.keys()
+        if not keys or (previous is None and not _agrees(sequence, positions, o, offset, max(0, offset), n)):
+            continue
+        permitted = _VotingMembers((k, members[k]) for k in keys
+                                   if used.get(members[k].identity, k) == k)
+        if permitted:
+            if previous is not None:
+                permitted = _VotingMembers(previous[2] | permitted)
+            found[key] = o, offset, permitted
+    return list(found.values())
+
+
+def _choose_voters(used, groups, rejected):
+    """Preserve the original smallest-key tie-break between alternate observations."""
+    choices = {}
+    for _, _, members in groups:
+        if rejected and not members.keys().isdisjoint(rejected):
+            members = _VotingMembers((k, o) for k, o in members.items() if k not in rejected)
+        incoming = members.choices
+        common = choices.keys() & incoming.keys()
+        first = {identity: min(choices[identity], incoming[identity]) for identity in common}
+        choices.update(incoming)
+        choices.update(first)
+    choices.update(used)  # A previously selected placement cannot switch.
+    return choices
+
+
+def _carry_votes(groups, used):
+    allowed = set(used.values())
+    carried = []
+    for o, offset, members in groups:
+        keys = members.keys() & allowed
+        keys.update(k for k in members.keys() - keys if members[k].identity not in used)
+        if keys:
+            carried.append((o, offset, members if len(keys) == len(members) else
+                            _VotingMembers((k, members[k]) for k in keys)))
+    return carried
+
+
 def _votes(active, t):
     """Group reads by their (base, placement) at path offset ``t``.
 
@@ -739,9 +980,10 @@ def _votes(active, t):
     soft-clipped or inserted copy of a base does not split its placed support.
     """
     votes = defaultdict(list)
-    for observation, offset in active:
+    for observation, offset, members in active:
         if t - offset < len(observation.sequence):
-            votes[observation.sequence[t - offset], observation.positions[t - offset]].append((observation, offset))
+            votes[observation.sequence[t - offset], observation.positions[t - offset]].append(
+                (observation, offset, members))
     for base, position in [key for key in votes if key[1] is None]:
         placed = [key for key in votes if key[0] == base and key[1] is not None]
         if placed:
@@ -770,31 +1012,24 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
         sequence, positions, used, carried = stack.pop()
         n = len(sequence)
         need = min(min_overlap, n)
-        extenders = []
-        # Carried reads already agree with every base they voted for.
-        known = {(o.key, offset) for o, offset in carried}
-        for key, offset in sorted(index.overlapping(positions, n - need, n) | known):
-            observation = index.observations[key]
-            if (offset <= n - need and offset + len(observation.sequence) > n
-                    and used.get(observation.identity, key) == key
-                    and ((key, offset) in known
-                         or _agrees(sequence, positions, observation, offset, max(0, offset), n))):
-                extenders.append((observation, offset))
+        extenders = _gather_extenders(sequence, positions, index, need, used, carried)
         if not extenders:
             done.append((sequence, positions, frozenset(used.values()), "observations_end"))
             continue
         placed = {p for p in positions if p is not None}
         bases, added, active, forks, stopped, dropped = [], [], extenders, None, False, set()
+        extender_count = sum(len(members) for _, _, members in extenders)
         while True:
             votes = _votes(active, n + len(bases))
-            if not votes or (bases and (len(votes) > 1 or 2 * sum(map(len, votes.values())) < len(extenders))):
+            if not votes or (bases and (len(votes) > 1 or
+                                       2 * sum(len(g[2]) for v in votes.values() for g in v) < extender_count)):
                 # Reads ending within this step leave fewer voters: decide a
                 # disagreement, or continue once most extenders have ended,
                 # only after re-collecting every read overlapping the new end
                 # (so one long read cannot decide the rest of the path alone).
                 break
             if len(votes) > 1:
-                support = {key: len({o.fragment for o, _ in v}) for key, v in votes.items()}
+                support = {key: len(set().union(*(g[2].fragments for g in v))) for key, v in votes.items()}
                 strong = _supported(support, *thresholds)
                 if strong and len(strong) < len(votes):
                     anchor = next((p for p in reversed(positions + tuple(added)) if p is not None), None)
@@ -805,8 +1040,8 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
                             after=None if anchor is None else list(_flip(anchor) if mirrored else anchor),
                             base=reverse_complement_dna(base) if mirrored else base,
                             placement=None if position is None else list(_flip(position) if mirrored else position),
-                            fragments=support[key], observations=sorted({o.key for o, _ in votes[key]})))
-                        dropped.update(o.key for o, _ in votes[key])
+                            fragments=support[key], observations=sorted({o.key for o, _ in _vote_members(votes[key])})))
+                        dropped.update(o.key for o, _ in _vote_members(votes[key]))
                     votes = {key: votes[key] for key in strong}
                 if len(votes) > 1:
                     forks = votes
@@ -823,29 +1058,21 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
             bases.append(base)
             added.append(position)
         sequence, positions = sequence + "".join(bases), positions + tuple(added)
-        agreeing = {o.key: o for o, _ in extenders if o.key not in dropped}
         if stopped or (forks and len(done) + len(stack) + len(forks) > budget):
             if forks:
                 notes.add("path_limit")
-            voters = dict(used)
-            for o in agreeing.values():
-                voters.setdefault(o.identity, o.key)
+            voters = _choose_voters(used, extenders, dropped)
             done.append((sequence, positions, frozenset(voters.values()),
                          "repeated_genomic_position" if stopped else "path_limit"))
         elif forks:
             for key in sorted(forks, key=repr):
-                chosen = {o.key for o, _ in forks[key]}
-                rejected = {o.key for other, v in forks.items() if other != key for o, _ in v} - chosen
-                branch = dict(used)
-                for o in agreeing.values():
-                    if o.key not in rejected:
-                        branch.setdefault(o.identity, o.key)
-                stack.append((sequence + key[0], positions + (key[1],), branch, forks[key]))
+                chosen = set().union(*(g[2].keys() for g in forks[key]))
+                rejected = set().union(*(g[2].keys() for other, v in forks.items() if other != key for g in v)) - chosen
+                branch = _choose_voters(used, extenders, rejected | dropped)
+                stack.append((sequence + key[0], positions + (key[1],), branch, _carry_votes(forks[key], branch)))
         else:
-            used = dict(used)
-            for o in agreeing.values():
-                used.setdefault(o.identity, o.key)
-            stack.append((sequence, positions, used, tuple(active) if bases else ()))
+            used = _choose_voters(used, extenders, dropped)
+            stack.append((sequence, positions, used, _carry_votes(active, used) if bases else ()))
     return done
 
 
@@ -947,12 +1174,15 @@ class _Event:
 
     def clips(self, positions, length):
         """(i, j, assignment) where placed sequence stops exactly at a breakpoint."""
-        placed = [q for q, p in enumerate(positions) if p is not None]
         found = []
-        if placed[-1] < length - 1 and _distance(positions[placed[-1]], self.donor, "donor") == 0:
-            found.append((placed[-1], placed[-1] + 1, [0, None]))
-        if placed[0] > 0 and _distance(positions[placed[0]], self.acceptor, "acceptor") == 0:
-            found.append((placed[0] - 1, placed[0], [None, 0]))
+        if positions[-1] is None:
+            last = next(q for q in range(length - 1, -1, -1) if positions[q] is not None)
+            if _distance(positions[last], self.donor, "donor") == 0:
+                found.append((last, last + 1, [0, None]))
+        if positions[0] is None:
+            first = next(q for q, p in enumerate(positions) if p is not None)
+            if _distance(positions[first], self.acceptor, "acceptor") == 0:
+                found.append((first - 1, first, [None, 0]))
         return found
 
 
@@ -1197,8 +1427,30 @@ def _contains(path, core):
     return False
 
 
+def _junction_summary(direct, segments, kinds, left, right, store):
+    """Candidate-independent junction evidence, shared after discovery is frozen."""
+    evidence = {o.key: o for o, *_ in direct}
+    unbuilt = segments - {o.identity for o in evidence.values()}
+    junction_sequences = Counter(o.sequence[a + 1:b] for o, a, b, _ in direct)
+    if unbuilt:
+        kinds |= store.gap_kinds.get((left, right), set()) | store.gap_kinds.get((_flip(right), _flip(left)), set())
+        junction_sequences.update(inserted for identity, inserted in store.gaps.get((left, right), {}).items()
+                                  if identity in unbuilt)
+        junction_sequences.update(reverse_complement_dna(inserted) for identity, inserted in
+                                  store.gaps.get((_flip(right), _flip(left)), {}).items() if identity in unbuilt)
+    equivalent = {}
+    for o in evidence.values():
+        equivalent.setdefault(o.comparison_key, o)
+    return dict(evidence=evidence, spanning=list(equivalent.values()), kinds=sorted(kinds),
+                direct_support=store.cell_umi.support(segments),
+                direct_read_lineage=store.lineage.support(segments),
+                direct_observations=sorted(evidence),
+                direct_junction_sequences=[list(item) for item in sorted(
+                    junction_sequences.items(), key=lambda item: (-item[1], item[0]))])
+
+
 def _path_result(sequence, positions, voters, store, event, annotated, adjacency, clip_support, frame_evidence,
-                 orf_evidence):
+                 orf_evidence, junction_cache=None):
     """Serialize one path with junction, sequence and frame evidence.
 
     Direct support for a junction is every segment whose own observed path
@@ -1208,6 +1460,7 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
     CIGAR makes the join; built observations are cited individually.
     Returns the result and the observations it cites.
     """
+    junction_cache = {} if junction_cache is None else junction_cache
     path_runs, spans_seen, placed = defaultdict(list), {}, [0]
     for q0, _, contig, low, high, strand in _runs(positions):
         path_runs[contig, strand].append((q0, low, high))
@@ -1257,47 +1510,46 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
         is_annotated = j == i + 1 and (left, right) in annotated
         if relation is None and is_annotated:
             continue  # Ordinary annotated splicing.
-        if relation == "breakpoint_junction":
-            direct, segments = adjacency, {o.identity for o, *_ in adjacency}
-        else:
-            direct, segments = store.joins.get((left, right), []), store.join_segments(left, right)
-        kinds = {kind for *_, kind in direct}
-        if segments - {o.identity for o, *_ in direct}:
-            kinds |= store.gap_kinds.get((left, right), set()) | store.gap_kinds.get((_flip(right), _flip(left)), set())
+        key = (left, right, relation)
+        if key not in junction_cache:
+            if relation == "breakpoint_junction":
+                direct, segments = adjacency, {o.identity for o, *_ in adjacency}
+            else:
+                direct, segments = store.joins.get((left, right), []), store.join_segments(left, right)
+            kinds = {kind for *_, kind in direct}
+            if segments - {o.identity for o, *_ in direct}:
+                kinds |= store.gap_kinds.get((left, right), set()) | store.gap_kinds.get((_flip(right), _flip(left)), set())
+            junction_cache[key] = (None if relation is None and kinds <= {"D"} else
+                                   _junction_summary(direct, segments, kinds, left, right, store))
+        summary = junction_cache[key]
         # CIGAR deletions are reported only when they also cross the event.
-        if relation is None and kinds <= {"D"}:
+        if summary is None:
             continue
-        rows.append((i, j, relation or "regional_novel_junction", assignment, is_annotated, direct, segments, kinds))
+        rows.append((i, j, relation or "regional_novel_junction", assignment, is_annotated, summary))
     for i, j, assignment in event.clips(positions, len(sequence)):
-        direct = clip_support["donor" if assignment[0] == 0 else "acceptor"]
-        rows.append((i, j, "breakpoint_clip_partner_unplaced", assignment, False, direct,
-                     {o.identity for o, *_ in direct}, {"clip"}))
+        side = "donor" if assignment[0] == 0 else "acceptor"
+        key = ('clip', side)
+        if key not in junction_cache:
+            direct = clip_support[side]
+            junction_cache[key] = _junction_summary(
+                direct, {o.identity for o, *_ in direct}, {"clip"}, None, None, store)
+        rows.append((i, j, "breakpoint_clip_partner_unplaced", assignment, False, junction_cache[key]))
     junctions, evidence = [], {}
-    for i, j, relation, assignment, is_annotated, direct, segments, kinds in sorted(rows, key=lambda row: row[:2]):
-        evidence.update((o.key, o) for o, *_ in direct)
-        unbuilt = segments - {o.identity for o, *_ in direct}
-        junction_sequences = Counter(o.sequence[a + 1:b] for o, a, b, _ in direct)
-        if unbuilt:
-            left, right = positions[i], positions[j]
-            junction_sequences.update(inserted for identity, inserted in store.gaps.get((left, right), {}).items()
-                                      if identity in unbuilt)
-            junction_sequences.update(reverse_complement_dna(inserted) for identity, inserted in
-                                      store.gaps.get((_flip(right), _flip(left)), {}).items() if identity in unbuilt)
-        direct_support = store.cell_umi.support(segments)
+    for i, j, relation, assignment, is_annotated, summary in sorted(rows, key=lambda row: row[:2]):
+        evidence.update(summary['evidence'])
         # Bases co-observed with the join in single reads; annotated splices are context only.
-        spans = [] if is_annotated else [q for q in (span(o) for o, *_ in direct) if q]
+        spans = [] if is_annotated else [q for q in (span(o) for o in summary['spanning']) if q]
         clip = relation == "breakpoint_clip_partner_unplaced"
         junctions.append(dict(
             # Half-open: the unplaced bases between the partners (empty for a direct join).
             query_interval=[i + 1, j], left=positions[i] and list(positions[i]),
             right=positions[j] and list(positions[j]), unplaced_bases=sequence[i + 1:j],
             forward_splice_geometry=bool(positions[i] and positions[j] and _forward_splice(positions[i], positions[j])),
-            kinds=sorted(kinds), annotated=is_annotated, relation=relation, breakpoint_assignment=assignment,
-            direct_support=direct_support,
-            direct_read_lineage=store.lineage.support(segments),
-            direct_observations=sorted({o.key for o, *_ in direct}),
-            direct_junction_sequences=None if clip else [
-                list(item) for item in sorted(junction_sequences.items(), key=lambda item: (-item[1], item[0]))],
+            kinds=summary['kinds'], annotated=is_annotated, relation=relation, breakpoint_assignment=assignment,
+            direct_support=summary['direct_support'],
+            direct_read_lineage=summary['direct_read_lineage'],
+            direct_observations=summary['direct_observations'],
+            direct_junction_sequences=None if clip else summary['direct_junction_sequences'],
             linked_interval=[min(min(q) for q in spans), max(max(q) for q in spans) + 1] if spans else None))
     departures = {q: j["relation"] for j in junctions if not j["annotated"]
                   for q in range(j["query_interval"][0],
@@ -1677,14 +1929,15 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     for o in store.observations.values():
         for i, j, assignment in event.clips(o.positions, len(o.sequence)):
             clip_support["donor" if assignment[0] == 0 else "acceptor"].append((o, i, j, "clip"))
-    results, used = [], {}
+    results, used, junction_cache, witness_groups = [], {}, {}, {}
     for (sequence, positions), (rows, voters) in paths.items():
         result, evidence = _path_result(
             sequence, positions, voters, store, event, annotated, adjacency, clip_support,
             lambda *path: _frame_evidence(*path, models, min_anchor_bases, reference_peptides, lengths),
             lambda *path: exploratory_orfs(*path, references, store.cell_umi.support, min_orf_amino_acids, max_orf_candidates,
                                            lineage=store.lineage.support, competing_splices=inclusion_splices,
-                                           inclusion_thresholds=inclusion_thresholds))
+                                           inclusion_thresholds=inclusion_thresholds,
+                                           witness_groups=witness_groups), junction_cache=junction_cache)
         results.append(result)
         result["reconstruction_scopes"] = sorted(reconstruction_scopes[sequence, positions])
         # One path can be reached from several seeds or scopes, so an end can

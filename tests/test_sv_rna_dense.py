@@ -146,13 +146,13 @@ def test_structural_cache_shares_positions_but_preserves_bases_and_quality(rever
     reads[1].query_sequence = 'A' * 60 + 'C' + 'A' * 39
     reads[1].query_qualities = [7] * 100
     expected = [sv_rna._build_segment(segment_identity(r), [r], collector, Counter(), {}) for r in reads]
-    calls, placements = [], sv_rna._record_placements
+    calls, placements = [], sv_rna._single_record_geometry
 
     def counted(*args):
         calls.append(1)
         return placements(*args)
 
-    monkeypatch.setattr(sv_rna, '_record_placements', counted)
+    monkeypatch.setattr(sv_rna, '_single_record_geometry', counted)
     observed = [sv_rna._build_segment(segment_identity(r), [r], collector, Counter(), {}, cache) for r in reads]
     assert [[asdict(o) for o in group] for group in observed] == [[asdict(o) for o in group] for group in expected]
     assert len(calls) == 1
