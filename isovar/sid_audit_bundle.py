@@ -2,9 +2,10 @@
 
 from copy import deepcopy
 from pathlib import Path
+import re
 import tempfile
 
-from .audit_bundle import AuditBundle, AuditBundleError, digest, identity, publish_json
+from .audit_bundle import AuditBundle, AuditBundleError, _name, digest, identity, publish_json
 from .audit_replay import read_json
 __all__ = ["bundle_sid_audit"]
 
@@ -57,7 +58,7 @@ def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="c
     directory = Path(directory).resolve()
     if Path(destination).resolve().is_relative_to(directory):
         raise AuditBundleError("Create the bundle outside the original audit directory")
-    files, aliases, documents, checksums, verified = {}, {}, {}, {}, {}
+    files, aliases, checkpoints, acquired, checksums, verified = {}, {}, {}, {}, {}, {}
 
     def add(path, checksum=None, base=None):
         path = Path(path)
@@ -98,21 +99,41 @@ def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="c
         for path in sorted((directory / tree).rglob("*")):
             if path.is_file() and "__pycache__" not in path.parts:
                 add(path)
-    for path in sorted(paths):
+    def collect_document(path):
         add(path)
         data = read_json(path)
-        documents[path] = data
         base = next((directory / tree for tree in ("report", "search")
                      if path.is_relative_to(directory / tree)), directory)
         for pin in _pins(data):
             add(pin["path"], pin["sha256"], base=base)
-    acquired = {identity(row): row for path, row in documents.items()
-                if path.is_relative_to(directory / "sources") and "batch_id" in row}
+        # These reports use audit-relative path -> checksum maps, unlike their
+        # structured pins for report-local generated assets.
+        pins = data.get("pins", {}) if isinstance(data, dict) else {}
+        if path.name in ("result-pins.json", "result-pins.json.gz"):
+            pins = data
+        if not isinstance(pins, dict):
+            raise AuditBundleError("Invalid audit checksum map: " + str(path))
+        for name, checksum in pins.items():
+            _name(name)
+            if not (directory / name).resolve().is_relative_to(directory):
+                raise AuditBundleError("Audit checksum path escapes its directory: " + name)
+            if not isinstance(checksum, str) or not re.fullmatch("[0-9a-f]{64}", checksum):
+                raise AuditBundleError("Invalid audit SHA-256: " + name)
+            add(name, checksum, base=directory)
+        if path.is_relative_to(directory / "sources") and "batch_id" in data:
+            acquired[identity(data)] = data
+        elif path.is_relative_to(directory / "results"):
+            # Keep provenance needed for plans, not the summary's candidate
+            # arrays. Every original file and declared pin is still preserved.
+            checkpoints[path] = {key: data[key] for key in
+                ("request", "status", "acquisition_status", "input_limitations", "reconstruction")
+                if key in data}
+
+    for path in sorted(paths):
+        collect_document(path)
     plans, outcomes = {}, []
     with tempfile.TemporaryDirectory() as temporary:
-        for path, row in documents.items():
-            if not path.is_relative_to(directory / "results"):
-                continue
+        for path, row in checkpoints.items():
             request = row["request"]
             sid, gid, orientation = (request[k] for k in ("source_id", "geometry_id", "orientation"))
             run_id = "/".join((sid, gid, orientation))
@@ -120,8 +141,6 @@ def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="c
                                  acquisition_status=row["acquisition_status"],
                                  input_limitations=row.get("input_limitations", []),
                                  checkpoint=add(path)))
-            if "reconstruction" not in row:
-                continue  # Preserve an unassessable/timeout outcome, never invent a replay.
             receipt = acquired.get(request["acquisition_sha256"])
             if receipt is None or receipt["source_id"] != sid or gid not in receipt["request"]["batch"]["geometries"]:
                 raise AuditBundleError("Reconstruction has no matching acquisition: " + run_id)
@@ -129,6 +148,8 @@ def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="c
                 raise AuditBundleError("Reconstruction root pins changed: " + run_id)
             if receipt["request"]["source_identity"] != identity(inventory["sources"][sid]):
                 raise AuditBundleError("Acquisition source identity changed: " + run_id)
+            if "reconstruction" not in row:
+                continue  # Validated outcome, but no reconstruction to replay.
             expected_path = directory / row["reconstruction"]["path"]
             expected = read_json(expected_path)
             if expected["event_id"] != gid or expected["event_provenance"]["orientation"] != orientation:
@@ -151,6 +172,7 @@ def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="c
                                  source=expected["source"], parameters=parameters, read_collection=collector,
                                  input_limitations=row.get("input_limitations", []),
                                  upstream_acquisition=expected["upstream_acquisition"], original_request=request)
+            del expected
         for name, path in (extra_files or {}).items():
             if name in files:
                 raise AuditBundleError("Additional file name already exists: " + name)

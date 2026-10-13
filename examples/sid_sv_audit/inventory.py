@@ -16,18 +16,12 @@ from pathlib import Path
 import re
 import tempfile
 
+from isovar._audit_json import canonical, identity, same_file_bytes, write_json_stream  # noqa: F401
+
 
 RNA_ASSAYS = {"rna-seq", "scrna-seq", "cite-seq"}
 FUSION_TABLES = ("fusion_sequences", "scan_summary")
 FUSION_URL = "https://osteosarc.com/fusions/tables/"
-
-
-def canonical(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
-
-
-def identity(value):
-    return sha256(canonical(value)).hexdigest()
 
 
 def digest(path):
@@ -41,15 +35,12 @@ def digest(path):
 def write_json(path, value):
     """Publish complete deterministic JSON without replacing different content."""
     path = Path(path)
-    data = canonical(value) + b"\n"
-    if path.suffix == ".gz":
-        data = gzip.compress(data, mtime=0)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".checkpoint-", delete=False) as handle:
             temporary = Path(handle.name)
-            handle.write(data)
+            write_json_stream(handle, value, compressed=path.suffix == ".gz")
             handle.flush()
             os.fsync(handle.fileno())
         try:
@@ -57,7 +48,7 @@ def write_json(path, value):
             # replace(), cannot overwrite a concurrent writer's checkpoint.
             os.link(temporary, path)
         except FileExistsError:
-            if path.read_bytes() != data:
+            if not same_file_bytes(path, temporary):
                 raise ValueError("Refusing to replace different audit content: %s" % path)
     finally:
         if temporary is not None:
@@ -66,8 +57,8 @@ def write_json(path, value):
 
 def read_json(path):
     path = Path(path)
-    data = path.read_bytes()
-    return json.loads(gzip.decompress(data) if path.suffix == ".gz" else data)
+    with gzip.open(path, "rt", encoding="utf-8") if path.suffix == ".gz" else path.open(encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 def geometry(breakends):
