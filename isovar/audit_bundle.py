@@ -21,6 +21,7 @@ import tempfile
 FORMAT = "isovar-audit-bundle"
 SCHEMA_VERSION = 1
 MANIFEST = "manifest.json"
+MAX_MANIFEST_BYTES = 16 * 1024 * 1024
 __all__ = ["AuditBundle", "AuditBundleError"]
 
 
@@ -104,6 +105,17 @@ def _validate(manifest):
     unsigned = {key: value for key, value in manifest.items() if key != "bundle_id"}
     if manifest.get("bundle_id") != identity(unsigned):
         raise AuditBundleError("Bundle manifest identity mismatch")
+    # Creation/restoration publish canonical JSON with a trailing newline.
+    # Every accepted manifest must fit that encoding as well as its input file.
+    if len(canonical(manifest)) + 1 > MAX_MANIFEST_BYTES:
+        raise AuditBundleError("Oversized bundle manifest (limit: 16 MiB)")
+
+
+def _read_manifest(handle):
+    data = handle.read(MAX_MANIFEST_BYTES + 1)
+    if len(data) > MAX_MANIFEST_BYTES:
+        raise AuditBundleError("Oversized bundle manifest (limit: 16 MiB)")
+    return json.loads(data)
 
 
 def publish_json(path, value):
@@ -206,6 +218,7 @@ class AuditBundle:
             manifest = dict(format=FORMAT, schema_version=SCHEMA_VERSION, files=pins,
                             metadata=metadata, software=software_identity())
             manifest["bundle_id"] = identity(manifest)
+            _validate(manifest)
             publish_json(destination / MANIFEST, manifest)
             return cls.open(destination)
         except BaseException:
@@ -236,7 +249,10 @@ class AuditBundle:
         """Open a local bundle; verify all payload files by default."""
         directory = Path(directory)
         try:
-            manifest = json.loads((directory / MANIFEST).read_text())
+            with (directory / MANIFEST).open("rb") as handle:
+                manifest = _read_manifest(handle)
+        except AuditBundleError:
+            raise
         except (OSError, ValueError) as error:
             raise AuditBundleError("Cannot read bundle manifest: " + str(directory)) from error
         bundle = cls(directory, manifest)
@@ -264,7 +280,10 @@ class AuditBundle:
         """
         _validate(self._manifest)
         try:
-            on_disk = json.loads((self.directory / MANIFEST).read_text())
+            with (self.directory / MANIFEST).open("rb") as handle:
+                on_disk = _read_manifest(handle)
+        except AuditBundleError:
+            raise
         except (OSError, ValueError) as error:
             raise AuditBundleError("Missing or invalid on-disk bundle manifest") from error
         if on_disk != self._manifest:
@@ -313,9 +332,10 @@ class AuditBundle:
                 names = [m.name for m in members]
                 if len(names) != len(set(names)) or any(not m.isfile() for m in members):
                     raise AuditBundleError("Archive has duplicate or nonregular entries")
-                if MANIFEST not in names or source.getmember(MANIFEST).size > 16 * 1024 * 1024:
+                if MANIFEST not in names or source.getmember(MANIFEST).size > MAX_MANIFEST_BYTES:
                     raise AuditBundleError("Missing or oversized archive manifest")
-                manifest = json.load(source.extractfile(MANIFEST))
+                with source.extractfile(MANIFEST) as handle:
+                    manifest = _read_manifest(handle)
                 _validate(manifest)
                 expected = {MANIFEST, *("files/" + name for name in manifest["files"])}
                 if set(names) != expected:

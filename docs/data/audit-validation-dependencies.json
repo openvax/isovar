@@ -1,0 +1,707 @@
+{
+  "checked_at": "2026-10-13T12:30:38.533267+00:00",
+  "python": "3.14.6",
+  "scope": "Isovar repository release environment; runtime and optional dependencies plus test/build tools; excludes shared environment and historical audit pins",
+  "packages": [
+    {
+      "name": "beautifulsoup4",
+      "installed": "4.15.0",
+      "latest_stable": "4.15.0",
+      "source": "https://pypi.org/pypi/beautifulsoup4/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/88/c6/92fcd42f1ba33e1184263f25bfabf3d27c383410470f169e4b8163bf9c17/beautifulsoup4-4.15.0-py3-none-any.whl",
+        "sha256": "d6f88de62e1d4e38ecb1077eb9724cd0eff29d2a08ca16a401e9b9e93f117cf9"
+      }
+    },
+    {
+      "name": "biopython",
+      "installed": "1.88",
+      "latest_stable": "1.88",
+      "source": "https://pypi.org/pypi/biopython/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/5a/68/eb7bb4b642d7c6cfb65da801a71c89d1d207caf51b05b1819defae3f44cf/biopython-1.88-cp314-cp314-macosx_11_0_arm64.whl",
+        "sha256": "5508f8f585d101269982d58abb4ab50cbde5d3c50e21b01986c55ac7cc5f34f9"
+      }
+    },
+    {
+      "name": "build",
+      "installed": "1.6.1",
+      "latest_stable": "1.6.1",
+      "source": "https://pypi.org/pypi/build/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/ad/9b/9fb3585dabcd73a1b2a6267f63f62649347c9e6d072c9fde365b105abb2c/build-1.6.1-py3-none-any.whl",
+        "sha256": "ecd351a4be9d35a9eaaba244a7687143c9c7d4aea6ac964e7e7ddab20cbcf4e7"
+      }
+    },
+    {
+      "name": "certifi",
+      "installed": "2026.7.22",
+      "latest_stable": "2026.7.22",
+      "source": "https://pypi.org/pypi/certifi/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl",
+        "sha256": "62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775"
+      }
+    },
+    {
+      "name": "charset-normalizer",
+      "installed": "3.5.2",
+      "latest_stable": "3.5.2",
+      "source": "https://pypi.org/pypi/charset-normalizer/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/7c/8a/40db9aa9f5907bb0e6f8b6d64064bf8852fb33d4b813ff9414911df7647c/charset_normalizer-3.5.2-cp314-cp314-macosx_10_15_universal2.whl",
+        "sha256": "fcff63213e8e6e47770541a4607175404f47cbb3ebea7b6058cc82d524a0e424"
+      }
+    },
+    {
+      "name": "contourpy",
+      "installed": "1.4.0",
+      "latest_stable": "1.4.0",
+      "source": "https://pypi.org/pypi/contourpy/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/04/5a/513484208742f65af2648c519f0b7ab034616e183c4403538024c136a1ab/contourpy-1.4.0-cp314-cp314-macosx_11_0_arm64.whl",
+        "sha256": "072a702e2e178f4fcf96f04775d0c059e4c917925abf0d3208ebb6865df3c23d"
+      }
+    },
+    {
+      "name": "coverage",
+      "installed": "7.16.2",
+      "latest_stable": "7.16.2",
+      "source": "https://pypi.org/pypi/coverage/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/75/9e/e3785ba3ecba2bd11efc74bfe2801ca4b78c4480b15a375648d809a59da3/coverage-7.16.2-cp314-cp314-macosx_11_0_arm64.whl",
+        "sha256": "a2fac6895eb299a2e52d7bbb8fb3903502b9da8d3f5309ceb16ec40c646b58ee"
+      }
+    },
+    {
+      "name": "cycler",
+      "installed": "0.12.1",
+      "latest_stable": "0.12.1",
+      "source": "https://pypi.org/pypi/cycler/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/e7/05/c19819d5e3d95294a6f5947fb9b9629efb316b96de511b418c53d245aae6/cycler-0.12.1-py3-none-any.whl",
+        "sha256": "85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30"
+      }
+    },
+    {
+      "name": "datacache",
+      "installed": "1.25.1",
+      "latest_stable": "1.25.1",
+      "source": "https://pypi.org/pypi/datacache/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/b4/c4/2204dfef7a542d1d7d44e234be592c94976dc3f52b1ada0ca85034389b69/datacache-1.25.1-py3-none-any.whl",
+        "sha256": "5d622a9d17631ed56bf38787263f43d83427cd4f49d0459bf6e61c2c6f5f1ae4"
+      }
+    },
+    {
+      "name": "docutils",
+      "installed": "0.23",
+      "latest_stable": "0.23",
+      "source": "https://pypi.org/pypi/docutils/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/32/91/30151a39f7570f448ed84529390628a651d7f27c87d73c9b887f8189695e/docutils-0.23-py3-none-any.whl",
+        "sha256": "25d013af9bf23bc1c7b2b093dff4208166c53a94786c9e447808335ef1185fea"
+      }
+    },
+    {
+      "name": "edlib",
+      "installed": "1.3.9.post1",
+      "latest_stable": "1.3.9.post1",
+      "source": "https://pypi.org/pypi/edlib/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/0c/dd/caa71ef15b46375e01581812e52ec8e3f4da0686f370e8b9179eb5f748fb/edlib-1.3.9.post1.tar.gz",
+        "sha256": "b0fb6e85882cab02208ccd6daa46f80cb9ff1d05764e91bf22920a01d7a6fbfa"
+      }
+    },
+    {
+      "name": "et-xmlfile",
+      "installed": "2.0.0",
+      "latest_stable": "2.0.0",
+      "source": "https://pypi.org/pypi/et-xmlfile/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl",
+        "sha256": "7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa"
+      }
+    },
+    {
+      "name": "execnet",
+      "installed": "2.1.2",
+      "latest_stable": "2.1.2",
+      "source": "https://pypi.org/pypi/execnet/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/ab/84/02fc1827e8cdded4aa65baef11296a9bbe595c474f0d6d758af082d849fd/execnet-2.1.2-py3-none-any.whl",
+        "sha256": "67fba928dd5a544b783f6056f449e5e3931a5c378b128bc18501f7ea79e296ec"
+      }
+    },
+    {
+      "name": "filelock",
+      "installed": "4.1.1",
+      "latest_stable": "4.1.1",
+      "source": "https://pypi.org/pypi/filelock/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/d7/8b/f837f52905395ba4510fe61f753c24833fb0a9c76e21267bb9f828b664a9/filelock-4.1.1-py3-none-any.whl",
+        "sha256": "3f4a557945a7b0f95efeb1f432267affe5d45ac8ddde2aed1b97ebb62382c089"
+      }
+    },
+    {
+      "name": "fonttools",
+      "installed": "4.66.1",
+      "latest_stable": "4.66.1",
+      "source": "https://pypi.org/pypi/fonttools/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/12/83/c745b210ec49379ebfe627e166b527f44671a1f6ec5e1e219d91caa8964d/fonttools-4.66.1-cp314-cp314-macosx_10_15_universal2.whl",
+        "sha256": "b18803cbdef248e7ee1be59cb277fbbe1da1faaa6f726fa5d3557904e6a3d967"
+      }
+    },
+    {
+      "name": "gtfparse",
+      "installed": "3.0.2",
+      "latest_stable": "3.0.2",
+      "source": "https://pypi.org/pypi/gtfparse/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/93/ad/6f2e537f3ac762391f024a87f3d91f5db61bd675fd83f5834adf7380b1ec/gtfparse-3.0.2-py3-none-any.whl",
+        "sha256": "46d5b295b1bf8ae0456e72bbaae1d4007477786365dd7b08e73b1d319fa8084e"
+      }
+    },
+    {
+      "name": "id",
+      "installed": "1.6.1",
+      "latest_stable": "1.6.1",
+      "source": "https://pypi.org/pypi/id/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/42/77/de194443bf38daed9452139e960c632b0ef9f9a5dd9ce605fdf18ca9f1b1/id-1.6.1-py3-none-any.whl",
+        "sha256": "f5ec41ed2629a508f5d0988eda142e190c9c6da971100612c4de9ad9f9b237ca"
+      }
+    },
+    {
+      "name": "idna",
+      "installed": "3.20",
+      "latest_stable": "3.20",
+      "source": "https://pypi.org/pypi/idna/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl",
+        "sha256": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c"
+      }
+    },
+    {
+      "name": "iniconfig",
+      "installed": "2.3.1",
+      "latest_stable": "2.3.1",
+      "source": "https://pypi.org/pypi/iniconfig/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl",
+        "sha256": "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7"
+      }
+    },
+    {
+      "name": "jaraco-classes",
+      "installed": "3.4.0",
+      "latest_stable": "3.4.0",
+      "source": "https://pypi.org/pypi/jaraco-classes/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/7f/66/b15ce62552d84bbfcec9a4873ab79d993a1dd4edb922cbfccae192bd5b5f/jaraco.classes-3.4.0-py3-none-any.whl",
+        "sha256": "f662826b6bed8cace05e7ff873ce0f9283b5c924470fe664fff1c2f00f581790"
+      }
+    },
+    {
+      "name": "jaraco-context",
+      "installed": "6.1.2",
+      "latest_stable": "6.1.2",
+      "source": "https://pypi.org/pypi/jaraco-context/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/f2/58/bc8954bda5fcda97bd7c19be11b85f91973d67a706ed4a3aec33e7de22db/jaraco_context-6.1.2-py3-none-any.whl",
+        "sha256": "bf8150b79a2d5d91ae48629d8b427a8f7ba0e1097dd6202a9059f29a36379535"
+      }
+    },
+    {
+      "name": "jaraco-functools",
+      "installed": "4.6.0",
+      "latest_stable": "4.6.0",
+      "source": "https://pypi.org/pypi/jaraco-functools/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/02/36/ecc85bc96c273dc8a11273ed4782272975e6338d4a3e9228621175edf0e3/jaraco_functools-4.6.0-py3-none-any.whl",
+        "sha256": "99e3dc0060c5cbe8fcd1cdb36258e2a65ca40f1566b2033b12abb1bb44dd3c30"
+      }
+    },
+    {
+      "name": "keyring",
+      "installed": "25.7.0",
+      "latest_stable": "25.7.0",
+      "source": "https://pypi.org/pypi/keyring/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/81/db/e655086b7f3a705df045bf0933bdd9c2f79bb3c97bfef1384598bb79a217/keyring-25.7.0-py3-none-any.whl",
+        "sha256": "be4a0b195f149690c166e850609a477c532ddbfbaed96a404d4e43f8d5e2689f"
+      }
+    },
+    {
+      "name": "kiwisolver",
+      "installed": "1.5.1",
+      "latest_stable": "1.5.1",
+      "source": "https://pypi.org/pypi/kiwisolver/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/e1/f4/b3007a3ed5c9be73f81161140684cf7d9bdb9c4b632f5f484d2a1c713fb9/kiwisolver-1.5.1-cp314-cp314-macosx_11_0_arm64.whl",
+        "sha256": "c2306e8bb53601979fcb3fa09cc65e031876d9ae01eff2fcbcd7a84ef94d5bc1"
+      }
+    },
+    {
+      "name": "markdown-it-py",
+      "installed": "4.2.0",
+      "latest_stable": "4.2.0",
+      "source": "https://pypi.org/pypi/markdown-it-py/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl",
+        "sha256": "9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a"
+      }
+    },
+    {
+      "name": "matplotlib",
+      "installed": "3.11.2",
+      "latest_stable": "3.11.2",
+      "source": "https://pypi.org/pypi/matplotlib/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/4c/a0/bba05f0a25bfeb0475c2f2a87958b31103aa6b7a5386017afb1a96212825/matplotlib-3.11.2-cp314-cp314-macosx_11_0_arm64.whl",
+        "sha256": "1a3040b209f3968b4e84161df7b174f07a9fad33b0f2d7e48ea3bbd3075e2863"
+      }
+    },
+    {
+      "name": "mdurl",
+      "installed": "0.1.2",
+      "latest_stable": "0.1.2",
+      "source": "https://pypi.org/pypi/mdurl/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl",
+        "sha256": "84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"
+      }
+    },
+    {
+      "name": "memoized-property",
+      "installed": "1.0.3",
+      "latest_stable": "1.0.3",
+      "source": "https://pypi.org/pypi/memoized-property/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/70/db/23f8b5d86c9385299586c2469b58087f658f58eaeb414be0fd64cfd054e1/memoized-property-1.0.3.tar.gz",
+        "sha256": "4be4d0209944b9b9b678dae9d7e312249fe2e6fb8bdc9bdaa1da4de324f0fcf5"
+      }
+    },
+    {
+      "name": "more-itertools",
+      "installed": "11.1.0",
+      "latest_stable": "11.1.0",
+      "source": "https://pypi.org/pypi/more-itertools/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/e8/3d/1087453384dbde46a8c7f9356eead2c58be8a7bf156bca40243377c85715/more_itertools-11.1.0-py3-none-any.whl",
+        "sha256": "4b65538ae22f6fed0ce4874efd317463a7489796a0939fa66824dd542125a192"
+      }
+    },
+    {
+      "name": "nh3",
+      "installed": "0.3.7",
+      "latest_stable": "0.3.7",
+      "source": "https://pypi.org/pypi/nh3/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/94/0d/c257754bf57f829f307aa226bbe136d3a1356b5a0d08324c7b6bd2a8aacd/nh3-0.3.7-cp38-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl",
+        "sha256": "6c3aa50eb26e9228238271db9f983cbc3b006dfbfeca2d4dc34c33ddc6ac5ea5"
+      }
+    },
+    {
+      "name": "numpy",
+      "installed": "2.5.4",
+      "latest_stable": "2.5.4",
+      "source": "https://pypi.org/pypi/numpy/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/d5/b2/c6ce165acffceb15a82c07b9cc77d391f86b3f379ba62911908ae5d34b91/numpy-2.5.4-cp314-cp314-macosx_14_0_arm64.whl",
+        "sha256": "956555e0603a4d38019ae6925711cb9dc43195c076a928accf7ea5d50bddfe53"
+      }
+    },
+    {
+      "name": "openpyxl",
+      "installed": "3.1.5",
+      "latest_stable": "3.1.5",
+      "source": "https://pypi.org/pypi/openpyxl/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl",
+        "sha256": "5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2"
+      }
+    },
+    {
+      "name": "orfdata",
+      "installed": "0.15.0",
+      "latest_stable": "0.15.0",
+      "source": "https://pypi.org/pypi/orfdata/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/d8/15/ffb252b661a2a5185cee607fc621de0fb33e4dfee5b452471d0fb5b2d24c/orfdata-0.15.0-py3-none-any.whl",
+        "sha256": "b6012ce109e6f9f803e0ba8546ac7469f25fcfccec64a8ba00b444035627c3bb"
+      }
+    },
+    {
+      "name": "osteosarc",
+      "installed": "0.15.5",
+      "latest_stable": "0.15.5",
+      "source": "https://pypi.org/pypi/osteosarc/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/73/24/190650ebe1d5645d5dfa6c8ec115fc0c47b500c4743054099454d2b7d9cf/osteosarc-0.15.5-py3-none-any.whl",
+        "sha256": "059702e4ed3fc9ca7cdc928df111e5b3b5b1cb8da83045927f54fb8b18ff3e1e"
+      }
+    },
+    {
+      "name": "packaging",
+      "installed": "26.3",
+      "latest_stable": "26.3",
+      "source": "https://pypi.org/pypi/packaging/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl",
+        "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+      }
+    },
+    {
+      "name": "pandas",
+      "installed": "3.0.6",
+      "latest_stable": "3.0.6",
+      "source": "https://pypi.org/pypi/pandas/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/35/61/47ae13476995cc8a40cd609e93e7cf11f273d8692925c2903cb6d38aa0d1/pandas-3.0.6-cp314-cp314-macosx_11_0_arm64.whl",
+        "sha256": "ff51a4459ed036e93d1eb1bb5e6e7b28685d3cb6b7c12b91c05b31024e234729"
+      }
+    },
+    {
+      "name": "pillow",
+      "installed": "12.3.0",
+      "latest_stable": "12.3.0",
+      "source": "https://pypi.org/pypi/pillow/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/c7/da/32c752228ae345f489e3a42499d817b6c3996da7e8a3bc7a04fc806b243b/pillow-12.3.0-cp314-cp314-macosx_11_0_arm64.whl",
+        "sha256": "e158cb00350dc278f3b91551101aa7d12415a66ebf2c91d8d5ac14e56ddd3ad0"
+      }
+    },
+    {
+      "name": "pip",
+      "installed": "26.2.1",
+      "latest_stable": "26.2.1",
+      "source": "https://pypi.org/pypi/pip/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/f3/6e/1736e5b4ae2b778ef2f81c47d797de9f891d4d8acb047a24ca37a60294dd/pip-26.2.1-py3-none-any.whl",
+        "sha256": "71138adf1f4ca900cdb7d289c21b7494329f2332b6d85f0e1c42108c0384ed3e"
+      }
+    },
+    {
+      "name": "platformdirs",
+      "installed": "4.13.0",
+      "latest_stable": "4.13.0",
+      "source": "https://pypi.org/pypi/platformdirs/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/8d/15/1633010b26e88e872c93b67c0b6c5e174fb74cb6fb5c1472b4d51d4a8f22/platformdirs-4.13.0-py3-none-any.whl",
+        "sha256": "3dbcf4cd708f21cf876c4eaa90e58412bc4f033d87143f41b1493ff77c25b7e1"
+      }
+    },
+    {
+      "name": "pluggy",
+      "installed": "1.6.0",
+      "latest_stable": "1.6.0",
+      "source": "https://pypi.org/pypi/pluggy/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl",
+        "sha256": "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"
+      }
+    },
+    {
+      "name": "pyarrow",
+      "installed": "26.0.0",
+      "latest_stable": "26.0.0",
+      "source": "https://pypi.org/pypi/pyarrow/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/8c/32/01858422a37f083911c2bb4d15cc32c5eeaa9d9b2bf5ddedee995a7146a6/pyarrow-26.0.0-cp314-cp314-macosx_12_0_arm64.whl",
+        "sha256": "5780d487ff6c6ed7b42298609680d87fe0036e529a9dc2e1105364bce9697f50"
+      }
+    },
+    {
+      "name": "pyensembl",
+      "installed": "2.27.2",
+      "latest_stable": "2.27.2",
+      "source": "https://pypi.org/pypi/pyensembl/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/ff/bf/730626402ac53ed02e2d797581773dc209fa5240e142149f25556c2fd72d/pyensembl-2.27.2-py3-none-any.whl",
+        "sha256": "2744514475952c45f49f7775fddc739a9acb4cad6d930cc036d158e726f5dfcb"
+      }
+    },
+    {
+      "name": "pyfaidx",
+      "installed": "0.9.0.4",
+      "latest_stable": "0.9.0.4",
+      "source": "https://pypi.org/pypi/pyfaidx/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/b5/2c/44d47df76193b31fa4a7c662531076e6ec9a0f2f3017171f47c466211537/pyfaidx-0.9.0.4-py3-none-any.whl",
+        "sha256": "18b223b7ba8c66b988a8ce00011500961cb2aeb7fa97d05a293cf472acdd0009"
+      }
+    },
+    {
+      "name": "pygments",
+      "installed": "2.21.0",
+      "latest_stable": "2.21.0",
+      "source": "https://pypi.org/pypi/pygments/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl",
+        "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9"
+      }
+    },
+    {
+      "name": "pyparsing",
+      "installed": "3.3.3",
+      "latest_stable": "3.3.3",
+      "source": "https://pypi.org/pypi/pyparsing/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/38/bb/d215ee7c73b61497b28a5503f9f53523f294fcc936762b7caf90e0c1c2b5/pyparsing-3.3.3-py3-none-any.whl",
+        "sha256": "ece8c00a69cf01b45d0b1dedabb469c90d8caf996d4fda40f147627a122849a4"
+      }
+    },
+    {
+      "name": "pypdf",
+      "installed": "6.20.1",
+      "latest_stable": "6.20.1",
+      "source": "https://pypi.org/pypi/pypdf/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/71/f8/4cbd09988b4b158260b7e0df38bf16f19e998bf0e257a18661a8da04280e/pypdf-6.20.1-py3-none-any.whl",
+        "sha256": "aa5a55ddcffdc5e5ab291d5decb23f6383f4e56f8e3263dc39af41fff03885ad"
+      }
+    },
+    {
+      "name": "pyproject-hooks",
+      "installed": "1.3.3",
+      "latest_stable": "1.3.3",
+      "source": "https://pypi.org/pypi/pyproject-hooks/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/85/11/044d1ae1b4ec0d7af88ee5bc91e081be1022533032b906a7bdabdbb60977/pyproject_hooks-1.3.3-py3-none-any.whl",
+        "sha256": "5fc53fdac9f7bd63fbcdc868fb5f90b4784d78a53a3d3388cd738b807441a20b"
+      }
+    },
+    {
+      "name": "pysam",
+      "installed": "0.24.1",
+      "latest_stable": "0.24.1",
+      "source": "https://pypi.org/pypi/pysam/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/48/e6/df265ba6504499a93b98f35f62227c3db1f8eb27eec51105eb48973e35a0/pysam-0.24.1-cp314-cp314-macosx_11_0_arm64.whl",
+        "sha256": "897f9a76dfc568e0a18350c5d545cc158e2200884c59ec2eb9895385e33b4315"
+      }
+    },
+    {
+      "name": "pytest",
+      "installed": "9.1.1",
+      "latest_stable": "9.1.1",
+      "source": "https://pypi.org/pypi/pytest/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/24/25/1de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f/pytest-9.1.1-py3-none-any.whl",
+        "sha256": "37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c"
+      }
+    },
+    {
+      "name": "pytest-cov",
+      "installed": "7.1.0",
+      "latest_stable": "7.1.0",
+      "source": "https://pypi.org/pypi/pytest-cov/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/9d/7a/d968e294073affff457b041c2be9868a40c1c71f4a35fcc1e45e5493067b/pytest_cov-7.1.0-py3-none-any.whl",
+        "sha256": "a0461110b7865f9a271aa1b51e516c9a95de9d696734a2f71e3e78f46e1d4678"
+      }
+    },
+    {
+      "name": "pytest-xdist",
+      "installed": "3.8.0",
+      "latest_stable": "3.8.0",
+      "source": "https://pypi.org/pypi/pytest-xdist/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/ca/31/d4e37e9e550c2b92a9cbc2e4d0b7420a27224968580b5a447f420847c975/pytest_xdist-3.8.0-py3-none-any.whl",
+        "sha256": "202ca578cfeb7370784a8c33d6d05bc6e13b4f25b5053c30a152269fd10f0b88"
+      }
+    },
+    {
+      "name": "python-dateutil",
+      "installed": "2.9.0.post0",
+      "latest_stable": "2.9.0.post0",
+      "source": "https://pypi.org/pypi/python-dateutil/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+        "sha256": "a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"
+      }
+    },
+    {
+      "name": "readme-renderer",
+      "installed": "46.0",
+      "latest_stable": "46.0",
+      "source": "https://pypi.org/pypi/readme-renderer/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/4b/72/ac5ca81fe9121fcaa9d828d21017cba00a16a98e4ea5fb60c878f93dda4f/readme_renderer-46.0-py3-none-any.whl",
+        "sha256": "d0dae1f74bb273b534770cb4cccb6bb78735540afdb03c2146f4e19dcd412560"
+      }
+    },
+    {
+      "name": "requests",
+      "installed": "2.34.2",
+      "latest_stable": "2.34.2",
+      "source": "https://pypi.org/pypi/requests/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl",
+        "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0"
+      }
+    },
+    {
+      "name": "requests-toolbelt",
+      "installed": "1.0.0",
+      "latest_stable": "1.0.0",
+      "source": "https://pypi.org/pypi/requests-toolbelt/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/3f/51/d4db610ef29373b879047326cbf6fa98b6c1969d6f6dc423279de2b1be2c/requests_toolbelt-1.0.0-py2.py3-none-any.whl",
+        "sha256": "cccfdd665f0a24fcf4726e690f65639d272bb0637b9b92dfd91a5568ccf6bd06"
+      }
+    },
+    {
+      "name": "rfc3986",
+      "installed": "2.0.0",
+      "latest_stable": "2.0.0",
+      "source": "https://pypi.org/pypi/rfc3986/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/ff/9a/9afaade874b2fa6c752c36f1548f718b5b83af81ed9b76628329dab81c1b/rfc3986-2.0.0-py2.py3-none-any.whl",
+        "sha256": "50b1502b60e289cb37883f3dfd34532b8873c7de9f49bb546641ce9cbd256ebd"
+      }
+    },
+    {
+      "name": "rich",
+      "installed": "15.0.0",
+      "latest_stable": "15.0.0",
+      "source": "https://pypi.org/pypi/rich/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl",
+        "sha256": "33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb"
+      }
+    },
+    {
+      "name": "ruff",
+      "installed": "0.17.0",
+      "latest_stable": "0.17.0",
+      "source": "https://pypi.org/pypi/ruff/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/a7/20/643f3c8f75594f937b2bf74801241c56a2e2b8e139d24dff8b66b28cdd7f/ruff-0.17.0-py3-none-macosx_11_0_arm64.whl",
+        "sha256": "cbf7149e0927dc3295d5d64679a4765576eef71b00782b2ae969ef82274d6bb9"
+      }
+    },
+    {
+      "name": "sercol",
+      "installed": "1.0.3",
+      "latest_stable": "1.0.3",
+      "source": "https://pypi.org/pypi/sercol/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/2c/d7/4e263a49e28257500fd5e87e002b87e1e5e4567da7bd127be0030865255a/sercol-1.0.3-py3-none-any.whl",
+        "sha256": "d9bd13e94c1049f13dc3d135ac81d1bc600ad1f106c5a8804759deaa3e4d3a42"
+      }
+    },
+    {
+      "name": "serializable",
+      "installed": "1.3.1",
+      "latest_stable": "1.3.1",
+      "source": "https://pypi.org/pypi/serializable/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/4f/dc/d82f32291ce3c1874177ae3117decf92b78bef0ba7bcac42078d883237eb/serializable-1.3.1-py3-none-any.whl",
+        "sha256": "1d01ecc84094b5cf19abb2f8a20e47889d7e0a3542c220854649cd569c761446"
+      }
+    },
+    {
+      "name": "setuptools",
+      "installed": "84.0.0",
+      "latest_stable": "84.0.0",
+      "source": "https://pypi.org/pypi/setuptools/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/95/9c/c510029fc6ef33a6275cd2c5d3cecd6613dfd6aa401d57c54f1c18852ccf/setuptools-84.0.0-py3-none-any.whl",
+        "sha256": "51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670"
+      }
+    },
+    {
+      "name": "six",
+      "installed": "1.17.0",
+      "latest_stable": "1.17.0",
+      "source": "https://pypi.org/pypi/six/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl",
+        "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"
+      }
+    },
+    {
+      "name": "soupsieve",
+      "installed": "3.0.3",
+      "latest_stable": "3.0.3",
+      "source": "https://pypi.org/pypi/soupsieve/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/49/ca/f639c80449997b88aba7bc9705d25dd76cc0844f45f187862fd8f8bb18fa/soupsieve-3.0.3-py3-none-any.whl",
+        "sha256": "fa30e3ba4809cb81ce1f3209f2fbe3e779fc445f0439bc147a0d7c4601743f21"
+      }
+    },
+    {
+      "name": "tinytimer",
+      "installed": "0.0.0",
+      "latest_stable": "0.0.0",
+      "source": "https://pypi.org/pypi/tinytimer/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/5c/87/75d3fbe15aabd45d9b70702241787cf1f7f30dd9fabcd9bc89d828c7661d/tinytimer-0.0.0.tar.gz",
+        "sha256": "6ad13c8f01ab6094e58081a5367ffc4c5831f2d6b29034d2434d8ae106308fa5"
+      }
+    },
+    {
+      "name": "tqdm",
+      "installed": "4.70.1",
+      "latest_stable": "4.70.1",
+      "source": "https://pypi.org/pypi/tqdm/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/a7/03/921a3d3c75785aca9ebfbfcabfbc3a1be12e2ab5265deb026d55a5a3f83e/tqdm-4.70.1-py3-none-any.whl",
+        "sha256": "c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73"
+      }
+    },
+    {
+      "name": "twine",
+      "installed": "7.0.0",
+      "latest_stable": "7.0.0",
+      "source": "https://pypi.org/pypi/twine/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/96/08/ddcdc06225eaad6de0e48e1002b06d919dbde20582d0662c7af51308e5d6/twine-7.0.0-py3-none-any.whl",
+        "sha256": "b854164df26db268af05f49aa5c0344b10e27a494343ff05b1e0bad3b135f5a7"
+      }
+    },
+    {
+      "name": "typechecks",
+      "installed": "0.1.0",
+      "latest_stable": "0.1.0",
+      "source": "https://pypi.org/pypi/typechecks/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/62/21/15129201c1f52f6af1e7809e96dce46da4b406c2c07fe9425e92f51edc5c/typechecks-0.1.0.tar.gz",
+        "sha256": "7d801a6018f60d2a10aa3debc3af65f590c96c455de67159f39b9b183107c83b"
+      }
+    },
+    {
+      "name": "typing-extensions",
+      "installed": "4.16.0",
+      "latest_stable": "4.16.0",
+      "source": "https://pypi.org/pypi/typing-extensions/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl",
+        "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+      }
+    },
+    {
+      "name": "urllib3",
+      "installed": "2.8.0",
+      "latest_stable": "2.8.0",
+      "source": "https://pypi.org/pypi/urllib3/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl",
+        "sha256": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3"
+      }
+    },
+    {
+      "name": "varcode",
+      "installed": "10.13.0",
+      "latest_stable": "10.13.0",
+      "source": "https://pypi.org/pypi/varcode/json",
+      "installed_artifact": {
+        "url": "https://files.pythonhosted.org/packages/e8/04/5de7ddcd4e8799d86ec67024977a31d673218743acb5082423f6e5a1bcc1/varcode-10.13.0-py3-none-any.whl",
+        "sha256": "523190557a484dad715dc0b07962925361a17b5d347295c973eb158676b052e5"
+      }
+    }
+  ]
+}

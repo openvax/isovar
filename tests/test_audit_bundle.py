@@ -155,6 +155,55 @@ def test_expected_input_pin_is_enforced_during_publication(tmp_path):
     assert not (tmp_path / "bundle").exists()
 
 
+def test_create_rejects_manifest_above_restore_limit(tmp_path):
+    with pytest.raises(AuditBundleError, match="[Oo]versized.*manifest"):
+        AuditBundle.create(tmp_path / "bundle", {}, metadata={"large": "x" * (16 * 1024 * 1024)})
+    assert not (tmp_path / "bundle").exists()
+
+
+def test_manifest_limit_includes_encoded_bytes_and_final_newline(tmp_path, monkeypatch):
+    from isovar import audit_bundle
+
+    # Keep the boundary test small while testing the actual limit above.
+    monkeypatch.setattr(audit_bundle, "MAX_MANIFEST_BYTES", 4096)
+    monkeypatch.setattr(audit_bundle, "software_identity", lambda: {})
+    probe = AuditBundle.create(tmp_path / "probe", {}, metadata={"text": ""})
+    overhead = (probe.directory / "manifest.json").stat().st_size
+    text = "x" * (4096 - overhead - 6) + "\u00e9"  # JSON escapes this as six bytes.
+    bundle = AuditBundle.create(tmp_path / "boundary", {}, metadata={"text": text})
+    assert (bundle.directory / "manifest.json").stat().st_size == 4096
+    restored = AuditBundle.unpack(bundle.pack(tmp_path / "backup.tar.gz"), tmp_path / "restore")
+    assert restored.manifest == bundle.manifest
+    with pytest.raises(AuditBundleError, match="[Oo]versized.*manifest"):
+        AuditBundle.create(tmp_path / "too-large", {}, metadata={"text": text + "x"})
+    assert not (tmp_path / "too-large").exists()
+
+
+def test_manifest_limit_rejects_oversized_on_disk_encoding_and_archive(tmp_path, monkeypatch):
+    from isovar import audit_bundle
+
+    monkeypatch.setattr(audit_bundle, "MAX_MANIFEST_BYTES", 4096)
+    monkeypatch.setattr(audit_bundle, "software_identity", lambda: {})
+    bundle = AuditBundle.create(tmp_path / "bundle", {})
+    path = bundle.directory / "manifest.json"
+    # Identical parsed content, but an oversized physical manifest.
+    path.write_bytes(path.read_bytes() + b" " * 4096)
+    for verify in (True, False):
+        with pytest.raises(AuditBundleError, match="[Oo]versized.*manifest"):
+            AuditBundle.open(bundle.directory, verify=verify)
+    with pytest.raises(AuditBundleError, match="[Oo]versized.*manifest"):
+        bundle.verify()
+    with pytest.raises(AuditBundleError, match="[Oo]versized.*manifest"):
+        bundle.pack(tmp_path / "backup.tar.gz")
+    assert not (tmp_path / "backup.tar.gz").exists()
+    archive = tmp_path / "external.tar.gz"
+    with tarfile.open(archive, "w:gz") as output:
+        output.add(path, arcname="manifest.json")
+    with pytest.raises(AuditBundleError, match="[Oo]versized.*manifest"):
+        AuditBundle.unpack(archive, tmp_path / "restore")
+    assert not (tmp_path / "restore").exists()
+
+
 def test_opened_bundle_detects_an_on_disk_manifest_change(tmp_path):
     bundle = AuditBundle.create(tmp_path / "bundle", {"input": source_file(tmp_path)})
     manifest = bundle.manifest
@@ -304,6 +353,86 @@ def test_sid_import_rejects_changed_original_provenance(tmp_path, original_sid_a
     with pytest.raises(AuditBundleError, match="checksum mismatch"):
         bundle_sid_audit(original, tmp_path / "bundle")
     assert not (tmp_path / "bundle").exists()
+
+
+@pytest.mark.parametrize("report", ["priority-subsets.json.gz", "result-pins.json.gz", "result-pins.json"])
+@pytest.mark.parametrize("change", [None, "checkpoint", "missing", "invalid_checksum", "invalid_map", "escape", "symlink"])
+def test_sid_report_checksum_maps_are_verified_before_import(
+        tmp_path, original_sid_audit, report, change):
+    from examples.sid_sv_audit.inventory import write_json
+
+    original, _, _ = original_sid_audit
+    checkpoint = next((original / "results").rglob("*.reverse.json.gz"))
+    name = checkpoint.relative_to(original).as_posix()
+    pins = {name: digest(checkpoint)}
+    if change == "missing":
+        pins["missing.json"] = "0" * 64
+    elif change == "invalid_checksum":
+        pins[name] = None
+    elif change == "escape":
+        outside = source_file(tmp_path)
+        pins["../" + outside.name] = digest(outside)
+    elif change == "symlink":
+        outside = source_file(tmp_path)
+        (original / "outside.txt").symlink_to(outside)
+        pins["outside.txt"] = digest(outside)
+    elif change == "checkpoint":
+        changed = read_json(checkpoint)
+        changed["status"] = "changed after reporting"
+        checkpoint.unlink()
+        write_json(checkpoint, changed)
+    report_path = original / "report" / report
+    data = read_json(report_path) if report_path.exists() else {}
+    if change == "invalid_map":
+        pins = []
+    if report.startswith("result-pins."):
+        data = pins
+    else:
+        data["pins"] = pins
+    report_path.unlink(missing_ok=True)
+    write_json(report_path, data)
+    if change is not None:
+        with pytest.raises(AuditBundleError):
+            bundle_sid_audit(original, tmp_path / "bundle")
+        assert not (tmp_path / "bundle").exists()
+    else:
+        bundle = bundle_sid_audit(original, tmp_path / "bundle")
+        bundle.verify()
+        assert read_json(bundle.path("audit/report/" + report)) == data
+        assert bundle.path("audit/" + name).read_bytes() == checkpoint.read_bytes()
+
+
+@pytest.mark.parametrize("status", ["not_assessable", "reconstruction_timeout"])
+@pytest.mark.parametrize("change", [None, "inventory_sha256", "references_sha256", "acquisition_sha256", "source_identity", "geometry_id"])
+def test_sid_non_replayable_outcomes_still_require_provenance(
+        tmp_path, original_sid_audit, status, change):
+    from examples.sid_sv_audit.inventory import write_json
+
+    original, _, _ = original_sid_audit
+    checkpoint = next((original / "results").rglob("*.forward.json.gz"))
+    row = read_json(checkpoint)
+    row["status"] = status
+    if change == "source_identity":
+        receipt_path = next((original / "sources").rglob("batch.json"))
+        receipt = read_json(receipt_path)
+        receipt["request"]["source_identity"] = "0" * 64
+        write_json(receipt_path.with_name("other.json"), receipt)
+        row["request"]["acquisition_sha256"] = identity(receipt)
+    elif change:
+        row["request"][change] = "0" * 64
+    checkpoint.unlink()
+    write_json(checkpoint, row)
+    if change is not None:
+        with pytest.raises(AuditBundleError):
+            bundle_sid_audit(original, tmp_path / "bundle")
+        assert not (tmp_path / "bundle").exists()
+    else:
+        bundle = bundle_sid_audit(original, tmp_path / "bundle")
+        assert len(bundle.manifest["metadata"]["sv_rna_runs"]) == 1
+        saved = read_json(bundle.path("audit/" + checkpoint.relative_to(original).as_posix()))
+        assert saved == row
+        outcome, = [r for r in bundle.manifest["metadata"]["outcomes"] if r["status"] == status]
+        assert outcome["run_id"].endswith("/forward")
 
 
 @pytest.mark.parametrize("conflicting", [False, True])
