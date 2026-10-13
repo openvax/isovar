@@ -80,9 +80,12 @@ an otherwise usable observation.
   [RNA path format](sv-rna.md#the-rna-path-format) as `isovar sv-rna`, and
   Vaxrank's `fusion_antigens_from_isovar` turns its coding hypotheses into
   candidate antigens without choosing an isoform.
-- Matched germline/co-somatic attribution of reconstructed edits remains
-  [#297](https://github.com/openvax/isovar/issues/297). Sequence reconstruction
-  and identifying the origin of each edit are different tasks.
+- Small-variant results attribute edits in the assembled cDNA to supplied
+  somatic and matched-germline variants
+  ([#297](https://github.com/openvax/isovar/issues/297); see
+  [other variants in the assembled RNA](assembly-and-translation.md#other-variants-in-the-assembled-rna)).
+  SV RNA paths do not. Sequence reconstruction and identifying the origin of
+  each edit are different tasks.
 
 RNA supports an RNA sequence, not direct protein translation. Local junction
 support can justify a partial protein without resolving a full mature transcript.

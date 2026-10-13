@@ -61,7 +61,7 @@ A few cautions:
 
 Every support, whether a small-variant allele or protein, an SV junction's
 `direct_support` or an ORF's `full_interval_support`, is the
-[RNA support record](../README.md#collecting-rna-reads). Its cell/UMI fields:
+[RNA support record](read-collection.md#the-rna-support-record). Its cell/UMI fields:
 
 | Field | Meaning |
 | --- | --- |
@@ -246,28 +246,38 @@ mutant-specific support. All candidates within the tolerance remain possible;
 the implementation does not force a winner by majority abundance. Alternative
 placements of one observation must agree for a unique assignment.
 
-`unique_within_catalog` means one compatible candidate after these checks.
-`ambiguous` retains the candidate set, including disagreements between
-placements. Other statuses report no candidate, inadequate coverage/path,
-reference-or-other allele evidence, or excessive edit distance. Candidate
-`unique_cell_ids` and `ambiguous_cell_ids` list cells with at least one such
-observation; a cell may appear in both lists or support multiple candidates.
-Do not add these lists or interpret them as mutually exclusive cell states.
-`num_unique_cells` and `num_ambiguous_cells` are the corresponding observed
-counts. `protein_attribution` aggregates the same evidence by protein hypothesis:
+Each observation gets a status:
+
+- `unique_within_catalog`: one compatible candidate after these checks.
+- `ambiguous`: the candidate set is retained, including disagreements between
+  placements.
+- Other statuses report no candidate, inadequate coverage/path,
+  reference-or-other allele evidence, or excessive edit distance.
+
+Candidate `unique_cell_ids` and `ambiguous_cell_ids` list cells with at least
+one such observation, and `num_unique_cells` and `num_ambiguous_cells` are the
+corresponding observed counts. A cell may appear in both lists or support
+multiple candidates. Do not add these lists or interpret them as mutually
+exclusive cell states.
+
+`protein_attribution` aggregates the same evidence by protein hypothesis:
 ambiguity between synonymous nucleotide candidates can still identify one
 protein. Observation `hypothesis_ids` and `protein_status` record this decision.
 Multiple protein hypotheses for one nucleotide candidate remain unresolved.
 
 These are compatibility costs, not posterior probabilities or validated
-expression calls. The first implementation does not model base qualities,
-ambient RNA, barcode errors or systematic platform errors. Reference competition
-covers the focal allele in each discovered context, not an exhaustive catalog
-of wild-type isoforms. Discovery still uses the existing exact-overlap assembler;
-edit-tolerant attribution does not perform noisy-read consensus correction.
-Cells without an informative read are unknown, and cells absent from the locus
-are not enumerated. Observed cell counts are not an estimate of the total number
-of expressing cells. Local RNA support does not establish protein translation.
+expression calls:
+
+- The first implementation does not model base qualities, ambient RNA, barcode
+  errors or systematic platform errors.
+- Reference competition covers the focal allele in each discovered context, not
+  an exhaustive catalog of wild-type isoforms.
+- Discovery still uses the existing exact-overlap assembler; edit-tolerant
+  attribution does not perform noisy-read consensus correction.
+- Cells without an informative read are unknown, and cells absent from the
+  locus are not enumerated. Observed cell counts are not an estimate of the
+  total number of expressing cells.
+- Local RNA support does not establish protein translation.
 
 The discovery/quantification separation follows
 [IsoQuant](https://ablab.github.io/IsoQuant/cmd.html) and

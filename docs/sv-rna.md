@@ -130,7 +130,7 @@ and half-open (`[start, end)`) in path coordinates.
 |---|---|
 | Result | `schema`, `event_id`, `reference_name`, `sample_id`, `status`, `paths`, `parameters` |
 | Path | `path_id`, `sequence`, `junctions`, `frame_status`, `translations` |
-| Junction | `query_interval`: the unplaced bases between the two partners (empty for a direct join); `left`/`right`: the placed bases on either side as `[contig, position, strand]`; `unplaced_bases`; `relation`; `direct_support`, the [RNA support record](../README.md#collecting-rna-reads) of reads spanning the join |
+| Junction | `query_interval`: the unplaced bases between the two partners (empty for a direct join); `left`/`right`: the placed bases on either side as `[contig, position, strand]`; `unplaced_bases`; `relation`; `direct_support`, the [RNA support record](read-collection.md#the-rna-support-record) of reads spanning the join |
 | Translation | `translation_start`, `translation_end`, `amino_acids`, `ends_with_stop_codon`, `complete_5prime`, `transcript_ids`, `frame_evidence`, `candidate_peptides` (`sequence`, `protein_interval`), `translation_observed` (always false) |
 
 `path["sequence"][start:end]` for a junction's `query_interval` equals its
@@ -467,23 +467,10 @@ Sources: [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf) and
 
 ## Dense inputs: discovery and complete-input support
 
-`--dense-support` (Python: `dense_support=True`) scans the **entire original
-alignment file**, including records outside the nominated regions. It groups
-actual records by segment on disk, gives placed event junctions first priority, followed by breakpoint
-clips, and reserves representative bundles for distinct
-full-sequence/placement groups. Grouping is automatic: different names, qualities
-and cell/UMI labels do not consume another group, but even a single sequence
-difference, another placement or partial coverage remains distinct. A late event
-need not fall within the first `--max-records` records. Each group contributes
-original representatives before the remaining record budget is spent on copies.
-Within the budget, every original still votes: equalizing common and rare groups
-would distort allele proportions. Instead, a bounded cache shares coordinate
-calculations across reads with the same alignment structure, while retaining
-each read's sequence, qualities and identity. Complete-input support still uses
-all originals. Grouping changes which records may be selected under a tight cap;
-discovery votes remain explicitly bounded and the policy is recorded.
-Supplementary and alternative records of a selected segment stay together;
-an SA tag alone still supplies no observed partner ([SAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf)).
+`--dense-support` (Python: `dense_support=True`) scans the entire original
+alignment file, including records outside the nominated regions. A bounded
+discovery pass reconstructs candidate paths; a second pass then counts support
+for those paths from every original eligible segment.
 
 ```bash
 isovar sv-rna --input event.json --bam original-regional.bam --output dense.json \
@@ -500,6 +487,32 @@ to the whole input, and are removed on success or failure. Without
 discovery records and retained candidate witnesses are held in memory;
 witness-heavy results and their JSON can still be large. Use an original
 regional BAM to avoid unnecessarily scanning a whole-genome alignment file.
+
+### Which records discovery uses
+
+Discovery groups actual records by segment on disk. Placed event junctions get
+first priority, followed by breakpoint clips, and representative bundles are
+reserved for distinct full-sequence/placement groups. A late event need not
+fall within the first `--max-records` records.
+
+Grouping is automatic. Different names, qualities and cell/UMI labels do not
+consume another group, but even a single sequence difference, another placement
+or partial coverage remains distinct. Each group contributes original
+representatives before the remaining record budget is spent on copies.
+
+Within the budget, every original still votes: equalizing common and rare
+groups would distort allele proportions. Instead, a bounded cache shares
+coordinate calculations across reads with the same alignment structure, while
+retaining each read's sequence, qualities and identity. Grouping changes which
+records may be selected under a tight cap; discovery votes remain explicitly
+bounded and the policy is recorded. Complete-input support still uses all
+originals.
+
+Supplementary and alternative records of a selected segment stay together; an
+SA tag alone still supplies no observed partner
+([SAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf)).
+
+### Complete-input support
 
 After bounded reconstruction, a separate pass visits all original eligible
 segments to count support for the fixed candidate paths:
