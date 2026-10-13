@@ -132,6 +132,24 @@ the original runner's process-level alarm. Use your job runner for wall-time
 limits. `scratch_dir` / `--scratch-dir` only selects disposable dense-engine
 scratch storage. Sequence, support and biological interpretation are unchanged.
 
+Canonical hashing and JSON/gzip publication stream encoded chunks, preserving
+existing checksums and checkpoint bytes. Replay fingerprints the complete expected
+result before reconstruction, then releases that parsed tree. Native results are
+normalized in place, preserving shared evidence; comparison still covers every
+JSON value. Sid import validates one document at a time and retains only the
+provenance needed to build replay plans. Original evidence files are copied
+verbatim.
+
+These changes reduce temporary serialization and duplicate-tree memory. The
+standard JSON parser still holds decoded text and one parsed result, and the
+streaming Python encoder can take more CPU time than whole-document encoding.
+To measure those costs independently on a frozen result, run
+`python -m examples.benchmark_audit_json RESULT.json.gz --operation hash
+--implementation new --output measurement.json` from a checkout. Operations
+`read`, `write` and `normalize`, and implementation `old`, provide comparisons.
+Use `--trace` separately for incremental allocation measurements; it changes
+timings and is intentionally unavailable for parsing.
+
 ## Manifest and errors
 
 For other datasets, `AuditBundle.create` accepts replay plans in

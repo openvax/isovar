@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-13T12:30:38.533267+00:00",
+  "checked_at": "2026-10-13T17:12:42.812448+00:00",
   "python": "3.14.6",
   "scope": "Isovar repository release environment; runtime and optional dependencies plus test/build tools; excludes shared environment and historical audit pins",
   "packages": [
@@ -285,12 +285,12 @@
     },
     {
       "name": "more-itertools",
-      "installed": "11.1.0",
-      "latest_stable": "11.1.0",
+      "installed": "11.2.0",
+      "latest_stable": "11.2.0",
       "source": "https://pypi.org/pypi/more-itertools/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/e8/3d/1087453384dbde46a8c7f9356eead2c58be8a7bf156bca40243377c85715/more_itertools-11.1.0-py3-none-any.whl",
-        "sha256": "4b65538ae22f6fed0ce4874efd317463a7489796a0939fa66824dd542125a192"
+        "url": "https://files.pythonhosted.org/packages/d4/f7/86f27473377a8ebdbdfedec5e62e87fbc24c4c88ed0a2a5ea0a12ee2229b/more_itertools-11.2.0-py3-none-any.whl",
+        "sha256": "e4c522352a24664c974d0be8382944107ae638281a06391a5a538366b5707fe5"
       }
     },
     {
@@ -325,12 +325,12 @@
     },
     {
       "name": "orfdata",
-      "installed": "0.15.0",
-      "latest_stable": "0.15.0",
+      "installed": "0.18.0",
+      "latest_stable": "0.18.0",
       "source": "https://pypi.org/pypi/orfdata/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/d8/15/ffb252b661a2a5185cee607fc621de0fb33e4dfee5b452471d0fb5b2d24c/orfdata-0.15.0-py3-none-any.whl",
-        "sha256": "b6012ce109e6f9f803e0ba8546ac7469f25fcfccec64a8ba00b444035627c3bb"
+        "url": "https://files.pythonhosted.org/packages/d1/35/669a48f8efd545b73d22ff7332fabc637fa972f24715bc9b8ed40d9a687d/orfdata-0.18.0-py3-none-any.whl",
+        "sha256": "b8a79cb34e4988edbe1501567cfc3a4d63dcfbba95837a6fc4ec95d4826dfe29"
       }
     },
     {
@@ -695,12 +695,12 @@
     },
     {
       "name": "varcode",
-      "installed": "10.13.0",
-      "latest_stable": "10.13.0",
+      "installed": "10.14.0",
+      "latest_stable": "10.14.0",
       "source": "https://pypi.org/pypi/varcode/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/e8/04/5de7ddcd4e8799d86ec67024977a31d673218743acb5082423f6e5a1bcc1/varcode-10.13.0-py3-none-any.whl",
-        "sha256": "523190557a484dad715dc0b07962925361a17b5d347295c973eb158676b052e5"
+        "url": "https://files.pythonhosted.org/packages/2e/f1/8282077e1be005f9e6b4f8ea19f0c297ba7f0c66c10f922a62685c38da47/varcode-10.14.0-py3-none-any.whl",
+        "sha256": "97e681021a82a9d4ce4a2b72d2a48b7319d19af1697e2facd7dc82331cc3fb3d"
       }
     }
   ]
