@@ -226,7 +226,12 @@ def build(screen_path, audits, checks_path):
                 if digest(detail_path) != expected:
                     raise ValueError("Changed reconstruction")
                 pins[str(detail_path)] = expected
-                details[str(path.resolve())] = {p["path_id"]: p for p in read_json(detail_path)["paths"]}
+                # Report assembly needs path geometry, not the full witness and
+                # exploratory ORF payloads from every reconstructed view.
+                details[str(path.resolve())] = {
+                    p["path_id"]: {key: p[key] for key in
+                                   ("sequence", "blocks", "end_reasons", "unplaced_intervals")}
+                    for p in read_json(detail_path)["paths"]}
         selection_path = directory / "priority-selection.json"
         if not selection_path.exists():
             continue

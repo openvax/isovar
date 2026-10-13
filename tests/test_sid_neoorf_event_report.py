@@ -140,3 +140,83 @@ def test_report_preserves_unresolved_counts_and_completed_negative(tmp_path, mon
     assert "Unresolved join" in sheet and status in sheet
     if expected is None:
         assert "unknown / unknown / unknown" in sheet
+
+
+@pytest.mark.parametrize("mismatch", [False, True])
+def test_report_releases_path_support_between_views_and_checks_sequence(tmp_path, monkeypatch, mismatch):
+    import gc
+    from types import SimpleNamespace
+    import weakref
+
+    import pyensembl
+    from examples import report_sid_neoorf_events as report
+    from examples.sid_sv_audit.inventory import digest, read_json, write_json
+
+    class SupportPayload(dict):
+        pass
+
+    sid = next(iter(report.PRODUCTS))
+    audit = tmp_path / "audit"
+    write_json(audit / "inventory.json.gz", dict(
+        sources={sid: dict(id=sid)}, nominations={"n": dict(original=dict(name="Join"))},
+        geometries={"g": dict(nominations=["n"], breakends=[])}))
+    write_json(audit / "references.json.gz", dict(
+        inventory_sha256=digest(audit / "inventory.json.gz"), models={}, unsupported_cds={},
+        assignments={"g": dict(transcripts=[], excluded_transcripts=[])}))
+    block = dict(contig="chr1", strand="+", query_start=0, query_end=6,
+                 reference_start=100, reference_end=106)
+    paths, rows, pins = set(), [], {}
+    for orientation in ("forward", "reverse"):
+        detail = audit / "reconstructions" / (orientation + ".json.gz")
+        write_json(detail, dict(paths=[dict(
+            path_id="p", sequence="ATGGCT", blocks=[block], end_reasons=["read_end"],
+            unplaced_intervals=[], full_interval_support={"large_witness_payload": []},
+            exploratory_orfs={"candidates": []})]))
+        paths.add(detail)
+        result = audit / "results" / sid / ("g." + orientation + ".json.gz")
+        write_json(result, dict(
+            request=dict(source_id=sid, geometry_id="g", orientation=orientation),
+            status="reconstructed", acquisition_status="acquired", input_limitations=[],
+            candidates=[dict(candidate_id="c", occurrences=[dict(path_id="p", query_interval=[0, 6])],
+                             rna_support=dict(fragments=2, reads=2, fragment_ids=["f"], read_ids=["r"]))],
+            reconstruction=dict(path=str(detail.relative_to(audit)), sha256=digest(detail))))
+        pins[str(result)] = digest(result)
+        rows.append(dict(kind="SV_RNA_ORF", geometry_id="g", candidate_id="c", source_id=sid,
+                         orientation=orientation, result_path=str(result), amino_acids="MA",
+                         nucleotide_sequence="ATGGCC" if mismatch else "ATGGCT", ends_with_stop_codon=False))
+    gtf = tmp_path / "annotation.gtf"
+    gtf.write_text("# empty fixture\n")
+    pins[str(gtf)] = digest(gtf)
+    monkeypatch.setattr(pyensembl, "EnsemblRelease", lambda release: SimpleNamespace(
+        gtf_path=str(gtf), transcript_fasta_paths=[], gene_ids_at_locus=lambda *args: []))
+    screen, checks = tmp_path / "screen.json.gz", tmp_path / "checks.json"
+    write_json(screen, dict(scope="selected_regions", candidates=rows, small_variant_outcomes=[],
+                            comparison={}, input_pins=pins))
+    write_json(checks, {})
+    payloads = []
+
+    def tracked_read(path):
+        if path in paths:
+            gc.collect()
+            assert all(ref() is None for ref in payloads), "Previous view's unused support is still retained"
+        value = read_json(path)
+        if path in paths:
+            payload = SupportPayload(value["paths"][0]["full_interval_support"])
+            value["paths"][0]["full_interval_support"] = payload
+            payloads.append(weakref.ref(payload))
+        return value
+
+    monkeypatch.setattr(report, "read_json", tracked_read)
+    if mismatch:
+        with pytest.raises(ValueError, match="ORF nucleotide sequence differs"):
+            report.build(screen, [audit], checks)
+    else:
+        ledger = report.build(screen, [audit], checks)
+        assert len(ledger["candidates"]) == 2
+        for row in ledger["candidates"]:
+            assert row["support_details"] == dict(fragments=2, reads=2)
+            assert row["rna_occurrences"] == [dict(
+                path_id="p", query_interval=[0, 6], genomic_blocks=[block], rna_path_blocks=[block],
+                rna_path_length=6, rna_path_end_reasons=["read_end"], rna_path_unplaced_intervals=[])]
+        assert all(ledger["input_pins"][str(path)] == digest(path) for path in paths)
+    assert len(payloads) == 2 and all(ref() is None for ref in payloads)
