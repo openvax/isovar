@@ -71,7 +71,7 @@ independently recounts original BAM records, validates acquisition partitions an
 source/input pins, and checks representative RNA witnesses and translations.
 Keep the cache and pinned assets together when moving or backing up the subsets.
 The published relative file pins can verify a relocated copy. The installed
-[audit-bundle API and CLI](audit-bundles.md) can preserve this directory and its
+[audit-bundle API and CLI](../docs/audit-bundles.md) can preserve this directory and its
 referenced inputs, restore it elsewhere and replay completed SV views without
 using the original receipt paths. The legacy example runner retains its original
 path contract; use `isovar audit-bundle replay` for portable offline replay.

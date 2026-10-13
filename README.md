@@ -240,17 +240,16 @@ spanning splice junctions can violate.
 
 ## Project reports and test data
 
-These pages record analyses of specific samples and the data Isovar's tests use.
-They are not usage guides.
+The [notes](https://github.com/openvax/isovar/tree/master/notes) directory holds
+maintainer working notes: Sid analysis reports, design specifications and
+benchmark records, with their data. They are not usage guides.
 
-- [Sid test reads](https://github.com/openvax/isovar/blob/master/docs/sid-test-reads.md):
+- [Sid test reads](https://github.com/openvax/isovar/blob/master/notes/sid-test-reads.md):
   the original Sid osteosarcoma reads packaged with Isovar for its tests, and
   how to make them again.
 - [Tumor-RNA audit](https://github.com/openvax/isovar/blob/master/tests/data/osteosarc/SAMPLE_AUDIT.md):
   a sample-by-sample RNA and protein audit of six osteosarc loci in two RNA
   sources, made for Isovar 1.8.0.
-- The `docs/` directory also holds Sid analysis reports (`sid-*.md`), design
-  specifications (`*-spec.md`) and benchmark records (`*-benchmarks.md`).
 
 ## Citing Isovar
 

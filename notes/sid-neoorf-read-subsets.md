@@ -70,7 +70,7 @@ archive, corrected dense audit and pinned installed Ensembl sources/indexes;
 those existing inputs are not duplicated in this additions archive.
 
 For portable backup and offline SV reconstruction, use the installed
-[audit-bundle API and CLI](audit-bundles.md), importing each original/additions/
+[audit-bundle API and CLI](../docs/audit-bundles.md), importing each original/additions/
 dense audit separately. It preserves original receipts and resolves runtime
 files within the bundle. The SV plans include frozen transcript models;
 additional annotation files needed by the downstream neoORF report must be

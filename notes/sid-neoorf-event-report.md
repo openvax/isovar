@@ -305,8 +305,8 @@ annotation, without invoking SAMtools or downloading whole libraries.
 
 ```sh
 python -m examples.report_sid_neoorf_events OUTPUT \
-  --screen docs/data/sid-neoorf/candidate-screen.recovered-final.json.gz \
-  --checks docs/data/sid-neoorf/coding-window-checks.json.gz \
+  --screen notes/data/sid-neoorf/candidate-screen.recovered-final.json.gz \
+  --checks notes/data/sid-neoorf/coding-window-checks.json.gz \
   --audit PRIOR_AUDIT --audit ADDITIONS_AUDIT --audit RECOVERY_AUDIT
 ```
 

@@ -187,16 +187,16 @@ representing 13 gene pairs; FTH1–FTL itself is called only at T2. T3 already h
 The example runner uses osteosarc's public indexed acquisition API and Isovar's
 RNA reconstruction engine. It needs a checkout and frozen base inventory and
 transcript-reference files; installed portable replay uses the public
-[audit-bundle API and CLI](audit-bundles.md).
+[audit-bundle API and CLI](../docs/audit-bundles.md).
 
 ```sh
 cd ISOVAR_CHECKOUT
 python -m examples.recover_sid_sv_pilot RECOVERY \
-  --base-audit FROZEN_BASE --pilot-coverage docs/data/sid-sv-pilot/coverage.json.gz \
+  --base-audit FROZEN_BASE --pilot-coverage notes/data/sid-sv-pilot/coverage.json.gz \
   --cache CACHE --stage acquire --max-acquisition-records 6500000 \
   --seed-timeout 1200 --max-seconds 3600
 python -m examples.recover_sid_sv_pilot RECOVERY \
-  --base-audit FROZEN_BASE --pilot-coverage docs/data/sid-sv-pilot/coverage.json.gz \
+  --base-audit FROZEN_BASE --pilot-coverage notes/data/sid-sv-pilot/coverage.json.gz \
   --cache CACHE --stage reconstruct --max-acquisition-records 6500000 \
   --seed-timeout 1200 --max-seconds 3600
 python -m examples.check_sid_sv_recovery RECOVERY CHECKS

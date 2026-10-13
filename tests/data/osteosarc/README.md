@@ -132,7 +132,7 @@ manual recipe, not recomputed from the small CI fixtures.
 The SAM fixtures, `bulk_star_t0.sam.gz` and `ont_t1.sam.gz`, are no longer
 checked in. They are members of osteosarc's openvax-v1 bundle, with exactly
 the same records, and tests read them through `isovar.sid_data.path`
-([Sid test reads](../../../docs/sid-test-reads.md)). `manifest.json`,
+([Sid test reads](../../../notes/sid-test-reads.md)). `manifest.json`,
 `selection.json` and the source counts here still hold the selection and the
 expected results. `fetch_sources.py` still refreshes those source metadata from
 a named osteosarc snapshot (`ISOVAR_SID_SNAPSHOT`, optionally

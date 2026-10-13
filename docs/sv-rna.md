@@ -451,7 +451,7 @@ full indexed T1 alignment instead, pass `--bam PATH_OR_URL` (and `--source URL`
 for a local copy). Gene-pair labels do not assert a coding fusion.
 
 The long-read and three-fusion reads come from osteosarc's openvax-v1 bundle
-([Sid test reads](sid-test-reads.md)). The other fixture tools live with the
+([Sid test reads](../notes/sid-test-reads.md)). The other fixture tools live with the
 tests: `tests/data/fusions/build_osteosarc.py`, `audit_three_fusions.py`, and
 `validation-events.json` with its generator `build_validation_events.py`.
 

@@ -28,7 +28,7 @@ dependencies = {file = ["requirements.txt"]}
 include = ["isovar", "isovar.*"]
 
 [tool.setuptools.package-data]
-# Isovar's Sid test reads: an osteosarc bundle (docs/sid-test-reads.md).
+# Isovar's Sid test reads: an osteosarc bundle (notes/sid-test-reads.md).
 isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*"]
 
 [project.urls]

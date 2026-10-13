@@ -9,7 +9,7 @@ The Python API and the `isovar audit-bundle` / `isovar-audit-bundle` commands
 come with an ordinary `pip install isovar` and work from any directory. They do
 not need a repository checkout, a notebook or network access.
 
-The [preserved Sid bundles and installed-wheel validation](sid-portable-audit-bundles.md)
+The [preserved Sid bundles and installed-wheel validation](../notes/sid-portable-audit-bundles.md)
 provide a worked example with original sequencing inputs and recorded identities.
 
 ## Bundle explicitly selected files

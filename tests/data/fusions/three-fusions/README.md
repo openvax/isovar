@@ -12,7 +12,7 @@ The fixtures were built on September 22–23, 2026 by a builder that has since
 been retired: its reads are members of osteosarc's openvax-v1 bundle
 (`isovar/fusions/three-fusions/<file>#/records`), which now owns them, and
 `tests/test_sid_data.py` checks every fixture's records against it. See
-[Sid test reads](../../../../docs/sid-test-reads.md). The builder, including
+[Sid test reads](../../../../notes/sid-test-reads.md). The builder, including
 exactly how it derived the pinned Ensembl 115 models in `references.json.gz`,
 is in the repository history:
 `git show v1.39.2:tests/data/fusions/build_three_fusions.py`. The manifest still
