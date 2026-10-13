@@ -17,6 +17,8 @@ import sys
 import tarfile
 import tempfile
 
+from ._audit_json import canonical, canonical_chunks, identity, write_json_stream  # noqa: F401
+
 
 FORMAT = "isovar-audit-bundle"
 SCHEMA_VERSION = 1
@@ -27,14 +29,6 @@ __all__ = ["AuditBundle", "AuditBundleError"]
 
 class AuditBundleError(ValueError):
     """An audit bundle, input or replay checkpoint failed validation."""
-
-
-def canonical(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
-
-
-def identity(value):
-    return sha256(canonical(value)).hexdigest()
 
 
 def digest(path):
@@ -107,8 +101,11 @@ def _validate(manifest):
         raise AuditBundleError("Bundle manifest identity mismatch")
     # Creation/restoration publish canonical JSON with a trailing newline.
     # Every accepted manifest must fit that encoding as well as its input file.
-    if len(canonical(manifest)) + 1 > MAX_MANIFEST_BYTES:
-        raise AuditBundleError("Oversized bundle manifest (limit: 16 MiB)")
+    size = 1
+    for chunk in canonical_chunks(manifest):
+        size += len(chunk)
+        if size > MAX_MANIFEST_BYTES:
+            raise AuditBundleError("Oversized bundle manifest (limit: 16 MiB)")
 
 
 def _read_manifest(handle):
@@ -126,7 +123,7 @@ def publish_json(path, value):
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as handle:
             temporary = Path(handle.name)
-            handle.write(canonical(value) + b"\n")
+            write_json_stream(handle, value)
             handle.flush()
             os.fsync(handle.fileno())
         os.link(temporary, path)
@@ -194,7 +191,8 @@ class AuditBundle:
         metadata = {} if metadata is None else deepcopy(metadata)
         if not isinstance(metadata, dict):
             raise AuditBundleError("Metadata must be an object")
-        canonical(metadata)
+        for _ in canonical_chunks(metadata):
+            pass
         destination = Path(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.mkdir()  # Reserve ownership before writing or cleaning up.

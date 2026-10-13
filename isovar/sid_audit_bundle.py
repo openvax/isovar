@@ -58,7 +58,7 @@ def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="c
     directory = Path(directory).resolve()
     if Path(destination).resolve().is_relative_to(directory):
         raise AuditBundleError("Create the bundle outside the original audit directory")
-    files, aliases, documents, checksums, verified = {}, {}, {}, {}, {}
+    files, aliases, checkpoints, acquired, checksums, verified = {}, {}, {}, {}, {}, {}
 
     def add(path, checksum=None, base=None):
         path = Path(path)
@@ -99,10 +99,9 @@ def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="c
         for path in sorted((directory / tree).rglob("*")):
             if path.is_file() and "__pycache__" not in path.parts:
                 add(path)
-    for path in sorted(paths):
+    def collect_document(path):
         add(path)
         data = read_json(path)
-        documents[path] = data
         base = next((directory / tree for tree in ("report", "search")
                      if path.is_relative_to(directory / tree)), directory)
         for pin in _pins(data):
@@ -121,13 +120,20 @@ def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="c
             if not isinstance(checksum, str) or not re.fullmatch("[0-9a-f]{64}", checksum):
                 raise AuditBundleError("Invalid audit SHA-256: " + name)
             add(name, checksum, base=directory)
-    acquired = {identity(row): row for path, row in documents.items()
-                if path.is_relative_to(directory / "sources") and "batch_id" in row}
+        if path.is_relative_to(directory / "sources") and "batch_id" in data:
+            acquired[identity(data)] = data
+        elif path.is_relative_to(directory / "results"):
+            # Keep provenance needed for plans, not the summary's candidate
+            # arrays. Every original file and declared pin is still preserved.
+            checkpoints[path] = {key: data[key] for key in
+                ("request", "status", "acquisition_status", "input_limitations", "reconstruction")
+                if key in data}
+
+    for path in sorted(paths):
+        collect_document(path)
     plans, outcomes = {}, []
     with tempfile.TemporaryDirectory() as temporary:
-        for path, row in documents.items():
-            if not path.is_relative_to(directory / "results"):
-                continue
+        for path, row in checkpoints.items():
             request = row["request"]
             sid, gid, orientation = (request[k] for k in ("source_id", "geometry_id", "orientation"))
             run_id = "/".join((sid, gid, orientation))
@@ -166,6 +172,7 @@ def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="c
                                  source=expected["source"], parameters=parameters, read_collection=collector,
                                  input_limitations=row.get("input_limitations", []),
                                  upstream_acquisition=expected["upstream_acquisition"], original_request=request)
+            del expected
         for name, path in (extra_files or {}).items():
             if name in files:
                 raise AuditBundleError("Additional file name already exists: " + name)

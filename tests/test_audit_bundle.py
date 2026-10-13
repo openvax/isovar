@@ -355,6 +355,92 @@ def test_sid_import_rejects_changed_original_provenance(tmp_path, original_sid_a
     assert not (tmp_path / "bundle").exists()
 
 
+def test_sid_import_releases_payloads_before_next_read_and_publication(
+        tmp_path, original_sid_audit, monkeypatch):
+    import weakref
+    from isovar import sid_audit_bundle
+
+    original, run_id, _ = original_sid_audit
+    read = sid_audit_bundle.read_json
+    create = AuditBundle.create
+    references = []
+
+    class TrackedDict(dict):
+        pass
+
+    class TrackedList(list):
+        pass
+
+    def assert_released():
+        assert all(reference() is None for reference in references)
+
+    def tracked_read(path):
+        assert_released()
+        value = read(path)
+        if any(path.is_relative_to(original / tree) for tree in ("results", "reconstructions", "report")):
+            value = TrackedDict(value)
+            references.append(weakref.ref(value))
+            # Payload evidence must not survive through references to a child
+            # even when the containing reconstruction root has been released.
+            for key in ("candidates", "paths", "excluded_records"):
+                if key in value and isinstance(value[key], list):
+                    value[key] = TrackedList(value[key])
+                    references.append(weakref.ref(value[key]))
+        return value
+
+    def checked_create(*args, **kwargs):
+        assert_released()
+        return create(*args, **kwargs)
+
+    monkeypatch.setattr(sid_audit_bundle, "read_json", tracked_read)
+    monkeypatch.setattr(AuditBundle, "create", checked_create)
+    bundle = bundle_sid_audit(original, tmp_path / "bundle")
+    assert references
+    assert len(bundle.manifest["metadata"]["outcomes"]) == 2
+    assert run_id in bundle.manifest["metadata"]["sv_rna_runs"]
+    for name in bundle.manifest["files"]:
+        if name.startswith("audit/"):
+            assert digest(bundle.path(name)) == digest(original / name.removeprefix("audit/"))
+
+
+def test_replay_releases_expected_tree_before_engine_and_preserves_native_result(
+        tmp_path, original_sid_audit, monkeypatch):
+    import weakref
+    from isovar import audit_replay
+
+    original, run_id, expected = original_sid_audit
+    bundle = bundle_sid_audit(original, tmp_path / "bundle")
+    plan = bundle.manifest["metadata"]["sv_rna_runs"][run_id]
+    expected_path = bundle.path(plan["expected"])
+    read = audit_replay.read_json
+    references = []
+
+    class TrackedDict(dict):
+        pass
+
+    def tracked_read(path):
+        value = read(path)
+        if path == expected_path:
+            value = TrackedDict(value)
+            references.append(weakref.ref(value))
+        return value
+
+    native = deepcopy(expected)
+    native["reference_models"] = tuple(native["reference_models"])
+
+    def reconstruct(*args, **kwargs):
+        assert references and all(reference() is None for reference in references)
+        return native
+
+    monkeypatch.setattr(audit_replay, "read_json", tracked_read)
+    monkeypatch.setattr(audit_replay, "reconstruct_sv_rna", reconstruct)
+    first = replay_sv_rna(bundle, run_id, tmp_path / "replay")
+    assert first["result"] is native
+    assert first["result"] == expected
+    assert first["comparison"] == "matched"
+    assert replay_sv_rna(bundle, run_id, tmp_path / "replay") == first
+
+
 @pytest.mark.parametrize("report", ["priority-subsets.json.gz", "result-pins.json.gz", "result-pins.json"])
 @pytest.mark.parametrize("change", [None, "checkpoint", "missing", "invalid_checksum", "invalid_map", "escape", "symlink"])
 def test_sid_report_checksum_maps_are_verified_before_import(
