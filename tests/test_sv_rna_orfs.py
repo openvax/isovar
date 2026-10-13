@@ -328,7 +328,8 @@ def test_sid_native_uorf_ms_overlay_keeps_candidate_specific_rna_support(tmp_pat
         assert not product["reference_evidence"]["reference_ms_support_on_retained_sequence"]
         peptide, = product["reference_evidence"]["peptide_observations"]
         assert peptide["reference_observation"]["sequence"] == "KIILSKISV"
-        assert peptide["reference_observation"]["protein_intervals"] == ((31, 39),)
+        # Varcode 10.14 exports JSON lists; older releases returned tuples.
+        assert json.loads(json.dumps(peptide["reference_observation"]["protein_intervals"])) == [[31, 39]]
         assert peptide["retained_mutant_intervals"] == []
         assert product["evidence"]["rna_polarity"] == "unresolved"
     assert "uorf_catalogue_metadata" not in result  # Do not mutate caller-owned reconstruction.
@@ -369,7 +370,8 @@ def test_sid_generic_orf_api_preserves_reference_and_modification(tmp_path):
         assert not product["reference_evidence"]["reference_ms_support_on_retained_sequence"]
         peptide, = product["reference_evidence"]["peptide_observations"]
         assert peptide["reference_observation"]["sequence"] == "KIILSKISV"
-        assert peptide["reference_observation"]["protein_intervals"] == ((31, 39),)
+        # Varcode 10.14 exports JSON lists; older releases returned tuples.
+        assert json.loads(json.dumps(peptide["reference_observation"]["protein_intervals"])) == [[31, 39]]
         assert peptide["retained_mutant_intervals"] == []
         assert product["evidence"]["rna_polarity"] == "unresolved"
     assert "orf_catalogue_metadata" not in result  # Do not mutate caller-owned reconstruction.

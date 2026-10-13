@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pysam
 
-from .audit_bundle import AuditBundleError, canonical, identity, publish_json, software_identity
+from .audit_bundle import AuditBundleError, identity, publish_json, software_identity
+from ._audit_json import comparison_identity, normalize_json
 from .read_collector import ReadCollector
 from .sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 __all__ = ["replay_sv_rna"]
@@ -16,6 +17,11 @@ def read_json(path):
     path = Path(path)
     with gzip.open(path, "rt") if path.suffix == ".gz" else path.open() as handle:
         return json.load(handle)
+
+
+def _expected_identity(path):
+    expected = read_json(path)
+    return None if expected is None else comparison_identity(expected)
 
 
 def replay_sv_rna(bundle, run_id, output_directory, *, allow_software_change=False, scratch_dir=None):
@@ -71,7 +77,9 @@ def replay_sv_rna(bundle, run_id, output_directory, *, allow_software_change=Fal
         raise AuditBundleError("Replay output must be outside the immutable bundle")
     request = dict(bundle_id=bundle.bundle_id, run_id=run_id, plan_sha256=identity(plan), software=software)
     path = output / (identity(run_id)[:32] + ".json")
-    expected = read_json(bundle.path(plan["expected"])) if plan.get("expected") else None
+    # Finish reading/comparing the expected evidence before allocating engine
+    # state or a resumed checkpoint. Only its fingerprint survives this call.
+    expected = _expected_identity(bundle.path(plan["expected"])) if plan.get("expected") else None
     if path.exists():
         checkpoint = read_json(path)
         if checkpoint.get("request") != request:
@@ -89,11 +97,16 @@ def replay_sv_rna(bundle, run_id, output_directory, *, allow_software_change=Fal
             result["upstream_acquisition"] = plan["upstream_acquisition"]
         # The public checkpoint is JSON data on both first run and resume.
         # Tuples in native engine output serialize as lists in frozen evidence.
-        result = json.loads(canonical(result))
-        comparison = "not_requested" if expected is None else "matched" if result == expected else "mismatch"
-        checkpoint = dict(request=request, result=result, result_sha256=identity(result), comparison=comparison)
+        result = normalize_json(result)
+        result_sha256 = identity(result)
+        comparison = "not_requested" if expected is None else "matched" if comparison_identity(result) == expected else "mismatch"
+        checkpoint = dict(request=request, result=result, result_sha256=result_sha256, comparison=comparison)
         publish_json(path, checkpoint)
-    comparison = "not_requested" if expected is None else "matched" if checkpoint["result"] == expected else "mismatch"
+        # New checkpoints have already been compared and atomically published.
+        if comparison == "mismatch":
+            raise AuditBundleError("Replay differs from the frozen result; checkpoint retained at " + str(path))
+        return checkpoint
+    comparison = "not_requested" if expected is None else "matched" if comparison_identity(checkpoint["result"]) == expected else "mismatch"
     if checkpoint.get("comparison") != comparison:
         raise AuditBundleError("Replay checkpoint comparison was changed: " + str(path))
     if comparison == "mismatch":
