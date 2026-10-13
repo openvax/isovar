@@ -48,3 +48,26 @@ resource monitoring through result export (#487). Partial exports remain
 explicit failures. Keep scientific settings and original input pins unchanged.
 Record monotonic reconstruction time and CPU time; host suspension is not
 included in the monotonic timings on this macOS host.
+
+## Retry after streaming audit publication
+
+Preserve the subsequent forward free-space failure and the fact that reverse
+never started. After #488 ships, merge that release into a new producer checkout
+and freeze a separate environment from its verified dependency artifacts. Recheck
+source, acquisition, reference, BAM/index and both orientation identities, plus
+an independent native input count, before creating new controls. Keep the same
+scientific settings and the 14,400-second, 2 GiB scratch, 16 GiB process-memory
+and 8 GiB free-space budgets. Keep the machine awake for the serial runs.
+
+Pin and retain the setup/coordinator scripts with the producing controls. Check
+every completed candidate against original SAM evidence and independent ORF
+translation. The preceding engine provides a baseline for all assembled path
+IDs, DNA and blocks; it has no completed ONT full-support or ORF result. Report
+that limitation explicitly rather than treating either prior failure as zero.
+
+Measure output size and parsing memory before publication and installed replay:
+streamed hashing/writing does not make the standard JSON decoder bounded in
+memory. Preserve the 42 completed views and their producing identities, add the
+two verified successors, and update coverage, reports and portable replay only
+after both orientations pass. Retain the four existing archives and publish the
+new evidence as a separately verifiable addition with an actual restore check.
