@@ -89,6 +89,11 @@ every replayable view. Each source, event and orientation stays separate.
 Completed unassessable/timeout outcomes are retained in `outcomes`, even when
 they have no reconstruction to replay. Missing original inputs cause import
 to fail, rather than reacquiring or treating the event as zero support.
+Every checkpoint must match its acquisition, source, inventory and reference
+identities, including outcomes without a reconstruction. Checksum maps in Sid
+reports (`pins` and `result-pins.json.gz`) are checked against audit-relative
+files before the importer publishes new bundle pins. Structured pins for
+report-local assets keep their report-relative paths.
 
 ```python
 from isovar.audit_bundle import AuditBundle
@@ -160,7 +165,10 @@ Pass this object as `metadata` and declare each named file in `files`.
 `manifest.json` has `format="isovar-audit-bundle"`, `schema_version=1`,
 `files`, `metadata`, `software` and `bundle_id`. Each file is stored at
 `files/LOGICAL_NAME`; its manifest entry has `sha256` and `size`. `bundle_id` is
-SHA-256 of canonical sorted JSON excluding itself. Unknown schema versions,
+SHA-256 of canonical sorted JSON excluding itself. Manifests are limited to
+16 MiB of encoded JSON, including the writer's final newline, across creation,
+opening, verification, backup and restore. Put large evidence in declared payload
+files instead of embedding it in metadata. Unknown schema versions,
 escaping paths, missing files, changed bytes and incomplete archives fail
 validation. An embedded manifest verifies consistency; it is not an external
 signature. Compare `bundle_id` with your trusted recorded identity when
