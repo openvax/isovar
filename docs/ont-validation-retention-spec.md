@@ -40,3 +40,13 @@ evidence. Decode incrementally and intern equal nested values only in witness
 rows, including rows decoded inside buffered containers. Keep arbitrary JSON
 values and every witness row unchanged; test both buffered and streamed paths
 against the standard decoder. The frozen producing helpers remain untouched.
+
+The shared forward verifier completed under its limits. Reverse completed every
+scientific check and wrote its receipts, then exceeded the sampled RSS limit
+during process teardown. Preserve that failed process record and its outputs.
+Before loading original records, retain cell/lineage rows only for the original
+identities used by selected candidate observations. Release projected paths and
+metadata after exporting the complete summary. Re-run reverse with the same
+guards and require its summary bytes to match the preceding computed summary.
+Retain the successful forward proof through an explicit per-view verification
+inventory; do not rerun or relabel it as produced by the new verifier.
