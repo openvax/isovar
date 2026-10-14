@@ -7,7 +7,7 @@ running. Keep discovery/scientific settings unchanged and pin the new engine.
 Preserve the original timeout and interrupted outcome with unknown counts.
 
 Run both orientations serially with a declared one-hour reconstruction budget
-per view, a 2 GiB scratch limit, a 16 GiB process-memory limit and an 8 GiB free
+per view, a 2 GiB scratch limit, a 16 GiB peak-RSS limit and an 8 GiB free
 disk reserve. Write controls before computation, checkpoint each outcome, and
 record time, peak memory, scratch use and the original incomplete-partner flags.
 Earlier diagnostic attempts remain separate from this producing attempt.
@@ -43,7 +43,7 @@ Preserve the index-only forward one-hour timeout, its operator-interrupted
 reverse comparison, and the separately recorded interruption of the preceding
 refinement. After full validation, declare a new producer with the same 14,400
 seconds of reconstruction time used by the original failed attempt. Keep the
-2 GiB scratch, 16 GiB process-memory and 8 GiB disk-reserve limits, extending
+2 GiB scratch, 16 GiB peak-RSS and 8 GiB disk-reserve limits, extending
 resource monitoring through result export (#487). Partial exports remain
 explicit failures. Keep scientific settings and original input pins unchanged.
 Record monotonic reconstruction time and CPU time; host suspension is not
@@ -56,7 +56,7 @@ never started. After #488 ships, merge that release into a new producer checkout
 and freeze a separate environment from its verified dependency artifacts. Recheck
 source, acquisition, reference, BAM/index and both orientation identities, plus
 an independent native input count, before creating new controls. Keep the same
-scientific settings and the 14,400-second, 2 GiB scratch, 16 GiB process-memory
+scientific settings and the 14,400-second, 2 GiB scratch, 16 GiB peak-RSS
 and 8 GiB free-space budgets. Keep the machine awake for the serial runs.
 
 Pin and retain the setup/coordinator scripts with the producing controls. Check
@@ -71,3 +71,11 @@ memory. Preserve the 42 completed views and their producing identities, add the
 two verified successors, and update coverage, reports and portable replay only
 after both orientations pass. Retain the four existing archives and publish the
 new evidence as a separately verifiable addition with an actual restore check.
+
+## Resource measurement scope
+
+The producing driver measures `resource.getrusage(...).ru_maxrss`, so the
+16 GiB guard is a peak resident-set (RSS) limit. Report total process footprint
+and compressed/swapped memory separately when available; the RSS limit does
+not bound those quantities. Reconstruction, fingerprinting, serialization and
+restoration also need separate timings and storage measurements.
