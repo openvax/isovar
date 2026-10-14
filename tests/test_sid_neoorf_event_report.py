@@ -194,19 +194,23 @@ def test_report_releases_path_support_between_views_and_checks_sequence(tmp_path
                             comparison={}, input_pins=pins))
     write_json(checks, {})
     payloads = []
+    original_items = report.collection_items
 
     def tracked_read(path):
-        if path in paths:
-            gc.collect()
-            assert all(ref() is None for ref in payloads), "Previous view's unused support is still retained"
-        value = read_json(path)
-        if path in paths:
-            payload = SupportPayload(value["paths"][0]["full_interval_support"])
-            value["paths"][0]["full_interval_support"] = payload
+        assert path not in paths, "Report materialized a complete reconstruction"
+        return read_json(path)
+
+    def tracked_items(path, field):
+        gc.collect()
+        assert all(ref() is None for ref in payloads), "Previous view's unused support is still retained"
+        for index, row in original_items(path, field):
+            payload = SupportPayload(row["full_interval_support"])
+            row["full_interval_support"] = payload
             payloads.append(weakref.ref(payload))
-        return value
+            yield index, row
 
     monkeypatch.setattr(report, "read_json", tracked_read)
+    monkeypatch.setattr(report, "collection_items", tracked_items)
     if mismatch:
         with pytest.raises(ValueError, match="ORF nucleotide sequence differs"):
             report.build(screen, [audit], checks)

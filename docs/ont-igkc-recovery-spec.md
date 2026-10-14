@@ -87,6 +87,17 @@ Use the separately pinned incremental reader from #497 for independent checks;
 record its identity alongside the producing engine. Validate every original SAM
 record and native ORF before importing either successor. Run the checks serially
 after both producers exit, under separately recorded validation resource limits.
+The validation projection checks each complete path and every native ORF before
+retaining only the fields used by official event-ORF export. Verify its complete
+summary and original-record hashes against materialized fixtures before use.
+The independent checker additionally limits sampled physical footprint to
+24 GiB, because resident memory alone excludes compressed/swapped allocations.
+
+Event reports should read one path at a time and retain only its geometry.
+The recovery report should read only the observations and original SAM rows
+used by its selected candidate, using separate passes so JSON field order does
+not change the result. Validate all JSON, including skipped fields; preserve
+every source file checksum and sequence/support check.
 
 The publication and installed replay wheel includes #497. Record that wheel's
 identity separately from the original producing wheel and verify complete result

@@ -20,6 +20,7 @@ from examples.check_sid_sv_pilot import check_candidate
 from examples.recover_sid_sv_pilot import coverage
 from examples.sid_sv_audit import acquisition, reconstruct, references
 from examples.sid_sv_audit.inventory import digest, identity, load_inventory, read_json, write_json
+from examples.sid_sv_audit.json_projection import candidate_evidence
 
 
 def view_producer(directory, result, default_run, producers, pins):
@@ -145,7 +146,7 @@ def verify(directory, output, *, allow_unresolved=False):
         if candidates:
             candidate = max(candidates, key=lambda c: c["rna_support"]["fragments"])
             result = read_json(reconstruct.result_path(directory, sid, gid, candidate["orientation"]))
-            details = read_json(directory / result["reconstruction"]["path"])
+            details = candidate_evidence(directory / result["reconstruction"]["path"], candidate)
             check = check_candidate(candidate, details, reference)
             expected = set(check["original_record_hashes"].values())
             names = {details["original_records"][key].split("\t", 1)[0]
