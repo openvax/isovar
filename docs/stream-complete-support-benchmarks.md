@@ -69,4 +69,5 @@ python examples/benchmark_stream_support.py --checkout CHECKOUT \
 
 No original input payloads or private recovery diagnostic metadata are included
 in this report. The separately pinned recovery and independent evidence checks
-remain tracked by #470 and PR #484.
+are documented in the [completed recovery](sid-sv-dense-recovery.md), #470 and
+PR #484. These benchmark measurements retain their original inputs and versions.

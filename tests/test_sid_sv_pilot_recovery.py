@@ -9,6 +9,46 @@ from examples.sid_sv_audit.reconstruct import implementation_identity, run_batch
 from tests.test_sid_sv_audit import empty_audit as empty_audit
 
 
+def test_successor_producer_requires_unchanged_inputs_and_preserved_failure(tmp_path):
+    from examples.check_sid_sv_recovery import view_producer
+    from examples.sid_sv_audit.reconstruct import result_path
+
+    request = dict(source_id='source', geometry_id='geometry', orientation='forward',
+                   inventory_sha256='inventory', references_sha256='references', acquisition_sha256='reads',
+                   parameters=dict(dense_support=True, max_records=50000),
+                   engine_id='old-engine', isovar_version='1.0.0', max_seconds=14400)
+    old = dict(request=request, status='reconstruction_timeout')
+    successor = dict(request=dict(request, engine_id='streaming-engine', isovar_version='2.0.0', max_seconds=3600),
+                     status='no_candidate_paths')
+    run = {field: successor['request'][field] for field in ('engine_id', 'isovar_version', 'parameters', 'max_seconds')}
+    old_path, run_path = tmp_path / 'history/failed.json', tmp_path / 'controls/producer.json'
+    write_json(old_path, old)
+    write_json(run_path, run)
+    outcome = result_path(tmp_path, 'source', 'geometry', 'forward')
+    write_json(outcome, successor)
+    pin = lambda p: dict(path=str(p.relative_to(tmp_path)), sha256=digest(p))
+    key = 'source/geometry/forward'
+    producers = {key: dict(previous_outcome=pin(old_path), run=pin(run_path), result_sha256=digest(outcome))}
+    pins = {}
+    assert view_producer(tmp_path, successor, {}, producers, pins) == run
+    assert len(pins) == 2
+    assert view_producer(tmp_path, successor, {'default': True}, {}, {}) == {'default': True}
+    changed = deepcopy(successor)
+    changed['request']['parameters']['max_records'] = 100
+    with pytest.raises(ValueError, match='scientific inputs'):
+        view_producer(tmp_path, changed, {}, producers, {})
+    changed = deepcopy(successor)
+    changed['request']['engine_id'] = 'undeclared-engine'
+    with pytest.raises(ValueError, match='declared producer'):
+        view_producer(tmp_path, changed, {}, producers, {})
+    outcome.write_text('{}')
+    with pytest.raises(ValueError, match='outcome changed'):
+        view_producer(tmp_path, successor, {}, producers, {})
+    old_path.write_text('{}')
+    with pytest.raises(ValueError, match='producer control'):
+        view_producer(tmp_path, successor, {}, producers, {})
+
+
 def pilot(directory):
     rows = [dict(source_id="source", geometry_id="g", orientation=o,
                  status="not_assessable", acquisition_status="acquisition_error")

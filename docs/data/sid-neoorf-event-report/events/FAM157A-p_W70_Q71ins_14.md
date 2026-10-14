@@ -2,7 +2,7 @@
 
 Event ID: `FAM157A-p_W70_Q71ins_14`.
 
-[Report and counting definitions](../../../sid-neoorf-event-report.md). [Complete JSON ledger](../events.json.gz) retains all placements and provenance.
+[Report and counting definitions](../../../sid-neoorf-event-report.md). [Complete JSON ledger](https://github.com/openvax/isovar/releases/download/v1.54.0/sid-neoorf-events-1.54.0.json.gz) retains all placements and provenance.
 
 ## Original DNA event
 

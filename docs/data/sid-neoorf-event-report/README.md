@@ -2,7 +2,7 @@
 
 [Interpretation and counting definitions](../../sid-neoorf-event-report.md). All 55 nominations/geometry entries, including unresolved and zero-candidate outcomes, are below. Sequence groups distinguish event, frame/window, stop and SV nucleotide sequence; they are not independent neoORFs.
 
-[Full proteins/windows FASTA](proteins.fasta), [SV ORF nucleotides](sv-orfs.fna), [all source-specific support rows](support.tsv), [complete event/placement ledger](events.json.gz).
+[Full proteins/windows FASTA](proteins.fasta), [SV ORF nucleotides](sv-orfs.fna), [all source-specific support rows](support.tsv), [complete event/placement ledger](https://github.com/openvax/isovar/releases/download/v1.54.0/sid-neoorf-events-1.54.0.json.gz).
 
 | Event sheet | Type | DNA provenance | Source hypotheses | Sequence groups |
 | --- | --- | --- | --- | --- |
@@ -51,7 +51,7 @@
 | [ZFAND2A::C7orf50](events/adj-03b2a234aa13a1ea7d474d9b.md) | SV | unknown_RNA_only_nomination | 1 | 1 |
 | [CDK11A::CDK11B](events/adj-03b9fc802bfa90900b74a750.md) | SV | unknown_RNA_only_nomination | 170 | 170 |
 | [LRRC37A::LRRC37A2](events/adj-03db542e1425ff6d0005c1ab.md) | SV | unknown_RNA_only_nomination | 16 | 16 |
-| [::IGKC](events/adj-041dbfbb2239d183a5982838.md) | SV | unknown_RNA_only_nomination | 176 | 176 |
+| [::IGKC](events/adj-041dbfbb2239d183a5982838.md) | SV | unknown_RNA_only_nomination | 415 | 414 |
 | [FTH1::FTL / shared:SV0580](events/adj-06dc27c7e4a9fbf7768d2c26.md) | SV | unknown_RNA_only_nomination | 37 | 37 |
 | [UBC::RPS27A / shared:SV0616](events/adj-0742149ff01fe14252c0cd26.md) | SV | unknown_RNA_only_nomination | 0 | 0 |
 | [TPST1::CRCP / TPST1::ENSG00000249319 / shared:SV0575](events/adj-13d954785c89a21a1e8e937b.md) | SV | unknown_RNA_only_nomination | 132 | 121 |
@@ -61,3 +61,7 @@
 | [PARD3B::CDKN2B-AS1;CDKN2B / shared:SV0001 / shared:SV0635](events/adj-5a298314b0272623da8eb76a.md) | SV | DNA_VCF_linked | 24 | 21 |
 | [OTUD7A::FMN1 / shared:SV0432 / shared:SV0637](events/adj-79fa5cd408c4e72b464abb46.md) | SV | DNA_VCF_linked | 6 | 6 |
 | [ATP5MG::KMT2A](events/adj-e7cac6d424ea83935654d789.md) | SV | unknown_RNA_only_nomination | 29 | 29 |
+
+The complete ledger is a release attachment. Save it as `events.json.gz`
+in this directory to verify every entry in `files.json`. The download
+URL, byte count and checksum are recorded in `downloads.json`.

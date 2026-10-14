@@ -42,5 +42,52 @@
     "payload_bytes": 11348954838,
     "outcomes": 44,
     "replay_views": 42
+  },
+  {
+    "archive": "portable-sid-ont-forward-completion-20261014.tar.gz",
+    "archive_bytes": 21222114870,
+    "archive_sha256": "c60bcba3cdd936c989f6d2650a08b151c955bd3f5f7dc0ca6bd737467da40eaa",
+    "bundle_directory": "/Users/iskander/code/isovar/.cache/portable-sid-ont-forward-completion-20261014",
+    "bundle_id": "6ee43b4e4b5e0d66ca7c9ef2de0c9af3b72eabcf0c8746b6e0a114be741fb792",
+    "files": 198,
+    "name": "ont-forward-completion",
+    "orientation": "forward",
+    "outcomes": 1,
+    "payload_bytes": 21239469931,
+    "replay_views": 1
+  },
+  {
+    "archive": "portable-sid-ont-reverse-completion-20261014.tar.gz",
+    "archive_bytes": 14165616980,
+    "archive_sha256": "5ee502403a9afd2d1726d25b5c3806607331e2a78e1dac656ff8e8e1b42f58b1",
+    "bundle_directory": "/Users/iskander/code/isovar/.cache/portable-sid-ont-reverse-completion-20261014",
+    "bundle_id": "4a3d142124bb449b36d30484a86dd86c6aaf12edda0527e01dbe66651c897f03",
+    "files": 237,
+    "name": "ont-reverse-completion",
+    "orientation": "reverse",
+    "outcomes": 1,
+    "payload_bytes": 14193369864,
+    "replay_views": 1
+  },
+  {
+    "actual_restore_and_relocation": "verified",
+    "archive": "portable-sid-ont-completion-reports-20261014.tar.gz",
+    "archive_bytes": 386332536,
+    "archive_sha256": "253a9ba7f6cab22dcc9c24366082fd1b0cd3f6a3c6539ce09069343cbdd0422e",
+    "bundle_id": "865da3981bb0704126b115335258c2427cd40a2857ed1a8c28f9fd4b73bef223",
+    "files": 128,
+    "name": "ont-completion-reports",
+    "network_connections_attempted": [],
+    "outcomes": 0,
+    "payload_bytes": 393109493,
+    "replay_views": 0,
+    "software": {
+      "dependencies": {
+        "edlib": "1.3.9.post1",
+        "pysam": "0.24.1"
+      },
+      "engine_sha256": "16018090d5d45bdd24edd5a7ce14a1af744993140a75a6b5d879338a3781a073",
+      "isovar_version": "1.54.0"
+    }
   }
 ]

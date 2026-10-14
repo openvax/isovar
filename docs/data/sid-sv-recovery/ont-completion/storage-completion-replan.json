@@ -1,0 +1,16 @@
+{
+  "recorded_at": "2026-10-14T05:19:47.561041+00:00",
+  "issue": "https://github.com/openvax/isovar/issues/503",
+  "reason": "Conservative measured archive+restore peak falls below the unchanged 8 GiB reserve; sampled outer compression is effectively 1.0 and copy-on-write sharing did not materially free space.",
+  "trigger": "Proceed only after original pipeline stops at its explicit restore-space preflight; if disk independently recovers, allow original stages and repair only stale report prerequisite names when reached.",
+  "action": "Verify every archive member and gzip stream; reclaim normalized derivation and cloned bundle only; retain native original and BAM. Then complete full public restore before native duplicate cleanup, followed by full installed replay and CLI resume.",
+  "original_import_helper": "/Users/iskander/code/isovar/.cache/ont-recovery-scripts-20261013/guarded-completion/import-verified-outcomes.py",
+  "importer_reused_reason": "Keep the already-pinned forward producer-controls bytes unchanged across reverse import and finalization.",
+  "limits_unchanged": true,
+  "tests": [
+    "archive-stream-verification-regression.json",
+    "pre-restore-cleanup-regression.json"
+  ],
+  "existing_stages": "Do not rerun any successfully completed predecessor stage. Preserve original declarations, logs, and failures.",
+  "report_prerequisite_correction": "The inherited report-archive helper still named the obsolete shared-stage completion files. The new report archive records explicit per-view verification and all actual predecessor/continuation stage proofs."
+}

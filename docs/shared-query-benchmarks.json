@@ -1,0 +1,113 @@
+{
+  "component": {
+    "scope": "one_300_template_component_batch_starting_at_template_100000_not_whole_reconstruction",
+    "equal_complete_state": true,
+    "candidate_paths": 200,
+    "original_templates": 300,
+    "observations": 600,
+    "retained_observations": 234,
+    "timings_seconds": {
+      "preceding": [
+        0.9100357919960516,
+        0.9387382920031087,
+        0.9226015000022016
+      ],
+      "shared": [
+        0.3365098330032197,
+        0.33444670899916673,
+        0.3717489169939654
+      ]
+    },
+    "median_speedup": 2.741677685220492,
+    "retained_python_bytes": {
+      "preceding": 4982175,
+      "shared": 1797079
+    },
+    "witness_rows": {
+      "preceding": 2326,
+      "shared": 2326
+    },
+    "unique_witness_objects": {
+      "preceding": 2326,
+      "shared": 460
+    },
+    "driver_sha256": "f4a44ed55bab6f84ca5d9f598731a82a5af2f843a4b5f22ab73a3fbebcb3a7f7",
+    "candidate_input_sha256": "b303cd196d5fa3ff5688fe4a78b6d83710e776af5a814494f56794c3a33b6058",
+    "engine_sha256": {
+      "sv_rna.py": "038501fe919c56f94705eeada8d4202d115801aa0545d050c49aa5a53e16c2e6",
+      "sv_rna_orfs.py": "651f0655e55cc578ff4496a424174135fbb64fd266c4d6fa4b48cae46960c9d2",
+      "sv_rna_stream.py": "dab63596963d92c0c20e54baf898c6b861f1948275ff5f7943e6f429f3b0a5ab"
+    }
+  },
+  "complete_short_read": {
+    "status": "completed",
+    "seconds": 77.69635025000025,
+    "peak_rss_bytes": 1586036736,
+    "driver_sha256": "e704e3872fd01d40e286e0214098a7c899861970780297f0f3d9d911151c2414",
+    "engine_sha256": {
+      "sv_rna.py": "038501fe919c56f94705eeada8d4202d115801aa0545d050c49aa5a53e16c2e6",
+      "sv_rna_dense.py": "b43905aa2cd93564c4c7a8565c337dc7cee0941c6564abb176f5f1b139e9d9f8",
+      "sv_rna_orfs.py": "651f0655e55cc578ff4496a424174135fbb64fd266c4d6fa4b48cae46960c9d2",
+      "read_identity.py": "2714d5352c822e2f6793edae65c5974c21254e71e6c1d0a0c098c8d5034387ee",
+      "read_lineage.py": "ee3e0e82e96d322243146971524a1018fab5b5f7b2e9d907c9fd4615cdfe2e83",
+      "cell_umi.py": "6b563ea5af6b4a56a023ca99bc77d369f500a8d336a037359e80097ae89466dd",
+      "rna_evidence.py": "bfa6ebf1816dfe62c695caa0b479e1d53dc5ea192c91e6913d4eeb3896ee74b1",
+      "sv_rna_stream.py": "dab63596963d92c0c20e54baf898c6b861f1948275ff5f7943e6f429f3b0a5ab"
+    },
+    "input_files": {
+      "bam": {
+        "sha256": "996d4449bf8ec34e405b3a11e8f315d477d35814695c2570df2ea12db78ae360",
+        "size": 33169501
+      },
+      "index": {
+        "sha256": "a9c42390ac57e0c94b8bb7cc23ff73a157a20fdaf70f5a3a9840a66309cef716",
+        "size": 92944
+      },
+      "input": {
+        "sha256": "cb4b81c19fd931a29c7d548d6f2c7bfee6b17c962bad8e127c9504ca187f6a08",
+        "size": 4513
+      }
+    },
+    "parameters": {
+      "annotated_junction_tolerance": 5,
+      "assemble": true,
+      "breakpoint_window": 2000,
+      "dense_support": true,
+      "include_regional_candidates": false,
+      "inclusion_mapq_255_is_unique": true,
+      "inclusion_min_base_quality": 20,
+      "inclusion_min_mapping_quality": 20,
+      "inclusion_min_splice_anchor_bases": 8,
+      "max_breakpoint_shift": 10,
+      "max_extension_segments": 500,
+      "max_orf_candidates": 1000,
+      "max_paths": 200,
+      "max_queries": 10000,
+      "max_records": 50000,
+      "min_alternative_fraction": 0.1,
+      "min_alternative_fragments": 2,
+      "min_anchor_bases": 18,
+      "min_local_variant_fraction": 0.5,
+      "min_orf_amino_acids": 8,
+      "min_overlap": 30,
+      "peptide_lengths": [
+        8,
+        9,
+        10,
+        11
+      ]
+    }
+  },
+  "whole_result_equivalence": {
+    "scope": "complete_short_read_IGKC_50000_discovery_all_input_support",
+    "whole_parsed_result_equal": true,
+    "canonical_result_sha256": "9f6063ba44995872c58f1cf1c3b9b8684049910bca40505ec9b8db87b11a0fe0",
+    "preceding": "/Users/iskander/code/isovar/.cache/ont-witness-refinement-bench-20261012/igkc-current-50000.json.result.json.gz",
+    "current": "/Users/iskander/code/isovar/.cache/ont-shared-query-bench-20261012/igkc-current-50000.json.result.json.gz"
+  },
+  "notes": [
+    "Component timings alternate implementations over the same original observations; the host also ran other tasks.",
+    "Retained Python bytes use recursive sys.getsizeof with shared object identities counted once; not peak RSS.",
+    "Large ONT recovery is not yet complete."
+  ]
+}

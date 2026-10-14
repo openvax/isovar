@@ -2,7 +2,7 @@
 
 Event ID: `adj-020512ee5df1e1d9d00edcba`.
 
-[Report and counting definitions](../../../sid-neoorf-event-report.md). [Complete JSON ledger](../events.json.gz) retains all placements and provenance.
+[Report and counting definitions](../../../sid-neoorf-event-report.md). [Complete JSON ledger](https://github.com/openvax/isovar/releases/download/v1.54.0/sid-neoorf-events-1.54.0.json.gz) retains all placements and provenance.
 
 ## Original DNA event
 

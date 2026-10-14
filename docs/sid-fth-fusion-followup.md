@@ -51,4 +51,4 @@ The broader caller-independent DNA/RNA probe highlights FOXO3–STRADA/CCDC47, P
 
 T3 RNA fusion calling is complete (24 filtered calls). The CTAT page still says “UCLA — pending mapping,” while preserved BAM metadata identifies the T3 ONT library as UCSF / April 2025. The clinical T3 resection is dated April 17, 2025 on the [sample page](https://osteosarc.com/scrnaseq/); an exact library-to-specimen receipt was not newly verified. No T3 oncoanalyser tumor/normal counterpart is available in the CTAT comparison, so short-read/DNA concordance is unavailable. Neither gap prevents using the existing T3 RNA calls.
 
-The separate unfinished Isovar recovery views are IGKC in the T2 ONT library. They do not imply that T3 fusion calling is waiting on this recovery.
+The separate [Isovar IGKC recovery](sid-sv-dense-recovery.md) is complete for both orientations in the T2 ONT library.

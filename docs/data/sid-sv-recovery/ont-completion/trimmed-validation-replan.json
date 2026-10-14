@@ -1,0 +1,48 @@
+{
+  "recorded_at": "2026-10-14T04:33:44.295350+00:00",
+  "reason": "Reverse scientific checks wrote complete output, but the process exceeded the unchanged RSS guard during teardown. The failed process and all output bytes remain preserved.",
+  "action": "Project cell and lineage rows to exactly the retained original observation identities before loading original records; discard projected paths and metadata after complete summary export. Require exact compressed summary equality against the preserved previous output.",
+  "retained_forward": {
+    "path": "/Users/iskander/code/isovar/.cache/ont-streamed-recovery-validation-20261013/shared-independent-validation-forward-process.json",
+    "sha256": "1b0eefb1bf8a630b87c2356a7461d75d07775f5732cd56a0e6d22fb8fcf68d31"
+  },
+  "prior_reverse_failure": {
+    "path": "/Users/iskander/code/isovar/.cache/ont-streamed-recovery-validation-20261013/shared-independent-validation-reverse-process.json",
+    "sha256": "e416f40cce3d1c921ebcddfa9bb52e015405f5aa81a93b17fba261c535ac6c92"
+  },
+  "new_start": {
+    "path": "/Users/iskander/code/isovar/.cache/ont-streamed-recovery-validation-20261013/trimmed-independent-validation-start.json",
+    "sha256": "4d35edba2c83b73bf370c498889900df9ead65f6bfa0f536e7b28f37356f6fe2"
+  },
+  "helpers": {
+    "check-ont-view-trimmed.py": {
+      "path": "/Users/iskander/code/isovar/.cache/ont-recovery-scripts-20261013/check-ont-view-trimmed.py",
+      "sha256": "f08dc3afbf963469cb48133ac54090db662ce9e1e6b333a8e6cfee3009ede5b2"
+    },
+    "recovery_projection_trimmed.py": {
+      "path": "/Users/iskander/code/isovar/.cache/ont-recovery-scripts-20261013/recovery_projection_trimmed.py",
+      "sha256": "1db3bee6380f74e5436e49f095d4ee254b92ad0216ba6501457313ba21058dd2"
+    },
+    "run-trimmed-reverse-check.py": {
+      "path": "/Users/iskander/code/isovar/.cache/ont-recovery-scripts-20261013/run-trimmed-reverse-check.py",
+      "sha256": "6a30e6072510ddae8b25fcaf7d04d039a500c8f42d163e2e93092681e56c05b0"
+    }
+  },
+  "equivalence": {
+    "checker-trimmed-summary-regression-proof.json": {
+      "path": "/Users/iskander/code/isovar/.cache/ont-streamed-recovery-validation-20261013/checker-trimmed-summary-regression-proof.json",
+      "sha256": "56ef7f38cbd77c7e757b226e0cbdad4dcf63f6c7cb51abd17dcf16dbfb9a9db3"
+    },
+    "trimmed-projection-small-equivalence.json": {
+      "path": "/Users/iskander/code/isovar/.cache/ont-streamed-recovery-validation-20261013/trimmed-projection-small-equivalence.json",
+      "sha256": "ec159b4263caad0c966202da37f23cc9fd4bfbfbdafb44fbcf6092aa2b85a190"
+    },
+    "trimmed-projection-short-equivalence.json": {
+      "path": "/Users/iskander/code/isovar/.cache/ont-streamed-recovery-validation-20261013/trimmed-projection-short-equivalence.json",
+      "sha256": "4665866cc59395fb5df42f03ace930bdf141229534026b370387e648bbd73c89"
+    }
+  },
+  "guards_unchanged": true,
+  "producer_unchanged": true,
+  "publication": "Blocked until both per-view process records pass and inventory verifies all proofs; no stage has run."
+}
