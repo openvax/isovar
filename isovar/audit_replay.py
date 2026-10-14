@@ -1,13 +1,13 @@
 """Offline replay of structured SV RNA plans from an :class:`AuditBundle`."""
 
 import gzip
-import json
 from pathlib import Path
 
 import pysam
 
 from .audit_bundle import AuditBundleError, identity, publish_json, software_identity
-from ._audit_json import comparison_identity, normalize_json
+from ._audit_json import comparison_identity, expected_json_identity, normalize_json
+from ._audit_json_reader import read_json_stream
 from .read_collector import ReadCollector
 from .sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 __all__ = ["replay_sv_rna"]
@@ -16,12 +16,13 @@ __all__ = ["replay_sv_rna"]
 def read_json(path):
     path = Path(path)
     with gzip.open(path, "rt") if path.suffix == ".gz" else path.open() as handle:
-        return json.load(handle)
+        return read_json_stream(handle)
 
 
 def _expected_identity(path):
-    expected = read_json(path)
-    return None if expected is None else comparison_identity(expected)
+    path = Path(path)
+    with gzip.open(path, "rt") if path.suffix == ".gz" else path.open() as handle:
+        return expected_json_identity(handle)
 
 
 def replay_sv_rna(bundle, run_id, output_directory, *, allow_software_change=False, scratch_dir=None):
