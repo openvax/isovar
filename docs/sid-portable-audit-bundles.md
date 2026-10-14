@@ -73,7 +73,7 @@ The fourth archive, `portable-sid-recovery-final-20261011.tar.gz`, preserves
 all 44 selected recovery outcomes, with 42 executable replay plans. The ONT
 IGKC timeout and interrupted scan retain unknown support; they do not have
 replay plans. [Follow-up #470](https://github.com/openvax/isovar/issues/470)
-tracks those unfinished views.
+tracks their separately produced successors below.
 
 The [producer-wheel proof](data/sid-portable-bundles/recovery-wheel-replay.json)
 verifies every archived payload byte, relocation of the full bundle, installed
@@ -97,3 +97,37 @@ entire frozen result; see the [release-wheel proof](data/sid-portable-bundles/re
 With 1.47.1, restore and inspect the recovery archive using the commands above,
 then replay a selected run with `--allow-software-change`. A changed result
 still fails comparison.
+
+## ONT IGKC completion
+
+Two new data archives preserve the independently verified forward and reverse
+ONT IGKC successors, their native and normalized reconstruction bytes, original
+regional BAM/index, frozen references, producing wheel, previous failures and
+validation controls. A third addition contains the refreshed reports and their
+provenance. The preceding four archives and bundle identities are unchanged.
+
+- `portable-sid-ont-forward-completion-20261014.tar.gz`: 198 files, 21,239,469,931 payload bytes; 21,222,114,870 archive bytes. [Manifest](data/sid-portable-bundles/ont-forward-completion.manifest.json.gz).
+- `portable-sid-ont-reverse-completion-20261014.tar.gz`: 237 files, 14,193,369,864 payload bytes; 14,165,616,980 archive bytes. [Manifest](data/sid-portable-bundles/ont-reverse-completion.manifest.json.gz).
+- `portable-sid-ont-completion-reports-20261014.tar.gz`: 128 files, 393,109,493 payload bytes; 386,332,536 archive bytes. [Manifest](data/sid-portable-bundles/ont-completion-reports.manifest.json.gz).
+
+The [archive index](data/sid-portable-bundles/archives.json) pins all seven archives.
+The [dependency inventory](data/sid-portable-bundles/ont-completion-report-dependencies.json)
+resolves every input of the refreshed screen and event report to its exact file
+in those archives. Preserve all seven for the combined report. Each orientation
+archive contains everything needed to replay its own view.
+
+Both data archives and the report addition were actually restored and verified.
+The [installed-wheel proof](data/sid-portable-bundles/ont-completion-installed-replay.json)
+records full forward reconstruction from a relocated restore with Python
+networking blocked, matching every frozen result value and scanning all
+2,715,459 input records. CLI resume verifies the complete compressed checkpoint
+and leaves its bytes unchanged. The reverse archive was restored and inspected;
+its producing result passed independent sequence, support and translation checks.
+
+The replay wheel includes the streamed decoder and checkpoint validator; its
+identity is recorded separately from the frozen producing wheel. Duplicate
+working files and the disposable replay checkpoint were reclaimed only after
+verification, with checksummed cleanup receipts. Complete native and normalized
+scientific evidence remains in the archives. These checks preserve the recorded
+acquisition/discovery limitations and do not establish translation, tumor
+specificity or an independent DNA rearrangement.

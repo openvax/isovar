@@ -1,0 +1,1 @@
+{"checks_passed":9,"code_sha256":"dbda5c22b5481836568d5867dc37b3dc5738b96e233349b87b7ec2047dbc0a2c","helper_sha256":"4db27a0ca25e211bbcb91d6ed73cabeb13e356c9283181688e0ae534c58b7082","no_reclamation_after_corruption":true,"rejected":["payload","missing","unexpected","duplicate","manifest","nonregular","truncated_gzip","archive_checksum"]}

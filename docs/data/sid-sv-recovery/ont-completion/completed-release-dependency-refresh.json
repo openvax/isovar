@@ -1,0 +1,10 @@
+{
+  "checked_at": "2026-10-14T13:17:20.893498+00:00",
+  "packages": 70,
+  "all_latest_stable": true,
+  "pip_check": "No broken requirements found.",
+  "tests": 6188,
+  "frozen_replay_catalogue_sha256": "c11f854256df078e7e3312168ee7fd3fcc721f9e51bab02c8fe4ae2040abec1d",
+  "release_catalogue_sha256": "9287f8ad64a00ba3b27672984f98ace6ce761ca41f7ab09b3dcdf0a65b45166e",
+  "scope": "repository release environment only; shared and historical environments unchanged"
+}

@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-14T01:27:15.373881+00:00",
+  "checked_at": "2026-10-14T13:17:20.893498+00:00",
   "python": "3.14.6",
   "scope": "Isovar repository release environment; runtime and optional dependencies plus test/build tools; excludes shared environment and historical audit pins",
   "packages": [
@@ -695,12 +695,12 @@
     },
     {
       "name": "varcode",
-      "installed": "10.14.1",
-      "latest_stable": "10.14.1",
+      "installed": "10.15.0",
+      "latest_stable": "10.15.0",
       "source": "https://pypi.org/pypi/varcode/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/fd/cc/5be7887ca42e7dec417fa5d4e1d79e4836fa666f7f578357430512a462e6/varcode-10.14.1-py3-none-any.whl",
-        "sha256": "83a1c6ac529b7aabfabe5ecae04c90554e00190806e7c1ad539bb95d1d017c30"
+        "url": "https://files.pythonhosted.org/packages/fa/9e/8303a4c938e197cc1084f49b53e670b6ff643c21c62788935673888b4ced/varcode-10.15.0-py3-none-any.whl",
+        "sha256": "ac6e249c2cbed7f34b90d492daeeb29e3eafe31f8b8619083442092a7797a7b9"
       }
     }
   ]

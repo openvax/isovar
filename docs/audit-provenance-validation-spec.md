@@ -24,14 +24,17 @@ the standard deployment script.
 The [live dependency check](data/audit-validation-dependencies.json) records the
 Python 3.14.6 macOS ARM64 release environment, including the downloaded artifact
 SHA-256 values checked against PyPI. All 70 dependencies and release tools matched
-their latest non-yanked stable releases on 2026-10-13. This is a validation
+their latest non-yanked stable releases on 2026-10-14. This is a validation
 snapshot, not a cross-platform installation lock. CI also tests Python 3.9, 3.10
 and 3.11 with the newest compatible releases available to each interpreter.
 
-The `orfdata` minimum is updated to 0.15.0. The other OpenVax runtime requirements
-already select their current releases: PyEnsembl 2.27.2, Varcode 10.13.0 and
-osteosarc 0.15.5. Existing broad version ranges retain older Python support.
-Historical scientific evidence pins continue to identify their original bytes.
+The release environment now uses PyEnsembl 2.27.3, Varcode 10.15.0,
+Orfdata 0.18.0 and osteosarc 0.15.5. Existing version ranges
+retain older Python support. The completed ONT producer and installed replay
+retain their exact original environments. Their [frozen replay dependency
+catalogue](data/sid-sv-recovery/ont-completion/frozen-replay-dependencies.json)
+is preserved separately from these current release pins. Historical scientific
+evidence pins continue to identify their original bytes.
 
 GitHub Actions' live releases were checked as well: checkout v7.0.1,
 setup-python v7.0.0 and cache v6.1.0 are covered by the workflow's existing
