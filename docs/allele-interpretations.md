@@ -10,8 +10,8 @@ the same sequence cannot be told apart by any RNA and are reported together.
 The result is a table of candidates against evidence. It does not choose an
 interpretation or translate one. To get the protein, pass a supported
 interpretation's variants to `isovar run` or `run_isovar`. Other variants found
-in the same RNA are then reported as co-somatic or germline (see the
-[README](../README.md#other-variants-in-the-assembled-rna)).
+in the same RNA are then reported as co-somatic or germline (see
+[other variants in the assembled RNA](assembly-and-translation.md#other-variants-in-the-assembled-rna)).
 
 ## Quick start
 
@@ -53,7 +53,7 @@ sample_id=..., source=...)` with a dict of interpretation ID to varcode Variants
 | `informative`, `set_aside` | The support of reads spanning the whole window; reads that overlap it without spanning it, and reads whose alternative placements read different alleles |
 | `evidence_sets` | Hashed read IDs for each support, scoped by `[sample_id, source]`, as in the [protein hypothesis export](protein-hypotheses.md#rna-support-and-evidence-sets) |
 
-Every `rna_support` is the [RNA support record](../README.md#collecting-rna-reads):
+Every `rna_support` is the [RNA support record](read-collection.md#the-rna-support-record):
 `reads` and `fragments`, and, with `--cell-umi-labels`, `umis` and `cells`.
 
 | `rna_status` | Meaning |

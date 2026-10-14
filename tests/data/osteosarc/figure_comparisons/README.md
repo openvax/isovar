@@ -34,7 +34,7 @@ Source definitions: [osteosarc data catalogue](https://osteosarc.com/data/),
 The PIP5K1A BAMs (`PIP5K1A-T1-ONT.primary.bam`, `PIP5K1A-T1-Illumina.primary.bam`)
 and `pacbio-indels.bam` are no longer checked in: they are members of
 osteosarc's openvax-v1 bundle, and tests read them through
-`isovar.sid_data.path` ([Sid test reads](../../../../docs/sid-test-reads.md)).
+`isovar.sid_data.path` ([Sid test reads](../../../../notes/sid-test-reads.md)).
 Their manifests here still record the original acquisition, selection and
 retained record hashes. The regional acquisition tool
 (`tests.data.osteosarc.expansion.acquire.acquire_regions`, with

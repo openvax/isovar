@@ -26,6 +26,22 @@ The defaults are one anchored edit and ten compared bases. Existing
 `--cell-max-edits` and `--cell-min-overlap` names remain aliases. These are
 explicit compatibility settings, not calibrated platform-specific error rates.
 
+From Python:
+
+```python
+from isovar import export_protein_hypotheses, reconstruct_cell_groups
+
+export = export_protein_hypotheses(
+    results, sample_id="sample-T1", source="rna.bam",
+    partial_read_support=True, support_max_edits=1, support_min_overlap=10,
+)
+
+cells = reconstruct_cell_groups(
+    results, alignment_file, sample_id="sample-T1", source="rna.bam",
+    mode="sample", partial_read_support=True, max_edits=1, min_overlap=10,
+)
+```
+
 ## How the score works
 
 Every scored fragment has one unit of support. If it is compatible with K
@@ -110,6 +126,8 @@ abundance/error model and posterior inference used by tools such as
 probability, cell prevalence estimate or automatic pooling policy. Calibration
 and quality-weighted likelihoods require additional modeling and controls.
 
+## Matcher details and validation
+
 Since 1.42.1 the shared anchored matcher corrects the equal-length clipping bug
 in [#428](https://github.com/openvax/isovar/issues/428), which could count one
 flanking insertion as two edits. Each comparison records `flank_alignments`
@@ -119,22 +137,6 @@ across tied endpoints, while transcript-path and A/C/G/T checks use the maximum
 span. This prevents an endpoint tie from claiming certain full-candidate
 coverage or hiding incompatible evidence. The focal allele remains globally
 aligned, and unscored fragments stay available for inspection.
-
-## Python API
-
-```python
-from isovar import export_protein_hypotheses, reconstruct_cell_groups
-
-export = export_protein_hypotheses(
-    results, sample_id="sample-T1", source="rna.bam",
-    partial_read_support=True, support_max_edits=1, support_min_overlap=10,
-)
-
-cells = reconstruct_cell_groups(
-    results, alignment_file, sample_id="sample-T1", source="rna.bam",
-    mode="sample", partial_read_support=True, max_edits=1, min_overlap=10,
-)
-```
 
 Validation includes explicit informative/shared-read examples, conserved
 fragment budgets, mates and alternate placements, synonymous projection,

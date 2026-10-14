@@ -1,10 +1,15 @@
 # Portable audit inputs and offline replay
 
-Install Isovar normally (`pip install isovar`). The public Python API and
-`isovar audit-bundle` / `isovar-audit-bundle` commands work from any directory.
-They do not need a checkout, a notebook, an LLM session or network access.
+An audit bundle is a directory of explicitly selected input files and a
+manifest of their sizes and SHA-256 checksums. A bundle can be verified, packed
+into a portable archive, restored elsewhere and, for SV RNA reconstruction,
+replayed offline and compared with the frozen result.
 
-The [preserved Sid bundles and installed-wheel validation](sid-portable-audit-bundles.md)
+The Python API and the `isovar audit-bundle` / `isovar-audit-bundle` commands
+come with an ordinary `pip install isovar` and work from any directory. They do
+not need a repository checkout, a notebook or network access.
+
+The [preserved Sid bundles and installed-wheel validation](../notes/sid-portable-audit-bundles.md)
 provide a worked example with original sequencing inputs and recorded identities.
 
 ## Bundle explicitly selected files
@@ -87,13 +92,15 @@ isovar audit-bundle replay relocated-sid-audit --run-id SOURCE/EVENT/reverse \
 `inspect` lists exact run IDs. Repeat `--run-id` for a subset or use `--all` for
 every replayable view. Each source, event and orientation stays separate.
 Completed unassessable/timeout outcomes are retained in `outcomes`, even when
-they have no reconstruction to replay. Missing original inputs cause import
-to fail, rather than reacquiring or treating the event as zero support.
-Every checkpoint must match its acquisition, source, inventory and reference
-identities, including outcomes without a reconstruction. Checksum maps in Sid
-reports (`pins` and `result-pins.json.gz`) are checked against audit-relative
-files before the importer publishes new bundle pins. Structured pins for
-report-local assets keep their report-relative paths.
+they have no reconstruction to replay.
+
+Missing original inputs cause import to fail, rather than reacquiring or
+treating the event as zero support. Every checkpoint must match its acquisition,
+source, inventory and reference identities, including outcomes without a
+reconstruction. Checksum maps in Sid reports (`pins` and `result-pins.json.gz`)
+are checked against audit-relative files before the importer publishes new
+bundle pins. Structured pins for report-local assets keep their report-relative
+paths.
 
 ```python
 from isovar.audit_bundle import AuditBundle
@@ -111,8 +118,10 @@ assert checkpoint["comparison"] == "matched"
 Import preserves inventory, transcript-reference snapshots, receipts, source
 headers, regional BAMs/indexes, shared provenance assets and reconstruction
 checkpoints. Original file paths remain provenance; runtime paths come from
-logical bundle names. Frozen transcript sequences/exons/CDS are enough for the
-existing SV reconstruction engine, so replay does not require a local Ensembl
+logical bundle names.
+
+Frozen transcript sequences/exons/CDS are enough for the existing SV
+reconstruction engine, so replay does not require a local Ensembl
 installation. Add annotation files required by other analyses explicitly with
 `extra_files={name: path}` or repeated `--extra-file NAME=PATH`. Other analysis
 files can be bundled and verified through the generic API; this replay command
@@ -123,20 +132,24 @@ Replay verifies the whole bundle, uses recorded read filters and reconstruction
 parameters, preserves acquisition limitations, and compares the **entire**
 result with the frozen reconstruction. It writes a new checkpoint outside the
 bundle. Repeating the command reuses only a matching, intact checkpoint.
+
 New checkpoints are gzip-compressed JSON. Existing plain JSON checkpoints
 remain readable and unchanged on resume; a directory containing both formats
 for the same run is rejected as ambiguous. CLI resume validates canonical
 checkpoints without constructing their complete result trees. The Python API
 continues to return the complete result, and noncanonical checkpoints use the
 existing full-reader validation.
+
 Software changes fail by default; `allow_software_change=True` or
 `--allow-software-change` permits an explicit new-engine comparison. A differing
-result still fails and preserves its checkpoint for inspection. Imported old
-software identities and wall-time budgets remain in `original_request`; replay
-uses the bundled settings with the recorded bundle-creation software, without
-the original runner's process-level alarm. Use your job runner for wall-time
-limits. `scratch_dir` / `--scratch-dir` only selects disposable dense-engine
-scratch storage. Sequence, support and biological interpretation are unchanged.
+result still fails and preserves its checkpoint for inspection.
+
+Imported old software identities and wall-time budgets remain in
+`original_request`; replay uses the bundled settings with the recorded
+bundle-creation software, without the original runner's process-level alarm. Use
+your job runner for wall-time limits. `scratch_dir` / `--scratch-dir` only
+selects disposable dense-engine scratch storage. Sequence, support and
+biological interpretation are unchanged.
 
 Canonical hashing and JSON/gzip publication stream encoded chunks, preserving
 existing checksums and checkpoint bytes. Replay fingerprints the complete expected
@@ -191,14 +204,15 @@ Pass this object as `metadata` and declare each named file in `files`.
 `manifest.json` has `format="isovar-audit-bundle"`, `schema_version=1`,
 `files`, `metadata`, `software` and `bundle_id`. Each file is stored at
 `files/LOGICAL_NAME`; its manifest entry has `sha256` and `size`. `bundle_id` is
-SHA-256 of canonical sorted JSON excluding itself. Manifests are limited to
-16 MiB of encoded JSON, including the writer's final newline, across creation,
-opening, verification, backup and restore. Put large evidence in declared payload
-files instead of embedding it in metadata. Unknown schema versions,
-escaping paths, missing files, changed bytes and incomplete archives fail
-validation. An embedded manifest verifies consistency; it is not an external
-signature. Compare `bundle_id` with your trusted recorded identity when
-receiving a bundle.
+SHA-256 of canonical sorted JSON excluding itself.
+
+Manifests are limited to 16 MiB of encoded JSON, including the writer's final
+newline, across creation, opening, verification, backup and restore. Put large
+evidence in declared payload files instead of embedding it in metadata. Unknown
+schema versions, escaping paths, missing files, changed bytes and incomplete
+archives fail validation. An embedded manifest verifies consistency; it is not
+an external signature. Compare `bundle_id` with your trusted recorded identity
+when receiving a bundle.
 
 `AuditBundle.open()` verifies every file by default. `verify()` returns the
 identity, verified file count and payload bytes. `manifest` returns a detached

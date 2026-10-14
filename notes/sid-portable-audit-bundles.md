@@ -1,6 +1,6 @@
 # Preserved Sid audit bundles
 
-The installed [audit-bundle API and CLI](audit-bundles.md) preserve the selected
+The installed [audit-bundle API and CLI](../docs/audit-bundles.md) preserve the selected
 original inputs, frozen references, receipts, screen/report artifacts and SV
 reconstruction checkpoints in independently movable bundles. Original
 receipt/result bytes are unchanged; runtime files are resolved from logical

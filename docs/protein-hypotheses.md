@@ -96,7 +96,7 @@ are two translations of one protein, each with its own reads.
 
 ## RNA support and evidence sets
 
-Every support is the [RNA support record](../README.md#collecting-rna-reads):
+Every support is the [RNA support record](read-collection.md#the-rna-support-record):
 `reads`, `fragments`, and, with `--cell-umi-labels`, `umis`, `cells` and their
 completeness. The alternate allele, each protein and each translation also have
 an `evidence_set_id`; the reference, other and total allele supports give counts

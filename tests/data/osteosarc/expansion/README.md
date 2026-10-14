@@ -1,7 +1,7 @@
 Acquisition uses the installed osteosarc dependency: set
 `ISOVAR_SID_SNAPSHOT` (optionally `ISOVAR_SID_CACHE`). The test reads
 themselves come from osteosarc's openvax-v1 bundle; see
-[Sid test reads](../../../../docs/sid-test-reads.md).
+[Sid test reads](../../../../notes/sid-test-reads.md).
 The wider audits described below remain outside the package.
 
 # Expanded osteosarc RNA/protein audit (#218)
@@ -251,7 +251,7 @@ alternate call. Original BAMs and independent CIGAR counts are unchanged.
 
 The 49-case corpus and stress-corpus BAMs are no longer checked in. They are
 members of osteosarc's openvax-v1 bundle, with exactly the same records, and
-tests read them through `isovar.sid_data.path` ([Sid test reads](../../../../docs/sid-test-reads.md)).
+tests read them through `isovar.sid_data.path` ([Sid test reads](../../../../notes/sid-test-reads.md)).
 The manifests and references here still hold each case's selection and expected
 results. The full-region audit and selection steps below are research
 workflows, separate from the test data.

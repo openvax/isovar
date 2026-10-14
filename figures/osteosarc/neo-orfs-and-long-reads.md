@@ -4,7 +4,7 @@ Reviewed 2026-09-21 with Isovar 1.21.4 and Varcode 9.3.7. Varcode was upgraded i
 
 ## Main finding: TPST1–CRCP has a well-supported candidate upstream ORF
 
-The [October 5 regional SV/neoORF screen](../../docs/sid-sv-neoorf-candidates.md)
+The [October 5 regional SV/neoORF screen](../../notes/sid-sv-neoorf-candidates.md)
 extends this fixture analysis to four products, adds SPAG1 and other non-vaccine
 inputs, and compares candidate 8-mers with pinned Ensembl 115 proteins. Its
 larger regional support counts and local coding windows retain their own scope.

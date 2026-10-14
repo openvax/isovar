@@ -62,7 +62,7 @@ def pilot(directory):
 
 
 def test_frozen_original_pilot_accounts_for_all_failed_pairs():
-    path = Path(__file__).parents[1] / "docs/data/sid-sv-pilot/coverage.json.gz"
+    path = Path(__file__).parents[1] / "notes/data/sid-sv-pilot/coverage.json.gz"
     pairs = failed_pairs(read_json(path))
     assert len(pairs) == 22
     assert sum(len(row["original_outcomes"]) for row in pairs) == 44
