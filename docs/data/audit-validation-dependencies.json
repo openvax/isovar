@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-14T13:17:20.893498+00:00",
+  "checked_at": "2026-10-14T16:55:50.483023+00:00",
   "python": "3.14.6",
   "scope": "Isovar repository release environment; runtime and optional dependencies plus test/build tools; excludes shared environment and historical audit pins",
   "packages": [
@@ -135,22 +135,22 @@
     },
     {
       "name": "filelock",
-      "installed": "4.1.1",
-      "latest_stable": "4.1.1",
+      "installed": "4.1.2",
+      "latest_stable": "4.1.2",
       "source": "https://pypi.org/pypi/filelock/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/d7/8b/f837f52905395ba4510fe61f753c24833fb0a9c76e21267bb9f828b664a9/filelock-4.1.1-py3-none-any.whl",
-        "sha256": "3f4a557945a7b0f95efeb1f432267affe5d45ac8ddde2aed1b97ebb62382c089"
+        "url": "https://files.pythonhosted.org/packages/1b/84/16cbc2a5a102edf4b745ca43d7b9aaa8e26d46686c8e54d70d3d1225659e/filelock-4.1.2-py3-none-any.whl",
+        "sha256": "4d5dc2a1d64d6b48a5f0540814000986fd62ebd3ac9ccbb1d07d669e075db9bb"
       }
     },
     {
       "name": "fonttools",
-      "installed": "4.66.1",
-      "latest_stable": "4.66.1",
+      "installed": "4.67.0",
+      "latest_stable": "4.67.0",
       "source": "https://pypi.org/pypi/fonttools/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/12/83/c745b210ec49379ebfe627e166b527f44671a1f6ec5e1e219d91caa8964d/fonttools-4.66.1-cp314-cp314-macosx_10_15_universal2.whl",
-        "sha256": "b18803cbdef248e7ee1be59cb277fbbe1da1faaa6f726fa5d3557904e6a3d967"
+        "url": "https://files.pythonhosted.org/packages/25/5b/c418f48918e40ef8c3f0f555567fe013c0c8058a8afa8040d6baeec80683/fonttools-4.67.0-cp314-cp314-macosx_10_15_universal2.whl",
+        "sha256": "846982e89b1861d6c9d7fcd6567aec3fa5a10ad313e7f2076045fcd339cfbd8e"
       }
     },
     {
