@@ -46,6 +46,20 @@ def test_streamed_writes_are_byte_identical_and_reuse_old_checkpoints(tmp_path, 
     assert read_json(path) == json.loads(gzip.decompress(expected) if compressed else expected)
 
 
+@pytest.mark.parametrize("compressed", [False, True])
+def test_oversized_strings_between_small_values_preserve_every_byte(tmp_path, compressed):
+    value = [{"before": [None, False, -0.0]}, "ACGT" * 100000,
+             {"between": "quoted\"\\\n"}, "\U0001f600\ud800" * 20000, [], "after"]
+    canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    assert identity(value) == sha256(canonical).hexdigest()
+    expected = canonical + b"\n"
+    if compressed:
+        expected = gzip.compress(expected, mtime=0)
+    path = tmp_path / ("result.json.gz" if compressed else "result.json")
+    write_json(path, value)
+    assert path.read_bytes() == expected
+
+
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), object()])
 @pytest.mark.parametrize("writer", [publish_json, write_json])
 def test_failed_serialization_cleans_up_without_publication(tmp_path, writer, bad):
