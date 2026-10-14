@@ -99,7 +99,7 @@ used by its selected candidate, using separate passes so JSON field order does
 not change the result. Validate all JSON, including skipped fields; preserve
 every source file checksum and sequence/support check.
 
-The publication and installed replay wheel includes #497. Record that wheel's
+The publication and installed replay wheel includes #497 and #499. Record that wheel's
 identity separately from the original producing wheel and verify complete result
 equivalence on replay. Preserve the original producer request in the bundle.
 
@@ -112,3 +112,19 @@ any session-created duplicate. Keep the four earlier archives unchanged.
 Retain all unique evidence in verified archives and record any working-copy
 cleanup explicitly. Complete installed full-input replay and checkpoint resume
 before removing their disposable outputs.
+
+The final replay writes a deterministic compressed checkpoint. Its separate CLI
+resume must stream and validate the entire result checksum and comparison;
+record unchanged checkpoint bytes before reclaiming that disposable output.
+Preserve native and normalized evidence in one archive per orientation, plus a
+small final report/provenance archive that resolves every combined report input
+across the six data archives. Restore each archive through the public API before
+reclaiming working duplicates. For reporting, restore only the normalized files
+needed from those verified archives. Test exact-member restoration and cleanup
+rejection on corrupt/changed fixtures before using them on producing evidence.
+
+Freeze the final installed replay environment separately from the producer,
+including its updated repository release dependencies. Compare every installed
+package module with the wheel and source and explicitly confirm that changes
+from the producer are confined to audit serialization and verification. Preserve
+the producer environment and historical dependency/reference identities.
