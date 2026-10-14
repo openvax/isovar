@@ -136,3 +136,14 @@ alone takes about 29 minutes, in addition to roughly 115 minutes for producing
 reconstruction and 39 minutes for its export. Keep the producing reconstruction
 budget at four hours and give CLI resume its own two-hour verification budget.
 These are validation limits, not relaxed discovery or support settings.
+
+The measured archive/restore peak needs additional headroom even with shared
+identical files. Before a full actual restore, stream-verify every archive member
+against the sealed manifest, reject unknown/duplicate/nonregular members, and
+consume the gzip stream to its end. Preserve the original native result and BAM.
+After that verification, reclaim only the derived normalized working copy and
+its cloned bundle; both are reproducible from the retained native bytes and
+controls. Keep the 8 GiB reserve and every existing resource limit. The complete
+public restore, relocation, installed replay and unchanged CLI checkpoint tests
+remain mandatory. Preserve the previous stage plan, any disk-preflight failure,
+and checksummed reclamation receipts; corruption must prevent reclamation.
