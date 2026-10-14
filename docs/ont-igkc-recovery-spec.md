@@ -79,3 +79,25 @@ The producing driver measures `resource.getrusage(...).ru_maxrss`, so the
 and compressed/swapped memory separately when available; the RSS limit does
 not bound those quantities. Reconstruction, fingerprinting, serialization and
 restoration also need separate timings and storage measurements.
+
+## Validation and archive staging after incremental decoding
+
+Keep the producing checkout, wheel, dependency environment and controls frozen.
+Use the separately pinned incremental reader from #497 for independent checks;
+record its identity alongside the producing engine. Validate every original SAM
+record and native ORF before importing either successor. Run the checks serially
+after both producers exit, under separately recorded validation resource limits.
+
+The publication and installed replay wheel includes #497. Record that wheel's
+identity separately from the original producing wheel and verify complete result
+equivalence on replay. Preserve the original producer request in the bundle.
+
+Stage the two orientations separately for archival. Each addition must retain
+its native result, normalized reconstruction, original input, producing controls,
+previous outcomes and checks. Shared reports must identify their dependencies
+on the preserved archives. Measure the actual payload before each allocation;
+perform an actual archive restore and checksum verification before reclaiming
+any session-created duplicate. Keep the four earlier archives unchanged.
+Retain all unique evidence in verified archives and record any working-copy
+cleanup explicitly. Complete installed full-input replay and checkpoint resume
+before removing their disposable outputs.
