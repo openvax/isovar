@@ -3,6 +3,8 @@
 from collections import defaultdict
 from copy import deepcopy
 import csv
+from functools import cmp_to_key
+from hashlib import sha256
 import json
 from pathlib import Path
 from urllib.parse import quote
@@ -20,16 +22,85 @@ from .rna_evidence import (
 )
 
 
-def _unique(rows):
-    return [json.loads(row) for row in sorted({_canonical(row) for row in rows})]
+class _WitnessPool:
+    """Own normalized witnesses while sharing only equal nested JSON values."""
+
+    def __init__(self):
+        self.strings, self.containers = {}, {}
+
+    def share(self, value):
+        if isinstance(value, str):
+            return self.strings.setdefault(value, value)
+        if isinstance(value, (dict, list)):
+            key = _canonical(value)
+            if key not in self.containers:
+                self.containers[key] = ({self.share(k): self.share(v) for k, v in value.items()}
+                                        if isinstance(value, dict) else [self.share(v) for v in value])
+            return self.containers[key]
+        return value
+
+    def unique(self, rows):
+        # A row's coordinates can differ across paths even when its observation
+        # identity and interval/link values are shared. Do not pool whole rows.
+        return [{self.share(k): self.share(v) for k, v in json.loads(key).items()}
+                for key in sorted({_canonical(row) for row in rows})]
 
 
-def _support(result, witnesses):
+def _occurrence_parts(entry):
+    prefix, witnesses, suffix = entry
+    yield prefix
+    for index, witness in enumerate(witnesses):
+        if index:
+            yield ","
+        yield _canonical(witness)
+    yield suffix
+
+
+def _compare_parts(left, right):
+    """Lexicographically compare complete text, independent of chunk splits."""
+    left = (part for part in left if part)
+    right = (part for part in right if part)
+    a, b = next(left, ""), next(right, "")
+    while a and b:
+        count = min(len(a), len(b))
+        if a[:count] != b[:count]:
+            return -1 if a[:count] < b[:count] else 1
+        a, b = a[count:], b[count:]
+        if not a:
+            a = next(left, "")
+        if not b:
+            b = next(right, "")
+    return bool(a) - bool(b)
+
+
+def _unique_occurrences(rows):
+    """Preserve full canonical JSON order without serializing complete rows."""
+    unique = {}
+    for row in rows:
+        metadata = json.loads(_canonical({k: v for k, v in row.items() if k != "witnesses"}))
+        before = {k: v for k, v in metadata.items() if k < "witnesses"}
+        after = {k: v for k, v in metadata.items() if k > "witnesses"}
+        prefix = _canonical(before)[:-1] + ("," if before else "") + '\"witnesses\":['
+        suffix = "]" + ("," if after else "") + _canonical(after)[1:]
+        entry = (prefix, row["witnesses"], suffix)
+        checksum = sha256()
+        for part in _occurrence_parts(entry):
+            checksum.update(part.encode())
+        bucket = unique.setdefault(checksum.digest(), [])
+        # Hashes narrow comparisons; they never replace complete value checks.
+        if not any(_compare_parts(_occurrence_parts(entry), _occurrence_parts(old)) == 0
+                   for old, _ in bucket):
+            bucket.append((entry, dict(metadata, witnesses=row["witnesses"])))
+    entries = [pair for bucket in unique.values() for pair in bucket]
+    entries.sort(key=cmp_to_key(lambda a, b: _compare_parts(_occurrence_parts(a[0]), _occurrence_parts(b[0]))))
+    return [row for _, row in entries]
+
+
+def _support(result, witnesses, labels, lineage):
     scope = [result["sample_id"], result["source"]]
-    observations = [result["observations"][w["observation"]] for w in witnesses]
+    keys = dict.fromkeys(w["observation"] for w in witnesses)
+    observations = [result["observations"][key] for key in keys]
     identities = sorted({tuple(o["identity"]) for o in observations})
-    labels = {tuple(row["identity"]): row for row in result["cell_umi_evidence"]["reads"]}
-    lineage = {tuple(row["identity"]): row for row in result["read_lineage"]["reads"]}
     lineage_rows = [lineage.get(identity, dict(identity=list(identity), signal_group=None,
                                               status="metadata_unavailable")) for identity in identities]
     ids = evidence_set(scope, identities)
@@ -51,7 +122,7 @@ def _support(result, witnesses):
         missing_quality_reads=len({tuple(o["identity"]) for o in observations if o["missing_qualities"]}))
 
 
-def _occurrence(path, candidate):
+def _occurrence(path, candidate, pool):
     row = {key: deepcopy(candidate[key]) for key in (
         "query_interval", "annotated_start", "start_context", "reference_comparisons", "crossed_junctions")}
     row.update({key: deepcopy(path[key]) for key in (
@@ -71,7 +142,7 @@ def _occurrence(path, candidate):
             "kinds", "annotated", "relation", "breakpoint_assignment") if key in junction}
         geometry.update(deepcopy(crossings[index]))
         row["junctions"].append(geometry)
-    row["witnesses"] = _unique(candidate["full_interval_support"]["witnesses"])
+    row["witnesses"] = pool.unique(candidate["full_interval_support"]["witnesses"])
     row["orf_candidate_limit_reached"] = path["exploratory_orfs"]["candidate_limit_reached"]
     return row
 
@@ -147,7 +218,7 @@ def export_sv_rna_orfs(result):
     """
     if result.get("schema") != "isovar.sv_rna_candidates.v5":
         raise ValueError("SV ORF export requires isovar.sv_rna_candidates.v5")
-    groups = {}
+    groups, pool = {}, _WitnessPool()
     for path in result["paths"]:
         for candidate in path["exploratory_orfs"]["candidates"]:
             start, end = candidate["query_interval"]
@@ -163,13 +234,15 @@ def export_sv_rna_orfs(result):
                                    nucleotide_sequence_id=_identifier("nt", dna), protein_sequence_id=_identifier("aa", aa),
                                    ends_with_stop_codon=stop, initiation_observed=False, translation_observed=False,
                                    peptide_novelty_assessed=False, occurrences=[])
-            groups[key]["occurrences"].append(_occurrence(path, candidate))
+            groups[key]["occurrences"].append(_occurrence(path, candidate, pool))
     candidates = []
+    labels = {tuple(row["identity"]): row for row in result["cell_umi_evidence"]["reads"]} if groups else {}
+    lineage = {tuple(row["identity"]): row for row in result["read_lineage"]["reads"]} if groups else {}
     for key in sorted(groups):
         candidate = groups[key]
-        candidate["occurrences"] = _unique(candidate["occurrences"])
-        witnesses = [w for occurrence in candidate["occurrences"] for w in occurrence["witnesses"]]
-        candidate["rna_support"] = _support(result, witnesses)
+        candidate["occurrences"] = _unique_occurrences(candidate["occurrences"])
+        witnesses = (w for occurrence in candidate["occurrences"] for w in occurrence["witnesses"])
+        candidate["rna_support"] = _support(result, witnesses, labels, lineage)
         candidate["start_evidence_summary"] = summarize_orf_start_evidence(
             o["start_evidence"] for o in candidate["occurrences"])
         candidate["uncertainty_flags"] = _flags(candidate, result)
