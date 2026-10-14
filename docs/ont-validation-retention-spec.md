@@ -50,3 +50,11 @@ metadata after exporting the complete summary. Re-run reverse with the same
 guards and require its summary bytes to match the preceding computed summary.
 Retain the successful forward proof through an explicit per-view verification
 inventory; do not rerun or relabel it as produced by the new verifier.
+
+Before any publication stage, sample the entire isolated stage process group
+(#502). Report creation launches subprocesses; sampling only the coordinator
+misses their memory. Sum live RSS and physical-footprint measurements across
+that group, fail closed on a live-process measurement error, and terminate the
+whole group at the unchanged limits. Test a child allocation that exceeds a
+small fixture guard while its parent remains below it. Preserve the stopped
+parent-only queue; no publication stage ran under that declaration.
