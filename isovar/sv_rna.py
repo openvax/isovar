@@ -16,7 +16,7 @@ placement in the path's 5'->3' orientation, or ``None`` when no single observed
 placement exists (insertions, soft clips, junction homology).
 """
 
-from bisect import bisect_right
+from bisect import bisect_left, bisect_right
 from collections import Counter, OrderedDict, defaultdict, deque
 from collections.abc import Mapping
 from heapq import merge
@@ -1485,6 +1485,25 @@ class _PathSpans:
             self.runs[contig, strand].append((q0, low, high))
         for position in positions:
             self.placed.append(self.placed[-1] + (position is not None))
+        self.starts, self.highs = {}, {}
+        for key, runs in self.runs.items():
+            runs.sort(key=lambda run: run[1])
+            self.starts[key] = [low for _, low, _ in runs]
+            maximum, highs = -1, []
+            for _, _, high in runs:
+                maximum = max(maximum, high)
+                highs.append(maximum)
+            self.highs[key] = highs
+
+    def overlapping_runs(self, contig, strand, low, high):
+        """Find potentially overlapping runs, retaining repeats and nested spans."""
+        key = contig, strand
+        runs = self.runs.get(key, ())
+        if not runs:
+            return ()
+        start = bisect_right(self.highs[key], low)
+        end = bisect_left(self.starts[key], high)
+        return runs[start:end]
 
     def __call__(self, observation):
         """First and last path offsets co-observed by one read, if it agrees with the path there.
@@ -1496,9 +1515,10 @@ class _PathSpans:
         """
         if observation.key not in self.cache:
             shared, shared_runs = 0, []
+            shift = None
             runs = _runs(observation.positions)
             for own, _, contig, other_low, other_high, strand in runs:
-                for q0, low, high in self.runs.get((contig, strand), ()):
+                for q0, low, high in self.overlapping_runs(contig, strand, other_low, other_high):
                     a, b = max(low, other_low), min(high, other_high)
                     if a < b:
                         shared += b - a
@@ -1506,6 +1526,13 @@ class _PathSpans:
                             start, own_start = q0 + a - low, own + a - other_low
                         else:
                             start, own_start = q0 + high - b, own + other_high - b
+                        offset = own_start - start
+                        if shift is not None and offset != shift:
+                            # Equal intervening query lengths require one
+                            # read-minus-path offset across every shared block.
+                            self.cache[observation.key] = ()
+                            return ()
+                        shift = offset
                         shared_runs.append((start, start + b - a, own_start, own_start + b - a))
             result = ()
             if shared:

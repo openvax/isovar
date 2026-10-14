@@ -4,6 +4,8 @@ import gzip
 from hashlib import sha256
 import json
 
+from ._audit_json_reader import json_events
+
 
 _ENCODER = json.JSONEncoder(sort_keys=True, separators=(",", ":"), allow_nan=False)
 _CHUNK_SIZE = 64 * 1024
@@ -116,17 +118,10 @@ def comparison_identity(value):
         container = isinstance(item, (dict, list))
         if container and id(item) in cached:
             return cached[id(item)]
+        if not container:
+            return _scalar_comparison_identity(item)
         result = sha256()
-        if item is None:
-            result.update(b"null")
-        elif isinstance(item, str):
-            result.update(b"string:")
-            for chunk in canonical_chunks(item):
-                result.update(chunk)
-        elif isinstance(item, (bool, int, float)):
-            numerator, denominator = item.as_integer_ratio() if isinstance(item, float) else (int(item), 1)
-            result.update(("number:%s/%s" % (numerator, denominator)).encode())
-        elif isinstance(item, dict):
+        if isinstance(item, dict):
             result.update(b"object:")
             for key in sorted(item):
                 result.update(visit(key))
@@ -135,11 +130,74 @@ def comparison_identity(value):
             result.update(b"array:")
             for child in item:
                 result.update(visit(child))
-        else:
-            raise TypeError("Expected normalized JSON data")
         fingerprint = result.digest()
         if container and len(cached) < 4096:
             cached[id(item)] = fingerprint
         return fingerprint
 
     return visit(value).hex()
+
+
+def _scalar_comparison_identity(item):
+    result = sha256()
+    if item is None:
+        result.update(b"null")
+    elif isinstance(item, str):
+        result.update(b"string:")
+        if len(item) <= _CHUNK_SIZE:
+            result.update(_ENCODER.encode(item).encode())
+        else:
+            for chunk in canonical_chunks(item):
+                result.update(chunk)
+    elif isinstance(item, (bool, int, float)):
+        numerator, denominator = item.as_integer_ratio() if isinstance(item, float) else (int(item), 1)
+        result.update(("number:%s/%s" % (numerator, denominator)).encode())
+    else:
+        raise TypeError("Expected normalized JSON data")
+    return result.digest()
+
+
+def expected_json_identity(handle):
+    """Compare a complete expected document without constructing its tree.
+
+    Object frames retain only keys and child digests for ordering/duplicate
+    resolution; array frames retain a running hash. Literal null means that
+    comparison was not requested, matching the existing replay convention.
+    """
+    return comparison_event_identity(json_events(handle, decoder=json.JSONDecoder()), null_means_missing=True)
+
+
+def comparison_event_identity(events, *, null_means_missing=False):
+    """Reduce complete JSON value events to the existing comparison identity."""
+    stack, missing = [], False
+    for event, value in events:
+        if event == "start_map":
+            stack.append(["map", {}, None])
+            continue
+        if event == "start_array":
+            stack.append(["array", sha256(b"array:"), None])
+            continue
+        if event == "map_key":
+            stack[-1][2] = value
+            continue
+        if event.startswith("end_"):
+            kind, children, _ = stack.pop()
+            if kind == "map":
+                result = sha256(b"object:")
+                for key in sorted(children):
+                    result.update(_scalar_comparison_identity(key))
+                    result.update(children[key])
+                fingerprint = result.digest()
+            else:
+                fingerprint = children.digest()
+        else:
+            fingerprint = (bytes.fromhex(comparison_identity(value)) if isinstance(value, (dict, list))
+                           else _scalar_comparison_identity(value))
+            missing = not stack and value is None
+        if not stack:
+            root = fingerprint
+        elif stack[-1][0] == "map":
+            stack[-1][1][stack[-1][2]] = fingerprint
+        else:
+            stack[-1][1].update(fingerprint)
+    return None if missing and null_means_missing else root.hex()

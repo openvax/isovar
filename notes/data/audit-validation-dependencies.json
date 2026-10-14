@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-13T17:12:42.812448+00:00",
+  "checked_at": "2026-10-14T13:17:20.893498+00:00",
   "python": "3.14.6",
   "scope": "Isovar repository release environment; runtime and optional dependencies plus test/build tools; excludes shared environment and historical audit pins",
   "packages": [
@@ -85,12 +85,12 @@
     },
     {
       "name": "datacache",
-      "installed": "1.25.1",
-      "latest_stable": "1.25.1",
+      "installed": "1.26.0",
+      "latest_stable": "1.26.0",
       "source": "https://pypi.org/pypi/datacache/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/b4/c4/2204dfef7a542d1d7d44e234be592c94976dc3f52b1ada0ca85034389b69/datacache-1.25.1-py3-none-any.whl",
-        "sha256": "5d622a9d17631ed56bf38787263f43d83427cd4f49d0459bf6e61c2c6f5f1ae4"
+        "url": "https://files.pythonhosted.org/packages/91/49/9d2fd8bb832c78efbbd2d6c52062543d3add4427485cf1d1c85395c1b1bb/datacache-1.26.0-py3-none-any.whl",
+        "sha256": "468d067ec6bc5b9c3052337d754c71b7affd92e2521eae22cbd24a0e65733006"
       }
     },
     {
@@ -155,12 +155,12 @@
     },
     {
       "name": "gtfparse",
-      "installed": "3.0.2",
-      "latest_stable": "3.0.2",
+      "installed": "3.0.4",
+      "latest_stable": "3.0.4",
       "source": "https://pypi.org/pypi/gtfparse/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/93/ad/6f2e537f3ac762391f024a87f3d91f5db61bd675fd83f5834adf7380b1ec/gtfparse-3.0.2-py3-none-any.whl",
-        "sha256": "46d5b295b1bf8ae0456e72bbaae1d4007477786365dd7b08e73b1d319fa8084e"
+        "url": "https://files.pythonhosted.org/packages/9d/95/63ac2ae21a212c4adc517542c78ee5c698bc8b795797c94d31201bdc76f1/gtfparse-3.0.4-py3-none-any.whl",
+        "sha256": "c942c1a3a392006a623335e8da40013448aa121bd5744d6b0c0e1bd80852bd7b"
       }
     },
     {
@@ -415,12 +415,12 @@
     },
     {
       "name": "pyensembl",
-      "installed": "2.27.2",
-      "latest_stable": "2.27.2",
+      "installed": "2.27.3",
+      "latest_stable": "2.27.3",
       "source": "https://pypi.org/pypi/pyensembl/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/ff/bf/730626402ac53ed02e2d797581773dc209fa5240e142149f25556c2fd72d/pyensembl-2.27.2-py3-none-any.whl",
-        "sha256": "2744514475952c45f49f7775fddc739a9acb4cad6d930cc036d158e726f5dfcb"
+        "url": "https://files.pythonhosted.org/packages/ea/09/b17d9b2ba9e0983e5a494b6472e8eec7475bfb62d5f40e089ccd9ab255f7/pyensembl-2.27.3-py3-none-any.whl",
+        "sha256": "940b82e0afb7ad5c4c1486b2563ab54257a22c21f287413c6bddfc22870257d4"
       }
     },
     {
@@ -695,12 +695,12 @@
     },
     {
       "name": "varcode",
-      "installed": "10.14.0",
-      "latest_stable": "10.14.0",
+      "installed": "10.15.0",
+      "latest_stable": "10.15.0",
       "source": "https://pypi.org/pypi/varcode/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/2e/f1/8282077e1be005f9e6b4f8ea19f0c297ba7f0c66c10f922a62685c38da47/varcode-10.14.0-py3-none-any.whl",
-        "sha256": "97e681021a82a9d4ce4a2b72d2a48b7319d19af1697e2facd7dc82331cc3fb3d"
+        "url": "https://files.pythonhosted.org/packages/fa/9e/8303a4c938e197cc1084f49b53e670b6ff643c21c62788935673888b4ced/varcode-10.15.0-py3-none-any.whl",
+        "sha256": "ac6e249c2cbed7f34b90d492daeeb29e3eafe31f8b8619083442092a7797a7b9"
       }
     }
   ]

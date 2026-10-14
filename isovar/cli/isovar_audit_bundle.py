@@ -3,9 +3,10 @@
 import argparse
 import json
 from pathlib import Path
+import zlib
 
 from ..audit_bundle import AuditBundle, AuditBundleError
-from ..audit_replay import replay_sv_rna
+from ..audit_replay import _replay_sv_rna
 from ..sid_audit_bundle import bundle_sid_audit
 
 
@@ -88,14 +89,14 @@ def run(args=None, prog=None):
                 raise AuditBundleError("Bundle has no SV RNA replay runs")
             result = []
             for run_id in ids:
-                checkpoint = replay_sv_rna(bundle, run_id, args.output,
+                checkpoint = _replay_sv_rna(bundle, run_id, args.output, include_result=False,
                     allow_software_change=args.allow_software_change, scratch_dir=args.scratch_dir)
                 result.append(dict(run_id=run_id, comparison=checkpoint["comparison"],
                                    result_sha256=checkpoint["result_sha256"]))
         else:
             result = bundle.verify()
         print(json.dumps(result, sort_keys=True))
-    except (OSError, ValueError, TypeError, KeyError) as error:
+    except (OSError, ValueError, TypeError, KeyError, EOFError, zlib.error) as error:
         parser.error(str(error))
 
 

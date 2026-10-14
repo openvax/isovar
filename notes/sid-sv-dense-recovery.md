@@ -6,15 +6,17 @@ osteosarc 0.15.5's inventory source-date checks. The original 400-view pilot
 and its failures remain preserved. This is a selected recovery, not a full
 1,493-geometry catalogue search.
 
-All 22 selected read subsets are acquired. Of the 44 views, 42 completed
-reconstruction; ONT IGKC forward timed out after 14,400 seconds and reverse
-was interrupted by the coordinator. Their candidate/support counts remain
-unknown. [Follow-up #470](https://github.com/openvax/isovar/issues/470) tracks
-those two views. The [coverage ledger](data/sid-sv-recovery/recovery-coverage.json.gz),
+All 22 selected read subsets and all 44 reconstruction views are complete.
+The two ONT IGKC successors were produced with Isovar 1.54.0 using the same
+2,715,459 original alignment records and unchanged discovery settings. Both
+orientations scanned the entire preserved input for candidate support.
+The original timeout and interrupted outcome remain preserved with unknown
+counts. The [coverage ledger](data/sid-sv-recovery/recovery-coverage.json.gz),
 [independent checks](data/sid-sv-recovery/recovery-checks.json.gz), and
-[revised pilot](data/sid-sv-recovery/revised-pilot.json.gz) retain all 44 outcomes
-and the other 356 historical pilot views. The full catalogue denominator
-remains separate from these 400 observed pilot views.
+[revised pilot](data/sid-sv-recovery/revised-pilot.json.gz) retain the selected
+44 views and the other 356 historical pilot views. The 42 preceding completed
+results are byte-identical. The full catalogue denominator remains separate
+from these 400 observed pilot views.
 
 ## Completed 10x outcomes
 
@@ -99,7 +101,7 @@ views. A bounded search's zero-candidate result is not a gene-expression negativ
 | CDK11A::CDK11B | 12,747 | splice_ambiguous_candidates / splice_ambiguous_candidates | 100 |
 | LRRC37A::LRRC37A2 | 7,635 | no_candidate_paths / no_candidate_paths | 0 |
 | FTH1::FTL / shared:SV0580 | 1,567,470 | event_linked_candidates / event_linked_candidates | 37 |
-| ::IGKC | 2,715,459 | reconstruction_timeout / reconstruction_interrupted | unknown |
+| ::IGKC | 2,715,459 | event_linked_candidates / event_linked_candidates | 239 |
 
 These inputs retain incomplete partner-recovery flags. Each completed view
 counts candidate support across every preserved alignment record, while
@@ -203,7 +205,7 @@ python -m examples.check_sid_sv_recovery RECOVERY CHECKS
 ```
 
 The checker requires every view to be reconstructed by default. To verify a
-publication that explicitly retains recorded failures, as this one does, add
+historical publication that explicitly retains recorded failures, add
 `--allow-unresolved`. Every selected input and outcome is still required;
 the ledger reports completed and unresolved views separately.
 
@@ -238,10 +240,19 @@ define those checks. RNA hypotheses do not establish initiation, translation,
 malignant-cell identity, tumor specificity or presentation.
 
 The final independent ledger recounts all 22 input subsets and verifies all
-44 recorded outcomes, including 42 completed reconstructions and 420 translated
-ORF hypotheses. Its explicit unresolved mode does not report the two unfinished
-IGKC views as verified reconstructions. Earlier failed budgets, the storage stop
-and both original IGKC stop records remain pinned. FTH completed under a
-separately declared 14,400-second per-view budget with unchanged scientific
-settings. The original 3,600-second and proposed IGKC 7,200-second budgets
-remain provenance.
+44 completed reconstructions, including 659 translated ORF hypotheses.
+For each new ONT IGKC orientation, additional checks translate every native ORF,
+recount every exported candidate's sequence and support from original SAM
+records, and verify every cited original record against the preserved BAM.
+All 200 assembled path IDs, sequences and blocks match each orientation's
+preceding-engine baseline. There is no completed preceding ONT full-support
+result for an end-to-end timing or support comparison.
+
+The new attempts retain the 14,400-second reconstruction, 2 GiB scratch,
+16 GiB peak-RSS and 8 GiB free-space budgets. Earlier failures and their
+unknown counts remain provenance. [Producing measurements and validation
+records](data/sid-sv-recovery/ont-completion) distinguish reconstruction,
+serialization and independent validation. Input acquisition still retains its
+partner-query limit, and discovery remains bounded at 50,000 selected records.
+The immune-receptor-control interpretation and unobserved translation/tumor
+specificity remain unchanged.

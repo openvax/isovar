@@ -1,0 +1,16 @@
+{
+  "prepared_at": "2026-10-14T11:59:07.053691+00:00",
+  "issue": "https://github.com/openvax/isovar/issues/503",
+  "reason": "Reverse full-archive restore preflight requires more free space; preceding forward replay/resume and both archives passed.",
+  "preserved": [
+    "all prior successful stages",
+    "reverse restore preflight failure",
+    "both sealed archive identities",
+    "complete native and normalized scientific evidence"
+  ],
+  "action": "Resume at reverse restore after explicitly approved local snapshot reclamation; same memory/time/disk guards; separately pin continuation stages; then regenerate reports and prepare complete release ledger.",
+  "original_storage_start": "storage-staged-completion-start.json",
+  "reverse_restore_failure": "storage-staged-completion-stage-restore-reverse.json",
+  "final_stage_receipt": "restored-staged-completion-passed.json",
+  "finalization_receipt": "restored-report-finalization-passed.json"
+}

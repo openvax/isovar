@@ -5,6 +5,7 @@ SQLite index keeps unrelated background and arbitrarily distant pieces on disk.
 """
 
 from collections import Counter, defaultdict
+from bisect import bisect_left
 from collections.abc import Mapping
 from contextlib import ExitStack, closing
 from hashlib import sha256
@@ -21,7 +22,7 @@ from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
 from .rna_evidence import rna_support
 from .sv_rna import (
-    _Event, _GeometryCache, _Model, _Observations, _build_segment, _flip, _ineligible, _join_class, _record_gaps, _record_id,
+    _Event, _GeometryCache, _Model, _Observations, _build_segment, _flip, _ineligible, _join_class, _merge, _record_gaps, _record_id,
     _path_result, _possible_breakpoint_clip, reconstruct_sv_rna,
 )
 from . import sv_rna_stream
@@ -325,18 +326,26 @@ def _may_support(template, joins, collector, event):
     return False
 
 
+def _overlaps_placements(read, intervals):
+    """Whether a CIGAR block overlaps the disjoint union of candidate blocks."""
+    return any((i := bisect_left(intervals, (b,))) and intervals[i - 1][1] > a
+               for a, b in read.get_blocks()) if intervals else False
+
+
 def _support(groups, result, collector, event, annotated, options):
     """Stream complete templates, keeping only candidate junction witnesses."""
     header = groups.header.to_dict()
     joins = {(tuple(j['left']), tuple(j['right'])) for path in result['paths'] for j in path['junctions']
              if j['left'] is not None and j['right'] is not None}
-    placements = {(b['contig'], b['reference_start'], b['reference_end'])
-                  for path in result['paths'] for b in path['blocks']}
+    placements = defaultdict(list)
+    for path in result['paths']:
+        for block in path['blocks']:
+            placements[block['contig']].append((block['reference_start'], block['reference_end']))
+    placements = {contig: _merge(intervals) for contig, intervals in placements.items()}
     stream = sv_rna_stream._SupportStream(result['paths'], [_positions(p) for p in result['paths']], event, annotated)
     reasons, geometry_cache, batch, bases, intern = Counter(), _GeometryCache(), [], 0, {}
     for template in groups.templates() if result['paths'] else ():
-        if not any(read.reference_name == contig and a < high and low < b
-                   for read in template for a, b in read.get_blocks() for contig, low, high in placements):
+        if not any(_overlaps_placements(read, placements.get(read.reference_name, ())) for read in template):
             continue
         if not _may_support(template, joins, collector, event):
             continue

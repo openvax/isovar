@@ -19,25 +19,33 @@ alleles/calls, DNA support, transcript anatomy, RNA outcomes, every protein
 sequence/window and support by product. Their index includes the unresolved
 entries as well as the leads.
 
-The dense recovery contributes 42 completed views and two unresolved ONT IGKC
-outcomes (a timeout and an interrupted scan), with unknown support counts.
-[Follow-up #470](https://github.com/openvax/isovar/issues/470) tracks completion;
-the full 100-view selected SV outcome ledger is retained.
+The dense recovery contributes 44 completed views, including both ONT IGKC
+orientations completed in [#470](https://github.com/openvax/isovar/issues/470).
+Their original timeout and interrupted outcome remain preserved as historical
+failures with unknown counts. The full 100-view selected SV outcome ledger is
+retained; source-specific support is not pooled across products or orientations.
 
 ## Complete, downloadable sequences and evidence
 
 - [Every protein/window, FASTA](data/sid-neoorf-event-report/proteins.fasta):
-  1,466 event-specific sequence groups, including 723 in-frame control groups.
+  1,704 event-specific sequence groups, including 723 in-frame control groups.
 - [SV ORF nucleotide sequences, FASTA](data/sid-neoorf-event-report/sv-orfs.fna):
-  629 groups with exact reconstructed ORF nucleotides.
-- [Support table, TSV](data/sid-neoorf-event-report/support.tsv): all 1,546
-  source-specific hypotheses: 656 SV ORFs, 116 frameshift windows and 774
+  867 groups with exact reconstructed ORF nucleotides.
+- [Support table, TSV](data/sid-neoorf-event-report/support.tsv): all 1,785
+  source-specific hypotheses: 895 SV ORFs, 116 frameshift windows and 774
   in-frame windows.
-- [Full event/placement ledger](data/sid-neoorf-event-report/events.json.gz):
-  original DNA provenance, all transcript models at each event, per-product
-  outcomes, all 5,114 SV ORF occurrences with genomic RNA blocks and junctions,
+- [Full event/placement ledger](https://github.com/openvax/isovar/releases/download/v1.54.0/sid-neoorf-events-1.54.0.json.gz):
+  original DNA provenance, transcript models, per-product outcomes, all
+  6,165 SV ORF occurrences with genomic RNA blocks and junctions,
   sequence identities, stop/start/frame flags and input hashes.
 - [File checksums](data/sid-neoorf-event-report/files.json).
+
+The complete JSON ledger is a versioned release attachment. Its
+[download record](data/sid-neoorf-event-report/downloads.json) pins the unchanged
+bytes, size and original report manifest. The portable report archive retains
+the complete original report with local links.
+The matching release also provides a [download verification receipt](https://github.com/openvax/isovar/releases/download/v1.54.0/completed-report-release-download-verified.json)
+for the published ledger.
 
 Alternative starts, overlapping windows, synonymous RNA sequences and the two
 PARD3B geometries reuse evidence. These totals count hypotheses, not independent
@@ -90,7 +98,7 @@ placement ambiguity or unplaced bases; the event sheets preserve both.
 | [PARD3B geometry B / SV0319](data/sid-neoorf-event-report/events/adj-3834e653a87b6d5ec9b7b8a6.md) | T1-organoid BND at chr2:205310101 `T` → `TGTGTGCTGATATG[chr9:22007648[`; DNA **VF 6**, LINX complex-cluster annotation. | Slightly different nominated chr2 cut, with the same representative short RNA ORF and reused witnesses as geometry A. **Do not add their support.** Raw alleles are preserved rather than asserting identical DNA insertions. |
 | [GABBR1–SLC29A1 / SV0111](data/sid-neoorf-event-report/events/adj-52ace853d3c63e505e9e5bba.md) | INV-labelled adjacency: chr6:29612906 `C` → `[chr6:44218908[C`; DNA VF **T1 12, T1 organoid 8, T2 10**. | GABBR1 endpoint is intronic; the nominated chr6:44218907 interbase partner has no overlapping Ensembl 115 transcript at the retained base. The **67-aa plus-stop PacBio hypothesis has 9 fragments / 8 labels**, but is only event-compatible. Its representative RNA join is chr6:44230858(−) → chr6:44230810(+) with `CCCGCCT`, not a direct bridge between the nominal DNA endpoints. Other ORFs include an ONT breakpoint-linked window; no resolved GABBR1–SLC29A1 protein is established. |
 | [OTUD7A–FMN1 / SV0432](data/sid-neoorf-event-report/events/adj-79fa5cd408c4e72b464abb46.md) | T2 INV-labelled adjacency: chr15:31743670 `G` → `[chr15:33043479[CTG`; DNA **VF 9**. | Cuts overlap intronic OTUD7A and FMN1 models. A representative RNA join runs chr15:33043479(−) → chr15:31743670(+) with unplaced `CT`. The **21-aa plus-stop** hypothesis has **9 ONT fragments / 7 labels**. No resolved coding anchor or full fusion transcript is established. |
-| [::IGKC dense control](data/sid-neoorf-event-report/events/adj-041dbfbb2239d183a5982838.md) | **DNA origin unknown**; RNA-only nomination at chr2 interbase cuts 88857683 and 88861220. | Strongest **27-aa plus-stop** hypothesis: **279 10x fragments / 12 labels**. Its RNA N-gap joins chr2:88857683(+) → chr2:88861886(+), differing from the nominated partner cut. Splice ambiguity, unresolved coding anchor/polarity and immune-receptor context prevent a tumor-specific neoORF claim. |
+| [::IGKC dense control](data/sid-neoorf-event-report/events/adj-041dbfbb2239d183a5982838.md) | **DNA origin unknown**; RNA-only nomination at chr2 interbase cuts 88857683 and 88861220. | The **27-aa plus-stop 10x** hypothesis: **279 10x fragments / 12 labels**. Its RNA N-gap joins chr2:88857683(+) → chr2:88861886(+), differing from the nominated partner cut. Splice ambiguity, unresolved coding anchor/polarity and immune-receptor context prevent a tumor-specific neoORF claim. |
 | [::CNN2 dense control](data/sid-neoorf-event-report/events/adj-02ce630f08dfbac9b6c4cde5.md) | **DNA origin unknown**; nominated chr19:1038882-right / chr9:42971353-right cuts. | **No resolved ORF** in the two acquired 10x views. The sheet gives retained-base transcript anatomy, original RNA nominations and bounded outcomes. Altered transcript structure, reading frame and protein sequence remain unknown; this is not a gene-expression negative. |
 | [ATP5MG–KMT2A](data/sid-neoorf-event-report/events/adj-e7cac6d424ea83935654d789.md) | **DNA origin unknown**; supplemental Personalis T0 Isofox RNA nomination. | Observed splice geometry includes chr11:118401717(+) → chr11:118471662(+), compatible with ordinary read-through splicing. **29 context-derived hypotheses, zero complete-ORF witnesses.** Long KMT2A-containing sequences are provided in full, explicitly as unsupported complete-ORF hypotheses. No deletion or translated fusion protein is inferred. |
 

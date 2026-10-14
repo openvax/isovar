@@ -1,9 +1,90 @@
 """Exploratory ATG ORFs and their observed RNA evidence, not initiation calls."""
 
+from bisect import bisect_right
+from itertools import chain, islice
+
 from .genetic_code import standard_genetic_code
 from .orf_inclusion import annotate_orf_inclusion
 from .orf_start import annotate_orf_start
 from .sv_rna_relations import EVENT_CROSSING_RELATIONS
+
+
+_PLACEMENT_INDEX = object()
+_SEQUENCE_MATCHES = object()
+_WITNESS_CACHE_ENTRIES = 4096
+_WITNESS_CACHE_BASES = 250_000
+
+
+def _sequence_offsets(sequence, dna):
+    offset = sequence.find(dna)
+    while offset >= 0:
+        yield offset
+        offset = sequence.find(dna, offset + 1)
+
+
+class _SequenceMatches:
+    """Batch-local exact offsets shared by identical candidate DNA queries."""
+
+    def __init__(self, sequences):
+        self.sequences = set(sequences)
+        self.matches, self.entries, self.bases = {}, 0, 0
+
+    def find(self, dna):
+        if dna in self.matches:
+            return self.matches[dna]
+        room = _WITNESS_CACHE_ENTRIES - self.entries
+        if room <= 0 or self.bases + len(dna) > _WITNESS_CACHE_BASES:
+            return None
+        matches, size = {}, 1
+        for text in self.sequences:
+            found = tuple(islice(_sequence_offsets(text, dna), room + 1))
+            if found:
+                size += len(found) + 1
+                if size > room:
+                    self.matches[dna] = None
+                    self.entries += 1
+                    self.bases += len(dna)
+                    return None
+                matches[text] = found
+        self.matches[dna] = matches
+        self.entries += size
+        self.bases += len(dna)
+        return matches
+
+
+class _PlacementIndex:
+    """Compare placed coordinates by linear runs, allowing unplaced bases."""
+
+    def __init__(self, positions):
+        # sv_rna imports the ORF enumerator; run geometry is available at call
+        # time. Retaining positions also prevents recycling its cache-key id.
+        from .sv_rna import _runs
+
+        self.positions = positions
+        self.runs = _runs(positions)
+        self.ends = [run[1] for run in self.runs]
+
+    def agrees(self, other, start, end, shift):
+        """Every base placed on both sides has the same genomic placement."""
+        i, j = bisect_right(self.ends, start), bisect_right(other.ends, start + shift)
+        while i < len(self.runs) and j < len(other.runs):
+            p0, p1, pc, pl, ph, ps = self.runs[i]
+            q0, q1, qc, ql, qh, qs = other.runs[j]
+            left, right = max(start, p0, q0 - shift), min(end, p1, q1 - shift)
+            if left < right:
+                if pc != qc or ps != qs:
+                    return False
+                own = pl + left - p0 if ps == '+' else ph - 1 - left + p0
+                observed = ql + left + shift - q0 if qs == '+' else qh - 1 - left - shift + q0
+                if own != observed:
+                    return False
+            if min(p1, q1 - shift) >= end:
+                break
+            if p1 <= q1 - shift:
+                i += 1
+            if q1 - shift <= p1:
+                j += 1
+        return True
 
 
 def _witnesses(sequence, positions, start, end, junctions, observations, group_cache=None):
@@ -19,7 +100,39 @@ def _witnesses(sequence, positions, start, end, junctions, observations, group_c
     # not affect sequence matching and are read from each original afterwards.
     group_cache = {} if group_cache is None else group_cache
     dna = sequence[start:end]
+    search = group_cache.get(_SEQUENCE_MATCHES)
+    shared_matches = search.find(dna) if search is not None else None
+    if shared_matches == {}:
+        return []
     witnesses = {}
+    matches, consistent_intervals = {}, {}
+    cached_matches = 0
+
+    def offsets(text):
+        nonlocal cached_matches
+        if shared_matches is not None:
+            return iter(shared_matches.get(text, ()))
+        if text in matches:
+            return iter(matches[text])
+        iterator = _sequence_offsets(text, dna)
+        room = _WITNESS_CACHE_ENTRIES - cached_matches
+        if room <= 0:
+            return iterator
+        found = tuple(islice(iterator, room))
+        if len(found) < room:
+            matches[text] = found
+            cached_matches += len(found) + 1
+            return iter(found)
+        # Repetitive sequences still yield every occurrence, without filling
+        # an unbounded offsets table when no occurrence has valid placements.
+        return chain(found, iterator)
+
+    def index(pos):
+        key = _PLACEMENT_INDEX, id(pos)
+        if key not in group_cache:
+            group_cache[key] = _PlacementIndex(pos)
+        return group_cache[key]
+
     for junction in junctions:
         # Flanking placed bases around the junction's unplaced interval.
         left, right = junction["query_interval"][0] - 1, junction["query_interval"][1]
@@ -32,9 +145,20 @@ def _witnesses(sequence, positions, start, end, junctions, observations, group_c
             group_cache[keys] = list(groups.values())
         for members in group_cache[keys]:
             observation = members[0]
-            offset = observation.sequence.find(dna)
-            while offset >= 0:
+            if shared_matches is not None and observation.sequence not in shared_matches:
+                continue
+            comparison = observation.comparison_key
+            for offset in offsets(observation.sequence):
                 shift = offset - start
+                core = comparison, shift, start, end
+                if core in consistent_intervals:
+                    compatible = consistent_intervals[core]
+                else:
+                    compatible = index(positions).agrees(index(observation.positions), start, end, shift)
+                    if len(consistent_intervals) < _WITNESS_CACHE_ENTRIES:
+                        consistent_intervals[core] = compatible
+                if not compatible:
+                    continue
                 lo, hi = max(0, -shift), min(len(sequence), len(observation.sequence) - shift)
 
                 def shared(q):
@@ -47,9 +171,15 @@ def _witnesses(sequence, positions, start, end, junctions, observations, group_c
                     anchors.append(next((q for q in range(max(right, start), hi) if shared(q)), None))
                 if anchors and all(q is not None for q in anchors):
                     a, b = min(start, *anchors), max(end, *(q + 1 for q in anchors))
-                    pairs = zip(positions[a:b], observation.positions[a + shift:b + shift])
-                    consistent = (sequence[a:b] == observation.sequence[a + shift:b + shift]
-                                  and all(p is None or q is None or p == q for p, q in pairs))
+                    interval = comparison, shift, a, b
+                    if interval in consistent_intervals:
+                        consistent = consistent_intervals[interval]
+                    else:
+                        consistent = (
+                            sequence[a:b] == observation.sequence[a + shift:b + shift]
+                            and index(positions).agrees(index(observation.positions), a, b, shift))
+                        if len(consistent_intervals) < _WITNESS_CACHE_ENTRIES:
+                            consistent_intervals[interval] = consistent
                 else:
                     consistent = False
                 if consistent:
@@ -64,7 +194,6 @@ def _witnesses(sequence, positions, start, end, junctions, observations, group_c
                                     observation_interval=list(link_interval))
                         if link not in witness["junction_links"]:
                             witness["junction_links"].append(link)
-                offset = observation.sequence.find(dna, offset + 1)
     return [witnesses[key] for key in sorted(witnesses)]
 
 

@@ -10,13 +10,13 @@ import csv
 import gzip
 from hashlib import sha256
 import io
-import json
 import os
 from pathlib import Path
 import re
 import tempfile
 
 from isovar._audit_json import canonical, identity, same_file_bytes, write_json_stream  # noqa: F401
+from .json_projection import read_evidence_json
 
 
 RNA_ASSAYS = {"rna-seq", "scrna-seq", "cite-seq"}
@@ -58,7 +58,7 @@ def write_json(path, value):
 def read_json(path):
     path = Path(path)
     with gzip.open(path, "rt", encoding="utf-8") if path.suffix == ".gz" else path.open(encoding="utf-8") as handle:
-        return json.load(handle)
+        return read_evidence_json(handle)
 
 
 def geometry(breakends):

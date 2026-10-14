@@ -221,3 +221,100 @@ def test_path_end_reasons_are_exported_and_truncation_is_flagged():
     assert "path_end_truncated" not in natural["uncertainty_flags"]
     result["paths"][0]["end_reasons"]["3prime"].append("path_limit")
     assert "path_end_truncated" in only(result)["uncertainty_flags"]
+
+
+def test_factored_occurrence_order_matches_complete_canonical_json():
+    from itertools import product
+    from isovar.rna_evidence import canonical_json
+    from isovar.sv_rna_orf_export import _WitnessPool, _unique_occurrences
+
+    pool = _WitnessPool()
+    values = [False, 0, 0.0, -0.0, "é", "\\\"", [], [1], {"z": 1, "a": 2}]
+    witnesses = [dict(observation="read", value=value) for value in values]
+    rows = []
+    # Exercise empty arrays, proper array prefixes, optional metadata on either
+    # side of witnesses, and canonical distinctions Python equality would lose.
+    for before, after, count in product([{}, {"a": "x"}, {"a": "x", "b": (1, 2)}],
+                                        [{}, {"z": "last"}], range(len(witnesses) + 1)):
+        rows.append(dict(before, witnesses=pool.unique(witnesses[:count]), **after))
+    rows += deepcopy(rows[:10])
+    # Deep copies are input values to intern, not IDs in the export's pool.
+    for row in rows:
+        row["witnesses"] = pool.unique(row["witnesses"])
+    expected = [json.loads(value) for value in sorted({canonical_json(row) for row in rows})]
+    actual = _unique_occurrences(rows)
+    assert canonical_json(actual) == canonical_json(expected)
+
+
+def test_export_shares_equal_witness_values_without_aliasing_input():
+    result = reconstruction()
+    second = deepcopy(result["paths"][0])
+    second["path_id"] = "path2"
+    result["paths"].append(second)
+    before = deepcopy(result)
+    candidate = only(result)
+    first, second = candidate["occurrences"]
+    assert first["witnesses"][0] is not second["witnesses"][0]
+    assert first["witnesses"][0]["observation_interval"] is second["witnesses"][0]["observation_interval"]
+    first["witnesses"][0]["observation"] = "changed_export_only"
+    assert result == before
+
+
+def test_export_indexes_labels_and_lineage_once_and_looks_up_each_observation_once():
+    class Rows(list):
+        iterations = 0
+
+        def __iter__(self):
+            self.iterations += 1
+            return super().__iter__()
+
+    class Observations(dict):
+        lookups = 0
+
+        def __getitem__(self, key):
+            self.lookups += 1
+            return super().__getitem__(key)
+
+    result = reconstruction()
+    duplicate = deepcopy(result["paths"][0])
+    duplicate["path_id"] = "duplicate"
+    result["paths"].append(duplicate)
+    alternative = deepcopy(result["paths"][0])
+    alternative["path_id"] = "synonymous"
+    alternative["sequence"] = alternative["sequence"].replace("AAA", "AAG")
+    alternative["exploratory_orfs"]["candidates"][0]["full_interval_support"]["witnesses"] = []
+    result["paths"].append(alternative)
+    result["observations"] = Observations(result["observations"])
+    result["cell_umi_evidence"]["reads"] = Rows()
+    result["read_lineage"]["reads"] = Rows()
+    candidates = export_sv_rna_orfs(result)["candidates"]
+    assert sorted(candidate["rna_support"]["reads"] for candidate in candidates) == [0, 1]
+    assert result["observations"].lookups == 1
+    assert result["cell_umi_evidence"]["reads"].iterations == 1
+    assert result["read_lineage"]["reads"].iterations == 1
+
+
+@pytest.mark.parametrize("left,right", [("", ""), ("a", "ab"), ("ab", "a"),
+                                        ('[{"a":1}]', '[{"a":1},{"a":2}]'),
+                                        ('[]', '[{}]'), ('{"a":1}', '{"a":10}')])
+def test_streamed_canonical_order_ignores_chunk_boundaries(left, right):
+    from isovar.sv_rna_orf_export import _compare_parts
+    for cut_a in range(len(left) + 1):
+        for cut_b in range(len(right) + 1):
+            assert _compare_parts([left[:cut_a], "", left[cut_a:]],
+                                  [right[:cut_b], right[cut_b:]]) == ((left > right) - (left < right))
+
+
+def test_occurrence_hash_collisions_still_compare_complete_values(monkeypatch):
+    from isovar import sv_rna_orf_export as module
+
+    class Collision:
+        def update(self, chunk):
+            pass
+
+        def digest(self):
+            return b"same"
+
+    monkeypatch.setattr(module, "sha256", Collision)
+    rows = [dict(path_id="same", witnesses=[dict(observation=key)]) for key in ("second", "first", "second")]
+    assert module._unique_occurrences(rows) == [rows[1], rows[0]]

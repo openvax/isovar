@@ -37,14 +37,16 @@ or biological deduplication.
 
 ## Remaining full-input support work
 
-The large recovery remains unresolved in #470. A separate diagnostic did not
-produce a completed result, so it establishes no end-to-end speedup. Its private
-input identifiers and diagnostic measurements remain outside this PR.
+At the time of these measurements, the large recovery was unresolved in #470.
+The separate diagnostic produced no completed result and establishes no
+end-to-end speedup. These benchmark measurements retain their original inputs
+and versions.
 
-The next support change (#482) must release transient per-base observations after
-recording their contributions. The current pass retains qualifying templates
-and their original/mirrored geometries before reporting complete-input support;
-this still scales with total qualifying aligned bases.
+The later [streamed support implementation](stream-complete-support-benchmarks.md)
+releases transient per-base observations after recording their contributions.
+The separately pinned [completed ONT recovery](sid-sv-dense-recovery.md) records
+both orientations, independent checks and portable replay. Its results do not
+change the historical measurements above.
 
 ## Correctness checks
 

@@ -1,0 +1,25 @@
+{
+  "completed_at": "2026-10-14T11:59:33.617364+00:00",
+  "explicit_user_approval": true,
+  "approval": "Reclaim local snapshot space",
+  "request": "Ask macOS to reclaim up to 32 GiB from automatic local Time Machine snapshots",
+  "command": [
+    "tmutil",
+    "thinlocalsnapshots",
+    "/",
+    "34359738368",
+    "1"
+  ],
+  "returncode": 0,
+  "removed_local_snapshots": [
+    "com.apple.TimeMachine.2026-10-14-022148.local",
+    "com.apple.TimeMachine.2026-10-14-032143.local",
+    "com.apple.TimeMachine.2026-10-14-042211.local",
+    "com.apple.TimeMachine.2026-10-14-052156.local",
+    "com.apple.TimeMachine.2026-10-14-062155.local",
+    "com.apple.TimeMachine.2026-10-14-072141.local"
+  ],
+  "current_files_unchanged": true,
+  "free_bytes_after": 39550791680,
+  "prior_reverse_restore_preflight_free_bytes": 15998201856
+}
