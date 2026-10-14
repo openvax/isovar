@@ -403,9 +403,8 @@ def test_sid_import_releases_payloads_before_next_read_and_publication(
             assert digest(bundle.path(name)) == digest(original / name.removeprefix("audit/"))
 
 
-def test_replay_releases_expected_tree_before_engine_and_preserves_native_result(
+def test_replay_never_materializes_expected_tree_and_preserves_native_result(
         tmp_path, original_sid_audit, monkeypatch):
-    import weakref
     from isovar import audit_replay
 
     original, run_id, expected = original_sid_audit
@@ -413,23 +412,14 @@ def test_replay_releases_expected_tree_before_engine_and_preserves_native_result
     plan = bundle.manifest["metadata"]["sv_rna_runs"][run_id]
     expected_path = bundle.path(plan["expected"])
     read = audit_replay.read_json
-    references = []
-
-    class TrackedDict(dict):
-        pass
-
     def tracked_read(path):
-        value = read(path)
-        if path == expected_path:
-            value = TrackedDict(value)
-            references.append(weakref.ref(value))
-        return value
+        assert path != expected_path, "Replay materialized the expected reconstruction"
+        return read(path)
 
     native = deepcopy(expected)
     native["reference_models"] = tuple(native["reference_models"])
 
     def reconstruct(*args, **kwargs):
-        assert references and all(reference() is None for reference in references)
         return native
 
     monkeypatch.setattr(audit_replay, "read_json", tracked_read)
