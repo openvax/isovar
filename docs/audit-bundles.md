@@ -123,6 +123,12 @@ Replay verifies the whole bundle, uses recorded read filters and reconstruction
 parameters, preserves acquisition limitations, and compares the **entire**
 result with the frozen reconstruction. It writes a new checkpoint outside the
 bundle. Repeating the command reuses only a matching, intact checkpoint.
+New checkpoints are gzip-compressed JSON. Existing plain JSON checkpoints
+remain readable and unchanged on resume; a directory containing both formats
+for the same run is rejected as ambiguous. CLI resume validates canonical
+checkpoints without constructing their complete result trees. The Python API
+continues to return the complete result, and noncanonical checkpoints use the
+existing full-reader validation.
 Software changes fail by default; `allow_software_change=True` or
 `--allow-software-change` permits an explicit new-engine comparison. A differing
 result still fails and preserves its checkpoint for inspection. Imported old
@@ -134,15 +140,17 @@ scratch storage. Sequence, support and biological interpretation are unchanged.
 
 Canonical hashing and JSON/gzip publication stream encoded chunks, preserving
 existing checksums and checkpoint bytes. Replay fingerprints the complete expected
-result before reconstruction, then releases that parsed tree. Native results are
+result before reconstruction without constructing its tree. Native results are
 normalized in place, preserving shared evidence; comparison still covers every
 JSON value. Sid import validates one document at a time and retains only the
 provenance needed to build replay plans. Original evidence files are copied
 verbatim.
 
-These changes reduce temporary serialization and duplicate-tree memory. The
-standard JSON parser still holds decoded text and one parsed result, and the
-streaming Python encoder can take more CPU time than whole-document encoding.
+These changes reduce temporary serialization and duplicate-tree memory. JSON
+decoding uses fixed-size buffers apart from a single oversized scalar. Full
+Python API results still require their returned tree; streamed comparisons keep
+object keys and child hashes. Noncanonical CLI checkpoints fall back to full
+decoding. Streaming encoding can take more CPU time than whole-document encoding.
 To measure those costs independently on a frozen result, run
 `python -m examples.benchmark_audit_json RESULT.json.gz --operation hash
 --implementation new --output measurement.json` from a checkout. Operations

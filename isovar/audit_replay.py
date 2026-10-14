@@ -8,6 +8,7 @@ import pysam
 from .audit_bundle import AuditBundleError, identity, publish_json, software_identity
 from ._audit_json import comparison_identity, expected_json_identity, normalize_json
 from ._audit_json_reader import read_json_stream
+from ._audit_checkpoint import NonCanonicalCheckpoint, checkpoint_summary
 from .read_collector import ReadCollector
 from .sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 __all__ = ["replay_sv_rna"]
@@ -49,6 +50,30 @@ def replay_sv_rna(bundle, run_id, output_directory, *, allow_software_change=Fal
         Checkpoint containing request, full reconstruction, result checksum and
         comparison. A mismatch raises AuditBundleError and retains its checkpoint.
     """
+    return _replay_sv_rna(bundle, run_id, output_directory, include_result=True,
+                          allow_software_change=allow_software_change, scratch_dir=scratch_dir)
+
+
+def _resume_summary(path, request, expected):
+    try:
+        with gzip.open(path, "rt") if path.suffix == ".gz" else path.open() as handle:
+            checkpoint, checksum, fingerprint = checkpoint_summary(handle)
+    except NonCanonicalCheckpoint:
+        return None  # Preserve the full reader's noncanonical/duplicate semantics.
+    if checkpoint.get("request") != request:
+        raise AuditBundleError("Replay checkpoint request drift: " + str(path))
+    if checksum is None or checkpoint.get("result_sha256") != checksum:
+        raise AuditBundleError("Replay checkpoint result checksum mismatch: " + str(path))
+    comparison = "not_requested" if expected is None else "matched" if fingerprint == expected else "mismatch"
+    if checkpoint.get("comparison") != comparison:
+        raise AuditBundleError("Replay checkpoint comparison was changed: " + str(path))
+    if comparison == "mismatch":
+        raise AuditBundleError("Replay differs from the frozen result; checkpoint retained at " + str(path))
+    return checkpoint
+
+
+def _replay_sv_rna(bundle, run_id, output_directory, *, include_result, allow_software_change=False, scratch_dir=None):
+    """Share replay gates between the full API and the summary-only CLI."""
     bundle.verify()
     plans = bundle.manifest["metadata"].get("sv_rna_runs", {})
     if not isinstance(plans, dict):
@@ -78,10 +103,19 @@ def replay_sv_rna(bundle, run_id, output_directory, *, allow_software_change=Fal
         raise AuditBundleError("Replay output must be outside the immutable bundle")
     request = dict(bundle_id=bundle.bundle_id, run_id=run_id, plan_sha256=identity(plan), software=software)
     path = output / (identity(run_id)[:32] + ".json")
+    compressed_path = path.with_suffix(".json.gz")
+    if path.exists() and compressed_path.exists():
+        raise AuditBundleError("Ambiguous plain and compressed replay checkpoints: " + str(path))
+    if not path.exists():
+        path = compressed_path
     # Finish reading/comparing the expected evidence before allocating engine
     # state or a resumed checkpoint. Only its fingerprint survives this call.
     expected = _expected_identity(bundle.path(plan["expected"])) if plan.get("expected") else None
     if path.exists():
+        if not include_result:
+            summary = _resume_summary(path, request, expected)
+            if summary is not None:
+                return summary
         checkpoint = read_json(path)
         if checkpoint.get("request") != request:
             raise AuditBundleError("Replay checkpoint request drift: " + str(path))
@@ -102,14 +136,14 @@ def replay_sv_rna(bundle, run_id, output_directory, *, allow_software_change=Fal
         result_sha256 = identity(result)
         comparison = "not_requested" if expected is None else "matched" if comparison_identity(result) == expected else "mismatch"
         checkpoint = dict(request=request, result=result, result_sha256=result_sha256, comparison=comparison)
-        publish_json(path, checkpoint)
+        publish_json(path, checkpoint, compressed=True)
         # New checkpoints have already been compared and atomically published.
         if comparison == "mismatch":
             raise AuditBundleError("Replay differs from the frozen result; checkpoint retained at " + str(path))
-        return checkpoint
+        return checkpoint if include_result else {key: checkpoint[key] for key in ("request", "comparison", "result_sha256")}
     comparison = "not_requested" if expected is None else "matched" if comparison_identity(checkpoint["result"]) == expected else "mismatch"
     if checkpoint.get("comparison") != comparison:
         raise AuditBundleError("Replay checkpoint comparison was changed: " + str(path))
     if comparison == "mismatch":
         raise AuditBundleError("Replay differs from the frozen result; checkpoint retained at " + str(path))
-    return checkpoint
+    return checkpoint if include_result else {key: checkpoint[key] for key in ("request", "comparison", "result_sha256")}
