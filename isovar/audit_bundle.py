@@ -115,7 +115,7 @@ def _read_manifest(handle):
     return json.loads(data)
 
 
-def publish_json(path, value):
+def publish_json(path, value, *, compressed=False):
     """Atomically publish JSON, refusing to overwrite existing content."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -123,7 +123,7 @@ def publish_json(path, value):
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as handle:
             temporary = Path(handle.name)
-            write_json_stream(handle, value)
+            write_json_stream(handle, value, compressed=compressed)
             handle.flush()
             os.fsync(handle.fileno())
         os.link(temporary, path)

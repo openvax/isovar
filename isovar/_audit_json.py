@@ -164,8 +164,13 @@ def expected_json_identity(handle):
     resolution; array frames retain a running hash. Literal null means that
     comparison was not requested, matching the existing replay convention.
     """
+    return comparison_event_identity(json_events(handle, decoder=json.JSONDecoder()), null_means_missing=True)
+
+
+def comparison_event_identity(events, *, null_means_missing=False):
+    """Reduce complete JSON value events to the existing comparison identity."""
     stack, missing = [], False
-    for event, value in json_events(handle, decoder=json.JSONDecoder()):
+    for event, value in events:
         if event == "start_map":
             stack.append(["map", {}, None])
             continue
@@ -195,4 +200,4 @@ def expected_json_identity(handle):
             stack[-1][1][stack[-1][2]] = fingerprint
         else:
             stack[-1][1].update(fingerprint)
-    return None if missing else root.hex()
+    return None if missing and null_means_missing else root.hex()
