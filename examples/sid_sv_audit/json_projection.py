@@ -5,6 +5,51 @@ import json
 from pathlib import Path
 
 from isovar._audit_json_reader import json_events
+from isovar.sv_rna_orf_export import _WitnessPool
+
+
+def read_evidence_json(handle):
+    """Decode complete evidence, sharing equal nested witness values only."""
+    keys, pool = {}, _WitnessPool()
+    witness_fields = {"observation", "observation_interval", "original_query_interval", "junction_links"}
+
+    def normalize(row):
+        row = {(keys.setdefault(k, k) if len(keys) < 1024 else keys.get(k, k)): v
+               for k, v in row.items()}
+        if witness_fields <= row.keys():
+            return {k: pool.share(v) for k, v in row.items()}
+        return row
+
+    # This internal hook is idempotent. A failed speculative bulk decode may
+    # visit it again; only exact values are interned, with no external effects.
+    events = iter(json_events(handle, decoder=json.JSONDecoder(object_hook=normalize)))
+
+    def build(first):
+        event, value = first
+        if event == "scalar":
+            return value
+        if event == "start_map":
+            result = {}
+            for event, key in events:
+                if event == "end_map":
+                    return normalize(result)
+                result[key] = build(next(events))
+        elif event == "start_array":
+            result = []
+            for first in events:
+                if first[0] == "end_array":
+                    return result
+                result.append(build(first))
+        raise ValueError("Unexpected JSON event")
+
+    result = build(next(events))
+    if next(events, None) is not None:
+        raise ValueError("Unexpected JSON event after root value")
+    # The recursive builder's closure can survive until cyclic GC. Release the
+    # potentially large lookup indexes now; the result owns the shared values.
+    pool.strings.clear()
+    pool.containers.clear()
+    return result
 
 
 class _ChildDecoder(json.JSONDecoder):

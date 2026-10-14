@@ -64,3 +64,36 @@ def test_background_collection_is_not_retained(tmp_path):
     finally:
         tracemalloc.stop()
     assert peak < 2 * 1024**2
+@pytest.mark.parametrize("chunk_size", [1, 7, 65536])
+def test_evidence_reader_shares_nested_witness_values_on_bulk_and_streamed_paths(monkeypatch, chunk_size):
+    import io
+    from examples.sid_sv_audit.json_projection import read_evidence_json
+    from isovar import _audit_json_reader
+    monkeypatch.setattr(_audit_json_reader, "_CHUNK_SIZE", chunk_size)
+
+    witness = dict(observation="same-read", observation_interval=[1, 19],
+                   original_query_interval=[31, 49], junction_links=[dict(query_interval=[7, 7])])
+    for padding in ("", "x" * 70000 if chunk_size == 65536 else "x" * 30):
+        value = dict(candidates=[dict(padding=padding, witnesses=[witness, witness]),
+                                 dict(witnesses=[dict(witness, original_query_interval=[32, 50])])],
+                     other=[False, 0, 0.0, -0.0, None, "é"])
+        text = json.dumps(value, sort_keys=True)
+        actual = read_evidence_json(io.StringIO(text))
+        assert json.dumps(actual, sort_keys=True) == text
+        first, second = actual["candidates"][0]["witnesses"]
+        third = actual["candidates"][1]["witnesses"][0]
+        assert first is not second
+        assert first["observation_interval"] is second["observation_interval"] is third["observation_interval"]
+        assert first["junction_links"] is third["junction_links"]
+        assert first["original_query_interval"] is not third["original_query_interval"]
+
+
+def test_evidence_reader_validates_complete_json_and_preserves_scalar_roots():
+    import io
+    from examples.sid_sv_audit.json_projection import read_evidence_json
+
+    for text in ("null", "false", "12", '"string"', "[]", "{}", '[1, {"a": 2, "a": 3}]'):
+        assert read_evidence_json(io.StringIO(text)) == json.loads(text)
+    for text in ("", '{"a":', "[1,]", "{} {}", '{"a": 1,}'):
+        with pytest.raises(ValueError):
+            read_evidence_json(io.StringIO(text))

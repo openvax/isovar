@@ -34,3 +34,9 @@ separately from the frozen producer, then rerun both full independent checks
 under the same 4-hour, 16 GiB RSS, 24 GiB physical-footprint and 8 GiB disk limits.
 Rebuild the separately pinned installed replay wheel and validate its full source
 identity and offline fixture before continuing staged archival and full replay.
+
+Summary and report readers must retain the same sharing when reopening saved
+evidence. Decode incrementally and intern equal nested values only in witness
+rows, including rows decoded inside buffered containers. Keep arbitrary JSON
+values and every witness row unchanged; test both buffered and streamed paths
+against the standard decoder. The frozen producing helpers remain untouched.
