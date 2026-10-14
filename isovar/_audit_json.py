@@ -17,17 +17,26 @@ def canonical(value):
 
 
 def canonical_chunks(value):
-    """Yield canonical UTF-8 in batches; retain at most one encoded JSON token."""
-    buffer = bytearray()
+    """Batch small tokens as UTF-8; slice individually oversized tokens."""
+    pending, length = [], 0
     for token in _ENCODER.iterencode(value):
         # ensure_ascii=True makes every character exactly one UTF-8 byte.
-        for start in range(0, len(token), _CHUNK_SIZE):
-            buffer.extend(token[start:start + _CHUNK_SIZE].encode())
-            if len(buffer) >= _CHUNK_SIZE:
-                yield bytes(buffer)
-                buffer.clear()
-    if buffer:
-        yield bytes(buffer)
+        if len(token) > _CHUNK_SIZE:
+            if pending:
+                yield "".join(pending).encode()
+                pending.clear()
+                length = 0
+            for start in range(0, len(token), _CHUNK_SIZE):
+                yield token[start:start + _CHUNK_SIZE].encode()
+        else:
+            pending.append(token)
+            length += len(token)
+            if length >= _CHUNK_SIZE:
+                yield "".join(pending).encode()
+                pending.clear()
+                length = 0
+    if pending:
+        yield "".join(pending).encode()
 
 
 def identity(value):
