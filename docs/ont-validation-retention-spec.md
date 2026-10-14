@@ -58,3 +58,16 @@ that group, fail closed on a live-process measurement error, and terminate the
 whole group at the unchanged limits. Test a child allocation that exceeds a
 small fixture guard while its parent remains below it. Preserve the stopped
 parent-only queue; no publication stage ran under that declaration.
+
+## Resume reverse restore after reclaiming approved snapshot space
+
+The full forward installed replay and CLI resume passed. Preserve those proofs,
+both completed archive identities, and the reverse restore's failed disk-space
+preflight. Resume at reverse restore after macOS reclaims user-approved local
+Time Machine snapshot space; retain the same memory, time and free-space guards.
+Do not repeat the successful reconstruction, replay, import or archive stages.
+
+Record the resumed stages separately, then regenerate and archive the complete
+reports. Include both preceding attempts and the continuation's declarations in
+the final provenance. Update release dependency pins only after the frozen
+recovery stages finish, preserving their original dependency catalogue.
