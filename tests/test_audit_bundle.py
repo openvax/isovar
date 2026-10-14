@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 import errno
+import gzip
 import json
 from pathlib import Path
 import shutil
@@ -347,6 +348,121 @@ def test_original_read_replay_after_relocation_is_exact_and_resumable(tmp_path, 
     assert replay_sv_rna(relocated, run_id, tmp_path / "replay") == checkpoint
 
 
+def test_cli_resume_streams_full_checkpoint_and_preserves_bytes(tmp_path, original_sid_audit, monkeypatch, capsys):
+    from isovar import audit_replay
+    from isovar.cli.isovar_audit_bundle import run
+
+    original, run_id, _ = original_sid_audit
+    bundle = bundle_sid_audit(original, tmp_path / "bundle")
+    checkpoint = replay_sv_rna(bundle, run_id, tmp_path / "replay")
+    path, = (tmp_path / "replay").glob("*.json*")
+    checksum = digest(path)
+
+    def no_full_result(*args, **kwargs):
+        raise AssertionError("CLI resume must not materialize or recompute a checkpoint")
+
+    monkeypatch.setattr(audit_replay, "read_json", no_full_result)
+    monkeypatch.setattr(audit_replay, "reconstruct_sv_rna", no_full_result)
+    run(["replay", str(bundle.directory), "--run-id", run_id, "--output", str(tmp_path / "replay")])
+    assert json.loads(capsys.readouterr().out) == [dict(run_id=run_id, comparison="matched",
+                                                     result_sha256=checkpoint["result_sha256"])]
+    assert digest(path) == checksum
+
+
+@pytest.mark.parametrize("change", ["request", "result", "checksum", "comparison", "missing", "trailing", "mismatch"])
+def test_cli_streamed_resume_rejects_tampering(tmp_path, original_sid_audit, change, capsys):
+    from isovar.cli.isovar_audit_bundle import run
+
+    original, run_id, _ = original_sid_audit
+    bundle = bundle_sid_audit(original, tmp_path / "bundle")
+    checkpoint = replay_sv_rna(bundle, run_id, tmp_path / "replay")
+    path, = (tmp_path / "replay").glob("*.json*")
+    if change == "request":
+        checkpoint["request"]["run_id"] = "changed"
+    elif change in ("result", "mismatch"):
+        checkpoint["result"]["status"] = "changed"
+        if change == "mismatch":
+            checkpoint["result_sha256"] = identity(checkpoint["result"])
+            checkpoint["comparison"] = "mismatch"
+    elif change == "checksum":
+        checkpoint["result_sha256"] = "0" * 64
+    elif change == "comparison":
+        checkpoint["comparison"] = "not_requested"
+    elif change == "missing":
+        del checkpoint["result"]
+    path.write_bytes(gzip.compress((json.dumps(checkpoint, sort_keys=True) + (" false" if change == "trailing" else "")).encode(), mtime=0))
+    checksum = digest(path)
+    with pytest.raises(SystemExit) as error:
+        run(["replay", str(bundle.directory), "--run-id", run_id, "--output", str(tmp_path / "replay")])
+    assert error.value.code == 2
+    assert not capsys.readouterr().out
+    assert digest(path) == checksum
+
+
+@pytest.mark.parametrize("duplicate", [False, True])
+def test_cli_resume_keeps_noncanonical_json_semantics(tmp_path, original_sid_audit, monkeypatch, capsys, duplicate):
+    from isovar import audit_replay, _audit_json_reader
+    from isovar.cli.isovar_audit_bundle import run
+
+    original, run_id, _ = original_sid_audit
+    bundle = bundle_sid_audit(original, tmp_path / "bundle")
+    checkpoint = replay_sv_rna(bundle, run_id, tmp_path / "replay")
+    path, = (tmp_path / "replay").glob("*.json*")
+    checkpoint["result"] = dict(reversed(list(checkpoint["result"].items())))
+    text = json.dumps(checkpoint)
+    if duplicate:
+        text = '{"request":{"wrong":"earlier duplicate"},' + text[1:]
+    path.write_bytes(gzip.compress(text.encode(), mtime=0))
+    checksum = digest(path)
+    reads = []
+    original_read = audit_replay.read_json
+
+    def tracked_read(source):
+        reads.append(source)
+        return original_read(source)
+
+    monkeypatch.setattr(audit_replay, "read_json", tracked_read)
+    monkeypatch.setattr(_audit_json_reader, "_CHUNK_SIZE", 127)
+    run(["replay", str(bundle.directory), "--run-id", run_id, "--output", str(tmp_path / "replay")])
+    assert path in reads
+    assert json.loads(capsys.readouterr().out)[0]["comparison"] == "matched"
+    assert digest(path) == checksum
+
+
+def test_plain_checkpoint_resume_stays_compatible_and_ambiguous_pair_fails(tmp_path, original_sid_audit, capsys):
+    original, run_id, _ = original_sid_audit
+    bundle = bundle_sid_audit(original, tmp_path / "bundle")
+    checkpoint = replay_sv_rna(bundle, run_id, tmp_path / "replay")
+    compressed, = (tmp_path / "replay").glob("*.json.gz")
+    assert compressed.read_bytes().startswith(b"\x1f\x8b")
+    legacy = compressed.with_suffix("")
+    legacy.write_bytes(gzip.decompress(compressed.read_bytes()))
+    compressed.unlink()
+    checksum = digest(legacy)
+    assert replay_sv_rna(bundle, run_id, tmp_path / "replay") == checkpoint
+    run(["replay", str(bundle.directory), "--run-id", run_id, "--output", str(tmp_path / "replay")])
+    assert json.loads(capsys.readouterr().out)[0]["comparison"] == "matched"
+    assert digest(legacy) == checksum and not compressed.exists()
+    compressed.write_bytes(gzip.compress(legacy.read_bytes(), mtime=0))
+    with pytest.raises(AuditBundleError, match="Ambiguous"):
+        replay_sv_rna(bundle, run_id, tmp_path / "replay")
+    with pytest.raises(SystemExit) as error:
+        run(["replay", str(bundle.directory), "--run-id", run_id, "--output", str(tmp_path / "replay")])
+    assert error.value.code == 2
+    assert digest(legacy) == checksum
+
+
+def test_cli_rejects_truncated_compressed_checkpoint(tmp_path, original_sid_audit):
+    original, run_id, _ = original_sid_audit
+    bundle = bundle_sid_audit(original, tmp_path / "bundle")
+    replay_sv_rna(bundle, run_id, tmp_path / "replay")
+    path, = (tmp_path / "replay").glob("*.json.gz")
+    path.write_bytes(path.read_bytes()[:-12])
+    with pytest.raises(SystemExit) as error:
+        run(["replay", str(bundle.directory), "--run-id", run_id, "--output", str(tmp_path / "replay")])
+    assert error.value.code == 2
+
+
 def test_sid_import_rejects_changed_original_provenance(tmp_path, original_sid_audit):
     original, _, _ = original_sid_audit
     (original / "query-names.txt").write_text("changed original names")
@@ -546,10 +662,10 @@ def test_replay_refuses_corrupt_checkpoint_and_software_drift(tmp_path, original
     original, run_id, _ = original_sid_audit
     bundle = bundle_sid_audit(original, tmp_path / "bundle")
     checkpoint = replay_sv_rna(bundle, run_id, tmp_path / "replay")
-    path, = (tmp_path / "replay").glob("*.json")
+    path, = (tmp_path / "replay").glob("*.json*")
     changed = deepcopy(checkpoint)
     changed["result"]["status"] = "changed"
-    path.write_text(json.dumps(changed))
+    path.write_bytes(gzip.compress(json.dumps(changed).encode(), mtime=0))
     with pytest.raises(AuditBundleError, match="checksum mismatch"):
         replay_sv_rna(bundle, run_id, tmp_path / "replay")
     monkeypatch.setattr(audit_replay, "software_identity", lambda: {"different": "engine"})
@@ -571,7 +687,7 @@ def test_replay_mismatch_preserves_full_diagnostic_result(tmp_path, original_sid
     monkeypatch.setattr(audit_replay, "reconstruct_sv_rna", lambda *args, **kwargs: changed)
     with pytest.raises(AuditBundleError, match="differs from the frozen result"):
         replay_sv_rna(bundle, run_id, tmp_path / "replay")
-    path, = (tmp_path / "replay").glob("*.json")
+    path, = (tmp_path / "replay").glob("*.json*")
     diagnostic = read_json(path)
     assert diagnostic["comparison"] == "mismatch"
     assert diagnostic["result"]["status"] == "different"
