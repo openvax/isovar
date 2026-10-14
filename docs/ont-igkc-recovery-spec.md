@@ -128,3 +128,11 @@ including its updated repository release dependencies. Compare every installed
 package module with the wheel and source and explicitly confirm that changes
 from the producer are confined to audit serialization and verification. Preserve
 the producer environment and historical dependency/reference identities.
+
+Budget the installed replay validation separately: up to six hours for complete
+expected-result parsing, reconstruction, checksum comparison and compressed
+checkpoint publication together. The measured forward expected-result parsing
+alone takes about 29 minutes, in addition to roughly 115 minutes for producing
+reconstruction and 39 minutes for its export. Keep the producing reconstruction
+budget at four hours and give CLI resume its own two-hour verification budget.
+These are validation limits, not relaxed discovery or support settings.
