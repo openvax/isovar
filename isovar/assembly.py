@@ -31,6 +31,7 @@ Assumptions / limitations:
 """
 
 from collections import defaultdict
+from itertools import groupby
 
 from .default_parameters import MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
 from .logging import get_logger
@@ -249,17 +250,22 @@ def merge_identical_sequences(variant_sequences):
     path no read group shares. Competing placements of the same segment also
     remain separate, even when their local cDNA strings happen to be identical.
     """
-    sequences_by_parts = defaultdict(list)
-    for variant_sequence in sorted(variant_sequences, key=_candidate_sort_key):
-        key = _sequence_key(variant_sequence)
-        alternatives = sequences_by_parts[key]
-        for i, existing in enumerate(alternatives):
-            if compatible_alignments(existing._source_alignments, variant_sequence.reads):
-                alternatives[i] = existing.add_reads(variant_sequence.reads)
-                break
-        else:
-            alternatives.append(variant_sequence)
-    return [sequence for alternatives in sequences_by_parts.values() for sequence in alternatives]
+    result = []
+    for _, group in groupby(sorted(variant_sequences, key=_sequence_key), key=_sequence_key):
+        group = list(group)
+        # Detailed read ordering only breaks ties between identical candidates.
+        if len(group) > 1:
+            group.sort(key=_candidate_sort_key)
+        alternatives = []
+        for variant_sequence in group:
+            for i, existing in enumerate(alternatives):
+                if compatible_alignments(existing._source_alignments, variant_sequence.reads):
+                    alternatives[i] = existing.add_reads(variant_sequence.reads)
+                    break
+            else:
+                alternatives.append(variant_sequence)
+        result.extend(alternatives)
+    return result
 
 
 DEFAULT_MAX_ASSEMBLY_SEQUENCES = 1000

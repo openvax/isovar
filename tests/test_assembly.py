@@ -185,6 +185,24 @@ def test_identical_sequences_on_disjoint_transcript_paths_stay_separate():
     eq_(len(merge_identical_sequences(initial)), 2)
 
 
+def test_identical_candidates_resolve_placement_ties_independently_of_input_order():
+    segment = ("library", "ambiguous", 0)
+    first = AlleleRead("AA", "C", "GG", "first", source_alignments=[(segment, (0, 100, "5M", False))])
+    second = AlleleRead("AA", "C", "GG", "second", source_alignments=[(segment, (0, 200, "5M", False))])
+    shared = AlleleRead("AA", "C", "GG", "shared")
+    other_path = AlleleRead("AA", "C", "GG", "other_path", compatible_transcript_ids={"T1"})
+    unique = AlleleRead("TAA", "C", "GG", "unique")
+    candidates = [VariantSequence(r.prefix, r.allele, r.suffix, [r])
+                  for r in (first, second, shared, other_path, unique)]
+    for ordered in permutations(candidates):
+        result = merge_identical_sequences(iter(ordered))
+        assert [s.read_names for s in result] == [
+            {"shared", "first"}, {"second"}, {"other_path"}, {"unique"}]
+        assert [s.compatible_transcript_ids for s in result] == [None, None, {"T1"}, None]
+        assert result[0]._source_alignments == {segment: (0, 100, "5M", False)}
+        assert result[1]._source_alignments == {segment: (0, 200, "5M", False)}
+
+
 def test_assembly_preserves_both_transcript_branches_without_global_intersection():
     ambiguous = AlleleRead(
         "AAAAA", "C", "TTTTT", "both",
