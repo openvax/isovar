@@ -6,6 +6,11 @@ include test.sh
 # Portable SV reconstruction examples and their original-data recipes (sdist only).
 include examples/osteosarc_sv_validation.py
 include examples/build_uorf_catalog.py
+include examples/benchmark_antigen_isoforms.py
+include examples/benchmark_viral_sequences.py
+include notes/cta-isoforms-validation.md notes/gdc-viral-reconstruction-validation.md
+include notes/data/cta-isoforms-experiment.json notes/data/gdc-viral-sequence-experiment.json
+include notes/data/audit-validation-dependencies.json
 recursive-include docs *.md
 include tests/__init__.py
 include tests/osteosarc_protein_helpers.py
@@ -14,3 +19,4 @@ include tests/data/osteosarc/protein_references.py
 include tests/data/osteosarc/expansion/references.py
 include tests/data/osteosarc/expansion/inventory.py
 recursive-include tests/data/fusions *.py *.md *.json *.gz
+recursive-include tests/data/viral *.json *.gz
