@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-15T00:49:18.529896+00:00",
+  "checked_at": "2026-10-15T02:16:32.134652+00:00",
   "python": "3.14.6",
   "scope": "Isovar repository release environment; runtime and optional dependencies plus test/build tools; excludes shared environment and historical audit pins",
   "packages": [
@@ -325,12 +325,12 @@
     },
     {
       "name": "orfdata",
-      "installed": "0.18.0",
-      "latest_stable": "0.18.0",
+      "installed": "0.27.1",
+      "latest_stable": "0.27.1",
       "source": "https://pypi.org/pypi/orfdata/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/d1/35/669a48f8efd545b73d22ff7332fabc637fa972f24715bc9b8ed40d9a687d/orfdata-0.18.0-py3-none-any.whl",
-        "sha256": "b8a79cb34e4988edbe1501567cfc3a4d63dcfbba95837a6fc4ec95d4826dfe29"
+        "url": "https://files.pythonhosted.org/packages/2b/39/0937ca61ea0e57aaaed5a30da2aff70960c10cb8c7c8da55a6b4e791a732/orfdata-0.27.1-py3-none-any.whl",
+        "sha256": "e8217117dda2e967859591ccf10b1f6e1fad1f93c8acc6dcd3a47fc79fe3bc7a"
       }
     },
     {
@@ -695,12 +695,12 @@
     },
     {
       "name": "varcode",
-      "installed": "10.15.0",
-      "latest_stable": "10.15.0",
+      "installed": "10.15.1",
+      "latest_stable": "10.15.1",
       "source": "https://pypi.org/pypi/varcode/json",
       "installed_artifact": {
-        "url": "https://files.pythonhosted.org/packages/fa/9e/8303a4c938e197cc1084f49b53e670b6ff643c21c62788935673888b4ced/varcode-10.15.0-py3-none-any.whl",
-        "sha256": "ac6e249c2cbed7f34b90d492daeeb29e3eafe31f8b8619083442092a7797a7b9"
+        "url": "https://files.pythonhosted.org/packages/b7/fd/2fde0fed22db518f6c2d0023947f4937f61ae26274ca4b8af0fe334028c3/varcode-10.15.1-py3-none-any.whl",
+        "sha256": "a4d0334ec7e044dd8525c5128437cc4b524c6b438386af493c7555e7f2f082da"
       }
     }
   ]

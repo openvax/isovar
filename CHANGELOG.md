@@ -4,6 +4,18 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.55.0
+
+- Add variant-free antigen isoform reconstruction, complete-input fragment
+  attribution, partial/CDS sequence evidence and identical-protein groups.
+  Optional Salmon quantification retains the full background transcriptome and
+  reports within-gene fractions without resolving indistinguishable isoforms.
+- Recommend GDC GRCh38.d1.vd1 for new human/viral alignments. The new isoform
+  command checks its published sequence dictionary and uses PyEnsembl custom
+  Genome annotations. Existing variant/BAM reference selection is unchanged.
+  Identical annotation inputs share caches across samples; changed source
+  contents select a fresh index.
+
 ## 1.52.0
 
 - Execute equivalent SV assembly votes, placement searches, junction summaries

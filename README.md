@@ -156,6 +156,12 @@ interpreted as small variants. Two separate workflows handle them:
 
 ## How it works
 
+For antigen genes without a nominated mutation, `isovar isoforms` reconstructs
+competing CTA or other targeted transcripts, retains ambiguous RNA support,
+and optionally estimates abundance with Salmon. See
+[antigen isoforms](https://github.com/openvax/isovar/blob/master/docs/antigen-isoforms.md)
+and the [preferred combined human/viral reference](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md#combined-human-and-viral-reference).
+
 For each variant, Isovar:
 
 1. collects the RNA reads that overlap it,

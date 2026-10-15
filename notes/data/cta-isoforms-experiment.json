@@ -1,0 +1,87 @@
+{
+  "kind": "synthetic_known_mixtures",
+  "seed": 465,
+  "script_sha256": "c2dad285384faaba40c7c3b5f614faf7d7ae9d8cea48bc3fc09d95d42b791668",
+  "experiments": [
+    {
+      "sample_id": "sample-A",
+      "expected_T1_fraction": 0.8,
+      "estimated_T1_fraction": 0.798156819125,
+      "original_fragments": [
+        2154,
+        346
+      ],
+      "counted_fragments": 2500,
+      "unassigned": 0,
+      "dominant_transcripts": [
+        "T1"
+      ],
+      "reconstruction_seconds": 3.6482224999926984,
+      "quantification_seconds": 0.46018300000287127,
+      "software": "salmon 2.8.0",
+      "inputs": {
+        "transcriptome": {
+          "path": "background.fa",
+          "sha256": "e1dcd9adc601b02d9a5b0eb4e366eaefc0b2fa442feac3e7e7e5181ef910b466"
+        },
+        "reads1": {
+          "path": "reads1.fastq",
+          "sha256": "43bab5782a73ed3c122d85ac5602b816796aff9a0f62cb341b6ea9a622daf0ce"
+        },
+        "reads2": {
+          "path": "reads2.fastq",
+          "sha256": "8d6561ccafa574ac112436a13ab608f51027a4407aca0501f11f797991e1c723"
+        }
+      }
+    },
+    {
+      "sample_id": "sample-B",
+      "expected_T1_fraction": 0.2,
+      "estimated_T1_fraction": 0.20562324045000002,
+      "original_fragments": [
+        718,
+        1782
+      ],
+      "counted_fragments": 2500,
+      "unassigned": 0,
+      "dominant_transcripts": [
+        "T2"
+      ],
+      "reconstruction_seconds": 3.7509346659935545,
+      "quantification_seconds": 0.4728100420034025,
+      "software": "salmon 2.8.0",
+      "inputs": {
+        "transcriptome": {
+          "path": "background.fa",
+          "sha256": "e1dcd9adc601b02d9a5b0eb4e366eaefc0b2fa442feac3e7e7e5181ef910b466"
+        },
+        "reads1": {
+          "path": "reads1.fastq",
+          "sha256": "82909f32f72f6351dbb321acd5dcba8d5a253a62f06a0e113263fec00eeb83d5"
+        },
+        "reads2": {
+          "path": "reads2.fastq",
+          "sha256": "38c4a9f9a42cb0e5fb2eb2742eff27734e5d1da3866119fcb43977d80da6e283"
+        }
+      }
+    }
+  ],
+  "software": {
+    "pyensembl": "2.27.3",
+    "varcode": "10.15.1",
+    "orfdata": "0.27.1",
+    "pysam": "0.24.1"
+  },
+  "python": "3.14.6",
+  "salmon_archive": {
+    "url": "https://github.com/COMBINE-lab/salmon/releases/download/v2.8.0/salmon-cli-aarch64-apple-darwin.tar.xz",
+    "sha256": "da6374035ffd30e9a0a8496545e8260a86abcb38bd2e588d7826c2eeb8671869"
+  },
+  "source_sha256": {
+    "isovar/antigen_isoforms.py": "8417fe12315f2a91eb0c44f61f0a4843665a91bb3a18dbef02b40da3dac176ca",
+    "isovar/antigen_reference.py": "fa38aa35c79c4819872e4da59aa4359b9911d2506fe09258c591bef0e0136d11",
+    "isovar/isoform_quantification.py": "1e09b7a58ac75d97097cbc51f4b14ed64ee9ca105a626d058a06717f2d668b0b",
+    "tests/test_antigen_isoforms.py": "d1c99844b09bff40b0fb027484f72ad8a9505902e1b00af53536428067b8b6ab",
+    "tests/test_sv_rna.py": "ab1b53352937e3890bfa33bb20b1497715f5e4819f07ea8564a55ad78fc27048"
+  }
+}
