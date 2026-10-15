@@ -40,7 +40,9 @@ the same way, and gene and transcript names then come from that annotation.
 
 For **new human alignments**, Isovar recommends GDC's **GRCh38.d1.vd1** combined
 reference. It contains the GRCh38 no-alt analysis set, decoys and a viral panel.
-It is the default checked profile of `isovar isoforms reconstruct`. Existing
+It is the default checked profile of `isovar isoforms reconstruct` and
+[`isovar viral`](viral-sequences.md). The latter recovers observed viral
+nucleotide paths directly, without requiring a human GTF. Existing
 `run`/VCF genome selection remains explicit: a new preferred reference cannot
 change the coordinates or identity of an existing BAM.
 

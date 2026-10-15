@@ -4,6 +4,19 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.56.0
+
+- Add `isovar viral` to recover observed viral RNA paths from GDC combined
+  alignments without a nominated mutation or transcript GTF. Select GDC's
+  checksum-pinned 200-contig viral panel by default, retain partial/spliced
+  sequences and original fragment evidence, and export nucleotide FASTA/JSON.
+  Discover each virus independently with one contig's observations in memory;
+  support still scans the full declared input.
+- Keep missing declared SA records and mapped mates ambiguous during shared
+  antigen/viral attribution (#509), preserving their declarations and reasons.
+- Restore 5-prime extension of competing antigen/viral paths by indexing
+  both observation orientations without adding read support (#510).
+
 ## 1.55.0
 
 - Add variant-free antigen isoform reconstruction, complete-input fragment

@@ -148,9 +148,10 @@ Noisy long reads can therefore remain unassigned or yield additional hypotheses.
 Overlap assembly is not end-to-end phasing, and reaching annotated ends does not
 prove a physical RNA molecule's transcription start or polyadenylation site.
 
-The GDC reference includes viral DNA, but GENCODE does not annotate those viral
-transcripts. Viral reconstruction needs versioned, sequence-matched transcript
-and coding models. A composite GTF can use `--annotation-name` and its own
+[`isovar viral`](viral-sequences.md) recovers observed viral nucleotide paths
+from GDC alignments without a GTF. GENCODE does not annotate those viral
+transcripts; annotated transcript/protein interpretation needs versioned,
+sequence-matched models. A composite GTF can use `--annotation-name` and its own
 `--annotation-version`; overlapping CDS, programmed frameshifts, polycistronic
 translation and mature polyprotein processing need further explicit support.
 Their general handling, noisy-read inference, and a validated real multi-sample

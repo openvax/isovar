@@ -1,0 +1,8 @@
+{
+  "accession": "NC_007605.1",
+  "gdc_contig": "chrEBV",
+  "source": "https://www.ncbi.nlm.nih.gov/sviewer/viewer.fcgi?id=NC_007605.1&db=nuccore&report=fasta&retmode=text",
+  "fasta_sha256": "400abe33712488eca2628ae056a44d53f15ad2b8bc62b3680be1adc0f01fc0b6",
+  "sequence_md5": "6743bd63b3ff2b5b8985d8933c53290a",
+  "length": 171823
+}

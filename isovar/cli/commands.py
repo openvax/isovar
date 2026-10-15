@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 
 
 COMMANDS = {
+    "viral": ("isovar_viral", "Recover observed viral RNA from combined-reference alignments without a GTF"),
     "isoforms": ("isovar_isoforms", "Reconstruct and quantify CTA or other targeted antigen isoforms"),
     "uorf-evidence": ("isovar_uorf_evidence", "Query and export the offline human uORF evidence reference"),
     "audit-bundle": ("isovar_audit_bundle", "Create, verify, archive and replay portable offline audit inputs"),
