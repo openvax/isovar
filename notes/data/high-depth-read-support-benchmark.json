@@ -1,0 +1,134 @@
+{
+  "base_commit": "c85823a11372dd0109435e95941ac89c55c29d09",
+  "benchmark": "examples/benchmark_high_depth_support.py",
+  "benchmark_sha256": "a1196d980e2e11f13a55f569ecfea96d32d0e2596492b1beadba197f55752b19",
+  "python": "3.14.6",
+  "dependencies": {
+    "varcode": "10.15.0",
+    "pyensembl": "2.27.3",
+    "osteosarc": "0.15.5",
+    "numpy": "2.5.4",
+    "pysam": "0.24.1"
+  },
+  "release_environment_catalogue_sha256": "cb241e5b386f5a316bede8200b5d820efb81f2d776b37d904e43672e57148d2f",
+  "variant": "MT_ND5-chrM-12994",
+  "bundle": "openvax-v1",
+  "member": "topiary/osteosarc_all_variants/source/t2-all-variant-regions.bam",
+  "bam_sha256": "212e2e95b9070e68ceaf0baec8d261bc6e3b3f52a83ca4b2e06ec0548289e900",
+  "evidence_sha256": "9db8070d29eca3c1d5442330016e9e89356c9c56fd3c082bae91a074f8c8761e",
+  "candidates": 1851,
+  "translations": 1239,
+  "counts": {
+    "num_total_reads": 18089,
+    "num_total_fragments": 10993,
+    "num_ref_reads": 13544,
+    "num_ref_fragments": 8269,
+    "num_alt_reads": 4533,
+    "num_alt_fragments": 2725,
+    "num_other_reads": 12,
+    "num_other_fragments": 11
+  },
+  "measurements": {
+    "baseline": [
+      {
+        "seconds": 105.21492158299952,
+        "cpu_seconds": 103.681374,
+        "peak_process_rss_bytes": 1571700736
+      },
+      {
+        "seconds": 112.58249412498844,
+        "cpu_seconds": 108.868459,
+        "peak_process_rss_bytes": 1155629056
+      }
+    ],
+    "current": [
+      {
+        "seconds": 78.29886875000375,
+        "cpu_seconds": 76.316598,
+        "peak_process_rss_bytes": 963837952
+      },
+      {
+        "seconds": 69.84358162499848,
+        "cpu_seconds": 69.19543900000001,
+        "peak_process_rss_bytes": 1010106368
+      }
+    ]
+  },
+  "code_sha256": {
+    "baseline": {
+      "read_identity.py": "2714d5352c822e2f6793edae65c5974c21254e71e6c1d0a0c098c8d5034387ee",
+      "assembly.py": "b9d2171e1ec6c2d259e46710495f001f217f1d1917f9b56ce6c71913b2f57d01",
+      "variant_sequence.py": "53ceb5fa6e80077fd3e90c3d4fe008b7bc8fac306688f21a1a12d11aa7428bd0",
+      "variant_sequence_helpers.py": "a2d05810fef49d6ee1225932a06331a5807dab100c5e3705a6307d966b9c29cd"
+    },
+    "current": {
+      "read_identity.py": "2714d5352c822e2f6793edae65c5974c21254e71e6c1d0a0c098c8d5034387ee",
+      "assembly.py": "b5768a12d1e4c06ef5b6fc9f8cec70ef7d223256257f642b587616010202461b",
+      "variant_sequence.py": "53ceb5fa6e80077fd3e90c3d4fe008b7bc8fac306688f21a1a12d11aa7428bd0",
+      "variant_sequence_helpers.py": "68460de3a89e49de56c84b189b074f3fd3e13b5b56fa0440022fe5bfcd3b562b"
+    }
+  },
+  "scope": "Full-input Isovar pipeline; reference indexing and complete-output fingerprinting excluded from timing. RSS is process high-water memory measured before fingerprinting; same observation hooks in both versions.",
+  "excluded_pilot": "Initial development trial was excluded because source files changed during its run and tests competed with it.",
+  "mean_seconds": {
+    "baseline": 108.89870785399398,
+    "current": 74.07122518750111
+  },
+  "time_reduction": 0.3198153894827461,
+  "small_cases": [
+    {
+      "variant": "NME1-chr17-51154443",
+      "counts": {
+        "num_total_reads": 22,
+        "num_total_fragments": 17,
+        "num_ref_reads": 0,
+        "num_ref_fragments": 0,
+        "num_alt_reads": 22,
+        "num_alt_fragments": 17,
+        "num_other_reads": 0,
+        "num_other_fragments": 0
+      },
+      "candidates": 39,
+      "translations": 39,
+      "evidence_sha256": "3114d5b60918ef8109d4b9fb935e5a5eff98321686b15e1d8b5410c18fa88116",
+      "baseline_seconds": 0.038276708000921644,
+      "current_seconds": 0.029358083003899083
+    },
+    {
+      "variant": "GTF3C5-chr9-133057893",
+      "counts": {
+        "num_total_reads": 124,
+        "num_total_fragments": 76,
+        "num_ref_reads": 58,
+        "num_ref_fragments": 35,
+        "num_alt_reads": 36,
+        "num_alt_fragments": 26,
+        "num_other_reads": 30,
+        "num_other_fragments": 22
+      },
+      "candidates": 55,
+      "translations": 55,
+      "evidence_sha256": "8b5cfcdac2d0f3bf505852d498ac5b4bca34bd14382b0798863fafa6ef1954fd",
+      "baseline_seconds": 0.07305912500305567,
+      "current_seconds": 0.06612720800330862
+    },
+    {
+      "variant": "AKT2-chr19-40238080",
+      "counts": {
+        "num_total_reads": 157,
+        "num_total_fragments": 104,
+        "num_ref_reads": 146,
+        "num_ref_fragments": 97,
+        "num_alt_reads": 11,
+        "num_alt_fragments": 7,
+        "num_other_reads": 0,
+        "num_other_fragments": 0
+      },
+      "candidates": 30,
+      "translations": 60,
+      "evidence_sha256": "7d3569b5e586e9f37eb4126b83a14b8291b43b08386af1b5212add0ac48e8a7d",
+      "baseline_seconds": 0.04156620800495148,
+      "current_seconds": 0.03797616700467188
+    }
+  ]
+}

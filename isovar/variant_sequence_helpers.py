@@ -173,7 +173,8 @@ def _variant_sequences_with_shared_read_support(variant_sequences, read_groups):
         return prefix, alt, suffix, (0, ()) if ids is None else (1, tuple(sorted(ids)))
 
     for (prefix, alt, suffix, transcript_ids), reads in sorted(bounded_groups.items(), key=group_key):
-        by_allele[alt].append((prefix, suffix, reads, transcript_ids))
+        # Read order depends on the group, not the candidate being supported.
+        by_allele[alt].append((prefix, suffix, sorted(reads, key=read_sort_key), transcript_ids))
     indexes = {alt: (_FlankIndex(groups, True), _FlankIndex(groups, False))
                for alt, groups in by_allele.items()}
     result = []
@@ -209,7 +210,7 @@ def _variant_sequences_with_shared_read_support(variant_sequences, read_groups):
                             and (prefix.endswith(sequence.prefix) or sequence.prefix.endswith(prefix))
                             and (suffix.startswith(sequence.suffix) or sequence.suffix.startswith(suffix))):
                         compatible_group = []
-                        for read in sorted(group, key=read_sort_key):
+                        for read in group:
                             placements = getattr(read, "source_alignments", ())
                             if all(key not in constraints or constraints[key] == value
                                    for key, value in placements):
