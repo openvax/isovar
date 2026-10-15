@@ -162,6 +162,11 @@ and optionally estimates abundance with Salmon. See
 [antigen isoforms](https://github.com/openvax/isovar/blob/master/docs/antigen-isoforms.md)
 and the [preferred combined human/viral reference](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md#combined-human-and-viral-reference).
 
+For RNA aligned to GDC GRCh38.d1.vd1, `isovar viral` recovers observed viral
+sequences across its 200-contig panel without a mutation or human GTF. It
+exports partial/spliced nucleotide paths and original fragment evidence;
+see [viral sequence recovery](https://github.com/openvax/isovar/blob/master/docs/viral-sequences.md).
+
 For each variant, Isovar:
 
 1. collects the RNA reads that overlap it,

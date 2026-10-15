@@ -26,6 +26,11 @@ def gdc_reference_dictionary():
     return json.loads(files("isovar").joinpath("data/references/gdc-grch38.d1.vd1.json").read_text())
 
 
+def gdc_viral_panel():
+    """Return GDC's explicitly listed viral contigs and historical source IDs."""
+    return json.loads(files("isovar").joinpath("data/references/gdc-grch38.d1.vd1-viruses.json").read_text())
+
+
 def _annotation_cache(gtf, transcript_fasta=None, protein_fasta=None, *, directory=None):
     """Reuse identical local annotations without same-basename index collisions."""
     identities = [digest(Path(path).expanduser()) if path is not None else None

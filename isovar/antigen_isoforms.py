@@ -5,7 +5,7 @@ identities as SV reconstruction. Reference models are competitors, never
 sequence donors. Transcript abundance is estimated separately by Salmon.
 """
 
-from collections import Counter, defaultdict
+from collections import defaultdict
 from contextlib import closing
 from dataclasses import asdict
 from hashlib import sha256
@@ -16,39 +16,11 @@ from tempfile import TemporaryDirectory
 import pysam
 
 from .antigen_reference import IsoformTarget
-from .cell_umi import CellUmiEvidence
 from .genetic_code import standard_genetic_code
 from .read_collector import ReadCollector
-from .read_identity import segment_identity
-from .read_lineage import ReadLineage
-from .read_metadata import record_evidence
-from .sv_rna import (
-    _GeometryCache, _Model, _ObservationIndex, _agrees, _build_segment, _extend_both,
-    _offsets, _record_id, _runs,
-)
+from .sv_rna import _Model, _runs
+from .rna_reconstruction import _contains, _discover, _support
 from .sv_rna_dense import _DiskGroups, _spool
-
-
-def _matches(sequence, positions, observation, *, contained=False):
-    """All exact, coordinate-consistent overlaps with an original observation."""
-    for _, offset in sorted(_offsets(_runs(positions), 0, observation.key, _runs(observation.positions))):
-        if contained and (offset < 0 or offset + len(observation.sequence) > len(sequence)):
-            continue
-        lo, hi = max(0, offset), min(len(sequence), offset + len(observation.sequence))
-        if lo < hi and _agrees(sequence, positions, observation, offset, lo, hi):
-            yield lo, hi
-
-
-def _contains(first, second):
-    """Whether an entire (sequence, placements) is contained exactly in another."""
-    sequence, positions = first
-    other, mapping = second
-    start = sequence.find(other)
-    while start >= 0:
-        if positions[start:start + len(other)] == mapping:
-            return True
-        start = sequence.find(other, start + 1)
-    return False
 
 
 def _coding(sequence, positions, models):
@@ -94,146 +66,6 @@ def _candidate(sequence, positions, targets, models, annotated=()):
                 origin="reference_model" if annotated else "observed_assembly",
                 reaches_annotated_transcript_ends=reaches_ends,
                 coding=_coding(sequence, positions, models))
-
-
-def _relevant(read, targets):
-    return not read.is_unmapped and any(
-        read.reference_name == target.reference.contig
-        and read.reference_start < target.reference.exons[-1][1]
-        and read.reference_end > target.reference.exons[0][0] for target in targets)
-
-
-def _target_orientation(observation, targets):
-    return any(p is not None and p[0] == target.reference.contig and p[2] == target.reference.strand
-               and target.reference.exons[0][0] <= p[1] < target.reference.exons[-1][1]
-               for target in targets for p in observation.positions)
-
-
-def _observations(template, collector, reasons, targets, cache):
-    grouped = defaultdict(list)
-    for read in template:
-        grouped[segment_identity(read)].append(read)
-    for identity, records in sorted(grouped.items()):
-        if any(_relevant(read, targets) for read in records):
-            # The placement interner is per template: full-input support does
-            # not retain every background genomic base in an unbounded cache.
-            yield identity, [o for o in _build_segment(identity, records, collector, reasons, {}, cache)
-                             if _target_orientation(o, targets)]
-
-
-def _discover(groups, targets, collector, max_discovery_reads, max_paths, min_overlap):
-    chosen, reasons, cache = {}, Counter(), _GeometryCache()
-    considered, selected = 0, 0
-    for template in groups.templates():
-        for _, observations in _observations(template, collector, reasons, targets, cache):
-            considered += 1
-            if selected >= max_discovery_reads:
-                continue
-            selected += 1
-            for o in observations:
-                chosen.setdefault((o.sequence, o.positions), o)
-    index = _ObservationIndex(list(chosen.values()))
-    paths, notes = {}, set()
-    for seed in sorted(chosen.values(), key=lambda o: (-len(o.sequence), o.sequence, repr(o.positions))):
-        key = seed.sequence, tuple(seed.positions)
-        if any(_contains(path, key) for path in paths):
-            continue
-        if len(paths) >= max_paths:
-            notes.add("path_limit")
-            break
-        for sequence, positions, _, _ in _extend_both(
-                *key, index, min_overlap, (0, 0, 0), max_paths - len(paths), [], notes):
-            paths[sequence, tuple(positions)] = None
-            if len(paths) >= max_paths:
-                notes.add("path_limit")
-                break
-    maximal = [p for p in paths if not any(len(q[0]) > len(p[0]) and _contains(q, p) for q in paths)]
-    return maximal, dict(target_segments=considered, selected_segments=selected,
-                         distinct_observations=len(chosen), max_discovery_reads=max_discovery_reads,
-                         max_paths=max_paths, min_overlap=min_overlap,
-                         truncated=considered > selected or bool(notes), limitations=sorted(notes),
-                         observation_rejections=dict(reasons))
-
-
-def _support(groups, candidates, targets, collector, header, sample_id, source):
-    coverage = {c["id"]: [0] * len(c["sequence"]) for c in candidates}
-    supporters, whole, assignments = defaultdict(set), defaultdict(set), Counter()
-    whole_cds = defaultdict(set)
-    witnesses, reasons, cache = [], Counter(), _GeometryCache()
-    lineage = ReadLineage(groups, header)
-    labels = CellUmiEvidence(groups, header, sample_id, source, template_loader=groups.template)
-    target_fragments, unassigned = 0, 0
-    for template in groups.templates():
-        observations = list(_observations(template, collector, reasons, targets, cache))
-        if not observations:
-            continue
-        target_fragments += 1
-        fragment_matches, segment_rows = None, []
-        outside = any(not _relevant(read, targets) for read in template)
-        # NH advertises unreported competing placements; a unique retained
-        # alignment cannot establish unique target attribution in that case.
-        outside |= any(read.has_tag("NH") and read.get_tag("NH") > len(
-            [r for r in template if segment_identity(r) == segment_identity(read) and not r.is_supplementary])
-            for read in template)
-        outside |= any(read.mapping_quality == 0 or (read.mapping_quality == 255 and not read.has_tag("NH"))
-                       for read in template)
-        for identity, observed in observations:
-            compatible, supporting = set(), set()
-            for candidate in candidates:
-                cid = candidate["id"]
-                covered, full = set(), False
-                for o in observed:
-                    for lo, hi in _matches(candidate["sequence"], candidate["placements"], o):
-                        covered.update(range(lo, hi))
-                        full |= lo == 0 and hi == len(candidate["sequence"])
-                        for i, coding in enumerate(candidate["coding"]):
-                            if coding["status"] == "complete_CDS" and lo <= coding["query_start"] and hi >= coding["query_end"]:
-                                whole_cds[cid, i].add(identity)
-                    if any(_matches(candidate["sequence"], candidate["placements"], o, contained=True)):
-                        compatible.add(cid)
-                if covered:
-                    supporting.add(cid)
-                    supporters[cid].add(identity)
-                    for offset in covered:
-                        coverage[cid][offset] += 1
-                if full:
-                    whole[cid].add(identity)
-            fragment_matches = compatible if fragment_matches is None else fragment_matches & compatible
-            segment_rows.append(dict(identity=list(identity), compatible_isoforms=sorted(compatible),
-                                     overlapping_isoforms=sorted(supporting),
-                                     lineage=lineage.segment(identity), cell_umi=labels.segment(identity)))
-        ids = tuple(sorted(fragment_matches or ()))
-        assignments[ids, outside] += 1
-        unassigned += not ids
-        witnesses.append(dict(fragment=list(observations[0][0][:2]), compatible_isoforms=list(ids),
-                              competing_placement_outside_targets=outside, segments=segment_rows,
-                              records=[dict(id=_record_id(read), **record_evidence(read)) for read in template]))
-        # Witnesses hold the consulted metadata. Caches need not grow with the
-        # total file; ancestry can still consult the disk-backed source index.
-        lineage.cache.clear()
-        labels.cache.clear()
-    for candidate in candidates:
-        cid = candidate["id"]
-        candidate.update(coverage=coverage[cid], supporting_segments=len(supporters[cid]),
-                         supporting_fragments=len({key[:2] for key in supporters[cid]}),
-                         whole_path_segments=[list(key) for key in sorted(whole[cid])],
-                         unique_fragments=assignments[((cid,), False)],
-                         compatible_fragments=sum(n for (ids, _), n in assignments.items() if cid in ids))
-        candidate["sequence_status"] = (
-            "whole_path_observed" if whole[cid] else "fully_covered_hypothesis" if all(coverage[cid])
-            else "partially_covered_reference" if any(coverage[cid]) else "not_observed")
-        for i, coding in enumerate(candidate["coding"]):
-            coding["whole_cds_segments"] = [list(key) for key in sorted(whole_cds[cid, i])]
-            coding["all_bases_observed"] = all(coverage[cid][coding["query_start"]:coding["query_end"]])
-        candidate["rna_support"] = labels.support(supporters[cid])
-        candidate["signal_support"] = lineage.support(supporters[cid])
-        labels.cache.clear()
-        lineage.cache.clear()
-    classes = [dict(isoform_ids=list(ids), outside_targets=outside, fragments=n)
-               for (ids, outside), n in sorted(assignments.items())]
-    return dict(scope="complete_declared_input", target_fragments=target_fragments,
-                unassigned_target_fragments=unassigned, equivalence_classes=classes,
-                observation_rejections=dict(reasons), witnesses=witnesses)
 
 
 def _protein_groups(candidates, support):
@@ -307,13 +139,17 @@ def reconstruct_antigen_isoforms(bam, *, targets, sample_id, source, reference_i
             raise ValueError("Target transcript lies outside the BAM reference: %s" % r.transcript_id)
     collector = ReadCollector(use_secondary_alignments=True, min_mapping_quality=0,
                               use_soft_clipped_bases=False, use_reads_without_base_qualities=True)
+    regions = defaultdict(set)
+    for t in targets:
+        r = t.reference
+        regions[r.contig].add((r.exons[0][0], r.exons[-1][1], r.strand))
     models = [_Model(t.reference) for t in targets]
     with TemporaryDirectory(dir=scratch_dir, prefix="isovar-isoforms-") as directory, closing(
             sqlite3.connect(str(Path(directory) / "reads.sqlite"))) as db:
         scanned, excluded, unique, segments, path = _spool(bam, db, collector, directory)
         with pysam.AlignmentFile(path, "rb") as reader:
             groups = _DiskGroups(db, reader, bam.header, segments)
-            paths, discovery = _discover(groups, targets, collector, max_discovery_reads, max_paths, min_overlap)
+            paths, discovery = _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
             candidates = {}
             for target, model in zip(targets, models):
                 r = target.reference
@@ -336,7 +172,7 @@ def reconstruct_antigen_isoforms(bam, *, targets, sample_id, source, reference_i
                 else:
                     candidates[key] = row
             candidates = sorted(candidates.values(), key=lambda c: c["id"])
-            support = _support(groups, candidates + partial, targets, collector, bam.header.to_dict(), sample_id, source)
+            support = _support(groups, candidates + partial, regions, collector, bam.header.to_dict(), sample_id, source)
             full_ids = {c["id"] for c in candidates}
             support["fragments_without_full_transcript_assignment"] = sum(
                 row["fragments"] for row in support["equivalence_classes"] if not full_ids.intersection(row["isoform_ids"]))

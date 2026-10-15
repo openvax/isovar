@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.55.0"
+__version__ = "1.56.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -47,12 +47,16 @@ from .orf_inclusion import annotate_orf_inclusion
 from .orf_start import annotate_orf_start, summarize_orf_start_evidence
 from .uorf_catalog import UORFCatalog, UORFRecord, UORFPeptide, load_uorf_catalog
 from .initiation_context import InitiationContext, annotate_initiation_context
-from .antigen_reference import IsoformTarget, gdc_genome, isoform_targets_from_genome, validate_alignment_reference
+from .antigen_reference import IsoformTarget, gdc_genome, gdc_viral_panel, isoform_targets_from_genome, validate_alignment_reference
 from .antigen_isoforms import reconstruct_antigen_isoforms
+from .viral_sequences import reconstruct_viral_sequences, write_viral_fasta
 from .isoform_quantification import quantify_antigen_isoforms, add_isoform_abundances, write_isoform_fastas
 
 
 __all__ = [
+    "gdc_viral_panel",
+    "reconstruct_viral_sequences",
+    "write_viral_fasta",
     "IsoformTarget",
     "gdc_genome",
     "isoform_targets_from_genome",
