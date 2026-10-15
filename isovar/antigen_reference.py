@@ -5,12 +5,13 @@ release. No function here downloads data or changes existing genome defaults.
 """
 
 from dataclasses import dataclass
-from hashlib import md5
+from hashlib import md5, sha256
 from importlib.resources import files
 import json
 from pathlib import Path
 
 from pyensembl import Genome
+from pyensembl.download_cache import cache_root
 from pyensembl.normalization import normalize_chromosome
 
 from .audit_bundle import digest
@@ -25,6 +26,15 @@ def gdc_reference_dictionary():
     return json.loads(files("isovar").joinpath("data/references/gdc-grch38.d1.vd1.json").read_text())
 
 
+def _annotation_cache(gtf, transcript_fasta=None, protein_fasta=None, *, directory=None):
+    """Reuse identical local annotations without same-basename index collisions."""
+    identities = [digest(Path(path).expanduser()) if path is not None else None
+                  for path in (gtf, transcript_fasta, protein_fasta)]
+    key = sha256(json.dumps(identities).encode()).hexdigest()
+    base = Path(directory).expanduser() if directory is not None else Path(cache_root()) / "isovar"
+    return str(base / key)
+
+
 def gdc_genome(*, genome_fasta, gtf, annotation_version, cache_directory=None,
                annotation_name="GENCODE", transcript_fasta=None, protein_fasta=None):
     """Create a custom PyEnsembl genome using local GDC DNA and human GTF.
@@ -32,6 +42,8 @@ def gdc_genome(*, genome_fasta, gtf, annotation_version, cache_directory=None,
     ``annotation_version`` is the supplied GENCODE release, independently of
     the GDC alignment profile. Call ``index()`` before querying transcripts.
     The annotation need not describe every viral/decoy contig in the FASTA.
+    ``cache_directory`` is a cache root; annotation content selects its child
+    directory, so samples can reuse indexes without reusing stale source data.
     """
     return Genome(
         reference_name="GRCh38", annotation_name=annotation_name, annotation_version=annotation_version,
@@ -39,7 +51,7 @@ def gdc_genome(*, genome_fasta, gtf, annotation_version, cache_directory=None,
         genome_fasta_path_or_url=str(Path(genome_fasta).expanduser().resolve()),
         transcript_fasta_paths_or_urls=[] if transcript_fasta is None else [str(Path(transcript_fasta).expanduser().resolve())],
         protein_fasta_paths_or_urls=[] if protein_fasta is None else [str(Path(protein_fasta).expanduser().resolve())],
-        cache_directory_path=None if cache_directory is None else str(cache_directory))
+        cache_directory_path=_annotation_cache(gtf, transcript_fasta, protein_fasta, directory=cache_directory))
 
 
 def contig_in_reference(contig, names):

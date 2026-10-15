@@ -317,7 +317,7 @@ def test_pyensembl_adapter_and_cli_use_same_genome_dna_and_exon_coordinates(tmp_
     output = tmp_path / "output"
     run(["isoforms", "reconstruct", "--bam", str(bam_path), "--gene", "CTA", "--sample-id", "sample",
          "--genome-fasta", str(fasta), "--gtf", str(gtf), "--annotation-version", "test",
-         "--alignment-reference", "custom", "--output-dir", str(output)])
+         "--alignment-reference", "custom", "--reference-cache", str(tmp_path / "cli-cache"), "--output-dir", str(output)])
     result = json.loads((output / "isoforms.json").read_text())
     assert len(result["isoforms"]) == 2
     assert result["reference"]["files"]["gtf"]["sha256"]
@@ -347,6 +347,22 @@ def test_ensembl_separate_transcript_versions_match_versioned_fasta_ids(tmp_path
         targets, unavailable = isoform_targets_from_genome(genome, ["CTA"], contig_names=["chr1", "chr2"])
     assert not unavailable
     assert {t.reference.transcript_id for t in targets} == {"T1.2", "T2.2"}
+
+
+def test_identical_annotations_share_cache_but_changed_contents_never_reuse_old_models(tmp_path):
+    fasta, gtf, _ = reference_fixture(tmp_path)
+    kwargs = dict(genome_fasta=fasta, gtf=gtf, annotation_version="test", cache_directory=tmp_path / "cache")
+    with gdc_genome(**kwargs) as first:
+        first.index()
+        first_cache = first.cache_directory_path
+        assert first.gene_by_id("G").name == "CTA"
+    with gdc_genome(**kwargs) as same:
+        assert same.cache_directory_path == first_cache
+    gtf.write_text(gtf.read_text().replace('gene_name "CTA"', 'gene_name "CHANGED"'))
+    with gdc_genome(**kwargs) as changed:
+        changed.index()
+        assert changed.cache_directory_path != first_cache
+        assert changed.gene_by_id("G").name == "CHANGED"
 
 
 def test_reference_checksum_mismatch_is_rejected_even_when_lengths_match(tmp_path):

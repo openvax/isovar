@@ -8,7 +8,7 @@ import pysam
 from pyensembl import Genome
 
 from ..antigen_reference import (
-    GDC_REFERENCE, gdc_genome, isoform_targets_from_genome, reference_file_identity, validate_alignment_reference,
+    GDC_REFERENCE, _annotation_cache, gdc_genome, isoform_targets_from_genome, reference_file_identity, validate_alignment_reference,
 )
 from ..antigen_isoforms import reconstruct_antigen_isoforms
 from ..audit_bundle import digest, publish_json
@@ -29,7 +29,8 @@ def make_parser(prog="isovar isoforms"):
     reconstruct.add_argument("--assembly", default="GRCh38")
     reconstruct.add_argument("--alignment-reference", choices=[GDC_REFERENCE, "custom"], default=GDC_REFERENCE,
                              help="Combined-reference profile (default: %(default)s); checked against the BAM")
-    reconstruct.add_argument("--output-dir", required=True, help="New output directory, including local annotation cache")
+    reconstruct.add_argument("--output-dir", required=True, help="New result directory")
+    reconstruct.add_argument("--reference-cache", help="Reusable annotation-cache root (default: PyEnsembl cache)")
     reconstruct.add_argument("--max-discovery-reads", type=int, default=10000,
                              help="Reads used to discover sequence paths; support still scans the full input")
     reconstruct.add_argument("--max-paths", type=int, default=256)
@@ -63,12 +64,12 @@ def run(args=None, prog=None):
                 raise ValueError("The GDC profile uses GRCh38; use custom for other assemblies")
             genome = gdc_genome(genome_fasta=options.genome_fasta, gtf=options.gtf,
                                 annotation_version=options.annotation_version, annotation_name=options.annotation_name,
-                                cache_directory=output / "annotation")
+                                cache_directory=options.reference_cache)
         else:
             genome = Genome(options.assembly, options.annotation_name, options.annotation_version,
                             gtf_path_or_url=str(Path(options.gtf).expanduser().resolve()),
                             genome_fasta_path_or_url=str(Path(options.genome_fasta).expanduser().resolve()),
-                            cache_directory_path=str(output / "annotation"))
+                            cache_directory_path=_annotation_cache(options.gtf, directory=options.reference_cache))
         with genome, pysam.AlignmentFile(options.bam, reference_filename=options.genome_fasta) as bam:
             genome.index()
             targets, unavailable = isoform_targets_from_genome(genome, options.gene, contig_names=bam.references)

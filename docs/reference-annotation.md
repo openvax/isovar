@@ -85,6 +85,9 @@ The transcript/protein FASTAs support the existing variant workflow. The new
 [antigen isoform workflow](antigen-isoforms.md) derives its reference transcripts
 directly from GTF exons and genomic DNA, so those FASTAs are optional there.
 Always pair annotation and transcript/protein FASTAs from the same release.
+The helper selects a cache directory from the annotation file checksums, so
+identical inputs can share indexes across samples and changed sources cannot
+silently reuse stale models. `cache_directory` chooses the root of this cache.
 
 `validate_alignment_reference` checks GDC's packaged dictionary of 2,779 contigs,
 BAM/FASTA lengths, any BAM M5 checksums, and the DNA MD5 of requested target

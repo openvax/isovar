@@ -16,8 +16,8 @@
       "dominant_transcripts": [
         "T1"
       ],
-      "reconstruction_seconds": 3.4626185829984024,
-      "quantification_seconds": 0.45837108299019746,
+      "reconstruction_seconds": 3.6482224999926984,
+      "quantification_seconds": 0.46018300000287127,
       "software": "salmon 2.8.0",
       "inputs": {
         "transcriptome": {
@@ -47,8 +47,8 @@
       "dominant_transcripts": [
         "T2"
       ],
-      "reconstruction_seconds": 3.6124599579925416,
-      "quantification_seconds": 0.43267241699504666,
+      "reconstruction_seconds": 3.7509346659935545,
+      "quantification_seconds": 0.4728100420034025,
       "software": "salmon 2.8.0",
       "inputs": {
         "transcriptome": {
@@ -79,9 +79,9 @@
   },
   "source_sha256": {
     "isovar/antigen_isoforms.py": "8417fe12315f2a91eb0c44f61f0a4843665a91bb3a18dbef02b40da3dac176ca",
-    "isovar/antigen_reference.py": "0e6a7259778724a67a98c3f9322c0659ecc582e90aa5ca7415c2617f2056695c",
+    "isovar/antigen_reference.py": "fa38aa35c79c4819872e4da59aa4359b9911d2506fe09258c591bef0e0136d11",
     "isovar/isoform_quantification.py": "1e09b7a58ac75d97097cbc51f4b14ed64ee9ca105a626d058a06717f2d668b0b",
-    "tests/test_antigen_isoforms.py": "70b63804a5fcb99c36b59383b67baa6ad7f84446c22f7c21f8fec1729f9af04d",
+    "tests/test_antigen_isoforms.py": "d1c99844b09bff40b0fb027484f72ad8a9505902e1b00af53536428067b8b6ab",
     "tests/test_sv_rna.py": "ab1b53352937e3890bfa33bb20b1497715f5e4819f07ea8564a55ad78fc27048"
   }
 }

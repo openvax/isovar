@@ -13,6 +13,8 @@ releases that only fix bugs or add fixtures are omitted; see the
 - Recommend GDC GRCh38.d1.vd1 for new human/viral alignments. The new isoform
   command checks its published sequence dictionary and uses PyEnsembl custom
   Genome annotations. Existing variant/BAM reference selection is unchanged.
+  Identical annotation inputs share caches across samples; changed source
+  contents select a fresh index.
 
 ## 1.52.0
 

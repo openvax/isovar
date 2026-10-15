@@ -53,6 +53,9 @@ discovery stops early. Increase `--max-discovery-reads` or `--max-paths` when th
 result reports truncation. A truncated search cannot establish a dominant
 isoform. Disk-backed indexing avoids retaining background alignments; the
 in-memory report still grows with its retained target witnesses.
+Annotation indexes are shared across samples in PyEnsembl's cache. Use
+`--reference-cache` to choose another cache root; annotation file contents
+select a separate child directory, preventing stale or same-basename indexes.
 `support.fragments_without_full_transcript_assignment` also counts fragments
 assigned only to partial sequence, which cannot be quantified as a full isoform.
 

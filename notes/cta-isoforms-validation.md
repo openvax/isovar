@@ -59,6 +59,10 @@ hypothesis contribution separately.
 PyEnsembl tests cover genomic exon extraction, CDS offsets, GENCODE-style FASTA
 headers, separate Ensembl transcript-version attributes, the normal transcript
 sequence API, and BAM/FASTA checksum mismatches despite equal contig lengths.
+Reference caches are selected by annotation content and reused across samples.
+A regression changes the GTF at the same path and verifies that the new models
+are indexed; the underlying stale-index behavior is tracked in
+[PyEnsembl #462](https://github.com/openvax/pyensembl/issues/462).
 The complete GDC dictionary was extracted from its official GATK-index archive,
 verified with published MD5 `f64be73587a7f376c0d8353f1636dca7`. It has 2,779
 contigs; the packaged metadata retains archive and dictionary SHA256s.
