@@ -85,6 +85,12 @@ def test_two_isoform_mixture_reconstructs_exact_sequences_and_counts_once(tmp_pa
     gene, = result["quantification"]["genes"]
     assert gene["dominant_isoform_id"] == by_id["T1"]["id"]
     assert gene["isoform_fractions"][by_id["T1"]["id"]] == pytest.approx(0.8)
+    # A missing annotated competitor prevents a resolved call, even when the
+    # available transcripts have distinguishing reads and unequal estimates.
+    result["target_selection"] = dict(genes=["CTA"], unavailable_transcripts=[
+        dict(gene_id="G", transcript_id="T3", reason="ambiguous reference bases")])
+    add_isoform_abundances(result, quant, provenance={"fixture": "missing-competitor"})
+    assert result["quantification"]["genes"][0]["dominant_isoform_id"] is None
 
 
 def test_partial_reads_do_not_fill_reference_or_resolve_ambiguous_dominance(tmp_path):

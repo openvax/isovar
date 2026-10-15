@@ -50,7 +50,7 @@ duplicate payloads, missing qualities and retained barcode labels. Fragment
 classes conserve input support; a discovery limit still counts later reads.
 
 An arbitrary 99:1 abundance allocation over indistinguishable RNA models
-remains unresolved. Missing competing placements, incomplete discovery and
+remains unresolved. Unavailable transcript models, missing competing placements, incomplete discovery and
 unresolved partial alleles cannot establish a dominant isoform. Separate
 declared samples cannot be pooled by the reconstruction API. Protein exports
 omit uncovered reference CDS; protein abundance reports expose the reference

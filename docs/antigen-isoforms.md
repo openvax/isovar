@@ -123,7 +123,8 @@ with gdc_genome(
     result = reconstruct_antigen_isoforms(
         bam, targets=targets, sample_id="tumor-1", source="RNA-library-1",
         reference_identity=reference)
-    result["unavailable_transcripts"] = unavailable
+    result["target_selection"] = dict(
+        genes=["PRAME", "MAGEA4"], unavailable_transcripts=unavailable)
 
 quantify_antigen_isoforms(
     result, transcriptome="gencode.v50.transcripts.fa.gz",
