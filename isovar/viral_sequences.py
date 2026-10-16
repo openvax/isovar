@@ -16,6 +16,7 @@ from .read_collector import ReadCollector
 from .rna_reconstruction import _assemble, _observations, _support
 from .sv_rna import _GeometryCache, _runs
 from .sv_rna_dense import _DiskGroups, _spool
+from .viral_coding import viral_coding_predictions, viral_coding_references
 
 
 def _discover_viruses(groups, regions, collector, max_discovery_reads, max_paths, min_overlap):
@@ -138,6 +139,8 @@ def reconstruct_viral_sequences(bam, *, genome_fasta, sample_id, source, contigs
         The canonical sequence orientation does not establish RNA strand or
         transcript ends. No unannotated ORFs, protein abundance or viral absence
         are inferred. Exact overlaps retain both alleles and sequencing errors.
+        Available sequence-qualified ORFdata CDSs anchor coding predictions;
+        these do not establish initiation, actual RNA strand or protein expression.
     """
     if not sample_id or not source:
         raise ValueError("Explicit sample_id and source are required")
@@ -171,6 +174,7 @@ def reconstruct_viral_sequences(bam, *, genome_fasta, sample_id, source, contigs
     with Genome(reference_name="GRCh38" if panel else "custom", annotation_name="unannotated",
                 genome_fasta_path_or_url=str(fasta_path), cache_directory_path=reference_cache) as genome:
         identity = validate_alignment_reference(bam, genome, profile=reference_profile, contigs=contigs)
+        coding_models, coding_reference = viral_coding_references(genome, contigs)
     identity["files"] = dict(genome_fasta=dict(path=str(fasta_path), sha256=digest(fasta_path)))
     if panel:
         identity["viral_panel"] = panel
@@ -184,18 +188,27 @@ def reconstruct_viral_sequences(bam, *, genome_fasta, sample_id, source, contigs
             groups = _DiskGroups(db, reader, bam.header, segments)
             candidates, discovery = _discover_viruses(
                 groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
+            covered_contigs = {r.transcript.contig for r in coding_models}
+            for candidate in candidates:
+                candidate["coding"] = viral_coding_predictions(
+                    candidate["id"], candidate["sequence"], candidate["placements"], coding_models)
+                candidate["coding_status"] = (
+                    "reference_anchored_prediction" if candidate["coding"] else
+                    "no_coding_overlap" if set(candidate["viral_contigs"]).intersection(covered_contigs)
+                    else "unavailable_reference")
             support = _support(groups, candidates, regions, collector, bam.header.to_dict(),
                                sample_id, source, label="sequence")
             counts = _contig_support(contigs, candidates, support, discovery)
     for row in candidates:
         row["mapping"] = [list(run) for run in _runs(row.pop("placements"))]
     return dict(schema="isovar.viral_sequences.v1", sample_id=sample_id, source=source,
-                reference=identity, selected_contigs=contigs,
+                reference=identity, coding_reference=coding_reference, selected_contigs=contigs,
                 input=dict(records=scanned, unique_records=unique, eligible_segments=segments,
                            excluded_records=excluded, header=bam.header.to_dict()),
                 discovery=discovery, sequences=candidates, contigs=counts, support=support,
                 limitations=["exact_overlap_reconstruction", "RNA_strand_and_transcript_ends_unknown",
-                             "no_coding_annotation", "no_viral_absence_or_tumor_origin_claim",
+                             "coding_reference_is_a_source_CDS_subset", "protein_predictions_are_not_expression_evidence",
+                             "no_viral_absence_or_tumor_origin_claim",
                              "fragment_counts_are_not_molecule_counts", "unreported_alignments_not_recovered",
                              "overlap_assembly_does_not_establish_end_to_end_phase"])
 

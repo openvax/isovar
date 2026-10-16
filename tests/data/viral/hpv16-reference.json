@@ -1,0 +1,9 @@
+{
+  "source_accession": "NC_001526.4",
+  "source_url": "https://www.ncbi.nlm.nih.gov/sviewer/viewer.fcgi?id=NC_001526.4&db=nuccore&report=genbank&retmode=text",
+  "genbank_sha256": "282be442f226cc809fefbda616ac136b8d20dfde23fad09558f3f653a3de96a4",
+  "native_md5": "08d2b3849496d12cc45fd4df713d5c2f",
+  "gdc_md5": "f2463721818c29998ef5ab917e6df74a",
+  "native_to_gdc_rotation": 864,
+  "scope": "DNA-only qualification fixture. Coding definitions are distributed exclusively by ORFdata."
+}

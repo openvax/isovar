@@ -164,8 +164,11 @@ and the [preferred combined human/viral reference](https://github.com/openvax/is
 
 For RNA aligned to GDC GRCh38.d1.vd1, `isovar viral` recovers observed viral
 sequences across its 200-contig panel without a mutation or human GTF. It
-exports partial/spliced nucleotide paths and original fragment evidence;
-see [viral sequence recovery](https://github.com/openvax/isovar/blob/master/docs/viral-sequences.md).
+exports partial/spliced nucleotide paths and original fragment evidence.
+Sequence-qualified ORFdata annotations also provide predicted coding products
+and protein FASTA, initially covering nine RefSeq HPV16 CDSs. Sample variants
+and partial coding ends remain explicit. See
+[viral sequence recovery](https://github.com/openvax/isovar/blob/master/docs/viral-sequences.md).
 
 For each variant, Isovar:
 
