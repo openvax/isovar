@@ -31,7 +31,7 @@ def test_native_tpst1_observed_tail_does_not_support_fusion(catalog):
     assert native.coding_blocks == ((66205483, 66205522), (66240325, 66240404))
     assert len(native.ribosome_studies) == 6
     peptide, = native.peptides
-    assert (peptide.method, peptide.sequence, peptide.protein_intervals) == ("hla", "KIILSKISV", ((31, 39),))
+    assert (peptide.method, peptide.sequence, peptide.protein_intervals) == ("immunopeptidomics", "KIILSKISV", ((31, 39),))
     assert peptide.spectrum_count == 28 and peptide.unique_in_source
     assert peptide.quality == "reported"  # No unimported supplementary tier claim.
     fusion = "MPSRRRGGSSLIPGRMPILRFSVTTRYFSY"
@@ -46,27 +46,27 @@ def test_native_tpst1_observed_tail_does_not_support_fusion(catalog):
     assert tail["mutant_translation_evidence"] == "not_assessed"
 
 
-def test_shotgun_and_mixed_assay_sources_are_not_confused(catalog):
+def test_proteomics_and_mixed_assay_sources_are_not_confused(catalog):
     native = catalog.get("c1riboseqorf94")
     assert native.gene_name == "CDKN2C"
-    assert any(p.method == "shotgun" and p.sequence == "FPGLSPSPEAPTKPGK"
+    assert any(p.method == "proteomics" and p.sequence == "FPGLSPSPEAPTKPGK"
                and p.datasets == ("Zhu_et_al_2018",) for p in native.peptides)
-    assert native.has_evidence("shotgun")
-    assert not native.has_evidence("shotgun", require_reviewed=True)
-    assert not native.has_evidence("shotgun", require_unique=True)
+    assert native.has_evidence("proteomics")
+    assert not native.has_evidence("proteomics", require_reviewed=True)
+    assert not native.has_evidence("proteomics", require_unique=True)
     kat6a = catalog.get("c8riboseqorf42")
     assert kat6a.has_evidence("ms_unclassified")
-    assert not kat6a.has_evidence("shotgun")  # Actual shotgun reviews are poor.
-    assert any(p.method == "shotgun" and p.quality == "reviewed_low_quality" for p in kat6a.peptides)
+    assert not kat6a.has_evidence("proteomics")  # Actual proteomics reviews are poor.
+    assert any(p.method == "proteomics" and p.quality == "reviewed_low_quality" for p in kat6a.peptides)
     assert any(p.method == "ms_unclassified" and p.quality == "reported" for p in kat6a.peptides)
 
 
 def test_review_scores_mapping_ambiguity_and_counts_keep_their_scopes(catalog):
     bmpr2 = catalog.get("c2riboseqorf155")
-    assert bmpr2.has_evidence("hla", require_reviewed=True)
-    assert bmpr2.has_evidence("hla", require_unique=True)
+    assert bmpr2.has_evidence("immunopeptidomics", require_reviewed=True)
+    assert bmpr2.has_evidence("immunopeptidomics", require_unique=True)
     # Distinct observations cannot lend their review or mapping count to each other.
-    assert not bmpr2.has_evidence("hla", require_reviewed=True, require_unique=True)
+    assert not bmpr2.has_evidence("immunopeptidomics", require_reviewed=True, require_unique=True)
     reviewed = [p for p in bmpr2.peptides if p.quality == "reviewed_support"]
     assert reviewed and all(p.attribution == "sequence_compatible" for p in reviewed)
     assert all(p.mapping_count is None and p.spectrum_ids for p in reviewed)
@@ -91,14 +91,23 @@ def test_queries_do_not_transfer_gene_evidence_to_another_isoform(catalog):
     tpst1 = catalog.get("c7riboseqorf56")
     assert catalog.query(gene="ENSG00000169902", transcript_id="ENST00000304842") == (tpst1,)
     assert catalog.query(transcript_id="ENST00000304842.5") == ()
-    assert catalog.query(gene="TPST1", evidence="shotgun") == ()
-    assert catalog.query(gene="TPST1", evidence="hla") == (tpst1,)
+    assert catalog.query(gene="TPST1", evidence="proteomics") == ()
+    assert catalog.query(gene="TPST1", evidence="immunopeptidomics") == (tpst1,)
     assert catalog.query(contig="chr7", start=66210000, end=66210000, genome_build="GRCh38") == ()
     assert catalog.query(gene="TPST1", contig="7", start=66205483, end=66205483, genome_build="GRCh38") == (tpst1,)
     assert tpst1.map_genomic_position(66210000, genome_build="GRCh38") is None
     assert catalog.query(gene="not_a_gene") == ()
     with pytest.raises(KeyError):
         catalog.get("not_an_orf")
+
+
+@pytest.mark.parametrize("old,current", [
+    ("hla", "immunopeptidomics"), ("shotgun", "proteomics")])
+def test_renamed_assay_queries_preserve_observations_with_warning(catalog, old, current):
+    expected = catalog.query(evidence=current)
+    assert expected
+    with pytest.warns(DeprecationWarning, match="Evidence method"):
+        assert catalog.query(evidence=old) == expected
 
 
 def test_minus_strand_spliced_codon_and_stop_mapping():
@@ -127,7 +136,7 @@ def test_minus_strand_spliced_codon_and_stop_mapping():
     dict(contig="7", start=0, end=2, genome_build="GRCh38"),
     dict(contig="7", start=True, end=2, genome_build="GRCh38"),
     dict(contig="7", start=3, end=2, genome_build="GRCh38"),
-    dict(evidence="proteomics"), dict(biotype="dORF"), dict(require_unique=True),
+    dict(evidence="not_an_assay"), dict(biotype="dORF"), dict(require_unique=True),
     dict(evidence="ribosome", require_reviewed=True)])
 def test_ambiguous_or_invalid_queries_are_errors(catalog, options):
     with pytest.raises(ValueError):
@@ -154,7 +163,7 @@ def test_reference_records_and_metadata_do_not_mutate(catalog):
 
 
 def test_multiple_I_L_equivalent_intervals_and_invalid_assignments():
-    peptide = UORFPeptide("hla", "IL", ((2, 3), (4, 5)), "source", "pep",
+    peptide = UORFPeptide("immunopeptidomics", "IL", ((2, 3), (4, 5)), "source", "pep",
                           sequence_match="I_L_equivalent")
     record = UORFRecord("test", "gene", "GENE", "tx", "1", "+", ((10, 27),),
                         "MLILL", "uORF", (), (peptide,))
@@ -213,7 +222,7 @@ def test_cli_position_annotation_and_review_filter(capsys):
     output = json.loads(capsys.readouterr().out)
     assert output["position_annotations"][0]["amino_acid_position"] == 32
     assert output["position_annotations"][0]["mutant_translation_evidence"] == "not_assessed"
-    run(["--evidence", "hla", "--require-reviewed"])
+    run(["--evidence", "immunopeptidomics", "--require-reviewed"])
     output = json.loads(capsys.readouterr().out)
     assert len(output["records"]) == 16
 

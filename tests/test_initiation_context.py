@@ -67,7 +67,7 @@ def test_native_tpst1_context_and_dual_role_snv():
     start = native.annotate_initiation_snv(66205483, "A", "T", genome_build="GRCh38")
     assert start["sequence_changes"] == ["ATG_lost"]
     assert start["alternate_context"]["start_codon"] == "TTG"
-    assert native.has_evidence("ribosome") and native.has_evidence("hla")
+    assert native.has_evidence("ribosome") and native.has_evidence("immunopeptidomics")
     assert catalog.query(contig="7", start=66205480, end=66205480, genome_build="GRCh38") == ()
     assert catalog.query(contig="7", start=66205480, end=66205480, genome_build="GRCh38",
                          include_initiation_context=True) == (native,)

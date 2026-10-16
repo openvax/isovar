@@ -27,10 +27,14 @@ the original sequences and align competitively to the combined reference first.
 The output directory contains:
 
 - `sequences.fa`: observed nucleotide paths, including partial reconstructions.
+- `proteins.fa`: predicted complete and partial coding products anchored to
+  available ORFdata references. Headers retain RNA sequence IDs, coding status,
+  orientation and reference ORF anchors. This file is empty when no coding
+  products can be annotated.
 - `viral.json`: schema `isovar.viral_sequences.v1`, with sequences, mapping runs,
   per-base coverage, contig counts, original fragment/segment identities,
   alignment metadata, barcode/UMI and lineage evidence, discovery limits and
-  source/reference checksums.
+  source/reference checksums, coding predictions and coding-reference coverage.
 
 Sequence and splice differences remain separate. Uncovered bases are never
 inserted from the viral genome, and an entire viral genome is not treated as a
@@ -80,26 +84,92 @@ unassemblable aligned reads remain explicit. Reference strain differences,
 discarded/unmapped reads and unavailable placements cannot be recovered from a
 filtered BAM by adding this command.
 
-## Python and protein interpretation
+## Coding products and ORFdata
+
+Isovar 1.57 requires ORFdata 0.29 or newer. ORFdata owns the small, offline coding
+catalogue and its provenance; Isovar does not duplicate CDS annotations or add
+viral transcripts to human Ensembl releases. The initial catalogue has the nine
+CDSs annotated in RefSeq **NC_001526.4**, including its two joined products. It
+recognizes both that native genome and the exactly matched, rotated GDC `HPV16`
+sequence by their full DNA checksum, independently of contig names.
+
+This is a source CDS subset, not an exhaustive HPV16 transcript or ORF catalogue.
+Other GDC viruses still produce RNA sequences and counts, with explicit
+`unavailable_reference` coding status. A differently sequenced HPV16 reference
+also remains unavailable rather than inheriting annotations by name. Broader
+coverage and special coding semantics are specified in
+[ORFdata's viral roadmap](https://github.com/openvax/orfdata/issues/91), with
+separate issues for [other HPV types](https://github.com/openvax/orfdata/issues/93),
+[EBV/KSHV](https://github.com/openvax/orfdata/issues/94),
+[CMV](https://github.com/openvax/orfdata/issues/95),
+[hepatitis viruses](https://github.com/openvax/orfdata/issues/96),
+[HTLV-1/HIV](https://github.com/openvax/orfdata/issues/97), and
+[polyomaviruses](https://github.com/openvax/orfdata/issues/98).
+
+For each observed path, Isovar uses a placed reference codon to anchor a reading
+frame and translates only observed RNA bases to the first observed stop or the
+last complete codon. Both orientations are considered without asserting the
+library's RNA strand. Each `coding` entry records query coordinates in the
+original RNA, coding sequence, amino acids, observed start/stop status and
+reference ORF associations. Query coordinates are 0-based, half-open; reverse
+predictions still use the original RNA's coordinates. Shared predictions retain all their reference
+anchors. Altered splice/indel paths and premature or displaced stops remain
+explicit. A reference anchor does not assert that the sample encodes that
+reference's original protein; `protein_matches_reference` compares complete
+predictions and is unknown for partial products.
+
+`complete_CDS` means the source start and an in-frame stop are observed in this
+prediction. It does not establish transcript boundaries, initiation, protein
+expression or peptide presentation. `partial_CDS` retains missing coding ends;
+unobserved bases are never supplied from the reference. Coding support reports
+observed base coverage and whole-CDS segment witnesses independently of RNA
+fragment counts. Neither predicted proteins nor source annotations supply
+experimental translation evidence.
+
+The top-level `coding_reference` records the ORFdata version, per-contig DNA
+checksums and coverage. Available references retain accession/source checksums,
+catalogue checksum, source-coordinate rotation and product inventory, allowing
+the annotation set to be identified even when the installed catalogue changes.
+
+## Python API
 
 ```python
 import pysam
-from isovar import reconstruct_viral_sequences, write_viral_fasta
+from isovar import reconstruct_viral_sequences, write_viral_fasta, write_viral_proteins
 
 with pysam.AlignmentFile("tumor-rna.bam") as bam:
     result = reconstruct_viral_sequences(
         bam, genome_fasta="GRCh38.d1.vd1.fa",
         sample_id="tumor-1", source="RNA-library-1")
 write_viral_fasta(result, "viral-sequences.fa")
+write_viral_proteins(result, "viral-proteins.fa")
 ```
 
 PyEnsembl's ordinary `Genome` provides genomic DNA and its FASTA cache without
-requiring a GTF. This command recovers RNA sequence; viral gene names, annotated
-transcript models and encoded proteins need sequence-matched viral annotations.
-Those can use the existing [isoform API](antigen-isoforms.md) when they fit its
-supported coding model. General frameshifts, overlapping/polycistronic ORFs,
-translation exceptions and polyprotein processing remain tracked in
-[#465](https://github.com/openvax/isovar/issues/465).
+requiring a GTF. ORFdata provides sequence-qualified `SourceRNA` and
+`TranscriptORF` models independently of human annotations. Translation exceptions,
+programmed recoding and polyprotein processing require the corresponding
+upstream models; this release does not infer them from an arbitrary RNA path.
+
+## Recovering reads that lack viral alignments
+
+This command consumes alignments. For paired short RNA reads, the recovery
+experiment in [#514](https://github.com/openvax/isovar/issues/514) favored direct
+splice-aware minimap2 alignment to a small viral panel with
+`-ax splice:sr -K 1m -t 4 --sam-hit-only`. Small query batches retained the tested
+alignments while using less memory than the default batch; adding a separate
+k-mer filter did not improve the measured runtime/sensitivity tradeoff. No
+screen is guaranteed to recover every viral read.
+
+Panel-only hits are candidates. Retain original mate sequences, qualities,
+RG/QNAME identities and reported alternatives, then align candidates
+competitively against human/decoy/viral DNA before interpreting viral support.
+The full combined reference is downloadable from the GDC sources below. For
+memory-limited verification, minimap2 supports `-I 100M --split-prefix` with a
+temporary prefix to merge split-reference results before computing MAPQ.
+`-K 1m` bounds query batching; it does not bound the full reference index. These
+are external alignment steps, not additional `isovar viral` options. See the
+[minimap2 manual](https://github.com/lh3/minimap2/blob/v2.31/minimap2.1).
 
 Sources: [GDC reference files](https://gdc.cancer.gov/about-data/gdc-data-processing/gdc-reference-files)
 and its [viral sequence list](https://gdc.cancer.gov/system/files/public/file/GRCh83.d1.vd1_virus_decoy.txt).

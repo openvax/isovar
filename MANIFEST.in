@@ -9,6 +9,7 @@ include examples/build_uorf_catalog.py
 include examples/benchmark_antigen_isoforms.py
 include examples/benchmark_viral_sequences.py
 include notes/cta-isoforms-validation.md notes/gdc-viral-reconstruction-validation.md
+include notes/viral-coding-validation.md
 include notes/data/cta-isoforms-experiment.json notes/data/gdc-viral-sequence-experiment.json
 include notes/data/audit-validation-dependencies.json
 recursive-include docs *.md

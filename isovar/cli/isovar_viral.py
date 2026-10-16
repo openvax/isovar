@@ -8,6 +8,7 @@ import pysam
 from ..antigen_reference import GDC_REFERENCE
 from ..audit_bundle import digest, publish_json
 from ..viral_sequences import reconstruct_viral_sequences, write_viral_fasta
+from ..viral_coding import write_viral_proteins
 
 
 def make_parser(prog="isovar viral"):
@@ -15,7 +16,7 @@ def make_parser(prog="isovar viral"):
     parser.add_argument("--bam", required=True, help="RNA aligned to the combined human/viral reference")
     parser.add_argument("--genome-fasta", required=True, help="Local FASTA used for alignment")
     parser.add_argument("--sample-id", required=True)
-    parser.add_argument("--output-dir", required=True, help="New directory for viral.json and sequences.fa")
+    parser.add_argument("--output-dir", required=True, help="New directory for viral.json, sequences.fa and predicted proteins.fa")
     parser.add_argument("--contig", action="append", help="Optional viral contig subset; repeat to select several")
     parser.add_argument("--alignment-reference", choices=[GDC_REFERENCE, "custom"], default=GDC_REFERENCE,
                         help="Checked reference profile (default: %(default)s); custom requires --contig")
@@ -49,5 +50,6 @@ def run(args=None, prog=None):
         output.mkdir(parents=True, exist_ok=False)
         publish_json(output / "viral.json", result)
         write_viral_fasta(result, output / "sequences.fa")
+        write_viral_proteins(result, output / "proteins.fa")
     except (OSError, ValueError, KeyError) as error:
         parser.error(str(error))

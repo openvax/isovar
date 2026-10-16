@@ -4,6 +4,19 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.57.0
+
+- Annotate reconstructed viral RNA with exact-sequence coding references owned
+  by ORFdata, initially nine RefSeq HPV16 CDSs including two joined products.
+  Translate observed bases, preserving sample variants, partial coding ends,
+  alternative paths and reference ambiguity. Export `proteins.fa` alongside
+  nucleotide FASTA and JSON without requiring a human GTF or extra CLI options.
+- Record ORFdata version, catalogue/source checksums and unavailable coding
+  coverage. Distinguish source frame anchors from exact protein matches and
+  observed complete CDSs from complete transcripts or protein expression.
+- Align evidence regression checks with ORFdata's species-neutral assay names;
+  deprecated query aliases continue to preserve the original observations.
+
 ## 1.56.0
 
 - Add `isovar viral` to recover observed viral RNA paths from GDC combined

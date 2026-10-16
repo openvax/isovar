@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.56.1"
+__version__ = "1.57.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -50,6 +50,7 @@ from .initiation_context import InitiationContext, annotate_initiation_context
 from .antigen_reference import IsoformTarget, gdc_genome, gdc_viral_panel, isoform_targets_from_genome, validate_alignment_reference
 from .antigen_isoforms import reconstruct_antigen_isoforms
 from .viral_sequences import reconstruct_viral_sequences, write_viral_fasta
+from .viral_coding import write_viral_proteins
 from .isoform_quantification import quantify_antigen_isoforms, add_isoform_abundances, write_isoform_fastas
 
 
@@ -57,6 +58,7 @@ __all__ = [
     "gdc_viral_panel",
     "reconstruct_viral_sequences",
     "write_viral_fasta",
+    "write_viral_proteins",
     "IsoformTarget",
     "gdc_genome",
     "isoform_targets_from_genome",
