@@ -4,6 +4,12 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.57.1
+
+- Use ORFdata's immutable viral reference objects while preserving the existing
+  sequence-qualified coding checks and JSON coverage report fields. Require
+  ORFdata 0.34.0 or newer for the object API.
+
 ## 1.57.0
 
 - Annotate reconstructed viral RNA with exact-sequence coding references owned

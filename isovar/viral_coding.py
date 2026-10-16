@@ -11,7 +11,7 @@ from .dna import reverse_complement_dna
 
 def viral_coding_references(genome, contigs):
     """Load exact-sequence ORFdata models and report unavailable coverage."""
-    available = {row["sequence_sha256"]: row for row in viral_references()}
+    available = {ref.sequence_sha256: ref for ref in viral_references()}
     models, coverage = [], []
     for contig in contigs:
         sequence = str(genome.fasta[contig]).upper()
@@ -23,7 +23,7 @@ def viral_coding_references(genome, contigs):
         if source:
             loaded = viral_orfs(sequence, contig=contig)
             models.extend(loaded)
-            row.update(reference=source, coding_models=len(loaded))
+            row.update(reference=source.to_dict(), coding_models=len(loaded))
         else:
             row["coding_models"] = 0
         coverage.append(row)
