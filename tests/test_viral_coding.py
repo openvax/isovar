@@ -56,7 +56,13 @@ def test_complete_sample_e7_variant_uses_observed_rna_and_original_support(tmp_p
     assert coding["all_bases_observed"] and len(coding["whole_cds_segments"]) == 1
     assert row["compatible_fragments"] == result["support"]["target_fragments"] == 1
     assert result["coding_reference"]["provider"] == "orfdata"
-    assert result["coding_reference"]["contigs"][0]["coding_models"] == 9
+    coverage = result["coding_reference"]["contigs"][0]
+    assert coverage["coding_models"] == 9
+    assert coverage["reference"]["id"] == "GRCh38.d1.vd1:HPV16"
+    assert coverage["reference"]["virus"]["type"] == "HPV16"
+    assert coverage["reference"]["host_taxon_ids"] == [9606]
+    assert "dna" not in coverage["reference"] and "orfs" not in coverage["reference"]
+    json.dumps(result["coding_reference"])
     output = tmp_path / "proteins.fa"
     write_viral_proteins(result, output)
     with pysam.FastxFile(str(output)) as records:
