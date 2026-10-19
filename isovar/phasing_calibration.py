@@ -15,7 +15,21 @@ from .variant_helpers import trim_variant
 
 @dataclass(frozen=True)
 class PhasingControl:
-    """One known-allele control's collected evidence at one locus and read group."""
+    """One known-allele control's collected evidence at one locus and read group.
+
+    Parameters
+    ----------
+    variant : varcode.Variant
+        Locus being calibrated.
+    truth : str
+        Independently established ``"ref"`` or ``"alt"`` allele.
+    read_group, source : str
+        Library group and unique control-sample identity.
+    platform, basecaller, library, biological_context, reference, context : str
+        Conditions that must match the target at this locus and read group.
+    evidence : ReadEvidence
+        Allele calls collected from the control RNA reads.
+    """
 
     variant: object
     truth: str
@@ -32,7 +46,17 @@ class PhasingControl:
 
 @dataclass
 class PhasingCalibration:
-    """Rates accepted by ``run_isovar`` and a provenance-rich audit report."""
+    """Rates accepted by ``run_isovar`` and a provenance-rich audit report.
+
+    Parameters
+    ----------
+    rates : dict
+        Variant to directional ``(ref_to_alt, alt_to_ref)`` upper bounds.
+    report : list of dict
+        Counts, conditions and bounds for each control source and direction.
+    confidence : float
+        Simultaneous confidence level requested per locus.
+    """
 
     rates: dict
     report: list
@@ -60,7 +84,20 @@ def _binomial_cdf(errors, trials, rate):
 
 
 def one_sided_error_bound(errors, trials, confidence=0.95):
-    """Exact Clopper-Pearson upper bound for a binomial wrong-allele rate."""
+    """Exact Clopper-Pearson upper bound for a binomial wrong-allele rate.
+
+    Parameters
+    ----------
+    errors, trials : int
+        Wrong-allele and callable fragment counts, respectively.
+    confidence : float
+        One-sided confidence level strictly between zero and one.
+
+    Returns
+    -------
+    float
+        Upper bound on the wrong-allele probability.
+    """
     if not isinstance(trials, int) or not isinstance(errors, int) or not 0 <= errors <= trials or trials == 0:
         raise ValueError("Need integer wrong-allele and callable-fragment counts, with 0 <= errors <= trials and trials > 0")
     if not 0 < confidence < 1:
@@ -100,13 +137,30 @@ def _fragment_counts(control):
 def calibrate_phasing_error_rates(controls, target_metadata, confidence=0.95):
     """Estimate directional rates from independently truth-labeled controls.
 
-    ``target_metadata`` maps each variant to its included read groups. Each
-    group maps to ``platform``, ``basecaller``, ``library``,
-    ``biological_context``, ``reference`` and local sequence ``context``
-    strings. Both true-ref and true-alt controls must match every group. A
-    Bonferroni correction covers both directions, groups and control sources
-    at each locus. The largest bound becomes the locus rate. Missing or fully
-    erroneous controls fail instead of falling back to the scalar floor.
+    Parameters
+    ----------
+    controls : iterable of PhasingControl
+        Independent controls with known ref or alt truth at each locus.
+    target_metadata : dict
+        Variant to included read groups; each group maps to ``platform``,
+        ``basecaller``, ``library``, ``biological_context``, ``reference``
+        and local sequence ``context`` strings. Both truth directions must
+        match every group.
+    confidence : float
+        Simultaneous one-sided confidence level for each locus.
+
+    Returns
+    -------
+    PhasingCalibration
+        The largest directional bound across sources and groups, with an
+        audit report. A Bonferroni correction covers both directions,
+        groups and sources at each locus.
+
+    Raises
+    ------
+    ValueError
+        If truth, coverage, source identity or matching conditions are
+        insufficient. No scalar floor is substituted.
     """
     if not 0 < confidence < 1:
         raise ValueError("confidence must be between 0 and 1")
