@@ -4,6 +4,17 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.58.1
+
+- Preserve Varcode splice outcome sets in coding-transcript selection and
+  sequence-availability filters (#522). Require Varcode 10.17.0 or newer.
+- Compare RNA-derived proteins against every predicted candidate using its
+  own mutation offsets. Matching any candidate reports compatibility; no match
+  with unresolved alternatives reports unknown. The mismatch count is the
+  minimum over known comparisons. Scalar trimmed protein/reference fields
+  remain empty unless all candidates agree. The original outcome set and
+  provenance stay available on `IsovarResult.predicted_effect`.
+
 ## 1.57.1
 
 - Use ORFdata's immutable viral reference objects while preserving the existing

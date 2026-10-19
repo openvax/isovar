@@ -4,15 +4,13 @@ set -euo pipefail
 install_release() {
   local release="$1"
   local species="$2"
-  local mirror="$3"
   local attempt
   local delay
 
   for attempt in 1 2 3; do
     if pyensembl install \
         --release "${release}" \
-        --species "${species}" \
-        --custom-mirror "${mirror}"; then
+        --species "${species}"; then
       return
     fi
     if [[ "${attempt}" -eq 3 ]]; then
@@ -25,11 +23,9 @@ install_release() {
   done
 }
 
-install_release 87 homo_sapiens \
-  https://github.com/openvax/ensembl-data/releases/download/GRCh38.87/
-install_release 95 human \
-  https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
-install_release 75 human \
-  https://github.com/openvax/ensembl-data/releases/download/GRCh37.75/
-install_release 102 mouse \
-  https://github.com/openvax/ensembl-data/releases/download/GRCm38.102/
+# Use the same source identity as EnsemblRelease in the tests. New mirror
+# downloads have separate caches (openvax/pyensembl#470).
+install_release 87 homo_sapiens
+install_release 95 human
+install_release 75 human
+install_release 102 mouse
