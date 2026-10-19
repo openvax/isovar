@@ -53,7 +53,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.cache/pyensembl/**/*.gz
-          key: ${{ runner.os }}-pyensembl-source-grch38-87-95-grch37-75-grcm38-102-v2
+          key: ${{ runner.os }}-pyensembl-source-grch38-87-95-grch37-75-grcm38-102-v3
       - name: Install Ensembl data
         run: |
           echo "Before installing Ensembl releases" && df -h
