@@ -25,6 +25,7 @@ from functools import cached_property
 
 from .common import safediv
 from .alignment_score import alignment_score
+from .effect_prediction import effect_outcomes, has_mutant_protein_sequence
 from .read_identity import count_reads, fragment_ids
 
 
@@ -528,27 +529,34 @@ class IsovarResult(object):
         return self.top_protein_sequence.num_cdna_sequences
 
     @cached_property
-    def trimmed_predicted_mutant_protein_sequence(self):
-        """
-        Trim the predicted mutant protein sequence from Varcode
-        to match the length of the protein subsequence assembled from RNA.
-
-        Returns str or None
-        """
+    def _trimmed_predicted_protein_pairs(self):
+        """Candidate-specific mutant/reference windows, retaining unknowns."""
         p = self.top_protein_sequence
-        e = self.predicted_effect
+        pairs = []
+        for e in effect_outcomes(self.predicted_effect):
+            mutant = reference = None
+            offset = getattr(e, "aa_mutation_start_offset", None)
+            if p is not None and offset is not None:
+                start = offset - p.mutation_start_idx
+                mutant_sequence = getattr(e, "mutant_protein_sequence", None)
+                aa_alt = getattr(e, "aa_alt", None)
+                if mutant_sequence is not None and aa_alt is not None:
+                    end = offset + len(aa_alt) + len(p.amino_acids) - p.mutation_end_idx
+                    mutant = mutant_sequence[start:end]
+                reference_sequence = getattr(e, "original_protein_sequence", None)
+                if reference_sequence is not None:
+                    reference = reference_sequence[start:start + len(p.amino_acids)]
+            pairs.append((mutant, reference))
+        return tuple(pairs)
 
-        if e is None or p is None:
-            return None
-        if e.mutant_protein_sequence is None:
-            return None
-        if e.aa_mutation_start_offset is None:
-            return None
-        n_before_mutation = p.mutation_start_idx
-        n_after_mutation = len(p.amino_acids) - p.mutation_end_idx
-        return e.mutant_protein_sequence[
-             e.aa_mutation_start_offset - n_before_mutation:
-             e.aa_mutation_start_offset + len(e.aa_alt) + n_after_mutation]
+    @cached_property
+    def trimmed_predicted_mutant_protein_sequence(self):
+        """The trimmed protein if every outcome agrees; otherwise None.
+
+        Matching uses all candidate windows even when this scalar is absent.
+        """
+        sequences = {mutant for mutant, _ in self._trimmed_predicted_protein_pairs}
+        return sequences.pop() if len(sequences) == 1 else None
 
     @cached_property
     def has_mutant_protein_sequence_from_rna(self):
@@ -575,76 +583,66 @@ class IsovarResult(object):
     @cached_property
     def has_mutant_protein_sequence_from_predicted_effect(self):
         """
-        Does the variant for this IsovarResult have a predicted
-        mutant protein sequence?
+        Does at least one predicted outcome have a mutant protein sequence?
 
         Returns bool
         """
-        if self.predicted_effect is None:
-            return False
-        return self.predicted_effect.mutant_protein_sequence is not None
+        return has_mutant_protein_sequence(self.predicted_effect)
 
     @cached_property
     def trimmed_reference_protein_sequence(self):
         """
-        Trim the reference protein sequence from the top Varcode effect
-        to match the length of the protein sequence assembled from RNA.
+        Trim reference proteins at each candidate's mutation offset. Return
+        the window only when all outcomes agree and none is unresolved.
 
-        Returns str
+        Returns str or None
         """
+        sequences = {reference for _, reference in self._trimmed_predicted_protein_pairs}
+        return sequences.pop() if len(sequences) == 1 else None
+
+    @cached_property
+    def _predicted_protein_mismatch_counts(self):
         p = self.top_protein_sequence
-        e = self.predicted_effect
-        if e is None or p is None:
-            return None
-        if e.original_protein_sequence is None:
-            return None
-        if e.aa_mutation_start_offset is None:
-            return None
-        n_before_mutation = p.mutation_start_idx
-        n_total = len(p.amino_acids)
-        start_index_in_original_protein = (
-               e.aa_mutation_start_offset - n_before_mutation)
-        return e.original_protein_sequence[
-               start_index_in_original_protein:
-               start_index_in_original_protein + n_total]
+        return tuple(
+            alignment_score(p.amino_acids, mutant)
+            if p is not None and mutant is not None else None
+            for mutant, _ in self._trimmed_predicted_protein_pairs)
 
     @cached_property
     def num_amino_acid_mismatches_from_predicted_effect(self):
         """
-        Compute the number of mismatches between the mutant protein sequence
+        Compute the minimum mismatches across known candidate proteins
         predicted by Varcode and the top-ranked sequence translated
         from assembled RNA reads by Isovar. We're not allowing any
         insertions or deletions in the middle of the sequences but do
         allow a shorter sequence to start anywhere within a longer one.
 
-        Returns int
+        Unresolved candidates are not scored. A nonzero value does not rule
+        out a match to one of them; use protein_sequence_matches_predicted_mutation_effect.
+
+        Returns int or None
         """
-        predicted_sequence = self.trimmed_predicted_mutant_protein_sequence
-        if predicted_sequence is None:
-            return None
-
-        protein_sequence_object = self.top_protein_sequence
-        if protein_sequence_object is None:
-            return None
-
-        assembled_protein_sequence = protein_sequence_object.amino_acids
-
-        return alignment_score(
-            assembled_protein_sequence,
-            predicted_sequence)
+        counts = [n for n in self._predicted_protein_mismatch_counts if n is not None]
+        return min(counts) if counts else None
 
     @cached_property
     def protein_sequence_matches_predicted_mutation_effect(self):
         """
         Does the top protein sequence translated from RNA reads
-        match the predicted protein change determined by Varcode?
+        match any predicted protein change determined by Varcode?
 
-        Returns bool
+        True means compatibility with at least one candidate, not proof of
+        its mechanism. False requires every candidate to be comparable and
+        nonmatching; unresolved candidates give None if no known one matches.
+
+        Returns bool or None
         """
-        n_mismatches = self.num_amino_acid_mismatches_from_predicted_effect
-        if n_mismatches is None:
+        counts = self._predicted_protein_mismatch_counts
+        if 0 in counts:
+            return True
+        if not counts or None in counts:
             return None
-        return n_mismatches == 0
+        return False
 
 
     @cached_property

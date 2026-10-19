@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from varcode.effects.effect_classes import ExonicSpliceSite, CodingMutation
+from varcode import MultiOutcomeEffect
 
 from .logging import get_logger
 
@@ -18,10 +18,50 @@ logger = get_logger(__name__)
 
 
 def effect_in_coding_sequence(effect):
-    if type(effect) is ExonicSpliceSite:
-        return effect_in_coding_sequence(effect.alternate_effect)
-    else:
-        return isinstance(effect, CodingMutation)
+    """Keep potentially coding effects, including unresolved alternatives."""
+    def visit(current, ancestors):
+        if current is None or id(current) in ancestors:
+            return False
+        # None means unresolved, not known noncoding. SpliceOutcomeSet also
+        # advertises potential coding changes before resolving its candidates.
+        if current.modifies_coding_sequence is not False:
+            return True
+        if isinstance(current, MultiOutcomeEffect):
+            return any(visit(c.effect, ancestors | {id(current)})
+                       for c in current.candidates)
+        return False
+
+    return visit(effect, set())
+
+
+def effect_outcomes(effect):
+    """Yield candidate effects without replacing the original outcome set.
+
+    Varcode structural/haplotype effects can include themselves as concrete
+    candidates. Visit those once; an empty set or a cycle has unknown outcomes.
+    """
+    def visit(current, ancestors):
+        if not isinstance(current, MultiOutcomeEffect):
+            yield current
+        elif id(current) in ancestors:
+            yield None
+        else:
+            candidates = current.candidates
+            if not candidates:
+                yield None
+            for candidate in candidates:
+                if candidate.effect is current:
+                    yield current
+                else:
+                    yield from visit(candidate.effect, ancestors | {id(current)})
+
+    yield from visit(effect, set())
+
+
+def has_mutant_protein_sequence(effect):
+    """Whether at least one outcome has a known protein (possibly empty)."""
+    return any(getattr(e, "mutant_protein_sequence", None) is not None
+               for e in effect_outcomes(effect))
 
 def predicted_effects_for_variant(
         variant,
@@ -45,12 +85,13 @@ def predicted_effects_for_variant(
         If True, then only return effects on protein coding transcripts
 
     only_coding_effects : bool
-        If True, drop effects which aren't in the coding sequence, even
-        if they are silent.
+        If True, retain effects which can change coding sequence, including
+        silent changes, potential splice consequences and unresolved effects.
+        Outcome sets are retained intact.
 
     require_mutant_protein_sequence : bool
-        Drop effects for which we can't predict what the new protein sequence
-        will be.
+        Drop effects without any known candidate protein sequence. Retained
+        sets can still contain unresolved alternatives.
 
     Returns a varcode.EffectCollection object
     """
@@ -103,7 +144,7 @@ def predicted_effects_for_variant(
         effects_with_mut_sequence = [
             effect
             for effect in effects
-            if effect.mutant_protein_sequence is not None
+            if has_mutant_protein_sequence(effect)
         ]
         logger.debug(
             "Keeping %d effects with predictable AA sequences for %s: %s",
@@ -142,8 +183,8 @@ def reference_coding_transcripts_for_variant(
         transcript_id_whitelist=None):
     """
     For a given variant, find all the transcripts which overlap the
-    variant and for which it has a predictable effect on the amino acid
-    sequence of the protein.
+    variant and for which it can affect the coding sequence, including
+    unresolved splice outcomes and synonymous changes.
 
     Parameters
     ----------
