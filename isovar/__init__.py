@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.57.4"
+__version__ = "1.58.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -33,6 +33,7 @@ from .read_end_inference import (
     infer_read_ends, read_sequence_view_from_alignment,
 )
 from .read_evidence import ReadEvidence
+from .phasing_calibration import PhasingCalibration, PhasingControl, calibrate_phasing_error_rates
 from .read_phasing import IsovarReadPhasing
 from .rna_evidence import union_rna_support
 from .transcript_assembly_edit import TranscriptAssemblyEdit

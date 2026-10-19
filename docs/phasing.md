@@ -95,6 +95,81 @@ Retain the control dataset, library, basecaller, context and calibration method
 alongside the profile. For mixed read groups, supply a bound covering every
 included group or analyze them separately.
 
+#### Estimate a profile from control BAMs
+
+`isovar calibrate-phasing --manifest controls.json --output profile.json
+--report calibration-report.json` collects the same allele evidence as Isovar
+from independently truth-labeled, indexed control BAMs. It counts each physical
+fragment once, excludes fragments with conflicting or other-allele calls from
+the binomial denominator, and reports those exclusions. It computes separate
+one-sided exact [Clopper–Pearson](https://doi.org/10.1093/biomet/26.4.404)
+upper bounds for ref→alt and alt→ref errors. The confidence level defaults to
+0.95; a Bonferroni correction covers both directions, every included read
+group and every control source at each locus. The emitted locus profile takes
+the largest bound across sources and groups and works with `--phasing-error-rates profile.json` or
+`calibrate_phasing_error_rates(...).rates` in Python.
+
+The manifest names each target BAM and every control source. For example:
+
+```json
+{
+  "confidence": 0.95,
+  "reference_fasta": "GRCh38.fa",
+  "targets": [{
+    "variant": {"contig": "1", "start": 123, "ref": "A", "alt": "G"},
+    "context_start": 120,
+    "target_bam": "target.bam",
+    "read_groups": {
+      "rg1": {"platform": "ONT", "basecaller": "dorado-1",
+              "library": "RNA-protocol-1", "biological_context": "matched-tissue",
+              "reference": "GRCh38", "context": "TACAGTA"}
+    },
+    "controls": [
+      {"truth": "ref", "source": "known-ref-sample", "bam": "ref.bam",
+       "read_group": "rg1", "platform": "ONT", "basecaller": "dorado-1",
+       "library": "RNA-protocol-1", "biological_context": "matched-tissue",
+       "reference": "GRCh38", "context": "TACAGTA"},
+      {"truth": "alt", "source": "known-alt-sample", "bam": "alt.bam",
+       "read_group": "rg1", "platform": "ONT", "basecaller": "dorado-1",
+       "library": "RNA-protocol-1", "biological_context": "matched-tissue",
+       "reference": "GRCh38", "context": "TACAGTA"}
+    ]
+  }]
+}
+```
+
+Paths are relative to the manifest. The FASTA must be indexed, and each
+`context_start` is the 1-based position of the first base in the declared
+sequence context. The command checks the context and reference allele against
+the FASTA. Every target read group needs both true-ref and true-alt controls.
+Read-group IDs and platform tags must match BAM headers; contig lengths and
+available MD5 digests must agree. The manifest's basecaller, library,
+biological context and reference label are declarations: verify them against
+your experiment before use. An A→G editing
+control needs matched biological conditions; a homopolymer indel needs the
+same local sequence context and library/aligner behavior. The command rejects
+missing truth, missing groups and missing callable coverage; conflicting
+fragment observations are reported and excluded. No rate is inferred from tumor allele fractions or
+non-ref/non-alt reads. The report records counts, exclusions, source BAM paths,
+the manifest digest, metadata, per-group bounds and confidence. A control with 100% wrong callable
+fragments cannot supply a rate below one and is rejected.
+
+The command uses Isovar's default read-collection filters. If the target run
+changes duplicate, secondary-alignment, mapping-quality, soft-clip, mate-merge
+or missing-base-quality filters, set the matching `read_collector_options`
+object at the top level of the manifest. The report records the supplied
+options; use the same options when running Isovar. Other custom read filters
+need calibration through the Python API with evidence collected using that
+filter.
+
+The binomial bound assumes independent fragments and controls representative
+of the target. PCR/RT chimeras, repeated molecules, sample-specific editing
+and overdispersion can violate that assumption. A control-derived profile is
+evidence for the stated controls and conditions, not a guarantee for other
+samples. Primary studies describe [directional, context-dependent nanopore
+errors](https://doi.org/10.1186/s12864-024-10440-w) and
+[tissue-dependent RNA editing](https://rnajournal.cshlp.org/content/19/2/257.full.html).
+
 ### Limits of the error model
 
 The default 1% is not an automatic ONT or PacBio calibration. Non-ref/non-alt
