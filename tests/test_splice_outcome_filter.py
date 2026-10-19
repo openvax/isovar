@@ -11,6 +11,7 @@ from isovar.effect_prediction import (
     top_varcode_effect,
 )
 from isovar.isovar_result import IsovarResult
+from isovar.read_evidence import ReadEvidence
 
 
 class Outcomes(MultiOutcomeEffect):
@@ -52,6 +53,14 @@ def test_real_scp2_splice_set_survives_filters_and_reference_selection():
     assert {t.id for t in reference_coding_transcripts_for_variant(variant, scope)} == scope
     assert isinstance(top_varcode_effect(variant, scope), SpliceOutcomeSet)
     assert reference_coding_transcripts_for_variant(variant, set()) == []
+    r = IsovarResult(variant=variant, predicted_effect=effect,
+                     read_evidence=ReadEvidence.from_variant_and_allele_reads(variant, []))
+    record = r.to_record()
+    assert record["predicted_effect_class"] == "SpliceOutcomeSet"
+    assert "exon-skip" in record["predicted_effect"]
+    assert record["has_mutant_protein_sequence_from_predicted_effect"] is True
+    assert record["predicted_effect_mutant_protein_sequence"] is None
+    assert record["protein_sequence_matches_predicted_mutation_effect"] is None
 
 
 @pytest.mark.parametrize("coding, expected", [(True, True), (False, False), (None, True)])
