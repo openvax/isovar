@@ -28,6 +28,7 @@ from isovar.read_evidence import ReadEvidence
 from isovar.variant_helpers import base0_interval_for_variant_fields, trim_variant
 from tests.data.osteosarc.expansion.benchmark import peak_rss_bytes
 from tests.data.osteosarc.expansion.inventory import digest, write_json
+from tests.data.osteosarc.expansion.references import reference_genome
 from tests.data.osteosarc.expansion.runner import counts_from_evidence, primary_alignment, time_limit
 
 # Patch this module-level name in tests: rebinding tracemalloc.take_snapshot on
@@ -103,7 +104,9 @@ def run(args):
         input_sha = digest(bam)
     inventory = destination / "inventory-GRCh38-validated.json"
     record = next(r for r in json.loads(inventory.read_text())["variants"] if r["variant_id"] == args.variant_id)
-    variant = Variant(record["chrom"], record["pos"], record["ref"], record["alt"])
+    reference = destination / "reference-GRCh38"
+    genome = reference_genome(reference, output / "reference-cache")
+    variant = Variant(record["chrom"], record["pos"], record["ref"], record["alt"], ensembl=genome)
     position, ref, alt = trim_variant(variant)
     base0_start, base0_end = base0_interval_for_variant_fields(position, ref, alt)
     root = Path(isovar.__file__).resolve().parent.parent
@@ -112,6 +115,7 @@ def run(args):
         source_bam_sha256=original_sha, input_bam_sha256=input_sha,
         input_index_sha256=digest(str(bam) + ".bai"), receipt_sha256=digest(receipt),
         inventory_sha256=digest(inventory), benchmark_sha256=digest(__file__),
+        reference_manifest_sha256=digest(reference / "manifest.json"),
         source_files={str(p.relative_to(root)): digest(p) for p in sorted((root / "isovar").glob("*.py"))},
         isovar=isovar.__version__, python=platform.python_version(), platform=platform.platform(),
         allocation_instrumented=args.allocations, merge_overlapping_fragments=True,

@@ -210,6 +210,30 @@ def test_collection_benchmark_records_real_empty_bam_results(benchmark_inputs):
     assert result["counts"]["reads"] == dict(ref=0, alt=0, other=0)
 
 
+def test_collection_benchmark_binds_variant_to_pinned_reference(benchmark_inputs, monkeypatch):
+    from tests.reference_identity import reference_dataset_identity
+
+    _, args = benchmark_inputs("ABCF2-chr7-151218156")
+    args.allocations = False
+    variants = []
+    original_variant = collection_benchmark.Variant
+
+    def record_variant(*fields, **options):
+        variant = original_variant(*fields, **options)
+        variants.append(variant)
+        return variant
+
+    monkeypatch.setattr(collection_benchmark, "Variant", record_variant)
+    collection_benchmark.run(args)
+    reference = args.destination / "reference-GRCh38"
+    manifest = json.loads((reference / "manifest.json").read_text())
+    expected_identity = reference_dataset_identity(reference, manifest["files"])
+    assert len(variants) == 1
+    assert variants[0].genome.reference_name == expected_identity
+    identity = json.loads((args.output / "identity.json").read_text())
+    assert identity["reference_manifest_sha256"] == benchmark.digest(reference / "manifest.json")
+
+
 def test_collection_profiler_stops_tracing_before_snapshot_analysis(benchmark_inputs, monkeypatch):
     _, args = benchmark_inputs("ABCF2-chr7-151218156")
     args.allocations = True
