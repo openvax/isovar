@@ -1,5 +1,6 @@
 """Grouped computation keeps original identity, ordering, and interval evidence."""
 
+from contextlib import closing
 from dataclasses import replace
 from hashlib import sha256
 import random
@@ -38,7 +39,7 @@ def test_offset_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, inpu
             for read in reads:
                 output.write(read)
     original_digest = sha256(bam_path.read_bytes()).digest()
-    with pysam.AlignmentFile(bam_path) as bam, sqlite3.connect(':memory:') as db:
+    with pysam.AlignmentFile(bam_path) as bam, closing(sqlite3.connect(':memory:')) as db:
         scanned, reasons, unique, segments, path = _spool(bam, db, ReadCollector(), tmp_path)
         assert scanned == len(reads)
         assert reasons == {'duplicate': 2}
