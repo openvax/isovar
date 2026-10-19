@@ -10,7 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from varcode.effects.effect_classes import ExonicSpliceSite, CodingMutation
+from varcode import SpliceOutcomeSet
+from varcode.effects.effect_classes import ExonicSpliceSite, CodingMutation, MultiOutcomeEffect
 
 from .logging import get_logger
 
@@ -18,10 +19,23 @@ logger = get_logger(__name__)
 
 
 def effect_in_coding_sequence(effect):
-    if type(effect) is ExonicSpliceSite:
+    if isinstance(effect, SpliceOutcomeSet):
+        coding_effect = effect.effect_if_splicing_unchanged
+        return coding_effect is not None and effect_in_coding_sequence(coding_effect)
+    elif type(effect) is ExonicSpliceSite:
         return effect_in_coding_sequence(effect.alternate_effect)
     else:
         return isinstance(effect, CodingMutation)
+
+
+def resolved_protein_effects(effect):
+    """Return outcomes with known mutant proteins without choosing one."""
+    if isinstance(effect, MultiOutcomeEffect):
+        effects = (candidate.effect for candidate in effect.candidates)
+    else:
+        effects = (effect,)
+    return tuple(e for e in effects if e.mutant_protein_sequence is not None)
+
 
 def predicted_effects_for_variant(
         variant,
@@ -103,7 +117,7 @@ def predicted_effects_for_variant(
         effects_with_mut_sequence = [
             effect
             for effect in effects
-            if effect.mutant_protein_sequence is not None
+            if resolved_protein_effects(effect)
         ]
         logger.debug(
             "Keeping %d effects with predictable AA sequences for %s: %s",

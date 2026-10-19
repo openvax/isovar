@@ -25,6 +25,7 @@ from functools import cached_property
 
 from .common import safediv
 from .alignment_score import alignment_score
+from .effect_prediction import resolved_protein_effects
 from .read_identity import count_reads, fragment_ids
 
 
@@ -528,27 +529,29 @@ class IsovarResult(object):
         return self.top_protein_sequence.num_cdna_sequences
 
     @cached_property
-    def trimmed_predicted_mutant_protein_sequence(self):
-        """
-        Trim the predicted mutant protein sequence from Varcode
-        to match the length of the protein subsequence assembled from RNA.
-
-        Returns str or None
-        """
+    def _trimmed_predicted_mutant_protein_sequences(self):
+        """Trim every resolved Varcode outcome to the RNA protein window."""
         p = self.top_protein_sequence
-        e = self.predicted_effect
-
-        if e is None or p is None:
-            return None
-        if e.mutant_protein_sequence is None:
-            return None
-        if e.aa_mutation_start_offset is None:
-            return None
+        if self.predicted_effect is None or p is None:
+            return ()
         n_before_mutation = p.mutation_start_idx
         n_after_mutation = len(p.amino_acids) - p.mutation_end_idx
-        return e.mutant_protein_sequence[
-             e.aa_mutation_start_offset - n_before_mutation:
-             e.aa_mutation_start_offset + len(e.aa_alt) + n_after_mutation]
+        trimmed = []
+        for e in resolved_protein_effects(self.predicted_effect):
+            if e.aa_mutation_start_offset is None or e.aa_alt is None:
+                continue
+            sequence = e.mutant_protein_sequence[
+                e.aa_mutation_start_offset - n_before_mutation:
+                e.aa_mutation_start_offset + len(e.aa_alt) + n_after_mutation]
+            if sequence:
+                trimmed.append(sequence)
+        return tuple(dict.fromkeys(trimmed))
+
+    @cached_property
+    def trimmed_predicted_mutant_protein_sequence(self):
+        """Return the one predicted RNA-window sequence, if unambiguous."""
+        sequences = self._trimmed_predicted_mutant_protein_sequences
+        return sequences[0] if len(sequences) == 1 else None
 
     @cached_property
     def has_mutant_protein_sequence_from_rna(self):
@@ -582,7 +585,7 @@ class IsovarResult(object):
         """
         if self.predicted_effect is None:
             return False
-        return self.predicted_effect.mutant_protein_sequence is not None
+        return bool(resolved_protein_effects(self.predicted_effect))
 
     @cached_property
     def trimmed_reference_protein_sequence(self):
@@ -611,16 +614,14 @@ class IsovarResult(object):
     @cached_property
     def num_amino_acid_mismatches_from_predicted_effect(self):
         """
-        Compute the number of mismatches between the mutant protein sequence
-        predicted by Varcode and the top-ranked sequence translated
-        from assembled RNA reads by Isovar. We're not allowing any
-        insertions or deletions in the middle of the sequences but do
-        allow a shorter sequence to start anywhere within a longer one.
+        Compute the fewest mismatches between the top RNA protein and any
+        resolved Varcode outcome. Unresolved outcomes are not negatives.
+        Alignments may trim sequence ends but not internal residues.
 
         Returns int
         """
-        predicted_sequence = self.trimmed_predicted_mutant_protein_sequence
-        if predicted_sequence is None:
+        predicted_sequences = self._trimmed_predicted_mutant_protein_sequences
+        if not predicted_sequences:
             return None
 
         protein_sequence_object = self.top_protein_sequence
@@ -629,15 +630,15 @@ class IsovarResult(object):
 
         assembled_protein_sequence = protein_sequence_object.amino_acids
 
-        return alignment_score(
-            assembled_protein_sequence,
-            predicted_sequence)
+        return min(
+            alignment_score(assembled_protein_sequence, predicted_sequence)
+            for predicted_sequence in predicted_sequences)
 
     @cached_property
     def protein_sequence_matches_predicted_mutation_effect(self):
         """
         Does the top protein sequence translated from RNA reads
-        match the predicted protein change determined by Varcode?
+        match at least one resolved protein outcome predicted by Varcode?
 
         Returns bool
         """
