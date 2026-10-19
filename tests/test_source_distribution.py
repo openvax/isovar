@@ -18,6 +18,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import zipfile
 
 
 ROOT_FILES = (
@@ -30,6 +31,7 @@ ROOT_FILES = (
     "pyproject.toml",
     "release_upload.py",
     "requirements.txt",
+    "setup.py",
     "test.sh",
 )
 RELEASE_TESTS = (
@@ -99,6 +101,7 @@ def test_sdist_contains_release_tooling_required_by_release_tests(tmp_path):
         for script_name in release_scripts:
             assert "%s/%s" % (root, script_name) in names
         assert "%s/release_upload.py" % root in names
+        assert "%s/setup.py" % root in names
         assert "%s/tests/test_deploy_script.py" % root in names
         assert "%s/tests/test_gate_scripts.py" % root in names
         assert "%s/tests/test_release_upload.py" % root in names
@@ -131,3 +134,33 @@ assert matched['full_interval_fragments'] == 4
 assert matched['orf']['rna_support']['fragment_query_orientations']['original_query'] == 4
 """], cwd=tmp_path / "unpacked" / root, env=env, capture_output=True, text=True)
     assert smoke.returncode == 0, smoke.stderr
+
+
+def test_incremental_wheel_excludes_removed_modules(tmp_path):
+    """A direct wheel build must not package stale files from build/lib."""
+    source_root = Path(__file__).resolve().parents[1]
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    for filename in ("LICENSE", "README.md", "MANIFEST.in", "pyproject.toml",
+                     "requirements.txt", "setup.py"):
+        shutil.copy2(source_root / filename, checkout / filename)
+    shutil.copytree(source_root / "isovar", checkout / "isovar",
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    stale = checkout / "build/lib/isovar/removed_module.py"
+    stale.parent.mkdir(parents=True)
+    stale.write_text("STALE = True\n")
+    dist = checkout / "dist"
+    dist.mkdir()
+    result = subprocess.run(
+        [sys.executable, "-c", "from setuptools.build_meta import build_wheel; build_wheel('dist')"],
+        cwd=checkout, capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    wheels = tuple(dist.glob("isovar-*.whl"))
+    assert len(wheels) == 1
+    with zipfile.ZipFile(wheels[0]) as wheel:
+        names = set(wheel.namelist())
+    assert "isovar/removed_module.py" not in names
+    assert "isovar/__init__.py" in names
+    assert "isovar/data/references/gdc-grch38.d1.vd1.json" in names
+    assert any(name.startswith("isovar/data/sid-reads/") for name in names)

@@ -9,3 +9,8 @@
 3. From a clean, up-to-date `master`, run `./deploy.sh`. It runs `./lint.sh` and
    `./test.sh`, builds the sdist and wheel, uploads them to PyPI, and tags the release.
    It refuses to run from another branch or with uncommitted changes.
+
+Direct `python -m build --wheel` runs also refresh the staged `build/lib/isovar`
+package before copying source files, so a removed module cannot survive in an
+incremental wheel. For installed-wheel validation, use a clean checkout so the
+input source and generated artifact identities remain easy to audit.
