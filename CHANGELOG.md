@@ -4,6 +4,11 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.59.0
+
+- Require Python 3.11 or later. Test installation and the full suite on Python
+  3.11, 3.12, 3.13 and 3.14 (#524).
+
 ## 1.58.1
 
 - Preserve Varcode splice outcome sets in coding-transcript selection and

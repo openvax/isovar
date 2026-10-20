@@ -24,7 +24,7 @@ or empty: Isovar never fills gaps with reference sequence.
 pip install isovar
 ```
 
-Isovar requires Python 3.9 or later. Reference annotation comes from
+Isovar requires Python 3.11 or later. Reference annotation comes from
 [PyEnsembl](https://github.com/openvax/pyensembl); install the Ensembl release
 that matches your alignments before the first run, for example:
 
