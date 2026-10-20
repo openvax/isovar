@@ -13,6 +13,7 @@
 from .logging import get_logger
 from .value_object import ValueObject
 from .variant_helpers import (
+    NoExonicReferenceBases,
     interbase_range_affected_by_variant_on_transcript,
     variant_matches_reference_sequence
 )
@@ -76,10 +77,16 @@ class ReferenceSequenceKey(ValueObject):
 
         # get the interbase range of offsets which capture all reference
         # bases modified by the variant
-        variant_start_offset, variant_end_offset = \
-            interbase_range_affected_by_variant_on_transcript(
+        try:
+            variant_start_offset, variant_end_offset = interbase_range_affected_by_variant_on_transcript(
                 variant=variant,
                 transcript=transcript)
+        except NoExonicReferenceBases:
+            logger.info(
+                "Skipping transcript %s for variant %s: no exonic reference bases",
+                transcript.name,
+                variant)
+            return None
 
         reference_cdna_at_variant = full_transcript_sequence[
             variant_start_offset:variant_end_offset]
