@@ -20,6 +20,7 @@ from varcode.effects import Intergenic
 from .common import eq_
 from .genomes_for_testing import grch38
 from isovar.reference_context_helpers import reference_contexts_for_variant
+from types import SimpleNamespace
 
 # intergenic variant from error log of using Isovar 1.0.0
 intergenic_variant = Variant('1', 30256419, 'G', 'T', 'GRCh37')
@@ -52,3 +53,21 @@ def test_empty_transcript_whitelist_does_not_broaden_reference_scope():
     restricted = reference_contexts_for_variant(variant, context_size=30, transcript_id_whitelist={tid})
     assert restricted
     assert {t.id for c in restricted for t in c.transcripts} == {tid}
+
+
+def test_nonexonic_splice_transcript_has_no_rna_reference_context(monkeypatch):
+    """A retained splice effect need not provide an exonic RNA translation path."""
+    variant = Variant("X", 100, "C", "T", ensembl=None)
+
+    def no_exonic_offset(_position):
+        raise ValueError("position is outside this transcript's exons")
+
+    transcript = SimpleNamespace(
+        name="splice-only", sequence="ATGAAA", strand="-",
+        contains_start_codon=True, contains_stop_codon=True,
+        protein_sequence="MK", spliced_offset=no_exonic_offset)
+    monkeypatch.setattr(
+        "isovar.reference_context_helpers.reference_coding_transcripts_for_variant",
+        lambda **_kwargs: [transcript])
+
+    assert reference_contexts_for_variant(variant, context_size=3) == []

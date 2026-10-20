@@ -20,6 +20,10 @@ from .dna import reverse_complement_dna
 logger = get_logger(__name__)
 
 
+class NoExonicReferenceBases(ValueError):
+    """A variant has no reference bases in a transcript's exons."""
+
+
 def require_literal_variant(variant):
     """Reject SV placeholder alleles before using the small-variant pipeline.
 
@@ -202,7 +206,7 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
                     variant,
                     transcript)
         if len(offsets) == 0:
-            raise ValueError(
+            raise NoExonicReferenceBases(
                 "Couldn't find any exonic reference bases affected by %s on %s" % (
                     variant,
                     transcript))
