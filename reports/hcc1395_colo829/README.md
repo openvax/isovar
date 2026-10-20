@@ -1,11 +1,11 @@
 # HCC1395 and COLO829: source-call and RNA-isoform audit
 
-Date: 2026-10-20. This is a **source inventory**, separate from the Isovar
-WLOS_0001 test. It enumerates every record in the selected public DNA call sets
-and every row in TAGET's COLO829 polished-isoform count table. It is **not yet**
-the requested variant-to-mutant-isoform report: no original HCC1395 or COLO829
-RNA read set has been aligned and replayed against these calls, and no
-variant-specific mutant protein sequence is asserted.
+Date: 2026-10-20. This is a **source inventory and COLO829 polished-sequence
+SNV audit**, separate from the Isovar WLOS_0001 test. It enumerates every
+record in the selected public DNA call sets and every row in TAGET's COLO829
+polished-isoform count table. No original HCC1395 or COLO829 RNA read set has
+been replayed against these calls, and no variant-specific mutant protein
+sequence is asserted.
 
 ## Deliverables
 
@@ -19,9 +19,20 @@ variant-specific mutant protein sequence is asserted.
   IDs all match a tumor GFF transcript. `sequence_allele_status` is
   `not_evaluated`; these counts are isoform-level full-length counts, not
   allele-spanning read counts or Isovar fragment support.
-- `build_inventories.py` beside this report rebuilds these two TSVs from
-  the downloaded source files. It retains source records rather than merging
-  independently defined benchmarks.
+- `colo829_polished_snv_alleles.tsv.gz`: one row per callable SMaHT SNV and
+  TAGET representative sequence. `allele=1` means the polished base matches
+  the alternate allele; `0` means it matches the reference allele; `?` means
+  it matches neither. Only primary alignments with mapping quality at least 20
+  and a base covering the position appear. Tumor and normal full-length cluster
+  counts remain separate columns.
+- `colo829_polished_snv_summary.tsv.gz`: all 44,005 selected SMaHT SNVs,
+  including those with no callable polished isoform. `not_callable` means no
+  qualifying representative covered the site; it never means reference.
+- `build_inventories.py` beside this report rebuilds the source-call and
+  polished-count inventories from the downloaded files. It retains source
+  records rather than merging independently defined benchmarks.
+- `build_polished_alleles.py` rebuilds the two SNV allele tables from the
+  versioned reference, SMaHT VCF, TAGET count table, and spliced BAM.
 
 To rebuild, install `openpyxl`, download the linked files below, and place
 them in one directory under these names:
@@ -38,6 +49,8 @@ them in one directory under these names:
 | `colo829-sv-2022-hg38lifted.vcf` | Valle-Inclán 2022 lifted VCF |
 | `colo829-fl-count.txt` | TAGET `final.mapped_fl_count.txt` |
 | `colo829-tumor.gff` | TAGET `final.COLO829T.gff` |
+| `colo829-final.rep.fq` | TAGET `final.rep.fq` |
+| `GRCh38-no-alt.fa.gz` | NCBI GRCh38 no-alt analysis set (linked below) |
 
 Run `python reports/hcc1395_colo829/build_inventories.py --input-dir
 /path/to/downloads` from the repository root. Compare the source SHA-256
@@ -69,11 +82,56 @@ values below before interpreting the output.
   polished representative transcript sequences. A preliminary length audit
   found only 220 of the first 702 GFF-matched representative sequences had
   length equal to the sum of their GFF exons. Thus a direct genomic-coordinate
-  to polished-sequence offset is invalid for most isoforms. Original PacBio
-  read witnesses and a sequence alignment against a versioned GRCh38 reference
-  are needed to test variant alleles. Even when an allele is present in a
-  polished sequence, the full-length count is support for the isoform cluster,
+  to polished-sequence offset is invalid for most isoforms. The spliced
+  alignment below now tests **SNV alleles in polished sequences**. Even when an
+  allele is present, the full-length count is support for the isoform cluster,
   not a count of original reads crossing that allele.
+
+## Binary allele observations from polished COLO829 isoforms
+
+We aligned all 68,553 TAGET `final.rep.fq` representatives to the [NCBI
+GRCh38 no-alt analysis set](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz)
+with minimap2 2.26 (`-ax splice:hq -uf`) and samtools 1.21, then checked all
+44,005 SMaHT COLO829 SNVs against the aligned sequence. The VCF reference base
+was verified against the FASTA at every site. A base is callable only on a
+primary alignment with mapping quality at least 20. An uncovered, skipped,
+deleted, or ambiguously mapped site has no 0/1 row.
+
+| Observation | Count |
+|---|---:|
+| SNVs with any callable polished isoform | 425 |
+| SNVs with a callable tumor-positive isoform | 330 |
+| SNVs with a tumor-positive alternate isoform | 132 |
+| Callable SNV/isoform pairs | 1,642 |
+| Pairs with alternate (1), reference (0), other (?) base | 263 / 1,378 / 1 |
+| Tumor-positive pairs with alternate (1), reference (0), other (?) base | 263 / 880 / 1 |
+
+For example, at SMaHT `chr1:948136:G>A`, TAGET representative `PB.7.4` has
+reference `G` (`0`), while `PB.7.5` and `PB.7.8` have alternate `A` (`1`). Their
+tumor full-length cluster counts are 68, 2, and 7, respectively. A 5.1 KB
+source-derived BAM with these three alignments is the regression fixture in
+`tests/data/colo829_polished/`.
+
+These are **sequence observations**, not allele-spanning original-read counts,
+mutant protein calls, or a statement that the same passages carry a mutation.
+The SMaHT DNA and TAGET RNA come from different studies. In particular, 125
+alternate-sequence pairs also have a nonzero TAGET normal cluster count; this
+audit cannot explain those shared counts. Indels and SV breakpoints still need
+separate alignment and haplotype checks. HCC1395 RNA remains unevaluated.
+
+To rebuild the sequence audit after downloading the files listed here and the
+NCBI FASTA, run:
+
+```sh
+minimap2 -ax splice:hq -uf -t 6 GRCh38-no-alt.fa colo829-final.rep.fq \
+  | samtools sort -o colo829-polished.grch38.bam -
+samtools faidx GRCh38-no-alt.fa
+python reports/hcc1395_colo829/build_polished_alleles.py \
+  --bam colo829-polished.grch38.bam \
+  --vcf Truthset_SNV_COLO829.vcf.gz \
+  --reference GRCh38-no-alt.fa \
+  --counts colo829-fl-count.txt
+```
 
 The selected DNA call sets are bounded by their own reference regions, filters,
 variant representations, and cell passages. They are not a claim that all
@@ -89,9 +147,9 @@ interpretations cannot be inferred from DNA coordinates alone.
 2. Replay each small variant and SV breakpoint with Isovar, recording allele
    reads/fragments, coverage, full versus local protein status, and all
    alternative isoforms. Mark uncallable and unsupported separately.
-3. For COLO829, align each polished representative sequence to the same
-   reference and compare with original reads. Report full-length counts in a
-   separate field; never substitute them for variant-spanning witnesses.
+3. For COLO829, compare the polished-sequence observations above with original
+   reads. Never substitute full-length cluster counts for variant-spanning
+   witnesses. Extend the allele audit to indels and validated SV breakpoints.
 4. Join the outputs to this complete source-record inventory and retain call
    set, reference build, sample passage, and source hash per row.
 
@@ -110,3 +168,4 @@ interpretations cannot be inferred from DNA coordinates alone.
 | COLO829 TAGET full-length count table | `c54e284479ddb78714a30e03dfdec04e38b2d45fbb26f0a96717d83e5e9d80d9` |
 | COLO829 TAGET tumor GFF | `506488c868150e35358514fd1b9528ca4070ed0f4297e50d42364ad6594f1b94` |
 | COLO829 TAGET representative FASTQ | `6b008d7610c03bdcc62e716bd365f4b448badc9c77554c58574068c7c9ab487b` |
+| NCBI GRCh38 no-alt FASTA gzip | `fb4243ebb014caf27111f24dd62b7ce42160f28581da6f8fcd6cba5977778d02` |
