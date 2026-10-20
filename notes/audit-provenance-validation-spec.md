@@ -25,12 +25,13 @@ The [live dependency check](data/audit-validation-dependencies.json) records the
 Python 3.14.6 macOS ARM64 release environment, including the downloaded artifact
 SHA-256 values checked against PyPI. All 70 dependencies and release tools matched
 their latest non-yanked stable releases on 2026-10-14. This is a validation
-snapshot, not a cross-platform installation lock. CI also tests Python 3.9, 3.10
-and 3.11 with the newest compatible releases available to each interpreter.
+snapshot, not a cross-platform installation lock. That validation's CI tested
+Python 3.9, 3.10 and 3.11 with the newest compatible releases available to each
+interpreter; current Isovar releases require Python 3.11 or later.
 
-The release environment now uses PyEnsembl 2.27.3, Varcode 10.15.0,
-Orfdata 0.18.0 and osteosarc 0.15.5. Existing version ranges
-retain older Python support. The completed ONT producer and installed replay
+The release environment used PyEnsembl 2.27.3, Varcode 10.15.0,
+Orfdata 0.18.0 and osteosarc 0.15.5. Existing version ranges retained older
+Python support at that time. The completed ONT producer and installed replay
 retain their exact original environments. Their [frozen replay dependency
 catalogue](data/sid-sv-recovery/ont-completion/frozen-replay-dependencies.json)
 is preserved separately from these current release pins. Historical scientific
