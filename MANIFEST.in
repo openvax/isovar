@@ -8,6 +8,7 @@ include examples/osteosarc_sv_validation.py
 include examples/build_uorf_catalog.py
 include examples/benchmark_antigen_isoforms.py
 include examples/benchmark_viral_sequences.py
+include examples/wlos0001_tp53.py
 include notes/cta-isoforms-validation.md notes/gdc-viral-reconstruction-validation.md
 include notes/viral-coding-validation.md
 include notes/data/cta-isoforms-experiment.json notes/data/gdc-viral-sequence-experiment.json
@@ -21,3 +22,4 @@ include tests/data/osteosarc/expansion/references.py
 include tests/data/osteosarc/expansion/inventory.py
 recursive-include tests/data/fusions *.py *.md *.json *.gz
 recursive-include tests/data/viral *.json *.gz
+recursive-include tests/data/wlos0001_tp53 *
