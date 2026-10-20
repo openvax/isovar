@@ -264,6 +264,12 @@ benchmark records, with their data. They are not usage guides.
 - [Tumor-RNA audit](https://github.com/openvax/isovar/blob/master/tests/data/osteosarc/SAMPLE_AUDIT.md):
   a sample-by-sample RNA and protein audit of six osteosarc loci in two RNA
   sources, made for Isovar 1.8.0.
+- [WLOS_0001 canine TP53 example](https://github.com/openvax/isovar/blob/master/tests/data/wlos0001_tp53/README.md):
+  a published matched-normal tumor DNA call replayed against original,
+  region-extracted tumor RNA reads in a small offline fixture.
+- [HCC1395 and COLO829 source audit](https://github.com/openvax/isovar/blob/master/reports/hcc1395_colo829/README.md):
+  published somatic call inventories, including SVs, and COLO829 polished
+  isoform counts, with explicit RNA-support status for every source row.
 
 ## Citing Isovar
 
