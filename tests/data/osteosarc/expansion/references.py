@@ -145,6 +145,9 @@ def reference_genome(directory, cache):
         transcript_fasta_paths_or_urls=[str(directory / "reference.cdna.fa.gz")],
         protein_fasta_paths_or_urls=[str(directory / "reference.pep.fa.gz")],
         copy_local_files_to_cache=True, cache_directory_path=str(Path(cache) / dataset_identity))
+    # The hashed subset identity is not a registered species name. Its human
+    # mitochondrial transcripts use NCBI genetic code 2, as in the source models.
+    genome.mitochondrial_translation_table = 2
     genome.index()
     return genome
 
