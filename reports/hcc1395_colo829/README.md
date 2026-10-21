@@ -1,12 +1,12 @@
 # HCC1395 and COLO829: source-call and RNA-isoform audit
 
-Date: 2026-10-20, with a 2026-10-21 COLO829 whole-run extension. This
+Date: 2026-10-20, with 2026-10-21 whole-run extensions. This
 inventory enumerates every record in the selected public DNA call sets and
 every row in TAGET's COLO829 polished-isoform count
-table. A bounded original-RNA replay now tests selected coding SNVs in both
-cell lines. The source inventory remains broader than the original bounded
-test subset; [COLO829_ATLAS.md](COLO829_ATLAS.md) reports a complete original-
-RNA run over all COLO829 source calls.
+table. Bounded original-RNA replays test selected coding SNVs in both cell
+lines; [HCC1395_ATLAS.md](HCC1395_ATLAS.md) and
+[COLO829_ATLAS.md](COLO829_ATLAS.md) extend original-read status to every
+selected small-variant source record and screen their SV sources.
 
 ## Deliverables
 
@@ -15,12 +15,16 @@ RNA run over all COLO829 source calls.
   listed separately, and every SV benchmark record has a breakpoint evidence
   screen. Its 10 MB indexed source-read BAM is committed under
   `tests/data/colo829_whole_run/` for offline replay.
+- [HCC1395 whole-run atlas](HCC1395_ATLAS.md): every SEQC2 SNV/indel has an
+  original direct-RNA allele status and local protein context outcome; every
+  Talsania SV has a breakend screen. A bounded source-read BAM under
+  `tests/data/hcc1395_whole_run/` replays informative calls offline.
 - `somatic_call_inventory.tsv.gz`: 89,112 source records, preserving source
   identity, class, coordinates, allele where available, DNA filter/support,
   and published HCC1395 fusion annotation where it directly matches the SV.
   Its `rna_status=not_evaluated` column refers to the original inventory date;
   use `original_rna_protein_calls.tsv` for the bounded subset and the
-  [COLO829 whole-run atlas](COLO829_ATLAS.md) for all COLO829 calls.
+  whole-run atlas tables for each cell line.
 - `colo829_polished_isoform_counts.tsv.gz`: all 68,553 transcript IDs from
   TAGET's `final.mapped_fl_count.txt`, their COLO829T/COLO829BL full-length
   counts, and the tumor GFF interval where present. The 51,387 tumor-positive
@@ -161,9 +165,9 @@ repository root to regenerate the two original RNA tables. The protein calls
 use Ensembl 87, Isovar's default read and translation settings, and zero-based
 mutation intervals. An `NA` protein sequence with `no_translation` is an
 evaluated, allele-supported outcome. The full DNA inventory and polished
-isoform files retain `not_evaluated` for all other variant/assay combinations,
-including indels and SVs; no breakpoint-spanning original RNA or SV-derived
-protein is asserted here.
+isoform files retain their original `not_evaluated` values; the newer atlases
+provide small-variant outcomes and separate SV screens. Neither atlas asserts
+an SV-derived protein.
 Protein positions depend on the selected reference transcript: for example,
 Varcode's top SYT14 effect is p.S682F under Ensembl 87 and p.S354F under
 Ensembl 95 for the same genomic call.
@@ -264,11 +268,10 @@ interpretations cannot be inferred from DNA coordinates alone.
 
 ## Remaining analysis
 
-The HCC1395 original RNA fixture tests selected coding SNVs; its whole-run
-follow-up remains in #533. The COLO829 whole-run atlas now assigns RNA
-support statuses to its 46,064 small variants and screens both SV benchmarks
-for breakend coverage. Symbolic SVs still require path-aware breakpoint RNA
-analysis and separate ORF reconstruction. A full-length mutant isoform also
+The HCC1395 and COLO829 whole-run atlases assign RNA support statuses to
+their small variants and screen their source SV records for breakend evidence.
+SVs still require path-aware breakpoint RNA analysis and separate ORF
+reconstruction. A full-length mutant isoform also
 requires read linkage across its splice chain; the local protein fragments in
 this report do not assert that linkage. Direct RNA and cDNA disagreement at
 translation stage should be evaluated with read-quality-aware consensus, not
