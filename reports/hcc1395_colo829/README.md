@@ -1,18 +1,17 @@
 # HCC1395 and COLO829: source-call and RNA-isoform audit
 
-Date: 2026-10-20. This is a **source inventory and COLO829 polished-sequence
-SNV audit**, separate from the Isovar WLOS_0001 test. It enumerates every
-record in the selected public DNA call sets and every row in TAGET's COLO829
-polished-isoform count table. No original HCC1395 or COLO829 RNA read set has
-been replayed against these calls, and no variant-specific mutant protein
-sequence is asserted.
+Date: 2026-10-20. This inventory enumerates every record in the selected
+public DNA call sets and every row in TAGET's COLO829 polished-isoform count
+table. A bounded original-RNA replay now tests selected coding SNVs in both
+cell lines. The source inventory remains broader than the tested subset.
 
 ## Deliverables
 
 - `somatic_call_inventory.tsv.gz`: 89,112 source records, preserving source
   identity, class, coordinates, allele where available, DNA filter/support,
   and published HCC1395 fusion annotation where it directly matches the SV.
-  All `rna_status` values are `not_evaluated`.
+  Its `rna_status=not_evaluated` column refers to the original inventory date;
+  use `original_rna_protein_calls.tsv` for the subsequently evaluated subset.
 - `colo829_polished_isoform_counts.tsv.gz`: all 68,553 transcript IDs from
   TAGET's `final.mapped_fl_count.txt`, their COLO829T/COLO829BL full-length
   counts, and the tumor GFF interval where present. The 51,387 tumor-positive
@@ -33,6 +32,24 @@ sequence is asserted.
   records rather than merging independently defined benchmarks.
 - `build_polished_alleles.py` rebuilds the two SNV allele tables from the
   versioned reference, SMaHT VCF, TAGET count table, and spliced BAM.
+- `original_rna_protein_calls.tsv`: selected SEQC2 and SMaHT coding SNVs,
+  separate original RNA read counts and Isovar protein calls per run, plus
+  separate TAGET polished-sequence allele counts where available. `ref_reads`,
+  `alt_reads`, and `other_reads` count Isovar allele-read objects after its
+  default mate handling; `alt_source_reads` sums their original read counts.
+  `protein_supporting_fragments` is support for the reported translation.
+- `original_rna_alt_witnesses.tsv`: original alternate-read IDs and their
+  source-read counts, linked to the indexed BAMs under
+  `tests/data/hcc1395_colo829_original/`.
+- `build_original_rna_report.py` rebuilds the selected-call and witness tables
+  offline from the bounded BAMs and Ensembl 87 annotation.
+- `extract_original_rna_vcfs.py` rebuilds the two bounded VCF fixtures from
+  the exact SEQC2 and SMaHT source records. SEQC2 uses the compound filter
+  `PASS;HighConf`; Varcode requires `only_passing=False` to retain those
+  source records when loading the test fixture.
+- `colo829_original_spot_ids.tsv` pins the 2,067 original SRA pair IDs used
+  for the COLO829 fixture; `extract_colo829_original_pairs.py` recovers those
+  pairs using SRA Toolkit `fastq-dump`.
 
 To rebuild, install `openpyxl`, download the linked files below, and place
 them in one directory under these names:
@@ -69,23 +86,118 @@ values below before interpreting the output.
 | COLO829 | [Valle-Inclán et al. 2022 SV](https://zenodo.org/records/4716169) | 134 VCF records | Earlier 68-event truth set lifted to GRCh38; breakends and other events can occupy multiple VCF records. Keep separate from v2. |
 | COLO829 | [TAGET polished isoforms](https://zenodo.org/records/8319497) | 68,553 transcript-count rows | 51,387 have COLO829T full-length count > 0; 56,568 have COLO829BL count > 0. RNA source is a different study/culture from the SMaHT DNA truth set. |
 
-## What the RNA evidence presently says
+## Original RNA replay and scope
 
-- **HCC1395:** Original long-read tumor RNA is available as
-  [PRJNA934933](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA934933), including
-  ONT direct RNA SRR23456709. Its ENA FASTQ is 1,167,327,234 compressed bytes.
-  An SRA `sam-dump --aligned-region` trial emitted unaligned whole-run data,
-  so there is no verified region-only aligned fixture from that accession.
-  The Talsania Table S9 fusion names are external RNA evidence for 24 events,
-  not original-read Isovar mutant-isoform support or a complete protein ORF.
-- **COLO829:** TAGET supplies full-length counts, a tumor GFF, and 450 MB of
-  polished representative transcript sequences. A preliminary length audit
-  found only 220 of the first 702 GFF-matched representative sequences had
-  length equal to the sum of their GFF exons. Thus a direct genomic-coordinate
-  to polished-sequence offset is invalid for most isoforms. The spliced
-  alignment below now tests **SNV alleles in polished sequences**. Even when an
-  allele is present, the full-length count is support for the isoform cluster,
-  not a count of original reads crossing that allele.
+The [HCC1395 ONT direct RNA run SRR23456709](https://www.ncbi.nlm.nih.gov/sra/SRR23456709)
+has 1,049,452 reads. We extracted its first 100,000 original reads with NCBI
+SRA Toolkit 3.4.1, aligned them to the NCBI GRCh38 no-alt analysis set with
+minimap2 2.26 (`-ax splice -uf -k14`), and retained alignments overlapping the
+OSTC and PRDX5 loci in an indexed BAM. Both SEQC2 variants have alternate
+reads: OSTC F9L has 9, PRDX5 F157L has 18 under Isovar's default read rules.
+The matched-normal SEQC2 VCF records report tumor/normal VAF of 0.490/0.001
+for OSTC and 0.442/0.002 for PRDX5; these are DNA call-set values, not RNA
+fractions.
+Default Isovar translation produces no protein sequence from these direct RNA
+subsets. A one-read, relaxed-coverage translation is possible but is not
+reported as a supported mutant protein call. This is a measured limitation of
+these noisy long-read subsets, not absence of the alleles.
+
+We also streamed the first 100,000 original reads of the independent
+[HCC1395 ONT direct cDNA run SRR23456710](https://www.ncbi.nlm.nih.gov/sra/SRR23456710)
+through minimap2 (`-ax splice -k14`) and retained the same loci. At SEQC2
+PRDX5 F157L, Isovar finds 41 reference, 24 alternate, and 2 other reads;
+the top mutant protein is `GKVRLLADPTGALGKETDLLLDDSL`, with leucine at
+zero-based `[12,13)` and six supporting fragments. OSTC F9L has two alternate
+cDNA reads but no default translation. The Talsania Table S9 fusion names
+remain external RNA evidence for 24 events, not original-read Isovar
+mutant-isoform support or a complete protein ORF.
+An [independent HCC1395 proteogenomics study](https://pmc.ncbi.nlm.nih.gov/articles/PMC11419083/)
+reports PRDX5 F-to-L and OSTC F-to-L variant peptides from SEQC2 truth calls.
+That peptide observation supports the mutated residue but does not validate
+the entire Isovar protein context or establish that these RNA cultures are
+identical to the study's proteomics culture.
+
+The [COLO829 original paired-end RNA run SRR8615617](https://www.ncbi.nlm.nih.gov/sra/SRR8615617)
+is a separate CCLE culture from both the SMaHT tumor/normal DNA and TAGET
+long-read RNA. Its archived alignment uses **GRCh37**, while the SMaHT calls
+use **GRCh38**. We mapped eight selected SMaHT coding sites through the
+[UCSC hg38ToHg19 chain](https://hgdownload.soe.ucsc.edu/goldenPath/hg38/liftOver/hg38ToHg19.over.chain.gz),
+queried the SRA `PRIMARY_ALIGNMENT` table at those positions, resolved each
+alignment's `SEQ_SPOT_ID`, recovered 2,067 original read pairs, and realigned
+them with minimap2 (`-ax sr`) to the NCBI GRCh38 reference. Isovar translates
+seven of the eight selected alleles from those original reads. The extraction
+depends on the archive's GRCh37 alignments, so its counts are bounded evidence
+from those mapped spots, not exhaustive whole-run coverage.
+The SMaHT VCF marks these records `MUT_ORIGIN=COLO829T` relative to its
+COLO829BL matched normal; the TAGET normal isoform counts come from a distinct
+library and cannot redefine that DNA baseline.
+The spot table regenerates paired FASTQs with SHA-256 values
+`1c5d4dc8795f1ff129367485a7dc39c405f4f8341b28f31bdf3a49557351b308`
+(R1) and `914b2cd16a128b7255720f12349133a3efe5eef61988950d178552cfa7bc9fa0`
+(R2).
+
+For example, COLO829 NAXD `chr13:110634738:C>T` (Ensembl 87 p.P205S) has
+104 reference and 81 alternate Isovar reads, representing 94 original source
+reads. Isovar's top sequence is `LWLVAQQPALIHGYRKAVLTSNHVEFSRLYDAV`, with
+serine at the zero-based interval `[20,21)` and 59 supporting fragments. The
+independent TAGET comparison has four tumor-positive alternate representative
+isoforms and zero normal alternate representatives at this site. These are
+different assays and counts. SMG5, TNPO1, and ARHGAP5 also have alternate
+TAGET normal representatives despite being selected from a SMaHT somatic DNA
+set; the distinct cell-line cultures and source definitions must remain visible.
+
+The bounded BAMs and `original_rna_candidates.tsv` are the offline test data.
+Run `python reports/hcc1395_colo829/build_original_rna_report.py` from the
+repository root to regenerate the two original RNA tables. The protein calls
+use Ensembl 87, Isovar's default read and translation settings, and zero-based
+mutation intervals. An `NA` protein sequence with `no_translation` is an
+evaluated, allele-supported outcome. The full DNA inventory and polished
+isoform files retain `not_evaluated` for all other variant/assay combinations,
+including indels and SVs; no breakpoint-spanning original RNA or SV-derived
+protein is asserted here.
+Protein positions depend on the selected reference transcript: for example,
+Varcode's top SYT14 effect is p.S682F under Ensembl 87 and p.S354F under
+Ensembl 95 for the same genomic call.
+To regenerate the VCFs from the pinned source downloads, run
+`python reports/hcc1395_colo829/extract_original_rna_vcfs.py --hcc-vcf
+hcc1395-seqc2-highconf-snv.vcf.gz --colo-vcf
+Truthset_SNV_COLO829.vcf.gz`.
+
+With NCBI SRA Toolkit 3.4.1, minimap2 2.26, samtools 1.21, and the NCBI
+GRCh38 no-alt FASTA, regenerate the original RNA alignments as follows
+(`$REF` is the FASTA path, `$DUMP` is the `fastq-dump` executable, and
+`$OUT` is a scratch directory):
+
+```sh
+python reports/hcc1395_colo829/extract_colo829_original_pairs.py \
+  --fastq-dump "$DUMP" --output-dir "$OUT/colo829"
+minimap2 -t 4 -ax sr "$REF" "$OUT/colo829/R1.fastq" "$OUT/colo829/R2.fastq" \
+  | samtools sort -o "$OUT/colo829/original.grch38.bam"
+samtools index "$OUT/colo829/original.grch38.bam"
+
+"$DUMP" -N 1 -X 100000 -Z SRR23456709 \
+  | minimap2 -t 4 -ax splice -uf -k14 "$REF" - \
+  | samtools view -h -b -L reports/hcc1395_colo829/hcc1395_candidate_regions.bed \
+      -o "$OUT/hcc1395_direct_unsorted.bam"
+samtools sort -o "$OUT/hcc1395_srr23456709.bam" "$OUT/hcc1395_direct_unsorted.bam"
+samtools index "$OUT/hcc1395_srr23456709.bam"
+
+"$DUMP" -N 1 -X 100000 -Z SRR23456710 \
+  | minimap2 -t 4 -ax splice -k14 "$REF" - \
+  | samtools view -h -b -L reports/hcc1395_colo829/hcc1395_candidate_regions.bed \
+      -o "$OUT/hcc1395_cdna_unsorted.bam"
+samtools sort -o "$OUT/hcc1395_srr23456710.bam" "$OUT/hcc1395_cdna_unsorted.bam"
+samtools index "$OUT/hcc1395_srr23456710.bam"
+```
+
+TAGET supplies full-length counts, a tumor GFF, and polished representative
+transcript sequences. A preliminary length audit found only 220 of the first
+702 GFF-matched representative sequences had length equal to the sum of their
+GFF exons. Thus a direct genomic-coordinate to polished-sequence offset is
+invalid for most isoforms. The spliced alignment below tests **SNV alleles in
+polished sequences**. Even when an allele is present, the full-length count is
+support for the isoform cluster, not a count of original reads crossing that
+allele.
 
 ## Binary allele observations from polished COLO829 isoforms
 
@@ -117,7 +229,8 @@ mutant protein calls, or a statement that the same passages carry a mutation.
 The SMaHT DNA and TAGET RNA come from different studies. In particular, 125
 alternate-sequence pairs also have a nonzero TAGET normal cluster count; this
 audit cannot explain those shared counts. Indels and SV breakpoints still need
-separate alignment and haplotype checks. HCC1395 RNA remains unevaluated.
+separate alignment and haplotype checks. The selected HCC1395 and COLO829
+original RNA results are in the source-separated table above.
 
 To rebuild the sequence audit after downloading the files listed here and the
 NCBI FASTA, run:
@@ -140,18 +253,16 @@ require callable coverage; zero supporting reads alone is not evidence of
 absence. SVs need breakpoint-spanning RNA analysis and their transcript/ORF
 interpretations cannot be inferred from DNA coordinates alone.
 
-## Next analysis needed for the requested mutant-isoform report
+## Remaining analysis
 
-1. Pin the exact tumor RNA library and GRCh38 build for each line; align its
-   original long reads and retain primary and alternative placements.
-2. Replay each small variant and SV breakpoint with Isovar, recording allele
-   reads/fragments, coverage, full versus local protein status, and all
-   alternative isoforms. Mark uncallable and unsupported separately.
-3. For COLO829, compare the polished-sequence observations above with original
-   reads. Never substitute full-length cluster counts for variant-spanning
-   witnesses. Extend the allele audit to indels and validated SV breakpoints.
-4. Join the outputs to this complete source-record inventory and retain call
-   set, reference build, sample passage, and source hash per row.
+The original RNA fixture tests selected coding SNVs. A whole-run replay is
+needed before assigning RNA support to the remaining 89,102 inventory rows.
+Indels and symbolic SVs require allele-specific or breakpoint-spanning RNA
+analysis and separate ORF reconstruction. A full-length mutant isoform also
+requires read linkage across its splice chain; the local protein fragments in
+this report do not assert that linkage. Direct RNA and cDNA disagreement at
+translation stage should be evaluated with read-quality-aware consensus, not
+silently filled from DNA annotation or polished representative counts.
 
 ## Input SHA-256
 
@@ -169,3 +280,26 @@ interpretations cannot be inferred from DNA coordinates alone.
 | COLO829 TAGET tumor GFF | `506488c868150e35358514fd1b9528ca4070ed0f4297e50d42364ad6594f1b94` |
 | COLO829 TAGET representative FASTQ | `6b008d7610c03bdcc62e716bd365f4b448badc9c77554c58574068c7c9ab487b` |
 | NCBI GRCh38 no-alt FASTA gzip | `fb4243ebb014caf27111f24dd62b7ce42160f28581da6f8fcd6cba5977778d02` |
+
+## Original RNA provenance
+
+The [ENA run file report](https://www.ebi.ac.uk/ena/portal/api/filereport?accession=SRR8615617&result=read_run&fields=run_accession,fastq_ftp,fastq_bytes,fastq_md5,read_count,base_count&format=tsv)
+lists SRR8615617 paired FASTQ MD5 values
+`799b4d8f1a2743df0d74aa34936253d3` and
+`41c9d6bcf4c330655ccb0cb33a7e260d`. The
+[HCC1395 ENA report](https://www.ebi.ac.uk/ena/portal/api/filereport?accession=SRR23456709&result=read_run&fields=run_accession,fastq_ftp,fastq_bytes,fastq_md5,read_count,base_count&format=tsv)
+lists SRR23456709 FASTQ MD5 `1f5d2a60c3158ae12e573a316bd846bb`.
+The [cDNA ENA report](https://www.ebi.ac.uk/ena/portal/api/filereport?accession=SRR23456710&result=read_run&fields=run_accession,fastq_ftp,fastq_bytes,fastq_md5,read_count,base_count&format=tsv)
+lists SRR23456710 MD5 `223d07e4e91a63a6380349758aa3ff09`.
+These are archive metadata for the full FASTQs; we did not download or
+rehash those full files. The bounded BAMs committed here have SHA-256 values:
+
+| Indexed original-read BAM | SHA-256 |
+|---|---|
+| HCC1395 direct RNA SRR23456709 | `b5d6b883b0a1982d3f53d582b14ff95656232f9f9ece626510c4cd899b3b9a09` |
+| HCC1395 direct cDNA SRR23456710 | `d46cd11d4da900634814c423345374210495f4417cf65466973c8a04b0081bb4` |
+| COLO829 paired RNA SRR8615617 | `459afe345fdae603123577774836399f64cc40ba5cfcdae78612c7f7f7643e55` |
+
+NCBI's [public SRA data policy](https://www.ncbi.nlm.nih.gov/sra/docs/sequence-data-processing/)
+states that public sequence data may be retrieved and redistributed. The
+bounded BAMs retain only source-derived reads around the selected loci.
