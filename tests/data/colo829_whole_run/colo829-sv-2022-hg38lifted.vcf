@@ -1,0 +1,786 @@
+##fileformat=VCFv4.1
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##INFO=<ID=SVLEN,Number=1,Type=Float,Description="Length of the SV>"
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of the SV">
+##INFO=<ID=SUPP_SEQ,Number=.,Type=String,Description="Vector of supporting technologies">
+##INFO=<ID=SUPP_VAL,Number=.,Type=String,Description="Vector of supporting technologies">
+##INFO=<ID=GENE,Number=.,Type=String,Description="Gene(s) overlap in breakpoint">
+##INFO=<ID=CLUSTER,Number=.,Type=String,Description="IDs of other clustered breakpoints">
+##contig=<ID=1,length=248956422,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=10,length=133797422,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=11,length=135086622,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=12,length=133275309,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=13,length=114364328,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=14,length=107043718,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=15,length=101991189,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=16,length=90338345,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=17,length=83257441,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=18,length=80373285,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=19,length=58617616,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=2,length=242193529,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=20,length=64444167,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=21,length=46709983,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=22,length=50818468,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=3,length=198295559,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=4,length=190214555,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=5,length=181538259,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=6,length=170805979,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=7,length=159345973,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=8,length=145138636,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=9,length=138394717,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG107_PATCH,length=135088590,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG109_PATCH,length=58617934,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG126_PATCH,length=198295908,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1277_PATCH,length=133754853,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1296_PATCH,length=190208697,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1298_PATCH,length=190196285,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1299_PATCH,length=190201596,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1309_PATCH,length=159365091,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1311_PATCH,length=50818486,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1320_PATCH,length=83207673,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1342_HG2282_PATCH,length=248929249,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1362_PATCH,length=133275314,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1384_PATCH,length=242195459,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1395_PATCH,length=181537525,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1398_PATCH,length=133274540,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG142_HG150_NOVEL_TEST,length=135094228,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1445_PATCH,length=135063159,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1466_PATCH,length=155848651,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1485_PATCH,length=50915261,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1506_PATCH,length=155994589,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1507_PATCH,length=155996656,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1509_PATCH,length=155994530,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG151_NOVEL_TEST,length=135097696,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1521_PATCH,length=135087279,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1523_PATCH,length=114458500,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1524_PATCH,length=114315104,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1531_PATCH,length=57177176,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1535_PATCH,length=57187419,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1651_PATCH,length=170779650,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1708_PATCH,length=135086620,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1815_PATCH,length=133281281,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1817_1_PATCH,length=114369395,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1832_PATCH,length=248959779,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG1_PATCH,length=107043717,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2002_PATCH,length=248942227,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2021_PATCH,length=58632883,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2022_PATCH,length=198295941,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2023_PATCH,length=190147504,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2030_PATCH,length=138394865,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2046_PATCH,length=83257439,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2047_PATCH,length=133275304,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2057_PATCH,length=170805979,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2058_PATCH,length=248956422,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2060_PATCH,length=135086593,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2062_PATCH,length=57262172,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2063_PATCH,length=133275140,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2066_PATCH,length=198295555,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2067_PATCH,length=145144434,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2068_PATCH,length=145140411,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2072_PATCH,length=170816182,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2087_PATCH,length=83260478,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2088_PATCH,length=159351667,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2095_PATCH,length=248959131,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2104_PATCH,length=248958259,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2111_PATCH,length=135089248,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2114_PATCH,length=135091163,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2115_PATCH,length=135092089,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2116_PATCH,length=135090698,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2121_PATCH,length=170808322,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2128_PATCH,length=170811684,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2133_PATCH,length=198299611,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2191_PATCH,length=133799479,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2198_PATCH,length=101993033,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2213_PATCH,length=80377536,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2216_PATCH,length=114376428,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2217_PATCH,length=135086621,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2232_PATCH,length=242193529,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2233_PATCH,length=242193535,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2235_PATCH,length=198295655,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2236_PATCH,length=198295537,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2237_PATCH,length=198290329,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2239_PATCH,length=159345319,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2241_PATCH,length=133792722,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2242_HG2243_PATCH,length=133797297,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2244_HG2245_PATCH,length=133797425,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2246_HG2248_HG2276_PATCH,length=133274640,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2247_PATCH,length=133274000,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2249_PATCH,length=114364211,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2263_PATCH,length=90338583,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2266_PATCH,length=159346106,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2285_HG106_HG2252_PATCH,length=83219555,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2288_HG2289_PATCH,length=114360394,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2290_PATCH,length=242235269,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2291_PATCH,length=114534236,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2334_PATCH,length=133797389,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2365_PATCH,length=102714182,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG23_PATCH,length=133275184,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2412_PATCH,length=80373284,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2419_PATCH,length=145138635,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2442_PATCH,length=80379182,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2471_PATCH,length=90341128,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2499_PATCH,length=102001626,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2509_PATCH,length=114364327,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2510_PATCH,length=107043717,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2511_PATCH,length=101991188,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2512_PATCH,length=50818467,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2513_PATCH,length=47068079,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG2525_PATCH,length=190293418,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG26_PATCH,length=58617652,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG28_PATCH,length=135088641,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG30_PATCH,length=181539112,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG439_PATCH,length=155960230,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG460_PATCH,length=248955838,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG494_PATCH,length=50818473,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG545_PATCH,length=133833661,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG563_PATCH,length=170759097,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG613_PATCH,length=138394874,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG699_PATCH,length=190211220,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG705_PATCH,length=190172551,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG708_PATCH,length=159270839,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG721_PATCH,length=242194216,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG76_PATCH,length=144938989,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG926_PATCH,length=90680781,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HG986_PATCH,length=248956639,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR10_1_CTG1,length=133844722,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR10_1_CTG2,length=133813485,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR10_1_CTG3,length=133783218,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR10_1_CTG4,length=133815819,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR10_1_CTG6,length=133801239,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_1_CTG1_1,length=135092355,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_1_CTG1_2,length=135096748,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_1_CTG2,length=135083598,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_1_CTG3,length=135090275,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_1_CTG3_1,length=135090845,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_1_CTG5,length=135097255,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_1_CTG6,length=135092332,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_1_CTG7,length=135085484,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_1_CTG8,length=135088433,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_2_CTG1,length=135093444,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_2_CTG1_1,length=135083841,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_2_CTG8,length=135117433,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR11_3_CTG1,length=135092180,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_1_CTG1,length=133279324,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_1_CTG2,length=133281368,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_1_CTG2_1,length=133284468,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_2_CTG1,length=133282237,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_2_CTG2,length=133307257,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_2_CTG2_1,length=133282358,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_3_CTG2,length=133271566,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_3_CTG2_1,length=133281486,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_4_CTG2,length=133277582,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_4_CTG2_1,length=133281351,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_5_CTG2,length=133275237,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_5_CTG2_1,length=133279478,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_6_CTG2_1,length=133275361,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_7_CTG2_1,length=133289478,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_8_CTG2_1,length=133282605,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR12_9_CTG2_1,length=133289677,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR13_1_CTG1,length=114348172,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR13_1_CTG2,length=114368315,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR13_1_CTG3,length=114370226,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR13_1_CTG4,length=114368332,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR13_1_CTG5,length=114365350,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR13_1_CTG6,length=114367169,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR13_1_CTG7,length=114374491,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR13_1_CTG8,length=114368996,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR14_1_CTG1,length=107047377,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR14_2_CTG1,length=107050862,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR14_3_CTG1,length=107067894,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR14_7_CTG1,length=107045728,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR14_8_CTG1,length=107050407,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR14_9_CTG1,length=107050362,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR15_1_CTG1,length=101998275,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR15_1_CTG3,length=101994657,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR15_1_CTG8,length=102002809,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR15_2_CTG3,length=101995966,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR15_2_CTG8,length=102003326,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR15_3_CTG3,length=101993763,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR15_3_CTG8,length=101999716,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR15_4_CTG8,length=102071387,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR15_5_CTG8,length=102070278,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR15_6_CTG8,length=101521929,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR16_1_CTG1,length=90426449,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR16_1_CTG3_1,length=90335239,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR16_2_CTG3_1,length=90343477,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR16_3_CTG1,length=90340304,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR16_3_CTG3_1,length=90346170,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR16_4_CTG1,length=90340369,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR16_4_CTG3_1,length=90343133,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR16_5_CTG1,length=90344275,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR16_5_CTG3_1,length=90338377,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR16_CTG2,length=90341867,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_10_CTG4,length=83359087,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_11_CTG4,length=83264946,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_12_CTG4,length=83271781,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_1_CTG1,length=83290495,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_1_CTG2,length=83256362,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_1_CTG4,length=83264766,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_1_CTG5,length=83552665,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_1_CTG9,length=83255504,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_2_CTG1,length=83259496,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_2_CTG2,length=83160220,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_2_CTG4,length=83263494,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_2_CTG5,length=83086355,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_3_CTG1,length=83267046,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_3_CTG2,length=83258211,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_3_CTG4,length=83269063,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_4_CTG4,length=83257896,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_5_CTG4,length=83247119,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_6_CTG4,length=83246071,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_7_CTG4,length=83058228,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_8_CTG4,length=83258474,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR17_9_CTG4,length=83263791,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_1_CTG1,length=80395815,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_1_CTG1_1,length=80380517,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_1_CTG2,length=80386177,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_1_CTG2_1,length=80382671,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_2_CTG1_1,length=80379367,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_2_CTG2,length=80442734,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_2_CTG2_1,length=80378720,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_3_CTG2_1,length=80379039,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_4_CTG1_1,length=80378406,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_5_CTG1_1,length=80378965,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_ALT21_CTG2_1,length=80376343,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR18_ALT2_CTG2_1,length=80376883,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_0010-5217-AB_CTG3_1,length=58538377,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_0019-4656-A_CTG3_1,length=58617441,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_0019-4656-B_CTG3_1,length=58675214,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_502960008-1_CTG3_1,length=58617609,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_502960008-2_CTG3_1,length=58616590,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_7191059-1_CTG3_1,length=58617649,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_7191059-2_CTG3_1,length=58617604,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_ABC08_A1_HAP_CTG3_1,length=58617625,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_ABC08_AB_HAP_C_P_CTG3_1,length=58618008,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_ABC08_AB_HAP_T_P_CTG3_1,length=58617636,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_CA01-TA01_1_CTG3_1,length=58617632,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_CA01-TA01_2_CTG3_1,length=58617647,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_CA01-TB01_CTG3_1,length=58645065,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_CA01-TB04_CTG3_1,length=58750420,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_CA04_CTG3_1,length=58537114,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_FH05_A_HAP_CTG3_1,length=58616795,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_FH05_B_HAP_CTG3_1,length=58689016,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_FH06_A_HAP_CTG3_1,length=58617587,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_FH06_BA1_HAP_CTG3_1,length=58603994,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_FH08_A_HAP_CTG3_1,length=58617658,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_FH08_BAX_HAP_CTG3_1,length=58647709,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_FH13_A_HAP_CTG3_1,length=58616725,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_FH13_BA2_HAP_CTG3_1,length=58662330,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_FH15_A_HAP_CTG3_1,length=58617473,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_FH15_B_HAP_CTG3_1,length=58689284,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_G085_A_HAP_CTG3_1,length=58617601,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_G085_BA1_HAP_CTG3_1,length=58603800,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_G248_A_HAP_CTG3_1,length=58617652,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_G248_BA2_HAP_CTG3_1,length=58661364,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_GRC212_AB_HAP_CTG3_1,length=58644315,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_GRC212_BA1_HAP_CTG3_1,length=58602595,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_HG2393_CTG3_1,length=58583172,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_HG2394_CTG3_1,length=58617630,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_HG2396_CTG3_1,length=58603982,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_LUCE_A_HAP_CTG3_1,length=58617634,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_LUCE_BDEL_HAP_CTG3_1,length=58631446,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_RP5_B_HAP_CTG3_1,length=58631402,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_RSH_A_HAP_CTG3_1,length=58617616,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_RSH_BA2_HAP_CTG3_1,length=58662237,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_T7526_A_HAP_CTG3_1,length=58617601,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19KIR_T7526_BDEL_HAP_CTG3_1,length=58631206,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19LRC_COX1_CTG3_1,length=58546647,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19LRC_COX2_CTG3_1,length=58288451,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19LRC_LRC_I_CTG3_1,length=58623235,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19LRC_LRC_J_CTG3_1,length=58650772,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19LRC_LRC_S_CTG3_1,length=58625321,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19LRC_LRC_T_CTG3_1,length=58561614,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19LRC_PGF1_CTG3_1,length=58546031,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19LRC_PGF2_CTG3_1,length=58355410,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19_1_CTG2,length=58624032,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19_1_CTG3_1,length=58624789,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19_2_CTG2,length=58627095,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19_2_CTG3_1,length=58618601,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19_3_CTG2,length=58625823,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19_3_CTG3_1,length=58625958,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19_4_CTG2,length=58619803,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19_4_CTG3_1,length=58625731,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR19_5_CTG2,length=58619095,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_1_CTG11,length=248961539,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_1_CTG3,length=248968406,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_1_CTG31,length=248973653,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_1_CTG32_1,length=248960143,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_2_CTG3,length=248975002,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_2_CTG31,length=248971826,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_2_CTG32_1,length=248962488,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_3_CTG3,length=248961700,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_3_CTG31,length=248967909,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_3_CTG32_1,length=248960761,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_4_CTG3,length=248963886,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_4_CTG31,length=248955631,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_4_CTG32_1,length=248958766,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_5_CTG3,length=248926662,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_5_CTG32_1,length=248960213,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_6_CTG3,length=248955842,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_8_CTG3,length=248962151,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_9_CTG3,length=248965380,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR1_ALT2_1_CTG32_1,length=248958866,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR20_1_CTG1,length=64450183,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR20_1_CTG2,length=64441059,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR20_1_CTG3,length=64447812,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR20_1_CTG4,length=64446453,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR21_1_CTG1_1,length=46722569,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR21_2_CTG1_1,length=46716685,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR21_3_CTG1_1,length=46715777,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR21_4_CTG1_1,length=46719541,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR21_5_CTG2,length=46712294,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR21_6_CTG1_1,length=46713516,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR21_8_CTG1_1,length=46713185,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_1_CTG1,length=50806372,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_1_CTG2,length=50788525,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_1_CTG3,length=50827573,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_1_CTG4,length=50824699,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_1_CTG5,length=50821308,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_1_CTG6,length=50842710,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_1_CTG7,length=50872732,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_2_CTG1,length=50830603,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_3_CTG1,length=50818468,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_4_CTG1,length=50806321,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_5_CTG1,length=50832153,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_6_CTG1,length=50815919,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_7_CTG1,length=50845852,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR22_8_CTG1,length=50832130,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_1_CTG1,length=242194896,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_1_CTG15,length=242198904,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_1_CTG5,length=242199562,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_1_CTG7,length=242193540,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_1_CTG7_2,length=242210518,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_2_CTG1,length=242198346,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_2_CTG15,length=242198544,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_2_CTG7,length=242223512,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_2_CTG7_2,length=242199609,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_3_CTG1,length=242195626,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_3_CTG15,length=242194292,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_3_CTG7_2,length=242194557,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_4_CTG1,length=242191076,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_4_CTG7_2,length=242196589,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_5_CTG7_2,length=242199685,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_6_CTG7_2,length=242198149,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_7_CTG7_2,length=242202531,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR2_8_CTG7_2,length=242199670,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_1_CTG1,length=198297480,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_1_CTG2_1,length=198306097,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_1_CTG3,length=198302882,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_2_CTG2_1,length=198298736,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_2_CTG3,length=198296961,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_3_CTG1,length=198300110,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_3_CTG2_1,length=198300421,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_3_CTG3,length=198293223,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_4_CTG1,length=198310749,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_4_CTG2_1,length=198301383,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_4_CTG3,length=198296867,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_5_CTG1,length=198305844,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_5_CTG2_1,length=198300594,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_5_CTG3,length=198293785,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_6_CTG2_1,length=198305007,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_6_CTG3,length=198294921,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_7_CTG2_1,length=198301024,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_7_CTG3,length=198294497,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_8_CTG2_1,length=198302280,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_8_CTG3,length=198295934,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_9_CTG2_1,length=198302489,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR3_9_CTG3,length=198291952,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_11_CTG12,length=190233769,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_12_CTG12,length=190221648,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_1_CTG12,length=190227204,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_1_CTG4,length=190221757,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_1_CTG6,length=190224838,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_1_CTG8_1,length=190218838,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_1_CTG9,length=190096932,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_2_CTG12,length=190206797,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_2_CTG4,length=190217898,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_3_CTG12,length=190218028,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_4_CTG12,length=190220704,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_5_CTG12,length=190219562,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_6_CTG12,length=190218533,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_7_CTG12,length=190225141,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_8_CTG12,length=190218480,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR4_9_CTG12,length=190219005,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_1_CTG1,length=181558402,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_1_CTG1_1,length=180863570,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_1_CTG5,length=181543736,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_2_CTG1,length=181547139,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_2_CTG1_1,length=180753562,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_2_CTG5,length=181542206,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_3_CTG1,length=181542495,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_3_CTG1_1,length=181554865,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_3_CTG5,length=181538569,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_4_CTG1,length=181537434,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_4_CTG1_1,length=181546281,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_5_CTG1,length=181539933,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_6_CTG1,length=181540245,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_7_CTG1,length=181544732,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_8_CTG1,length=181668817,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR5_9_CTG1,length=181543440,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_1_CTG10,length=170810830,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_1_CTG2,length=170833811,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_1_CTG3,length=170836231,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_1_CTG4,length=170808607,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_1_CTG5,length=170815302,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_1_CTG6,length=170818797,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_1_CTG7,length=170812567,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_1_CTG8,length=170810115,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_1_CTG9,length=170815583,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_8_CTG1,length=170813052,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_MHC_APD_CTG1,length=170845044,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_MHC_COX_CTG1,length=170727598,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_MHC_DBB_CTG1,length=170783898,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_MHC_MANN_CTG1,length=170959829,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_MHC_MCF_CTG1,length=170976334,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_MHC_QBL_CTG1,length=170734801,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR6_MHC_SSTO_CTG1,length=170946136,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_1_CTG1,length=159349278,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_1_CTG4_4,length=159348604,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_1_CTG6,length=159351981,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_1_CTG7,length=159346281,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_2_CTG1,length=159348294,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_2_CTG4_4,length=159333789,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_2_CTG6,length=159407160,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_2_CTG7,length=159349352,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_3_CTG1,length=159352526,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_3_CTG4_4,length=159441130,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR7_3_CTG6,length=159344441,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_1_CTG1,length=145124952,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_1_CTG6,length=145150400,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_1_CTG7,length=145142033,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_2_CTG1,length=145141567,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_2_CTG7,length=145141868,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_3_CTG1,length=145130612,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_3_CTG7,length=145125643,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_4_CTG1,length=145141010,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_4_CTG7,length=145143933,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_5_CTG1,length=145137619,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_5_CTG7,length=145144538,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_6_CTG1,length=145136257,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_6_CTG7,length=145141837,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_7_CTG1,length=145138198,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_7_CTG7,length=145147686,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_8_CTG1,length=145123326,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR8_9_CTG1,length=144983589,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR9_1_CTG1,length=138409529,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR9_1_CTG2,length=138402913,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR9_1_CTG3,length=138400797,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR9_1_CTG4,length=138405815,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR9_1_CTG5,length=138404305,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR9_1_CTG6,length=138399532,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHR9_1_CTG7,length=138399111,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHRX_1_CTG3,length=156043585,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHRX_2_CTG12,length=156053172,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHRX_2_CTG3,length=156039875,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=CHR_HSCHRX_3_CTG7,length=156050387,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000008.2,length=209709,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000009.2,length=201709,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000194.1,length=191469,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000195.1,length=182896,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000205.2,length=185591,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000208.1,length=92689,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000213.1,length=164239,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000214.1,length=137718,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000216.2,length=176608,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000218.1,length=161147,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000219.1,length=179198,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000220.1,length=161802,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000221.1,length=155397,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000224.1,length=179693,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000225.1,length=211173,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=GL000226.1,length=15008,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270302.1,length=2274,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270303.1,length=1942,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270304.1,length=2165,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270305.1,length=1472,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270310.1,length=1201,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270311.1,length=12399,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270312.1,length=998,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270315.1,length=2276,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270316.1,length=1444,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270317.1,length=37690,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270320.1,length=4416,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270322.1,length=21476,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270329.1,length=1040,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270330.1,length=1652,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270333.1,length=2699,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270334.1,length=1368,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270335.1,length=1048,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270336.1,length=1026,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270337.1,length=1121,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270338.1,length=1428,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270340.1,length=1428,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270362.1,length=3530,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270363.1,length=1803,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270364.1,length=2855,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270366.1,length=8320,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270371.1,length=2805,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270372.1,length=1650,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270373.1,length=1451,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270374.1,length=2656,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270375.1,length=2378,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270376.1,length=1136,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270378.1,length=1048,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270379.1,length=1045,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270381.1,length=1930,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270382.1,length=4215,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270383.1,length=1750,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270384.1,length=1658,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270385.1,length=990,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270386.1,length=1788,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270387.1,length=1537,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270388.1,length=1216,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270389.1,length=1298,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270390.1,length=2387,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270391.1,length=1484,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270392.1,length=971,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270393.1,length=1308,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270394.1,length=970,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270395.1,length=1143,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270396.1,length=1880,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270411.1,length=2646,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270412.1,length=1179,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270414.1,length=2489,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270417.1,length=2043,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270418.1,length=2145,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270419.1,length=1029,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270420.1,length=2321,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270422.1,length=1445,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270423.1,length=981,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270424.1,length=2140,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270425.1,length=1884,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270429.1,length=1361,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270435.1,length=92983,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270438.1,length=112505,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270442.1,length=392061,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270448.1,length=7992,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270465.1,length=1774,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270466.1,length=1233,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270467.1,length=3920,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270468.1,length=4055,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270507.1,length=5353,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270508.1,length=1951,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270509.1,length=2318,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270510.1,length=2415,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270511.1,length=8127,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270512.1,length=22689,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270515.1,length=6361,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270516.1,length=1300,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270517.1,length=3253,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270518.1,length=2186,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270519.1,length=138126,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270521.1,length=7642,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270522.1,length=5674,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270528.1,length=2983,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270529.1,length=1899,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270530.1,length=2168,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270538.1,length=91309,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270539.1,length=993,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270544.1,length=1202,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270548.1,length=1599,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270579.1,length=31033,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270580.1,length=1553,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270581.1,length=7046,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270582.1,length=6504,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270583.1,length=1400,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270584.1,length=4513,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270587.1,length=2969,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270588.1,length=6158,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270589.1,length=44474,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270590.1,length=4685,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270591.1,length=5796,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270593.1,length=3041,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270706.1,length=175055,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270707.1,length=32032,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270708.1,length=127682,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270709.1,length=66860,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270710.1,length=40176,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270711.1,length=42210,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270712.1,length=176043,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270713.1,length=40745,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270714.1,length=41717,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270715.1,length=161471,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270716.1,length=153799,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270717.1,length=40062,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270718.1,length=38054,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270719.1,length=176845,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270720.1,length=39050,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270721.1,length=100316,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270722.1,length=194050,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270723.1,length=38115,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270724.1,length=39555,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270725.1,length=172810,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270726.1,length=43739,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270727.1,length=448248,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270728.1,length=1872759,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270729.1,length=280839,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270730.1,length=112551,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270731.1,length=150754,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270732.1,length=41543,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270733.1,length=179772,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270734.1,length=165050,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270735.1,length=42811,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270736.1,length=181920,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270737.1,length=103838,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270738.1,length=99375,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270739.1,length=73985,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270740.1,length=37240,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270741.1,length=157432,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270742.1,length=186739,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270743.1,length=210658,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270744.1,length=168472,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270745.1,length=41891,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270746.1,length=66486,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270747.1,length=198735,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270748.1,length=93321,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270749.1,length=158759,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270750.1,length=148850,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270751.1,length=150742,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270752.1,length=27745,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270753.1,length=62944,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270754.1,length=40191,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270755.1,length=36723,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270756.1,length=79590,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=KI270757.1,length=71251,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=MT,length=16569,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=X,length=156040895,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##contig=<ID=Y,length=57227415,assembly=Homo_sapiens.GRCh38.dna.toplevel.fa>
+##liftOverProgram=CrossMap(https://sourceforge.net/projects/crossmap/)
+##liftOverFile=/net/isilonP/public/ro/ensweb-data/latest/tools/www/e102/assembly_converter/homo_sapiens/GRCh37_to_GRCh38.chain.gz
+##new_reference_genome=/net/isilonP/public/ro/ensweb-data/latest/tools/www/e102/assembly_converter/homo_sapiens/Homo_sapiens.GRCh38.dna.toplevel.fa
+##liftOverTime=January22,2021
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	COLO829T
+X	34041661	truthset_68_1	C	C[X:34044588[	.	PASS	SVLEN=2927;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	1/1
+X	34044588	truthset_68_2	G	]X:34041661]C	.	PASS	SVLEN=2927;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	1/1
+14	104093751	truthset_50_1	G	G[14:104093806[	.	PASS	SVLEN=55;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=NOT_VALIDATED;GENE=ASPG;CLUSTER=.	GT	1/1
+14	104093806	truthset_50_2	G	]14:104093751]G	.	PASS	SVLEN=55;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=NOT_VALIDATED;GENE=ASPG;CLUSTER=.	GT	1/1
+15	23440461	truthset_52_1	T	[20:38645825[C	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=truthset_19,truthset_20,truthset_53,truthset_54,truthset_55	GT	0/1
+20	38645825	truthset_52_2	C	[15:23440461[C	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=truthset_19,truthset_20,truthset_53,truthset_54,truthset_55	GT	0/1
+20	15019977	truthset_61_1	A	A[20:15033196[	.	PASS	SVLEN=13219;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=MACROD2;CLUSTER=truthset_61	GT	0/1
+20	15033196	truthset_61_2	A	]20:15019977]A	.	PASS	SVLEN=13219;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=MACROD2;CLUSTER=truthset_61	GT	0/1
+20	14982311	truthset_60_1	G	G[20:15033302[	.	PASS	SVLEN=50991;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=MACROD2;CLUSTER=truthset_62	GT	0/1
+20	15033302	truthset_60_2	T	]20:14982311]G	.	PASS	SVLEN=50991;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=MACROD2;CLUSTER=truthset_62	GT	0/1
+22	33363263	truthset_63_1	A	A[22:33442413[	.	PASS	SVLEN=79150;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=LARGE;CLUSTER=.	GT	0/1
+22	33442413	truthset_63_2	G	]22:33363263]A	.	PASS	SVLEN=79150;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=LARGE;CLUSTER=.	GT	0/1
+15	23461732	truthset_53_1	C	]20:38646024]C	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=truthset_19,truthset_20,truthset_52,truthset_54,truthset_55	GT	0/1
+20	38646024	truthset_53_2	A	C[15:23461732[	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=truthset_19,truthset_20,truthset_52,truthset_54,truthset_55	GT	0/1
+15	23586513	truthset_54_1	A	A]15:23747553]	.	PASS	SVLEN=161040;SVTYPE=INV;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=truthset_19,truthset_20,truthset_52,truthset_53,truthset_54	GT	0/1
+15	23747553	truthset_54_2	G	A]15:23586513]	.	PASS	SVLEN=161040;SVTYPE=INV;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=truthset_19,truthset_20,truthset_52,truthset_53,truthset_54	GT	0/1
+X	31178826	truthset_64_1	A	A[X:31198094[	.	PASS	SVLEN=19268;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=DMD;CLUSTER=.	GT	0/1
+X	31198094	truthset_64_2	A	]X:31178826]A	.	PASS	SVLEN=19268;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=DMD;CLUSTER=.	GT	0/1
+X	32080415	truthset_67_1	C	A[X:32183134[	.	PASS	SVLEN=102719;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=DMD;CLUSTER=.	GT	0/1
+X	32183134	truthset_67_2	C	]X:32080415]A	.	PASS	SVLEN=102719;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=DMD;CLUSTER=.	GT	0/1
+X	32059738	truthset_66_1	G	G[X:32274980[	.	PASS	SVLEN=215242;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=CAPTURE,BIONANO;GENE=DMD;CLUSTER=.	GT	0/1
+X	32274980	truthset_66_2	T	]X:32059738]G	.	PASS	SVLEN=215242;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=CAPTURE,BIONANO;GENE=DMD;CLUSTER=.	GT	0/1
+12	91767370	truthset_47_1	A	C[12:91767405[	.	PASS	SVLEN=35;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=.	GT	0/1
+12	91767405	truthset_47_2	A	]12:91767370]C	.	PASS	SVLEN=35;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=.	GT	0/1
+11	81074557	truthset_46_1	G	T[11:81382737[	.	PASS	SVLEN=308180;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	0/1
+11	81382737	truthset_46_2	A	]11:81074557]T	.	PASS	SVLEN=308180;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	0/1
+10	87940542	truthset_45_1	A	A[10:87952584[	.	PASS	SVLEN=12042;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=PTEN;CLUSTER=.	GT	1/1
+10	87952584	truthset_45_2	A	]10:87940542]A	.	PASS	SVLEN=12042;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=PTEN;CLUSTER=.	GT	1/1
+10	81882050	truthset_44_1	T	T[10:82067910[	.	PASS	SVLEN=185860;SVTYPE=DEL;SUPP_SEQ=ILL;SUPP_VAL=PCR;GENE=NRG3;CLUSTER=.	GT	0/1
+10	82067910	truthset_44_2	A	]10:81882050]T	.	PASS	SVLEN=185860;SVTYPE=DEL;SUPP_SEQ=ILL;SUPP_VAL=PCR;GENE=NRG3;CLUSTER=.	GT	0/1
+7	126458436	truthset_29_1	T	[7:126527387[G	.	PASS	SVLEN=68951;SVTYPE=INV;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE;GENE=GRM8;CLUSTER=.	GT	0/1
+7	126527387	truthset_29_2	A	[7:126458436[G	.	PASS	SVLEN=68951;SVTYPE=INV;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE;GENE=GRM8;CLUSTER=.	GT	0/1
+7	126106071	truthset_28_1	G	G[7:126526847[	.	PASS	SVLEN=420776;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=CAPTURE;GENE=GRM8;CLUSTER=.	GT	0/1
+7	126526847	truthset_28_2	G	]7:126106071]G	.	PASS	SVLEN=420776;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=CAPTURE;GENE=GRM8;CLUSTER=.	GT	0/1
+10	33097525	truthset_41_1	T	T[10:35830133[	.	PASS	SVLEN=2732608;SVTYPE=DEL;SUPP_SEQ=ILL;SUPP_VAL=PCR;GENE=.;CLUSTER=truthset_1	GT	0/1
+10	35830133	truthset_41_2	T	]10:33097525]T	.	PASS	SVLEN=2732608;SVTYPE=DEL;SUPP_SEQ=ILL;SUPP_VAL=PCR;GENE=.;CLUSTER=truthset_1	GT	0/1
+10	7592410	truthset_40_1	A	[18:9868620[A	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE;GENE=ITIH5;CLUSTER=truthset_38,truthset_39	GT	0/1
+18	9868620	truthset_40_2	C	[10:7592410[A	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE;GENE=ITIH5;CLUSTER=truthset_38,truthset_39	GT	0/1
+7	86215352	truthset_25_1	A	]7:86224384]A	.	PASS	SVLEN=9032;SVTYPE=DUP;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	0/1
+7	86224384	truthset_25_2	A	A[7:86215352[	.	PASS	SVLEN=9032;SVTYPE=DUP;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	0/1
+7	78560889	truthset_24_1	G	G[7:78628369[	.	PASS	SVLEN=67479;SVTYPE=DEL;SUPP_SEQ=ILL,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=MAGI2;CLUSTER=.	GT	0/1
+7	78628369	truthset_24_2	G	]7:78560889]G	.	PASS	SVLEN=67479;SVTYPE=DEL;SUPP_SEQ=ILL,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=MAGI2;CLUSTER=.	GT	0/1
+7	110753276	truthset_27_1	T	T[7:110754405[	.	PASS	SVLEN=1129;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=IMMP2L;CLUSTER=.	GT	0/1
+7	110754405	truthset_27_2	T	]7:110753276]T	.	PASS	SVLEN=1129;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=IMMP2L;CLUSTER=.	GT	0/1
+7	104844621	truthset_26_1	G	]7:104971855]T	.	PASS	SVLEN=127234;SVTYPE=DUP;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=LHFPL3;CLUSTER=.	GT	0/1
+7	104971855	truthset_26_2	G	T[7:104844621[	.	PASS	SVLEN=127234;SVTYPE=DUP;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=LHFPL3;CLUSTER=.	GT	0/1
+7	52372658	truthset_21_1	G	T[7:52372691[	.	PASS	SVLEN=33;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=.	GT	0/1
+7	52372691	truthset_21_2	G	]7:52372658]T	.	PASS	SVLEN=33;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=.	GT	0/1
+6	138453044	truthset_20_1	T	G]15:23467470]	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=NSHL1;CLUSTER=truthset_19,truthset_52,truthset_53,truthset_54,truthset_55	GT	0/1
+15	23467470	truthset_20_2	G	G]6:138453044]	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=NSHL1;CLUSTER=truthset_19,truthset_52,truthset_53,truthset_54,truthset_55	GT	0/1
+7	78352522	truthset_23_1	C	C[7:78452931[	.	PASS	SVLEN=100409;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=MAGI2;CLUSTER=.	GT	0/1
+7	78452931	truthset_23_2	G	]7:78352522]C	.	PASS	SVLEN=100409;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=MAGI2;CLUSTER=.	GT	0/1
+7	57403873	truthset_22_1	G	C[7:57436405[	.	PASS	SVLEN=24534;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	0/1
+7	57436405	truthset_22_2	G	]7:57403873]C	.	PASS	SVLEN=24534;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	0/1
+14	105867667	truthset_51_1	C	<INS>	.	PASS	SVLEN=100;SVTYPE=INS;SUPP_SEQ=PB;SUPP_VAL=PCR;GENE=.;CLUSTER=.	GT	0/1
+10	7090912	truthset_39_1	G	A[19:17286835[	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE;GENE=ANKLE1;CLUSTER=truthset_38,truthset_40	GT	0/1
+19	17286835	truthset_39_2	G	]10:7090912]A	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE;GENE=ANKLE1;CLUSTER=truthset_38,truthset_40	GT	0/1
+18	68712224	truthset_58_1	A	C[18:68715589[	.	PASS	SVLEN=3365;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=TMX3,CCDC102B;CLUSTER=.	GT	0/1
+18	68715589	truthset_58_2	A	]18:68712224]C	.	PASS	SVLEN=3365;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=TMX3,CCDC102B;CLUSTER=.	GT	0/1
+15	41329096	truthset_55_1	A	]15:41336308]A	.	PASS	SVLEN=7212;SVTYPE=DUP;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=OIP5,NUSAP1;CLUSTER=.	GT	0/1
+15	41336308	truthset_55_2	G	A[15:41329096[	.	PASS	SVLEN=7212;SVTYPE=DUP;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=OIP5,NUSAP1;CLUSTER=.	GT	0/1
+20	13180082	truthset_59_1	T	C[20:13183456[	.	PASS	SVLEN=3374;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	0/1
+20	13183456	truthset_59_2	T	]20:13180082]C	.	PASS	SVLEN=3374;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	0/1
+14	72547941	truthset_49_1	T	T[14:72548038[	.	PASS	SVLEN=96;SVTYPE=INS;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=RGS6;CLUSTER=.	GT	0/1
+14	72548038	truthset_49_2	T	]14:72547941]T	.	PASS	SVLEN=96;SVTYPE=INS;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=RGS6;CLUSTER=.	GT	0/1
+12	129287232	truthset_48_1	A	<INS>	.	PASS	SVLEN=255;SVTYPE=INS;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=NOT_VALIDATED;GENE=TMEM132D;CLUSTER=.	GT	0/1
+20	34631722	truthset_62_1	C	C[20:34631765[	.	PASS	SVLEN=49;SVTYPE=DEL;SUPP_SEQ=ONT;SUPP_VAL=NOT_VALIDATED;GENE=PIGU;CLUSTER=.	GT	0/1
+20	34631765	truthset_62_2	A	]20:34631722]C	.	PASS	SVLEN=49;SVTYPE=DEL;SUPP_SEQ=ONT;SUPP_VAL=NOT_VALIDATED;GENE=PIGU;CLUSTER=.	GT	0/1
+16	58590641	truthset_56_1	T	T[16:58629427[	.	PASS	SVLEN=38786;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=CNOT1;CLUSTER=.	GT	1/1
+16	58629427	truthset_56_2	G	]16:58590641]T	.	PASS	SVLEN=38786;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=CNOT1;CLUSTER=.	GT	1/1
+X	31283086	truthset_65_1	T	T[X:32020633[	.	PASS	SVLEN=737547;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE;GENE=DMD;CLUSTER=.	GT	0/1
+X	32020633	truthset_65_2	A	]X:31283086]T	.	PASS	SVLEN=737547;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE;GENE=DMD;CLUSTER=.	GT	0/1
+6	26193889	truthset_18_1	G	G]6:26194178]	.	PASS	SVLEN=289;SVTYPE=INV;SUPP_SEQ=ILL;SUPP_VAL=CAPTURE;GENE=.;CLUSTER=truthset_6,truthset_7,truthset_8,truthset_9,truthset_10,truthset_43	GT	0/1
+6	26194178	truthset_18_2	A	G]6:26193889]	.	PASS	SVLEN=289;SVTYPE=INV;SUPP_SEQ=ILL;SUPP_VAL=CAPTURE;GENE=.;CLUSTER=truthset_6,truthset_7,truthset_8,truthset_9,truthset_10,truthset_43	GT	0/1
+6	138452922	truthset_19_1	T	[15:23472019[T	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=NSHL1;CLUSTER=truthset_20,truthset_52,truthset_53,truthset_54,truthset_55	GT	0/1
+15	23472019	truthset_19_2	C	[6:138452922[T	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=NSHL1;CLUSTER=truthset_20,truthset_52,truthset_53,truthset_54,truthset_55	GT	0/1
+7	144262133	truthset_30_1	G	G[7:144391701[	.	PASS	SVLEN=129568;SVTYPE=DEL;SUPP_SEQ=ILL,PB;SUPP_VAL=NOT_VALIDATED;GENE=ARHGEF34P;CLUSTER=.	GT	0/1
+7	144391701	truthset_30_2	G	]7:144262133]G	.	PASS	SVLEN=129568;SVTYPE=DEL;SUPP_SEQ=ILL,PB;SUPP_VAL=NOT_VALIDATED;GENE=ARHGEF34P;CLUSTER=.	GT	0/1
+7	151049570	truthset_31_1	C	C[15:84141973[	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE;GENE=ASIC3;CLUSTER=.	GT	0/1
+15	84141973	truthset_31_2	G	]7:151049570]C	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE;GENE=ASIC3;CLUSTER=.	GT	0/1
+9	28034301	truthset_36_1	T	C[9:28157694[	.	PASS	SVLEN=123393;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=CAPTURE;GENE=LINGO2;CLUSTER=truthset_34,truthset_35	GT	0/1
+9	28157694	truthset_36_2	T	]9:28034301]C	.	PASS	SVLEN=123393;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=CAPTURE;GENE=LINGO2;CLUSTER=truthset_34,truthset_35	GT	0/1
+9	111530772	truthset_37_1	T	T[9:111530817[	.	PASS	SVLEN=45;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=NOT_VALIDATED;GENE=ZNF483;CLUSTER=.	GT	0/1
+9	111530817	truthset_37_2	G	]9:111530772]T	.	PASS	SVLEN=45;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=NOT_VALIDATED;GENE=ZNF483;CLUSTER=.	GT	0/1
+9	28031837	truthset_34_1	A	A]9:28059142]	.	PASS	SVLEN=27305;SVTYPE=INV;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE;GENE=LINGO2;CLUSTER=truthset_35,truthset_36	GT	0/1
+9	28059142	truthset_34_2	G	A]9:28031837]	.	PASS	SVLEN=27305;SVTYPE=INV;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE;GENE=LINGO2;CLUSTER=truthset_35,truthset_36	GT	0/1
+9	28031865	truthset_35_1	C	[9:28034469[C	.	PASS	SVLEN=2604;SVTYPE=INV;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE;GENE=LINGO2;CLUSTER=truthset_34,truthset_36	GT	0/1
+9	28034469	truthset_35_2	G	[9:28031865[C	.	PASS	SVLEN=2604;SVTYPE=INV;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE;GENE=LINGO2;CLUSTER=truthset_34,truthset_36	GT	0/1
+3	26622431	truthset_10_1	G	G]3:26623008]	.	PASS	SVLEN=577;SVTYPE=INV;SUPP_SEQ=ILL,ONT;SUPP_VAL=CAPTURE;GENE=LRRC3B;CLUSTER=truthset_6,truthset_7,truthset_8,truthset_9,truthset_18,truthset_43	GT	0/1
+3	26623008	truthset_10_2	C	G]3:26622431]	.	PASS	SVLEN=577;SVTYPE=INV;SUPP_SEQ=ILL,ONT;SUPP_VAL=CAPTURE;GENE=LRRC3B;CLUSTER=truthset_6,truthset_7,truthset_8,truthset_9,truthset_18,truthset_43	GT	0/1
+3	60147026	truthset_11_1	T	T[3:60218815[	.	PASS	SVLEN=71789;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,BIONANO;GENE=FHIT;CLUSTER=.	GT	0/1
+3	60218815	truthset_11_2	T	]3:60147026]T	.	PASS	SVLEN=71789;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,BIONANO;GENE=FHIT;CLUSTER=.	GT	0/1
+3	60886452	truthset_12_1	G	C[3:61027543[	.	PASS	SVLEN=141091;SVTYPE=DEL;SUPP_SEQ=ILL,PB,10X;SUPP_VAL=PCR,CAPTURE;GENE=FHIT;CLUSTER=.	GT	0/1
+3	61027543	truthset_12_2	C	]3:60886452]C	.	PASS	SVLEN=141091;SVTYPE=DEL;SUPP_SEQ=ILL,PB,10X;SUPP_VAL=PCR,CAPTURE;GENE=FHIT;CLUSTER=.	GT	0/1
+3	186724386	truthset_13_1	C	T[3:186795845[	.	PASS	SVLEN=71459;SVTYPE=DEL;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=KNG1,RFC4;CLUSTER=.	GT	0/1
+3	186795845	truthset_13_2	A	]3:186724386]T	.	PASS	SVLEN=71459;SVTYPE=DEL;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=KNG1,RFC4;CLUSTER=.	GT	0/1
+4	65346239	truthset_14_1	G	]4:65346319]T	.	PASS	SVLEN=80;SVTYPE=DUP;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=EPHA5;CLUSTER=.	GT	0/1
+4	65346319	truthset_14_2	T	T[4:65346239[	.	PASS	SVLEN=80;SVTYPE=DUP;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=EPHA5;CLUSTER=.	GT	0/1
+4	187075168	truthset_15_1	T	]4:187075228]T	.	PASS	SVLEN=60;SVTYPE=DUP;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=NOT_VALIDATED;GENE=.;CLUSTER=.	GT	0/1
+4	187075228	truthset_15_2	A	T[4:187075168[	.	PASS	SVLEN=60;SVTYPE=DUP;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=NOT_VALIDATED;GENE=.;CLUSTER=.	GT	0/1
+5	28787889	truthset_16_1	T	T[5:28962989[	.	PASS	SVLEN=175100;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	0/1
+5	28962989	truthset_16_2	C	]5:28787889]T	.	PASS	SVLEN=175100;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=.	GT	0/1
+5	179546287	truthset_17_1	A	C[5:179546320[	.	PASS	SVLEN=33;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=CAPTURE;GENE=.;CLUSTER=.	GT	1/1
+5	179546320	truthset_17_2	A	]5:179546287]C	.	PASS	SVLEN=33;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=CAPTURE;GENE=.;CLUSTER=.	GT	1/1
+8	111050191	truthset_32_1	T	T[8:111051354[	.	PASS	SVLEN=1163;SVTYPE=DEL;SUPP_SEQ=ILL;SUPP_VAL=PCR;GENE=.;CLUSTER=.	GT	0/1
+8	111051354	truthset_32_2	T	]8:111050191]T	.	PASS	SVLEN=1163;SVTYPE=DEL;SUPP_SEQ=ILL;SUPP_VAL=PCR;GENE=.;CLUSTER=.	GT	0/1
+3	25359568	truthset_8_1	G	G[10:58717464[	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT;SUPP_VAL=CAPTURE;GENE=BICC1;CLUSTER=truthset_6,truthset_7,truthset_9,truthset_10,truthset_18,truthset_43	GT	0/1
+10	58717464	truthset_8_2	T	]3:25359568]G	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT;SUPP_VAL=CAPTURE;GENE=BICC1;CLUSTER=truthset_6,truthset_7,truthset_9,truthset_10,truthset_18,truthset_43	GT	0/1
+3	26390427	truthset_9_1	G	[6:26193813[T	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT;SUPP_VAL=NOT_VALIDATED;GENE=.;CLUSTER=truthset_6,truthset_7,truthset_8,truthset_10,truthset_18,truthset_43	GT	0/1
+6	26193813	truthset_9_2	A	[3:26390427[T	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT;SUPP_VAL=NOT_VALIDATED;GENE=.;CLUSTER=truthset_6,truthset_7,truthset_8,truthset_10,truthset_18,truthset_43	GT	0/1
+8	130235870	truthset_33_1	A	]8:130262401]T	.	PASS	SVLEN=26531;SVTYPE=DUP;SUPP_SEQ=ILL;SUPP_VAL=PCR,BIONANO;GENE=ASAP1;CLUSTER=.	GT	0/1
+8	130262401	truthset_33_2	A	T[8:130235870[	.	PASS	SVLEN=26531;SVTYPE=DUP;SUPP_SEQ=ILL;SUPP_VAL=PCR,BIONANO;GENE=ASAP1;CLUSTER=.	GT	0/1
+1	117973563	truthset_2_1	T	T[1:117973599[	.	PASS	SVLEN=36;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=SPAG17;CLUSTER=.	GT	0/1
+1	117973599	truthset_2_2	T	]1:117973563]T	.	PASS	SVLEN=36;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=SPAG17;CLUSTER=.	GT	0/1
+1	207807886	truthset_3_1	A	G[1:207841477[	.	PASS	SVLEN=33591;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,10X;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=.	GT	0/1
+1	207841477	truthset_3_2	A	]1:207807886]G	.	PASS	SVLEN=33591;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,10X;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=.	GT	0/1
+1	86871328	truthset_1_1	T	T]10:35830199]	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=truthset_41	GT	0/1
+10	35830199	truthset_1_2	T	T]1:86871328]	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=truthset_41	GT	0/1
+3	24523617	truthset_6_1	A	[3:24524691[T	.	PASS	SVLEN=1074;SVTYPE=INV;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=truthset_7,truthset_8,_truthset_9,truthset_10,truthset_18,truthset_43	GT	0/1
+3	24524691	truthset_6_2	G	[3:24523617[T	.	PASS	SVLEN=1074;SVTYPE=INV;SUPP_SEQ=ILL,ONT;SUPP_VAL=PCR,CAPTURE;GENE=.;CLUSTER=truthset_7,truthset_8,_truthset_9,truthset_10,truthset_18,truthset_43	GT	0/1
+3	25359111	truthset_7_1	G	G[12:72273112[	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=CAPTURE;GENE=TRHDE;CLUSTER=truthset_6,truthset_8,truthset_9,truthset_10,truthset_18,truthset_43	GT	0/1
+12	72273112	truthset_7_2	G	]3:25359111]G	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=CAPTURE;GENE=TRHDE;CLUSTER=truthset_6,truthset_8,truthset_9,truthset_10,truthset_18,truthset_43	GT	0/1
+1	224458901	truthset_4_1	A	]1:224612418]A	.	PASS	SVLEN=153517;SVTYPE=DUP;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=truthset_5	GT	0/1
+1	224612418	truthset_4_2	C	A[1:224458901[	.	PASS	SVLEN=153517;SVTYPE=DUP;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=.;CLUSTER=truthset_5	GT	0/1
+1	224595093	truthset_5_1	C	C[1:224598332[	.	PASS	SVLEN=3239;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=BIONANO;GENE=.;CLUSTER=truthset_4	GT	0/1
+1	224598332	truthset_5_2	G	]1:224595093]C	.	PASS	SVLEN=3239;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=BIONANO;GENE=.;CLUSTER=truthset_4	GT	0/1
+10	7017550	truthset_38_1	C	]19:17286001]T	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=ANKLE1;CLUSTER=truthset_39,truthset_40	GT	0/1
+19	17286001	truthset_38_2	T	T[10:7017550[	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL,ONT,PB;SUPP_VAL=PCR,CAPTURE;GENE=ANKLE1;CLUSTER=truthset_39,truthset_40	GT	0/1
+16	78894739	truthset_57_1	T	G[16:79061110[	.	PASS	SVLEN=166371;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=WWOX;CLUSTER=.	GT	0/1
+16	79061110	truthset_57_2	T	]16:78894739]G	.	PASS	SVLEN=166371;SVTYPE=DEL;SUPP_SEQ=ILL,ONT,PB,10X;SUPP_VAL=PCR,CAPTURE,BIONANO;GENE=WWOX;CLUSTER=.	GT	0/1
+10	58717662	truthset_43_1	G	G]12:72273295]	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=CAPTURE;GENE=BICC1,TRHDE;CLUSTER=truthset_6,truthset_7,truthset_8,truthset_9,truthset_10,truthset_18	GT	0/1
+12	72273295	truthset_43_2	T	G]10:58717662]	.	PASS	SVLEN=0;SVTYPE=BND;SUPP_SEQ=ILL;SUPP_VAL=CAPTURE;GENE=BICC1,TRHDE;CLUSTER=truthset_6,truthset_7,truthset_8,truthset_9,truthset_10,truthset_18	GT	0/1
+10	53716587	truthset_42_1	T	C[10:53717136[	.	PASS	SVLEN=549;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=NOT_VALIDATED;GENE=.;CLUSTER=.	GT	0/1
+10	53717136	truthset_42_2	T	]10:53716587]C	.	PASS	SVLEN=549;SVTYPE=DEL;SUPP_SEQ=ILL,ONT;SUPP_VAL=NOT_VALIDATED;GENE=.;CLUSTER=.	GT	0/1
