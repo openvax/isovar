@@ -42,7 +42,6 @@ def usage_error(capsys, args):
     (["reference-contexts", "--json-variants", "nope.json"], "No such file"),
     (["allele-counts", "--variant", "chr9", "82927102", "G", "T", "--bam", BAM], "--genome"),
     (["run", "--vcf", VCF, "--bam", BAM, "--genome", "foo"], "specify the reference with --genome"),
-    (["run", "--vcf", VCF, "--bam", BAM, "--genome", "GRCh38:75"], "release 75 of homo_sapiens provides GRCh37"),
     (["run", "--vcf", VCF, "--bam", data_path("data/primary.chr1.unsorted.bam")], "has no index"),
     (["run", "--vcf", VCF, "--bam", data_path("data/b16.f10/b16.combined.sam")], "is not BAM or CRAM"),
     (["run", "--vcf", VCF, "--bam", VCF], "does not contain alignment data"),
@@ -58,6 +57,13 @@ def test_bad_inputs_are_usage_errors(capsys, tmp_path, args, expected):
     if "--output" not in args:
         args = args + ["--output", str(tmp_path / "out.csv")]
     assert expected in usage_error(capsys, args)
+
+
+def test_genome_release_assembly_conflict_is_a_usage_error(capsys, tmp_path):
+    message = usage_error(capsys, [
+        "run", "--vcf", VCF, "--bam", BAM, "--genome", "GRCh38:75",
+        "--output", str(tmp_path / "out.csv")])
+    assert "GRCh38" in message and "GRCh37" in message
 
 
 @pytest.mark.parametrize("genome", ["GRCh38:93", "GRCh38.93"])

@@ -7,6 +7,7 @@ genomic-to-cDNA mapping, editing, or expected translation.
 import argparse
 from collections import defaultdict
 import gzip
+import inspect
 from itertools import product
 import json
 from pathlib import Path
@@ -139,7 +140,7 @@ def reference_genome(directory, cache):
     directory = Path(directory)
     manifest, _ = load_reference(directory)
     dataset_identity = reference_dataset_identity(directory, manifest["files"])
-    genome = Genome(
+    kwargs = dict(
         reference_name=dataset_identity, annotation_name="osteosarc-vaccine-cohort",
         annotation_version=manifest["ensembl_release"], gtf_path_or_url=str(directory / "reference.gtf.gz"),
         transcript_fasta_paths_or_urls=[str(directory / "reference.cdna.fa.gz")],
@@ -147,7 +148,12 @@ def reference_genome(directory, cache):
         copy_local_files_to_cache=True, cache_directory_path=str(Path(cache) / dataset_identity))
     # The hashed subset identity is not a registered species name. Its human
     # mitochondrial transcripts use NCBI genetic code 2, as in the source models.
-    genome.mitochondrial_translation_table = 2
+    if "reference_metadata" in inspect.signature(Genome).parameters:
+        kwargs["reference_metadata"] = {
+            "taxon_id": 9606, "translation_tables": {"mitochondrial": 2}}
+    genome = Genome(**kwargs)
+    if "reference_metadata" not in kwargs:
+        genome.mitochondrial_translation_table = 2
     genome.index()
     return genome
 
