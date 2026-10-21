@@ -1,3 +1,6 @@
 # Isovar's packaged Sid test reads: an osteosarc bundle, checked byte for byte
 # against its manifest, and made again with python -m isovar.sid_data build.
 isovar/data/sid-reads/** binary linguist-generated
+
+# Generated evidence PDFs are reviewed through their source and rendered pages.
+output/pdf/*.pdf binary linguist-generated
