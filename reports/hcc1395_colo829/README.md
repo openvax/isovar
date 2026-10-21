@@ -10,6 +10,11 @@ selected small-variant source record and screen their SV sources.
 
 ## Deliverables
 
+- [HCC1395 and COLO829 evidence PDFs](PDF_REPORTS.md): source-specific
+  summaries of DNA call ingestion, Ensembl coding effects, pinned orfdata
+  ncORF overlaps, original-RNA allele support, local protein contexts, and
+  SV screens. The linked per-call annotation table covers all 87,136 selected
+  small-variant records.
 - [COLO829 whole-run atlas](COLO829_ATLAS.md): every SMaHT small variant has
   original-RNA coverage and allele status, ranked local protein contexts are
   listed separately, and every SV benchmark record has a breakpoint evidence

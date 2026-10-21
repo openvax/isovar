@@ -1,0 +1,10 @@
+{
+  "records": 87136,
+  "errors": 0,
+  "orfdata_version": "0.34.1",
+  "orfdata_catalog_records": 7264,
+  "orfdata_catalog_version": "2026-10-11.1",
+  "orfdata_catalog_sha256": "06bc0bf3f81c25a7356f71a38581ff5704c05dcb75752454bc1ca75075ab8c09",
+  "genome_annotation": "Ensembl 87",
+  "reference_build": "GRCh38"
+}
