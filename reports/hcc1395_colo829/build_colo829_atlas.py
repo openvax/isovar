@@ -111,11 +111,12 @@ def direct_read_context_proteins(variant, alt_reads, creator):
         min_support_fraction=creator.min_protein_sequence_support_fraction)
 
 
-def source_calls(inventory, selected_ids=None):
-    """Iterate exact SMaHT COLO829 small-variant source records."""
+def source_calls(inventory, selected_ids=None, sample="COLO829",
+                 dna_source="SMaHT_COLO829BLT50"):
+    """Iterate exact small-variant source records for one call set."""
     with gzip.open(inventory, "rt", newline="") as source:
         for row in csv.DictReader(source, delimiter="\t"):
-            if row["sample"] != "COLO829" or row["source"] != "SMaHT_COLO829BLT50":
+            if row["sample"] != sample or row["source"] != dna_source:
                 continue
             if row["class"] not in ("SNV", "indel"):
                 continue
@@ -123,7 +124,7 @@ def source_calls(inventory, selected_ids=None):
                 yield row
 
 
-def evaluate_call(source, alignment, genome, collector, creator):
+def evaluate_call(source, alignment, genome, collector, creator, rna_run="SRR8615617"):
     """Return one call, zero or more local proteins, and ALT read witnesses."""
     chrom = source["chrom1"]
     pos = int(source["pos1"])
@@ -178,7 +179,7 @@ def evaluate_call(source, alignment, genome, collector, creator):
         "sample": source["sample"], "dna_source": source["source"],
         "class": source["class"], "call_id": source["call_id"],
         "chrom": chrom, "pos": pos, "ref": source["ref"], "alt": source["alt"],
-        "dna_filter": source["filter"], "rna_run": "SRR8615617",
+        "dna_filter": source["filter"], "rna_run": rna_run,
         "raw_alignment_overlap": raw_overlap,
         "ref_reads": len(ref), "alt_reads": len(alt), "other_reads": len(other),
         "ref_fragments": len(fragment_ids(ref)),
@@ -195,7 +196,7 @@ def evaluate_call(source, alignment, genome, collector, creator):
     }
     protein_rows = [{
         "dna_source": source["source"], "class": source["class"],
-        "call_id": source["call_id"], "rna_run": "SRR8615617", "rank": rank,
+        "call_id": source["call_id"], "rna_run": rna_run, "rank": rank,
         "protein_sequence": protein.amino_acids,
         "mutation_start_idx": protein.mutation_start_idx,
         "mutation_end_idx": protein.mutation_end_idx,
@@ -206,13 +207,15 @@ def evaluate_call(source, alignment, genome, collector, creator):
     } for rank, protein in enumerate(proteins, 1)]
     witnesses = [{
         "dna_source": source["source"], "class": source["class"],
-        "call_id": source["call_id"], "rna_run": "SRR8615617",
+        "call_id": source["call_id"], "rna_run": rna_run,
         "read_id": read.name, "source_read_count": read.source_read_count,
     } for read in alt]
     return call, protein_rows, witnesses
 
 
-def write_atlas(inventory, bam, output_dir, selected_ids=None):
+def write_atlas(inventory, bam, output_dir, selected_ids=None,
+                sample="COLO829", dna_source="SMaHT_COLO829BLT50",
+                rna_run="SRR8615617", prefix="colo829"):
     """Write three gzip TSVs, returning their row counts."""
     output_dir.mkdir(parents=True, exist_ok=True)
     genome = cached_release(87)
@@ -220,9 +223,9 @@ def write_atlas(inventory, bam, output_dir, selected_ids=None):
     creator = ProteinSequenceCreator(max_protein_sequences_per_variant=0)
     counts = [0, 0, 0]
     with pysam.AlignmentFile(str(bam), "rb") as alignment, \
-            gzip.open(output_dir / "colo829_atlas_calls.tsv.gz", "wt", newline="") as calls, \
-            gzip.open(output_dir / "colo829_atlas_proteins.tsv.gz", "wt", newline="") as proteins, \
-            gzip.open(output_dir / "colo829_atlas_alt_witnesses.tsv.gz", "wt", newline="") as reads:
+            gzip.open(output_dir / f"{prefix}_atlas_calls.tsv.gz", "wt", newline="") as calls, \
+            gzip.open(output_dir / f"{prefix}_atlas_proteins.tsv.gz", "wt", newline="") as proteins, \
+            gzip.open(output_dir / f"{prefix}_atlas_alt_witnesses.tsv.gz", "wt", newline="") as reads:
         call_writer = csv.DictWriter(calls, CALL_FIELDS, delimiter="\t", lineterminator="\n")
         protein_writer = csv.DictWriter(proteins, PROTEIN_FIELDS, delimiter="\t",
                                         lineterminator="\n")
@@ -230,9 +233,9 @@ def write_atlas(inventory, bam, output_dir, selected_ids=None):
                                         lineterminator="\n")
         for writer in (call_writer, protein_writer, witness_writer):
             writer.writeheader()
-        for source in source_calls(inventory, selected_ids):
+        for source in source_calls(inventory, selected_ids, sample, dna_source):
             call, protein_rows, witnesses = evaluate_call(
-                source, alignment, genome, collector, creator)
+                source, alignment, genome, collector, creator, rna_run)
             call_writer.writerow(call)
             protein_writer.writerows(protein_rows)
             witness_writer.writerows(witnesses)
