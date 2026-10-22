@@ -41,6 +41,7 @@ isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*", "data/references/
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.6,<4", "pypdf>=5,<7"]
+report = ["reportlab>=4,<6"]
 data = ["biopython>=1.80,<2"]  # Independent SAM/ORF and annotated-proteome checks.
 uorf-build = ["openpyxl>=3.1,<4"]  # Optional source-data builder; never needed to query the catalogue.
 
@@ -60,6 +61,7 @@ isovar-allele-counts = "isovar.cli.isovar_allele_counts:run"
 isovar-variant-reads = "isovar.cli.isovar_variant_reads:run"
 isovar-variant-sequences = "isovar.cli.isovar_variant_sequences:run"
 isovar-plot = "isovar.cli.isovar_plot:run"
+isovar-evidence-report = "isovar.cli.isovar_evidence_report:run"
 
 [tool.ruff]
 target-version = "py311"

@@ -16,15 +16,8 @@ from pyensembl import cached_release
 from varcode import Variant
 
 from isovar import ProteinSequenceCreator, ReadCollector
-from isovar.protein_sequence_helpers import (
-    group_equivalent_translations, sort_protein_sequences,
-)
+from isovar.evidence_report import direct_read_context_proteins
 from isovar.read_identity import fragment_ids
-from isovar.reference_context_helpers import reference_contexts_for_variant
-from isovar.transcript_compatibility import annotate_reads_with_transcript_compatibility
-from isovar.variant_sequence_helpers import (
-    initial_variant_sequences_from_reads, trim_variant_sequences,
-)
 
 
 HERE = Path(__file__).parent
@@ -70,45 +63,6 @@ class ChimericPathWarningTracker(logging.Handler):
     def emit(self, record):
         if record.getMessage().startswith("Ignoring chimeric-path evidence"):
             self.read_ids.add(record.args[0])
-
-
-def direct_read_context_proteins(variant, alt_reads, creator):
-    """Translate read-spanning contexts at high-depth loci.
-
-    This route retains every ALT read and its compatible transcript path. It
-    omits overlap assembly, but reconciles compatible read support and uses
-    the creator's ordinary sequence-coverage and protein ranking rules.
-    """
-    contexts = reference_contexts_for_variant(
-        variant,
-        context_size=max(creator._cdna_sequence_length,
-                         creator.min_transcript_prefix_length))
-    if not contexts:
-        return []
-    transcripts = {transcript.id: transcript
-                   for context in contexts for transcript in context.transcripts}
-    max_before, max_after = creator._variant_sequence_creator.flanking_sequence_lengths(
-        len(alt_reads[0].allele))
-    compatible_reads = annotate_reads_with_transcript_compatibility(
-        alt_reads, transcripts.values(), max_prefix_size=max_before,
-        max_suffix_size=max_after)
-    compatible_reads = [read for read in compatible_reads
-                        if read.compatible_transcript_ids]
-    if not compatible_reads:
-        return []
-    sequences = initial_variant_sequences_from_reads(
-        compatible_reads, max_nucleotides_before_variant=max_before,
-        max_nucleotides_after_variant=max_after)
-    sequences = trim_variant_sequences(
-        sequences, creator.min_variant_sequence_coverage)
-    if not sequences:
-        return []
-    translations = creator.all_pairs_translations(sequences, contexts)
-    return sort_protein_sequences(
-        group_equivalent_translations(translations),
-        preference=creator.protein_sequence_preference,
-        peptide_length=creator.protein_context_peptide_length,
-        min_support_fraction=creator.min_protein_sequence_support_fraction)
 
 
 def source_calls(inventory, selected_ids=None, sample="COLO829",

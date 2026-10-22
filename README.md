@@ -36,6 +36,8 @@ To choose a specific release or use your own GTF, see
 [choosing the reference annotation](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md).
 The figure commands (`isovar plot` and `isovar fusion --plot-dir`) need the
 plotting extra: `pip install 'isovar[plot]'`.
+The variant/RNA PDF command needs `pip install 'isovar[report]'`;
+see the [evidence report guide](https://github.com/openvax/isovar/blob/master/reports/hcc1395_colo829/PDF_REPORTS.md).
 
 ## Quick start
 

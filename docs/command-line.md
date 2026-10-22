@@ -27,6 +27,7 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | `isovar allele-reads` | All reads overlapping each variant |
 | `isovar variant-reads` | Reads supporting each variant's alt allele |
 | `isovar plot` | Protein, coverage, read-overlap and transcript figures for one mutation ([guide](visualization.md)) |
+| `isovar evidence-report` | Visual PDF and per-call TSV for a variant VCF plus indexed tumor RNA ([guide](../reports/hcc1395_colo829/PDF_REPORTS.md)) |
 | `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](allele-interpretations.md)) |
 | `isovar sv-rna` | Exploratory RNA paths around one nominated SV, as JSON ([guide](sv-rna.md)) |
 | `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON ([guide](fusion.md)) |
@@ -37,6 +38,26 @@ Except `isovar run`, the table and plot commands also install as hyphenated
 scripts such as `isovar-protein-sequences` and `isovar-plot`.
 
 ## Output tables
+
+`isovar evidence-report` writes a PDF and a tab-separated per-call file. Install
+the report extra and run:
+
+```sh
+pip install 'isovar[report]'
+isovar evidence-report --vcf somatic-variants.vcf.gz --bam tumor-rna.bam \
+    --sample-id tumor-1 --output evidence.pdf
+```
+
+Use `--nc-orf-catalog` to add reference ncORF coding-block candidates and
+`--self-fasta` to rank mutation-overlapping 9-mers absent from a reference
+protein FASTA. The ncORF catalogue is checked against the variant reference;
+the supplied FASTA path and SHA-256 are recorded so its reference identity can
+be reviewed. The
+command reports small variants; nominated SV breakends need a separate SV RNA
+screen. The PDF distinguishes source DNA predictions, original RNA allele
+reads and local Isovar protein windows. It does not infer full-length isoforms.
+
+The following CSV conventions apply to the other table commands.
 
 Every CSV starts with the same variant key: `variant` (as in
 `chr9 g.82927102G>T`) and `chr`, `pos`, `ref` and `alt` as given in the input,
