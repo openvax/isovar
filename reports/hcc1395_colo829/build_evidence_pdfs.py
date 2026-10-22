@@ -15,11 +15,17 @@ from reportlab.platypus import (
     Spacer, Table, TableStyle,
 )
 
+from isovar import __version__
+from isovar.evidence_pdf import EvidenceFunnel, altered_aa_figures, read_support_figures
+from isovar.evidence_report import read_tsv as read_evidence_tsv, summarize, variant_type
+
 
 rl_config.invariant = 1
 ROOT = Path(__file__).resolve().parents[2]
 REPORT = ROOT / 'reports/hcc1395_colo829'
 ANNOTATIONS = REPORT / 'reference_coding_orfdata_annotations.tsv.gz'
+SELF_SCORES = REPORT / 'reference_self_9mer_scores.tsv.gz'
+SELF_FASTA_SHA256 = 'd873c199d5dbf20869db3f2cbd6ac726259215d91c2782f9f1ddcad4bb117cf9'
 OUT = ROOT / 'output/pdf'
 NAVY = colors.HexColor('#18334b')
 TEAL = colors.HexColor('#0f706d')
@@ -105,6 +111,7 @@ def collect(sample, annotations_path=ANNOTATIONS):
     assert len(calls) == len(annotations)
     assert {c['call_id'] for c in calls} == set(annotations)
     assert all(not row['annotation_error'] for row in annotations.values())
+    summary = summarize(calls, annotations, proteins, sv)
     counts = Counter()
     rna = Counter(row['rna_status'] for row in calls)
     classes = Counter(row['class'] for row in calls)
@@ -136,10 +143,23 @@ def collect(sample, annotations_path=ANNOTATIONS):
     counts['protein_contexts'] = len(proteins)
     counts['sv_split_records'] = sv_status['split_alignment_candidate_unresolved']
     counts['sv_split_witnesses'] = sum(int(row['observed_split_alignment_candidates']) for row in sv)
+    for key, value in summary['counts'].items():
+        if key in counts and counts[key] != value:
+            raise ValueError(f'Inconsistent {key} count for {sample}')
+        counts[key] = value
+    self_scores = {}
+    if SELF_SCORES.exists():
+        self_scores = {row['call_id']: row for row in read_evidence_tsv(SELF_SCORES)
+                       if row['sample'] == sample}
+        if set(self_scores) != set(summary['top']) or any(
+                row['reference_fasta_sha256'] != SELF_FASTA_SHA256
+                for row in self_scores.values()):
+            raise ValueError(f'Incomplete or incompatible reference-self scores for {sample}')
     return {
         'calls': calls, 'proteins': proteins, 'sv': sv, 'counts': counts,
         'rna': rna, 'classes': classes, 'filters': filters,
         'sv_classes': sv_classes, 'sv_status': sv_status,
+        'summary': summary, 'annotations': annotations, 'self_scores': self_scores,
     }
 
 
@@ -149,10 +169,10 @@ def page_footer(canvas, doc, sample):
     canvas.line(50, PAGE_H - 39, PAGE_W - 50, PAGE_H - 39)
     canvas.setFont('Helvetica-Bold', 7.5)
     canvas.setFillColor(TEAL)
-    canvas.drawString(50, PAGE_H - 31, f'ISOVAR 1.59.7  /  {sample} EVIDENCE AUDIT')
+    canvas.drawString(50, PAGE_H - 31, f'ISOVAR {__version__}  /  {sample} EVIDENCE AUDIT')
     canvas.setFont('Helvetica', 7.5)
     canvas.setFillColor(GRAY)
-    canvas.drawRightString(PAGE_W - 50, 32, f'2026-10-21  |  page {doc.page}')
+    canvas.drawRightString(PAGE_W - 50, 32, f'2026-10-22  |  page {doc.page}')
     canvas.restoreState()
 
 
@@ -175,6 +195,8 @@ def main_story(sample, d):
              'RNA run, not every biological mutation or a validated full-length isoform.', 'ReportDeck'),
         HRFlowable(width='100%', thickness=1.5, color=TEAL),
     ]
+    story += section('Variant-to-RNA funnel')
+    story.append(EvidenceFunnel(c))
     story += section('At a glance')
     story.append(data_table(
         ['Evidence layer', 'Count', 'Interpretation'],
@@ -183,6 +205,8 @@ def main_story(sample, d):
              f"{d['classes']['SNV']:,} SNVs; {d['classes']['indel']:,} indels"),
             ('Ingested SV source records', f'{sv_total:,}',
              'DNA breakpoint records/events, counted in their source sets'),
+            ('Any annotated exon involved', f"{c['exonic']:,}",
+             'At least one changed base or insertion flank overlaps an Ensembl 87 exon'),
             ('Ensembl 87 coding effect', f"{c['coding']:,}",
              'Any annotated protein-coding transcript, reference model'),
             ('orfdata ncORF coding-block overlap', f"{c['ncorf']:,}",
@@ -192,6 +216,14 @@ def main_story(sample, d):
             ('Calls with local mutant protein contexts', f"{c['protein_calls']:,}",
              f"{c['protein_contexts']:,} ranked contexts; full-length isoforms unresolved"),
         ], [179, 68, 265], numeric_columns=(1,)))
+    story.append(PageBreak())
+    return story
+
+
+def coding_story(sample, d):
+    c = d['counts']
+    small = len(d['calls'])
+    story = []
     story += section('Coding annotation and its denominator')
     story.append(para(
         f"Of {small:,} DNA small-variant records, {c['coding']:,} change the coding sequence "
@@ -213,6 +245,23 @@ def main_story(sample, d):
         'insertions use the VCF anchor as a candidate overlap. The per-call table preserves '
         'that rule. A coding-block hit does not prove the inserted sequence is in frame.',
         'FootSmall'))
+    story.append(para(
+        f"Any annotated exon is involved in {c['exonic']:,} calls ({100 * c['exonic'] / small:.1f}% "
+        'of the small-variant source set). This includes UTR and noncoding-transcript exons. '
+        'Deletions query every removed reference base, including exon crossings with intronic '
+        'endpoints; insertions query both neighboring reference bases as candidate exon involvement.',
+        'FootSmall'))
+    return story
+
+
+def read_support_story(d):
+    story = section('RNA alternate-read support by variant class')
+    for figure in read_support_figures(d['summary']['reads_by_class']):
+        story.append(figure)
+    story.append(para(
+        'The positive-support panel excludes zero-ALT records. Bars stack SNV, '
+        'insertion, deletion and other-replacement record counts in legend order; '
+        'the labels show each count. These are variant counts, not read counts.', 'FootSmall'))
     story.append(PageBreak())
     return story
 
@@ -241,32 +290,17 @@ def evidence_story(sample, d):
         'no local translation under the stated method. No-overlap and uncallable statuses '
         'cannot establish absence of RNA expression.'))
     if sample == 'HCC1395':
-        story += section('Representative mutant residues with original-read support')
-        story.append(data_table(
-            ['SEQC2 call', 'Top local amino-acid context', 'Mutant interval', 'Supporting reads'],
-            [
-                ('OSTC F9L / COSM32736', 'METLYRVPLLVLECPNLKLKKPPWL', '[8,9)', '5'),
-                ('PRDX5 F157L / COSM32759', 'VRLLADPTGALGKETDLLLD', '[10,11)', '6'),
-            ], [122, 208, 82, 100], numeric_columns=(3,)))
         story.append(para(
-            'The SEQC2 tumor/normal DNA VAFs are 0.490/0.001 (OSTC) and 0.442/0.002 '
-            '(PRDX5). An independent proteomic study observed the mutant residues, not '
-            'these entire local sequence contexts. A separate first-100,000-read ONT '
-            'cDNA fixture has a PRDX5 local context with six supporting reads; its '
-            'bounded counts are not included in the whole-run denominators.', 'FootSmall'))
+            'OSTC F9L and PRDX5 F157L have original-read local contexts. An independent '
+            'proteomic study observed the mutant residues, not these entire contexts. '
+            'The bounded ONT cDNA fixture is excluded from whole-run counts.', 'FootSmall'))
     else:
-        story += section('High-depth indel and polished sequence comparison')
         story.append(para(
             'At CDKN2A chr9:21971154:CCG&gt;C, all 6,984 ALT allele reads were evaluated. '
             'The top local frameshift context is <b>MMMGSARVAELLLLHGGAQLRRPR</b> '
             'with 5,338 supporting reads. Its 1,416 ranked local contexts reflect '
-            'read-spanning alternatives; none is asserted to be a full-length isoform.'))
-        story.append(para(
-            'TAGET polished representatives are an independent culture and assay: 132 '
-            'SMaHT SNVs have at least one tumor-positive representative carrying ALT. '
-            'The 0/1 representative-sequence observations and full-length cluster '
-            'counts are separate from original allele-spanning read support. The '
-            'polished count table has 51,387 tumor-positive transcript IDs, but those '
+            'read-spanning alternatives, not full-length isoforms. TAGET polished '
+            'representatives are an independent culture and assay; their cluster '
             'counts do not measure mutant allele support.', 'FootSmall'))
     story += section('Structural-variant RNA screen')
     status_names = {
@@ -289,11 +323,95 @@ def evidence_story(sample, d):
             'read. Junction bases, orientation, splice choice and ORF remain '
             'unresolved; no fusion protein is called.', 'FootSmall'))
     else:
+        story.append(para('The two SV benchmarks remain separate; no junction '
+                          'or SV-derived protein is called.', 'FootSmall'))
+    story.append(PageBreak())
+    return story
+
+
+def altered_aa_story(d):
+    story = section('Local mutant amino-acid span')
+    story.append(para(
+        'For each RNA ALT-observed call, count changed amino-acid positions in its '
+        'top-ranked local protein context. Calls with no local product are shown '
+        'explicitly. The second panel omits the one-residue category to expose '
+        'the longer tail; its denominator is smaller. A zero-length interval can '
+        'represent a deletion junction. These windows do not determine a complete '
+        'frameshift tail or a full-length isoform.'))
+    for figure in altered_aa_figures(d['summary']['aa_counts']):
+        story.append(figure)
+    story.append(PageBreak())
+    return story
+
+
+def example_story(d):
+    c, top = d['counts'], d['summary']['top']
+    calls = d['calls']
+    story = section('Mutation classes and resolved outcomes')
+    story.append(data_table(
+        ['Category', 'DNA source', 'RNA ALT', 'Local mutant product'],
+        [
+            ('DNA-predicted frameshift', f"{c['frameshift']:,}",
+             f"{c['frameshift_alt']:,}", 'See per-call local contexts'),
+            ('Reference ncORF coding-block overlap', f"{c['ncorf']:,}",
+             f"{c['ncorf_alt']:,}", 'Mutated ncORF not reconstructed'),
+            ('SV source record', f"{c['sv_total']:,}",
+             'Breakend screen only', f"{c['sv_product']:,} resolved products"),
+        ], [179, 80, 88, 165]))
+    story.append(para(
+        'Frameshifts are Varcode top-effect predictions from DNA, not a count of '
+        'RNA-confirmed full-length frameshift proteins. SV split/mate candidates '
+        'do not count as productive until an RNA junction and protein path resolve.',
+        'FootSmall'))
+
+    translated = [call for call in calls if call['call_id'] in top]
+    translated.sort(key=lambda row: (-int(row['alt_reads']), row['call_id']))
+
+    def examples(title, selected, *, score=False):
+        result = section(title)
+        if not selected:
+            result.append(para('No qualifying local product was observed.', 'FootSmall'))
+            return result
+        rows = []
+        for call in selected[:3]:
+            ident = call['call_id']
+            protein = top[ident]
+            sequence = protein['protein_sequence']
+            preview = sequence[:30] + ('...' if len(sequence) > 30 else '')
+            if score:
+                record = d['self_scores'][ident]
+                measure = f"{record['novel_9mers']}/{record['total_9mers']} novel"
+            else:
+                measure = f"{int(call['alt_reads']):,} ALT reads"
+            rows.append((ident, variant_type(call), measure, preview))
+        result.append(data_table(['Source call', 'Type', 'Support / self screen',
+                                  'Top local sequence'], rows,
+                                 [165, 45, 115, 187]))
+        return result
+
+    story += examples('Highest original-RNA ALT support with local products', translated)
+    if d['self_scores']:
+        scored = [call for call in translated if call['call_id'] in d['self_scores']
+                  and int(d['self_scores'][call['call_id']]['total_9mers'])]
+        scored.sort(key=lambda row: (
+            -int(d['self_scores'][row['call_id']]['novel_9mers']) /
+            int(d['self_scores'][row['call_id']]['total_9mers']),
+            -int(d['self_scores'][row['call_id']]['novel_9mers']),
+            -int(row['alt_reads']), row['call_id']))
+        story += examples('Least reference-self-like local contexts', scored, score=True)
         story.append(para(
-            'The 54 Paulin Paz v2 records and 134 Valle-Inclan lifted records '
-            'remain separate benchmarks. Eleven VCF records have opposite-mate '
-            'context, with no observed same-read split candidate in the retained '
-            'BAM. No junction or SV-derived protein is called.', 'FootSmall'))
+            'The score is the fraction of distinct mutation-overlapping 9-mers absent '
+            'from the pinned Ensembl 87 reference protein FASTA. It is an exact-match '
+            'screen of these local windows, not patient-specific self, HLA binding, '
+            'presentation or immunogenicity.', 'FootSmall'))
+    else:
+        story += section('Least reference-self-like local contexts')
+        story.append(para('Reference-proteome comparison was not evaluated.', 'FootSmall'))
+    non_snv = [call for call in translated if call['class'] != 'SNV']
+    story += examples('Highest supported non-SNV local products', non_snv)
+    story.append(para(
+        'The tables rank source records, not independent molecules. A displayed '
+        'local context may represent only part of a mutant protein.', 'FootSmall'))
     story.append(PageBreak())
     return story
 
@@ -359,6 +477,8 @@ def provenance_story(sample, d):
     story.append(para('<b>orfdata bundled GRCh38 catalog</b>', 'FootSmall'))
     story.append(para('06bc0bf3f81c25a7356f71a38581ff5704c05dcb75752454bc1ca75075ab8c09',
                       'TinyMono'))
+    story.append(para('<b>Ensembl 87 GRCh38 protein FASTA gzip (self screen)</b>', 'FootSmall'))
+    story.append(para(SELF_FASTA_SHA256, 'TinyMono'))
     story += section('What remains unresolved')
     story.append(para(caveat))
     story.append(para(
@@ -379,7 +499,10 @@ def build_one(sample, output_dir=OUT, annotations_path=ANNOTATIONS):
         topMargin=52, bottomMargin=51, title=f'{sample} somatic mutation and RNA evidence',
         author='Isovar evidence audit',
     )
-    story = main_story(sample, data) + evidence_story(sample, data) + provenance_story(sample, data)
+    story = (main_story(sample, data) + coding_story(sample, data)
+             + evidence_story(sample, data) + read_support_story(data)
+             + altered_aa_story(data) + example_story(data)
+             + provenance_story(sample, data))
     doc.build(story, onFirstPage=lambda c, d: page_footer(c, d, sample),
               onLaterPages=lambda c, d: page_footer(c, d, sample))
     print(path)

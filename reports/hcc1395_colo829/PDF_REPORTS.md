@@ -13,15 +13,56 @@ limits.
 |---|---:|---:|
 | Ingested small variants | 41,072 | 46,064 |
 | Ingested SV source records | 1,788 | 188 |
+| Any Ensembl 87 exon involved | 1,728 | 1,395 |
+| Exonic with original RNA ALT | 292 | 502 |
+| Exonic with a local mutant protein context | 22 | 124 |
 | Ensembl 87 coding-sequence effect | 491 | 373 |
 | Pinned orfdata ncORF coding-block overlap | 17 | 5 |
 | Either coding annotation | 505 | 378 |
 | Original RNA ALT-observed calls | 343 | 1,933 |
 | ALT-observed calls with a local mutant protein context | 22 | 124 |
 | Ranked local mutant protein contexts | 119 | 12,218 |
+| DNA-predicted top-effect frameshifts | 9 | 5 |
+| Resolved SV-derived proteins | 0 | 0 |
+
+The first figure in each report is a **nested source-record funnel**: all
+ingested DNA records (small variants plus nominated SV source records), the
+small-variant subset, any annotated exon involved, exonic with an original RNA
+ALT allele, and exonic with a translated local protein context. An exon hit means
+some changed reference base meets any Ensembl 87 exon, whether coding, UTR or
+noncoding. A deletion is queried across all removed reference bases, so an
+exon between intronic endpoints counts. Pure insertions have no removed base;
+either flank is a *candidate* exon involvement. This follows the
+[VCF padding-base convention](https://github.com/samtools/hts-specs/blob/master/VCFv4.3.tex)
+and PyEnsembl's 1-based inclusive exon intervals. SV source records leave the
+funnel at its second stage; breakpoint RNA evidence is screened separately.
+
+Figures show ALT-read support separately for SNVs, insertions and deletions,
+first with zero-support calls and then conditional on at least one ALT read.
+The changed-amino-acid figure counts positions in the top-ranked **local**
+protein window of each ALT-observed call, retaining the no-product and
+zero-length deletion-junction categories. Its second panel excludes the
+one-amino-acid category to show the tail. It does not estimate an unobserved
+frameshift tail or full-length isoform.
+
+Example tables rank original RNA ALT support, highly supported non-SNV local
+products and the least reference-self-like local windows. The last ranking is
+an exact screen: for each top local product, count distinct
+mutation-overlapping 9-mers absent from the pinned Ensembl 87 GRCh38 protein
+FASTA. Rank by absent fraction, then absent count, then ALT reads. It is not a
+patient-specific self inventory, peptide presentation or immunogenicity score.
+The FASTA gzip SHA-256 is
+`d873c199d5dbf20869db3f2cbd6ac726259215d91c2782f9f1ddcad4bb117cf9`.
+The per-call scores are in
+[the compact score table](reference_self_9mer_scores.tsv.gz); the source
+[Ensembl 87 protein FASTA](https://ftp.ensembl.org/pub/release-87/fasta/homo_sapiens/pep/Homo_sapiens.GRCh38.pep.all.fa.gz)
+is not bundled. DNA-predicted frameshifts, reference ncORF coding-block
+candidates, and unresolved SV screens are kept separate from RNA-resolved
+protein products.
 
 The [per-call reference annotation table](reference_coding_orfdata_annotations.tsv.gz)
-contains all 87,136 small-variant records. `reference_coding_effect=True`
+contains all 87,136 small-variant records. `exon_overlap=True` applies the
+funnel's any-exon rule. `reference_coding_effect=True`
 means at least one Varcode effect modifies an Ensembl 87 protein-coding
 sequence. `orfdata_coding_block_overlap=True` means the reference event span
 overlaps a coding block in the pinned orfdata 0.34.1 human GRCh38 catalog
@@ -58,3 +99,27 @@ committed atlas and annotation tables; it does not download genomes, BAMs, or
 call sets. It produces deterministic PDF bytes. The two offline regression
 tests check the annotation table against every atlas call and selected known
 ncORF hits.
+
+To regenerate the reference-self score table, supply the pinned Ensembl 87
+protein FASTA to `python -m reports.hcc1395_colo829.build_reference_self_scores
+--fasta PATH`. The script checks its SHA-256. The PDFs then rebuild without
+the reference FASTA.
+
+## Run on another variant/RNA set
+
+Install `isovar[report]`, then run the installed command on a literal
+small-variant VCF and an indexed tumor RNA BAM/CRAM:
+
+```sh
+isovar evidence-report --vcf somatic.vcf.gz --bam tumor-rna.bam \
+    --sample-id tumor-1 --output tumor-1-evidence.pdf
+```
+
+This writes `tumor-1-evidence.pdf` and `tumor-1-evidence.tsv` with every loaded
+variant, including zero-support records. `--nc-orf-catalog PATH` adds candidate
+reference ncORF coding-block overlaps, after a species/assembly check.
+`--self-fasta PATH` enables the exact reference-protein 9-mer screen. Without
+those inputs, their categories are marked unassessed. The generic command
+does not accept SVs or infer matched-normal somatic status; the caller must
+supply the appropriate DNA call set. It uses the same high-depth direct-read
+context path as the COLO829 atlas when more than 750 ALT reads occur.

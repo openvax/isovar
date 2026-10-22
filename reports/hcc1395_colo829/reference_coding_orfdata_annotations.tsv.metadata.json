@@ -6,5 +6,6 @@
   "orfdata_catalog_version": "2026-10-11.1",
   "orfdata_catalog_sha256": "06bc0bf3f81c25a7356f71a38581ff5704c05dcb75752454bc1ca75075ab8c09",
   "genome_annotation": "Ensembl 87",
-  "reference_build": "GRCh38"
+  "reference_build": "GRCh38",
+  "exon_overlap_rule": "changed reference bases; insertions query both flanks"
 }

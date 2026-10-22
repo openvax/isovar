@@ -16,6 +16,8 @@ import orfdata
 from pyensembl import cached_release
 from varcode import Variant
 
+from isovar.evidence_report import overlaps_exon
+
 
 ROOT = Path(__file__).resolve().parents[2]
 REPORT = ROOT / 'reports/hcc1395_colo829'
@@ -24,7 +26,8 @@ CATALOG = Path(orfdata.__file__).parent / 'data/orf-evidence/catalog.json.gz'
 CATALOG_SHA256 = '06bc0bf3f81c25a7356f71a38581ff5704c05dcb75752454bc1ca75075ab8c09'
 FIELDS = (
     'sample', 'dna_source', 'class', 'call_id', 'chrom', 'pos', 'ref', 'alt',
-    'dna_filter', 'genomic_transcript_overlap', 'reference_coding_effect',
+    'dna_filter', 'genomic_transcript_overlap', 'exon_overlap',
+    'reference_coding_effect',
     'top_effect_type', 'top_effect_description', 'orfdata_coding_block_overlap',
     'orfdata_orf_count', 'orfdata_orf_ids', 'orfdata_biotypes',
     'orfdata_overlap_rule', 'annotation_error',
@@ -112,6 +115,8 @@ def main():
                 'chrom': call['chrom'], 'pos': call['pos'], 'ref': call['ref'],
                 'alt': call['alt'], 'dna_filter': call['dna_filter'],
                 'genomic_transcript_overlap': bool(call['genomic_overlapping_transcript_ids']),
+                'exon_overlap': overlaps_exon(genome, contig, int(call['pos']),
+                                              call['ref'], call['alt']),
                 'reference_coding_effect': False,
                 'top_effect_type': '', 'top_effect_description': '',
                 'orfdata_coding_block_overlap': bool(ids),
@@ -146,6 +151,7 @@ def main():
         'orfdata_catalog_sha256': CATALOG_SHA256,
         'genome_annotation': 'Ensembl 87',
         'reference_build': 'GRCh38',
+        'exon_overlap_rule': 'changed reference bases; insertions query both flanks',
     }
     args.output.with_suffix('.metadata.json').write_text(json.dumps(metadata, indent=2) + '\n')
     print(metadata, flush=True)
