@@ -70,10 +70,16 @@ def test_nested_counts_and_top_context_aa_denominators():
     assert result["reads_by_class"] == {"SNV": [2, 0], "deletion": [3], "insertion": [1]}
     assert result["exonic_reads_by_class"] == {"SNV": [2], "deletion": [3]}
     pytest.importorskip("reportlab")
-    from isovar.evidence_pdf import EvidenceFunnel, altered_aa_figures, read_support_figures
+    from isovar.evidence_pdf import (
+        EvidenceFunnel, ProteinComparison, altered_aa_figures, read_support_figures,
+    )
 
-    with_sv = {**result["counts"], "sv_total": 3}
-    assert [n for _, n in EvidenceFunnel(with_sv).stages] == [7, 4, 2, 2, 2]
+    assert [n for _, n in EvidenceFunnel(result["counts"]).stages] == [4, 2, 2, 2]
+    assert [n for _, n in EvidenceFunnel(stages=(("SV", 3), ("exonic", 2))).stages] == [3, 2]
+    with pytest.raises(ValueError, match="nested counts"):
+        EvidenceFunnel(stages=(("SV", 2), ("exonic", 3)))
+    with pytest.raises(ValueError, match="no amino-acid divergence"):
+        ProteinComparison("ABCDE", "ABCDE", 2, 3, point_change=True)
     read_figures = read_support_figures(result["reads_by_class"])
     assert read_figures[0].values["0"] == (1, 0, 0)
     assert "0" not in read_figures[1].bins
@@ -122,4 +128,4 @@ def test_vcf_bam_command_writes_per_call_and_visual_pdf(tmp_path):
     assert "Variant-to-RNA funnel" in content
     assert "ALT reads per variant: positive support only" in content
     assert "ALT reads per exon-involved variant: all records" in content
-    assert "Changed AA positions: excluding one-AA calls" in content
+    assert "Marked AA positions: excluding one-AA calls" in content
