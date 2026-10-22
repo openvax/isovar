@@ -26,23 +26,22 @@ BAR_COLORS = (TEAL, ORANGE, NAVY, GRAY, colors.HexColor("#7e5fa0"),
 
 
 class EvidenceFunnel(Flowable):
-    """Nested source-record counts; widths are schematic, numbers authoritative."""
+    """Nested counts for one variant class; widths are schematic."""
 
-    def __init__(self, counts, width=512):
+    def __init__(self, counts=None, *, stages=None, width=512):
         super().__init__()
         self.counts = counts
         self.width = width
-        small = counts["total"]
-        self.stages = (
-            (("All DNA source records", small + counts["sv_total"]),
-             ("Small-variant records", small))
-            if counts["sv_total"] else (("All small-variant records", small),)
-        ) + (
+        self.stages = tuple(stages) if stages is not None else (
+            ("Small variants in DNA source", counts["total"]),
             ("Any annotated exon involved", counts["exonic"]),
-            ("Exonic with original RNA ALT", counts["exonic_alt"]),
-            ("Exonic with local mutant protein", counts["exonic_product"]),
+            ("Exonic with tumor RNA ALT reads", counts["exonic_alt"]),
+            ("Exonic with local protein context", counts["exonic_product"]),
         )
-        self.height = 11 + len(self.stages) * 48
+        if not self.stages or any(a[1] < b[1] or b[1] < 0
+                                  for a, b in zip(self.stages, self.stages[1:])):
+            raise ValueError("Funnel stages must be nonnegative nested counts")
+        self.height = 11 + len(self.stages) * 40
 
     def draw(self):
         c = self.canv
@@ -50,23 +49,72 @@ class EvidenceFunnel(Flowable):
         for index, (label, value) in enumerate(self.stages):
             box_width = self.width - index * 60
             left = (self.width - box_width) / 2
-            bottom = self.height - 42 - index * 48
+            bottom = self.height - 36 - index * 40
             c.setFillColor(TEAL if index == len(self.stages) - 1
                            else NAVY if index == 0 else PALE)
-            c.roundRect(left, bottom, box_width, 39, 7, fill=1, stroke=0)
+            c.roundRect(left, bottom, box_width, 33, 7, fill=1, stroke=0)
             dark = index in (0, len(self.stages) - 1)
             c.setFillColor(colors.white if dark else NAVY)
             c.setFont("Helvetica-Bold", 9)
-            c.drawString(left + 12, bottom + 22, label)
+            c.drawString(left + 12, bottom + 19, label)
             c.setFont("Helvetica", 8.2)
             pct = 100 * value / total if total else 0
-            c.drawString(left + 12, bottom + 9, f"{value:,}  /  {pct:.1f}% of input")
+            c.drawString(left + 12, bottom + 7, f"{value:,}  /  {pct:.1f}% of input")
             if index < len(self.stages) - 1:
                 c.setStrokeColor(GRAY)
-                c.line(self.width / 2, bottom - 3, self.width / 2, bottom - 9)
+                c.line(self.width / 2, bottom - 3, self.width / 2, bottom - 7)
         c.setFillColor(GRAY)
         c.setFont("Helvetica-Oblique", 7)
         c.drawString(0, 2, "Boxes show subset order; widths are schematic, not scaled to count.")
+
+
+class ProteinComparison(Flowable):
+    """Draw two local protein windows anchored at the mutation boundary."""
+
+    def __init__(self, reference, mutant, mutation_start, mutation_end,
+                 *, point_change=False, width=512):
+        super().__init__()
+        if not 0 <= mutation_start <= mutation_end <= len(mutant):
+            raise ValueError("Invalid mutant protein mutation interval")
+        if reference[:mutation_start] != mutant[:mutation_start]:
+            raise ValueError("Reference and mutant do not share the reported prefix")
+        if point_change and (len(reference) != len(mutant) or
+                             reference[mutation_end:] != mutant[mutation_end:]):
+            raise ValueError("Point-change reference and mutant flanks disagree")
+        if point_change and reference[mutation_start:mutation_end] == mutant[
+                mutation_start:mutation_end]:
+            raise ValueError("Point-change example has no amino-acid divergence")
+        self.reference = reference
+        self.mutant = mutant
+        self.mutation_start = mutation_start
+        self.mutation_end = mutation_end
+        self.point_change = point_change
+        self.width = width
+        self.height = 47
+
+    def draw(self):
+        c = self.canv
+        c.setFillColor(PALE)
+        c.roundRect(0, 0, self.width, self.height, 5, fill=1, stroke=0)
+        font, size = "Courier-Bold", 9
+        advance = 5.4
+        x0 = 53
+        c.setStrokeColor(colors.HexColor("#b9cbd2"))
+        boundary = x0 + self.mutation_start * advance - 2
+        c.line(boundary, 5, boundary, 42)
+        for label, sequence, y, highlight in (
+                ("REF", self.reference, 28, ORANGE),
+                ("MUT", self.mutant, 10, TEAL)):
+            c.setFont("Helvetica-Bold", 8)
+            c.setFillColor(highlight)
+            c.drawString(10, y, label)
+            c.setFont(font, size)
+            padded = sequence.ljust(max(len(self.reference), len(self.mutant)), "-")
+            for index, residue in enumerate(padded):
+                changed = self.mutation_start <= index < (
+                    self.mutation_end if self.point_change else len(sequence))
+                c.setFillColor(GRAY if residue == "-" else highlight if changed else NAVY)
+                c.drawString(x0 + index * advance, y, residue)
 
 
 class BinnedBars(Flowable):
@@ -87,12 +135,15 @@ class BinnedBars(Flowable):
         c.setFont("Helvetica-Bold", 9.5)
         c.drawString(0, self.height - 12, self.title)
         if self.classes:
-            c.setFont("Helvetica", 7.5)
+            count_left = 265
+            column_width = (self.width - count_left) / len(self.classes)
+            c.setFont("Helvetica-Bold", 7)
             for index, (name, color) in enumerate(zip(self.classes, BAR_COLORS)):
+                center = count_left + (index + 0.5) * column_width
                 c.setFillColor(color)
-                c.drawString(4 + index * 82, self.height - 27, name)
+                c.drawCentredString(center, self.height - 29, name)
         top = self.height - (42 if self.classes else 28)
-        bar_left, bar_width = 105, self.width - 225
+        bar_left, bar_width = (76, 175) if self.classes else (105, self.width - 225)
         maximum = max((sum(self.values.get(label, ())) if self.classes
                        else self.values.get(label, 0) for label in self.bins), default=0)
         for index, label in enumerate(self.bins):
@@ -106,20 +157,21 @@ class BinnedBars(Flowable):
                 values = self.values.get(label, ())
                 scale = bar_width / maximum if maximum else 0
                 offset = 0
-                for number, color in zip(values, BAR_COLORS):
+                for class_index, (number, color) in enumerate(zip(values, BAR_COLORS)):
                     c.setFillColor(color)
                     c.rect(bar_left + offset, y - 3, number * scale, 13, fill=1, stroke=0)
                     offset += number * scale
-                shown = " / ".join(f"{number:,}" for number in values)
+                    center = count_left + (class_index + 0.5) * column_width
+                    c.setFont("Helvetica-Bold", 7)
+                    c.drawCentredString(center, y + 1, f"{number:,}")
             else:
                 value = self.values.get(label, 0)
                 c.setFillColor(TEAL)
                 c.rect(bar_left, y - 3, bar_width * value / maximum if maximum else 0,
                        13, fill=1, stroke=0)
-                shown = f"{value:,}"
-            c.setFillColor(NAVY)
-            c.setFont("Helvetica", 7.4)
-            c.drawRightString(self.width, y + 2, shown)
+                c.setFillColor(NAVY)
+                c.setFont("Helvetica", 7.4)
+                c.drawRightString(self.width, y + 2, f"{value:,}")
 
 
 def read_support_figures(reads_by_class, *, scope="variant", width=512):
@@ -158,12 +210,12 @@ def viral_support_figures(contigs, *, width=512):
 
 
 def altered_aa_figures(aa_counts, *, width=512):
-    """Top local context per ALT-observed call, including and excluding one AA."""
+    """Isovar-marked interval of the top local context per ALT-observed call."""
     counts = Counter(aa_bin(n) for n in aa_counts)
     return [
-        BinnedBars("Changed AA positions: all ALT-observed calls", AA_BINS,
+        BinnedBars("Marked AA positions: all ALT-observed calls", AA_BINS,
                    counts, width=width),
-        BinnedBars("Changed AA positions: excluding one-AA calls",
+        BinnedBars("Marked AA positions: excluding one-AA calls",
                    tuple(label for label in AA_BINS if label != "1"),
                    counts, width=width),
     ]
@@ -232,13 +284,15 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
                     "changed reference base, or at an insertion flank. Both "
                     "panels retain SNVs, insertions, deletions and replacements. "
                     "This VCF/BAM command does not interpret symbolic SVs."), PageBreak(),
-                  p("Changed amino acids in local protein contexts", "EvidenceSection")))
+                  p("Isovar-marked amino-acid spans in local contexts", "EvidenceSection")))
     story.extend(altered_aa_figures(summary["aa_counts"]))
     story.extend((p("One top-ranked local context is counted per ALT-observed call. "
                     "The second panel removes the one-residue category; calls with "
                     "no local product remain explicit. Zero denotes an empty "
-                    "mutation interval such as a deletion junction. No full "
-                    "frameshift tail or complete isoform is inferred."), PageBreak(),
+                    "mutation interval such as a deletion junction. A marked "
+                    "position may be unchanged in a synonymous translation; "
+                    "this is not a reference-verified amino-acid difference count. "
+                    "No full frameshift tail or complete isoform is inferred."), PageBreak(),
                   p("Mutation classes and examples", "EvidenceSection")))
     story.append(table(("Category", "Count", "Scope"), (
         ("DNA-predicted frameshift", f"{counts['frameshift']:,}",

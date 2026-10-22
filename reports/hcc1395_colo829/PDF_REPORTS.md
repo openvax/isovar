@@ -14,29 +14,34 @@ limits.
 | Ingested small variants | 41,072 | 46,064 |
 | Ingested SV source records | 1,788 | 188 |
 | SV source records involving an Ensembl 87 exon | 354 | 97 |
+| Exonic SVs with RNA alignment near either nominated end | 172 | 64 |
+| Exonic SVs with split-read or cross-end mate candidates | 6 | 6 |
+| Exonic SVs with a resolved RNA junction | 0 | 0 |
 | Any Ensembl 87 exon involved | 1,728 | 1,395 |
 | Exonic with original RNA ALT | 292 | 502 |
-| Exonic with a local mutant protein context | 22 | 124 |
+| Exonic with a local protein context | 22 | 124 |
 | Ensembl 87 coding-sequence effect | 491 | 373 |
 | Pinned orfdata ncORF coding-block overlap | 17 | 5 |
 | Either coding annotation | 505 | 378 |
 | Original RNA ALT-observed calls | 343 | 1,933 |
-| ALT-observed calls with a local mutant protein context | 22 | 124 |
-| Ranked local mutant protein contexts | 119 | 12,218 |
+| ALT-observed calls with a local protein context | 22 | 124 |
+| Ranked local protein contexts | 119 | 12,218 |
 | DNA-predicted top-effect frameshifts | 9 | 5 |
 | Resolved SV-derived proteins | 0 | 0 |
 
-The first figure in each report is a **nested source-record funnel**: all
-ingested DNA records (small variants plus nominated SV source records), the
-small-variant subset, any annotated exon involved, exonic with an original RNA
-ALT allele, and exonic with a translated local protein context. An exon hit means
+The first page of each report has **two source-record funnels**. The small-
+variant funnel follows exon involvement, tumor RNA ALT reads, and a local
+protein context. The SV funnel follows exon involvement, RNA alignment near
+either nominated breakend, same-read split or cross-end mate candidates,
+resolved RNA junctions, and SV-derived proteins. Each percentage uses the
+DNA source-record count for its own variant class. The RNA-alignment stage
+measures locus coverage, not SV support. An exon hit means
 some changed reference base meets any Ensembl 87 exon, whether coding, UTR or
 noncoding. A deletion is queried across all removed reference bases, so an
 exon between intronic endpoints counts. Pure insertions have no removed base;
 either flank is a *candidate* exon involvement. This follows the
 [VCF padding-base convention](https://github.com/samtools/hts-specs/blob/master/VCFv4.3.tex)
-and PyEnsembl's 1-based inclusive exon intervals. SV source records leave the
-funnel at its second stage; breakpoint RNA evidence is screened separately.
+and PyEnsembl's 1-based inclusive exon intervals.
 
 Figures show ALT-read support separately for SNVs, insertions and deletions,
 first with zero-support calls and then conditional on at least one ALT read.
@@ -45,7 +50,16 @@ the same small-variant records. A separate figure groups exon-involved
 nominated DEL, DUP, INV, INS, TRA and BND records by RNA split-alignment
 candidate count, again with and without zeros. A structural variant's full
 nominated intrachromosomal span is used for DEL/DUP/INV; INS uses flanks and
-TRA/BND use nominated breakpoints. Four COLO829 breakend records cannot be
+TRA/BND use nominated breakpoints. A table separates same-read split-alignment
+candidates from opposite-mate candidates. The adjacent plot bins their sum
+by SV class; this is a screening count, not a validated junction read count.
+The split screen uses the [SAM supplementary-alignment convention](https://samtools.github.io/hts-specs/SAMv1.pdf):
+one read identifier must have observed alignments in both nominated windows,
+with at least one supplementary record. The paired-end screen requires opposite
+primary mates in the two windows. Alignments must have mapping quality at least
+20 and pass the screen's duplicate, secondary, and QC filters. Both are
+candidate links requiring junction sequence and orientation checks.
+Four COLO829 breakend records cannot be
 ruled out as exonic because one partner coordinate is unresolved, and are
 marked `Unknown` in the
 [SV exon annotation table](sv_exon_annotations.tsv.gz). A positive split
@@ -54,11 +68,22 @@ The SV annotation [metadata](sv_exon_annotations.tsv.metadata.json) pins the
 two source-table SHA-256 digests and reference release. The figures do not
 combine ALT-spanning reads with split-alignment candidates.
 
-The changed-amino-acid figure counts positions in the top-ranked **local**
-protein window of each ALT-observed call, retaining the no-product and
-zero-length deletion-junction categories. Its second panel excludes the
-one-amino-acid category to show the tail. It does not estimate an unobserved
-frameshift tail or full-length isoform.
+The protein comparison page shows selected high RNA-support local products
+against pinned Ensembl 87 reference transcript windows. The color highlights
+the change. Frameshift downstream columns are anchored at the mutation
+boundary; they are not a full-length or homology alignment. The small
+[reference-context table](example_reference_contexts.tsv) makes regeneration
+offline and identifies the chosen transcript and reference protein digest.
+
+The amino-acid-span figure counts positions in Isovar's mutation interval for
+the top-ranked **local** protein window of each ALT-observed call, retaining
+the no-context and zero-length deletion-junction categories. Its second panel
+excludes the one-amino-acid category to show the tail. A synonymous DNA call
+can have a local protein context identical to the reference, so these are not
+reference-verified counts of changed amino acids. It does not estimate an
+unobserved frameshift tail or full-length isoform.
+The cohort-wide distinction between reference-identical contexts and truly
+divergent mutant proteins is tracked in [Isovar #551](https://github.com/openvax/isovar/issues/551).
 
 Example tables rank original RNA ALT support, highly supported non-SNV local
 products and the least reference-self-like local windows. The last ranking is

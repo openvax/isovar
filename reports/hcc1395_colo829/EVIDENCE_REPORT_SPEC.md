@@ -21,18 +21,22 @@ coding-block overlaps remain separate annotations.
 
 ## Figures and denominators
 
-Every report has a nested funnel: all ingested DNA source records, then
-small-variant records, variants with any exon involvement, exon-involved
-variants with observed RNA ALT, and those with a local mutant protein context.
-When no SV source records are supplied, the two initial stages coincide and
-are shown once. Report the absolute count and percentage of the initial input
-at every stage. SV source records leave the funnel before exon annotation;
-their RNA screen is separate. Additional figures show RNA ALT-read support by
+The cell-line reports have separate nested funnels for small variants and
+structural variants. Each stage reports a count and percentage of its own
+DNA input class. The small-variant path is exon involvement, RNA ALT read,
+and local protein context. The SV path is exon involvement, RNA
+alignment near a nominated breakend, same-read split or cross-end mate
+candidate, resolved junction sequence, and translated SV product. Breakend
+coverage alone is not event support. The generic VCF/BAM command has only
+the small-variant funnel because it does not interpret symbolic SVs.
+Additional figures show RNA ALT-read support by
 variant class, both with zero-support calls and conditional on positive
-support, and the number of changed amino-acid positions in the top-ranked
-local protein context per RNA-supported variant, both with and without the
-single-residue category. The latter is a local window measure: it cannot
-infer an unobserved frameshift tail or full-length isoform. RNA statuses are
+support, and the number of Isovar-marked mutation-interval amino-acid positions
+in the top-ranked local protein context per RNA-supported variant, both with
+and without the single-residue category. The marked interval may be unchanged
+at the amino-acid level for a synonymous allele; the figure is not a
+reference-verified change count. It cannot infer an unobserved frameshift tail
+or full-length isoform. RNA statuses are
 mutually exclusive; reference coding, ncORF overlap and RNA support are not.
 
 The HCC1395/COLO829 reports count DNA-predicted frameshifts, reference ncORF
@@ -44,6 +48,13 @@ exact-match screen, not patient-specific self, HLA binding or immunogenicity.
 An unavailable reference FASTA leaves this category unevaluated; no substitute
 score is silently invented. The reports retain source, coding, ncORF and SV
 tables and caveats.
+
+For selected high RNA-support products, show an Ensembl 87 transcript's
+reference local protein window beside Isovar's top mutant window. Align at
+the mutation boundary, highlight divergent residues, and distinguish a
+frameshift's boundary-anchored comparison from a true downstream homology
+alignment. Reference contexts are pinned in a small TSV so PDF regeneration
+does not require a live or locally cached reference.
 
 ## Verification
 
