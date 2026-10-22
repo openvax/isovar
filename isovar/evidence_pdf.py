@@ -21,6 +21,8 @@ TEAL = colors.HexColor("#0f706d")
 ORANGE = colors.HexColor("#ba5a29")
 GRAY = colors.HexColor("#526373")
 PALE = colors.HexColor("#eaf1f4")
+BAR_COLORS = (TEAL, ORANGE, NAVY, GRAY, colors.HexColor("#7e5fa0"),
+              colors.HexColor("#558b2f"))
 
 
 class EvidenceFunnel(Flowable):
@@ -86,10 +88,9 @@ class BinnedBars(Flowable):
         c.drawString(0, self.height - 12, self.title)
         if self.classes:
             c.setFont("Helvetica", 7.5)
-            for index, (name, color) in enumerate(zip(
-                    self.classes, (TEAL, ORANGE, NAVY, GRAY))):
+            for index, (name, color) in enumerate(zip(self.classes, BAR_COLORS)):
                 c.setFillColor(color)
-                c.drawString(4 + index * 105, self.height - 27, name)
+                c.drawString(4 + index * 82, self.height - 27, name)
         top = self.height - (42 if self.classes else 28)
         bar_left, bar_width = 105, self.width - 225
         maximum = max((sum(self.values.get(label, ())) if self.classes
@@ -105,7 +106,7 @@ class BinnedBars(Flowable):
                 values = self.values.get(label, ())
                 scale = bar_width / maximum if maximum else 0
                 offset = 0
-                for number, color in zip(values, (TEAL, ORANGE, NAVY, GRAY)):
+                for number, color in zip(values, BAR_COLORS):
                     c.setFillColor(color)
                     c.rect(bar_left + offset, y - 3, number * scale, 13, fill=1, stroke=0)
                     offset += number * scale
@@ -121,17 +122,38 @@ class BinnedBars(Flowable):
             c.drawRightString(self.width, y + 2, shown)
 
 
-def read_support_figures(reads_by_class, *, width=512):
+def read_support_figures(reads_by_class, *, scope="variant", width=512):
     """Distributions of ALT reads by type, with and without zero-support calls."""
-    classes = tuple(name for name in ("SNV", "insertion", "deletion", "replacement")
-                    if name in reads_by_class)
-    counts = {name: Counter(read_bin(n) for n in reads_by_class.get(name, ()))
+    return support_by_class_figures(
+        reads_by_class, ("SNV", "insertion", "deletion", "replacement"),
+        title=f"ALT reads per {scope}", width=width)
+
+
+def support_by_class_figures(values_by_class, class_order, *, title, width=512):
+    """Paired binned distributions in the supplied evidence unit and classes."""
+    classes = tuple(name for name in class_order if name in values_by_class)
+    counts = {name: Counter(read_bin(n) for n in values_by_class.get(name, ()))
               for name in classes}
     figures = []
-    for title, bins in (("ALT reads per variant: all calls", READ_BINS),
-                        ("ALT reads per variant: positive support only", READ_BINS[1:])):
+    for suffix, bins in (("all records", READ_BINS),
+                         ("positive support only", READ_BINS[1:])):
         values = {label: tuple(counts[name][label] for name in classes) for label in bins}
-        figures.append(BinnedBars(title, bins, values, classes=classes, width=width))
+        figures.append(BinnedBars(f"{title}: {suffix}", bins, values,
+                                  classes=classes, width=width))
+    return figures
+
+
+def viral_support_figures(contigs, *, width=512):
+    """Count selected viral contigs by aligned and sequence-assigned fragments."""
+    figures = []
+    for field, label in (("aligned_fragments", "aligned"),
+                         ("sequence_assigned_fragments", "sequence-assigned")):
+        counts = Counter(read_bin(int(row[field])) for row in contigs)
+        for suffix, bins in (("all selected contigs", READ_BINS),
+                             ("positive support only", READ_BINS[1:])):
+            figures.append(BinnedBars(
+                f"Viral contigs by {label} fragments: {suffix}", bins, counts,
+                width=width))
     return figures
 
 
@@ -203,6 +225,13 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
     story.extend((p("The first panel includes calls with zero ALT reads. The second "
                     "conditions on positive ALT support. Bars count variants, with "
                     "classes shown in legend order."), PageBreak(),
+                  p("RNA alternate-read support: exon-involved variants", "EvidenceSection")))
+    story.extend(read_support_figures(summary["exonic_reads_by_class"],
+                                      scope="exon-involved variant"))
+    story.extend((p("An exon-involved call intersects any annotated exon at a "
+                    "changed reference base, or at an insertion flank. Both "
+                    "panels retain SNVs, insertions, deletions and replacements. "
+                    "This VCF/BAM command does not interpret symbolic SVs."), PageBreak(),
                   p("Changed amino acids in local protein contexts", "EvidenceSection")))
     story.extend(altered_aa_figures(summary["aa_counts"]))
     story.extend((p("One top-ranked local context is counted per ALT-observed call. "

@@ -28,6 +28,7 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | `isovar variant-reads` | Reads supporting each variant's alt allele |
 | `isovar plot` | Protein, coverage, read-overlap and transcript figures for one mutation ([guide](visualization.md)) |
 | `isovar evidence-report` | Visual PDF and per-call TSV for a variant VCF plus indexed tumor RNA ([guide](../reports/hcc1395_colo829/PDF_REPORTS.md)) |
+| `isovar antigen-report` | Source-separated PDF and JSON from small-variant, SV, fusion, viral and antigen-isoform exports ([guide](antigen-evidence-report.md)) |
 | `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](allele-interpretations.md)) |
 | `isovar sv-rna` | Exploratory RNA paths around one nominated SV, as JSON ([guide](sv-rna.md)) |
 | `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON ([guide](fusion.md)) |
@@ -56,6 +57,9 @@ be reviewed. The
 command reports small variants; nominated SV breakends need a separate SV RNA
 screen. The PDF distinguishes source DNA predictions, original RNA allele
 reads and local Isovar protein windows. It does not infer full-length isoforms.
+It includes exon-involved ALT-read distributions with and without zero-support
+calls. Use `isovar antigen-report` to compose other source-specific exports,
+including separate viral fragment distributions.
 
 The following CSV conventions apply to the other table commands.
 

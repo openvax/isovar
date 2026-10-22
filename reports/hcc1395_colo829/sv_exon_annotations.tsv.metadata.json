@@ -1,0 +1,20 @@
+{
+  "coordinate_system": "1-based inclusive",
+  "genome": "human Ensembl 87 GRCh38",
+  "records_by_sample_and_overlap": {
+    "COLO829": {
+      "False": 87,
+      "True": 97,
+      "Unknown": 4
+    },
+    "HCC1395": {
+      "False": 1434,
+      "True": 354
+    }
+  },
+  "schema": "isovar.sv_exon_annotations.v1",
+  "source_sha256": {
+    "colo829_sv_rna_screen.tsv": "e08143f0dcc9902d62d3033e7bcc25f8123d552f4280422f7a335863d65e01b1",
+    "hcc1395_direct_rna_sv_screen.tsv": "e07c608719d9a854c769dcc38103a44a5c7db197cb2668d634e3c47b1a369b57"
+  }
+}

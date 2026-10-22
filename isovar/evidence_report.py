@@ -140,6 +140,7 @@ def summarize(calls, annotations, proteins=(), sv=()):
     rna = Counter()
     classes = Counter()
     reads_by_class = {}
+    exonic_reads_by_class = {}
     aa_counts = []
     for call in calls:
         ident = call["call_id"]
@@ -155,6 +156,8 @@ def summarize(calls, annotations, proteins=(), sv=()):
         classes[cls] += 1
         rna[call["rna_status"]] += 1
         reads_by_class.setdefault(variant_type(call), []).append(int(call["alt_reads"]))
+        if exonic:
+            exonic_reads_by_class.setdefault(variant_type(call), []).append(int(call["alt_reads"]))
         counts["exonic"] += exonic
         counts["exonic_alt"] += exonic and alt
         counts["exonic_product"] += exonic and product
@@ -181,7 +184,8 @@ def summarize(calls, annotations, proteins=(), sv=()):
     if not (counts["exonic_product"] <= counts["exonic_alt"] <= counts["exonic"] <= len(calls)):
         raise ValueError("Exonic funnel stages are not nested")
     return dict(counts=counts, rna=rna, classes=classes, top=top,
-                reads_by_class=reads_by_class, aa_counts=aa_counts)
+                reads_by_class=reads_by_class,
+                exonic_reads_by_class=exonic_reads_by_class, aa_counts=aa_counts)
 
 
 def read_bin(count):

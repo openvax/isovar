@@ -68,6 +68,7 @@ def test_nested_counts_and_top_context_aa_denominators():
         "frameshift_alt")] == [4, 2, 2, 2, 1, 1]
     assert result["aa_counts"] == [1, 0, None]
     assert result["reads_by_class"] == {"SNV": [2, 0], "deletion": [3], "insertion": [1]}
+    assert result["exonic_reads_by_class"] == {"SNV": [2], "deletion": [3]}
     pytest.importorskip("reportlab")
     from isovar.evidence_pdf import EvidenceFunnel, altered_aa_figures, read_support_figures
 
@@ -76,6 +77,10 @@ def test_nested_counts_and_top_context_aa_denominators():
     read_figures = read_support_figures(result["reads_by_class"])
     assert read_figures[0].values["0"] == (1, 0, 0)
     assert "0" not in read_figures[1].bins
+    exonic_figures = read_support_figures(result["exonic_reads_by_class"],
+                                          scope="exon-involved variant")
+    assert exonic_figures[0].values["0"] == (0, 0)
+    assert "0" not in exonic_figures[1].bins
     aa_figures = altered_aa_figures(result["aa_counts"])
     assert aa_figures[0].values["1"] == 1
     assert "1" not in aa_figures[1].bins
@@ -116,4 +121,5 @@ def test_vcf_bam_command_writes_per_call_and_visual_pdf(tmp_path):
     content = "\n".join(page.extract_text() for page in pdf.pages)
     assert "Variant-to-RNA funnel" in content
     assert "ALT reads per variant: positive support only" in content
+    assert "ALT reads per exon-involved variant: all records" in content
     assert "Changed AA positions: excluding one-AA calls" in content

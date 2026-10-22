@@ -16,7 +16,10 @@ from reportlab.platypus import (
 )
 
 from isovar import __version__
-from isovar.evidence_pdf import EvidenceFunnel, altered_aa_figures, read_support_figures
+from isovar.evidence_pdf import (
+    EvidenceFunnel, altered_aa_figures, read_support_figures,
+    support_by_class_figures,
+)
 from isovar.evidence_report import read_tsv as read_evidence_tsv, summarize, variant_type
 
 
@@ -25,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[2]
 REPORT = ROOT / 'reports/hcc1395_colo829'
 ANNOTATIONS = REPORT / 'reference_coding_orfdata_annotations.tsv.gz'
 SELF_SCORES = REPORT / 'reference_self_9mer_scores.tsv.gz'
+SV_EXONS = REPORT / 'sv_exon_annotations.tsv.gz'
 SELF_FASTA_SHA256 = 'd873c199d5dbf20869db3f2cbd6ac726259215d91c2782f9f1ddcad4bb117cf9'
 OUT = ROOT / 'output/pdf'
 NAVY = colors.HexColor('#18334b')
@@ -106,6 +110,18 @@ def collect(sample, annotations_path=ANNOTATIONS):
     sv_file = ('hcc1395_direct_rna_sv_screen.tsv' if sample == 'HCC1395'
                else 'colo829_sv_rna_screen.tsv')
     sv = read_tsv(REPORT / sv_file)
+    sv_annotations = {(row['dna_source'], row['call_id']): row
+                      for row in read_gzip(SV_EXONS) if row['sample'] == sample}
+    if len(sv_annotations) != len(sv):
+        raise ValueError(f'Incomplete SV exon annotations for {sample}')
+    for row in sv:
+        key = row['dna_source'], row['call_id']
+        annotation = sv_annotations[key]
+        if any(row[field] != annotation[field]
+               for field in ('class', 'chrom1', 'pos1', 'chrom2', 'pos2')):
+            raise ValueError(f'SV annotation mismatch: {key}')
+        row['exon_overlap'] = annotation['exon_overlap']
+        row['exon_rule'] = annotation['exon_rule']
     annotations = {row['call_id']: row for row in read_gzip(annotations_path)
                    if row['sample'] == sample}
     assert len(calls) == len(annotations)
@@ -143,6 +159,8 @@ def collect(sample, annotations_path=ANNOTATIONS):
     counts['protein_contexts'] = len(proteins)
     counts['sv_split_records'] = sv_status['split_alignment_candidate_unresolved']
     counts['sv_split_witnesses'] = sum(int(row['observed_split_alignment_candidates']) for row in sv)
+    counts['sv_exonic'] = sum(row['exon_overlap'] == 'True' for row in sv)
+    counts['sv_exon_unknown'] = sum(row['exon_overlap'] == 'Unknown' for row in sv)
     for key, value in summary['counts'].items():
         if key in counts and counts[key] != value:
             raise ValueError(f'Inconsistent {key} count for {sample}')
@@ -205,6 +223,8 @@ def main_story(sample, d):
              f"{d['classes']['SNV']:,} SNVs; {d['classes']['indel']:,} indels"),
             ('Ingested SV source records', f'{sv_total:,}',
              'DNA breakpoint records/events, counted in their source sets'),
+            ('SVs involving an annotated exon', f"{c['sv_exonic']:,}",
+             'Span for DEL/DUP/INV; nominated breakpoint or insertion flanks otherwise'),
             ('Any annotated exon involved', f"{c['exonic']:,}",
              'At least one changed base or insertion flank overlaps an Ensembl 87 exon'),
             ('Ensembl 87 coding effect', f"{c['coding']:,}",
@@ -262,6 +282,48 @@ def read_support_story(d):
         'The positive-support panel excludes zero-ALT records. Bars stack SNV, '
         'insertion, deletion and other-replacement record counts in legend order; '
         'the labels show each count. These are variant counts, not read counts.', 'FootSmall'))
+    story.append(PageBreak())
+    return story
+
+
+def exonic_read_support_story(d):
+    story = section('RNA ALT reads: exon-involved small variants')
+    for figure in read_support_figures(d['summary']['exonic_reads_by_class'],
+                                       scope='exon-involved variant'):
+        story.append(figure)
+    story.append(para(
+        'The input is the exon-involved subset of the small-variant source calls. '
+        'The first panel retains zero-ALT calls; the second conditions on positive '
+        'ALT reads. Insertion flanks are candidate exon involvement. SVs have a '
+        'separate plot because a split alignment is not an ALT-spanning read.',
+        'FootSmall'))
+    story.append(PageBreak())
+    return story
+
+
+def sv_exon_story(d):
+    sv = d['sv']
+    included = [row for row in sv if row['exon_overlap'] == 'True']
+    values = {}
+    for row in included:
+        values.setdefault(row['class'], []).append(int(row['observed_split_alignment_candidates']))
+    story = section('Exon-involved nominated SVs: RNA breakpoint screen')
+    story.append(para(
+        f"{len(included):,} of {len(sv):,} nominated SV source records involve an Ensembl 87 "
+        'exon. Intrachromosomal DEL/DUP/INV records query their full nominated '
+        'span; INS queries insertion flanks; TRA/BND query nominated breakpoints. '
+        f"{d['counts']['sv_exon_unknown']:,} records have insufficient breakpoint "
+        'coordinates to rule out exon involvement and are excluded from this plot.'))
+    for figure in support_by_class_figures(
+            values, ('DEL', 'INS', 'DUP', 'INV', 'TRA', 'BND'),
+            title='Split candidates per exon-involved SV'):
+        story.append(figure)
+    story.append(para(
+        'Bars count SV source records, by reported class. Positive split-alignment '
+        'candidate counts are screening evidence from the retained RNA, not '
+        'validated event-linked junction fragments or translated products. '
+        'The COLO829 benchmark call sets remain separate in the underlying table.',
+        'FootSmall'))
     story.append(PageBreak())
     return story
 
@@ -479,6 +541,15 @@ def provenance_story(sample, d):
                       'TinyMono'))
     story.append(para('<b>Ensembl 87 GRCh38 protein FASTA gzip (self screen)</b>', 'FootSmall'))
     story.append(para(SELF_FASTA_SHA256, 'TinyMono'))
+    story += section('Other antigen sources in this run')
+    story.append(data_table(
+        ['Category', 'Assessment'],
+        [
+            ('Viral RNA and viral coding paths', 'Not assessed: no viral-aligned RNA panel'),
+            ('Supplied fusion transcripts', 'Not assessed with direct junction reconstruction'),
+            ('Targeted antigen-gene isoforms', 'Not assessed with original-read isoform coverage'),
+            ('Mutated ncORF proteins', 'Not reconstructed; reference coding-block overlaps only'),
+        ], [210, 302]))
     story += section('What remains unresolved')
     story.append(para(caveat))
     story.append(para(
@@ -501,6 +572,7 @@ def build_one(sample, output_dir=OUT, annotations_path=ANNOTATIONS):
     )
     story = (main_story(sample, data) + coding_story(sample, data)
              + evidence_story(sample, data) + read_support_story(data)
+             + exonic_read_support_story(data) + sv_exon_story(data)
              + altered_aa_story(data) + example_story(data)
              + provenance_story(sample, data))
     doc.build(story, onFirstPage=lambda c, d: page_footer(c, d, sample),
