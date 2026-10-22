@@ -31,6 +31,8 @@ COMMANDS = {
     "plot": ("isovar_plot", "Draw protein, coverage, read-overlap and transcript figures"),
     "evidence-report": ("isovar_evidence_report",
                         "Build a visual variant/RNA evidence PDF and per-call TSV"),
+    "antigen-report": ("isovar_antigen_report",
+                       "Combine small-variant, SV, fusion, viral and antigen-isoform evidence"),
     "fusion": ("isovar_fusion", "Validate and translate supplied fusion RNA with junction evidence"),
     "sv-rna": ("isovar_sv_rna", "Reconstruct exploratory RNA paths around one nominated SV"),
     "allele-interpretations": ("isovar_allele_interpretations",

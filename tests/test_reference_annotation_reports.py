@@ -2,12 +2,15 @@
 
 import csv
 import gzip
+import json
+import hashlib
 from collections import Counter
 from pathlib import Path
 
 
 REPORT = Path(__file__).parents[1] / "reports/hcc1395_colo829"
 ANNOTATIONS = REPORT / "reference_coding_orfdata_annotations.tsv.gz"
+SV_ANNOTATIONS = REPORT / "sv_exon_annotations.tsv.gz"
 
 
 def rows(path):
@@ -63,3 +66,28 @@ def test_known_orfdata_hits_are_reference_candidates():
     crossing = by_key["HCC1395", "chr14:20256549:CCTGAATGGGGATCATTCTACACAATACTCCT>C"]
     assert crossing["genomic_transcript_overlap"] == "False"
     assert crossing["exon_overlap"] == "True"
+
+
+def test_sv_exon_annotations_match_source_screens():
+    annotations = rows(SV_ANNOTATIONS)
+    assert len(annotations) == 1976
+    metadata = json.loads((REPORT / "sv_exon_annotations.tsv.metadata.json").read_text())
+    assert metadata["genome"] == "human Ensembl 87 GRCh38"
+    for sample, filename, expected in (
+            ("HCC1395", "hcc1395_direct_rna_sv_screen.tsv",
+             {"True": 354, "False": 1434}),
+            ("COLO829", "colo829_sv_rna_screen.tsv",
+             {"True": 97, "False": 87, "Unknown": 4})):
+        source = REPORT / filename
+        assert metadata["source_sha256"][filename] == hashlib.sha256(source.read_bytes()).hexdigest()
+        with source.open(newline="") as handle:
+            calls = list(csv.DictReader(handle, delimiter="\t"))
+        subset = {(row["dna_source"], row["call_id"]): row
+                  for row in annotations if row["sample"] == sample}
+        assert len(subset) == len(calls)
+        assert metadata["records_by_sample_and_overlap"][sample] == expected
+        assert Counter(row["exon_overlap"] for row in subset.values()) == expected
+        for call in calls:
+            annotation = subset[call["dna_source"], call["call_id"]]
+            assert all(annotation[field] == call[field]
+                       for field in ("class", "chrom1", "pos1", "chrom2", "pos2"))

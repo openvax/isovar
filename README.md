@@ -38,6 +38,9 @@ The figure commands (`isovar plot` and `isovar fusion --plot-dir`) need the
 plotting extra: `pip install 'isovar[plot]'`.
 The variant/RNA PDF command needs `pip install 'isovar[report]'`;
 see the [evidence report guide](https://github.com/openvax/isovar/blob/master/reports/hcc1395_colo829/PDF_REPORTS.md).
+The same extra enables `isovar antigen-report`, which combines versioned SV,
+fusion, viral, and targeted antigen-isoform exports while keeping their evidence
+units separate; see the [antigen report guide](https://github.com/openvax/isovar/blob/master/docs/antigen-evidence-report.md).
 
 ## Quick start
 

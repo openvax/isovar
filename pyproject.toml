@@ -62,6 +62,7 @@ isovar-variant-reads = "isovar.cli.isovar_variant_reads:run"
 isovar-variant-sequences = "isovar.cli.isovar_variant_sequences:run"
 isovar-plot = "isovar.cli.isovar_plot:run"
 isovar-evidence-report = "isovar.cli.isovar_evidence_report:run"
+isovar-antigen-report = "isovar.cli.isovar_antigen_report:run"
 
 [tool.ruff]
 target-version = "py311"
