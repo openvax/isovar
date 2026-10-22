@@ -94,14 +94,16 @@ def write_antigen_report(path, inventory):
     small = categories["small_variants"]
     if small["status"] == "assessed":
         item = small["records"][0]
+        ncorf = item["ncorf_reference_candidates"]
+        ncorf_text = "not assessed" if ncorf is None else f"{ncorf:,} candidates"
         new_page("Exon-involved small variants: original RNA ALT reads")
         story.append(p(
             f"{item['input_records']:,} loaded literal VCF alleles; "
             f"{item['exon_involved']:,} involve an annotated exon; "
             f"{item['rna_alt_observed']:,} have an original RNA ALT read; "
             f"{item['local_products']:,} have a local mutant protein context. "
-            f"{item['ncorf_reference_candidates']:,} overlap a reference ncORF "
-            "coding block. The plots include zero-support exon-involved calls "
+            f"Reference ncORF coding-block overlap: {ncorf_text}. "
+            "The plots include zero-support exon-involved calls "
             "and then condition on positive ALT support."))
         story.extend(read_support_figures(item["exonic_reads_by_class"],
                                           scope="exon-involved variant"))

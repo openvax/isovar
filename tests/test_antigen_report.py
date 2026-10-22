@@ -14,7 +14,7 @@ def write_json(path, payload):
     return path
 
 
-def small_variant_tsv(path):
+def small_variant_tsv(path, *, ncorf_assessed=True):
     rows = [
         dict(sample_id="tumor", call_id="SNV", ref="A", alt="G",
              exon_overlap="True", alt_reads="2", protein_count="1",
@@ -26,6 +26,9 @@ def small_variant_tsv(path):
              exon_overlap="False", alt_reads="0", protein_count="0",
              orfdata_coding_block_overlap="False"),
     ]
+    if not ncorf_assessed:
+        for row in rows:
+            row["orfdata_coding_block_overlap"] = ""
     with path.open("w", newline="") as out:
         writer = csv.DictWriter(out, rows[0], delimiter="\t")
         writer.writeheader()
@@ -117,6 +120,8 @@ def test_mixed_source_report_preserves_denominators_and_viral_zero_bins(tmp_path
 def test_missing_categories_and_wrong_sample_or_schema_are_explicit(tmp_path):
     small = small_variant_tsv(tmp_path / "small.tsv")
     inventory = compose("tumor", small_variants=small)
+    assert inventory["categories"]["small_variants"]["records"][0][
+        "ncorf_reference_candidates"] == 1
     assert inventory["categories"]["viral"]["status"] == "not_assessed"
     assert inventory["categories"]["sv"]["status"] == "not_assessed"
     wrong = write_json(tmp_path / "wrong.json", dict(
@@ -129,6 +134,19 @@ def test_missing_categories_and_wrong_sample_or_schema_are_explicit(tmp_path):
         compose("tumor", viral=[wrong])
     with pytest.raises(ValueError, match="at least one"):
         compose("tumor")
+
+    small_variant_tsv(small, ncorf_assessed=False)
+    inventory = compose("tumor", small_variants=small)
+    assert inventory["categories"]["small_variants"]["records"][0][
+        "ncorf_reference_candidates"] is None
+    pytest.importorskip("reportlab")
+    pypdf = pytest.importorskip("pypdf")
+    from isovar.antigen_evidence_pdf import write_antigen_report
+
+    output = tmp_path / "unassessed-ncorf.pdf"
+    write_antigen_report(output, inventory)
+    assert "Reference ncORF coding-block overlap: not assessed" in "\n".join(
+        page.extract_text() for page in pypdf.PdfReader(output).pages)
 
 
 def test_sv_translation_must_cross_supported_event_junction():

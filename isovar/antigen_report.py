@@ -54,14 +54,17 @@ def load_small_variants(path, sample_id):
 def small_variant_summary(rows):
     """Summarize literal DNA calls and original RNA ALT support."""
     exonic = [row for row in rows if row["exon_overlap"] == "True"]
+    ncorf_values = [row["orfdata_coding_block_overlap"] for row in rows]
+    ncorf_assessed = bool(rows) and all(value in {"True", "False"}
+                                        for value in ncorf_values)
     by_class = {}
     for row in exonic:
         by_class.setdefault(variant_type(row), []).append(int(row["alt_reads"]))
     return dict(input_records=len(rows), exon_involved=len(exonic),
                 rna_alt_observed=sum(int(row["alt_reads"]) > 0 for row in rows),
                 local_products=sum(int(row["protein_count"]) > 0 for row in rows),
-                ncorf_reference_candidates=sum(
-                    row["orfdata_coding_block_overlap"] == "True" for row in rows),
+                ncorf_reference_candidates=(sum(value == "True" for value in ncorf_values)
+                                            if ncorf_assessed else None),
                 exonic_reads_by_class=by_class)
 
 
