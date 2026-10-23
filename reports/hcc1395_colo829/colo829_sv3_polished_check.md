@@ -21,8 +21,11 @@ chr1:224598498. A reverse-motif hit alone is not an SV join.
 Both reverse-motif representatives have a final exon in the
 downstream reference block and no exon at the nominated upstream
 SV3 breakend. Their tumor cluster counts cannot be assigned to
-the SV3 junction. The separate-culture polished data cannot
-exclude a rare or unpolished SV transcript.
+the SV3 junction. The [TAGET study](https://www.nature.com/articles/s41467-023-41649-0)
+also cites SRR8615617 as short-read
+input, so the two RNA assays are not established as biologically
+independent. This polished catalog cannot exclude a rare or
+unpolished SV transcript.
 
 Sources: [TAGET Zenodo record](https://zenodo.org/records/10091914) and the
 [source-pinned atlas](README.md#input-sha-256). Regenerate with

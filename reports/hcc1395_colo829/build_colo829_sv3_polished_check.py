@@ -118,7 +118,7 @@ def assess(fastq, gff, counts=COUNTS, assessment_path=ASSESSMENT, reference_path
                  if reference["sequence"].startswith(reverse, i)]
     return dict(schema="isovar.colo829_sv3_polished_check.v1", event_id=assessment["event_id"],
                 source_url=SOURCE_URL, source_fastq_sha256=fastq_hash, source_gff_sha256=gff_hash,
-                representative_count=count, source_culture="TAGET_COLO829_separate_from_SMaHT_DNA_and_SRR8615617",
+                representative_count=count,
                 dna_breakpoint_coordinate_spanning_representatives=genomic_span_count,
                 exact_motif_hits=hits, motif_positive_representatives=motif_rows,
                 reverse_motif_reference_positions_grch38_1based=positions,
@@ -151,8 +151,12 @@ def _report(result):
     lines += ["", "Both reverse-motif representatives have a final exon in the",
               "downstream reference block and no exon at the nominated upstream",
               "SV3 breakend. Their tumor cluster counts cannot be assigned to",
-              "the SV3 junction. The separate-culture polished data cannot",
-              "exclude a rare or unpolished SV transcript.", "",
+              "the SV3 junction. The [TAGET study]"
+              "(https://www.nature.com/articles/s41467-023-41649-0)",
+              "also cites SRR8615617 as short-read",
+              "input, so the two RNA assays are not established as biologically",
+              "independent. This polished catalog cannot exclude a rare or",
+              "unpolished SV transcript.", "",
               f"Sources: [TAGET Zenodo record]({result['source_url']}) and the",
               "[source-pinned atlas](README.md#input-sha-256). Regenerate with",
               "python -m reports.hcc1395_colo829.build_colo829_sv3_polished_check",

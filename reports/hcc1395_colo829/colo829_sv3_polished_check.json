@@ -107,7 +107,6 @@
     224598498
   ],
   "schema": "isovar.colo829_sv3_polished_check.v1",
-  "source_culture": "TAGET_COLO829_separate_from_SMaHT_DNA_and_SRR8615617",
   "source_fastq_sha256": "6b008d7610c03bdcc62e716bd365f4b448badc9c77554c58574068c7c9ab487b",
   "source_gff_sha256": "506488c868150e35358514fd1b9528ca4070ed0f4297e50d42364ad6594f1b94",
   "source_url": "https://zenodo.org/records/10091914"
