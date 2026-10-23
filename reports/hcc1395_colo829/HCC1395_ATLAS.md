@@ -107,6 +107,17 @@ published POU2F1-NME7 association has one observed same-read split candidate
 orientation, splice interpretation, reading frame, or a translated fusion
 ORF. Its `path_status` and `protein_status` therefore remain unresolved.
 
+The separate [junction audit](sv_junction_audit.tsv) replays three oriented
+events against a source-derived original-read BAM. At MAPQ 20, Isovar finds
+7 junction fragments for the chr9 duplication, 3 for the chr13 deletion, and
+2 for the chr21 duplication. The most-supported complete retained RNA path
+for each has one exact full-path read. The chr9 search reaches its ten-path
+cap. These are RNA junction observations, not unique full-length isoform or
+SV-derived protein calls. The three chr1 candidate records reuse one complex
+read and remain outside this oriented replay. The broad screen's unresolved
+statuses describe its original 500-base proximity test; the junction audit
+is a deeper, selected-event result.
+
 ## Outputs and replay
 
 - `hcc1395_direct_rna_atlas_calls.tsv.gz` assigns every SEQC2 small variant

@@ -8,7 +8,7 @@ import pytest
 @pytest.mark.parametrize(
     ("sample", "sv_counts", "example_calls"),
     [
-        ("HCC1395", (1788, 354, 172, 6, 0, 0), ("COSM32759", "COSM32783")),
+        ("HCC1395", (1788, 354, 172, 6, 3, 0), ("COSM32759", "COSM32783")),
         ("COLO829", (188, 97, 64, 6, 0, 0),
          ("chr9:21971154:CCG>C", "chr2:105361307:G>GCCCC",
           "chr1:156265990:G>A")),
@@ -36,8 +36,9 @@ def test_cell_line_sv_funnels_and_protein_comparisons(tmp_path, sample, sv_count
     assert "Small variants: DNA to RNA and local protein" in cover
     assert "Structural variants: DNA to RNA breakpoint evidence" in cover
     assert "Split-read or cross-end mate candidate" in cover
-    assert "RNA junction sequence resolved" in cover
+    assert "Junction with MAPQ 20 reads (selected)" in cover
     full_text = "\n".join(page.extract_text() for page in pdf.pages)
     assert "RNA link candidates per exon-involved SV" in full_text
+    assert "Original-read replay: junction versus RNA path" in full_text
     assert "Reference and mutant protein windows" in full_text
     assert all(call_id in full_text for call_id in example_calls)

@@ -99,6 +99,15 @@ read more than once. For example, Paulin Paz v2
 six opposite-mate pair names, but zero observed split-alignment candidates.
 Those pairs do not establish its deletion junction or mutant protein.
 
+The [selected junction audit](sv_junction_audit.tsv) finds three additional
+SV3 split-junction fragments only when Isovar accepts alignments down to
+MAPQ 1. Their linking pieces have MAPQ 1-6, so none survives MAPQ 20.
+SV42 and SV49, the two exon-involved v2 deletions with mate candidates,
+have no junction-spanning read at either threshold in this selected-site BAM.
+The corresponding earlier truth-set records reuse the same mate names.
+The original paired RNA was aligned in genomic short-read mode; its inability
+to resolve a junction here is not proof that the RNA isoform is absent.
+
 ## Outputs
 
 - `colo829_atlas_calls.tsv.gz`: one row for each of the 46,064 SMaHT small
