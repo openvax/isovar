@@ -1,0 +1,7 @@
+sample	call_id	class	rna_bam	screen_split_candidates	screen_mate_candidates	mapq1_junction_fragments	mapq20_junction_fragments	mapq20_junction_read_ids	mapq20_left	mapq20_right	mapq20_unplaced_bases	mapq20_event_paths_retained	mapq20_max_full_path_fragments	mapq20_limitations	frame_status
+HCC1395	chr13_52688329_chr13_60966095_+-	DEL	SRR23456709.sv_candidates.grch38.bam	5	0	4	3	SRR23456709.204131;SRR23456709.355039;SRR23456709.369416	chr13:52688328:+	chr13:60966098:+	TCTT	1	1	reference_models_unavailable	reference_models_unavailable
+HCC1395	chr21_42975947_chr21_43035721_-+	DUP	SRR23456709.sv_candidates.grch38.bam	2	0	2	2	SRR23456709.435304;SRR23456709.763550	chr21:43035720:+	chr21:42975950:+	AAA	2	1	reference_models_unavailable	reference_models_unavailable
+HCC1395	chr9_83969153_chr9_84015113_-+	DUP	SRR23456709.sv_candidates.grch38.bam	7	0	7	7	SRR23456709.121431;SRR23456709.149012;SRR23456709.168616;SRR23456709.245450;SRR23456709.398286;SRR23456709.406016;SRR23456709.954228	chr9:83969157:-	chr9:84015112:-	GAAA	2	1	path_limit;reference_models_unavailable	reference_models_unavailable
+COLO829	COLO829_SOMATIC_SV3_DEL	DEL	SRR8615617.all_sites.grch38.bam	0	6	3	0					0	0	reference_models_unavailable	reference_models_unavailable
+COLO829	COLO829_SOMATIC_SV42_DEL	DEL	SRR8615617.all_sites.grch38.bam	0	1	0	0					0	0	reference_models_unavailable	reference_models_unavailable
+COLO829	COLO829_SOMATIC_SV49_DEL	DEL	SRR8615617.all_sites.grch38.bam	0	1	0	0					0	0	reference_models_unavailable	reference_models_unavailable

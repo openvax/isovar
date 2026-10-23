@@ -29,6 +29,7 @@ REPORT = ROOT / 'reports/hcc1395_colo829'
 ANNOTATIONS = REPORT / 'reference_coding_orfdata_annotations.tsv.gz'
 SELF_SCORES = REPORT / 'reference_self_9mer_scores.tsv.gz'
 SV_EXONS = REPORT / 'sv_exon_annotations.tsv.gz'
+SV_JUNCTION_AUDIT = REPORT / 'sv_junction_audit.tsv'
 EXAMPLE_REFERENCES = REPORT / 'example_reference_contexts.tsv'
 SELF_FASTA_SHA256 = 'd873c199d5dbf20869db3f2cbd6ac726259215d91c2782f9f1ddcad4bb117cf9'
 OUT = ROOT / 'output/pdf'
@@ -111,6 +112,11 @@ def collect(sample, annotations_path=ANNOTATIONS):
     sv_file = ('hcc1395_direct_rna_sv_screen.tsv' if sample == 'HCC1395'
                else 'colo829_sv_rna_screen.tsv')
     sv = read_tsv(REPORT / sv_file)
+    sv_audit = [row for row in read_tsv(SV_JUNCTION_AUDIT) if row['sample'] == sample]
+    sv_ids = {row['call_id'] for row in sv}
+    if not sv_audit or len({row['call_id'] for row in sv_audit}) != len(sv_audit) or any(
+            row['call_id'] not in sv_ids for row in sv_audit):
+        raise ValueError(f'Invalid selected SV junction audit for {sample}')
     sv_annotations = {(row['dna_source'], row['call_id']): row
                       for row in read_gzip(SV_EXONS) if row['sample'] == sample}
     if len(sv_annotations) != len(sv):
@@ -170,8 +176,10 @@ def collect(sample, annotations_path=ANNOTATIONS):
         int(row['observed_split_alignment_candidates']) > 0 or
         int(row.get('cross_end_mate_pair_candidates') or 0) > 0
         for row in exonic_sv)
+    exonic_ids = {row['call_id'] for row in exonic_sv}
     counts['sv_exonic_junction'] = sum(
-        row['path_status'] == 'resolved' for row in exonic_sv)
+        row['call_id'] in exonic_ids and int(row['mapq20_junction_fragments']) > 0
+        for row in sv_audit)
     counts['sv_exonic_product'] = sum(
         row['protein_status'] == 'called' for row in exonic_sv)
     for key, value in summary['counts'].items():
@@ -192,7 +200,8 @@ def collect(sample, annotations_path=ANNOTATIONS):
                            row['ensembl_release'] != '87' for row in examples):
         raise ValueError(f'Incomplete example reference contexts for {sample}')
     return {
-        'calls': calls, 'proteins': proteins, 'sv': sv, 'counts': counts,
+        'calls': calls, 'proteins': proteins, 'sv': sv, 'sv_audit': sv_audit,
+        'counts': counts,
         'rna': rna, 'classes': classes, 'filters': filters,
         'sv_classes': sv_classes, 'sv_status': sv_status,
         'summary': summary, 'annotations': annotations, 'self_scores': self_scores,
@@ -240,14 +249,16 @@ def main_story(sample, d):
         ('Any annotated exon involved', c['sv_exonic']),
         ('RNA alignment near either breakend', c['sv_exonic_covered']),
         ('Split-read or cross-end mate candidate', c['sv_exonic_candidate']),
-        ('RNA junction sequence resolved', c['sv_exonic_junction']),
+        ('Junction with MAPQ 20 reads (selected)', c['sv_exonic_junction']),
         ('SV-derived protein called', c['sv_exonic_product']),
     )))
     story.append(para(
         'Each funnel uses its own DNA source-record denominator. Breakend-window '
         'coverage is locus coverage, not evidence for the SV. A split-read or '
         'cross-end mate candidate links nominated windows but does not resolve '
-        'junction bases, orientation, splice path or a translated product.', 'FootSmall'))
+        'junction bases, orientation, splice path or a translated product. '
+        'The junction stage is a targeted original-read replay of selected events; '
+        'it is a lower bound for the full source set.', 'FootSmall'))
     story.append(PageBreak())
     story += section('At a glance')
     story.append(data_table(
@@ -374,6 +385,60 @@ def sv_exon_story(d):
         'The screen uses 500-base windows and mapping quality at least 20. '
         'The COLO829 benchmark call sets remain separate in the underlying table.',
         'FootSmall'))
+    story.append(PageBreak())
+    return story
+
+
+def sv_junction_story(d):
+    story = section('Original-read replay: junction versus RNA path')
+    story.append(para(
+        'This selected-event replay uses oriented DNA adjacencies and actual RNA '
+        'alignment records. The MAPQ 20 column requires every linked segment '
+        'to pass that threshold. Direct junction fragments count reads crossing '
+        'the same join, even when their wider transcript sequences differ. '
+        'Full-path fragments require one read to match the entire retained '
+        'candidate path and its junction. A zero in this table is a result '
+        'for the listed alignment subset, not absence of expression.'))
+    rows = []
+    for row in d['sv_audit']:
+        label = row['call_id'].replace('COLO829_SOMATIC_', '')
+        parts = label.split('_')
+        if len(parts) == 5 and parts[0] == parts[2] and parts[1].isdigit() and parts[3].isdigit():
+            label = f'{parts[0]}:{int(parts[1]):,}-{int(parts[3]):,}'
+        rows.append((label, row['class'], row['mapq1_junction_fragments'],
+                     row['mapq20_junction_fragments'],
+                     row['mapq20_max_full_path_fragments']))
+    story.append(data_table(
+        ['Nominated DNA record', 'Class', 'Junction MAPQ 1',
+         'Junction MAPQ 20', 'Full path MAPQ 20'],
+        rows, [203, 49, 83, 88, 89], numeric_columns=(2, 3, 4)))
+    if d['sv_audit'][0]['sample'] == 'HCC1395':
+        story.append(para(
+            'The chr9 duplication has seven MAPQ 20 junction fragments but '
+            'only one exact full-path witness for each of two retained paths. '
+            'Path search reached its ten-path cap, so additional isoforms may '
+            'exist. The chr13 deletion has three MAPQ 20 junction fragments '
+            'and one exact whole-path witness; the chr21 duplication has two '
+            'junction fragments and one per retained path. The three chr1 '
+            'screen rows reuse one complex read and were not oriented in this '
+            'targeted replay.'))
+    else:
+        story.append(para(
+            'The chr1 SV3 deletion has six high-MAPQ opposite-mate candidate '
+            'pairs and three apparent split junction fragments at MAPQ 1. '
+            'Their linking segments have MAPQ 1-6; no junction survives MAPQ '
+            '20. SV42 and SV49 each have one mate candidate and no observed '
+            'junction at either threshold. The separate older benchmark '
+            'records reuse those mate names and must not be added as new '
+            'fragments. SV3 does not meet the annotated-exon rule used by '
+            'the preceding funnel.'))
+    story.append(para(
+        'The HCC1395 replay BAM is a source-derived 309-record regional '
+        'fixture; COLO829 uses the 129,534-record selected-site BAM. Both '
+        'were extracted after aligning the complete original RNA run. '
+        'No transcript models were supplied in this geometry audit, so '
+        'frame and SV-derived protein status remain unresolved. Other '
+        'splicing and DNA-to-RNA causation have not been excluded.', 'FootSmall'))
     story.append(PageBreak())
     return story
 
@@ -585,7 +650,8 @@ def provenance_story(sample, d):
             'ONT raw-read errors can create other-base calls and competing local contexts. '
             'The RNA and DNA libraries come from separate studies. A 500-base breakend '
             'window and split-alignment candidate are screening evidence only. '
-            'Full-length isoform linkage and SV protein reconstruction were not assessed.'
+            'Selected junctions were resolved with original reads, but complete '
+            'isoform assignment and SV protein reconstruction remain unresolved.'
         )
     else:
         sources = [
@@ -604,8 +670,8 @@ def provenance_story(sample, d):
         caveat = (
             'The SMaHT DNA, CCLE RNA and TAGET polished isoforms are separate cultures. '
             'The short-read genomic alignment is not splice-aware; junction-crossing '
-            'reads may be lost. Full-length isoform linkage, SV junction paths and '
-            'SV-derived proteins were not resolved.'
+            'reads may be lost. A weak MAPQ 1 join at SV3 fails the MAPQ 20 gate; '
+            'full-length isoform linkage and SV-derived proteins remain unresolved.'
         )
     story.append(data_table(['Input', 'Pinned scope'], sources, [160, 352]))
     story += section('Reference model and interpretation')
@@ -661,6 +727,7 @@ def build_one(sample, output_dir=OUT, annotations_path=ANNOTATIONS):
     story = (main_story(sample, data) + coding_story(sample, data)
              + [PageBreak()] + evidence_story(sample, data) + read_support_story(data)
              + exonic_read_support_story(data) + sv_exon_story(data)
+             + sv_junction_story(data)
              + altered_aa_story(data) + example_story(data)
              + comparison_story(data)
              + provenance_story(sample, data))

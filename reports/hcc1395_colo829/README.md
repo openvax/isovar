@@ -15,6 +15,11 @@ selected small-variant source record and screen their SV sources.
   ncORF overlaps, original-RNA allele support, local protein contexts, and
   SV screens. The linked per-call annotation table covers all 87,136 selected
   small-variant records.
+- [Selected original-read SV junction audit](sv_junction_audit.tsv): oriented
+  replay of three HCC1395 and three COLO829 candidate events, separating
+  500-base screen links, direct MAPQ 1/20 junction fragments, and exact
+  whole-path read support. It makes no SV protein call without reference
+  transcript models.
 - [COLO829 whole-run atlas](COLO829_ATLAS.md): every SMaHT small variant has
   original-RNA coverage and allele status, ranked local protein contexts are
   listed separately, and every SV benchmark record has a breakpoint evidence
