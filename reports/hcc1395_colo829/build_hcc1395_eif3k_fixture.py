@@ -18,7 +18,8 @@ from pyensembl import EnsemblRelease
 
 from isovar.fusion import FusionReference
 from build_hcc1395_eif3k_fusion import (
-    ACCEPTOR_EDGE, ACCEPTOR_ID, DONOR_EDGE, DONOR_ID,
+    ACCEPTOR_EDGE, ACCEPTOR_ID, DONOR_EDGE, DONOR_ID, _fusion_blocks,
+    mapped_coordinates_match, path_coordinates,
 )
 
 
@@ -76,7 +77,8 @@ def select_coding_tiling(source_dir, output, models):
     """Keep original mapped records that connect the coding path by 20-base overlaps."""
     donor = next(model for model in models if model.transcript_id == DONOR_ID)
     acceptor = next(model for model in models if model.transcript_id == ACCEPTOR_ID)
-    junction = donor.spliced_offset(DONOR_EDGE - 1) + 1
+    blocks, junction = _fusion_blocks(donor, acceptor)
+    positions = path_coordinates(blocks)
     acceptor_offset = acceptor.spliced_offset(ACCEPTOR_EDGE - 1)
     full = donor.sequence[:junction] + acceptor.sequence[acceptor_offset:]
     lo, hi = donor.cds_start, junction + acceptor.cds_end - acceptor_offset
@@ -99,6 +101,8 @@ def select_coding_tiling(source_dir, output, models):
                 if placement is None:
                     continue
                 offset, oriented = placement
+                if not mapped_coordinates_match(record, offset, oriented, positions):
+                    continue
                 if not ((offset + len(oriented) <= junction and chrom == "19") or
                         (offset >= junction and chrom == "6")):
                     continue

@@ -71,6 +71,28 @@ def _subblocks(blocks, start, end):
     return tuple(result)
 
 
+def path_coordinates(blocks):
+    """Map each transcript-oriented query base to one reference position."""
+    positions = {}
+    for block in blocks:
+        for query in range(block.query_start, block.query_end):
+            genomic = (block.reference_start + query - block.query_start if block.strand == "+"
+                       else block.reference_end - 1 - (query - block.query_start))
+            positions[query] = block.contig, genomic
+    return positions
+
+
+def mapped_coordinates_match(record, start, oriented, positions):
+    """Check every original aligned base against the nominated exon path."""
+    reverse = oriented != record.query_sequence
+    pairs = record.get_aligned_pairs(matches_only=True)
+    if len(pairs) != len(oriented):
+        return False
+    return all(positions.get(start + (len(oriented) - 1 - query if reverse else query)) ==
+               (record.reference_name, genomic)
+               for query, genomic in pairs)
+
+
 def assemble(original_bam, references, mapped_tiling_bam=None, min_flank=10, min_overlap=20):
     """Return the observed local or complete coding interval of the fusion.
 
@@ -81,6 +103,7 @@ def assemble(original_bam, references, mapped_tiling_bam=None, min_flank=10, min
     donor = next(ref for ref in references if ref.transcript_id == DONOR_ID)
     acceptor = next(ref for ref in references if ref.transcript_id == ACCEPTOR_ID)
     blocks, junction = _fusion_blocks(donor, acceptor)
+    positions = path_coordinates(blocks)
     acceptor_offset = acceptor.spliced_offset(ACCEPTOR_EDGE - 1)
     full = donor.sequence[:junction] + acceptor.sequence[acceptor_offset:]
     if len(full) != blocks[-1].query_end:
@@ -132,6 +155,8 @@ def assemble(original_bam, references, mapped_tiling_bam=None, min_flank=10, min
                 if len(candidates) != 1:
                     raise ValueError("A mapped tiling read lacks one exact fusion placement")
                 start, oriented = candidates[0]
+                if not mapped_coordinates_match(record, start, oriented, positions):
+                    raise ValueError("A mapped tiling read disagrees with the pinned exon path")
                 matches.append((record.query_name, start, oriented,
                                 "INTEGRATE:test-data/accepted_hits.bam",
                                 1 if record.is_read1 else 2 if record.is_read2 else 0))

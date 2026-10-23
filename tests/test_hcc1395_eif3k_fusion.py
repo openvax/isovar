@@ -62,6 +62,20 @@ def test_coding_replay_refuses_to_fill_a_missing_read_interval(tmp_path):
                mapped_tiling_bam=incomplete)
 
 
+def test_coding_replay_rejects_a_misplaced_source_alignment(tmp_path):
+    source = DATA / "coding_tiling.bam"
+    misplaced = tmp_path / "misplaced.bam"
+    with pysam.AlignmentFile(str(source)) as bam:
+        with pysam.AlignmentFile(str(misplaced), "wb", header=bam.header) as subset:
+            for index, record in enumerate(bam.fetch(until_eof=True)):
+                if index == 9:
+                    record.reference_start += 1
+                subset.write(record)
+    with pytest.raises(ValueError, match="disagrees with the pinned exon path"):
+        report(DATA / "original_unmapped.bam", DATA / "models.json.gz",
+               mapped_tiling_bam=misplaced)
+
+
 def test_exon_anchored_sv_replay_keeps_original_split_support_and_frame():
     references = load_references(DATA / "models.json.gz")
     with pysam.AlignmentFile(str(DATA / "remapped_grch37_lite.bam")) as bam:
