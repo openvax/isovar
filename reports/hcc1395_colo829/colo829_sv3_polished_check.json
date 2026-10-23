@@ -1,0 +1,113 @@
+{
+  "dna_breakpoint_coordinate_spanning_representatives": 12,
+  "event_id": "COLO829_SOMATIC_SV3_DEL",
+  "exact_motif_hits": {
+    "junction_plus": [],
+    "junction_reverse_complement": [
+      "PB.1153.13",
+      "PB.1153.23"
+    ],
+    "window_plus_AYSRTSFGV": [],
+    "window_plus_PIVELLLEL": [],
+    "window_plus_QAYSRTSFG": [],
+    "window_plus_RPIVELLLE": [],
+    "window_plus_VRPIVELLL": [],
+    "window_reverse_complement_AYSRTSFGV": [],
+    "window_reverse_complement_PIVELLLEL": [],
+    "window_reverse_complement_QAYSRTSFG": [],
+    "window_reverse_complement_RPIVELLLE": [],
+    "window_reverse_complement_VRPIVELLL": []
+  },
+  "exact_polished_join_status": "no_exact_junction_window_in_polished_representatives",
+  "motif_positive_representatives": [
+    {
+      "genomic_span": [
+        "chr1",
+        224529182,
+        224598776
+      ],
+      "isoform_id": "PB.1153.13",
+      "matched_motifs": [
+        "junction_reverse_complement"
+      ],
+      "normal_full_length_count": 0,
+      "tumor_full_length_count": 3,
+      "tumor_gff_exons": [
+        [
+          "chr1",
+          224529182,
+          224529420
+        ],
+        [
+          "chr1",
+          224529915,
+          224530163
+        ],
+        [
+          "chr1",
+          224566199,
+          224566264
+        ],
+        [
+          "chr1",
+          224583164,
+          224583267
+        ],
+        [
+          "chr1",
+          224597269,
+          224598776
+        ]
+      ]
+    },
+    {
+      "genomic_span": [
+        "chr1",
+        224529195,
+        224598771
+      ],
+      "isoform_id": "PB.1153.23",
+      "matched_motifs": [
+        "junction_reverse_complement"
+      ],
+      "normal_full_length_count": 0,
+      "tumor_full_length_count": 4,
+      "tumor_gff_exons": [
+        [
+          "chr1",
+          224529195,
+          224529420
+        ],
+        [
+          "chr1",
+          224546829,
+          224546939
+        ],
+        [
+          "chr1",
+          224566199,
+          224566264
+        ],
+        [
+          "chr1",
+          224583164,
+          224583267
+        ],
+        [
+          "chr1",
+          224597269,
+          224598771
+        ]
+      ]
+    }
+  ],
+  "proteoform_call": "not_established",
+  "representative_count": 68553,
+  "reverse_motif_reference_positions_grch38_1based": [
+    224598498
+  ],
+  "schema": "isovar.colo829_sv3_polished_check.v1",
+  "source_fastq_sha256": "6b008d7610c03bdcc62e716bd365f4b448badc9c77554c58574068c7c9ab487b",
+  "source_gff_sha256": "506488c868150e35358514fd1b9528ca4070ed0f4297e50d42364ad6594f1b94",
+  "source_url": "https://zenodo.org/records/10091914"
+}

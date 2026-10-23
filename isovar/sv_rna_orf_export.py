@@ -287,7 +287,7 @@ def write_sv_rna_orfs(export, prefix):
                "start_tier_status", "start_tier", "start_priority", "start_evidence_json",
                "reference_uorf_annotations_json", "reference_orf_annotations_json"]
     with paths["tsv"].open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=columns, delimiter="\t")
+        writer = csv.DictWriter(handle, fieldnames=columns, delimiter="\t", lineterminator="\n")
         writer.writeheader()
         for candidate in export["candidates"]:
             support = candidate["rna_support"]

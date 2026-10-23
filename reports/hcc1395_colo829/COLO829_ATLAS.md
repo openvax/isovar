@@ -110,6 +110,24 @@ extension limit. No single read is required to span that context; local
 branch support, competing ordinary-splice explanations and its SV-derived
 frame remain unresolved. SV3 itself does not meet the report's Ensembl-87
 exon-involved rule.
+The [SV3 protein audit](colo829_sv3_candidate_orfs.assessment.md) reconstructs
+two alternative junction-crossing ATG ORFs of 37 and 162 amino acids from this
+context. Their five join-crossing 9-mers have no match in the pinned Ensembl 87
+annotated protein set. The join has three original-fragment witnesses, but
+all three fragments also contain each exact 27-base window underlying those
+hypothetical junction peptides. That nucleotide continuity does not select
+between the two reading frames. Neither candidate has an exon-linked mature
+RNA path or a supported initiation
+site in this selected-site fixture. These are sequence hypotheses, not a
+resolved or observed proteoform. The audit includes
+[protein FASTA](colo829_sv3_candidate_orfs.protein.fasta),
+[nucleotide FASTA](colo829_sv3_candidate_orfs.nucleotide.fasta) and
+[machine-readable evidence](colo829_sv3_candidate_orfs.assessment.json).
+The independent [TAGET sequence cross-check](colo829_sv3_polished_check.md)
+finds no exact 27-base SV3 junction window in any of its 68,553 polished
+representatives. Two tumor-positive representatives contain only the reverse
+complement of the 19-base motif in an ordinary downstream exon; their
+full-length cluster counts are not SV3 support.
 SV42 and SV49, the two exon-involved v2 deletions with mate candidates,
 have no directly observed junction in this selected-site BAM.
 The corresponding earlier truth-set records reuse the same mate names.
@@ -176,6 +194,9 @@ allow offline regeneration of all four report tables with Ensembl 87 cached:
 ```sh
 python reports/hcc1395_colo829/build_colo829_atlas.py
 python -m reports.hcc1395_colo829.build_colo829_sv_screen
+python -m reports.hcc1395_colo829.build_colo829_sv3_protein_audit
+python -m reports.hcc1395_colo829.build_colo829_sv3_polished_check \
+  --fastq /path/to/final.rep.fq --gff /path/to/final.COLO829T.gff
 ```
 
 To recreate the selected-site BAM from the full public run, install SRA
