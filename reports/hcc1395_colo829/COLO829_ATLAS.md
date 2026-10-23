@@ -123,6 +123,11 @@ resolved or observed proteoform. The audit includes
 [protein FASTA](colo829_sv3_candidate_orfs.protein.fasta),
 [nucleotide FASTA](colo829_sv3_candidate_orfs.nucleotide.fasta) and
 [machine-readable evidence](colo829_sv3_candidate_orfs.assessment.json).
+The independent [TAGET sequence cross-check](colo829_sv3_polished_check.md)
+finds no exact 27-base SV3 junction window in any of its 68,553 polished
+representatives. Two tumor-positive representatives contain only the reverse
+complement of the 19-base motif in an ordinary downstream exon; their
+full-length cluster counts are not SV3 support.
 SV42 and SV49, the two exon-involved v2 deletions with mate candidates,
 have no directly observed junction in this selected-site BAM.
 The corresponding earlier truth-set records reuse the same mate names.
@@ -190,6 +195,8 @@ allow offline regeneration of all four report tables with Ensembl 87 cached:
 python reports/hcc1395_colo829/build_colo829_atlas.py
 python -m reports.hcc1395_colo829.build_colo829_sv_screen
 python -m reports.hcc1395_colo829.build_colo829_sv3_protein_audit
+python -m reports.hcc1395_colo829.build_colo829_sv3_polished_check \
+  --fastq /path/to/final.rep.fq --gff /path/to/final.COLO829T.gff
 ```
 
 To recreate the selected-site BAM from the full public run, install SRA

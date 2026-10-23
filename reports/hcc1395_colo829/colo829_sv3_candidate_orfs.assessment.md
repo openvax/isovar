@@ -59,6 +59,8 @@ The existing `isovar sv-rna --orf-output-prefix` export writes the
 [ORF JSON](colo829_sv3_candidate_orfs.json) and
 [ORF TSV](colo829_sv3_candidate_orfs.tsv). This assessment is
 [machine readable](colo829_sv3_candidate_orfs.assessment.json).
+The independent [TAGET polished-sequence cross-check](colo829_sv3_polished_check.md) tests whether a full-length
+representative contains the exact junction in either orientation.
 To resolve one hypothesis, obtain original RNA reads through a
 path-discriminating exon join and compare normal/reference splicing;
 then seek frame-specific ribosome footprints or a junction-specific

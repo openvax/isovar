@@ -20,6 +20,10 @@ deletion support a specific altered protein sequence?
    mutation-specific sequence are supported. Protein evidence is a separate
    expression validation. Otherwise keep the precise unresolved status and
    the sequences as *hypotheses*.
+5. Scan the pinned TAGET polished representative FASTQ in both orientations
+   for exact junction-spanning nucleotide windows. Treat a reverse-complement
+   match to ordinary downstream reference sequence as a decoy, even if that
+   isoform has tumor full-length counts.
 
 ## Acceptance
 

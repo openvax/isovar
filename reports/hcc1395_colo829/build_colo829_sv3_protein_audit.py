@@ -259,6 +259,9 @@ def _report(assessment, prefix):
         "[ORF JSON](" + prefix.name + ".json) and",
         "[ORF TSV](" + prefix.name + ".tsv). This assessment is",
         "[machine readable](" + prefix.name + ".assessment.json).",
+        "The independent [TAGET polished-sequence cross-check]"
+        "(colo829_sv3_polished_check.md) tests whether a full-length",
+        "representative contains the exact junction in either orientation.",
         "To resolve one hypothesis, obtain original RNA reads through a",
         "path-discriminating exon join and compare normal/reference splicing;",
         "then seek frame-specific ribosome footprints or a junction-specific",
