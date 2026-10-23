@@ -319,6 +319,9 @@ def test_exon_clips_require_models_and_untrimmed_soft_clips(tmp_path):
                 exon_anchored_clips=True)
     with pytest.raises(ValueError, match="reference models and soft-clipped bases"):
         s.run(bam, exon_anchored_clips=True)
+    with pytest.raises(ValueError, match="Dense support does not yet select"):
+        s.run(bam, exon_anchored_clips=True, dense_support=True,
+              read_collector=ReadCollector(use_soft_clipped_bases=True))
 
 
 @pytest.mark.parametrize("gene,call,donor,acceptor,expected", [

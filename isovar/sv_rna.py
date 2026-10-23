@@ -1944,6 +1944,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     collector = ReadCollector() if read_collector is None else read_collector
     if exon_anchored_clips and (not references or not collector.use_soft_clipped_bases):
         raise ValueError("Exon-anchored clips require reference models and soft-clipped bases")
+    if exon_anchored_clips and dense_support:
+        raise ValueError("Dense support does not yet select exon-anchored sequence bridges")
     if dense_support:
         from .sv_rna_dense import reconstruct_dense_sv_rna
 
