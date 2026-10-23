@@ -693,6 +693,7 @@ class _Observations:
     def __init__(self, records, collector, cap, header, sample_id, source, *, geometry_cache=None, prebuilt=None):
         self.collector, self.cap, self.limited = collector, cap, False
         self.sequence_overlaps = False
+        self.exon_clipped = set()
         self.groups, self.excluded, self.reasons = defaultdict(list), Counter(), Counter()
         self.extent, self.bins, self.gaps = defaultdict(dict), defaultdict(list), defaultdict(dict)
         self.gap_kinds = defaultdict(set)
@@ -810,6 +811,7 @@ class _Observations:
             if (exonic is not None and self.collector.use_soft_clipped_bases
                     and _possible_exon_clip(read, exonic, _SEQUENCE_BRIDGE_BASES)):
                 now.add(identity)
+                self.exon_clipped.add(identity)
         return now, lazy, competing
 
     def join_segments(self, left, right):
@@ -1488,7 +1490,7 @@ def _join_class(event, annotated, left, right, unplaced, kind):
 
 
 def _seeds(observations, event, annotated, anchored, competing, key=None, deferred=None,
-           exonic=None):
+           exonic=None, exon_clipped=()):
     """Seeds at unannotated joins and breakpoint clips, strongest adjacency placement first.
 
     Without ``key``, only joins at or across the event (and breakpoint clips)
@@ -1523,7 +1525,7 @@ def _seeds(observations, event, annotated, anchored, competing, key=None, deferr
         if key is None:
             cores += [(i, j, "breakpoint_clip_partner_unplaced", "clip")
                       for i, j, _ in event.clips(o.positions, len(o.sequence))]
-            if exonic is not None:
+            if exonic is not None and o.identity in exon_clipped:
                 cores += _exon_clip_cores(o, exonic, _SEQUENCE_BRIDGE_BASES)
         for i, j, relation, kind in cores:
             seed = seeds.setdefault((o.sequence[i:j + 1], o.positions[i:j + 1]), dict(
@@ -1996,7 +1998,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                                          exonic if exon_anchored_clips else None)
     initial = [o for identity in sorted(now) for o in store.build(identity)]
     first = _seeds(initial, event, annotated, anchored, competing, deferred=lazy,
-                   exonic=exonic if exon_anchored_clips else None)
+                   exonic=exonic if exon_anchored_clips else None,
+                   exon_clipped=store.exon_clipped)
     queue = [(relation, key, ids) for relation in ("splice_ambiguous_event_junction", "regional_novel_junction")
              for key, ids in sorted(lazy[relation].items(),
                                     key=lambda item: (-len({i[:2] for i in item[1]}), repr(item[0])))

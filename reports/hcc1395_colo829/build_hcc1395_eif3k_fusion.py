@@ -302,7 +302,6 @@ def ont_coding_span(bam_path, models_path, fasta_path, fusion):
             if len(points) > len(previous):
                 parts[record.reference_name] = points
     motif = fusion.sequence[fusion.junction_start - 20:fusion.junction_end + 20]
-    reverse = pysam.reverse_complement(motif)
     if set(candidates) != set(sequences):
         raise ValueError("ONT alignments and original query sequences disagree")
     full_span, exact_full, covered = 0, 0, []
@@ -322,7 +321,12 @@ def ont_coding_span(bam_path, models_path, fasta_path, fusion):
         if not spans:
             continue
         full_span += 1
-        if motif in sequences[name] or reverse in sequences[name]:
+        transcript_sequence = pysam.reverse_complement(sequences[name])
+        motif_start = transcript_sequence.find(motif)
+        if (motif_start >= 0 and
+                transcript_sequence.find(motif, motif_start + 1) < 0 and
+                motif_start + 20 == max(q for q, _ in parts["chr19"]) + 1 ==
+                min(q for q, _ in parts["chr6"])):
             exact_full += 1
             covered.append(sum(donor["cds_start"] <= q < DONOR_RNA_EDGE for q in left) +
                            sum(ACCEPTOR_RNA_EDGE <= q < acceptor["cds_end"] for q in right))
