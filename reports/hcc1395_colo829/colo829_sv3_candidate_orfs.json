@@ -1,0 +1,459 @@
+{
+  "event_id": "COLO829_SOMATIC_SV3_DEL",
+  "reference_name": "GRCh38",
+  "sample_id": "COLO829",
+  "source": "SRA:SRR8615617",
+  "event_provenance": {
+    "dna_call_id": "COLO829_SOMATIC_SV3_DEL",
+    "call_set": "PaulinPaz_2024_v2"
+  },
+  "donor": {
+    "contig": "chr1",
+    "position": 224595102,
+    "strand": "+"
+  },
+  "acceptor": {
+    "contig": "chr1",
+    "position": 224598323,
+    "strand": "+"
+  },
+  "reference_models": [],
+  "parameters": {
+    "min_anchor_bases": 18,
+    "min_overlap": 30,
+    "min_alternative_fragments": 2,
+    "min_alternative_fraction": 0.1,
+    "min_local_variant_fraction": 0.5,
+    "max_records": 5000,
+    "max_queries": 100,
+    "max_paths": 10,
+    "max_extension_segments": 200,
+    "assemble": true,
+    "include_regional_candidates": false,
+    "breakpoint_window": 1000,
+    "max_breakpoint_shift": 10,
+    "annotated_junction_tolerance": 5,
+    "peptide_lengths": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "genetic_code": 1,
+    "min_orf_amino_acids": 15,
+    "max_orf_candidates": 100,
+    "inclusion": {
+      "min_splice_anchor_bases": 8,
+      "min_base_quality": 20,
+      "min_mapping_quality": 20,
+      "mapq_255_is_unique": true
+    },
+    "read_collection": {
+      "min_mapping_quality": 0,
+      "use_duplicate_reads": false,
+      "use_secondary_alignments": true,
+      "use_soft_clipped_bases": true,
+      "use_reads_without_base_qualities": true,
+      "merge_overlapping_fragments": true,
+      "infer_read_ends": false,
+      "trim_adapters": false,
+      "trim_poly_a": false,
+      "read_end_profile_sha256": null,
+      "custom_read_filter": false
+    },
+    "dense_support": true
+  },
+  "limitations": [
+    "extension_segment_limit",
+    "reference_models_unavailable"
+  ],
+  "discovery": {
+    "policy": "event_first_full_allele_groups.v1",
+    "eligible_structural_bins": 1942,
+    "eligible_regional_groups": 2243,
+    "selected_groups": 2243,
+    "omitted_groups": 0,
+    "represented_records": 2574,
+    "groups_complete": true,
+    "record_limit_reached": false,
+    "initial_representatives_per_group": 2,
+    "eligible_regional_records": 2574,
+    "selected_records": 2574,
+    "omitted_records": 0,
+    "complete": true
+  },
+  "support_acquisition": {
+    "scope": "all_original_input_records",
+    "records_complete": true,
+    "complete": true,
+    "records_scanned": 129534,
+    "unique_records": 129534,
+    "eligible_segments": 129319,
+    "excluded_records": {
+      "unmapped": 190
+    },
+    "read_path_notes": {}
+  },
+  "inclusion_competing_splice_scope": "bounded_discovery",
+  "schema": "isovar.sv_rna_orfs.v4",
+  "reconstruction_schema": "isovar.sv_rna_candidates.v5",
+  "candidates": [
+    {
+      "candidate_id": "sv_orf_ddeae530c3924c3fe7da51b5e5d090f07bcdfb853ece5143c45781b8047ee30a",
+      "nucleotide_sequence": "ATGTCTCTGTGTCATATTTTGGTAATTCTCACAATATTTCAAATTTGCCCTGTTGTCAGGCCTATAGTAGAACTTCTTTTGGAGTTGCTTCTTATGGATGAGCAAAGAAAGTGGTTTCTTGAGATGAAATCTACTCCTGGTGAAGATGCTATGAATATCGTTGAACTGACAACAAAAGATTTACAATATTACATAAACTTGGTTAATAAAGTAGTGGCAGGGTATGAAAGAATTGACCCCAATTTTAAAAGAAGTTCTACTATAGGCAAAATGCTATCAAACAGCATTGCATGCTACAGAGAGATCTTTCACGAAAGGAAGAGTCAACTGAGGTGGCAAACTTCATTGTTGTCTTATTTTAGGAAATTGACACAGCCACCCCAACCTTCAGCAACCACCACGTTGATCAGTCAGCAGCCATCAACATGCAGGCAAGACCCTCCACCAGCAAAAAGATTAAGACTTGCTGAAGGCTCAGATGACTGTTAG",
+      "amino_acids": "MSLCHILVILTIFQICPVVRPIVELLLELLLMDEQRKWFLEMKSTPGEDAMNIVELTTKDLQYYINLVNKVVAGYERIDPNFKRSSTIGKMLSNSIACYREIFHERKSQLRWQTSLLSYFRKLTQPPQPSATTTLISQQPSTCRQDPPPAKRLRLAEGSDDC",
+      "nucleotide_sequence_id": "nt_0c42649490b5891b02ddd54e44046090daf9800cceadc312ccfa2fb8f711f428",
+      "protein_sequence_id": "aa_a0552748af6a37337179d6addf69cedd78d7cb3b15da1b503ccc96fffee160a5",
+      "ends_with_stop_codon": true,
+      "initiation_observed": false,
+      "translation_observed": false,
+      "peptide_novelty_assessed": false,
+      "occurrences": [
+        {
+          "annotated_start": false,
+          "crossed_junctions": [
+            0
+          ],
+          "end_reasons": {
+            "3prime": [
+              "observations_end"
+            ],
+            "5prime": [
+              "observations_end"
+            ]
+          },
+          "frame_status": "no_gene_anchor",
+          "junctions": [
+            {
+              "annotated": false,
+              "boundaries": [
+                "donor_to_unplaced",
+                "unplaced_to_acceptor"
+              ],
+              "breakpoint_assignment": [
+                9,
+                8
+              ],
+              "forward_splice_geometry": true,
+              "junction_index": 0,
+              "kinds": [
+                "split"
+              ],
+              "left": [
+                "chr1",
+                224595092,
+                "+"
+              ],
+              "query_interval": [
+                599,
+                618
+              ],
+              "relation": "breakpoint_junction",
+              "right": [
+                "chr1",
+                224598331,
+                "+"
+              ],
+              "termination_only": false,
+              "unplaced_bases": "CTATAGTAGAACTTCTTTT"
+            }
+          ],
+          "orf_candidate_limit_reached": false,
+          "path_id": "88ab60e1f0f441a13cbecfe6",
+          "query_interval": [
+            538,
+            1027
+          ],
+          "reconstruction_scopes": [
+            "regional",
+            "seed_spanning"
+          ],
+          "reference_comparisons": [],
+          "start_context": {
+            "minus_three": "C",
+            "plus_four": "T",
+            "query_interval": [
+              532,
+              547
+            ],
+            "sequence": "TGCCTCATGTCTCTG"
+          },
+          "start_evidence": {
+            "assessments": [
+              {
+                "annotation": null,
+                "priority": 4,
+                "reference_name": null,
+                "region": "outside_supplied_transcripts",
+                "splice_inference": "not_assessed",
+                "tier": "sequence_only",
+                "transcript_id": null,
+                "transcript_inclusion": "unresolved"
+              }
+            ],
+            "genomic_positions": [
+              [
+                "chr1",
+                224595032,
+                "+"
+              ],
+              [
+                "chr1",
+                224595033,
+                "+"
+              ],
+              [
+                "chr1",
+                224595034,
+                "+"
+              ]
+            ],
+            "initiation_observed": false,
+            "observation_scope": "bounded_discovery",
+            "policy": "isovar.orf_start.v1",
+            "priority": 4,
+            "query_offset": 538,
+            "reference_comparisons": [],
+            "rna_polarity": "unresolved",
+            "status": "consistent",
+            "tier": "sequence_only",
+            "translation_observed": false
+          },
+          "unresolved_models": [],
+          "witnesses": []
+        }
+      ],
+      "rna_support": {
+        "scope": "union_of_full_interval_junction_linked_witnesses_within_input",
+        "reads": 0,
+        "fragments": 0,
+        "umis": 0,
+        "cells": 0,
+        "umis_complete": false,
+        "cells_complete": false,
+        "unlabeled_reads": 0,
+        "unknown_library_reads": 0,
+        "label_statuses": {},
+        "evidence_scope": [
+          "COLO829",
+          "SRA:SRR8615617"
+        ],
+        "read_ids": [],
+        "fragment_ids": [],
+        "evidence_set_id": "evidence_21bec740fe0c689917ed715bc74f178b24282124a1815cbd6b35a0886cfd35f5",
+        "signal_group_ids": [],
+        "read_lineage": {
+          "reads": 0,
+          "signal_groups": 0,
+          "unresolved_reads": 0,
+          "all_reads_resolved": true,
+          "statuses": {}
+        },
+        "fragment_query_orientations": {
+          "original_query": 0,
+          "reverse_complement": 0,
+          "mixed": 0
+        },
+        "missing_quality_reads": 0
+      },
+      "start_evidence_summary": {
+        "status": "consistent",
+        "tier": "sequence_only",
+        "priority": 4
+      },
+      "uncertainty_flags": [
+        "annotated_path_frame_unresolved_or_ambiguous",
+        "initiation_unobserved",
+        "interval_base_quality_unassessed",
+        "no_annotated_start_in_supplied_models",
+        "no_full_fragment_witness",
+        "peptide_novelty_unassessed",
+        "reconstruction_limit:extension_segment_limit",
+        "reconstruction_limit:reference_models_unavailable",
+        "rna_strand_unresolved",
+        "translation_unobserved",
+        "unplaced_junction_sequence"
+      ]
+    },
+    {
+      "candidate_id": "sv_orf_dff1d97445d3b77f86345b53426ac22fd72056fbd5929aa4cda0ef9f3bfe4966",
+      "nucleotide_sequence": "ATGTGCTTGCCTCATGTCTCTGTGTCATATTTTGGTAATTCTCACAATATTTCAAATTTGCCCTGTTGTCAGGCCTATAGTAGAACTTCTTTTGGAGTTGCTTCTTATGGATGA",
+      "amino_acids": "MCLPHVSVSYFGNSHNISNLPCCQAYSRTSFGVASYG",
+      "nucleotide_sequence_id": "nt_381fde7f9e1647ea868656aab9df864de316d20c276c8416fe587ba291a559fc",
+      "protein_sequence_id": "aa_843202fc85fcd54f350a6729d2083f9fc4db8f2a215ac490e976eecef66695ae",
+      "ends_with_stop_codon": true,
+      "initiation_observed": false,
+      "translation_observed": false,
+      "peptide_novelty_assessed": false,
+      "occurrences": [
+        {
+          "annotated_start": false,
+          "crossed_junctions": [
+            0
+          ],
+          "end_reasons": {
+            "3prime": [
+              "observations_end"
+            ],
+            "5prime": [
+              "observations_end"
+            ]
+          },
+          "frame_status": "no_gene_anchor",
+          "junctions": [
+            {
+              "annotated": false,
+              "boundaries": [
+                "donor_to_unplaced",
+                "unplaced_to_acceptor"
+              ],
+              "breakpoint_assignment": [
+                9,
+                8
+              ],
+              "forward_splice_geometry": true,
+              "junction_index": 0,
+              "kinds": [
+                "split"
+              ],
+              "left": [
+                "chr1",
+                224595092,
+                "+"
+              ],
+              "query_interval": [
+                599,
+                618
+              ],
+              "relation": "breakpoint_junction",
+              "right": [
+                "chr1",
+                224598331,
+                "+"
+              ],
+              "termination_only": false,
+              "unplaced_bases": "CTATAGTAGAACTTCTTTT"
+            }
+          ],
+          "orf_candidate_limit_reached": false,
+          "path_id": "88ab60e1f0f441a13cbecfe6",
+          "query_interval": [
+            525,
+            639
+          ],
+          "reconstruction_scopes": [
+            "regional",
+            "seed_spanning"
+          ],
+          "reference_comparisons": [],
+          "start_context": {
+            "minus_three": "A",
+            "plus_four": "T",
+            "query_interval": [
+              519,
+              534
+            ],
+            "sequence": "AACATCATGTGCTTG"
+          },
+          "start_evidence": {
+            "assessments": [
+              {
+                "annotation": null,
+                "priority": 4,
+                "reference_name": null,
+                "region": "outside_supplied_transcripts",
+                "splice_inference": "not_assessed",
+                "tier": "sequence_only",
+                "transcript_id": null,
+                "transcript_inclusion": "unresolved"
+              }
+            ],
+            "genomic_positions": [
+              [
+                "chr1",
+                224595019,
+                "+"
+              ],
+              [
+                "chr1",
+                224595020,
+                "+"
+              ],
+              [
+                "chr1",
+                224595021,
+                "+"
+              ]
+            ],
+            "initiation_observed": false,
+            "observation_scope": "bounded_discovery",
+            "policy": "isovar.orf_start.v1",
+            "priority": 4,
+            "query_offset": 525,
+            "reference_comparisons": [],
+            "rna_polarity": "unresolved",
+            "status": "consistent",
+            "tier": "sequence_only",
+            "translation_observed": false
+          },
+          "unresolved_models": [],
+          "witnesses": []
+        }
+      ],
+      "rna_support": {
+        "scope": "union_of_full_interval_junction_linked_witnesses_within_input",
+        "reads": 0,
+        "fragments": 0,
+        "umis": 0,
+        "cells": 0,
+        "umis_complete": false,
+        "cells_complete": false,
+        "unlabeled_reads": 0,
+        "unknown_library_reads": 0,
+        "label_statuses": {},
+        "evidence_scope": [
+          "COLO829",
+          "SRA:SRR8615617"
+        ],
+        "read_ids": [],
+        "fragment_ids": [],
+        "evidence_set_id": "evidence_21bec740fe0c689917ed715bc74f178b24282124a1815cbd6b35a0886cfd35f5",
+        "signal_group_ids": [],
+        "read_lineage": {
+          "reads": 0,
+          "signal_groups": 0,
+          "unresolved_reads": 0,
+          "all_reads_resolved": true,
+          "statuses": {}
+        },
+        "fragment_query_orientations": {
+          "original_query": 0,
+          "reverse_complement": 0,
+          "mixed": 0
+        },
+        "missing_quality_reads": 0
+      },
+      "start_evidence_summary": {
+        "status": "consistent",
+        "tier": "sequence_only",
+        "priority": 4
+      },
+      "uncertainty_flags": [
+        "annotated_path_frame_unresolved_or_ambiguous",
+        "initiation_unobserved",
+        "interval_base_quality_unassessed",
+        "no_annotated_start_in_supplied_models",
+        "no_full_fragment_witness",
+        "peptide_novelty_unassessed",
+        "reconstruction_limit:extension_segment_limit",
+        "reconstruction_limit:reference_models_unavailable",
+        "rna_strand_unresolved",
+        "translation_unobserved",
+        "unplaced_junction_sequence"
+      ]
+    }
+  ],
+  "interval_convention": "zero_based_half_open",
+  "evidence_identity_policy": "sha256_of_domain_and_canonical_json; sample/source scoped; event excluded",
+  "interpretation": "Exploratory sequences; no inferred initiation, translation, presentation, independent molecules, abundance or independence across source aliases."
+}

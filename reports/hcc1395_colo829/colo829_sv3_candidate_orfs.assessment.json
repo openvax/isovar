@@ -1,0 +1,104 @@
+{
+  "assembly_limitations": [
+    "extension_segment_limit",
+    "reference_models_unavailable"
+  ],
+  "candidates": [
+    {
+      "amino_acid_length": 37,
+      "amino_acids": "MCLPHVSVSYFGNSHNISNLPCCQAYSRTSFGVASYG",
+      "annotated_start": false,
+      "candidate_id": "sv_orf_dff1d97445d3b77f86345b53426ac22fd72056fbd5929aa4cda0ef9f3bfe4966",
+      "ensembl87_protein_matches_by_junction_ninemer": {
+        "AYSRTSFGV": [],
+        "QAYSRTSFG": []
+      },
+      "full_orf_junction_fragments": 0,
+      "genomic_start_zero_based": 224595019,
+      "initiation_observed": false,
+      "junction_ninemers": [
+        "QAYSRTSFG",
+        "AYSRTSFGV"
+      ],
+      "junction_query_interval": [
+        599,
+        618
+      ],
+      "orf_query_interval": [
+        525,
+        639
+      ],
+      "path_id": "88ab60e1f0f441a13cbecfe6",
+      "protein_status": "exploratory_orf_mature_transcript_unresolved",
+      "reference_genomic_orf": "MCLPHVSVSYFGNSHNISNLPCCQAGVQGSDQSSL",
+      "shared_junction_fragments": 3,
+      "shared_reference_genomic_prefix_amino_acids": 25,
+      "translation_observed": false
+    },
+    {
+      "amino_acid_length": 162,
+      "amino_acids": "MSLCHILVILTIFQICPVVRPIVELLLELLLMDEQRKWFLEMKSTPGEDAMNIVELTTKDLQYYINLVNKVVAGYERIDPNFKRSSTIGKMLSNSIACYREIFHERKSQLRWQTSLLSYFRKLTQPPQPSATTTLISQQPSTCRQDPPPAKRLRLAEGSDDC",
+      "annotated_start": false,
+      "candidate_id": "sv_orf_ddeae530c3924c3fe7da51b5e5d090f07bcdfb853ece5143c45781b8047ee30a",
+      "ensembl87_protein_matches_by_junction_ninemer": {
+        "PIVELLLEL": [],
+        "RPIVELLLE": [],
+        "VRPIVELLL": []
+      },
+      "full_orf_junction_fragments": 0,
+      "genomic_start_zero_based": 224595032,
+      "initiation_observed": false,
+      "junction_ninemers": [
+        "VRPIVELLL",
+        "RPIVELLLE",
+        "PIVELLLEL"
+      ],
+      "junction_query_interval": [
+        599,
+        618
+      ],
+      "orf_query_interval": [
+        538,
+        1027
+      ],
+      "path_id": "88ab60e1f0f441a13cbecfe6",
+      "protein_status": "exploratory_orf_mature_transcript_unresolved",
+      "reference_genomic_orf": "MSLCHILVILTIFQICPVVRLECREVIRAHCSLELLHSNDPPTSTLQ",
+      "shared_junction_fragments": 3,
+      "shared_reference_genomic_prefix_amino_acids": 20,
+      "translation_observed": false
+    }
+  ],
+  "event_id": "COLO829_SOMATIC_SV3_DEL",
+  "flanking_voting_fragments": 533,
+  "junction_base_quality_min_by_read": {
+    "SRR8615617.101713327": 34,
+    "SRR8615617.7313798": 38,
+    "SRR8615617.97504216": 23
+  },
+  "locus": {
+    "bundled_orfdata_version": "2026-10-11.1",
+    "genes": [
+      "CNIH3"
+    ],
+    "overlapping_bundled_orfdata_orfs": [],
+    "overlapping_ensembl87_exons": []
+  },
+  "original_junction_read_names": [
+    "SRR8615617.101713327",
+    "SRR8615617.7313798",
+    "SRR8615617.97504216"
+  ],
+  "original_rna_source": "SRA:SRR8615617",
+  "path_count": 1,
+  "proteoform_call": "not_established",
+  "reference_slice": {
+    "contig": "chr1",
+    "end": 224598926,
+    "source": "NCBI GRCh38 no-alt analysis set",
+    "source_fasta_gzip_sha256": "fb4243ebb014caf27111f24dd62b7ce42160f28581da6f8fcd6cba5977778d02",
+    "start": 224594494
+  },
+  "schema": "isovar.colo829_sv3_protein_audit.v1",
+  "unplaced_junction_bases": "CTATAGTAGAACTTCTTTT"
+}
