@@ -14,10 +14,14 @@ The 533 flanking voting fragments are regional
 coverage; they are not support for either complete isoform. The assembly
 reaches `extension_segment_limit`.
 
-| Candidate | Amino acids | Shared join fragments | Whole ORF witnesses | Hypothetical unrearranged genomic ORF | Shared amino-acid prefix | Join-crossing 9-mers |
-|---|---:|---:|---:|---:|---:|---|
-| 1 | 37 | 3 | 0 | 35 aa | 25 aa | `QAYSRTSFG`, `AYSRTSFGV` |
-| 2 | 162 | 3 | 0 | 47 aa | 20 aa | `VRPIVELLL`, `RPIVELLLE`, `PIVELLLEL` |
+| Candidate | Amino acids | Shared join fragments | Minimum exact 27-nt witnesses | Whole ORF witnesses | Hypothetical unrearranged genomic ORF | Shared amino-acid prefix | Join-crossing 9-mers |
+|---|---:|---:|---:|---:|---:|---:|---|
+| 1 | 37 | 3 | 3 | 0 | 35 aa | 25 aa | `QAYSRTSFG`, `AYSRTSFGV` |
+| 2 | 162 | 3 | 3 | 0 | 47 aa | 20 aa | `VRPIVELLL`, `RPIVELLLE`, `PIVELLLEL` |
+
+An exact 27-nt witness confirms the nucleotide window
+under a hypothetical peptide. It cannot select a reading frame
+or establish translation.
 
 ## Candidate amino-acid sequences
 
@@ -32,7 +36,6 @@ Candidate 2 (`sv_orf_ddeae530c3924c3fe7da51b5e5d090f07bcdfb853ece5143c45781b8047
 ```text
 MSLCHILVILTIFQICPVVRPIVELLLELLLMDEQRKWFLEMKSTPGEDAMNIVELTTKDLQYYINLVNKVVAGYERIDPNFKRSSTIGKMLSNSIACYREIFHERKSQLRWQTSLLSYFRKLTQPPQPSATTTLISQQPSTCRQDPPPAKRLRLAEGSDDC
 ```
-
 
 The unrearranged comparisons translate *intronic genomic sequence* from
 the same ATGs. They are controls for sequence divergence, not known

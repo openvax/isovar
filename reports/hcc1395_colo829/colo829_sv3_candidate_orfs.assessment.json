@@ -16,6 +16,22 @@
       "full_orf_junction_fragments": 0,
       "genomic_start_zero_based": 224595019,
       "initiation_observed": false,
+      "junction_27nt_windows": {
+        "AYSRTSFGV": "GCCTATAGTAGAACTTCTTTTGGAGTT",
+        "QAYSRTSFG": "CAGGCCTATAGTAGAACTTCTTTTGGA"
+      },
+      "junction_9mer_nucleotide_witnesses": {
+        "AYSRTSFGV": [
+          "SRR8615617.101713327",
+          "SRR8615617.7313798",
+          "SRR8615617.97504216"
+        ],
+        "QAYSRTSFG": [
+          "SRR8615617.101713327",
+          "SRR8615617.7313798",
+          "SRR8615617.97504216"
+        ]
+      },
       "junction_ninemers": [
         "QAYSRTSFG",
         "AYSRTSFGV"
@@ -48,6 +64,28 @@
       "full_orf_junction_fragments": 0,
       "genomic_start_zero_based": 224595032,
       "initiation_observed": false,
+      "junction_27nt_windows": {
+        "PIVELLLEL": "CCTATAGTAGAACTTCTTTTGGAGTTG",
+        "RPIVELLLE": "AGGCCTATAGTAGAACTTCTTTTGGAG",
+        "VRPIVELLL": "GTCAGGCCTATAGTAGAACTTCTTTTG"
+      },
+      "junction_9mer_nucleotide_witnesses": {
+        "PIVELLLEL": [
+          "SRR8615617.101713327",
+          "SRR8615617.7313798",
+          "SRR8615617.97504216"
+        ],
+        "RPIVELLLE": [
+          "SRR8615617.101713327",
+          "SRR8615617.7313798",
+          "SRR8615617.97504216"
+        ],
+        "VRPIVELLL": [
+          "SRR8615617.101713327",
+          "SRR8615617.7313798",
+          "SRR8615617.97504216"
+        ]
+      },
       "junction_ninemers": [
         "VRPIVELLL",
         "RPIVELLLE",

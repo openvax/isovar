@@ -114,7 +114,10 @@ The [SV3 protein audit](colo829_sv3_candidate_orfs.assessment.md) reconstructs
 two alternative junction-crossing ATG ORFs of 37 and 162 amino acids from this
 context. Their five join-crossing 9-mers have no match in the pinned Ensembl 87
 annotated protein set. The join has three original-fragment witnesses, but
-neither candidate has an exon-linked mature RNA path or a supported initiation
+all three fragments also contain each exact 27-base window underlying those
+hypothetical junction peptides. That nucleotide continuity does not select
+between the two reading frames. Neither candidate has an exon-linked mature
+RNA path or a supported initiation
 site in this selected-site fixture. These are sequence hypotheses, not a
 resolved or observed proteoform. The audit includes
 [protein FASTA](colo829_sv3_candidate_orfs.protein.fasta),

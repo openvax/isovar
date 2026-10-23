@@ -62,10 +62,11 @@ def _placed_sequence_matches(path, reference):
             raise ValueError("Assembled placed bases disagree with the pinned GRCh38 reference")
 
 
-def _junction_ninemers(protein, start, junction):
-    """9-mers containing both placed flanks and all unplaced junction bases."""
+def _junction_ninemers(protein, nucleotide, start, junction):
+    """9-mers and 27-nt windows containing both placed junction flanks."""
     left, right = junction["query_interval"]
-    return [protein[i:i + 9] for i in range(len(protein) - 8)
+    return [(protein[i:i + 9], nucleotide[3 * i:3 * (i + 9)])
+            for i in range(len(protein) - 8)
             if start + 3 * i < left and start + 3 * (i + 9) > right]
 
 
@@ -79,21 +80,28 @@ def _protein_matches(genome, peptides):
     return matches
 
 
-def _junction_read_qualities(bam, names, unplaced):
-    """Minimum sequenced base quality of the same unplaced junction in each read."""
+def _junction_read_evidence(bam, names, unplaced, windows):
+    """Sequence qualities and exact nucleotide-window witnesses on original reads."""
     reverse = str(Seq(unplaced).reverse_complement())
-    found = {}
+    reversed_windows = {window: str(Seq(window).reverse_complement()) for window in windows}
+    found, witnesses = {}, {window: set() for window in windows}
     with pysam.AlignmentFile(str(bam), "rb") as alignment:
         for read in alignment.fetch(until_eof=True):
-            if read.query_name not in names or read.is_supplementary or read.query_qualities is None:
+            if read.query_name not in names or read.is_supplementary:
                 continue
             sequence = read.query_sequence or ""
+            for window, reverse_window in reversed_windows.items():
+                if window in sequence or reverse_window in sequence:
+                    witnesses[window].add(read.query_name)
+            if read.query_qualities is None:
+                continue
             offset = sequence.find(unplaced)
             if offset < 0:
                 offset = sequence.find(reverse)
             if offset >= 0:
-                found[read.query_name] = min(read.query_qualities[offset:offset + len(unplaced)])
-    return dict(sorted(found.items()))
+                quality = min(read.query_qualities[offset:offset + len(unplaced)])
+                found[read.query_name] = min(found.get(read.query_name, quality), quality)
+    return dict(sorted(found.items())), {window: sorted(names) for window, names in witnesses.items()}
 
 
 def _locus_annotation(genome, catalog, reference):
@@ -137,7 +145,10 @@ def assess(bam=COLO_BAM, reference_path=REFERENCE_SLICE, genome=None, catalog=No
             protein = candidate["amino_acids"]
             prefix = next((i for i, pair in enumerate(zip(protein, reference_orf))
                            if pair[0] != pair[1]), min(len(protein), len(reference_orf)))
-            ninemers = _junction_ninemers(protein, start, junction)
+            ninemer_windows = _junction_ninemers(protein, candidate["nucleotide_sequence"], start, junction)
+            ninemers = [peptide for peptide, _ in ninemer_windows]
+            if len(ninemers) != len(set(ninemers)):
+                raise ValueError("SV3 audit requires unique junction 9-mers")
             peptides.update(ninemers)
             direct = next(j for j in path["junctions"] if j["query_interval"] == junction["query_interval"])
             rows.append(dict(
@@ -147,6 +158,7 @@ def assess(bam=COLO_BAM, reference_path=REFERENCE_SLICE, genome=None, catalog=No
                 genomic_start_zero_based=genomic_start,
                 junction_query_interval=junction["query_interval"],
                 junction_ninemers=ninemers,
+                junction_27nt_windows=dict(ninemer_windows),
                 shared_junction_fragments=direct["direct_support"]["fragments"],
                 full_orf_junction_fragments=candidate["rna_support"]["fragments"],
                 reference_genomic_orf=reference_orf,
@@ -166,9 +178,13 @@ def assess(bam=COLO_BAM, reference_path=REFERENCE_SLICE, genome=None, catalog=No
     unplaced = sorted({junction["unplaced_bases"] for junction in junctions})
     if len(unplaced) != 1:
         raise ValueError("SV3 audit requires one observed unplaced junction sequence")
-    qualities = _junction_read_qualities(bam, names, unplaced[0])
+    windows = {window for row in rows for window in row["junction_27nt_windows"].values()}
+    qualities, witnesses = _junction_read_evidence(bam, names, unplaced[0], windows)
     if set(qualities) != set(names):
         raise ValueError("Not every original junction read contains the unplaced sequence with qualities")
+    for row in rows:
+        row["junction_9mer_nucleotide_witnesses"] = {
+            peptide: witnesses[window] for peptide, window in row["junction_27nt_windows"].items()}
     return dict(schema="isovar.colo829_sv3_protein_audit.v1", event_id=result["event_id"],
                 original_rna_source=result["source"], reference_slice={
                     key: reference[key] for key in ("contig", "start", "end", "source", "source_fasta_gzip_sha256")},
@@ -200,20 +216,26 @@ def _report(assessment, prefix):
         f"The {assessment['flanking_voting_fragments']} flanking voting fragments are regional",
         "coverage; they are not support for either complete isoform. The assembly",
         "reaches `extension_segment_limit`.", "",
-        "| Candidate | Amino acids | Shared join fragments | Whole ORF witnesses | "
-        "Hypothetical unrearranged genomic ORF | Shared amino-acid prefix | Join-crossing 9-mers |",
-        "|---|---:|---:|---:|---:|---:|---|",
+        "| Candidate | Amino acids | Shared join fragments | Minimum exact 27-nt witnesses | "
+        "Whole ORF witnesses | Hypothetical unrearranged genomic ORF | "
+        "Shared amino-acid prefix | Join-crossing 9-mers |",
+        "|---|---:|---:|---:|---:|---:|---:|---|",
     ]
     for index, row in enumerate(rows, 1):
         lines.append(
             f"| {index} | {row['amino_acid_length']} | {row['shared_junction_fragments']} | "
+            f"{min(map(len, row['junction_9mer_nucleotide_witnesses'].values()))} | "
             f"{row['full_orf_junction_fragments']} | {len(row['reference_genomic_orf'])} aa | "
             f"{row['shared_reference_genomic_prefix_amino_acids']} aa | "
             f"{', '.join('`' + peptide + '`' for peptide in row['junction_ninemers'])} |")
-    lines.extend(["", "## Candidate amino-acid sequences", ""])
+    lines.extend(["", "An exact 27-nt witness confirms the nucleotide window",
+                  "under a hypothetical peptide. It cannot select a reading frame",
+                  "or establish translation.", "", "## Candidate amino-acid sequences", ""])
     for index, row in enumerate(rows, 1):
         lines.extend([f"Candidate {index} (`{row['candidate_id']}`):", "", "```text",
-                      row["amino_acids"], "```", ""])
+                      row["amino_acids"], "```"])
+        if index < len(rows):
+            lines.append("")
     lines += [
         "", "The unrearranged comparisons translate *intronic genomic sequence* from",
         "the same ATGs. They are controls for sequence divergence, not known",

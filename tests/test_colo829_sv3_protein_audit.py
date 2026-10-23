@@ -41,6 +41,9 @@ def test_sv3_junction_orfs_remain_distinct_and_do_not_become_a_proteoform(tmp_pa
         ["QAYSRTSFG", "AYSRTSFGV"],
         ["VRPIVELLL", "RPIVELLLE", "PIVELLLEL"],
     ]
+    expected_windows = assessment["original_junction_read_names"]
+    assert all(names == expected_windows for row in candidates for names in
+               row["junction_9mer_nucleotide_witnesses"].values())
     assert all(not matches for row in candidates for matches in
                row["ensembl87_protein_matches_by_junction_ninemer"].values())
 
