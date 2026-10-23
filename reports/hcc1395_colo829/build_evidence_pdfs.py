@@ -178,7 +178,7 @@ def collect(sample, annotations_path=ANNOTATIONS):
         for row in exonic_sv)
     exonic_ids = {row['call_id'] for row in exonic_sv}
     counts['sv_exonic_junction'] = sum(
-        row['call_id'] in exonic_ids and int(row['mapq20_junction_fragments']) > 0
+        row['call_id'] in exonic_ids and int(row['junction_fragments_all_mapq']) > 0
         for row in sv_audit)
     counts['sv_exonic_product'] = sum(
         row['protein_status'] == 'called' for row in exonic_sv)
@@ -218,7 +218,7 @@ def page_footer(canvas, doc, sample):
     canvas.drawString(50, PAGE_H - 31, f'ISOVAR {__version__}  /  {sample} EVIDENCE AUDIT')
     canvas.setFont('Helvetica', 7.5)
     canvas.setFillColor(GRAY)
-    canvas.drawRightString(PAGE_W - 50, 32, f'2026-10-22  |  page {doc.page}')
+    canvas.drawRightString(PAGE_W - 50, 32, f'2026-10-23  |  page {doc.page}')
     canvas.restoreState()
 
 
@@ -249,7 +249,7 @@ def main_story(sample, d):
         ('Any annotated exon involved', c['sv_exonic']),
         ('RNA alignment near either breakend', c['sv_exonic_covered']),
         ('Split-read or cross-end mate candidate', c['sv_exonic_candidate']),
-        ('Junction with MAPQ 20 reads (selected)', c['sv_exonic_junction']),
+        ('RNA junction in original reads (selected)', c['sv_exonic_junction']),
         ('SV-derived protein called', c['sv_exonic_product']),
     )))
     story.append(para(
@@ -393,45 +393,47 @@ def sv_junction_story(d):
     story = section('Original-read replay: junction versus RNA path')
     story.append(para(
         'This selected-event replay uses oriented DNA adjacencies and actual RNA '
-        'alignment records. The MAPQ 20 column requires every linked segment '
-        'to pass that threshold. Direct junction fragments count reads crossing '
-        'the same join, even when their wider transcript sequences differ. '
-        'Full-path fragments require one read to match the entire retained '
-        'candidate path and its junction. A zero in this table is a result '
-        'for the listed alignment subset, not absence of expression.'))
+        'alignment records, including soft-clipped bases and low-MAPQ pieces. '
+        'Direct junction fragments count reads crossing the same RNA join, '
+        'even when their wider transcript sequences differ. MAPQ 20 is a '
+        'sensitivity subset, not a gate on whether the junction sequence was '
+        'observed. Isovar extends these joins through overlapping original '
+        'read sequences; one read need not span the assembled context. Context '
+        'length is a bounded assembly result, not an isoform-support count.'))
     rows = []
     for row in d['sv_audit']:
         label = row['call_id'].replace('COLO829_SOMATIC_', '')
         parts = label.split('_')
         if len(parts) == 5 and parts[0] == parts[2] and parts[1].isdigit() and parts[3].isdigit():
             label = f'{parts[0]}:{int(parts[1]):,}-{int(parts[3]):,}'
-        rows.append((label, row['class'], row['mapq1_junction_fragments'],
-                     row['mapq20_junction_fragments'],
-                     row['mapq20_max_full_path_fragments']))
+        rows.append((label, row['class'], row['junction_fragments_all_mapq'],
+                     row['junction_fragments_mapq20_subset'],
+                     row['max_assembled_context_bases']))
     story.append(data_table(
-        ['Nominated DNA record', 'Class', 'Junction MAPQ 1',
-         'Junction MAPQ 20', 'Full path MAPQ 20'],
+        ['Nominated DNA record', 'Class', 'RNA join, all MAPQ',
+         'Join, MAPQ 20 subset', 'Longest context (bp)'],
         rows, [203, 49, 83, 88, 89], numeric_columns=(2, 3, 4)))
+    story.append(Spacer(1, 8))
     if d['sv_audit'][0]['sample'] == 'HCC1395':
         story.append(para(
-            'The chr9 duplication has seven MAPQ 20 junction fragments but '
-            'only one exact full-path witness for each of two retained paths. '
-            'Path search reached its ten-path cap, so additional isoforms may '
-            'exist. The chr13 deletion has three MAPQ 20 junction fragments '
-            'and one exact whole-path witness; the chr21 duplication has two '
-            'junction fragments and one per retained path. The three chr1 '
-            'screen rows reuse one complex read and were not oriented in this '
-            'targeted replay.'))
+            'The chr9 duplication has seven direct junction fragments; three '
+            'event paths survive assembly and the search reaches its ten-path '
+            'cap. The chr13 deletion has four direct fragments, including one '
+            'lost at MAPQ 20; chr21 has two. Overlapping reads extend each '
+            'candidate context; their local branch support still needs '
+            'evaluation. The three chr1 '
+            'screen rows reuse one complex read and were not oriented here.'))
     else:
         story.append(para(
-            'The chr1 SV3 deletion has six high-MAPQ opposite-mate candidate '
-            'pairs and three apparent split junction fragments at MAPQ 1. '
-            'Their linking segments have MAPQ 1-6; no junction survives MAPQ '
-            '20. SV42 and SV49 each have one mate candidate and no observed '
-            'junction at either threshold. The separate older benchmark '
-            'records reuse those mate names and must not be added as new '
-            'fragments. SV3 does not meet the annotated-exon rule used by '
-            'the preceding funnel.'))
+            'The chr1 SV3 deletion has six opposite-mate candidate pairs and '
+            'three original fragments with an identical split junction sequence '
+            'containing 19 unplaced bases. Its linked alignment pieces span '
+            'MAPQ 1-52, including low-MAPQ supplementary pieces; the MAPQ 20 '
+            'subset loses all three joins. Assembly extends this sequence to '
+            '1,213 bases through overlapping reads and reaches an extension '
+            'limit. SV42 and SV49 have one mate candidate each '
+            'but no directly observed join. SV3 is outside the exon-involved '
+            'funnel above.'))
     story.append(para(
         'The HCC1395 replay BAM is a source-derived 309-record regional '
         'fixture; COLO829 uses the 129,534-record selected-site BAM. Both '
@@ -670,7 +672,8 @@ def provenance_story(sample, d):
         caveat = (
             'The SMaHT DNA, CCLE RNA and TAGET polished isoforms are separate cultures. '
             'The short-read genomic alignment is not splice-aware; junction-crossing '
-            'reads may be lost. A weak MAPQ 1 join at SV3 fails the MAPQ 20 gate; '
+            'reads may be lost. Three sequence-supported SV3 junction fragments '
+            'have low-MAPQ linking pieces; placement, splice alternatives, '
             'full-length isoform linkage and SV-derived proteins remain unresolved.'
         )
     story.append(data_table(['Input', 'Pinned scope'], sources, [160, 352]))

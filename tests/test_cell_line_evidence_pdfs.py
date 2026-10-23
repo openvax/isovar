@@ -36,9 +36,12 @@ def test_cell_line_sv_funnels_and_protein_comparisons(tmp_path, sample, sv_count
     assert "Small variants: DNA to RNA and local protein" in cover
     assert "Structural variants: DNA to RNA breakpoint evidence" in cover
     assert "Split-read or cross-end mate candidate" in cover
-    assert "Junction with MAPQ 20 reads (selected)" in cover
+    assert "RNA junction in original reads (selected)" in cover
     full_text = "\n".join(page.extract_text() for page in pdf.pages)
     assert "RNA link candidates per exon-involved SV" in full_text
     assert "Original-read replay: junction versus RNA path" in full_text
+    assert "one read need not span the assembled context" in full_text
+    if sample == "COLO829":
+        assert "1,213" in full_text
     assert "Reference and mutant protein windows" in full_text
     assert all(call_id in full_text for call_id in example_calls)

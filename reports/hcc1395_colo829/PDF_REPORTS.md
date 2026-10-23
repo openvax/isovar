@@ -16,7 +16,7 @@ limits.
 | SV source records involving an Ensembl 87 exon | 354 | 97 |
 | Exonic SVs with RNA alignment near either nominated end | 172 | 64 |
 | Exonic SVs with split-read or cross-end mate candidates | 6 | 6 |
-| Exonic SVs with a MAPQ 20 RNA junction in selected replay | 3 | 0 |
+| Exonic SVs with an original-read RNA junction in selected replay | 3 | 0 |
 | Any Ensembl 87 exon involved | 1,728 | 1,395 |
 | Exonic with original RNA ALT | 292 | 502 |
 | Exonic with a local protein context | 22 | 124 |
@@ -33,7 +33,7 @@ The first page of each report has **two source-record funnels**. The small-
 variant funnel follows exon involvement, tumor RNA ALT reads, and a local
 protein context. The SV funnel follows exon involvement, RNA alignment near
 either nominated breakend, same-read split or cross-end mate candidates,
-MAPQ 20 RNA junctions in a targeted replay, and SV-derived proteins. The
+original-read RNA junctions in a targeted replay, and SV-derived proteins. The
 targeted junction stage is a lower bound, since only selected events were
 reconstructed. Each percentage uses the
 DNA source-record count for its own variant class. The RNA-alignment stage
@@ -68,13 +68,17 @@ marked `Unknown` in the
 candidate is a screen, not a validated event-linked junction or protein.
 The separate [selected SV junction audit](sv_junction_audit.tsv) uses actual
 RNA alignment records and oriented event hypotheses. In HCC1395, the chr9
-duplication has 7 MAPQ 20 junction fragments, the chr13 deletion 3, and the
-chr21 duplication 2. Their highest complete-path support is one original
-read each; a shared junction count cannot be assigned to every candidate
-isoform. The chr9 discovery hits its ten-path cap, and no reference transcript
-models were supplied for coding-frame transfer. In COLO829, SV3 has three
-MAPQ 1 split-junction fragments, but their linking alignments have MAPQ 1-6
-and all fail at MAPQ 20. Its six high-MAPQ mate pairs remain context only.
+duplication has 7 direct junction fragments, the chr13 deletion 4, and the
+chr21 duplication 2. Isovar extends these joins through overlapping original
+reads; one read need not span the resulting context. A shared junction count
+cannot be assigned to every candidate isoform. The chr9 discovery hits its
+ten-path cap, and no reference
+transcript models were supplied for coding-frame transfer. In COLO829, SV3
+has three direct split-junction fragments with low-MAPQ supplementary pieces;
+the MAPQ 20 sensitivity subset loses them. The three share 19 unplaced
+junction bases. Bounded assembly extends their sequence to a 1,213-base
+context but reaches an extension limit; local branch support remains to be
+assessed. Its six mate pairs remain context only.
 The exon-involved SV42 and SV49 have one mate candidate each and no direct
 junction. Their parallel older truth-set records reuse those same mates.
 [Isovar #553](https://github.com/openvax/isovar/issues/553) tracks the
