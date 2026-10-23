@@ -67,6 +67,9 @@ def make_parser(prog="isovar sv-rna"):
     group.add_argument("--event-only", dest="include_regional_candidates", action="store_false", default=True,
                        help="Skip seeds at unrelated regional junctions; retain event-compatible and "
                             "splice-ambiguous paths, regional assembly context and excluded-seed accounting")
+    group.add_argument("--exon-anchored-clips", action="store_true",
+                       help="Seed terminal soft clips on supplied reference exons and assemble exact RNA "
+                            "sequence overlaps beyond the placed anchor (requires --use-soft-clipped-bases)")
     group.add_argument("--peptide-lengths", type=int, nargs="+", default=FUSION_PEPTIDE_LENGTHS,
                        help="Candidate peptide lengths (default: %(default)s)")
     group.add_argument("--min-orf-amino-acids", type=int, default=SV_MIN_ORF_AMINO_ACIDS,
@@ -107,6 +110,7 @@ def run(args=None, prog=None):
                 dense_support=options.dense_support, scratch_dir=options.sv_scratch_dir,
                 max_queries=options.max_queries, max_paths=options.max_paths, assemble=options.assemble,
                 include_regional_candidates=options.include_regional_candidates,
+                exon_anchored_clips=options.exon_anchored_clips,
                 breakpoint_window=options.breakpoint_window, max_breakpoint_shift=options.max_breakpoint_shift,
                 max_extension_segments=options.max_extension_segments,
                 annotated_junction_tolerance=options.annotated_junction_tolerance,

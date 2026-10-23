@@ -221,6 +221,143 @@ def test_spliced_fusion_is_reconstructed_and_translated_in_the_donor_frame(tmp_p
     assert any(a <= junction_codon < b for a, b in (p["protein_interval"] for p in translation["candidate_peptides"]))
 
 
+@pytest.mark.parametrize("acceptor_strand", ["+", "-"])
+@pytest.mark.parametrize("terminal_hard_clips", [False, True])
+def test_exon_clipped_cloud_assembles_a_distant_intronic_fusion(
+        tmp_path, acceptor_strand, terminal_hard_clips):
+    """Two read clouds can bridge an intronic fusion or inversion by sequence."""
+    s = Scenario(acceptor_strand)
+    clipped = s.sequence[220:280]
+    cigar = "5H30M30S5H" if terminal_hard_clips else "30M30S"
+    reads = [record(name, "1", 2120, cigar, clipped, mapq=60)
+             for name in ("clip1", "clip2")]
+    reads += aligned("donor", s.sequence[160:250], s.positions[160:250])
+    partner = aligned("partner", s.sequence[250:350], s.positions[250:350])
+    partner[0].mapping_quality = 1  # Placement uncertainty is retained for SV assembly.
+    reads += partner
+    bam = write_bam(tmp_path / "exon-clips.bam", reads)
+    collector = ReadCollector(min_mapping_quality=0, use_soft_clipped_bases=True)
+    without = s.run(bam, read_collector=collector, include_regional_candidates=False)
+    assert not without["paths"]
+    result = s.run(bam, read_collector=collector, include_regional_candidates=False,
+                   exon_anchored_clips=True)
+    assert result["status"] == "event_linked_candidates"
+    assert result["parameters"]["exon_anchored_clips"]
+    assert any(p["sequence"] == s.sequence[160:350] for p in result["paths"])
+    path = next(p for p in result["paths"] if p["sequence"] == s.sequence[160:350])
+    assert path["frame_status"] == "translated"
+    assert any("event_compatible_junction" in t["departure_relations"] for t in path["translations"])
+    assert any(j["relation"] == "event_compatible_junction" and j["direct_support"]["fragments"] == 0
+               for j in path["junctions"])
+    assert path["sequence_evidence"]["voting_support"]["fragments"] >= 3
+
+
+def test_two_exon_clips_bridge_an_unplaced_inserted_or_cryptic_exon(tmp_path):
+    """An observed inserted sequence can join read clouds with no shared locus."""
+    s = Scenario()
+    inserted = "GCC" * 10
+    reads = [record(name, "1", 2120, "30M30S", s.sequence[220:250] + inserted)
+             for name in ("donor-clip-1", "donor-clip-2")]
+    reads += [record(name, "2", 6000, "30S30M", inserted + s.sequence[250:280])
+              for name in ("acceptor-clip-1", "acceptor-clip-2")]
+    reads += aligned("donor", s.sequence[160:250], s.positions[160:250])
+    reads += aligned("acceptor", s.sequence[250:350], s.positions[250:350])
+    result = s.run(write_bam(tmp_path / "inserted-clouds.bam", reads),
+                   read_collector=ReadCollector(min_mapping_quality=0,
+                                                use_soft_clipped_bases=True),
+                   include_regional_candidates=False, exon_anchored_clips=True)
+    assert result["status"] == "event_linked_candidates"
+    path, = result["paths"]
+    assert path["sequence"] == s.sequence[160:250] + inserted + s.sequence[250:350]
+    assert path["frame_status"] == "translated"
+    junction, = path["junctions"]
+    assert junction["unplaced_bases"] == inserted
+    assert junction["direct_support"]["fragments"] == 0
+
+
+def test_exon_clipped_ordinary_splice_does_not_become_an_sv_protein(tmp_path):
+    s = Scenario()
+    reads = [record(name, "1", 2120, "30M30S", s.donor_ref.sequence[220:280])
+             for name in ("clip1", "clip2")]
+    reads += aligned("donor", s.donor_ref.sequence[160:250], s.donor_positions[160:250])
+    reads += aligned("ordinary", s.donor_ref.sequence[250:350], s.donor_positions[250:350])
+    result = s.run(write_bam(tmp_path / "ordinary.bam", reads),
+                   read_collector=ReadCollector(min_mapping_quality=0, use_soft_clipped_bases=True),
+                   include_regional_candidates=False, exon_anchored_clips=True)
+    assert result["status"] != "event_linked_candidates"
+    assert not any(p["translations"] for p in result["paths"])
+    assert any(p["sequence"] == s.donor_ref.sequence[160:350] for p in result["paths"])
+
+
+def test_sequence_bridge_keeps_repeated_partner_placements_separate():
+    sequence = "C" * 20 + "A" * 20
+    positions = tuple(("1", q, "+") for q in range(20)) + (None,) * 20
+    observations = [RnaObservation(
+        key=name, identity=("rg", name, 0), records=(name,), sequence="A" * 20 + "T" * 10,
+        positions=tuple((contig, q, "+") for q in range(30)), breaks=(),
+        reverse_complement=False, query_interval=(0, 30),
+        missing_qualities=False, secondary=False)
+        for name, contig in (("a", "2"), ("b", "3"))]
+    index = _ObservationIndex(observations)
+    index.sequence_overlaps = True
+    paths = list(_extend_both(sequence, positions, index, 20, (2, 0.1, 0.5), 8, [], set()))
+    assert len(paths) == 2
+    assert {path[1][20][0] for path in paths} == {"2", "3"}
+    assert all(path[0] == sequence + "T" * 10 for path in paths)
+
+
+def test_exon_clips_require_models_and_untrimmed_soft_clips(tmp_path):
+    s = Scenario()
+    bam = write_bam(tmp_path / "empty.bam", [])
+    with pytest.raises(ValueError, match="reference models and soft-clipped bases"):
+        with pysam.AlignmentFile(str(bam)) as alignments:
+            reconstruct_sv_rna(
+                alignments, event_id="D--A", reference_name="test", donor=s.donor,
+                acceptor=s.acceptor, regions=[], references=[], sample_id="sample",
+                source=str(bam), event_provenance={"caller": "synthetic"},
+                read_collector=ReadCollector(use_soft_clipped_bases=True),
+                exon_anchored_clips=True)
+    with pytest.raises(ValueError, match="reference models and soft-clipped bases"):
+        s.run(bam, exon_anchored_clips=True)
+    with pytest.raises(ValueError, match="Dense support does not yet select"):
+        s.run(bam, exon_anchored_clips=True, dense_support=True,
+              read_collector=ReadCollector(use_soft_clipped_bases=True))
+
+
+@pytest.mark.parametrize("gene,call,donor,acceptor,expected", [
+    ("SUGT1", "chr13_52688329_chr13_60966095_+-", ("chr13", 52688329, "+"),
+     ("chr13", 60966095, "+"), 3),
+    ("PKNOX1", "chr21_42975947_chr21_43035721_-+", ("chr21", 43035721, "+"),
+     ("chr21", 42975947, "+"), 2),
+    ("HNRNPK", "chr9_83969153_chr9_84015113_-+", ("chr9", 83969153, "-"),
+     ("chr9", 84015113, "-"), 7),
+])
+def test_exon_clip_search_replays_hcc1395_original_sv_reads(gene, call, donor, acceptor, expected):
+    """Original read support does not imply a coding protein across the SV."""
+    root = Path(__file__).parent / "data/hcc1395_sv_junction"
+    models = json.loads(gzip.open(root / "ensembl87_models.json.gz", "rt").read())["models"]
+    references = [FusionReference(**row) for row in models[gene]]
+    bam = root / "SRR23456709.sv_candidates.grch38.bam"
+    with pysam.AlignmentFile(str(bam)) as alignments:
+        result = reconstruct_sv_rna(
+            alignments, event_id=call, reference_name="GRCh38", sample_id="HCC1395",
+            source="SRA:SRR23456709", donor=FusionBreakpoint(*donor),
+            acceptor=FusionBreakpoint(*acceptor), regions=[], references=references,
+            event_provenance={"call_set": "Talsania_2022_S4", "dna_call_id": call},
+            read_collector=ReadCollector(min_mapping_quality=20, use_soft_clipped_bases=True),
+            max_records=5000, max_queries=100, max_paths=20,
+            include_regional_candidates=False, exon_anchored_clips=True)
+    junctions = [j for path in result["paths"] for j in path["junctions"]
+                 if j["relation"] == "breakpoint_junction"]
+    assert max(j["direct_support"]["fragments"] for j in junctions) == expected
+    assert result["parameters"]["exon_anchored_clips"]
+    if gene != "PKNOX1":
+        assert any(seed["relation"] == "exon_anchored_clip_partner_unplaced" for seed in result["seeds"])
+    assert not any(set(translation["departure_relations"]) &
+                   {"breakpoint_junction", "event_compatible_junction"}
+                   for path in result["paths"] for translation in path["translations"])
+
+
 def test_exact_breakpoint_and_observed_junction_homology(tmp_path):
     s = Scenario()
     read = s.sequence[200:300]  # Junction after read base 49.

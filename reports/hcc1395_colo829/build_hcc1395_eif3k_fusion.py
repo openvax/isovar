@@ -1,0 +1,473 @@
+"""Replay the public HCC1395 EIF3K--CYP39A1 RNA fusion from original reads.
+
+The input BAM contains the 185 unmapped Illumina records in INTEGRATE's public
+example. Reference models are pinned separately; no annotation service is used
+at report or test time. Only exact original reads spanning the exon join enter
+the local assembly, and every reported base must be covered by those reads.
+"""
+
+import argparse
+from dataclasses import asdict
+import gzip
+import json
+from pathlib import Path
+import shutil
+import tempfile
+
+import pysam
+
+from isovar.fusion import (
+    FusionBlock, FusionBreakpoint, FusionRead, FusionReference, FusionTranscript,
+    reconstruct_fusion,
+)
+
+
+ROOT = Path(__file__).resolve().parents[2]
+FIXTURE = ROOT / "tests/data/hcc1395_eif3k_cyp39a1"
+DONOR_ID = "ENST00000248342"
+ACCEPTOR_ID = "ENST00000275016"
+DONOR_EDGE = 39123318  # GRCh37 interbase, end of EIF3K exon 6
+ACCEPTOR_EDGE = 46607405  # GRCh37 interbase, upper edge of CYP39A1 exon 3
+DONOR_RNA_EDGE = 671  # cDNA offset, stable across sequence-identical assemblies
+ACCEPTOR_RNA_EDGE = 517
+
+
+def load_references(path):
+    """Load sequence-verified, versioned exon and CDS models."""
+    with gzip.open(path, "rt") as handle:
+        data = json.load(handle)
+    return tuple(FusionReference(**model) for model in data["models"])
+
+
+def _fusion_blocks(donor, acceptor):
+    """Lay out the two observed spliced partners in RNA orientation."""
+    left = tuple(e for e in donor.exons if e[1] <= DONOR_EDGE)
+    right = tuple(e for e in acceptor.exons[::-1] if e[1] <= ACCEPTOR_EDGE)
+    if not left or not right or left[-1][1] != DONOR_EDGE or right[0][1] != ACCEPTOR_EDGE:
+        raise ValueError("The pinned transcripts do not contain the reported exon join")
+    blocks = []
+    cursor = 0
+    for reference, exons in ((donor, left), (acceptor, right)):
+        for start, end in exons:
+            blocks.append(FusionBlock(cursor, cursor + end - start, reference.contig,
+                                      start, end, reference.strand))
+            cursor += end - start
+    return tuple(blocks), sum(end - start for start, end in left)
+
+
+def _subblocks(blocks, start, end):
+    """Clip mapped exons to an observed cDNA interval."""
+    result = []
+    for block in blocks:
+        left, right = max(start, block.query_start), min(end, block.query_end)
+        if left >= right:
+            continue
+        if block.strand == "+":
+            genomic_start = block.reference_start + left - block.query_start
+            genomic_end = genomic_start + right - left
+        else:
+            genomic_end = block.reference_end - (left - block.query_start)
+            genomic_start = genomic_end - (right - left)
+        result.append(FusionBlock(left - start, right - start, block.contig,
+                                  genomic_start, genomic_end, block.strand))
+    return tuple(result)
+
+
+def path_coordinates(blocks):
+    """Map each transcript-oriented query base to one reference position."""
+    positions = {}
+    for block in blocks:
+        for query in range(block.query_start, block.query_end):
+            genomic = (block.reference_start + query - block.query_start if block.strand == "+"
+                       else block.reference_end - 1 - (query - block.query_start))
+            positions[query] = block.contig, genomic
+    return positions
+
+
+def mapped_coordinates_match(record, start, oriented, positions):
+    """Check every original aligned base against the nominated exon path."""
+    reverse = oriented != record.query_sequence
+    pairs = record.get_aligned_pairs(matches_only=True)
+    if len(pairs) != len(oriented):
+        return False
+    return all(positions.get(start + (len(oriented) - 1 - query if reverse else query)) ==
+               (record.reference_name, genomic)
+               for query, genomic in pairs)
+
+
+def assemble(original_bam, references, mapped_tiling_bam=None, min_flank=10, min_overlap=20):
+    """Return the observed local or complete coding interval of the fusion.
+
+    The reference isoforms nominate a junction and orient each original read;
+    they do not contribute any unwitnessed base to the returned sequence.
+    Repeated or imperfect placements are excluded from this strict example.
+    """
+    donor = next(ref for ref in references if ref.transcript_id == DONOR_ID)
+    acceptor = next(ref for ref in references if ref.transcript_id == ACCEPTOR_ID)
+    blocks, junction = _fusion_blocks(donor, acceptor)
+    positions = path_coordinates(blocks)
+    acceptor_offset = acceptor.spliced_offset(ACCEPTOR_EDGE - 1)
+    full = donor.sequence[:junction] + acceptor.sequence[acceptor_offset:]
+    if len(full) != blocks[-1].query_end:
+        raise ValueError("Fusion sequence and exon blocks disagree")
+    matches = []
+    with pysam.AlignmentFile(str(original_bam), check_sq=False) as bam:
+        source_count = 0
+        for record in bam.fetch(until_eof=True):
+            source_count += 1
+            seq = record.query_sequence
+            candidates = []
+            for oriented in (seq, pysam.reverse_complement(seq)):
+                start = full.find(oriented)
+                while start >= 0:
+                    if min(junction - start, start + len(oriented) - junction) >= min_flank:
+                        candidates.append((start, oriented))
+                    start = full.find(oriented, start + 1)
+            if len(candidates) == 1:
+                start, oriented = candidates[0]
+                matches.append((record.query_name, start, oriented,
+                                "INTEGRATE:test-data/unmapped.bam",
+                                1 if record.is_read1 else 2 if record.is_read2 else 0))
+    if not matches:
+        raise ValueError("No uniquely placed original reads span the nominated RNA join")
+    mapped_count = 0
+    if mapped_tiling_bam is None:
+        lo = min(start for _, start, _, _, _ in matches)
+        hi = max(start + len(seq) for _, start, seq, _, _ in matches)
+    else:
+        if donor.cds_start is None or acceptor.cds_end is None:
+            raise ValueError("Complete coding reconstruction needs verified CDS models")
+        lo = donor.cds_start
+        hi = junction + acceptor.cds_end - acceptor_offset
+        with pysam.AlignmentFile(str(mapped_tiling_bam)) as bam:
+            for record in bam.fetch(until_eof=True):
+                mapped_count += 1
+                if record.is_unmapped or record.mapping_quality < 20:
+                    raise ValueError("The mapped tiling contains an unqualified alignment")
+                candidates = []
+                for oriented in (record.query_sequence,
+                                 pysam.reverse_complement(record.query_sequence)):
+                    start = full.find(oriented)
+                    while start >= 0:
+                        if (start < hi and start + len(oriented) > lo and
+                                (start + len(oriented) <= junction and record.reference_name == "19" or
+                                 start >= junction and record.reference_name == "6")):
+                            candidates.append((start, oriented))
+                        start = full.find(oriented, start + 1)
+                if len(candidates) != 1:
+                    raise ValueError("A mapped tiling read lacks one exact fusion placement")
+                start, oriented = candidates[0]
+                if not mapped_coordinates_match(record, start, oriented, positions):
+                    raise ValueError("A mapped tiling read disagrees with the pinned exon path")
+                matches.append((record.query_name, start, oriented,
+                                "INTEGRATE:test-data/accepted_hits.bam",
+                                1 if record.is_read1 else 2 if record.is_read2 else 0))
+    # A coverage union alone can connect two reads that only abut. Require a
+    # chain of observed sequence overlaps through the entire returned path.
+    intervals = [(max(lo, start), min(hi, start + len(seq)))
+                 for _, start, seq, _, _ in matches]
+    reach = max((end for start, end in intervals if start <= lo), default=lo)
+    while reach < hi:
+        next_reach = max((end for start, end in intervals
+                          if start <= reach - min_overlap and end > reach), default=reach)
+        if next_reach == reach:
+            raise ValueError("No read-overlap chain covers the fusion path")
+        reach = next_reach
+    coverage = [0] * (hi - lo)
+    for _, start, seq, _, _ in matches:
+        for position in range(max(lo, start) - lo, min(hi, start + len(seq)) - lo):
+            coverage[position] += 1
+    if not all(coverage):
+        raise ValueError("The local fusion path has an unobserved base")
+    provenance = dict(
+        sample_id="HCC1395", method="reference-guided_exact_original_read_assembly",
+        version="1", parameters=dict(minimum_exact_junction_flank_bases=min_flank,
+                                     minimum_read_overlap_bases=min_overlap,
+                                     original_unmapped_records_screened=source_count,
+                                     mapped_tiling_records=mapped_count),
+        source="INTEGRATE 2014 test-data.tar.gz / unmapped.bam and accepted_hits.bam",
+        contig_id="EIF3K-ENST00000248342--CYP39A1-ENST00000275016",
+    )
+    fusion = FusionTranscript(
+        event_id="EIF3K--CYP39A1", reference_name="GRCh37-lite",
+        sequence=full[lo:hi], junction_start=junction - lo, junction_end=junction - lo,
+        donor=FusionBreakpoint("19", DONOR_EDGE, "+"),
+        acceptor=FusionBreakpoint("6", ACCEPTOR_EDGE, "-"),
+        blocks=_subblocks(blocks, lo, hi), provenance=provenance,
+    )
+    reads = []
+    for name, start, seq, source, mate in matches:
+        fragment = name.rsplit("/", 1)[0]
+        if not mate and name.endswith(("/1", "/2")):
+            mate = int(name[-1])
+        read_start, read_end = max(lo, start), min(hi, start + len(seq))
+        reads.append(FusionRead(
+            sample_id="HCC1395", library_id="INTEGRATE-2014-Illumina",
+            fragment_id=fragment, read_id=name, source=source,
+            source_query_start=read_start - start, cdna_start=read_start - lo,
+            sequence=seq[read_start - start:read_end - start],
+            blocks=_subblocks(blocks, read_start, read_end), mate_number=mate,
+        ))
+    return fusion, tuple(reads)
+
+
+def exact_ont_junctions(fasta_path, fusion, flank=20):
+    """Count independent ONT candidates with an exact junction k-mer."""
+    if fasta_path is None:
+        return None
+    motif = fusion.sequence[fusion.junction_start - flank:fusion.junction_end + flank]
+    if len(motif) != 2 * flank:
+        raise ValueError("The observed fusion interval is too short for the ONT check")
+    with gzip.open(fasta_path, "rt") as handle:
+        sequences = [line.strip() for line in handle if line and not line.startswith(">")]
+    reverse = pysam.reverse_complement(motif)
+    return dict(screened_original_reads=len(sequences), exact_junction_reads=sum(
+        motif in sequence or reverse in sequence for sequence in sequences),
+        flank_bases=flank)
+
+
+def _collinear_coding_points(points):
+    """Require one increasing coding path along a transcript-oriented read."""
+    ordered = sorted(points)
+    return all(q0 < q1 and c0 < c1
+               for (q0, c0), (q1, c1) in zip(ordered, ordered[1:]))
+
+
+def ont_coding_span(bam_path, models_path, fasta_path, fusion):
+    """Count locally phased ONT reads without using MAPQ as a discovery gate."""
+    if bam_path is None or models_path is None:
+        return None
+    with open(models_path) as handle:
+        models = json.load(handle)["models"]
+    by_contig, offsets = {}, {}
+    for model in models:
+        contig, strand = model["contig"], model["strand"]
+        by_contig[contig] = model
+        placed, offset = {}, 0
+        exons = model["exons"] if strand == "+" else model["exons"][::-1]
+        for start, end in exons:
+            genomic = range(start, end) if strand == "+" else range(end - 1, start - 1, -1)
+            for base in genomic:
+                placed[base] = offset
+                offset += 1
+        offsets[contig] = placed
+    donor = by_contig["chr19"]
+    acceptor = by_contig["chr6"]
+    if (donor["transcript_id"] != DONOR_ID or acceptor["transcript_id"] != ACCEPTOR_ID or
+            donor["cds_start"] != 172 or acceptor["cds_end"] != 1614 or
+            fusion.junction_start != DONOR_RNA_EDGE - donor["cds_start"]):
+        raise ValueError("The ONT exon models disagree with the supplied coding path")
+    sequences = {}
+    with gzip.open(fasta_path, "rt") as handle:
+        name = None
+        for line in handle:
+            if line.startswith(">"):
+                name = line[1:].strip()
+            else:
+                sequences[name] = line.strip()
+    candidates = {}
+    with pysam.AlignmentFile(str(bam_path)) as bam:
+        for record in bam.fetch(until_eof=True):
+            if record.is_unmapped or record.reference_name not in offsets:
+                continue
+            if record.is_reverse != (by_contig[record.reference_name]["strand"] == "-"):
+                continue
+            source_sequence = sequences.get(record.query_name)
+            if source_sequence is None or record.infer_read_length() != len(source_sequence):
+                raise ValueError("ONT alignment lacks its complete original query sequence")
+            # The pinned SRA query is in the CYP39A1 alignment orientation.
+            # Convert both genomic placements to EIF3K-to-CYP39A1 RNA order.
+            transcript_sequence = pysam.reverse_complement(source_sequence)
+            aligned_orientation = (source_sequence if record.is_reverse else
+                                   transcript_sequence)
+            hard_left = record.cigartuples[0][1] if record.cigartuples[0][0] == 5 else 0
+            hard_right = record.cigartuples[-1][1] if record.cigartuples[-1][0] == 5 else 0
+            if record.query_sequence != aligned_orientation[
+                    hard_left:len(source_sequence) - hard_right]:
+                raise ValueError("ONT alignment bases disagree with the original query")
+            placed = offsets[record.reference_name]
+            points = []
+            for query, genomic in record.get_aligned_pairs(matches_only=True):
+                if genomic not in placed:
+                    continue
+                query_position = (hard_left + query if not record.is_reverse else
+                                  len(source_sequence) - 1 - hard_left - query)
+                coding_position = (placed[genomic] - donor["cds_start"]
+                                   if record.reference_name == "chr19" else
+                                   DONOR_RNA_EDGE - donor["cds_start"] +
+                                   placed[genomic] - ACCEPTOR_RNA_EDGE)
+                points.append((query_position, coding_position))
+            parts = candidates.setdefault(record.query_name, {})
+            previous = parts.get(record.reference_name, [])
+            if len(points) > len(previous):
+                parts[record.reference_name] = points
+    motif = fusion.sequence[fusion.junction_start - 20:fusion.junction_end + 20]
+    if set(candidates) != set(sequences):
+        raise ValueError("ONT alignments and original query sequences disagree")
+    full_span, exact_full, covered = 0, 0, []
+    for name, parts in candidates.items():
+        if (set(parts) != {"chr19", "chr6"} or
+                not parts["chr19"] or not parts["chr6"]):
+            continue
+        points = parts["chr19"] + parts["chr6"]
+        if not _collinear_coding_points(points):
+            continue
+        left = {coding for _, coding in parts["chr19"]}
+        right = {coding - (DONOR_RNA_EDGE - donor["cds_start"]) + ACCEPTOR_RNA_EDGE
+                 for _, coding in parts["chr6"]}
+        left = {coding + donor["cds_start"] for coding in left}
+        spans = (min(left) <= donor["cds_start"] and max(left) >= DONOR_RNA_EDGE - 1 and
+                 min(right) <= ACCEPTOR_RNA_EDGE and max(right) >= acceptor["cds_end"] - 1)
+        if not spans:
+            continue
+        full_span += 1
+        transcript_sequence = pysam.reverse_complement(sequences[name])
+        motif_start = transcript_sequence.find(motif)
+        if (motif_start >= 0 and
+                transcript_sequence.find(motif, motif_start + 1) < 0 and
+                motif_start + 20 == max(q for q, _ in parts["chr19"]) + 1 ==
+                min(q for q, _ in parts["chr6"])):
+            exact_full += 1
+            covered.append(sum(donor["cds_start"] <= q < DONOR_RNA_EDGE for q in left) +
+                           sum(ACCEPTOR_RNA_EDGE <= q < acceptor["cds_end"] for q in right))
+    return dict(full_coding_span_reads=full_span,
+                full_coding_span_exact_junction_reads=exact_full,
+                full_coding_span_exact_junction_aligned_bases=[min(covered), max(covered)],
+                coding_path_bases=len(fusion.sequence))
+
+
+def dna_link_evidence(tumor_bam, normal_bam):
+    """Count reciprocal DNA pairs connecting the two observed intronic windows."""
+    windows = (("19", 39124000, 39125000), ("6", 46608000, 46609000))
+    evidence = {}
+    for sample, path in (("tumor", tumor_bam), ("normal", normal_bam)):
+        with pysam.AlignmentFile(str(path)) as bam:
+            by_chrom = {}
+            for chrom, start, end in windows:
+                by_chrom[chrom] = list(bam.fetch(chrom, start, end))
+        acceptors = {}
+        for record in by_chrom["6"]:
+            acceptors.setdefault(record.query_name, []).append(record)
+        linked = []
+        for donor in by_chrom["19"]:
+            if donor.next_reference_name != "6" or not donor.is_paired:
+                continue
+            for acceptor in acceptors.get(donor.query_name, ()):
+                if (acceptor.next_reference_name == "19" and acceptor.is_paired and
+                        donor.is_read1 != acceptor.is_read1 and
+                        donor.next_reference_start == acceptor.reference_start and
+                        acceptor.next_reference_start == donor.reference_start):
+                    linked.append((donor.query_name, donor.mapping_quality,
+                                   acceptor.mapping_quality))
+        names = {name for name, _, _ in linked}
+        if len(names) != len(linked):
+            raise ValueError("A DNA fragment has multiple distinct cross-gene placements")
+        evidence[sample] = dict(local_alignment_records=sum(map(len, by_chrom.values())),
+                                cross_gene_fragments=len(names),
+                                minimum_link_mapping_quality=min(
+                                    (min(left, right) for _, left, right in linked), default=None))
+    return evidence
+
+
+def report(original_bam, models_path, ont_fasta=None, mapped_tiling_bam=None,
+           ont_alignments=None, ont_models=None, dna_tumor_bam=None, dna_normal_bam=None):
+    """Generate the Isovar result and a compact evidence summary."""
+    references = load_references(models_path)
+    fusion, reads = assemble(original_bam, references, mapped_tiling_bam)
+    result = reconstruct_fusion(fusion, references, reads, min_fragments=2)
+    proteins = [translation["amino_acids"] for translation in result["paths"][0]["translations"]]
+    ont = exact_ont_junctions(ont_fasta, fusion)
+    if ont is not None and ont_alignments is not None:
+        ont.update(ont_coding_span(ont_alignments, ont_models, ont_fasta, fusion))
+    dna = (dna_link_evidence(dna_tumor_bam, dna_normal_bam)
+           if dna_tumor_bam is not None and dna_normal_bam is not None else None)
+    return dict(fusion=fusion, reads=reads, result=result, proteins=proteins, ont=ont, dna=dna)
+
+
+def main(argv=None):
+    """Write reviewable JSON, FASTA and Markdown from the pinned public reads."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--original-bam", type=Path, default=FIXTURE / "original_unmapped.bam")
+    parser.add_argument("--models", type=Path, default=FIXTURE / "models.json.gz")
+    parser.add_argument("--ont-fasta", type=Path, default=FIXTURE / "ont_candidate_sequences.fasta.gz")
+    parser.add_argument("--ont-alignments", type=Path, default=FIXTURE / "ont_candidate_alignments.bam")
+    parser.add_argument("--ont-models", type=Path, default=FIXTURE / "ont_exon_models.json")
+    parser.add_argument("--mapped-tiling-bam", type=Path, default=FIXTURE / "coding_tiling.bam")
+    parser.add_argument("--dna-tumor-bam", type=Path, default=FIXTURE / "dna_tumor_loci.bam")
+    parser.add_argument("--dna-normal-bam", type=Path, default=FIXTURE / "dna_normal_loci.bam")
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--pdf", action="store_true", help="Also render the five-panel fusion PDF")
+    args = parser.parse_args(argv)
+    value = report(args.original_bam, args.models, args.ont_fasta, args.mapped_tiling_bam,
+                   args.ont_alignments, args.ont_models,
+                   args.dna_tumor_bam, args.dna_normal_bam)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    (args.output_dir / "fusion_input.json").write_text(json.dumps(dict(
+        fusion=asdict(value["fusion"]), references=[asdict(r) for r in load_references(args.models)],
+        reads=[asdict(read) for read in value["reads"]]), indent=2) + "\n")
+    (args.output_dir / "fusion_result.json").write_text(json.dumps(value["result"], indent=2) + "\n")
+    (args.output_dir / "candidate_proteins.fasta").write_text("".join(
+        f">HCC1395_EIF3K_CYP39A1_{index} frame_status={value['result']['status']}\n{protein}\n"
+        for index, protein in enumerate(value["proteins"], 1)))
+    if args.pdf:
+        from isovar.fusion_visualization import save_fusion_figures
+
+        with tempfile.TemporaryDirectory() as scratch:
+            directory = save_fusion_figures(value["result"], scratch,
+                                            references=load_references(args.models), dpi=180)
+            shutil.copyfile(directory / "all-figures.pdf", args.output_dir / "figures.pdf")
+    support = value["result"]["paths"][0]["junctions"][0]["direct_support"]["fragments"]
+    translation, = value["result"]["paths"][0]["translations"]
+    junction_nucleotide = translation["junction_in_translated_cds"][0]
+    junction_peptides = [item["sequence"] for item in translation["candidate_peptides"]
+                         if len(item["sequence"]) == 9]
+    ont = value["ont"]
+    (args.output_dir / "report.md").write_text(
+        "# HCC1395 EIF3K–CYP39A1 coding fusion candidate\n\n"
+        f"- Original fusion-enriched Illumina records screened: "
+        f"{value['fusion'].provenance['parameters']['original_unmapped_records_screened']}\n"
+        f"- Exact junction-spanning fragments: {support}\n"
+        f"- Original mapped Illumina reads in a coding-region overlap chain: "
+        f"{value['fusion'].provenance['parameters']['mapped_tiling_records']}\n"
+        f"- Fully observed coding RNA path: {len(value['fusion'].sequence)} bases\n"
+        f"- Original ONT candidate reads with exact 20+20-base junction sequence: "
+        f"{ont['exact_junction_reads']}/{ont['screened_original_reads']}\n"
+        f"- ONT reads spanning coding start to stop in collinear local alignments: "
+        f"{ont['full_coding_span_reads']}/{ont['screened_original_reads']}\n"
+        f"- Those with an exact junction sequence: "
+        f"{ont['full_coding_span_exact_junction_reads']} "
+        f"({ont['full_coding_span_exact_junction_aligned_bases'][0]}–"
+        f"{ont['full_coding_span_exact_junction_aligned_bases'][1]} aligned coding bases each)\n"
+        f"- Tumor/normal DNA fragments linking the flanking introns: "
+        f"{value['dna']['tumor']['cross_gene_fragments']}/"
+        f"{value['dna']['normal']['cross_gene_fragments']}\n"
+        f"- Isovar frame status: {value['result']['status']}\n"
+        f"- Candidate protein lengths: {', '.join(str(len(p)) for p in value['proteins'])} amino acids\n"
+        f"- Fusion junction: coding nucleotide {junction_nucleotide}, within amino-acid codon "
+        f"{junction_nucleotide // 3 + 1}\n"
+        f"- Example junction-spanning 9-mers: {', '.join(junction_peptides[:5])}\n\n"
+        "Every base of the coding path is witnessed by an exact original read, and "
+        "the selected reads form a chain with at least 20 bases of overlap. "
+        "The exon path is reference guided; six distinct original ONT reads "
+        "also contain the exact junction sequence. For this supplied coding path, "
+        "Isovar finds one annotated frame "
+        "with an observed start and stop. Alternative RNA isoforms remain possible. "
+        "The tumor-specific cross-chromosome DNA pairs support a rearrangement "
+        "between the flanking introns, without resolving its exact breakpoint. "
+        "These data do not measure translated protein expression. "
+        "See candidate_proteins.fasta for the sequence.\n\n"
+        + ("[Five-panel fusion figure](figures.pdf) shows the junction, annotated "
+           "exon context, protein and example peptides.\n\n" if args.pdf else "") +
+        "The Illumina input is a fusion-enriched subset, so these counts are not "
+        "whole-sample prevalence estimates. The ONT candidates came from a local "
+        "two-chromosome alignment and are checked here by exact original query "
+        "sequence at the join. The [INTEGRATE public example]"
+        "(https://sourceforge.net/p/integrate-fusion/wiki/example/) supplies the "
+        "Illumina RNA and tumor/normal DNA sources; its [primary publication]"
+        "(https://pmc.ncbi.nlm.nih.gov/articles/PMC4691743/) describes the "
+        "multiple EIF3K–CYP39A1 isoforms. The independent ONT run is "
+        "[SRR23456709](https://www.ncbi.nlm.nih.gov/sra/SRR23456709).\n")
+
+
+if __name__ == "__main__":
+    main()
