@@ -5,14 +5,15 @@
 - Original mapped Illumina reads in a coding-region overlap chain: 19
 - Fully observed coding RNA path: 1596 bases
 - Original ONT candidate reads with exact 20+20-base junction sequence: 6/21
-- ONT reads spanning coding start to stop by local alignments: 9/21
+- ONT reads spanning coding start to stop in collinear local alignments: 9/21
 - Those with an exact junction sequence: 4 (1513–1539 aligned coding bases each)
+- Tumor/normal DNA fragments linking the flanking introns: 18/0
 - Isovar frame status: translated
 - Candidate protein lengths: 531 amino acids
 - Fusion junction: coding nucleotide 499, within amino-acid codon 167
 - Example junction-spanning 9-mers: AEMLGDLSA, EMLGDLSAS, MLGDLSASI, LGDLSASIP, GDLSASIPK
 
-Every base of the coding path is witnessed by an exact original read, and the selected reads form a chain with at least 20 bases of overlap. The exon path is reference guided; six distinct original ONT reads also contain the exact junction sequence. For this supplied coding path, Isovar finds one annotated frame with an observed start and stop. Alternative RNA isoforms remain possible. RNA evidence does not by itself establish DNA causation or protein expression. See candidate_proteins.fasta for the sequence.
+Every base of the coding path is witnessed by an exact original read, and the selected reads form a chain with at least 20 bases of overlap. The exon path is reference guided; six distinct original ONT reads also contain the exact junction sequence. For this supplied coding path, Isovar finds one annotated frame with an observed start and stop. Alternative RNA isoforms remain possible. The tumor-specific cross-chromosome DNA pairs support a rearrangement between the flanking introns, without resolving its exact breakpoint. These data do not measure translated protein expression. See candidate_proteins.fasta for the sequence.
 
 [Five-panel fusion figure](figures.pdf) shows the junction, annotated exon context, protein and example peptides.
 

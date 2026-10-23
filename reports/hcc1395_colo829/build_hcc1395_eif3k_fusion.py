@@ -226,6 +226,13 @@ def exact_ont_junctions(fasta_path, fusion, flank=20):
         flank_bases=flank)
 
 
+def _collinear_coding_points(points):
+    """Require one increasing coding path along a transcript-oriented read."""
+    ordered = sorted(points)
+    return all(q0 < q1 and c0 < c1
+               for (q0, c0), (q1, c1) in zip(ordered, ordered[1:]))
+
+
 def ont_coding_span(bam_path, models_path, fasta_path, fusion):
     """Count locally phased ONT reads without using MAPQ as a discovery gate."""
     if bam_path is None or models_path is None:
@@ -250,22 +257,6 @@ def ont_coding_span(bam_path, models_path, fasta_path, fusion):
             donor["cds_start"] != 172 or acceptor["cds_end"] != 1614 or
             fusion.junction_start != DONOR_RNA_EDGE - donor["cds_start"]):
         raise ValueError("The ONT exon models disagree with the supplied coding path")
-    candidates = {}
-    with pysam.AlignmentFile(str(bam_path)) as bam:
-        for record in bam.fetch(until_eof=True):
-            if record.is_unmapped or record.reference_name not in offsets:
-                continue
-            if record.is_reverse != (by_contig[record.reference_name]["strand"] == "-"):
-                continue
-            placed = offsets[record.reference_name]
-            observed = {placed[genomic] for _, genomic in record.get_aligned_pairs(matches_only=True)
-                        if genomic in placed}
-            parts = candidates.setdefault(record.query_name, {})
-            previous = parts.get(record.reference_name, set())
-            if len(observed) > len(previous):
-                parts[record.reference_name] = observed
-    motif = fusion.sequence[fusion.junction_start - 20:fusion.junction_end + 20]
-    reverse = pysam.reverse_complement(motif)
     sequences = {}
     with gzip.open(fasta_path, "rt") as handle:
         name = None
@@ -274,13 +265,58 @@ def ont_coding_span(bam_path, models_path, fasta_path, fusion):
                 name = line[1:].strip()
             else:
                 sequences[name] = line.strip()
+    candidates = {}
+    with pysam.AlignmentFile(str(bam_path)) as bam:
+        for record in bam.fetch(until_eof=True):
+            if record.is_unmapped or record.reference_name not in offsets:
+                continue
+            if record.is_reverse != (by_contig[record.reference_name]["strand"] == "-"):
+                continue
+            source_sequence = sequences.get(record.query_name)
+            if source_sequence is None or record.infer_read_length() != len(source_sequence):
+                raise ValueError("ONT alignment lacks its complete original query sequence")
+            # The pinned SRA query is in the CYP39A1 alignment orientation.
+            # Convert both genomic placements to EIF3K-to-CYP39A1 RNA order.
+            transcript_sequence = pysam.reverse_complement(source_sequence)
+            aligned_orientation = (source_sequence if record.is_reverse else
+                                   transcript_sequence)
+            hard_left = record.cigartuples[0][1] if record.cigartuples[0][0] == 5 else 0
+            hard_right = record.cigartuples[-1][1] if record.cigartuples[-1][0] == 5 else 0
+            if record.query_sequence != aligned_orientation[
+                    hard_left:len(source_sequence) - hard_right]:
+                raise ValueError("ONT alignment bases disagree with the original query")
+            placed = offsets[record.reference_name]
+            points = []
+            for query, genomic in record.get_aligned_pairs(matches_only=True):
+                if genomic not in placed:
+                    continue
+                query_position = (hard_left + query if not record.is_reverse else
+                                  len(source_sequence) - 1 - hard_left - query)
+                coding_position = (placed[genomic] - donor["cds_start"]
+                                   if record.reference_name == "chr19" else
+                                   DONOR_RNA_EDGE - donor["cds_start"] +
+                                   placed[genomic] - ACCEPTOR_RNA_EDGE)
+                points.append((query_position, coding_position))
+            parts = candidates.setdefault(record.query_name, {})
+            previous = parts.get(record.reference_name, [])
+            if len(points) > len(previous):
+                parts[record.reference_name] = points
+    motif = fusion.sequence[fusion.junction_start - 20:fusion.junction_end + 20]
+    reverse = pysam.reverse_complement(motif)
     if set(candidates) != set(sequences):
         raise ValueError("ONT alignments and original query sequences disagree")
     full_span, exact_full, covered = 0, 0, []
     for name, parts in candidates.items():
-        if set(parts) != {"chr19", "chr6"}:
+        if (set(parts) != {"chr19", "chr6"} or
+                not parts["chr19"] or not parts["chr6"]):
             continue
-        left, right = parts["chr19"], parts["chr6"]
+        points = parts["chr19"] + parts["chr6"]
+        if not _collinear_coding_points(points):
+            continue
+        left = {coding for _, coding in parts["chr19"]}
+        right = {coding - (DONOR_RNA_EDGE - donor["cds_start"]) + ACCEPTOR_RNA_EDGE
+                 for _, coding in parts["chr6"]}
+        left = {coding + donor["cds_start"] for coding in left}
         spans = (min(left) <= donor["cds_start"] and max(left) >= DONOR_RNA_EDGE - 1 and
                  min(right) <= ACCEPTOR_RNA_EDGE and max(right) >= acceptor["cds_end"] - 1)
         if not spans:
@@ -296,8 +332,41 @@ def ont_coding_span(bam_path, models_path, fasta_path, fusion):
                 coding_path_bases=len(fusion.sequence))
 
 
+def dna_link_evidence(tumor_bam, normal_bam):
+    """Count reciprocal DNA pairs connecting the two observed intronic windows."""
+    windows = (("19", 39124000, 39125000), ("6", 46608000, 46609000))
+    evidence = {}
+    for sample, path in (("tumor", tumor_bam), ("normal", normal_bam)):
+        with pysam.AlignmentFile(str(path)) as bam:
+            by_chrom = {}
+            for chrom, start, end in windows:
+                by_chrom[chrom] = list(bam.fetch(chrom, start, end))
+        acceptors = {}
+        for record in by_chrom["6"]:
+            acceptors.setdefault(record.query_name, []).append(record)
+        linked = []
+        for donor in by_chrom["19"]:
+            if donor.next_reference_name != "6" or not donor.is_paired:
+                continue
+            for acceptor in acceptors.get(donor.query_name, ()):
+                if (acceptor.next_reference_name == "19" and acceptor.is_paired and
+                        donor.is_read1 != acceptor.is_read1 and
+                        donor.next_reference_start == acceptor.reference_start and
+                        acceptor.next_reference_start == donor.reference_start):
+                    linked.append((donor.query_name, donor.mapping_quality,
+                                   acceptor.mapping_quality))
+        names = {name for name, _, _ in linked}
+        if len(names) != len(linked):
+            raise ValueError("A DNA fragment has multiple distinct cross-gene placements")
+        evidence[sample] = dict(local_alignment_records=sum(map(len, by_chrom.values())),
+                                cross_gene_fragments=len(names),
+                                minimum_link_mapping_quality=min(
+                                    (min(left, right) for _, left, right in linked), default=None))
+    return evidence
+
+
 def report(original_bam, models_path, ont_fasta=None, mapped_tiling_bam=None,
-           ont_alignments=None, ont_models=None):
+           ont_alignments=None, ont_models=None, dna_tumor_bam=None, dna_normal_bam=None):
     """Generate the Isovar result and a compact evidence summary."""
     references = load_references(models_path)
     fusion, reads = assemble(original_bam, references, mapped_tiling_bam)
@@ -306,7 +375,9 @@ def report(original_bam, models_path, ont_fasta=None, mapped_tiling_bam=None,
     ont = exact_ont_junctions(ont_fasta, fusion)
     if ont is not None and ont_alignments is not None:
         ont.update(ont_coding_span(ont_alignments, ont_models, ont_fasta, fusion))
-    return dict(fusion=fusion, reads=reads, result=result, proteins=proteins, ont=ont)
+    dna = (dna_link_evidence(dna_tumor_bam, dna_normal_bam)
+           if dna_tumor_bam is not None and dna_normal_bam is not None else None)
+    return dict(fusion=fusion, reads=reads, result=result, proteins=proteins, ont=ont, dna=dna)
 
 
 def main(argv=None):
@@ -318,11 +389,14 @@ def main(argv=None):
     parser.add_argument("--ont-alignments", type=Path, default=FIXTURE / "ont_candidate_alignments.bam")
     parser.add_argument("--ont-models", type=Path, default=FIXTURE / "ont_exon_models.json")
     parser.add_argument("--mapped-tiling-bam", type=Path, default=FIXTURE / "coding_tiling.bam")
+    parser.add_argument("--dna-tumor-bam", type=Path, default=FIXTURE / "dna_tumor_loci.bam")
+    parser.add_argument("--dna-normal-bam", type=Path, default=FIXTURE / "dna_normal_loci.bam")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--pdf", action="store_true", help="Also render the five-panel fusion PDF")
     args = parser.parse_args(argv)
     value = report(args.original_bam, args.models, args.ont_fasta, args.mapped_tiling_bam,
-                   args.ont_alignments, args.ont_models)
+                   args.ont_alignments, args.ont_models,
+                   args.dna_tumor_bam, args.dna_normal_bam)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     (args.output_dir / "fusion_input.json").write_text(json.dumps(dict(
         fusion=asdict(value["fusion"]), references=[asdict(r) for r in load_references(args.models)],
@@ -354,12 +428,15 @@ def main(argv=None):
         f"- Fully observed coding RNA path: {len(value['fusion'].sequence)} bases\n"
         f"- Original ONT candidate reads with exact 20+20-base junction sequence: "
         f"{ont['exact_junction_reads']}/{ont['screened_original_reads']}\n"
-        f"- ONT reads spanning coding start to stop by local alignments: "
+        f"- ONT reads spanning coding start to stop in collinear local alignments: "
         f"{ont['full_coding_span_reads']}/{ont['screened_original_reads']}\n"
         f"- Those with an exact junction sequence: "
         f"{ont['full_coding_span_exact_junction_reads']} "
         f"({ont['full_coding_span_exact_junction_aligned_bases'][0]}–"
         f"{ont['full_coding_span_exact_junction_aligned_bases'][1]} aligned coding bases each)\n"
+        f"- Tumor/normal DNA fragments linking the flanking introns: "
+        f"{value['dna']['tumor']['cross_gene_fragments']}/"
+        f"{value['dna']['normal']['cross_gene_fragments']}\n"
         f"- Isovar frame status: {value['result']['status']}\n"
         f"- Candidate protein lengths: {', '.join(str(len(p)) for p in value['proteins'])} amino acids\n"
         f"- Fusion junction: coding nucleotide {junction_nucleotide}, within amino-acid codon "
@@ -371,8 +448,10 @@ def main(argv=None):
         "also contain the exact junction sequence. For this supplied coding path, "
         "Isovar finds one annotated frame "
         "with an observed start and stop. Alternative RNA isoforms remain possible. "
-        "RNA evidence does not by itself establish DNA causation or protein "
-        "expression. See candidate_proteins.fasta for the sequence.\n\n"
+        "The tumor-specific cross-chromosome DNA pairs support a rearrangement "
+        "between the flanking introns, without resolving its exact breakpoint. "
+        "These data do not measure translated protein expression. "
+        "See candidate_proteins.fasta for the sequence.\n\n"
         + ("[Five-panel fusion figure](figures.pdf) shows the junction, annotated "
            "exon context, protein and example peptides.\n\n" if args.pdf else "") +
         "The Illumina input is a fusion-enriched subset, so these counts are not "

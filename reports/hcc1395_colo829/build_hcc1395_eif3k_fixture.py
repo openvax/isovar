@@ -147,6 +147,19 @@ def remap_unmapped(source_dir, output):
         subprocess.run(["samtools", "index", str(output)], check=True)
 
 
+def select_dna_loci(source_dir, output_dir):
+    """Pin every original tumor and normal DNA alignment near both intronic breaks."""
+    for sample in ("tumor", "normal"):
+        output = output_dir / f"dna_{sample}_loci.bam"
+        with pysam.AlignmentFile(str(source_dir / f"dna.{sample}.bam")) as source:
+            with pysam.AlignmentFile(str(output), "wb", header=source.header) as subset:
+                for chrom, start, end in (("6", 46608000, 46609000),
+                                          ("19", 39124000, 39125000)):
+                    for record in source.fetch(chrom, start, end):
+                        subset.write(record)
+        pysam.index(str(output))
+
+
 def select_ont_candidates(bam_path, output_fasta, output_bam):
     """Pin SRA query bases and locally re-aligned candidate placements."""
     names = {}
@@ -210,6 +223,7 @@ def main(argv=None):
     shutil.copyfile(args.source_dir / "unmapped.bam", args.output_dir / "original_unmapped.bam")
     count = select_coding_tiling(args.source_dir, args.output_dir / "coding_tiling.bam", models)
     remap_unmapped(args.source_dir, args.output_dir / "remapped_grch37_lite.bam")
+    select_dna_loci(args.source_dir, args.output_dir)
     print("Selected %d original mapped reads for the coding tile" % count)
     if args.ont_bam is not None:
         print("Selected %d original ONT queries" % select_ont_candidates(

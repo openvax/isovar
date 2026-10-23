@@ -15,6 +15,16 @@ RNA or DNA library.
 - `coding_tiling.bam` contains 19 original aligned Illumina records selected
   from the archive's `accepted_hits.bam`. Together with split reads they tile
   the complete coding sequence by exact sequence overlaps of at least 20 nt.
+- `dna_tumor_loci.bam` and `dna_normal_loci.bam` preserve every original
+  alignment overlapping the two flanking intronic windows, GRCh37 chr19
+  `[39124000,39125000)` and chr6 `[46608000,46609000)`. The tumor file has
+  18 distinct reciprocal cross-chromosome pairs, versus zero in the matched
+  normal file. Both ends of all 18 have MAPQ 37. The BAM SHA-256 values are
+  `0a51631da94477375e08eb2a84b47caf8266b81d5e79b47a02e3a975896a8ad0`
+  (tumor) and
+  `b4600c1c0e337fbadf3ce28c3a5b70a336d3d476c3bc1b1e008f6e2caf6dad94`
+  (normal). These pairs support a tumor rearrangement between the genes;
+  they do not resolve a base-level DNA breakpoint.
 - `remapped_grch37_lite.bam` and its index contain the 185 original Illumina
   query sequences realigned to the archive's tailored GRCh37-lite reference
   with minimap2 2.26 (`-ax sr -k11 -w5 -Y`); original query names are preserved.
@@ -30,8 +40,8 @@ RNA or DNA library.
   (SHA-256 `40868ae8dcd296388d7aa171a139882dfc18e548c08025509b013d841753d3d2`)
   with Ensembl 87 exon coordinates in `ont_exon_models.json` (SHA-256
   `7921f3400fe1f38be1303b2e8b17d2408ce7b71ff0b1a995a8d4bae149d6a4df`).
-  Nine original ONT read names span the canonical coding start and stop by
-  those local alignments; four also have the exact junction sequence and
+  Nine original ONT read names span the canonical coding start and stop in
+  collinear query and coding order; four also have the exact junction sequence and
   align to 1,513–1,539 of 1,596 coding coordinates each. The candidate
   coding sequence comes from exact Illumina overlaps; ONT mismatches do not
   change its bases. These local placements are a candidate

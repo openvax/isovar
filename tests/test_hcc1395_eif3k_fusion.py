@@ -1,7 +1,7 @@
 """Independent original-read replays of the HCC1395 fusion protein candidate."""
 
-from pathlib import Path
 from hashlib import sha256
+from pathlib import Path
 
 import pysam
 import pytest
@@ -9,11 +9,19 @@ import pytest
 from isovar.fusion import FusionBreakpoint
 from isovar.read_collector import ReadCollector
 from isovar.sv_rna import reconstruct_sv_rna
-from reports.hcc1395_colo829.build_hcc1395_eif3k_fusion import load_references, report
+from reports.hcc1395_colo829.build_hcc1395_eif3k_fusion import (
+    _collinear_coding_points, load_references, report,
+)
 
 
 DATA = Path(__file__).parent / "data/hcc1395_eif3k_cyp39a1"
 PROTEIN = "FICHVVGITYQHIDRWLLAEMLGDLSASIPKNVFLALHEKLYIMLKGKMGTVNLH"
+
+
+def test_long_read_phase_requires_query_and_coding_order():
+    assert _collinear_coding_points([(0, 0), (2, 1), (4, 3)])
+    assert not _collinear_coding_points([(0, 0), (2, 3), (4, 1)])
+    assert not _collinear_coding_points([(0, 0), (0, 1)])
 
 
 def test_original_illumina_reads_assemble_an_observed_partial_fusion_protein():
@@ -34,7 +42,8 @@ def test_original_illumina_reads_assemble_an_observed_partial_fusion_protein():
 def test_coding_tiling_yields_a_complete_candidate_protein():
     value = report(DATA / "original_unmapped.bam", DATA / "models.json.gz",
                    DATA / "ont_candidate_sequences.fasta.gz", DATA / "coding_tiling.bam",
-                   DATA / "ont_candidate_alignments.bam", DATA / "ont_exon_models.json")
+                   DATA / "ont_candidate_alignments.bam", DATA / "ont_exon_models.json",
+                   DATA / "dna_tumor_loci.bam", DATA / "dna_normal_loci.bam")
     fusion, result = value["fusion"], value["result"]
     assert fusion.sequence[:3] == "ATG" and fusion.sequence[-3:] == "TGA"
     assert len(fusion.sequence) == 1596
@@ -53,6 +62,11 @@ def test_coding_tiling_yields_a_complete_candidate_protein():
         full_coding_span_reads=9, full_coding_span_exact_junction_reads=4,
         full_coding_span_exact_junction_aligned_bases=[1513, 1539],
         coding_path_bases=1596)
+    assert value["dna"] == dict(
+        tumor=dict(local_alignment_records=1366, cross_gene_fragments=18,
+                   minimum_link_mapping_quality=37),
+        normal=dict(local_alignment_records=574, cross_gene_fragments=0,
+                    minimum_link_mapping_quality=None))
 
 
 def test_coding_replay_refuses_to_fill_a_missing_read_interval(tmp_path):
