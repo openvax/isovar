@@ -17,9 +17,12 @@ selected small-variant source record and screen their SV sources.
   small-variant records.
 - [Selected original-read SV junction audit](sv_junction_audit.tsv): oriented
   replay of three HCC1395 and three COLO829 candidate events, separating
-  500-base screen links, direct MAPQ 1/20 junction fragments, and exact
-  whole-path read support. It makes no SV protein call without reference
-  transcript models.
+  500-base screen links, direct junction fragments across all MAPQs, a MAPQ 20
+  sensitivity subset, and bounded RNA assembly context. Low-MAPQ
+  supplementary pieces remain visible. It makes no SV protein call without
+  reference transcript models. The [audit specification](SV_JUNCTION_AUDIT_SPEC.md)
+  sketches the exon-anchor-first method needed for less reference-like RNA,
+  tracked in [Isovar #555](https://github.com/openvax/isovar/issues/555).
 - [COLO829 whole-run atlas](COLO829_ATLAS.md): every SMaHT small variant has
   original-RNA coverage and allele status, ranked local protein contexts are
   listed separately, and every SV benchmark record has a breakpoint evidence

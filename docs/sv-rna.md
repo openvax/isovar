@@ -58,6 +58,34 @@ Unknown keys are rejected, so a misspelled field fails immediately. From Python,
 All the usual RNA read options apply, such as `--min-mapping-quality`,
 `--use-soft-clipped-bases` and `--read-end-profile`.
 
+For SV discovery, a low MAPQ on a supplementary alignment may describe an
+ambiguous placement of a real clipped sequence against the unrearranged
+reference. To keep these candidates, use `--min-mapping-quality 0` and
+`--use-soft-clipped-bases`, then inspect original read sequence, junction
+agreement, alternative placements and normal splice explanations. MAPQ is
+alignment-placement provenance, not a direct measure of whether the RNA bases
+were sequenced. This is specific to exploratory SV reconstruction: SNVs and
+other small, reference-like alleles still benefit from mapping-quality and
+base-quality filters. As the candidate RNA departs farther from the reference
+through a large rearrangement, cryptic exon or altered splice, MAPQ on its
+clipped partner becomes less informative than an exon anchor, repeated
+junction sequence, read overlaps and competing placements. Low MAPQ by itself
+does not establish an SV-specific path. The
+[SAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf)
+defines clipping and supplementary records; their actual records, rather than
+SA tags alone, are needed to reconstruct a query.
+
+The current assembler starts from an observed placed junction or a clip at a
+nominated DNA breakend and extends through reads sharing genomic placements.
+It can transfer a reading frame from an exact reference CDS anchor into a
+partial observed path when transcript models are supplied. It does not yet
+start from an arbitrary exon-aligned anchor and assemble a wholly unplaced
+tail by sequence-only overlap into a second anchor. DNA breakpoints in excised
+introns and cryptic exons can therefore be missed. A broader method must
+also compare ordinary splicing and unrearranged transcripts, as in
+[MINTIE](https://link.springer.com/article/10.1186/s13059-021-02507-8) and
+[FusionInspector](https://pmc.ncbi.nlm.nih.gov/articles/PMC10261907/).
+
 ## Reading the result
 
 Start at the top-level **`status`**:
@@ -112,7 +140,10 @@ Check each on its own:
    molecule. `linked_interval` marks the bases seen in the same reads as the junction.
 4. **Is the protein justified?** `frame_status` below. For an exploratory ORF,
    `full_interval_support` counts reads that contain the *entire* ORF and a crossed
-   junction; zero means the ORF is only assembled sequence.
+   junction. This is an optional long-range phase measure, **not a requirement**
+   for a partial ORF inferred from a reference frame anchor and overlapping
+   original RNA reads. Inspect direct junction, local branch and frame evidence
+   separately; zero full-interval reads does not invalidate an assembly.
 5. **Was anything cut short?** Any reason in `end_reasons` other than
    `observations_end` means that end was truncated. Also check the top-level
    `limitations` (for example `record_limit`, `path_limit`).
@@ -523,7 +554,9 @@ segments to count support for the fixed candidate paths:
 - `paths[].full_interval_support` requires one exact, placement-compatible
   observation spanning the **entire path and its junction**. The exploratory
   ORFs' `full_interval_support` uses the same rule for each ORF interval.
-  Partial context reads do not become complete witnesses.
+  Partial context reads do not become complete witnesses. This strict count
+  describes single-read phase, not whether the path or partial ORF can be
+  assembled and supported by overlapping reads.
 - Original SAM records, query intervals, missing QUAL, cell/UMI evidence and
   producer-aware signal ancestry remain available. Visible conflicting mate
   labels remain unresolved, including mates outside the discovery regions.

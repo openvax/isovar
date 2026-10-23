@@ -100,10 +100,18 @@ six opposite-mate pair names, but zero observed split-alignment candidates.
 Those pairs do not establish its deletion junction or mutant protein.
 
 The [selected junction audit](sv_junction_audit.tsv) finds three additional
-SV3 split-junction fragments only when Isovar accepts alignments down to
-MAPQ 1. Their linking pieces have MAPQ 1-6, so none survives MAPQ 20.
+SV3 split-junction fragments when Isovar retains all mapping qualities.
+The three fragments share a 19-base unplaced junction sequence; linked
+alignment pieces have MAPQ 1, 3, 6 and 52, so the MAPQ 20 sensitivity subset
+loses every direct join. This is placement uncertainty, not a reason to erase
+their sequenced RNA junction. Bounded assembly extends the junction through
+overlapping original reads to a 1,213-base candidate context and reaches an
+extension limit. No single read is required to span that context; local
+branch support, competing ordinary-splice explanations and its SV-derived
+frame remain unresolved. SV3 itself does not meet the report's Ensembl-87
+exon-involved rule.
 SV42 and SV49, the two exon-involved v2 deletions with mate candidates,
-have no junction-spanning read at either threshold in this selected-site BAM.
+have no directly observed junction in this selected-site BAM.
 The corresponding earlier truth-set records reuse the same mate names.
 The original paired RNA was aligned in genomic short-read mode; its inability
 to resolve a junction here is not proof that the RNA isoform is absent.

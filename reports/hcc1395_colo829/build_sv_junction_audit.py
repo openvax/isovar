@@ -1,8 +1,9 @@
-"""Replay selected original-read SV candidates with Isovar junction validation.
+"""Replay selected original-read SV candidates without a MAPQ discovery gate.
 
-The 500-bp screen is a triage step. This audit separates an observed,
-orientation-compatible RNA join from mate context and from an entire RNA path
-seen in one original read. It does not infer a coding frame without models.
+The 500-bp screen is a triage step. Low MAPQ on a split alignment is placement
+uncertainty, not absence of its sequenced junction. This audit separates a
+sequence-supported RNA join, a MAPQ sensitivity subset, mate context, and
+regional path assembly. It does not infer a coding frame without models.
 """
 
 import argparse
@@ -40,15 +41,15 @@ EVENTS = (
 )
 FIELDS = (
     "sample", "call_id", "class", "rna_bam", "screen_split_candidates",
-    "screen_mate_candidates", "mapq1_junction_fragments",
-    "mapq20_junction_fragments", "mapq20_junction_read_ids",
-    "mapq20_left", "mapq20_right", "mapq20_unplaced_bases",
-    "mapq20_event_paths_retained", "mapq20_max_full_path_fragments",
-    "mapq20_limitations", "frame_status",
+    "screen_mate_candidates", "junction_fragments_all_mapq",
+    "junction_fragments_mapq20_subset", "junction_read_ids_all_mapq",
+    "junction_piece_mapqs_all_mapq", "junction_left", "junction_right",
+    "junction_unplaced_bases", "assembled_event_paths_retained",
+    "max_assembled_context_bases", "assembly_limitations", "frame_status",
 )
 
 
-def _reconstruct(bam, event, min_mapping_quality, dense_support):
+def _reconstruct(bam, event, min_mapping_quality):
     sample, call_id, _, donor, acceptor, _, _ = event
     with pysam.AlignmentFile(str(bam), "rb") as alignment:
         return reconstruct_sv_rna(
@@ -56,10 +57,11 @@ def _reconstruct(bam, event, min_mapping_quality, dense_support):
             sample_id=sample, source=str(bam),
             donor=FusionBreakpoint(*donor), acceptor=FusionBreakpoint(*acceptor),
             regions=[], references=[], event_provenance={"dna_call_id": call_id},
-            read_collector=ReadCollector(min_mapping_quality=min_mapping_quality),
+            read_collector=ReadCollector(
+                min_mapping_quality=min_mapping_quality, use_soft_clipped_bases=True),
             max_records=5000, max_paths=10, max_queries=100,
-            assemble=False, include_regional_candidates=False,
-            dense_support=dense_support)
+            assemble=True, include_regional_candidates=False,
+            dense_support=True)
 
 
 def _breakpoint_paths(result):
@@ -68,32 +70,38 @@ def _breakpoint_paths(result):
 
 
 def audit_event(event, bam):
-    """Return one record; strict counts use all eligible original BAM records."""
+    """Return distinct-fragment junction counts and bounded assembly context."""
     sample, call_id, cls, _, _, split, mates = event
-    permissive = _reconstruct(bam, event, 1, False)
-    strict = _reconstruct(bam, event, 20, True)
-    loose_joins, joins = _breakpoint_paths(permissive), _breakpoint_paths(strict)
+    full = _reconstruct(bam, event, 0)
+    subset = _reconstruct(bam, event, 20)
+    joins = _breakpoint_paths(full)
+    high_mapq_joins = _breakpoint_paths(subset)
     # The same junction can occur on several paths. Never add their support.
     best = max((junction for _, junction in joins),
                key=lambda j: (j["direct_support"]["fragments"], repr(j["left"]), repr(j["right"])),
                default=None)
-    observations = strict["observations"]
+    observations = full["observations"]
     witnesses = (sorted({observations[key]["identity"][1]
                          for key in best["direct_observations"]}) if best else [])
+    record_ids = (set().union(*(set(observations[key]["records"])
+                                for key in best["direct_observations"])) if best else set())
+    piece_mapqs = sorted({full["record_evidence"][record_id]["mapping_quality_raw"]
+                          for record_id in record_ids})
     event_paths = {path["path_id"]: path for path, _ in joins}
     return dict(
         sample=sample, call_id=call_id, **{"class": cls}, rna_bam=Path(bam).name,
         screen_split_candidates=split, screen_mate_candidates=mates,
-        mapq1_junction_fragments=max((j["direct_support"]["fragments"] for _, j in loose_joins), default=0),
-        mapq20_junction_fragments=best["direct_support"]["fragments"] if best else 0,
-        mapq20_junction_read_ids=";".join(witnesses),
-        mapq20_left=":".join(map(str, best["left"])) if best else "",
-        mapq20_right=":".join(map(str, best["right"])) if best else "",
-        mapq20_unplaced_bases=best["unplaced_bases"] if best else "",
-        mapq20_event_paths_retained=len(event_paths),
-        mapq20_max_full_path_fragments=max(
-            (path["full_interval_support"]["fragments"] for path in event_paths.values()), default=0),
-        mapq20_limitations=";".join(strict["limitations"]),
+        junction_fragments_all_mapq=best["direct_support"]["fragments"] if best else 0,
+        junction_fragments_mapq20_subset=max(
+            (j["direct_support"]["fragments"] for _, j in high_mapq_joins), default=0),
+        junction_read_ids_all_mapq=";".join(witnesses),
+        junction_piece_mapqs_all_mapq=";".join(map(str, piece_mapqs)),
+        junction_left=":".join(map(str, best["left"])) if best else "",
+        junction_right=":".join(map(str, best["right"])) if best else "",
+        junction_unplaced_bases=best["unplaced_bases"] if best else "",
+        assembled_event_paths_retained=len(event_paths),
+        max_assembled_context_bases=max((len(path["sequence"]) for path in event_paths.values()), default=0),
+        assembly_limitations=";".join(full["limitations"]),
         frame_status="reference_models_unavailable",
     )
 
