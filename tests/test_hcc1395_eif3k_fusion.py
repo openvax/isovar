@@ -33,7 +33,8 @@ def test_original_illumina_reads_assemble_an_observed_partial_fusion_protein():
 
 def test_coding_tiling_yields_a_complete_candidate_protein():
     value = report(DATA / "original_unmapped.bam", DATA / "models.json.gz",
-                   DATA / "ont_candidate_sequences.fasta.gz", DATA / "coding_tiling.bam")
+                   DATA / "ont_candidate_sequences.fasta.gz", DATA / "coding_tiling.bam",
+                   DATA / "ont_candidate_alignments.bam", DATA / "ont_exon_models.json")
     fusion, result = value["fusion"], value["result"]
     assert fusion.sequence[:3] == "ATG" and fusion.sequence[-3:] == "TGA"
     assert len(fusion.sequence) == 1596
@@ -47,6 +48,11 @@ def test_coding_tiling_yields_a_complete_candidate_protein():
     assert sha256(translation["amino_acids"].encode()).hexdigest() == (
         "6d2fbb1872c08a507f56a977fb97328471b90a0f077211892d0a5d5ef3053573")
     assert PROTEIN in translation["amino_acids"]
+    assert value["ont"] == dict(
+        screened_original_reads=21, exact_junction_reads=6, flank_bases=20,
+        full_coding_span_reads=9, full_coding_span_exact_junction_reads=4,
+        full_coding_span_exact_junction_aligned_bases=[1513, 1539],
+        coding_path_bases=1596)
 
 
 def test_coding_replay_refuses_to_fill_a_missing_read_interval(tmp_path):

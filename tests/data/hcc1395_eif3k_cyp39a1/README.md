@@ -25,8 +25,17 @@ RNA or DNA library.
 - `ont_candidate_sequences.fasta.gz` contains 21 original query sequences
   from HCC1395 ONT direct RNA [SRR23456709](https://www.ncbi.nlm.nih.gov/sra/SRR23456709).
   They were selected because local GRCh38 minimap2 placements touch both
-  genes. Six contain the exact 20+20-base fusion junction sequence. These
-  local placements are a candidate screen, not a whole-genome uniqueness test
+  genes. Six contain the exact 20+20-base fusion junction sequence. The 42
+  corresponding local records are pinned in `ont_candidate_alignments.bam`
+  (SHA-256 `40868ae8dcd296388d7aa171a139882dfc18e548c08025509b013d841753d3d2`)
+  with Ensembl 87 exon coordinates in `ont_exon_models.json` (SHA-256
+  `7921f3400fe1f38be1303b2e8b17d2408ce7b71ff0b1a995a8d4bae149d6a4df`).
+  Nine original ONT read names span the canonical coding start and stop by
+  those local alignments; four also have the exact junction sequence and
+  align to 1,513–1,539 of 1,596 coding coordinates each. The candidate
+  coding sequence comes from exact Illumina overlaps; ONT mismatches do not
+  change its bases. These local placements are a candidate
+  screen, not a whole-genome uniqueness test
   (SHA-256 `876639fe516064afb3ef4ad135f0851de4a13849bdc6cdeb2fcde72244e65bf3`).
 
 To regenerate the Illumina files from an extracted archive, use

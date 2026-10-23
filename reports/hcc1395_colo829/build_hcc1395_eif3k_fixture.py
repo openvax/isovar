@@ -147,8 +147,8 @@ def remap_unmapped(source_dir, output):
         subprocess.run(["samtools", "index", str(output)], check=True)
 
 
-def select_ont_candidates(bam_path, output):
-    """Pin original SRA query sequences with local EIF3K and CYP39A1 placements."""
+def select_ont_candidates(bam_path, output_fasta, output_bam):
+    """Pin SRA query bases and locally re-aligned candidate placements."""
     names = {}
     with pysam.AlignmentFile(str(bam_path)) as bam:
         for chrom, start, end in (("chr19", 38617000, 38639000),
@@ -162,10 +162,33 @@ def select_ont_candidates(bam_path, output):
                     parts[chrom] = record.query_sequence or ""
     rows = [">%s\n%s\n" % (name, max(parts.values(), key=len))
             for name, parts in sorted(names.items()) if len(parts) == 2]
-    with output.open("wb") as raw, gzip.GzipFile(filename="", fileobj=raw,
-                                                   mode="wb", mtime=0) as compressed:
+    with output_fasta.open("wb") as raw, gzip.GzipFile(filename="", fileobj=raw,
+                                                        mode="wb", mtime=0) as compressed:
         compressed.write("".join(rows).encode())
+    selected = {name for name, parts in names.items() if len(parts) == 2}
+    with pysam.AlignmentFile(str(bam_path)) as source:
+        with pysam.AlignmentFile(str(output_bam), "wb", header=source.header) as subset:
+            for record in source.fetch(until_eof=True):
+                if record.query_name in selected:
+                    subset.write(record)
+    pysam.index(str(output_bam))
     return len(rows)
+
+
+def write_ont_exon_models(output):
+    """Pin the sequence-identical canonical transcripts in GRCh38 coordinates."""
+    release = EnsemblRelease(87)
+    models = []
+    for transcript_id in (DONOR_ID, ACCEPTOR_ID):
+        transcript = release.transcript_by_id(transcript_id)
+        models.append(dict(
+            transcript_id=transcript_id, reference_name="GRCh38", annotation="Ensembl 87",
+            contig="chr" + transcript.contig, strand=transcript.strand,
+            exons=sorted((exon.start - 1, exon.end) for exon in transcript.exons),
+            cds_start=transcript.first_start_codon_spliced_offset,
+            cds_end=transcript.last_stop_codon_spliced_offset + 1))
+    output.write_text(json.dumps(dict(schema="isovar.hcc1395_ont_exon_models.v1",
+                                      models=models), indent=2) + "\n")
 
 
 def main(argv=None):
@@ -190,7 +213,9 @@ def main(argv=None):
     print("Selected %d original mapped reads for the coding tile" % count)
     if args.ont_bam is not None:
         print("Selected %d original ONT queries" % select_ont_candidates(
-            args.ont_bam, args.output_dir / "ont_candidate_sequences.fasta.gz"))
+            args.ont_bam, args.output_dir / "ont_candidate_sequences.fasta.gz",
+            args.output_dir / "ont_candidate_alignments.bam"))
+        write_ont_exon_models(args.output_dir / "ont_exon_models.json")
 
 
 if __name__ == "__main__":
