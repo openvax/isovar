@@ -75,16 +75,34 @@ does not establish an SV-specific path. The
 defines clipping and supplementary records; their actual records, rather than
 SA tags alone, are needed to reconstruct a query.
 
-The current assembler starts from an observed placed junction or a clip at a
-nominated DNA breakend and extends through reads sharing genomic placements.
-It can transfer a reading frame from an exact reference CDS anchor into a
-partial observed path when transcript models are supplied. It does not yet
-start from an arbitrary exon-aligned anchor and assemble a wholly unplaced
-tail by sequence-only overlap into a second anchor. DNA breakpoints in excised
-introns and cryptic exons can therefore be missed. A broader method must
-also compare ordinary splicing and unrearranged transcripts, as in
+The optional `--exon-anchored-clips` mode also starts from a terminal soft clip
+beside a supplied reference exon. Use it with `--use-soft-clipped-bases`; for
+exploratory SV searches, `--min-mapping-quality 0` retains uncertain partner
+placements. It joins read clouds through an exact 12-base clipped seed only
+when the whole shared sequence meets `--min-overlap` (20 bases by default),
+then checks every base and any jointly placed coordinate. A single clipped
+sequence can have more than one placement; unresolved alternatives remain
+separate paths or unplaced bases. A consensus coordinate is assigned only when
+the recruited reads agree, so an ordinary annotated splice can compete with
+the proposed SV path.
+
+The bridge is an assembly hypothesis. In particular, a reconstructed join can
+have zero `direct_support` even when reads on either side overlap in sequence.
+`voting_support` counts reads that helped assemble the path, not independent
+long-range phase or a directly sequenced junction. Transfer of a coding frame
+still needs an exact reference CDS anchor, and protein expression is not
+measured. Read-through and unrearranged transcripts require comparison, as in
 [MINTIE](https://link.springer.com/article/10.1186/s13059-021-02507-8) and
 [FusionInspector](https://pmc.ncbi.nlm.nih.gov/articles/PMC10261907/).
+
+The [HCC1395 EIF3K–CYP39A1 example](../reports/hcc1395_colo829/eif3k_cyp39a1/report.md)
+replays original Illumina and ONT RNA reads around a published fusion. The
+source-derived `sv-rna` test recovers a local junction-spanning partial protein;
+the sequence-resolved `isovar fusion` replay uses an exact original-read overlap
+chain to produce a 531-amino-acid coding candidate. Its full coding path is
+supported base by base, while protein expression remains unmeasured. The
+[small pinned fixture](../tests/data/hcc1395_eif3k_cyp39a1/README.md) runs
+without live annotation or data downloads.
 
 ## Reading the result
 

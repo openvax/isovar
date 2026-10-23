@@ -54,6 +54,7 @@ _MIN_INTRON = 21  # Shorter CIGAR N gaps are deletions (STAR's alignIntronMin de
 _LOCAL = 20  # Placements this close are local (base/indel) alternatives, not splice choices.
 _HOP_WINDOW = 1000  # Nearby SA/mate targets share one indexed query.
 _MAX_SEGMENT_PATHS = 64  # Alternative supplementary groupings per segment.
+_SEQUENCE_BRIDGE_BASES = 12  # Exact clipped seed, followed by the usual full overlap check.
 
 
 
@@ -634,6 +635,34 @@ def _possible_breakpoint_clip(read, breakpoints):
         for contig, position in breakpoints for edge in (blocks[0][0], blocks[-1][1]))
 
 
+def _possible_exon_clip(read, exonic, minimum):
+    """Screen a terminal clip beside an exon before constructing read geometry."""
+    if not read.cigartuples or not read.get_blocks():
+        return False
+    blocks = read.get_blocks()
+    # A terminal soft clip can sit inside a terminal hard clip in valid SAM.
+    operations = [item for item in read.cigartuples if item[0] != 5]
+    edges = ((operations[0], blocks[0][0]),
+             (operations[-1], blocks[-1][1] - 1))
+    return any(operation == 4 and length >= minimum and any(
+        exonic((read.reference_name, base, strand)) for strand in ('+', '-'))
+        for (operation, length), base in edges)
+
+
+def _exon_clip_cores(observation, exonic, minimum):
+    """Observed exon anchor and terminal unplaced query, in RNA orientation."""
+    placed = [q for q, position in enumerate(observation.positions) if position is not None]
+    if not placed:
+        return ()
+    first, last = placed[0], placed[-1]
+    cores = []
+    if first >= minimum and exonic(observation.positions[first]):
+        cores.append((0, first, 'exon_anchored_clip_partner_unplaced', 'clip'))
+    if len(observation.sequence) - last - 1 >= minimum and exonic(observation.positions[last]):
+        cores.append((last, len(observation.sequence) - 1, 'exon_anchored_clip_partner_unplaced', 'clip'))
+    return cores
+
+
 def _offsets(query_runs, lo, key, runs):
     """(key, path offset of the observation start) for each shared placed base run."""
     found = set()
@@ -663,6 +692,7 @@ class _Observations:
 
     def __init__(self, records, collector, cap, header, sample_id, source, *, geometry_cache=None, prebuilt=None):
         self.collector, self.cap, self.limited = collector, cap, False
+        self.sequence_overlaps = False
         self.groups, self.excluded, self.reasons = defaultdict(list), Counter(), Counter()
         self.extent, self.bins, self.gaps = defaultdict(dict), defaultdict(list), defaultdict(dict)
         self.gap_kinds = defaultdict(set)
@@ -738,7 +768,7 @@ class _Observations:
             self.placement_first_rank[group] = rank
         self.bins.clear()
 
-    def classify(self, event, annotated, anchored):
+    def classify(self, event, annotated, anchored, exonic=None):
         """Sort segments by their CIGAR joins, without building single records.
 
         Returns segments to build now (multi-record paths, joins at or across
@@ -776,6 +806,9 @@ class _Observations:
                     lazy["regional_novel_junction"][_canonical(left, right)].add(identity)
             # SAM permits soft clips inside terminal hard clips.
             if self.collector.use_soft_clipped_bases and _possible_breakpoint_clip(read, breakpoints):
+                now.add(identity)
+            if (exonic is not None and self.collector.use_soft_clipped_bases
+                    and _possible_exon_clip(read, exonic, _SEQUENCE_BRIDGE_BASES)):
                 now.add(identity)
         return now, lazy, competing
 
@@ -890,6 +923,41 @@ class _ObservationIndex:
         return [(o, lo + offset, members) for o, offset, members in self.windows[window]]
 
 
+def _sequence_overlapping(index, sequence, positions, need):
+    """Find bounded exact overlaps through an unplaced terminal RNA sequence.
+
+    A 12-base clipped suffix is only a lookup seed. The complete shared span
+    must meet ``need`` and agree base by base, including every jointly placed
+    coordinate. A sequence-only bridge does not assign its clipped bases to a
+    genomic locus or establish the nominated DNA event's cause.
+    """
+    n = len(sequence)
+    if n < _SEQUENCE_BRIDGE_BASES or any(p is not None for p in positions[-_SEQUENCE_BRIDGE_BASES:]):
+        return []
+    motif = sequence[-_SEQUENCE_BRIDGE_BASES:]
+    if isinstance(index, _Observations):
+        for identity in index.groups:
+            index.build(identity)
+    matches = []
+    for o in index.observations.values():
+        start = o.sequence.find(motif)
+        while start >= 0:
+            offset = n - _SEQUENCE_BRIDGE_BASES - start
+            if (offset <= n - need and offset + len(o.sequence) > n
+                    and _agrees(sequence, positions, o, offset, max(0, offset), n)):
+                matches.append((o, offset))
+            start = o.sequence.find(motif, start + 1)
+    groups = _group_extenders(matches)
+    cap = index.cap if isinstance(index, _Observations) else len(index.observations)
+    if len(groups) > cap:
+        if isinstance(index, _Observations):
+            index.limited = True
+        groups.sort(key=lambda g: (-(n - max(0, g[1])), -len(g[2]),
+                                   -(g[1] + len(g[0].sequence) - n), g[0].key))
+        groups = groups[:cap]
+    return groups
+
+
 def _agrees(sequence, positions, observation, offset, lo, hi):
     """Identical bases and no conflicting placement over path[lo:hi]."""
     a, b = lo - offset, hi - offset
@@ -956,7 +1024,10 @@ def _gather_extenders(sequence, positions, index, need, used, carried):
     n = len(sequence)
     found = {(o.comparison_key, offset): (o, offset, members) for o, offset, members in carried
              if offset <= n - need and offset + len(o.sequence) > n}
-    for o, offset, members in index.grouped_overlapping(positions, n - need, n):
+    grouped = index.grouped_overlapping(positions, n - need, n)
+    if getattr(index, 'sequence_overlaps', False):
+        grouped += _sequence_overlapping(index, sequence, positions, need)
+    for o, offset, members in grouped:
         if offset > n - need or offset + len(o.sequence) <= n:
             continue
         key = o.comparison_key, offset
@@ -971,6 +1042,28 @@ def _gather_extenders(sequence, positions, index, need, used, carried):
                 permitted = _VotingMembers(previous[2] | permitted)
             found[key] = o, offset, permitted
     return list(found.values())
+
+
+def _refine_unplaced(positions, extenders):
+    """Assign a clipped base only when all recruited reads agree on its locus.
+
+    The sequence bridge is still an assembly hypothesis. Refining coordinates
+    lets a reconstructed ordinary splice compete with an SV interpretation;
+    conflicting placements stay unplaced rather than choosing one arbitrarily.
+    """
+    updated = list(positions)
+    occupied = {p for p in positions if p is not None}
+    for q, current in enumerate(positions):
+        if current is not None:
+            continue
+        choices = {o.positions[q - offset] for o, offset, _ in extenders
+                   if offset <= q < offset + len(o.positions) and o.positions[q - offset] is not None}
+        if len(choices) == 1:
+            position, = choices
+            if position not in occupied:
+                updated[q] = position
+                occupied.add(position)
+    return tuple(updated)
 
 
 def _choose_voters(used, groups, rejected):
@@ -1043,6 +1136,8 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
         if not extenders:
             done.append((sequence, positions, frozenset(used.values()), "observations_end"))
             continue
+        if getattr(index, 'sequence_overlaps', False):
+            positions = _refine_unplaced(positions, extenders)
         placed = {p for p in positions if p is not None}
         bases, added, active, forks, stopped, dropped = [], [], extenders, None, False, set()
         extender_count = sum(len(members) for _, _, members in extenders)
@@ -1392,7 +1487,8 @@ def _join_class(event, annotated, left, right, unplaced, kind):
     return ("lazy", relation) if relation else (None, None)
 
 
-def _seeds(observations, event, annotated, anchored, competing, key=None, deferred=None):
+def _seeds(observations, event, annotated, anchored, competing, key=None, deferred=None,
+           exonic=None):
     """Seeds at unannotated joins and breakpoint clips, strongest adjacency placement first.
 
     Without ``key``, only joins at or across the event (and breakpoint clips)
@@ -1427,6 +1523,8 @@ def _seeds(observations, event, annotated, anchored, competing, key=None, deferr
         if key is None:
             cores += [(i, j, "breakpoint_clip_partner_unplaced", "clip")
                       for i, j, _ in event.clips(o.positions, len(o.sequence))]
+            if exonic is not None:
+                cores += _exon_clip_cores(o, exonic, _SEQUENCE_BRIDGE_BASES)
         for i, j, relation, kind in cores:
             seed = seeds.setdefault((o.sequence[i:j + 1], o.positions[i:j + 1]), dict(
                 relation=relation, fragments=set(), observations=[], kinds=set(),
@@ -1440,7 +1538,8 @@ def _seeds(observations, event, annotated, anchored, competing, key=None, deferr
     # Placements of the adjacency are ordered by support alone, so the
     # strongest is the reference its weaker variants are pruned against.
     return sorted(seeds.items(), key=lambda item: (
-        not item[1]["near_breakpoint"], 0 if item[1]["near_breakpoint"] else rank[item[1]["relation"]],
+        not item[1]["near_breakpoint"], 0 if item[1]["near_breakpoint"] else
+        rank.get(item[1]["relation"], len(rank)),
         -len(item[1]["fragments"]), item[0][0], repr(item[0][1])))
 
 
@@ -1682,7 +1781,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                        min_local_variant_fraction=SV_MIN_LOCAL_VARIANT_FRACTION, max_records=SV_MAX_RECORDS,
                        max_queries=SV_MAX_QUERIES, max_paths=SV_MAX_PATHS,
                        max_extension_segments=SV_MAX_EXTENSION_SEGMENTS, assemble=SV_ASSEMBLE,
-                       include_regional_candidates=True,
+                       include_regional_candidates=True, exon_anchored_clips=False,
                        breakpoint_window=SV_BREAKPOINT_WINDOW, max_breakpoint_shift=SV_MAX_BREAKPOINT_SHIFT,
                        annotated_junction_tolerance=SV_ANNOTATED_JUNCTION_TOLERANCE,
                        peptide_lengths=FUSION_PEPTIDE_LENGTHS,
@@ -1751,6 +1850,12 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         event (default True). False still collects regional context, extends
         event paths through overlaps and assesses competing ordinary splices;
         skipped regional seeds remain explicit in the result.
+    exon_anchored_clips : bool
+        Also seed paths from terminal soft clips on versioned reference exons
+        and extend them through exact sequence-only overlaps. Requires supplied
+        reference models and ``use_soft_clipped_bases``. This exploratory mode
+        can find mature junctions away from DNA breakpoints; a bridge alone
+        does not establish event causation or a resolved isoform.
     breakpoint_window : int
         Bases searched to either side of each nominated breakpoint.
     max_breakpoint_shift : int
@@ -1828,6 +1933,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         raise ValueError("Peptide lengths must be positive integers")
     if type(include_regional_candidates) is not bool:
         raise ValueError("include_regional_candidates must be a boolean")
+    if type(exon_anchored_clips) is not bool:
+        raise ValueError("exon_anchored_clips must be a boolean")
     references = tuple(references)
     if any(not isinstance(r, FusionReference) or r.reference_name != reference_name
            for r in references):
@@ -1835,6 +1942,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     if len({(r.annotation, r.transcript_id) for r in references}) != len(references):
         raise ValueError("Duplicate reference transcript identity")
     collector = ReadCollector() if read_collector is None else read_collector
+    if exon_anchored_clips and (not references or not collector.use_soft_clipped_bases):
+        raise ValueError("Exon-anchored clips require reference models and soft-clipped bases")
     if dense_support:
         from .sv_rna_dense import reconstruct_dense_sv_rna
 
@@ -1848,17 +1957,25 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                           for k in lengths for i in range(len(m.protein) - k + 1)}
     event = _Event(donor, acceptor, max_breakpoint_shift, annotated, annotated_junction_tolerance)
     spans = defaultdict(list)
+    exon_spans = defaultdict(list)
     for r in references:
         spans[r.contig, r.strand].append((r.exons[0][0], r.exons[-1][1]))
+        exon_spans[r.contig, r.strand].extend(r.exons)
+    if exon_anchored_clips:
+        exon_spans = {key: _merge(intervals) for key, intervals in exon_spans.items()}
 
     def anchored(position):
         """Within an annotated gene span, on its strand."""
         return any(a <= position[1] < b for a, b in spans.get((position[0], position[2]), ()))
 
+    def exonic(position):
+        return _inside(exon_spans.get((position[0], position[2]), ()), position[1])
+
     records, acquisition = collect_sv_records(bam, regions, references, max_records, max_queries,
                                               (donor, acceptor), breakpoint_window)
     header = bam.header.to_dict()
     store = _Observations(records, collector, max_extension_segments, header, sample_id, source)
+    store.sequence_overlaps = exon_anchored_clips
     inclusion_splices, mapq_255_excluded = defaultdict(set), False
     for identity, members in store.groups.items():
         for read in members:
@@ -1873,9 +1990,11 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                     inclusion_splices[_flip(right), _flip(left)].add(identity[:2])
     inclusion_splices = [dict(left=list(left), right=list(right), fragments=len(fragments))
                          for (left, right), fragments in sorted(inclusion_splices.items())]
-    now, lazy, competing = store.classify(event, annotated, anchored)
+    now, lazy, competing = store.classify(event, annotated, anchored,
+                                         exonic if exon_anchored_clips else None)
     initial = [o for identity in sorted(now) for o in store.build(identity)]
-    first = _seeds(initial, event, annotated, anchored, competing, deferred=lazy)
+    first = _seeds(initial, event, annotated, anchored, competing, deferred=lazy,
+                   exonic=exonic if exon_anchored_clips else None)
     queue = [(relation, key, ids) for relation in ("splice_ambiguous_event_junction", "regional_novel_junction")
              for key, ids in sorted(lazy[relation].items(),
                                     key=lambda item: (-len({i[:2] for i in item[1]}), repr(item[0])))
@@ -2039,6 +2158,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                         max_queries=max_queries, max_paths=max_paths,
                         max_extension_segments=max_extension_segments, assemble=assemble,
                         include_regional_candidates=include_regional_candidates,
+                        exon_anchored_clips=exon_anchored_clips,
                         breakpoint_window=breakpoint_window, max_breakpoint_shift=max_breakpoint_shift,
                         annotated_junction_tolerance=annotated_junction_tolerance,
                         peptide_lengths=lengths, genetic_code=1,

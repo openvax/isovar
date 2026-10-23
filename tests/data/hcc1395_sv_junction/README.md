@@ -26,3 +26,12 @@ The three nominated adjacencies and their orientation are pinned in
 actual read segments that cross the join. One original read can support one
 complete path, but the 3, 2 and 7 junction fragments are not 3, 2 and 7
 independent transcript isoforms.
+
+`ensembl87_models.json.gz` pins 27 GRCh38 transcript models (12 HNRNPK,
+11 PKNOX1, 4 SUGT1) from Ensembl release 87. It is generated offline by
+`python -m reports.hcc1395_colo829.build_sv_reference_models` using the
+versioned Ensembl 87 cDNA and gene annotation already cached by PyEnsembl.
+Every model has A/C/G/T cDNA and explicit 0-based half-open exons; complete
+CDS coordinates are included only when the annotated frame validates.
+No reference base is copied into an observed RNA path. SHA-256:
+`8fc93e4457f993b1b6de9185512454ebfe5ac18b805dc060de372d7b6453f927`.
