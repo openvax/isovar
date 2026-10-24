@@ -253,6 +253,71 @@ def test_quality_and_label_variation_share_discovery_work_but_keep_all_support(t
         read.to_string() for read in reads if read.query_name.startswith('event-')}
 
 
+def test_group_budget_finds_late_event_and_recounts_all_original_fragments(tmp_path):
+    scenario = Scenario()
+    reads = dense_reads(scenario, 13)
+    # These distinct ordinary alleles precede the rare event in the BAM.
+    for i, read in enumerate(reads[:100]):
+        read.query_sequence = read.query_sequence[:20] + ('A' if i % 2 else 'C') + read.query_sequence[21:]
+    result = scenario.run(write_bam(tmp_path / 'group-budget.bam', reads), dense_support=True,
+                          max_evidence_groups=1, max_records=10, assemble=False)
+    path = candidate(result)
+    assert path['full_interval_support']['fragments'] == 13
+    assert path['junctions'][0]['direct_support']['fragments'] == 13
+    assert result['parameters']['max_evidence_groups'] == 1
+    discovery = result['discovery']
+    assert discovery['budgeted_groups'] == discovery['selected_groups'] == 1
+    assert discovery['eligible_regional_groups'] > 1
+    assert discovery['omitted_groups_by_group_limit'] == discovery['omitted_groups']
+    assert discovery['omitted_groups_by_record_limit'] == 0
+    assert discovery['omitted_records_by_group_limit'] > 0
+    assert discovery['budgeted_records'] == discovery['represented_records'] == 26
+    assert discovery['selected_records'] == 10
+    assert discovery['omitted_records_by_record_limit'] == 16
+    assert discovery['group_limit_reached'] and discovery['record_limit_reached']
+    assert {'discovery_group_limit', 'discovery_record_limit'} <= set(result['limitations'])
+    assert result['support_acquisition']['complete']
+
+
+def test_group_budget_preserves_competing_base_alleles_and_raw_labels(tmp_path):
+    scenario = Scenario()
+    major = scenario.sequence[200:300]
+    minor = major[:20] + ('A' if major[20] != 'A' else 'C') + major[21:]
+    reads = [r for name, count, sequence in [('major', 5, major), ('minor', 4, minor)]
+             for i in range(count) for r in aligned('%s-%d' % (name, i), sequence, scenario.positions[200:300])]
+    for i, read in enumerate(reads):
+        read.set_tag('CB', 'cell-%s' % read.query_name)
+        read.set_tag('UB', 'umi-%s' % read.query_name)
+        if read.query_qualities is not None:
+            read.query_qualities = [10 + i % 20] * len(read.query_sequence)
+    bam = write_bam(tmp_path / 'group-alleles.bam', reads)
+    result = scenario.run(bam, dense_support=True, max_evidence_groups=2,
+                          max_records=18, assemble=False, min_alternative_fraction=0,
+                          min_local_variant_fraction=0)
+    assert result['discovery']['eligible_regional_groups'] == 2
+    assert result['discovery']['groups_complete']
+    assert result['discovery']['selected_records'] == len(reads)
+    assert {path['sequence']: path['full_interval_support']['fragments'] for path in result['paths']} == {
+        major: 5, minor: 4}
+    assert len({row['cell_barcode'] for row in result['cell_umi_evidence']['reads']}) == 9
+    limited = scenario.run(bam, dense_support=True, max_evidence_groups=1,
+                           max_records=18, assemble=False)
+    assert limited['discovery']['omitted_groups_by_group_limit'] == 1
+    assert len(limited['paths']) == 1
+    assert limited['paths'][0]['junctions'][0]['direct_support']['fragments'] == 9
+    assert limited['paths'][0]['event_local_support']['specificity'] == 'no_competing_retained_path'
+
+
+def test_group_budget_requires_dense_mode_and_positive_integer(tmp_path):
+    scenario = Scenario()
+    bam = write_bam(tmp_path / 'validation.bam', dense_reads(scenario, 1))
+    with pytest.raises(ValueError, match='requires dense_support'):
+        scenario.run(bam, max_evidence_groups=1)
+    for value in (0, -1, True, 1.5):
+        with pytest.raises(ValueError, match='positive integer'):
+            scenario.run(bam, dense_support=True, max_evidence_groups=value)
+
+
 def test_grouping_preserves_major_minor_allele_proportions(tmp_path):
     scenario = Scenario()
     major = scenario.sequence[200:300]
@@ -325,12 +390,14 @@ def test_clip_discovery_and_support_use_actual_aligned_edges(tmp_path, dense, le
     assert candidate(result)['junctions'][0]['direct_support']['fragments'] == 4
 
 
-@pytest.mark.parametrize('change', ['base', 'insertion', 'coverage', 'placement', 'supplementary'])
+@pytest.mark.parametrize('change', ['base', 'insertion', 'coverage', 'placement',
+                                    'supplementary', 'missing_supplementary', 'mate', 'sa_hint'])
 def test_grouping_keeps_full_alleles_and_actual_alignment_paths(change):
     from isovar.sv_rna_dense import _group_signatures
 
     original = record('a', '1', 100, '90M', 'A' * 90)
     other = record('b', '1', 100, '90M', 'A' * 90)
+    originals = [original]
     records = [other]
     if change == 'base':
         # Even a distal difference, outside a breakpoint fingerprint, stays distinct.
@@ -343,9 +410,15 @@ def test_grouping_keeps_full_alleles_and_actual_alignment_paths(change):
         other.query_sequence = 'A' * 80
     elif change == 'placement':
         other.reference_start += 1
-    else:
+    elif change == 'supplementary':
         records.append(record('b', '2', 100, '90M', 'A' * 90, flag=2048))
-    structure, allele = _group_signatures(('a', 'a', 0), [original])
+    elif change == 'missing_supplementary':
+        originals.append(record('a', '2', 100, '90M', 'A' * 90, flag=2048))
+    elif change == 'mate':
+        records.append(record('b', '2', 100, '90M', 'A' * 90, flag=129))
+    else:
+        other.set_tag('SA', '2,101,+,90M,0,0;')
+    structure, allele = _group_signatures(('a', 'a', 0), originals)
     other_structure, other_allele = _group_signatures(('a', 'b', 0), records)
     assert (structure == other_structure) == (change == 'base')
     assert allele != other_allele
@@ -394,7 +467,7 @@ def test_filters_and_conflicting_mate_labels_are_preserved(tmp_path):
         read.mapping_quality = 0
     reads += low
     result = scenario.run(write_bam(tmp_path / 'mates.bam', reads), dense_support=True,
-                          max_records=4, assemble=False)
+                          max_records=4, max_evidence_groups=1, assemble=False)
     support = candidate(result)['full_interval_support']
     assert support['reads'] == support['fragments'] == 5
     assert support['cells'] == support['umis'] == 0
@@ -496,27 +569,34 @@ def test_cli_dense_support_and_scratch_directory(tmp_path):
     event, output = tmp_path / 'event.json', tmp_path / 'output.json'
     event.write_text(json.dumps(inputs))
     cli_run(['--input', str(event), '--bam', str(bam), '--output', str(output), '--dense-support',
-             '--sv-scratch-dir', str(tmp_path), '--max-records', '2', '--no-assembly'])
+             '--sv-scratch-dir', str(tmp_path), '--max-records', '2',
+             '--max-evidence-groups', '1', '--no-assembly'])
     result = json.loads(output.read_text())
     assert candidate(result)['full_interval_support']['fragments'] == 5
     assert result['parameters']['dense_support'] is True
+    assert result['parameters']['max_evidence_groups'] == 1
+    assert result['discovery']['selected_groups'] == 1
+    assert 'discovery_group_limit' in result['limitations']
+    with pytest.raises(SystemExit):
+        cli_run(['--input', str(event), '--bam', str(bam), '--output', str(output),
+                 '--max-evidence-groups', '1'])
 
 
 def test_duplicate_fetches_and_alternative_placements_do_not_create_support(tmp_path):
     scenario = Scenario()
     reads = dense_reads(scenario, 4)
     original = scenario.run(write_bam(tmp_path / 'original.bam', reads), max_records=4,
-                            assemble=False, dense_support=True)
+                            max_evidence_groups=1, assemble=False, dense_support=True)
     # Repeated identical records are one original alignment, not new molecules.
     duplicate = scenario.run(write_bam(tmp_path / 'duplicate.bam', reads + reads), max_records=4,
-                             assemble=False, dense_support=True)
+                             max_evidence_groups=1, assemble=False, dense_support=True)
     assert candidate(original)['full_interval_support'] == candidate(duplicate)['full_interval_support']
     assert duplicate['support_acquisition']['records_scanned'] == 2 * len(reads)
     assert duplicate['support_acquisition']['unique_records'] == len(reads)
 
     alternative = record('event-000', '1', 12000, '100M', scenario.sequence[200:300], flag=256)
     ambiguous = scenario.run(write_bam(tmp_path / 'ambiguous.bam', reads + [alternative]), max_records=8,
-                             assemble=False, dense_support=True)
+                             max_evidence_groups=1, assemble=False, dense_support=True)
     assert candidate(ambiguous)['full_interval_support']['fragments'] == 4
 
 
@@ -620,8 +700,8 @@ def test_iterable_parameters_and_input_scoped_signal_parents(tmp_path):
     reads.append(parent)
     reads = [pysam.AlignedSegment.fromstring(r.to_string(), header) for r in reads]
     bam = write_bam(tmp_path / 'parent.bam', reads, header=header)
-    result = scenario.run(bam, dense_support=True, max_records=2, assemble=False,
-                          peptide_lengths=(n for n in (8, 9)))
+    result = scenario.run(bam, dense_support=True, max_records=2, max_evidence_groups=1,
+                          assemble=False, peptide_lengths=(n for n in (8, 9)))
     support = candidate(result)['full_interval_support']
     assert support['fragments'] == 3
     assert support['read_lineage']['signal_groups'] == 0

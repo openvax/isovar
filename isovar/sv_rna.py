@@ -1792,7 +1792,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                        inclusion_min_base_quality=SV_INCLUSION_MIN_BASE_QUALITY,
                        inclusion_min_mapping_quality=SV_INCLUSION_MIN_MAPPING_QUALITY,
                        inclusion_mapq_255_is_unique=SV_INCLUSION_MAPQ_255_IS_UNIQUE,
-                       dense_support=False, scratch_dir=None):
+                       dense_support=False, scratch_dir=None, max_evidence_groups=None):
     """Reconstruct RNA paths for one nominated, oriented DNA adjacency.
 
     Paths start at unannotated RNA junctions (and, when soft-clipped bases are
@@ -1840,6 +1840,10 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         the best's support, so systematic long-read errors do not fork paths.
     max_records, max_queries, max_paths : int
         Resource limits; reaching one is reported in ``limitations``.
+    max_evidence_groups : int or None
+        Optional dense-discovery limit on distinct exact structural/allelic
+        groups. The independent ``max_records`` budget still applies; all
+        eligible original records remain available to the support recount.
     max_extension_segments : int
         Segments built to extend one path end; those reaching furthest are
         used. Reaching it is reported as ``extension_segment_limit``.
@@ -1888,7 +1892,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         max_records, then count candidate support across all eligible original
         reads. Exon-anchored clip seeds, when enabled, are recounted separately
         from direct junctions. Grouping needs no separate tuning. Discovery and intron-competition
-        limits remain explicit.
+        limits remain explicit. An optional evidence-group cap can further
+        bound the set of exact structural/allelic hypotheses searched.
     scratch_dir : str or pathlib.Path, optional
         Optional location for temporary files when dense_support is True.
         None uses the system temporary directory. Set an existing directory on
@@ -1907,6 +1912,11 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         raise ValueError("dense_support must be True or False")
     if scratch_dir is not None and not dense_support:
         raise ValueError("scratch_dir requires dense_support")
+    if max_evidence_groups is not None:
+        if not dense_support:
+            raise ValueError("max_evidence_groups requires dense_support")
+        if type(max_evidence_groups) is not int or max_evidence_groups < 1:
+            raise ValueError("max_evidence_groups must be a positive integer")
     if not all((event_id, reference_name, sample_id, source)) or not isinstance(event_provenance, dict) \
             or not event_provenance:
         raise ValueError("SV reconstruction requires event, reference, sample, source and event provenance")

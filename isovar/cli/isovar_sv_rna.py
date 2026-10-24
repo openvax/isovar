@@ -44,6 +44,9 @@ def make_parser(prog="isovar sv-rna"):
                        help="Base/small-indel alternatives also need this fraction of the best (default: %(default)s)")
     group.add_argument("--max-records", type=int, default=SV_MAX_RECORDS,
                        help="Alignment records examined; reaching the limit is reported (default: %(default)s)")
+    group.add_argument("--max-evidence-groups", type=int,
+                       help="Optional limit on distinct exact structural/allelic groups in --dense-support "
+                            "discovery; the record limit and complete-input support recount still apply")
     group.add_argument("--dense-support", action="store_true",
                        help="Use temporary disk space for large inputs: automatically group equivalent reads "
                             "for search, then count candidate support across all original reads")
@@ -107,6 +110,7 @@ def run(args=None, prog=None):
                 min_alternative_fragments=options.min_alternative_fragments,
                 min_alternative_fraction=options.min_alternative_fraction,
                 min_local_variant_fraction=options.min_local_variant_fraction, max_records=options.max_records,
+                max_evidence_groups=options.max_evidence_groups,
                 dense_support=options.dense_support, scratch_dir=options.sv_scratch_dir,
                 max_queries=options.max_queries, max_paths=options.max_paths, assemble=options.assemble,
                 include_regional_candidates=options.include_regional_candidates,

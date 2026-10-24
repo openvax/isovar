@@ -343,6 +343,7 @@ takes about 45 s and 1 GB.
 | `--annotated-junction-tolerance` | 5 | Unannotated joins this close to annotated ones are wobble |
 | `--no-assembly` | off | Only use reads spanning the seed junction |
 | `--max-records`, `--max-queries`, `--max-paths` | 10000, 1000, 100 | Resource limits; reaching one is reported in `limitations` |
+| `--max-evidence-groups` | unset | Optional distinct exact-group cap for dense discovery; the record cap still applies |
 | `--max-extension-segments` | 200 | Reads built to extend one path end |
 | `--peptide-lengths` | 8 9 10 11 | Candidate peptide lengths |
 | `--min-orf-amino-acids`, `--max-orf-candidates` | 15, 100 | Exploratory ORF length and per-path cap |
@@ -534,9 +535,12 @@ isovar sv-rna --input event.json --bam original-regional.bam --output dense.json
     --dense-support
 ```
 
-Start with this command; there is no clustering threshold to choose. The existing
-`--max-records` limits memory used for candidate search. `--sv-scratch-dir` only
-chooses where temporary files are stored; set it when another disk has more space.
+Start with this command; grouping is automatic. `--max-records` limits the
+candidate search. For a dense input with many distinct alleles or placements,
+`--max-evidence-groups N` additionally keeps the highest-priority N exact groups
+for discovery. Both limits are optional and independent; the entire original
+input is still scanned for support of retained paths. `--sv-scratch-dir` chooses
+where temporary files are stored; set it when another disk has more space.
 
 The temporary SQLite spool and discovery BAM require scratch space proportional
 to the whole input, and are removed on success or failure. Without
@@ -556,6 +560,11 @@ Grouping is automatic. Different names, qualities and cell/UMI labels do not
 consume another group, but even a single sequence difference, another placement
 or partial coverage remains distinct. Each group contributes original
 representatives before the remaining record budget is spent on copies.
+`discovery` reports eligible, budgeted, selected and omitted group and raw-record
+counts, with separate `group_limit_reached` and `record_limit_reached` flags.
+`discovery_group_limit` in `limitations` means some groups were not searched;
+it is not evidence that their RNA is absent. This is a computation budget, not
+molecular deduplication or a probability assigned to any candidate.
 
 Within the budget, every original still votes: equalizing common and rare
 groups would distort allele proportions. Instead, a bounded cache shares
