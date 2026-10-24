@@ -402,6 +402,22 @@ def _support(groups, result, collector, event, annotated, options):
         used.update(evidence)
         path['sequence_evidence']['voting_support_scope'] = 'bounded_discovery'
         path['full_interval_support'] = support(stream.interval_witnesses(index, 0, len(positions), path['junctions']))
+        if index in stream.local_windows:
+            window = stream.local_windows[index]
+            start, end = window['query_interval']
+            junctions = [j for j in path['junctions']
+                         if j['relation'] in ('breakpoint_junction', 'event_compatible_junction')]
+            base_start, base_end = window['base_query_interval']
+            path['event_junction_window_support'] = dict(
+                query_interval=[base_start, base_end], flank_bases=12,
+                specificity=window['base_specificity'],
+                exact_match_policy='one_original_observation_matches_full_window_and_junction_placements',
+                **support(stream.interval_witnesses(index, base_start, base_end, junctions)))
+            path['event_local_support'] = dict(
+                **{key: value for key, value in window.items()
+                   if key not in ('base_query_interval', 'base_specificity')},
+                exact_match_policy='one_original_observation_matches_full_window_and_junction_placements',
+                **support(stream.interval_witnesses(index, start, end, junctions)))
         for candidate in path['exploratory_orfs']['candidates']:
             candidate['start_evidence']['observation_scope'] = 'bounded_discovery'
             start, end = candidate['query_interval']

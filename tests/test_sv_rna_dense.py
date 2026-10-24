@@ -382,6 +382,62 @@ def test_distinct_sequences_are_not_combined_into_one_supported_hypothesis(tmp_p
     assert {path['sequence']: path['full_interval_support']['fragments'] for path in result['paths']} == {
         original: 5, changed: 4}
     assert all(path['junctions'][0]['direct_support']['fragments'] == 9 for path in result['paths'])
+    assert {path['sequence']: path['event_local_support']['fragments'] for path in result['paths']} == {
+        original: 5, changed: 4}
+    assert {path['event_junction_window_support']['fragments'] for path in result['paths']} == {9}
+    assert {path['event_junction_window_support']['specificity'] for path in result['paths']} == {
+        'shared_or_unresolved'}
+    assert all(path['event_local_support']['specificity'] == 'unique_among_retained_paths'
+               for path in result['paths'])
+
+
+def test_local_window_requires_the_branch_beyond_a_shared_junction():
+    from isovar.sv_rna_stream import _local_windows
+
+    shared = 'A' * 120
+    first = shared[:90] + 'C' + shared[91:]
+    second = shared[:90] + 'G' + shared[91:]
+    paths = [{'sequence': first}, {'sequence': second}]
+    positions = [(None,) * len(first), (None,) * len(second)]
+    queries = [[{'key': 'event', 'relation': 'breakpoint_junction',
+                 'query_interval': [60, 60]}] for _ in paths]
+    windows = _local_windows(paths, positions, queries)
+    assert {row['flank_bases'] for row in windows.values()} == {48}
+    assert {row['specificity'] for row in windows.values()} == {'unique_among_retained_paths'}
+    assert {tuple(row['query_interval']) for row in windows.values()} == {(12, 108)}
+
+
+def test_local_window_marks_distant_branch_unresolved():
+    from isovar.sv_rna_stream import _local_windows
+
+    first = 'A' * 450
+    second = first[:400] + 'C' + first[401:]
+    paths = [{'sequence': first}, {'sequence': second}]
+    positions = [(None,) * len(first), (None,) * len(second)]
+    queries = [[{'key': 'event', 'relation': 'breakpoint_junction',
+                 'query_interval': [200, 200]}] for _ in paths]
+    windows = _local_windows(paths, positions, queries)
+    assert {row['flank_bases'] for row in windows.values()} == {150}
+    assert {row['specificity'] for row in windows.values()} == {'shared_or_unresolved'}
+
+
+def test_pinned_hcc_and_colo_sv_local_evidence():
+    from reports.hcc1395_colo829.build_sv_transcript_evidence import build
+
+    rows, _, _ = build()
+    assert len(rows) == 7
+    chr9 = [row for row in rows if row['call_id'].startswith('chr9_')]
+    assert len(chr9) == 3
+    assert {row['direct_junction_fragments'] for row in chr9} == {7}
+    assert sorted(row['local_exact_fragments'] for row in chr9) == [1, 1, 3]
+    assert sorted(row['junction_12_flank_exact_fragments'] for row in chr9) == [2, 2, 3]
+    assert {row['junction_12_flank_specificity'] for row in chr9} == {'shared_or_unresolved'}
+    assert all(row['local_specificity'] == 'unique_among_retained_paths' for row in chr9)
+    sv3, = [row for row in rows if row['sample'] == 'COLO829']
+    assert (sv3['direct_junction_fragments'], sv3['direct_junction_fragments_mapq20'],
+            sv3['local_exact_fragments'], sv3['full_path_exact_fragments']) == (3, 0, 3, 0)
+    assert sv3['junction_inserted'] == 'CTATAGTAGAACTTCTTTT'
+    assert sv3['reference_donor_after'] != sv3['junction_inserted']
 
 
 def test_no_candidates_and_failed_scans_never_claim_negative_evidence(tmp_path):

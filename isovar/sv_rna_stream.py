@@ -10,6 +10,7 @@ from .sv_rna_orfs import _PLACEMENT_INDEX, _SEQUENCE_MATCHES, _PlacementIndex, _
 # Templates are indivisible; a single oversized template is consumed on its own.
 _SUPPORT_BATCH_BASES = 250_000
 _SHARED_WITNESS_ROWS = 4096
+_LOCAL_FLANKS = (12, 24, 48, 96, 150)
 
 
 def _observation_row(o):
@@ -35,6 +36,53 @@ def _share_witness(row, cache):
     if len(cache) < _SHARED_WITNESS_ROWS:
         cache[key] = row
     return row
+
+
+def _local_windows(paths, positions, path_queries):
+    """Choose the shortest exact event window separating retained sequences.
+
+    The comparison is deliberately sequence based: a difference only in an
+    aligner's genomic placement is not evidence for a distinct RNA molecule.
+    An incomplete competing flank cannot establish uniqueness.
+    """
+    events = []
+    for path_index, queries in enumerate(path_queries):
+        query = next((q for q in queries if q['relation'] == 'breakpoint_junction'), None)
+        if query is None:
+            query = next((q for q in queries if q['relation'] == 'event_compatible_junction'), None)
+        if query is not None:
+            events.append((path_index, query))
+    windows = {}
+    for path_index, query in events:
+        left, right = query['query_interval']
+        for flank in _LOCAL_FLANKS:
+            start, end = left - flank, right + flank
+            if start < 0 or end > len(positions[path_index]):
+                break
+            sequence = paths[path_index]['sequence'][start:end]
+            competitors = []
+            complete = True
+            for other_index, other_query in events:
+                if other_index == path_index:
+                    continue
+                other_left, other_right = other_query['query_interval']
+                other_start, other_end = other_left - flank, other_right + flank
+                if other_start < 0 or other_end > len(positions[other_index]):
+                    complete = False
+                    break
+                competitors.append(paths[other_index]['sequence'][other_start:other_end])
+            status = ('no_competing_retained_path' if not competitors and complete
+                      else 'unique_among_retained_paths' if complete and sequence not in competitors
+                      else 'shared_or_unresolved')
+            if flank == _LOCAL_FLANKS[0]:
+                base_interval, base_specificity = [start, end], status
+            windows[path_index] = dict(query_interval=[start, end], flank_bases=flank,
+                                       specificity=status, compared_paths=len(events),
+                                       base_query_interval=base_interval,
+                                       base_specificity=base_specificity)
+            if status in ('unique_among_retained_paths', 'no_competing_retained_path'):
+                break
+    return windows
 
 
 class _SupportStream:
@@ -67,16 +115,18 @@ class _SupportStream:
                 self.cache_keys[cache_key] = key
                 if key != 'event':
                     self.pairs[left, right].add(key)
-                queries.append((i, j, key))
+                queries.append((i, j, key, relation))
             for i, j, assignment in event.clips(pos, len(path['sequence'])):
                 key = ('clip', 'donor' if assignment[0] == 0 else 'acceptor')
                 self.cache_keys[key] = key
-                queries.append((i, j, key))
+                queries.append((i, j, key, 'breakpoint_clip_partner_unplaced'))
             self.path_queries.append([
-                dict(query_interval=[i + 1, j], left=pos[i] and list(pos[i]), right=pos[j] and list(pos[j]), key=key)
-                for i, j, key in sorted(queries, key=lambda row: row[:2])])
-            for key in {key for _, _, key in queries}:
+                dict(query_interval=[i + 1, j], left=pos[i] and list(pos[i]), right=pos[j] and list(pos[j]),
+                     key=key, relation=relation)
+                for i, j, key, relation in sorted(queries, key=lambda row: row[:2])])
+            for key in {key for _, _, key, _ in queries}:
                 self.queries[key].append(path_index)
+        self.local_windows = _local_windows(paths, positions, self.path_queries)
 
     def consume(self, observations):
         """Record a batch's contributions, releasing all per-base objects."""
@@ -117,6 +167,9 @@ class _SupportStream:
                          for q in self.path_queries[path_index] if q['key'] in by_key]
             evidence = {key: o for q in junctions for key, o in by_key[q['key']].items()}
             intervals = {(0, len(pos))} | {tuple(c['query_interval']) for c in path['exploratory_orfs']['candidates']}
+            if path_index in self.local_windows:
+                intervals.add(tuple(self.local_windows[path_index]['query_interval']))
+                intervals.add(tuple(self.local_windows[path_index]['base_query_interval']))
             for start, end in intervals:
                 self.witnesses[path_index][start, end].extend(
                     _share_witness(row, shared_rows) for row in
