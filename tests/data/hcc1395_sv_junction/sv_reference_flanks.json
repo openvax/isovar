@@ -1,0 +1,73 @@
+{
+  "assembly": "GRCh38",
+  "events": {
+    "COLO829_SOMATIC_SV3_DEL": {
+      "acceptor_after": "GGAGTTGCTTCTTATGGATG",
+      "acceptor_before": "GATCAAATGTGAATGTTTGA",
+      "donor_after": "TGGAGTGCAGGGAAGTGATC",
+      "donor_before": "AATTTGCCCTGTTGTCAGGC",
+      "left": [
+        "chr1",
+        224595092,
+        "+"
+      ],
+      "right": [
+        "chr1",
+        224598331,
+        "+"
+      ]
+    },
+    "chr13_52688329_chr13_60966095_+-": {
+      "acceptor_after": "CCCAGAGTATAAAAGCAACC",
+      "acceptor_before": "GTCACAATAGTCCAGCCTTC",
+      "donor_after": "ATGAGAACTTTGAGAAATTA",
+      "donor_before": "ACCTTTTTCTTAAGTTTTTA",
+      "left": [
+        "chr13",
+        52688328,
+        "+"
+      ],
+      "right": [
+        "chr13",
+        60966098,
+        "+"
+      ]
+    },
+    "chr21_42975947_chr21_43035721_-+": {
+      "acceptor_after": "TGTGAACCTCTGCCAGTATA",
+      "acceptor_before": "AAGGAAGAATCGAGGTGAAA",
+      "donor_after": "AAAATTAGTCGGGCATGGTG",
+      "donor_before": "TGGTCTCTACTAAAAATAAA",
+      "left": [
+        "chr21",
+        43035720,
+        "+"
+      ],
+      "right": [
+        "chr21",
+        42975950,
+        "+"
+      ]
+    },
+    "chr9_83969153_chr9_84015113_-+": {
+      "acceptor_after": "CAGTGAAAAAGAGGATTGCT",
+      "acceptor_before": "TAGGAGTGGGACGTGGGAAA",
+      "donor_after": "GAAATTTTGAAACAGCAGCA",
+      "donor_before": "GGCGTGCAAAAACTAACATT",
+      "left": [
+        "chr9",
+        83969157,
+        "-"
+      ],
+      "right": [
+        "chr9",
+        84015112,
+        "-"
+      ]
+    }
+  },
+  "flank_bases": 20,
+  "schema": "isovar.sv_reference_flanks.v1",
+  "source_fasta_sha256": "9cce8b926416dd96b152deea85188495b75f7ac8d634cc723a017067be8702b7",
+  "source_url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz"
+}

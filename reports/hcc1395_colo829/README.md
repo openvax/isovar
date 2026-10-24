@@ -10,6 +10,13 @@ selected small-variant source record and screen their SV sources.
 
 ## Deliverables
 
+- [Original-read SV transcript evidence](sv_transcript_evidence.md): seven
+  retained breakpoint-compatible path hypotheses from four directly observed
+  HCC1395/COLO829 joins, with shared junction counts, exact local branch
+  support, full path witnesses, complete assembled RNA sequences, and pinned
+  unrearranged GRCh38 genomic controls. The separate EIF3K–CYP39A1 coding
+  fusion and unresolved SV3 requirements are linked there. Rebuild with
+  `python -m reports.hcc1395_colo829.build_sv_transcript_evidence`.
 - [HCC1395 and COLO829 evidence PDFs](PDF_REPORTS.md): source-specific
   summaries of DNA call ingestion, Ensembl coding effects, pinned orfdata
   ncORF overlaps, original-RNA allele support, local protein contexts, and

@@ -574,6 +574,19 @@ segments to count support for the fixed candidate paths:
 - `junctions[].direct_support` counts the complete input's observed junctions,
   retaining alternative junction-base sequences. A shared junction does not
   establish the complete candidate sequence.
+- `paths[].event_junction_window_support` counts exact original observations
+  covering the nominated join with 12 bases on each side. Its `specificity`
+  records whether this short sequence distinguishes retained alternatives.
+  `paths[].event_local_support` extends both flanks through 12, 24, 48, 96,
+  then at most 150 bases until the window sequence differs from every other
+  retained event path. Its witness must match the whole interval and compatible
+  placements in one original observation. `shared_or_unresolved` means no
+  distinguishing window was available under that bound;
+  `no_competing_retained_path` means there was no alternative to test.
+  `unique_among_retained_paths` is limited to the paths discovery retained;
+  it does not prove a complete isoform, and exact matching can miss noisy
+  long reads. The window, witnesses, original IDs, and matching policy appear
+  in the JSON. These fields are present for dense-support event paths.
 - `paths[].full_interval_support` requires one exact, placement-compatible
   observation spanning the **entire path and its junction**. The exploratory
   ORFs' `full_interval_support` uses the same rule for each ORF interval.
