@@ -4,8 +4,10 @@ These are **bounded, breakpoint-compatible RNA path hypotheses**, not a
 complete atlas of SV transcripts. The selected original-read fixtures cover
 three HCC1395 and one COLO829 DNA events with direct junction observations.
 They yield **7 retained paths** (6 HCC1395;
-1 COLO829). HCC1395 chr9 reaches `path_limit`, so this
-is a retained-hypothesis count rather than a count of biological isoforms.
+1 COLO829). Only **2**
+have at least two exact local path witnesses. HCC1395 chr9 reaches
+`path_limit`, so this is a retained-hypothesis count rather than a
+count of biological isoforms.
 
 **Evidence units:** direct fragments are distinct original RNA fragments
 making the join, shared by paths. Local exact fragments each match one
@@ -14,7 +16,9 @@ The 12-base-flank window is reported separately when it cannot
 distinguish competing paths. A `unique_among_retained_paths` window
 differs in sequence from other retained event paths; uniqueness is
 limited by the path limit and does
-not establish a full isoform. Exact matching can undercount noisy ONT reads.
+not establish a full isoform. Exact matching can undercount noisy ONT
+reads; a path distinguished by a single ONT base can also be a read
+error rather than a biological RNA branch.
 The [TSV](sv_transcript_evidence.tsv) retains original local witness
 read IDs, raw alignment MAPQs, quality availability, intervals, and
 assembly limitations. The collector allows missing base qualities;

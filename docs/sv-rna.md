@@ -584,8 +584,9 @@ segments to count support for the fixed candidate paths:
   distinguishing window was available under that bound;
   `no_competing_retained_path` means there was no alternative to test.
   `unique_among_retained_paths` is limited to the paths discovery retained;
-  it does not prove a complete isoform, and exact matching can miss noisy
-  long reads. The window, witnesses, original IDs, and matching policy appear
+  it does not prove a complete isoform. Exact matching can miss noisy long
+  reads, and a one-read sequence difference can be a sequencing error. The
+  window, witnesses, original IDs, and matching policy appear
   in the JSON. These fields are present for dense-support event paths.
 - `paths[].full_interval_support` requires one exact, placement-compatible
   observation spanning the **entire path and its junction**. The exploratory
