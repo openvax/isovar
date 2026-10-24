@@ -23,7 +23,8 @@ from .read_metadata import record_evidence
 from .rna_evidence import rna_support
 from .sv_rna import (
     _Event, _GeometryCache, _Model, _Observations, _build_segment, _flip, _ineligible, _join_class, _merge, _record_gaps, _record_id,
-    _path_result, _possible_breakpoint_clip, reconstruct_sv_rna,
+    _path_result, _possible_breakpoint_clip, _possible_exon_clip, _exon_clip_cores,
+    _inside, _SEQUENCE_BRIDGE_BASES, reconstruct_sv_rna,
 )
 from . import sv_rna_stream
 from .sv_rna_relations import LINKAGE_STATUSES
@@ -178,19 +179,31 @@ def _search_regions(bam, options):
     return spans
 
 
-def _priority(records, collector, event, annotated):
-    """Placed event-related joins, breakpoint clips, other joins, then context."""
-    clip = False
+def _exonic(references):
+    """Membership in a versioned reference exon on the model's RNA strand."""
+    spans = defaultdict(list)
+    for reference in references:
+        spans[reference.contig, reference.strand].extend(reference.exons)
+    spans = {key: _merge(intervals) for key, intervals in spans.items()}
+    return lambda position: _inside(spans.get((position[0], position[2]), ()), position[1])
+
+
+def _priority(records, collector, event, annotated, exonic=None):
+    """Placed joins, breakpoint/exon clips, other joins, then context."""
+    clip = exon_clip = False
     possible_clip = collector.use_soft_clipped_bases and any(
         _possible_breakpoint_clip(read, [(b.contig, b.position) for b in (event.donor, event.acceptor)])
         for read in records)
-    if len(records) > 1 or possible_clip:
+    possible_exon_clip = exonic is not None and any(
+        _possible_exon_clip(read, exonic, _SEQUENCE_BRIDGE_BASES) for read in records)
+    if len(records) > 1 or possible_clip or possible_exon_clip:
         # Actual supplementary/alternative records stay together. An SA hint
         # alone neither raises priority nor fabricates its missing record.
         store = _Observations(records, collector, 1, {}, '', '')
         for identity in store.groups:
             for o in store.build(identity):
                 clip |= bool(event.clips(o.positions, len(o.sequence)))
+                exon_clip |= exonic is not None and bool(_exon_clip_cores(o, exonic, _SEQUENCE_BRIDGE_BASES))
                 if any(_join_class(event, annotated, o.positions[i], o.positions[j], j - i - 1, kind)[0]
                        in ('event', 'lazy') for i, j, kind in o.breaks):
                     return 0
@@ -204,7 +217,7 @@ def _priority(records, collector, event, annotated):
                 return 0
             if not any(use in ('annotated', 'wobble') for use, _ in classes) and kind != 'D':
                 priority = 2
-    return 1 if clip else priority
+    return 1 if clip or exon_clip else priority
 
 
 def _group_signatures(identity, records):
@@ -223,7 +236,7 @@ def _group_signatures(identity, records):
             sha256(repr((identity[0], identity[2], placed)).encode()).digest())
 
 
-def _select(groups, db, options, collector, spans, event, annotated):
+def _select(groups, db, options, collector, spans, event, annotated, exonic):
     priorities = {}
     db.execute('CREATE TABLE alleles (group_id INTEGER PRIMARY KEY, priority INTEGER, signature BLOB, '
                'structure BLOB, UNIQUE (priority, signature))')
@@ -244,7 +257,7 @@ def _select(groups, db, options, collector, spans, event, annotated):
             cacheable = len(records) <= 6
             cached = priorities.get(signature) if cacheable else None
             if cached is None:
-                priority = _priority(records, collector, event, annotated)
+                priority = _priority(records, collector, event, annotated, exonic)
                 cursor = db.execute('INSERT OR IGNORE INTO alleles (priority, signature, structure) VALUES (?, ?, ?)',
                                     (priority, signature, structure))
                 group_id = (cursor.lastrowid if cursor.rowcount else db.execute(
@@ -304,7 +317,7 @@ def _positions(path):
     return tuple(positions)
 
 
-def _may_support(template, joins, collector, event):
+def _may_support(template, joins, collector, event, exonic=None):
     """Conservative CIGAR screen: false positives are built and checked normally.
 
     Mates never form a split read. More than one actual record of a segment
@@ -319,6 +332,8 @@ def _may_support(template, joins, collector, event):
         if collector.use_soft_clipped_bases and _possible_breakpoint_clip(
                 read, [(b.contig, b.position) for b in (event.donor, event.acceptor)]):
             return True
+        if exonic is not None and _possible_exon_clip(read, exonic, _SEQUENCE_BRIDGE_BASES):
+            return True
         for left, right, _, inserted in _record_gaps(read):
             for a, b in ((left, right), (_flip(right), _flip(left))):
                 if (a, b) in joins or event.relation(a, b, len(inserted))[0] == 'breakpoint_junction':
@@ -332,9 +347,16 @@ def _overlaps_placements(read, intervals):
                for a, b in read.get_blocks()) if intervals else False
 
 
-def _support(groups, result, collector, event, annotated, options):
-    """Stream complete templates, keeping only candidate junction witnesses."""
+def _support(groups, result, collector, event, annotated, options, exonic=None):
+    """Stream complete templates, retaining join and exon-clip witnesses."""
     header = groups.header.to_dict()
+    clip_seeds = defaultdict(list)
+    if exonic is not None:
+        for index, seed in enumerate(result['seeds']):
+            if seed['relation'] == 'exon_anchored_clip_partner_unplaced' and seed['paths']:
+                clip_seeds[(seed['core_sequence'], tuple(seed['left']) if seed['left'] else None,
+                            tuple(seed['right']) if seed['right'] else None)].append(index)
+    clip_exonic = exonic if clip_seeds else None
     joins = {(tuple(j['left']), tuple(j['right'])) for path in result['paths'] for j in path['junctions']
              if j['left'] is not None and j['right'] is not None}
     placements = defaultdict(list)
@@ -344,10 +366,11 @@ def _support(groups, result, collector, event, annotated, options):
     placements = {contig: _merge(intervals) for contig, intervals in placements.items()}
     stream = sv_rna_stream._SupportStream(result['paths'], [_positions(p) for p in result['paths']], event, annotated)
     reasons, geometry_cache, batch, bases, intern = Counter(), _GeometryCache(), [], 0, {}
+    clip_matches, clip_records = defaultdict(dict), {}
     for template in groups.templates() if result['paths'] else ():
         if not any(_overlaps_placements(read, placements.get(read.reference_name, ())) for read in template):
             continue
-        if not _may_support(template, joins, collector, event):
+        if not _may_support(template, joins, collector, event, clip_exonic):
             continue
         members = defaultdict(list)
         # Share overlapping coordinates without accumulating an input-wide
@@ -358,10 +381,24 @@ def _support(groups, result, collector, event, annotated, options):
             members[segment_identity(read)].append(read)
         observations = [o for identity, records in members.items()
                         for o in _build_segment(identity, records, collector, reasons, intern, geometry_cache)]
+        matched = set()
+        if clip_seeds:
+            for observation in observations:
+                for i, j, _, _ in _exon_clip_cores(observation, clip_exonic, _SEQUENCE_BRIDGE_BASES):
+                    signature = (observation.sequence[i:j + 1], observation.positions[i], observation.positions[j])
+                    for index in clip_seeds.get(signature, ()):
+                        clip_matches[index][observation.key] = sv_rna_stream._observation_row(observation)
+                        matched.update(observation.records)
+            if matched:
+                for read in template:
+                    record_id = _record_id(read)
+                    if record_id in matched:
+                        clip_records[record_id] = (read.to_string(), record_evidence(read))
         hit = any((o.positions[i], o.positions[j]) in joins
                   or event.relation(o.positions[i], o.positions[j], j - i - 1)[0] == 'breakpoint_junction'
                   for o in observations for i, j, _ in o.breaks)
         hit |= any(event.clips(o.positions, len(o.sequence)) for o in observations)
+        hit |= bool(matched)
         if hit:
             size = sum(len(o.sequence) for o in observations)
             if batch and bases + size > sv_rna_stream._SUPPORT_BATCH_BASES:
@@ -383,6 +420,22 @@ def _support(groups, result, collector, event, annotated, options):
     store.lineage = ReadLineage(groups, header)
     store.cell_umi = CellUmiEvidence(groups, header, options['sample_id'], options['source'],
                                    template_loader=groups.template)
+    for index in sorted({i for indices in clip_seeds.values() for i in indices}):
+        witnesses = clip_matches[index]
+        identities = {tuple(row['identity']) for row in witnesses.values()}
+        support = store.cell_umi.support(identities)
+        result['seeds'][index]['complete_input_support'] = dict(
+            **support, read_lineage=store.lineage.support(identities),
+            missing_quality_reads=len({tuple(row['identity']) for row in witnesses.values()
+                                       if row['missing_qualities']}),
+            scope='complete_eligible_input_exact_exon_clip_core',
+            observations=sorted(witnesses),
+            original_read_ids=sorted({identity[1] for identity in identities}),
+            raw_mapping_qualities=sorted({clip_records[record_id][1]['mapping_quality_raw']
+                                          for row in witnesses.values() for record_id in row['records']}))
+        result['observations'].update(witnesses)
+    result['original_records'].update((key, sam) for key, (sam, _) in clip_records.items())
+    result['record_evidence'].update((key, evidence) for key, (_, evidence) in clip_records.items())
     junction_cache, linked = stream.summaries(store.cell_umi, store.lineage)
     used = {}
 
@@ -477,7 +530,8 @@ def reconstruct_dense_sv_rna(bam, options):
             scanned, excluded, unique, segment_count, eligible = _spool(bam, db, collector, directory)
             reader = stack.enter_context(pysam.AlignmentFile(eligible, 'rb'))
             groups = _DiskGroups(db, reader, bam.header, segment_count)
-            selected, available, grouping = _select(groups, db, options, collector, spans, event, annotated)
+            exonic = _exonic(options['references']) if options['exon_anchored_clips'] else None
+            selected, available, grouping = _select(groups, db, options, collector, spans, event, annotated, exonic)
             unsorted, discovery = str(Path(directory) / 'discovery.unsorted.bam'), str(Path(directory) / 'discovery.bam')
             with pysam.AlignmentFile(unsorted, 'wb', header=bam.header) as output:
                 for read in selected:
@@ -488,7 +542,7 @@ def reconstruct_dense_sv_rna(bam, options):
             pysam.index(discovery)
             with pysam.AlignmentFile(discovery) as discovery_bam:
                 result = reconstruct_sv_rna(discovery_bam, **options)
-            support_notes = _support(groups, result, collector, event, annotated, options)
+            support_notes = _support(groups, result, collector, event, annotated, options, exonic)
             result['parameters']['dense_support'] = True
             result['acquisition']['input_scope'] = 'bounded_discovery_representatives'
             result['support_acquisition'] = dict(scope='all_original_input_records', records_complete=True,
@@ -496,7 +550,9 @@ def reconstruct_dense_sv_rna(bam, options):
                                                   records_scanned=scanned, unique_records=unique,
                                                   eligible_segments=len(groups),
                                                   excluded_records=excluded, read_path_notes=support_notes)
-            result['discovery'] = dict(policy='event_first_full_allele_groups.v1', **grouping,
+            policy = ('event_first_full_allele_groups_with_exon_clips.v1' if exonic is not None
+                      else 'event_first_full_allele_groups.v1')
+            result['discovery'] = dict(policy=policy, **grouping,
                                        eligible_regional_records=available, selected_records=selected_count,
                                        omitted_records=available - selected_count,
                                        complete=available == selected_count and not result['acquisition']['limitations'])

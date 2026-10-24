@@ -86,10 +86,13 @@ separate paths or unplaced bases. A consensus coordinate is assigned only when
 the recruited reads agree, so an ordinary annotated splice can compete with
 the proposed SV path.
 
-Use this mode with bounded discovery. Dense-support representative selection
-does not yet prioritize exon-anchored clips, so combining
-`--exon-anchored-clips` with `--dense-support` raises an error instead of
-silently dropping those candidates.
+This mode also works with `--dense-support`. Discovery gives observed exon
+clips priority over ordinary regional context, using the same versioned exon
+and terminal-clip criteria as bounded mode. Retained clip seeds carry
+`complete_input_support`: distinct original fragments with the exact observed
+clip core and exon anchor across the full eligible input, plus read IDs, raw
+MAPQs and quality availability. That count supports the *clip seed*, not a
+fully phased junction or protein. A reached discovery cap remains explicit.
 
 The bridge is an assembly hypothesis. In particular, a reconstructed join can
 have zero `direct_support` even when reads on either side overlap in sequence.
@@ -545,7 +548,7 @@ regional BAM to avoid unnecessarily scanning a whole-genome alignment file.
 ### Which records discovery uses
 
 Discovery groups actual records by segment on disk. Placed event junctions get
-first priority, followed by breakpoint clips, and representative bundles are
+first priority, followed by breakpoint and exon-anchored clips, and representative bundles are
 reserved for distinct full-sequence/placement groups. A late event need not
 fall within the first `--max-records` records.
 
