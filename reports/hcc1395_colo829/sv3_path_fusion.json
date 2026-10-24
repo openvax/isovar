@@ -1,0 +1,646 @@
+{
+  "anchored_transcripts": [],
+  "annotation": "Ensembl 87",
+  "assembly": "GRCh38",
+  "candidates": [
+    {
+      "amino_acids": 37,
+      "annotated_start": false,
+      "exact_start_spots": [
+        "SRR8615617.102982075",
+        "SRR8615617.104528687",
+        "SRR8615617.109202987",
+        "SRR8615617.114251151",
+        "SRR8615617.7312118",
+        "SRR8615617.7312127",
+        "SRR8615617.7312163",
+        "SRR8615617.7312164",
+        "SRR8615617.7312166",
+        "SRR8615617.7312167",
+        "SRR8615617.7312168",
+        "SRR8615617.7312169",
+        "SRR8615617.7312170",
+        "SRR8615617.7312171",
+        "SRR8615617.7312172",
+        "SRR8615617.7312173",
+        "SRR8615617.7312174",
+        "SRR8615617.7312175",
+        "SRR8615617.7312176",
+        "SRR8615617.7312177",
+        "SRR8615617.7312178",
+        "SRR8615617.7312179",
+        "SRR8615617.7312180",
+        "SRR8615617.7312181",
+        "SRR8615617.7312182",
+        "SRR8615617.7312183",
+        "SRR8615617.7312184",
+        "SRR8615617.7312185",
+        "SRR8615617.7312186",
+        "SRR8615617.7312187",
+        "SRR8615617.7312188",
+        "SRR8615617.7312189",
+        "SRR8615617.7312191",
+        "SRR8615617.7312195",
+        "SRR8615617.7312201",
+        "SRR8615617.7312206",
+        "SRR8615617.7312214",
+        "SRR8615617.7312215",
+        "SRR8615617.7312216",
+        "SRR8615617.7312233",
+        "SRR8615617.7312251",
+        "SRR8615617.7312262",
+        "SRR8615617.89185474",
+        "SRR8615617.91283596",
+        "SRR8615617.93736130",
+        "SRR8615617.94764614",
+        "SRR8615617.97418408"
+      ],
+      "frame_status": "no_gene_anchor",
+      "full_orf_sequence_overlap_chain": [
+        {
+          "mate": 1,
+          "path_interval": [
+            973,
+            1074
+          ],
+          "spot": "SRR8615617.109202987"
+        },
+        {
+          "mate": 1,
+          "path_interval": [
+            1044,
+            1145
+          ],
+          "spot": "SRR8615617.7313798"
+        }
+      ],
+      "initiation_observed": false,
+      "same_end_start_to_core_join_spots": [
+        "SRR8615617.91283596"
+      ],
+      "same_end_start_to_junction_spots": [],
+      "sequence": "MCLPHVSVSYFGNSHNISNLPCCQAYSRTSFGVASYG",
+      "start_codon": "ATG",
+      "start_path_offset": 1014,
+      "start_to_junction_overlap_chain": [
+        {
+          "mate": 1,
+          "path_interval": [
+            973,
+            1074
+          ],
+          "spot": "SRR8615617.109202987"
+        },
+        {
+          "mate": 1,
+          "path_interval": [
+            1044,
+            1145
+          ],
+          "spot": "SRR8615617.7313798"
+        }
+      ]
+    },
+    {
+      "amino_acids": 162,
+      "annotated_start": false,
+      "exact_start_spots": [
+        "SRR8615617.101562709",
+        "SRR8615617.102982075",
+        "SRR8615617.104528687",
+        "SRR8615617.109202987",
+        "SRR8615617.7312115",
+        "SRR8615617.7312118",
+        "SRR8615617.7312164",
+        "SRR8615617.7312166",
+        "SRR8615617.7312167",
+        "SRR8615617.7312168",
+        "SRR8615617.7312169",
+        "SRR8615617.7312170",
+        "SRR8615617.7312171",
+        "SRR8615617.7312172",
+        "SRR8615617.7312173",
+        "SRR8615617.7312174",
+        "SRR8615617.7312175",
+        "SRR8615617.7312176",
+        "SRR8615617.7312177",
+        "SRR8615617.7312178",
+        "SRR8615617.7312179",
+        "SRR8615617.7312180",
+        "SRR8615617.7312181",
+        "SRR8615617.7312182",
+        "SRR8615617.7312183",
+        "SRR8615617.7312184",
+        "SRR8615617.7312185",
+        "SRR8615617.7312186",
+        "SRR8615617.7312187",
+        "SRR8615617.7312188",
+        "SRR8615617.7312189",
+        "SRR8615617.7312191",
+        "SRR8615617.7312192",
+        "SRR8615617.7312193",
+        "SRR8615617.7312194",
+        "SRR8615617.7312195",
+        "SRR8615617.7312198",
+        "SRR8615617.7312206",
+        "SRR8615617.7312214",
+        "SRR8615617.7312215",
+        "SRR8615617.7312216",
+        "SRR8615617.7312233",
+        "SRR8615617.7312251",
+        "SRR8615617.7312262",
+        "SRR8615617.7313766",
+        "SRR8615617.7313859",
+        "SRR8615617.89185474",
+        "SRR8615617.91283596",
+        "SRR8615617.93736130",
+        "SRR8615617.94764614",
+        "SRR8615617.97418408"
+      ],
+      "frame_status": "no_gene_anchor",
+      "full_orf_sequence_overlap_chain": [
+        {
+          "mate": 1,
+          "path_interval": [
+            1017,
+            1118
+          ],
+          "spot": "SRR8615617.7313859"
+        },
+        {
+          "mate": 2,
+          "path_interval": [
+            1088,
+            1180
+          ],
+          "spot": "SRR8615617.99035789"
+        },
+        {
+          "mate": 1,
+          "path_interval": [
+            1146,
+            1247
+          ],
+          "spot": "SRR8615617.7313752"
+        },
+        {
+          "mate": 1,
+          "path_interval": [
+            1217,
+            1318
+          ],
+          "spot": "SRR8615617.7313808"
+        },
+        {
+          "mate": 2,
+          "path_interval": [
+            1274,
+            1375
+          ],
+          "spot": "SRR8615617.7313957"
+        },
+        {
+          "mate": 2,
+          "path_interval": [
+            1344,
+            1445
+          ],
+          "spot": "SRR8615617.7313930"
+        },
+        {
+          "mate": 1,
+          "path_interval": [
+            1415,
+            1516
+          ],
+          "spot": "SRR8615617.7313976"
+        }
+      ],
+      "initiation_observed": false,
+      "same_end_start_to_core_join_spots": [
+        "SRR8615617.7313859",
+        "SRR8615617.91283596"
+      ],
+      "same_end_start_to_junction_spots": [],
+      "sequence": "MSLCHILVILTIFQICPVVRPIVELLLELLLMDEQRKWFLEMKSTPGEDAMNIVELTTKDLQYYINLVNKVVAGYERIDPNFKRSSTIGKMLSNSIACYREIFHERKSQLRWQTSLLSYFRKLTQPPQPSATTTLISQQPSTCRQDPPPAKRLRLAEGSDDC",
+      "start_codon": "ATG",
+      "start_path_offset": 1027,
+      "start_to_junction_overlap_chain": [
+        {
+          "mate": 1,
+          "path_interval": [
+            973,
+            1074
+          ],
+          "spot": "SRR8615617.109202987"
+        },
+        {
+          "mate": 1,
+          "path_interval": [
+            1044,
+            1145
+          ],
+          "spot": "SRR8615617.7313798"
+        }
+      ]
+    }
+  ],
+  "cited_alignment_records": {
+    "SRR8615617.101713327": [
+      {
+        "cigar": "81M20S",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 1,
+        "secondary": false,
+        "start": 224594744,
+        "supplementary": false
+      },
+      {
+        "cigar": "34M67S",
+        "contig": "chr1",
+        "mapq": 52,
+        "mate": 2,
+        "secondary": false,
+        "start": 224595059,
+        "supplementary": false
+      },
+      {
+        "cigar": "53H48M",
+        "contig": "chr1",
+        "mapq": 1,
+        "mate": 2,
+        "secondary": false,
+        "start": 224598331,
+        "supplementary": true
+      }
+    ],
+    "SRR8615617.109202987": [
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 1,
+        "secondary": false,
+        "start": 224594978,
+        "supplementary": false
+      },
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 2,
+        "secondary": false,
+        "start": 224594816,
+        "supplementary": false
+      }
+    ],
+    "SRR8615617.110737497": [
+      {
+        "cigar": "41M60H",
+        "contig": "chr1",
+        "mapq": 6,
+        "mate": 1,
+        "secondary": false,
+        "start": 224595052,
+        "supplementary": true
+      }
+    ],
+    "SRR8615617.7312123": [
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 1,
+        "secondary": false,
+        "start": 224594774,
+        "supplementary": false
+      },
+      {
+        "cigar": "21S39M41S",
+        "contig": "chr1",
+        "mapq": 52,
+        "mate": 2,
+        "secondary": false,
+        "start": 224595054,
+        "supplementary": false
+      }
+    ],
+    "SRR8615617.7313752": [
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 1,
+        "secondary": false,
+        "start": 224598370,
+        "supplementary": false
+      },
+      {
+        "cigar": "82M19S",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 2,
+        "secondary": false,
+        "start": 224598249,
+        "supplementary": false
+      }
+    ],
+    "SRR8615617.7313798": [
+      {
+        "cigar": "44M57H",
+        "contig": "chr1",
+        "mapq": 6,
+        "mate": 1,
+        "secondary": false,
+        "start": 224595049,
+        "supplementary": true
+      },
+      {
+        "cigar": "63S38M",
+        "contig": "chr1",
+        "mapq": 52,
+        "mate": 1,
+        "secondary": false,
+        "start": 224598331,
+        "supplementary": false
+      },
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 2,
+        "secondary": false,
+        "start": 224598412,
+        "supplementary": false
+      }
+    ],
+    "SRR8615617.7313808": [
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 1,
+        "secondary": false,
+        "start": 224598441,
+        "supplementary": false
+      },
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 2,
+        "secondary": false,
+        "start": 224598391,
+        "supplementary": false
+      }
+    ],
+    "SRR8615617.7313859": [
+      {
+        "cigar": "71M30S",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 1,
+        "secondary": false,
+        "start": 224595022,
+        "supplementary": false
+      },
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 2,
+        "secondary": false,
+        "start": 224598509,
+        "supplementary": false
+      }
+    ],
+    "SRR8615617.7313930": [
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 1,
+        "secondary": false,
+        "start": 224598600,
+        "supplementary": false
+      },
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 2,
+        "secondary": false,
+        "start": 224598568,
+        "supplementary": false
+      }
+    ],
+    "SRR8615617.7313957": [
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 1,
+        "secondary": false,
+        "start": 224598623,
+        "supplementary": false
+      },
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 2,
+        "secondary": false,
+        "start": 224598498,
+        "supplementary": false
+      }
+    ],
+    "SRR8615617.7313976": [
+      {
+        "cigar": "101M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 1,
+        "secondary": false,
+        "start": 224598639,
+        "supplementary": false
+      },
+      {
+        "cigar": "29S72M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 2,
+        "secondary": false,
+        "start": 224598611,
+        "supplementary": false
+      }
+    ],
+    "SRR8615617.97504216": [
+      {
+        "cigar": "56M45S",
+        "contig": "chr1",
+        "mapq": 19,
+        "mate": 1,
+        "secondary": false,
+        "start": 224595037,
+        "supplementary": false
+      },
+      {
+        "cigar": "32M69H",
+        "contig": "chr1",
+        "mapq": 3,
+        "mate": 2,
+        "secondary": false,
+        "start": 224595061,
+        "supplementary": true
+      },
+      {
+        "cigar": "51S50M",
+        "contig": "chr1",
+        "mapq": 1,
+        "mate": 2,
+        "secondary": false,
+        "start": 224598331,
+        "supplementary": false
+      }
+    ],
+    "SRR8615617.99035789": [
+      {
+        "cigar": "19S82M",
+        "contig": "chr1",
+        "mapq": 60,
+        "mate": 2,
+        "secondary": false,
+        "start": 224598331,
+        "supplementary": false
+      }
+    ]
+  },
+  "conclusion": "mature_path_and_frame_unresolved",
+  "event_id": "COLO829_SOMATIC_SV3_DEL",
+  "event_linked_translation_candidates": 0,
+  "exact_exon_anchor_bases": 0,
+  "exact_junction_window_spots": [
+    "SRR8615617.101713327",
+    "SRR8615617.110737497",
+    "SRR8615617.7312123",
+    "SRR8615617.7313798",
+    "SRR8615617.97504216"
+  ],
+  "frame_status": "no_gene_anchor",
+  "input_records_scanned": 52212,
+  "input_scope": "CNIH3-target-screen candidate BAM plus ten original junction-spot reads",
+  "joined_path_count": 1,
+  "joined_path_sequence": "ATAGGAATTATTGTTTAATGGGTACAGAGTTTTAGTTTGAGAAGTTGAAAAAGTTCTGGAGATGGATAGTGGTGATGGTTGCACAACAGTGTAAGTGTAATTAATGCCACAGAACTGAACACTTAAAAAGGTAAATTTTATGTTATATTTATTTTGCCACAATAAAACAAAACAGAAAAGTGCTCCACAGCCTGAGGACAAGTGACCCCTAGAGCCCAAGCCTGGCCCAGGTGGCCTGGACACTGCACACTGACCCAGTCTCCAGAGCCCTTGCACCCCGGCTTGTCTGGAAGGGGCTGGAGCAGGTGTGGGAACTGGAGCAAATGGAGGTTTAGGATTTGGAGTAGATCTTATCTAAGCTATAAGAGCTTCATTATACACATCCCCTTTCCAGAAGCCACGAGTTCTGTCTATAGTGGGTACTGTTCTATGTTATTTTATGTGATGGTTGGTCCAGTGCAGCCACATGGGGCAGGCTCTGGAAAAGGAAGTTTATTACACTCACAGGTCCTGGAAGCAGGAGGTGTGGCACACAGGACCACAAGGGAAAGCACCAGTGTAGGTCAGGAGGCAGAAAGGGCCAGAGTGAGGGAAAATCTAGGCCACGGCCTTTACTGGGGTTTGCACAGGAAAGGTCAGGCGGAGCAGCATAAACAGTTTTGGATTGGGCAATTTGCATTATAAATGGCAGGCTTTGGGCTCTCTAGGGATGGTCTCTAGTTGCCTGGTACCTGGCTCTGGGAAGACTAAGGCAGAGGAATATTGCTTCTTGTAGTGTGCAGGTCCCATAGAAGAGATGTGACTAGATAGGCCAGCCCCTGCAAGGGCAGTCTCTCTCTATCCAGAAAGAGTTATAAGATAAACATCAAAATATACTGAAAATAAAAATATAAGCACACATTGTTTTACTGCACTTTGCTTTATTGTGCCTTGCAGATATTGTATTTTTTACAAATTGAAGGTTCATGAGAACCTTGTGTTGAGCAAGTCTGTCAGCACCATTTCTCCAACATCATGTGCTTGCCTCATGTCTCTGTGTCATATTTTGGTAATTCTCACAATATTTCAAATTTGCCCTGTTGTCAGGCCTATAGTAGAACTTCTTTTGGAGTTGCTTCTTATGGATGAGCAAAGAAAGTGGTTTCTTGAGATGAAATCTACTCCTGGTGAAGATGCTATGAATATCGTTGAACTGACAACAAAAGATTTACAATATTACATAAACTTGGTTAATAAAGTAGTGGCAGGGTATGAAAGAATTGACCCCAATTTTAAAAGAAGTTCTACTATAGGCAAAATGCTATCAAACAGCATTGCATGCTACAGAGAGATCTTTCACGAAAGGAAGAGTCAACTGAGGTGGCAAACTTCATTGTTGTCTTATTTTAGGAAATTGACACAGCCACCCCAACCTTCAGCAACCACCACGTTGATCAGTCAGCAGCCATCAACATGCAGGCAAGACCCTCCACCAGCAAAAAGATTAAGACTTGCTGAAGGCTCAGATGACTGTTAGCATTTTTTAGCAATAAAGTATTTTCAAATTAAGGTTTGTACATTATTATTTTAGACTGAATACTATTGCACATTGAATGGACCACAGTATAGTATAAACATAACTTATATGCCCTGGGAAACCAAAAAATTCATGTGACTCCACTTTATTGTGGTGGTCTGCAACCAATCTCACAGTATCTCCTAGGTGTACCTGTATAAACATACAGGTATCAGATAAAAGGTCACTTGGGGAATAAAGAACTTTTGCAGTTATCTATTGCTGCATAATATTTATTATTAACAAGTGGGACCATAAATCTGGACTGCAATGTATGCTTAATATAGACATTATTATTTTATTGGCTACCATGCAGCAATAGATAACTGCAAAAATTATTTTAGTTGCTCCAATTTTAGTTGTTTAAAAAAACCGCCACCCTTTATTTGCTTATAATTCTGCAATATGAAATGGGCTCAGCTGGGCACTTGTCTCTGCTCCAGGTGGTGTTAGCTGCACTTACCTATGGGTTTGTAATCAGTTGGCAGGCTTACTGAGCCAAGATGGCCTTCCTCAAATATGTGGCATCTTGGAAGCAAGACTGGGACAGCTAGAGGCTGGATGGGCCTCTTGTTCCTTATGGAATATCATATTTAATGAATTAGCCTTTATTAATTTTTGAT",
+  "junction_path_interval": [
+    1088,
+    1107
+  ],
+  "junction_window_interval": [
+    1076,
+    1119
+  ],
+  "limitations": [
+    "mate_location_unavailable",
+    "path_limit"
+  ],
+  "matched_normal_rna": "not_evaluated",
+  "pacbio_original_long_reads": "published_source_not_ingested",
+  "parameters": {
+    "exon_kmer": 20,
+    "max_extension_segments": 1200,
+    "max_orf_chain_reads": 12,
+    "max_paths": 80,
+    "max_queries": 200,
+    "max_records": 20000,
+    "min_exact_match": 30,
+    "min_mapping_quality": 0,
+    "min_overlap": 30
+  },
+  "path_bases": 2178,
+  "path_count": 80,
+  "path_id": "653d5d9c015d3e590fb149b3",
+  "placed_split_join_spots": [
+    "SRR8615617.101713327",
+    "SRR8615617.7313798",
+    "SRR8615617.97504216"
+  ],
+  "schema": "isovar.sv3_path_fusion.v1",
+  "source": "SRA:SRR8615617",
+  "source_spots": [
+    {
+      "exact_junction_mates": [
+        2
+      ],
+      "junction_end_has_clipped_alignment": true,
+      "mapping_qualities": [
+        1,
+        52,
+        60
+      ],
+      "opposite_mate_exact_cnih3_exon": false,
+      "opposite_mate_exact_path": true,
+      "placed_split_join": true,
+      "spot": "SRR8615617.101713327"
+    },
+    {
+      "exact_junction_mates": [
+        1,
+        2
+      ],
+      "junction_end_has_clipped_alignment": false,
+      "mapping_qualities": [
+        6
+      ],
+      "opposite_mate_exact_cnih3_exon": false,
+      "opposite_mate_exact_path": false,
+      "placed_split_join": false,
+      "spot": "SRR8615617.110737497"
+    },
+    {
+      "exact_junction_mates": [
+        2
+      ],
+      "junction_end_has_clipped_alignment": true,
+      "mapping_qualities": [
+        52,
+        60
+      ],
+      "opposite_mate_exact_cnih3_exon": false,
+      "opposite_mate_exact_path": true,
+      "placed_split_join": false,
+      "spot": "SRR8615617.7312123"
+    },
+    {
+      "exact_junction_mates": [
+        1
+      ],
+      "junction_end_has_clipped_alignment": true,
+      "mapping_qualities": [
+        6,
+        52,
+        60
+      ],
+      "opposite_mate_exact_cnih3_exon": false,
+      "opposite_mate_exact_path": true,
+      "placed_split_join": true,
+      "spot": "SRR8615617.7313798"
+    },
+    {
+      "exact_junction_mates": [
+        2
+      ],
+      "junction_end_has_clipped_alignment": true,
+      "mapping_qualities": [
+        1,
+        3,
+        19
+      ],
+      "opposite_mate_exact_cnih3_exon": false,
+      "opposite_mate_exact_path": true,
+      "placed_split_join": true,
+      "spot": "SRR8615617.97504216"
+    }
+  ],
+  "unplaced_junction_bases": "CTATAGTAGAACTTCTTTT"
+}
