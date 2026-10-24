@@ -207,7 +207,15 @@ def write(prefix=PREFIX, **kwargs):
               '`python -m reports.hcc1395_colo829.build_sv_transcript_evidence`.',
               'The exact-window policy and its known ONT error sensitivity are',
               'specified in `SV_TRANSCRIPT_EVIDENCE_SPEC.md`.', '']
+    lines += ['The [versioned exon path audit](sv_exon_path_evidence.md) is generated',
+              'by the same command and keeps exon connection and frame status',
+              'separate from local join evidence.', '']
     prefix.with_suffix('.md').write_text('\n'.join(lines))
+    from reports.hcc1395_colo829.build_sv_exon_path_evidence import write as write_exon
+
+    write_exon(prefix.with_name("sv_exon_path_evidence"),
+               hcc_bam=kwargs.get("hcc_bam", HCC_BAM),
+               colo_bam=kwargs.get("colo_bam", COLO_BAM))
     return rows
 
 

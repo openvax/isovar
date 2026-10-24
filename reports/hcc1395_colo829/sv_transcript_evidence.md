@@ -117,3 +117,7 @@ Regenerate the table from pinned inputs with
 `python -m reports.hcc1395_colo829.build_sv_transcript_evidence`.
 The exact-window policy and its known ONT error sensitivity are
 specified in `SV_TRANSCRIPT_EVIDENCE_SPEC.md`.
+
+The [versioned exon path audit](sv_exon_path_evidence.md) is generated
+by the same command and keeps exon connection and frame status
+separate from local join evidence.

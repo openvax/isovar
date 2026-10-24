@@ -275,6 +275,54 @@ def test_two_exon_clips_bridge_an_unplaced_inserted_or_cryptic_exon(tmp_path):
     assert junction["direct_support"]["fragments"] == 0
 
 
+
+
+def test_exon_clips_bridge_a_placed_cryptic_exon_without_reference_padding(tmp_path):
+    s = Scenario()
+    cryptic = s.random(30)
+    donor = s.donor_ref.sequence[220:250]
+    acceptor = s.acceptor_ref.sequence[100:130]
+    reads = [record(name, "1", 2120, "30M30S", donor + cryptic)
+             for name in ("donor-clip-1", "donor-clip-2")]
+    reads += [record(name, "2", 6000, "30S30M", cryptic + acceptor)
+              for name in ("acceptor-clip-1", "acceptor-clip-2")]
+    reads += [record("cryptic", "1", 2300, "20S30M20S",
+                     donor[-20:] + cryptic + acceptor[:20])]
+    result = s.run(write_bam(tmp_path / "cryptic-exon.bam", reads),
+                   read_collector=ReadCollector(min_mapping_quality=0,
+                                                use_soft_clipped_bases=True),
+                   include_regional_candidates=False, exon_anchored_clips=True)
+    path = next(path for path in result["paths"]
+                if path["sequence"] == donor + cryptic + acceptor)
+    assert any(block["contig"] == "1" and block["reference_start"] == 2300
+               and block["reference_end"] == 2330 for block in path["blocks"])
+    assert not path["event_linkage"]["somatic_causation_proven"]
+
+
+def test_exon_clipped_mode_retains_a_tandem_exon_duplication_join(tmp_path):
+    """A repeated reference placement can support a local join, not copy count."""
+    s = Scenario()
+    sequence = s.donor_ref.sequence[200:250] + s.donor_ref.sequence[100:150]
+    reads = []
+    for name in ("dup1", "dup2"):
+        pieces = [record(name, "1", 2100, "50M50S", sequence),
+                  record(name, "1", 2000, "50H50M", sequence[50:], flag=2048)]
+        reads.extend(link(pieces))
+    result = s.run(write_bam(tmp_path / "tandem-dup.bam", reads),
+                   donor=FusionBreakpoint("1", 2150, "+"),
+                   acceptor=FusionBreakpoint("1", 2000, "+"),
+                   references=[s.donor_ref],
+                   read_collector=ReadCollector(min_mapping_quality=0,
+                                                use_soft_clipped_bases=True),
+                   include_regional_candidates=False, exon_anchored_clips=True)
+    assert result["status"] == "event_linked_candidates"
+    assert any(path["sequence"] == sequence for path in result["paths"])
+    joins = spanning(result, "breakpoint_junction")
+    assert joins and max(j["direct_support"]["fragments"] for j in joins) == 2
+    assert not any(t["translation_observed"] for path in result["paths"]
+                   for t in path["translations"])
+
+
 def test_exon_clipped_ordinary_splice_does_not_become_an_sv_protein(tmp_path):
     s = Scenario()
     reads = [record(name, "1", 2120, "30M30S", s.donor_ref.sequence[220:280])

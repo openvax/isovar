@@ -1,0 +1,47 @@
+{
+  "schema": "isovar.sv3_full_sra_target_screen.v1",
+  "rna_accession": "SRR8615617",
+  "sra_spots_streamed": 115269780,
+  "read_segments_streamed": 230539560,
+  "target": {
+    "assembly": "GRCh38 no-alt",
+    "locus": "chr1:224430000-224745000",
+    "additional_sequence": "sv_transcript_evidence.fasta#88ab60e1f0f441a13cbecfe6",
+    "primary_aligned_segments": 1677693,
+    "supplementary_alignments": 80060
+  },
+  "genome_remap": {
+    "distinct_primary_mapped_spots": 1273581,
+    "cnih3_exon_spots": 6291,
+    "cnih3_exon_spots_mapq20": 6069,
+    "reference_models": "Ensembl 87 GRCh38 CNIH3"
+  },
+  "junction_window": {
+    "sequence": "CTGTTGTCAGGCCTATAGTAGAACTTCTTTTGGAGTTGCTTCT",
+    "bases": 43,
+    "matching_spots_in_target_screen": [
+      "SRR8615617.7312123",
+      "SRR8615617.7313798",
+      "SRR8615617.97504216",
+      "SRR8615617.101713327",
+      "SRR8615617.110737497"
+    ],
+    "placement_compatible_split_spots_in_selected_fixture": [
+      "SRR8615617.7313798",
+      "SRR8615617.97504216",
+      "SRR8615617.101713327"
+    ]
+  },
+  "candidate_fixture": {
+    "path": "../../tests/data/colo829_whole_run/SRR8615617.cnih3_source_candidates.grch38.bam",
+    "source_selected_site_bam": "../../tests/data/colo829_whole_run/SRR8615617.all_sites.grch38.bam",
+    "new_genome_remapped_spots_with_cnih3_placement": 25394,
+    "gene_region_spots_retained": 26976
+  },
+  "tool_versions": {
+    "sra_toolkit": "3.4.1",
+    "minimap2": "2.26-r1175",
+    "samtools": "1.21"
+  },
+  "scope": "alignment_based_target_screen_lower_bound_not_absence_proof"
+}

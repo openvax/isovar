@@ -17,6 +17,9 @@ selected small-variant source record and screen their SV sources.
   unrearranged GRCh38 genomic controls. The separate EIF3K–CYP39A1 coding
   fusion and unresolved SV3 requirements are linked there. Rebuild with
   `python -m reports.hcc1395_colo829.build_sv_transcript_evidence`.
+  The [versioned exon path audit](sv_exon_path_evidence.md) is regenerated
+  alongside it. The [SV3 full SRA screen](SV3_FULL_SRA_SCREEN.md)
+  documents the expanded CNIH3 candidate fixture and its limits.
 - [HCC1395 and COLO829 evidence PDFs](PDF_REPORTS.md): source-specific
   summaries of DNA call ingestion, Ensembl coding effects, pinned orfdata
   ncORF overlaps, original-RNA allele support, local protein contexts, and
