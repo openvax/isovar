@@ -42,8 +42,19 @@ def _read_at(reader, offset):
     return next(reader)
 
 
+def _read_forward(reader, offset):
+    """Reach an indexed record by sequentially skipping unselected records."""
+    current = reader.tell()
+    while current < offset:
+        next(reader)
+        current = reader.tell()
+    if current != offset:
+        raise ValueError('SV template spool offsets are not in physical order')
+    return next(reader)
+
+
 class _DiskGroups(Mapping):
-    """Original eligible BAM records, indexed without copying their payloads."""
+    """Original eligible records indexed in a private name-collated BAM."""
 
     def __init__(self, connection, reader, header, segment_count):
         self.connection, self.reader, self.header = connection, reader, header
@@ -72,15 +83,19 @@ class _DiskGroups(Mapping):
         return self.segment_count
 
     def templates(self):
-        # Traverse first appearances in physical input order. Singletons need
-        # neither a second SQL lookup nor a random seek for every record.
+        """Stream complete eligible templates without paired-record seeks."""
+        # Collation keeps each QNAME contiguous. Separate read groups within
+        # one name while retaining their first-appearance traversal order.
         with pysam.AlignmentFile(self.reader.filename, 'rb') as reader:
-            for rg, name, offset, count in self.connection.execute(
-                    'SELECT rg, name, offset, records FROM templates ORDER BY offset'):
-                if count == 1:
-                    yield [_read_at(reader, offset)]
-                else:
-                    yield [r for records in self.template((rg, name)).values() for r in records]
+            name, groups = None, {}
+            for offset, rg, current_name in self.connection.execute(
+                    'SELECT offset, rg, name FROM offsets WHERE excluded=0 ORDER BY offset'):
+                read = _read_forward(reader, offset)
+                if current_name != name:
+                    yield from groups.values()
+                    name, groups = current_name, {}
+                groups.setdefault(rg, []).append(read)
+            yield from groups.values()
 
     def template(self, fragment):
         """All eligible original mates/placements of one consulted template."""
@@ -94,18 +109,20 @@ class _DiskGroups(Mapping):
 
 
 def _spool(bam, db, collector, directory):
-    """Index original BAM offsets; serialize only potential duplicate payloads.
+    """Collate and index original BAM offsets without SQL payload copies.
 
     QNAME/RG identify the only records that could share an original SAM payload.
-    Singletons therefore need no SAM serialization, hash, or copied BAM. All
-    records in repeated templates are hashed in physical file order; identical
-    originals are deduplicated while exclusions still count every input record.
+    Singletons therefore need no SAM serialization or hash. All records in
+    repeated templates are hashed in physical file order; identical originals
+    are deduplicated while exclusions still count every input record.
     """
     directory = Path(directory)
+    created_source = False
     if bam.is_bam and bam.filename and Path(fsdecode(bam.filename)).is_file():
         source = Path(fsdecode(bam.filename))
     else:
         source = directory / 'original.bam'
+        created_source = True
         with ExitStack() as stack:
             reader = bam
             if bam.is_sam and bam.filename and Path(fsdecode(bam.filename)).is_file():
@@ -116,6 +133,11 @@ def _spool(bam, db, collector, directory):
                 source, 'wb', header=bam.header, format_options=[b'level=1']))
             for read in reader.fetch(until_eof=True):
                 output.write(read)
+    collated = directory / 'collated.bam'
+    pysam.collate('--no-PG', '-o', str(collated), str(source))
+    if created_source:
+        source.unlink()
+    source = collated
     db.execute('CREATE TABLE offsets (offset INTEGER PRIMARY KEY, rg TEXT, name TEXT, segment INTEGER, excluded INTEGER)')
     scanned, excluded = 0, Counter()
     with pysam.AlignmentFile(source, 'rb') as reader:
