@@ -3,6 +3,7 @@
 from dataclasses import asdict
 import json
 from pathlib import Path
+import sqlite3
 import weakref
 
 import pysam
@@ -155,6 +156,36 @@ def dense_reads(scenario, n=13):
 def candidate(result):
     path, = result['paths']
     return path
+
+
+def test_collated_template_stream_keeps_mates_placements_and_read_groups(tmp_path, monkeypatch):
+    from isovar.sv_rna_dense import _DiskGroups, _spool
+
+    first = record('same-name', '1', 100, '20M', 'A' * 20, flag=65)
+    mate = record('same-name', '2', 300, '20M', 'C' * 20, flag=129)
+    alternative = record('same-name', '1', 500, '20M', 'G' * 20, flag=65 | 256)
+    other_group = record('same-name', '2', 700, '20M', 'T' * 20, group='b')
+    unrelated = record('other-name', '1', 200, '20M', 'A' * 20)
+    reads = [mate, first, alternative, first, unrelated, other_group]
+    path = write_bam(tmp_path / 'templates.bam', reads)
+    with pysam.AlignmentFile(path) as bam, sqlite3.connect(tmp_path / 'records.sqlite') as db:
+        scanned, excluded, unique, segments, source = _spool(
+            bam, db, ReadCollector(min_mapping_quality=0), tmp_path)
+        assert (scanned, excluded, unique, segments) == (6, {}, 5, 4)
+        with pysam.AlignmentFile(source) as reader:
+            groups = _DiskGroups(db, reader, bam.header, segments)
+
+            def no_random_template_lookup(_):
+                raise AssertionError('template iteration must stream without per-pair seeks')
+
+            monkeypatch.setattr(groups, 'template', no_random_template_lookup)
+            streamed = {key: [read.to_string() for read in template]
+                        for template in groups.templates()
+                        for key in {(template[0].get_tag('RG'), template[0].query_name)}}
+    assert set(streamed) == {('a', 'same-name'), ('b', 'same-name'), ('a', 'other-name')}
+    assert set(streamed['a', 'same-name']) == {first.to_string(), mate.to_string(), alternative.to_string()}
+    assert streamed['b', 'same-name'] == [other_group.to_string()]
+    assert streamed['a', 'other-name'] == [unrelated.to_string()]
 
 
 def test_late_rare_event_and_complete_support_do_not_depend_on_discovery_cap_or_order(tmp_path):

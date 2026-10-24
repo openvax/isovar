@@ -19,7 +19,9 @@ selected small-variant source record and screen their SV sources.
   `python -m reports.hcc1395_colo829.build_sv_transcript_evidence`.
   The [versioned exon path audit](sv_exon_path_evidence.md) is regenerated
   alongside it. The [SV3 full SRA screen](SV3_FULL_SRA_SCREEN.md)
-  documents the expanded CNIH3 candidate fixture and its limits.
+  documents the expanded CNIH3 candidate fixture and its limits. The
+  [dense recount benchmark](SV3_DENSE_RECOUNT_BENCHMARK.md) measures paired
+  template scaling on pinned and source-scale proxy inputs.
 - [HCC1395 and COLO829 evidence PDFs](PDF_REPORTS.md): source-specific
   summaries of DNA call ingestion, Ensembl coding effects, pinned orfdata
   ncORF overlaps, original-RNA allele support, local protein contexts, and

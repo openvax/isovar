@@ -6,6 +6,7 @@ from pathlib import Path
 
 from reports.hcc1395_colo829.build_sv_exon_path_evidence import (
     _positions, build, build_source_extension)
+from reports.hcc1395_colo829.benchmark_sv3_dense_recount import benchmark
 
 
 DATA = Path(__file__).parent / "data/colo829_whole_run"
@@ -80,4 +81,16 @@ def test_full_sra_target_screen_extends_sv3_without_inventing_a_frame():
     assert row["exact_exon_anchor_bases"] == 0
     assert row["frame_status"] == "no_gene_anchor"
     assert row["event_linked_translation_candidates"] == 0
+    assert "path_limit" in row["limitations"]
+
+
+def test_dense_full_input_recount_retains_original_sv3_join(tmp_path):
+    row = benchmark(DATA / "SRR8615617.cnih3_source_candidates.grch38.bam", tmp_path)
+    assert row["records_scanned"] == 52212
+    assert row["eligible_segments"] == 50489
+    assert row["joined_paths"] == [{
+        "path_id": "653d5d9c015d3e590fb149b3",
+        "direct_fragments": 3,
+        "local_exact_fragments": 3,
+    }]
     assert "path_limit" in row["limitations"]

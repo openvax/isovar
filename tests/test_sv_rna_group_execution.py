@@ -20,7 +20,7 @@ from tests.test_sv_rna_orfs import inputs
 
 
 @pytest.mark.parametrize('input_format', ['bam', 'sam'])
-def test_offset_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, input_format):
+def test_collated_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, input_format):
     reads = []
     for name in ('read1', 'read01', 'read001'):
         for flag in (65, 129, 2113, 321):
@@ -45,6 +45,7 @@ def test_offset_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, inpu
         assert reasons == {'duplicate': 2}
         assert unique == len({r.to_string() for r in reads})
         with pysam.AlignmentFile(path) as reader:
+            assert reader.header.to_dict()['HD']['GO'] == 'query'
             groups = _DiskGroups(db, reader, HEADER, segments)
             wanted = {r.to_string() for r in reads if not r.is_duplicate}
             assert {r.to_string() for group in groups.templates() for r in group} == wanted
@@ -53,8 +54,8 @@ def test_offset_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, inpu
                 assert identity in groups
                 assert {r.to_string() for r in groups[identity]} == {
                     r.to_string() for r in reads if segment_identity(r) == identity and not r.is_duplicate}
-        if input_format == 'bam':
-            assert path == bam_path  # No copied BAM or rewritten input.
+        assert path == tmp_path / 'collated.bam'
+        assert path != bam_path  # Private query-name copy; original input remains unchanged.
     assert sha256(bam_path.read_bytes()).digest() == original_digest
 
 
