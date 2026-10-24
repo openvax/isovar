@@ -2,6 +2,7 @@
 
 from dataclasses import asdict
 import json
+from pathlib import Path
 import weakref
 
 import pysam
@@ -10,7 +11,7 @@ import pytest
 from isovar import export_sv_rna_orfs
 from isovar.cli.isovar_sv_rna import run as cli_run
 from isovar.read_collector import ReadCollector
-from isovar.fusion import FusionBreakpoint
+from isovar.fusion import FusionBreakpoint, FusionReference
 from isovar.sv_rna import reconstruct_sv_rna
 from tests.test_sv_rna import Scenario, aligned, record, write_bam
 
@@ -630,3 +631,69 @@ def test_placed_rare_event_precedes_unlinked_breakpoint_clips(tmp_path):
     assert path['sequence'] == scenario.sequence[200:300]
     assert path['event_linkage']['status'] == 'breakpoint_junction'
     assert path['full_interval_support']['fragments'] == 1
+
+
+def test_dense_exon_clip_priority_and_complete_original_support(tmp_path):
+    scenario = Scenario()
+    reads = [record('clip-%d' % i, '1', 2120, '30M30S', scenario.sequence[220:280], mapq=60)
+             for i in range(16)]
+    reads += aligned('donor', scenario.sequence[160:250], scenario.positions[160:250])
+    partner = aligned('partner', scenario.sequence[250:350], scenario.positions[250:350])
+    partner[0].mapping_quality = 1
+    reads += partner + [partner[0]]  # Repeated original SAM payload is not another fragment.
+    reads += aligned('ordinary', scenario.donor_ref.sequence[160:350], scenario.donor_positions[160:350])
+    reads += [record('background-%d' % i, '1', 2010, '50M', scenario.donor_ref.sequence[10:60])
+              for i in range(30)]
+    bam = write_bam(tmp_path / 'dense-exon-clip.bam', reads)
+    options = dict(read_collector=ReadCollector(min_mapping_quality=0, use_soft_clipped_bases=True),
+                   include_regional_candidates=False, exon_anchored_clips=True)
+
+    limited = scenario.run(bam, dense_support=True, max_records=4, **options)
+    clip, = [seed for seed in limited['seeds']
+             if seed['relation'] == 'exon_anchored_clip_partner_unplaced']
+    assert clip['fragments'] == 4
+    assert clip['complete_input_support']['fragments'] == 16
+    assert len(clip['complete_input_support']['original_read_ids']) == 16
+    assert clip['complete_input_support']['raw_mapping_qualities'] == [60]
+    assert limited['discovery']['policy'] == 'event_first_full_allele_groups_with_exon_clips.v1'
+    assert limited['support_acquisition']['unique_records'] == len(reads) - 1
+    assert 'discovery_record_limit' in limited['limitations']
+
+    bounded = scenario.run(bam, max_records=80, **options)
+    dense = scenario.run(bam, max_records=80, dense_support=True, **options)
+    expected = scenario.sequence[160:350]
+    assert {path['sequence'] for path in bounded['paths']} == {expected}
+    assert {path['sequence'] for path in dense['paths']} == {expected}
+    assert dense['paths'][0]['frame_status'] == 'translated'
+    assert dense['paths'][0]['junctions'][0]['direct_support']['fragments'] == 0
+    clip, = [seed for seed in dense['seeds']
+             if seed['relation'] == 'exon_anchored_clip_partner_unplaced']
+    assert clip['complete_input_support']['fragments'] == 16
+    assert all(row['identity'][1].startswith('clip-') for row in
+               (dense['observations'][key] for key in clip['complete_input_support']['observations']))
+
+
+def test_dense_exon_clips_replay_original_hcc1395_reads():
+    import gzip
+
+    root = Path(__file__).parent / 'data/hcc1395_sv_junction'
+    models = json.loads(gzip.open(root / 'ensembl87_models.json.gz', 'rt').read())['models']['SUGT1']
+    references = [FusionReference(**row) for row in models]
+    bam = root / 'SRR23456709.sv_candidates.grch38.bam'
+    options = dict(event_id='chr13_52688329_chr13_60966095_+-', reference_name='GRCh38',
+                   sample_id='HCC1395', source='SRA:SRR23456709',
+                   donor=FusionBreakpoint('chr13', 52688329, '+'),
+                   acceptor=FusionBreakpoint('chr13', 60966095, '+'),
+                   regions=[], references=references, event_provenance={'dna_call_id': 'chr13'},
+                   read_collector=ReadCollector(min_mapping_quality=20, use_soft_clipped_bases=True),
+                   max_records=5000, max_queries=100, max_paths=20,
+                   include_regional_candidates=False, exon_anchored_clips=True)
+    with pysam.AlignmentFile(str(bam)) as alignment:
+        bounded = reconstruct_sv_rna(alignment, **options)
+    with pysam.AlignmentFile(str(bam)) as alignment:
+        dense = reconstruct_sv_rna(alignment, dense_support=True, **options)
+    assert {path['path_id'] for path in dense['paths']} == {path['path_id'] for path in bounded['paths']}
+    assert max(j['direct_support']['fragments'] for path in dense['paths'] for j in path['junctions']
+               if j['relation'] == 'breakpoint_junction') == 3
+    clips = [seed for seed in dense['seeds'] if seed['relation'] == 'exon_anchored_clip_partner_unplaced']
+    assert clips and all(seed['complete_input_support']['fragments'] >= 1 for seed in clips if seed['paths'])

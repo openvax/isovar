@@ -1886,7 +1886,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         temporary disk space to search large inputs: automatically group reads
         by full sequence and alignment, share repeated calculations within
         max_records, then count candidate support across all eligible original
-        reads. Grouping needs no separate tuning. Discovery and intron-competition
+        reads. Exon-anchored clip seeds, when enabled, are recounted separately
+        from direct junctions. Grouping needs no separate tuning. Discovery and intron-competition
         limits remain explicit.
     scratch_dir : str or pathlib.Path, optional
         Optional location for temporary files when dense_support is True.
@@ -1946,8 +1947,6 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
     collector = ReadCollector() if read_collector is None else read_collector
     if exon_anchored_clips and (not references or not collector.use_soft_clipped_bases):
         raise ValueError("Exon-anchored clips require reference models and soft-clipped bases")
-    if exon_anchored_clips and dense_support:
-        raise ValueError("Dense support does not yet select exon-anchored sequence bridges")
     if dense_support:
         from .sv_rna_dense import reconstruct_dense_sv_rna
 
@@ -2045,6 +2044,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                        right=list(core_positions[-1]) if core_positions[-1] else None,
                        unplaced_bases=core_sequence[1:-1], fragments=len(seed["fragments"]),
                        reads=len({o.identity for o, _ in seed["observations"]}), paths=[])
+            if seed["relation"] == "exon_anchored_clip_partner_unplaced":
+                row["core_sequence"] = core_sequence
             seed_rows.append(row)
             # Joins at or across the event may rest on one fragment; ordinary
             # splices and regional joins need support.
