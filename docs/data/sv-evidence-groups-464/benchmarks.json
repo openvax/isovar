@@ -1,0 +1,1694 @@
+{
+  "created_utc": "2026-10-24T20:28:31.783229+00:00",
+  "inputs_sha256": {
+    "colo829_bam": "f24a0543f29d1db226b1df95edfaa99aba735400f516e2fef5e3e78dafce752f",
+    "colo829_models": "0c72b579f7f6ce331c6b354b4b14d06f1c1cbc869c5d23f08c1e211726ff9b5a",
+    "hcc1395_bam": "9634b78414b9ddbbb9e098a01d899028dd0b2d703c3c9d0a5c24ce6a95cc9db9",
+    "hcc1395_models": "8fc93e4457f993b1b6de9185512454ebfe5ac18b805dc060de372d7b6453f927"
+  },
+  "measurements": [
+    {
+      "discovery": {
+        "budgeted_groups": 12820,
+        "budgeted_records": 16641,
+        "complete": false,
+        "eligible_regional_groups": 12820,
+        "eligible_regional_records": 16641,
+        "eligible_structural_bins": 10856,
+        "group_limit_reached": false,
+        "groups_complete": true,
+        "initial_representatives_per_group": 2,
+        "omitted_groups": 0,
+        "omitted_groups_by_group_limit": 0,
+        "omitted_groups_by_record_limit": 0,
+        "omitted_records": 0,
+        "omitted_records_by_group_limit": 0,
+        "omitted_records_by_record_limit": 0,
+        "policy": "event_first_full_allele_groups_with_exon_clips.v1",
+        "record_limit_reached": false,
+        "represented_records": 16641,
+        "selected_groups": 12820,
+        "selected_records": 16641
+      },
+      "limitations": [
+        "mate_location_unavailable",
+        "path_limit"
+      ],
+      "max_evidence_groups": null,
+      "max_records": 50000,
+      "paths": [
+        {
+          "direct_junction_fragments": 3,
+          "frame_status": "no_gene_anchor",
+          "full_interval_fragments": 0,
+          "length": 2178,
+          "path_id": "653d5d9c015d3e590fb149b3",
+          "sequence_sha256": "3d901c653194bc1a0e2815e8a3e49cd435f5a0addcad0c1c0a4ee64b67afede3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1756,
+          "path_id": "4ddda85d7fe82ca493a30aee",
+          "sequence_sha256": "8b7b247255d6231d10918c61e2f27ef1a78c46f63fa4c8dd949f1c0e3d622ecf"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1763,
+          "path_id": "30c6630a2ab1d6ec9ab08dfa",
+          "sequence_sha256": "5b3317f680000684ee1e900d285b0e45b3689f688d6afa84fbf31c538bc67af3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1829,
+          "path_id": "f9fae9a9bb746d735b37600e",
+          "sequence_sha256": "fd185ba56a5974d5a40968883e4ba1c89904d91dcf93687ac843540c583ec95a"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1930,
+          "path_id": "13535a6df7aafd1f1f806a25",
+          "sequence_sha256": "06b32c19f062b090908d5d20f83cdb777b0f6a6f1d39eb31ab6c0d4397ff0670"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1930,
+          "path_id": "a30202048a893f29c269f302",
+          "sequence_sha256": "06b32c19f062b090908d5d20f83cdb777b0f6a6f1d39eb31ab6c0d4397ff0670"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1770,
+          "path_id": "b47c0e9035dc8a804a47919d",
+          "sequence_sha256": "19075b44861fb9e51343bc0219cd1b15b6d6de911c0e772839245f6a056a77cb"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1701,
+          "path_id": "688bcc742d93c1f8e7183d9b",
+          "sequence_sha256": "29133efa35de2d639c1b9e933cae5c033e8d41cd3e6db660130f64c5f5c8aba3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1970,
+          "path_id": "e2b809bb88906e918326fc6d",
+          "sequence_sha256": "b116f14a6f18e029d82534eeb4812538875bfc1ebc68011e92094eec09f9bb72"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2205,
+          "path_id": "b910257e67b8ca62d930d710",
+          "sequence_sha256": "0dd917a6846361364dcee71d052882192812032457779494e15b2f9f8f7cdee5"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2036,
+          "path_id": "dd737430150ec30aaafdf46e",
+          "sequence_sha256": "56029d5b41ca1b67b25b36fc0bf207726e04d67cb6f06ba1a9bc8bc0e8c9e529"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1940,
+          "path_id": "9e2b96909c1cb462f0fbd783",
+          "sequence_sha256": "e54d5491f4fce790ff4ff319be6a71d6128c6c1002a227503ebde7e5958da267"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1774,
+          "path_id": "1ce02cee306783cd6267ae7f",
+          "sequence_sha256": "27dc4a30f27b068ec0327686da557c5f2b9912eda82744212ada55c59f501a58"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1917,
+          "path_id": "4b6ce5bcdb1272ba40be6872",
+          "sequence_sha256": "5318b3827180cbfbb2165f761dfa6b29678bbdefebfbf480ab57e4fd5db1648e"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1781,
+          "path_id": "363e0d2e8e0ffb5f4ff3f9b4",
+          "sequence_sha256": "764e207d0f11001a53b0aed7ab0f529c8e4730c9a90e43b2505b15af2292dc92"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1624,
+          "path_id": "b16991fda2240db3de2b1c1a",
+          "sequence_sha256": "c5d5f50937aedd95d78f26b8f69c4c5d48748caa565da746e7271e378cbda5a9"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1706,
+          "path_id": "c5dd9bbe0695ff4ace4b6c2d",
+          "sequence_sha256": "8fcbcf8b9cd40d2c24ad89ed38692b2ec39521ce6f509defe315c8c16bac39f1"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 113,
+          "path_id": "7eb95dff92e1d8be7c81fe9c",
+          "sequence_sha256": "103f021a334c7aa87ee53cecaa38a2a9a22048c2a04e896f4049a429d7960cb6"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1456,
+          "path_id": "af047d03287341db7cf6404f",
+          "sequence_sha256": "479d950eb450fd281dd425330d38bfd2b8cc6fe0bb28af3d64d9be5b77606eee"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1639,
+          "path_id": "ede7dc56ede07f2896266b03",
+          "sequence_sha256": "d151d94a986f2d10f357556d179634ed414c5584df5fb36163ea5b69d4dcc987"
+        }
+      ],
+      "peak_rss_bytes": 348569600,
+      "peak_scratch_bytes": 22351581,
+      "sample": "colo829",
+      "source": "/Users/iskander/code/isovar/.sv-groups-464/tests/data/colo829_whole_run/SRR8615617.cnih3_source_candidates.grch38.bam",
+      "support_acquisition": {
+        "complete": true,
+        "eligible_segments": 50489,
+        "excluded_records": {
+          "unmapped": 180
+        },
+        "read_path_notes": {
+          "ambiguous_bases": 588
+        },
+        "records_complete": true,
+        "records_scanned": 52212,
+        "scope": "all_original_input_records",
+        "unique_records": 52212
+      },
+      "wall_seconds": 10.8
+    },
+    {
+      "discovery": {
+        "budgeted_groups": 12820,
+        "budgeted_records": 16641,
+        "complete": false,
+        "eligible_regional_groups": 12820,
+        "eligible_regional_records": 16641,
+        "eligible_structural_bins": 10856,
+        "group_limit_reached": false,
+        "groups_complete": true,
+        "initial_representatives_per_group": 2,
+        "omitted_groups": 0,
+        "omitted_groups_by_group_limit": 0,
+        "omitted_groups_by_record_limit": 0,
+        "omitted_records": 0,
+        "omitted_records_by_group_limit": 0,
+        "omitted_records_by_record_limit": 0,
+        "policy": "event_first_full_allele_groups_with_exon_clips.v1",
+        "record_limit_reached": false,
+        "represented_records": 16641,
+        "selected_groups": 12820,
+        "selected_records": 16641
+      },
+      "limitations": [
+        "mate_location_unavailable",
+        "path_limit"
+      ],
+      "max_evidence_groups": null,
+      "max_records": 100000,
+      "paths": [
+        {
+          "direct_junction_fragments": 3,
+          "frame_status": "no_gene_anchor",
+          "full_interval_fragments": 0,
+          "length": 2178,
+          "path_id": "653d5d9c015d3e590fb149b3",
+          "sequence_sha256": "3d901c653194bc1a0e2815e8a3e49cd435f5a0addcad0c1c0a4ee64b67afede3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1756,
+          "path_id": "4ddda85d7fe82ca493a30aee",
+          "sequence_sha256": "8b7b247255d6231d10918c61e2f27ef1a78c46f63fa4c8dd949f1c0e3d622ecf"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1763,
+          "path_id": "30c6630a2ab1d6ec9ab08dfa",
+          "sequence_sha256": "5b3317f680000684ee1e900d285b0e45b3689f688d6afa84fbf31c538bc67af3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1829,
+          "path_id": "f9fae9a9bb746d735b37600e",
+          "sequence_sha256": "fd185ba56a5974d5a40968883e4ba1c89904d91dcf93687ac843540c583ec95a"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1930,
+          "path_id": "13535a6df7aafd1f1f806a25",
+          "sequence_sha256": "06b32c19f062b090908d5d20f83cdb777b0f6a6f1d39eb31ab6c0d4397ff0670"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1930,
+          "path_id": "a30202048a893f29c269f302",
+          "sequence_sha256": "06b32c19f062b090908d5d20f83cdb777b0f6a6f1d39eb31ab6c0d4397ff0670"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1770,
+          "path_id": "b47c0e9035dc8a804a47919d",
+          "sequence_sha256": "19075b44861fb9e51343bc0219cd1b15b6d6de911c0e772839245f6a056a77cb"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1701,
+          "path_id": "688bcc742d93c1f8e7183d9b",
+          "sequence_sha256": "29133efa35de2d639c1b9e933cae5c033e8d41cd3e6db660130f64c5f5c8aba3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1970,
+          "path_id": "e2b809bb88906e918326fc6d",
+          "sequence_sha256": "b116f14a6f18e029d82534eeb4812538875bfc1ebc68011e92094eec09f9bb72"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2205,
+          "path_id": "b910257e67b8ca62d930d710",
+          "sequence_sha256": "0dd917a6846361364dcee71d052882192812032457779494e15b2f9f8f7cdee5"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2036,
+          "path_id": "dd737430150ec30aaafdf46e",
+          "sequence_sha256": "56029d5b41ca1b67b25b36fc0bf207726e04d67cb6f06ba1a9bc8bc0e8c9e529"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1940,
+          "path_id": "9e2b96909c1cb462f0fbd783",
+          "sequence_sha256": "e54d5491f4fce790ff4ff319be6a71d6128c6c1002a227503ebde7e5958da267"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1774,
+          "path_id": "1ce02cee306783cd6267ae7f",
+          "sequence_sha256": "27dc4a30f27b068ec0327686da557c5f2b9912eda82744212ada55c59f501a58"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1917,
+          "path_id": "4b6ce5bcdb1272ba40be6872",
+          "sequence_sha256": "5318b3827180cbfbb2165f761dfa6b29678bbdefebfbf480ab57e4fd5db1648e"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1781,
+          "path_id": "363e0d2e8e0ffb5f4ff3f9b4",
+          "sequence_sha256": "764e207d0f11001a53b0aed7ab0f529c8e4730c9a90e43b2505b15af2292dc92"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1624,
+          "path_id": "b16991fda2240db3de2b1c1a",
+          "sequence_sha256": "c5d5f50937aedd95d78f26b8f69c4c5d48748caa565da746e7271e378cbda5a9"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1706,
+          "path_id": "c5dd9bbe0695ff4ace4b6c2d",
+          "sequence_sha256": "8fcbcf8b9cd40d2c24ad89ed38692b2ec39521ce6f509defe315c8c16bac39f1"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 113,
+          "path_id": "7eb95dff92e1d8be7c81fe9c",
+          "sequence_sha256": "103f021a334c7aa87ee53cecaa38a2a9a22048c2a04e896f4049a429d7960cb6"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1456,
+          "path_id": "af047d03287341db7cf6404f",
+          "sequence_sha256": "479d950eb450fd281dd425330d38bfd2b8cc6fe0bb28af3d64d9be5b77606eee"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1639,
+          "path_id": "ede7dc56ede07f2896266b03",
+          "sequence_sha256": "d151d94a986f2d10f357556d179634ed414c5584df5fb36163ea5b69d4dcc987"
+        }
+      ],
+      "peak_rss_bytes": 347242496,
+      "peak_scratch_bytes": 22351581,
+      "sample": "colo829",
+      "source": "/Users/iskander/code/isovar/.sv-groups-464/tests/data/colo829_whole_run/SRR8615617.cnih3_source_candidates.grch38.bam",
+      "support_acquisition": {
+        "complete": true,
+        "eligible_segments": 50489,
+        "excluded_records": {
+          "unmapped": 180
+        },
+        "read_path_notes": {
+          "ambiguous_bases": 588
+        },
+        "records_complete": true,
+        "records_scanned": 52212,
+        "scope": "all_original_input_records",
+        "unique_records": 52212
+      },
+      "wall_seconds": 9.95
+    },
+    {
+      "discovery": {
+        "budgeted_groups": 12820,
+        "budgeted_records": 16641,
+        "complete": false,
+        "eligible_regional_groups": 12820,
+        "eligible_regional_records": 16641,
+        "eligible_structural_bins": 10856,
+        "group_limit_reached": false,
+        "groups_complete": true,
+        "initial_representatives_per_group": 2,
+        "omitted_groups": 0,
+        "omitted_groups_by_group_limit": 0,
+        "omitted_groups_by_record_limit": 0,
+        "omitted_records": 0,
+        "omitted_records_by_group_limit": 0,
+        "omitted_records_by_record_limit": 0,
+        "policy": "event_first_full_allele_groups_with_exon_clips.v1",
+        "record_limit_reached": false,
+        "represented_records": 16641,
+        "selected_groups": 12820,
+        "selected_records": 16641
+      },
+      "limitations": [
+        "mate_location_unavailable",
+        "path_limit"
+      ],
+      "max_evidence_groups": null,
+      "max_records": 250000,
+      "paths": [
+        {
+          "direct_junction_fragments": 3,
+          "frame_status": "no_gene_anchor",
+          "full_interval_fragments": 0,
+          "length": 2178,
+          "path_id": "653d5d9c015d3e590fb149b3",
+          "sequence_sha256": "3d901c653194bc1a0e2815e8a3e49cd435f5a0addcad0c1c0a4ee64b67afede3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1756,
+          "path_id": "4ddda85d7fe82ca493a30aee",
+          "sequence_sha256": "8b7b247255d6231d10918c61e2f27ef1a78c46f63fa4c8dd949f1c0e3d622ecf"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1763,
+          "path_id": "30c6630a2ab1d6ec9ab08dfa",
+          "sequence_sha256": "5b3317f680000684ee1e900d285b0e45b3689f688d6afa84fbf31c538bc67af3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1829,
+          "path_id": "f9fae9a9bb746d735b37600e",
+          "sequence_sha256": "fd185ba56a5974d5a40968883e4ba1c89904d91dcf93687ac843540c583ec95a"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1930,
+          "path_id": "13535a6df7aafd1f1f806a25",
+          "sequence_sha256": "06b32c19f062b090908d5d20f83cdb777b0f6a6f1d39eb31ab6c0d4397ff0670"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1930,
+          "path_id": "a30202048a893f29c269f302",
+          "sequence_sha256": "06b32c19f062b090908d5d20f83cdb777b0f6a6f1d39eb31ab6c0d4397ff0670"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1770,
+          "path_id": "b47c0e9035dc8a804a47919d",
+          "sequence_sha256": "19075b44861fb9e51343bc0219cd1b15b6d6de911c0e772839245f6a056a77cb"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1701,
+          "path_id": "688bcc742d93c1f8e7183d9b",
+          "sequence_sha256": "29133efa35de2d639c1b9e933cae5c033e8d41cd3e6db660130f64c5f5c8aba3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1970,
+          "path_id": "e2b809bb88906e918326fc6d",
+          "sequence_sha256": "b116f14a6f18e029d82534eeb4812538875bfc1ebc68011e92094eec09f9bb72"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2205,
+          "path_id": "b910257e67b8ca62d930d710",
+          "sequence_sha256": "0dd917a6846361364dcee71d052882192812032457779494e15b2f9f8f7cdee5"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2036,
+          "path_id": "dd737430150ec30aaafdf46e",
+          "sequence_sha256": "56029d5b41ca1b67b25b36fc0bf207726e04d67cb6f06ba1a9bc8bc0e8c9e529"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1940,
+          "path_id": "9e2b96909c1cb462f0fbd783",
+          "sequence_sha256": "e54d5491f4fce790ff4ff319be6a71d6128c6c1002a227503ebde7e5958da267"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1774,
+          "path_id": "1ce02cee306783cd6267ae7f",
+          "sequence_sha256": "27dc4a30f27b068ec0327686da557c5f2b9912eda82744212ada55c59f501a58"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1917,
+          "path_id": "4b6ce5bcdb1272ba40be6872",
+          "sequence_sha256": "5318b3827180cbfbb2165f761dfa6b29678bbdefebfbf480ab57e4fd5db1648e"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1781,
+          "path_id": "363e0d2e8e0ffb5f4ff3f9b4",
+          "sequence_sha256": "764e207d0f11001a53b0aed7ab0f529c8e4730c9a90e43b2505b15af2292dc92"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1624,
+          "path_id": "b16991fda2240db3de2b1c1a",
+          "sequence_sha256": "c5d5f50937aedd95d78f26b8f69c4c5d48748caa565da746e7271e378cbda5a9"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1706,
+          "path_id": "c5dd9bbe0695ff4ace4b6c2d",
+          "sequence_sha256": "8fcbcf8b9cd40d2c24ad89ed38692b2ec39521ce6f509defe315c8c16bac39f1"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 113,
+          "path_id": "7eb95dff92e1d8be7c81fe9c",
+          "sequence_sha256": "103f021a334c7aa87ee53cecaa38a2a9a22048c2a04e896f4049a429d7960cb6"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1456,
+          "path_id": "af047d03287341db7cf6404f",
+          "sequence_sha256": "479d950eb450fd281dd425330d38bfd2b8cc6fe0bb28af3d64d9be5b77606eee"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1639,
+          "path_id": "ede7dc56ede07f2896266b03",
+          "sequence_sha256": "d151d94a986f2d10f357556d179634ed414c5584df5fb36163ea5b69d4dcc987"
+        }
+      ],
+      "peak_rss_bytes": 346603520,
+      "peak_scratch_bytes": 22351581,
+      "sample": "colo829",
+      "source": "/Users/iskander/code/isovar/.sv-groups-464/tests/data/colo829_whole_run/SRR8615617.cnih3_source_candidates.grch38.bam",
+      "support_acquisition": {
+        "complete": true,
+        "eligible_segments": 50489,
+        "excluded_records": {
+          "unmapped": 180
+        },
+        "read_path_notes": {
+          "ambiguous_bases": 588
+        },
+        "records_complete": true,
+        "records_scanned": 52212,
+        "scope": "all_original_input_records",
+        "unique_records": 52212
+      },
+      "wall_seconds": 9.45
+    },
+    {
+      "discovery": {
+        "budgeted_groups": 5000,
+        "budgeted_records": 6531,
+        "complete": false,
+        "eligible_regional_groups": 12820,
+        "eligible_regional_records": 16641,
+        "eligible_structural_bins": 10856,
+        "group_limit_reached": true,
+        "groups_complete": false,
+        "initial_representatives_per_group": 2,
+        "omitted_groups": 7820,
+        "omitted_groups_by_group_limit": 7820,
+        "omitted_groups_by_record_limit": 0,
+        "omitted_records": 10110,
+        "omitted_records_by_group_limit": 10110,
+        "omitted_records_by_record_limit": 0,
+        "policy": "event_first_full_allele_groups_with_exon_clips.v2",
+        "record_limit_reached": false,
+        "represented_records": 6531,
+        "selected_groups": 5000,
+        "selected_records": 6531
+      },
+      "limitations": [
+        "discovery_group_limit",
+        "mate_location_unavailable",
+        "path_limit"
+      ],
+      "max_evidence_groups": 5000,
+      "max_records": 50000,
+      "paths": [
+        {
+          "direct_junction_fragments": 3,
+          "frame_status": "no_gene_anchor",
+          "full_interval_fragments": 0,
+          "length": 2158,
+          "path_id": "63e9db054fe722013ed5af23",
+          "sequence_sha256": "8c4b408b381fb9a1d77ba39fe2c7152fa8305da891f199b2ef455998d2ebd9e7"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1739,
+          "path_id": "fa27571cc7888a06b3c96559",
+          "sequence_sha256": "009b29a0272809a93ea3c03d008dc91a66c7a9e9d96c4e184aecdc0c83f690f7"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1832,
+          "path_id": "ce45f3311f9dd4a1f6b65206",
+          "sequence_sha256": "0672ed503567b73b010624f8a696b8dd9aebcee9918d21e4e766a24d27a8eebc"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1805,
+          "path_id": "f7c02770b1ffb601659db30d",
+          "sequence_sha256": "8c2efac9c4176011c338b6cad13badde51c74a878c4d80d791054b5570a638b6"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1909,
+          "path_id": "41e028140211677d3b3eb3b2",
+          "sequence_sha256": "87db3301870a0fe60b29a18ae8e4d21f2f6d08f82b2cde14b3fd4fe923e22d4b"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1672,
+          "path_id": "55c1528e416e3b29dd9b1bb6",
+          "sequence_sha256": "c61668ab47167a1bfd4bc6d4c6e0667cee90b8d6d0d7d60b5eb81e3db617d037"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1645,
+          "path_id": "85de1f0ea1c8d43bdd21c63b",
+          "sequence_sha256": "137662be83c64e547eadda2ff6e1884116b647bbaf5fbcc0a1a12320de9c1959"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1914,
+          "path_id": "f5a719bc11ba1f523bd3f6b7",
+          "sequence_sha256": "4254db5ae27d47c73c3631e391fa3268d9cc7dd47be2e01a445e8a46b73ad17d"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2025,
+          "path_id": "4616087eaf08994716311036",
+          "sequence_sha256": "844368c6c47ac29be28be84db63a8d3c3d6b70d9ad2d716ee300493e368e5289"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2118,
+          "path_id": "1f9e777f71f620777797807c",
+          "sequence_sha256": "f2ebd7d1a7a354c06a2e5907fddc01c560cc26f8bcb014220572665144e2c89e"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2091,
+          "path_id": "f6fefae21e355b2fc130000d",
+          "sequence_sha256": "94a33462d31a6b5c7e2c00229846e51502b589f4a218de24db615b5d5eb44683"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2195,
+          "path_id": "c4f352d1a35229339ab606f0",
+          "sequence_sha256": "3f5817766e66efb9fdf62cdefb7340f326bce4f740580582b06d438d47a3e278"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1760,
+          "path_id": "d81a75a273c2308ddcf06a8f",
+          "sequence_sha256": "b963a05fd44ec86d866c7b924c21da84bed2ef5d4e669e2ec7407205e221222f"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1853,
+          "path_id": "9934026bc6442ef9cfb3678b",
+          "sequence_sha256": "9c377bbc4a63a8fde2a364a2cedd05b825fbf3b3f42d41d9ccb3d72b8af645cd"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1826,
+          "path_id": "f613f89a8964667715d203b3",
+          "sequence_sha256": "d314f6419d9383f3c6583981d2cbd1fee64d19f2406fd39c1dc50cf41aa3866c"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1930,
+          "path_id": "c44969c3ea89a09305293312",
+          "sequence_sha256": "a8229c550c1218c7a2bdc2d0bb5721e1561ceb3febabf663cafc5e4c418047ad"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1797,
+          "path_id": "49c251ce2d0889450bf13a08",
+          "sequence_sha256": "de6c92d14f7cdf53d9b8399ba1d9c24b63ac8f9e78cac30daa19df24fe09b1f8"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1647,
+          "path_id": "552296f14c961c44f990bc58",
+          "sequence_sha256": "6ef088ab74441121d44c3afad22b15ee9b36237e4097c412f9b54f5280e2713e"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1610,
+          "path_id": "63f4e696d571d932ce287ab5",
+          "sequence_sha256": "d9757695b7fc3e29c782b945b0a01d52c97b92fa1b1f7f57aede68a600f39781"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1583,
+          "path_id": "f916eefae3ed8d8c319ad041",
+          "sequence_sha256": "cffec5eca004ad1dbc1dac5eec21aecce24bf4d0279e595775a7b55f4ef9c630"
+        }
+      ],
+      "peak_rss_bytes": 233406464,
+      "peak_scratch_bytes": 20477289,
+      "sample": "colo829",
+      "source": "/Users/iskander/code/isovar/.sv-groups-464/tests/data/colo829_whole_run/SRR8615617.cnih3_source_candidates.grch38.bam",
+      "support_acquisition": {
+        "complete": true,
+        "eligible_segments": 50489,
+        "excluded_records": {
+          "unmapped": 180
+        },
+        "read_path_notes": {
+          "ambiguous_bases": 575
+        },
+        "records_complete": true,
+        "records_scanned": 52212,
+        "scope": "all_original_input_records",
+        "unique_records": 52212
+      },
+      "wall_seconds": 5.72
+    },
+    {
+      "discovery": {
+        "budgeted_groups": 5000,
+        "budgeted_records": 6531,
+        "complete": false,
+        "eligible_regional_groups": 12820,
+        "eligible_regional_records": 16641,
+        "eligible_structural_bins": 10856,
+        "group_limit_reached": true,
+        "groups_complete": false,
+        "initial_representatives_per_group": 2,
+        "omitted_groups": 7820,
+        "omitted_groups_by_group_limit": 7820,
+        "omitted_groups_by_record_limit": 0,
+        "omitted_records": 10110,
+        "omitted_records_by_group_limit": 10110,
+        "omitted_records_by_record_limit": 0,
+        "policy": "event_first_full_allele_groups_with_exon_clips.v2",
+        "record_limit_reached": false,
+        "represented_records": 6531,
+        "selected_groups": 5000,
+        "selected_records": 6531
+      },
+      "limitations": [
+        "discovery_group_limit",
+        "mate_location_unavailable",
+        "path_limit"
+      ],
+      "max_evidence_groups": 5000,
+      "max_records": 250000,
+      "paths": [
+        {
+          "direct_junction_fragments": 3,
+          "frame_status": "no_gene_anchor",
+          "full_interval_fragments": 0,
+          "length": 2158,
+          "path_id": "63e9db054fe722013ed5af23",
+          "sequence_sha256": "8c4b408b381fb9a1d77ba39fe2c7152fa8305da891f199b2ef455998d2ebd9e7"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1739,
+          "path_id": "fa27571cc7888a06b3c96559",
+          "sequence_sha256": "009b29a0272809a93ea3c03d008dc91a66c7a9e9d96c4e184aecdc0c83f690f7"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1832,
+          "path_id": "ce45f3311f9dd4a1f6b65206",
+          "sequence_sha256": "0672ed503567b73b010624f8a696b8dd9aebcee9918d21e4e766a24d27a8eebc"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1805,
+          "path_id": "f7c02770b1ffb601659db30d",
+          "sequence_sha256": "8c2efac9c4176011c338b6cad13badde51c74a878c4d80d791054b5570a638b6"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1909,
+          "path_id": "41e028140211677d3b3eb3b2",
+          "sequence_sha256": "87db3301870a0fe60b29a18ae8e4d21f2f6d08f82b2cde14b3fd4fe923e22d4b"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1672,
+          "path_id": "55c1528e416e3b29dd9b1bb6",
+          "sequence_sha256": "c61668ab47167a1bfd4bc6d4c6e0667cee90b8d6d0d7d60b5eb81e3db617d037"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1645,
+          "path_id": "85de1f0ea1c8d43bdd21c63b",
+          "sequence_sha256": "137662be83c64e547eadda2ff6e1884116b647bbaf5fbcc0a1a12320de9c1959"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1914,
+          "path_id": "f5a719bc11ba1f523bd3f6b7",
+          "sequence_sha256": "4254db5ae27d47c73c3631e391fa3268d9cc7dd47be2e01a445e8a46b73ad17d"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2025,
+          "path_id": "4616087eaf08994716311036",
+          "sequence_sha256": "844368c6c47ac29be28be84db63a8d3c3d6b70d9ad2d716ee300493e368e5289"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2118,
+          "path_id": "1f9e777f71f620777797807c",
+          "sequence_sha256": "f2ebd7d1a7a354c06a2e5907fddc01c560cc26f8bcb014220572665144e2c89e"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2091,
+          "path_id": "f6fefae21e355b2fc130000d",
+          "sequence_sha256": "94a33462d31a6b5c7e2c00229846e51502b589f4a218de24db615b5d5eb44683"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2195,
+          "path_id": "c4f352d1a35229339ab606f0",
+          "sequence_sha256": "3f5817766e66efb9fdf62cdefb7340f326bce4f740580582b06d438d47a3e278"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1760,
+          "path_id": "d81a75a273c2308ddcf06a8f",
+          "sequence_sha256": "b963a05fd44ec86d866c7b924c21da84bed2ef5d4e669e2ec7407205e221222f"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1853,
+          "path_id": "9934026bc6442ef9cfb3678b",
+          "sequence_sha256": "9c377bbc4a63a8fde2a364a2cedd05b825fbf3b3f42d41d9ccb3d72b8af645cd"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1826,
+          "path_id": "f613f89a8964667715d203b3",
+          "sequence_sha256": "d314f6419d9383f3c6583981d2cbd1fee64d19f2406fd39c1dc50cf41aa3866c"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1930,
+          "path_id": "c44969c3ea89a09305293312",
+          "sequence_sha256": "a8229c550c1218c7a2bdc2d0bb5721e1561ceb3febabf663cafc5e4c418047ad"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1797,
+          "path_id": "49c251ce2d0889450bf13a08",
+          "sequence_sha256": "de6c92d14f7cdf53d9b8399ba1d9c24b63ac8f9e78cac30daa19df24fe09b1f8"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1647,
+          "path_id": "552296f14c961c44f990bc58",
+          "sequence_sha256": "6ef088ab74441121d44c3afad22b15ee9b36237e4097c412f9b54f5280e2713e"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1610,
+          "path_id": "63f4e696d571d932ce287ab5",
+          "sequence_sha256": "d9757695b7fc3e29c782b945b0a01d52c97b92fa1b1f7f57aede68a600f39781"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1583,
+          "path_id": "f916eefae3ed8d8c319ad041",
+          "sequence_sha256": "cffec5eca004ad1dbc1dac5eec21aecce24bf4d0279e595775a7b55f4ef9c630"
+        }
+      ],
+      "peak_rss_bytes": 235798528,
+      "peak_scratch_bytes": 20477289,
+      "sample": "colo829",
+      "source": "/Users/iskander/code/isovar/.sv-groups-464/tests/data/colo829_whole_run/SRR8615617.cnih3_source_candidates.grch38.bam",
+      "support_acquisition": {
+        "complete": true,
+        "eligible_segments": 50489,
+        "excluded_records": {
+          "unmapped": 180
+        },
+        "read_path_notes": {
+          "ambiguous_bases": 575
+        },
+        "records_complete": true,
+        "records_scanned": 52212,
+        "scope": "all_original_input_records",
+        "unique_records": 52212
+      },
+      "wall_seconds": 5.47
+    },
+    {
+      "all_aligned_regions": false,
+      "discovery": {
+        "budgeted_groups": 12000,
+        "budgeted_records": 15563,
+        "complete": false,
+        "eligible_regional_groups": 12820,
+        "eligible_regional_records": 16641,
+        "eligible_structural_bins": 10856,
+        "group_limit_reached": true,
+        "groups_complete": false,
+        "initial_representatives_per_group": 2,
+        "omitted_groups": 820,
+        "omitted_groups_by_group_limit": 820,
+        "omitted_groups_by_record_limit": 0,
+        "omitted_records": 1078,
+        "omitted_records_by_group_limit": 1078,
+        "omitted_records_by_record_limit": 0,
+        "policy": "event_first_full_allele_groups_with_exon_clips.v2",
+        "record_limit_reached": false,
+        "represented_records": 15563,
+        "selected_groups": 12000,
+        "selected_records": 15563
+      },
+      "limitations": [
+        "discovery_group_limit",
+        "mate_location_unavailable",
+        "path_limit"
+      ],
+      "max_evidence_groups": 12000,
+      "max_records": 250000,
+      "paths": [
+        {
+          "direct_junction_fragments": 3,
+          "frame_status": "no_gene_anchor",
+          "full_interval_fragments": 0,
+          "length": 2178,
+          "path_id": "653d5d9c015d3e590fb149b3",
+          "sequence_sha256": "3d901c653194bc1a0e2815e8a3e49cd435f5a0addcad0c1c0a4ee64b67afede3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1913,
+          "path_id": "b1e4a88ed8e0b57ef8fcb497",
+          "sequence_sha256": "a4a7921bca395e12f066bf77732793667b789d5351f9e79659db6c66bf47b74d"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1768,
+          "path_id": "8554cf2cd613a115c9072f2b",
+          "sequence_sha256": "03dc89613ee5a1ab7d09408d41c6161ee02c9240f64f84198560c562fa83a762"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1756,
+          "path_id": "4ddda85d7fe82ca493a30aee",
+          "sequence_sha256": "8b7b247255d6231d10918c61e2f27ef1a78c46f63fa4c8dd949f1c0e3d622ecf"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1763,
+          "path_id": "30c6630a2ab1d6ec9ab08dfa",
+          "sequence_sha256": "5b3317f680000684ee1e900d285b0e45b3689f688d6afa84fbf31c538bc67af3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1887,
+          "path_id": "a55f07a27c085371e4f1458c",
+          "sequence_sha256": "0f7bd4db6b0ddff8e0184d1f7467dc3c6fa941dfe634a1cf7c816338c4b50b50"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1829,
+          "path_id": "f9fae9a9bb746d735b37600e",
+          "sequence_sha256": "fd185ba56a5974d5a40968883e4ba1c89904d91dcf93687ac843540c583ec95a"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2036,
+          "path_id": "9d57e4773a07d1c82a42d586",
+          "sequence_sha256": "01e1ed66b7b4fabbc97e64c54a9baf26d67e6dd8094d6523af2fde18a79b53eb"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1701,
+          "path_id": "688bcc742d93c1f8e7183d9b",
+          "sequence_sha256": "29133efa35de2d639c1b9e933cae5c033e8d41cd3e6db660130f64c5f5c8aba3"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1889,
+          "path_id": "99981470ac65927a63e4f143",
+          "sequence_sha256": "ecbdfe889b0677300fcebd8f08f8c17b79047dc3d9e74b1f343384c0172ebb6e"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1889,
+          "path_id": "d1228db61cc7ff2a2008be8f",
+          "sequence_sha256": "ecbdfe889b0677300fcebd8f08f8c17b79047dc3d9e74b1f343384c0172ebb6e"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2036,
+          "path_id": "dd737430150ec30aaafdf46e",
+          "sequence_sha256": "56029d5b41ca1b67b25b36fc0bf207726e04d67cb6f06ba1a9bc8bc0e8c9e529"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1889,
+          "path_id": "54d9e43d33b3c61229b5f213",
+          "sequence_sha256": "14f984581fdfe693c1474653dba579743c42e9b1480fc3580f18693d61fa4579"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2017,
+          "path_id": "613a96840eeb068f872a43f0",
+          "sequence_sha256": "eb55ab506051c7f81eeb82b3c87befa4bd64d357953fb0d090215e5fb838f28b"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1781,
+          "path_id": "363e0d2e8e0ffb5f4ff3f9b4",
+          "sequence_sha256": "764e207d0f11001a53b0aed7ab0f529c8e4730c9a90e43b2505b15af2292dc92"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 2051,
+          "path_id": "617c5635fbbe8350a0f18f4e",
+          "sequence_sha256": "2bd8196dec3a980a9671babd7663f71d00b575477707d4118920b63253ed7b1a"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1624,
+          "path_id": "b16991fda2240db3de2b1c1a",
+          "sequence_sha256": "c5d5f50937aedd95d78f26b8f69c4c5d48748caa565da746e7271e378cbda5a9"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1653,
+          "path_id": "11975d9e98f23006392857c3",
+          "sequence_sha256": "f20e59bf99bf6152895ccb354dbd65d4eb21da29ae75045cd35ef3456c275cfc"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1456,
+          "path_id": "af047d03287341db7cf6404f",
+          "sequence_sha256": "479d950eb450fd281dd425330d38bfd2b8cc6fe0bb28af3d64d9be5b77606eee"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 0,
+          "length": 1639,
+          "path_id": "ede7dc56ede07f2896266b03",
+          "sequence_sha256": "d151d94a986f2d10f357556d179634ed414c5584df5fb36163ea5b69d4dcc987"
+        }
+      ],
+      "peak_rss_bytes": 335593472,
+      "peak_scratch_bytes": 22162612,
+      "sample": "colo829",
+      "source": "/Users/iskander/code/isovar/.sv-groups-464/tests/data/colo829_whole_run/SRR8615617.cnih3_source_candidates.grch38.bam",
+      "support_acquisition": {
+        "complete": true,
+        "eligible_segments": 50489,
+        "excluded_records": {
+          "unmapped": 180
+        },
+        "read_path_notes": {
+          "ambiguous_bases": 610
+        },
+        "records_complete": true,
+        "records_scanned": 52212,
+        "scope": "all_original_input_records",
+        "unique_records": 52212
+      },
+      "wall_seconds": 15.58
+    },
+    {
+      "discovery": {
+        "budgeted_groups": 23,
+        "budgeted_records": 29,
+        "complete": true,
+        "eligible_regional_groups": 23,
+        "eligible_regional_records": 29,
+        "eligible_structural_bins": 23,
+        "group_limit_reached": false,
+        "groups_complete": true,
+        "initial_representatives_per_group": 2,
+        "omitted_groups": 0,
+        "omitted_groups_by_group_limit": 0,
+        "omitted_groups_by_record_limit": 0,
+        "omitted_records": 0,
+        "omitted_records_by_group_limit": 0,
+        "omitted_records_by_record_limit": 0,
+        "policy": "event_first_full_allele_groups_with_exon_clips.v1",
+        "record_limit_reached": false,
+        "represented_records": 29,
+        "selected_groups": 23,
+        "selected_records": 29
+      },
+      "limitations": [],
+      "max_evidence_groups": null,
+      "max_records": 50000,
+      "paths": [
+        {
+          "direct_junction_fragments": 12,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 1,
+          "length": 2430,
+          "path_id": "ca1f6566fc3db57426337425",
+          "sequence_sha256": "0d62f81560a785c4b7e4236eece065838a8058071cbf089906a489322a828e79"
+        },
+        {
+          "direct_junction_fragments": 17,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1496,
+          "path_id": "2af0aa9999e1cd481f5330cb",
+          "sequence_sha256": "4f5ad6a7f9d8a8f7a0440c689c0d0d23a0d8fc9b169a23809f53327e1a8d2b83"
+        },
+        {
+          "direct_junction_fragments": 14,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1663,
+          "path_id": "ef7ed477a61c47b1a677bbb2",
+          "sequence_sha256": "bb1eeb72ac5b0acdd4b06400307f9eb6e091ffb5e9a380ef166fc4ae191285b1"
+        },
+        {
+          "direct_junction_fragments": 12,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1227,
+          "path_id": "fb4807f68894efb65e4f493a",
+          "sequence_sha256": "3e814c26ecbb4ede4a2a4e9fb631a7e48dac7c37ee4dbf1a4c42a4f56afd1990"
+        },
+        {
+          "direct_junction_fragments": 5,
+          "frame_status": "ambiguous",
+          "full_interval_fragments": 1,
+          "length": 1177,
+          "path_id": "5fa7ed8c623feedc6ec0d211",
+          "sequence_sha256": "a7951b0370f42554a805fb68887fe3e365390d6c703f8467ff8c2ef849919fc7"
+        },
+        {
+          "direct_junction_fragments": 3,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1000,
+          "path_id": "e078173a530ae5b6da6ed620",
+          "sequence_sha256": "875a42a6f58bf4b8908fb2f7dd84c7175cab8b5b92b4217d284ad08faea7ec3d"
+        },
+        {
+          "direct_junction_fragments": 2,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 1,
+          "length": 1336,
+          "path_id": "6250466a9463aaf362fb3829",
+          "sequence_sha256": "4bca8f45946892601e620ec8b6a241a7c4081d991bc6fc4403e1b1f621efd1f5"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 435,
+          "path_id": "02c83fa3b214318fa142546d",
+          "sequence_sha256": "a737665286c41ad393b539738f5522b03887cb36e9d7c0b5d7f32ca8b808ee99"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 340,
+          "path_id": "edd9863ac21391a533f96cb3",
+          "sequence_sha256": "0c2904ad5fb3ec715d092d1a1c5d33f24ebb930e336e7ca27a64b03f309419b9"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 662,
+          "path_id": "fc3b68de6752afad15cbbf9b",
+          "sequence_sha256": "043c6c59a109f0477e2396bf02da1220bd7e228102ededccaf7c8fc2a1292873"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 239,
+          "path_id": "890feaae1071a9e3b38677f0",
+          "sequence_sha256": "bede33701fc2e8888503e94a60c06f7d393770c9383ca3153fc7fdbc320637a0"
+        }
+      ],
+      "peak_rss_bytes": 210714624,
+      "peak_scratch_bytes": 194777850,
+      "sample": "hcc1395",
+      "source": "/private/tmp/isovar-533-alignment/SRR23456709.all_sites.grch38.bam",
+      "support_acquisition": {
+        "complete": true,
+        "eligible_segments": 81216,
+        "excluded_records": {
+          "sequence_unavailable": 9260
+        },
+        "read_path_notes": {},
+        "records_complete": true,
+        "records_scanned": 90603,
+        "scope": "all_original_input_records",
+        "unique_records": 90603
+      },
+      "wall_seconds": 16.52
+    },
+    {
+      "all_aligned_regions": true,
+      "discovery": {
+        "budgeted_groups": 5000,
+        "budgeted_records": 5017,
+        "complete": false,
+        "eligible_regional_groups": 81216,
+        "eligible_regional_records": 81343,
+        "eligible_structural_bins": 81216,
+        "group_limit_reached": true,
+        "groups_complete": false,
+        "initial_representatives_per_group": 2,
+        "omitted_groups": 76216,
+        "omitted_groups_by_group_limit": 76216,
+        "omitted_groups_by_record_limit": 0,
+        "omitted_records": 76326,
+        "omitted_records_by_group_limit": 76326,
+        "omitted_records_by_record_limit": 0,
+        "policy": "event_first_full_allele_groups_with_exon_clips.v2",
+        "record_limit_reached": false,
+        "represented_records": 5017,
+        "selected_groups": 5000,
+        "selected_records": 5017
+      },
+      "limitations": [
+        "discovery_group_limit",
+        "query_limit"
+      ],
+      "max_evidence_groups": 5000,
+      "max_records": 50000,
+      "paths": [
+        {
+          "direct_junction_fragments": 12,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 1,
+          "length": 2430,
+          "path_id": "ca1f6566fc3db57426337425",
+          "sequence_sha256": "0d62f81560a785c4b7e4236eece065838a8058071cbf089906a489322a828e79"
+        },
+        {
+          "direct_junction_fragments": 17,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1496,
+          "path_id": "2af0aa9999e1cd481f5330cb",
+          "sequence_sha256": "4f5ad6a7f9d8a8f7a0440c689c0d0d23a0d8fc9b169a23809f53327e1a8d2b83"
+        },
+        {
+          "direct_junction_fragments": 14,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1663,
+          "path_id": "ef7ed477a61c47b1a677bbb2",
+          "sequence_sha256": "bb1eeb72ac5b0acdd4b06400307f9eb6e091ffb5e9a380ef166fc4ae191285b1"
+        },
+        {
+          "direct_junction_fragments": 12,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1227,
+          "path_id": "fb4807f68894efb65e4f493a",
+          "sequence_sha256": "3e814c26ecbb4ede4a2a4e9fb631a7e48dac7c37ee4dbf1a4c42a4f56afd1990"
+        },
+        {
+          "direct_junction_fragments": 5,
+          "frame_status": "ambiguous",
+          "full_interval_fragments": 1,
+          "length": 1177,
+          "path_id": "5fa7ed8c623feedc6ec0d211",
+          "sequence_sha256": "a7951b0370f42554a805fb68887fe3e365390d6c703f8467ff8c2ef849919fc7"
+        },
+        {
+          "direct_junction_fragments": 3,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1000,
+          "path_id": "e078173a530ae5b6da6ed620",
+          "sequence_sha256": "875a42a6f58bf4b8908fb2f7dd84c7175cab8b5b92b4217d284ad08faea7ec3d"
+        },
+        {
+          "direct_junction_fragments": 2,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 1,
+          "length": 1336,
+          "path_id": "6250466a9463aaf362fb3829",
+          "sequence_sha256": "4bca8f45946892601e620ec8b6a241a7c4081d991bc6fc4403e1b1f621efd1f5"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 435,
+          "path_id": "02c83fa3b214318fa142546d",
+          "sequence_sha256": "a737665286c41ad393b539738f5522b03887cb36e9d7c0b5d7f32ca8b808ee99"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 340,
+          "path_id": "edd9863ac21391a533f96cb3",
+          "sequence_sha256": "0c2904ad5fb3ec715d092d1a1c5d33f24ebb930e336e7ca27a64b03f309419b9"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 662,
+          "path_id": "fc3b68de6752afad15cbbf9b",
+          "sequence_sha256": "043c6c59a109f0477e2396bf02da1220bd7e228102ededccaf7c8fc2a1292873"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 239,
+          "path_id": "890feaae1071a9e3b38677f0",
+          "sequence_sha256": "bede33701fc2e8888503e94a60c06f7d393770c9383ca3153fc7fdbc320637a0"
+        }
+      ],
+      "peak_rss_bytes": 2737913856,
+      "peak_scratch_bytes": 229888343,
+      "sample": "hcc1395",
+      "source": "/private/tmp/isovar-533-alignment/SRR23456709.all_sites.grch38.bam",
+      "support_acquisition": {
+        "complete": true,
+        "eligible_segments": 81216,
+        "excluded_records": {
+          "sequence_unavailable": 9260
+        },
+        "read_path_notes": {},
+        "records_complete": true,
+        "records_scanned": 90603,
+        "scope": "all_original_input_records",
+        "unique_records": 90603
+      },
+      "wall_seconds": 57.95
+    },
+    {
+      "all_aligned_regions": true,
+      "discovery": {
+        "budgeted_groups": 5000,
+        "budgeted_records": 5017,
+        "complete": false,
+        "eligible_regional_groups": 81216,
+        "eligible_regional_records": 81343,
+        "eligible_structural_bins": 81216,
+        "group_limit_reached": true,
+        "groups_complete": false,
+        "initial_representatives_per_group": 2,
+        "omitted_groups": 76216,
+        "omitted_groups_by_group_limit": 76216,
+        "omitted_groups_by_record_limit": 0,
+        "omitted_records": 76326,
+        "omitted_records_by_group_limit": 76326,
+        "omitted_records_by_record_limit": 0,
+        "policy": "event_first_full_allele_groups_with_exon_clips.v2",
+        "record_limit_reached": false,
+        "represented_records": 5017,
+        "selected_groups": 5000,
+        "selected_records": 5017
+      },
+      "limitations": [
+        "discovery_group_limit",
+        "query_limit"
+      ],
+      "max_evidence_groups": 5000,
+      "max_records": 250000,
+      "paths": [
+        {
+          "direct_junction_fragments": 12,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 1,
+          "length": 2430,
+          "path_id": "ca1f6566fc3db57426337425",
+          "sequence_sha256": "0d62f81560a785c4b7e4236eece065838a8058071cbf089906a489322a828e79"
+        },
+        {
+          "direct_junction_fragments": 17,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1496,
+          "path_id": "2af0aa9999e1cd481f5330cb",
+          "sequence_sha256": "4f5ad6a7f9d8a8f7a0440c689c0d0d23a0d8fc9b169a23809f53327e1a8d2b83"
+        },
+        {
+          "direct_junction_fragments": 14,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1663,
+          "path_id": "ef7ed477a61c47b1a677bbb2",
+          "sequence_sha256": "bb1eeb72ac5b0acdd4b06400307f9eb6e091ffb5e9a380ef166fc4ae191285b1"
+        },
+        {
+          "direct_junction_fragments": 12,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1227,
+          "path_id": "fb4807f68894efb65e4f493a",
+          "sequence_sha256": "3e814c26ecbb4ede4a2a4e9fb631a7e48dac7c37ee4dbf1a4c42a4f56afd1990"
+        },
+        {
+          "direct_junction_fragments": 5,
+          "frame_status": "ambiguous",
+          "full_interval_fragments": 1,
+          "length": 1177,
+          "path_id": "5fa7ed8c623feedc6ec0d211",
+          "sequence_sha256": "a7951b0370f42554a805fb68887fe3e365390d6c703f8467ff8c2ef849919fc7"
+        },
+        {
+          "direct_junction_fragments": 3,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 1,
+          "length": 1000,
+          "path_id": "e078173a530ae5b6da6ed620",
+          "sequence_sha256": "875a42a6f58bf4b8908fb2f7dd84c7175cab8b5b92b4217d284ad08faea7ec3d"
+        },
+        {
+          "direct_junction_fragments": 2,
+          "frame_status": "reference_protein_only",
+          "full_interval_fragments": 1,
+          "length": 1336,
+          "path_id": "6250466a9463aaf362fb3829",
+          "sequence_sha256": "4bca8f45946892601e620ec8b6a241a7c4081d991bc6fc4403e1b1f621efd1f5"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 435,
+          "path_id": "02c83fa3b214318fa142546d",
+          "sequence_sha256": "a737665286c41ad393b539738f5522b03887cb36e9d7c0b5d7f32ca8b808ee99"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 340,
+          "path_id": "edd9863ac21391a533f96cb3",
+          "sequence_sha256": "0c2904ad5fb3ec715d092d1a1c5d33f24ebb930e336e7ca27a64b03f309419b9"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 662,
+          "path_id": "fc3b68de6752afad15cbbf9b",
+          "sequence_sha256": "043c6c59a109f0477e2396bf02da1220bd7e228102ededccaf7c8fc2a1292873"
+        },
+        {
+          "direct_junction_fragments": 0,
+          "frame_status": "unresolved",
+          "full_interval_fragments": 0,
+          "length": 239,
+          "path_id": "890feaae1071a9e3b38677f0",
+          "sequence_sha256": "bede33701fc2e8888503e94a60c06f7d393770c9383ca3153fc7fdbc320637a0"
+        }
+      ],
+      "peak_rss_bytes": 2740633600,
+      "peak_scratch_bytes": 229888343,
+      "sample": "hcc1395",
+      "source": "/private/tmp/isovar-533-alignment/SRR23456709.all_sites.grch38.bam",
+      "support_acquisition": {
+        "complete": true,
+        "eligible_segments": 81216,
+        "excluded_records": {
+          "sequence_unavailable": 9260
+        },
+        "read_path_notes": {},
+        "records_complete": true,
+        "records_scanned": 90603,
+        "scope": "all_original_input_records",
+        "unique_records": 90603
+      },
+      "wall_seconds": 65.24
+    }
+  ],
+  "platform": "macOS-26.5-arm64-arm-64bit",
+  "python": "3.12.6",
+  "schema": "isovar.sv_evidence_groups_benchmark.v1"
+}

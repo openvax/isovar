@@ -303,9 +303,17 @@ def _select_group_representatives(groups, db, options):
     Representative-only sampling would flatten major/minor allele ratios. Keep
     the original voters; binning shares calculations, not biological counts.
     """
+    group_limit = options['max_evidence_groups']
+    budgeted_join = ''
+    if group_limit is not None:
+        db.execute('CREATE TABLE budgeted_groups (group_id INTEGER PRIMARY KEY)')
+        db.execute('INSERT INTO budgeted_groups SELECT group_id FROM alleles '
+                   'ORDER BY priority, signature LIMIT ?', (group_limit,))
+        budgeted_join = 'JOIN budgeted_groups USING (group_id)'
     query = '''SELECT group_id, rg, name, segment, size FROM (
         SELECT *, row_number() OVER (PARTITION BY group_id ORDER BY rg, name, segment) AS copy
-        FROM discovery JOIN alleles USING (group_id)) ORDER BY priority, (copy - 1) / ?, signature, copy'''
+        FROM discovery JOIN alleles USING (group_id) %s)
+        ORDER BY priority, (copy - 1) / ?, signature, copy''' % budgeted_join
     rows = db.execute(query, (options['min_alternative_fragments'],))
     selected, selected_groups, count, record_limited = [], set(), 0, False
     for group_id, rg, name, segment, size in rows:
@@ -318,13 +326,25 @@ def _select_group_representatives(groups, db, options):
     db.execute('CREATE TABLE selected_groups (group_id INTEGER PRIMARY KEY)')
     db.executemany('INSERT INTO selected_groups VALUES (?)', ((group_id,) for group_id in selected_groups))
     total_groups = db.execute('SELECT count(*) FROM alleles').fetchone()[0]
+    total_records = db.execute('SELECT coalesce(sum(size), 0) FROM discovery').fetchone()[0]
+    budgeted_groups = (total_groups if group_limit is None else db.execute(
+        'SELECT count(*) FROM budgeted_groups').fetchone()[0])
+    budgeted_records = (total_records if group_limit is None else db.execute(
+        'SELECT coalesce(sum(size), 0) FROM discovery '
+        'JOIN budgeted_groups USING (group_id)').fetchone()[0])
     represented = db.execute('SELECT coalesce(sum(size), 0) FROM discovery '
                              'JOIN selected_groups USING (group_id)').fetchone()[0]
     return selected, dict(
         eligible_structural_bins=db.execute('SELECT count(DISTINCT structure) FROM alleles').fetchone()[0],
-        eligible_regional_groups=total_groups, selected_groups=len(selected_groups),
-        omitted_groups=total_groups - len(selected_groups), represented_records=represented,
-        groups_complete=total_groups == len(selected_groups), record_limit_reached=record_limited,
+        eligible_regional_groups=total_groups, budgeted_groups=budgeted_groups,
+        selected_groups=len(selected_groups), omitted_groups=total_groups - len(selected_groups),
+        omitted_groups_by_group_limit=total_groups - budgeted_groups,
+        omitted_groups_by_record_limit=budgeted_groups - len(selected_groups),
+        budgeted_records=budgeted_records, represented_records=represented,
+        omitted_records_by_group_limit=total_records - budgeted_records,
+        omitted_records_by_record_limit=budgeted_records - count,
+        groups_complete=total_groups == len(selected_groups),
+        group_limit_reached=total_groups > budgeted_groups, record_limit_reached=record_limited,
         initial_representatives_per_group=options['min_alternative_fragments'])
 
 
@@ -532,6 +552,7 @@ def reconstruct_dense_sv_rna(bam, options):
     """Discover bounded hypotheses and recount their witnesses across the input."""
     options = dict(options)
     scratch = options.pop('scratch_dir')
+    group_limit = options['max_evidence_groups']
     options['dense_support'] = False
     collector = options['read_collector']
     spans = _search_regions(bam, options)
@@ -563,23 +584,27 @@ def reconstruct_dense_sv_rna(bam, options):
             pysam.sort('--no-PG', '-o', discovery, unsorted)
             pysam.index(discovery)
             with pysam.AlignmentFile(discovery) as discovery_bam:
-                result = reconstruct_sv_rna(discovery_bam, **options)
+                result = reconstruct_sv_rna(discovery_bam, **dict(options, max_evidence_groups=None))
             support_notes = _support(groups, result, collector, event, annotated, options, exonic)
             result['parameters']['dense_support'] = True
+            result['parameters']['max_evidence_groups'] = group_limit
             result['acquisition']['input_scope'] = 'bounded_discovery_representatives'
             result['support_acquisition'] = dict(scope='all_original_input_records', records_complete=True,
                                                   complete=not support_notes.get('segment_grouping_limit'),
                                                   records_scanned=scanned, unique_records=unique,
                                                   eligible_segments=len(groups),
                                                   excluded_records=excluded, read_path_notes=support_notes)
-            policy = ('event_first_full_allele_groups_with_exon_clips.v1' if exonic is not None
-                      else 'event_first_full_allele_groups.v1')
+            policy = ('event_first_full_allele_groups_with_exon_clips' if exonic is not None
+                      else 'event_first_full_allele_groups')
+            policy += '.v2' if group_limit is not None else '.v1'
             result['discovery'] = dict(policy=policy, **grouping,
                                        eligible_regional_records=available, selected_records=selected_count,
                                        omitted_records=available - selected_count,
                                        complete=available == selected_count and not result['acquisition']['limitations'])
             if grouping['record_limit_reached']:
                 result['limitations'] = sorted(set(result['limitations']) | {'discovery_record_limit'})
+            if grouping['group_limit_reached']:
+                result['limitations'] = sorted(set(result['limitations']) | {'discovery_group_limit'})
             if support_notes.get('segment_grouping_limit'):
                 result['limitations'] = sorted(set(result['limitations']) | {'support_segment_grouping_limit'})
             result['inclusion_competing_splice_scope'] = 'bounded_discovery'
