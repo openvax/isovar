@@ -14,7 +14,7 @@ import pytest
 from isovar.allele_read import AlleleRead
 from isovar.variant_sequence import VariantSequence
 from isovar import sid_data
-from tests.data.osteosarc.expansion import benchmark, collection_benchmark, collection_report, performance_report
+from benchmarks.osteosarc import benchmark, collection_benchmark, collection_report, performance_report
 from tests.data.osteosarc.expansion.inventory import write_json
 
 

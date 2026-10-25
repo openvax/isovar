@@ -1,6 +1,6 @@
 """Full-depth #227 benchmark: separate production and independent checking.
 
-Run as ``python -m tests.data.osteosarc.expansion.benchmark --help``.
+Run as ``python -m benchmarks.osteosarc.benchmark --help``.
 Each invocation uses a fresh process and a new output directory. Input BAMs
 are verified against acquisition receipts; neither reads nor defaults change.
 """
