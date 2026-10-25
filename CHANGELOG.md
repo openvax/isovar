@@ -4,6 +4,13 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.59.24
+
+- Archive the osteosarc RNA performance experiments and raw ledgers under
+  `docs/archive/experiments/`, with their findings and code consequences first.
+  Move benchmark entry points out of the test data tree and remove static
+  historical-record audit tests; live benchmark behavior tests remain.
+
 ## 1.59.23
 
 - Add native and offline ORFdata Proteome adapters for small-variant protein
