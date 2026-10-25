@@ -45,6 +45,50 @@ write_protein_hypotheses(export, "tumor-1.hypotheses.json")
 Pass `alignment_header=pysam.AlignmentFile(path).header` to record each read
 group's sample and library.
 
+## Add hypotheses to an ORFdata Proteome
+
+The Python adapter accepts native results or the saved v2 JSON. Supply the
+species, assembly and annotation explicitly: the Isovar export records the
+build, but does not prove which annotation release was used.
+
+```python
+import json
+
+from orfdata import ReferenceContext
+from isovar import from_protein_hypotheses, to_proteome
+
+reference = ReferenceContext(9606, "human", "GRCh38", "Ensembl", "87")
+with open("tumor-1.hypotheses.json") as handle:
+    rna = from_protein_hypotheses(json.load(handle), reference=reference)
+
+# The equivalent native path, using the same mapping and earlier results:
+native_rna = to_proteome(results, sample_id="tumor-1", source="tumor-rna.bam",
+                         reference=reference)
+assert native_rna.identity == rna.identity
+
+# Given an ORFdata reference_proteome built for this same context:
+joint = reference_proteome.merge(rna)
+joint.write_fasta("joint.fasta")
+joint.save("joint.proteome.json.gz")
+```
+
+ORFdata 0.35.0 or newer is required. The adapter keeps one FASTA entry per
+retained Isovar protein by default, including shorter windows and equal amino
+acid sequences from different sources. `write_fasta(..., deduplicate=True)`
+is an explicit sequence-grouping choice. The versioned snapshot retains the
+original event, hypothesis, translation and evidence-set IDs, their links,
+partial boundaries, filter results and completeness/cap states. An event with
+no retained protein still has an event record. RNA sequence support remains
+RNA evidence; it does not establish that a protein was translated. The first
+FASTA token identifies origin, tool, gene, amino-acid length, sample and read
+set. ORFdata [#126](https://github.com/openvax/orfdata/issues/126) tracks
+display of additional source metadata and partial boundaries in the header;
+those values are already preserved in the snapshot.
+
+This first adapter covers the small-variant v2 export. The separate SV/fusion
+ORF export needs a later mapping. If a result declares a different reference
+build, conversion fails instead of silently combining it with this proteome.
+
 ## Reading the export
 
 The file (schema `isovar.protein_hypotheses.v2`) has one **event** per input
