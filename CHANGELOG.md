@@ -4,6 +4,14 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.59.23
+
+- Add native and offline ORFdata Proteome adapters for small-variant protein
+  hypotheses. Preserve all retained protein alternatives, translations,
+  scoped RNA evidence and no-product/capped events without filling partial
+  products. Require ORFdata 0.35.0 or newer for producer records and links;
+  accept both the 0.35 ProteomeEntry API and the renamed 0.36 ProteinSequence API.
+
 ## 1.59.1
 
 - Skip RNA translation contexts for splice-effect transcripts with no exonic

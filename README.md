@@ -212,7 +212,7 @@ evaluates protein and peptide candidates. See
 
 | Guide | What it covers |
 |---|---|
-| [Protein hypothesis export](https://github.com/openvax/isovar/blob/master/docs/protein-hypotheses.md) | Every protein and translation with scoped RNA evidence, for tools that combine sources |
+| [Protein hypothesis export and Proteome adapter](https://github.com/openvax/isovar/blob/master/docs/protein-hypotheses.md) | Every protein and translation with scoped RNA evidence, including offline ORFdata composition |
 | [Competing allele interpretations](https://github.com/openvax/isovar/blob/master/docs/allele-interpretations.md) | Which of several callers' versions of one locus the RNA supports |
 | [Mutation-evidence figures](https://github.com/openvax/isovar/blob/master/docs/visualization.md) | `isovar plot`, how to read its figures, and the osteosarc gallery |
 | [Adapter and poly-A trimming](https://github.com/openvax/isovar/blob/master/docs/read-end-inference.md) | Opt-in annotation and trimming of technical read ends |
