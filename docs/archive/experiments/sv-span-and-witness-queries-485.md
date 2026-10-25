@@ -1,5 +1,27 @@
 # Index frozen candidate blocks for support matching
 
+## Question, result, and code decision
+
+**Question:** Did repeated scans of disjoint candidate blocks dominate exact
+SV support matching, and could those scans be avoided without changing
+original-read witnesses?
+
+**Result:** A synthetic 4,000-base, 400-block component test improved from
+19.96 to 0.468 seconds (42.7×). The complete short-read IGKC replay changed
+from 77.87 to 71.46 seconds with identical parsed results. Subsequent witness
+and shared-query refinements preserved those results but did not establish a
+further complete-run speedup. These are historical single-machine measurements,
+not a current performance guarantee.
+
+**Code influenced:** [PR #484](https://github.com/openvax/isovar/pull/484)
+added the `_PathSpans` interval index to exclude disjoint blocks;
+later changes reject incompatible witness offsets early and share exact
+interval searches and equal witness rows within bounded batches. The code
+retains every original read identity, placement and repeated occurrence.
+There is no new user parameter. See [issue #485](https://github.com/openvax/isovar/issues/485).
+
+## Methods and successive refinements
+
 Issue [#485](https://github.com/openvax/isovar/issues/485) identified a Cartesian
 scan in `_PathSpans`: each read block visited every candidate block on its
 contig/strand, even when their genomic intervals were disjoint. Coordinate runs
@@ -26,7 +48,7 @@ limit took 77.87 → 71.46 seconds. Complete parsed results, including all array
 ordering, were identical. These are single local runs with concurrent validation
 work, not a statistically controlled estimate. The 42.7× component improvement
 does not imply that speedup for an entire reconstruction. Raw measurements and
-engine/input pins are in [the benchmark ledger](span-index-benchmarks.json).
+engine/input pins are in [the benchmark ledger](sv-span-index-485.json).
 
 The large ONT recovery uses a separately pinned attempt with unchanged
 scientific settings. Its prior four-hour timeout has unknown candidates and
@@ -45,7 +67,7 @@ witness identities keep their existing semantics.
 The complete short-read benchmark remained identical after this refinement:
 71.46 → 72.59 seconds and approximately 1.48 GiB peak RSS in both runs. These
 single shared-machine measurements do not establish a short-read speedup.
-The [witness-query ledger](witness-query-benchmarks.json) records full inputs,
+The [witness-query ledger](sv-witness-query-485.json) records full inputs,
 engine pins and result equality. Validation includes 5,919 full tests and 206
 differential tests against the preceding witness and complete-support code.
 
@@ -64,4 +86,4 @@ speedup; retained Python objects occupied 4.98 → 1.80 MB. All 2,326 witness ro
 remained present, backed by 460 distinct equal row objects. These are component
 measurements, not a complete-ONT speedup or process-RSS claim. The complete
 short-read result remained identical (77.70 seconds in this shared-machine run;
-no short-read speedup claim). See the [comparison ledger](shared-query-benchmarks.json).
+no short-read speedup claim). See the [comparison ledger](sv-shared-query-485.json).

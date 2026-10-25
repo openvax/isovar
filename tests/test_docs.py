@@ -40,7 +40,8 @@ def test_readme_filter_names_are_isovar_result_properties():
 REPOSITORY_URL = "https://github.com/openvax/isovar/blob/master/"
 
 
-PAGES = [ROOT / "README.md", ROOT / "CHANGELOG.md", ROOT / "RELEASING.md", *(ROOT / "docs").glob("*.md")]
+PAGES = [ROOT / "README.md", ROOT / "CHANGELOG.md", ROOT / "RELEASING.md",
+         *(ROOT / "docs").glob("*.md"), *(ROOT / "docs/archive/experiments").glob("*.md")]
 
 
 def heading_anchors(text):

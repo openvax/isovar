@@ -1,13 +1,37 @@
 # Dense SV evidence-group budget: original RNA replay (#464)
 
-This benchmark records the effect of `max_evidence_groups` on dense discovery.
-It uses original COLO829 short-read alignments for SV3 and HCC1395 ONT direct
+## Question, result, and code decision
+
+**Question:** Could an exact structural/allelic group budget bound dense SV
+discovery while still recounting support from every original RNA alignment?
+
+**Result:** On the selected COLO829 input, a 5,000-group budget reduced peak
+RSS from about 332 to 223 MiB, but changed which 20 paths survived the path
+cap. All settings retained three original fragments at the SV3 junction.
+The HCC1395 broad-region stress case admitted 5,000 of 81,216 eligible groups
+and still scanned all 90,603 original alignments. These single shared-host
+runs do not establish a general speedup or unchanged candidate discovery.
+
+**Code influenced:** [PR #567](https://github.com/openvax/isovar/pull/567)
+added the optional `max_evidence_groups` Python/CLI limit, separate group and
+record omission counts and limitations, and regression tests for late events
+and distinct alleles/placements. The existing `max_records` limit and
+complete-input support recount remain independent. This is a search budget,
+not molecular deduplication or negative RNA evidence for omitted groups.
+
+**Remaining limit:** Neither input can exercise a binding 100,000 or 250,000
+record cap. [Issue #568](https://github.com/openvax/isovar/issues/568) tracks
+a larger original-read replay.
+
+## Inputs and measurements
+
+This historical benchmark uses original COLO829 short-read alignments for SV3 and HCC1395 ONT direct
 RNA alignments for the SUGT1 event. The alignments are **selected-site subsets**
 of public runs SRR8615617 and SRR23456709, not whole-transcriptome inputs.
 The HCC1395 90,603-alignment subset is produced by
-[`align_full_hcc1395_rna.sh`](../reports/hcc1395_colo829/align_full_hcc1395_rna.sh).
+[`align_full_hcc1395_rna.sh`](../../../reports/hcc1395_colo829/align_full_hcc1395_rna.sh).
 Input and model SHA-256 hashes, per-path sequence hashes/support, exact counters,
-and raw timings are in [benchmarks.json](data/sv-evidence-groups-464/benchmarks.json).
+and raw timings are in [the measurement ledger](sv-evidence-groups-464.json).
 
 `--all-aligned-regions` marks a **stress case**: it makes every aligned region
 in the selected-site BAM eligible as discovery context. The nominated SUGT1
