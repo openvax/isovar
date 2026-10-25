@@ -6,11 +6,18 @@ infer protein expression, complete partial sequences, or select a winner.
 
 from collections.abc import Mapping
 
-from orfdata import ProducerInfo, ProducerLink, ProducerRecord, Proteome, ProteomeEntry
+import orfdata
+from orfdata import ProducerInfo, ProducerLink, ProducerRecord, Proteome
 from orfdata import ReferenceContext as ProteomeReferenceContext
 
 from .protein_hypotheses import SCHEMA, export_protein_hypotheses
 from .rna_evidence import content_identifier
+
+
+# ORFdata 0.36 renames ProteomeEntry/from_entries and the link target kind.
+# Keep the mapping identical across both published 0.35 and the newer API.
+_Protein = getattr(orfdata, "ProteinSequence", None) or orfdata.ProteomeEntry
+_PROTEIN_TARGET = "protein" if hasattr(orfdata, "ProteinSequence") else "entry"
 
 
 def _record(kind, native_id, payload, sample_id, source, **kwargs):
@@ -151,9 +158,10 @@ def from_protein_hypotheses(export, *, reference):
                 start_complete=(True if n_terminus == "annotated_start_codon" else
                                 False if n_terminus == "local_window" else None),
                 stop_complete=c_terminus == "stop_codon")
-            entry = ProteomeEntry.from_producer(sequence, taxon_id=reference.taxon_id, producer=producer)
+            entry = _Protein.from_producer(sequence, taxon_id=reference.taxon_id, producer=producer)
             entries.append(entry)
-            links.append(ProducerLink(hypothesis_record.key, entry.accession, "entry", "has_sequence"))
+            links.append(ProducerLink(hypothesis_record.key, entry.accession, _PROTEIN_TARGET,
+                                      "has_sequence"))
             link = _support_link(protein.get("rna_support"), hypothesis_record, evidence_records)
             if link is not None:
                 links.append(link)
@@ -173,7 +181,8 @@ def from_protein_hypotheses(export, *, reference):
                 if link is not None:
                     links.append(link)
 
-    return Proteome.from_entries(entries, reference=reference, records=records, links=links)
+    make_proteome = Proteome.from_proteins if _PROTEIN_TARGET == "protein" else Proteome.from_entries
+    return make_proteome(entries, reference=reference, records=records, links=links)
 
 
 def to_proteome(isovar_results, *, sample_id, source, reference, **export_options):

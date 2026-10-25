@@ -9,7 +9,8 @@ releases that only fix bugs or add fixtures are omitted; see the
 - Add native and offline ORFdata Proteome adapters for small-variant protein
   hypotheses. Preserve all retained protein alternatives, translations,
   scoped RNA evidence and no-product/capped events without filling partial
-  products. Require ORFdata 0.35.0 or newer for producer records and links.
+  products. Require ORFdata 0.35.0 or newer for producer records and links;
+  accept both the 0.35 ProteomeEntry API and the renamed 0.36 ProteinSequence API.
 
 ## 1.59.1
 

@@ -3,7 +3,8 @@
 from copy import deepcopy
 import json
 
-from orfdata import ProducerInfo, Proteome, ProteomeEntry, ReferenceContext
+import orfdata
+from orfdata import ProducerInfo, Proteome, ReferenceContext
 import pytest
 
 from isovar import (
@@ -14,6 +15,7 @@ from .test_protein_hypotheses import BAM, VCF, synthetic_result
 
 
 REFERENCE = ReferenceContext(9606, "human", "GRCh38", "Ensembl", "87")
+Protein = getattr(orfdata, "ProteinSequence", None) or orfdata.ProteomeEntry
 
 
 def exported():
@@ -33,7 +35,7 @@ def test_native_and_offline_conversion_preserve_products_and_evidence(tmp_path):
         [synthetic_result(settings={"max_protein_sequences_per_variant": 0})],
         sample_id="tumor-1", source="tumor-rna.bam", reference=REFERENCE)
     assert native.identity == offline.identity
-    assert [entry.sequence for entry in native.entries] == ["MAQG", "MAQD", "AQG"]
+    assert [entry.sequence for entry in native] == ["MAQG", "MAQD", "AQG"]
     assert len(records_of(native, "translation")) == 4
     assert len(records_of(native, "evidence")) == len(export["evidence_sets"])
     assert {record.native_id: record.to_dict()["payload"]
@@ -47,11 +49,11 @@ def test_native_and_offline_conversion_preserve_products_and_evidence(tmp_path):
     assert {record.payload["nucleotide_sequence"] for record in records_of(native, "translation")
             if record.payload["nucleotide_sequence"].startswith("CCATGGC")} >= {
                 "CCATGGCTCAAGGCTAA", "CCATGGCCCAAGGCTAA"}
-    assert native.entries[0].producer.start_complete is True
-    assert native.entries[0].producer.stop_complete is True
-    assert native.entries[2].producer.start_complete is False
-    assert native.entries[2].producer.stop_complete is False
-    assert native.entries[0].producer.gene_names == ("GENE1",)
+    assert tuple(native)[0].producer.start_complete is True
+    assert tuple(native)[0].producer.stop_complete is True
+    assert tuple(native)[2].producer.start_complete is False
+    assert tuple(native)[2].producer.stop_complete is False
+    assert tuple(native)[0].producer.gene_names == ("GENE1",)
     assert any(link.relation == "supports_rna_sequence" for link in native.links)
     assert all(record.support == "rna_sequence" for record in records_of(native, "evidence"))
     assert native.merge(offline).identity == native.identity
@@ -79,7 +81,7 @@ def test_zero_product_unknown_and_capped_events_remain_distinct():
     capped["protein_sequence_limit"] = 3
     export["events"] = [zero, unknown, capped]
     proteome = from_protein_hypotheses(export, reference=REFERENCE)
-    assert len(proteome.entries) == 3
+    assert len(proteome) == 3
     assert [record.status for record in records_of(proteome, "event")] == [
         "zero_product", "completeness_unknown", "capped"]
     assert records_of(proteome, "event")[-1].limits["max_protein_sequences_per_variant"] == 3
@@ -114,10 +116,10 @@ def test_read_set_and_gene_names_remain_source_qualified_and_escaped():
     a = from_protein_hypotheses(first, reference=REFERENCE)
     b = from_protein_hypotheses(other, reference=REFERENCE)
     joint = a.merge(b)
-    assert len(joint.entries) == 6
-    assert a.entries[0].producer.gene_names == ("GENE A/1", "GENE B")
-    assert a.entries[0].fasta_token() != b.entries[0].fasta_token()
-    assert " " not in a.entries[0].fasta_token()
+    assert len(joint) == 6
+    assert tuple(a)[0].producer.gene_names == ("GENE A/1", "GENE B")
+    assert tuple(a)[0].fasta_token() != tuple(b)[0].fasta_token()
+    assert " " not in tuple(a)[0].fasta_token()
     assert len(joint.by_sequence()["MAQG"]) == 2
 
 
@@ -128,26 +130,27 @@ def test_unknown_gene_and_mixed_start_state_stay_explicit():
     protein["gene_names"] = []
     protein["n_terminus"] = "mixed"
     converted = from_protein_hypotheses(export, reference=REFERENCE)
-    assert converted.entries[0].producer.gene_names == ()
-    assert converted.entries[0].producer.start_complete is None
-    assert "gene=unknown" in converted.entries[0].fasta_token()
+    assert tuple(converted)[0].producer.gene_names == ()
+    assert tuple(converted)[0].producer.start_complete is None
+    assert "gene=unknown" in tuple(converted)[0].fasta_token()
     hypothesis = records_of(converted, "hypothesis")[0]
     assert hypothesis.payload["n_terminus"] == "mixed"
 
 
 def test_reference_ncorf_and_isovar_sources_compose_without_sequence_dedup(tmp_path):
     isovar = from_protein_hypotheses(exported(), reference=REFERENCE)
-    reference = Proteome(REFERENCE, [ProteomeEntry("ENSP1", "MAQG", "annotated", 9606,
+    reference = Proteome(REFERENCE, [Protein("ENSP1", "MAQG", "annotated", 9606,
                                                   "Ensembl:87")])
-    ncorf = ProteomeEntry.from_producer("MAQG", taxon_id=9606, producer=ProducerInfo(
+    ncorf = Protein.from_producer("MAQG", taxon_id=9606, producer=ProducerInfo(
         "nc_orf", "catalogue", "orfdata", "ORF1", reference=REFERENCE))
-    varcode = ProteomeEntry.from_producer("MAQG", taxon_id=9606, producer=ProducerInfo(
+    varcode = Protein.from_producer("MAQG", taxon_id=9606, producer=ProducerInfo(
         "reference_cds", "dna_prediction", "varcode", "V1", sample_id="tumor-1",
         reference=REFERENCE))
-    joint = reference.merge(Proteome.from_entries((ncorf, varcode), reference=REFERENCE), isovar)
+    make_proteome = Proteome.from_proteins if hasattr(Proteome, "from_proteins") else Proteome.from_entries
+    joint = reference.merge(make_proteome((ncorf, varcode), reference=REFERENCE), isovar)
     assert len(joint.by_sequence()["MAQG"]) == 4
     joint.write_fasta(tmp_path / "joint.fasta")
-    assert (tmp_path / "joint.fasta").read_text().count(">") == len(joint.entries)
+    assert (tmp_path / "joint.fasta").read_text().count(">") == len(joint)
     grouped = joint.fasta_index(deduplicate=True)
     assert any(len(members) == 4 and {member.protein_source for member in members} == {
         "reference_cds", "nc_orf"} for members in grouped.values())
@@ -164,7 +167,7 @@ def test_small_real_b16_reads_convert_without_live_reference(tmp_path):
     native = to_proteome(results, sample_id="b16", source="b16.bam", reference=reference)
     offline = from_protein_hypotheses(json.loads(json.dumps(export)), reference=reference)
     assert native.identity == offline.identity
-    assert len(native.entries) == sum(len(event["protein_hypotheses"]) for event in export["events"])
+    assert len(native) == sum(len(event["protein_hypotheses"]) for event in export["events"])
     assert len(records_of(native, "event")) == 4
     assert any(record.status == "zero_product" for record in records_of(native, "event"))
     path = tmp_path / "b16.proteome.json.gz"
