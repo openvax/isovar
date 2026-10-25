@@ -1,5 +1,23 @@
 # Per-call coordinate sharing (#234)
 
+## Finding and code consequence
+
+**Question:** Did the 65,536-entry per-call LRU lose sharing on real loci, and
+what changed when it was replaced by a plain dict?
+
+**Finding:** None of 4,563 nonempty nuclear source/locus pairs exceeded the
+old bound (maximum 46,702 distinct coordinates). A synthetic regression did.
+Across nine full-depth collection pairs, the dict kept memory within 3% and
+used about 9% less collection CPU overall. Whole-pipeline timing did not show
+a clear speedup, and unavailable source BAMs limit later rechecking of the
+full scan.
+
+**Code consequence:** [PR #239](https://github.com/openvax/isovar/pull/239)
+removed LRU bookkeeping in favor of a dict local to each read-collection call.
+The original measurements and source hashes remain in the raw ledgers here;
+current scanner and report code is in
+[`benchmarks/osteosarc/`](../../../../benchmarks/osteosarc/).
+
 ## Change
 
 Isovar 1.8.3 (#229, #232) shared equal coordinate integers across the reads of
@@ -35,7 +53,7 @@ The scan is packaged as
 [`coordinate-sharing-results/bound-scan.json.gz`](coordinate-sharing-results/bound-scan.json.gz),
 and CI checks the numbers quoted in this document against it. Its rows were
 produced on 2026-09-11 by the logic now committed as
-[`coordinate_scan.py`](../coordinate_scan.py), run inline before that script
+[`coordinate_scan.py`](../../../../benchmarks/osteosarc/coordinate_scan.py), run inline before that script
 existed. By 2026-09-13 the full regional BAMs of 46 of the 134 scanned sources
 were no longer in the local cache, although their indexes and receipts
 remained. Re-running the committed scanner on the other 88 sources reproduced

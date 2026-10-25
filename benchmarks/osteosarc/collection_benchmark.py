@@ -26,7 +26,7 @@ from isovar.allele_read_helpers import allele_reads_from_locus_reads
 from isovar.read_collector import ReadCollector
 from isovar.read_evidence import ReadEvidence
 from isovar.variant_helpers import base0_interval_for_variant_fields, trim_variant
-from tests.data.osteosarc.expansion.benchmark import peak_rss_bytes
+from benchmarks.osteosarc.benchmark import peak_rss_bytes
 from tests.data.osteosarc.expansion.inventory import digest, write_json
 from tests.data.osteosarc.expansion.references import reference_genome
 from tests.data.osteosarc.expansion.runner import counts_from_evidence, primary_alignment, time_limit

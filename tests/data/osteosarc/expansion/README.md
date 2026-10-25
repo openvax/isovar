@@ -14,7 +14,7 @@ The public sequencing data are CC0 according to the
 
 ## Results at a glance
 
-The [#227 performance follow-up](performance/README.md) separately records
+The [#227 performance follow-up](../../../../docs/archive/experiments/osteosarc-rna-performance/README.md) separately records
 completed reruns of all ten previously interrupted mitochondrial modes and
 unchanged results for 215 nuclear control rows. Its audit budget is explicit;
 the original matrix below remains the historical 1.8.1 snapshot.

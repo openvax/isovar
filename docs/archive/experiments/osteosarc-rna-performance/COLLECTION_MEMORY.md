@@ -1,5 +1,26 @@
 # Read-collection memory (#229)
 
+## Finding and code consequence
+
+**Question:** How much of high-depth RNA memory is retained during read
+collection, and can it fall without changing the collected evidence?
+
+**Finding:** The T3 deduplicated MT-ND5 collection peak fell from 5.173 to
+1.513 GB, and T3 tagged from 9.448 to 2.692 GB, with exact ordered read and
+allele fingerprints. Collection CPU rose roughly 36–70% on the deeper inputs;
+the whole-pipeline memory reduction was smaller, 30–44%. These are
+fresh-process observations on one shared host.
+
+**Code consequence:** [PR #232](https://github.com/openvax/isovar/pull/232)
+shared equal coordinate integers within one collection call using a bounded
+LRU. [PR #239](https://github.com/openvax/isovar/pull/239) later replaced that
+LRU with a per-call dict after the [coordinate-sharing audit](COORDINATE_SHARING.md).
+
+This is a frozen historical experiment. Raw manifests preserve the original
+script paths and hashes; current scripts are in
+[`benchmarks/osteosarc/`](../../../../benchmarks/osteosarc/). Commands below
+describe the original checked-out revisions.
+
 ## Uninstrumented collection results
 
 Eight fresh-process comparisons against unchanged 1.8.2 preserve every field

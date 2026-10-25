@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 
 from tests.data.osteosarc.expansion.inventory import digest, write_json
-from tests.data.osteosarc.expansion.performance_report import collect_benchmarks, read_json
+from benchmarks.osteosarc.performance_report import collect_benchmarks, read_json
 
 
 def collect_runs(entries, comparisons):

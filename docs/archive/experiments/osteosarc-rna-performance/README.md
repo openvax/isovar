@@ -1,5 +1,26 @@
 # High-depth RNA performance (#227)
 
+## Finding and code consequence
+
+**Question:** Could high-depth RNA support matching be made practical without
+changing Isovar's ordered RNA and protein results?
+
+**Finding:** On the full ONT T3 deduplicated MT-ND5 input, production time fell
+from 1,386.0 to 69.2 seconds. All five completed baseline comparisons kept
+identical ordered RNA, protein and support-name fingerprints. The smaller bulk
+control did not show a speedup. Shared-host timings are observations, not
+portable latency guarantees.
+
+**Code consequence:** [PR #230](https://github.com/openvax/isovar/pull/230)
+introduced indexed allele-anchored flank support matching and coverage
+accumulation. It did not solve read-collection memory, studied separately in
+[#229](COLLECTION_MEMORY.md).
+
+This is a frozen historical experiment. Raw manifests retain original source
+paths and hashes. The current benchmark scripts live in
+[`benchmarks/osteosarc/`](../../../../benchmarks/osteosarc/); commands below
+describe the original checked-out revisions and their acquisition cache.
+
 PR: [#230](https://github.com/openvax/isovar/pull/230). No production defaults,
 read filtering, genetic-code rules, or public APIs change. Version: 1.8.2.
 
