@@ -1,0 +1,1033 @@
+{
+  "annotation": "Ensembl 87",
+  "assembly": "GRCh38",
+  "bam_alignment_records_scanned": 52212,
+  "bam_spots_scanned": 26976,
+  "bam_spots_with_coding_exon_alignment": 673,
+  "bam_spots_with_versioned_exon_alignment": 6233,
+  "coding_reference_starts": [
+    {
+      "start_grch38_1based": 224617175,
+      "transcript_id": "ENST00000272133"
+    }
+  ],
+  "conclusion": "no_event_linked_frame_anchor_in_scanned_inputs",
+  "event_id": "COLO829_SOMATIC_SV3_DEL",
+  "event_linked_translation_candidates": 0,
+  "exact_exon_anchor_bases_on_joined_path": 0,
+  "exact_sv3_43mer_spots": [
+    "SRR8615617.101713327",
+    "SRR8615617.110737497",
+    "SRR8615617.7312123",
+    "SRR8615617.7313798",
+    "SRR8615617.97504216"
+  ],
+  "exact_sv3_join_and_exon_same_spot": [],
+  "exact_sv3_join_spots_with_exon_alignment": [],
+  "exon_and_path_spot_count": 9,
+  "exon_and_path_spots_with_30_base_match": 6,
+  "exon_and_path_spots_with_cds_alignment": 0,
+  "exon_path_links": [
+    {
+      "exact_sv3_43mer": false,
+      "exon_alignments": [
+        {
+          "cigar": "72M29S",
+          "exons": [
+            {
+              "aligned_exon_bases": 71,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 54,
+          "mate": 1,
+          "query_aligned_interval": [
+            0,
+            72
+          ],
+          "query_sequence": "GGAGAGAACATCTGTGGCAGTGGACAGAGTCGTGAGTGACCACAGAAGGCTTTCTGGAGGCAGGACTTGAGGAAATTGACACAGCCACCCCAACCTTCAGC",
+          "reference_end_0based": 224583268,
+          "reference_start_0based": 224583196,
+          "right_clip_bases": 29,
+          "right_clip_min_q": 29,
+          "secondary": false,
+          "supplementary": false
+        },
+        {
+          "cigar": "40M61H",
+          "exons": [
+            {
+              "aligned_exon_bases": 39,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224529420,
+              "exon_start_0based": 224529221,
+              "transcript_ids": [
+                "ENST00000470788"
+              ]
+            },
+            {
+              "aligned_exon_bases": 39,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224529420,
+              "exon_start_0based": 224529195,
+              "transcript_ids": [
+                "ENST00000478120"
+              ]
+            },
+            {
+              "aligned_exon_bases": 39,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224529420,
+              "exon_start_0based": 224529217,
+              "transcript_ids": [
+                "ENST00000481095"
+              ]
+            },
+            {
+              "aligned_exon_bases": 39,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224529420,
+              "exon_start_0based": 224529222,
+              "transcript_ids": [
+                "ENST00000489556"
+              ]
+            },
+            {
+              "aligned_exon_bases": 39,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224529420,
+              "exon_start_0based": 224529309,
+              "transcript_ids": [
+                "ENST00000496277"
+              ]
+            },
+            {
+              "aligned_exon_bases": 39,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224529420,
+              "exon_start_0based": 224529190,
+              "transcript_ids": [
+                "ENST00000498382"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 3,
+          "mate": 2,
+          "query_aligned_interval": [
+            0,
+            40
+          ],
+          "query_sequence": "GATGAATTCAAAATAAAGTACAAGAGAAGAAACATTCAGG",
+          "reference_end_0based": 224529421,
+          "reference_start_0based": 224529381,
+          "right_clip_bases": 0,
+          "right_clip_min_q": null,
+          "secondary": false,
+          "supplementary": true
+        },
+        {
+          "cigar": "36S65M",
+          "exons": [
+            {
+              "aligned_exon_bases": 62,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 36,
+          "left_clip_min_q": 25,
+          "mapq": 58,
+          "mate": 2,
+          "query_aligned_interval": [
+            36,
+            101
+          ],
+          "query_sequence": "GATGAATTCAAAATAAAGTACAAGAGAAGAAACATTCAGGCACATGCAAAGTGCTGTAAGATTTCACAGGATGGAGAGAACATCTGTGGCAGTGGACAGAG",
+          "reference_end_0based": 224583225,
+          "reference_start_0based": 224583160,
+          "right_clip_bases": 0,
+          "right_clip_min_q": null,
+          "secondary": false,
+          "supplementary": false
+        }
+      ],
+      "matches": [
+        {
+          "distance_after_join_bases": 280,
+          "exact_match_bases": 32,
+          "genomic_interval_0based_half_open": [
+            "chr1",
+            224598611,
+            224598643
+          ],
+          "mate": 1,
+          "opposite_mate_exon_alignment": true,
+          "path_interval": [
+            1387,
+            1419
+          ],
+          "path_region": "downstream_reference",
+          "same_end_exon_alignment": true,
+          "same_end_exon_clip_contains_match": true,
+          "uses_clipped_bases": true
+        }
+      ],
+      "spot": "SRR8615617.103128066"
+    },
+    {
+      "exact_sv3_43mer": false,
+      "exon_alignments": [
+        {
+          "cigar": "101M",
+          "exons": [
+            {
+              "aligned_exon_bases": 100,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 44,
+          "mate": 1,
+          "query_aligned_interval": [
+            0,
+            101
+          ],
+          "query_sequence": "GGCACATGCAAAGTGCTGAAAGATTTCACAGGATGGAGAGAACATCTGTGGCAGTGGACAGAGTCGTGAGTGACCACAGACGGCTTTCTGGAGGCCGGACT",
+          "reference_end_0based": 224583263,
+          "reference_start_0based": 224583162,
+          "right_clip_bases": 0,
+          "right_clip_min_q": null,
+          "secondary": false,
+          "supplementary": false
+        },
+        {
+          "cigar": "74M27S",
+          "exons": [
+            {
+              "aligned_exon_bases": 73,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 58,
+          "mate": 2,
+          "query_aligned_interval": [
+            0,
+            74
+          ],
+          "query_sequence": "ATGGAGAGAACATCTGTGGCAGTGGACAGAGTCGTGAGTGACCACAGAAGGCTTTCTGGAGGCAGCACTTGAGGAAATTGACACAGCCACCCCAACCTTCA",
+          "reference_end_0based": 224583268,
+          "reference_start_0based": 224583194,
+          "right_clip_bases": 27,
+          "right_clip_min_q": 8,
+          "secondary": false,
+          "supplementary": false
+        }
+      ],
+      "matches": [
+        {
+          "distance_after_join_bases": 280,
+          "exact_match_bases": 30,
+          "genomic_interval_0based_half_open": [
+            "chr1",
+            224598611,
+            224598641
+          ],
+          "mate": 2,
+          "opposite_mate_exon_alignment": true,
+          "path_interval": [
+            1387,
+            1417
+          ],
+          "path_region": "downstream_reference",
+          "same_end_exon_alignment": true,
+          "same_end_exon_clip_contains_match": true,
+          "uses_clipped_bases": true
+        }
+      ],
+      "spot": "SRR8615617.104275726"
+    },
+    {
+      "exact_sv3_43mer": false,
+      "exon_alignments": [
+        {
+          "cigar": "74M27S",
+          "exons": [
+            {
+              "aligned_exon_bases": 73,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 60,
+          "mate": 1,
+          "query_aligned_interval": [
+            0,
+            74
+          ],
+          "query_sequence": "ATGGAGAGAACATCTGTGGCAGTGGACAGAGTCGTGAGTGACCACAGAAGGCTTTCTGGAGGCAGGACTTGAGGAAATTGACACAGCCACCCCAACCTTCA",
+          "reference_end_0based": 224583268,
+          "reference_start_0based": 224583194,
+          "right_clip_bases": 27,
+          "right_clip_min_q": 30,
+          "secondary": false,
+          "supplementary": false
+        },
+        {
+          "cigar": "61M40S",
+          "exons": [
+            {
+              "aligned_exon_bases": 61,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 49,
+          "mate": 2,
+          "query_aligned_interval": [
+            0,
+            61
+          ],
+          "query_sequence": "GCAAAGTGCTGTAAGATTTCACAGGATGGAGAGAACATCTGTGGCAGTGGACAGAGTCGTGGGGGACCCCAAAAGGCTTTTTGGGGGGGGGGGTTCTGGGA",
+          "reference_end_0based": 224583230,
+          "reference_start_0based": 224583169,
+          "right_clip_bases": 40,
+          "right_clip_min_q": 2,
+          "secondary": false,
+          "supplementary": false
+        }
+      ],
+      "matches": [
+        {
+          "distance_after_join_bases": 280,
+          "exact_match_bases": 30,
+          "genomic_interval_0based_half_open": [
+            "chr1",
+            224598611,
+            224598641
+          ],
+          "mate": 1,
+          "opposite_mate_exon_alignment": true,
+          "path_interval": [
+            1387,
+            1417
+          ],
+          "path_region": "downstream_reference",
+          "same_end_exon_alignment": true,
+          "same_end_exon_clip_contains_match": true,
+          "uses_clipped_bases": true
+        }
+      ],
+      "spot": "SRR8615617.110017311"
+    },
+    {
+      "exact_sv3_43mer": false,
+      "exon_alignments": [
+        {
+          "cigar": "15S69M17S",
+          "exons": [
+            {
+              "aligned_exon_bases": 66,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224566264,
+              "exon_start_0based": 224566198,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000478120",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470",
+                "ENST00000496277"
+              ]
+            }
+          ],
+          "left_clip_bases": 15,
+          "left_clip_min_q": 17,
+          "mapq": 59,
+          "mate": 1,
+          "query_aligned_interval": [
+            15,
+            84
+          ],
+          "query_sequence": "GTTCCCTGGGTCCCAAGTTGCCTCCTGGTTATAAAGCAAAGCCAAACTGGAGAGACCAGTGCCAGAGCCTTTATTACTAAAAGGAAATTGACACAGCCACC",
+          "reference_end_0based": 224566265,
+          "reference_start_0based": 224566196,
+          "right_clip_bases": 17,
+          "right_clip_min_q": 30,
+          "secondary": false,
+          "supplementary": false
+        }
+      ],
+      "matches": [
+        {
+          "distance_after_join_bases": 280,
+          "exact_match_bases": 20,
+          "genomic_interval_0based_half_open": [
+            "chr1",
+            224598611,
+            224598631
+          ],
+          "mate": 1,
+          "opposite_mate_exon_alignment": false,
+          "path_interval": [
+            1387,
+            1407
+          ],
+          "path_region": "downstream_reference",
+          "same_end_exon_alignment": true,
+          "same_end_exon_clip_contains_match": true,
+          "uses_clipped_bases": true
+        }
+      ],
+      "spot": "SRR8615617.7298052"
+    },
+    {
+      "exact_sv3_43mer": false,
+      "exon_alignments": [
+        {
+          "cigar": "35M66H",
+          "exons": [
+            {
+              "aligned_exon_bases": 35,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224546939,
+              "exon_start_0based": 224546828,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000478120",
+                "ENST00000489556",
+                "ENST00000496277"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 3,
+          "mate": 1,
+          "query_aligned_interval": [
+            0,
+            35
+          ],
+          "query_sequence": "AGCACATATTTTTAGTGACAAAGACTGTGACTATG",
+          "reference_end_0based": 224546939,
+          "reference_start_0based": 224546904,
+          "right_clip_bases": 0,
+          "right_clip_min_q": null,
+          "secondary": false,
+          "supplementary": true
+        },
+        {
+          "cigar": "34S67M",
+          "exons": [
+            {
+              "aligned_exon_bases": 66,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224566264,
+              "exon_start_0based": 224566198,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000478120",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470",
+                "ENST00000496277"
+              ]
+            }
+          ],
+          "left_clip_bases": 34,
+          "left_clip_min_q": 19,
+          "mapq": 58,
+          "mate": 1,
+          "query_aligned_interval": [
+            34,
+            101
+          ],
+          "query_sequence": "AGCACATATTTTTAGTGACAAAGACTGTGACTATGTTGCCTCCTGGTTATAAAGCAAAGCCAAACTGGAGAGACCAGTGCCAGAGCCTTTATTACTAAAAG",
+          "reference_end_0based": 224566264,
+          "reference_start_0based": 224566197,
+          "right_clip_bases": 0,
+          "right_clip_min_q": null,
+          "secondary": false,
+          "supplementary": false
+        },
+        {
+          "cigar": "16S65M20S",
+          "exons": [
+            {
+              "aligned_exon_bases": 64,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224566264,
+              "exon_start_0based": 224566198,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000478120",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470",
+                "ENST00000496277"
+              ]
+            }
+          ],
+          "left_clip_bases": 16,
+          "left_clip_min_q": 2,
+          "mapq": 46,
+          "mate": 2,
+          "query_aligned_interval": [
+            16,
+            81
+          ],
+          "query_sequence": "NNNNNNNNNNNNNNGGGCCTCCTGGTTATAAAGCAAAGCCAAACTGGAGAGACCAGTGCCAGAGCCTTTATTACTAAAAGGAAATTGACACAGCCACCCCG",
+          "reference_end_0based": 224566265,
+          "reference_start_0based": 224566200,
+          "right_clip_bases": 20,
+          "right_clip_min_q": 10,
+          "secondary": false,
+          "supplementary": false
+        }
+      ],
+      "matches": [
+        {
+          "distance_after_join_bases": 280,
+          "exact_match_bases": 22,
+          "genomic_interval_0based_half_open": [
+            "chr1",
+            224598611,
+            224598633
+          ],
+          "mate": 2,
+          "opposite_mate_exon_alignment": true,
+          "path_interval": [
+            1387,
+            1409
+          ],
+          "path_region": "downstream_reference",
+          "same_end_exon_alignment": true,
+          "same_end_exon_clip_contains_match": true,
+          "uses_clipped_bases": true
+        }
+      ],
+      "spot": "SRR8615617.7300160"
+    },
+    {
+      "exact_sv3_43mer": false,
+      "exon_alignments": [
+        {
+          "cigar": "9S68M24S",
+          "exons": [
+            {
+              "aligned_exon_bases": 66,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224566264,
+              "exon_start_0based": 224566198,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000478120",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470",
+                "ENST00000496277"
+              ]
+            }
+          ],
+          "left_clip_bases": 9,
+          "left_clip_min_q": 30,
+          "mapq": 59,
+          "mate": 1,
+          "query_aligned_interval": [
+            9,
+            77
+          ],
+          "query_sequence": "TGTGACTATGTTGCCTCCTGGTTATAAAGCAAAGCCAAACTGGAGAGACCAGTGCCAGAGCCTTTATTACTAAAAGGCACATGCAAAGTGCTGTAAGATTT",
+          "reference_end_0based": 224566265,
+          "reference_start_0based": 224566197,
+          "right_clip_bases": 24,
+          "right_clip_min_q": 26,
+          "secondary": false,
+          "supplementary": false
+        },
+        {
+          "cigar": "15S57M29S",
+          "exons": [
+            {
+              "aligned_exon_bases": 56,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 15,
+          "left_clip_min_q": 2,
+          "mapq": 33,
+          "mate": 2,
+          "query_aligned_interval": [
+            15,
+            72
+          ],
+          "query_sequence": "NNNNNNNNNNNNANAGGNAGTGGACAGAGTCGTGAGTGACCACAGAAGGCTTTCTGGAGGCAGGACTTGAGGAAATTGACACAGCCACCCCAACCTTCAGC",
+          "reference_end_0based": 224583268,
+          "reference_start_0based": 224583211,
+          "right_clip_bases": 29,
+          "right_clip_min_q": 31,
+          "secondary": false,
+          "supplementary": false
+        }
+      ],
+      "matches": [
+        {
+          "distance_after_join_bases": 280,
+          "exact_match_bases": 32,
+          "genomic_interval_0based_half_open": [
+            "chr1",
+            224598611,
+            224598643
+          ],
+          "mate": 2,
+          "opposite_mate_exon_alignment": true,
+          "path_interval": [
+            1387,
+            1419
+          ],
+          "path_region": "downstream_reference",
+          "same_end_exon_alignment": true,
+          "same_end_exon_clip_contains_match": true,
+          "uses_clipped_bases": true
+        }
+      ],
+      "spot": "SRR8615617.7300195"
+    },
+    {
+      "exact_sv3_43mer": false,
+      "exon_alignments": [
+        {
+          "cigar": "84M17S",
+          "exons": [
+            {
+              "aligned_exon_bases": 83,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 60,
+          "mate": 1,
+          "query_aligned_interval": [
+            0,
+            84
+          ],
+          "query_sequence": "ATTTCACAGGATGGAGAGAACATCTGTGGCAGTGGACAGAGTCGTGAGTGACCACAGAAGGCTTTCTGGAGGCAGGACTTGAGGAAATTGACACAGCCACC",
+          "reference_end_0based": 224583268,
+          "reference_start_0based": 224583184,
+          "right_clip_bases": 17,
+          "right_clip_min_q": 31,
+          "secondary": false,
+          "supplementary": false
+        },
+        {
+          "cigar": "99M2S",
+          "exons": [
+            {
+              "aligned_exon_bases": 98,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 60,
+          "mate": 2,
+          "query_aligned_interval": [
+            0,
+            99
+          ],
+          "query_sequence": "GCAAAGTGCTGTAAGATTTCACAGGATGGAGAGAACATCTGTGGCAGTGGACAGAGTCGTGAGTGACCACAGAAGGCTTTCTGGAGGCAGGACTTGAGGAA",
+          "reference_end_0based": 224583268,
+          "reference_start_0based": 224583169,
+          "right_clip_bases": 2,
+          "right_clip_min_q": 32,
+          "secondary": false,
+          "supplementary": false
+        }
+      ],
+      "matches": [
+        {
+          "distance_after_join_bases": 280,
+          "exact_match_bases": 20,
+          "genomic_interval_0based_half_open": [
+            "chr1",
+            224598611,
+            224598631
+          ],
+          "mate": 1,
+          "opposite_mate_exon_alignment": true,
+          "path_interval": [
+            1387,
+            1407
+          ],
+          "path_region": "downstream_reference",
+          "same_end_exon_alignment": true,
+          "same_end_exon_clip_contains_match": true,
+          "uses_clipped_bases": true
+        }
+      ],
+      "spot": "SRR8615617.7303961"
+    },
+    {
+      "exact_sv3_43mer": false,
+      "exon_alignments": [
+        {
+          "cigar": "99M2S",
+          "exons": [
+            {
+              "aligned_exon_bases": 98,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 60,
+          "mate": 1,
+          "query_aligned_interval": [
+            0,
+            99
+          ],
+          "query_sequence": "GCAAAGTGCTGTAAGATTTCACAGGATGGAGAGAACATCTGTGGCAGTGGACAGAGTCGTGAGTGACCACAGAAGGCTTTCTGGAGGCAGGACTTGAGGAA",
+          "reference_end_0based": 224583268,
+          "reference_start_0based": 224583169,
+          "right_clip_bases": 2,
+          "right_clip_min_q": 29,
+          "secondary": false,
+          "supplementary": false
+        },
+        {
+          "cigar": "73M28S",
+          "exons": [
+            {
+              "aligned_exon_bases": 72,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224583267,
+              "exon_start_0based": 224583163,
+              "transcript_ids": [
+                "ENST00000471578",
+                "ENST00000481095",
+                "ENST00000489556",
+                "ENST00000492470"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 54,
+          "mate": 2,
+          "query_aligned_interval": [
+            0,
+            73
+          ],
+          "query_sequence": "TGGAGAGAACATCTGTGGCAGTGGACAGAGTCGTGAGTGACCACAGAAGGCTTTCTGGAGGCAGGACTTGAGGAAATTGACACAGCCACCCCAACCTTCAG",
+          "reference_end_0based": 224583268,
+          "reference_start_0based": 224583195,
+          "right_clip_bases": 28,
+          "right_clip_min_q": 31,
+          "secondary": false,
+          "supplementary": false
+        }
+      ],
+      "matches": [
+        {
+          "distance_after_join_bases": 280,
+          "exact_match_bases": 31,
+          "genomic_interval_0based_half_open": [
+            "chr1",
+            224598611,
+            224598642
+          ],
+          "mate": 2,
+          "opposite_mate_exon_alignment": true,
+          "path_interval": [
+            1387,
+            1418
+          ],
+          "path_region": "downstream_reference",
+          "same_end_exon_alignment": true,
+          "same_end_exon_clip_contains_match": true,
+          "uses_clipped_bases": true
+        }
+      ],
+      "spot": "SRR8615617.7303964"
+    },
+    {
+      "exact_sv3_43mer": false,
+      "exon_alignments": [
+        {
+          "cigar": "73M28S",
+          "exons": [
+            {
+              "aligned_exon_bases": 72,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224587420,
+              "exon_start_0based": 224587139,
+              "transcript_ids": [
+                "ENST00000479227"
+              ]
+            },
+            {
+              "aligned_exon_bases": 72,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224587420,
+              "exon_start_0based": 224587165,
+              "transcript_ids": [
+                "ENST00000489556"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 54,
+          "mate": 1,
+          "query_aligned_interval": [
+            0,
+            73
+          ],
+          "query_sequence": "AGACCAGAAGCAACCCAGTAGAAGCCAGGGGACAGTGTGTGGACCACAGAATTCATGCTTGATGCCATCAAGGAAATTGACACAGCCACCCCAACCTTCAG",
+          "reference_end_0based": 224587421,
+          "reference_start_0based": 224587348,
+          "right_clip_bases": 28,
+          "right_clip_min_q": 31,
+          "secondary": false,
+          "supplementary": false
+        },
+        {
+          "cigar": "101M",
+          "exons": [
+            {
+              "aligned_exon_bases": 101,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224587420,
+              "exon_start_0based": 224587139,
+              "transcript_ids": [
+                "ENST00000479227"
+              ]
+            },
+            {
+              "aligned_exon_bases": 101,
+              "coding_transcript_ids": [],
+              "exon_end_0based": 224587420,
+              "exon_start_0based": 224587165,
+              "transcript_ids": [
+                "ENST00000489556"
+              ]
+            }
+          ],
+          "left_clip_bases": 0,
+          "left_clip_min_q": null,
+          "mapq": 60,
+          "mate": 2,
+          "query_aligned_interval": [
+            0,
+            101
+          ],
+          "query_sequence": "TCAGCTAGGACCCTGCAGTAGGACATCGGTGTCCAGATGAGACCAGAAGCAACCCAGTAGAAGCCAGGGGACAGTGTGTGGACCACAGAATTCATGCTTGA",
+          "reference_end_0based": 224587410,
+          "reference_start_0based": 224587309,
+          "right_clip_bases": 0,
+          "right_clip_min_q": null,
+          "secondary": false,
+          "supplementary": false
+        }
+      ],
+      "matches": [
+        {
+          "distance_after_join_bases": 280,
+          "exact_match_bases": 31,
+          "genomic_interval_0based_half_open": [
+            "chr1",
+            224598611,
+            224598642
+          ],
+          "mate": 1,
+          "opposite_mate_exon_alignment": true,
+          "path_interval": [
+            1387,
+            1418
+          ],
+          "path_region": "downstream_reference",
+          "same_end_exon_alignment": true,
+          "same_end_exon_clip_contains_match": true,
+          "uses_clipped_bases": true
+        }
+      ],
+      "spot": "SRR8615617.7306533"
+    }
+  ],
+  "exploratory_orfs": [
+    {
+      "amino_acids": 37,
+      "annotated_start": false,
+      "exact_start_spots": 47,
+      "frame_status": "no_gene_anchor",
+      "full_orf_sequence_overlap_chain_spots": 2,
+      "initiation_observed": false,
+      "same_end_start_to_core_join_spots": 1,
+      "same_end_start_to_junction_spots": 0,
+      "start_path_offset": 1014
+    },
+    {
+      "amino_acids": 162,
+      "annotated_start": false,
+      "exact_start_spots": 51,
+      "frame_status": "no_gene_anchor",
+      "full_orf_sequence_overlap_chain_spots": 7,
+      "initiation_observed": false,
+      "same_end_start_to_core_join_spots": 2,
+      "same_end_start_to_junction_spots": 0,
+      "start_path_offset": 1027
+    }
+  ],
+  "input_scope": "alignment-based CNIH3 target-screen candidate BAM plus ten exact-junction raw ends",
+  "input_sha256": {
+    "bam": "f24a0543f29d1db226b1df95edfaa99aba735400f516e2fef5e3e78dafce752f",
+    "fastq": "ac5a2b40f05676601135e4df0589e8254b13c23ca3b750681fac784a3c73d876",
+    "models": "0c72b579f7f6ce331c6b354b4b14d06f1c1cbc869c5d23f08c1e211726ff9b5a",
+    "path_report": "8408b601d3825e34e2dacc52abfdd4e8c14d2a85f741c751ab83a0f8bf3b3dcc",
+    "polished_report": "4a0a573897fd788e48fa07c06bef63fd03f93b505b0ed8b67d4b32b9f724eca2"
+  },
+  "joined_path_bases": 2178,
+  "joined_path_blocks": [
+    {
+      "contig": "chr1",
+      "query_end": 1088,
+      "query_start": 0,
+      "reference_end": 224595093,
+      "reference_start": 224594005,
+      "strand": "+"
+    },
+    {
+      "contig": "chr1",
+      "query_end": 2178,
+      "query_start": 1107,
+      "reference_end": 224599402,
+      "reference_start": 224598331,
+      "strand": "+"
+    }
+  ],
+  "joined_path_frame_status": "no_gene_anchor",
+  "joined_path_id": "653d5d9c015d3e590fb149b3",
+  "junction_path_interval": [
+    1088,
+    1107
+  ],
+  "limitations": [
+    "mate_location_unavailable",
+    "no_matched_normal_rna",
+    "original_pacbio_reads_not_ingested",
+    "path_limit",
+    "target_screen_not_all_original_reads"
+  ],
+  "parameters": {
+    "min_exon_aligned_bases": 15,
+    "min_mapping_quality": 0,
+    "min_path_exact_bases": 20,
+    "path_search_limit": 80
+  },
+  "placed_sv3_split_spots": [
+    "SRR8615617.101713327",
+    "SRR8615617.7313798",
+    "SRR8615617.97504216"
+  ],
+  "polished_isoform_exact_join_status": "no_exact_junction_window_in_polished_representatives",
+  "polished_isoform_representatives": 68553,
+  "polished_motif_positive_representatives": [
+    "PB.1153.13",
+    "PB.1153.23"
+  ],
+  "raw_exact_junction_spots_missing_from_bam": [],
+  "raw_exact_junction_spots_without_exact_bam_window": [
+    "SRR8615617.110737497"
+  ],
+  "schema": "isovar.sv3_frame_anchor_audit.v1",
+  "source": "SRA:SRR8615617",
+  "spots_with_20_base_path_match": 1242
+}

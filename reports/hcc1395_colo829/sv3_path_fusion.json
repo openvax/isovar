@@ -558,6 +558,24 @@
     "min_overlap": 30
   },
   "path_bases": 2178,
+  "path_blocks": [
+    {
+      "contig": "chr1",
+      "query_end": 1088,
+      "query_start": 0,
+      "reference_end": 224595093,
+      "reference_start": 224594005,
+      "strand": "+"
+    },
+    {
+      "contig": "chr1",
+      "query_end": 2178,
+      "query_start": 1107,
+      "reference_end": 224599402,
+      "reference_start": 224598331,
+      "strand": "+"
+    }
+  ],
   "path_count": 80,
   "path_id": "653d5d9c015d3e590fb149b3",
   "placed_split_join_spots": [

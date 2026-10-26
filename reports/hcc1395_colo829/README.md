@@ -20,6 +20,10 @@ selected small-variant source record and screen their SV sources.
   The [versioned exon path audit](sv_exon_path_evidence.md) is regenerated
   alongside it. The [SV3 full SRA screen](SV3_FULL_SRA_SCREEN.md)
   documents the expanded CNIH3 candidate fixture and its limits. The
+  [SV3 frame-anchor audit](sv3_frame_anchor_audit.md) checks all pinned
+  CNIH3 candidate alignments for exon-linked clips and coding anchors,
+  keeping alternate RNA paths separate from the SV3-specific join. Rebuild
+  with `python -m reports.hcc1395_colo829.build_sv3_frame_anchor_audit`. The
   [dense recount benchmark](SV3_DENSE_RECOUNT_BENCHMARK.md) measures paired
   template scaling on pinned and source-scale proxy inputs.
 - [HCC1395 and COLO829 evidence PDFs](PDF_REPORTS.md): source-specific
