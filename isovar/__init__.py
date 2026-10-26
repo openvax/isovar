@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.59.26"
+__version__ = "1.60.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -45,6 +45,9 @@ from .fusion import FusionBlock, FusionBreakpoint, FusionRead, FusionReference, 
 from .sv_rna import reconstruct_sv_rna
 from .sv_rna_orf_export import export_sv_rna_orfs, write_sv_rna_orfs
 from .sv_rna_comparison import compare_sv_rna_predictions
+from .sv_rna_assessment import assess_sv_rna_paths
+from .sv_rna_reconciliation import hypotheses_from_varcode, reconcile_sv_rna_hypotheses
+from .sv_rna_audit import run_sv_rna_audit
 from .orf_inclusion import annotate_orf_inclusion
 from .orf_start import annotate_orf_start, summarize_orf_start_evidence
 from .uorf_catalog import UORFCatalog, UORFRecord, UORFPeptide, load_uorf_catalog
@@ -99,6 +102,10 @@ __all__ = [
     "export_sv_rna_orfs",
     "write_sv_rna_orfs",
     "compare_sv_rna_predictions",
+    "assess_sv_rna_paths",
+    "hypotheses_from_varcode",
+    "reconcile_sv_rna_hypotheses",
+    "run_sv_rna_audit",
     "annotate_orf_inclusion",
     "annotate_orf_start",
     "summarize_orf_start_evidence",

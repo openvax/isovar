@@ -1,5 +1,7 @@
 # HCC1395 EIF3K–CYP39A1 coding fusion candidate
 
+Open the [full protein alignment and per-codon RNA support PDF](../focused_proteins/HCC1395_EIF3K_CYP39A1_fusion.pdf). See the [complete sequencing and reference source index](../SEQUENCING_SOURCES.md).
+
 - Original fusion-enriched Illumina records screened: 185
 - Exact junction-spanning fragments: 149
 - Original mapped Illumina reads in a coding-region overlap chain: 19

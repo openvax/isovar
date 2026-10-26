@@ -1,24 +1,21 @@
-"""COLO829 SV3 original-read evidence does not assign an unsupported frame."""
+"""All-path SV3 audit retains alternatives and the missing normal/long reads."""
 
 from reports.hcc1395_colo829.build_sv3_path_fusion import build
 
 
-def test_source_reads_tile_both_exploratory_orfs_but_do_not_resolve_protein():
-    result = build()
-    assert result["schema"] == "isovar.sv3_path_fusion.v1"
-    assert result["path_id"] == "653d5d9c015d3e590fb149b3"
-    assert len(result["exact_junction_window_spots"]) == 5
-    assert len(result["placed_split_join_spots"]) == 3
-    assert sum(spot["opposite_mate_exact_path"] for spot in result["source_spots"]) == 4
-    assert not any(spot["opposite_mate_exact_cnih3_exon"] for spot in result["source_spots"])
-    assert result["exact_exon_anchor_bases"] == 0
-    assert result["frame_status"] == "no_gene_anchor"
-    assert result["event_linked_translation_candidates"] == 0
-    assert "path_limit" in result["limitations"]
-    short, long = result["candidates"]
-    assert [short["amino_acids"], long["amino_acids"]] == [37, 162]
-    assert [len(c["start_to_junction_overlap_chain"]) for c in (short, long)] == [2, 2]
-    assert [len(c["full_orf_sequence_overlap_chain"]) for c in (short, long)] == [2, 7]
-    assert not short["annotated_start"] and not long["annotated_start"]
-    assert not short["initiation_observed"] and not long["initiation_observed"]
-    assert result["conclusion"] == "mature_path_and_frame_unresolved"
+def test_source_reads_tile_exploratory_orfs_without_resolving_protein():
+    runs = build()
+    missing = [r for r in runs if r['status'] == 'unassessed']
+    assert {r['source']['role'] for r in missing} == {'tumor', 'normal'}
+    value = next(r['assessment'] for r in runs if r['source_id'] == 'SRR8615617-CNIH3' and r['view_id'] == '1-forward')
+    assert len(value['paths']) > 1
+    path = next(p for p in value['paths'] if p['path_id'] == '653d5d9c015d3e590fb149b3')
+    join = next(j for j in path['junctions'] if j['relation'] == 'breakpoint_junction')
+    assert join['direct_support']['fragments'] == 3
+    assert len(join['exact_sequence_support']['complete_fragments']) == 5
+    assert not path['exact_exon_anchors'] and path['frame_status'] == 'no_gene_anchor'
+    assert not path['proteins'] and 'path_limit' in value['limitations']
+    candidates = path['exploratory_orfs']
+    assert sorted({len(c['candidate']['amino_acids']) for c in candidates}) == [37, 162]
+    assert all(c['sequence_support']['overlap_chain'] for c in candidates)
+    assert not any(c['initiation_observed'] or c['translation_observed'] for c in candidates)

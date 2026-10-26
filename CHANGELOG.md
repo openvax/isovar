@@ -4,6 +4,22 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.60.0
+
+- Add reusable all-path SV RNA assessment, Varcode hypothesis adaptation,
+  competitive local-evidence reconciliation and a manifest-driven `sv-audit`
+  API/CLI. Keep junction, branch, exon/CDS, frame and complete-sequence support
+  separate; preserve unresolved alternatives and source/library provenance.
+- Reuse supplied-fusion validation for justified partial or complete protein
+  candidates. Exploratory ORFs do not become annotated proteins from sequence
+  tiling alone.
+- Correct distinct-fragment overlap-chain search and expose search-budget
+  uncertainty. The historical list-returning helper remains available.
+- Pin the complete COLO829 SV inventory and replace selected-path SV3 report
+  calculations with consumers of shared library results. Unresolved event
+  definitions and unavailable original PacBio tumor/normal reads remain
+  explicitly unassessed. Add a three-sample report index and support thresholds.
+
 ## 1.59.26
 
 - Preserve explicit NCBI translation-table IDs in reference coding contexts,

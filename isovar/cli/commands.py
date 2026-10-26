@@ -35,6 +35,7 @@ COMMANDS = {
                        "Combine small-variant, SV, fusion, viral and antigen-isoform evidence"),
     "fusion": ("isovar_fusion", "Validate and translate supplied fusion RNA with junction evidence"),
     "sv-rna": ("isovar_sv_rna", "Reconstruct exploratory RNA paths around one nominated SV"),
+    "sv-audit": ("isovar_sv_audit", "Reconstruct and reconcile all nominated SVs in a source-pinned manifest"),
     "allele-interpretations": ("isovar_allele_interpretations",
                                "Compare competing interpretations of one locus with the RNA reads"),
 }

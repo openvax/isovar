@@ -17,10 +17,10 @@ from reportlab.platypus import (
 
 from isovar import __version__
 from isovar.evidence_pdf import (
-    EvidenceFunnel, ProteinComparison, altered_aa_figures, read_support_figures,
+    EvidenceFunnel, altered_aa_figures, read_support_figures,
     support_by_class_figures,
 )
-from isovar.evidence_report import read_tsv as read_evidence_tsv, summarize, variant_type
+from isovar.evidence_report import read_tsv as read_evidence_tsv, summarize
 
 
 rl_config.invariant = 1
@@ -31,6 +31,7 @@ SELF_SCORES = REPORT / 'reference_self_9mer_scores.tsv.gz'
 SV_EXONS = REPORT / 'sv_exon_annotations.tsv.gz'
 SV_JUNCTION_AUDIT = REPORT / 'sv_junction_audit.tsv'
 EXAMPLE_REFERENCES = REPORT / 'example_reference_contexts.tsv'
+LOCUS_ANNOTATIONS = REPORT / 'report_locus_annotations.tsv'
 SELF_FASTA_SHA256 = 'd873c199d5dbf20869db3f2cbd6ac726259215d91c2782f9f1ddcad4bb117cf9'
 OUT = ROOT / 'output/pdf'
 NAVY = colors.HexColor('#18334b')
@@ -206,6 +207,7 @@ def collect(sample, annotations_path=ANNOTATIONS):
         'sv_classes': sv_classes, 'sv_status': sv_status,
         'summary': summary, 'annotations': annotations, 'self_scores': self_scores,
         'example_references': examples,
+        'loci': {r['call_id']: r for r in read_tsv(LOCUS_ANNOTATIONS) if r['sample'] == sample},
     }
 
 
@@ -218,7 +220,7 @@ def page_footer(canvas, doc, sample):
     canvas.drawString(50, PAGE_H - 31, f'ISOVAR {__version__}  /  {sample} EVIDENCE AUDIT')
     canvas.setFont('Helvetica', 7.5)
     canvas.setFillColor(GRAY)
-    canvas.drawRightString(PAGE_W - 50, 32, f'2026-10-23  |  page {doc.page}')
+    canvas.drawRightString(PAGE_W - 50, 32, f'Updated 2026-10-26  |  page {doc.page}')
     canvas.restoreState()
 
 
@@ -230,6 +232,7 @@ def section(title, body=None):
 
 
 def main_story(sample, d):
+    from .report_landscape import SVRoutes
     c = d['counts']
     small = len(d['calls'])
     sv_total = len(d['sv'])
@@ -243,22 +246,14 @@ def main_story(sample, d):
     ]
     story += section('Small variants: DNA to RNA and local protein')
     story.append(EvidenceFunnel(c))
-    story += section('Structural variants: DNA to RNA breakpoint evidence')
-    story.append(EvidenceFunnel(stages=(
-        ('SV records in DNA source', c['sv_total']),
-        ('Any annotated exon involved', c['sv_exonic']),
-        ('RNA alignment near either breakend', c['sv_exonic_covered']),
-        ('Split-read or cross-end mate candidate', c['sv_exonic_candidate']),
-        ('RNA junction in original reads (selected)', c['sv_exonic_junction']),
-        ('SV-derived protein called', c['sv_exonic_product']),
-    )))
+    story += section('Structural variants: complementary routes to RNA reconstruction')
+    story.append(SVRoutes(d))
     story.append(para(
-        'Each funnel uses its own DNA source-record denominator. Breakend-window '
-        'coverage is locus coverage, not evidence for the SV. A split-read or '
-        'cross-end mate candidate links nominated windows but does not resolve '
-        'junction bases, orientation, splice path or a translated product. '
-        'The junction stage is a targeted original-read replay of selected events; '
-        'it is a lower bound for the full source set.', 'FootSmall'))
+        'Breakend-window coverage is locus coverage. Split reads, cross-end mates and soft clips '
+        'are complementary discovery evidence; none alone resolves a coding frame. Exon overlap '
+        'is an annotation, not an eligibility filter. The older exon-restricted split/mate screen '
+        'and selected junction replay are documented later without treating their negatives as '
+        'absence. The newer COLO829 workflow uses all retained paths and exon-anchored clips.', 'FootSmall'))
     story.append(PageBreak())
     story += section('At a glance')
     story.append(data_table(
@@ -406,6 +401,9 @@ def sv_junction_story(d):
         parts = label.split('_')
         if len(parts) == 5 and parts[0] == parts[2] and parts[1].isdigit() and parts[3].isdigit():
             label = f'{parts[0]}:{int(parts[1]):,}-{int(parts[3]):,}'
+        locus = d['loci'][row['call_id']]
+        label += '<br/><b>' + (locus['genes'].replace(';', ', ') or 'No overlapping gene') + '</b>'
+        label += '<br/>' + locus['igv_loci'].replace(' ', '<br/>')
         rows.append((label, row['class'], row['junction_fragments_all_mapq'],
                      row['junction_fragments_mapq20_subset'],
                      row['max_assembled_context_bases']))
@@ -414,6 +412,8 @@ def sv_junction_story(d):
          'Join, MAPQ 20 subset', 'Longest context (bp)'],
         rows, [203, 49, 83, 88, 89], numeric_columns=(2, 3, 4)))
     story.append(Spacer(1, 8))
+    story.append(para('Gene names overlap the source breakends (Ensembl 87); they do not establish a '
+                      'coding fusion. IGV loci are one-based inclusive, GRCh38, with no digit separators.', 'FootSmall'))
     if d['sv_audit'][0]['sample'] == 'HCC1395':
         story.append(para(
             'The chr9 duplication has seven direct junction fragments; three '
@@ -526,115 +526,13 @@ def altered_aa_story(d):
     return story
 
 
-def example_story(d):
-    c, top = d['counts'], d['summary']['top']
-    calls = d['calls']
-    story = section('Mutation classes and resolved outcomes')
-    story.append(data_table(
-        ['Category', 'DNA source', 'RNA ALT', 'Local context / product'],
-        [
-            ('DNA-predicted frameshift', f"{c['frameshift']:,}",
-             f"{c['frameshift_alt']:,}", 'See per-call local contexts'),
-            ('Reference ncORF coding-block overlap', f"{c['ncorf']:,}",
-             f"{c['ncorf_alt']:,}", 'Mutated ncORF not reconstructed'),
-            ('SV source record', f"{c['sv_total']:,}",
-             'Breakend screen only', f"{c['sv_product']:,} resolved products"),
-        ], [179, 80, 88, 165]))
-    story.append(para(
-        'Frameshifts are Varcode top-effect predictions from DNA, not a count of '
-        'RNA-confirmed full-length frameshift proteins. SV split/mate candidates '
-        'do not count as productive until an RNA junction and protein path resolve.',
-        'FootSmall'))
-
-    translated = [call for call in calls if call['call_id'] in top]
-    translated.sort(key=lambda row: (-int(row['alt_reads']), row['call_id']))
-
-    def examples(title, selected, *, score=False):
-        result = section(title)
-        if not selected:
-            result.append(para('No qualifying local product was observed.', 'FootSmall'))
-            return result
-        rows = []
-        for call in selected[:3]:
-            ident = call['call_id']
-            protein = top[ident]
-            sequence = protein['protein_sequence']
-            preview = sequence[:30] + ('...' if len(sequence) > 30 else '')
-            if score:
-                record = d['self_scores'][ident]
-                measure = f"{record['novel_9mers']}/{record['total_9mers']} novel"
-            else:
-                measure = f"{int(call['alt_reads']):,} ALT reads"
-            rows.append((ident, variant_type(call), measure, preview))
-        result.append(data_table(['Source call', 'Type', 'Support / self screen',
-                                  'Top local sequence'], rows,
-                                 [165, 45, 115, 187]))
-        return result
-
-    story += examples('Highest original-RNA ALT support with local contexts', translated)
-    if d['self_scores']:
-        scored = [call for call in translated if call['call_id'] in d['self_scores']
-                  and int(d['self_scores'][call['call_id']]['total_9mers'])]
-        scored.sort(key=lambda row: (
-            -int(d['self_scores'][row['call_id']]['novel_9mers']) /
-            int(d['self_scores'][row['call_id']]['total_9mers']),
-            -int(d['self_scores'][row['call_id']]['novel_9mers']),
-            -int(row['alt_reads']), row['call_id']))
-        story += examples('Least reference-self-like local contexts', scored, score=True)
-        story.append(para(
-            'The score is the fraction of distinct mutation-overlapping 9-mers absent '
-            'from the pinned Ensembl 87 reference protein FASTA. It is an exact-match '
-            'screen of these local windows, not patient-specific self, HLA binding, '
-            'presentation or immunogenicity.', 'FootSmall'))
-    else:
-        story += section('Least reference-self-like local contexts')
-        story.append(para('Reference-proteome comparison was not evaluated.', 'FootSmall'))
-    non_snv = [call for call in translated if call['class'] != 'SNV']
-    story += examples('Highest supported non-SNV local products', non_snv)
-    story.append(para(
-        'The tables rank source records, not independent molecules. A displayed '
-        'local context may represent only part of a translated protein and can '
-        'be reference-identical for a synonymous allele.', 'FootSmall'))
-    story.append(PageBreak())
-    return story
-
-
-def comparison_story(d):
-    """Show pinned reference and read-supported mutant local protein windows."""
-    calls = {row['call_id']: row for row in d['calls']}
-    top = d['summary']['top']
-    story = section('Reference and mutant protein windows')
-    story.append(para(
-        'The <font color="#ba5a29">orange reference</font> and '
-        '<font color="#0f706d">teal mutant</font> residues differ at the '
-        'marked boundary; dark residues are shared flanks. Each reference '
-        'window comes from the named Ensembl 87 transcript. The mutant is '
-        'Isovar\'s top-ranked local context supported by tumor RNA reads. '
-        'For frameshifts, downstream columns are anchored at the change, '
-        'not a homology alignment or a complete protein. A dash means the '
-        'reference protein ends before the mutant window.'))
-    for row in d['example_references']:
-        call = calls[row['call_id']]
-        product = top[row['call_id']]
-        mutation_start = int(product['mutation_start_idx'])
-        mutation_end = int(product['mutation_end_idx'])
-        point_change = (variant_type(call) == 'SNV' and
-                        mutation_end == mutation_start + 1)
-        story.append(para(
-            f"<b>{row['call_id']}</b> | {variant_type(call)} | "
-            f"{int(call['alt_reads']):,} ALT reads | "
-            f"{row['transcript_id']} from amino acid {row['protein_start_1based']}",
-            'FootSmall'))
-        story.append(ProteinComparison(
-            row['reference_context'], product['protein_sequence'],
-            mutation_start, mutation_end, point_change=point_change))
-        story.append(Spacer(1, 7))
-    story.append(PageBreak())
-    return story
-
-
 def provenance_story(sample, d):
     story = section('Sources, processing and limits')
+    story.append(para('All RNA libraries, DNA nominations, polished inputs and references across the '
+                      'report set are listed in <link href="https://github.com/openvax/isovar/blob/master/'
+                      'reports/hcc1395_colo829/SEQUENCING_SOURCES.md">SEQUENCING_SOURCES.md</link>. '
+                      'Focused CDKN2A and EIF3K-CYP39A1 reports show highlighted reference alignments '
+                      'and original-RNA support separately from these atlas summaries.'))
     if sample == 'HCC1395':
         sources = [
             ('Matched-normal small variants', 'SEQC2 v1.2.1 SNV + indel, GRCh38.d1.vd1; HCC1395BL normal'),
@@ -698,15 +596,6 @@ def provenance_story(sample, d):
                       'TinyMono'))
     story.append(para('<b>Ensembl 87 GRCh38 protein FASTA gzip (self screen)</b>', 'FootSmall'))
     story.append(para(SELF_FASTA_SHA256, 'TinyMono'))
-    story += section('Other antigen sources in this run')
-    story.append(data_table(
-        ['Category', 'Assessment'],
-        [
-            ('Viral RNA and viral coding paths', 'Not assessed: no viral-aligned RNA panel'),
-            ('Supplied fusion transcripts', 'Not assessed with direct junction reconstruction'),
-            ('Targeted antigen-gene isoforms', 'Not assessed with original-read isoform coverage'),
-            ('Mutated ncORF proteins', 'Not reconstructed; reference coding-block overlaps only'),
-        ], [210, 302]))
     story += section('What remains unresolved')
     story.append(para(caveat))
     story.append(para(
@@ -719,6 +608,8 @@ def provenance_story(sample, d):
 
 
 def build_one(sample, output_dir=OUT, annotations_path=ANNOTATIONS):
+    from .report_landscape import landscape_story, exemplar_story, sv_exemplars, other_categories
+    from pypdf import PdfWriter
     data = collect(sample, annotations_path)
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / f'{sample}_somatic_RNA_evidence.pdf'
@@ -727,15 +618,27 @@ def build_one(sample, output_dir=OUT, annotations_path=ANNOTATIONS):
         topMargin=52, bottomMargin=51, title=f'{sample} somatic mutation and RNA evidence',
         author='Isovar evidence audit',
     )
-    story = (main_story(sample, data) + coding_story(sample, data)
+    intro = main_story(sample, data)
+    first_break = next(i for i, item in enumerate(intro) if isinstance(item, PageBreak)) + 1
+    intro = intro[:first_break] + landscape_story(sample, data) + intro[first_break:]
+    story = (intro + coding_story(sample, data)
              + [PageBreak()] + evidence_story(sample, data) + read_support_story(data)
              + exonic_read_support_story(data) + sv_exon_story(data)
              + sv_junction_story(data)
-             + altered_aa_story(data) + example_story(data)
-             + comparison_story(data)
+             + altered_aa_story(data) + exemplar_story(sample, data)
+             + sv_exemplars(sample, data) + other_categories(sample, data)
              + provenance_story(sample, data))
     doc.build(story, onFirstPage=lambda c, d: page_footer(c, d, sample),
               onLaterPages=lambda c, d: page_footer(c, d, sample))
+    focused = REPORT / 'focused_proteins' / (
+        'HCC1395_EIF3K_CYP39A1_fusion.pdf' if sample == 'HCC1395' else 'COLO829_CDKN2A_frameshift.pdf')
+    combined = path.with_suffix('.combined.pdf')
+    with PdfWriter() as writer:
+        writer.append(path, outline_item='Variant landscape and category exemplars')
+        writer.append(focused, outline_item='Focused protein alignment, coverage and sources')
+        with combined.open('wb') as stream:
+            writer.write(stream)
+    combined.replace(path)
     print(path)
 
 

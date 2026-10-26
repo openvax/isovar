@@ -1,43 +1,55 @@
-"""Source-derived SV3 exon links remain distinct from an event-linked frame."""
+"""Original SV3 exon links remain distinct from an event-linked frame."""
 
-from reports.hcc1395_colo829.build_sv3_frame_anchor_audit import (
-    _aligned_exon_clip_contains, build)
+from isovar.sv_rna_assessment import aligned_exon_clip_contains
+from reports.hcc1395_colo829.build_sv3_frame_anchor_audit import build
 
 
 def test_source_exon_clips_do_not_phase_the_sv3_junction():
-    result = build()
-    assert result["schema"] == "isovar.sv3_frame_anchor_audit.v1"
-    assert result["bam_alignment_records_scanned"] == 52212
-    assert result["bam_spots_scanned"] == 26976
-    assert result["bam_spots_with_coding_exon_alignment"] == 673
-    assert result["exon_and_path_spot_count"] == 9
-    assert result["exon_and_path_spots_with_30_base_match"] == 6
-    assert result["exon_and_path_spots_with_cds_alignment"] == 0
-    assert result["exact_sv3_join_spots_with_exon_alignment"] == []
-    assert result["raw_exact_junction_spots_without_exact_bam_window"] == [
-        "SRR8615617.110737497"]
-    assert all(link["exact_sv3_43mer"] is False for link in result["exon_path_links"])
-    assert all(match["path_region"] == "downstream_reference"
-               and match["distance_after_join_bases"] == 280
-               and match["same_end_exon_clip_contains_match"]
-               for link in result["exon_path_links"] for match in link["matches"])
-    strong = next(link for link in result["exon_path_links"]
-                  if link["spot"] == "SRR8615617.7306533")
-    assert strong["matches"][0]["genomic_interval_0based_half_open"] == [
-        "chr1", 224598611, 224598642]
-    assert any(exon["exon_end_0based"] == 224587420
-               for alignment in strong["exon_alignments"] for exon in alignment["exons"])
-    assert result["coding_reference_starts"] == [
-        {"transcript_id": "ENST00000272133", "start_grch38_1based": 224617175}]
-    assert [row["same_end_start_to_core_join_spots"] for row in result["exploratory_orfs"]] == [1, 2]
-    assert [row["same_end_start_to_junction_spots"] for row in result["exploratory_orfs"]] == [0, 0]
-    assert result["conclusion"] == "no_event_linked_frame_anchor_in_scanned_inputs"
+    runs = build()
+    value = next(r['assessment'] for r in runs if r['source_id'] == 'SRR8615617-CNIH3' and r['view_id'] == '1-forward')
+    assert value['records_scanned'] == 52212
+    assert value['fragments_scanned'] == 26976
+    assert value['coding_exon_fragments'] == 673
+    path = next(p for p in value['paths'] if p['path_id'] == '653d5d9c015d3e590fb149b3')
+    assert len({tuple(link['fragment_id']) for link in path['exon_links']}) == 9
+    assert len({tuple(link['fragment_id']) for link in path['exon_links']
+                if any(m['path_interval'][1] - m['path_interval'][0] >= 30 for m in link['matches'])}) == 6
+    join = next(j for j in path['junctions'] if j['relation'] == 'breakpoint_junction')
+    assert not join['exon_linked_fragments']
+    assert all(match['path_interval'][0] - join['query_interval'][1] == 280
+               and match['same_end_exon_clip_contains_match'] == link['same_end_exon_alignment']
+               for link in path['exon_links'] for match in link['matches'])
+    assert any(link['opposite_mate_exon_alignment'] for link in path['exon_links'])
+    assert value['coding_reference_starts'] == [dict(transcript_id='ENST00000272133', contig='chr1',
+                                                   strand='+', position_0based=224617174)]
+    assert not path['proteins']
 
 
 def test_exon_clip_link_requires_the_exon_alignments_own_clipped_bases():
-    record = dict(query_sequence="AACCGGTTGATCAGTA", query_aligned_interval=[0, 8])
-    assert _aligned_exon_clip_contains(record, "TTGATCAG")
-    assert not _aligned_exon_clip_contains(record, "AACCGGTT")
-    assert not _aligned_exon_clip_contains(
-        dict(query_sequence="AACCGGTTGATCAGTA", query_aligned_interval=[0, 16]),
-        "TTGATCAG")
+    record = dict(query_sequence='AACCGGTTGATCAGTA', query_aligned_interval=[0, 8])
+    assert aligned_exon_clip_contains(record, 'TTGATCAG')
+    assert not aligned_exon_clip_contains(record, 'AACCGGTT')
+    assert not aligned_exon_clip_contains(dict(record, query_aligned_interval=[0, 16]), 'TTGATCAG')
+
+
+def test_original_sv3_witnesses_reproduce_the_library_assessment():
+    import json
+    import pysam
+    from isovar.sv_rna_assessment import assess_sv_rna_paths
+    from isovar.sv_rna_audit import raw_fastq_reads
+    from reports.hcc1395_colo829.build_unified_sv_manifest import DATA
+    snapshot = next(r for r in build() if r['source_id'] == 'SRR8615617-CNIH3' and r['view_id'] == '1-forward')
+    identifier = '653d5d9c015d3e590fb149b3'
+    original = snapshot['reconstruction']
+    path = next(p for p in original['paths'] if p['path_id'] == identifier)
+    expected = next(p for p in snapshot['assessment']['paths'] if p['path_id'] == identifier)
+    raw = tuple(raw_fastq_reads(DATA / 'SRR8615617.sv3_exact_window_spots.fastq.gz'))
+    with pysam.AlignmentFile(str(DATA / 'SRR8615617.cnih3_source_candidates.grch38.bam')) as bam:
+        replay = assess_sv_rna_paths(dict(original, paths=[path]), bam,
+                                    snapshot['assessment']['reference_models'], raw_reads=raw,
+                                    **snapshot['assessment']['parameters'])
+    # Compare the public JSON representation: in-memory fragment tuples become
+    # arrays on disk, without changing fragment identity or support.
+    replay = json.loads(json.dumps(replay))
+    assert replay['paths'] == [expected]
+    assert {key: snapshot['assessment']['exon_alignments'][key] for key in replay['exon_alignments']} == replay['exon_alignments']
