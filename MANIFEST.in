@@ -21,5 +21,6 @@ include tests/data/osteosarc/protein_references.py
 include tests/data/osteosarc/expansion/references.py
 include tests/data/osteosarc/expansion/inventory.py
 recursive-include tests/data/fusions *.py *.md *.json *.gz
+recursive-include tests/data/references *.json *.md
 recursive-include tests/data/viral *.json *.gz
 recursive-include tests/data/wlos0001_tp53 *

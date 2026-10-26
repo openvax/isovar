@@ -1,7 +1,7 @@
 pyensembl>=2.27.2
 # Varcode 10 is the tested major version (CI and the suite run on 10.x).
-# 10.17.0 preserves complete splice outcome sets during priority selection.
-varcode>=10.17.0,<11
+# Shared genetic-code resolution and normalized native yeast ORF contigs.
+varcode>=10.20.2,<11
 pandas>=0.23.0
 pysam>=0.15.2
 edlib>=1.3.9.post1,<2

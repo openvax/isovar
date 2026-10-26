@@ -16,6 +16,18 @@ sequence: the set of valid start and stop codons, as well as which
 amino acid each DNA triplet is translated into.
 """
 
+from functools import lru_cache
+
+
+@lru_cache(maxsize=None)
+def genetic_code_by_id(translation_table):
+    """Use Varcode's offline NCBI definitions; unsupported/ambiguous codes raise."""
+    from varcode.effects.codon_tables import codon_table_by_id
+
+    table = codon_table_by_id(translation_table)
+    return GeneticCode(table.name, table.start_codons, table.stop_codons,
+                       table.forward_table)
+
 
 class GeneticCode(object):
     """
@@ -199,7 +211,8 @@ vertebrate_mitochondrial_genetic_code = standard_genetic_code.copy(
 def translate_cdna(
         cdna_sequence,
         first_codon_is_start=False,
-        mitochondrial=False):
+        mitochondrial=False,
+        *, translation_table=None):
     """
     Given a cDNA sequence which is aligned to a reading frame, returns
     the translated protein sequence and a boolean flag indicating whether
@@ -213,12 +226,18 @@ def translate_cdna(
     first_codon_is_start : bool
 
     mitochondrial : bool
-        Use the mitochondrial codon table instead of standard
-        codon to amino acid table.
+        Legacy shorthand for vertebrate mitochondrial table 2.
+    translation_table : int or None
+        Explicit NCBI table ID. Other mitochondrial codes (for example yeast
+        table 3) must use this parameter. Unsupported codes fail explicitly.
     """
     # once we drop some of the prefix nucleotides, we should be in a reading frame
     # which allows us to translate this protein
-    if mitochondrial:
+    if translation_table is not None:
+        if mitochondrial and translation_table != 2:
+            raise ValueError("mitochondrial=True denotes table 2, conflicting with translation_table")
+        genetic_code = genetic_code_by_id(translation_table)
+    elif mitochondrial:
         genetic_code = vertebrate_mitochondrial_genetic_code
     else:
         genetic_code = standard_genetic_code_with_extra_start_codons
