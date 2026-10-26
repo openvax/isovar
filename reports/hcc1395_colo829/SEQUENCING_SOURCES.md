@@ -53,6 +53,14 @@ pins its sequence/evidence ledger; it is a derived report, not another RNA libra
 
 ## Reference sequences and derived inputs
 
+- **DDX17 follow-up:** [pinned original-RNA audit](ddx17_audit/README.md) uses
+  SRR8615617 only: all 603 original site-selected pairs, plus regional source-index
+  recovery, yield 27,309 distinct pairs. Original SRA GRCh37 placements and fresh
+  STAR 2.7.11b GRCh38 local placements are kept distinct. The 50-kb GRCh38 genomic
+  slice, Ensembl 87 transcript sequences, original FASTQs, alternative placements,
+  selection bounds and SHA-256 receipts are in `ddx17_audit/manifest.json`.
+  This bounded investigation is not a new culture or a whole-library splice audit.
+
 - **Cell-line genome:** NCBI GRCh38 no-alt analysis FASTA; uncompressed SHA-256
   `9cce8b926416dd96b152deea85188495b75f7ac8d634cc723a017067be8702b7`.
   Download URL and source archive hashes are in the [inventory README](README.md#input-sha-256).
