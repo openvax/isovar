@@ -152,6 +152,7 @@ sequence-resolved indels. Symbolic structural variants (`<DEL>`, `<DUP>`, etc.),
 breakends and `varcode.StructuralVariant` objects are rejected rather than
 interpreted as small variants. Two separate workflows handle them:
 
+- `isovar sv-audit` runs a source-separated manifest across nominated SVs, assesses every RNA path, and reconciles competing hypotheses ([guide](docs/sv-rna-audit.md)).
 - `isovar sv-rna` / `reconstruct_sv_rna` reconstructs exploratory RNA paths
   around one nominated SV from a BAM and annotated transcript models
   ([guide](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md)).

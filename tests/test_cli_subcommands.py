@@ -13,8 +13,8 @@ from isovar import __version__
 from isovar.cli import commands
 
 
-# JSON-input commands: no --vcf and no hyphenated legacy script.
-JSON_COMMANDS = {"fusion", "sv-rna", "allele-interpretations"}
+# Structured-input commands: no --vcf and no hyphenated legacy script.
+JSON_COMMANDS = {"fusion", "sv-rna", "allele-interpretations", "sv-audit"}
 
 @pytest.mark.parametrize("name", commands.COMMANDS)
 def test_dispatch_passes_options_unchanged_to_the_existing_handler(name, monkeypatch):
@@ -36,7 +36,7 @@ def test_subcommand_help_uses_correct_program_and_preserves_parser(name, capsys)
     assert error.value.code == 0
     help_text = capsys.readouterr().out
     assert help_text.startswith("usage: isovar " + name + " ")
-    expected_input = ("--manifest" if name == "calibrate-phasing" else "--genome-fasta" if name == "viral" else "reconstruct" if name == "isoforms" else "--gene" if name == "uorf-evidence" else "import-sid" if name == "audit-bundle" else "--sample-id" if name == "antigen-report"
+    expected_input = ("--manifest" if name in {"calibrate-phasing", "sv-audit"} else "--genome-fasta" if name == "viral" else "reconstruct" if name == "isoforms" else "--gene" if name == "uorf-evidence" else "import-sid" if name == "audit-bundle" else "--sample-id" if name == "antigen-report"
                       else "--input" if name in JSON_COMMANDS else "--vcf")
     assert expected_input in help_text
     if original is not None:

@@ -306,7 +306,13 @@ report, not a negative result.
 
 With the frozen selected input directories and pinned Ensembl 115 installed:
 
-Install `isovar[data]` for the independent sequence/proteome checks. The
+In current releases, `isovar[data]` installs the Biopython verification
+dependency; it contains no Sid data and does not download samples. Original
+read acquisition is owned by Osteosarc through the
+[selected-read workflow](sid-neoorf-read-subsets.md); the report FASTA, support
+table and downloadable ledger are linked above. Simplifying the install and
+migrating the checks to Biotite is tracked in
+[#579](https://github.com/openvax/isovar/issues/579). The
 original-BAM/SAM witness checkers also require the **SAMtools CLI** on `PATH`;
 CI installs it explicitly. The report generator itself reads frozen JSON and
 annotation, without invoking SAMtools or downloading whole libraries.

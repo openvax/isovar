@@ -100,7 +100,9 @@ Missing SAM qualities remain unavailable, consistent with the
 
 ## Reproduce
 
-Install `isovar[data]` and the pinned Ensembl 115 annotation. Starting with the
+The current `isovar[data]` extra supplies Biopython verification code, not Sid
+data; acquisition is handled through Osteosarc. Install that dependency and
+the pinned Ensembl 115 annotation to rerun these historical checks. Starting with the
 [focused archive](sid-priority-read-subsets.md),
 [additional regional inputs](sid-neoorf-read-subsets.md) and corrected dense
 audit, run:

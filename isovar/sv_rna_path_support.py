@@ -5,7 +5,7 @@ An exact overlap chain is a sequence hypothesis; a mate placement never fills
 unsequenced bases or supplies a reading frame.
 """
 
-from collections import defaultdict, deque
+from collections import defaultdict
 from dataclasses import dataclass
 
 
@@ -85,30 +85,84 @@ def interval_spots(matches, start, end):
                    if match.start <= start and match.end >= end})
 
 
-def overlap_chain(matches, start, end, min_overlap=30, max_reads=5):
-    """Find a distinct-spot tiling from start through end, if one exists.
+def overlap_chain_search(matches, start, end, min_overlap=30, max_reads=5, max_states=10000):
+    """Find a distinct-fragment tiling, retaining search-budget uncertainty.
 
-    Every step must overlap the previous assembled prefix by ``min_overlap``
-    exact bases. This does not establish a mature isoform or translation.
+    Search is over interval/fragment histories, not globally visited reads.
+    Equivalent intervals need at most ``max_reads`` distinct fragment choices:
+    any chain can exclude at most ``max_reads - 1`` of them. A coverage-only
+    lower bound rejects gaps cheaply before considering fragment histories.
+    The returned state distinguishes no chain within the read bound from a
+    state-budget cutoff. Neither establishes biological sequence absence.
     """
-    if not 0 <= start < end or min_overlap < 1 or max_reads < 1:
+    if (not 0 <= start < end or min_overlap < 1 or max_reads < 1
+            or type(max_states) is not int or max_states < 1):
         raise ValueError("Invalid overlap-chain bounds")
-    relevant = [match for match in matches if match.end > start and match.start < end]
-    first = [match for match in relevant if match.start <= start and match.end > start]
-    queue = deque((match, (match,)) for match in first)
-    seen = set(first)
-    while queue:
-        current, chain = queue.popleft()
-        reach = current.end
+    grouped = defaultdict(dict)
+    for match in matches:
+        if match.end > start and match.start < end:
+            grouped[match.start, match.end].setdefault(match.spot, match)
+    intervals = sorted(grouped)
+    result = dict(chain=[], status="no_chain_within_read_limit", states_examined=0,
+                  max_states=max_states, max_reads=max_reads, min_overlap=min_overlap)
+    # Greedy reach is exact when colors/fragment identities are ignored. If
+    # even that relaxation fails, no distinct-fragment chain can succeed.
+    reach, cursor, best = start, 0, start
+    for step in range(max_reads):
+        boundary = start if step == 0 else reach - min_overlap
+        while cursor < len(intervals) and intervals[cursor][0] <= boundary:
+            best = max(best, intervals[cursor][1])
+            cursor += 1
+        if best <= reach:
+            return result
+        reach = best
         if reach >= end:
-            return [dict(spot=match.spot, mate=match.mate,
-                         path_interval=[match.start, match.end]) for match in chain]
-        if len(chain) >= max_reads:
-            continue
-        used = {match.spot for match in chain}
-        for match in relevant:
-            if (match not in seen and match.spot not in used
-                    and match.start <= reach - min_overlap and match.end > reach):
-                seen.add(match)
-                queue.append((match, (*chain, match)))
-    return []
+            break
+    else:
+        return result
+    choices = [(a, b, sorted(grouped[a, b].values(), key=lambda m: (repr(m.spot), m.mate))[:max_reads])
+               for a, b in sorted(intervals, key=lambda interval: (-interval[1], interval[0]))]
+    def extensions(reach, chain, used):
+        boundary = reach - min_overlap if chain else start
+        for a, b, rows in choices:
+            if a <= boundary and b > reach:
+                for match in rows:
+                    if match.spot not in used:
+                        yield match
+
+    # Lazy depth-first frames avoid materializing every branch at each level.
+    stack, seen = [(start, (), frozenset(), None)], set()
+    while stack:
+        reach, chain, used, pending = stack[-1]
+        if pending is None:
+            if reach >= end:
+                result.update(status="found", chain=[dict(spot=m.spot, mate=m.mate,
+                                                           path_interval=[m.start, m.end]) for m in chain])
+                return result
+            state = reach, used
+            if state in seen or len(chain) >= max_reads:
+                stack.pop()
+                continue
+            if len(seen) >= max_states:
+                result.update(status="search_limit", states_examined=len(seen))
+                return result
+            seen.add(state)
+            result["states_examined"] = len(seen)
+            pending = extensions(reach, chain, used)
+            stack[-1] = reach, chain, used, pending
+        match = next(pending, None)
+        if match is None:
+            stack.pop()
+        else:
+            stack.append((match.end, (*chain, match), used | {match.spot}, None))
+    return result
+
+
+def overlap_chain(matches, start, end, min_overlap=30, max_reads=5):
+    """Return a bounded distinct-fragment sequence tiling, if found.
+
+    Use :func:`overlap_chain_search` when distinguishing a search cutoff from
+    an exhaustive failure within ``max_reads`` matters. This convenience API
+    preserves the historical list result; an empty list never proves absence.
+    """
+    return overlap_chain_search(matches, start, end, min_overlap, max_reads)["chain"]

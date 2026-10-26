@@ -1,5 +1,8 @@
 # HCC1395 and COLO829: source-call and RNA-isoform audit
 
+Start with the [three-sample summary](THREE_SAMPLE_SUMMARY.md) for Sid, COLO829
+and HCC1395 funnels, frameshift/ncORF/SV leads and the 20-fragment threshold.
+
 Date: 2026-10-20, with 2026-10-21 whole-run extensions. This
 inventory enumerates every record in the selected public DNA call sets and
 every row in TAGET's COLO829 polished-isoform count
@@ -7,6 +10,17 @@ table. Bounded original-RNA replays test selected coding SNVs in both cell
 lines; [HCC1395_ATLAS.md](HCC1395_ATLAS.md) and
 [COLO829_ATLAS.md](COLO829_ATLAS.md) extend original-read status to every
 selected small-variant source record and screen their SV sources.
+
+## Unified SV audit (2026-10-26)
+
+The [manifest-driven cohort report](unified_sv_audit/REPORT.md) and
+[all-path SV3 assessment](unified_sv_audit/SV3.md) now use the public
+`isovar sv-audit` workflow for all 188 separately preserved COLO829 SV records.
+See [reproduction and acquisition limits](unified_sv_audit/README.md).
+The earlier one-path SV3 JSON/Markdown reports below are historical snapshots;
+their former builder entry points now consume the shared audit results.
+Original PacBio tumor/normal recovery remains in #574, source-definition
+clarifications in #575, and biological SV3 frame resolution in #563.
 
 ## Deliverables
 
@@ -23,7 +37,7 @@ selected small-variant source record and screen their SV sources.
   [SV3 frame-anchor audit](sv3_frame_anchor_audit.md) checks all pinned
   CNIH3 candidate alignments for exon-linked clips and coding anchors,
   keeping alternate RNA paths separate from the SV3-specific join. Rebuild
-  with `python -m reports.hcc1395_colo829.build_sv3_frame_anchor_audit`. The
+  using the [shared all-path workflow](unified_sv_audit/README.md). The
   [dense recount benchmark](SV3_DENSE_RECOUNT_BENCHMARK.md) measures paired
   template scaling on pinned and source-scale proxy inputs.
 - [HCC1395 and COLO829 evidence PDFs](PDF_REPORTS.md): source-specific
