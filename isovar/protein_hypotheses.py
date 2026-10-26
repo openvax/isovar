@@ -68,7 +68,7 @@ def _check_translation(translation):
     orf = translation.variant_orf
     amino_acids, stop = translate_cdna(
         orf.cdna_sequence[orf.offset_to_first_complete_codon:], first_codon_is_start=False,
-        mitochondrial=translation.reference_context.mitochondrial)
+        translation_table=translation.reference_context.translation_table)
     if (amino_acids[:len(translation.amino_acids)] != translation.amino_acids
             or (translation.ends_with_stop_codon and not (stop and amino_acids == translation.amino_acids))):
         raise ValueError("Translation cDNA, frame and amino acids disagree")
@@ -100,7 +100,8 @@ def _translation(translation, event_id, evidence, known_variants, labels):
     translated = 3 * (len(translation.amino_acids) + int(translation.ends_with_stop_codon))
     return dict(
         translation_id=content_identifier("translation", [
-            event_id, cdna, offset, [t.id for t in transcripts], translation.amino_acids]),
+            event_id, cdna, offset, [t.id for t in transcripts], translation.amino_acids,
+            context.translation_table]),
         nucleotide_sequence=cdna, nucleotide_sequence_id=content_identifier("nt", cdna),
         translated_interval=[offset, offset + translated],
         variant_cdna_interval=[orf.variant_cdna_interval_start, orf.variant_cdna_interval_end],
@@ -111,7 +112,8 @@ def _translation(translation, event_id, evidence, known_variants, labels):
             contains_start_codon=context.contains_start_codon,
             overlaps_start_codon=context.overlaps_start_codon,
             contains_five_prime_utr=context.contains_five_prime_utr,
-            amino_acids_before_variant=context.amino_acids_before_variant),
+            amino_acids_before_variant=context.amino_acids_before_variant,
+            translation_table=context.translation_table),
         mismatches_before_variant=orf.num_mismatches_before_variant,
         mismatches_after_variant=orf.num_mismatches_after_variant,
         observed_edits=_edits(translation, known_variants),
@@ -121,7 +123,7 @@ def _translation(translation, event_id, evidence, known_variants, labels):
 def _frame_contexts(protein):
     return {(t.reference_context.strand,
              (t.variant_orf.variant_cdna_interval_start - t.variant_orf.offset_to_first_complete_codon) % 3,
-             transcript.id)
+             transcript.id, t.reference_context.translation_table)
             for t in protein.translations for transcript in t.reference_context.transcripts}
 
 

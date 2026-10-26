@@ -38,7 +38,8 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
         "contains_five_prime_utr",
         # translation of complete codons in the reference context
         # before the variant
-        "amino_acids_before_variant"
+        "amino_acids_before_variant",
+        "translation_table",
     ]
 
     def __init__(
@@ -51,7 +52,10 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
             contains_start_codon,
             overlaps_start_codon,
             contains_five_prime_utr,
-            amino_acids_before_variant):
+            amino_acids_before_variant,
+            translation_table=1):
+        from .genetic_code import genetic_code_by_id
+        genetic_code_by_id(translation_table)  # Fail before grouping incompatible contexts.
         ReferenceSequenceKey.__init__(
             self,
             strand=strand,
@@ -63,6 +67,7 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
         self.contains_start_codon = contains_start_codon
         self.contains_five_prime_utr = contains_five_prime_utr
         self.amino_acids_before_variant = amino_acids_before_variant
+        self.translation_table = translation_table
 
     @classmethod
     def from_variant_and_transcript_and_sequence_key(
@@ -72,6 +77,7 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
         ReferenceSequenceKey (region of the transcript around the variant) and
         return a ReferenceCodingSequenceKey (or None).
         """
+        from varcode.effects.codon_tables import codon_table_for_transcript
         # get the interbase range of offsets which capture all reference
         # bases modified by the variant
         variant_start_offset, variant_end_offset = \
@@ -140,7 +146,8 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
             contains_start_codon=contains_start_codon,
             overlaps_start_codon=overlaps_start_codon,
             contains_five_prime_utr=contains_five_prime_utr,
-            amino_acids_before_variant=amino_acids_before_variant)
+            amino_acids_before_variant=amino_acids_before_variant,
+            translation_table=codon_table_for_transcript(transcript).ncbi_id)
 
     @classmethod
     def from_variant_and_transcript(

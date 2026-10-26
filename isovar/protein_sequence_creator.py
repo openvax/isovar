@@ -309,7 +309,7 @@ class ProteinSequenceCreator(object):
         amino_acids, ends_with_stop_codon = translate_cdna(
             in_frame_cdna_sequence,
             first_codon_is_start=False,
-            mitochondrial=reference_context.mitochondrial)
+            translation_table=reference_context.translation_table)
         logger.debug(
             "Translated amino acids: %s, ends_with_stop=%s, len=%d",
             amino_acids,

@@ -4,6 +4,18 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.59.26
+
+- Preserve explicit NCBI translation-table IDs in reference coding contexts,
+  context grouping, RNA translation and protein-hypothesis exports. Resolve
+  codes through Varcode's shared source/reference metadata rules instead of
+  assuming every mitochondrial contig uses vertebrate table 2 (orfdata#57).
+- Add `translate_cdna(..., translation_table=...)`, including yeast table 3.
+  Unsupported/context-dependent codes fail explicitly; the legacy
+  `mitochondrial=True` option still denotes table 2. Native human OpenProt and
+  yeast fixtures verify modified ORF products without inventing translation
+  evidence from RNA support.
+
 ## 1.59.24
 
 - Archive the osteosarc RNA performance experiments and raw ledgers under

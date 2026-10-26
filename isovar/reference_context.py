@@ -48,7 +48,20 @@ class ReferenceContext(ReferenceCodingSequenceKey):
             contains_five_prime_utr,
             amino_acids_before_variant,
             variant,
-            transcripts):
+            transcripts,
+            translation_table=None):
+        from types import SimpleNamespace
+        from varcode.effects.codon_tables import codon_table_for_transcript
+
+        transcripts = tuple(transcripts)
+        if translation_table is None:
+            models = transcripts or (SimpleNamespace(
+                contig=getattr(variant, "contig", None),
+                genome=getattr(variant, "genome", None)),)
+            codes = {codon_table_for_transcript(t).ncbi_id for t in models}
+            if len(codes) != 1:
+                raise ValueError("Reference context transcripts have conflicting genetic codes")
+            translation_table, = codes
         ReferenceCodingSequenceKey.__init__(
             self,
             strand=strand,
@@ -59,7 +72,8 @@ class ReferenceContext(ReferenceCodingSequenceKey):
             contains_start_codon=contains_start_codon,
             overlaps_start_codon=overlaps_start_codon,
             contains_five_prime_utr=contains_five_prime_utr,
-            amino_acids_before_variant=amino_acids_before_variant)
+            amino_acids_before_variant=amino_acids_before_variant,
+            translation_table=translation_table)
         self.variant = variant
         self.transcripts = tuple(transcripts)
 
@@ -88,7 +102,8 @@ class ReferenceContext(ReferenceCodingSequenceKey):
             contains_five_prime_utr=key.contains_five_prime_utr,
             amino_acids_before_variant=key.amino_acids_before_variant,
             variant=variant,
-            transcripts=transcripts)
+            transcripts=transcripts,
+            translation_table=key.translation_table)
 
     def sort_key_decreasing_max_length_transcript_cds(self):
         """
