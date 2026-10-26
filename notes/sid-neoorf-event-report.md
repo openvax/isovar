@@ -1,5 +1,7 @@
 # Sid neoORF report: DNA event → RNA transcript → protein sequence → support
 
+All four RNA products, DNA nomination sources and reference sequences are listed in the [three-sample source index](../reports/hcc1395_colo829/SEQUENCING_SOURCES.md).
+
 The strongest leads in the focused screen are the altered **TPST1–CRCP upstream
 ORF**, **SPAG1, TECPR1 and PIP5K1A frameshift windows**, and exploratory
 **FOXO3–STRADA/CCDC47 ORFs**. KTN1 has a shorter shifted tail with a stop.

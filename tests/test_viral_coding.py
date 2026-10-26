@@ -132,7 +132,12 @@ def test_observed_insertion_changes_translation_and_never_fills_the_stop():
         ("fixture", p, "+") for p in range(6, 18)]
     coding, = viral_coding_predictions("inserted", sequence, positions, [model])
     assert coding["amino_acids"] != model.protein_sequence
-    assert coding["coding_sequence"] == sequence[:18]
+    # ORFdata >=0.39 retains an observed incomplete terminal codon; older
+    # supported releases stop at the last complete codon. Neither may add
+    # reference bases or turn this partial observation into an observed stop.
+    assert coding["coding_sequence"] == sequence[coding["query_start"]:coding["query_end"]]
+    assert coding["coding_sequence"].startswith(sequence[:18])
+    assert 18 <= coding["query_end"] <= len(sequence)
     assert not coding["observed_stop"] and coding["status"] == "partial_CDS"
     assert coding["reference_orfs"][0]["coding_path"] == "altered"
 

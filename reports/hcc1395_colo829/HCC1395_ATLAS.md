@@ -1,5 +1,7 @@
 # HCC1395 whole-run original-RNA atlas
 
+The separate [EIF3K-CYP39A1 fusion report](focused_proteins/HCC1395_EIF3K_CYP39A1_fusion.md) highlights the complete protein, parent-reference alignments and source-separated RNA support. See the [complete source index](SEQUENCING_SOURCES.md).
+
 This report joins the [SEQC2 v1.2.1](https://pmc.ncbi.nlm.nih.gov/articles/PMC8532138/)
 HCC1395/HCC1395BL matched-normal SNV/indel benchmark to original ONT RNA
 from [PRJNA934933](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA934933).

@@ -1,0 +1,79 @@
+{
+  "sample": "COLO829",
+  "call": {
+    "sample": "COLO829",
+    "dna_source": "SMaHT_COLO829BLT50",
+    "class": "indel",
+    "call_id": "chr9:21971154:CCG>C",
+    "chrom": "chr9",
+    "pos": "21971154",
+    "ref": "CCG",
+    "alt": "C",
+    "dna_filter": "PASS",
+    "rna_run": "SRR8615617",
+    "raw_alignment_overlap": "NA",
+    "ref_reads": "552",
+    "alt_reads": "6984",
+    "other_reads": "252",
+    "ref_fragments": "551",
+    "alt_fragments": "6967",
+    "other_fragments": "252",
+    "alt_source_reads": "7080",
+    "chimeric_path_warning_reads": "0",
+    "rna_status": "alternate_observed",
+    "genomic_overlapping_transcript_ids": "ENST00000304494;ENST00000380150;ENST00000380151;ENST00000404796;ENST00000479692;ENST00000494262;ENST00000497750;ENST00000498124;ENST00000498628;ENST00000530628;ENST00000578845;ENST00000579122;ENST00000579755",
+    "assembly_status": "direct_read_contexts_high_depth",
+    "protein_status": "multiple_local_contexts",
+    "protein_count": "1416"
+  },
+  "reference": {
+    "sample": "COLO829",
+    "call_id": "chr9:21971154:CCG>C",
+    "transcript_id": "ENST00000304494",
+    "protein_start_1based": "52",
+    "reference_context": "MMMGSARVAELLLLHGAEPNCADP",
+    "reference_protein_sha256": "7a2d16efe0bed2c12560ef3a9b1678b1f7aff329bbb1cf55ad9f8d826f5ed98a",
+    "ensembl_release": "87",
+    "placement_method": "unique_shared_protein_prefix"
+  },
+  "top_protein": {
+    "dna_source": "SMaHT_COLO829BLT50",
+    "class": "indel",
+    "call_id": "chr9:21971154:CCG>C",
+    "rna_run": "SRR8615617",
+    "rank": "1",
+    "protein_sequence": "MMMGSARVAELLLLHGGAQLRRPR",
+    "mutation_start_idx": "16",
+    "mutation_end_idx": "24",
+    "supporting_fragments": "5248",
+    "supporting_reads": "5338",
+    "compatible_transcript_ids": "ENST00000304494;ENST00000479692;ENST00000494262;ENST00000497750;ENST00000498124;ENST00000498628;ENST00000578845;ENST00000579122",
+    "sequence_scope": "local_context"
+  },
+  "retained_contexts": 1416,
+  "inputs": {
+    "reports/hcc1395_colo829/colo829_atlas_calls.tsv.gz": "294c94b8946ce70bba1b456fc06bc005e2068d78b741fc5cc7acc826fc57852e",
+    "reports/hcc1395_colo829/colo829_atlas_proteins.tsv.gz": "f0b1502173ced2d3561fed2933fbea97b87659cb5862fe921a124e93eaa4bc72",
+    "reports/hcc1395_colo829/example_reference_contexts.tsv": "fdf62038d7a8fd47afe918fd20bd807ce784bcc3d7b8e251ed4662e9d438bb03",
+    "reports/hcc1395_colo829/focused_proteins/cdkn2a_reference.json": "1c30aab1248641cff08bc4f96df93e926e840b111be59a9cdf236c2cb41dc724"
+  },
+  "full_reference": {
+    "transcript_id": "ENST00000304494",
+    "protein_id": "ENSP00000307101",
+    "gene": "CDKN2A",
+    "annotation": "Ensembl 87",
+    "genome_build": "GRCh38",
+    "sequence": "MEPAAGSSMEPSADWLATAAARGRVEEVRALLEAGALPNAPNSYGRRPIQVMMMGSARVAELLLLHGAEPNCADPATLTRPVHDAAREGFLDTLVVLHRAGARLDVRDAWGRLPVDLAEELGHRDVARYLRAAAGGTRGSNHARIDAAEGPSDIPD",
+    "protein_sha256": "7a2d16efe0bed2c12560ef3a9b1678b1f7aff329bbb1cf55ad9f8d826f5ed98a"
+  },
+  "residue_provenance": {
+    "focal_variant": [
+      16,
+      24
+    ],
+    "germline": [],
+    "phased_other_somatic": [],
+    "unclassified_nonreference": [],
+    "unobserved_outside_local_window": true
+  }
+}

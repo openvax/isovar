@@ -1,5 +1,7 @@
 # HCC1395 and COLO829: source-call and RNA-isoform audit
 
+Focused, highlighted protein alignments: [COLO829 CDKN2A](focused_proteins/COLO829_CDKN2A_frameshift.md) and [HCC1395 EIF3K-CYP39A1](focused_proteins/HCC1395_EIF3K_CYP39A1_fusion.md). See the [complete sequencing and reference source index](SEQUENCING_SOURCES.md).
+
 Start with the [three-sample summary](THREE_SAMPLE_SUMMARY.md) for Sid, COLO829
 and HCC1395 funnels, frameshift/ncORF/SV leads and the 20-fragment threshold.
 

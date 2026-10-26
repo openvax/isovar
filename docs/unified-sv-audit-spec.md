@@ -29,6 +29,21 @@ must not imply a biologically resolved event.
 
 ## Verification and delivery
 
+The report handoff also includes focused COLO829 CDKN2A and HCC1395
+EIF3K-CYP39A1 PDFs: pinned reference alignments, highlighted altered/junction
+sequence, original RNA support at the correct interval, and complete source
+lists. A shared source index links every library, DNA nomination set, reference
+and derived input used by the three-sample reports. Render and inspect the PDFs
+before opening them for review; local windows must not imply full proteins.
+The full PDFs open with inventory/support landscape figures and parallel SV
+discovery routes (split alignments, mates, soft clips). Later chapters show up
+to three source-qualified examples per category, including ncORF overlaps and
+explicit unassessed viral/other categories. Gene names and one-based IGV loci
+are pinned. Only differing mutant residues use the focal-change color;
+reference residues remain neutral, with separate provenance classes for
+germline, phased somatic and unclassified RNA differences. Original-RNA
+coverage and reference-only context remain distinct in assembly tracks.
+
 Test all-path assessment, evidence discrimination, source identity, repeated
 alignments, reverse orientation, partial/full coding paths, unresolved SV3 and
 the original-read positive fusion. Reproduce committed cohort results from

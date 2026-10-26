@@ -4,3 +4,4 @@ isovar/data/sid-reads/** binary linguist-generated
 
 # Generated evidence PDFs are reviewed through their source and rendered pages.
 output/pdf/*.pdf binary linguist-generated
+reports/hcc1395_colo829/focused_proteins/*.pdf binary linguist-generated

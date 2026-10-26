@@ -1,5 +1,7 @@
 # Sid, COLO829 and HCC1395: variant funnels and supported ORFs
 
+Focused alignments: [COLO829 CDKN2A](focused_proteins/COLO829_CDKN2A_frameshift.md) and [HCC1395 EIF3K-CYP39A1](focused_proteins/HCC1395_EIF3K_CYP39A1_fusion.md). Every sequencing library, DNA nomination set and reference is listed in the [source index](SEQUENCING_SOURCES.md).
+
 Evidence reviewed 2026-10-26. This index joins the existing cell-line atlases,
 Sid's selected-event report and the new shared COLO829 SV workflow. It does not
 claim that every sample was rerun with the same software version. RNA sequence

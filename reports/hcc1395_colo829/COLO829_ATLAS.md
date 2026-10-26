@@ -1,5 +1,7 @@
 # COLO829 whole-run original-RNA atlas
 
+Open the [highlighted CDKN2A protein alignment and RNA support report](focused_proteins/COLO829_CDKN2A_frameshift.md). All sequencing, DNA and reference sources are listed in the [source index](SEQUENCING_SOURCES.md).
+
 This report joins the matched-normal SMaHT COLO829/COLO829BL call set to the
 complete public Illumina RNA run SRR8615617. The RNA comes from a separate
 COLO829 culture, so an RNA reference allele does not negate a SMaHT DNA

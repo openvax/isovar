@@ -1,6 +1,7 @@
 """Render verified shared-library audit snapshots; do not reinterpret RNA."""
 
 import argparse
+import csv
 import os
 from collections import Counter
 from pathlib import Path
@@ -30,6 +31,9 @@ def render(directory=OUTPUT / 'results', event_id=None, artifact_prefix='results
     rows = [row for row, _ in values]
     events = {row['event_id'] for row in rows}
     sources = {value['source_id']: value['source'] for _, value in values}
+    with (OUTPUT.parent / 'report_locus_annotations.tsv').open() as stream:
+        loci = {r['call_id']: r for r in csv.DictReader(stream, delimiter='\t')
+                if r['sample'] == 'COLO829' and r['kind'] == 'sv'}
     lines = ['# ' + ('COLO829 SV3 shared-workflow assessment' if event_id == SV3 else 'COLO829 unified SV RNA audit'), '',
              f'{len(events)} source-defined events; {len(rows)} event/source/orientation runs.', '',
              'Every retained path is assessed by `isovar.assess_sv_rna_paths` and compared by '
@@ -39,6 +43,9 @@ def render(directory=OUTPUT / 'results', event_id=None, artifact_prefix='results
              'The two SRR8615617 subsets are the same library. Opposite orientations and paired VCF records '
              'are separate hypotheses, not replication. Exact-sequence compatibility does not validate base quality, '
              'establish translation or prove somatic causation.', '',
+             'Gene names below overlap nominated DNA breakends under Ensembl 87; they do not assign a coding fusion. '
+             'IGV loci are GRCh38 one-based inclusive, one locus per endpoint. '
+             'The [source index](../SEQUENCING_SOURCES.md) lists every library and reference.', '',
              '| Source | Library | Culture | Role |', '|---|---|---|---|']
     for identifier, source in sources.items():
         lines.append(f"| {identifier} | {source['library_id']} | {source['culture']} | {source['role']} |")
@@ -58,7 +65,11 @@ def render(directory=OUTPUT / 'results', event_id=None, artifact_prefix='results
         proteins = Counter(c['completeness'] for p in paths for c in p['proteins'] if c['event_linked'])
         limits = ', '.join(row['limitations']).replace('|', '\\|') or 'none recorded'
         identity = f"{row['event_id']} / {row['source_id']} / {row['view_id']}"
-        lines.append(f"| [{identity}]({artifact_prefix}/{row['artifact']}) | {row['status']} | {len(paths)} | "
+        call_id = row['event_id'].split(':', 1)[1]
+        locus = loci[call_id]
+        genes = locus['genes'].replace(';', ', ') or 'No overlapping gene in pinned annotation'
+        location = locus['igv_loci'].replace(' ', '`<br>`')
+        lines.append(f"| [{identity}]({artifact_prefix}/{row['artifact']})<br>**{genes}**<br>IGV: `{location}` | {row['status']} | {len(paths)} | "
                      f"{direct} / {compatible} | {proteins['partial']} / {proteins['complete']} | {limits} |")
     lines += ['', 'Protein candidates retain their annotated frame evidence and completeness. Partial candidates '
               'can assume an upstream annotated frame; exploratory ATGs are reported separately and never become '
