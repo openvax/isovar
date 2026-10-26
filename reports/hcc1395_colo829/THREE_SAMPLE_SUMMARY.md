@@ -40,6 +40,10 @@ The exon and all-locus funnels are separate views of the same inventory.
 | ncORF-overlap calls with RNA ALT | 5 | 2 |
 | Reconstructed mutant ncORF proteins | 0 | 0 |
 
+Local-context totals can include reference-identical/synonymous products; they
+are not counts of confirmed mutant proteins. Cohort-wide separation remains
+tracked in [#551](https://github.com/openvax/isovar/issues/551).
+
 | RNA status, all source rows | HCC1395 | COLO829 |
 |---|---:|---:|
 | Alternate observed | 343 | 1,933 |
@@ -93,6 +97,16 @@ This is a bounded benchmark screen; the independently supplied HCC1395 fusion
 is a separate positive control. COLO829 SV3 is outside that exon-involved rule;
 its low-MAPQ joins were missed by the MAPQ-20 screen. The new [inventory report](unified_sv_audit/REPORT.md)
 provides all retained-path outcomes and explicit unresolved inputs.
+
+The new COLO829 run covers **188 source records / 380 source-orientation runs**:
+266 no-candidate, 66 regional-only, 30 event-linked-candidate and 18 unassessed
+outcomes. All **657 retained paths** are assessed. Eight paths across eight
+runs have direct-junction support, attributable to three source records:
+SV3 and the older `truthset_5_1`/`truthset_5_2` breakends. Their nominated DNA
+coordinates differ, but the recovered RNA junction witnesses are reused; these
+are not independent RNA replications. There are **zero event-linked
+annotated-frame protein candidates**. A reconstruction's event-linked label
+does not alone establish its frame or distinguish it from competing explanations.
 
 ncORF overlap is annotation, not translation evidence. The strongest overlapping
 calls are COLO829 chr17:58089866 G>A (dORF, 45 ALT fragments) and HCC1395

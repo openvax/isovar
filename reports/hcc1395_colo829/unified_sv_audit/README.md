@@ -24,8 +24,11 @@ indexes and dependencies. Select `--event-id PaulinPaz_2024_v2:COLO829_SOMATIC_S
 for the SV3 subset. The report records a subset selection explicitly.
 
 `build_unified_sv_manifest.py` regenerates inputs from the two original VCFs
-and locally installed Ensembl 87. Varcode 10.19.1 owns adjacency interpretation
-and all predicted hypotheses; unresolved materialized cDNA remains null.
+and locally installed Ensembl 87. The committed predictions and adjacency
+interpretations were prepared with Varcode 10.19.1; runner dependency versions
+are recorded separately. Varcode owns these predictions; unresolved materialized
+cDNA remains null. Regenerating under another prediction version creates new
+inputs and requires a new audit run.
 Every transcript from a gene overlapping a breakpoint +/-10 kb is retained
 when its sequence is available. CDS validation failures retain the noncoding
 reference sequence and a reason, not an invented frame. The annotation has no
