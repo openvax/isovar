@@ -1,0 +1,307 @@
+{
+ "notice": "Native mitochondrial binding fixtures for NCBI tables 2 and 3. Ensembl data per its data-use terms; OpenProt 2.2 data CC-BY-4.0. No peptide sequences or new experimental observations.",
+ "examples": [
+  {
+   "name": "human-openprot-IP_306399",
+   "model": {
+    "orf_id": "IP_306399",
+    "transcript_id": "ENST00000361381.2",
+    "gene_id": "ENSG00000198886",
+    "gene_name": "MT-ND4",
+    "contig": "MT",
+    "strand": "+",
+    "coding_blocks": [
+     [
+      11620,
+      11799
+     ]
+    ],
+    "protein_sequence": "MLFNQPHSPRSNSHSHPNPLKLHRRSHSHNRPRAYILITILPSKLKLRTHSQSHHNPLS",
+    "orf_type": "AltProt",
+    "genome_build": "GRCh38",
+    "taxon_id": 9606,
+    "species": "homo_sapiens",
+    "translation_table": 2,
+    "source": "openprot:2.2",
+    "reference_context": {
+     "taxon_id": 9606,
+     "species": "homo_sapiens",
+     "genome_build": "GRCh38",
+     "annotation_name": "ensembl",
+     "annotation_version": "106",
+     "assembly_accession": "GCA_000001405.28"
+    }
+   },
+   "transcript": {
+    "id": "ENST00000361381",
+    "version": "2",
+    "start": 10760,
+    "end": 12137,
+    "exons": [
+     [
+      10760,
+      12137
+     ]
+    ],
+    "sequence": "ATGCTAAAACTAATCGTCCCAACAATTATATTACTACCACTGACATGACTTTCCAAAAAACACATAATTTGAATCAACACAACCACCCACAGCCTAATTATTAGCATCATCCCTCTACTATTTTTTAACCAAATCAACAACAACCTATTTAGCTGTTCCCCAACCTTTTCCTCCGACCCCCTAACAACCCCCCTCCTAATACTAACTACCTGACTCCTACCCCTCACAATCATGGCAAGCCAACGCCACTTATCCAGTGAACCACTATCACGAAAAAAACTCTACCTCTCTATACTAATCTCCCTACAAATCTCCTTAATTATAACATTCACAGCCACAGAACTAATCATATTTTATATCTTCTTCGAAACCACACTTATCCCCACCTTGGCTATCATCACCCGATGAGGCAACCAGCCAGAACGCCTGAACGCAGGCACATACTTCCTATTCTACACCCTAGTAGGCTCCCTTCCCCTACTCATCGCACTAATTTACACTCACAACACCCTAGGCTCACTAAACATTCTACTACTCACTCTCACTGCCCAAGAACTATCAAACTCCTGAGCCAACAACTTAATATGACTAGCTTACACAATAGCTTTTATAGTAAAGATACCTCTTTACGGACTCCACTTATGACTCCCTAAAGCCCATGTCGAAGCCCCCATCGCTGGGTCAATAGTACTTGCCGCAGTACTCTTAAAACTAGGCGGCTATGGTATAATACGCCTCACACTCATTCTCAACCCCCTGACAAAACACATAGCCTACCCCTTCCTTGTACTATCCCTATGAGGCATAATTATAACAAGCTCCATCTGCCTACGACAAACAGACCTAAAATCGCTCATTGCATACTCTTCAATCAGCCACATAGCCCTCGTAGTAACAGCCATTCTCATCCAAACCCCCTGAAGCTTCACCGGCGCAGTCATTCTCATAATCGCCCACGGGCTTACATCCTCATTACTATTCTGCCTAGCAAACTCAAACTACGAACGCACTCACAGTCGCATCATAATCCTCTCTCAAGGACTTCAAACTCTACTCCCACTAATAGCTTTTTGATGACTTCTAGCAAGCCTCGCTAACCTCGCCTTACCCCCCACTATTAACCTACTGGGAGAACTCTCTGTGCTAGTAACCACGTTCTCCTGATCAAATATCACTCTCCTACTTACAGGACTCAACATACTAGTCACAGCCCTATACTCCCTCTACATATTTACCACAACACAATGGGGCTCACTCACCCACCACATTAACAACATAAAACCCTCATTCACACGAGAAAACACCCTCATGTTCATACACCTATCCCCCATTCTCCTCCTATCCCTCAACCCCGACATCATTACCGGGTTTTCCTCTT",
+    "biotype": "protein_coding",
+    "fasta_header": ">ENST00000361381.2 cdna chromosome:GRCh38:MT:10760:12137:1 gene:ENSG00000198886.2 gene_biotype:protein_coding transcript_biotype:protein_coding gene_symbol:MT-ND4 description:mitochondrially encoded NADH:ubiquinone oxidoreductase core subunit 4 [Source:HGNC Symbol;Acc:HGNC:7459]"
+   },
+   "native": {
+    "protein accession": "IP_306399",
+    "protein accession (others)": "IP_306399,IP_306399",
+    "protein type": "AltProt",
+    "protein length (a.a.)": "59",
+    "molecular weight (kDa)": "6.91",
+    "isoelectric point": "12.81",
+    "frame": "3",
+    "gene symbol": "MT-ND4",
+    "chr": "MT",
+    "start genomic coordinates": "11619",
+    "stop genomic coordinates": "11798",
+    "strand": "1",
+    "transcript accession": "ENST00000361381.2",
+    "type": "mRNA",
+    "localization": "CDS",
+    "start transcript coordinates": "861",
+    "stop transcript coordinates": "1041",
+    "MS score": "2",
+    "TE Translation Event score": "0",
+    "Kozak motif": "-",
+    "High-efficiency TIS motif": "-",
+    "Domains": "3"
+   },
+   "source_line": 423554,
+   "native_fasta_header": ">IP_306399|TX=9606 OS=Human GN=ND4,MT-ND4 TA=ND4,ENST00000361381.2 PA=IP_306399",
+   "coordinate_conversion": {
+    "genomic": "OpenProt 2.2 genomic endpoints are zero-based closed; add one to both (#55)",
+    "transcript": "OpenProt 2.2 transcript start is one-based and stop exclusive (#55)",
+    "cdna_interval": [
+     860,
+     1040
+    ]
+   },
+   "summaries": [
+    {
+     "source": "OpenProt",
+     "release": "2.2",
+     "target": {
+      "reference": {
+       "taxon_id": 9606,
+       "species": "human",
+       "genome_build": "GRCh38",
+       "annotation_name": "OpenProt",
+       "annotation_version": "2.2",
+       "assembly_accession": null,
+       "strain": null,
+       "strain_taxon_id": null,
+       "sequence_sha256": null,
+       "taxonomy_version": "ncbi-2026-10-12",
+       "source_sha256": "eb0b9132ff40bf7e00f89749958878655a590b004e681595c2cdddf623c0c477"
+      },
+      "kind": "protein",
+      "identifier": "IP_306399",
+      "namespace": "openprot"
+     },
+     "protein_sha256": "ee1e9fa787eb4311b067bce0e81f699038eece87b5c9125cfdc59be7c9760e6d",
+     "method": "ms",
+     "metric": "MS score",
+     "value": 2,
+     "definition": "Sum of study-specific unique-peptide counts; not global peptide uniqueness.",
+     "scope": "protein_sequence",
+     "source_url": "https://api.openprot.org/api/2.0/HS/downloads/human-openprot-2_2-altprots+isoforms-min_2_pep-GRCh38.106.tsv.zip",
+     "source_sha256": "7bf29c5e0afbce740c8ccf074febc3640a670597d2877be911b1c30d7e63a777"
+    },
+    {
+     "source": "OpenProt",
+     "release": "2.2",
+     "target": {
+      "reference": {
+       "taxon_id": 9606,
+       "species": "human",
+       "genome_build": "GRCh38",
+       "annotation_name": "OpenProt",
+       "annotation_version": "2.2",
+       "assembly_accession": null,
+       "strain": null,
+       "strain_taxon_id": null,
+       "sequence_sha256": null,
+       "taxonomy_version": "ncbi-2026-10-12",
+       "source_sha256": "eb0b9132ff40bf7e00f89749958878655a590b004e681595c2cdddf623c0c477"
+      },
+      "kind": "protein",
+      "identifier": "IP_306399",
+      "namespace": "openprot"
+     },
+     "protein_sha256": "ee1e9fa787eb4311b067bce0e81f699038eece87b5c9125cfdc59be7c9760e6d",
+     "method": "ribosome",
+     "metric": "TE Translation Event score",
+     "value": 0,
+     "definition": "Count of studies reporting one or more significant translation detections.",
+     "scope": "protein_sequence",
+     "source_url": "https://api.openprot.org/api/2.0/HS/downloads/human-openprot-2_2-altprots+isoforms-min_2_pep-GRCh38.106.tsv.zip",
+     "source_sha256": "7bf29c5e0afbce740c8ccf074febc3640a670597d2877be911b1c30d7e63a777"
+    }
+   ],
+   "sources": {
+    "openprot.tsv.zip": {
+     "url": "https://api.openprot.org/api/2.0/HS/downloads/human-openprot-2_2-altprots+isoforms-min_2_pep-GRCh38.106.tsv.zip",
+     "sha256": "7bf29c5e0afbce740c8ccf074febc3640a670597d2877be911b1c30d7e63a777",
+     "size": 172966644
+    },
+    "openprot.fasta.zip": {
+     "url": "https://api.openprot.org/api/2.0/HS/downloads/human-openprot-2_2-altprots+isoforms-min_2_pep-GRCh38.106.fasta.zip",
+     "sha256": "eb0b9132ff40bf7e00f89749958878655a590b004e681595c2cdddf623c0c477",
+     "size": 23583519
+    },
+    "human.gtf.gz": {
+     "url": "https://ftp.ensembl.org/pub/release-106/gtf/homo_sapiens/Homo_sapiens.GRCh38.106.gtf.gz",
+     "sha256": "9f9cc8ea19f03659875a4a3b57220c379f0282b4c361fc7cb637e6f083967871",
+     "size": 51379459
+    },
+    "human.cdna.fa.gz": {
+     "url": "https://ftp.ensembl.org/pub/release-106/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz",
+     "sha256": "b0060415cced60820c5db45733369873cf67c3582fca32f0c51f3e16e77ed6d0",
+     "size": 76937571
+    }
+   },
+   "scope": "One native OpenProt assignment validated under NCBI table 2; aggregate counts only, no peptide sequences."
+  },
+  {
+   "name": "yeast-ensembl-Q0130",
+   "model": {
+    "orf_id": "Q0130",
+    "transcript_id": "Q0130_mRNA",
+    "gene_id": "Q0130",
+    "gene_name": "OLI1",
+    "contig": "Mito",
+    "strand": "+",
+    "coding_blocks": [
+     [
+      46723,
+      46953
+     ]
+    ],
+    "protein_sequence": "MQLVLAAKYIGAGISTIGLLGAGIGIAIVFAALINGVSRNPSIKDTVFPMAILGFALSEATGLFCLMVSFLLLFGV",
+    "orf_type": "annotated_CDS",
+    "genome_build": "R64-1-1",
+    "taxon_id": 4932,
+    "species": "saccharomyces_cerevisiae",
+    "translation_table": 3,
+    "source": "ensembl-reference-fixture",
+    "reference_context": {
+     "taxon_id": 4932,
+     "species": "saccharomyces_cerevisiae",
+     "genome_build": "R64-1-1",
+     "annotation_name": "ensembl",
+     "annotation_version": "115",
+     "assembly_accession": "GCA_000146045.2",
+     "strain": "S288C",
+     "strain_taxon_id": 559292
+    }
+   },
+   "transcript": {
+    "id": "Q0130_mRNA",
+    "version": null,
+    "start": 46723,
+    "end": 46953,
+    "exons": [
+     [
+      46723,
+      46953
+     ]
+    ],
+    "sequence": "ATGCAATTAGTATTAGCAGCTAAATATATTGGAGCAGGTATCTCAACAATTGGTTTATTAGGAGCAGGTATTGGTATTGCTATCGTATTCGCAGCTTTAATTAATGGTGTATCAAGAAACCCATCAATTAAAGACCTAGTATTCCCTATGGCTATTTTAGGTTTCGCCTTATCAGAAGCTACAGGTTTATTCTGTTTAATGGTTTCATTCTTATTATTATTCGGTGTATAA",
+    "biotype": "protein_coding",
+    "fasta_header": ">Q0130_mRNA cdna chromosome:R64-1-1:Mito:46723:46953:1 gene:Q0130 gene_biotype:protein_coding transcript_biotype:protein_coding gene_symbol:OLI1 description:F0-ATP synthase subunit c (ATPase-associated proteolipid); encoded on the mitochondrial genome; mutation confers oligomycin resistance; expression is specifically dependent on the nuclear genes AEP1 and AEP2 [Source:SGD;Acc:S000007274]"
+   },
+   "native_protein_header": ">Q0130 pep chromosome:R64-1-1:Mito:46723:46953:1 gene:Q0130 transcript:Q0130_mRNA gene_biotype:protein_coding transcript_biotype:protein_coding gene_symbol:OLI1 description:F0-ATP synthase subunit c (ATPase-associated proteolipid); encoded on the mitochondrial genome; mutation confers oligomycin resistance; expression is specifically dependent on the nuclear genes AEP1 and AEP2 [Source:SGD;Acc:S000007274]",
+   "sources": {
+    "yeast.gtf.gz": {
+     "url": "https://ftp.ensembl.org/pub/release-115/gtf/saccharomyces_cerevisiae/Saccharomyces_cerevisiae.R64-1-1.115.gtf.gz",
+     "sha256": "5b20bb9a1ab7068fee9148f646ca1c12e68d656faddd5fde4ec8537dd26b9e89",
+     "size": 595453
+    },
+    "yeast.cdna.fa.gz": {
+     "url": "https://ftp.ensembl.org/pub/release-115/fasta/saccharomyces_cerevisiae/cdna/Saccharomyces_cerevisiae.R64-1-1.cdna.all.fa.gz",
+     "sha256": "3cc5b6bb7ff166cffac5c45317dad7052d06431f43f709ed14b33779702dc6a4",
+     "size": 3806426
+    },
+    "yeast.pep.fa.gz": {
+     "url": "https://ftp.ensembl.org/pub/release-115/fasta/saccharomyces_cerevisiae/pep/Saccharomyces_cerevisiae.R64-1-1.pep.all.fa.gz",
+     "sha256": "67ae76c720e52cec167378ec2b8cb5c5929360fc30de31abb37ae1035ef8455c",
+     "size": 2700059
+    }
+   },
+   "scope": "Canonical Ensembl mitochondrial protein; the protein FASTA is independent of translation in tests."
+  },
+  {
+   "name": "yeast-ensembl-Q0092",
+   "model": {
+    "orf_id": "Q0092",
+    "transcript_id": "Q0092_mRNA",
+    "gene_id": "Q0092",
+    "gene_name": "Q0092",
+    "contig": "Mito",
+    "strand": "+",
+    "coding_blocks": [
+     [
+      30874,
+      31014
+     ]
+    ],
+    "protein_sequence": "MFMMNNNMFIMFMIMYNVMRVNITRCSRVMFTTFYMITNKYIYIFM",
+    "orf_type": "annotated_CDS",
+    "genome_build": "R64-1-1",
+    "taxon_id": 4932,
+    "species": "saccharomyces_cerevisiae",
+    "translation_table": 3,
+    "source": "ensembl-reference-fixture",
+    "reference_context": {
+     "taxon_id": 4932,
+     "species": "saccharomyces_cerevisiae",
+     "genome_build": "R64-1-1",
+     "annotation_name": "ensembl",
+     "annotation_version": "115",
+     "assembly_accession": "GCA_000146045.2",
+     "strain": "S288C",
+     "strain_taxon_id": 559292
+    }
+   },
+   "transcript": {
+    "id": "Q0092_mRNA",
+    "version": null,
+    "start": 30874,
+    "end": 31014,
+    "exons": [
+     [
+      30874,
+      31014
+     ]
+    ],
+    "sequence": "ATATTTATAATAAATAATAATATATTCATTATATTTATAATTATATATAATGTAATACGGGTAAACATTACCCGTTGTTCACGGGTAATGTTTACCCTATTTTATATAATTCTTAATAAATATATTTATATTTTTATATAA",
+    "biotype": "protein_coding",
+    "fasta_header": ">Q0092_mRNA cdna chromosome:R64-1-1:Mito:30874:31014:1 gene:Q0092 gene_biotype:protein_coding transcript_biotype:protein_coding description:Dubious open reading frame; unlikely to encode a functional protein, based on available experimental and comparative sequence data [Source:SGD;Acc:S000007269]"
+   },
+   "native_protein_header": ">Q0092 pep chromosome:R64-1-1:Mito:30874:31014:1 gene:Q0092 transcript:Q0092_mRNA gene_biotype:protein_coding transcript_biotype:protein_coding description:Dubious open reading frame; unlikely to encode a functional protein, based on available experimental and comparative sequence data [Source:SGD;Acc:S000007269]",
+   "sources": {
+    "yeast.gtf.gz": {
+     "url": "https://ftp.ensembl.org/pub/release-115/gtf/saccharomyces_cerevisiae/Saccharomyces_cerevisiae.R64-1-1.115.gtf.gz",
+     "sha256": "5b20bb9a1ab7068fee9148f646ca1c12e68d656faddd5fde4ec8537dd26b9e89",
+     "size": 595453
+    },
+    "yeast.cdna.fa.gz": {
+     "url": "https://ftp.ensembl.org/pub/release-115/fasta/saccharomyces_cerevisiae/cdna/Saccharomyces_cerevisiae.R64-1-1.cdna.all.fa.gz",
+     "sha256": "3cc5b6bb7ff166cffac5c45317dad7052d06431f43f709ed14b33779702dc6a4",
+     "size": 3806426
+    },
+    "yeast.pep.fa.gz": {
+     "url": "https://ftp.ensembl.org/pub/release-115/fasta/saccharomyces_cerevisiae/pep/Saccharomyces_cerevisiae.R64-1-1.pep.all.fa.gz",
+     "sha256": "67ae76c720e52cec167378ec2b8cb5c5929360fc30de31abb37ae1035ef8455c",
+     "size": 2700059
+    }
+   },
+   "scope": "Canonical Ensembl mitochondrial protein; the protein FASTA is independent of translation in tests."
+  }
+ ]
+}
