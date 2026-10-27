@@ -1,0 +1,50 @@
+{
+  "accession": "SRR8615617",
+  "library": "COLO829 CCLE paired cDNA RNA",
+  "source_url": "https://www.ncbi.nlm.nih.gov/sra/SRR8615617",
+  "sra_toolkit": "3.4.1",
+  "star": "2.7.11b",
+  "regional_original_reference": "CM000684.1 (GRCh37 chr22)",
+  "regional_reference_table_rows": [
+    573732,
+    573733
+  ],
+  "regional_alignment_start_interval_0based": [
+    38880000,
+    38890000
+  ],
+  "regional_pairs": 27211,
+  "selected_pairs": 603,
+  "selected_extra_pairs": 98,
+  "union_pairs": 27309,
+  "local_reference_interval_0based": [
+    "chr22",
+    38470000,
+    38520000
+  ],
+  "local_reference_source": "1000 Genomes GRCh38_full_analysis_set_plus_decoy_hla.fa",
+  "local_reference_url": "https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa",
+  "alignment": "STAR --alignIntronMax 50000; no supplied splice annotations; 50 kb local reference",
+  "limitations": [
+    "Source-index selection excludes other unplaced/remote fragments; not a whole-library splice audit.",
+    "NH=1 means unique within the 50 kb local reference, not genome-wide uniqueness.",
+    "Allele groups reproduce the original atlas assignments; extended local paths are not phased merely by tiling.",
+    "No matched-normal RNA or translation measurement in this audit."
+  ],
+  "files": {
+    "allele-fragments.json": "183590b880cdf63d019e76ca86c05052a743f60b160c18a9a26b19c770ef99f2",
+    "expanded.star.Log.final.out": "eb097bf054b34393b94282ee8a14bd4568a4f22c586aed3fa4c2df2392efd7e9",
+    "expanded.star.bam": "fa85fa9855b78921e9e4873f5f5d23daa8061b5d9c8a3438516828b286e62eaa",
+    "models.json": "834e54193de43ffb42e9466b871078cf02afafa584bd0581599775f3a6bd56f0",
+    "reference-index.txt": "f9d164154f5772baa87353b0563078c690d6ae85914a105c363c2a0fb88ac42b",
+    "reference.fa": "69f393dffd7f0139496ca88a8a905f814d77342e22617303fedb21f345cce892",
+    "regional-original-alignments.json.gz": "05c1132a0e3cb27f1dfbabd5533290bec0f7fa403284a31591b34cc09022df5f",
+    "regional-pairs.fastq.gz": "dbc374dba5e78ef49db868b9140d5b528a1d78b21305ff2f7bb7ee4cebf393bf",
+    "regional-spots.txt": "f0d8029cdd9424cc55f3d77818bc2f9511ce67130b9140accb960b5b0f01495e",
+    "selected-original-alignments.json.gz": "0d33680961c7cebbf1d32ef2d109e9079d465c2f5312016f45735f6bc246ecbe",
+    "selected-pairs.fastq.gz": "b96346fb8e5902374dc0a6628633d04be3dfccc8fc0b0b687007c0991dde43e4",
+    "selected.star.Log.final.out": "20f1c5d80566c8b0216d68d58d4ba266d078bf5dc7bf97e42aa536568e375c0a",
+    "selected.star.bam": "eee7c12287118494b5d2c7a8b7353dabbb1619942dc337b500377742952e5170",
+    "source-reference-rows.json.gz": "3aed9a5ad1af0084b11a4f53766a67f729c957b62a3c58bf8132ba46f3e2d4cd"
+  }
+}

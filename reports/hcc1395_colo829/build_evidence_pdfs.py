@@ -609,6 +609,7 @@ def provenance_story(sample, d):
 
 def build_one(sample, output_dir=OUT, annotations_path=ANNOTATIONS):
     from .report_landscape import landscape_story, exemplar_story, sv_exemplars, other_categories
+    from .report_ddx17 import ddx17_story
     from pypdf import PdfWriter
     data = collect(sample, annotations_path)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -626,6 +627,7 @@ def build_one(sample, output_dir=OUT, annotations_path=ANNOTATIONS):
              + exonic_read_support_story(data) + sv_exon_story(data)
              + sv_junction_story(data)
              + altered_aa_story(data) + exemplar_story(sample, data)
+             + ddx17_story(sample)
              + sv_exemplars(sample, data) + other_categories(sample, data)
              + provenance_story(sample, data))
     doc.build(story, onFirstPage=lambda c, d: page_footer(c, d, sample),

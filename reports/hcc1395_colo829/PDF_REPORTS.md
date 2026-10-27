@@ -49,6 +49,18 @@ reference genomic codon and does not establish the origin of those differences.
 A reference-identical or reference-incompatible context is not silently counted
 as a validated neoORF; broader classification remains in [#551](https://github.com/openvax/isovar/issues/551).
 
+In-frame deletions now have a verified reference gap and a vertical focal-color
+marker; unchanged residues on both sides remain aligned and neutral. GOLGA5 is
+on COLO829 page 12. Its original `p.K404del` label has an upstream
+[Varcode numbering defect](https://github.com/openvax/varcode/issues/643); the
+independently verified one-based deleted residue is K405.
+
+COLO829 page 13 adds the [DDX17 original-RNA audit](ddx17_audit/README.md):
+27,309 recovered pairs, exon/intron coverage, alternative placements and explicit
+reference-frame hypotheses. The original coding-reference gate did not assess
+cryptic splicing. Intron-containing RNA and alternative junctions are present,
+but no mutation-phased coding path is established.
+
 Protein-window support, focal allele counts, junction support, local branch
 support and whole-path tiling are different measurements. The complete HCC
 fusion is assembled from RNA-witnessed bases; the CDKN2A report does not fill

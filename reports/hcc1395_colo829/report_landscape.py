@@ -16,18 +16,26 @@ from reports.hcc1395_colo829.build_evidence_pdfs import (
 class NeutralReferenceComparison(ProteinComparison):
     """Color only differing mutant residues; keep reference residues neutral."""
 
-    def __init__(self, reference, mutant, mutation_start, mutation_end, focal=True):
+    def __init__(self, reference, mutant, mutation_start, mutation_end, focal=True,
+                 deleted_reference_interval=None):
         Flowable.__init__(self)
         self.reference, self.mutant = reference, mutant
         self.mutation_start, self.mutation_end = mutation_start, mutation_end
         self.focal = focal
+        self.deleted_reference_interval = deleted_reference_interval
+        self.aligned_mutant = mutant
+        if deleted_reference_interval is not None:
+            start, end = deleted_reference_interval
+            if not 0 <= start < end <= len(reference) or reference[:start] + reference[end:] != mutant:
+                raise ValueError('Deletion comparison must preserve both observed RNA flanks')
+            self.aligned_mutant = mutant[:start] + ' ' * (end - start) + mutant[start:]
         self.width, self.height = 512, 47
 
     def draw(self):
         c = self.canv
         c.setFillColor(PALE)
         c.roundRect(0, 0, self.width, self.height, 5, fill=1, stroke=0)
-        for label, sequence, y in [('REF', self.reference, 28), ('RNA', self.mutant, 10)]:
+        for label, sequence, y in [('REF', self.reference, 28), ('RNA', self.aligned_mutant, 10)]:
             c.setFillColor(NAVY)
             c.setFont('Helvetica-Bold', 8)
             c.drawString(10, y, label)
@@ -37,6 +45,14 @@ class NeutralReferenceComparison(ProteinComparison):
                 focal = self.focal and self.mutation_start <= i < self.mutation_end
                 c.setFillColor(ORANGE if different and focal else GRAY if different else NAVY)
                 c.drawString(53 + i * 5.4, y, residue)
+        if self.deleted_reference_interval is not None:
+            start, end = self.deleted_reference_interval
+            c.setStrokeColor(ORANGE)
+            c.setLineWidth(1.6)
+            center = 53 + (start + end) / 2 * 5.4
+            c.line(center, 6, center, 21)
+            if end - start > 1:
+                c.line(53 + start * 5.4, 7, 53 + end * 5.4, 7)
 
 
 class SVRoutes(Flowable):
@@ -209,23 +225,42 @@ def exemplar_story(sample, d, k=3):
                                   f"{len(sequence)} aa. Transcript(s): {product['compatible_transcript_ids']}", 'FootSmall'))
                 if ident in contexts:
                     reference = contexts[ident]
+                    deletion = None
+                    if reference['placement_method'] == 'verified_in_frame_deletion':
+                        deletion = (int(reference['deleted_reference_start']),
+                                    int(reference['deleted_reference_end']))
                     block.append(NeutralReferenceComparison(reference['reference_context'], sequence,
                                  int(product['mutation_start_idx']), int(product['mutation_end_idx']),
                                  focal=annotation['top_effect_type'] != 'Silent' and
-                                 reference['placement_method'] == 'unique_shared_protein_prefix'))
+                                 reference['placement_method'] == 'unique_shared_protein_prefix',
+                                 deleted_reference_interval=deletion))
                     same = reference['reference_context'] == sequence
                     caveat = ('Reference-identical local context. ' if same else
+                              'Verified in-frame deletion; the vertical marker shows the missing reference residue(s). '
+                              if deletion else
                               'RNA differences have unclassified provenance; DNA-codon-anchored comparison only. '
                               if reference['placement_method'] != 'unique_shared_protein_prefix' else
                               'Differing focal RNA residues highlighted. ')
                     block.append(para(caveat
                                       + f"Reference: {reference['transcript_id']}, residue {reference['protein_start_1based']}. "
                                       'No unobserved sequence is filled from reference.', 'FootSmall'))
+                    if deletion:
+                        first = int(reference['protein_start_1based']) + deletion[0]
+                        last = int(reference['protein_start_1based']) + deletion[1] - 1
+                        block.append(para(f'Deleted reference interval: {first}-{last} (one-based). '
+                                          'The original atlas effect label has a one-residue numbering error '
+                                          '(<link href="https://github.com/openvax/varcode/issues/643">Varcode #643</link>); '
+                                          'the aligned sequence interval is independently verified.', 'FootSmall'))
                 else:
                     block.append(para(sequence, 'TinyMono'))
                     block.append(para('No unambiguous pinned reference-window placement; comparison remains unresolved.', 'FootSmall'))
             else:
-                block.append(para('RNA ALT observed, but no local protein context was reconstructed. No protein sequence is inferred.', 'FootSmall'))
+                reason = ('No annotated coding reference context; the original run stopped before RNA assembly. '
+                          'The following DDX17 deep dive finds intronic coverage and alternative splicing, '
+                          'but no ALT-phased coding path. '
+                          if sample == 'COLO829' and ident == 'chr22:38489856:GA>G' else
+                          'RNA ALT observed, but no local protein context was reconstructed. ')
+                block.append(para(reason + 'No protein sequence is inferred.', 'FootSmall'))
             block.append(Spacer(1, 10))
             story.append(KeepTogether(block))
         if sample != 'HCC1395' or title != 'Top RNA-supported frameshift nominations':

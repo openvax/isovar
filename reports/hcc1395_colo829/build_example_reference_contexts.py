@@ -10,6 +10,8 @@ import hashlib
 from pathlib import Path
 
 from pyensembl import EnsemblRelease
+from varcode import Variant
+from varcode.effects import Deletion
 
 
 HERE = Path(__file__).parent
@@ -22,7 +24,37 @@ EXAMPLES = (
     ("COLO829", "chr1:156265990:G>A"),
 )
 FIELDS = ("sample", "call_id", "transcript_id", "protein_start_1based",
-          "reference_context", "reference_protein_sha256", "ensembl_release", "placement_method")
+          "reference_context", "reference_protein_sha256", "ensembl_release",
+          "deleted_reference_start", "deleted_reference_end", "placement_method")
+
+
+def deletion_context(product, call, release):
+    """Place an observed window on its exact transcript-specific deletion model."""
+    variant = Variant(call['chrom'].removeprefix('chr'), int(call['pos']),
+                      call['ref'], call['alt'], release)
+    transcript_ids = product['compatible_transcript_ids'].split(';')
+    mutant = product['protein_sequence']
+    for effect in variant.effects(raise_on_error=False):
+        if not isinstance(effect, Deletion) or effect.transcript.id not in transcript_ids:
+            continue
+        expected = effect.mutant_protein_sequence
+        offset = expected.find(mutant)
+        if offset < 0 or expected.find(mutant, offset + 1) >= 0:
+            continue
+        start = effect.aa_mutation_start_offset - offset
+        end = start + len(effect.aa_ref)
+        if not 0 <= start <= len(mutant):
+            continue
+        reference = effect.original_protein_sequence
+        context = reference[offset:offset + len(mutant) + len(effect.aa_ref)]
+        if context[:start] + context[end:] != mutant or context[start:end] != effect.aa_ref:
+            continue
+        return dict(transcript_id=effect.transcript.id, protein_start_1based=offset + 1,
+                    reference_context=context,
+                    reference_protein_sha256=hashlib.sha256(reference.encode('ascii')).hexdigest(),
+                    ensembl_release=87, placement_method='verified_in_frame_deletion',
+                    deleted_reference_start=start, deleted_reference_end=end)
+    return None
 
 
 def build(output=OUTPUT):
@@ -49,6 +81,12 @@ def build(output=OUTPUT):
         mutant = product["protein_sequence"]
         start = int(product["mutation_start_idx"])
         end = int(product["mutation_end_idx"])
+        call = calls_by_id[sample, call_id]
+        if len(call['ref']) > len(call['alt']) and (len(call['ref']) - len(call['alt'])) % 3 == 0:
+            deletion = deletion_context(product, call, release)
+            if deletion is not None:
+                rows.append(dict(sample=sample, call_id=call_id, **deletion))
+                continue
         for transcript_id in product["compatible_transcript_ids"].split(";"):
             reference = release.transcript_by_id(transcript_id).protein_sequence or ""
             offset = reference.find(mutant[:start])
