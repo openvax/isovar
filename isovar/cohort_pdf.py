@@ -664,19 +664,20 @@ def write_cohort_reports(manifest, summary, output):
                                   c["changed_protein_span20"], c["changed_protein_single20"], c["changed_nc_span20"])
                                  for r, c, _, _, _ in analyses], (170, 55, 95, 95, 95))])
         for analysis_index, (result, counts, categories, depths, examples) in enumerate(analyses):
-            if analysis_index:
+            if analysis_index and counts['processed'] > 1:
                 story.append(PageBreak())
             story.extend([Paragraph(escape(result["source_id"] + " / " + result["pass_id"]),
                                                 styles["Heading2"]),
                           p(f"{counts['processed']:,}/{counts['nominated']:,} nominations evaluated; {counts['alt']:,} RNA ALT-supported; "
                             f"{counts['nc_overlap']:,} overlap ncORF coding blocks. "
-                            f"{counts['nc_unresolved_models']:,} overlapping model bindings remain unresolved."),
-                          Image(str(_category_landscape(result, categories, depths, figures)), width=510, height=255),
+                            f"{counts['nc_unresolved_models']:,} overlapping model bindings remain unresolved.")])
+            if counts['processed'] > 1:
+                story.extend([Image(str(_category_landscape(result, categories, depths, figures)), width=510, height=255),
                           p("These are RNA-informed groups: frameshift labels use annotation predictions or reconstructed "
                             "coding contexts; in-frame labels require a reconstructed context. Other non-SNV includes indels "
                             "without resolved coding consequences. Consequence prediction is run on ALT-supported calls. "
                             "Unprocessed calls have no inferred support state.", "Small"),
-                          table(("Variant category", "Evaluated calls"), sorted(categories.items()), (330, 180))])
+                              table(("Variant category", "Evaluated calls"), sorted(categories.items()), (330, 180))])
             displayed_variants = set()
             for category in ("SNV", "Frameshift", "In-frame indel", "Other non-SNV", "ncORF", "ALT without changed protein", "Normal-call overlap", "Highlighted loci"):
                 selected = sorted(examples.get(category, []), key=lambda row: -row[0])[:3 if category == "SNV" else 5]
