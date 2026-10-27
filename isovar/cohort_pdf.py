@@ -296,7 +296,8 @@ class FusionSequencePanel(Flowable):
                 c.setFillColor(colors.HexColor(INK))
                 c.drawString(45 + 5.15 * i, y, aa)
             changed = amino not in (donor, acceptor)
-            focal = q * 3 < self.junction + 1 and (q + 1) * 3 > self.junction
+            begin, end = self.junction
+            focal = q * 3 < max(end, begin + 1) and (q + 1) * 3 > begin
             c.setFillColor(colors.HexColor(MUTANT if changed and focal else UNKNOWN if changed else INK))
             c.drawString(45 + 5.15 * i, 45, amino)
             if q < len(self.depth):
@@ -304,22 +305,60 @@ class FusionSequencePanel(Flowable):
                 c.setFillColor(colors.HexColor(TEAL))
                 height = 16 * math.log1p(count) / math.log1p(maximum) if maximum else 0
                 c.rect(45 + 5.15 * i, 12, 4.6, height, fill=1, stroke=0)
-        boundary = self.junction / 3 - self.first
-        if 0 <= boundary <= len(self.protein):
-            c.setStrokeColor(colors.HexColor(MUTANT))
-            c.setDash(2, 2)
-            x = 45 + 5.15 * boundary
-            c.line(x, 39, x, 89)
-            c.setDash()
+        for edge in sorted(set(self.junction)):
+            boundary = edge / 3 - self.first
+            if 0 <= boundary <= len(self.protein):
+                c.setStrokeColor(colors.HexColor(MUTANT))
+                c.setDash(2, 2)
+                x = 45 + 5.15 * boundary
+                c.line(x, 39, x, 89)
+                c.setDash()
         c.setFont('Helvetica', 6.5)
         c.setFillColor(colors.HexColor(UNKNOWN))
         c.drawString(45, 3, 'Exact observed fragments per codon; no reference-filled sequence')
 
 
-def _fusion_display(result, supplied, directory):
-    from matplotlib.figure import Figure
+def _fusion_comparisons(result, supplied, depth, whole_fragments):
+    """Project parental codons onto observed RNA without filling insertions."""
     from .fusion import FusionReference
     from .genetic_code import translate_cdna
+
+    path = result['paths'][0]
+    junction_start, junction_end = path['junctions'][0]['query_interval']
+    refs = {r['transcript_id']: FusionReference(**r) for r in supplied['references']}
+    panels, fasta = [], []
+    for number, translation in enumerate(path['translations'], 1):
+        protein = translation['amino_acids']
+        donor_frame = translation['frame_evidence'][0]
+        donor = refs[donor_frame['transcript_id']]
+        acceptor_frames = translation['acceptor_frames']
+        acceptor = refs[acceptor_frames[0]['transcript_id']] if acceptor_frames else None
+        donor_protein, _ = translate_cdna(donor.sequence[donor.cds_start:donor.cds_end])
+        acceptor_protein = ''
+        if acceptor is not None:
+            acceptor_protein, _ = translate_cdna(acceptor.sequence[acceptor.cds_start:acceptor.cds_end])
+            acceptor_start = acceptor.spliced_offset(path['junctions'][0]['right'][1]) - acceptor.cds_start
+        q0 = translation['translation_start']
+        donor_start = donor_frame['donor_reference_offset'] - donor.cds_start
+        parent_donor, parent_acceptor = [], []
+        for i in range(len(protein)):
+            q = q0 + 3 * i
+            d = (donor_start + q) // 3
+            parent_donor.append(donor_protein[d] if q < junction_start and 0 <= d < len(donor_protein) else ' ')
+            a = (acceptor_start + q - junction_end) // 3 if acceptor is not None else -1
+            parent_acceptor.append(acceptor_protein[a] if q + 3 > junction_end and 0 <= a < len(acceptor_protein) else ' ')
+        codons = [min(depth[q:q + 3]) for q in range(q0, translation['translation_end'], 3)]
+        panels.append(dict(translation=translation, parents=(parent_donor, parent_acceptor), depth=codons,
+                           junction=[junction_start - q0, junction_end - q0], whole_fragments=whole_fragments,
+                           donor=donor.transcript_id, acceptor=acceptor.transcript_id if acceptor else None))
+        fasta.extend([(f'fusion_{number}', protein), ('reference_' + donor.transcript_id, donor_protein)])
+        if acceptor is not None:
+            fasta.append(('reference_' + acceptor.transcript_id, acceptor_protein))
+    return panels, dict(fasta)
+
+
+def _fusion_display(result, supplied, directory):
+    from matplotlib.figure import Figure
 
     path = result['paths'][0]
     sequence = path['sequence']
@@ -335,11 +374,12 @@ def _fusion_display(result, supplied, directory):
         if start == 0 and end == len(sequence):
             whole.add(fragment)
     depth = [len(v) for v in coverage]
-    junction = path['junctions'][0]['query_interval'][0]
+    junctions = sorted(set(path['junctions'][0]['query_interval']))
     fig = Figure(figsize=(7.2, 3.2), layout='constrained')
     ax = fig.subplots()
     ax.fill_between(range(len(depth)), depth, color=TEAL, alpha=.8, step='mid')
-    ax.axvline(junction, color=MUTANT, linewidth=1.6, label='Fusion junction')
+    for i, junction in enumerate(junctions):
+        ax.axvline(junction, color=MUTANT, linewidth=1.6, label='Fusion junction' if i == 0 else None)
     ax.set_yscale('symlog', linthresh=1)
     ax.set_xlabel('Observed fusion cDNA position (nt)', fontsize=8)
     ax.set_ylabel('Exact original fragments', fontsize=8)
@@ -349,34 +389,9 @@ def _fusion_display(result, supplied, directory):
     prefix = directory / (result['event_id'] + '-coverage')
     for ext in ('png', 'svg', 'pdf'):
         fig.savefig(str(prefix) + '.' + ext, dpi=180, facecolor='white')
-    refs = {r['transcript_id']: FusionReference(**r) for r in supplied['references']}
-    panels = []
-    fasta = []
-    for number, translation in enumerate(path['translations'], 1):
-        protein = translation['amino_acids']
-        donor_frame = translation['frame_evidence'][0]
-        donor = refs[donor_frame['transcript_id']]
-        acceptor = refs[translation['acceptor_frames'][0]['transcript_id']]
-        donor_protein, _ = translate_cdna(donor.sequence[donor.cds_start:donor.cds_end])
-        acceptor_protein, _ = translate_cdna(acceptor.sequence[acceptor.cds_start:acceptor.cds_end])
-        q0 = translation['translation_start']
-        donor_start = donor_frame['donor_reference_offset'] - donor.cds_start
-        acceptor_start = acceptor.spliced_offset(path['junctions'][0]['right'][1]) - acceptor.cds_start
-        parent_donor, parent_acceptor = [], []
-        for i in range(len(protein)):
-            q = q0 + 3 * i
-            d, a = (donor_start + 3 * i) // 3, (acceptor_start + q - junction) // 3
-            parent_donor.append(donor_protein[d] if q < junction and 0 <= d < len(donor_protein) else ' ')
-            parent_acceptor.append(acceptor_protein[a] if q + 3 > junction and 0 <= a < len(acceptor_protein) else ' ')
-        codons = [min(depth[q:q + 3]) for q in range(q0, translation['translation_end'], 3)]
-        parents = (parent_donor, parent_acceptor)
-        panels.append(dict(translation=translation, parents=parents, depth=codons,
-                           junction=junction - q0, whole_fragments=len(whole),
-                           donor=donor.transcript_id, acceptor=acceptor.transcript_id))
-        fasta.extend([(f'fusion_{number}', protein), ('reference_' + donor.transcript_id, donor_protein),
-                      ('reference_' + acceptor.transcript_id, acceptor_protein)])
+    panels, fasta = _fusion_comparisons(result, supplied, depth, len(whole))
     with (directory / (result['event_id'] + '-proteins.fasta')).open('w') as handle:
-        for name, sequence in dict(fasta).items():
+        for name, sequence in fasta.items():
             handle.write('>' + name + '\n' + '\n'.join(sequence[i:i + 80] for i in range(0, len(sequence), 80)) + '\n')
     return Path(str(prefix) + '.png'), panels
 
@@ -485,9 +500,10 @@ def _additional_sections(manifest, summary, sample_id, figures, p, table, styles
                                f" Minimum coding depth: {min(panel['depth'], default=0)} fragments per codon. "
                                f"{panel['whole_fragments']} original fragments individually span the entire assembled cDNA. "
                                "A fully tiled coding candidate is not a single observed full-length molecule."))
-                story.append(p('REF D: ' + escape(panel['donor']) + '; REF A: ' + escape(panel['acceptor']) +
-                               '. Each parental protein is shown only on its contributing side. The dashed boundary marks '
-                               'the novel adjacency; matching parental residues remain neutral. Full parental proteins '
+                story.append(p('REF D: ' + escape(panel['donor']) + '; REF A: ' +
+                               escape(panel['acceptor'] or 'unavailable (no supported coding acceptor model)') +
+                               '. Each available parental protein is shown only on its contributing side. Dashed boundaries mark '
+                               'the novel adjacency or inserted interval; matching parental residues remain neutral. Available parental proteins '
                                'and the complete candidate are in the companion FASTA.', 'Small'))
                 for start in range(0, len(protein), 80):
                     story.append(FusionSequencePanel(protein[start:start + 80], panel['parents'],

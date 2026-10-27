@@ -28,6 +28,33 @@ paths resolve beside the original manifest. Preserve that manifest and its
 inputs, together with the outputs. Rendering consumes verified output artifacts
 and does not rerun reconstruction.
 
+Both the Python `run_cohort(..., render_only=True)` API and `--render-only`
+require the recorded sample, source/library, scientific task settings, reference
+and input digests to match the manifest. Output bytes are checked against their
+recorded receipts before a report is generated. Changed declarations fail before
+the saved manifest or summary is replaced; they cannot relabel existing evidence.
+Use a new output directory for a different scientific run. Input paths may move
+without changing the digests, and task `title`, `summary`, `locus_annotations`
+and source `title` are presentation fields. A presentation annotation file must
+still match its declared digest when used.
+
+Rendering small-variant results does not require the original BAM, BAM index or
+variant inputs. Fusion rendering still needs the pinned supplied-fusion input for
+its parental reference sequences; SV gene labels need the declared annotation
+file. Rendering preserves the producer's recorded software identity even when
+the installed reporting code is newer. `--resume` also checks the scientific
+implementation before reusing completed analysis.
+
+Additional task families (`fusions`, `sv_audits`, `viral`, `isoforms`, and
+`prior_assessments`) write `receipt.json` alongside their result. SV receipts
+also pin the referenced per-path artifacts, and prior assessments are copied
+into a recorded snapshot. Outputs from 1.62.0 without these additional-task
+receipts cannot be trusted by filename alone: compute them into a new output
+directory with the current version. Existing small-variant receipts remain
+renderable if their declarations and result digests match. Missing analyses
+remain `not_run`; an existing result with a missing or mismatched receipt is an
+error, not an empty analysis.
+
 ## Minimal manifest
 
 The format is `isovar.cohort_manifest.v1`. Replace each example digest with the
@@ -114,6 +141,8 @@ Each additional task has `id`, `sample_id`, and `source_id`:
 A source may have `unavailable_reason`. `pending_inputs` rows use `sample_id`,
 `source`, and `state`; the report identifies these gaps rather than treating
 missing data as negative evidence.
+An additional task's `sample_id` is required and must match its source. Supplied
+fusion provenance must also name that sample; a conflicting input is rejected.
 
 ## Evidence and outputs
 
@@ -136,6 +165,10 @@ Orange marks altered focal residues and deleted-residue boundaries. Matching
 reference residues remain neutral; supplied germline, co-somatic and
 unclassified differences use distinct colors. Reference and same-RNA focal
 counterfactual comparisons do not fill missing sequence from annotation.
+Fusion parental comparisons follow the observed translation start and both
+edges of any inserted junction sequence. Inserted residues have no invented
+parental counterpart. A donor-anchored protein remains visible when no coding
+acceptor model is available, with the acceptor comparison explicitly unavailable.
 Reference ncORF Ribo-seq/MS evidence does not demonstrate mutant translation in
 the current sample. Local protein contexts are not automatically complete ORFs,
 and RNA support does not establish antigen presentation.
