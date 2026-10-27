@@ -7,6 +7,11 @@ The review of PR #599 also reproduced #600 (same-event artifacts overwritten
 across libraries) and #601 (reference annotation identity collapsed by transcript
 ID). Keep fusion artifacts in task-specific directories and resolve reference
 comparisons by their recorded identities, preserving ambiguous acceptors.
+PDF QA additionally found #602: missing additional-task provenance, a rendering
+failure for unavailable inputs, and orphan section headings. Consume the full
+receipt input set, exercise unavailable tasks through the actual renderer, and
+keep headings and source labels with their content. At an exact codon-boundary
+join, an unavailable acceptor comparator must not imply an altered residue.
 
 - Bind rendered results to recorded source, sample, library, task settings and
   input digests. Validate before replacing output manifests or summaries. Permit

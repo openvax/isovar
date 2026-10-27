@@ -533,7 +533,8 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
             additional.append(dict(family=family, task=task, path=str(target),
                                    status="recorded" if receipt else "not_run",
                                    sha256=receipt["artifacts"][target.name] if receipt else None,
-                                   receipt=str(receipt_path) if receipt else None))
+                                   receipt=str(receipt_path) if receipt else None,
+                                   identity=receipt["identity"] if receipt else None))
     summary = dict(schema="isovar.cohort_results.v1", manifest=str(manifest_path),
                    samples=manifest["samples"], sources=list(sources.values()), small_variants=outcomes, additional=additional)
     summary_name = ("cohort-" + content_identifier("selection", sorted(source_ids)) + ".json"

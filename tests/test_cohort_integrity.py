@@ -191,3 +191,23 @@ def test_prior_assessment_snapshot_is_verified_without_original_input(tmp_path):
     assert run_cohort(path, output, render_only=True, render=False) == []
     summary = json.loads((output / "cohort.json").read_text())
     assert summary["additional"][0]["status"] == "recorded"
+
+
+def test_additional_input_table_uses_all_recorded_input_digests(tmp_path):
+    from pypdf import PdfReader
+
+    manifest = fusion_manifest(tmp_path)
+    manifest["prior_assessments"] = manifest.pop("fusions")
+    names = ["original-rna-alignment", "coding-reference", "isoform-targets"]
+    for name in names:
+        data = tmp_path / (name + ".json")
+        write_json(data, {"fixture": name})
+        manifest["files"][name] = dict(path=str(data), sha256=file_sha256(data))
+    manifest["prior_assessments"][0]["reference_files"] = names
+    path, output = tmp_path / "manifest.json", tmp_path / "out"
+    write_json(path, manifest)
+    report, = run_cohort(path, output)
+    text = "\n".join(page.extract_text() for page in PdfReader(report).pages)
+    for name in names:
+        assert name in text
+        assert manifest["files"][name]["sha256"][:16] in text

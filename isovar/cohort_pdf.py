@@ -298,7 +298,7 @@ class FusionSequencePanel(Flowable):
                 c.drawString(45 + 5.15 * i, y, aa)
             changed = amino not in (donor, acceptor)
             begin, end = self.junction
-            focal = q * 3 < max(end, begin + 1) and (q + 1) * 3 > begin
+            focal = q * 3 < end and (q + 1) * 3 > begin
             c.setFillColor(colors.HexColor(MUTANT if changed and focal else UNKNOWN if changed else INK))
             c.drawString(45 + 5.15 * i, 45, amino)
             if q < len(self.depth):
@@ -620,6 +620,7 @@ def write_cohort_reports(manifest, summary, output):
                                   leading=leading, textColor=colors.HexColor(INK), spaceAfter=7))
     styles["Title"].textColor = colors.HexColor(INK)
     styles["Heading2"].textColor = colors.HexColor(TEAL)
+    styles["Heading2"].keepWithNext = True
 
     def p(text, style="Body"):
         return Paragraph(str(text), styles["Cohort" + style])
@@ -819,16 +820,16 @@ def write_cohort_reports(manifest, summary, output):
                         "use --render-only to regenerate figures and PDFs from verified results."),
                       Paragraph("Source provenance", styles["Heading2"])])
         for source in sources:
-            story.extend([p("<b>" + escape(source.get("label", source["source_id"])) + "</b>", "Small"),
-                          p(escape(json.dumps(source["provenance"], sort_keys=True)), "Small")])
+            story.append(KeepTogether([p("<b>" + escape(source.get("label", source["source_id"])) + "</b>", "Small"),
+                                       p(escape(json.dumps(source["provenance"], sort_keys=True)), "Small")]))
         input_keys = set()
         for result in results:
             input_keys.update(result.get('identity', {}).get('inputs', {}))
         for entry in summary.get('additional', []):
-            if entry['task'].get('sample_id') == sample_id:
-                for key in ('input', 'original_fixture', 'manifest', 'locus_annotations'):
-                    if entry['task'].get(key):
-                        input_keys.add(entry['task'][key])
+            if entry['task'].get('sample_id') == sample_id and entry['status'] == 'recorded':
+                input_keys.update(entry['identity']['inputs'])
+                if entry['task'].get('locus_annotations'):
+                    input_keys.add(entry['task']['locus_annotations'])
         if input_keys:
             story.append(Paragraph('Reference and analysis inputs', styles['Heading2']))
             story.append(p('SHA-256 prefixes identify the pinned files. Full digests, original source records '

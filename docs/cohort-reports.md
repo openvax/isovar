@@ -179,6 +179,9 @@ arbitrary sequence. Distinct donor annotation identities remain distinct in the
 FASTA. Fusion artifacts live under `figures/<sample>/fusions/<task-id>/`, with
 `coverage.png`, `coverage.svg`, `coverage.pdf` and `proteins.fasta`; repeated
 events in different libraries cannot overwrite each other's figures or sequences.
+The input table uses every recorded additional-task input, including RNA BAMs,
+reference FASTAs, target models and declared reference files. Unavailable tasks
+do not require nonexistent input descriptors to render their unavailable state.
 Reference ncORF Ribo-seq/MS evidence does not demonstrate mutant translation in
 the current sample. Local protein contexts are not automatically complete ORFs,
 and RNA support does not establish antigen presentation.

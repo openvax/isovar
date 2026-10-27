@@ -131,6 +131,32 @@ def test_ambiguous_acceptor_reference_is_not_selected_by_input_order():
         assert ''.join(panels[0]['parents'][1]).strip() == ''
 
 
+def test_codon_boundary_without_acceptor_does_not_invent_mutant_residues():
+    from reportlab.lib.colors import HexColor
+    from isovar.cohort_pdf import FusionSequencePanel, INK, UNKNOWN
+
+    class Canvas:
+        def __init__(self):
+            self.residues = []
+
+        def setFillColor(self, color):
+            self.color = color
+
+        def drawString(self, x, y, text):
+            if y == 45 and len(text) == 1:
+                self.residues.append((text, self.color))
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    canvas = Canvas()
+    panel = FusionSequencePanel('MAAKGPFE', ('MAAK    ', '        '), [2] * 8, [12, 12], 0)
+    panel.canv = canvas
+    panel.draw()
+    assert canvas.residues[:4] == [(aa, HexColor(INK)) for aa in 'MAAK']
+    assert canvas.residues[4:] == [(aa, HexColor(UNKNOWN)) for aa in 'GPFE']
+
+
 def test_same_event_in_two_libraries_keeps_distinct_figures_and_fastas(tmp_path, monkeypatch):
     from copy import deepcopy
     import isovar.cohort_pdf as reporting
