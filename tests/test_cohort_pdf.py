@@ -83,6 +83,19 @@ def test_fusion_without_coding_acceptor_keeps_observed_protein(acceptor_kind):
     assert 'reference_acceptor.1' not in fasta
 
 
+@pytest.mark.parametrize('acceptor_strand', ['+', '-'])
+@pytest.mark.parametrize('cut,insert', [(13, ''), (14, ''), (12, 'A'), (12, 'TG')])
+def test_split_acceptor_codon_uses_contributing_reference_bases(acceptor_strand, cut, insert):
+    fusion, refs, reads = example(acceptor_strand=acceptor_strand, cut=cut, insert=insert)
+    result = reconstruct_fusion(fusion, refs, reads)
+    panels, _ = _fusion_comparisons(result, {'references': [asdict(r) for r in refs]},
+                                   [2] * len(fusion.sequence), 2)
+    panel, = panels
+    first_acceptor_codon = (fusion.junction_end - panel['translation']['translation_start']) // 3
+    assert panel['parents'][1][first_acceptor_codon] == 'G'
+    assert panel['acceptor_in_frame'] is False
+
+
 def test_donor_only_fusion_renders_complete_cohort_pdf(tmp_path):
     from pypdf import PdfReader
     from isovar.cohort import run_cohort
@@ -136,7 +149,7 @@ def test_ambiguous_acceptor_reference_is_not_selected_by_input_order():
 
 def test_codon_boundary_without_acceptor_does_not_invent_mutant_residues():
     from reportlab.lib.colors import HexColor
-    from isovar.cohort_pdf import FusionSequencePanel, INK, UNKNOWN
+    from isovar.cohort_pdf import FusionSequencePanel, INK, UNKNOWN, MUTANT
 
     class Canvas:
         def __init__(self):
@@ -158,6 +171,13 @@ def test_codon_boundary_without_acceptor_does_not_invent_mutant_residues():
     panel.draw()
     assert canvas.residues[:4] == [(aa, HexColor(INK)) for aa in 'MAAK']
     assert canvas.residues[4:] == [(aa, HexColor(UNKNOWN)) for aa in 'GPFE']
+    canvas = Canvas()
+    shifted = FusionSequencePanel('MAAKGDA', ('MAAK   ', '    GPF'), [2] * 7, [12, 12], 0,
+                                  acceptor_in_frame=False)
+    shifted.canv = canvas
+    shifted.draw()
+    assert canvas.residues[4] == ('G', HexColor(INK))
+    assert canvas.residues[5:] == [(aa, HexColor(MUTANT)) for aa in 'DA']
 
 
 def test_same_event_in_two_libraries_keeps_distinct_figures_and_fastas(tmp_path, monkeypatch):

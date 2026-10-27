@@ -273,10 +273,11 @@ class SequencePanel(Flowable):
 class FusionSequencePanel(Flowable):
     """Two parental comparisons keep ordinary acceptor residues neutral."""
 
-    def __init__(self, protein, parents, depth, junction, first):
+    def __init__(self, protein, parents, depth, junction, first, acceptor_in_frame=None):
         super().__init__()
         self.protein, self.parents, self.depth = protein, parents, depth
         self.junction, self.first = junction, first
+        self.acceptor_in_frame = acceptor_in_frame
         self.width, self.height = 510, 110
 
     def draw(self):
@@ -298,7 +299,8 @@ class FusionSequencePanel(Flowable):
                 c.drawString(45 + 5.15 * i, y, aa)
             changed = amino not in (donor, acceptor)
             begin, end = self.junction
-            focal = q * 3 < end and (q + 1) * 3 > begin
+            focal = (q * 3 < end and (q + 1) * 3 > begin or
+                     self.acceptor_in_frame is False and (q + 1) * 3 > end)
             c.setFillColor(colors.HexColor(MUTANT if changed and focal else UNKNOWN if changed else INK))
             c.drawString(45 + 5.15 * i, 45, amino)
             if q < len(self.depth):
@@ -357,14 +359,17 @@ def _fusion_comparisons(result, supplied, depth, whole_fragments):
             q = q0 + 3 * i
             d = (donor_start + q) // 3
             parent_donor.append(donor_protein[d] if q < junction_start and 0 <= d < len(donor_protein) else ' ')
-            a = (acceptor_start + q - junction_end) // 3 if acceptor is not None else -1
+            # A split codon must compare to the first contributing acceptor
+            # base, not an extrapolated upstream codon absent from this path.
+            a = (acceptor_start + max(q, junction_end) - junction_end) // 3 if acceptor is not None else -1
             parent_acceptor.append(acceptor_protein[a] if q + 3 > junction_end and 0 <= a < len(acceptor_protein) else ' ')
         codons = [min(depth[q:q + 3]) for q in range(q0, translation['translation_end'], 3)]
         panels.append(dict(translation=translation, parents=(parent_donor, parent_acceptor), depth=codons,
                            junction=[junction_start - q0, junction_end - q0], whole_fragments=whole_fragments,
                            donor=donor.transcript_id, donor_annotation=donor.annotation,
                            acceptor=acceptor.transcript_id if acceptor else None, acceptor_status=acceptor_status,
-                           acceptor_annotation=acceptor.annotation if acceptor else None))
+                           acceptor_annotation=acceptor.annotation if acceptor else None,
+                           acceptor_in_frame=acceptor_frames[0]['in_frame'] if acceptor else None))
         fasta.extend([(f'fusion_{number}', protein), (reference_name(donor), donor_protein)])
         if acceptor is not None:
             fasta.append((reference_name(acceptor), acceptor_protein))
@@ -519,14 +524,20 @@ def _additional_sections(manifest, summary, sample_id, figures, p, table, styles
                 acceptor_label = (panel['acceptor'] + ' (' + panel['acceptor_annotation'] + ')' if panel['acceptor'] else
                                   'ambiguous (transcript ID occurs in multiple annotations)' if panel['acceptor_status'] == 'ambiguous' else
                                   'unavailable (no supported coding acceptor model)')
+                if panel['acceptor_in_frame'] is False:
+                    acceptor_label += ' (shifted reading frame)'
                 story.append(p('REF D: ' + escape(panel['donor'] + ' (' + panel['donor_annotation'] + ')') + '; REF A: ' +
                                escape(acceptor_label) +
                                '. Each available parental protein is shown only on its contributing side. Dashed boundaries mark '
                                'the novel adjacency or inserted interval; matching parental residues remain neutral. Available parental proteins '
                                'and the complete candidate are in the companion FASTA.', 'Small'))
+                if panel['acceptor_in_frame'] is False:
+                    story.append(p('Reference rows follow source codons; a split reference codon can span two '
+                                   'columns when the reading frames differ.', 'Small'))
                 for start in range(0, len(protein), 80):
                     story.append(FusionSequencePanel(protein[start:start + 80], panel['parents'],
-                                                     panel['depth'], panel['junction'], start))
+                                                     panel['depth'], panel['junction'], start,
+                                                     acceptor_in_frame=panel['acceptor_in_frame']))
                     story.append(Spacer(1, 7))
         elif family == 'sv_audits':
             story.extend([PageBreak(), heading])

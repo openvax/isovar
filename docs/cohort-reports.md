@@ -179,6 +179,9 @@ Fusion parental comparisons follow the observed translation start and both
 edges of any inserted junction sequence. Inserted residues have no invented
 parental counterpart. A donor-anchored protein remains visible when no coding
 acceptor model is available, with the acceptor comparison explicitly unavailable.
+Split junction codons use only contributing parental bases for comparison. An
+identified acceptor frame shift is labeled; changed downstream residues use the
+focal-difference color, while identical residues remain neutral.
 Reference identity includes both annotation and transcript ID. If an acceptor
 frame's transcript ID cannot identify one coding reference across the supplied
 annotations, the report marks that comparison ambiguous instead of selecting an
