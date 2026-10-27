@@ -15,6 +15,7 @@ from reportlab.platypus import (
 )
 
 from .sv_rna_audit import file_sha256, read_json, write_json
+from .rna_evidence import content_identifier
 
 
 INK = "#223743"
@@ -325,14 +326,25 @@ def _fusion_comparisons(result, supplied, depth, whole_fragments):
 
     path = result['paths'][0]
     junction_start, junction_end = path['junctions'][0]['query_interval']
-    refs = {r['transcript_id']: FusionReference(**r) for r in supplied['references']}
+    refs = {(r['annotation'], r['transcript_id']): FusionReference(**r) for r in supplied['references']}
+    id_counts = Counter(ref.transcript_id for ref in refs.values())
+
+    def reference_name(ref):
+        suffix = '--' + content_identifier('annotation', ref.annotation)[-12:] if id_counts[ref.transcript_id] > 1 else ''
+        return 'reference_' + ref.transcript_id + suffix
+
     panels, fasta = [], []
     for number, translation in enumerate(path['translations'], 1):
         protein = translation['amino_acids']
         donor_frame = translation['frame_evidence'][0]
-        donor = refs[donor_frame['transcript_id']]
+        donor = refs[(donor_frame['annotation'], donor_frame['transcript_id'])]
         acceptor_frames = translation['acceptor_frames']
-        acceptor = refs[acceptor_frames[0]['transcript_id']] if acceptor_frames else None
+        acceptors = [ref for ref in refs.values() if acceptor_frames and
+                     ref.transcript_id == acceptor_frames[0]['transcript_id'] and ref.cds_start is not None]
+        # Legacy acceptor-frame records do not identify the annotation. Do not
+        # arbitrarily pick among references with the same transcript ID.
+        acceptor = acceptors[0] if len(acceptors) == 1 else None
+        acceptor_status = 'available' if acceptor else 'ambiguous' if acceptors else 'unavailable'
         donor_protein, _ = translate_cdna(donor.sequence[donor.cds_start:donor.cds_end])
         acceptor_protein = ''
         if acceptor is not None:
@@ -350,10 +362,12 @@ def _fusion_comparisons(result, supplied, depth, whole_fragments):
         codons = [min(depth[q:q + 3]) for q in range(q0, translation['translation_end'], 3)]
         panels.append(dict(translation=translation, parents=(parent_donor, parent_acceptor), depth=codons,
                            junction=[junction_start - q0, junction_end - q0], whole_fragments=whole_fragments,
-                           donor=donor.transcript_id, acceptor=acceptor.transcript_id if acceptor else None))
-        fasta.extend([(f'fusion_{number}', protein), ('reference_' + donor.transcript_id, donor_protein)])
+                           donor=donor.transcript_id, donor_annotation=donor.annotation,
+                           acceptor=acceptor.transcript_id if acceptor else None, acceptor_status=acceptor_status,
+                           acceptor_annotation=acceptor.annotation if acceptor else None))
+        fasta.extend([(f'fusion_{number}', protein), (reference_name(donor), donor_protein)])
         if acceptor is not None:
-            fasta.append(('reference_' + acceptor.transcript_id, acceptor_protein))
+            fasta.append((reference_name(acceptor), acceptor_protein))
     return panels, dict(fasta)
 
 
@@ -386,11 +400,11 @@ def _fusion_display(result, supplied, directory):
     ax.set_title(result['event_id'].replace('--', ' / ') + ' | observed RNA coverage', loc='left', fontsize=11)
     ax.legend(frameon=False, fontsize=8)
     ax.spines[['top', 'right']].set_visible(False)
-    prefix = directory / (result['event_id'] + '-coverage')
+    prefix = directory / 'coverage'
     for ext in ('png', 'svg', 'pdf'):
         fig.savefig(str(prefix) + '.' + ext, dpi=180, facecolor='white')
     panels, fasta = _fusion_comparisons(result, supplied, depth, len(whole))
-    with (directory / (result['event_id'] + '-proteins.fasta')).open('w') as handle:
+    with (directory / 'proteins.fasta').open('w') as handle:
         for name, sequence in fasta.items():
             handle.write('>' + name + '\n' + '\n'.join(sequence[i:i + 80] for i in range(0, len(sequence), 80)) + '\n')
     return Path(str(prefix) + '.png'), panels
@@ -485,7 +499,9 @@ def _additional_sections(manifest, summary, sample_id, figures, p, table, styles
             input_path = Path(summary['manifest']).parent / descriptor['path']
             if file_sha256(input_path) != descriptor['sha256']:
                 raise ValueError('Fusion reference input digest mismatch')
-            plot, panels = _fusion_display(data, read_json(input_path), figures)
+            task_figures = figures / 'fusions' / task['id']
+            task_figures.mkdir(parents=True, exist_ok=True)
+            plot, panels = _fusion_display(data, read_json(input_path), task_figures)
             block.append(Image(str(plot), width=510, height=226))
             if not panels:
                 block.append(p('Coding frame unresolved; no protein sequence is inferred. ' +
@@ -500,8 +516,11 @@ def _additional_sections(manifest, summary, sample_id, figures, p, table, styles
                                f" Minimum coding depth: {min(panel['depth'], default=0)} fragments per codon. "
                                f"{panel['whole_fragments']} original fragments individually span the entire assembled cDNA. "
                                "A fully tiled coding candidate is not a single observed full-length molecule."))
-                story.append(p('REF D: ' + escape(panel['donor']) + '; REF A: ' +
-                               escape(panel['acceptor'] or 'unavailable (no supported coding acceptor model)') +
+                acceptor_label = (panel['acceptor'] + ' (' + panel['acceptor_annotation'] + ')' if panel['acceptor'] else
+                                  'ambiguous (transcript ID occurs in multiple annotations)' if panel['acceptor_status'] == 'ambiguous' else
+                                  'unavailable (no supported coding acceptor model)')
+                story.append(p('REF D: ' + escape(panel['donor'] + ' (' + panel['donor_annotation'] + ')') + '; REF A: ' +
+                               escape(acceptor_label) +
                                '. Each available parental protein is shown only on its contributing side. Dashed boundaries mark '
                                'the novel adjacency or inserted interval; matching parental residues remain neutral. Available parental proteins '
                                'and the complete candidate are in the companion FASTA.', 'Small'))

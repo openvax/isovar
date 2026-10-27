@@ -100,4 +100,70 @@ def test_donor_only_fusion_renders_complete_cohort_pdf(tmp_path):
     report, = run_cohort(path, tmp_path / 'out')
     text = '\n'.join(page.extract_text() for page in PdfReader(report).pages)
     assert 'unavailable (no supported coding acceptor model)' in text
-    assert 'MAAKGPFE' in (tmp_path / 'out/figures/sample/donor--acceptor-proteins.fasta').read_text()
+    assert 'MAAKGPFE' in (tmp_path / 'out/figures/sample/fusions/fusion/proteins.fasta').read_text()
+
+
+def test_fusion_reference_comparison_uses_annotation_and_transcript_identity():
+    from isovar.fusion import FusionReference
+
+    fusion, refs, reads = example(partial=3, cut=9)
+    alternative = FusionReference(refs[0].transcript_id, 'test', 'another annotation', 'd', '+',
+        ((0, 4), (103, 109), (300, 305)), 'ATGA' + refs[0].sequence[3:9] + 'CCTAA', 0, 15)
+    refs += (alternative,)
+    result = reconstruct_fusion(fusion, refs, reads)
+    panels, fasta = _fusion_comparisons(result, {'references': [asdict(r) for r in refs]},
+                                      [2] * len(fusion.sequence), 2)
+    first = next(p for p in panels if p['donor_annotation'] == 'test annotation 1')
+    assert first['translation']['amino_acids'] == 'AAGPFE'
+    assert ''.join(first['parents'][0]) == 'AA    '
+    assert {v for k, v in fasta.items() if k.startswith('reference_donor.1')} == {'MAAKPE', 'MSCS'}
+
+
+def test_ambiguous_acceptor_reference_is_not_selected_by_input_order():
+    fusion, refs, reads = example()
+    refs += (replace(refs[1], annotation='another annotation'),)
+    for ordered in (refs, refs[::-1]):
+        result = reconstruct_fusion(fusion, ordered, reads)
+        panels, _ = _fusion_comparisons(result, {'references': [asdict(r) for r in ordered]},
+                                       [2] * len(fusion.sequence), 2)
+        assert panels[0]['acceptor_status'] == 'ambiguous'
+        assert panels[0]['acceptor'] is None
+        assert ''.join(panels[0]['parents'][1]).strip() == ''
+
+
+def test_same_event_in_two_libraries_keeps_distinct_figures_and_fastas(tmp_path, monkeypatch):
+    from copy import deepcopy
+    import isovar.cohort_pdf as reporting
+    from isovar.cohort import run_cohort
+    from isovar.sv_rna_audit import file_sha256, read_json, write_json
+    from .test_cohort_integrity import fusion_manifest
+
+    manifest = fusion_manifest(tmp_path)
+    supplied = read_json(tmp_path / 'fusion.json')
+    supplied['fusion']['event_id'] = 'donor / acceptor'
+    write_json(tmp_path / 'fusion.json', supplied)
+    manifest['files']['fusion']['sha256'] = file_sha256(tmp_path / 'fusion.json')
+    second = deepcopy(supplied)
+    second['reads'].append(dict(second['reads'][0], read_id='third', fragment_id='third'))
+    for read in second['reads']:
+        read['library_id'] = 'second'
+    write_json(tmp_path / 'second.json', second)
+    manifest['files']['second'] = dict(path=str(tmp_path / 'second.json'), sha256=file_sha256(tmp_path / 'second.json'))
+    manifest['sources'].append(dict(manifest['sources'][0], source_id='second', library_id='second'))
+    manifest['fusions'].append(dict(manifest['fusions'][0], id='second', source_id='second', input='second'))
+    path = tmp_path / 'manifest.json'
+    write_json(path, manifest)
+    images = []
+    original_image = reporting.Image
+
+    def image(path, **kwargs):
+        if str(path).endswith('coverage.png'):
+            images.append(str(path))
+        return original_image(path, **kwargs)
+
+    monkeypatch.setattr(reporting, 'Image', image)
+    run_cohort(path, tmp_path / 'out')
+    assert len(images) == len(set(images)) == 2
+    directories = [tmp_path / 'out/figures/sample/fusions' / task for task in ('fusion', 'second')]
+    assert all((directory / 'proteins.fasta').exists() for directory in directories)
+    assert file_sha256(directories[0] / 'coverage.png') != file_sha256(directories[1] / 'coverage.png')

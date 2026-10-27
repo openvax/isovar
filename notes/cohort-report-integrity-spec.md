@@ -3,6 +3,11 @@
 Fix #596, #597 and #598 in a new PR, then review the complete diff for API/CLI,
 documentation and evidence consistency before merge and release.
 
+The review of PR #599 also reproduced #600 (same-event artifacts overwritten
+across libraries) and #601 (reference annotation identity collapsed by transcript
+ID). Keep fusion artifacts in task-specific directories and resolve reference
+comparisons by their recorded identities, preserving ambiguous acceptors.
+
 - Bind rendered results to recorded source, sample, library, task settings and
   input digests. Validate before replacing output manifests or summaries. Permit
   presentation-only edits and relocated input files with the same digests; do not

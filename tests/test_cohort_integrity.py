@@ -90,6 +90,18 @@ def test_cli_reports_identity_mismatch_and_corrupt_small_result(recorded_small_c
         run_cohort(path, tmp_path / "out", render_only=True, render=False)
 
 
+@pytest.mark.parametrize("source_id", ["original", "undeclared"])
+def test_sample_display_selection_cannot_bypass_source_identity(recorded_small_cohort, tmp_path, source_id):
+    original, output = recorded_small_cohort
+    manifest = deepcopy(original)
+    shutil.copytree(output, tmp_path / "out")
+    manifest["samples"].append(dict(sample_id="HCC1395", source_ids=[source_id]))
+    path = tmp_path / "manifest.json"
+    write_json(path, manifest)
+    with pytest.raises(ValueError, match="belonging to that sample"):
+        run_cohort(path, tmp_path / "out", render_only=True, render=False)
+
+
 def fusion_manifest(root, **example_settings):
     fusion, refs, reads = example(**example_settings)
     supplied = dict(fusion=asdict(fusion), references=[asdict(r) for r in refs], reads=[asdict(r) for r in reads])

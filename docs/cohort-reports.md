@@ -54,6 +54,9 @@ directory with the current version. Existing small-variant receipts remain
 renderable if their declarations and result digests match. Missing analyses
 remain `not_run`; an existing result with a missing or mismatched receipt is an
 error, not an empty analysis.
+If a sample supplies a `source_ids` display subset, every listed source must be
+declared and belong to that sample; the subset cannot reassign another sample's
+evidence.
 
 ## Minimal manifest
 
@@ -169,6 +172,13 @@ Fusion parental comparisons follow the observed translation start and both
 edges of any inserted junction sequence. Inserted residues have no invented
 parental counterpart. A donor-anchored protein remains visible when no coding
 acceptor model is available, with the acceptor comparison explicitly unavailable.
+Reference identity includes both annotation and transcript ID. If an acceptor
+frame's transcript ID cannot identify one coding reference across the supplied
+annotations, the report marks that comparison ambiguous instead of selecting an
+arbitrary sequence. Distinct donor annotation identities remain distinct in the
+FASTA. Fusion artifacts live under `figures/<sample>/fusions/<task-id>/`, with
+`coverage.png`, `coverage.svg`, `coverage.pdf` and `proteins.fasta`; repeated
+events in different libraries cannot overwrite each other's figures or sequences.
 Reference ncORF Ribo-seq/MS evidence does not demonstrate mutant translation in
 the current sample. Local protein contexts are not automatically complete ORFs,
 and RNA support does not establish antigen presentation.

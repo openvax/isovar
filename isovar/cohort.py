@@ -417,6 +417,10 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
             raise ValueError("Source IDs must be single path components")
         if source["sample_id"] not in sample_ids:
             raise ValueError("Source refers to an undeclared sample: " + key)
+    for sample in manifest["samples"]:
+        for source_id in sample.get("source_ids", []):
+            if source_id not in sources or sources[source_id]["sample_id"] != sample["sample_id"]:
+                raise ValueError("Sample source_ids must name sources belonging to that sample")
     if source_ids and set(source_ids) - set(sources):
         raise ValueError("Requested source is absent from manifest")
     for family in ("small_variants", "sv_audits", "fusions", "viral", "isoforms", "prior_assessments"):
