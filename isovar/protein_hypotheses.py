@@ -17,8 +17,10 @@ import json
 from pathlib import Path
 
 from . import __version__
+from .coding_interval_support import coding_interval_support
 from .genetic_code import translate_cdna
 from .protein_sequence_helpers import covered_protein_groups
+from .protein_reference_comparison import reference_comparison
 from .read_identity import source_read_ids
 from .read_metadata import unique_header_entries
 from .rna_candidate_support import candidate_catalog, score_fragments, validate_comparison_settings
@@ -98,6 +100,7 @@ def _translation(translation, event_id, evidence, known_variants, labels):
     transcripts = sorted(context.transcripts, key=lambda t: t.id)
     offset, cdna = orf.offset_to_first_complete_codon, orf.cdna_sequence
     translated = 3 * (len(translation.amino_acids) + int(translation.ends_with_stop_codon))
+    edits = _edits(translation, known_variants)
     return dict(
         translation_id=content_identifier("translation", [
             event_id, cdna, offset, [t.id for t in transcripts], translation.amino_acids,
@@ -116,7 +119,12 @@ def _translation(translation, event_id, evidence, known_variants, labels):
             translation_table=context.translation_table),
         mismatches_before_variant=orf.num_mismatches_before_variant,
         mismatches_after_variant=orf.num_mismatches_after_variant,
-        observed_edits=_edits(translation, known_variants),
+        observed_edits=edits,
+        reference_comparison=reference_comparison(translation, edits),
+        coding_support=coding_interval_support(
+            translation.reads, cdna, orf.variant_cdna_interval_start,
+            (offset, offset + translated), context.strand,
+            lambda reads: evidence.support(reads, "exact_coding_interval_spans", labels)),
         rna_support=evidence.support(translation.reads, "reads_assembled_into_this_cdna", labels))
 
 

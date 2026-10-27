@@ -151,7 +151,7 @@ def cdkn2a():
     p.text('IGV (GRCh38): chr9:21971154-21971156', 10, bold=True)
     p.section('RNA support: allele and complete window are different measurements')
     p.text(f"{int(call['alt_fragments']):,} ALT fragments / {int(call['alt_reads']):,} ALT allele-read observations", 15, bold=True)
-    p.text(f"{int(top['supporting_fragments']):,} fragments support this entire 24-aa window", 15, color=TEAL, bold=True)
+    p.text(f"{int(top['supporting_fragments']):,} fragments contribute to this protein context", 15, color=TEAL, bold=True)
     p.paragraph(f"The window has {int(top['supporting_reads']):,} supporting allele-read observations. "
                 f"The locus also has {call['ref_fragments']} REF fragments and {call['other_fragments']} other-allele fragments. "
                 'These are template counts in one Illumina library, not UMI-confirmed molecules.')
@@ -166,7 +166,7 @@ def cdkn2a():
     p.section('Retained alternatives - never add their support')
     for row in proteins[:3]:
         p.text(f"Rank {row['rank']}: {len(row['protein_sequence'])} aa, "
-               f"{int(row['supporting_fragments']):,} complete-window fragments", 10)
+               f"{int(row['supporting_fragments']):,} context-contributing fragments", 10)
     p.paragraph(f'{len(proteins):,} overlapping local contexts remain in the atlas. Eight transcript IDs '
                 'are compatible with the displayed window; this does not select a unique isoform. '
                 'All ALT reads were evaluated by the recorded high-depth read-spanning method.', 9)
@@ -386,7 +386,7 @@ def main():
     (FOCUSED / 'COLO829_CDKN2A_frameshift.md').write_text(
         '# COLO829 CDKN2A frameshift\n\n'
         '[Open the focused PDF](COLO829_CDKN2A_frameshift.pdf).\n\n'
-        'The 24-aa local window has **5,248 complete-window fragments** (5,338 allele-read observations); '
+        'The 24-aa local protein context has **5,248 contributing fragments** (5,338 allele-read observations); '
         'the allele has 6,967 ALT fragments (6,984 allele-read observations).\n\n'
         'Ensembl 87 ENST00000304494 reference residues 52-75; frameshift begins at residue 68.\n\n'
         '**IGV (GRCh38): `chr9:21971154-21971156`.**\n\n'

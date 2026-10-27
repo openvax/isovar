@@ -1110,6 +1110,11 @@ class ReadCollector(object):
                 variant_chromosome_name=variant.contig,
                 valid_chromosome_names=set(alignment_file.references),
             )
+            if chromosome is None and variant.original_contig in alignment_file.references:
+                # Varcode has already established this source-to-annotation
+                # conversion, including accession versions. Preserve the BAM's
+                # exact source spelling instead of duplicating its alias rules.
+                chromosome = variant.original_contig
 
         if chromosome is None:
             # failed to infer a chromosome name for this variant which

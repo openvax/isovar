@@ -8,12 +8,12 @@ not evidence that this sample initiates translation or produces a protein.
 from orfdata import ReferenceContext as ORFReferenceContext
 
 from .dna import reverse_complement_dna
+from .coding_interval_support import coding_interval_support
 from .genetic_code import translate_cdna
 from .protein_sequence_creator import ProteinSequenceCreator
 from .reference_context import ReferenceContext
 from .reference_sequence_key import ReferenceSequenceKey
 from .rna_evidence import EvidenceSets, content_identifier
-from .read_identity import fragment_ids
 from .transcript_compatibility import annotate_reads_with_transcript_compatibility
 from .translation_helpers import find_mutant_amino_acid_interval
 from .variant_helpers import (
@@ -77,29 +77,10 @@ def _translate(sequence, table, starts_at_reference_start):
 
 def _interval_support(sequence, start, end, reverse, evidence):
     """Exact single-read spans and fragment tiling are separate measurements."""
-    if reverse:
-        start, end = len(sequence) - end, len(sequence) - start
-    covered = [set() for _ in range(end - start)]
-    spanning = []
-    for read in sequence.reads:
-        shift = len(sequence.prefix) - len(read.prefix)
-        left, right = max(start, shift), min(end, shift + len(read.sequence))
-        if right <= left:
-            continue
-        if sequence.sequence[left:right] != read.sequence[left - shift:right - shift]:
-            continue
-        fragments = fragment_ids([read])
-        for position in range(left, right):
-            covered[position - start].update(fragments)
-        if left == start and right == end:
-            spanning.append(read)
-    depths = [len(names) for names in covered]
-    if reverse:
-        depths.reverse()
-    return dict(scope='observed_coding_interval_including_stop_when_present',
-                fragment_depth=depths, minimum_fragment_depth=min(depths) if depths else 0,
-                fully_tiled=bool(depths) and all(depths),
-                single_read_span_support=evidence.support(spanning))
+    oriented = reverse_complement_dna(sequence.sequence) if reverse else sequence.sequence
+    return coding_interval_support(
+        sequence.reads, oriented, len(sequence.suffix) if reverse else len(sequence.prefix),
+        (start, end), '-' if reverse else '+', evidence.support)
 
 
 def _candidate(sequence, context, locus, reference, model_id, rna_id, evidence, creator):
