@@ -1,0 +1,10 @@
+[M::mm_idx_gen::41.350*1.68] collected minimizers
+[M::mm_idx_gen::66.533*2.44] sorted minimizers
+[M::main::66.533*2.44] loaded/built the index for 3366 target sequence(s)
+[M::mm_mapopt_update::67.793*2.41] mid_occ = 2059
+[M::mm_idx_stat] kmer size: 14; skip: 5; is_hpc: 0; #seq: 3366
+[M::mm_idx_stat::68.393*2.40] distinct minimizers: 65673637 (22.55% are singletons); average occurrences: 15.767; average spacing: 3.107; total length: 3217346917
+[M::worker_pipeline::68.514*2.40] mapped 36 sequences
+[M::main] Version: 2.26-r1175
+[M::main] CMD: /opt/homebrew/bin/minimap2 -t 4 -ax splice -uf -k14 /Users/iskander/data/reference/homo_sapiens/grch38_g1k/GRCh38_full_analysis_set_plus_decoy_hla.fa /private/tmp/isovar-hcc-ncorf/reads.fastq
+[M::main] Real time: 69.402 sec; CPU: 165.153 sec; Peak RSS: 13.664 GB
