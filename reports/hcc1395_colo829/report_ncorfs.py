@@ -48,14 +48,16 @@ class CodingCoverage(Flowable):
         c, p = self.canv, self.candidate
         c.translate(0, 15)
         n = len(p['protein_sequence'])
-        depths = p['coding_support']['fragment_depth'][:3 * n]
+        depths = p['coding_support']['fragment_depth'][:3 * (n + int(p['ends_with_stop_codon']))]
         per_codon = [min(depths[i:i + 3]) for i in range(0, len(depths), 3)]
         maximum = max(per_codon, default=1)
         c.setFillColor(GRAY)
         c.setFont('Helvetica', 7.5)
-        c.drawString(0, 65, 'RNA fragment support per codon (minimum of its three base depths)')
+        c.drawString(0, 65, 'RNA fragment support per codon (minimum base depth; stop included when observed)')
         for i, depth in enumerate(per_codon):
-            c.setFillColor(ORANGE if p['mutation_interval'][0] <= i < p['mutation_interval'][1] else TEAL)
+            focal = p['mutation_interval'][0] <= i < p['mutation_interval'][1]
+            focal_stop = p['ends_with_stop_codon'] and i == n and p['mutation_interval'] == [n, n]
+            c.setFillColor(ORANGE if focal or focal_stop else TEAL)
             c.rect(53 + i * 5.4, 25, 4.7, 29 * depth / max(1, maximum), fill=1, stroke=0)
         c.setFillColor(GRAY)
         c.drawRightString(46, 25, '0')
@@ -139,7 +141,7 @@ def ncorf_story(sample, data):
         story.extend([sources, limits, PageBreak()])
         story += section('Low-support ncORF sensitivity examples')
         story.append(para('Independent confirmation is required for both candidates. Reference residues remain '
-                          'neutral; only the focal differing RNA residue is orange.'))
+                          'neutral; only the focal RNA change is orange.'))
     examples = strong if strong else sorted(weak, key=lambda x: -len(x[2]['protein_sequence']))
     for result, model, candidate in examples[:2]:
         reference = model['reference']
@@ -150,8 +152,11 @@ def ncorf_story(sample, data):
                           f"{support['single_read_span_support']['fragments']} fragments each span the displayed coding interval; "
                           f"minimum base depth {support['minimum_fragment_depth']}. "
                           f"{result['source']}; {result['pass_name'].replace('_', ' ')}.", 'FootSmall'))
-        story.append(NeutralReferenceComparison(candidate['reference_protein_window'], candidate['protein_sequence'],
-                                               *candidate['mutation_interval']))
+        sequence = candidate['protein_sequence'] + ('*' if candidate['ends_with_stop_codon'] else '')
+        first, last = candidate['mutation_interval']
+        if candidate['ends_with_stop_codon'] and first == last == len(candidate['protein_sequence']):
+            last += 1  # An observed focal stop has a symbol, but no amino-acid residue.
+        story.append(NeutralReferenceComparison(candidate['reference_protein_window'], sequence, first, last))
         story.append(CodingCoverage(candidate, len(reference['protein_sequence'])))
         if sample == 'COLO829':
             story.append(para('Complete reference ORF (RNA above is not extended from this sequence):', 'FootSmall'))
@@ -167,10 +172,10 @@ def ncorf_story(sample, data):
                               'or an apparent complete coding interval does not establish a translated product. '
                               'Independent original-RNA confirmation is still needed.', 'FootSmall'))
         story.append(Spacer(1, 4))
-    story.append(para('<font color="#ba5a29">&#9632;</font> Focal differing residue &nbsp; '
+    story.append(para('<font color="#ba5a29">&#9632;</font> Focal change &nbsp; '
                       '<font color="#526373">&#9632;</font> Unclassified nonfocal difference &nbsp; '
                       '<font color="#0f706d">&#9632;</font> RNA-covered interval. '
-                      'Reference residues stay neutral. Coverage outside the displayed RNA is unassessed.', 'FootSmall'))
+                      '* Observed stop. Reference residues stay neutral. Coverage outside the displayed RNA is unassessed.', 'FootSmall'))
     if sample == 'COLO829':
         story.extend([sources, limits])
     story.append(PageBreak())

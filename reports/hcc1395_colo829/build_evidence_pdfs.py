@@ -551,8 +551,9 @@ def provenance_story(sample, d):
             'ONT raw-read errors can create other-base calls and competing local contexts. '
             'The RNA and DNA libraries come from separate studies. A 500-base breakend '
             'window and split-alignment candidate are screening evidence only. '
-            'Selected junctions were resolved with original reads, but complete '
-            'isoform assignment and SV protein reconstruction remain unresolved.'
+            'The separately supplied EIF3K-CYP39A1 fusion has a complete RNA coding candidate '
+            '(appendix). For the screened SV inventory, complete isoform assignment and '
+            'SV protein reconstruction remain unresolved.'
         )
     else:
         sources = [
