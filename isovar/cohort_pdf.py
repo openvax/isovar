@@ -400,6 +400,7 @@ def _fusion_display(result, supplied, directory):
     for i, junction in enumerate(junctions):
         ax.axvline(junction, color=MUTANT, linewidth=1.6, label='Fusion junction' if i == 0 else None)
     ax.set_yscale('symlog', linthresh=1)
+    ax.set_ylim(bottom=0)
     ax.set_xlabel('Observed fusion cDNA position (nt)', fontsize=8)
     ax.set_ylabel('Exact original fragments', fontsize=8)
     ax.set_title(result['event_id'].replace('--', ' / ') + ' | observed RNA coverage', loc='left', fontsize=11)
@@ -456,6 +457,7 @@ def _sv_path_figure(candidate, assessment, directory, identifier):
                 if b > a:
                     ax.axvspan(a, b, color=MUTANT, alpha=.2)
     coverage.set_yscale('symlog', linthresh=1)
+    coverage.set_ylim(bottom=0)
     coverage.set_ylabel('Exact matching fragments', fontsize=8)
     coverage.set_xlabel('Position in the selected RNA path (nt)', fontsize=8)
     coverage.tick_params(labelsize=7)
