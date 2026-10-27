@@ -817,11 +817,13 @@ def write_cohort_reports(manifest, summary, output):
                         "translation of this sample's mutant sequence. No unobserved RNA sequence is filled from reference."),
                       p("Every call, alternative, error, original support identity, input hash and parameter is retained "
                         "in the companion source exports and receipts. Reproduce with the same cohort manifest; "
-                        "use --render-only to regenerate figures and PDFs from verified results."),
-                      Paragraph("Source provenance", styles["Heading2"])])
-        for source in sources:
-            story.append(KeepTogether([p("<b>" + escape(source.get("label", source["source_id"])) + "</b>", "Small"),
-                                       p(escape(json.dumps(source["provenance"], sort_keys=True)), "Small")]))
+                        "use --render-only to regenerate figures and PDFs from verified results.")])
+        for index, source in enumerate(sources):
+            block = [p("<b>" + escape(source.get("label", source["source_id"])) + "</b>", "Small"),
+                     p(escape(json.dumps(source["provenance"], sort_keys=True)), "Small")]
+            if index == 0:
+                block.insert(0, Paragraph("Source provenance", styles["Heading2"]))
+            story.append(KeepTogether(block))
         input_keys = set()
         for result in results:
             input_keys.update(result.get('identity', {}).get('inputs', {}))

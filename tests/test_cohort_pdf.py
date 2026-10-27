@@ -98,9 +98,12 @@ def test_donor_only_fusion_renders_complete_cohort_pdf(tmp_path):
     path = tmp_path / 'manifest.json'
     write_json(path, manifest)
     report, = run_cohort(path, tmp_path / 'out')
-    text = '\n'.join(page.extract_text() for page in PdfReader(report).pages)
+    pages = [page.extract_text() for page in PdfReader(report).pages]
+    text = '\n'.join(pages)
     assert 'unavailable (no supported coding acceptor model)' in text
     assert 'MAAKGPFE' in (tmp_path / 'out/figures/sample/fusions/fusion/proteins.fasta').read_text()
+    provenance_page, = [page for page in pages if 'Source provenance' in page]
+    assert 'synthetic regression' in provenance_page
 
 
 def test_fusion_reference_comparison_uses_annotation_and_transcript_identity():
