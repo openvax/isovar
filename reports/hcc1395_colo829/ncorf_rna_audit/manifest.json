@@ -1,0 +1,117 @@
+{
+  "schema": "isovar.ncorf_cohort_audit.v1",
+  "inputs": [
+    {
+      "sample": "COLO829",
+      "source": "SRR8615617",
+      "path": "tests/data/colo829_whole_run/SRR8615617.all_sites.grch38.bam",
+      "sha256": "cbe534d21f80b5ffab35a55c6edbd4cdddf80f1c8505ec9b8d2e4b36867b3f44",
+      "scope": "Whole-run selected-site BAM; original ALT witnesses at every selected locus"
+    },
+    {
+      "sample": "HCC1395",
+      "source": "SRR23456709",
+      "path": "reports/hcc1395_colo829/ncorf_rna_audit/inputs/HCC1395.original-witnesses.grch38.bam",
+      "sha256": "2bc138af423633e3b9e2e42fbd8152032737635c46818a2b0fd28e18a425bc0d",
+      "scope": "Recovered original atlas ALT witnesses; complete-genome realignment; no allele-frequency denominator"
+    }
+  ],
+  "catalog_metadata": {
+    "benchmark_review_policy": "All reviewers score 4 or 5: reviewed_support; all below 4: reviewed_low_quality; otherwise reviewed_mixed",
+    "coordinates": "1-based-inclusive",
+    "dataset_version": "2026-10-11.1",
+    "evidence_scope": "Legacy reported MS, author HLA mapping export, and separately licensed community spectrum reviews; not the complete 2026 Nature curated shotgun tables",
+    "genome_build": "GRCh38",
+    "initiation_policy": "Loose positional Kozak preferences; no model filtering or calibrated initiation probability. Missing positions remain unknown; transcript boundaries are not verified cap sites.",
+    "missing_evidence": "not_assessed_or_not_reported; never evidence of absence",
+    "model_scope": "All 7264 complete stopped GENCODE Phase I and single-study ncORFs, including noncoding-transcript, internal and downstream ORFs",
+    "mutant_translation_evidence": "not_assessed",
+    "ribosome_study_pmids": {
+      "Calviello_et_al_2016": "26657557",
+      "Chen_et_al_2020": "32139545",
+      "Gaertner_et_al_2020": "32744504",
+      "Ji_et_al_2015": "26687005",
+      "Martinez_et_al_2020": "31819274",
+      "Raj_et_al_2016": "27232982",
+      "VanHeesch_et_al_2019": "31155234"
+    },
+    "sources": [
+      {
+        "citation": "Ensembl release 101 human GRCh38 exon annotation and cDNA sequences",
+        "id": "ensembl101",
+        "inputs": [
+          {
+            "sha256": "6f63da87a7f2f7b5e6940f7e2bd9dd2e7aee37494430e6ac7274f7ef8dc214ba",
+            "url": "https://ftp.ensembl.org/pub/release-101/gtf/homo_sapiens/Homo_sapiens.GRCh38.101.gtf.gz"
+          },
+          {
+            "sha256": "519cb4398f7a7904531a0eaaf16a8252f0487f101e00087f6316017bd51a1093",
+            "url": "https://ftp.ensembl.org/pub/release-101/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz"
+          },
+          {
+            "sha256": "6bbf091adb1214942b6f258aa830393b27ad7cc49f8ee2fe18260a7b46a0cc88",
+            "url": "https://ftp.ensembl.org/pub/release-101/fasta/homo_sapiens/ncrna/Homo_sapiens.GRCh38.ncrna.fa.gz"
+          }
+        ],
+        "license": "Ensembl data available without restriction; https://www.ensembl.org/info/about/legal/disclaimer.html",
+        "mapping_scope": "Exact entire ORF splice path and protein validated; reference context only, biological 5-prime completeness unverified"
+      },
+      {
+        "citation": "Kozak 1986, Point mutations define a sequence flanking the AUG initiator codon that modulates translation by eukaryotic ribosomes",
+        "consensus_doi": "10.1093/nar/15.20.8125",
+        "doi": "10.1016/0092-8674(86)90762-2",
+        "id": "kozak_context",
+        "mapping_scope": "Sequence prior, not measured initiation, expression, or an exclusion threshold",
+        "short_leader_pmid": "1820208"
+      },
+      {
+        "citation": "Mudge et al. 2022, Standardized annotation of translated open reading frames",
+        "doi": "10.1038/s41587-022-01369-0",
+        "id": "gencode_phase1",
+        "license": "MIT (author repository)",
+        "mapping_scope": "No peptide uniqueness counts; legacy MS datasets are ORF-level pooled annotations, not peptide-specific sample attribution",
+        "sha256": "ca2e2f9389052c62f48ec6f81d53ca88c64152edb5940e556813d4a7bf1e6c62",
+        "url": "https://raw.githubusercontent.com/VanHeeschLab/deutsch_kok_et_al_2024/b65ae0c09a53e9efe083d806d617581e6139bdde/raw/ncorf_list.xlsx"
+      },
+      {
+        "citation": "Deutsch et al. 2026, Expanding the human proteome with microproteins and peptideins",
+        "count_scope": "Peptide PSMs across source MS runs, shared across ORF mappings; not RNA abundance or independent patient samples",
+        "counts_sha256": "290658de32de2579d17f0b75c3fcc39b4d50c5e6ce1ceea9ce9f411ccc8a98ba",
+        "counts_url": "https://raw.githubusercontent.com/VanHeeschLab/deutsch_kok_et_al_2024/b65ae0c09a53e9efe083d806d617581e6139bdde/raw/peptide_sample_msrun_counts.tar.bz2",
+        "doi": "10.1038/s41586-026-10459-x",
+        "id": "author_hla",
+        "license": "MIT (author repository)",
+        "mapping_scope": "n_pep in author's filtered HLA reference mappings, excluding canonical peptides; not global proteome uniqueness",
+        "sha256": "a97d73b08b4ee7376a064f9fee3480b3d73639ebe0bd238a6dd0099df6a9e30c",
+        "url": "https://raw.githubusercontent.com/VanHeeschLab/deutsch_kok_et_al_2024/b65ae0c09a53e9efe083d806d617581e6139bdde/raw/filtered_peptides.tar.bz2"
+      },
+      {
+        "citation": "Wacholder et al. 2026, Community benchmarking and evaluation of human unannotated microprotein detection by mass spectrometry based proteomics",
+        "correction": "10.1038/s41467-026-73431-3 corrects figure labels, not source spectra",
+        "dataset_doi": "10.6084/m9.figshare.30131869.v1",
+        "doi": "10.1038/s41467-025-68002-x",
+        "id": "microprotein_benchmark",
+        "license": "CC-BY-4.0 (Figshare dataset)",
+        "mapping_scope": "Sequence-compatible Phase I models; source_orf only when a published ORF alias also matches; uniqueness unknown",
+        "member": "input_files/media-4_with_dot_products.csv",
+        "sha256": "9e2cbb54765f8a9886cdcbf0bdfefa772f4623f54291add2bf3c47c26b17250f",
+        "url": "https://ndownloader.figshare.com/files/57979642"
+      }
+    ],
+    "species": "homo_sapiens",
+    "taxon_id": 9606
+  },
+  "ensembl_release": 87,
+  "passes": [
+    {
+      "name": "default_coverage",
+      "minimum_read_coverage": 2
+    },
+    {
+      "name": "single_read_sensitivity",
+      "minimum_read_coverage": 1
+    }
+  ],
+  "interpretation": "Passes reuse the same original molecules; never pool their support. Extra ORF models and annotated CDS competitors remain separate. Local sequence candidates are not measured translation.",
+  "results_sha256": "40927092e8d3f29769f4bfa5c1c64d403f1842cac02ab6c9d8111261b7326ec5"
+}

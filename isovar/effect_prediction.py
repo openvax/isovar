@@ -107,8 +107,8 @@ def predicted_effects_for_variant(
         transcript = getattr(effect, 'transcript', None)
         transcript_is_coding = (
             has_transcript and
-            transcript.complete and
-            transcript.is_protein_coding)
+            transcript.is_protein_coding and
+            transcript.complete)
         if only_coding_transcripts and not transcript_is_coding:
             continue
         elif transcript_id_whitelist is not None and not has_transcript:

@@ -4,6 +4,21 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.61.0
+
+- Add `reconstruct_variant_orfs` for mutation-supporting RNA assessed against
+  supplied, validated ORFdata frames, including noncoding parent transcripts.
+  Preserve competing models and RNA placements, unresolved reasons, reference
+  comparisons and focal-allele counterfactuals. Separate assembled support,
+  per-base fragment coverage and single-read coding spans; never infer observed
+  initiation or translation from a reference frame.
+- Replay every ALT-supported catalogue ncORF overlap in COLO829/HCC1395 with
+  source-pinned original RNA and separate default/single-read budgets. Add
+  DYNLL2 G5E to the report landscape and alignments; distinguish synonymous
+  contexts and weak HCC1395 candidates. Require ORFdata 0.39.1 or later.
+- Check protein-coding biotype before CDS completeness when filtering ordinary
+  effects, allowing noncoding-only GTFs without querying absent CDS tables.
+
 ## 1.60.0
 
 - Add reusable all-path SV RNA assessment, Varcode hypothesis adaptation,

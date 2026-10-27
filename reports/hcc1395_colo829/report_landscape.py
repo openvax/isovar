@@ -98,9 +98,10 @@ class SVRoutes(Flowable):
 class Landscape(Flowable):
     """Inventory composition and ALT/window-support landscape on log axes."""
 
-    def __init__(self, data):
+    def __init__(self, data, sample):
         super().__init__()
         self.data, self.width, self.height = data, 512, 385
+        self.sample = sample
 
     def draw(self):
         c, d = self.canv, self.data
@@ -112,7 +113,7 @@ class Landscape(Flowable):
         c.setFont('Helvetica', 8)
         c.drawString(280, 351, 'DNA rows')
         c.drawString(360, 351, 'ALT calls')
-        c.drawString(435, 351, 'Local context')
+        c.drawString(435, 351, 'Atlas context')
         for i, (kind, count) in enumerate(classes.items()):
             y = 331 - 23 * i
             subset = [r for r in d['calls'] if variant_type(r) == kind]
@@ -158,6 +159,16 @@ class Landscape(Flowable):
             c.setFillColor(color)
             c.circle(x, y, 2.3 if frameshift else 1.6, fill=1, stroke=0)
             points.append((n, k, row, x, y))
+        from .report_ncorfs import changed_default_examples
+        for result, model, candidate in changed_default_examples(self.sample):
+            x = left + width * project(result['atlas_alt_fragments'])
+            y = bottom + height * project(candidate['rna_support']['fragments'])
+            c.setStrokeColor(TEAL)
+            c.setLineWidth(1.5)
+            c.rect(x - 3, y - 3, 6, 6, fill=0, stroke=1)
+            c.setFillColor(TEAL)
+            c.setFont('Helvetica-Bold', 7)
+            c.drawString(x + 7, y, model['reference']['source_gene_name'] + ' ncORF')
         for index, (_, _, row, x, y) in enumerate(sorted(points, reverse=True, key=lambda x: x[:2])[:3]):
             gene = d['loci'][row['call_id']]['protein_genes'] or d['loci'][row['call_id']]['genes'] or row['call_id']
             c.setFillColor(NAVY)
@@ -170,18 +181,18 @@ class Landscape(Flowable):
 
 def landscape_story(sample, d):
     story = section('Variant landscape: depth, coding recovery and unresolved categories')
-    story.append(para('Every nominated small variant is counted above. The scatter shows ALT-observed '
-                      'calls; points on the baseline have no local protein context under the recorded '
-                      'settings. A context may be reference-identical. Separate cultures and assays '
-                      'are never pooled.'))
-    story.append(Landscape(d))
+    story.append(para('Every nominated small variant is counted above. Dots show original-atlas outcomes: '
+                      'baseline dots had no local protein context under those settings. The labelled open '
+                      'square adds the new default-coverage ncORF result where present; original counts stay '
+                      'unchanged. A context may be reference-identical. Cultures and assays remain separate.'))
+    story.append(Landscape(d, sample))
     story.append(para('<font color="#526373">&#9632;</font> SNV &nbsp; '
                       '<font color="#ba5a29">&#9632;</font> Frameshift &nbsp; '
                       '<font color="#0f706d">&#9632;</font> Other indel', 'FootSmall'))
     story.append(data_table(['Category', 'What this report can establish'], [
         ('Small variants', 'Original-RNA allele observations and bounded local coding windows'),
         ('SVs / fusions', 'Original joins and competing RNA paths; annotated coding frame only where resolved'),
-        ('ncORFs', 'Reference coding-block overlaps and RNA ALT; mutant ncORF proteins remain unresolved'),
+        ('ncORFs', 'Validated reference ORF frames and mutation-supporting RNA; candidate translation remains conditional'),
         ('Viral / other antigen sources', 'Not surveyed in these host-focused inputs; no absence claim'),
     ], [145, 367]))
     story.append(PageBreak())
@@ -314,32 +325,5 @@ def sv_exemplars(sample, d, k=3):
 
 
 def other_categories(sample, d, k=3):
-    candidates = sorted((r for r in d['calls'] if int(r['alt_fragments']) and
-                         d['annotations'][r['call_id']]['orfdata_coding_block_overlap'] == 'True'),
-                        key=lambda r: -int(r['alt_fragments']))
-    story = section('ncORFs and other antigen-source categories')
-    story.append(para('Reference ncORF overlap nominates an alternative coding model; it does not '
-                      'establish that the ORF is translated, mutated in-frame, or covered over its '
-                      'complete coding sequence. No mutant ncORF protein was reconstructed here.'))
-    rows = []
-    for call in candidates[:k]:
-        annotation, locus = d['annotations'][call['call_id']], d['loci'][call['call_id']]
-        rows.append((f"<b>{locus['genes'].replace(';', ', ') or 'No overlapping gene'}</b><br/>"
-                     f"{call['call_id']}<br/>{locus['igv_loci']}",
-                     f"{int(call['alt_fragments']):,}", annotation['orfdata_biotypes'],
-                     'Unresolved mutant ncORF'))
-    story.append(data_table(['Top overlap / IGV (GRCh38)', 'ALT fragments', 'Reference ORF class', 'Protein status'],
-                            rows, [220, 65, 105, 122]))
-    story.append(para(f'{len(candidates)} ncORF-overlap calls have ALT RNA; the table shows up to {k}. '
-                      'Full ORF model identifiers remain in reference_coding_orfdata_annotations.tsv.gz. '
-                      'A canonical protein context at the same locus does not validate the ncORF.', 'FootSmall'))
-    story += section('Assessment coverage - unknown is not absent')
-    story.append(data_table(['Category', 'State', 'What is missing'], [
-        ('Viral RNA / viral ORFs', 'Not assessed', 'No viral-aligned RNA/reference panel in this report'),
-        ('General cryptic initiation / retained introns', 'Not comprehensively assessed', 'Transcript discovery and initiation evidence beyond selected paths'),
-        ('Targeted cancer/testis antigen isoforms', 'Not assessed', 'Source-qualified isoform coverage audit'),
-        ('Germline / other somatic phasing', 'Not classified beyond available paths', 'Matched genotype and explicit linkage are required for colored attribution'),
-        ('Translated protein / HLA presentation', 'Not measured by these RNA data', 'Independent proteomic / immunopeptidomic evidence'),
-    ], [165, 135, 212]))
-    story.append(PageBreak())
-    return story
+    from .report_ncorfs import ncorf_story
+    return ncorf_story(sample, d)

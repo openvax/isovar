@@ -273,8 +273,8 @@ def main_story(sample, d):
              'Candidate reference ORF overlap; distinct from mutant translation'),
             ('Original RNA ALT-observed calls', f"{d['rna']['alternate_observed']:,}",
              f"{c['alt_reads']:,} ALT reads; {c['alt_fragments']:,} ALT fragments"),
-            ('Calls with local protein contexts', f"{c['protein_calls']:,}",
-             f"{c['protein_contexts']:,} ranked contexts; full-length isoforms unresolved"),
+            ('Atlas local protein contexts', f"{c['protein_calls']:,}",
+             f"{c['protein_contexts']:,} ranked contexts; new ncORF pass reported separately"),
         ], [179, 68, 265], numeric_columns=(1,)))
     return story
 
@@ -539,6 +539,7 @@ def provenance_story(sample, d):
             ('SV benchmark', 'Talsania et al. 2022 Table S4, HCC1395 vs HCC1395BL'),
             ('Original RNA', 'PRJNA934933 / SRR23456709; 1,049,452 ONT direct RNA reads'),
             ('Alignment', 'minimap2 2.26 -ax splice -uf -k14; NCBI GRCh38 no-alt'),
+            ('ncORF witness realignment', '36 original ALT reads; GRCh38 full analysis set + decoy/HLA; same library'),
         ]
         hashes = [
             ('SEQC2 SNV VCF gzip', '0c49f7e1519fc7860b773f79bdcf07453fe4def8303707f34542471d92494c9d'),
@@ -579,9 +580,10 @@ def provenance_story(sample, d):
     story.append(para(
         'Small-variant coding effects use Varcode with Ensembl release 87 on GRCh38. '
         'The human orfdata 0.34.1 catalog uses Ensembl 101 GRCh38 reference ORFs '
-        '(7,264 models, dataset 2026-10-11.1). An orfdata coding-block overlap '
-        'is a reference annotation candidate; this analysis did not translate '
-        'mutated ncORFs from the RNA reads. Genomic transcript overlap is not '
+        '(7,264 models, dataset 2026-10-11.1). The new ORFdata 0.39.1 replay validates '
+        'nine complete catalogue ORF paths/proteins against Ensembl 87, then reconstructs '
+        'their frames on mutation-supporting RNA through the shared library API. '
+        'The ncORF chapter separates default and single-read results. Genomic transcript overlap is not '
         'RNA-compatible isoform support. Original-read allele counts and local '
         'protein contexts are separate observations.'))
     story += section('SHA-256 input pins')
@@ -591,6 +593,9 @@ def provenance_story(sample, d):
     story.append(para('<b>GRCh38 no-alt FASTA (uncompressed)</b>', 'FootSmall'))
     story.append(para('9cce8b926416dd96b152deea85188495b75f7ac8d634cc723a017067be8702b7',
                       'TinyMono'))
+    if sample == 'HCC1395':
+        story.append(para('<b>ncORF realignment GRCh38 full analysis + decoy/HLA FASTA</b>', 'FootSmall'))
+        story.append(para('3b103f4742abfd54938fb0333e19ad067635c8eb86f1dbf0ce44b165c4292b50', 'TinyMono'))
     story.append(para('<b>orfdata bundled GRCh38 catalog</b>', 'FootSmall'))
     story.append(para('06bc0bf3f81c25a7356f71a38581ff5704c05dcb75752454bc1ca75075ab8c09',
                       'TinyMono'))
