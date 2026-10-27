@@ -617,7 +617,8 @@ def write_cohort_reports(manifest, summary, output):
                                                    if s["sample_id"] == sample_id]))
         sources = [s for s in summary["sources"] if s["source_id"] in source_ids]
         results = [r for r in summary["small_variants"] if r["source_id"] in source_ids]
-        analyses = [(r, *_collect(r, sample.get('highlight_variants', []))) for r in results]
+        analyses = [(r, *_collect(r, sample.get('highlight_variants', []))) for r in results
+                    if r.get('status') in ('completed', 'completed_with_errors', 'in_progress')]
         figures = output / "figures" / sample_id
         figures.mkdir(parents=True, exist_ok=True)
         write_json(figures / "summary.json", [dict(source_id=r["source_id"], pass_id=r["pass_id"],
