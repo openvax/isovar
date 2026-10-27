@@ -199,7 +199,7 @@ def test_observed_premature_stop_is_retained_with_zero_width_change(noncoding_rn
     assert candidate['coding_support']['minimum_fragment_depth'] == 2
 
 
-def test_colo829_dynll2_original_rna_recovers_g5e_with_twenty_full_spans():
+def test_colo829_dynll2_original_rna_separates_merged_and_single_read_spans():
     import orfdata
     import pysam
     from pyensembl import EnsemblRelease
@@ -220,7 +220,8 @@ def test_colo829_dynll2_original_rna_recovers_g5e_with_twenty_full_spans():
     assert candidate['reference_protein_window'] == 'MPSLGALRCVCLWCV'
     assert candidate['mutation_interval'] == [4, 5]
     assert candidate['rna_support']['fragments'] == 30
-    assert candidate['coding_support']['single_read_span_support']['fragments'] == 21
+    assert candidate['coding_support']['allele_observation_span_support']['fragments'] == 21
+    assert candidate['coding_support']['single_read_span_support']['fragments'] == 15
     assert candidate['coding_support']['minimum_fragment_depth'] == 24
     assert candidate['sequence_extent'] == 'partial_coding_candidate'
     assert not candidate['translation_observed']

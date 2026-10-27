@@ -2,7 +2,7 @@ pyensembl>=2.27.2
 # Varcode 10 is the tested major version (CI and the suite run on 10.x).
 # Shared genetic-code resolution and normalized native yeast ORF contigs.
 varcode>=10.20.2,<11
-pandas>=0.23.0
+pandas>=3,<4
 pysam>=0.15.2
 edlib>=1.3.9.post1,<2
 
@@ -12,3 +12,8 @@ osteosarc>=0.15.5,<0.16
 
 # Shared species-scoped ORF models and reference MS observations.
 orfdata>=0.39.1,<1
+
+# Figures and PDF reports are part of the standard CLI installation.
+matplotlib>=3.6,<4
+reportlab>=4,<6
+pypdf>=5,<7

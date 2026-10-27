@@ -188,7 +188,10 @@ def test_unknown_library_metadata_and_reads_without_identity_stay_unknown():
     unscoped = export_protein_hypotheses([synthetic_result(reads=legacy)], sample_id="s", source="rna.bam")
     support = unscoped["events"][0]["protein_hypotheses"][0]["rna_support"]
     assert support["evidence_set_id"] is None and support["reads"] == 4
-    assert unscoped["evidence_sets"] == {}
+    # A verified absence of complete spans may store the empty evidence set;
+    # legacy contributors still must not acquire invented read identities.
+    assert all(row["read_ids"] == [] and row["fragments"] == 0
+               for row in unscoped["evidence_sets"].values())
 
 
 def test_completeness_follows_the_recorded_protein_limit():

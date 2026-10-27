@@ -34,15 +34,19 @@ pyensembl install --release 75 --species human
 
 To choose a specific release or use your own GTF, see
 [choosing the reference annotation](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md).
-The figure commands (`isovar plot` and `isovar fusion --plot-dir`) need the
-plotting extra: `pip install 'isovar[plot]'`.
-The variant/RNA PDF command needs `pip install 'isovar[report]'`;
+Figures and PDF reports are included in the standard installation.
+For the variant/RNA PDF command,
 see the [evidence report guide](https://github.com/openvax/isovar/blob/master/reports/hcc1395_colo829/PDF_REPORTS.md).
-The same extra enables `isovar antigen-report`, which combines versioned SV,
+`isovar antigen-report` combines versioned SV,
 fusion, viral, and targeted antigen-isoform exports while keeping their evidence
 units separate; see the [antigen report guide](https://github.com/openvax/isovar/blob/master/docs/antigen-evidence-report.md).
 
 ## Quick start
+
+For reproducible multi-library reanalysis and per-sample PDFs, use
+[`isovar cohort`](docs/cohort-reports.md). It keeps library and analysis-pass
+denominators separate, preserves unresolved calls, and combines small variants,
+ncORFs, supplied fusions, SV audits and declared viral/isoform assessments.
 
 From Python:
 
