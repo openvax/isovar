@@ -1,0 +1,290 @@
+[
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr5:103129447:C>G",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.493638",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr5:103129447:C>G",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.985045",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr5:103129447:C>G",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.968829",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr8:133459437:C>T",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.697291",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr8:133459437:C>T",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.142142",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.848417",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.570109",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.667861",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.852610",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.889148",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.304992",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.471519",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.834929",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.1034410",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.560951",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.560186",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.677951",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.768850",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.834556",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.549152",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.429872",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.737219",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.774041",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.164306",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.591287",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.111495",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr9:137255474:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.381066",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr16:30894580:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.107189",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr16:30894580:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.257596",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr16:30894580:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.968970",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "chr16:30894580:G>C",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.1000147",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "COSM32805",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.295376",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "COSM32805",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.604580",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "COSM32805",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.908959",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "COSM32805",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.74214",
+    "source_read_count": "1"
+  },
+  {
+    "dna_source": "SEQC2_v1.2.1",
+    "class": "SNV",
+    "call_id": "COSM32805",
+    "rna_run": "SRR23456709",
+    "read_id": "SRR23456709.974178",
+    "source_read_count": "1"
+  }
+]

@@ -76,7 +76,20 @@ pins its sequence/evidence ledger; it is a derived report, not another RNA libra
 - **Cell-line ncORF annotation:** orfdata 0.34.1, human GRCh38 catalogue
   2026-10-11.1, 7,264 reference ncORF models based on Ensembl 101. Catalogue
   SHA-256 `06bc0bf3f81c25a7356f71a38581ff5704c05dcb75752454bc1ca75075ab8c09`.
-  These are coding-block overlaps, not reconstructed mutant ncORF proteins.
+  These original counts are coding-block overlaps. The subsequent
+  [ncORF RNA replay](ncorf_rna_audit/README.md) uses ORFdata 0.39.1 to validate
+  all nine ALT-overlapping ORF paths/proteins against Ensembl 87 and assess
+  their frames on original RNA. It preserves ordinary CDS competitors and
+  separate coverage budgets. Reference Ribo-seq/MS support is not sample
+  mutant-translation evidence.
+- **HCC1395 ncORF witness recovery:** all 36 original SRR23456709 ALT witnesses
+  from the atlas, recovered with SRA Toolkit 3.4.1, realigned genome-wide using
+  minimap2 2.26 `-ax splice -uf -k14` against the
+  [GRCh38 full analysis set plus decoy/HLA](https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa).
+  FASTA SHA-256 `3b103f4742abfd54938fb0333e19ad067635c8eb86f1dbf0ce44b165c4292b50`.
+  [Source receipt](ncorf_rna_audit/inputs/HCC1395.source.json) pins selections,
+  reference and derived files. This is a selected reanalysis of the same
+  library, with no reference-depth or allele-frequency denominator.
 - **Sid references:** pinned Ensembl 115 GRCh38 transcripts/proteins. The
   [Sid report methods](../../notes/sid-neoorf-event-report.md) and its input
   manifests retain reference identities and exact/I-L-collapsed comparison

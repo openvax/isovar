@@ -1,0 +1,20 @@
+{
+  "accession": "SRR23456709",
+  "selection": "All 36 original ALT-witness reads for the five ncORF-overlap calls in the published atlas; not a whole-library alignment replay.",
+  "sra_toolkit": "3.4.1",
+  "fetch_command": "vdb-dump SRR23456709 -T SEQUENCE -R <HCC1395.spots.txt contents> -f fastq1",
+  "alignment_command": "minimap2 -t 4 -ax splice -uf -k14 GRCh38_full_analysis_set_plus_decoy_hla.fa HCC1395.reads.fastq",
+  "aligner_version": "2.26-r1175",
+  "genome_sha256": "3b103f4742abfd54938fb0333e19ad067635c8eb86f1dbf0ce44b165c4292b50",
+  "genome_url": "https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa",
+  "counts_scope": "Previously nominated ALT witnesses only; no new allele-frequency or total-depth denominator.",
+  "files": {
+    "HCC1395.alignment.log": "2015e7f029f08855e599da27adb982fb3a861b1b731814643c60a1b61ef92275",
+    "HCC1395.atlas-witnesses.json": "372f4cf36c402a53e14d0338fd2f0ea0b143adebd95fa1ac46d9ed6653259f41",
+    "HCC1395.original-witnesses.grch38.bam": "2bc138af423633e3b9e2e42fbd8152032737635c46818a2b0fd28e18a425bc0d",
+    "HCC1395.original-witnesses.grch38.bam.bai": "d13d94f38ced03c763d76d0b87efa72895f1524ed0a394b5faad9d902136f8ec",
+    "HCC1395.original.fastq.gz": "b53de6292bf34eb6fa44f1c530b9e09511b6d5fff584f379de9de406fd502d95",
+    "HCC1395.reads.fastq.gz": "096582ccbcc2a7ef5595ef612edc9e5280d81fc6bbf49d8f32962c00805c63fa",
+    "HCC1395.spots.txt": "9f9f4adceebcfd9e0ff68b48d52de30f9066f22c818b327cc64da2690247af64"
+  }
+}

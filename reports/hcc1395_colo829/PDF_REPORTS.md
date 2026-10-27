@@ -65,8 +65,11 @@ Protein-window support, focal allele counts, junction support, local branch
 support and whole-path tiling are different measurements. The complete HCC
 fusion is assembled from RNA-witnessed bases; the CDKN2A report does not fill
 its missing flanks from reference. No RNA reconstruction measures translation
-or antigen presentation. Mutated ncORF proteins and viral/other antigen-source
-surveys remain unassessed or unresolved where stated.
+or antigen presentation. The [ncORF RNA replay](ncorf_rna_audit/README.md) adds
+one default-coverage amino-acid-changing model in COLO829 (DYNLL2 G5E), with
+21 single-read fragment spans across the displayed 15-aa window. Two HCC1395
+models have only single-read sensitivity candidates. Other mutant ncORFs and
+viral/other antigen-source surveys remain unassessed or unresolved where stated.
 
 ## Historical benchmark denominators
 
