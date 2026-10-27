@@ -104,7 +104,8 @@ def test_report_sample_id_cannot_escape_output_directory(tmp_path):
 
 
 @pytest.mark.parametrize('family', ['sv_audits', 'fusions', 'viral', 'isoforms', 'prior_assessments'])
-def test_unavailable_additional_source_does_not_require_missing_inputs(tmp_path, family):
+@pytest.mark.parametrize('render', [False, True])
+def test_unavailable_additional_source_does_not_require_missing_inputs(tmp_path, family, render):
     manifest = dict(schema='isovar.cohort_manifest.v1', samples=[{'sample_id': 'sample'}],
         files={}, sources=[dict(source_id='missing', sample_id='sample', library_id='library',
                                scope='Original RNA', provenance={'accession': 'missing'},
@@ -112,7 +113,10 @@ def test_unavailable_additional_source_does_not_require_missing_inputs(tmp_path,
     manifest[family] = [dict(id='task', source_id='missing', sample_id='sample', input='not-present')]
     path = tmp_path / 'manifest.json'
     write_json(path, manifest)
-    assert run_cohort(path, tmp_path / 'out', render=False) == []
+    paths = run_cohort(path, tmp_path / 'out', render=render)
+    assert len(paths) == int(render)
+    if render:
+        assert paths[0].exists()
     entry = json.loads((tmp_path / 'out/cohort.json').read_text())['additional'][0]
     assert entry['status'] == 'unavailable'
     assert entry['reason'] == manifest['sources'][0]['unavailable_reason']

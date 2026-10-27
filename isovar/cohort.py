@@ -94,6 +94,81 @@ def _selected_file_keys(manifest, source_ids):
     return keys
 
 
+def _report_identity(task, source, manifest, family):
+    """Scientific declarations, independent of input locations and presentation."""
+    task = {k: v for k, v in task.items() if k not in {"title", "summary", "locus_annotations"}}
+    source = {k: v for k, v in source.items() if k != "title"}
+    if family == "small_variants":
+        keys = [source["bam"], task["variants"]] + [task[k] for k in
+                ("germline_variants", "nc_orf_catalog") if task.get(k)] + task.get("reference_files", [])
+    else:
+        keys = _selected_file_keys(dict(files=manifest["files"], sources=[source], **{family: [task]}), None)
+    return dict(task=task, source=source,
+                inputs={key: manifest["files"][key]["sha256"] for key in keys})
+
+
+def _check_report_identity(receipt, expected):
+    recorded = receipt["identity"]
+    actual = dict(task={k: v for k, v in recorded["task"].items()
+                        if k not in {"title", "summary", "locus_annotations"}},
+                  source={k: v for k, v in recorded["source"].items() if k != "title"},
+                  inputs=recorded["inputs"])
+    if actual != expected:
+        raise ValueError("Recorded analysis identity differs from the manifest; "
+                         "restore the original declarations or compute into a new output directory")
+
+
+def _artifact_path(directory, name):
+    path = (directory / name).resolve()
+    if not path.is_relative_to(directory.resolve()):
+        raise ValueError("Recorded artifact is outside its analysis directory")
+    return path
+
+
+def _render_small_variant_receipt(task, source, manifest, directory):
+    path = directory / "receipt.json"
+    if not path.exists():
+        if (directory / "variants.jsonl.gz").exists():
+            raise ValueError("Missing analysis receipt; recompute into a new output directory")
+        return dict(status="not_run")
+    receipt = read_json(path)
+    if receipt.get("schema") != "isovar.cohort_source.v1":
+        raise ValueError("Unsupported cohort source receipt")
+    _check_report_identity(receipt, _report_identity(task, source, manifest, "small_variants"))
+    if file_sha256(_artifact_path(directory, receipt["results"])) != receipt["result_sha256"]:
+        raise ValueError("Recorded small-variant result digest mismatch")
+    return receipt
+
+
+def _additional_artifacts(family, directory, target):
+    """Pin every scientific artifact later consumed by the renderer."""
+    paths = [target]
+    if family == "sv_audits":
+        paths.extend(_artifact_path(directory, row["artifact"]) for row in read_json(target)["runs"])
+    elif family == "viral":
+        paths.extend(directory / name for name in ("sequences.fasta", "proteins.fasta"))
+    return {str(path.relative_to(directory)): file_sha256(path) for path in paths}
+
+
+def _check_additional_receipt(path, expected, directory, target, *, resume=False):
+    if not path.exists():
+        if target.exists():
+            raise ValueError("Missing additional analysis receipt; recompute into a new output directory")
+        return None
+    receipt = read_json(path)
+    if receipt.get("schema") != "isovar.cohort_additional.v1":
+        raise ValueError("Unsupported additional analysis receipt")
+    _check_report_identity(receipt, expected)
+    if resume and receipt["identity"]["software"] != reconstruction_identity():
+        raise ValueError("Resume implementation changed; compute into a new output directory")
+    if str(target.relative_to(directory)) not in receipt["artifacts"]:
+        raise ValueError("Analysis receipt does not identify the result")
+    for name, digest in receipt["artifacts"].items():
+        if file_sha256(_artifact_path(directory, name)) != digest:
+            raise ValueError("Recorded additional artifact digest mismatch: " + name)
+    return receipt
+
+
 def _literal(row, genome):
     return Variant(str(row["contig"]), int(row["start"]), row["ref"], row["alt"], genome,
                    convert_ucsc_contig_names=True)
@@ -317,7 +392,12 @@ def _write_companions(path, output):
                                                                for i in range(0, len(sequence), 80)) + "\n")
 
 def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, source_ids=None, render=True):
-    """Run the manifest's source tasks, then render reports from the recorded results."""
+    """Run source tasks or render identity-verified recorded results.
+
+    Rendering requires receipts matching the manifest's scientific declarations
+    and verifies result digests. It does not require original BAMs, rerun analysis
+    or relabel results when the manifest's sample, source or settings change.
+    """
     manifest_path, output = Path(manifest_path).resolve(), Path(output_dir).resolve()
     manifest = read_json(manifest_path)
     if manifest.get("schema") != SCHEMA:
@@ -337,6 +417,12 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
             raise ValueError("Source IDs must be single path components")
         if source["sample_id"] not in sample_ids:
             raise ValueError("Source refers to an undeclared sample: " + key)
+        if "input_sample_id" in source and (not isinstance(source["input_sample_id"], str) or not source["input_sample_id"].strip()):
+            raise ValueError("Source input_sample_id must be a nonempty string")
+    for sample in manifest["samples"]:
+        for source_id in sample.get("source_ids", []):
+            if source_id not in sources or sources[source_id]["sample_id"] != sample["sample_id"]:
+                raise ValueError("Sample source_ids must name sources belonging to that sample")
     if source_ids and set(source_ids) - set(sources):
         raise ValueError("Requested source is absent from manifest")
     for family in ("small_variants", "sv_audits", "fusions", "viral", "isoforms", "prior_assessments"):
@@ -346,10 +432,11 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
             raise ValueError("Duplicate task ID within " + family)
         for task in tasks:
             source = sources[task["source_id"]]
+            if family != "small_variants" and not task.get("sample_id"):
+                raise ValueError("Additional tasks require sample_id")
             if task.get("sample_id", source["sample_id"]) != source["sample_id"]:
                 raise ValueError("Task and source refer to different samples")
     output.mkdir(parents=True, exist_ok=True)
-    _write_manifest(output / "manifest.json", manifest)
     files = _inputs(manifest, manifest_path.parent, _selected_file_keys(manifest, source_ids)) if not render_only else {
         key: (manifest_path.parent / value["path"]).resolve() for key, value in manifest["files"].items()}
     outcomes = []
@@ -368,13 +455,13 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
         if source.get("unavailable_reason"):
             row = dict(status="unavailable", reason=source["unavailable_reason"])
         elif render_only:
-            row = read_json(directory / "receipt.json") if (directory / "receipt.json").exists() else {
-                "status": "not_run"}
+            row = _render_small_variant_receipt(task, source, manifest, directory)
         else:
             row = run_small_variant_source(task, source, files, directory, resume=resume)
         outcomes.append(dict(source_id=source["source_id"], sample_id=source["sample_id"],
                              pass_id=task.get("pass_id", "default"), output=str(directory), **row))
-        write_json(output / ("progress-" + source["source_id"] + ".json"), dict(small_variants=outcomes))
+        if not render_only:
+            write_json(output / ("progress-" + source["source_id"] + ".json"), dict(small_variants=outcomes))
     additional = []
     for family in ("sv_audits", "fusions", "viral", "isoforms", "prior_assessments"):
         for task in manifest.get(family, []):
@@ -389,21 +476,32 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
                                        reason=source["unavailable_reason"], path=None, sha256=None))
                 continue
             directory = output / family / identifier
-            directory.mkdir(parents=True, exist_ok=True)
+            if not render_only:
+                directory.mkdir(parents=True, exist_ok=True)
             target = directory / "result.json.gz"
             if family == "sv_audits":
                 target = directory / "report.json"
-            if family == "prior_assessments":
-                target = files[task["input"]]
-            if not render_only and family != "prior_assessments":
+            expected = _report_identity(task, source, manifest, family)
+            receipt_path = directory / "receipt.json"
+            receipt = None
+            if render_only or resume:
+                receipt = _check_additional_receipt(receipt_path, expected, directory, target, resume=resume and not render_only)
+            elif target.exists() or receipt_path.exists():
+                raise ValueError("Additional result exists; use --resume or a new output directory")
+            if not render_only and receipt is None:
+                identity = dict(expected, software=reconstruction_identity())
                 if family == "sv_audits":
                     run_sv_rna_audit(files[task["manifest"]], directory, resume=resume)
                 elif family == "fusions":
                     from .fusion import fusion_from_dict, reconstruct_fusion
 
                     fusion, references, reads = fusion_from_dict(read_json(files[task["input"]]))
+                    if fusion.provenance["sample_id"] != source.get("input_sample_id", source["sample_id"]):
+                        raise ValueError("Supplied fusion and cohort source refer to different samples")
                     result = reconstruct_fusion(fusion, references, reads, **task.get("parameters", {}))
                     write_json(target, result)
+                elif family == "prior_assessments":
+                    write_json(target, read_json(files[task["input"]]))
                 elif family == "viral":
                     from .viral_sequences import reconstruct_viral_sequences, write_viral_fasta
                     from .viral_coding import write_viral_proteins
@@ -431,13 +529,19 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
                             sample_id=source["sample_id"], source=source["source_id"],
                             **task.get("parameters", {}))
                     write_json(target, result)
+                receipt = dict(schema="isovar.cohort_additional.v1", identity=identity,
+                               artifacts=_additional_artifacts(family, directory, target))
+                write_json(receipt_path, receipt)
             additional.append(dict(family=family, task=task, path=str(target),
-                                   status="recorded" if target.exists() else "not_run",
-                                   sha256=file_sha256(target) if target.exists() else None))
+                                   status="recorded" if receipt else "not_run",
+                                   sha256=receipt["artifacts"][target.name] if receipt else None,
+                                   receipt=str(receipt_path) if receipt else None,
+                                   identity=receipt["identity"] if receipt else None))
     summary = dict(schema="isovar.cohort_results.v1", manifest=str(manifest_path),
                    samples=manifest["samples"], sources=list(sources.values()), small_variants=outcomes, additional=additional)
     summary_name = ("cohort-" + content_identifier("selection", sorted(source_ids)) + ".json"
                     if source_ids else "cohort.json")
+    _write_manifest(output / "manifest.json", manifest)
     write_json(output / summary_name, summary)
     if not render:
         return []

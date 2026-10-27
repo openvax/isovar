@@ -15,6 +15,7 @@ from reportlab.platypus import (
 )
 
 from .sv_rna_audit import file_sha256, read_json, write_json
+from .rna_evidence import content_identifier
 
 
 INK = "#223743"
@@ -272,10 +273,11 @@ class SequencePanel(Flowable):
 class FusionSequencePanel(Flowable):
     """Two parental comparisons keep ordinary acceptor residues neutral."""
 
-    def __init__(self, protein, parents, depth, junction, first):
+    def __init__(self, protein, parents, depth, junction, first, acceptor_in_frame=None):
         super().__init__()
         self.protein, self.parents, self.depth = protein, parents, depth
         self.junction, self.first = junction, first
+        self.acceptor_in_frame = acceptor_in_frame
         self.width, self.height = 510, 110
 
     def draw(self):
@@ -296,7 +298,9 @@ class FusionSequencePanel(Flowable):
                 c.setFillColor(colors.HexColor(INK))
                 c.drawString(45 + 5.15 * i, y, aa)
             changed = amino not in (donor, acceptor)
-            focal = q * 3 < self.junction + 1 and (q + 1) * 3 > self.junction
+            begin, end = self.junction
+            focal = (q * 3 < end and (q + 1) * 3 > begin or
+                     self.acceptor_in_frame is False and (q + 1) * 3 > end)
             c.setFillColor(colors.HexColor(MUTANT if changed and focal else UNKNOWN if changed else INK))
             c.drawString(45 + 5.15 * i, 45, amino)
             if q < len(self.depth):
@@ -304,22 +308,76 @@ class FusionSequencePanel(Flowable):
                 c.setFillColor(colors.HexColor(TEAL))
                 height = 16 * math.log1p(count) / math.log1p(maximum) if maximum else 0
                 c.rect(45 + 5.15 * i, 12, 4.6, height, fill=1, stroke=0)
-        boundary = self.junction / 3 - self.first
-        if 0 <= boundary <= len(self.protein):
-            c.setStrokeColor(colors.HexColor(MUTANT))
-            c.setDash(2, 2)
-            x = 45 + 5.15 * boundary
-            c.line(x, 39, x, 89)
-            c.setDash()
+        for edge in sorted(set(self.junction)):
+            boundary = edge / 3 - self.first
+            if 0 <= boundary <= len(self.protein):
+                c.setStrokeColor(colors.HexColor(MUTANT))
+                c.setDash(2, 2)
+                x = 45 + 5.15 * boundary
+                c.line(x, 39, x, 89)
+                c.setDash()
         c.setFont('Helvetica', 6.5)
         c.setFillColor(colors.HexColor(UNKNOWN))
         c.drawString(45, 3, 'Exact observed fragments per codon; no reference-filled sequence')
 
 
-def _fusion_display(result, supplied, directory):
-    from matplotlib.figure import Figure
+def _fusion_comparisons(result, supplied, depth, whole_fragments):
+    """Project parental codons onto observed RNA without filling insertions."""
     from .fusion import FusionReference
     from .genetic_code import translate_cdna
+
+    path = result['paths'][0]
+    junction_start, junction_end = path['junctions'][0]['query_interval']
+    refs = {(r['annotation'], r['transcript_id']): FusionReference(**r) for r in supplied['references']}
+    id_counts = Counter(ref.transcript_id for ref in refs.values())
+
+    def reference_name(ref):
+        suffix = '--' + content_identifier('annotation', ref.annotation)[-12:] if id_counts[ref.transcript_id] > 1 else ''
+        return 'reference_' + ref.transcript_id + suffix
+
+    panels, fasta = [], []
+    for number, translation in enumerate(path['translations'], 1):
+        protein = translation['amino_acids']
+        donor_frame = translation['frame_evidence'][0]
+        donor = refs[(donor_frame['annotation'], donor_frame['transcript_id'])]
+        acceptor_frames = translation['acceptor_frames']
+        acceptors = [ref for ref in refs.values() if acceptor_frames and
+                     ref.transcript_id == acceptor_frames[0]['transcript_id'] and ref.cds_start is not None]
+        # Legacy acceptor-frame records do not identify the annotation. Do not
+        # arbitrarily pick among references with the same transcript ID.
+        acceptor = acceptors[0] if len(acceptors) == 1 else None
+        acceptor_status = 'available' if acceptor else 'ambiguous' if acceptors else 'unavailable'
+        donor_protein, _ = translate_cdna(donor.sequence[donor.cds_start:donor.cds_end])
+        acceptor_protein = ''
+        if acceptor is not None:
+            acceptor_protein, _ = translate_cdna(acceptor.sequence[acceptor.cds_start:acceptor.cds_end])
+            acceptor_start = acceptor.spliced_offset(path['junctions'][0]['right'][1]) - acceptor.cds_start
+        q0 = translation['translation_start']
+        donor_start = donor_frame['donor_reference_offset'] - donor.cds_start
+        parent_donor, parent_acceptor = [], []
+        for i in range(len(protein)):
+            q = q0 + 3 * i
+            d = (donor_start + q) // 3
+            parent_donor.append(donor_protein[d] if q < junction_start and 0 <= d < len(donor_protein) else ' ')
+            # A split codon must compare to the first contributing acceptor
+            # base, not an extrapolated upstream codon absent from this path.
+            a = (acceptor_start + max(q, junction_end) - junction_end) // 3 if acceptor is not None else -1
+            parent_acceptor.append(acceptor_protein[a] if q + 3 > junction_end and 0 <= a < len(acceptor_protein) else ' ')
+        codons = [min(depth[q:q + 3]) for q in range(q0, translation['translation_end'], 3)]
+        panels.append(dict(translation=translation, parents=(parent_donor, parent_acceptor), depth=codons,
+                           junction=[junction_start - q0, junction_end - q0], whole_fragments=whole_fragments,
+                           donor=donor.transcript_id, donor_annotation=donor.annotation,
+                           acceptor=acceptor.transcript_id if acceptor else None, acceptor_status=acceptor_status,
+                           acceptor_annotation=acceptor.annotation if acceptor else None,
+                           acceptor_in_frame=acceptor_frames[0]['in_frame'] if acceptor else None))
+        fasta.extend([(f'fusion_{number}', protein), (reference_name(donor), donor_protein)])
+        if acceptor is not None:
+            fasta.append((reference_name(acceptor), acceptor_protein))
+    return panels, dict(fasta)
+
+
+def _fusion_display(result, supplied, directory):
+    from matplotlib.figure import Figure
 
     path = result['paths'][0]
     sequence = path['sequence']
@@ -335,48 +393,25 @@ def _fusion_display(result, supplied, directory):
         if start == 0 and end == len(sequence):
             whole.add(fragment)
     depth = [len(v) for v in coverage]
-    junction = path['junctions'][0]['query_interval'][0]
+    junctions = sorted(set(path['junctions'][0]['query_interval']))
     fig = Figure(figsize=(7.2, 3.2), layout='constrained')
     ax = fig.subplots()
     ax.fill_between(range(len(depth)), depth, color=TEAL, alpha=.8, step='mid')
-    ax.axvline(junction, color=MUTANT, linewidth=1.6, label='Fusion junction')
+    for i, junction in enumerate(junctions):
+        ax.axvline(junction, color=MUTANT, linewidth=1.6, label='Fusion junction' if i == 0 else None)
     ax.set_yscale('symlog', linthresh=1)
+    ax.set_ylim(bottom=0)
     ax.set_xlabel('Observed fusion cDNA position (nt)', fontsize=8)
     ax.set_ylabel('Exact original fragments', fontsize=8)
     ax.set_title(result['event_id'].replace('--', ' / ') + ' | observed RNA coverage', loc='left', fontsize=11)
     ax.legend(frameon=False, fontsize=8)
     ax.spines[['top', 'right']].set_visible(False)
-    prefix = directory / (result['event_id'] + '-coverage')
+    prefix = directory / 'coverage'
     for ext in ('png', 'svg', 'pdf'):
         fig.savefig(str(prefix) + '.' + ext, dpi=180, facecolor='white')
-    refs = {r['transcript_id']: FusionReference(**r) for r in supplied['references']}
-    panels = []
-    fasta = []
-    for number, translation in enumerate(path['translations'], 1):
-        protein = translation['amino_acids']
-        donor_frame = translation['frame_evidence'][0]
-        donor = refs[donor_frame['transcript_id']]
-        acceptor = refs[translation['acceptor_frames'][0]['transcript_id']]
-        donor_protein, _ = translate_cdna(donor.sequence[donor.cds_start:donor.cds_end])
-        acceptor_protein, _ = translate_cdna(acceptor.sequence[acceptor.cds_start:acceptor.cds_end])
-        q0 = translation['translation_start']
-        donor_start = donor_frame['donor_reference_offset'] - donor.cds_start
-        acceptor_start = acceptor.spliced_offset(path['junctions'][0]['right'][1]) - acceptor.cds_start
-        parent_donor, parent_acceptor = [], []
-        for i in range(len(protein)):
-            q = q0 + 3 * i
-            d, a = (donor_start + 3 * i) // 3, (acceptor_start + q - junction) // 3
-            parent_donor.append(donor_protein[d] if q < junction and 0 <= d < len(donor_protein) else ' ')
-            parent_acceptor.append(acceptor_protein[a] if q + 3 > junction and 0 <= a < len(acceptor_protein) else ' ')
-        codons = [min(depth[q:q + 3]) for q in range(q0, translation['translation_end'], 3)]
-        parents = (parent_donor, parent_acceptor)
-        panels.append(dict(translation=translation, parents=parents, depth=codons,
-                           junction=junction - q0, whole_fragments=len(whole),
-                           donor=donor.transcript_id, acceptor=acceptor.transcript_id))
-        fasta.extend([(f'fusion_{number}', protein), ('reference_' + donor.transcript_id, donor_protein),
-                      ('reference_' + acceptor.transcript_id, acceptor_protein)])
-    with (directory / (result['event_id'] + '-proteins.fasta')).open('w') as handle:
-        for name, sequence in dict(fasta).items():
+    panels, fasta = _fusion_comparisons(result, supplied, depth, len(whole))
+    with (directory / 'proteins.fasta').open('w') as handle:
+        for name, sequence in fasta.items():
             handle.write('>' + name + '\n' + '\n'.join(sequence[i:i + 80] for i in range(0, len(sequence), 80)) + '\n')
     return Path(str(prefix) + '.png'), panels
 
@@ -422,6 +457,7 @@ def _sv_path_figure(candidate, assessment, directory, identifier):
                 if b > a:
                     ax.axvspan(a, b, color=MUTANT, alpha=.2)
     coverage.set_yscale('symlog', linthresh=1)
+    coverage.set_ylim(bottom=0)
     coverage.set_ylabel('Exact matching fragments', fontsize=8)
     coverage.set_xlabel('Position in the selected RNA path (nt)', fontsize=8)
     coverage.tick_params(labelsize=7)
@@ -470,7 +506,9 @@ def _additional_sections(manifest, summary, sample_id, figures, p, table, styles
             input_path = Path(summary['manifest']).parent / descriptor['path']
             if file_sha256(input_path) != descriptor['sha256']:
                 raise ValueError('Fusion reference input digest mismatch')
-            plot, panels = _fusion_display(data, read_json(input_path), figures)
+            task_figures = figures / 'fusions' / task['id']
+            task_figures.mkdir(parents=True, exist_ok=True)
+            plot, panels = _fusion_display(data, read_json(input_path), task_figures)
             block.append(Image(str(plot), width=510, height=226))
             if not panels:
                 block.append(p('Coding frame unresolved; no protein sequence is inferred. ' +
@@ -485,13 +523,23 @@ def _additional_sections(manifest, summary, sample_id, figures, p, table, styles
                                f" Minimum coding depth: {min(panel['depth'], default=0)} fragments per codon. "
                                f"{panel['whole_fragments']} original fragments individually span the entire assembled cDNA. "
                                "A fully tiled coding candidate is not a single observed full-length molecule."))
-                story.append(p('REF D: ' + escape(panel['donor']) + '; REF A: ' + escape(panel['acceptor']) +
-                               '. Each parental protein is shown only on its contributing side. The dashed boundary marks '
-                               'the novel adjacency; matching parental residues remain neutral. Full parental proteins '
+                acceptor_label = (panel['acceptor'] + ' (' + panel['acceptor_annotation'] + ')' if panel['acceptor'] else
+                                  'ambiguous (transcript ID occurs in multiple annotations)' if panel['acceptor_status'] == 'ambiguous' else
+                                  'unavailable (no supported coding acceptor model)')
+                if panel['acceptor_in_frame'] is False:
+                    acceptor_label += ' (shifted reading frame)'
+                story.append(p('REF D: ' + escape(panel['donor'] + ' (' + panel['donor_annotation'] + ')') + '; REF A: ' +
+                               escape(acceptor_label) +
+                               '. Each available parental protein is shown only on its contributing side. Dashed boundaries mark '
+                               'the novel adjacency or inserted interval; matching parental residues remain neutral. Available parental proteins '
                                'and the complete candidate are in the companion FASTA.', 'Small'))
+                if panel['acceptor_in_frame'] is False:
+                    story.append(p('Reference rows follow source codons; a split reference codon can span two '
+                                   'columns when the reading frames differ.', 'Small'))
                 for start in range(0, len(protein), 80):
                     story.append(FusionSequencePanel(protein[start:start + 80], panel['parents'],
-                                                     panel['depth'], panel['junction'], start))
+                                                     panel['depth'], panel['junction'], start,
+                                                     acceptor_in_frame=panel['acceptor_in_frame']))
                     story.append(Spacer(1, 7))
         elif family == 'sv_audits':
             story.extend([PageBreak(), heading])
@@ -585,6 +633,7 @@ def write_cohort_reports(manifest, summary, output):
                                   leading=leading, textColor=colors.HexColor(INK), spaceAfter=7))
     styles["Title"].textColor = colors.HexColor(INK)
     styles["Heading2"].textColor = colors.HexColor(TEAL)
+    styles["Heading2"].keepWithNext = True
 
     def p(text, style="Body"):
         return Paragraph(str(text), styles["Cohort" + style])
@@ -781,19 +830,21 @@ def write_cohort_reports(manifest, summary, output):
                         "translation of this sample's mutant sequence. No unobserved RNA sequence is filled from reference."),
                       p("Every call, alternative, error, original support identity, input hash and parameter is retained "
                         "in the companion source exports and receipts. Reproduce with the same cohort manifest; "
-                        "use --render-only to regenerate figures and PDFs from verified results."),
-                      Paragraph("Source provenance", styles["Heading2"])])
-        for source in sources:
-            story.extend([p("<b>" + escape(source.get("label", source["source_id"])) + "</b>", "Small"),
-                          p(escape(json.dumps(source["provenance"], sort_keys=True)), "Small")])
+                        "use --render-only to regenerate figures and PDFs from verified results.")])
+        for index, source in enumerate(sources):
+            block = [p("<b>" + escape(source.get("label", source["source_id"])) + "</b>", "Small"),
+                     p(escape(json.dumps(source["provenance"], sort_keys=True)), "Small")]
+            if index == 0:
+                block.insert(0, Paragraph("Source provenance", styles["Heading2"]))
+            story.append(KeepTogether(block))
         input_keys = set()
         for result in results:
             input_keys.update(result.get('identity', {}).get('inputs', {}))
         for entry in summary.get('additional', []):
-            if entry['task'].get('sample_id') == sample_id:
-                for key in ('input', 'original_fixture', 'manifest', 'locus_annotations'):
-                    if entry['task'].get(key):
-                        input_keys.add(entry['task'][key])
+            if entry['task'].get('sample_id') == sample_id and entry['status'] == 'recorded':
+                input_keys.update(entry['identity']['inputs'])
+                if entry['task'].get('locus_annotations'):
+                    input_keys.add(entry['task']['locus_annotations'])
         if input_keys:
             story.append(Paragraph('Reference and analysis inputs', styles['Heading2']))
             story.append(p('SHA-256 prefixes identify the pinned files. Full digests, original source records '
