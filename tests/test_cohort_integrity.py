@@ -157,6 +157,27 @@ def test_additional_resume_presentation_and_input_sample_validation(tmp_path):
         run_cohort(path, tmp_path / "new-output", render=False)
 
 
+def test_explicit_input_sample_mapping_preserves_original_evidence_ids(tmp_path):
+    manifest = fusion_manifest(tmp_path)
+    manifest["samples"][0]["sample_id"] = manifest["sources"][0]["sample_id"] = "patient-group"
+    manifest["fusions"][0]["sample_id"] = "patient-group"
+    manifest["sources"][0]["input_sample_id"] = "sample"
+    path, output = tmp_path / "manifest.json", tmp_path / "out"
+    write_json(path, manifest)
+    run_cohort(path, output, render=False)
+    result = read_json(output / "fusions/fusion/result.json.gz")
+    assert result["sample_id"] == "sample"
+    assert {r["sample_id"] for r in result["evidence"]["observations"]} == {"sample"}
+    manifest["sources"][0]["input_sample_id"] = "another-specimen"
+    write_json(path, manifest)
+    with pytest.raises(ValueError, match="analysis identity differs"):
+        run_cohort(path, output, render_only=True, render=False)
+    manifest["sources"][0]["input_sample_id"] = ""
+    write_json(path, manifest)
+    with pytest.raises(ValueError, match="nonempty string"):
+        run_cohort(path, output, render_only=True, render=False)
+
+
 def test_additional_tasks_require_sample_in_api_and_cli(tmp_path):
     manifest = fusion_manifest(tmp_path)
     del manifest["fusions"][0]["sample_id"]

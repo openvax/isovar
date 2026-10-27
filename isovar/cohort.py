@@ -417,6 +417,8 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
             raise ValueError("Source IDs must be single path components")
         if source["sample_id"] not in sample_ids:
             raise ValueError("Source refers to an undeclared sample: " + key)
+        if "input_sample_id" in source and (not isinstance(source["input_sample_id"], str) or not source["input_sample_id"].strip()):
+            raise ValueError("Source input_sample_id must be a nonempty string")
     for sample in manifest["samples"]:
         for source_id in sample.get("source_ids", []):
             if source_id not in sources or sources[source_id]["sample_id"] != sample["sample_id"]:
@@ -494,7 +496,7 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
                     from .fusion import fusion_from_dict, reconstruct_fusion
 
                     fusion, references, reads = fusion_from_dict(read_json(files[task["input"]]))
-                    if fusion.provenance["sample_id"] != source["sample_id"]:
+                    if fusion.provenance["sample_id"] != source.get("input_sample_id", source["sample_id"]):
                         raise ValueError("Supplied fusion and cohort source refer to different samples")
                     result = reconstruct_fusion(fusion, references, reads, **task.get("parameters", {}))
                     write_json(target, result)

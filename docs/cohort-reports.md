@@ -145,7 +145,14 @@ A source may have `unavailable_reason`. `pending_inputs` rows use `sample_id`,
 `source`, and `state`; the report identifies these gaps rather than treating
 missing data as negative evidence.
 An additional task's `sample_id` is required and must match its source. Supplied
-fusion provenance must also name that sample; a conflicting input is rejected.
+fusion provenance must match the source's declared input sample; a conflicting
+input is rejected.
+If the report groups specimens under a patient or cell-line label, set the
+source's `input_sample_id` explicitly to the supplied fusion's original sample
+ID (for example `sample_id: "Sid"`, `input_sample_id: "T1"`). The mapping is part
+of the recorded identity. It does not rename original RNA witnesses or combine
+different libraries; changing it invalidates result reuse. Without this field,
+the fusion sample must equal the source's `sample_id`.
 
 ## Evidence and outputs
 
