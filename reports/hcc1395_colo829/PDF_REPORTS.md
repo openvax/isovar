@@ -8,7 +8,8 @@ alignments. The PDFs have bookmarks for the cohort evidence and deep dive.
 Standalone deep dives:
 
 - [COLO829 CDKN2A](focused_proteins/COLO829_CDKN2A_frameshift.pdf): 5,248
-  fragments for the reported 24-aa window, the full reference protein for
+  contributors; 1,027 exact spans on the selected nucleotide path, including
+  996 single-read observations and 31 merged paired templates. Full reference protein for
   orientation, highlighted mutant tail and an assembly/reference track.
 - [HCC1395 EIF3K-CYP39A1](focused_proteins/HCC1395_EIF3K_CYP39A1_fusion.pdf):
   531-aa coding candidate, both parent references, junction zoom, exact

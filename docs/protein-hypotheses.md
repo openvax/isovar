@@ -114,7 +114,7 @@ Each **protein hypothesis** has:
 |---|---|
 | `hypothesis_id`, `isovar_rank` | A stable ID and the position in Isovar's ranking. The ranking is a policy, not a selection |
 | `amino_acids`, `protein_sequence_id` | The protein, and an ID shared by every hypothesis with the same sequence |
-| `mutation_interval`, `mutant_amino_acids` | Where the change is in the protein; a deletion has an empty interval |
+| `mutation_interval`, `mutant_amino_acids` | Codons marked by the focal nucleotide edit; they can encode reference-identical residues. A codon-aligned deletion has an empty interval |
 | `n_terminus` | `annotated_start_codon` when translation begins at the annotated start, `local_window` when the protein is only the translated window around the variant, `mixed` when its translations differ |
 | `c_terminus` | `stop_codon`, or `no_stop_in_context` when coverage or the requested length ended first |
 | `representative`, `covered_by` | Whether no other hypothesis contains this one. `covered_by` lists the longer hypotheses it is an exact window of, with its interval in each |
@@ -183,6 +183,55 @@ With `--cell-umi-labels` (Python: `cell_umi_alignment_file=`), the `umis` and
 counts are not molecule counts, abundance or TPM. The
 `read_groups` table gives each read group's sample, library and platform from
 the BAM header, or null when unknown.
+
+## Coding coverage and sequence comparisons
+
+The existing `rna_support` and `ProteinSequence.num_supporting_fragments` count
+**contributors**. A contributor need not span the coding window. Each
+translation's `coding_support` measures the exact `coding_interval` on that
+nucleotide path, including an observed stop codon:
+
+| Field | Measurement |
+|---|---|
+| `fragment_depth`, `minimum_fragment_depth`, `fully_tiled` | Distinct exact original fragments at each coding base; tiling does not require one spanning observation |
+| `allele_observation_span_support` | Exact full-interval observations, possibly made from overlapping merged mates |
+| `single_read_span_support` | Spanning observations made from one original read; conservatively excludes merged observations, without recounting their constituent mates |
+| `paired_template_span_support` | Spanning observations made from two overlapping mates; unsequenced inserts never supply bases |
+
+Each support record has scoped witness IDs. Subsets can share a fragment and
+are **not additive**. Counts on different nucleotide paths must not be added
+to claim support for one assembly. A complete coding candidate additionally
+needs the annotated start and observed stop; local window coverage alone does
+not establish complete-sequence support or translation.
+
+`reference_comparison` retains two independent comparisons:
+
+- `annotation_comparison`: observed protein versus the matched annotation frame;
+- `focal_allele_comparison`: observed protein versus replacing only the focal
+  allele on the same observed RNA background.
+
+Both return `status` (`reference_identical`, `amino_acid_divergent`, or
+`unresolved`), zero-based substitution/insertion/deletion positions,
+`changed_residue_count`, unknown alignment columns, and `stop_changed`.
+The residue count includes substitutions, inserted residues and deleted
+reference residues. A premature or shifted stop is tracked separately.
+Unavailable reference residues leave the count null, even when another
+verified difference establishes divergence. An unavailable comparator codon
+cannot establish a stop gain. Comparisons are anchored to the nucleotide
+edit, not a similarity alignment of repeated amino acids.
+
+A synonymous focal allele can coexist with a changed RNA background. It is
+then reference-divergent but not a focal changed protein; unrelated residues
+remain `unexplained` unless supplied genotypes and exact edit replay establish
+their origin. The marked `mutation_interval` remains available independently
+of these comparisons.
+
+Report classification requires compatible models to agree. Conflicting or
+missing comparisons remain unresolved. One path is selected for display by
+focal change, exact span support, minimum depth and stable identity. Its
+`translation_id` and interval identify precisely which coverage is displayed;
+the full export retains every alternative. TSV rows expose these comparisons
+and contributor, span, paired-template and single-read counts separately.
 
 ## What the export does not do
 

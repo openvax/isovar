@@ -16,6 +16,8 @@ from reportlab.platypus import (
 
 from .sv_rna_audit import file_sha256, read_json, write_json
 from .rna_evidence import content_identifier
+from .protein_window_comparison import aligned_protein_columns as aligned_columns
+from .protein_reporting import best_supported_translation, protein_comparison_status
 
 
 INK = "#223743"
@@ -30,13 +32,6 @@ PALE = "#edf4f4"
 def _counts(row):
     event = row["protein_hypotheses"]["events"][0]
     return event, event["allele_support"]["alt"]["fragments"]
-
-
-def _best_translation(protein):
-    return max(protein["translations"], key=lambda t: (
-        t["reference_comparison"]["focal_amino_acid_change"],
-        t["coding_support"]["allele_observation_span_support"]["fragments"],
-        t["coding_support"]["minimum_fragment_depth"], t["translation_id"]))
 
 
 def _collect(result, highlights=()):
@@ -64,8 +59,11 @@ def _collect(result, highlights=()):
             proteins = event["protein_hypotheses"]
             counts["protein"] += bool(proteins)
             counts["exon"] += row["exon_overlap"]
-            changed = [p for p in proteins if any(t["reference_comparison"]["focal_amino_acid_change"]
-                                                for t in p["translations"])]
+            changed = [p for p in proteins if protein_comparison_status(p, focal=True) == "amino_acid_divergent"]
+            context_states = Counter(protein_comparison_status(p) for p in proteins)
+            for state, count in context_states.items():
+                counts[state + "_contexts"] += count
+                counts[state + "_calls"] += bool(count)
             counts["origin_conflicts"] += bool(row["nomination"].get("origin_conflict"))
             counts["changed_protein"] += bool(changed) and not row["nomination"].get("origin_conflict", False)
             eligible = not row["nomination"].get("origin_conflict", False)
@@ -90,8 +88,11 @@ def _collect(result, highlights=()):
             chosen = next(iter(changed), proteins[0] if proteins else None)
             compact_proteins = []
             if chosen:
-                best = _best_translation(chosen)
-                compact_proteins = [dict(chosen, translations=[best])]
+                best = best_supported_translation(chosen)
+                compact_proteins = [dict(chosen, translations=[best],
+                    model_comparison_status=protein_comparison_status(chosen),
+                    model_focal_comparison_status=protein_comparison_status(chosen, focal=True),
+                    model_translation_count=len(chosen["translations"]))]
             displayed = dict(row, protein_hypotheses=dict(events=[dict(
                 event, protein_hypotheses=compact_proteins)]), nc_orfs={})
             v = row['nomination']
@@ -179,41 +180,6 @@ def _category_landscape(result, categories, depths, directory):
     for ext in ("png", "svg", "pdf"):
         fig.savefig(str(prefix) + "." + ext, dpi=180, facecolor="white")
     return Path(str(prefix) + ".png")
-
-def aligned_columns(reference, protein, interval, *, allele_length_delta=0, frameshift=False,
-                    stop=False, reference_stop=False):
-    """Display codon-anchored differences without re-aligning a frameshift tail.
-
-    In-frame focal gaps come from the declared allele length and translated
-    mutation interval. This preserves the nucleotide anchor in repeats.
-    """
-    begin, end = interval
-    delta = allele_length_delta // 3 if not frameshift and allele_length_delta % 3 == 0 else 0
-    reference_length = len(reference)
-    reference = reference[:len(protein) + max(delta, 0)]
-    columns = []
-
-    def add(r, q, deletion=False):
-        columns.append(dict(reference=reference[r] if r is not None and r < len(reference) else "-",
-                            protein=protein[q] if q is not None and q < len(protein) else "-",
-                            position=q, reference_position=r, focal_deletion=deletion))
-
-    for i in range(min(begin, len(protein))):
-        add(i, i)
-    reference_end = max(begin, end + delta)
-    for i in range(max(reference_end - begin, end - begin)):
-        r = begin + i if begin + i < reference_end else None
-        q = begin + i if begin + i < end else None
-        add(r, q, deletion=q is None and r is not None)
-    for q in range(max(begin, end), len(protein)):
-        add(q + delta, q)
-    if stop:
-        r = len(protein) + delta
-        columns.append(dict(reference="*" if reference_stop and r == reference_length else
-                            reference[r] if r < len(reference) else "-", protein="*",
-                            position=len(protein), reference_position=r, focal_deletion=False))
-    return columns
-
 
 class SequencePanel(Flowable):
     """Aligned residues, explicit focal gaps and exact original-RNA depth."""
@@ -712,6 +678,13 @@ def write_cohort_reports(manifest, summary, output):
                                 [(r["source_id"] + " / " + r["pass_id"], c["alt20"],
                                   c["changed_protein_span20"], c["changed_protein_single20"], c["changed_nc_span20"])
                                  for r, c, _, _, _ in analyses], (170, 55, 95, 95, 95))])
+            story.extend([p("<b>Reference comparisons of retained protein contexts.</b> A context with "
+                            "conflicting or unavailable reference comparisons remains unresolved. "
+                            "Reference divergence and a focal-allele change are separate measurements."),
+                          table(("Source / pass", "Reference-identical", "Divergent", "Unresolved"),
+                                [(r["source_id"] + " / " + r["pass_id"], c["reference_identical_contexts"],
+                                  c["amino_acid_divergent_contexts"], c["unresolved_contexts"])
+                                 for r, c, _, _, _ in analyses], (210, 100, 100, 100))])
         for analysis_index, (result, counts, categories, depths, examples) in enumerate(analyses):
             if analysis_index and counts['processed'] > 1:
                 story.append(PageBreak())
@@ -758,6 +731,7 @@ def write_cohort_reports(manifest, summary, output):
                     comparison = {}
                     if nc_candidate is not None:
                         candidate = nc_candidate
+                        comparison = candidate
                         protein, interval = candidate["protein_sequence"], candidate["mutation_interval"]
                         reference, stop = candidate["reference_protein_window"], candidate["ends_with_stop_codon"]
                         coverage = candidate["coding_support"]
@@ -773,9 +747,9 @@ def write_cohort_reports(manifest, summary, output):
                             f"; {len(evidence.get('peptides', []))} imported peptide evidence records. "
                             "These support the reference ORF in other experiments; mutant translation is untested.", "Small"))
                     elif proteins:
-                        candidate = next((x for x in proteins if any(
-                            t["reference_comparison"]["focal_amino_acid_change"] for t in x["translations"])), proteins[0])
-                        translation = _best_translation(candidate)
+                        candidate = next((x for x in proteins if
+                            protein_comparison_status(x, focal=True) == "amino_acid_divergent"), proteins[0])
+                        translation = best_supported_translation(candidate)
                         protein, interval = candidate["amino_acids"], candidate["mutation_interval"]
                         coverage = translation["coding_support"]
                         comparison = translation["reference_comparison"]
@@ -784,6 +758,13 @@ def write_cohort_reports(manifest, summary, output):
                         contributors = candidate["rna_support"]["fragments"]
                         intro.append(p(escape(", ".join(candidate["transcript_ids"])) + " | " +
                                        escape(candidate["n_terminus"] + "; " + candidate["c_terminus"]), "Small"))
+                        if "model_translation_count" in candidate:
+                            intro.append(p(f"Across {candidate['model_translation_count']} retained translation models: "
+                                "annotation comparison " + escape(candidate["model_comparison_status"]) +
+                                "; focal comparison " + escape(candidate["model_focal_comparison_status"]) + ".", "Small"))
+                        if candidate.get("model_focal_comparison_status") == "unresolved":
+                            intro.append(p("The focal comparison across retained reference models is unresolved; "
+                                           "this alignment shows one path, not a resolved model choice.", "Small"))
                     else:
                         intro.append(p(("RNA ALT is observed" if alt else "No RNA ALT support was observed under these settings") +
                                        "; no protein sequence was reconstructed. "
@@ -800,6 +781,10 @@ def write_cohort_reports(manifest, summary, output):
                     intro.append(p(f"{len(protein)} aa; {contributors:,} context contributors; "
                                    f"{spans:,} exact spans for the displayed nucleotide path, "
                                    f"including {single:,} single-original-read spans.", "Small"))
+                    paired = coverage.get("paired_template_span_support")
+                    if paired is not None:
+                        intro.append(p(f"{paired['fragments']:,} merged paired-template spans; "
+                                       "these count observed mate sequence, not the unsequenced insert.", "Small"))
                     if nc_candidate is not None:
                         v = row["nomination"]
                         delta = len(v["ref"]) - len(v["alt"])
@@ -812,8 +797,10 @@ def write_cohort_reports(manifest, summary, output):
                                                      coverage["fragment_depth"],
                                                      origins=comparison.get("amino_acid_origins"))
                                        for start in range(0, len(columns), 80)]
-                    if comparison and not comparison["focal_amino_acid_change"]:
+                    if comparison and comparison["focal_amino_acid_change"] is False:
                         intro.append(p("The focal allele does not change this displayed amino-acid context.", "Small"))
+                    elif comparison and comparison["focal_amino_acid_change"] is None:
+                        intro.append(p("The focal amino-acid comparison remains unresolved.", "Small"))
                     story.append(KeepTogether(intro + sequence_panels[:1]))
                     for panel in sequence_panels[1:]:
                         story.append(panel)

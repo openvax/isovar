@@ -58,15 +58,18 @@ def test_nested_counts_and_top_context_aa_denominators():
     }
     proteins = [
         dict(call_id="s", rank="1", protein_sequence="ABCDEFGHIJK",
-             mutation_start_idx="5", mutation_end_idx="6"),
+             mutation_start_idx="5", mutation_end_idx="6", comparison_status="amino_acid_divergent",
+             focal_comparison_status="amino_acid_divergent", changed_residue_count=1),
         dict(call_id="d", rank="1", protein_sequence="ABCDEFGHIJK",
-             mutation_start_idx="5", mutation_end_idx="5"),
+             mutation_start_idx="5", mutation_end_idx="5", comparison_status="amino_acid_divergent",
+             focal_comparison_status="amino_acid_divergent", changed_residue_count=1),
     ]
     result = summarize(calls, annotations, proteins)
     assert [result["counts"][key] for key in (
         "total", "exonic", "exonic_alt", "exonic_product", "frameshift",
         "frameshift_alt")] == [4, 2, 2, 2, 1, 1]
-    assert result["aa_counts"] == [1, 0, None]
+    assert result["aa_counts"] == [1, 1, None]
+    assert result["marked_aa_counts"] == [1, 0, None]
     assert result["reads_by_class"] == {"SNV": [2, 0], "deletion": [3], "insertion": [1]}
     assert result["exonic_reads_by_class"] == {"SNV": [2], "deletion": [3]}
     pytest.importorskip("reportlab")
@@ -74,7 +77,7 @@ def test_nested_counts_and_top_context_aa_denominators():
         EvidenceFunnel, ProteinComparison, altered_aa_figures, read_support_figures,
     )
 
-    assert [n for _, n in EvidenceFunnel(result["counts"]).stages] == [4, 2, 2, 2]
+    assert [n for _, n in EvidenceFunnel(result["counts"]).stages] == [4, 2, 2, 2, 2]
     assert [n for _, n in EvidenceFunnel(stages=(("SV", 3), ("exonic", 2))).stages] == [3, 2]
     with pytest.raises(ValueError, match="nested counts"):
         EvidenceFunnel(stages=(("SV", 2), ("exonic", 3)))
@@ -88,7 +91,7 @@ def test_nested_counts_and_top_context_aa_denominators():
     assert exonic_figures[0].values["0"] == (0, 0)
     assert "0" not in exonic_figures[1].bins
     aa_figures = altered_aa_figures(result["aa_counts"])
-    assert aa_figures[0].values["1"] == 1
+    assert aa_figures[0].values["1"] == 2
     assert "1" not in aa_figures[1].bins
     with pytest.raises(ValueError, match="Exon overlap"):
         summarize(calls, {**annotations, "s": {}}, proteins)
@@ -124,7 +127,8 @@ def test_unresolved_chromosomes_keep_unmeasured_counts_and_do_not_enter_depth_bi
     variants = [Variant(name, 100 + i, "A", "G", genome, convert_ucsc_contig_names=True)
                 for i, name in enumerate(("chr1", "1", "2"))]
     with pysam.AlignmentFile(path) as bam:
-        calls, annotations, proteins = collect(variants, bam, ReadCollector(), ProteinSequenceCreator())
+        calls, annotations, proteins = collect(variants, bam, ReadCollector(), ProteinSequenceCreator(),
+                                               sample_id="fixture", source="empty.bam")
     assert [c["rna_status"] for c in calls] == ["no_alignment_overlap", "unresolved_chromosome",
                                                "unresolved_chromosome"]
     assert [c["contig_resolution"]["status"] for c in calls[1:]] == ["ambiguous", "missing"]
@@ -162,4 +166,22 @@ def test_vcf_bam_command_writes_per_call_and_visual_pdf(tmp_path):
     assert "Variant-to-RNA funnel" in content
     assert "ALT reads per variant: positive support only" in content
     assert "ALT reads per exon-involved variant: all records" in content
-    assert "Marked AA positions: excluding one-AA calls" in content
+    assert "Verified residue differences: excluding one-residue calls" in content
+    import json
+    receipt = json.loads(output.with_suffix('.json').read_text())
+    assert receipt['schema'] == 'isovar.evidence_report.v1'
+    native = receipt['calls'][0]['protein_hypotheses']
+    assert native['sample_id'] == 'fixture'
+    assert native['events'][0]['allele_support']['alt']['reads'] == 2
+    assert 'evidence_sets' in native
+
+
+def test_report_rejects_output_collisions_before_loading_inputs(tmp_path, capsys):
+    from isovar.cli.isovar_evidence_report import run
+    source = tmp_path / "source.vcf"
+    source.write_text("preserved input")
+    with pytest.raises(SystemExit):
+        run(["--vcf", str(source), "--bam", "unopened.bam", "--sample-id", "s",
+             "--output", str(tmp_path / "report.pdf"), "--evidence-json", str(source)])
+    assert source.read_text() == "preserved input"
+    assert "must not overwrite input files" in capsys.readouterr().err

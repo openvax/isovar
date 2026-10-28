@@ -1,10 +1,29 @@
 """Original RNA coverage of an explicitly positioned coding interval."""
 
+from collections.abc import Callable, Hashable, Iterable, Sequence
+from typing import TypedDict
+
+from .allele_read import AlleleRead
 from .dna import reverse_complement_dna
 from .read_identity import fragment_ids
+from .rna_evidence import RNASupport
 
 
-def coding_interval_support(reads, sequence, variant_start, interval, strand, support):
+class CodingIntervalSupport(TypedDict):
+    scope: str
+    coding_interval: list[int]
+    fragment_depth: list[int]
+    minimum_fragment_depth: int
+    fully_tiled: bool
+    allele_observation_span_support: RNASupport
+    single_read_span_support: RNASupport
+    paired_template_span_support: RNASupport
+
+
+def coding_interval_support(
+        reads: Iterable[AlleleRead], sequence: str, variant_start: int,
+        interval: Sequence[int], strand: str,
+        support: Callable[[list[AlleleRead]], RNASupport]) -> CodingIntervalSupport:
     """Measure exact allele-anchored coverage without counting partial contributors as spans.
 
     Parameters
@@ -26,8 +45,10 @@ def coding_interval_support(reads, sequence, variant_start, interval, strand, su
     -------
     dict
         Per-base fragment depth, exact full-interval allele-observation support
-        and the subset supported by a single original read. Merged mates are
-        allowed only in the allele-observation metric. Different placements
+        and its single-read and merged paired-template subsets. The latter
+        counts observations made from two overlapping mates, not unsequenced
+        inserts. Single-read spans exclude merged observations; they do not
+        recount the original mates hidden within a merged consensus. Different placements
         and overlapping observations of a fragment count once at each base.
     """
     start, end = interval
@@ -35,8 +56,8 @@ def coding_interval_support(reads, sequence, variant_start, interval, strand, su
         raise ValueError("Invalid coding interval or strand")
     if not 0 <= variant_start <= len(sequence):
         raise ValueError("Invalid focal allele offset")
-    covered = [set() for _ in range(end - start)]
-    spanning, single = [], []
+    covered: list[set[Hashable]] = [set() for _ in range(end - start)]
+    spanning, single, paired = [], [], []
     for read in reads:
         observed = read.sequence
         allele_start = len(read.prefix)
@@ -54,6 +75,8 @@ def coding_interval_support(reads, sequence, variant_start, interval, strand, su
             spanning.append(read)
             if read.source_read_count == 1:
                 single.append(read)
+            elif read.source_read_count == 2:
+                paired.append(read)
     depths = [len(ids) for ids in covered]
     return dict(
         scope="exact_observed_coding_interval",
@@ -61,4 +84,5 @@ def coding_interval_support(reads, sequence, variant_start, interval, strand, su
         minimum_fragment_depth=min(depths) if depths else 0,
         fully_tiled=bool(depths) and all(depths),
         allele_observation_span_support=support(spanning),
-        single_read_span_support=support(single))
+        single_read_span_support=support(single),
+        paired_template_span_support=support(paired))

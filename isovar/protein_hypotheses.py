@@ -362,6 +362,11 @@ _TSV_COLUMNS = (
     "protein_evidence_set_id", "translation_id", "nucleotide_sequence", "translated_start",
     "translated_end", "starts_at_annotated_start_codon", "context_transcript_ids",
     *("translation_" + column for column in SUPPORT_COLUMNS), "translation_evidence_set_id",
+    "annotation_comparison_status", "focal_comparison_status", "changed_residue_count",
+    "focal_changed_residue_count", "annotation_stop_changed", "coding_sequence_extent",
+    "coding_window_fragments", "coding_window_evidence_set_id", "single_read_span_fragments",
+    "single_read_span_evidence_set_id", "paired_template_span_fragments", "paired_template_span_evidence_set_id",
+    "minimum_coding_fragment_depth", "coding_fully_tiled",
     "protein_hypotheses_complete")
 
 
@@ -373,6 +378,11 @@ def _tsv_rows(export):
     for event in export["events"]:
         for protein in event["protein_hypotheses"]:
             for translation in protein["translations"]:
+                comparison = translation["reference_comparison"]
+                annotation = comparison.get("annotation_comparison", {})
+                focal = comparison.get("focal_allele_comparison", {})
+                coverage = translation["coding_support"]
+                paired = coverage.get("paired_template_span_support", {})
                 row = dict(
                     schema=export["schema"], sample_id=export["sample_id"], source=export["source"],
                     event_id=event["event_id"], variant=event["variant"]["description"],
@@ -393,6 +403,22 @@ def _tsv_rows(export):
                     context_transcript_ids=";".join(translation["reference_context"]["transcript_ids"]),
                     **support_columns(translation["rna_support"], "translation_"),
                     translation_evidence_set_id=translation["rna_support"]["evidence_set_id"] or "",
+                    annotation_comparison_status=annotation.get("status", "unresolved"),
+                    focal_comparison_status=focal.get("status", "unresolved"),
+                    changed_residue_count=annotation.get("changed_residue_count"),
+                    focal_changed_residue_count=focal.get("changed_residue_count"),
+                    annotation_stop_changed=annotation.get("stop_changed"),
+                    coding_sequence_extent="complete_coding_candidate"
+                        if translation["starts_at_annotated_start_codon"] and protein["ends_with_stop_codon"]
+                        else "partial_coding_candidate",
+                    coding_window_fragments=coverage["allele_observation_span_support"]["fragments"],
+                    coding_window_evidence_set_id=coverage["allele_observation_span_support"]["evidence_set_id"],
+                    single_read_span_fragments=coverage["single_read_span_support"]["fragments"],
+                    single_read_span_evidence_set_id=coverage["single_read_span_support"]["evidence_set_id"],
+                    paired_template_span_fragments=paired.get("fragments"),
+                    paired_template_span_evidence_set_id=paired.get("evidence_set_id"),
+                    minimum_coding_fragment_depth=coverage["minimum_fragment_depth"],
+                    coding_fully_tiled=coverage["fully_tiled"],
                     protein_hypotheses_complete=("" if event["protein_hypotheses_complete"] is None
                                                  else event["protein_hypotheses_complete"]))
 
