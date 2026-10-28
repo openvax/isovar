@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 
 
 COMMANDS = {
+    "proteome": ("isovar_proteome", "Adapt recorded RNA hypotheses to an ORFdata Proteome and FASTA"),
     "cohort": ("isovar_cohort", "Reanalyze source-separated RNA libraries and render cohort PDF reports"),
     "calibrate-phasing": ("isovar_calibrate_phasing", "Calibrate phasing error bounds from truth-labeled control BAMs"),
     "viral": ("isovar_viral", "Recover observed viral RNA from combined-reference alignments without a GTF"),

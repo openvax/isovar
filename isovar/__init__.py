@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.62.2"
+__version__ = "1.63.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -25,6 +25,7 @@ from .mutant_transcript_source import IsovarMutantTranscript
 from .phase_group import PhaseGroup
 from .protein_hypotheses import export_protein_hypotheses, read_group_metadata, write_protein_hypotheses
 from .proteome import from_protein_hypotheses, to_proteome
+from .rna_proteome import from_rna_result
 from .cell_reconstruction import reconstruct_cell_groups
 from .protein_sequence import ProteinSequence
 from .protein_sequence_creator import ProteinSequenceCreator
@@ -89,6 +90,7 @@ __all__ = [
     "export_protein_hypotheses",
     "from_protein_hypotheses",
     "to_proteome",
+    "from_rna_result",
     "write_protein_hypotheses",
     "read_group_metadata",
     "union_rna_support",

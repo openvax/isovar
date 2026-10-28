@@ -37,7 +37,7 @@ def test_subcommand_help_uses_correct_program_and_preserves_parser(name, capsys)
     help_text = capsys.readouterr().out
     assert help_text.startswith("usage: isovar " + name + " ")
     expected_input = ("--manifest" if name in {"calibrate-phasing", "sv-audit", "cohort"} else "--genome-fasta" if name == "viral" else "reconstruct" if name == "isoforms" else "--gene" if name == "uorf-evidence" else "import-sid" if name == "audit-bundle" else "--sample-id" if name == "antigen-report"
-                      else "--input" if name in JSON_COMMANDS else "--vcf")
+                      else "--input" if name in JSON_COMMANDS | {"proteome"} else "--vcf")
     assert expected_input in help_text
     if original is not None:
         assert handler.parser.prog == original
