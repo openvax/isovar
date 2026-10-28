@@ -206,6 +206,13 @@ def test_empty_and_scoped_export_is_stable_without_mutating_input():
         export(value, baseline='normal')
 
 
+def test_conflicting_supplied_origins_across_results_fail_explicitly():
+    first = result()
+    second = result(known=KnownVariants(somatic=[FOCAL], germline=[CO_SOMATIC]))
+    with pytest.raises(ValueError, match='Conflicting supplied variant origins'):
+        export_patient_background_pairs([first, second], sample_id='patient', source='RNA')
+
+
 def test_cli_uses_same_export_and_rejects_input_overwrite(tmp_path, monkeypatch, capsys):
     from isovar.cli import isovar_patient_background_pairs as cli
     value = result()

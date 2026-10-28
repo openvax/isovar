@@ -176,7 +176,11 @@ def export_patient_background_pairs(isovar_results, *, sample_id, source, baseli
             if known is not None:
                 for origin in ('somatic', 'germline'):
                     for variant in getattr(known, origin):
-                        supplied_variants[_event_id(variant)] = dict(origin=origin, variant=_variant(variant))
+                        key = _event_id(variant)
+                        entry = dict(origin=origin, variant=_variant(variant))
+                        if key in supplied_variants and supplied_variants[key] != entry:
+                            raise ValueError('Conflicting supplied variant origins across RNA results')
+                        supplied_variants[key] = entry
             for translation in protein.translations:
                 for transcript in sorted(translation.reference_context.transcripts, key=lambda t: t.id):
                     pair = _pair(translation, transcript, protein.known_variants, result, evidence, baseline)
