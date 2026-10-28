@@ -238,6 +238,7 @@ def test_coordinate_table_is_released_after_errors_and_success_on_the_same_colle
             return locus_read
 
     collector = FailingCollector(merge_overlapping_fragments=False)
+    initial_state = vars(collector).copy()
     with pytest.raises(ValueError, match="conversion failure"):
         collector.get_locus_reads(repeated_reads(), "1", 10005, 10006)
     assert len(converted) == 1
@@ -248,7 +249,7 @@ def test_coordinate_table_is_released_after_errors_and_success_on_the_same_colle
     assert len(later) == 3
     assert_no_coordinate_table_survives(later, holders=3)
     assert all(a is not b for a, b in zip(later[0].reference_positions, converted[0].reference_positions))
-    assert collector.__dict__ == FailingCollector(merge_overlapping_fragments=False).__dict__
+    assert vars(collector) == initial_state
 
 
 def test_public_evidence_path_still_calls_each_existing_subclass_hook():
