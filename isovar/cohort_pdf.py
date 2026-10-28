@@ -842,7 +842,8 @@ def write_cohort_reports(manifest, summary, output):
                     [(row['source_id'] + '\n' + row['specimen_id'] + '\n' + row['library_id'],
                       row['caller'] + '\n' + row['evidence_kind'],
                       row['policy']['genotype_quality_field'] + ' >= ' + str(row['policy']['minimum_genotype_quality']) +
-                      '; DP or block MIN_DP >= ' + str(row['policy']['minimum_depth']) +
+                      '; DP / indel ' + row['policy'].get('indel_depth_field', 'DP') +
+                      ' / block MIN_DP >= ' + str(row['policy']['minimum_depth']) +
                       ('; unfiltered accepted' if row['policy']['allow_unfiltered'] else '; PASS required'))
                      for row in selected], (230, 130, 150)))
             excluded = Counter(row['selection_reason'] for row in scope['source_inventory'] if not row['selected'])

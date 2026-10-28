@@ -90,7 +90,10 @@ for every allele. Processing copies never vote or count as independent specimens
 
 The default analysis policy requires PASS record/sample filters, a complete
 genotype, GQ >= 20 and DP >= 5. For callers such as Strelka, explicitly choose
-`genotype_quality_field: "GQX"`. Reference blocks require `MIN_DP`; average block
+`genotype_quality_field: "GQX"` and `indel_depth_field: "DPI"`. Strelka's DPI is
+depth at the position preceding an indel, not per-base interval coverage; it is
+used only for an explicitly declared indel-genotype gate. Reference blocks
+always require `MIN_DP`; average block
 DP is insufficient. Unfiltered `FILTER=.` is rejected unless
 `allow_unfiltered: true` is explicitly supplied. These thresholds are analysis
 choices, not universal biological cutoffs. Missing confidence fields remain
@@ -136,3 +139,5 @@ report README for the reproducible analysis and its actual limitations.
 
 Primary definitions: [VCF specification](https://samtools.github.io/hts-specs/VCFv4.3.pdf)
 and [GATK reference-confidence blocks](https://gatk.broadinstitute.org/hc/en-us/articles/360035531812-GVCF-Genomic-Variant-Call-Format).
+Strelka's caller-specific fields are documented by
+[Illumina](https://support.illumina.com/help/BaseSpace_App_WGS_v5_OLH_15050955_02/Content/Source/Informatics/Apps/VCFFileAnnotations_appENR_appISCWGS.htm).

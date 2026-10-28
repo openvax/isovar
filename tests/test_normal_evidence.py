@@ -108,6 +108,22 @@ def test_sample_filters_support_vcf_scalar_and_vector_fields(sample_filter, acce
     assert assess(row)["accepted"] is accepted
 
 
+def test_strelka_indel_depth_is_declared_and_does_not_replace_block_minimum():
+    row = record(genotype=(0, 1), start=104, stop=106, alleles=("AG", "A"), depth=None)
+    row.header.formats.add("DPI", 1, "Integer", "Depth at the position preceding the indel")
+    row.samples["normal.COLUMN"]["DPI"] = 12
+    target = Variant("1", 105, "AG", "A")
+    assert not assess_normal_record(row, "normal.COLUMN", target, POLICY)["accepted"]
+    policy = NormalEvidencePolicy(indel_depth_field="DPI")
+    result = assess_normal_record(row, "normal.COLUMN", target, policy)
+    assert result["accepted"] and result["target_allele_called"]
+    assert (result["depth_field"], result["depth"]) == ("DPI", 12)
+    block = record(minimum_depth=None)
+    block.header.formats.add("DPI", 1, "Integer", "Indel depth")
+    block.samples["normal.COLUMN"]["DPI"] = 100
+    assert not assess_normal_record(block, "normal.COLUMN", TARGET, policy)["accepted"]
+
+
 @pytest.mark.parametrize("value", [-1, True, 1.5, float("nan"), "20"])
 def test_thresholds_require_nonnegative_integers(value):
     with pytest.raises(ValueError, match="nonnegative integers"):

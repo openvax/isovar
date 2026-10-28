@@ -45,6 +45,12 @@ def test_acquisition_hashes_full_stream_and_sends_no_genomic_regions(tmp_path, m
     assert result['source']['acquired_regions'] == (('chr1', 103, 106),)
     acquisition.acquire(descriptor, variants, 1, output)
     assert len(requests) == 1
+    receipt_path = next(output.glob('*.acquisition.json.gz'))
+    digest = file_sha256(receipt_path)
+    new_policy = dict(descriptor, policy=dict(descriptor['policy'], minimum_depth=8))
+    reused = acquisition.acquire(new_policy, variants, 1, output)
+    assert reused['source']['policy']['minimum_depth'] == 8
+    assert len(requests) == 1 and file_sha256(receipt_path) == digest
     with pytest.raises(ValueError, match='scope changed'):
         acquisition.acquire(descriptor, variants, 2, output)
 

@@ -31,6 +31,7 @@ class NormalEvidencePolicy:
     minimum_genotype_quality: int = 20
     minimum_depth: int = 5
     genotype_quality_field: str = "GQ"
+    indel_depth_field: str = "DP"
     allow_unfiltered: bool = False
 
     def __post_init__(self) -> None:
@@ -41,6 +42,8 @@ class NormalEvidencePolicy:
             raise ValueError("allow_unfiltered must be a boolean")
         if self.genotype_quality_field not in ("GQ", "GQX"):
             raise ValueError("Normal genotype quality field must be GQ or GQX")
+        if self.indel_depth_field not in ("DP", "DPI"):
+            raise ValueError("Normal indel depth field must be DP or DPI")
 
 
 class NormalRecordEvidence(TypedDict):
@@ -111,7 +114,8 @@ def assess_normal_record(record: VariantRecord, sample_id: str, target: Variant,
     raw_quality = sample.get(policy.genotype_quality_field)
     quality = float(raw_quality) if isinstance(raw_quality, (int, float)) and isfinite(raw_quality) else None
     is_block = record.stop > record.start + len(record.ref)
-    depth_field = "MIN_DP" if is_block else "DP"
+    is_literal_indel = any(set(record.ref + alt) <= set("ACGT") and len(alt) != len(record.ref) for alt in alternates)
+    depth_field = "MIN_DP" if is_block else policy.indel_depth_field if is_literal_indel else "DP"
     raw_depth = sample.get(depth_field)
     depth = raw_depth if isinstance(raw_depth, int) else None
     reasons = []

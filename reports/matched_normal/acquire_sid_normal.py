@@ -64,19 +64,36 @@ def _hashed_vcf_stream(source):
             raise ValueError('Source size changed or download incomplete: ' + source['source_id'])
 
 
+def _acquisition_identity(source):
+    """Bind bytes and interval interpretation, independently of genotype policy."""
+    metadata = source['provenance']
+    return dict(source_id=source['source_id'], reference_name=source['reference_name'],
+                url=metadata['url'], source_size=metadata['source_size'], http_identity=metadata['http_identity'],
+                header_sha256=metadata.get('header_sha256'))
+
+
 def acquire(source, variants, flank, output):
     """Select record intervals with one resolver and one merged interval index."""
     destination = output / (source['source_id'] + '.vcf.gz')
     receipt_path = output / (source['source_id'] + '.acquisition.json.gz')
     if receipt_path.exists():
         result = read_json(receipt_path)
-        if (canonical_json(result['selection']) != canonical_json(source) or result['flank'] != flank
+        if (canonical_json(_acquisition_identity(result['selection'])) != canonical_json(_acquisition_identity(source)) or result['flank'] != flank
                 or result['nomination_sha256'] != variants['sha256']):
             raise ValueError('Acquisition scope changed; use a new directory')
         for name in ('path', 'index_path'):
             if file_sha256(result['source'][name]) != result['source']['sha256' if name == 'path' else 'index_sha256']:
                 raise ValueError('Recorded acquisition bytes changed')
-        return result
+        previous = result['source']
+        # Acquisition retains every record and therefore does not depend on
+        # confidence thresholds or sample assignment. A new assessment can use
+        # the verified bytes with a new declared policy; the acquisition receipt
+        # itself remains unchanged.
+        updated = dict(source, **{key: previous[key] for key in (
+            'path', 'sha256', 'index_path', 'index_sha256', 'acquired_regions')},
+            provenance=dict(source['provenance'], original_file=previous['provenance']['original_file'],
+                            acquisition=previous['provenance']['acquisition']))
+        return dict(result, source=updated)
     if destination.exists():
         raise ValueError('Unreceipted derivative exists: ' + str(destination))
     print('Acquiring', source['source_id'][:12], flush=True)
@@ -142,7 +159,14 @@ def main():
         snapshot=inventory['snapshot'], background_flank=args.flank,
         variants=dict(path=str(args.variants.resolve()), sha256=variants['sha256']),
         sources=[results.get(source['source_id'], source) for source in inventory['sources']])
-    write_json(output / 'normal_manifest.json.gz', manifest)
+    digest = sha256(canonical_json(manifest).encode()).hexdigest()
+    manifest_path = output / ('normal_manifest.' + digest[:16] + '.json.gz')
+    if manifest_path.exists():
+        if canonical_json(read_json(manifest_path)) != canonical_json(manifest):
+            raise ValueError('Existing normal manifest content differs')
+    else:
+        write_json(manifest_path, manifest)
+    print(manifest_path, flush=True)
 
 
 if __name__ == '__main__':
