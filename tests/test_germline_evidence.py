@@ -4,7 +4,7 @@ import pysam
 import pytest
 from varcode import MolecularPhaseResolver, Variant
 
-from isovar import IsovarReadPhasing, ReadCollector, run_isovar
+from isovar import IsovarReadPhasing, ReadCollector, UnresolvedContigError, run_isovar
 from isovar.germline_evidence import _reference_blocks, germline_read_evidence
 from isovar.isovar_result import IsovarResult
 from tests.test_sv_rna import record, write_bam
@@ -47,6 +47,13 @@ def test_reads_with_both_alt_alleles_are_cis(tmp_path):
     reads = [read("c%d" % i, "G", "C") for i in range(3)] + [read("r0", REFERENCE[10], REFERENCE[30])]
     result, = results_for(tmp_path, reads)
     assert IsovarReadPhasing([result]).in_cis(SOMATIC, GERMLINE) is True
+
+
+def test_missing_germline_contig_is_not_silently_removed_from_background(tmp_path):
+    unavailable = Variant("missing", 1031, "A", "G", normalize_contig_names=False)
+    with pytest.raises(UnresolvedContigError) as caught:
+        results_for(tmp_path, [read("somatic", "G", "C")], germline=[unavailable])
+    assert caught.value.resolution.original_name == "missing"
 
 
 def test_too_few_shared_fragments_stay_unknown(tmp_path):

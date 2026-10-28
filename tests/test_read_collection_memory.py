@@ -76,7 +76,7 @@ def test_original_locus_and_allele_reads_match_182(case, mode, merge):
     results = []
     for cls in (UnsharedCollector, ReadCollector):
         with pysam.AlignmentFile(sid_data.path("osteosarc/expansion/corpus/" + case["bam" if mode == "defaults" else "primary_bam"])) as bam:
-            chromosome = cls._infer_chromosome_name(record["chrom"], bam.references)
+            chromosome = ReadCollector().resolve_contig(bam, record["chrom"]).resolved_name
             results.append(cls(merge_overlapping_fragments=merge).get_locus_reads(
                 bam, chromosome, start, end, position, ref, alt))
     assert_same_reads(*results)

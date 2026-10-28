@@ -20,6 +20,7 @@ from .variant_sequence_helpers import initial_variant_sequences_from_reads, trim
 RNA_STATUSES = (
     "alternate_observed", "reference_only", "reference_and_other_only",
     "other_allele_only", "alignment_without_allele_call", "no_alignment_overlap",
+    "unresolved_chromosome",
 )
 READ_BINS = ("0", "1", "2-4", "5-9", "10-49", "50-199", "200+")
 AA_BINS = ("no local product", "0", "1", "2-4", "5-9", "10-19", "20+")
@@ -145,6 +146,13 @@ def summarize(calls, annotations, proteins=(), sv=()):
     for call in calls:
         ident = call["call_id"]
         annotation = annotations[ident]
+        classes[call["class"]] += 1
+        rna[call["rna_status"]] += 1
+        if call["rna_status"] == "unresolved_chromosome":
+            if ident in top or call.get("protein_count") not in (None, ""):
+                raise ValueError(f"Unresolved chromosome cannot have assessed protein counts for {ident}")
+            counts["unresolved_chromosomes"] += 1
+            continue
         if "exon_overlap" not in annotation:
             raise ValueError("Exon overlap annotation is required for the funnel")
         exonic = _yes(annotation["exon_overlap"])
@@ -152,9 +160,6 @@ def summarize(calls, annotations, proteins=(), sv=()):
         product = int(call["protein_count"]) > 0
         if product and (not alt or ident not in top):
             raise ValueError(f"Protein count and RNA evidence disagree for {ident}")
-        cls = call["class"]
-        classes[cls] += 1
-        rna[call["rna_status"]] += 1
         reads_by_class.setdefault(variant_type(call), []).append(int(call["alt_reads"]))
         if exonic:
             exonic_reads_by_class.setdefault(variant_type(call), []).append(int(call["alt_reads"]))

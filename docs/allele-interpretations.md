@@ -63,6 +63,11 @@ Every `rna_support` is the [RNA support record](read-collection.md#the-rna-suppo
 | `insufficient_RNA` | Too few fragments either way |
 | `unassessed` | The locus could not be compared; `reason` says why, for example unknown reference bases between distant variants |
 
+An unresolved alignment name, or source names that resolve to different actual
+contigs, gives `reason: unresolved_chromosome` with `contig_resolutions`.
+Candidates remain `unassessed` and have no `rna_support` counts. This is distinct
+from a successfully queried window with insufficient RNA.
+
 Only reads that span the whole window count. That makes the comparison exact,
 but long windows lose reads. Check `set_aside.reads_not_spanning_window`. An
 allele that matches no interpretation is still listed, with its difference from

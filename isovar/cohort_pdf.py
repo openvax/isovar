@@ -53,7 +53,7 @@ def _collect(result, highlights=()):
             row = json.loads(line)
             counts["processed"] += 1
             if row["status"] != "assessed":
-                counts["errors"] += 1
+                counts["unresolved_chromosomes" if row["status"] == "unresolved_chromosome" else "errors"] += 1
                 continue
             event, alt = _counts(row)
             category = row["category"]
@@ -719,7 +719,9 @@ def write_cohort_reports(manifest, summary, output):
                                                 styles["Heading2"]),
                           p(f"{counts['processed']:,}/{counts['nominated']:,} nominations evaluated; {counts['alt']:,} RNA ALT-supported; "
                             f"{counts['nc_overlap']:,} overlap ncORF coding blocks. "
-                            f"{counts['nc_unresolved_models']:,} overlapping model bindings remain unresolved.")])
+                            f"{counts['nc_unresolved_models']:,} overlapping model bindings remain unresolved. "
+                            f"{counts['unresolved_chromosomes']:,} nominations have unresolved chromosomes: "
+                            "their RNA support is unmeasured and excluded from depth distributions.")])
             if counts['processed'] > 1:
                 story.extend([Image(str(_category_landscape(result, categories, depths, figures)), width=510, height=255),
                           p("These are RNA-informed groups: frameshift labels use annotation predictions or reconstructed "

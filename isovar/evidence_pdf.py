@@ -262,7 +262,8 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
              p(f"DNA variant set: {sources['dna_source']} | RNA alignment: {sources['rna_source']}"),
              p("Counts refer to loaded small-variant alleles and this RNA read set. "
                "Reference annotation, observed ALT reads and local Isovar protein "
-               "contexts are distinct evidence layers."),
+               "contexts are distinct evidence layers. Annotation is not assessed "
+               "for unresolved chromosome rows; these remain in the input total."),
              p("Variant-to-RNA funnel", "EvidenceSection"), EvidenceFunnel(counts),
              p("Outcome counts", "EvidenceSection"),
              table(("Measure", "Count", "Interpretation"), (
@@ -270,11 +271,13 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
                  ("Any annotated exon", f"{counts['exonic']:,}", "At least one changed base or insertion flank"),
                  ("Reference coding effect", f"{counts['coding']:,}", "Any coding-sequence-changing Varcode effect"),
                  ("RNA ALT-observed", f"{counts['alt']:,}", "Original allele-spanning read evidence"),
+                 ("Unresolved chromosome", f"{counts['unresolved_chromosomes']:,}", "RNA support not measured; see per-call diagnostics"),
                  ("Local protein context", f"{counts['product']:,}", "At least one translated local window"),
              ), (190, 67, 255)), PageBreak(),
              p("RNA alternate-read support by variant type", "EvidenceSection")]
     story.extend(read_support_figures(summary["reads_by_class"]))
-    story.extend((p("The first panel includes calls with zero ALT reads. The second "
+    story.extend((p("The first panel includes assessed calls with zero ALT reads. "
+                    "Unresolved chromosomes are excluded because support was not measured. The second "
                     "conditions on positive ALT support. Bars count variants, with "
                     "classes shown in legend order."), PageBreak(),
                   p("RNA alternate-read support: exon-involved variants", "EvidenceSection")))

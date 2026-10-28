@@ -11,6 +11,7 @@ counts labels on reads Isovar already used.
 """
 
 from .cell_umi import CellUmiEvidence
+from .contig_resolution import require_resolved_contig, variant_reference_name, variant_source_contig
 from .logging import get_logger
 from .read_collector import ReadCollector
 from .read_identity import segment_identity, source_read_ids
@@ -71,25 +72,29 @@ class CellUmiAlleles(object):
         at a variant. Its ``support(identities)`` gives RNA support records.
         """
         start, end = base0_interval_for_variant(variant)
-        return self.labels_at(variant.contig, start, end, identities)
+        return self.labels_at(variant_source_contig(variant), start, end, identities,
+                              reference_name=variant_reference_name(variant))
 
-    def labels_at(self, contig, start, end, identities):
+    def labels_at(self, contig, start, end, identities, *, reference_name=None):
         """
         The label resolver for these reads over the 0-based interval [start, end).
 
         Logs a warning when some of the reads have no eligible record there,
         which usually means they were collected with a different ReadCollector.
+        ``reference_name`` supplies assembly-specific spelling context, not
+        coordinate conversion. Unresolved contigs raise UnresolvedContigError.
         """
         identities = {tuple(identity) for identity in identities}
         templates = {identity[:2] for identity in identities}
-        chromosome = self.read_collector._infer_chromosome_name(contig, set(self.alignment_file.references))
+        resolution = self.read_collector.resolve_contig(
+            self.alignment_file, contig, reference_name=reference_name)
+        chromosome = require_resolved_contig(resolution, self.alignment_file)
         groups = {}
-        if chromosome is not None:
-            # The window ReadCollector fetches, so reads ending at an insertion are included.
-            for record in self.alignment_file.fetch(chromosome, max(0, start - 1), end + 1):
-                identity = segment_identity(record)
-                if identity[:2] in templates and self.read_collector.alignment_filter_reason(record) is None:
-                    groups.setdefault(identity, []).append(_Tags(record))
+        # The window ReadCollector fetches, so reads ending at an insertion are included.
+        for record in self.alignment_file.fetch(chromosome, max(0, start - 1), end + 1):
+            identity = segment_identity(record)
+            if identity[:2] in templates and self.read_collector.alignment_filter_reason(record) is None:
+                groups.setdefault(identity, []).append(_Tags(record))
         missing = len(identities - groups.keys())
         if missing:
             logger.warning(

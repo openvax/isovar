@@ -1,7 +1,7 @@
 pyensembl>=2.27.2
 # Varcode 10 is the tested major version (CI and the suite run on 10.x).
 # Shared genetic-code resolution and normalized native yeast ORF contigs.
-varcode>=10.20.2,<11
+varcode>=10.22.1,<11
 pandas>=3,<4
 pysam>=0.15.2
 edlib>=1.3.9.post1,<2

@@ -104,6 +104,14 @@ def test_unknown_reference_bases_leave_the_locus_unassessed(bam):
     assert {c["rna_status"] for c in result["candidates"]} == {"unassessed"}
 
 
+def test_unresolved_chromosome_does_not_imply_insufficient_rna(bam):
+    result = reconcile(bam, {"candidate": [variant(1021, "A", "G", contig="missing")]})
+    assert result["status"] == "unassessed" and result["reason"] == "unresolved_chromosome"
+    candidate = result["candidates"][0]
+    assert candidate["rna_status"] == "unassessed" and "rna_support" not in candidate
+    assert result["contig_resolutions"][0]["status"] == "missing"
+
+
 def test_unusable_interpretations_are_rejected(bam):
     with pytest.raises(ValueError, match="No interpretations"):
         reconcile(bam, {})
