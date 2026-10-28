@@ -143,3 +143,65 @@ def test_cli_and_api_share_evidence_and_preserve_input_receipts(tmp_path, capsys
         run(["normal-evidence", "--manifest", str(manifest), "--output", str(output)])
     assert output.read_bytes() == prior
     assert "already exists" in capsys.readouterr().err
+
+
+def test_distant_exon_background_survives_unavailable_focal_query(tmp_path):
+    source = source_file(tmp_path)
+    focal = Variant("missing-contig", 800, "A", "G")
+    assert not assess([focal], [source], background_flank=10)["background_variants"]
+    result = assess([focal], [source], additional_background_regions=[("1", 100, 110)])
+    assert result["alleles"][0]["state"] == "unavailable"
+    assert [(row["contig"], row["alt"]) for row in result["background_variants"]] == [("1", "T")]
+    scope, = result["background_source_scopes"]
+    assert len(scope["unresolved_contigs"]) == 1
+    assert scope["acquired_requested_bases"] == 10
+
+
+def test_background_is_independent_of_focal_ref_mismatch_and_duplicate_neighborhoods(tmp_path):
+    source = source_file(tmp_path)
+    result = assess([Variant("1", 105, "C", "G"), Variant("1", 106, "A", "G")], [source], background_flank=10)
+    assert result["alleles"][0]["state"] == "uncalled"
+    background, = result["background_variants"]
+    origin, = background["origins"]
+    assert background["alt"] == "T"
+    assert origin["record"]["accepted"]
+    assert not origin["record"]["rejection_reasons"]
+
+
+def test_complete_boundary_indel_record_remains_background_without_claiming_reference_coverage(tmp_path):
+    source = replace(source_file(tmp_path, alleles=("ATTT", "A"), genotype=(0, 1)),
+                     acquired_regions=(("chr1", 107, 108),))
+    result = assess([], [source], additional_background_regions=[("1", 107, 108)])
+    background, = result["background_variants"]
+    assert (background["start"], background["ref"], background["alt"]) == (106, "TTT", "")
+    assert background["origins"][0]["record"]["reference_interval"] is None
+    # A long record does not join disjoint acquired/requested territories.
+    assert not assess([], [source], additional_background_regions=[("1", 104, 105)])["background_variants"]
+
+
+def test_original_sid_multiallelic_case_does_not_supply_uncalled_alt(tmp_path):
+    source = source_file(tmp_path, start=4792519, alleles=("G", "GA", "GAA"), genotype=(1, 1))
+    result = assess([Variant("chr1", 4792520, "G", "GAA")], [source])
+    assert result["alleles"][0]["state"] == "other_allele_observed"
+    assert [(row["start"], row["ref"], row["alt"]) for row in result["background_variants"]] == [(4792520, "", "A")]
+
+
+def test_manifest_additional_background_scope_is_pinned_and_cannot_be_overwritten(tmp_path):
+    from isovar.normal_sources import run_normal_evidence_manifest
+    source = source_file(tmp_path)
+    nominations = tmp_path / "nominations.json"
+    nominations.write_text("[]")
+    regions = tmp_path / "exons.json"
+    regions.write_text(json.dumps([["1", 100, 110]]))
+    manifest = tmp_path / "normal.json"
+    manifest.write_text(json.dumps(dict(schema="isovar.normal_manifest.v1", sample_id="patient", reference_name="GRCh38",
+        variants=dict(path=nominations.name, sha256=file_sha256(nominations)), sources=[asdict(source)],
+        additional_background_regions=dict(path=regions.name, sha256=file_sha256(regions)))))
+    with pytest.raises(ValueError, match="overwrite an input"):
+        run_normal_evidence_manifest(manifest, regions)
+    result = run_normal_evidence_manifest(manifest, tmp_path / "result.json")
+    assert result["background_variants"][0]["alt"] == "T"
+    assert result["manifest"]["additional_background_regions"]["sha256"] == file_sha256(regions)
+    regions.write_text("[]")
+    with pytest.raises(ValueError, match="background-region digest"):
+        run_normal_evidence_manifest(manifest, tmp_path / "new-result.json")

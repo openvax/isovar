@@ -19,3 +19,10 @@ def test_merged_coverage_and_half_open_boundaries():
 def test_invalid_regions_fail_at_construction(interval):
     with pytest.raises(ValueError, match='Genomic intervals'):
         GenomicIntervalIndex([interval])
+
+
+def test_intersection_keeps_only_common_bases_with_exact_contig_names():
+    left = GenomicIntervalIndex([('1', 0, 10), ('1', 20, 30), ('2', 0, 10)])
+    right = GenomicIntervalIndex([('1', 5, 25), ('1', 30, 40), ('chr2', 0, 10)])
+    assert left.intersection(right).intervals() == (('1', 5, 10), ('1', 20, 25))
+    assert right.intersection(left).intervals() == left.intersection(right).intervals()

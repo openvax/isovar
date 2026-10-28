@@ -17,6 +17,10 @@ same assessment. `isovar.normal_sources.MatchedNormalEvidence` describes the
 returned receipt; per-source and per-allele results have corresponding typed
 schemas.
 
+`isovar.normal_background_regions` merges focal neighborhoods with explicitly
+supplied background territory for acquisition and assessment. Both paths resolve
+this territory against each source header with the same Varcode resolver.
+
 ## Source identity and input manifest
 
 The `isovar.normal_manifest.v1` manifest contains:
@@ -31,6 +35,12 @@ The `isovar.normal_manifest.v1` manifest contains:
 - `background_flank`: nonnegative bases queried on each side of each focal
   interval, default 0. This bounds the supplied background; it is not a complete
   normal proteome or whole-gene germline assessment.
+- `additional_background_regions`: optional `path` and `sha256` for a JSON/JSON.gz
+  array of `[contig, start, end]` intervals in zero-based, half-open coordinates.
+  Supply distant exons or ncORF coding blocks when reconstructed transcripts need
+  background beyond a local genomic neighborhood. These regions and focal flanks
+  form the requested background territory; the receipt retains the merged regions,
+  source resolution failures, clipping and acquired scope.
 - `snapshot`: an optional public inventory/release identifier.
 
 Paths resolve relative to the manifest. A source descriptor supplies:
@@ -68,7 +78,8 @@ policy = NormalEvidencePolicy(minimum_genotype_quality=20, minimum_depth=5)
 sources = [NormalSource(**{**descriptor, "policy": policy}) for descriptor in source_descriptors]
 receipt = assess_matched_normal(
     [Variant("chr1", 105, "A", "G", genome="GRCh38")],
-    sources, sample_id="patient", reference_name="GRCh38", background_flank=500)
+    sources, sample_id="patient", reference_name="GRCh38", background_flank=500,
+    additional_background_regions=[("chr1", 800, 900)])
 ```
 
 ## Evidence states and quality policy
@@ -105,6 +116,12 @@ symbolic SV's 0/0 genotype does not establish base-level reference over its END
 interval. Explicit overlapping REF disagreement invalidates that record.
 
 Only genotype-indexed, accepted literal ALT alleles enter `background_variants`.
+Background collection makes one sequential pass per selected source, independently
+of focal query success. A complete observed record is selected when its literal
+REF span overlaps the intersection of requested and acquired territory. This
+preserves boundary indels without claiming reference confidence outside that
+territory. A symbolic SV's END does not expand the literal REF span for selection.
+Focal reference-confidence assessment still requires coverage of every tested base.
 For example, `REF=A, ALT=G,T, GT=0/2` supplies T, not G. Original genotype,
 phase set, allelic depths, filters, confidence, caller/source and processing
 provenance remain available. Supplied normal phasing is not evidence that an RNA

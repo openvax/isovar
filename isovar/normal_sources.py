@@ -1,6 +1,6 @@
 """Source-pinned matched-normal assessment using reusable VCF header resolvers."""
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import asdict, dataclass, field
 import logging
 from pathlib import Path
@@ -12,12 +12,12 @@ from varcode.reference import infer_genome
 
 from .contig_resolution import variant_source_contig, variant_reference_name
 from .audit_bundle import software_identity
-from .evidence_report import changed_reference_interval
 from .genomic_intervals import GenomicIntervalIndex
 from .normal_evidence import (
     NormalEvidencePolicy, NormalRecordEvidence, NormalState, assess_normal_record, literal_allele_key,
     normal_source_state, reconcile_normal_states,
 )
+from .normal_regions import GenomicRegion, normal_background_regions, normal_query_interval, resolve_normal_regions
 from .sv_rna_audit import file_sha256, read_json, write_json
 from .rna_evidence import content_identifier
 
@@ -75,12 +75,6 @@ class NormalSource:
                 raise ValueError("Invalid acquired normal-evidence region")
 
 
-def normal_query_interval(variant: Variant) -> tuple[int, int]:
-    """Assess changed bases, or both flanks of an insertion, in zero-based coordinates."""
-    start, end, _ = changed_reference_interval(variant.original_start, variant.original_ref, variant.original_alt)
-    return start - 1, end
-
-
 AlleleKey = tuple[str, int, str, str]
 
 
@@ -121,6 +115,8 @@ class MatchedNormalEvidence(TypedDict):
     sample_id: str
     reference_name: str
     background_flank: int
+    background_regions: list[GenomicRegion]
+    background_source_scopes: list[dict[str, Any]]
     source_inventory: list[dict[str, Any]]
     alleles: list[NormalAlleleAssessment]
     background_variants: list[dict[str, Any]]
@@ -128,35 +124,77 @@ class MatchedNormalEvidence(TypedDict):
     manifest: NotRequired[dict[str, Any]]
 
 
-def _background_records(records: Sequence[pysam.VariantRecord], source: NormalSource, target: Variant,
-                        policy: NormalEvidencePolicy) -> list[tuple[AlleleKey, dict[str, Any]]]:
+def _background_records(records: Iterable[pysam.VariantRecord], source: NormalSource,
+                        territory: GenomicIntervalIndex
+                        ) -> Iterator[tuple[AlleleKey, dict[str, Any]]]:
     """Extract only accepted, genotype-indexed literal alleles with provenance."""
     assert source.vcf_sample is not None  # selected sources were validated on construction
-    result = []
     for record in records:
-        evidence = assess_normal_record(record, source.vcf_sample, target, policy)
+        reference = record.ref
+        if not reference:
+            raise ValueError("Normal VCF record requires a nonempty REF allele")
+        literal_interval = (record.contig, record.start, record.start + len(reference))
+        if not territory.overlaps(*literal_interval):
+            continue
+        if not any(index is not None and index > 0 for index in record.samples[source.vcf_sample].get("GT") or ()):
+            continue
+        evidence = assess_normal_record(record, source.vcf_sample, None, source.policy)
         if not evidence["accepted"]:
             continue
         for index in evidence["called_alternate_indexes"]:
-            alternate = record.alts[index - 1]
-            if not set(record.ref + alternate) <= set("ACGT"):
+            alternate = evidence["alternates"][index - 1]
+            if not set(reference + alternate) <= set("ACGT"):
                 continue
-            key = literal_allele_key(target.contig, record.pos, record.ref, alternate,
-                                     reference_name=variant_reference_name(target))
-            result.append((key, dict(source_id=source.source_id, specimen_id=source.specimen_id,
+            key = literal_allele_key(record.contig, record.pos, reference, alternate,
+                                     reference_name=source.reference_name)
+            yield key, dict(source_id=source.source_id, specimen_id=source.specimen_id,
                 library_id=source.library_id, processing_group=source.processing_group,
                 sample=source.vcf_sample,
                 record={name: value for name, value in evidence.items() if name != "target_allele_called"},
-                called_allele_index=index)))
-    return result
+                called_allele_index=index)
 
 
-def _source_assessments(source: NormalSource, variants: Sequence[Variant], background_flank: int
-                        ) -> tuple[list[NormalSourceAssessment], list[tuple[AlleleKey, dict[str, Any]]]]:
+def _assess_source_allele(reader: pysam.VariantFile, source: NormalSource, sample_id: str,
+                          resolver: ContigResolver, acquired: GenomicIntervalIndex | None,
+                          variant: Variant, background_flank: int) -> NormalSourceAssessment:
+    """Assess one focal query without changing independent background selection."""
+    resolution = resolver.resolve(variant_source_contig(variant))
+    interval = normal_query_interval(variant)
+    row: NormalSourceAssessment = dict(source_id=source.source_id, state="unavailable", interval=list(interval),
+                                        contig_resolution=asdict(resolution))
+    contig = resolution.resolved_name
+    if contig is None:
+        row["reason"] = "unresolved_chromosome"
+        return row
+    contig_length = reader.header.contigs[contig].length
+    if contig_length is not None and interval[1] > contig_length:
+        row["reason"] = "outside_declared_contig_length"
+        return row
+    if acquired is not None and not acquired.covers(contig, *interval):
+        row["reason"] = "outside_acquired_regions"
+        return row
+    try:
+        records = list(reader.fetch(contig, *interval))
+        assessed = [assess_normal_record(record, sample_id, variant, source.policy) for record in records]
+        state = normal_source_state(assessed, interval,
+            reference_confidence=source.evidence_kind == "reference_confidence")
+        row["state"], row["records"] = state, assessed
+        left, right = max(0, interval[0] - background_flank), interval[1] + background_flank
+        if contig_length is not None:
+            right = min(right, contig_length)
+        row["background_query_interval"] = [left, right]
+        row["background_interval_fully_acquired"] = acquired is None or acquired.covers(contig, left, right)
+    except (OSError, ValueError) as error:
+        row["state"], row["reason"], row["error"] = "unavailable", "normal_query_failed", str(error)
+    return row
+
+
+def _source_assessments(source: NormalSource, variants: Sequence[Variant], background_flank: int,
+                        background_regions: Sequence[GenomicRegion]
+                        ) -> tuple[list[NormalSourceAssessment], list[tuple[AlleleKey, dict[str, Any]]], dict[str, Any]]:
     """Open/index each selected source once; each query retains its actual scope."""
-    if not source.selected:
-        return [dict(source_id=source.source_id, state="unavailable", reason=source.selection_reason)
-                for _ in variants], []
+    if not source.selected or source.reference_name is None or source.path is None:
+        raise ValueError("Source assessment requires a selected source with a declared assembly")
     if file_sha256(source.path) != source.sha256:
         raise ValueError("Normal source digest mismatch: " + source.source_id)
     if file_sha256(source.index_path) != source.index_sha256:
@@ -164,61 +202,34 @@ def _source_assessments(source: NormalSource, variants: Sequence[Variant], backg
     sample_id = source.vcf_sample
     if sample_id is None:
         raise ValueError("Selected source has no normal VCF sample column")
-    rows: list[NormalSourceAssessment] = []
-    backgrounds: list[tuple[AlleleKey, dict[str, Any]]] = []
     acquired = GenomicIntervalIndex(source.acquired_regions) if source.acquired_regions is not None else None
     with pysam.VariantFile(source.path, index_filename=source.index_path) as reader:
-        if source.vcf_sample not in reader.header.samples:
+        if sample_id not in reader.header.samples:
             raise ValueError("Declared normal VCF sample is absent: " + source.source_id)
-        resolver = ContigResolver(reader.header.contigs, reference_name=source.reference_name)
-        for variant in variants:
-            resolution = resolver.resolve(variant_source_contig(variant))
-            interval = normal_query_interval(variant)
-            row: NormalSourceAssessment = dict(source_id=source.source_id, state="unavailable", interval=list(interval),
-                                                contig_resolution=asdict(resolution))
-            contig = resolution.resolved_name
-            if contig is None:
-                row["reason"] = "unresolved_chromosome"
-                rows.append(row)
-                continue
-            contig_length = reader.header.contigs[contig].length
-            if contig_length is not None and interval[1] > contig_length:
-                row["reason"] = "outside_declared_contig_length"
-                rows.append(row)
-                continue
-            if acquired is not None and not acquired.covers(contig, *interval):
-                row["reason"] = "outside_acquired_regions"
-                rows.append(row)
-                continue
-            try:
-                records = list(reader.fetch(contig, *interval))
-                assessed = [assess_normal_record(record, sample_id, variant, source.policy) for record in records]
-                state = normal_source_state(assessed, interval,
-                    reference_confidence=source.evidence_kind == "reference_confidence")
-                row["state"], row["records"] = state, assessed
-                left, right = max(0, interval[0] - background_flank), interval[1] + background_flank
-                if contig_length is not None:
-                    right = min(right, contig_length)
-                if background_flank:
-                    background_records = list(reader.fetch(contig, left, right))
-                else:
-                    background_records = records
-                # A derivative may contain additional physical records. Only the
-                # explicitly acquired territory is eligible for background use.
-                if acquired is not None:
-                    background_records = [record for record in background_records if acquired.covers(
-                        contig, record.start, record.start + len(record.ref))]
-                backgrounds.extend(_background_records(background_records, source, variant, source.policy))
-                row["background_query_interval"] = [left, right]
-                row["background_interval_fully_acquired"] = acquired is None or acquired.covers(contig, left, right)
-            except (OSError, ValueError) as error:
-                row["state"], row["reason"], row["error"] = "unavailable", "normal_query_failed", str(error)
-            rows.append(row)
-    return rows, backgrounds
+        resolver = ContigResolver((str(name) for name in reader.header.contigs), reference_name=source.reference_name)
+        rows = [_assess_source_allele(reader, source, sample_id, resolver, acquired, variant, background_flank)
+                for variant in variants]
+        scope = resolve_normal_regions(background_regions, reader.header, reference_name=source.reference_name)
+        requested = GenomicIntervalIndex(scope.regions)
+        territory = requested if acquired is None else requested.intersection(acquired)
+        # A single sequential background pass is independent of focal query
+        # success, ordering, and overlapping neighborhoods. Preserve complete
+        # genotyped records selected by REF-span overlap; this is not a claim of
+        # reference confidence across the record's full length.
+        reader.reset()
+        backgrounds = list(_background_records(reader, source, territory))
+        background_scope = dict(source_id=source.source_id, resolved_region_count=len(scope.regions),
+            resolved_bases=sum(end - start for _, start, end in scope.regions),
+            acquired_requested_bases=sum(end - start for _, start, end in territory.intervals()),
+            fully_acquired_region_count=sum(acquired is None or acquired.covers(*region) for region in scope.regions),
+            unresolved_contigs=list(scope.unresolved_contigs), outside_contig_regions=list(scope.outside_contig_regions),
+            clipped_regions=list(scope.clipped_regions))
+    return rows, backgrounds, background_scope
 
 
 def assess_matched_normal(variants: Sequence[Variant], sources: Sequence[NormalSource], *,
-                          sample_id: str, reference_name: str, background_flank: int = 0) -> MatchedNormalEvidence:
+                          sample_id: str, reference_name: str, background_flank: int = 0,
+                          additional_background_regions: Iterable[GenomicRegion] = ()) -> MatchedNormalEvidence:
     """Assess literal alleles against an explicit normal inventory and policy.
 
     Parameters
@@ -233,8 +244,13 @@ def assess_matched_normal(variants: Sequence[Variant], sources: Sequence[NormalS
     reference_name : str
         Explicit common reference assembly; contig spelling is not liftover.
     background_flank : int, optional
-        Additional bases queried on each side for supplied background calls.
-        This bounds attribution scope; it does not establish an entire normal proteome.
+        Additional bases on each side of the focal intervals for background calls.
+    additional_background_regions : iterable of (str, int, int), optional
+        Explicit contig, zero-based start and half-open end intervals in the same
+        assembly. Include distant exons or ncORF blocks needed by reconstructed
+        transcripts. Background records are selected by literal REF-span overlap
+        with this territory or focal neighborhoods, and acquired territory.
+        This selection does not establish an entire normal proteome.
 
     Returns
     -------
@@ -249,7 +265,8 @@ def assess_matched_normal(variants: Sequence[Variant], sources: Sequence[NormalS
     reference_name = infer_genome(reference_name)[0].reference_name
     if len({source.source_id for source in sources}) != len(sources):
         raise ValueError("Duplicate normal source identity")
-    if any(infer_genome(source.reference_name)[0].reference_name != reference_name for source in sources if source.selected):
+    if any(source.reference_name is None or infer_genome(source.reference_name)[0].reference_name != reference_name
+           for source in sources if source.selected):
         raise ValueError("Selected normal sources have incompatible reference assemblies")
     if any(variant_reference_name(variant) != reference_name for variant in variants):
         raise ValueError("Focal variants and normal evidence have incompatible reference assemblies")
@@ -258,7 +275,10 @@ def assess_matched_normal(variants: Sequence[Variant], sources: Sequence[NormalS
     keys = [literal_allele_key(v.contig, v.start, v.ref, v.alt, reference_name=reference_name) for v in variants]
     if len(set(keys)) != len(keys):
         raise ValueError("Duplicate focal allele in normal assessment")
+    regions = normal_background_regions(variants, background_flank=background_flank,
+                                         additional_regions=additional_background_regions)
     source_rows = []
+    background_scopes = []
     background: dict[AlleleKey, dict[tuple[str, str, int], dict[str, Any]]] = {}
     for source in sources:
         if not source.selected:
@@ -266,10 +286,11 @@ def assess_matched_normal(variants: Sequence[Variant], sources: Sequence[NormalS
             # inventory, rather than copying them into every allele assessment.
             continue
         logger.info("Assessing normal source %s (%s): %d focal alleles", source.source_id, source.caller, len(variants))
-        rows, observations = _source_assessments(source, variants, background_flank)
+        rows, observations, scope = _source_assessments(source, variants, background_flank, regions)
         logger.info("Completed normal source %s: %d local assessments, %d background observations",
                     source.source_id, len(rows), len(observations))
         source_rows.append(rows)
+        background_scopes.append(scope)
         for key, evidence in observations:
             background.setdefault(key, {})[(source.source_id, content_identifier("normal_record", evidence["record"]),
                                             evidence["called_allele_index"])] = evidence
@@ -283,6 +304,7 @@ def assess_matched_normal(variants: Sequence[Variant], sources: Sequence[NormalS
                             origin_conflict=state in ("alternate_observed", "conflicting_calls")))
     return dict(schema="isovar.matched_normal.v1", isovar_version=__version__, software=software_identity(), sample_id=sample_id,
                 reference_name=reference_name, background_flank=background_flank,
+                background_regions=list(regions), background_source_scopes=background_scopes,
                 source_inventory=[asdict(source) for source in sources], alleles=alleles,
                 background_variants=[dict(contig=key[0], start=key[1], ref=key[2], alt=key[3],
                     origins=list(observations.values())) for key, observations in sorted(background.items())],
@@ -308,6 +330,13 @@ def run_normal_evidence_manifest(manifest_path: str | Path, output_path: str | P
         raise ValueError("Normal assessment nomination digest mismatch")
     sources = []
     inputs = {manifest_path, nomination_file}
+    additional_regions = []
+    if descriptor := manifest.get("additional_background_regions"):
+        region_file = (root / descriptor["path"]).resolve()
+        if file_sha256(region_file) != descriptor["sha256"]:
+            raise ValueError("Normal background-region digest mismatch")
+        inputs.add(region_file)
+        additional_regions = read_json(region_file)
     for descriptor in manifest["sources"]:
         descriptor = dict(descriptor)
         descriptor["policy"] = NormalEvidencePolicy(**descriptor.get("policy", {}))
@@ -329,11 +358,13 @@ def run_normal_evidence_manifest(manifest_path: str | Path, output_path: str | P
     variants = [Variant(row["contig"], row["start"], row["ref"], row["alt"], genome=reference,
                         convert_ucsc_contig_names=True) for row in nominations]
     result = assess_matched_normal(variants, sources, sample_id=manifest["sample_id"], reference_name=reference,
-                                   background_flank=manifest.get("background_flank", 0))
+                                   background_flank=manifest.get("background_flank", 0),
+                                   additional_background_regions=additional_regions)
     for allele, nomination in zip(result["alleles"], nominations):
         allele["nomination"] = nomination
     result["manifest"] = dict(path=str(manifest_path), sha256=file_sha256(manifest_path),
-                               snapshot=manifest.get("snapshot"), variants=manifest["variants"])
+                               snapshot=manifest.get("snapshot"), variants=manifest["variants"],
+                               additional_background_regions=manifest.get("additional_background_regions"))
     output_path.parent.mkdir(parents=True, exist_ok=True)
     write_json(output_path, result)
     return result

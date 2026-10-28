@@ -18,10 +18,10 @@ from threading import Thread
 from urllib.request import Request, urlopen
 
 import pysam
-from varcode import ContigResolver, Variant
+from varcode import Variant
 
 from isovar.genomic_intervals import GenomicIntervalIndex
-from isovar.normal_sources import normal_query_interval
+from isovar.normal_regions import normal_background_regions, resolve_normal_regions
 from isovar.rna_evidence import canonical_json
 from isovar.sv_rna_audit import file_sha256, read_json, write_json
 
@@ -72,14 +72,17 @@ def _acquisition_identity(source):
                 header_sha256=metadata.get('header_sha256'))
 
 
-def acquire(source, variants, flank, output):
+def acquire(source, variants, flank, output, *, additional_regions=()):
     """Select record intervals with one resolver and one merged interval index."""
+    additional_regions = GenomicIntervalIndex(additional_regions).intervals()
+    additional_regions_sha256 = sha256(canonical_json(additional_regions).encode()).hexdigest() if additional_regions else None
     destination = output / (source['source_id'] + '.vcf.gz')
     receipt_path = output / (source['source_id'] + '.acquisition.json.gz')
     if receipt_path.exists():
         result = read_json(receipt_path)
         if (canonical_json(_acquisition_identity(result['selection'])) != canonical_json(_acquisition_identity(source)) or result['flank'] != flank
-                or result['nomination_sha256'] != variants['sha256']):
+                or result['nomination_sha256'] != variants['sha256']
+                or result.get('additional_regions_sha256') != additional_regions_sha256):
             raise ValueError('Acquisition scope changed; use a new directory')
         for name in ('path', 'index_path'):
             if file_sha256(result['source'][name]) != result['source']['sha256' if name == 'path' else 'index_sha256']:
@@ -102,16 +105,10 @@ def acquire(source, variants, flank, output):
     with _hashed_vcf_stream(source) as (reader, original):
         if source['vcf_sample'] not in reader.header.samples:
             raise ValueError('Declared VCF sample is absent')
-        resolver = ContigResolver(reader.header.contigs, reference_name=source['reference_name'])
-        regions = []
-        for variant in variants['values']:
-            resolved = resolver.resolve(variant.original_contig).resolved_name
-            if resolved is None:
-                continue
-            start, end = normal_query_interval(variant)
-            length = reader.header.contigs[resolved].length
-            regions.append((resolved, max(0, start - flank), min(length, end + flank) if length else end + flank))
-        index = GenomicIntervalIndex(regions)
+        requested = normal_background_regions(variants['values'], background_flank=flank,
+                                               additional_regions=additional_regions)
+        scope = resolve_normal_regions(requested, reader.header, reference_name=source['reference_name'])
+        index = GenomicIntervalIndex(scope.regions)
         with pysam.VariantFile(temporary, 'wz', header=reader.header) as writer:
             for record in reader:
                 counts['original_records'] += 1
@@ -124,9 +121,11 @@ def acquire(source, variants, flank, output):
     selected = dict(source, path=str(destination), sha256=file_sha256(destination),
         index_path=str(destination) + '.tbi', index_sha256=file_sha256(str(destination) + '.tbi'),
         acquired_regions=index.intervals(), provenance=dict(source['provenance'], original_file=original,
-            acquisition='All original records overlapping nominated intervals plus declared flanks; no genotype filtering'))
+            acquisition='All original records overlapping nominated intervals, declared flanks and explicit background regions; no genotype filtering'))
     result = dict(schema='isovar.normal_acquisition.v1', selection=source, flank=flank,
-                  nomination_sha256=variants['sha256'], source=selected, counts=counts)
+                  nomination_sha256=variants['sha256'], additional_regions_sha256=additional_regions_sha256,
+                  unresolved_contigs=list(scope.unresolved_contigs), outside_contig_regions=list(scope.outside_contig_regions),
+                  clipped_regions=list(scope.clipped_regions), source=selected, counts=counts)
     write_json(receipt_path, result)
     print(source['source_id'][:12], counts, flush=True)
     return result
@@ -136,6 +135,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--inventory', type=Path, default=Path(__file__).with_name('sid_normal_inventory.json.gz'))
     parser.add_argument('--variants', type=Path, required=True)
+    parser.add_argument('--additional-background-regions', type=Path,
+                        help='JSON/JSON.gz array of [contig, zero-based start, half-open end] intervals')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--flank', type=int, default=500)
     parser.add_argument('--workers', type=int, default=3)
@@ -146,11 +147,13 @@ def main():
     nominations = read_json(args.variants)
     variants = dict(sha256=file_sha256(args.variants),
         values=[Variant(row['contig'], row['start'], row['ref'], row['alt'], genome='GRCh38') for row in nominations])
+    additional_regions = read_json(args.additional_background_regions) if args.additional_background_regions else ()
+    additional_digest = file_sha256(args.additional_background_regions) if args.additional_background_regions else None
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     results = {}
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        jobs = [pool.submit(acquire, source, variants, args.flank, output)
+        jobs = [pool.submit(acquire, source, variants, args.flank, output, additional_regions=additional_regions)
                 for source in inventory['sources'] if source['selected']]
         for job in as_completed(jobs):
             result = job.result()
@@ -159,6 +162,8 @@ def main():
         snapshot=inventory['snapshot'], background_flank=args.flank,
         variants=dict(path=str(args.variants.resolve()), sha256=variants['sha256']),
         sources=[results.get(source['source_id'], source) for source in inventory['sources']])
+    if args.additional_background_regions:
+        manifest['additional_background_regions'] = dict(path=str(args.additional_background_regions.resolve()), sha256=additional_digest)
     digest = sha256(canonical_json(manifest).encode()).hexdigest()
     manifest_path = output / ('normal_manifest.' + digest[:16] + '.json.gz')
     if manifest_path.exists():

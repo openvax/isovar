@@ -850,7 +850,10 @@ def write_cohort_reports(manifest, summary, output):
             if excluded:
                 story.append(table(('Excluded or unavailable product: reason', 'Files'), sorted(excluded.items()), (450, 60)))
             story.append(p(f"{scope['background_alleles']:,} genotype-indexed background alleles; "
-                           f"query flank {scope['background_flank']:,} bases. The pinned normal receipt contains "
+                           f"query flank {scope['background_flank']:,} bases; "
+                           f"{scope.get('background_region_count', 0):,} explicitly requested background regions. "
+                           'Region overlap selects complete observed genotype records; it does not establish '
+                           'reference confidence throughout those regions. The pinned normal receipt contains '
                            'every source ID, exact VCF sample, processing relationship, acquisition interval, '
                            'file/index digest, rejected record and background-allele provenance.', 'Small'))
         input_keys = set()

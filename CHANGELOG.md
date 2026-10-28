@@ -13,6 +13,9 @@ releases that only fix bugs or add fixtures are omitted; see the
 - Cohort tasks can consume the resulting receipt as `normal_evidence`; reports
   retain its source inventory and scope, and changed normal evidence invalidates
   resume identity. Reconcile the pinned Sid normal inventory into a new assessment.
+- Pin explicit background regions alongside focal flanks, so distant spliced
+  exons and ncORF blocks retain their supplied background. Scan each source once
+  for background records and correctly convert ORFdata's inclusive coordinates.
 
 ## 1.66.0
 

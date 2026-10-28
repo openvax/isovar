@@ -80,7 +80,7 @@ def literal_allele_key(contig: str, start: int, reference: str, alternate: str, 
     return value.contig, value.start, value.ref, value.alt
 
 
-def assess_normal_record(record: VariantRecord, sample_id: str, target: Variant,
+def assess_normal_record(record: VariantRecord, sample_id: str, target: Variant | None,
                          policy: NormalEvidencePolicy) -> NormalRecordEvidence:
     """Assess one normal sample's exact genotype and retain every rejection reason.
 
@@ -90,8 +90,10 @@ def assess_normal_record(record: VariantRecord, sample_id: str, target: Variant,
         A record on the source contig already resolved to the target's context.
     sample_id : str
         Exact VCF column name from the reviewed source descriptor.
-    target : varcode.Variant
-        Focal literal allele. Reference build equivalence is a caller obligation.
+    target : varcode.Variant or None
+        Focal literal allele, or None to assess a standalone background record.
+        Reference build equivalence is a caller obligation. Without a target,
+        no focal REF comparison or target-allele match is asserted.
     policy : NormalEvidencePolicy
         Required filter, quality and depth gates.
 
@@ -105,16 +107,19 @@ def assess_normal_record(record: VariantRecord, sample_id: str, target: Variant,
     """
     if sample_id not in record.samples:
         raise ValueError(f"Normal VCF sample column is missing: {sample_id}")
+    reference = record.ref
+    if not reference:
+        raise ValueError("Normal VCF record requires a nonempty REF allele")
     sample = record.samples[sample_id]
     genotype = list(sample.get("GT") or ())
     alternates = list(record.alts or ())
-    filters = list(record.filter)
+    filters = [str(value) for value in record.filter]
     raw_filter = sample.get("FT")
     sample_filter = ([raw_filter] if isinstance(raw_filter, str) else list(raw_filter or ()))
     raw_quality = sample.get(policy.genotype_quality_field)
     quality = float(raw_quality) if isinstance(raw_quality, (int, float)) and isfinite(raw_quality) else None
-    is_block = record.stop > record.start + len(record.ref)
-    is_literal_indel = any(set(record.ref + alt) <= set("ACGT") and len(alt) != len(record.ref) for alt in alternates)
+    is_block = record.stop > record.start + len(reference)
+    is_literal_indel = any(set(reference + alt) <= set("ACGT") and len(alt) != len(reference) for alt in alternates)
     depth_field = "MIN_DP" if is_block else policy.indel_depth_field if is_literal_indel else "DP"
     raw_depth = sample.get(depth_field)
     depth = raw_depth if isinstance(raw_depth, int) else None
@@ -131,21 +136,23 @@ def assess_normal_record(record: VariantRecord, sample_id: str, target: Variant,
         reasons.append("genotype_quality_unavailable_or_low")
     if depth is None or depth < policy.minimum_depth:
         reasons.append("minimum_depth_unavailable_or_low")
-    target_start = target.original_start - 1
-    left = max(record.start, target_start)
-    right = min(record.start + len(record.ref), target_start + len(target.original_ref))
-    if right > left and record.ref[left - record.start:right - record.start] != target.original_ref[
-            left - target_start:right - target_start]:
-        reasons.append("reference_allele_mismatch")
     indexes = sorted({index for index in genotype if index is not None and 0 < index <= len(alternates)})
-    assembly = variant_reference_name(target)
-    key = literal_allele_key(target.contig, target.start, target.ref, target.alt, reference_name=assembly)
-    target_called = any(
-        set(record.ref + alternates[index - 1]) <= set("ACGT") and
-        literal_allele_key(target.contig, record.pos, record.ref, alternates[index - 1], reference_name=assembly) == key
-        for index in indexes)
+    target_called = False
+    if target is not None:
+        target_start = target.original_start - 1
+        left = max(record.start, target_start)
+        right = min(record.start + len(reference), target_start + len(target.original_ref))
+        if right > left and reference[left - record.start:right - record.start] != target.original_ref[
+                left - target_start:right - target_start]:
+            reasons.append("reference_allele_mismatch")
+        assembly = variant_reference_name(target)
+        key = literal_allele_key(target.contig, target.start, target.ref, target.alt, reference_name=assembly)
+        target_called = any(
+            set(reference + alternates[index - 1]) <= set("ACGT") and
+            literal_allele_key(target.contig, record.pos, reference, alternates[index - 1], reference_name=assembly) == key
+            for index in indexes)
     all_reference = bool(genotype) and all(index == 0 for index in genotype)
-    base_confidence_record = all(alt in ("<NON_REF>", "<*>") or set(record.ref + alt) <= set("ACGT")
+    base_confidence_record = all(alt in ("<NON_REF>", "<*>") or set(reference + alt) <= set("ACGT")
                                  for alt in alternates)
     # A 0/0 structural-variant genotype does not establish base-level reference
     # confidence over its END interval. Only non-variant block symbols qualify.
@@ -154,7 +161,7 @@ def assess_normal_record(record: VariantRecord, sample_id: str, target: Variant,
     return dict(contig=record.contig, record_id=record.id,
         record_quality=record.qual if record.qual is not None and isfinite(record.qual) else None,
         start=record.start, end=record.stop,
-        reference=record.ref, alternates=alternates, genotype=genotype, phased=sample.phased,
+        reference=reference, alternates=alternates, genotype=genotype, phased=sample.phased,
         phase_set=sample.get("PS"), allele_depths=list(sample["AD"]) if sample.get("AD") is not None else None,
         filters=filters, sample_filter=sample_filter, quality_field=policy.genotype_quality_field,
         genotype_quality=quality, depth_field=depth_field, depth=depth, rejection_reasons=reasons,

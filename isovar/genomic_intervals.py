@@ -48,3 +48,21 @@ class GenomicIntervalIndex:
         """Return a deterministic representation for acquisition receipts."""
         return tuple((contig, start, end) for contig, (starts, ends) in sorted(self._blocks.items())
                      for start, end in zip(starts, ends))
+
+    def intersection(self, other: "GenomicIntervalIndex") -> "GenomicIntervalIndex":
+        """Return territory present in both indexes, without inferring aliases."""
+        result = []
+        for contig in self._blocks.keys() & other._blocks.keys():
+            left_starts, left_ends = self._blocks[contig]
+            right_starts, right_ends = other._blocks[contig]
+            left = right = 0
+            while left < len(left_starts) and right < len(right_starts):
+                start = max(left_starts[left], right_starts[right])
+                end = min(left_ends[left], right_ends[right])
+                if start < end:
+                    result.append((contig, start, end))
+                if left_ends[left] <= right_ends[right]:
+                    left += 1
+                else:
+                    right += 1
+        return GenomicIntervalIndex(result)

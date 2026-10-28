@@ -141,6 +141,7 @@ __all__ = [
     "NormalSource",
     "assess_matched_normal",
     "run_normal_evidence_manifest",
+    "normal_background_regions",
 ]
 
 from .uorf_annotation import annotate_sv_uorf_evidence
@@ -151,3 +152,4 @@ from .variant_rna_orfs import reconstruct_variant_orfs
 
 from .normal_evidence import NormalEvidencePolicy
 from .normal_sources import NormalSource, assess_matched_normal, run_normal_evidence_manifest
+from .normal_regions import normal_background_regions

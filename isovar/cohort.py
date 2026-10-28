@@ -214,6 +214,9 @@ def _normal_background(task, source, files, nominations, variants, genome):
         source_inventory=normal["source_inventory"],
         allele_states=dict(Counter(row["matched_normal_evidence"]["state"] for row in updated)),
         background_flank=normal["background_flank"], background_alleles=len(normal["background_variants"]),
+        background_region_count=len(normal.get("background_regions", ())),
+        background_source_scopes=normal.get("background_source_scopes", []),
+        additional_background_regions=normal.get("manifest", {}).get("additional_background_regions"),
         interpretation=normal["interpretation"])
     return updated, [_literal(row, genome) for row in normal["background_variants"]], scope
 

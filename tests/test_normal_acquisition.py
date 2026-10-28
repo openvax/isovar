@@ -68,3 +68,20 @@ def test_incomplete_stream_never_publishes_an_acquisition_receipt(tmp_path, monk
         acquisition.acquire(descriptor, dict(sha256='f' * 64, values=[Variant('1', 105, 'A', 'G')]), 1, output)
     assert not list(output.glob('*.acquisition.json.gz'))
     assert not list(output.glob('*.vcf.gz'))
+
+
+def test_acquisition_includes_distant_background_regions_and_invalidates_changed_scope(tmp_path, monkeypatch):
+    original = source_file(tmp_path)
+    data = open(original.path, 'rb').read()
+    descriptor = asdict(original)
+    descriptor['provenance'] = dict(url='https://example.invalid/public.vcf.gz',
+        source_size=len(data), http_identity=Response.headers)
+    monkeypatch.setattr(acquisition, 'urlopen', lambda *args, **kwargs: Response(data))
+    output = tmp_path / 'distant'
+    output.mkdir()
+    variants = dict(sha256='f' * 64, values=[Variant('1', 800, 'A', 'G')])
+    result = acquisition.acquire(descriptor, variants, 0, output, additional_regions=[('1', 100, 110)])
+    assert result['counts']['retained_records'] == 1
+    assert result['source']['acquired_regions'] == (('chr1', 100, 110), ('chr1', 799, 800))
+    with pytest.raises(ValueError, match='scope changed'):
+        acquisition.acquire(descriptor, variants, 0, output, additional_regions=[('1', 200, 210)])
