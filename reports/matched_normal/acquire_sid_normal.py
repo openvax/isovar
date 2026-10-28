@@ -2,8 +2,8 @@
 
 Run as a module from the repository root. The reviewed inventory selects complete
 public source IDs, exact VCF columns and policies. It does not infer specimen
-identity from filenames. Original HTTP bytes are hashed while HTSlib parses the
-stream; all records overlapping the declared regions are retained, including
+identity from filenames. Original HTTP bytes are hashed into a temporary local file before HTSlib
+parsing; all records overlapping the declared regions are retained, including
 no-calls and rejected genotypes. Scientific interpretation belongs to the shared
 ``isovar normal-evidence`` command.
 """
@@ -12,9 +12,8 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from hashlib import sha256
-import os
 from pathlib import Path
-from threading import Thread
+from tempfile import TemporaryDirectory
 from urllib.request import Request, urlopen
 
 import pysam
@@ -28,40 +27,28 @@ from isovar.sv_rna_audit import file_sha256, read_json, write_json
 
 @contextmanager
 def _hashed_vcf_stream(source):
-    """Feed one conditional HTTP response to HTSlib and hash its original bytes."""
+    """Hash a complete public download, parse locally, then discard raw bytes.
+
+    Separating download from parsing avoids leaving a live HTTP response idle
+    while regional indexing/filtering competes for CPU. The temporary original
+    is removed on success or failure; only verified regional derivatives persist.
+    """
     provenance = source['provenance']
     request = Request(provenance['url'], headers={'If-Match': provenance['http_identity']['ETag']})
-    receipt = dict(bytes=0, sha256=None)
-    failures = []
-    with urlopen(request, timeout=120) as response:
-        if response.headers.get('ETag') != provenance['http_identity']['ETag']:
-            raise ValueError('Source HTTP identity changed: ' + source['source_id'])
-        read_fd, write_fd = os.pipe()
-
-        def feed():
-            digest = sha256()
-            try:
-                with os.fdopen(write_fd, 'wb') as destination:
-                    while block := response.read(1024 * 1024):
-                        digest.update(block)
-                        receipt['bytes'] += len(block)
-                        destination.write(block)
-                receipt['sha256'] = digest.hexdigest()
-            except Exception as error:
-                failures.append(error)
-
-        thread = Thread(target=feed, daemon=True)
-        thread.start()
-        try:
-            with pysam.VariantFile('/dev/fd/' + str(read_fd)) as reader:
-                yield reader, receipt
-        finally:
-            os.close(read_fd)
-            thread.join()
-        if failures:
-            raise failures[0]
-        if receipt['bytes'] != provenance['source_size']:
+    with TemporaryDirectory(prefix='isovar-public-normal-') as directory:
+        original = Path(directory) / 'original.vcf.gz'
+        digest, count = sha256(), 0
+        with urlopen(request, timeout=120) as response, original.open('wb') as destination:
+            if response.headers.get('ETag') != provenance['http_identity']['ETag']:
+                raise ValueError('Source HTTP identity changed: ' + source['source_id'])
+            while block := response.read(1024 * 1024):
+                digest.update(block)
+                count += len(block)
+                destination.write(block)
+        if count != provenance['source_size']:
             raise ValueError('Source size changed or download incomplete: ' + source['source_id'])
+        with pysam.VariantFile(original) as reader:
+            yield reader, dict(bytes=count, sha256=digest.hexdigest())
 
 
 def _acquisition_identity(source):
@@ -102,11 +89,14 @@ def acquire(source, variants, flank, output, *, additional_regions=()):
     print('Acquiring', source['source_id'][:12], flush=True)
     temporary = destination.with_name(destination.name + '.partial')
     counts = dict(original_records=0, retained_records=0)
+    # Build the potentially large union before opening HTTP. Holding a live
+    # response idle while merging millions of exon/ncORF intervals can cause
+    # transport timeouts under CPU contention.
+    requested = normal_background_regions(variants['values'], background_flank=flank,
+                                           additional_regions=additional_regions)
     with _hashed_vcf_stream(source) as (reader, original):
         if source['vcf_sample'] not in reader.header.samples:
             raise ValueError('Declared VCF sample is absent')
-        requested = normal_background_regions(variants['values'], background_flank=flank,
-                                               additional_regions=additional_regions)
         scope = resolve_normal_regions(requested, reader.header, reference_name=source['reference_name'])
         index = GenomicIntervalIndex(scope.regions)
         with pysam.VariantFile(temporary, 'wz', header=reader.header) as writer:
