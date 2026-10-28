@@ -50,6 +50,64 @@ def test_export_unions_witnesses_across_paths_and_does_not_mutate_input():
     assert set(support["read_lineage"]) == LINEAGE_SUMMARY
 
 
+def test_occurrences_keep_their_own_support_and_union_overlapping_mates():
+    from isovar.rna_evidence import evidence_set, union_rna_support
+
+    result = reconstruction()
+    result["observations"]["full"]["identity"] = ["rg", "template", 64]
+    add_witness(result, "mate", ["rg", "template", 128], reverse_complement=True)
+    add_witness(result, "other", ["rg", "another", 0], missing=True)
+    base = result["paths"][0]
+    witnesses = {w["observation"]: w for w in
+                 base["exploratory_orfs"]["candidates"][0]["full_interval_support"]["witnesses"]}
+    selections = {"first": ["full", "mate", "full"], "second": ["mate", "other"], "empty": []}
+    result["paths"] = []
+    for name, keys in selections.items():
+        path = deepcopy(base)
+        path["path_id"] = name
+        path["exploratory_orfs"]["candidates"][0]["full_interval_support"]["witnesses"] = [
+            deepcopy(witnesses[key]) for key in keys]
+        result["paths"].append(path)
+    before = deepcopy(result)
+    candidate = only(result)
+    by_path = {o["path_id"]: o["rna_support"] for o in candidate["occurrences"]}
+    assert result == before
+    assert [(by_path[k]["reads"], by_path[k]["fragments"]) for k in selections] == [(2, 1), (2, 2), (0, 0)]
+    for name, keys in selections.items():
+        identities = [result["observations"][key]["identity"] for key in keys]
+        expected = evidence_set(["sample", "source"], identities)
+        assert all(by_path[name][key] == value for key, value in expected.items())
+        assert by_path[name]["scope"] == "full_interval_junction_linked_witnesses_for_occurrence"
+    assert by_path["first"]["missing_quality_reads"] == 0
+    assert by_path["second"]["missing_quality_reads"] == 1
+    assert by_path["first"]["fragment_query_orientations"]["mixed"] == 1
+    assert by_path["empty"]["fragment_ids"] == []
+    union = union_rna_support(by_path.values())
+    assert union["reads"] == 3 and union["fragments"] == 2
+    for key, value in union.items():
+        actual = candidate["rna_support"][key]
+        assert (set(actual) == set(value)) if key in ("read_ids", "fragment_ids") else actual == value
+    assert candidate["rna_support"]["scope"] == "union_of_full_interval_junction_linked_witnesses_within_input"
+    result["paths"].reverse()
+    assert only(result) == candidate
+
+
+def test_occurrence_support_preserves_library_and_source_identity():
+    result = reconstruction()
+    result["observations"]["full"]["identity"] = ["rg1", "same-name", 0]
+    add_witness(result, "other_library", ["rg2", "same-name", 0])
+    first = only(result)["occurrences"][0]["rna_support"]
+    assert first["reads"] == first["fragments"] == 2
+    result["event_id"] = "another-event"
+    assert only(result)["occurrences"][0]["rna_support"] == first
+    for field in ("sample_id", "source"):
+        changed = deepcopy(result)
+        changed[field] = "another"
+        support = only(changed)["occurrences"][0]["rna_support"]
+        assert set(support["read_ids"]).isdisjoint(first["read_ids"])
+        assert set(support["fragment_ids"]).isdisjoint(first["fragment_ids"])
+
+
 def test_sequence_ids_keep_synonymous_alternatives_and_scope_evidence_independently():
     result = reconstruction()
     first = only(result)
@@ -112,10 +170,14 @@ def test_known_shared_library_labels_and_signal_descendants_use_the_shared_ledge
     support = only(result)["rna_support"]
     assert complete_umis(support) == 1
     assert support["read_lineage"]["signal_groups"] == 2  # RG still partitions signal ancestry.
+    occurrence_support = only(result)["occurrences"][0]["rna_support"]
+    assert complete_umis(occurrence_support) == 1
+    assert occurrence_support["read_lineage"]["signal_groups"] == 2
     result["read_lineage"]["reads"][1]["signal_group"] = ["library", "parent"]
     candidate = only(result)
     assert candidate["rna_support"]["fragments"] == 2
     assert candidate["rna_support"]["read_lineage"]["signal_groups"] == 1
+    assert candidate["occurrences"][0]["rna_support"]["read_lineage"]["signal_groups"] == 1
     assert "shared_signal_ancestry" in candidate["uncertainty_flags"]
     del result["cell_umi_evidence"]["reads"][1]
     assert complete_umis(only(result)["rna_support"]) is None

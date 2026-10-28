@@ -366,8 +366,14 @@ ORFs without a full witness:
 
 - Identical sequences found on several paths become one candidate, with each
   path listed as an occurrence. Synonymous alternatives stay separate.
-- Support (`rna_support`, the same record as everywhere else) is recomputed
-  from the union of original reads, never by adding path counts.
+- Candidate support (`rna_support`, the same record as everywhere else) is
+  recomputed from the union of original reads, never by adding path counts.
+- Each `occurrences[].rna_support` counts only that placement's full-interval,
+  junction-linked witnesses. It includes read/fragment counts and scoped IDs,
+  cell/UMI completeness, signal lineage, query orientation and missing-quality
+  counts. An occurrence with no full witness has zero support even when another
+  occurrence of the same sequence is supported. Overlapping placements may
+  share reads; their counts are not additive.
 - The nucleotide FASTA includes an observed stop codon; the protein FASTA does not.
 - `start_evidence_summary` agrees with every occurrence's start tier, or reports
   `ambiguous` with no priority.
@@ -394,6 +400,15 @@ These are prompts for review, not automatic rejections. IDs are full SHA-256
 hashes of canonical JSON: candidate IDs hash the event, reference, sequence,
 protein and stop status; read and fragment IDs are scoped to the sample and
 source. Hashes are references, not anonymization.
+
+Occurrence support is an additive field in v4 exports produced by Isovar 1.62.2
+and later. The Python API and CLI JSON output share this contract; the TSV stays
+one row per candidate with union support. Older exports without the field cannot
+establish placement support from the candidate union when there are multiple
+occurrences. Missing support means unavailable, not zero. Consumers should use
+the explicit occurrence record or recover support from the original v5
+reconstruction's observation ledger. `isovar.union_rna_support` can combine the
+scoped occurrence read sets without double-counting their overlap.
 
 ## Compare with predicted proteins
 
