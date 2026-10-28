@@ -1,0 +1,64 @@
+"""Regional acquisition filters locally and never publishes an incomplete receipt."""
+
+from dataclasses import asdict
+from io import BytesIO
+
+import pysam
+import pytest
+from varcode import Variant
+
+from reports.matched_normal import acquire_sid_normal as acquisition
+from isovar.sv_rna_audit import file_sha256
+from .test_normal_sources import source_file
+
+
+class Response(BytesIO):
+    headers = {'ETag': '"public-object-identity"'}
+
+
+def test_acquisition_hashes_full_stream_and_sends_no_genomic_regions(tmp_path, monkeypatch):
+    original = source_file(tmp_path)
+    data = open(original.path, 'rb').read()
+    descriptor = asdict(original)
+    descriptor['provenance'] = dict(url='https://example.invalid/public.vcf.gz',
+        source_size=len(data), http_identity=Response.headers)
+    requests = []
+
+    def open_source(request, timeout):
+        requests.append(request)
+        return Response(data)
+
+    monkeypatch.setattr(acquisition, 'urlopen', open_source)
+    output = tmp_path / 'acquired'
+    output.mkdir()
+    variants = dict(sha256='f' * 64, values=[Variant('1', 105, 'A', 'G')])
+    result = acquisition.acquire(descriptor, variants, 1, output)
+    request, = requests
+    assert request.full_url == descriptor['provenance']['url']
+    assert request.data is None
+    assert request.header_items() == [('If-match', Response.headers['ETag'])]
+    assert result['source']['provenance']['original_file']['sha256'] == file_sha256(original.path)
+    with pysam.VariantFile(result['source']['path']) as reader:
+        record, = list(reader)
+        assert record.samples['EXPLICIT.sample-column']['GT'] == (0, 2)
+        assert record.alts == ('G', 'T')  # Acquisition does no genotype filtering.
+    assert result['source']['acquired_regions'] == (('chr1', 103, 106),)
+    acquisition.acquire(descriptor, variants, 1, output)
+    assert len(requests) == 1
+    with pytest.raises(ValueError, match='scope changed'):
+        acquisition.acquire(descriptor, variants, 2, output)
+
+
+def test_incomplete_stream_never_publishes_an_acquisition_receipt(tmp_path, monkeypatch):
+    original = source_file(tmp_path)
+    data = open(original.path, 'rb').read()
+    descriptor = asdict(original)
+    descriptor['provenance'] = dict(url='https://example.invalid/public.vcf.gz',
+        source_size=len(data) + 1, http_identity=Response.headers)
+    monkeypatch.setattr(acquisition, 'urlopen', lambda *args, **kwargs: Response(data))
+    output = tmp_path / 'incomplete'
+    output.mkdir()
+    with pytest.raises(ValueError, match='incomplete'):
+        acquisition.acquire(descriptor, dict(sha256='f' * 64, values=[Variant('1', 105, 'A', 'G')]), 1, output)
+    assert not list(output.glob('*.acquisition.json.gz'))
+    assert not list(output.glob('*.vcf.gz'))

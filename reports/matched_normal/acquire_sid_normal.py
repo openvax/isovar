@@ -22,6 +22,7 @@ from varcode import ContigResolver, Variant
 
 from isovar.genomic_intervals import GenomicIntervalIndex
 from isovar.normal_sources import normal_query_interval
+from isovar.rna_evidence import canonical_json
 from isovar.sv_rna_audit import file_sha256, read_json, write_json
 
 
@@ -52,7 +53,7 @@ def _hashed_vcf_stream(source):
         thread = Thread(target=feed, daemon=True)
         thread.start()
         try:
-            with pysam.VariantFile(read_fd) as reader:
+            with pysam.VariantFile('/dev/fd/' + str(read_fd)) as reader:
                 yield reader, receipt
         finally:
             os.close(read_fd)
@@ -69,7 +70,8 @@ def acquire(source, variants, flank, output):
     receipt_path = output / (source['source_id'] + '.acquisition.json.gz')
     if receipt_path.exists():
         result = read_json(receipt_path)
-        if result['selection'] != source or result['flank'] != flank or result['nomination_sha256'] != variants['sha256']:
+        if (canonical_json(result['selection']) != canonical_json(source) or result['flank'] != flank
+                or result['nomination_sha256'] != variants['sha256']):
             raise ValueError('Acquisition scope changed; use a new directory')
         for name in ('path', 'index_path'):
             if file_sha256(result['source'][name]) != result['source']['sha256' if name == 'path' else 'index_sha256']:
@@ -77,6 +79,7 @@ def acquire(source, variants, flank, output):
         return result
     if destination.exists():
         raise ValueError('Unreceipted derivative exists: ' + str(destination))
+    print('Acquiring', source['source_id'][:12], flush=True)
     temporary = destination.with_name(destination.name + '.partial')
     counts = dict(original_records=0, retained_records=0)
     with _hashed_vcf_stream(source) as (reader, original):

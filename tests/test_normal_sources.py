@@ -14,7 +14,7 @@ from isovar.sv_rna_audit import file_sha256
 def source_file(tmp_path, *, contig="chr1", start=104, alleles=("A", "G", "T"), genotype=(0, 2)):
     path = tmp_path / "ArbitraryCase_and_not_a_Normal_suffix.vcf"
     header = pysam.VariantHeader()
-    header.contigs.add(contig, length=1000)
+    header.contigs.add(contig, length=max(1000, start + len(alleles[0]) + 50))
     header.add_sample("EXPLICIT.sample-column")
     for name, kind in (("GT", "String"), ("GQ", "Integer"), ("DP", "Integer"), ("MIN_DP", "Integer")):
         header.formats.add(name, 1, kind, name)
@@ -54,6 +54,13 @@ def test_missing_contig_is_unavailable_not_absent_normal_alt(tmp_path):
     assert row["state"] == "unavailable"
     assert row["source_assessments"][0]["reason"] == "unresolved_chromosome"
     assert not row["origin_conflict"]
+
+
+def test_query_beyond_declared_source_contig_is_unavailable(tmp_path):
+    result = assess([Variant("1", 2000, "A", "G")], [source_file(tmp_path)])
+    row = result["alleles"][0]
+    assert row["state"] == "unavailable"
+    assert row["source_assessments"][0]["reason"] == "outside_declared_contig_length"
 
 
 def test_assembly_alias_is_preserved_in_inventory_and_canonicalized_for_cohort(tmp_path):

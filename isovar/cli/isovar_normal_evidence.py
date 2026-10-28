@@ -1,6 +1,7 @@
 """Assess matched-normal genotypes and reference confidence from a pinned inventory."""
 
 import argparse
+import logging
 from pathlib import Path
 
 from ..normal_sources import run_normal_evidence_manifest
@@ -17,6 +18,7 @@ parser.add_argument("--output", required=True, type=Path,
 def run(args=None, *, prog=None):
     command = parser_for_program(parser, prog)
     options = command.parse_args(args)
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
         run_normal_evidence_manifest(options.manifest, options.output)
     except (OSError, ValueError, TypeError, KeyError) as error:

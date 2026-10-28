@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
+import logging
 from pathlib import Path
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -19,6 +20,9 @@ from .normal_evidence import (
 )
 from .sv_rna_audit import file_sha256, read_json, write_json
 from .rna_evidence import content_identifier
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -177,6 +181,11 @@ def _source_assessments(source: NormalSource, variants: Sequence[Variant], backg
                 row["reason"] = "unresolved_chromosome"
                 rows.append(row)
                 continue
+            contig_length = reader.header.contigs[contig].length
+            if contig_length is not None and interval[1] > contig_length:
+                row["reason"] = "outside_declared_contig_length"
+                rows.append(row)
+                continue
             if acquired is not None and not acquired.covers(contig, *interval):
                 row["reason"] = "outside_acquired_regions"
                 rows.append(row)
@@ -188,8 +197,8 @@ def _source_assessments(source: NormalSource, variants: Sequence[Variant], backg
                     reference_confidence=source.evidence_kind == "reference_confidence")
                 row["state"], row["records"] = state, assessed
                 left, right = max(0, interval[0] - background_flank), interval[1] + background_flank
-                if reader.header.contigs[contig].length is not None:
-                    right = min(right, reader.header.contigs[contig].length)
+                if contig_length is not None:
+                    right = min(right, contig_length)
                 if background_flank:
                     background_records = list(reader.fetch(contig, left, right))
                 else:
@@ -256,7 +265,10 @@ def assess_matched_normal(variants: Sequence[Variant], sources: Sequence[NormalS
             # Exclusions apply to the whole run. Keep them once in the source
             # inventory, rather than copying them into every allele assessment.
             continue
+        logger.info("Assessing normal source %s (%s): %d focal alleles", source.source_id, source.caller, len(variants))
         rows, observations = _source_assessments(source, variants, background_flank)
+        logger.info("Completed normal source %s: %d local assessments, %d background observations",
+                    source.source_id, len(rows), len(observations))
         source_rows.append(rows)
         for key, evidence in observations:
             background.setdefault(key, {})[(source.source_id, content_identifier("normal_record", evidence["record"]),
