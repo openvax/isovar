@@ -3,7 +3,7 @@
 from collections import defaultdict
 from copy import deepcopy
 import csv
-from functools import cmp_to_key
+from functools import cache, cmp_to_key
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -96,10 +96,9 @@ def _unique_occurrences(rows):
     return [row for _, row in entries]
 
 
-def _support(result, witnesses, labels, lineage):
+def _support(result, keys, labels, lineage, get_observation):
     scope = [result["sample_id"], result["source"]]
-    keys = dict.fromkeys(w["observation"] for w in witnesses)
-    observations = [result["observations"][key] for key in keys]
+    observations = [get_observation(key) for key in keys]
     identities = sorted({tuple(o["identity"]) for o in observations})
     lineage_rows = [lineage.get(identity, dict(identity=list(identity), signal_group=None,
                                               status="metadata_unavailable")) for identity in identities]
@@ -215,6 +214,8 @@ def export_sv_rna_orfs(result):
         agree. Candidate identity excludes sample/source; evidence identity
         includes them and excludes event. Hashes are references, not guarantees
         of anonymization or evidence independence across source aliases.
+        Each occurrence has its own ``rna_support``; the candidate-level
+        support remains the deduplicated union across all its occurrences.
     """
     if result.get("schema") != "isovar.sv_rna_candidates.v5":
         raise ValueError("SV ORF export requires isovar.sv_rna_candidates.v5")
@@ -238,11 +239,26 @@ def export_sv_rna_orfs(result):
     candidates = []
     labels = {tuple(row["identity"]): row for row in result["cell_umi_evidence"]["reads"]} if groups else {}
     lineage = {tuple(row["identity"]): row for row in result["read_lineage"]["reads"]} if groups else {}
+
+    @cache
+    def get_observation(key):
+        return result["observations"][key]
+
+    @cache
+    def support_for_observations(keys):
+        return _support(result, keys, labels, lineage, get_observation)
+
     for key in sorted(groups):
         candidate = groups[key]
         candidate["occurrences"] = _unique_occurrences(candidate["occurrences"])
-        witnesses = (w for occurrence in candidate["occurrences"] for w in occurrence["witnesses"])
-        candidate["rna_support"] = _support(result, witnesses, labels, lineage)
+        candidate_keys = set()
+        for occurrence in candidate["occurrences"]:
+            keys = frozenset(w["observation"] for w in occurrence["witnesses"])
+            candidate_keys.update(keys)
+            occurrence["rna_support"] = dict(
+                support_for_observations(keys),
+                scope="full_interval_junction_linked_witnesses_for_occurrence")
+        candidate["rna_support"] = support_for_observations(frozenset(candidate_keys))
         candidate["start_evidence_summary"] = summarize_orf_start_evidence(
             o["start_evidence"] for o in candidate["occurrences"])
         candidate["uncertainty_flags"] = _flags(candidate, result)
