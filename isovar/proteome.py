@@ -6,24 +6,40 @@ infer protein expression, complete partial sequences, or select a winner.
 
 from collections.abc import Mapping
 
-import orfdata
-from orfdata import ProducerInfo, ProducerLink, ProducerRecord, Proteome
+from orfdata import ProducerInfo, ProducerLink, ProducerRecord, Proteome, ProteinSequence as _Protein
 from orfdata import ReferenceContext as ProteomeReferenceContext
 
 from .protein_hypotheses import SCHEMA, export_protein_hypotheses
 from .rna_evidence import content_identifier
 
 
-# ORFdata 0.36 renames ProteomeEntry/from_entries and the link target kind.
-# Keep the mapping identical across both published 0.35 and the newer API.
-_Protein = getattr(orfdata, "ProteinSequence", None) or orfdata.ProteomeEntry
-_PROTEIN_TARGET = "protein" if hasattr(orfdata, "ProteinSequence") else "entry"
+_PROTEIN_TARGET = "protein"
 
 
-def _record(kind, native_id, payload, sample_id, source, **kwargs):
+def _record(kind, native_id, payload, sample_id, source, *, schema_version="v2", **kwargs):
     return ProducerRecord(
-        namespace="isovar", schema_version="v2", kind=kind, native_id=native_id,
+        namespace="isovar", schema_version=schema_version, kind=kind, native_id=native_id,
         exporter="isovar", sample_id=sample_id, run_id=source, payload=payload, **kwargs)
+
+
+def _validate_evidence(evidence_id, payload, sample_id, source):
+    """Validate the recorded scope and set identity, without inventing reads."""
+    if not isinstance(payload, Mapping):
+        raise ValueError("RNA evidence must be a JSON object")
+    scope = payload.get("evidence_scope")
+    if not isinstance(scope, (tuple, list)) or list(scope) != [sample_id, source]:
+        raise ValueError("RNA evidence scope does not match sample_id and source")
+    for unit in ("read", "fragment"):
+        ids, count = payload.get(unit + "_ids"), payload.get(unit + "s")
+        if (not isinstance(ids, (tuple, list))
+                or any(not isinstance(value, str) or not value for value in ids)
+                or len(set(ids)) != len(ids) or type(count) is not int or count != len(ids)):
+            raise ValueError(f"RNA evidence {unit} identities and counts disagree")
+    expected = content_identifier("evidence", sorted(payload["read_ids"]))
+    if evidence_id != expected or payload.get("evidence_set_id") != evidence_id:
+        raise ValueError("RNA evidence set identity disagrees with its recorded reads")
+    if payload['fragments'] > payload['reads'] or bool(payload['fragments']) != bool(payload['reads']):
+        raise ValueError("RNA evidence read and fragment counts disagree")
 
 
 def _support_link(support, target, evidence_records):
@@ -35,6 +51,9 @@ def _support_link(support, target, evidence_records):
     evidence = evidence_records.get(evidence_id)
     if evidence is None:
         raise ValueError(f"Unknown RNA evidence set: {evidence_id}")
+    for unit in ("reads", "fragments"):
+        if type(support.get(unit)) is not int or support[unit] != evidence.payload[unit]:
+            raise ValueError(f"RNA support {unit} disagree with the referenced evidence set")
     return ProducerLink(evidence.key, target.key, "record", "supports_rna_sequence")
 
 
@@ -92,6 +111,7 @@ def from_protein_hypotheses(export, *, reference):
     for evidence_id, payload in sorted(evidence_sets.items()):
         if not isinstance(evidence_id, str) or not isinstance(payload, Mapping):
             raise ValueError("RNA evidence sets need string IDs and JSON objects")
+        _validate_evidence(evidence_id, payload, sample_id, source)
         record = _record(
             "evidence", evidence_id, payload, sample_id, source, support="rna_sequence",
             scope={"sample": sample_id, "read_set": source})
@@ -181,8 +201,7 @@ def from_protein_hypotheses(export, *, reference):
                 if link is not None:
                     links.append(link)
 
-    make_proteome = Proteome.from_proteins if _PROTEIN_TARGET == "protein" else Proteome.from_entries
-    return make_proteome(entries, reference=reference, records=records, links=links)
+    return Proteome.from_proteins(entries, reference=reference, records=records, links=links)
 
 
 def to_proteome(isovar_results, *, sample_id, source, reference, **export_options):

@@ -38,3 +38,12 @@ Evidence units follow the existing source-scoped RNA identity contract. The
 SAM specification distinguishes templates, sequenced segments, supplementary
 alignments and alternative placements; alignment rows are not new fragments:
 https://samtools.github.io/hts-specs/SAMv1.pdf (sections 1.2 and 1.4).
+
+The #571 implementation also fixes reproduced #604: source envelopes must not
+relabel scoped RNA evidence, and linked counts must match their evidence sets.
+One `from_rna_result` API and `isovar proteome` command retain typed producer
+records and links. Native v5 SV input keeps annotated-frame translations and
+all path outcomes as well as the shared compact v4 exploratory mapping; the
+records explicitly link the two representations without treating them as new
+evidence. Original IDs remain in payloads; export digests qualify new adapter
+records so alternative assessments cannot overwrite each other when combined.

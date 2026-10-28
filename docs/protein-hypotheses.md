@@ -72,7 +72,7 @@ joint.write_fasta("joint.fasta")
 joint.save("joint.proteome.json.gz")
 ```
 
-ORFdata 0.35.0 or newer is required. The adapter keeps one FASTA entry per
+ORFdata 0.39.1 or newer is required. The adapter keeps one FASTA entry per
 retained Isovar protein by default, including shorter windows and equal amino
 acid sequences from different sources. `write_fasta(..., deduplicate=True)`
 is an explicit sequence-grouping choice. The versioned snapshot retains the
@@ -85,9 +85,12 @@ set. ORFdata [#126](https://github.com/openvax/orfdata/issues/126) tracks
 display of additional source metadata and partial boundaries in the header;
 those values are already preserved in the snapshot.
 
-This first adapter covers the small-variant v2 export. The separate SV/fusion
-ORF export needs a later mapping. If a result declares a different reference
-build, conversion fails instead of silently combining it with this proteome.
+`from_protein_hypotheses` covers the small-variant v2 export. The shared
+[`from_rna_result` API and `isovar proteome` CLI](rna-proteome.md) also accept
+SV ORF, supplied-fusion and variant-associated ncORF results. A contradictory
+reference build or RNA evidence sample/library is rejected. Linked support
+counts must agree with the referenced evidence set; changing only the export's
+sample/source labels cannot reassign existing RNA evidence.
 
 ## Reading the export
 

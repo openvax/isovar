@@ -18,10 +18,10 @@ REFERENCE = ReferenceContext(9606, "human", "GRCh38", "Ensembl", "87")
 Protein = getattr(orfdata, "ProteinSequence", None) or orfdata.ProteomeEntry
 
 
-def exported():
+def exported(sample_id="tumor-1", source="tumor-rna.bam"):
     return export_protein_hypotheses(
         [synthetic_result(settings={"max_protein_sequences_per_variant": 0})],
-        sample_id="tumor-1", source="tumor-rna.bam")
+        sample_id=sample_id, source=source)
 
 
 def records_of(proteome, kind):
@@ -105,14 +105,10 @@ def test_reference_and_schema_must_be_explicit_and_consistent():
 
 
 def test_read_set_and_gene_names_remain_source_qualified_and_escaped():
-    first = exported()
-    first["sample_id"] = "tumor A"
-    first["source"] = "reads / A.bam"
-    first["evidence_scope"] = ["tumor A", "reads / A.bam"]
+    first = exported(sample_id="tumor A", source="reads / A.bam")
     first["events"][0]["protein_hypotheses"][0]["gene_names"] = ["GENE A/1", "GENE B"]
-    other = deepcopy(first)
-    other["source"] = "reads / B.bam"
-    other["evidence_scope"] = ["tumor A", "reads / B.bam"]
+    other = exported(sample_id="tumor A", source="reads / B.bam")
+    other["events"][0]["protein_hypotheses"][0]["gene_names"] = ["GENE A/1", "GENE B"]
     a = from_protein_hypotheses(first, reference=REFERENCE)
     b = from_protein_hypotheses(other, reference=REFERENCE)
     joint = a.merge(b)
@@ -121,6 +117,36 @@ def test_read_set_and_gene_names_remain_source_qualified_and_escaped():
     assert tuple(a)[0].fasta_token() != tuple(b)[0].fasta_token()
     assert " " not in tuple(a)[0].fasta_token()
     assert len(joint.by_sequence()["MAQG"]) == 2
+
+
+@pytest.mark.parametrize("field", ["sample_id", "source"])
+def test_evidence_scope_cannot_be_relabelled_by_changing_the_export_envelope(field):
+    export = exported()
+    export[field] = "different"
+    export["evidence_scope"] = [export["sample_id"], export["source"]]
+    with pytest.raises(ValueError, match="evidence scope"):
+        from_protein_hypotheses(export, reference=REFERENCE)
+
+
+def test_support_counts_must_match_the_referenced_evidence():
+    export = exported()
+    export["events"][0]["protein_hypotheses"][0]["rna_support"]["fragments"] += 1
+    with pytest.raises(ValueError, match="support.*fragments"):
+        from_protein_hypotheses(export, reference=REFERENCE)
+
+
+@pytest.mark.parametrize("field", ["read_ids", "fragment_ids", "evidence_set_id", "reads", "fragments"])
+def test_evidence_identity_and_counts_are_validated(field):
+    export = exported()
+    evidence = next(e for e in export["evidence_sets"].values() if e["reads"])
+    if field.endswith("ids"):
+        evidence[field].append(evidence[field][0])
+    elif field == "evidence_set_id":
+        evidence[field] = "wrong"
+    else:
+        evidence[field] += 1
+    with pytest.raises(ValueError, match="evidence"):
+        from_protein_hypotheses(export, reference=REFERENCE)
 
 
 def test_unknown_gene_and_mixed_start_state_stay_explicit():
