@@ -11,6 +11,9 @@ import json
 from pathlib import Path
 
 from ..contig_resolution import UnresolvedContigError, require_resolved_contig
+from ..isovar_result import IsovarResult
+from ..protein_hypotheses import export_protein_hypotheses
+from ..protein_reporting import protein_report_record
 from ..evidence_report import (
     catalog_coding_index, changed_reference_interval, direct_read_context_proteins,
     overlapping_catalog_orfs, overlaps_exon, reference_ninemer_matches, self_novelty,
@@ -28,6 +31,8 @@ parser.set_defaults(max_protein_sequences_per_variant=0)
 parser.add_argument("--sample-id", required=True, help="Identity of the RNA sample")
 parser.add_argument("--output", type=Path, required=True, help="Output PDF")
 parser.add_argument("--per-call", type=Path, help="Per-call TSV (default: PDF stem + .tsv)")
+parser.add_argument("--evidence-json", type=Path,
+                    help="Complete per-call protein paths and witness sets (default: PDF stem + .json)")
 parser.add_argument("--dna-source", help="DNA call-set identity (default: VCF path)")
 parser.add_argument("--rna-source", help="RNA read-set identity (default: BAM path)")
 parser.add_argument("--nc-orf-catalog", type=Path,
@@ -41,7 +46,10 @@ FIELDS = (
     "orfdata_coding_block_overlap", "top_effect_type", "rna_status", "ref_reads",
     "alt_reads", "other_reads", "alt_fragments", "protein_count",
     "top_changed_aa_positions", "top_local_protein", "novel_9mers", "total_9mers",
-    "self_fasta_sha256", "contig_resolution",
+    "self_fasta_sha256", "contig_resolution", "top_marked_aa_positions",
+    "reference_identical_contexts", "amino_acid_divergent_contexts", "unresolved_contexts",
+    "focal_changed_contexts", "top_contributor_fragments", "top_window_fragments",
+    "top_single_read_fragments", "top_paired_template_fragments", "top_translation_id",
 )
 
 
@@ -64,7 +72,7 @@ def _raw_overlap(alignment, variant, collector):
     return alignment.count(contig, start, end)
 
 
-def collect(variants, alignment, collector, creator, *, catalog=None):
+def collect(variants, alignment, collector, creator, *, sample_id, source, catalog=None):
     """Retain assessed zero-support calls and unmeasured chromosome failures.
 
     Unresolved rows have null support and annotation fields. No annotation
@@ -114,6 +122,11 @@ def collect(variants, alignment, collector, creator, *, catalog=None):
         calls.append(call)
         effects = variant.effects()
         top_effect = effects.top_priority_effect()
+        result = IsovarResult(variant=variant, read_evidence=evidence, predicted_effect=top_effect,
+                              sorted_protein_sequences=products, protein_sequence_settings=creator.settings())
+        export = export_protein_hypotheses([result], sample_id=sample_id, source=source,
+                                            alignment_header=alignment.header)
+        call["protein_hypotheses"] = export
         begin, end, _ = changed_reference_interval(pos, ref_base, alt_base)
         ids = (overlapping_catalog_orfs(index, variant.contig, begin - 1, end)
                if index is not None else ())
@@ -122,12 +135,8 @@ def collect(variants, alignment, collector, creator, *, catalog=None):
             reference_coding_effect=any(e.modifies_coding_sequence for e in effects),
             orfdata_coding_block_overlap=bool(ids) if catalog is not None else None,
             top_effect_type=type(top_effect).__name__)
-        for rank, protein in enumerate(products, 1):
-            proteins.append(dict(call_id=ident, rank=str(rank),
-                                 protein_sequence=protein.amino_acids,
-                                 mutation_start_idx=str(protein.mutation_start_idx),
-                                 mutation_end_idx=str(protein.mutation_end_idx),
-                                 supporting_reads=str(protein.num_supporting_reads)))
+        proteins.extend(protein_report_record(protein, ident)
+                        for protein in export["events"][0]["protein_hypotheses"])
     return calls, annotations, proteins
 
 
@@ -140,8 +149,10 @@ def write_per_call(path, calls, annotations, summary, sources, self_scores):
             ident = call["call_id"]
             top = summary["top"].get(ident)
             score = self_scores.get(ident)
-            serialized = dict(call, contig_resolution=json.dumps(call["contig_resolution"], sort_keys=True)
+            serialized = dict({key: value for key, value in call.items() if key in FIELDS},
+                              contig_resolution=json.dumps(call["contig_resolution"], sort_keys=True)
                               if call.get("contig_resolution") else "")
+            context_counts = summary["context_counts_by_call"].get(ident, {})
             writer.writerow(dict(
                 sample_id=sources["sample_id"], dna_source=sources["dna_source"],
                 rna_source=sources["rna_source"], **serialized,
@@ -149,8 +160,13 @@ def write_per_call(path, calls, annotations, summary, sources, self_scores):
                 reference_coding_effect=annotations[ident]["reference_coding_effect"],
                 orfdata_coding_block_overlap=annotations[ident]["orfdata_coding_block_overlap"],
                 top_effect_type=annotations[ident]["top_effect_type"],
-                top_changed_aa_positions=(int(top["mutation_end_idx"]) -
-                                          int(top["mutation_start_idx"])) if top else "",
+                top_changed_aa_positions=top.get("changed_residue_count") if top else "",
+                top_marked_aa_positions=(int(top["mutation_end_idx"]) - int(top["mutation_start_idx"])) if top else "",
+                **{name + "_contexts": context_counts.get(name) for name in
+                   ("reference_identical", "amino_acid_divergent", "unresolved", "focal_changed")},
+                **{"top_" + key: top.get(key) if top else None for key in
+                   ("contributor_fragments", "window_fragments", "single_read_fragments", "paired_template_fragments")},
+                top_translation_id=top.get("displayed_translation_id", "") if top else "",
                 top_local_protein=top["protein_sequence"] if top else "",
                 novel_9mers=score[0] if score else "",
                 total_9mers=score[1] if score else "",
@@ -162,6 +178,13 @@ def run(args=None, *, prog=None):
     if parsed.output.suffix.lower() != ".pdf":
         parser.error("--output must end in .pdf")
     try:
+        per_call = parsed.per_call or parsed.output.with_suffix(".tsv")
+        evidence_json = parsed.evidence_json or parsed.output.with_suffix(".json")
+        outputs = [path.resolve() for path in (parsed.output, per_call, evidence_json)]
+        inputs = {Path(path).resolve() for path in
+                  [*parsed.vcf, parsed.bam, parsed.self_fasta, parsed.nc_orf_catalog] if path}
+        if len(set(outputs)) != len(outputs) or inputs.intersection(outputs):
+            raise CommandInputError("Report outputs must be distinct and must not overwrite input files")
         variants = tuple(variant_collection_from_args(parsed))
         if not variants:
             raise CommandInputError("VCF contains no loaded variants")
@@ -174,7 +197,8 @@ def run(args=None, *, prog=None):
             catalog = orfdata.load_catalog(path=parsed.nc_orf_catalog)
         with alignment:
             calls, annotations, proteins = collect(
-                variants, alignment, collector, creator, catalog=catalog)
+                variants, alignment, collector, creator, sample_id=parsed.sample_id,
+                source=parsed.rna_source or parsed.bam, catalog=catalog)
         summary = summarize(calls, annotations, proteins)
         self_scores = {}
         self_fasta_sha256 = ""
@@ -185,14 +209,19 @@ def run(args=None, *, prog=None):
             self_scores = {key: self_novelty(value, matches)
                            for key, value in summary["top"].items()}
         sources = dict(sample_id=parsed.sample_id,
-                       dna_source=parsed.dna_source or parsed.vcf,
+                       dna_source=parsed.dna_source or ", ".join(parsed.vcf),
+                       vcf_paths=parsed.vcf, alignment_path=parsed.bam,
                        rna_source=parsed.rna_source or parsed.bam,
                        self_fasta=str(parsed.self_fasta) if parsed.self_fasta else "",
                        self_fasta_sha256=self_fasta_sha256)
         parsed.output.parent.mkdir(parents=True, exist_ok=True)
-        per_call = parsed.per_call or parsed.output.with_suffix(".tsv")
         per_call.parent.mkdir(parents=True, exist_ok=True)
         write_per_call(per_call, calls, annotations, summary, sources, self_scores)
+        evidence_json.parent.mkdir(parents=True, exist_ok=True)
+        with evidence_json.open("w") as stream:
+            json.dump(dict(schema="isovar.evidence_report.v1", sources=sources, calls=calls,
+                           annotations=annotations, proteins=proteins), stream, sort_keys=True)
+            stream.write("\n")
         from ..evidence_pdf import write_generic_report
         write_generic_report(parsed.output, calls, annotations, summary, sources,
                              self_scores, catalog_assessed=catalog is not None)
@@ -200,3 +229,4 @@ def run(args=None, *, prog=None):
         parser_for_program(parser, prog).error(str(error))
     print(parsed.output)
     print(per_call)
+    print(evidence_json)

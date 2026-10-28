@@ -37,6 +37,7 @@ class EvidenceFunnel(Flowable):
             ("Any annotated exon involved", counts["exonic"]),
             ("Exonic with tumor RNA ALT reads", counts["exonic_alt"]),
             ("Exonic with local protein context", counts["exonic_product"]),
+            ("Exonic focal amino-acid change", counts["exonic_changed_product"]),
         )
         if not self.stages or any(a[1] < b[1] or b[1] < 0
                                   for a, b in zip(self.stages, self.stages[1:])):
@@ -209,13 +210,14 @@ def viral_support_figures(contigs, *, width=512):
     return figures
 
 
-def altered_aa_figures(aa_counts, *, width=512):
-    """Isovar-marked interval of the top local context per ALT-observed call."""
+def altered_aa_figures(aa_counts, *, width=512, marked=False):
+    """Verified differences, or explicitly requested marked spans, in top contexts."""
     counts = Counter(aa_bin(n) for n in aa_counts)
+    label = "Marked AA positions" if marked else "Verified residue differences"
     return [
-        BinnedBars("Marked AA positions: all ALT-observed calls", AA_BINS,
+        BinnedBars(label + ": all ALT-observed calls", AA_BINS,
                    counts, width=width),
-        BinnedBars("Marked AA positions: excluding one-AA calls",
+        BinnedBars(label + ": excluding one-residue calls",
                    tuple(label for label in AA_BINS if label != "1"),
                    counts, width=width),
     ]
@@ -273,6 +275,7 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
                  ("RNA ALT-observed", f"{counts['alt']:,}", "Original allele-spanning read evidence"),
                  ("Unresolved chromosome", f"{counts['unresolved_chromosomes']:,}", "RNA support not measured; see per-call diagnostics"),
                  ("Local protein context", f"{counts['product']:,}", "At least one translated local window"),
+                 ("Focal amino-acid change", f"{counts['focal_changed_calls']:,}", "Focal-allele counterfactual differs on the same RNA"),
              ), (190, 67, 255)), PageBreak(),
              p("RNA alternate-read support by variant type", "EvidenceSection")]
     story.extend(read_support_figures(summary["reads_by_class"]))
@@ -287,15 +290,22 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
                     "changed reference base, or at an insertion flank. Both "
                     "panels retain SNVs, insertions, deletions and replacements. "
                     "This VCF/BAM command does not interpret symbolic SVs."), PageBreak(),
-                  p("Isovar-marked amino-acid spans in local contexts", "EvidenceSection")))
+                  p("Verified reference differences in local contexts", "EvidenceSection")))
     story.extend(altered_aa_figures(summary["aa_counts"]))
     story.extend((p("One top-ranked local context is counted per ALT-observed call. "
-                    "The second panel removes the one-residue category; calls with "
-                    "no local product remain explicit. Zero denotes an empty "
-                    "mutation interval such as a deletion junction. A marked "
-                    "position may be unchanged in a synonymous translation; "
-                    "this is not a reference-verified amino-acid difference count. "
-                    "No full frameshift tail or complete isoform is inferred."), PageBreak(),
+                    "Counts include verified substituted, inserted and deleted residues. "
+                    "Zero can be a synonymous context; stop changes are separate. "
+                    "Missing or conflicting comparisons remain unresolved. The second panel "
+                    "excludes one-residue differences. Marked mutation spans are retained "
+                    "separately in TSV/JSON; they are not changed-residue counts."),
+                  table(("Reference comparison", "Contexts", "Calls with this state"),
+                        [(label, counts[state + "_contexts"], counts[state + "_calls"])
+                         for state, label in (("reference_identical", "Reference-identical"),
+                                              ("amino_acid_divergent", "Amino-acid-divergent"),
+                                              ("unresolved", "Unresolved"))], (250, 100, 162)),
+                  p("Calls can have alternative contexts in different states and are not added. "
+                    "Reference divergence alone does not attribute differences to the focal variant. "
+                    "Neither comparison establishes observed translation."), PageBreak(),
                   p("Mutation classes and examples", "EvidenceSection")))
     story.append(table(("Category", "Count", "Scope"), (
         ("DNA-predicted frameshift", f"{counts['frameshift']:,}",
@@ -314,11 +324,14 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
         for call in chosen[:3]:
             ident = call["call_id"]
             protein = summary["top"][ident]
+            measure = (f"{int(call['alt_reads']):,} ALT reads; "
+                       f"{protein.get('contributor_fragments', '?')} contributors; "
+                       f"{protein.get('window_fragments', '?')} exact window fragments "
+                       f"({protein.get('single_read_fragments', '?')} single-read, "
+                       f"{protein.get('paired_template_fragments', '?')} merged-pair)")
             if score:
                 novel, total = self_scores[ident]
-                measure = f"{novel}/{total} novel 9-mers"
-            else:
-                measure = f"{int(call['alt_reads']):,} ALT reads"
+                measure += f"; {novel}/{total} novel 9-mers"
             sequence = protein["protein_sequence"]
             rows.append((ident, variant_type(call), measure,
                          sequence[:29] + ("..." if len(sequence) > 29 else "")))

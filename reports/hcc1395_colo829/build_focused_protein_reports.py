@@ -124,6 +124,10 @@ def cdkn2a():
     proteins_path = BASE / 'colo829_atlas_proteins.tsv.gz'
     reference_path = BASE / 'example_reference_contexts.tsv'
     full_reference_path = FOCUSED / 'cdkn2a_reference.json'
+    recount_path = FOCUSED / 'protein_evidence_recount.json.gz'
+    with gzip.open(recount_path, 'rt') as stream:
+        recount, = [case for case in json.load(stream)['cases'] if case['gene'] == 'CDKN2A']
+    coverage = recount['metrics']
     full_reference = json.loads(full_reference_path.read_text())
     call, = [r for r in rows(calls_path) if r['call_id'] == call_id]
     proteins = sorted((r for r in rows(proteins_path) if r['call_id'] == call_id), key=lambda r: int(r['rank']))
@@ -131,6 +135,11 @@ def cdkn2a():
     top = proteins[0]
     start, end = int(top['mutation_start_idx']), int(top['mutation_end_idx'])
     wt, mutant = reference['reference_context'], top['protein_sequence']
+    if coverage['protein_sequence'] != mutant or coverage['call_id'] != call_id:
+        raise ValueError('Original-RNA recount does not describe the selected atlas context')
+    for path in (calls_path, proteins_path):
+        if recount['inputs'][str(path.relative_to(ROOT))] != digest(path):
+            raise ValueError('Original-RNA recount atlas input digest mismatch')
     assert wt[:start] == mutant[:start] and len(wt) == len(mutant) == 24
     assert int(reference['protein_start_1based']) + start == 68
     offset = int(reference['protein_start_1based']) - 1
@@ -139,7 +148,8 @@ def cdkn2a():
     assert full_reference['protein_sha256'] == reference['reference_protein_sha256']
     value = dict(sample='COLO829', call=call, reference=reference, top_protein=top,
                  retained_contexts=len(proteins), inputs={str(p.relative_to(ROOT)): digest(p)
-                 for p in (calls_path, proteins_path, reference_path, full_reference_path)},
+                 for p in (calls_path, proteins_path, reference_path, full_reference_path, recount_path)},
+                 exact_coding_support=dict(metrics=coverage, receipt=str(recount_path.relative_to(ROOT))),
                  full_reference=full_reference,
                  residue_provenance=dict(focal_variant=[start, end], germline=[], phased_other_somatic=[],
                                          unclassified_nonreference=[], unobserved_outside_local_window=True))
@@ -152,7 +162,9 @@ def cdkn2a():
     p.section('RNA support: allele and complete window are different measurements')
     p.text(f"{int(call['alt_fragments']):,} ALT fragments / {int(call['alt_reads']):,} ALT allele-read observations", 15, bold=True)
     p.text(f"{int(top['supporting_fragments']):,} fragments contribute to this protein context", 15, color=TEAL, bold=True)
-    p.paragraph(f"The window has {int(top['supporting_reads']):,} supporting allele-read observations. "
+    p.paragraph(f"{coverage['window_fragments']:,} fragments exactly span the displayed nucleotide path: "
+                f"{coverage['single_read_fragments']:,} single-read observations and "
+                f"{coverage['paired_template_fragments']:,} merged paired templates. "
                 f"The locus also has {call['ref_fragments']} REF fragments and {call['other_fragments']} other-allele fragments. "
                 'These are template counts in one Illumina library, not UMI-confirmed molecules.')
     p.section('Reference versus observed mutant window')
@@ -204,7 +216,9 @@ def cdkn2a():
         c.drawString(x + 14, p.y, label)
     p.y -= 23
     p.paragraph('RNA coverage is restricted to reference-anchored positions 52-75 in this selected '
-                'window, supported by 5,248 reported fragments. The boundaries at 52 and 76 '
+                f"window. {coverage['contributor_fragments']:,} fragments contribute; "
+                f"{coverage['window_fragments']:,} span the selected path's zero-based coding interval in cDNA nt "
+                f"[{coverage['coding_interval'][0]}, {coverage['coding_interval'][1]}). The boundaries at 52 and 76 "
                 'mark the observed window, not validated full-ORF ends. No reference sequence is '
                 'stitched into the mutant sequence. Upstream initiation and downstream stop remain unresolved.', 9)
     variant_legend(p)
@@ -225,7 +239,9 @@ def cdkn2a():
     p.source('Processing and exact original witnesses',
              'minimap2 2.26 -ax sr --frag=yes (genomic, not splice-aware); Isovar 1.59.6 atlas, '
              'default read handling and high-depth direct contexts. The call, protein and ALT-witness '
-             'tables retain the source-run IDs. Re-rendering does not rerun the atlas.',
+             'tables retain the source-run IDs. The adjacent protein_evidence_recount.json.gz '
+             'reassesses the selected protein with the library export and pins original BAM hashes, '
+             'the displayed nucleotide path, all model comparisons and exact witness IDs.',
              REPO + 'reports/hcc1395_colo829/COLO829_ATLAS.md')
     p.source('Complete study/source index and pinned inputs',
              'SEQUENCING_SOURCES.md lists all sources across the three-sample reports. The adjacent '
@@ -387,7 +403,11 @@ def main():
         '# COLO829 CDKN2A frameshift\n\n'
         '[Open the focused PDF](COLO829_CDKN2A_frameshift.pdf).\n\n'
         'The 24-aa local protein context has **5,248 contributing fragments** (5,338 allele-read observations); '
-        'the allele has 6,967 ALT fragments (6,984 allele-read observations).\n\n'
+        'the allele has 6,967 ALT fragments (6,984 allele-read observations). '
+        f"The displayed nucleotide path has **{value['exact_coding_support']['metrics']['window_fragments']:,} exact "
+        f"coding-window fragments**, including {value['exact_coding_support']['metrics']['single_read_fragments']:,} "
+        f"single-read observations and {value['exact_coding_support']['metrics']['paired_template_fragments']:,} "
+        'merged paired templates. Counts are not pooled across alternative paths.\n\n'
         'Ensembl 87 ENST00000304494 reference residues 52-75; frameshift begins at residue 68.\n\n'
         '**IGV (GRCh38): `chr9:21971154-21971156`.**\n\n'
         f'```text\nReference  {wt}\nRNA mutant {mutant}\n           {" " * 16}{"^" * 8}\n```\n\n'
@@ -402,7 +422,11 @@ def main():
         'Ensembl 87. See the [complete source index](../SEQUENCING_SOURCES.md) and adjacent JSON input hashes.\n')
     (FOCUSED / (pdf.stem + '.json')).write_text(json.dumps(value, indent=2) + '\n')
     (FOCUSED / 'candidate_proteins.fasta').write_text(
-        '>COLO829_CDKN2A local_window=24aa focal_interval_0based=16:24 complete_window_fragments=5248 full_protein_resolved=false\n'
+        '>COLO829_CDKN2A local_window=24aa focal_interval_0based=16:24 contributor_fragments=5248 '
+        f"coding_window_fragments={value['exact_coding_support']['metrics']['window_fragments']} "
+        f"single_read_span_fragments={value['exact_coding_support']['metrics']['single_read_fragments']} "
+        f"paired_template_span_fragments={value['exact_coding_support']['metrics']['paired_template_fragments']} "
+        f"translation_id={value['exact_coding_support']['metrics']['displayed_translation_id']} full_protein_resolved=false\n"
         + mutant + '\n')
     shutil.copyfile(pdf, FOCUSED / pdf.name)
     pdf, value, alignment = fusion()

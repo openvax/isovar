@@ -25,6 +25,7 @@ from .evidence_report import (
 from .isovar_result import IsovarResult
 from .known_variants import KnownVariants
 from .protein_hypotheses import export_protein_hypotheses
+from .protein_reporting import protein_comparison_status
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
 from .rna_evidence import canonical_json, content_identifier
@@ -378,8 +379,7 @@ def _write_companions(path, output):
                 continue
             event = row["protein_hypotheses"]["events"][0]
             proteins = event["protein_hypotheses"]
-            changed = [p for p in proteins if any(t["reference_comparison"]["focal_amino_acid_change"]
-                                                for t in p["translations"])]
+            changed = [p for p in proteins if protein_comparison_status(p, focal=True) == "amino_acid_divergent"]
             nc = row["nc_orfs"].get("result")
             nc_proteins = nc["protein_candidates"] if nc else []
             writer.writerow([name, ";".join(row["gene_names"]), row["category"], row["status"],

@@ -60,7 +60,8 @@ def test_cell_line_sv_funnels_and_protein_comparisons(tmp_path, sample, sv_count
         assert 'Unclassified' in full_text or 'unclassified provenance' in full_text
         assert '531-aa' in full_text and '149 exact Illumina junction' in full_text
     else:
-        assert '5,248 fragments support' in full_text and 'CNIH3' in full_text
+        assert '5,248 fragments contribute' in full_text and 'CNIH3' in full_text
+        assert '1,027 fragments exactly span' in full_text
         assert 'DDX17: intronic ALT RNA' in full_text
         assert '27,309 pairs' in full_text
         assert 'chr22:38490360-38490362' in full_text

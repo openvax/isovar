@@ -23,7 +23,7 @@ RNA_STATUSES = (
     "unresolved_chromosome",
 )
 READ_BINS = ("0", "1", "2-4", "5-9", "10-49", "50-199", "200+")
-AA_BINS = ("no local product", "0", "1", "2-4", "5-9", "10-19", "20+")
+AA_BINS = ("no local product", "unresolved", "0", "1", "2-4", "5-9", "10-19", "20+")
 
 
 def direct_read_context_proteins(variant, alt_reads, creator):
@@ -131,18 +131,25 @@ def summarize(calls, annotations, proteins=(), sv=()):
     if len(by_id) != len(calls) or set(by_id) != set(annotations):
         raise ValueError("Calls and annotations must have the same unique call IDs")
     top = {}
+    context_counts_by_call = defaultdict(Counter)
     for row in proteins:
         key = row["call_id"]
         if key not in by_id:
             raise ValueError(f"Protein for unknown call {key}")
         if key not in top or int(row["rank"]) < int(top[key]["rank"]):
             top[key] = row
+        state = row.get("comparison_status", "unresolved")
+        if state not in ("reference_identical", "amino_acid_divergent", "unresolved"):
+            raise ValueError("Unknown protein comparison status: " + str(state))
+        context_counts_by_call[key][state] += 1
+        context_counts_by_call[key]["focal_changed"] += row.get("focal_comparison_status") == "amino_acid_divergent"
     counts = Counter()
     rna = Counter()
     classes = Counter()
     reads_by_class = {}
     exonic_reads_by_class = {}
     aa_counts = []
+    marked_aa_counts = []
     for call in calls:
         ident = call["call_id"]
         annotation = annotations[ident]
@@ -168,6 +175,11 @@ def summarize(calls, annotations, proteins=(), sv=()):
         counts["exonic_product"] += exonic and product
         counts["alt"] += alt
         counts["product"] += product
+        states = context_counts_by_call[ident]
+        for state in ("reference_identical", "amino_acid_divergent", "unresolved", "focal_changed"):
+            counts[state + "_contexts"] += states[state]
+            counts[state + "_calls"] += bool(states[state])
+        counts["exonic_changed_product"] += exonic and bool(states["focal_changed"])
         counts["coding"] += _yes(annotation.get("reference_coding_effect"))
         counts["ncorf"] += _yes(annotation.get("orfdata_coding_block_overlap"))
         counts["frameshift"] += annotation.get("top_effect_type") == "FrameShift"
@@ -179,9 +191,12 @@ def summarize(calls, annotations, proteins=(), sv=()):
                 count = int(selected["mutation_end_idx"]) - int(selected["mutation_start_idx"])
                 if count < 0:
                     raise ValueError(f"Negative mutation interval for {ident}")
-                aa_counts.append(count)
+                marked_aa_counts.append(count)
+                differences = selected.get("changed_residue_count")
+                aa_counts.append(differences if differences is not None else "unresolved")
             else:
                 aa_counts.append(None)
+                marked_aa_counts.append(None)
     counts["total"] = len(calls)
     counts["sv_total"] = len(sv)
     counts["sv_product"] = sum(row.get("protein_status", "").startswith("translated")
@@ -190,7 +205,8 @@ def summarize(calls, annotations, proteins=(), sv=()):
         raise ValueError("Exonic funnel stages are not nested")
     return dict(counts=counts, rna=rna, classes=classes, top=top,
                 reads_by_class=reads_by_class,
-                exonic_reads_by_class=exonic_reads_by_class, aa_counts=aa_counts)
+                exonic_reads_by_class=exonic_reads_by_class, aa_counts=aa_counts,
+                marked_aa_counts=marked_aa_counts, context_counts_by_call=dict(context_counts_by_call))
 
 
 def read_bin(count):
@@ -224,6 +240,8 @@ def variant_type(call):
 def aa_bin(count):
     if count is None:
         return "no local product"
+    if count == "unresolved":
+        return "unresolved"
     if count == 0:
         return "0"
     if count == 1:
