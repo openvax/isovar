@@ -1,10 +1,45 @@
 """Annotation and focal-allele comparisons anchored to a translated RNA window."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, TypedDict
+
 from .genetic_code import translate_cdna
+from .protein_window_comparison import ProteinComparison, compare_protein_windows, reference_window_stop
 from .transcript_edit_helpers import transcript_edit_from_variant
 
+if TYPE_CHECKING:
+    from .translation import Translation
 
-def reference_comparison(translation, edits):
+
+class ObservedEdit(TypedDict):
+    transcript_id: str
+    cdna_interval: list[int]
+    alt_bases: str
+    origin: str
+    source_event_id: str | None
+
+
+class ReferenceComparison(TypedDict):
+    """Annotation and same-RNA counterfactual, with separately justified origins."""
+
+    reference_protein_window: str
+    reference_stop_in_context: bool
+    reference_allele_counterfactual_protein: str
+    reference_allele_counterfactual_stop: bool | None
+    focal_amino_acid_change: bool | None
+    annotation_comparison: ProteinComparison
+    focal_allele_comparison: ProteinComparison
+    comparison: str
+    counterfactual_scope: str
+    reference_allele_length: int
+    observed_allele_length: int
+    amino_acid_origins: dict[str, str]
+    provenance_scope: str
+
+
+def reference_comparison(translation: Translation, edits: Sequence[ObservedEdit]) -> ReferenceComparison:
     """Keep the annotation comparator distinct from the same-RNA counterfactual.
 
     Edit provenance is attached only when replaying the transcript edits exactly
@@ -25,7 +60,18 @@ def reference_comparison(translation, edits):
     # the explicit focal in-frame length difference in the reference allele.
     limit = len(translation.amino_acids) + (delta // 3 if delta % 3 == 0 else 0)
     counter_window = counter_amino[:max(0, limit)]
-    counter_stop_in_window = counter_stop and len(counter_amino) <= limit
+    counter_stop_in_window = reference_window_stop(counter_amino, counter_stop, limit,
+                                                   translation.ends_with_stop_codon)
+    annotation_window = reference_amino[:max(0, limit)]
+    annotation_stop_in_window = reference_window_stop(reference_amino, reference_stop, limit,
+                                                      translation.ends_with_stop_codon)
+    comparison_options = dict(allele_length_delta=delta, frameshift=translation.frameshift,
+                              stop=translation.ends_with_stop_codon)
+    interval = (translation.mutation_start_idx, translation.mutation_end_idx)
+    annotation = compare_protein_windows(annotation_window, translation.amino_acids, interval,
+                                          reference_stop=annotation_stop_in_window, **comparison_options)
+    focal_comparison = compare_protein_windows(counter_window, translation.amino_acids, interval,
+                                                reference_stop=counter_stop_in_window, **comparison_options)
     origins = []
     for transcript in context.transcripts:
         focal = transcript_edit_from_variant(context.variant, transcript)
@@ -51,15 +97,16 @@ def reference_comparison(translation, edits):
                 touched = set(labels[offset + 3 * i:offset + 3 * (i + 1)]) - {'reference'}
                 if len(touched) == 1:
                     origins.append((i, next(iter(touched))))
-    by_position = {}
+    by_position: dict[int, set[str]] = {}
     for i, origin in origins:
         by_position.setdefault(i, set()).add(origin)
     return dict(reference_protein_window=reference_amino,
                 reference_stop_in_context=reference_stop,
                 reference_allele_counterfactual_protein=counter_window,
                 reference_allele_counterfactual_stop=counter_stop_in_window,
-                focal_amino_acid_change=(translation.amino_acids != counter_window or
-                                        translation.ends_with_stop_codon != counter_stop_in_window),
+                focal_amino_acid_change=(None if focal_comparison['status'] == 'unresolved' else
+                                        focal_comparison['status'] == 'amino_acid_divergent'),
+                annotation_comparison=annotation, focal_allele_comparison=focal_comparison,
                 comparison='annotation_reference_cDNA_in_the_matched_frame',
                 counterfactual_scope='focal allele replaced on the same observed RNA background',
                 reference_allele_length=len(context.sequence_at_variant_locus),

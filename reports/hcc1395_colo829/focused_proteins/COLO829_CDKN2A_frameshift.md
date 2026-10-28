@@ -2,7 +2,7 @@
 
 [Open the focused PDF](COLO829_CDKN2A_frameshift.pdf).
 
-The 24-aa local window has **5,248 complete-window fragments** (5,338 allele-read observations); the allele has 6,967 ALT fragments (6,984 allele-read observations).
+The 24-aa local protein context has **5,248 contributing fragments** (5,338 allele-read observations); the allele has 6,967 ALT fragments (6,984 allele-read observations). The displayed nucleotide path has **1,027 exact coding-window fragments**, including 996 single-read observations and 31 merged paired templates. Counts are not pooled across alternative paths.
 
 Ensembl 87 ENST00000304494 reference residues 52-75; frameshift begins at residue 68.
 

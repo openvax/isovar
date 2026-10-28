@@ -15,8 +15,25 @@ says nothing about whether their reads overlap.
 
 from hashlib import sha256
 import json
+from typing import NotRequired, TypedDict
 
 from .read_identity import count_reads, fragment_ids, source_read_ids
+
+
+class RNASupport(TypedDict):
+    """Counts in one source scope; optional annotations do not change raw depth."""
+
+    reads: int
+    fragments: int
+    umis: int | None
+    cells: int | None
+    umis_complete: bool | None
+    cells_complete: bool | None
+    unlabeled_reads: int | None
+    unknown_library_reads: int | None
+    label_statuses: dict[str, int] | None
+    evidence_set_id: NotRequired[str | None]
+    base_quality: NotRequired[dict[str, object]]
 
 
 def canonical_json(value):

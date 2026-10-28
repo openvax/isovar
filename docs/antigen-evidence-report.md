@@ -27,6 +27,22 @@ default; `--summary-json PATH` changes the latter path. Omitting an input marks
 that category **not assessed**. A zero within a supplied export means the
 selected source was assessed and had zero support by that export's criterion.
 
+`evidence-report` writes three companions: a PDF, a per-call TSV (`--per-call`)
+and full per-call protein hypotheses with their witness sets (`--evidence-json`,
+default PDF stem plus `.json`). The new JSON schema is
+`isovar.evidence_report.v1`; nested protein exports keep their native schema.
+Output paths must be distinct from one another and from the inputs.
+
+The local-context funnel includes synonymous contexts. Its final changed-protein
+stage requires a verified focal amino-acid difference. Residue plots use verified
+substitution/insertion/deletion counts; marked codon intervals and stop changes
+are separate measurements. Reference-identical, divergent and unresolved
+contexts are reported separately, and one call may have several states across
+its candidates. Historical tables without comparison provenance stay unresolved.
+Examples show contributors and exact coding spans on one identified nucleotide
+path, with single-read and paired-template subsets. See
+[protein evidence semantics](protein-hypotheses.md#coding-coverage-and-sequence-comparisons).
+
 The small-variant page groups exon-involved alleles by SNV, insertion,
 deletion and replacement. It shows original RNA ALT **reads** per allele,
 including zero-support alleles and then only positive-support alleles. The

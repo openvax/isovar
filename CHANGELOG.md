@@ -14,6 +14,21 @@ releases that only fix bugs or add fixtures are omitted; see the
   retain its source inventory and scope, and changed normal evidence invalidates
   resume identity. Reconcile the pinned Sid normal inventory into a new assessment.
 
+## 1.66.0
+
+- Keep assembly contributors, exact coding-window observations, single-read
+  spans and merged paired-template spans separate in protein exports and reports.
+  Report coverage on one identified nucleotide path; never sum alternative paths.
+- Compare each translated window with both its annotation reference and a
+  same-RNA focal-allele counterfactual. Export identical, divergent and unresolved
+  states, actual residue differences and separate stop changes. Synonymous
+  contexts no longer inflate changed-protein funnels or residue plots.
+- Write full protein paths and witness sets beside `evidence-report` PDFs and
+  TSVs (`--evidence-json`). Preserve marked intervals as a separate metric and
+  leave historical comparisons without provenance unresolved.
+- Correct the focused CDKN2A report and FASTA support labels using a reproducible
+  original-RNA recount, with source hashes and separate contributor/span witnesses.
+
 ## 1.65.0
 
 - Use Varcode's contig resolver throughout small-variant alignment collection,

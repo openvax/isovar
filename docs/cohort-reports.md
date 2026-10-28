@@ -1,5 +1,12 @@
 # Reproducible RNA cohort reports
 
+Protein funnels distinguish all local contexts from verified focal amino-acid
+changes. Reference-identical and unresolved comparisons remain visible. Reports
+show contributor, exact coding-window, single-read and merged paired-template
+counts separately, on an identified nucleotide path. See
+[coding coverage and comparisons](protein-hypotheses.md#coding-coverage-and-sequence-comparisons)
+for the shared API and TSV semantics.
+
 `isovar cohort` runs the same reconstruction APIs across declared RNA sources,
 then produces one PDF per sample. Each library, culture, timepoint and analysis
 pass keeps its own denominator. A processing copy or alternative transcript is

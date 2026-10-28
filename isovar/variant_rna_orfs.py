@@ -11,6 +11,7 @@ from .dna import reverse_complement_dna
 from .coding_interval_support import coding_interval_support
 from .genetic_code import translate_cdna
 from .protein_sequence_creator import ProteinSequenceCreator
+from .protein_window_comparison import compare_protein_windows, reference_window_stop
 from .reference_context import ReferenceContext
 from .reference_sequence_key import ReferenceSequenceKey
 from .rna_evidence import EvidenceSets, content_identifier
@@ -109,16 +110,23 @@ def _candidate(sequence, context, locus, reference, model_id, rna_id, evidence, 
     if not contains:
         return None
     counterfactual = cdna[:begin] + context.sequence_at_variant_locus + cdna[end:]
-    counter_protein, _ = _translate(counterfactual[offset:], reference.translation_table, starts)
-    if creator.protein_sequence_length:
-        counter_protein = counter_protein[:creator.protein_sequence_length]
+    counter_protein, counter_stop = _translate(counterfactual[offset:], reference.translation_table, starts)
+    delta = len(context.sequence_at_variant_locus) - (end - begin)
+    comparison_limit = max(0, len(protein) + (delta // 3 if delta % 3 == 0 else 0))
+    counter_stop = reference_window_stop(counter_protein, counter_stop, comparison_limit, stop)
+    counter_protein = counter_protein[:comparison_limit]
     reference_codon_start = max(reference.start, reference_prefix_start +
                                 (reference.start - reference_prefix_start) % 3)
     reference_end = min(reference.end, locus[1] + len(cdna) - end)
-    reference_window, _ = _translate(reference.transcript_sequence[reference_codon_start:reference_end],
+    reference_window, reference_stop = _translate(reference.transcript_sequence[reference_codon_start:reference_end],
                                      reference.translation_table, reference_codon_start == reference.start)
-    if creator.protein_sequence_length:
-        reference_window = reference_window[:creator.protein_sequence_length]
+    reference_stop = reference_window_stop(reference_window, reference_stop, comparison_limit, stop)
+    reference_window = reference_window[:comparison_limit]
+    comparison_options = dict(allele_length_delta=delta, frameshift=frameshift, stop=stop)
+    annotation_comparison = compare_protein_windows(
+        reference_window, protein, (mutation_start, mutation_end), reference_stop=reference_stop, **comparison_options)
+    focal_comparison = compare_protein_windows(
+        counter_protein, protein, (mutation_start, mutation_end), reference_stop=counter_stop, **comparison_options)
     oriented = reverse_complement_dna(sequence.sequence) if reference.strand == '-' else sequence.sequence
     oriented_prefix = len(sequence.suffix) if reference.strand == '-' else len(sequence.prefix)
     shift = oriented_prefix - begin
@@ -139,7 +147,10 @@ def _candidate(sequence, context, locus, reference, model_id, rna_id, evidence, 
         reference_protein_window=reference_window,
         reference_protein_start_0based=(reference_codon_start - reference.start) // 3,
         reference_allele_counterfactual_protein=counter_protein,
-        focal_amino_acid_change=protein != counter_protein,
+        reference_stop_in_context=reference_stop, reference_allele_counterfactual_stop=counter_stop,
+        annotation_comparison=annotation_comparison, focal_allele_comparison=focal_comparison,
+        focal_amino_acid_change=(None if focal_comparison['status'] == 'unresolved' else
+                                focal_comparison['status'] == 'amino_acid_divergent'),
         comparison_scope='focal allele replaced on the same observed RNA background',
         mismatches_before_variant=framed.num_mismatches_before_variant,
         mismatches_after_variant=framed.num_mismatches_after_variant,

@@ -245,7 +245,12 @@ def main_story(sample, d):
         HRFlowable(width='100%', thickness=1.5, color=TEAL),
     ]
     story += section('Small variants: DNA to RNA and local protein')
-    story.append(EvidenceFunnel(c))
+    story.append(EvidenceFunnel(stages=[
+        ("Small variants in DNA source", c["total"]),
+        ("Any annotated exon involved", c["exonic"]),
+        ("Exonic with tumor RNA ALT reads", c["exonic_alt"]),
+        ("Exonic with local protein context", c["exonic_product"]),
+    ]))
     story += section('Structural variants: complementary routes to RNA reconstruction')
     story.append(SVRoutes(d))
     story.append(para(
@@ -509,18 +514,16 @@ def evidence_story(sample, d):
 
 
 def altered_aa_story(d):
-    story = section('Isovar-marked amino-acid span')
+    story = section('Reference comparison and marked amino-acid spans')
     story.append(para(
-        'For each RNA ALT-observed call, count amino-acid positions in the '
-        'mutation interval of its top-ranked local protein context. This is '
-        'not an independently verified count of changed residues: synonymous '
-        'DNA calls can produce a reference-identical amino acid window. '
-        'Calls with no local context are shown '
-        'explicitly. The second panel omits the one-residue category to expose '
-        'the longer tail; its denominator is smaller. A zero-length interval can '
-        'represent a deletion junction. These windows do not determine a complete '
-        'frameshift tail or a full-length isoform.'))
-    for figure in altered_aa_figures(d['summary']['aa_counts']):
+        'The historical atlas tables do not retain per-path coding comparisons. '
+        'Their context-wide reference comparison remains unresolved; selected '
+        'examples have separately pinned comparators. Regenerate with isovar '
+        'evidence-report or cohort to retain verified per-context comparisons. '
+        'The plots below preserve the historical marked mutation spans as a '
+        'separate metric, not changed-residue counts. Synonymous contexts can '
+        'have a marked codon but zero amino-acid differences.'))
+    for figure in altered_aa_figures(d['summary']['marked_aa_counts'], marked=True):
         story.append(figure)
     story.append(PageBreak())
     return story

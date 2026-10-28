@@ -34,6 +34,8 @@
     "reference_context": "MMMGSARVAELLLLHGAEPNCADP",
     "reference_protein_sha256": "7a2d16efe0bed2c12560ef3a9b1678b1f7aff329bbb1cf55ad9f8d826f5ed98a",
     "ensembl_release": "87",
+    "deleted_reference_start": "",
+    "deleted_reference_end": "",
     "placement_method": "unique_shared_protein_prefix"
   },
   "top_protein": {
@@ -54,8 +56,33 @@
   "inputs": {
     "reports/hcc1395_colo829/colo829_atlas_calls.tsv.gz": "294c94b8946ce70bba1b456fc06bc005e2068d78b741fc5cc7acc826fc57852e",
     "reports/hcc1395_colo829/colo829_atlas_proteins.tsv.gz": "f0b1502173ced2d3561fed2933fbea97b87659cb5862fe921a124e93eaa4bc72",
-    "reports/hcc1395_colo829/example_reference_contexts.tsv": "fdf62038d7a8fd47afe918fd20bd807ce784bcc3d7b8e251ed4662e9d438bb03",
-    "reports/hcc1395_colo829/focused_proteins/cdkn2a_reference.json": "1c30aab1248641cff08bc4f96df93e926e840b111be59a9cdf236c2cb41dc724"
+    "reports/hcc1395_colo829/example_reference_contexts.tsv": "8ec2698013857aa4e9ddf46557e1f759b03eecf6a11c4ea6a9f0c8dc556cce6d",
+    "reports/hcc1395_colo829/focused_proteins/cdkn2a_reference.json": "1c30aab1248641cff08bc4f96df93e926e840b111be59a9cdf236c2cb41dc724",
+    "reports/hcc1395_colo829/focused_proteins/protein_evidence_recount.json.gz": "6c8867bb0a7d831f0a3f476035c889584ed4e00bdc06675c59e8b0c01ef0a607"
+  },
+  "exact_coding_support": {
+    "metrics": {
+      "call_id": "chr9:21971154:CCG>C",
+      "changed_residue_count": 8,
+      "coding_interval": [
+        4,
+        76
+      ],
+      "comparison_status": "amino_acid_divergent",
+      "contributor_fragments": 5248,
+      "displayed_translation_id": "translation_90c8ee2877a69033dd08e0b80c41ca0d06d43ece42ff07990d4b5c20fb3d2ad3",
+      "focal_comparison_status": "amino_acid_divergent",
+      "minimum_fragment_depth": 2728,
+      "mutation_end_idx": "24",
+      "mutation_start_idx": "16",
+      "paired_template_fragments": 31,
+      "protein_sequence": "MMMGSARVAELLLLHGGAQLRRPR",
+      "rank": "1",
+      "single_read_fragments": 996,
+      "supporting_reads": "5338",
+      "window_fragments": 1027
+    },
+    "receipt": "reports/hcc1395_colo829/focused_proteins/protein_evidence_recount.json.gz"
   },
   "full_reference": {
     "transcript_id": "ENST00000304494",

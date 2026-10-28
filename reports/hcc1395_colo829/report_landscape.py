@@ -176,7 +176,7 @@ class Landscape(Flowable):
             c.drawRightString(min(490, x + 12), min(227, y + 10 + 9 * index), gene.split(';')[0])
         c.setFillColor(GRAY)
         c.setFont('Helvetica', 8)
-        c.drawCentredString(left + width / 2, 6, 'ALT fragments (log1p); vertical axis: local-window fragments (log1p)')
+        c.drawCentredString(left + width / 2, 6, 'ALT fragments (log1p); vertical axis: context contributors (log1p)')
 
 
 def landscape_story(sample, d):
@@ -232,7 +232,7 @@ def exemplar_story(sample, d, k=3):
             if ident in top:
                 product = top[ident]
                 sequence = product['protein_sequence']
-                block.append(para(f"{int(product['supporting_fragments']):,} reported window fragments; "
+                block.append(para(f"{int(product['supporting_fragments']):,} context-contributing fragments; "
                                   f"{len(sequence)} aa. Transcript(s): {product['compatible_transcript_ids']}", 'FootSmall'))
                 if ident in contexts:
                     reference = contexts[ident]
