@@ -207,6 +207,7 @@ evaluates protein and peptide candidates. See
 | [Choosing the reference annotation](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md) | `--genome`, Ensembl releases and your own GTF |
 | [Command line](https://github.com/openvax/isovar/blob/master/docs/command-line.md) | Every `isovar` command, its output table, logging and errors |
 | [Collecting and counting RNA reads](https://github.com/openvax/isovar/blob/master/docs/read-collection.md) | `ReadCollector` options, reads versus fragments, and the RNA support record in every JSON export |
+| [Matched-normal evidence](docs/matched-normal-evidence.md) | Reviewed normal inventories, genotype/reference-confidence states, supplied backgrounds and cohort integration |
 | [Read eligibility across platforms](https://github.com/openvax/isovar/blob/master/docs/read-processing-audit.md) | Which alignments are used, and what Illumina, ONT and PacBio quality tags mean |
 | [Assembly and translation](https://github.com/openvax/isovar/blob/master/docs/assembly-and-translation.md) | `ProteinSequenceCreator` options, and other variants found in the assembled RNA |
 | [Protein context selection](https://github.com/openvax/isovar/blob/master/docs/protein-selection.md) | How much protein context is reported and which candidate comes first |

@@ -4,6 +4,16 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.67.0
+
+- Add one typed matched-normal API and `isovar normal-evidence` command with
+  explicit source selection, specimen/library assignments, pinned VCF indexes,
+  reference-confidence policies, per-allele evidence states and genotype-indexed
+  background alleles. Preserve no-calls, unavailable territory and caller conflicts.
+- Cohort tasks can consume the resulting receipt as `normal_evidence`; reports
+  retain its source inventory and scope, and changed normal evidence invalidates
+  resume identity. Reconcile the pinned Sid normal inventory into a new assessment.
+
 ## 1.65.0
 
 - Use Varcode's contig resolver throughout small-variant alignment collection,

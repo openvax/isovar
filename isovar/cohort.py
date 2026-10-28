@@ -24,6 +24,7 @@ from .evidence_report import (
 )
 from .isovar_result import IsovarResult
 from .known_variants import KnownVariants
+from .normal_evidence import literal_allele_key
 from .protein_hypotheses import export_protein_hypotheses
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
@@ -84,7 +85,7 @@ def _selected_file_keys(manifest, source_ids):
             if source.get("unavailable_reason"):
                 continue
             keys.update(task.get("reference_files", []))
-            for name in ("variants", "germline_variants", "nc_orf_catalog", "manifest",
+            for name in ("variants", "germline_variants", "normal_evidence", "nc_orf_catalog", "manifest",
                          "input", "original_fixture", "locus_annotations", "genome_fasta", "targets"):
                 if task.get(name):
                     keys.add(task[name])
@@ -95,13 +96,18 @@ def _selected_file_keys(manifest, source_ids):
     return keys
 
 
+def _small_variant_file_keys(task, source):
+    """One input contract for computation, resume identity and report verification."""
+    return [source["bam"], task["variants"]] + [task[key] for key in
+        ("germline_variants", "normal_evidence", "nc_orf_catalog") if task.get(key)] + task.get("reference_files", [])
+
+
 def _report_identity(task, source, manifest, family):
     """Scientific declarations, independent of input locations and presentation."""
     task = {k: v for k, v in task.items() if k not in {"title", "summary", "locus_annotations"}}
     source = {k: v for k, v in source.items() if k != "title"}
     if family == "small_variants":
-        keys = [source["bam"], task["variants"]] + [task[k] for k in
-                ("germline_variants", "nc_orf_catalog") if task.get(k)] + task.get("reference_files", [])
+        keys = _small_variant_file_keys(task, source)
     else:
         keys = _selected_file_keys(dict(files=manifest["files"], sources=[source], **{family: [task]}), None)
     return dict(task=task, source=source,
@@ -173,6 +179,42 @@ def _check_additional_receipt(path, expected, directory, target, *, resume=False
 def _literal(row, genome):
     return Variant(str(row["contig"]), int(row["start"]), row["ref"], row["alt"], genome,
                    convert_ucsc_contig_names=True)
+
+
+def _normal_background(task, source, files, nominations, variants, genome):
+    """Use one declared background source and retain its per-allele normal scope."""
+    if not task.get("normal_evidence"):
+        germline = ([_literal(row, genome) for row in read_json(files[task["germline_variants"]])]
+                    if task.get("germline_variants") else [])
+        return nominations, germline, None
+    if task.get("germline_variants"):
+        raise ValueError("Use normal_evidence or germline_variants, not both; reconcile the normal inventory first")
+    normal = read_json(files[task["normal_evidence"]])
+    if normal.get("schema") != "isovar.matched_normal.v1":
+        raise ValueError("Unsupported matched-normal evidence receipt")
+    if normal["sample_id"] != source["sample_id"] or normal["reference_name"] != genome.reference_name:
+        raise ValueError("Matched-normal sample/reference differs from the RNA cohort")
+    index = {tuple(row["normalized_allele"]): row for row in normal["alleles"]}
+    if len(index) != len(normal["alleles"]):
+        raise ValueError("Duplicate normal allele assessment")
+    updated = []
+    for nomination, variant in zip(nominations, variants):
+        key = literal_allele_key(variant.contig, variant.start, variant.ref, variant.alt)
+        evidence = index.get(key, dict(state="unavailable", source_assessments=[],
+                                       reason="allele_not_assessed_in_normal_receipt", origin_conflict=False))
+        conflict = nomination.get("origin_conflict") or (
+            "Matched-normal assessment: " + evidence["state"] if evidence["origin_conflict"] else False)
+        updated.append(dict(nomination, matched_normal_evidence=evidence,
+            normal_evidence_status="Matched-normal evidence: " + evidence["state"],
+            origin_conflict=conflict))
+    scope = dict(receipt_input=task["normal_evidence"],
+        receipt_sha256=file_sha256(files[task["normal_evidence"]]),
+        reference_name=normal["reference_name"], sample_id=normal["sample_id"],
+        source_inventory=normal["source_inventory"],
+        allele_states=dict(Counter(row["matched_normal_evidence"]["state"] for row in updated)),
+        background_flank=normal["background_flank"], background_alleles=len(normal["background_variants"]),
+        interpretation=normal["interpretation"])
+    return updated, [_literal(row, genome) for row in normal["background_variants"]], scope
 
 
 def _reference_declaration(source, genome):
@@ -267,8 +309,7 @@ def run_small_variant_source(task, source, files, output, *, resume=False):
     variants = [_literal(row, genome) for row in nominations]
     if len(set(variants)) != len(variants):
         raise ValueError("Duplicate literal variants: consolidate their nomination provenance first")
-    germline = ([_literal(row, genome) for row in read_json(files[task["germline_variants"]])]
-                if task.get("germline_variants") else [])
+    nominations, germline, normal_scope = _normal_background(task, source, files, nominations, variants, genome)
     conversions = Counter((v.original_contig, v.contig) for v in variants + germline
                           if v.original_contig != v.contig)
     annotation_diagnostics = dict(
@@ -298,9 +339,7 @@ def run_small_variant_source(task, source, files, output, *, resume=False):
     if not indexes:
         raise ValueError("Indexed genomic RNA BAM required")
     identity = dict(task=task, source=source, software=reconstruction_identity(),
-                    inputs={key: file_sha256(files[key]) for key in
-                            [source["bam"], task["variants"]] + [task[k] for k in
-                             ("germline_variants", "nc_orf_catalog") if task.get(k)] + task.get("reference_files", [])},
+                    inputs={key: file_sha256(files[key]) for key in _small_variant_file_keys(task, source)},
                     indexes={path.name: file_sha256(path) for path in indexes})
     key = content_identifier("cohort_source", identity)
     checkpoint = output / "checkpoint.sqlite"
@@ -352,6 +391,7 @@ def run_small_variant_source(task, source, files, output, *, resume=False):
     errors = outcomes["error"]
     receipt = dict(schema="isovar.cohort_source.v1", identity=identity, identity_key=key,
                    annotation_diagnostics=annotation_diagnostics,
+                   matched_normal_scope=normal_scope,
                    status="completed_with_errors" if errors or unresolved else "completed", errors=errors,
                    unresolved_chromosomes=unresolved,
                    nominated_alleles=len(variants), results="variants.jsonl.gz",
