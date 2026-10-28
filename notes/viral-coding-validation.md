@@ -17,6 +17,13 @@ transcript or translation in the sample.
 
 ## Saved real RNA replay
 
+The bounded original-read regression now lives in
+[`tests/data/viral/siha`](../tests/data/viral/siha/README.md). Its 23-fragment
+slice retains the same selected coding prediction, with an offline CLI test,
+original SAM hashes, reference/catalogue pins and a deterministic extraction
+recipe. The unchanged full-input receipt is stored separately; its 71-fragment
+counts below are not counts from the bounded fixture.
+
 The existing public SiHa-1 RNA experiment uses GSM4785628 / SRR12650977,
 project PRJNA663801. Its one-million-pair prefix and competitive human/viral
 alignment are described in [the recovery experiment](https://github.com/openvax/isovar/issues/514).
