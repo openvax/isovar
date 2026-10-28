@@ -10,7 +10,9 @@ from math import isfinite
 from typing import Literal, TypedDict
 
 from pysam import VariantRecord
-from varcode import Variant
+from varcode import Variant, normalize_contig_name
+
+from .contig_resolution import variant_reference_name
 
 
 NormalState = Literal["alternate_observed", "conflicting_calls", "confidently_reference",
@@ -68,9 +70,10 @@ class NormalRecordEvidence(TypedDict):
     reference_interval: list[int] | None
 
 
-def literal_allele_key(contig: str, start: int, reference: str, alternate: str) -> tuple[str, int, str, str]:
-    """Trim literal alleles using Varcode; this does not left-align or lift over."""
-    value = Variant(contig, start, reference, alternate)
+def literal_allele_key(contig: str, start: int, reference: str, alternate: str, *,
+                       reference_name: str | None = None) -> tuple[str, int, str, str]:
+    """Normalize spelling and trim with Varcode; do not left-align or lift over."""
+    value = Variant(normalize_contig_name(contig, reference_name=reference_name), start, reference, alternate)
     return value.contig, value.start, value.ref, value.alt
 
 
@@ -131,10 +134,11 @@ def assess_normal_record(record: VariantRecord, sample_id: str, target: Variant,
             left - target_start:right - target_start]:
         reasons.append("reference_allele_mismatch")
     indexes = sorted({index for index in genotype if index is not None and 0 < index <= len(alternates)})
-    key = literal_allele_key(target.contig, target.start, target.ref, target.alt)
+    assembly = variant_reference_name(target)
+    key = literal_allele_key(target.contig, target.start, target.ref, target.alt, reference_name=assembly)
     target_called = any(
         set(record.ref + alternates[index - 1]) <= set("ACGT") and
-        literal_allele_key(target.contig, record.pos, record.ref, alternates[index - 1]) == key
+        literal_allele_key(target.contig, record.pos, record.ref, alternates[index - 1], reference_name=assembly) == key
         for index in indexes)
     all_reference = bool(genotype) and all(index == 0 for index in genotype)
     base_confidence_record = all(alt in ("<NON_REF>", "<*>") or set(record.ref + alt) <= set("ACGT")

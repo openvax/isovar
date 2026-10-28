@@ -200,7 +200,7 @@ def _normal_background(task, source, files, nominations, variants, genome):
         raise ValueError("Duplicate normal allele assessment")
     updated = []
     for nomination, variant in zip(nominations, variants):
-        key = literal_allele_key(variant.contig, variant.start, variant.ref, variant.alt)
+        key = literal_allele_key(variant.contig, variant.start, variant.ref, variant.alt, reference_name=genome.reference_name)
         evidence = index.get(key, dict(state="unavailable", source_assessments=[],
                                        reason="allele_not_assessed_in_normal_receipt", origin_conflict=False))
         conflict = nomination.get("origin_conflict") or (

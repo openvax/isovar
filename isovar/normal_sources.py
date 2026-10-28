@@ -7,8 +7,10 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 import pysam
 from varcode import ContigResolver, Variant
+from varcode.reference import infer_genome
 
 from .contig_resolution import variant_source_contig, variant_reference_name
+from .audit_bundle import software_identity
 from .evidence_report import changed_reference_interval
 from .genomic_intervals import GenomicIntervalIndex
 from .normal_evidence import (
@@ -54,6 +56,8 @@ class NormalSource:
             raise ValueError("Normal sources require identity and a selection/exclusion reason")
         if type(self.selected) is not bool:
             raise ValueError("Normal source selected must be a boolean")
+        if not isinstance(self.policy, NormalEvidencePolicy):
+            raise TypeError("Normal source policy must be a NormalEvidencePolicy")
         if self.evidence_kind not in ("variant_only", "reference_confidence"):
             raise ValueError("Unknown normal evidence kind")
         if self.selected and not all((self.reference_name, self.specimen_id, self.library_id, self.vcf_sample, self.caller,
@@ -109,6 +113,7 @@ class MatchedNormalEvidence(TypedDict):
 
     schema: Literal["isovar.matched_normal.v1"]
     isovar_version: str
+    software: dict[str, Any]
     sample_id: str
     reference_name: str
     background_flank: int
@@ -132,7 +137,8 @@ def _background_records(records: Sequence[pysam.VariantRecord], source: NormalSo
             alternate = record.alts[index - 1]
             if not set(record.ref + alternate) <= set("ACGT"):
                 continue
-            key = literal_allele_key(target.contig, record.pos, record.ref, alternate)
+            key = literal_allele_key(target.contig, record.pos, record.ref, alternate,
+                                     reference_name=variant_reference_name(target))
             result.append((key, dict(source_id=source.source_id, specimen_id=source.specimen_id,
                 library_id=source.library_id, processing_group=source.processing_group,
                 sample=source.vcf_sample,
@@ -182,6 +188,8 @@ def _source_assessments(source: NormalSource, variants: Sequence[Variant], backg
                     reference_confidence=source.evidence_kind == "reference_confidence")
                 row["state"], row["records"] = state, assessed
                 left, right = max(0, interval[0] - background_flank), interval[1] + background_flank
+                if reader.header.contigs[contig].length is not None:
+                    right = min(right, reader.header.contigs[contig].length)
                 if background_flank:
                     background_records = list(reader.fetch(contig, left, right))
                 else:
@@ -229,13 +237,16 @@ def assess_matched_normal(variants: Sequence[Variant], sources: Sequence[NormalS
     from . import __version__
     if not sample_id or not reference_name or type(background_flank) is not int or background_flank < 0:
         raise ValueError("Normal assessment requires identities and a nonnegative background flank")
+    reference_name = infer_genome(reference_name)[0].reference_name
     if len({source.source_id for source in sources}) != len(sources):
         raise ValueError("Duplicate normal source identity")
-    if any(source.reference_name != reference_name for source in sources if source.selected):
+    if any(infer_genome(source.reference_name)[0].reference_name != reference_name for source in sources if source.selected):
         raise ValueError("Selected normal sources have incompatible reference assemblies")
     if any(variant_reference_name(variant) != reference_name for variant in variants):
         raise ValueError("Focal variants and normal evidence have incompatible reference assemblies")
-    keys = [literal_allele_key(v.contig, v.start, v.ref, v.alt) for v in variants]
+    if any(set(variant.ref + variant.alt) - set("ACGT") for variant in variants):
+        raise ValueError("Normal assessment requires literal A/C/G/T alleles")
+    keys = [literal_allele_key(v.contig, v.start, v.ref, v.alt, reference_name=reference_name) for v in variants]
     if len(set(keys)) != len(keys):
         raise ValueError("Duplicate focal allele in normal assessment")
     source_rows = []
@@ -258,7 +269,7 @@ def assess_matched_normal(variants: Sequence[Variant], sources: Sequence[NormalS
                             ref=variant.original_ref, alt=variant.original_alt, normalized_allele=list(key),
                             state=state, source_assessments=outcomes,
                             origin_conflict=state in ("alternate_observed", "conflicting_calls")))
-    return dict(schema="isovar.matched_normal.v1", isovar_version=__version__, sample_id=sample_id,
+    return dict(schema="isovar.matched_normal.v1", isovar_version=__version__, software=software_identity(), sample_id=sample_id,
                 reference_name=reference_name, background_flank=background_flank,
                 source_inventory=[asdict(source) for source in sources], alleles=alleles,
                 background_variants=[dict(contig=key[0], start=key[1], ref=key[2], alt=key[3],
@@ -303,7 +314,8 @@ def run_normal_evidence_manifest(manifest_path: str | Path, output_path: str | P
         raise ValueError("Normal assessment output already exists; choose a new receipt path")
     nominations = read_json(nomination_file)
     reference = manifest["reference_name"]
-    variants = [Variant(row["contig"], row["start"], row["ref"], row["alt"], genome=reference) for row in nominations]
+    variants = [Variant(row["contig"], row["start"], row["ref"], row["alt"], genome=reference,
+                        convert_ucsc_contig_names=True) for row in nominations]
     result = assess_matched_normal(variants, sources, sample_id=manifest["sample_id"], reference_name=reference,
                                    background_flank=manifest.get("background_flank", 0))
     for allele, nomination in zip(result["alleles"], nominations):

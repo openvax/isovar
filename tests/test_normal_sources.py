@@ -56,12 +56,31 @@ def test_missing_contig_is_unavailable_not_absent_normal_alt(tmp_path):
     assert not row["origin_conflict"]
 
 
+def test_assembly_alias_is_preserved_in_inventory_and_canonicalized_for_cohort(tmp_path):
+    source = replace(source_file(tmp_path), reference_name="hg38")
+    result = assess_matched_normal([Variant("1", 105, "A", "G")], [source], sample_id="patient", reference_name="hg38")
+    assert result["reference_name"] == "GRCh38"
+    assert result["source_inventory"][0]["reference_name"] == "hg38"
+
+
 @pytest.mark.parametrize("contig,query", [("chrM", "MT"), ("HPV16", "HPV16"),
                                          ("chrUn_gl000220", "chrUn_gl000220")])
 def test_mitochondrial_viral_and_decoy_names_use_shared_resolver(tmp_path, contig, query):
     source = source_file(tmp_path, contig=contig, genotype=(0, 1))
     result = assess([Variant(query, 105, "A", "G")], [source])
     assert result["alleles"][0]["state"] == "alternate_observed"
+
+
+@pytest.mark.parametrize("source_contig,query,canonical", [
+    ("chrM", "chrMT", "MT"), ("chrUn_KI270442v1", "KI270442.1", "KI270442.1")])
+def test_normal_keys_join_annotation_nominations_without_losing_original_spelling(tmp_path, source_contig, query, canonical):
+    source = source_file(tmp_path, contig=source_contig, genotype=(0, 1))
+    for original in (source_contig, query):
+        result = assess([Variant(original, 105, "A", "G")], [source])
+        assert result["alleles"][0]["contig"] == original
+        assert result["alleles"][0]["normalized_allele"][0] == canonical
+        assert result["alleles"][0]["state"] == "alternate_observed"
+        assert result["background_variants"][0]["contig"] == canonical
 
 
 def test_subset_and_excluded_sources_are_not_complete_normal_scope(tmp_path):
