@@ -41,7 +41,8 @@ def test_cli_rna_defaults_match_python_and_merge_mates():
     args = make_isovar_arg_parser().parse_args(["--bam", "unused.bam"])
     cli = rna_args.read_collector_from_args(args)
     api = ReadCollector()
-    assert vars(cli) == vars(api)
+    for name in signature(ReadCollector).parameters:
+        assert getattr(cli, name) == getattr(api, name), name
     reads = [
         make_pysam_read("ACCGTG", "6M", name="pair", reference_start=0),
         make_pysam_read("CGTGAA", "6M", name="pair", reference_start=2),
@@ -61,9 +62,12 @@ def test_explicit_rna_options_and_legacy_namespace():
         "--use-soft-clipped-bases", "--no-merge-overlapping-fragments",
         "--require-base-qualities",
     ])
-    assert vars(rna_args.read_collector_from_args(args)) == vars(ReadCollector(
+    cli = rna_args.read_collector_from_args(args)
+    api = ReadCollector(
         min_mapping_quality=17, use_duplicate_reads=True, use_secondary_alignments=False,
-        use_soft_clipped_bases=True, merge_overlapping_fragments=False, use_reads_without_base_qualities=False))
+        use_soft_clipped_bases=True, merge_overlapping_fragments=False, use_reads_without_base_qualities=False)
+    for name in signature(ReadCollector).parameters:
+        assert getattr(cli, name) == getattr(api, name), name
     del args.merge_overlapping_fragments
     del args.use_reads_without_base_qualities
     assert rna_args.read_collector_from_args(args).use_reads_without_base_qualities == defaults.USE_READS_WITHOUT_BASE_QUALITIES

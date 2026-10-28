@@ -54,6 +54,14 @@ directory with the current version. Existing small-variant receipts remain
 renderable if their declarations and result digests match. Missing analyses
 remain `not_run`; an existing result with a missing or mismatched receipt is an
 error, not an empty analysis.
+
+Small-variant rows with an absent, ambiguous or unavailable alignment contig
+have `status: unresolved_chromosome` and structured `contig_resolution`
+diagnostics. Their RNA counts remain unmeasured (blank in TSV), rather than
+zero. Receipts count `unresolved_chromosomes` separately from unexpected
+`errors`; either produces `completed_with_errors`. PDFs retain these inputs in
+the nomination denominator and exclude them from RNA-depth distributions.
+See [contig resolution](read-collection.md#contig-names-and-unmeasured-loci).
 If a sample supplies a `source_ids` display subset, every listed source must be
 declared and belong to that sample; the subset cannot reassign another sample's
 evidence.

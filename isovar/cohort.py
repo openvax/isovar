@@ -17,6 +17,7 @@ from pyensembl import EnsemblRelease
 from varcode import Variant
 from varcode.reference import infer_genome
 
+from .contig_resolution import UnresolvedContigError, require_resolved_contig
 from .evidence_report import (
     catalog_coding_index, changed_reference_interval, direct_read_context_proteins,
     overlapping_catalog_orfs, overlaps_exon,
@@ -226,13 +227,9 @@ def _evaluate(variant, nomination, bam, source, collector, creator, catalog, ind
                                       alignment_header=bam.header.to_dict(),
                                       cell_umi_alignment_file=bam if source.get("cell_umi_labels") else None,
                                       read_collector=collector if source.get("cell_umi_labels") else None)
-    contig = collector._infer_chromosome_name(variant.contig, bam.references)
-    if contig is None and variant.original_contig in bam.references:
-        contig = variant.original_contig
+    contig = require_resolved_contig(collector.resolve_variant_contig(variant, bam), bam)
     raw = None
     if not (evidence.ref_reads or evidence.alt_reads or evidence.other_reads):
-        if contig is None:
-            raise ValueError("Variant contig is absent from this RNA alignment")
         start = variant.original_start - 1
         raw = bam.count(contig, start, start + max(1, len(variant.original_ref)))
     gene_names = sorted({getattr(e, "gene_name", None) for e in effects} - {None, ""})
@@ -249,7 +246,7 @@ def _evaluate(variant, nomination, bam, source, collector, creator, catalog, ind
     nc = _nc_orfs(variant, evidence, catalog, index, nc_creator, source["sample_id"], source["source_id"])
     nc["assembly_route"] = "direct_read_contexts_high_depth" if dense else "overlap_assembly"
     return dict(status="assessed", nomination=nomination, category=category, gene_names=gene_names,
-                igv=f"{contig or variant.contig}:{variant.original_start}-"
+                igv=f"{contig}:{variant.original_start}-"
                     f"{variant.original_start + max(1, len(variant.original_ref)) - 1}",
                 raw_alignment_overlap_when_no_allele=raw,
                 exon_overlap=overlaps_exon(variant.genome, variant.contig, variant.original_start,
@@ -329,6 +326,9 @@ def run_small_variant_source(task, source, files, output, *, resume=False):
                 try:
                     row = _evaluate(variant, nomination, bam, source, collector, creator, catalog, index, known,
                                     task.get("max_alt_observations_for_overlap_assembly", 750))
+                except UnresolvedContigError as error:
+                    row = dict(status="unresolved_chromosome", nomination=nomination,
+                               message=str(error), contig_resolution=error.to_dict())
                 except Exception as error:
                     row = dict(status="error", nomination=nomination, exception_type=type(error).__name__,
                                message=str(error), traceback=traceback.format_exc())
@@ -338,16 +338,22 @@ def run_small_variant_source(task, source, files, output, *, resume=False):
                     db.commit()
                     logger.info("%s: %d/%d calls", source["source_id"], i + 1, len(variants))
             db.commit()
-        errors = 0
+        outcomes = Counter()
         temporary = output / "variants.jsonl.gz.tmp"
         with temporary.open("wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb", filename="", mtime=0) as stream:
             for value, in db.execute("SELECT result FROM calls ORDER BY ordinal"):
-                errors += json.loads(value)["status"] == "error"
+                outcomes[json.loads(value)["status"]] += 1
                 stream.write((value + "\n").encode())
         temporary.replace(output / "variants.jsonl.gz")
+    unresolved = outcomes["unresolved_chromosome"]
+    if unresolved:
+        logger.warning("%s: %d nominations have unresolved chromosomes; RNA support was not measured. "
+                       "See per-call contig_resolution diagnostics.", source["source_id"], unresolved)
+    errors = outcomes["error"]
     receipt = dict(schema="isovar.cohort_source.v1", identity=identity, identity_key=key,
                    annotation_diagnostics=annotation_diagnostics,
-                   status="completed_with_errors" if errors else "completed", errors=errors,
+                   status="completed_with_errors" if errors or unresolved else "completed", errors=errors,
+                   unresolved_chromosomes=unresolved,
                    nominated_alleles=len(variants), results="variants.jsonl.gz",
                    result_sha256=file_sha256(output / "variants.jsonl.gz"))
     _write_companions(output / "variants.jsonl.gz", output)

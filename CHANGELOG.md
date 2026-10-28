@@ -4,6 +4,16 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.65.0
+
+- Use Varcode's contig resolver throughout small-variant alignment collection,
+  cell labels, germline phasing and allele interpretation. Preserve exact source
+  names and reuse bounded header/assembly indexes. Require Varcode 10.22.1.
+- Unresolved contigs now raise `UnresolvedContigError` in direct collection,
+  rather than returning zero support or dropping germline background. Cohort
+  and evidence reports retain explicit unmeasured outcomes and diagnostics.
+  Allele interpretations remain unassessed without fabricated zero counts.
+
 ## 1.61.0
 
 - Add `reconstruct_variant_orfs` for mutation-supporting RNA assessed against

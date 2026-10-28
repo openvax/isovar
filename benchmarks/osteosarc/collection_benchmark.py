@@ -19,7 +19,7 @@ import time
 import tracemalloc
 
 import pysam
-from varcode import Variant
+from varcode import ContigResolver, Variant
 
 import isovar
 from isovar.allele_read_helpers import allele_reads_from_locus_reads
@@ -156,11 +156,15 @@ def run(args):
         # fingerprinting and conversion are themselves unbounded on deep loci.
         with time_limit(args.timeout):
             with pysam.AlignmentFile(bam) as handle:
-                chromosome = ReadCollector._infer_chromosome_name(record["chrom"], handle.references)
-                if chromosome is None:
-                    raise ValueError("Variant contig not present in source BAM")
+                # Keep the benchmark's input interpretation identical when
+                # comparing collectors from historical Isovar checkouts.
+                resolution = ContigResolver(handle.references, reference_name=
+                    getattr(genome, "assembly", None) or variant.reference_name).resolve(
+                    variant.original_contig)
+                if not resolution.resolved:
+                    raise ValueError(resolution.diagnostic)
                 reads = ProfiledCollector(merge_overlapping_fragments=True).get_locus_reads(
-                    handle, chromosome, base0_start, base0_end, position, ref, alt)
+                    handle, resolution.resolved_name, base0_start, base0_end, position, ref, alt)
             completed = dict(
                 locus_collection_wall_seconds=time.perf_counter() - collection_started,
                 locus_collection_cpu_seconds=time.process_time() - cpu_started,

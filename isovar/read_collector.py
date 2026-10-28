@@ -11,8 +11,11 @@
 # limitations under the License.
 
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from itertools import groupby
+
+from pysam import AlignmentFile
+from varcode import ContigResolution, Variant
 
 from .default_parameters import (
     USE_SECONDARY_ALIGNMENTS,
@@ -33,6 +36,9 @@ from .read_evidence import ReadEvidence
 from .read_identity import read_group, source_alignments_from_pysam, source_read_ids
 from .chimeric_alignment import source_alignment_paths_from_pysam
 from .read_end_inference import ReadEndProfile, read_sequence_view_from_alignment
+from .contig_resolution import (
+    AlignmentContigCache, require_resolved_contig, variant_reference_name, variant_source_contig,
+)
 
 logger = get_logger(__name__)
 
@@ -193,6 +199,7 @@ class ReadCollector(object):
         if read_filter is not None and not callable(read_filter):
             raise TypeError("read_filter must be callable or None")
         self.read_filter = read_filter
+        self._contig_cache = AlignmentContigCache()
 
     def alignment_filter_reason(self, read):
         """Return a rejection reason, or None, for one original SAM record.
@@ -1038,44 +1045,44 @@ class ReadCollector(object):
         )
         return merged_reads
 
-    @staticmethod
-    def _infer_chromosome_name(variant_chromosome_name, valid_chromosome_names):
+    def resolve_contig(
+            self, alignment_file: AlignmentFile, contig: str | int, *,
+            reference_name: str | None = None) -> ContigResolution:
         """
-        Resolve a contig label, preferring an exact match to a unique alias.
+        Resolve a supplied name against an alignment's actual vocabulary.
 
-        This does not establish reference-sequence or assembly equivalence.
-        In particular, mitochondrial references can differ in both length
-        and sequence despite using M/MT/chrM/chrMT labels.
         Parameters
         ----------
-        variant_chromosome_name : str
-
-        valid_chromosome_names : set of str
+        alignment_file : pysam.AlignmentFile
+            Open alignment input with an immutable reference vocabulary.
+        contig : str or int
+            Supplied source name. Exact matches take precedence over aliases.
+        reference_name : str, optional
+            Assembly spelling context; required for assembly-specific aliases.
 
         Returns
         -------
-        str or None
-            Matching BAM name, or None if no candidate exists.
-
-        Raises
-        ------
-        ValueError
-            More than one alias exists and there is no exact match.
+        varcode.ContigResolution
+            Exact, unique alias, ambiguous, missing or unavailable outcome.
+            No annotation lookup, sequence validation or liftover is performed.
+            Indexes are reused across queries in a bounded header/context cache.
         """
-        if variant_chromosome_name in valid_chromosome_names:
-            return variant_chromosome_name
-        unprefixed = variant_chromosome_name.lower().removeprefix("chr")
-        candidate_names = {unprefixed, "chr" + unprefixed}
-        if unprefixed in ("m", "mt"):
-            candidate_names.update(("m", "mt", "chrm", "chrmt"))
-        matches = {name for name in valid_chromosome_names if name.lower() in candidate_names}
-        if len(matches) > 1:
-            raise ValueError("Ambiguous alignment contig aliases for %r: %s" % (
-                variant_chromosome_name, ", ".join(sorted(matches))))
-        return next(iter(matches), None)
+        return self._contig_cache.resolver(alignment_file, reference_name).resolve(contig)
 
-    def locus_reads_overlapping_variant(self, alignment_file, variant, chromosome=None):
-        """Return public ``LocusRead`` objects overlapping a variant."""
+    def resolve_variant_contig(self, variant: Variant, alignment_file: AlignmentFile) -> ContigResolution:
+        """Resolve the original variant name using its declared assembly context."""
+        return self.resolve_contig(alignment_file, variant_source_contig(variant),
+                                   reference_name=variant_reference_name(variant))
+
+    def locus_reads_overlapping_variant(
+            self, alignment_file: AlignmentFile, variant: Variant,
+            chromosome: str | None = None) -> list[LocusRead]:
+        """Return public locus reads; unresolved contigs raise UnresolvedContigError.
+
+        An explicit ``chromosome`` overrides the source name but must still
+        resolve against the alignment vocabulary. No coordinate conversion is
+        performed. Empty results mean a resolved locus had no eligible reads.
+        """
         return self._locus_reads_overlapping_variant(
             alignment_file=alignment_file,
             variant=variant,
@@ -1101,32 +1108,9 @@ class ReadCollector(object):
         """
         # Validate before consulting annotation or the alignment handle.
         require_literal_variant(variant)
-        if chromosome is None:
-            # if a chromosome name isn't manually specified then try
-            # to figure out whether adding or removing "chr" is necessary
-            # match chromosome names used for variant calling and those
-            # found in read alignments
-            chromosome = self._infer_chromosome_name(
-                variant_chromosome_name=variant.contig,
-                valid_chromosome_names=set(alignment_file.references),
-            )
-            if chromosome is None and variant.original_contig in alignment_file.references:
-                # Varcode has already established this source-to-annotation
-                # conversion, including accession versions. Preserve the BAM's
-                # exact source spelling instead of duplicating its alias rules.
-                chromosome = variant.original_contig
-
-        if chromosome is None:
-            # failed to infer a chromosome name for this variant which
-            # matches names used in SAM/BAM file
-            filename = alignment_file.filename
-            logger.warning(
-                "Chromosome '%s' from variant %s not in alignment file %s",
-                variant.contig,
-                variant,
-                filename.decode() if isinstance(filename, bytes) else filename,
-            )
-            return []
+        resolution = (self.resolve_variant_contig(variant, alignment_file) if chromosome is None else
+                      self.resolve_contig(alignment_file, chromosome, reference_name=variant_reference_name(variant)))
+        chromosome = require_resolved_contig(resolution, alignment_file)
 
         logger.info("Gathering reads for variant %s:%s %s>%s",
                     variant.contig, variant.start, variant.ref, variant.alt)
@@ -1216,7 +1200,7 @@ class ReadCollector(object):
             )
         return allele_reads_from_locus_reads(locus_reads)
 
-    def read_evidence_for_variant(self, variant, alignment_file):
+    def read_evidence_for_variant(self, variant: Variant, alignment_file: AlignmentFile) -> ReadEvidence:
         """
         Find reads in the given SAM/BAM file which overlap the given variant and
         return them as a ReadEvidence object, which splits the reads into
@@ -1229,14 +1213,23 @@ class ReadCollector(object):
         alignment_file : pysam.AlignmentFile
             Aligned RNA reads
 
-        Returns ReadEvidence
+        Returns
+        -------
+        ReadEvidence
+            Eligible observations split by reference, alternate and other allele.
+
+        Raises
+        ------
+        UnresolvedContigError
+            The original variant name has no unique target in the alignment
+            header. This is unmeasured RNA support, not an empty ReadEvidence.
         """
         allele_reads = self.allele_reads_overlapping_variant(
             variant=variant, alignment_file=alignment_file
         )
         return ReadEvidence.from_variant_and_allele_reads(variant, allele_reads)
 
-    def allele_reads_supporting_variant(self, variant, alignment_file):
+    def allele_reads_supporting_variant(self, variant: Variant, alignment_file: AlignmentFile) -> list[AlleleRead]:
         """
         Gather AlleleRead objects which contain the same allele as the variant.
 
@@ -1254,7 +1247,8 @@ class ReadCollector(object):
         )
         return read_evidence.alt_reads
 
-    def read_evidence_generator(self, variants, alignment_file):
+    def read_evidence_generator(
+            self, variants: Iterable[Variant], alignment_file: AlignmentFile) -> Iterator[tuple[Variant, ReadEvidence]]:
         """
         Consumes a generator of varcode.Variant objects, collects read evidence
         for each variant from the alignment_file, and generates a sequence

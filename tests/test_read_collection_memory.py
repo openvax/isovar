@@ -76,7 +76,7 @@ def test_original_locus_and_allele_reads_match_182(case, mode, merge):
     results = []
     for cls in (UnsharedCollector, ReadCollector):
         with pysam.AlignmentFile(sid_data.path("osteosarc/expansion/corpus/" + case["bam" if mode == "defaults" else "primary_bam"])) as bam:
-            chromosome = cls._infer_chromosome_name(record["chrom"], bam.references)
+            chromosome = ReadCollector().resolve_contig(bam, record["chrom"]).resolved_name
             results.append(cls(merge_overlapping_fragments=merge).get_locus_reads(
                 bam, chromosome, start, end, position, ref, alt))
     assert_same_reads(*results)
@@ -238,6 +238,7 @@ def test_coordinate_table_is_released_after_errors_and_success_on_the_same_colle
             return locus_read
 
     collector = FailingCollector(merge_overlapping_fragments=False)
+    initial_state = vars(collector).copy()
     with pytest.raises(ValueError, match="conversion failure"):
         collector.get_locus_reads(repeated_reads(), "1", 10005, 10006)
     assert len(converted) == 1
@@ -248,7 +249,7 @@ def test_coordinate_table_is_released_after_errors_and_success_on_the_same_colle
     assert len(later) == 3
     assert_no_coordinate_table_survives(later, holders=3)
     assert all(a is not b for a, b in zip(later[0].reference_positions, converted[0].reference_positions))
-    assert collector.__dict__ == FailingCollector(merge_overlapping_fragments=False).__dict__
+    assert vars(collector) == initial_state
 
 
 def test_public_evidence_path_still_calls_each_existing_subclass_hook():

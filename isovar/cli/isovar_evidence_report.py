@@ -7,8 +7,10 @@ inputs add candidate coding-block and exact 9-mer comparisons.
 
 import csv
 import hashlib
+import json
 from pathlib import Path
 
+from ..contig_resolution import UnresolvedContigError, require_resolved_contig
 from ..evidence_report import (
     catalog_coding_index, changed_reference_interval, direct_read_context_proteins,
     overlapping_catalog_orfs, overlaps_exon, reference_ninemer_matches, self_novelty,
@@ -39,7 +41,7 @@ FIELDS = (
     "orfdata_coding_block_overlap", "top_effect_type", "rna_status", "ref_reads",
     "alt_reads", "other_reads", "alt_fragments", "protein_count",
     "top_changed_aa_positions", "top_local_protein", "novel_9mers", "total_9mers",
-    "self_fasta_sha256",
+    "self_fasta_sha256", "contig_resolution",
 )
 
 
@@ -55,19 +57,19 @@ def _rna_status(ref, alt, other, raw_overlap):
     return "alignment_without_allele_call" if raw_overlap else "no_alignment_overlap"
 
 
-def _raw_overlap(alignment, variant):
+def _raw_overlap(alignment, variant, collector):
     start = variant.original_start - 1
     end = start + max(1, len(variant.original_ref))
-    for contig in (variant.original_contig,
-                   variant.original_contig.removeprefix("chr"),
-                   "chr" + variant.original_contig.removeprefix("chr")):
-        if contig in alignment.references:
-            return alignment.count(contig, start, end)
-    raise ValueError(f"Variant contig {variant.original_contig} is absent from RNA alignment")
+    contig = require_resolved_contig(collector.resolve_variant_contig(variant, alignment), alignment)
+    return alignment.count(contig, start, end)
 
 
 def collect(variants, alignment, collector, creator, *, catalog=None):
-    """Evaluate every loaded small variant, retaining zero-support records."""
+    """Retain assessed zero-support calls and unmeasured chromosome failures.
+
+    Unresolved rows have null support and annotation fields. No annotation
+    absence or reference allele is inferred from an unavailable RNA locus.
+    """
     calls, annotations, proteins = [], {}, []
     index = catalog_coding_index(catalog.records) if catalog is not None else None
     genome = variants[0].genome
@@ -80,27 +82,35 @@ def collect(variants, alignment, collector, creator, *, catalog=None):
         ident = variant.short_description
         if ident in annotations:
             raise ValueError(f"Duplicate variant identity: {ident}")
-        evidence = collector.read_evidence_for_variant(variant, alignment)
+        pos = variant.original_start
+        ref_base, alt_base = variant.original_ref, variant.original_alt
+        cls = ("SNV" if len(ref_base) == len(alt_base) == 1 else
+               "indel" if len(ref_base) != len(alt_base) else "replacement")
+        call = dict(call_id=ident, **{"class": cls}, chrom=variant.original_contig,
+                    pos=str(pos), ref=ref_base, alt=alt_base)
+        try:
+            evidence = collector.read_evidence_for_variant(variant, alignment)
+        except UnresolvedContigError as error:
+            call.update(rna_status="unresolved_chromosome", contig_resolution=error.to_dict(),
+                        ref_reads=None, alt_reads=None, other_reads=None, alt_fragments=None, protein_count=None)
+            calls.append(call)
+            # Annotation availability is separate from RNA availability. Avoid
+            # querying an unknown annotation contig while preserving the input.
+            annotations[ident] = dict(exon_overlap=None, reference_coding_effect=None,
+                                      orfdata_coding_block_overlap=None, top_effect_type=None)
+            continue
         ref, alt, other = (list(getattr(evidence, field))
                            for field in ("ref_reads", "alt_reads", "other_reads"))
-        raw_overlap = _raw_overlap(alignment, variant) if not (ref or alt or other) else 0
+        raw_overlap = _raw_overlap(alignment, variant, collector) if not (ref or alt or other) else 0
         if len(alt) > 750:
             products = direct_read_context_proteins(variant, alt, creator)
         elif alt:
             products = creator.sorted_protein_sequences_for_variant(variant, evidence)
         else:
             products = []
-        pos = variant.original_start
-        ref_base, alt_base = variant.original_ref, variant.original_alt
-        cls = ("SNV" if len(ref_base) == len(alt_base) == 1 else
-               "indel" if len(ref_base) != len(alt_base) else "replacement")
-        call = dict(call_id=ident, **{"class": cls}, chrom=variant.original_contig,
-                    pos=str(pos), ref=ref_base, alt=alt_base,
-                    rna_status=_rna_status(ref, alt, other, raw_overlap),
-                    ref_reads=str(len(ref)), alt_reads=str(len(alt)),
-                    other_reads=str(len(other)),
-                    alt_fragments=str(len(fragment_ids(alt))),
-                    protein_count=str(len(products)))
+        call.update(rna_status=_rna_status(ref, alt, other, raw_overlap),
+                    ref_reads=str(len(ref)), alt_reads=str(len(alt)), other_reads=str(len(other)),
+                    alt_fragments=str(len(fragment_ids(alt))), protein_count=str(len(products)))
         calls.append(call)
         effects = variant.effects()
         top_effect = effects.top_priority_effect()
@@ -130,9 +140,11 @@ def write_per_call(path, calls, annotations, summary, sources, self_scores):
             ident = call["call_id"]
             top = summary["top"].get(ident)
             score = self_scores.get(ident)
+            serialized = dict(call, contig_resolution=json.dumps(call["contig_resolution"], sort_keys=True)
+                              if call.get("contig_resolution") else "")
             writer.writerow(dict(
                 sample_id=sources["sample_id"], dna_source=sources["dna_source"],
-                rna_source=sources["rna_source"], **call,
+                rna_source=sources["rna_source"], **serialized,
                 exon_overlap=annotations[ident]["exon_overlap"],
                 reference_coding_effect=annotations[ident]["reference_coding_effect"],
                 orfdata_coding_block_overlap=annotations[ident]["orfdata_coding_block_overlap"],

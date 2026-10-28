@@ -52,7 +52,8 @@ def test_real_rna_resume_export_and_changed_inputs(tmp_path):
     output = tmp_path / 'result'
     receipt = run_small_variant_source(task, source, files, output)
     assert receipt['status'] == 'completed_with_errors'
-    assert receipt['errors'] == 1
+    assert receipt['errors'] == 0
+    assert receipt['unresolved_chromosomes'] == 1
     with gzip.open(output / receipt['results'], 'rt') as stream:
         good, bad = [json.loads(line) for line in stream]
     assert good['gene_names'] == ['GOLGA5']
@@ -60,7 +61,9 @@ def test_real_rna_resume_export_and_changed_inputs(tmp_path):
     assert proteins and proteins[0]['amino_acids']
     comparison = proteins[0]['translations'][0]['reference_comparison']
     assert comparison['focal_amino_acid_change']
-    assert bad['status'] == 'error' and 'traceback' in bad
+    assert bad['status'] == 'unresolved_chromosome'
+    assert bad['contig_resolution']['status'] == 'missing'
+    assert 'protein_hypotheses' not in bad
     prior = file_sha256(output / 'variants.jsonl.gz')
     again = run_small_variant_source(task, source, files, output, resume=True)
     assert again['identity_key'] == receipt['identity_key']

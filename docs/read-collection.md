@@ -31,6 +31,40 @@ alignment passes the default minimum of 1.
 the matching command-line options, and how quality tags from each platform are
 treated.
 
+## Contig names and unmeasured loci
+
+`ReadCollector` uses Varcode's `ContigResolver` and reuses its index per open
+alignment header and declared assembly. `variant.original_contig` is queried
+first: an exact source name wins even if another alias is also in the header.
+Canonical chromosome and mitochondrial aliases, plus supported versioned UCSC
+scaffolds, use the shared spelling rules. Assembly-specific aliases require an
+explicit reference context. Name resolution never establishes sequence identity
+or performs liftover. Alternative loci stay separate from primary chromosomes;
+viral, decoy and custom names can match exactly without a human gene model.
+No viral-accession synonyms or accession-version substitutions are guessed.
+
+```python
+resolution = read_collector.resolve_variant_contig(variant, alignment_file)
+# For a raw input name, including a custom/viral target:
+resolution = read_collector.resolve_contig(
+    alignment_file, "NC_007605.1", reference_name="GRCh38")
+print(resolution.status, resolution.resolved_name, resolution.candidates)
+```
+
+The statuses are `exact`, `alias`, `ambiguous`, `missing` and
+`reference_unavailable`. Direct collection raises `isovar.UnresolvedContigError`
+for the last three, with `.resolution`, `.source` and JSON-ready `.to_dict()`
+diagnostics. This also applies to germline phasing and cell-label collection;
+unavailable background or labels must not look like measured reference support.
+Empty `ReadEvidence` is reserved for a resolved locus with no eligible reads.
+The cohort and evidence-report commands retain `unresolved_chromosome` rows
+with unmeasured counts and exclude them from RNA-depth distributions.
+
+The collector retains at most eight immutable header/assembly indexes, not
+open file handles. Reopening an input creates a new context; querying a closed
+handle fails. Reader adapters without a header must keep their `references`
+vocabulary immutable for their lifetime. Create a new adapter if it changes.
+
 ## How reads are counted
 
 - A read is one sequenced segment: one mate of a pair, or one long read. Its

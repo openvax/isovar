@@ -107,6 +107,40 @@ def test_mutation_overlapping_reference_ninemers_include_deletion_junction(tmp_p
     assert novel == total - 1
 
 
+def test_unresolved_chromosomes_keep_unmeasured_counts_and_do_not_enter_depth_bins(tmp_path):
+    import json
+    import pysam
+    from pyensembl import EnsemblRelease
+    from varcode import Variant
+    from isovar import ReadCollector, ProteinSequenceCreator
+    from isovar.cli.isovar_evidence_report import collect, write_per_call
+
+    path = tmp_path / "empty.bam"
+    with pysam.AlignmentFile(path, "wb", header={"SQ": [
+            {"SN": "chr1", "LN": 1000}, {"SN": "CHR1", "LN": 1000}]}):
+        pass
+    pysam.index(str(path))
+    genome = EnsemblRelease(87)
+    variants = [Variant(name, 100 + i, "A", "G", genome, convert_ucsc_contig_names=True)
+                for i, name in enumerate(("chr1", "1", "2"))]
+    with pysam.AlignmentFile(path) as bam:
+        calls, annotations, proteins = collect(variants, bam, ReadCollector(), ProteinSequenceCreator())
+    assert [c["rna_status"] for c in calls] == ["no_alignment_overlap", "unresolved_chromosome",
+                                               "unresolved_chromosome"]
+    assert [c["contig_resolution"]["status"] for c in calls[1:]] == ["ambiguous", "missing"]
+    assert all(c["alt_reads"] is None and c["protein_count"] is None for c in calls[1:])
+    result = summarize(calls, annotations, proteins)
+    assert result["counts"]["total"] == 3 and result["counts"]["unresolved_chromosomes"] == 2
+    assert result["reads_by_class"] == {"SNV": [0]}
+    output = tmp_path / "calls.tsv"
+    write_per_call(output, calls, annotations, result,
+                   dict(sample_id="fixture", dna_source="calls", rna_source="empty.bam"), {})
+    with output.open() as stream:
+        rows = list(csv.DictReader(stream, delimiter="\t"))
+    assert rows[0]["alt_reads"] == "0" and rows[1]["alt_reads"] == ""
+    assert json.loads(rows[1]["contig_resolution"])["candidates"] == ["CHR1", "chr1"]
+
+
 def test_vcf_bam_command_writes_per_call_and_visual_pdf(tmp_path):
     pytest.importorskip("reportlab")
     pypdf = pytest.importorskip("pypdf")

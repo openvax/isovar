@@ -10,6 +10,7 @@ it does not choose an interpretation or translate one.
 """
 
 from collections import defaultdict
+from dataclasses import asdict
 
 from varcode import Variant
 
@@ -192,11 +193,20 @@ def reconcile_allele_interpretations(
             for key, vs in interpretations.items()], observed_alleles=[], evidence_sets={})
         return result
 
-    chromosome = read_collector._infer_chromosome_name(variants[0].contig, set(alignment_file.references))
-    locus_reads = [] if chromosome is None else read_collector.get_locus_reads(
+    resolutions = [read_collector.resolve_variant_contig(v, alignment_file) for v in variants]
+    targets = {r.resolved_name for r in resolutions}
+    if None in targets or len(targets) != 1:
+        result.update(status="unassessed", reason="unresolved_chromosome",
+                      contig_resolutions=[asdict(r) for r in resolutions], candidates=[
+            dict(candidate_id=key, variants=[_variant_row(v) for v in vs], haplotype=haplotypes[key],
+                 rna_status="unassessed", indistinguishable_from=[])
+            for key, vs in interpretations.items()], observed_alleles=[], evidence_sets={})
+        return result
+    chromosome = resolutions[0].resolved_name
+    locus_reads = read_collector.get_locus_reads(
         alignment_file, chromosome, start, end)
     reads = [read for read in (AlleleRead.from_locus_read(r) for r in locus_reads) if read is not None]
-    overlapping = set() if chromosome is None else {
+    overlapping = {
         segment_identity(r) for r in alignment_file.fetch(chromosome, start, max(end, start + 1))
         if read_collector.alignment_filter_reason(r) is None}
     alleles_by_segment = defaultdict(set)
@@ -209,7 +219,7 @@ def reconcile_allele_interpretations(
     if cell_umi_labels:
         from .cell_evidence import CellUmiAlleles
         labels = CellUmiAlleles(alignment_file, sample_id=sample_id, source=source, read_collector=read_collector
-                                ).labels_at(variants[0].contig, start, end,
+                                ).labels_at(chromosome, start, end,
                                             [k for read in informative for k in source_read_ids(read)])
     evidence = EvidenceSets(scope)
 
@@ -237,8 +247,7 @@ def reconcile_allele_interpretations(
             same_as_reference=haplotype == reference, rna_status=status, rna_support=support,
             indistinguishable_from=sorted(k for k, h in haplotypes.items() if h == haplotype and k != key)))
     result.update(
-        status="assessed" if chromosome is not None else "unassessed",
-        reason=None if chromosome is not None else "contig %s is not in the alignment file" % variants[0].contig,
+        status="assessed", reason=None,
         candidates=candidates,
         reference_allele=dict(haplotype=reference, rna_support=supports(by_allele.get(reference, []))),
         observed_alleles=[dict(haplotype=allele, matches=matching(allele),

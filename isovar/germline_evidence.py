@@ -23,12 +23,10 @@ from bisect import bisect_left
 from collections import defaultdict
 import re
 
-from .logging import get_logger
+from .contig_resolution import require_resolved_contig
 from .read_evidence import ReadEvidence
 from .read_identity import fragment_ids, segment_identity, source_alignments_from_pysam
 from .variant_helpers import base0_interval_for_variant
-
-logger = get_logger(__name__)
 
 _CIGAR = re.compile(r"(\d+)([MIDNSHP=X])")
 
@@ -106,19 +104,12 @@ def _covers(block_start, block_end, start, end):
 class _GermlineIndex(object):
     """Germline variants by alignment reference name, sorted by start."""
 
-    def __init__(self, germline_variants, references, read_collector):
-        by_contig = defaultdict(list)
-        for variant in germline_variants:
-            by_contig[variant.contig].append(variant)
+    def __init__(self, germline_variants, alignment_file, read_collector):
         rows_by_reference = defaultdict(list)
-        for contig, variants in by_contig.items():
-            try:
-                reference = read_collector._infer_chromosome_name(contig, references)
-            except ValueError as error:
-                logger.warning("Germline variants on %s are not examined for phasing: %s", contig, error)
-                continue
-            if reference is not None:
-                rows_by_reference[reference].extend(base0_interval_for_variant(v) + (v,) for v in variants)
+        for variant in germline_variants:
+            resolution = read_collector.resolve_variant_contig(variant, alignment_file)
+            reference = require_resolved_contig(resolution, alignment_file)
+            rows_by_reference[reference].append(base0_interval_for_variant(variant) + (variant,))
         self.by_reference = {}
         for reference, rows in rows_by_reference.items():
             rows.sort(key=lambda row: (row[0], row[1]))
@@ -173,13 +164,19 @@ def germline_read_evidence(results, germline_variants, alignment_file, read_coll
         One per result: each covered germline variant to a ReadEvidence of
         its reads from fragments that also carry the result's alt allele.
         Reads without alignment metadata cover nothing.
+
+    Raises
+    ------
+    UnresolvedContigError
+        A supplied germline contig cannot be resolved against the alignment
+        header. An unavailable background must not silently become reference.
     """
     in_run = {result.variant for result in results}
     germline_variants = [v for v in germline_variants if v not in in_run]
     if not germline_variants:
         return [{} for _ in results]
     references = alignment_file.references
-    index = _GermlineIndex(germline_variants, set(references), read_collector)
+    index = _GermlineIndex(germline_variants, alignment_file, read_collector)
     covered_by_result = []
     for result in results:
         blocks = defaultdict(set)
