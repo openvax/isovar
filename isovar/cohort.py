@@ -29,6 +29,7 @@ from .protein_hypotheses import export_protein_hypotheses
 from .protein_reporting import protein_comparison_status
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
+from .read_end_profiles import read_end_profile_file_id
 from .rna_evidence import canonical_json, content_identifier
 from .sv_rna_audit import file_sha256, read_json, run_sv_rna_audit, write_json
 from .variant_rna_orfs import reconstruct_variant_orfs
@@ -86,6 +87,9 @@ def _selected_file_keys(manifest, source_ids):
             if source.get("unavailable_reason"):
                 continue
             keys.update(task.get("reference_files", []))
+            profile_id = read_end_profile_file_id(task.get('read_collection', {}).get('read_end_profile'))
+            if profile_id is not None:
+                keys.add(profile_id)
             for name in ("variants", "germline_variants", "normal_evidence", "nc_orf_catalog", "manifest",
                          "input", "original_fixture", "locus_annotations", "genome_fasta", "targets"):
                 if task.get(name):
@@ -99,7 +103,8 @@ def _selected_file_keys(manifest, source_ids):
 
 def _small_variant_file_keys(task, source):
     """One input contract for computation, resume identity and report verification."""
-    return [source["bam"], task["variants"]] + [task[key] for key in
+    profile_id = read_end_profile_file_id(task.get('read_collection', {}).get('read_end_profile'))
+    return ([] if profile_id is None else [profile_id]) + [source["bam"], task["variants"]] + [task[key] for key in
         ("germline_variants", "normal_evidence", "nc_orf_catalog") if task.get(key)] + task.get("reference_files", [])
 
 
@@ -329,7 +334,7 @@ def run_small_variant_source(task, source, files, output, *, resume=False):
                                                     for (a, b), n in sorted(conversions.items())))
     known = KnownVariants(somatic=[v for v, n in zip(variants, nominations)
                                     if not n.get("origin_conflict")], germline=germline)
-    collector = ReadCollector(**task.get("read_collection", {}))
+    collector = ReadCollector.from_dict(task.get("read_collection", {}), files=files)
     settings = dict(task.get("protein_settings", {}))
     settings.setdefault("max_protein_sequences_per_variant", 0)
     creator = ProteinSequenceCreator(**settings)

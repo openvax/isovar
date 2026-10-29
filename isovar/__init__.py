@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.70.0"
+__version__ = "1.71.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -37,8 +37,11 @@ from .protein_sequence import ProteinSequence
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
 from .read_end_inference import (
-    Adapter, ReadEndProfile, ReadEndAnnotation, ReadSequenceView,
+    Adapter, ReadEndProfile, ReadEndAnnotation, ReadSequenceView, ReadEndInferenceCache,
     infer_read_ends, read_sequence_view_from_alignment,
+)
+from .read_end_profiles import (
+    ReadLibraryProvenance, ReadProcessingStep, read_end_profile_from_fasta,
 )
 from .read_evidence import ReadEvidence
 from .phasing_calibration import PhasingCalibration, PhasingControl, calibrate_phasing_error_rates
@@ -67,6 +70,7 @@ from .isoform_quantification import quantify_antigen_isoforms, add_isoform_abund
 
 
 __all__ = [
+    "ReadLibraryProvenance", "ReadProcessingStep", "read_end_profile_from_fasta", "ReadEndInferenceCache",
     "PreparedSVSourceRecord", "SVSourceView", "prepare_sv_source_record",
     "gdc_viral_panel",
     "reconstruct_viral_sequences",

@@ -1,9 +1,10 @@
 # Adapter and poly-A trimming
 
-Read ends sometimes carry technical sequence, such as a library adapter or a
-poly-A/T tail, rather than RNA from the gene. If those bases are used, for
-example through `--use-soft-clipped-bases`, they can look like mismatches or
-novel sequence. Isovar can mark such ends and, optionally, trim them.
+Read ends can contain technical adapters or primers, and biological poly-A/T
+tail candidates. These are distinct annotations: a soft clip, a high base quality
+or an A-rich run does not establish technical origin. Isovar marks supplied
+technical motifs and candidate tails over unchanged reads and can optionally
+trim eligible terminal sequence from a derived view.
 
 - Both are **off by default**, and marking (annotation) and trimming are
   separate choices.
@@ -49,7 +50,9 @@ With it, whatever remains of a clip after trimming is used.
 | Setting | Level | Meaning |
 |---|---|---|
 | `name`, `version` | library | Identify the profile; recorded with every annotated read |
-| `adapters[].name`, `sequence` | adapter | The literal adapter, in A/C/G/T |
+| `adapters[].name`, `sequence` | adapter | The literal technical motif, in A/C/G/T |
+| `adapters[].role`, `source` | adapter | `adapter`, `primer` or `linker`, and its sequence source |
+| `provenance` | library | Supplied platform/instrument, preparation, kit/revision, library state, processing steps and source receipts |
 | `adapters[].mate` | adapter | Match only on mate 1 or 2 |
 | `adapters[].end` | adapter | Match only at the `left` or `right` end |
 | `adapters[].min_overlap`, `max_error_rate` | adapter | How short and how noisy a match may be |
@@ -64,6 +67,37 @@ For libraries mixing read groups, map read group IDs to profiles:
 Keep variable barcode and UMI stretches out of adapter sequences, since they are
 not informative adapter bases. There is no built-in catalogue of manufacturer
 kits. The thresholds are heuristics, not calibrated probabilities.
+
+## Source provenance and FASTA profiles
+
+`ReadLibraryProvenance` records supplied facts, with unknown fields left as null.
+`ReadProcessingStep(tool, operation, version, source)` records upstream processing
+without inferring that every read was successfully trimmed. Neither `PL` nor an
+instrument name selects a kit. Provenance and motif roles enter the profile
+fingerprint; existing inline JSON profiles remain supported.
+
+A profile can instead reference a FASTA file relative to the JSON file:
+
+```json
+{
+  "name": "custom-preparation", "version": "1",
+  "provenance": {"preparation": "custom", "sources": ["sample-sheet.tsv"]},
+  "adapter_fasta": {
+    "path": "primers.fa", "sha256": "SHA256_OF_ORIGINAL_FASTA_BYTES",
+    "defaults": {"role": "primer", "end": "right", "mate": 2,
+                 "min_overlap": 12, "max_error_rate": 0.1}
+  }
+}
+```
+
+The first FASTA header token becomes the motif name. Duplicate IDs, ambiguous
+bases, empty inputs, FASTQ and changed checksums are errors. The example's
+thresholds are explicit configuration, not a calibration for a named kit. All
+entries share `defaults`; use inline adapters for differing mate/end policies.
+The same declaration works inside a per-read-group profile map. The Python API
+is `read_end_profile_from_fasta(path, sha256=digest, profile=fields,
+adapter_defaults=settings)`. A linker role here labels terminal matches; internal
+concatemer handling remains a separate step in #302.
 
 ## Python
 
@@ -123,9 +157,12 @@ Only the reads collected for each requested variant are examined, after the
 usual read and overlap filters; Isovar does not preprocess the whole BAM.
 Reads supporting the reference and the alternate allele are treated alike;
 end inference does not classify mutation support. Searches look at most
-`end_window` bases from each end. A read that overlaps several variants is
-processed once per variant. If you call `infer_read_ends` directly, you choose
-the reads.
+`end_window` bases from each end. A collector reuses exact sequence/profile/mate/orientation matches across variants
+and placements. Its cache holds at most 1,024 entries and one million sequence
+bases. Original identity and lineage remain attached separately; cached matches
+never add molecules. Each view applies the current alignment's qualities, CIGAR
+bounds, hard clips and upstream tags afresh. Direct `infer_read_ends` calls can
+supply a `ReadEndInferenceCache` explicitly, with configurable bounds.
 
 ## Where the annotations go
 
@@ -159,3 +196,30 @@ them through the Python API.
 - [Iso-Seq workflow](https://isoseq.how/clustering/cli-workflow.html): primers and
   tails may have been removed upstream, so their absence in SEQ is not
   biological absence.
+
+## Cohort and SV audit manifests
+
+Use the same inline profile definition under `read_collection.read_end_profile`,
+or reference a profile JSON through the manifest's checksum-verified `files`:
+
+```json
+{"read_collection": {"read_end_profile": {"file_id": "library-profile"},
+                     "trim_adapters": true}}
+```
+
+The `library-profile` file entry uses the normal `path` and `sha256` fields.
+Any FASTA path inside that JSON is relative to the JSON file and has its own
+required digest. Both profile loading and FASTA verification occur before resume
+reuses results. The cohort task's input identity includes the profile file.
+
+Cohort tasks already select one source. SV audit sources may supply their own
+`read_collection` settings, overriding manifest defaults for that source only.
+Use separate source profiles when libraries have different preparations, even if
+they reuse a read-group name. An omitted override inherits the explicit manifest
+default; no metadata inference selects another kit. Unknown read groups within a
+profile map remain unknown.
+
+`ReadCollector.from_dict(settings, files=verified_paths)` is the shared Python
+entry point for these serialized settings. The normal constructor continues to
+accept typed profiles and mappings of RG to typed profile. Neither loader mutates
+the caller's settings.

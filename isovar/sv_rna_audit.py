@@ -340,6 +340,13 @@ def run_sv_rna_audit(manifest_path: str | Path, output_dir: str | Path, *, resum
     jobs = _plan_jobs(context, output_dir, selected)
     rows: dict[str, dict[str, Any]] = {}
     pending: dict[tuple[str, str], list[_AuditJob]] = defaultdict(list)
+    # Resolve all source policies before reusing any final checkpoint. External
+    # adapter FASTA digests are checked even when every RNA result is cached.
+    selected_sources = {job.identity[1] for job in jobs}
+    collectors = {source_id: ReadCollector.from_dict(
+        dict(context.manifest.get('read_collection', {}), **source.get('read_collection', {})),
+        files=context.files) for source_id, source in context.sources.items()
+        if source_id in selected_sources}
     # Validate every final checkpoint before starting any RNA work.
     completed = {}
     for job in jobs:
@@ -356,12 +363,12 @@ def run_sv_rna_audit(manifest_path: str | Path, output_dir: str | Path, *, resum
         else:
             pending[job.identity[1], job.view['input']['reference_name']].append(job)
     del completed
-    collector = ReadCollector(**context.manifest.get('read_collection', {}))
     for (source_id, reference_name), group in pending.items():
         with ExitStack() as resources:
             cache = (Path(library_cache_dir).expanduser().resolve() if library_cache_dir is not None
                      else Path(resources.enter_context(TemporaryDirectory(prefix='isovar-audit-libraries-'))))
             source = context.sources[source_id]
+            collector = collectors[source_id]
             prepared = prepare_rna_library(context.files[source['bam']], cache,
                                            read_collector=collector, reference_name=reference_name)
             if prepared.identity['source_sha256'] != context.manifest['files'][source['bam']]['sha256']:
