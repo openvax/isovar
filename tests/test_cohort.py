@@ -3,6 +3,7 @@
 import gzip
 import json
 from pathlib import Path
+import sqlite3
 
 import pytest
 
@@ -40,7 +41,27 @@ def test_reference_declaration_recognizes_alias_but_rejects_different_build():
         _reference_declaration({'provenance': {'assembly': 'GRCh37'}}, genome)
 
 
-def test_real_rna_resume_export_and_changed_inputs(tmp_path):
+def test_real_rna_resume_export_and_changed_inputs(tmp_path, monkeypatch):
+    connections = []
+    connect = sqlite3.connect
+
+    def tracked_connect(database, *args, **kwargs):
+        connection = connect(database, *args, **kwargs)
+        if Path(database).name == 'checkpoint.sqlite':
+            # Retain a strong reference: cleanup must not depend on Python's
+            # implementation or the timing of cyclic garbage collection.
+            connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(sqlite3, 'connect', tracked_connect)
+
+    def assert_closed(count):
+        assert len(connections) == count
+        for connection in connections:
+            with pytest.raises(sqlite3.ProgrammingError, match='closed'):
+                connection.execute('SELECT 1')
+        assert not list(output.glob('checkpoint.sqlite-*'))
+
     bam = Path(data_path('data/colo829_whole_run/SRR8615617.all_sites.grch38.bam'))
     calls = tmp_path / 'calls.json'
     write_json(calls, [dict(contig='14', start=92811641, ref='GAGA', alt='G'),
@@ -51,6 +72,7 @@ def test_real_rna_resume_export_and_changed_inputs(tmp_path):
     files = dict(calls=calls, bam=bam)
     output = tmp_path / 'result'
     receipt = run_small_variant_source(task, source, files, output)
+    assert_closed(1)
     assert receipt['status'] == 'completed_with_errors'
     assert receipt['errors'] == 0
     assert receipt['unresolved_chromosomes'] == 1
@@ -66,6 +88,7 @@ def test_real_rna_resume_export_and_changed_inputs(tmp_path):
     assert 'protein_hypotheses' not in bad
     prior = file_sha256(output / 'variants.jsonl.gz')
     again = run_small_variant_source(task, source, files, output, resume=True)
+    assert_closed(2)
     assert again['identity_key'] == receipt['identity_key']
     assert prior == file_sha256(output / 'variants.jsonl.gz')
     with pytest.raises(ValueError, match='Checkpoint exists'):
@@ -73,6 +96,7 @@ def test_real_rna_resume_export_and_changed_inputs(tmp_path):
     write_json(calls, [dict(contig='14', start=92811641, ref='GAGA', alt='G')])
     with pytest.raises(ValueError, match='Resume inputs'):
         run_small_variant_source(task, source, files, output, resume=True)
+    assert_closed(3)
 
 
 def test_source_selection_does_not_require_other_library_inputs(tmp_path):
