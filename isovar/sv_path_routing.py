@@ -16,7 +16,7 @@ import numpy as np
 from .fusion import FusionReference
 from .read_identity import read_group
 from .rna_library import RnaLibraryIndex
-from .sv_rna_assessment import PathEvidence, RawRead, evidence_from_records
+from .sv_rna_assessment import PathEvidence, PathEvidenceScope, RawRead, evidence_from_records
 from .sv_rna_path_support import reverse_complement
 
 
@@ -31,7 +31,7 @@ class PathEvidenceQuery:
     min_exon_overlap: int = 15
 
     def __post_init__(self) -> None:
-        if not self.identifier:
+        if not isinstance(self.identifier, str) or not self.identifier:
             raise ValueError('Path evidence queries require a nonempty identity')
         if any(type(value) is not int or value < 1 for value in (self.min_path_match, self.min_exon_overlap)):
             raise ValueError('Path evidence thresholds must be positive integers')
@@ -105,9 +105,12 @@ class PathEvidenceIndex:
                           if reference.contig in names for start, end in reference.exons})
         raw = self.connection.execute('SELECT rg, name, mate, sequence FROM raw_matches WHERE query=?', (identifier,))
         counts = self.library.statistics
-        return evidence_from_records(self.library.records_for_templates(fragments, regions), query.references,
+        evidence = evidence_from_records(self.library.records_for_templates(fragments, regions), query.references,
             raw, query.min_exon_overlap, source_records=counts['records_scanned'],
             source_fragments=counts['fragments_scanned'])
+        evidence['scope'] = PathEvidenceScope(query.references, query.min_exon_overlap,
+                                               query.sequences, query.min_path_match)
+        return evidence
 
 
 @contextmanager

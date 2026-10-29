@@ -69,6 +69,35 @@ def test_pathless_queries_do_not_scan_sequences_and_preserve_all_exon_counts(tmp
         assert actual == expected
 
 
+@pytest.mark.parametrize('changed', ['sequence', 'match_threshold', 'exon_threshold', 'references'])
+def test_reused_routed_evidence_rejects_changed_assessment_scope(tmp_path, changed):
+    scenario = Scenario()
+    path = write_bam(tmp_path / 'original.bam', scenario.reads())
+    result = scenario.run(path)
+    references = (scenario.donor_ref, scenario.acceptor_ref)
+    query = PathEvidenceQuery('view', tuple(p['sequence'] for p in result['paths']), references)
+    with prepare_rna_library(path, tmp_path / 'cache').open() as library:
+        with route_path_evidence(library, (query,), tmp_path / 'routes.sqlite') as routed:
+            evidence = routed.evidence('view')
+    options = {}
+    if changed == 'sequence':
+        result = deepcopy(result)
+        result['paths'][0]['sequence'] += 'A'
+    elif changed == 'match_threshold':
+        options['min_path_match'] = 19
+    elif changed == 'exon_threshold':
+        options['min_exon_overlap'] = 14
+    else:
+        references = references[:1]
+    with pytest.raises(ValueError, match='evidence.*differ from assessment'):
+        assess_sv_rna_paths(result, None, references, evidence=evidence, **options)
+
+
+def test_assessment_requires_a_source_or_collected_evidence():
+    with pytest.raises(ValueError, match='requires an original BAM'):
+        assess_sv_rna_paths(dict(reference_name='GRCh38', paths=[]), None, ())
+
+
 @pytest.mark.parametrize('sequence', ['ACGTN' * 60, 'NNNNNNN', 'acgtNNNNacgt', 'AA\0TT', 'éACTG'])
 def test_seed_router_keeps_literal_sequence_semantics(sequence):
     paths = ('ACGTNACGTNNNNNNNACGT', 'AA\0TTéACTG')

@@ -99,7 +99,10 @@ with prepared.open() as library, TemporaryDirectory() as scratch:
 
 Here `reconstructed_views` is a reusable sequence of `(view_id, result,
 FusionReference models)` tuples. Match/exon thresholds in each query must match
-the corresponding `assess_sv_rna_paths` call. Direct single-view assessment
+the corresponding `assess_sv_rna_paths` call. Library-collected evidence carries
+its reference models and exon threshold; routed evidence also pins its path
+sequences and match threshold. Reusing it with different assessment inputs raises
+`ValueError`, rather than silently dropping newly eligible witnesses. Direct single-view assessment
 continues to accept an original BAM and uses the same record interpretation.
 
 Routing uses exact sequence seeds to select candidates, including unmapped or
