@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.72.0
+
+- Match explicit full internal technical motifs with noisy/indel and ambiguous
+  boundaries; preserve supplied motif order, upstream tail failures and original
+  query coordinates. Profiles and opt-in defaults remain shared across inputs.
+- Compare technical candidates with source-labelled CIGAR/MD and supplied exact
+  reference claims. Missing or conflicting context remains unresolved. An internal
+  candidate can withhold spanning inference without deleting its original bases.
+- Apply the same usable intervals to local alleles, SV observations, CIGAR counts,
+  raw FASTQ and original-path assessment; pin policy when evidence is reused (#302).
+- Keep one original segment placement across both extension directions; retain
+  incompatible alternatives as separate paths under one budget (#620).
+
+
 ## 1.71.0
 
 - Keep explicit library preparation, kit revision, processing and sequence sources

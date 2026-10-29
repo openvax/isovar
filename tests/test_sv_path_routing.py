@@ -166,12 +166,13 @@ def test_inventory_routes_one_original_pass_and_matches_exhaustive_assessment(tm
     assert len(scans) == 1
 
     @contextmanager
-    def exhaustive(library, queries, database, raw_reads):
+    def exhaustive(library, queries, database, raw_reads, read_collector):
         class Oracle:
             def evidence(self, identifier):
                 query = next(query for query in queries if query.identifier == identifier)
                 with pysam.AlignmentFile(library.prepared.source) as bam:
-                    return collect_path_evidence(bam, query.references, (), query.min_exon_overlap)
+                    return collect_path_evidence(bam, query.references, (), query.min_exon_overlap,
+                                                 read_collector=read_collector)
         yield Oracle()
 
     monkeypatch.setattr(sv_rna_audit, 'route_path_evidence', exhaustive)

@@ -76,7 +76,7 @@ def _priority(records, collector, event, annotated, exonic=None):
                     return 0
     priority = 3
     for read in records:
-        for left, right, kind, inserted in _record_gaps(read):
+        for left, right, kind, inserted in _record_gaps(read, collector):
             classes = [_join_class(event, annotated, left, right, len(inserted), kind),
                        _join_class(event, annotated, (right[0], right[1], '-'),
                                    (left[0], left[1], '-'), len(inserted), kind)]
@@ -96,7 +96,8 @@ def _group_signatures(identity, records):
     """
     placed = sorted((r.reference_name, r.reference_start, r.flag, r.cigarstring,
                      r.get_tag('SA') if r.has_tag('SA') else '',
-                     repr(r.get_tag('pt')) if r.has_tag('pt') else '', r.query_sequence)
+                     repr(r.get_tag('pt')) if r.has_tag('pt') else '',
+                     r.get_tag('MD') if r.has_tag('MD') else '', r.query_sequence)
                     for r in records)
     structure = (identity[0], identity[2], [r[:-1] for r in placed])
     return (sha256(repr(structure).encode()).digest(),
@@ -222,7 +223,7 @@ def _may_support(template, joins, collector, event, exonic=None):
             return True
         if exonic is not None and _possible_exon_clip(read, exonic, _SEQUENCE_BRIDGE_BASES):
             return True
-        for left, right, _, inserted in _record_gaps(read):
+        for left, right, _, inserted in _record_gaps(read, collector):
             for a, b in ((left, right), (_flip(right), _flip(left))):
                 if (a, b) in joins or event.relation(a, b, len(inserted))[0] == 'breakpoint_junction':
                     return True

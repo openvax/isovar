@@ -98,6 +98,8 @@ class Adapter:
     max_error_rate: float = MAX_ADAPTER_ERROR_RATE
     role: TechnicalRole = 'adapter'
     source: str | None = None
+    placement: Literal['terminal', 'internal'] = 'terminal'
+    min_internal_flank: int = 12
 
     def __post_init__(self) -> None:
         _text(self.name, 'Adapter name')
@@ -105,6 +107,8 @@ class Adapter:
         _text(self.source, 'Adapter source', optional=True)
         object.__setattr__(self, 'sequence', self.sequence.upper())
         if (self.end not in ('left', 'right') or self.role not in ('adapter', 'primer', 'linker')
+                or self.placement not in ('terminal', 'internal')
+                or type(self.min_internal_flank) is not int or self.min_internal_flank < 1
                 or type(self.mate) is not int or self.mate not in (0, 1, 2)
                 or type(self.min_overlap) is not int
                 or not 4 <= self.min_overlap <= len(self.sequence)
@@ -131,11 +135,15 @@ class ReadEndProfile:
     min_poly_a_length: int = MIN_POLY_A_LENGTH
     max_poly_a_error_rate: float = MAX_POLY_A_ERROR_RATE
     provenance: ReadLibraryProvenance = ReadLibraryProvenance()
+    expected_adapter_order: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _text(self.name, 'Profile name')
         _text(self.version, 'Profile version')
         object.__setattr__(self, 'adapters', tuple(self.adapters))
+        if isinstance(self.expected_adapter_order, str):
+            raise ValueError('Expected adapter order must be a sequence of motif names')
+        object.__setattr__(self, 'expected_adapter_order', tuple(self.expected_adapter_order))
         if (type(self.min_poly_a_length) is not int or type(self.end_window) is not int
                 or type(self.both_orientations) is not bool
                 or not 4 <= self.min_poly_a_length <= self.end_window
@@ -143,8 +151,13 @@ class ReadEndProfile:
                 or not 0 <= self.max_poly_a_error_rate < 0.5
                 or not isinstance(self.provenance, ReadLibraryProvenance)
                 or any(not isinstance(adapter, Adapter) for adapter in self.adapters)
-                or any(len(adapter.sequence) > self.end_window for adapter in self.adapters)):
+                or any(adapter.placement == 'terminal' and len(adapter.sequence) > self.end_window
+                       for adapter in self.adapters)):
             raise ValueError('Invalid read-end profile, provenance or matching thresholds')
+        names = [adapter.name for adapter in self.adapters]
+        if (any(name not in names for name in self.expected_adapter_order)
+                or (self.expected_adapter_order and len(set(names)) != len(names))):
+            raise ValueError('Expected adapter order requires unique, declared motif names')
 
     @classmethod
     def from_dict(cls, values: Mapping[str, Any]) -> 'ReadEndProfile':

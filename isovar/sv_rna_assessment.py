@@ -17,6 +17,8 @@ import pysam
 
 from .fusion import FusionReference
 from .read_identity import read_group
+from .read_collector import ReadCollector
+from .read_end_inference import ReadSequenceView
 from .sv_rna import _Model, _anchor_runs
 from .sv_rna_path_support import exact_path_matches, interval_spots, overlap_chain_search, reverse_complement
 from .sv_rna_relations import EVENT_CROSSING_RELATIONS
@@ -93,7 +95,9 @@ def aligned_exon_clip_contains(record, segment):
     for sequence in (segment, reverse_complement(segment)):
         offset = query.find(sequence)
         while offset >= 0:
-            if offset < start or offset + len(sequence) > end:
+            eligible = any(left <= offset and offset + len(sequence) <= right
+                           for left, right in record.get('usable_query_intervals', [(0, len(query))]))
+            if eligible and (offset < start or offset + len(sequence) > end):
                 return True
             offset = query.find(sequence, offset + 1)
     return False
@@ -117,10 +121,13 @@ class PathEvidenceScope:
     min_exon_overlap: int
     path_sequences: tuple[str, ...] | None = None
     min_path_match: int | None = None
+    sequence_policy: str | None = None
 
     def validate(self, references: tuple[FusionReference, ...], min_exon_overlap: int,
-                 sequences: tuple[str, ...], min_path_match: int) -> None:
+                 sequences: tuple[str, ...], min_path_match: int, sequence_policy: str | None = None) -> None:
         """Reject reuse that would give an assessment incomplete evidence."""
+        if self.sequence_policy is not None and self.sequence_policy != sequence_policy:
+            raise ValueError('Path evidence sequence policy differs from assessment')
         if self.references != references or self.min_exon_overlap != min_exon_overlap:
             raise ValueError('Path evidence reference models or exon threshold differ from assessment')
         if self.path_sequences is not None and (
@@ -142,10 +149,12 @@ class PathEvidence(TypedDict):
     # Legacy caller-created dictionaries may omit scope. Library collectors
     # always attach it so narrower acquisition is checked before reuse.
     scope: NotRequired[PathEvidenceScope]
+    sequence_views: NotRequired[list[dict[str, Any]]]
 
 
 def collect_path_evidence(bam: pysam.AlignmentFile, references: Sequence[FusionReference],
-                          raw_reads: Iterable[RawRead] = (), min_exon_overlap: int = 15) -> PathEvidence:
+                          raw_reads: Iterable[RawRead] = (), min_exon_overlap: int = 15,
+                          *, read_collector: ReadCollector | None = None) -> PathEvidence:
     """Read a single library, retaining alternative alignments and raw ends.
 
     ``raw_reads`` supplies (read_group, query_name, mate, original_sequence).
@@ -153,18 +162,44 @@ def collect_path_evidence(bam: pysam.AlignmentFile, references: Sequence[FusionR
     The caller must not combine independently processed copies as libraries.
     """
     bam.reset()
-    return evidence_from_records(bam.fetch(until_eof=True), references, raw_reads, min_exon_overlap)
+    return evidence_from_records(bam.fetch(until_eof=True), references, raw_reads, min_exon_overlap,
+                                 read_collector=read_collector)
+
+
+def _view_sequences(fragment: Fragment, mate: int, view: ReadSequenceView,
+                    aligned_start: int | None, aligned_end: int | None) -> Iterable[SequenceEvidence]:
+    """Keep separate contiguous chunks under the same original read identity."""
+    for start, end in view.usable_intervals:
+        yield (fragment, mate, view.original_sequence[start:end].upper(),
+               None if aligned_start is None else max(0, min(end - start, aligned_start - start)),
+               None if aligned_end is None else max(0, min(end - start, aligned_end - start)))
+
+
+def _view_record(fragment: Fragment, mate: int, view: ReadSequenceView, alignment: str | None) -> dict[str, Any]:
+    """Expose original coordinates and uncertainty without duplicating raw bases."""
+    return dict(fragment_id=list(fragment), mate=mate, alignment=alignment,
+                original_query_length=len(view.original_sequence), original_sequence=view.original_sequence,
+                usable_query_intervals=[list(interval) for interval in view.usable_intervals],
+                barrier_intervals=[list(interval) for interval in view.barrier_intervals],
+                annotations=[annotation._asdict() for annotation in view.annotations],
+                adapter_order_status=view.adapter_order_status,
+                upstream_poly_a_length=view.upstream_poly_a_length, upstream_poly_a_status=view.upstream_poly_a_status,
+                profile=list(view.profile), reverse=view.reverse, hard_clips=list(view.hard_clips),
+                genomic_evidence=None if view.genomic_evidence is None else asdict(view.genomic_evidence))
 
 
 def evidence_from_records(alignments: Iterable[pysam.AlignedSegment], references: Sequence[FusionReference],
                           raw_reads: Iterable[RawRead] = (), min_exon_overlap: int = 15,
-                          *, source_records: int | None = None, source_fragments: int | None = None) -> PathEvidence:
+                          *, source_records: int | None = None, source_fragments: int | None = None,
+                          read_collector: ReadCollector | None = None) -> PathEvidence:
     """Interpret originals through the same collector for exhaustive and routed use.
 
     Routed acquisition must supply every potentially matching sequence, all its
     template placements and every alignment to the view's reference exons. Its
     original-library denominators are supplied separately from selected records.
     """
+    collector = ReadCollector() if read_collector is None else read_collector
+    sequence_views = []
     exons, starts = exon_catalog(references)
     by_contig: dict[str, dict[tuple[str, int, int], dict[str, Any]]] = defaultdict(dict)
     for key, value in exons.items():
@@ -178,10 +213,15 @@ def evidence_from_records(alignments: Iterable[pysam.AlignedSegment], references
         fragment = (read_group(read), read.query_name)
         mate = 1 if read.is_read1 else 2 if read.is_read2 else 0
         fragments.add(fragment)
+        view = None
         if read.query_sequence:
-            reads.add((fragment, mate, read.query_sequence.upper(),
-                       None if read.is_unmapped else read.query_alignment_start,
-                       None if read.is_unmapped else read.query_alignment_end))
+            view = (collector.read_sequence_view(read) if collector.sequence_views_enabled else
+                    ReadSequenceView(read.query_sequence, None, 0, len(read.query_sequence)))
+            reads.update(_view_sequences(fragment, mate, view,
+                         None if read.is_unmapped else read.query_alignment_start,
+                         None if read.is_unmapped else read.query_alignment_end))
+            if view.annotations:
+                sequence_views.append(_view_record(fragment, mate, view, sha256(read.to_string().encode()).hexdigest()))
         placements = exon_placements(read, by_contig.get(read.reference_name, {}) if read.reference_name is not None else {},
                                      min_exon_overlap)
         # Keep every original alternative for cited exon links. Record counts
@@ -199,6 +239,8 @@ def evidence_from_records(alignments: Iterable[pysam.AlignedSegment], references
                        left_clip_min_q=min(qualities[:lo]) if qualities is not None and lo else None,
                        right_clip_min_q=min(qualities[hi:]) if qualities is not None and hi < len(qualities) else None,
                        exons=placements)
+            if view is not None and view.usable_intervals != ((0, len(view.original_sequence)),):
+                row['usable_query_intervals'] = list(view.usable_intervals)
             if row not in exon_links[fragment]:
                 exon_links[fragment].append(row)
             if any(p["coding_transcript_ids"] for p in placements):
@@ -210,18 +252,26 @@ def evidence_from_records(alignments: Iterable[pysam.AlignedSegment], references
                        query_sequence=read.query_sequence.upper(), mapq=read.mapping_quality, flag=read.flag,
                        reverse=read.is_reverse, secondary=read.is_secondary,
                        supplementary=read.is_supplementary, unmapped=read.is_unmapped)
+            if view is not None and view.usable_intervals != ((0, len(view.original_sequence)),):
+                row['usable_query_intervals'] = list(view.usable_intervals)
             if row not in records[key]:
                 records[key].append(row)
     for group, name, mate, sequence in raw_reads:
-        if mate not in (0, 1, 2) or not sequence:
+        if type(mate) is not int or mate not in (0, 1, 2) or not isinstance(sequence, str) or not sequence:
             raise ValueError("Raw RNA needs a sequence and a mate number in 0, 1, 2")
-        reads.add(((group, name), mate, sequence.upper(), None, None))
+        view = (collector.raw_sequence_view(sequence, read_group=group, mate=mate) if collector.sequence_views_enabled else
+                ReadSequenceView(sequence, None, 0, len(sequence)))
+        reads.update(_view_sequences((group, name), mate, view, None, None))
+        if view.annotations:
+            sequence_views.append(_view_record((group, name), mate, view, None))
     return dict(reads=sorted(reads, key=repr), exon_links=exon_links, placements=records,
                 records_scanned=count if source_records is None else source_records,
                 fragments_scanned=len(fragments) if source_fragments is None else source_fragments,
                 exon_fragments=len(exon_links), coding_exon_fragments=len(coding),
                 coding_reference_starts=starts,
-                scope=PathEvidenceScope(tuple(references), min_exon_overlap))
+                scope=PathEvidenceScope(tuple(references), min_exon_overlap,
+                                        sequence_policy=collector.sequence_policy_fingerprint),
+                sequence_views=sequence_views)
 
 
 def _matched_reads(paths, reads, seed_size):
@@ -243,6 +293,18 @@ def _matched_reads(paths, reads, seed_size):
         for identifier in ids:
             routed[identifier].append(read)
     return routed
+
+
+def _relevant_sequence_views(paths, evidence, minimum):
+    views = evidence.get('sequence_views', [])
+    reads = [(tuple(view['fragment_id']), view['mate'], view['original_sequence'].upper(), None, None) for view in views]
+    size = min(15, minimum)
+    routed = _matched_reads(paths, reads, size)
+    fragments = set(evidence['exon_links'])
+    for path in paths:
+        fragments.update(match.spot for match in exact_path_matches(path['sequence'],
+                         routed[path['path_id']], minimum, size))
+    return [view for view in views if tuple(view['fragment_id']) in fragments]
 
 
 def _support(matches, start, end, min_overlap, max_chain_reads):
@@ -282,9 +344,13 @@ def _alternative_placements(window, expected_positions, fragments, placements):
                     offset = record["query_sequence"].find(segment)
                     while offset >= 0:
                         positions = _placement_positions(record, offset, offset + len(window), reverse)
+                        eligible = any(left <= offset and offset + len(window) <= right for left, right in
+                                       record.get('usable_query_intervals', [(0, len(record['query_sequence']))]))
                         if all(p is not None for p in positions) and positions != expected_positions:
                             value = dict(sequence=window, positions=positions, original_alignment=record,
                                          query_interval=[offset, offset + len(window)])
+                            if not eligible:
+                                value['sequence_policy_eligible'] = False
                             identifier = sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
                             yield dict(placement_id=identifier, **value)
                         offset = record["query_sequence"].find(segment, offset + 1)
@@ -294,7 +360,8 @@ def assess_sv_rna_paths(result: dict[str, Any], bam: pysam.AlignmentFile | None,
                         references: Iterable[FusionReference | dict[str, Any]], *,
                         raw_reads: Iterable[RawRead] = (), min_path_match: int = 20,
                         min_exon_overlap: int = 15, junction_flank: int = 12, min_overlap: int = 30,
-                        max_chain_reads: int = 12, evidence: PathEvidence | None = None) -> dict[str, Any]:
+                        max_chain_reads: int = 12, evidence: PathEvidence | None = None,
+                        read_collector: ReadCollector | None = None) -> dict[str, Any]:
     """Assess all retained paths; never select a winner or infer a new frame.
 
     Returns a JSON-serializable source-specific assessment. Existing annotated
@@ -304,6 +371,7 @@ def assess_sv_rna_paths(result: dict[str, Any], bam: pysam.AlignmentFile | None,
     exon threshold; routed evidence also pins the path sequences and match
     threshold. Caller-created legacy evidence dictionaries remain accepted.
     """
+    collector = ReadCollector() if read_collector is None else read_collector
     for value in (min_path_match, min_exon_overlap, junction_flank, min_overlap, max_chain_reads):
         if type(value) is not int or value < 1:
             raise ValueError("Assessment thresholds must be positive integers")
@@ -313,11 +381,11 @@ def assess_sv_rna_paths(result: dict[str, Any], bam: pysam.AlignmentFile | None,
     if evidence is None:
         if bam is None:
             raise ValueError('Assessment requires an original BAM or collected path evidence')
-        evidence = collect_path_evidence(bam, reference_models, raw_reads, min_exon_overlap)
+        evidence = collect_path_evidence(bam, reference_models, raw_reads, min_exon_overlap, read_collector=collector)
     paths = result["paths"]
     if 'scope' in evidence:
         evidence['scope'].validate(reference_models, min_exon_overlap,
-                                   tuple(path['sequence'] for path in paths), min_path_match)
+                                   tuple(path['sequence'] for path in paths), min_path_match, collector.sequence_policy_fingerprint)
     if len({p["path_id"] for p in paths}) != len(paths):
         raise ValueError("Duplicate RNA path identity")
     seed_size = min(15, min_path_match)
@@ -403,12 +471,13 @@ def assess_sv_rna_paths(result: dict[str, Any], bam: pysam.AlignmentFile | None,
                 exon_fragments=evidence["exon_fragments"], coding_exon_fragments=evidence["coding_exon_fragments"],
                 coding_reference_starts=evidence["coding_reference_starts"],
                 reference_models=[asdict(r) for r in reference_models],
-                exon_alignments=exon_alignments,
+                exon_alignments=exon_alignments, read_sequence_views=_relevant_sequence_views(paths, evidence, min_path_match),
                 alternative_placements=sorted(alternative_placements.values(), key=lambda r: r["placement_id"]),
                 competing_annotated_junctions=deepcopy(result.get("competing_annotated_junctions", [])),
                 limitations=deepcopy(result.get("limitations", result.get("reasons", []))),
                 parameters=dict(min_path_match=min_path_match, min_exon_overlap=min_exon_overlap,
                                 junction_flank=junction_flank, min_overlap=min_overlap,
                                 max_chain_reads=max_chain_reads),
+                sequence_policy_fingerprint=collector.sequence_policy_fingerprint,
                 interpretation="sequence_and_frame_evidence_not_observed_translation",
                 translation_observed=False, somatic_causation_proven=False)
