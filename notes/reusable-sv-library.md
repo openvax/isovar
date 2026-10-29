@@ -93,11 +93,11 @@ sequence/placement deduplication remains in the assessment layer. Raw-only
 sequence matches also select their BAM template's distant alternative placements.
 All reference-exon alignments, including ones unrelated to paths, remain available
 so exon-label hashes, denominators and complete assessment output stay identical.
-# Assessment reuse review
+
+## Assessment reuse review
 
 Pin each collected view's reference models and exon threshold, and each routed
 view's path sequences and match threshold. Validate those inputs when evidence
 is reused. This prevents a direct API caller from silently assessing a new path
 or shorter match using an incomplete routed subset. Keep legacy caller-created
 evidence dictionaries compatible, and preserve native assessment output.
-

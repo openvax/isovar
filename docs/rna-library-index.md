@@ -165,3 +165,15 @@ python -m examples.benchmark_rna_library --manifest inventory.json \
 Use `--source-id` to measure libraries separately. Cold preparation includes
 source and database hashing; verified reopening also rehashes both. Event queries
 within one open context reuse that verification and check for file mutation.
+
+The complete shared CLI was also run on eight views of four HCC1395 events
+against that same original direct-RNA library, with the unchanged inventory
+budgets. Reconstruction plus routing, assessment, reconciliation and publication
+took 918.7 seconds. All eight final artifacts and receipts verified; their
+assessments retain the full original-library denominators. The views retained 52
+paths in total; six views reported regional candidates and two had no candidate
+paths. This is not a completed audit of the whole event inventory. The
+[workflow receipt](../reports/hcc1395_colo829/inventory_routing_benchmark.json.gz)
+records the actual states, parameters and source/artifact hashes. macOS denied
+the timing utility's detailed resource query after completion, so this run has
+no peak-RSS measurement.
