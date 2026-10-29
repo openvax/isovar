@@ -28,7 +28,9 @@ the kit you used; Isovar does not guess the kit:
 }
 ```
 
-Then run any RNA command with it:
+Use the common RNA policy flags on read-consuming commands, including
+`isovar viral` and `isovar isoforms reconstruct`. Commands that only load saved
+results or quantify existing transcripts do not recollect reads. For example:
 
 ```sh
 isovar run --vcf variants.vcf --bam rna.bam --output results.csv \

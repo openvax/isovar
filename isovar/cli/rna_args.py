@@ -16,7 +16,7 @@ Common command-line arguments for all Isovar commands which use RNA
 
 from pysam import AlignmentFile
 from argparse import ArgumentTypeError
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 
 from varcode.cli import make_variants_parser
 
@@ -32,6 +32,7 @@ from ..default_parameters import (
 )
 
 from ..read_collector import ReadCollector
+from ..rna_library import prepare_rna_library
 from ..read_end_inference import read_end_profiles_from_json
 from ..dataframe_helpers import allele_counts_dataframe, allele_reads_to_dataframe
 from .validation import CommandInputError, non_negative_int, positive_int, variant_collection_from_args
@@ -45,7 +46,7 @@ def read_end_profile_argument(filename):
         raise ArgumentTypeError(str(error)) from error
 
 
-def add_rna_args(parser):
+def add_rna_args(parser, *, include_fragment_merging=True):
     """
     Extends an ArgumentParser instance with the following commandline arguments:
         --bam
@@ -114,12 +115,13 @@ def add_rna_args(parser):
         "--trim-poly-a", action="store_true", default=TRIM_POLY_A,
         help="Trim candidate poly-A/T tails from terminal soft clips; enables inference, preserves aligned bases.")
 
-    rna_group.add_argument(
-        "--no-merge-overlapping-fragments",
-        dest="merge_overlapping_fragments",
-        action="store_false",
-        default=MERGE_OVERLAPPING_FRAGMENTS,
-        help="Keep overlapping mates as separate reads (merge by default: %(default)s).")
+    if include_fragment_merging:
+        rna_group.add_argument(
+            "--no-merge-overlapping-fragments",
+            dest="merge_overlapping_fragments",
+            action="store_false",
+            default=MERGE_OVERLAPPING_FRAGMENTS,
+            help="Keep overlapping mates as separate reads (merge by default: %(default)s).")
 
     rna_group.add_argument(
         "--num-rna-decompression-threads",
@@ -130,6 +132,34 @@ def add_rna_args(parser):
         default=NUM_RNA_DECOMPRESSION_THREADS)
 
     return rna_group
+
+
+def add_rna_path_args(parser):
+    """Common antigen/viral path controls, preserving original mate identities."""
+    group = add_rna_args(parser, include_fragment_merging=False)
+    collector = ReadCollector.for_rna_paths()
+    parser.set_defaults(min_mapping_quality=collector.min_mapping_quality,
+                        drop_secondary_alignments=not collector.use_secondary_alignments,
+                        use_soft_clipped_bases=collector.use_soft_clipped_bases,
+                        use_reads_without_base_qualities=collector.use_reads_without_base_qualities)
+    group.add_argument('--library-cache', help='Reusable original-RNA index directory')
+    return group
+
+
+@contextmanager
+def rna_path_context(args, *, reference_name=None):
+    """Open one CLI input and optional reusable index under its effective policy."""
+    collector = read_collector_from_args(args)
+    with ExitStack() as contexts:
+        bam = contexts.enter_context(AlignmentFile(
+            args.bam, reference_filename=args.genome_fasta,
+            threads=args.num_rna_decompression_threads))
+        library = None
+        if args.library_cache:
+            prepared = prepare_rna_library(args.bam, args.library_cache,
+                                           read_collector=collector, reference_name=reference_name)
+            library = contexts.enter_context(prepared.open())
+        yield bam, collector, library
 
 
 def make_rna_reads_arg_parser(**kwargs):
