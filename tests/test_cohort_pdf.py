@@ -1,12 +1,100 @@
 """Sequence display preserves codon anchors and shows deleted residues explicitly."""
 
 from dataclasses import asdict, replace
+from collections import Counter
+import gzip
+import json
 
 import pytest
 
 from isovar.cohort_pdf import aligned_columns, _fusion_comparisons
 from isovar.fusion import reconstruct_fusion
 from .test_fusion import example
+
+
+@pytest.mark.parametrize('depths', [[109, 221], [100, 101], [1, 2, 200, 201], [1, 10, 100, 1000000], [221]])
+def test_log_depth_tick_labels_do_not_overlap(tmp_path, monkeypatch, depths):
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from isovar.cohort_pdf import _category_landscape
+    figures = []
+    original = Figure.savefig
+
+    def capture(figure, *args, **kwargs):
+        figures.append(figure)
+        return original(figure, *args, **kwargs)
+
+    monkeypatch.setattr(Figure, 'savefig', capture)
+    _category_landscape(dict(source_id='synthetic', pass_id='ticks'), {'SNV': len(depths)},
+                        {'SNV': depths}, tmp_path)
+    figure = figures[0]
+    canvas = FigureCanvasAgg(figure)
+    canvas.draw()
+    axis = figure.axes[1]
+    boxes = [label.get_window_extent(canvas.get_renderer()) for label in axis.get_xticklabels() if label.get_visible()]
+    assert 1 <= len(boxes) <= 3
+    assert all(left.x1 < right.x0 for left, right in zip(boxes, boxes[1:]))
+    assert list(axis.get_xticks())[0] == min(depths)
+    assert list(axis.get_xticks())[-1] == max(depths)
+    assert not axis.xaxis.get_minorticklocs().size
+
+
+def test_funnel_legend_does_not_cover_the_data(tmp_path, monkeypatch):
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from isovar.cohort_pdf import _landscape
+    figures = []
+    original = Figure.savefig
+
+    def capture(figure, *args, **kwargs):
+        figures.append(figure)
+        return original(figure, *args, **kwargs)
+
+    monkeypatch.setattr(Figure, 'savefig', capture)
+    _landscape('sample', [(dict(source_id='source', pass_id='default'),
+                          Counter(nominated=2, alt=2, changed_protein=1), {}, {}, {})], tmp_path)
+    canvas = FigureCanvasAgg(figures[0])
+    canvas.draw()
+    axes = figures[0].axes[0]
+    legend = axes.get_legend().get_window_extent(canvas.get_renderer())
+    assert legend.y1 < axes.get_window_extent().y0
+
+
+@pytest.mark.parametrize('scopes,expected_count,expected_label', [
+    ([{}, {'status': 'not_assessed'}], 0, 'Not assessed'),
+    ([{'status': 'assessed', 'overlapping_models': 0}], 1, '0'),
+    ([{'status': 'no_alt_reads', 'overlapping_models': 0}], 1, '0'),
+    ([{'status': 'assessed', 'overlapping_models': 0}, {'status': 'not_assessed'}], 1, '0 (partial)'),
+])
+def test_ncorf_scope_keeps_measured_zero_separate_from_missing_catalogue(
+        tmp_path, scopes, expected_count, expected_label):
+    from isovar.cohort_pdf import _collect, _ncorf_count, _ncorf_scope_description
+    from isovar.sv_rna_audit import file_sha256
+    path = tmp_path / 'results.jsonl.gz'
+    with gzip.open(path, 'wt') as stream:
+        for index, scope in enumerate(scopes):
+            row = dict(status='assessed', category='SNV', exon_overlap=False,
+                       nomination=dict(contig='1', start=index+1, ref='A', alt='G'), nc_orfs=scope,
+                       protein_hypotheses=dict(events=[dict(allele_support={'alt': {'fragments': 0}},
+                                                            protein_hypotheses=[])]))
+            stream.write(json.dumps(row) + '\n')
+    result = dict(status='completed', output=str(tmp_path), results=path.name,
+                  result_sha256=file_sha256(path), nominated_alleles=len(scopes))
+    counts, _, _, _ = _collect(result)
+    assert counts['nc_catalogue_assessed'] == expected_count
+    assert _ncorf_count(counts, 'changed_nc') == expected_label
+    assert _ncorf_count(counts, 'changed_nc_span20') == expected_label
+    text = _ncorf_scope_description(counts)
+    if not expected_count:
+        assert 'unassessed' in text and '0 overlap' not in text
+    else:
+        assert f'{expected_count}/{len(scopes)} nominations' in text
+
+
+def test_ncorf_unknown_scope_does_not_erase_positive_candidates():
+    from isovar.cohort_pdf import _ncorf_count
+    counts = Counter(nominated=3, changed_nc=1)
+    assert _ncorf_count(counts, 'changed_nc') == '1 (scope unknown)'
 
 
 @pytest.mark.parametrize('depths,expected_x,expected_y', [

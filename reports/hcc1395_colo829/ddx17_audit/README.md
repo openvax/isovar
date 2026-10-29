@@ -1,10 +1,14 @@
 # COLO829 DDX17: why ALT RNA did not yield a protein
 
 The original result was a **coding-reference eligibility failure**, not a negative
-test for cryptic splicing. `ProteinSequenceCreator` returns before RNA assembly
-when `reference_contexts_for_variant` is empty. DDX17 chr22:38489856 GA>G has
-zero such contexts in Ensembl 87. [Isovar #583](https://github.com/openvax/isovar/issues/583)
-tracks reusable intronic RNA assessment beyond this report investigation.
+test for cryptic splicing. Before Isovar 1.73, `ProteinSequenceCreator` returned
+before RNA assembly when `reference_contexts_for_variant` was empty. DDX17
+chr22:38489856 GA>G has zero such contexts in Ensembl 87. The
+[shared RNA assessment](../../../docs/variant-read-assessment.md) now retains
+local ALT RNA with an explicit no-coding-reference-context state; the
+[focused replay](../../variant_rna/ddx17/README.md) records that change.
+[Isovar #583](https://github.com/openvax/isovar/issues/583) still tracks reusable
+splice-aware recovery and linkage/frame assessment beyond this investigation.
 
 ## Results
 

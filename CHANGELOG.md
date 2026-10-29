@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.73.1
+
+- Report missing ncORF catalogue scope as unassessed, measured zero as zero,
+  and incomplete per-nomination assessment as partial (#624).
+- Use sparse integer depth ticks and keep funnel legends outside the data area
+  so narrow support ranges and small inventories remain readable (#623).
+
 ## 1.73.0
 
 - Retain local ALT RNA when ordinary coding annotation supplies no frame, using
