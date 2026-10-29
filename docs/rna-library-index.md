@@ -103,7 +103,7 @@ alignment records), preparation took 125.2 seconds and validated reopening took
 required 0.080 seconds of queries in total. The index occupied 568 MB and the
 process peak RSS was 253 MB. The companion MAS measurement was interrupted to
 preserve disk space during concurrent work; it supplies no completed timing.
-The [receipt](../reports/hcc1395_colo829/rna_library_acquisition_benchmark.json)
+The [receipt](../reports/hcc1395_colo829/rna_library_acquisition_benchmark.json.gz)
 marks the combined benchmark incomplete and preserves the completed source.
 
 ```bash
