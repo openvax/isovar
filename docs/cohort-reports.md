@@ -53,7 +53,7 @@ the installed reporting code is newer. `--resume` also checks the scientific
 implementation before reusing completed analysis.
 
 Additional task families (`fusions`, `sv_audits`, `viral`, `isoforms`, and
-`prior_assessments`) write `receipt.json` alongside their result. SV receipts
+`variant_rna_paths`, and `prior_assessments`) write `receipt.json` alongside their result. SV receipts
 also pin the referenced per-path artifacts, and prior assessments are copied
 into a recorded snapshot. Outputs from 1.62.0 without these additional-task
 receipts cannot be trusted by filename alone: compute them into a new output
@@ -225,3 +225,8 @@ read-context route rather than quadratic overlap assembly. No reads are dropped;
 the route is recorded per call. Set
 `max_alt_observations_for_overlap_assembly` explicitly for a sensitivity pass and
 keep that pass separate. This budget can limit the extent of inferred sequences.
+
+For intronic or other literal alleles needing extended original-read context,
+use [literal RNA path tasks](variant-rna-paths.md). They share the CLI/API input
+and one original-library index per source and policy; conditional RNA frames
+remain separate from verified mutant-protein funnels.

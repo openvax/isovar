@@ -35,7 +35,7 @@ from .locus_read import LocusRead
 from .logging import get_logger
 from .allele_read import AlleleRead
 from .allele_read_helpers import allele_reads_from_locus_reads
-from .variant_helpers import require_literal_variant, trim_variant
+from .variant_helpers import LiteralVariantLocus, require_literal_variant
 from .read_evidence import ReadEvidence
 from .read_identity import read_group, source_alignments_from_pysam, source_read_ids
 from .chimeric_alignment import source_alignment_paths_from_pysam
@@ -1173,44 +1173,8 @@ class ReadCollector(object):
         logger.info("Gathering reads for variant %s:%s %s>%s",
                     variant.contig, variant.start, variant.ref, variant.alt)
 
-        base1_position, ref, alt = trim_variant(variant)
-
-        if len(ref) == 0:
-            # If there is no reference sequence in the variant
-            # then it's an insertion and the base 0 coordinates
-            # will select the space between two bases.
-            #
-            # For example, an insertion between base-1 positions chr1:3 and chr1:4
-            #
-            # Base 1 inclusive:
-            #   |   1   |   2   |   3   |   4   |   5   |
-            # Base 0 half-open:
-            #   0       1       2       3       4       5
-            #
-            #  The space between chr1:3 and chr1:4 in base-0 coordinates is chr1 3:3
-            #
-            # So, to convert an insertion from base-1 inclusive to base-0 half-open we
-            # keep the original position
-            base0_start_inclusive = base1_position
-            base0_end_exclusive = base1_position
-        else:
-            # if variant is SNV or deletion then some number of reference bases
-            # are selected, so just get the interval for those.
-            #
-            # For example, if two bases at positions chr1:1000 and 1001 are deleted
-            # then the base0 indices will be 999:1001
-            base0_start_inclusive = base1_position - 1
-            base0_end_exclusive = base0_start_inclusive + len(ref)
-
-        kwargs = dict(
-            alignment_file=alignment_file,
-            chromosome=chromosome,
-            base0_start_inclusive=base0_start_inclusive,
-            base0_end_exclusive=base0_end_exclusive,
-            trimmed_base1_start=base1_position,
-            trimmed_ref=ref,
-            trimmed_alt=alt,
-        )
+        locus = LiteralVariantLocus.from_variant(variant)
+        kwargs = dict(alignment_file=alignment_file, chromosome=chromosome, **locus.collection_arguments())
         if compact:
             return self.collect_locus_reads_with_optional_compaction(compact=True, **kwargs)
         return self.get_locus_reads(**kwargs)

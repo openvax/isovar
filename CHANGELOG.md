@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.75.0
+
+- Add original ALT/REF RNA path reconstruction before coding annotation, shared
+  across API, CLI and source-separated cohort tasks (#583). Retain original
+  allele/CIGAR witnesses, noncoding competitors, conditional frames and limits.
+- Centralize literal-locus coordinates and reuse the existing path engine,
+  technical-sequence policy, Varcode resolver and complete original-read index.
+- Separate contributor/per-base, single-read, paired-template and feature-link
+  support. Keep stops before the allele explicit; conditional frames do not
+  become verified mutant proteins. Reuse cohort indexes across compatible tasks.
+
 ## 1.74.2
 
 - Reuse candidate genomic block maps throughout original-RNA support recounts,
