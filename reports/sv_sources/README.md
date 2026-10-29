@@ -66,3 +66,9 @@ exclude unsampled distant sequence or establish absence in the complete library.
 These are additional assessed nominations, not additional protein candidates.
 The receipt preserves its actual producer versions; no old result is relabelled
 as a run with a newer library.
+
+`HCC1395.preparation.json.gz` records a full shared-helper preparation of all
+1,118 source rows. All 314 previously defensible oriented search views and all
+157 reference-model sets match the earlier manifest exactly. The new manifest
+retains the detailed import states for the other 961 rows and keeps its two RNA
+libraries separate. This preparation comparison is not an additional RNA run.

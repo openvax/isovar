@@ -7,6 +7,7 @@ isovar sv-source --vcf original.vcf --sha256 SOURCE_SHA256 \
   --reference-name GRCh38 --profile standard --output source-report.json.gz
 ```
 
+`isovar-sv-source` is the equivalent standalone entry point.
 `read_sv_source` is the corresponding typed Python API. Each `SVSourceRecord`
 retains the original row and line number, explicit PCR state, caller identifiers,
 unverified coordinate claims, interpretation reasons and any resolved Varcode
