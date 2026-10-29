@@ -234,6 +234,7 @@ evaluates protein and peptide candidates. See
 
 | Guide | What it covers |
 |---|---|
+| [Literal-allele RNA paths](docs/variant-rna-paths.md) | Intronic, coding and noncoding ALT/REF paths through the shared original-read and frame workflow |
 | [SV RNA reconstruction](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md) | `isovar sv-rna`: RNA paths around an SV call, their frames and ORFs, export and comparison |
 | [Supplied fusion RNA](https://github.com/openvax/isovar/blob/master/docs/fusion.md) | `isovar fusion`: checking a fusion transcript assembled by another tool |
 | [ORF start evidence](https://github.com/openvax/isovar/blob/master/docs/orf-start-evidence.md) | Where an SV ORF's start codon comes from, in four tiers |

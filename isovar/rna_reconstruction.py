@@ -12,8 +12,9 @@ from .chimeric_alignment import _alignment, _matches_reported, sa_entries
 from .read_identity import segment_identity
 from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
+from .rna_path_linkage import OriginalPathMatch, template_path_linkage
 from .sv_rna import (
-    _GeometryCache, _ObservationIndex, _agrees, _build_segment, _extend_both,
+    RnaObservation, _GeometryCache, _ObservationIndex, _agrees, _build_segment, _extend_both,
     _mirror, _offsets, _record_id, _runs,
 )
 
@@ -65,7 +66,7 @@ def _observations(template, collector, reasons, regions, cache):
                              if _target_orientation(o, regions)]
 
 
-def _seed_choices(observations):
+def _seed_choices(observations, candidates=None):
     """Share geometric seeds only when an unambiguous original can seed them.
 
     All observations remain in the overlap index. An unambiguous parent has no
@@ -76,6 +77,7 @@ def _seed_choices(observations):
     placements, geometries = defaultdict(set), defaultdict(list)
     for observation in observations:
         placements[observation.identity].add(observation.key[:-1])
+    for observation in observations if candidates is None else candidates:
         geometries[observation.comparison_key].append(observation)
     seeds = []
     for members in geometries.values():
@@ -84,12 +86,15 @@ def _seed_choices(observations):
     return sorted(seeds, key=lambda o: (-len(o.sequence), o.sequence, repr(o.positions), o.key))
 
 
-def _assemble(chosen, max_paths, min_overlap):
+def _assemble(chosen, max_paths, min_overlap, *, seed_observations: tuple[RnaObservation, ...] | None = None):
     """Maximal exact paths from distinct coordinate-aware observations."""
     observations = {o.key: o for o in chosen.values()}
+    if seed_observations is not None:
+        observations.update((o.key, o) for o in seed_observations)
+    originals = tuple(observations.values())
     # _extend_both mirrors the path to extend its 5' end. The index needs the
     # same mirror views, retaining the original segment/fragment identity.
-    for o in chosen.values():
+    for o in originals:
         sequence, positions = _mirror(o.sequence, o.positions)
         key = o.key[:-1] + ("-" if o.key.endswith("+") else "+")
         n = len(o.sequence)
@@ -99,7 +104,7 @@ def _assemble(chosen, max_paths, min_overlap):
             reverse_complement=not o.reverse_complement, qualities=o.qualities[::-1]))
     index = _ObservationIndex(list(observations.values()))
     paths, notes = {}, set()
-    for seed in _seed_choices(chosen.values()):
+    for seed in _seed_choices(originals, seed_observations):
         key = seed.sequence, tuple(seed.positions)
         if len(paths) >= max_paths:
             notes.add("path_limit")
@@ -115,7 +120,8 @@ def _assemble(chosen, max_paths, min_overlap):
     return maximal, notes
 
 
-def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap):
+def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap, *,
+              seed_observations: tuple[RnaObservation, ...] | None = None):
     chosen, reasons, cache = {}, Counter(), _GeometryCache()
     considered, selected = 0, 0
     for template in groups.templates([(contig, start, end) for contig, spans in regions.items()
@@ -129,7 +135,7 @@ def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_ov
                 # Geometry can share matching work, but it cannot substitute
                 # for the original parent when enforcing placement choices.
                 chosen.setdefault(o.key, o)
-    maximal, notes = _assemble(chosen, max_paths, min_overlap)
+    maximal, notes = _assemble(chosen, max_paths, min_overlap, seed_observations=seed_observations)
     return maximal, dict(template_order="read_group_query_name", target_segments=considered, selected_segments=selected,
                          distinct_observations=len({o.comparison_key for o in chosen.values()}),
                          max_discovery_reads=max_discovery_reads,
@@ -144,6 +150,7 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
     coverage = {c["id"]: [0] * len(c["sequence"]) for c in candidates}
     supporters, whole, assignments = defaultdict(set), defaultdict(set), Counter()
     whole_cds = defaultdict(set)
+    linkage = {c["id"]: [] for c in candidates if "features" in c}
     witnesses, reasons, cache = [], Counter(), _GeometryCache()
     lineage = ReadLineage(groups, header)
     labels = CellUmiEvidence(groups, header, sample_id, source, template_loader=groups.template)
@@ -155,6 +162,7 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
             continue
         target_fragments += 1
         fragment_matches, segment_rows = None, []
+        template_matches = defaultdict(list)
         outside = any(not _relevant(read, regions) for read in template)
         uncertainty = _placement_uncertainty(template)
         outside |= bool(uncertainty)
@@ -165,6 +173,8 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
                 covered, full = set(), False
                 for o in observed:
                     for lo, hi in _matches(candidate["sequence"], candidate["placements"], o):
+                        if cid in linkage:
+                            template_matches[cid].append(OriginalPathMatch(identity, o.key, lo, hi))
                         covered.update(range(lo, hi))
                         full |= lo == 0 and hi == len(candidate["sequence"])
                         for i, coding in enumerate(candidate["coding"]):
@@ -183,6 +193,11 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
             segment_rows.append(dict(identity=list(identity), **{compatible_key: sorted(compatible), overlapping_key: sorted(supporting)},
                                      lineage=lineage.segment(identity), cell_umi=labels.segment(identity)))
         ids = tuple(sorted(fragment_matches or ()))
+        for candidate in candidates:
+            cid = candidate["id"]
+            if cid in linkage and template_matches[cid]:
+                linkage[cid].append(dict(fragment=list(observations[0][0][:2]),
+                    **template_path_linkage(template_matches[cid], len(candidate["sequence"]), candidate["features"])))
         assignments[ids, outside] += 1
         unassigned += not ids
         witnesses.append(dict(fragment=list(observations[0][0][:2]), **{compatible_key: list(ids)},
@@ -212,6 +227,14 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
             coding["all_bases_observed"] = all(coverage[cid][coding["query_start"]:coding["query_end"]])
         candidate["rna_support"] = labels.support(supporters[cid])
         candidate["signal_support"] = lineage.support(supporters[cid])
+        if cid in linkage:
+            rows = linkage[cid]
+            candidate["linkage"] = dict(
+                single_read_whole_path_fragments=sum(bool(row["whole_path_single_read_segments"]) for row in rows),
+                paired_template_whole_path_fragments=sum(row["whole_path_paired_template"] for row in rows),
+                paired_template_only_whole_path_fragments=sum(
+                    row["whole_path_paired_template"] and not row["whole_path_single_read_segments"] for row in rows),
+                witnesses=rows)
         labels.cache.clear()
         lineage.cache.clear()
     classes = [dict(**{ids_key: list(ids)}, outside_targets=outside, fragments=n)

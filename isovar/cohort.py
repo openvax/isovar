@@ -6,7 +6,7 @@ import json
 import logging
 import os
 from collections import Counter
-from contextlib import closing
+from contextlib import ExitStack, closing
 from importlib.metadata import version
 from pathlib import Path
 import sqlite3
@@ -80,7 +80,7 @@ def _selected_file_keys(manifest, source_ids):
     """A source worker validates its own inputs, without reading other BAMs."""
     sources = {s["source_id"]: s for s in manifest["sources"]}
     keys = set()
-    for family in ("small_variants", "sv_audits", "fusions", "viral", "isoforms", "prior_assessments"):
+    for family in ("small_variants", "sv_audits", "fusions", "viral", "isoforms", "variant_rna_paths", "prior_assessments"):
         for task in manifest.get(family, []):
             if source_ids and task.get("source_id") not in source_ids:
                 continue
@@ -95,7 +95,7 @@ def _selected_file_keys(manifest, source_ids):
                          "input", "original_fixture", "locus_annotations", "genome_fasta", "targets"):
                 if task.get(name):
                     keys.add(task[name])
-            if family in ("small_variants", "viral", "isoforms"):
+            if family in ("small_variants", "viral", "isoforms", "variant_rna_paths"):
                 keys.add(source["bam"])
     if keys - manifest["files"].keys():
         raise ValueError("Task refers to undeclared input files: " + ", ".join(sorted(keys - manifest["files"].keys())))
@@ -450,6 +450,36 @@ def _write_companions(path, output):
                                                                for i in range(0, len(sequence), 80)) + "\n")
 
 def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, source_ids=None, render=True):
+    """Run one manifest with reusable original-library contexts and scoped receipts."""
+    with ExitStack() as contexts:
+        cache_directory = contexts.enter_context(tempfile.TemporaryDirectory(prefix="isovar-cohort-libraries-"))
+        return _run_cohort(manifest_path, output_dir, resume=resume, render_only=render_only,
+                           source_ids=source_ids, render=render, contexts=contexts, cache_directory=cache_directory)
+
+
+def _variant_path_task(task, source, files, contexts, cache_directory, libraries):
+    """Use the CLI input contract and one prepared library per source/policy."""
+    from .contig_resolution import variant_reference_name
+    from .rna_library import prepare_rna_library
+    from .sv_rna import _collection_parameters
+    from .variant_rna_paths import reconstruct_variant_rna_paths, variant_rna_path_input_from_dict, variant_path_read_collector
+
+    supplied = variant_rna_path_input_from_dict(read_json(files[task["input"]]))
+    if supplied["sample_id"] != source.get("input_sample_id", source["sample_id"]):
+        raise ValueError("Literal RNA input and cohort source refer to different samples")
+    collector = variant_path_read_collector(task.get("read_collection", {}), files=files)
+    reference = variant_reference_name(supplied["variant"])
+    key = source["source_id"], reference, canonical_json(_collection_parameters(collector))
+    if key not in libraries:
+        prepared = prepare_rna_library(files[source["bam"]], cache_directory, read_collector=collector,
+                                       reference_name=reference)
+        libraries[key] = contexts.enter_context(prepared.open())
+    library = libraries[key]
+    return reconstruct_variant_rna_paths(library.reader, **supplied, source=source["source_id"],
+        read_collector=collector, library_index=library, **task.get("parameters", {}))
+
+
+def _run_cohort(manifest_path, output_dir, *, resume, render_only, source_ids, render, contexts, cache_directory):
     """Run source tasks or render identity-verified recorded results.
 
     Rendering requires receipts matching the manifest's scientific declarations
@@ -483,7 +513,7 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
                 raise ValueError("Sample source_ids must name sources belonging to that sample")
     if source_ids and set(source_ids) - set(sources):
         raise ValueError("Requested source is absent from manifest")
-    for family in ("small_variants", "sv_audits", "fusions", "viral", "isoforms", "prior_assessments"):
+    for family in ("small_variants", "sv_audits", "fusions", "viral", "isoforms", "variant_rna_paths", "prior_assessments"):
         tasks = manifest.get(family, [])
         identifiers = [t["id"] for t in tasks] if family != "small_variants" else []
         if len(identifiers) != len(set(identifiers)):
@@ -521,7 +551,8 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
         if not render_only:
             write_json(output / ("progress-" + source["source_id"] + ".json"), dict(small_variants=outcomes))
     additional = []
-    for family in ("sv_audits", "fusions", "viral", "isoforms", "prior_assessments"):
+    libraries = {}
+    for family in ("sv_audits", "fusions", "viral", "isoforms", "variant_rna_paths", "prior_assessments"):
         for task in manifest.get(family, []):
             if source_ids and task.get("source_id") not in source_ids:
                 continue
@@ -557,6 +588,9 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
                     if fusion.provenance["sample_id"] != source.get("input_sample_id", source["sample_id"]):
                         raise ValueError("Supplied fusion and cohort source refer to different samples")
                     result = reconstruct_fusion(fusion, references, reads, **task.get("parameters", {}))
+                    write_json(target, result)
+                elif family == "variant_rna_paths":
+                    result = _variant_path_task(task, source, files, contexts, cache_directory, libraries)
                     write_json(target, result)
                 elif family == "prior_assessments":
                     write_json(target, read_json(files[task["input"]]))

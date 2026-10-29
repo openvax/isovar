@@ -652,6 +652,10 @@ def _additional_sections(manifest, summary, sample_id, figures, p, table, styles
                                 f"{len(assessed['exact_exon_anchors'])} exact reference-exon anchors. "
                                 'Orientation views are consolidated for display only.', 'Small')])
                 story.append(KeepTogether(block))
+        elif family == 'variant_rna_paths':
+            from .variant_path_report import variant_path_sections
+
+            story.extend(variant_path_sections(data, task, figures, p, table, styles))
         elif family in ('viral', 'isoforms'):
             counts = viral_summary(data) if family == 'viral' else isoform_summary(data)
             story.append(KeepTogether([heading, p(escape(json.dumps(counts, sort_keys=True)))]))

@@ -77,9 +77,9 @@ allele-containing protein. Even `covered` alone does not establish a changed
 amino acid, end-to-end molecular phase, translation, or mutation-induced splicing.
 
 The SV adapter retains the existing JSON schema, grouping, permitted-junction
-rules and default outcomes. This release adds no CLI mode and does not enable
-retention discovery automatically. The next original-read consumer is tracked
-in [#583](https://github.com/openvax/isovar/issues/583), following the
-[local RNA assessment](variant-read-assessment.md). The distinction between an
+rules and default outcomes. The opt-in [literal RNA path consumer](variant-rna-paths.md) now acquires
+original allele witnesses, assembles ALT/REF paths and uses this same assessor.
+The ordinary [local RNA assessment](variant-read-assessment.md) remains
+available for local protein windows. The distinction between an
 observed splice path and allele-associated splicing follows the
 [MiSplice primary study](https://www.nature.com/articles/s41467-020-19307-6).

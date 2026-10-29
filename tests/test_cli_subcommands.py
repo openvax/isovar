@@ -14,7 +14,7 @@ from isovar.cli import commands
 
 
 # Structured-input commands: no --vcf and no hyphenated legacy script.
-JSON_COMMANDS = {"fusion", "sv-rna", "allele-interpretations", "sv-audit"}
+JSON_COMMANDS = {"variant-rna-paths", "fusion", "sv-rna", "allele-interpretations", "sv-audit"}
 
 @pytest.mark.parametrize("name", commands.COMMANDS)
 def test_dispatch_passes_options_unchanged_to_the_existing_handler(name, monkeypatch):

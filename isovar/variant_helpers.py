@@ -14,6 +14,8 @@
 Helper functions for normalizing and working with genomic variants
 """
 
+from dataclasses import dataclass
+
 from .logging import get_logger
 from .dna import reverse_complement_dna
 
@@ -22,6 +24,46 @@ logger = get_logger(__name__)
 
 class NoExonicReferenceBases(ValueError):
     """A variant has no reference bases in a transcript's exons."""
+
+
+@dataclass(frozen=True)
+class LiteralVariantLocus:
+    """Normalized literal alleles with one shared genomic interval convention.
+
+    ``base1_position`` is the trimmed Varcode position. For an insertion it
+    names the base before the insertion; ``start == end`` is that interbase
+    boundary. Other alleles use the zero-based REF interval ``[start, end)``.
+    Contig resolution belongs to the alignment context, not this coordinate
+    conversion. No reference sequence or annotation is consulted.
+    """
+
+    base1_position: int
+    ref: str
+    alt: str
+
+    def __post_init__(self) -> None:
+        if (not isinstance(self.ref, str) or not isinstance(self.alt, str) or
+                type(self.base1_position) is not int or self.base1_position < (1 if self.ref else 0)):
+            raise ValueError("A literal locus requires string alleles and a valid integer position")
+        _require_literal_alleles(self.ref, self.alt)
+
+    @classmethod
+    def from_variant(cls, variant) -> "LiteralVariantLocus":
+        """Use the same literal validation and trimming as ordinary collection."""
+        return cls(*trim_variant(variant))
+
+    @property
+    def start(self) -> int:
+        return self.base1_position if not self.ref else self.base1_position - 1
+
+    @property
+    def end(self) -> int:
+        return self.start + len(self.ref)
+
+    def collection_arguments(self) -> dict:
+        """Arguments for the shared collector's normalized locus extraction."""
+        return dict(base0_start_inclusive=self.start, base0_end_exclusive=self.end,
+                    trimmed_base1_start=self.base1_position, trimmed_ref=self.ref, trimmed_alt=self.alt)
 
 
 def require_literal_variant(variant):
