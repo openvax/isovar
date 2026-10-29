@@ -80,6 +80,11 @@ and are not independent molecules. All eligible original allele observations
 and the support recount remain available even when discovery is truncated.
 Original read-group, query-name, mate and placement identities are preserved.
 
+`reference_paths` contains separately labelled ordinary model competitors, with
+support recounted from the same input. These supplied sequences are not observed
+assemblies or mutant proteins. An identical reconstructed path shares its support
+ID and gains `reference_transcript_ids`; it is not counted a second time.
+
 | Evidence | Meaning |
 |---|---|
 | `allele_counts` | Original segments and fragments called ALT, REF or OTHER. Alternative placements can put one parent in more than one state. |

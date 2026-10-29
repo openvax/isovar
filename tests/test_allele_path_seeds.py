@@ -122,3 +122,15 @@ def test_explicit_allele_seeds_use_shared_extension_without_unrelated_paths():
 def test_invalid_literal_locus_is_explicit(start, ref, alt):
     with pytest.raises(ValueError):
         LiteralVariantLocus(start, ref, alt)
+
+
+def test_allele_count_survives_unusable_ambiguous_flanking_sequence():
+    read = record(sequence='NCCTAACCC')
+    result = collect([[read]])
+    assert result.fragments('ALT') == {('A', 'original')}
+    assert not result.seed_segments('ALT')
+    assert not result.seeds
+    assert set(dict(result.original_records).values()) == {read.to_string()}
+    call, = result.calls
+    assert call.state == 'ALT' and call.allele == 'T'
+    assert dict(result.notes)['ambiguous_bases'] >= 1

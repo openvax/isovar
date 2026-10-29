@@ -67,6 +67,12 @@ def variant_path_sections(data, task, figures, p, table, styles):
           'Frames are conditional on supplied CDS models. RNA does not establish translation or variant causation.')]
     if data.get('provenance', {}).get('scope'):
         story.append(p(escape(data['provenance']['scope']), 'Small'))
+    if data.get('reference_paths'):
+        rows = [(', '.join(row['reference_transcript_ids']), row['compatible_fragments'],
+                 len(row['whole_path_segments'])) for row in data['reference_paths']]
+        story.extend([p('Ordinary reference-model competitors are assessed against the same original input. '
+                        'Model sequences are not observed assemblies; partial coverage does not establish a full transcript.'),
+                      table(('Model', 'Compatible fragments', 'Whole-path segments'), rows, (230, 140, 140))])
     candidates = sorted(data['paths'], key=lambda row: (
         -any(f['state'] == 'ALT' for f in row['focal_alleles']),
         -bool(row['coding']), -row['linkage']['single_read_whole_path_fragments'],

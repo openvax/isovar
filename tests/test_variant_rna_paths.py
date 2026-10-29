@@ -221,3 +221,15 @@ def test_cohort_literal_path_pdf_keeps_conditional_frames_separate(tmp_path):
     assert 'paired-only whole-path templates' in text
     assert 'Frames are conditional' in text
     assert 'Prior assessment retained' not in text
+
+
+def test_ordinary_splice_competitor_is_counted_without_becoming_alt_rna(tmp_path):
+    result = run_paths(tmp_path)
+    ordinary, = result['reference_paths']
+    assert ordinary['origin'] == 'reference_model'
+    assert ordinary['reference_transcript_ids'] == ['coding.1']
+    assert ordinary['sequence'] == EXON1 + EXON2
+    assert len(ordinary['whole_path_segments']) == 1
+    assert ordinary['whole_path_segments'][0][1] == 'ordinary'
+    assert not ordinary['coding']  # the declared model is not an observed protein
+    assert all(p['origin'] == 'observed_assembly' for p in result['paths'])

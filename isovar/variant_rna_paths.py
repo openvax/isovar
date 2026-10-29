@@ -26,7 +26,7 @@ from .read_collector import ReadCollector
 from .rna_library import RnaLibraryIndex, _original_library_context
 from .rna_path_linkage import PathFeature
 from .rna_reconstruction import _discover, _matches, _support
-from .sv_rna import _breaks, _collection_parameters, _runs
+from .sv_rna import _Positions, _breaks, _collection_parameters, _runs
 from .transcript_path_frames import Position, TranscriptPathModel, assess_transcript_path
 from .variant_helpers import LiteralVariantLocus, require_literal_variant
 
@@ -64,6 +64,7 @@ def _permitted_departures(seed_offsets: Sequence[tuple[int, AllelePathSeed]]) ->
 
 def _path_candidate(sequence: str, positions: tuple, seeds: AllelePathSeeds,
                     models: Sequence[TranscriptPathModel], minimum: int) -> dict:
+    positions = _Positions(positions)
     matches = _seed_offsets(sequence, positions, seeds.seeds)
     identifier = "isovar_allele_path_" + sha256(repr((sequence, positions)).encode()).hexdigest()[:24]
     focal: dict[tuple[str, tuple[int, int], tuple[int, int]], list[AllelePathSeed]] = defaultdict(list)
@@ -112,6 +113,25 @@ def _path_candidate(sequence: str, positions: tuple, seeds: AllelePathSeeds,
                 focal_alleles=focal_rows, frame_assessments=frames, coding=coding, features=features,
                 protein_interpretation="not_assessed" if not models else
                     "conditional_frames_available" if coding else "no_justified_CDS_frame")
+
+
+def _reference_competitors(candidates: list[dict], models: Sequence[TranscriptPathModel]) -> list[dict]:
+    """Count ordinary model-compatible RNA separately from allele-seeded paths.
+
+    Model sequences are labelled competitors, never observed reconstructions.
+    Identical observed/model geometries share an ID and support recount.
+    """
+    by_path = {(row["sequence"], tuple(row["placements"])): row for row in candidates}
+    references = []
+    for model in models:
+        key = model.reference.sequence, model.positions
+        if key not in by_path:
+            row = dict(id="isovar_allele_path_" + sha256(repr(key).encode()).hexdigest()[:24],
+                sequence=key[0], placements=key[1], origin="reference_model", coding=[])
+            references.append(row)
+            by_path[key] = row
+        by_path[key].setdefault("reference_transcript_ids", []).append(model.reference.transcript_id)
+    return references
 
 
 def _resolved_context(bam: pysam.AlignmentFile, variant: Variant, reference_name: str,
@@ -214,6 +234,8 @@ def reconstruct_variant_rna_paths(
             raise ValueError(name + " must be a positive integer")
     if type(min_anchor_bases) is not int or min_anchor_bases < 3:
         raise ValueError("min_anchor_bases must be at least three")
+    if not all(isinstance(reference, FusionReference) for reference in references):
+        raise TypeError("references must contain FusionReference models")
     if len({r.transcript_id for r in references}) != len(references):
         raise ValueError("Transcript IDs must be unique")
     contig, resolved, search, diagnostics = _resolved_context(bam, variant, reference_name, references, regions, flank)
@@ -230,7 +252,7 @@ def reconstruct_variant_rna_paths(
         paths: dict[ObservedPath, None] = {}
         discoveries: dict[str, Any] = {}
         for state in ("ALT", "REF"):
-            identities = sorted(seeds.segments(state))
+            identities = sorted(seeds.seed_segments(state))
             selected = set(identities[:max_seed_segments])
             allowed = {s.observation.key: s.observation for s in seeds.seeds
                        if s.state == state and s.observation.identity in selected}
@@ -244,12 +266,15 @@ def reconstruct_variant_rna_paths(
             paths.update((path, None) for path in found)
         candidates = [_path_candidate(sequence, positions, seeds, models, min_anchor_bases)
                       for sequence, positions in sorted(paths, key=repr)]
+        reference_candidates = _reference_competitors(candidates, models)
         logger.info("%s: recounting original support for %d retained RNA paths", source, len(candidates))
-        support = _support(groups, candidates, search, collector, bam.header.to_dict(), sample_id, source, label="path")
+        support = _support(groups, candidates + reference_candidates, search, collector,
+                           bam.header.to_dict(), sample_id, source, label="path")
         statistics, library_identity = groups.statistics, groups.prepared.identity
-    for candidate in candidates:
+    for candidate in candidates + reference_candidates:
         candidate["mapping"] = [list(run) for run in _runs(candidate.pop("placements"))]
-        candidate["features"] = [asdict(feature) for feature in candidate["features"]]
+        if "features" in candidate:
+            candidate["features"] = [asdict(feature) for feature in candidate["features"]]
     return dict(schema="isovar.variant_rna_paths.v1", sample_id=sample_id, source=source,
         reference_name=reference_name, variant=dict(contig=variant_source_contig(variant), start=variant.start,
             ref=variant.ref, alt=variant.alt), resolved_contig=contig, contig_diagnostics=diagnostics,
@@ -259,7 +284,8 @@ def reconstruct_variant_rna_paths(
         allele_counts={state: dict(segments=len(seeds.segments(state)), fragments=len(seeds.fragments(state)))
                        for state in ("ALT", "REF", "OTHER")},
         allele_observation_notes=dict(seeds.notes), original_allele_records=dict(seeds.original_records),
-        discovery=discoveries, paths=candidates, support=support,
+        original_allele_calls=[call._asdict() for call in seeds.calls],
+        discovery=discoveries, paths=candidates, reference_paths=reference_candidates, support=support,
         limitations=["exact_overlap_reconstruction", "RNA_does_not_establish_translation",
                      "overlap_assembly_does_not_establish_end_to_end_phase", "unreported_alignments_not_recovered",
                      "protein_change_and_variant_causation_not_established_by_allele_coverage"])

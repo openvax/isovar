@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, NamedTuple
 
 import pysam
 
@@ -17,6 +17,15 @@ from .variant_helpers import LiteralVariantLocus
 
 
 AlleleState = Literal["ALT", "REF", "OTHER"]
+
+
+class OriginalAlleleCall(NamedTuple):
+    """A quality-approved literal allele, even when its wider RNA is unusable."""
+
+    state: AlleleState
+    allele: str
+    identity: tuple[str, str, int]
+    record_id: str
 
 
 @dataclass(frozen=True)
@@ -48,11 +57,17 @@ class AllelePathSeeds:
     """
 
     seeds: tuple[AllelePathSeed, ...]
+    calls: tuple[OriginalAlleleCall, ...]
     records_considered: int
     original_records: tuple[tuple[str, str], ...]
     notes: tuple[tuple[str, int], ...]
 
     def segments(self, state: AlleleState) -> frozenset[tuple]:
+        """All called original segments, including ones without a usable path."""
+        return frozenset(call.identity for call in self.calls if call.state == state)
+
+    def seed_segments(self, state: AlleleState) -> frozenset[tuple]:
+        """Called originals that also provide an eligible allele-bearing path."""
         return frozenset(seed.observation.identity for seed in self.seeds if seed.state == state)
 
     def fragments(self, state: AlleleState) -> frozenset[tuple]:
@@ -84,6 +99,7 @@ def allele_path_seeds(
     reasons: Counter[str] = Counter()
     seeds: dict[tuple, AllelePathSeed] = {}
     originals: dict[str, str] = {}
+    calls: set[OriginalAlleleCall] = set()
     considered = 0
     for template in templates:
         groups = defaultdict(list)
@@ -108,6 +124,8 @@ def allele_path_seeds(
                     continue
                 state: AlleleState = "ALT" if allele.allele == locus.alt else "REF" if allele.allele == locus.ref else "OTHER"
                 rid = _record_id(read)
+                calls.add(OriginalAlleleCall(state, allele.allele, identity, rid))
+                originals[rid] = original_members[rid]
                 view = read_collector.read_sequence_view(read)
                 # Footprints precede trimming and index original SAM SEQ.
                 original_view = view._replace(start=0, end=len(view.original_sequence))
@@ -130,5 +148,5 @@ def allele_path_seeds(
                         seed = AllelePathSeed(observation, state, allele.allele, interval, normalized, rid)
                         seeds[observation.key, state, interval, normalized, rid] = seed
                         originals.update((record, original_members[record]) for record in observation.records)
-    return AllelePathSeeds(tuple(seeds[key] for key in sorted(seeds)), considered,
+    return AllelePathSeeds(tuple(seeds[key] for key in sorted(seeds)), tuple(sorted(calls)), considered,
                           tuple(sorted(originals.items())), tuple(sorted(reasons.items())))
