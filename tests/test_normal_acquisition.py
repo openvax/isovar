@@ -65,7 +65,7 @@ def test_incomplete_stream_never_publishes_an_acquisition_receipt(tmp_path, monk
     output = tmp_path / 'incomplete'
     output.mkdir()
     with pytest.raises(ValueError, match='incomplete'):
-        acquisition.acquire(descriptor, dict(sha256='f' * 64, values=[Variant('1', 105, 'A', 'G')]), 1, output)
+        acquisition.acquire(descriptor, dict(sha256='f' * 64, values=[Variant('1', 105, 'A', 'G')]), 1, output, attempts=1)
     assert not list(output.glob('*.acquisition.json.gz'))
     assert not list(output.glob('*.vcf.gz'))
 
@@ -85,3 +85,27 @@ def test_acquisition_includes_distant_background_regions_and_invalidates_changed
     assert result['source']['acquired_regions'] == (('chr1', 100, 110), ('chr1', 799, 800))
     with pytest.raises(ValueError, match='scope changed'):
         acquisition.acquire(descriptor, variants, 0, output, additional_regions=[('1', 200, 210)])
+
+
+def test_transient_transport_timeout_retries_the_same_public_identity(tmp_path, monkeypatch):
+    original = source_file(tmp_path)
+    data = open(original.path, 'rb').read()
+    descriptor = asdict(original)
+    descriptor['provenance'] = dict(url='https://example.invalid/public.vcf.gz',
+        source_size=len(data), http_identity=Response.headers)
+    requests, delays = [], []
+
+    def open_source(request, timeout):
+        requests.append((request.full_url, request.header_items(), request.data))
+        if len(requests) == 1:
+            raise TimeoutError('injected public transport timeout')
+        return Response(data)
+
+    monkeypatch.setattr(acquisition, 'urlopen', open_source)
+    monkeypatch.setattr(acquisition, 'sleep', delays.append)
+    output = tmp_path / 'retry'
+    output.mkdir()
+    result = acquisition.acquire(descriptor, dict(sha256='f' * 64, values=[Variant('1', 105, 'A', 'G')]), 1, output)
+    assert requests[0] == requests[1]
+    assert delays == [2]
+    assert result['source']['provenance']['original_file']['sha256'] == file_sha256(original.path)

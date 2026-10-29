@@ -14,6 +14,8 @@ from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from time import sleep
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 import pysam
@@ -23,6 +25,10 @@ from isovar.genomic_intervals import GenomicIntervalIndex
 from isovar.normal_regions import normal_background_regions, resolve_normal_regions
 from isovar.rna_evidence import canonical_json
 from isovar.sv_rna_audit import file_sha256, read_json, write_json
+
+
+class IncompletePublicDownload(ValueError):
+    """A pinned public response ended before all declared bytes arrived."""
 
 
 @contextmanager
@@ -45,8 +51,10 @@ def _hashed_vcf_stream(source):
                 digest.update(block)
                 count += len(block)
                 destination.write(block)
+        if count < provenance['source_size']:
+            raise IncompletePublicDownload('Public download incomplete: ' + source['source_id'])
         if count != provenance['source_size']:
-            raise ValueError('Source size changed or download incomplete: ' + source['source_id'])
+            raise ValueError('Source size changed: ' + source['source_id'])
         with pysam.VariantFile(original) as reader:
             yield reader, dict(bytes=count, sha256=digest.hexdigest())
 
@@ -59,7 +67,23 @@ def _acquisition_identity(source):
                 header_sha256=metadata.get('header_sha256'))
 
 
-def acquire(source, variants, flank, output, *, additional_regions=()):
+def acquire(source, variants, flank, output, *, additional_regions=(), attempts=3):
+    """Retry transient transport failures without relaxing source identity checks."""
+    if type(attempts) is not int or not 1 <= attempts <= 5:
+        raise ValueError('Acquisition attempts must be between 1 and 5')
+    for attempt in range(1, attempts + 1):
+        try:
+            return _acquire_once(source, variants, flank, output, additional_regions=additional_regions)
+        except (TimeoutError, ConnectionError, URLError, IncompletePublicDownload) as error:
+            if isinstance(error, HTTPError) and error.code not in (408, 429, 500, 502, 503, 504):
+                raise
+            if attempt == attempts:
+                raise
+            print('Retrying public source', source['source_id'][:12], 'after', type(error).__name__, flush=True)
+            sleep(2 ** attempt)
+
+
+def _acquire_once(source, variants, flank, output, *, additional_regions=()):
     """Select record intervals with one resolver and one merged interval index."""
     additional_regions = GenomicIntervalIndex(additional_regions).intervals()
     additional_regions_sha256 = sha256(canonical_json(additional_regions).encode()).hexdigest() if additional_regions else None
