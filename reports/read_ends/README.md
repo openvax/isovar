@@ -8,7 +8,7 @@ Run `python examples/benchmark_read_end_inference.py --iterations 200 --output
 benchmark.json.gz` from the repository. The receipt records exact exported BAM
 hashes, query identities, the profile configuration/hash and driver hash.
 
-For 800 requests, this run measured 0.02274 seconds without reuse and 0.00608
+For 800 requests, this run measured 0.02439 seconds without reuse and 0.00618
 seconds with reuse: four initial misses and 796 hits, retaining 4,377 sequence
 bases. These are repeated annotation timings on four selected records, not
 whole-BAM throughput or an estimate of adapter prevalence. All derived views
