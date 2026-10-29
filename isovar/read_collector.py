@@ -13,6 +13,8 @@
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping
 from itertools import groupby
+from pathlib import Path
+from typing import Any
 
 from pysam import AlignmentFile
 from varcode import ContigResolution, Variant
@@ -35,7 +37,8 @@ from .variant_helpers import require_literal_variant, trim_variant
 from .read_evidence import ReadEvidence
 from .read_identity import read_group, source_alignments_from_pysam, source_read_ids
 from .chimeric_alignment import source_alignment_paths_from_pysam
-from .read_end_inference import ReadEndProfile, read_sequence_view_from_alignment
+from .read_end_inference import ReadEndProfile, ReadEndInferenceCache, read_sequence_view_from_alignment
+from .read_end_profiles import resolve_read_end_profile
 from .contig_resolution import (
     AlignmentContigCache, require_resolved_contig, variant_reference_name, variant_source_contig,
 )
@@ -200,6 +203,21 @@ class ReadCollector(object):
             raise TypeError("read_filter must be callable or None")
         self.read_filter = read_filter
         self._contig_cache = AlignmentContigCache()
+        self._read_end_cache = ReadEndInferenceCache()
+
+    @classmethod
+    def from_dict(cls, parameters: Mapping[str, Any], *, files: Mapping[str, Path] | None = None) -> "ReadCollector":
+        """Build from ordinary CLI/manifest settings without mutating them.
+
+        Read-end profiles may be typed objects, inline JSON definitions (including
+        the explicit ``read_groups`` wrapper), or ``{file_id: ID}`` pointing into
+        the caller's verified file registry. Referenced FASTA is checksum-checked
+        by the same profile loader used by the command-line interface.
+        """
+        settings = dict(parameters)
+        if 'read_end_profile' in settings:
+            settings['read_end_profile'] = resolve_read_end_profile(settings['read_end_profile'], files or {})
+        return cls(**settings)
 
     def alignment_filter_reason(self, read):
         """Return a rejection reason, or None, for one original SAM record.
@@ -241,7 +259,8 @@ class ReadCollector(object):
         if isinstance(profile, Mapping):
             profile = profile.get(read_group(read))
         return read_sequence_view_from_alignment(
-            read, profile, trim_adapters=self.trim_adapters, trim_poly_a=self.trim_poly_a)
+            read, profile, trim_adapters=self.trim_adapters, trim_poly_a=self.trim_poly_a,
+            cache=self._read_end_cache)
 
     @staticmethod
     def _iter_left_aligned_indel_events(

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.71.0
+
+- Keep explicit library preparation, kit revision, processing and sequence sources
+  in typed, fingerprinted read-end profiles; preserve unknown metadata.
+- Support checksum-pinned adapter/primer/linker FASTA through the same JSON/API
+  profile loader. Do not infer kits or orientations from instrument names.
+- Accept inline or pinned profile files in both cohort and SV manifests; verify
+  referenced FASTA even on resume and preserve per-source SV policies (#617).
+- Reuse bounded sequence-only end annotations across variants and placements,
+  while applying each alignment's QUAL, hard clips and CIGAR-safe cuts separately.
+- Centralize profile definitions and separate matching from derived-view trimming;
+  existing imports and opt-in defaults remain supported. Internal concatemer and
+  genomic competition work remains tracked in #302.
+
 Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.

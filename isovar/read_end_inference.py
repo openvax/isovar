@@ -5,104 +5,19 @@ integer coordinates. In BAM these are SAM SEQ coordinates, not forward-genomic
 or hard-clip-inclusive coordinates. Trimming is one contiguous derived slice.
 """
 
-from dataclasses import asdict, dataclass
-from functools import cached_property
-from hashlib import sha256
-import json
+from dataclasses import replace
+from collections import OrderedDict
 import math
-from pathlib import Path
-from typing import NamedTuple, Optional, Tuple
+from typing import NamedTuple, Sequence
+
+import pysam
 
 from .dna import reverse_complement_dna
-from .default_parameters import (
-    READ_END_WINDOW, MIN_ADAPTER_OVERLAP, MAX_ADAPTER_ERROR_RATE,
-    MIN_POLY_A_LENGTH, MAX_POLY_A_ERROR_RATE, TRIM_ADAPTERS, TRIM_POLY_A,
+from .default_parameters import TRIM_ADAPTERS, TRIM_POLY_A
+from .read_end_profiles import (  # Compatibility imports for existing callers.
+    Adapter, ReadEndProfile, UNKNOWN_PROFILE,
+    read_end_profiles_from_json as read_end_profiles_from_json,
 )
-
-
-@dataclass(frozen=True)
-class Adapter:
-    """Explicit adapter in original sequencing orientation, not BAM orientation.
-
-    ``end`` is left or right; terminal partial suffixes/prefixes respectively
-    are allowed. ``mate`` is 0 (either/unpaired), 1 or 2. Sequence must be literal
-    A/C/G/T; variable barcode positions are not informative adapter sequence.
-    """
-
-    name: str
-    sequence: str
-    end: str = "right"
-    mate: int = 0
-    min_overlap: int = MIN_ADAPTER_OVERLAP
-    max_error_rate: float = MAX_ADAPTER_ERROR_RATE
-
-    def __post_init__(self):
-        object.__setattr__(self, "sequence", self.sequence.upper())
-        if (not self.name or self.end not in ("left", "right")
-                or self.mate not in (0, 1, 2)
-                or type(self.min_overlap) is not int
-                or not 4 <= self.min_overlap <= len(self.sequence)
-                or set(self.sequence) - set("ACGT")
-                or not 0 <= self.max_error_rate < 0.5):
-            raise ValueError("Invalid adapter name, sequence, end, mate or matching threshold")
-
-
-@dataclass(frozen=True)
-class ReadEndProfile:
-    """Versioned library configuration; unknown chemistry needs no guessed kit.
-
-    Only explicit adapter sequences are searched. ``both_orientations`` supports
-    libraries with either cDNA orientation; it is not inferred from instrument.
-    Poly-A/T candidates do not establish biological orientation or full length.
-    """
-
-    name: str = "unknown"
-    version: str = "1"
-    adapters: Tuple[Adapter, ...] = ()
-    both_orientations: bool = False
-    end_window: int = READ_END_WINDOW
-    min_poly_a_length: int = MIN_POLY_A_LENGTH
-    max_poly_a_error_rate: float = MAX_POLY_A_ERROR_RATE
-
-    def __post_init__(self):
-        object.__setattr__(self, "adapters", tuple(self.adapters))
-        if (not self.name or not self.version
-                or type(self.min_poly_a_length) is not int
-                or type(self.end_window) is not int
-                or not 4 <= self.min_poly_a_length <= self.end_window
-                or not 0 <= self.max_poly_a_error_rate < 0.5
-                or any(not isinstance(a, Adapter) for a in self.adapters)
-                or any(len(a.sequence) > self.end_window for a in self.adapters)):
-            raise ValueError("Invalid read-end profile or matching thresholds")
-
-    @classmethod
-    def from_dict(cls, values):
-        values = dict(values)
-        values["adapters"] = tuple(Adapter(**a) for a in values.get("adapters", ()))
-        return cls(**values)
-
-    @cached_property
-    def fingerprint(self):
-        """Identify the actual thresholds/sequences, not just a user-given name."""
-        return sha256(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()
-
-
-UNKNOWN_PROFILE = ReadEndProfile()
-
-
-def read_end_profiles_from_json(filename):
-    """Load one explicit profile, or ``{read_groups: {RG: profile}}``.
-
-    Missing groups use the unknown profile; there is no implicit cross-library
-    fallback. An empty-string group identifies records without an RG tag.
-    """
-    values = json.loads(Path(filename).expanduser().read_text())
-    if "read_groups" in values:
-        if set(values) != {"read_groups"}:
-            raise ValueError("read_groups cannot be combined with a global profile")
-        return {group: ReadEndProfile.from_dict(profile)
-                for group, profile in values["read_groups"].items()}
-    return ReadEndProfile.from_dict(values)
 
 
 class ReadEndAnnotation(NamedTuple):
@@ -128,32 +43,32 @@ class ReadSequenceView(NamedTuple):
     """
 
     original_sequence: str
-    original_qualities: Optional[tuple]
+    original_qualities: tuple[int, ...] | None
     start: int
     end: int
-    annotations: tuple = ()
-    profile: tuple = ("unknown", "1", UNKNOWN_PROFILE.fingerprint)
+    annotations: tuple[ReadEndAnnotation, ...] = ()
+    profile: tuple[str, str, str] = ("unknown", "1", UNKNOWN_PROFILE.fingerprint)
     reverse: bool = False
-    hard_clips: tuple = (0, 0)
-    upstream_poly_a_length: Optional[int] = None
+    hard_clips: tuple[int, int] = (0, 0)
+    upstream_poly_a_length: int | None = None
 
     @property
-    def sequence(self):
+    def sequence(self) -> str:
         return self.original_sequence[self.start:self.end]
 
     @property
-    def qualities(self):
+    def qualities(self) -> tuple[int, ...] | None:
         if self.original_qualities is None:
             return None
         return self.original_qualities[self.start:self.end]
 
-    def original_interval(self, start, end):
+    def original_interval(self, start: int, end: int) -> tuple[int, int]:
         """Map retained-query offsets back to available original SAM SEQ."""
         if not 0 <= start <= end <= self.end - self.start:
             raise ValueError("Interval lies outside the retained sequence")
         return self.start + start, self.start + end
 
-    def sequenced_interval(self, start, end):
+    def sequenced_interval(self, start: int, end: int) -> tuple[int, int]:
         """Map to original sequencing orientation, including unavailable H bases."""
         start, end = self.original_interval(start, end)
         left, right = self.hard_clips
@@ -164,7 +79,7 @@ class ReadSequenceView(NamedTuple):
         return start, end
 
 
-def adapter_matches(sequence, adapter, window):
+def adapter_matches(sequence: str, adapter: Adapter, window: int) -> tuple[ReadEndAnnotation, ...]:
     """End-window edit-distance matches, including correctly anchored partials.
 
     Edlib provides the established bounded Levenshtein alignment. Left ends are
@@ -216,12 +131,13 @@ def adapter_matches(sequence, adapter, window):
             start, end = offset + start, offset + end
             if reverse:
                 start, end = len(sequence) - end, len(sequence) - start
-            matches.append(ReadEndAnnotation(start, end, "adapter", adapter.name,
+            matches.append(ReadEndAnnotation(start, end, adapter.role, adapter.name,
                                               adapter.end, errors, overlap, partial))
     return tuple(matches)
 
 
-def poly_a_matches(sequence, profile, start=0, end=None):
+def poly_a_matches(sequence: str, profile: ReadEndProfile, start: int = 0,
+                   end: int | None = None) -> tuple[ReadEndAnnotation, ...]:
     """Infer locally supported A/T runs; no biological-origin claim is made."""
     end = len(sequence) if end is None else end
     matches = []
@@ -256,47 +172,26 @@ def poly_a_matches(sequence, profile, start=0, end=None):
     return tuple(matches)
 
 
-def infer_read_ends(sequence, qualities=None, profile=None, *, reverse=False,
-                    mate=0, hard_clips=(0, 0), soft_clip_bounds=None,
-                    trim_adapters=TRIM_ADAPTERS, trim_poly_a=TRIM_POLY_A,
-                    upstream_poly_a_length=None):
-    """Annotate sequence ends and optionally return a trimmed derived view.
+class _ReadEndStructure(NamedTuple):
+    annotations: tuple[ReadEndAnnotation, ...]
+    body_start: int
+    body_end: int
 
-    Parameters
-    ----------
-    sequence : str
-        Unchanged available original sequence; SAM SEQ orientation for BAM input.
-    profile : ReadEndProfile or None
-        Explicit library profile. None allows tail inference, not guessed adapters.
-    soft_clip_bounds : (int, int) or None
-        For aligned input, original query alignment start/end. No bases between
-        these bounds can be trimmed, including CIGAR insertions. None denotes an
-        unaligned sequence, where terminal candidate trimming is unconstrained.
-    reverse : bool
-        Whether SAM SEQ is reversed relative to original sequencing orientation.
-    trim_adapters, trim_poly_a : bool
-        Opt-in trimming. Poly-A/T inference is heuristic; this is not proof of a
-        non-templated tail. Ambiguous adapter boundaries are not trimmed.
-    """
-    profile = UNKNOWN_PROFILE if profile is None else profile
-    if qualities is not None and len(qualities) != len(sequence):
-        raise ValueError("Sequence and quality lengths differ")
-    if soft_clip_bounds is not None and not 0 <= soft_clip_bounds[0] <= soft_clip_bounds[1] <= len(sequence):
-        raise ValueError("Invalid aligned query bounds")
-    query = sequence.upper()
-    candidates = []
+
+def _infer_structure(sequence: str, profile: ReadEndProfile, reverse: bool, mate: int) -> _ReadEndStructure:
+    """Match sequence once, independently of placement, QUAL and trimming policy."""
+    candidates: list[ReadEndAnnotation] = []
     for adapter in profile.adapters:
         if adapter.mate and adapter.mate != mate:
             continue
         orientations = (False, True) if profile.both_orientations else (False,)
         for other_orientation in orientations:
             transformed = reverse != other_orientation
-            spec = (Adapter(adapter.name, reverse_complement_dna(adapter.sequence),
-                            "left" if adapter.end == "right" else "right",
-                            adapter.mate, adapter.min_overlap, adapter.max_error_rate)
+            spec = (replace(adapter, sequence=reverse_complement_dna(adapter.sequence),
+                            end="left" if adapter.end == "right" else "right")
                     if transformed else adapter)
-            candidates.extend(adapter_matches(query, spec, profile.end_window))
-    annotations = []
+            candidates.extend(adapter_matches(sequence, spec, profile.end_window))
+    annotations: list[ReadEndAnnotation] = []
     body_start, body_end = 0, len(sequence)
     for side in ("left", "right"):
         hits = [hit for hit in candidates if hit.side == side]
@@ -316,12 +211,102 @@ def infer_read_ends(sequence, qualities=None, profile=None, *, reverse=False,
     if body_start > body_end:
         annotations = [a._replace(ambiguous=True) for a in annotations]
         body_start, body_end = 0, len(sequence)
-    annotations.extend(poly_a_matches(query, profile, body_start, body_end))
+    annotations.extend(poly_a_matches(sequence, profile, body_start, body_end))
+    return _ReadEndStructure(tuple(annotations), body_start, body_end)
+
+
+class ReadEndInferenceCache:
+    """Bound reusable sequence matches without retaining reads or file handles.
+
+    Keys contain the exact sequence, full profile fingerprint, mate and orientation.
+    Placement, qualities and upstream tags are applied to a fresh view afterwards.
+    Reusing a match cannot merge identities or turn relatives into independent reads.
+    Entries and retained sequence bases are bounded; oversized reads are not cached.
+    """
+
+    def __init__(self, max_entries: int = 1024, max_bases: int = 1_000_000) -> None:
+        for value in (max_entries, max_bases):
+            if type(value) is not int or value < 0:
+                raise ValueError('Read-end cache limits must be nonnegative integers')
+        self.max_entries = max_entries
+        self.max_bases = max_bases
+        self.retained_bases = 0
+        self.hits = 0
+        self.misses = 0
+        self._entries: OrderedDict[tuple[str, str, bool, int], _ReadEndStructure] = OrderedDict()
+
+    def structure(self, sequence: str, profile: ReadEndProfile, reverse: bool, mate: int) -> _ReadEndStructure:
+        """Return immutable sequence evidence; never cache a placement-specific cut."""
+        key = (sequence, profile.fingerprint, reverse, mate)
+        if key in self._entries:
+            self.hits += 1
+            self._entries.move_to_end(key)
+            return self._entries[key]
+        self.misses += 1
+        result = _infer_structure(sequence, profile, reverse, mate)
+        if self.max_entries and len(sequence) <= self.max_bases:
+            self._entries[key] = result
+            self.retained_bases += len(sequence)
+            while len(self._entries) > self.max_entries or self.retained_bases > self.max_bases:
+                previous, _ = self._entries.popitem(last=False)
+                self.retained_bases -= len(previous[0])
+        return result
+
+
+def infer_read_ends(sequence: str, qualities: Sequence[int] | None = None,
+                    profile: ReadEndProfile | None = None, *, reverse: bool = False,
+                    mate: int = 0, hard_clips: tuple[int, int] = (0, 0),
+                    soft_clip_bounds: tuple[int, int] | None = None,
+                    trim_adapters: bool = TRIM_ADAPTERS, trim_poly_a: bool = TRIM_POLY_A,
+                    upstream_poly_a_length: int | None = None,
+                    cache: ReadEndInferenceCache | None = None) -> ReadSequenceView:
+    """Annotate sequence ends and optionally return a trimmed derived view.
+
+    Parameters
+    ----------
+    sequence : str
+        Unchanged available original sequence; SAM SEQ orientation for BAM input.
+    profile : ReadEndProfile or None
+        Explicit library profile. None allows tail inference, not guessed adapters.
+    soft_clip_bounds : (int, int) or None
+        For aligned input, original query alignment start/end. No bases between
+        these bounds can be trimmed, including CIGAR insertions. None denotes an
+        unaligned sequence, where terminal candidate trimming is unconstrained.
+    reverse : bool
+        Whether SAM SEQ is reversed relative to original sequencing orientation.
+    cache : ReadEndInferenceCache or None
+        Optional bounded cache of sequence matches. It never caches placement
+        geometry, quality scores or trimming decisions.
+    trim_adapters, trim_poly_a : bool
+        Opt-in trimming. Poly-A/T inference is heuristic; this is not proof of a
+        non-templated tail. Ambiguous adapter boundaries are not trimmed.
+
+    Returns
+    -------
+    ReadSequenceView
+        Unchanged available query and qualities, candidate annotations and one
+        contiguous derived interval. Hard-clipped sequence remains unavailable;
+        a candidate tail does not establish translation or transcript completeness.
+    """
+    profile = UNKNOWN_PROFILE if profile is None else profile
+    if not isinstance(sequence, str) or not isinstance(profile, ReadEndProfile):
+        raise ValueError('Read-end inference requires a sequence string and ReadEndProfile')
+    if type(mate) is not int or mate not in (0, 1, 2) or type(reverse) is not bool:
+        raise ValueError('Read-end inference requires mate 0/1/2 and boolean orientation')
+    if len(hard_clips) != 2 or any(type(value) is not int or value < 0 for value in hard_clips):
+        raise ValueError('Hard clips must be two nonnegative unavailable-base counts')
+    if qualities is not None and len(qualities) != len(sequence):
+        raise ValueError("Sequence and quality lengths differ")
+    if soft_clip_bounds is not None and not 0 <= soft_clip_bounds[0] <= soft_clip_bounds[1] <= len(sequence):
+        raise ValueError("Invalid aligned query bounds")
+    structure = (_infer_structure(sequence.upper(), profile, reverse, mate) if cache is None else
+                 cache.structure(sequence.upper(), profile, reverse, mate))
+    annotations, body_start, body_end = structure
     start, end = 0, len(sequence)
     for annotation in annotations:
         if annotation.ambiguous:
             continue
-        if annotation.kind == "adapter" and trim_adapters:
+        if annotation.kind in ("adapter", "primer", "linker") and trim_adapters:
             cut = annotation.end if annotation.side == "left" else annotation.start
             # An adapter match crossing into aligned evidence is a conflict,
             # not permission to trim that evidence or rewrite its CIGAR.
@@ -349,12 +334,14 @@ def infer_read_ends(sequence, qualities=None, profile=None, *, reverse=False,
     end = max(start, end)
     return ReadSequenceView(sequence, None if qualities is None else tuple(qualities),
                             start, end, tuple(sorted(annotations)),
-                            (profile.name, profile.version, profile.fingerprint), reverse, tuple(hard_clips),
+                            (profile.name, profile.version, profile.fingerprint), reverse, (hard_clips[0], hard_clips[1]),
                             upstream_poly_a_length)
 
 
-def read_sequence_view_from_alignment(read, profile=None, *, trim_adapters=TRIM_ADAPTERS,
-                                      trim_poly_a=TRIM_POLY_A):
+def read_sequence_view_from_alignment(read: pysam.AlignedSegment, profile: ReadEndProfile | None = None, *,
+                                      trim_adapters: bool = TRIM_ADAPTERS,
+                                      trim_poly_a: bool = TRIM_POLY_A,
+                                      cache: ReadEndInferenceCache | None = None) -> ReadSequenceView:
     """Build an original-query view without altering the pysam record or tags."""
     cigar = read.cigartuples or ()
     hard_clips = (cigar[0][1] if cigar and cigar[0][0] == 5 else 0,
@@ -367,4 +354,4 @@ def read_sequence_view_from_alignment(read, profile=None, *, trim_adapters=TRIM_
         hard_clips=hard_clips,
         soft_clip_bounds=None if read.is_unmapped else (read.query_alignment_start, read.query_alignment_end),
         trim_adapters=trim_adapters, trim_poly_a=trim_poly_a,
-        upstream_poly_a_length=read.get_tag("pt") if read.has_tag("pt") else None)
+        upstream_poly_a_length=read.get_tag("pt") if read.has_tag("pt") else None, cache=cache)
