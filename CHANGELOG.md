@@ -11,6 +11,8 @@
   cohort and evidence-report commands. Older/unassessed results remain explicit.
 - Route high-depth read contexts through the same assessment and selection
   policy, including its protein-count cap. Preserve custom list-only creators.
+- Derive original-RNA audit stage counts from the explicit assessment instead
+  of overwriting them with the last assembly call (#626).
 - Resolve supplied ORF contigs with Varcode once per model vocabulary; retain
   exact custom/viral/decoy names and unresolved ambiguity instead of replacing
   arbitrary mitochondrial-name substrings (#622).
