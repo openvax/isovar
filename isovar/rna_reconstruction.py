@@ -88,7 +88,8 @@ def _assemble(chosen, max_paths, min_overlap):
             notes.add("path_limit")
             break
         for sequence, positions, _, _ in _extend_both(
-                *key, index, min_overlap, (0, 0, 0), max_paths - len(paths), [], notes):
+                *key, index, min_overlap, (0, 0, 0), max_paths - len(paths), [], notes,
+                seed_observation=seed):
             paths[sequence, tuple(positions)] = None
             if len(paths) >= max_paths:
                 notes.add("path_limit")

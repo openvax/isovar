@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.74.1
+
+- Bind whole-observation RNA assembly seeds to their original segment placement
+  through both extension directions. Alternative alignments of one read cannot
+  extend each other into an unsupported longer path; independent overlapping
+  reads remain eligible (#629). Junction-core SV seeding is unchanged.
+
 ## 1.74.0
 
 - Centralize transcript coordinate indexes and CDS-anchor readings in typed,

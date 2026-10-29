@@ -47,6 +47,11 @@ complete amino-acid sequences while retaining all transcript identities and
 counting each compatible fragment once. An encoded sequence is not proof of
 translation or antigen presentation.
 
+Each whole-read assembly seed retains its original placement choice through
+both extension directions. Alternative alignments of the same sequenced
+segment cannot extend one another into a longer RNA sequence. They remain
+separate hypotheses; independently observed overlaps can still extend a path.
+
 The default discovery budget is 10,000 target read segments and 256 assembled
 paths. The later support pass checks the complete declared input, even when
 discovery stops early. Increase `--max-discovery-reads` or `--max-paths` when the

@@ -1261,14 +1261,25 @@ def _mirrored_choices(voters, index):
             for key in voters}
 
 
-def _extend_both(sequence, positions, index, min_overlap, thresholds, budget, pruned, notes):
+def _extend_both(sequence, positions, index, min_overlap, thresholds, budget, pruned, notes,
+                 *, seed_observation=None):
     """Extend both ends with one consistent observation per original segment.
 
     If the opposite end needs an incompatible observation of an already used
     segment, retain separate hypotheses by trying the opposite extension order.
     Never combine these alternatives into one path or count them as molecules.
     The same path budget bounds both orders together.
+
+    A whole-observation seed must supply its actual indexed observation, so an
+    alternative placement of that same segment cannot extend the seed itself.
+    Junction-core seeds have no single chosen observation and leave this unset.
     """
+    initial_choices = {}
+    if seed_observation is not None:
+        if (index.observations.get(seed_observation.key) is not seed_observation or
+                seed_observation.comparison_key != (sequence, positions)):
+            raise ValueError("A whole-path seed must be its actual indexed observation")
+        initial_choices = {seed_observation.identity: seed_observation.key}
     seen, conflicts = set(), set()
     for reverse_first in (False, True):
         if reverse_first:
@@ -1276,8 +1287,10 @@ def _extend_both(sequence, positions, index, min_overlap, thresholds, budget, pr
                 break
             notes.add('incompatible_segment_placements_retained_as_alternatives')
         seed = _mirror(sequence, positions) if reverse_first else (sequence, positions)
+        seed_choices = (_mirrored_choices(initial_choices.values(), index) if reverse_first else initial_choices)
         for first_sequence, first_positions, voters, first_end in _extend(
-                *seed, index, min_overlap, thresholds, budget, pruned, notes, reverse_first):
+                *seed, index, min_overlap, thresholds, budget, pruned, notes, reverse_first,
+                initial_used=seed_choices, conflicts=conflicts if seed_observation is not None else None):
             choices = _mirrored_choices(voters, index)
             for second_sequence, second_positions, more, second_end in _extend(
                     *_mirror(first_sequence, first_positions), index, min_overlap, thresholds,
