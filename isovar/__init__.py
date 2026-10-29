@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.69.0"
+__version__ = "1.70.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -18,6 +18,10 @@ from .allele_read import AlleleRead
 from .base_quality import BaseQualityPolicy, AlleleQualityFootprint
 from .cell_evidence import cell_umi_allele_evidence
 from .contig_resolution import UnresolvedContigError
+from .sv_sources import CallerCoordinateClaim, SVSourceRecord, read_sv_source, sv_source_report
+from .sv_source_preparation import (
+    PreparedSVSourceRecord, SVSourceView, prepare_sv_source_record,
+)
 from .dataframe_helpers import isovar_results_to_dataframe
 from .isovar_result import IsovarResult
 from .locus_read import LocusRead
@@ -63,6 +67,7 @@ from .isoform_quantification import quantify_antigen_isoforms, add_isoform_abund
 
 
 __all__ = [
+    "PreparedSVSourceRecord", "SVSourceView", "prepare_sv_source_record",
     "gdc_viral_panel",
     "reconstruct_viral_sequences",
     "write_viral_fasta",

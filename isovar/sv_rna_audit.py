@@ -18,6 +18,7 @@ import pysam
 
 from . import __version__
 from ._audit_json import write_json_stream
+from ._file_identity import file_sha256
 from .audit_bundle import software_identity
 from .fusion import fusion_from_dict, reconstruct_fusion
 from .read_collector import ReadCollector
@@ -26,15 +27,6 @@ from .sv_path_routing import PathEvidenceQuery, route_path_evidence
 from .sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 from .sv_rna_assessment import PathEvidence, assess_sv_rna_paths
 from .sv_rna_reconciliation import reconcile_sv_rna_hypotheses
-
-
-def file_sha256(path):
-    """Hash file bytes without materializing large original-read files."""
-    digest = sha256()
-    with Path(path).open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def read_json(path):

@@ -33,6 +33,8 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | `isovar normal-evidence` | Normal genotype/reference-confidence states and background alleles from a reviewed source inventory ([guide](matched-normal-evidence.md)) |
 | `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](allele-interpretations.md)) |
 | `isovar sv-rna` | Exploratory RNA paths around one nominated SV, as JSON ([guide](sv-rna.md)) |
+| `isovar sv-source` | Validate original SV definitions, caller claims and record-specific PCR evidence ([guide](sv-source-validation.md)) |
+| `isovar sv-audit` | Reconstruct and reconcile a source-separated SV inventory ([guide](sv-rna-audit.md)) |
 | `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON ([guide](fusion.md)) |
 | `isovar audit-bundle` | Portable audit inputs, verified backups and offline reconstruction replay ([guide](audit-bundles.md)) |
 | `isovar uorf-evidence` | Query and export the offline human uORF evidence reference ([guide](uorf-evidence.md)) |
