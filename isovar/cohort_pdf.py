@@ -149,6 +149,7 @@ def _landscape(sample, analyses, directory, index=1):
 
 def _category_landscape(result, categories, depths, directory):
     from matplotlib.figure import Figure
+    from matplotlib.ticker import NullLocator
     import numpy as np
 
     fig = Figure(figsize=(7.2, 3.6), layout="constrained")
@@ -160,18 +161,37 @@ def _category_landscape(result, categories, depths, directory):
     left.set_yticks(positions, labels, fontsize=7)
     left.set_xscale("symlog", linthresh=1)
     left.set_xlabel("Calls (log scale above 1)", fontsize=8)
-    left.legend(frameon=False, fontsize=7, loc="lower right")
+    left.legend(frameon=False, fontsize=7, loc="upper left", bbox_to_anchor=(0, -.22),
+                borderaxespad=0, ncol=2)
     palette = [INK, MUTANT, TEAL, GERMLINE, COSOMATIC]
     for color, label in zip(palette, labels):
-        values = np.array(sorted(n for n in depths[label] if n > 0))
+        values, frequencies = np.unique([n for n in depths[label] if n > 0], return_counts=True)
         if len(values):
-            right.step(values, np.arange(len(values), 0, -1), where="post", label=label,
-                       color=color, linewidth=1.4)
+            at_or_above = np.cumsum(frequencies[::-1])[::-1]
+            right.step(values, at_or_above, where="pre", label=label,
+                       color=color, linewidth=1.4, marker="o", markersize=3.5)
     right.set_xscale("log")
     right.set_yscale("log")
     right.set_xlabel("Minimum RNA ALT fragments", fontsize=8)
     right.set_ylabel("Calls at or above support", fontsize=8)
-    right.legend(frameon=False, fontsize=7)
+    if right.lines:
+        right.legend(frameon=False, fontsize=7, loc="upper left", bbox_to_anchor=(0, -.22),
+                     borderaxespad=0, ncol=2)
+        maximum = max(int(max(line.get_ydata())) for line in right.lines)
+        right.set_ylim(.8, max(1.25, maximum * 1.15))
+        if maximum <= 10:
+            right.set_yticks(range(1, maximum + 1), [str(n) for n in range(1, maximum + 1)])
+            right.yaxis.set_minor_locator(NullLocator())
+        observed_depths = {depth for line in right.lines for depth in line.get_xdata()}
+        if len(observed_depths) == 1:
+            depth = observed_depths.pop()
+            right.set_xlim(depth / 1.5, depth * 1.5)
+            right.set_xticks([depth], [f"{depth:,}"])
+            right.xaxis.set_minor_locator(NullLocator())
+    else:
+        right.text(.5, .5, "No positive RNA ALT support", ha="center", va="center",
+                   transform=right.transAxes, color=UNKNOWN, fontsize=9)
+        right.set_axis_off()
     for ax in (left, right):
         ax.spines[["top", "right"]].set_visible(False)
         ax.tick_params(labelsize=7)
