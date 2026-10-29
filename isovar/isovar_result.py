@@ -40,6 +40,8 @@ class IsovarResult(object):
     # Results pickled before 1.38.0 lack this field; they have none.
     germline_read_evidence = {}
     phasing_settings = None
+    # Older results were not assessed for unframed RNA.
+    rna_assessment = None
 
     # Varcode effect properties exported with a "predicted_effect_" prefix.
     _PREDICTED_EFFECT_FIELDS = (
@@ -77,7 +79,8 @@ class IsovarResult(object):
             phase_group_from_protein_sequence=None,
             protein_sequence_settings=None,
             germline_read_evidence=None,
-            phasing_settings=None):
+            phasing_settings=None,
+            rna_assessment=None):
         """
         Parameters
         ----------
@@ -125,6 +128,10 @@ class IsovarResult(object):
             `sorted_protein_sequences`, recorded by `run_isovar`. None when
             unknown, as for a result built by hand.
 
+        rna_assessment : VariantReadAssessment or None
+            Observed ALT RNA, including unframed paths and explicit frame states.
+            None means not assessed, including results from older versions.
+
         phasing_settings : dict or None
             Error calibration and thresholds used for phase annotation. Retained
             when cloning/pickling so downstream read-phasing adapters inherit them.
@@ -135,6 +142,7 @@ class IsovarResult(object):
             reads cover, its ReadEvidence from the fragments carrying this
             variant's alt allele, for telling cis from trans.
         """
+        self.rna_assessment = rna_assessment
         self.phasing_settings = phasing_settings
         self.variant = variant
         self.read_evidence = read_evidence
@@ -185,6 +193,7 @@ class IsovarResult(object):
             "protein_sequence_settings",
             "germline_read_evidence",
             "phasing_settings",
+            "rna_assessment",
         ]
 
     def __str__(self):

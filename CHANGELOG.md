@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.73.0
+
+- Retain local ALT RNA when ordinary coding annotation supplies no frame, using
+  typed `VariantReadAssessment` and `VariantRNAAssembly` containers (#583).
+- Share coding-compatible/unmatched assembly across ordinary CDS and supplied
+  ORFdata models. Rank existing assessments without repeated assembly; keep
+  coverage, original placements and mismatch safeguards unchanged.
+- Export per-path RNA/frame outcomes through results, protein-hypotheses JSON,
+  cohort and evidence-report commands. Older/unassessed results remain explicit.
+- Route high-depth read contexts through the same assessment and selection
+  policy, including its protein-count cap. Preserve custom list-only creators.
+- Resolve supplied ORF contigs with Varcode once per model vocabulary; retain
+  exact custom/viral/decoy names and unresolved ambiguity instead of replacing
+  arbitrary mitochondrial-name substrings (#622).
+
 ## 1.72.0
 
 - Match explicit full internal technical motifs with noisy/indel and ambiguous

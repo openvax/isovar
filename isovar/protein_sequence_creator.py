@@ -11,7 +11,10 @@
 # limitations under the License.
 
 
+from __future__ import annotations
+
 import inspect
+from typing import Iterable, TYPE_CHECKING
 from numbers import Integral
 
 from .default_parameters import (
@@ -37,10 +40,17 @@ from .protein_sequence_helpers import (
 )
 from .reference_context_helpers import reference_contexts_for_variant
 from .reference_context import ReferenceContext
-from .transcript_compatibility import annotate_reads_with_transcript_compatibility
 from .translation import Translation
 from .translation_helpers import find_mutant_amino_acid_interval
 from .variant_sequence_creator import VariantSequenceCreator
+from .variant_sequence import VariantSequence
+from .variant_sequence_helpers import initial_variant_sequences_from_reads, trim_variant_sequences
+from .variant_read_assessment import AssemblyMode, VariantReadAssessment, assemble_variant_reads
+
+if TYPE_CHECKING:
+    from varcode import Variant
+    from .allele_read import AlleleRead
+    from .protein_sequence import ProteinSequence
 from .variant_orf_helpers import match_variant_sequence_to_reference_context
 from .variant_helpers import require_literal_variant
 
@@ -238,12 +248,29 @@ class ProteinSequenceCreator(object):
             sequences.extend(creator.reads_to_variant_sequences(variant, reads))
         return merge_identical_sequences(sequences)
 
-    def variant_sequences_from_reads(self, variant, reads):
-        """Assemble each distinct compatible-transcript read group once."""
+    def variant_sequences_from_reads(
+            self, variant: Variant | None, reads: Iterable[AlleleRead], *,
+            mode: AssemblyMode = "configured") -> list[VariantSequence]:
+        """Assemble compatible transcript groups or retain bounded read contexts.
+
+        ``configured`` uses this creator's assembly and context-length policy.
+        ``read_contexts`` retains original read contexts without overlap
+        extension, using the configured maximum length and coverage floor.
+        Both modes preserve alternative placements and transcript labels.
+        """
         # Sequence-only callers can assemble reads without a nominated variant.
         if variant is not None:
             require_literal_variant(variant)
         reads = list(reads)
+        if mode not in ("configured", "read_contexts"):
+            raise ValueError("assembly mode must be 'configured' or 'read_contexts'")
+        if mode == "read_contexts":
+            if not reads:
+                return []
+            before, after = self._variant_sequence_creator.flanking_sequence_lengths(len(reads[0].allele))
+            sequences = initial_variant_sequences_from_reads(
+                reads, max_nucleotides_before_variant=before, max_nucleotides_after_variant=after)
+            return trim_variant_sequences(sequences, self.min_variant_sequence_coverage)
         transcript_read_groups = self._transcript_read_groups(reads)
         if transcript_read_groups is None:
             return self._variant_sequences_from_compatible_reads(variant, reads)
@@ -402,84 +429,57 @@ class ProteinSequenceCreator(object):
                     translations.append(translation)
         return translations
 
-    def translate_variant_reads(
-            self,
-            variant,
-            variant_reads,
-            transcript_id_whitelist=None):
-        """
-        Given a variant and its associated alt reads, construct variant sequences
-        and translate them into Translation objects.
-
-        Returns 0 or more Translation objects.
+    def assess_variant_reads(
+            self, variant: Variant, variant_reads: Iterable[AlleleRead],
+            transcript_id_whitelist: set[str] | None = None, *,
+            assembly_mode: AssemblyMode = "configured") -> VariantReadAssessment:
+        """Retain ALT RNA independently of ordinary-CDS frame assignment.
 
         Parameters
         ----------
         variant : varcode.Variant
+            Literal variant whose trimmed ALT allele the reads carry.
+        variant_reads : iterable of AlleleRead
+            Original ALT observations. An iterator is consumed once.
+        transcript_id_whitelist : set of str, optional
+            Limit coding-frame hypotheses, without dropping unmatched RNA.
+        assembly_mode : {"configured", "read_contexts"}
+            Use this creator's assembly policy or bounded direct read contexts.
+            The latter is suitable for very deep loci and does not extend reads.
 
-        variant_reads : sequence or generator
-            AlleleRead objects supporting the variant
-
-        transcript_id_whitelist : set, optional
-            If given, expected to be a set of transcript IDs which we should use
-            for determining the reading frame around a variant. If omitted, then
-            try to use all overlapping reference transcripts.
-
-        Returns list of Translation objects
+        Returns
+        -------
+        VariantReadAssessment
+            Compatible and unmatched RNA, reference contexts, and every retained
+            translation before protein selection. Missing frames carry an
+            explicit state; no sequence is filled from reference annotation.
         """
         require_literal_variant(variant)
-        variant_reads = list(variant_reads)
-        if len(variant_reads) == 0:
-            logger.info("No supporting reads for variant %s", variant)
-            return []
+        reads = list(variant_reads)
+        contexts = reference_contexts_for_variant(
+            variant, context_size=max(self._cdna_sequence_length, self.min_transcript_prefix_length),
+            transcript_id_whitelist=transcript_id_whitelist) if reads else []
+        transcripts = {transcript.id: transcript for context in contexts for transcript in context.transcripts}
+        assembly = assemble_variant_reads(
+            variant, reads, transcripts.values(), creator=self, mode=assembly_mode)
+        # Explicit ReferenceContext providers may supply a frame without a
+        # transcript path. Preserve that API: its sequence match can supply a
+        # conditional frame, but cannot certify genomic splice compatibility.
+        sequences = assembly.compatible_sequences if transcripts else assembly.unmatched_sequences
+        translations = self.all_pairs_translations(sequences, contexts)
+        return VariantReadAssessment(assembly, tuple(contexts), tuple(translations))
 
-        reference_contexts = reference_contexts_for_variant(
-            variant,
-            context_size=max(self._cdna_sequence_length, self.min_transcript_prefix_length),
-            transcript_id_whitelist=transcript_id_whitelist)
+    def translate_variant_reads(
+            self, variant: Variant, variant_reads: Iterable[AlleleRead],
+            transcript_id_whitelist: set[str] | None = None) -> list[Translation]:
+        """Return ordinary-CDS translations of observed ALT RNA.
 
-        if len(reference_contexts) == 0:
-            logger.info("Could not determine reference context for variant %s", variant)
-            return []
-
-        transcripts_by_id = {
-            transcript.id: transcript
-            for reference_context in reference_contexts
-            for transcript in reference_context.transcripts
-        }
-        if transcripts_by_id:
-            max_prefix_size, max_suffix_size = \
-                self._variant_sequence_creator.flanking_sequence_lengths(
-                    len(variant_reads[0].allele))
-            variant_reads = annotate_reads_with_transcript_compatibility(
-                variant_reads,
-                transcripts_by_id.values(),
-                max_prefix_size=max_prefix_size,
-                max_suffix_size=max_suffix_size)
-            n_incompatible_reads = sum(
-                not read.compatible_transcript_ids
-                for read in variant_reads)
-            if n_incompatible_reads:
-                logger.info(
-                    "Excluded %d/%d reads incompatible with every coding transcript path",
-                    n_incompatible_reads,
-                    len(variant_reads))
-                variant_reads = [
-                    read
-                    for read in variant_reads
-                    if read.compatible_transcript_ids]
-
-        variant_sequences = self.variant_sequences_from_reads(
-            variant=variant,
-            reads=variant_reads)
-
-        if not variant_sequences:
-            logger.info("No spanning cDNA sequences for variant %s", variant)
-            return []
-
-        return self.all_pairs_translations(
-            variant_sequences=variant_sequences,
-            reference_contexts=reference_contexts)
+        This compatibility interface returns a list. Use ``assess_variant_reads``
+        to retain unmatched RNA and explicit reasons a frame was not assigned.
+        The transcript whitelist limits frame hypotheses, not RNA collection.
+        """
+        return list(self.assess_variant_reads(
+            variant, variant_reads, transcript_id_whitelist).translations)
 
     def translate_variants(
             self,
@@ -539,6 +539,19 @@ class ProteinSequenceCreator(object):
             variant_reads=read_evidence.alt_reads,
             transcript_id_whitelist=transcript_id_whitelist)
 
+        return self._rank_translations(translations)
+
+    def protein_sequences_from_assessment(
+            self, assessment: VariantReadAssessment) -> list[ProteinSequence]:
+        """Rank and cap an existing assessment without repeating RNA assembly.
+
+        Selection uses this creator's preference, peptide length, support budget
+        and protein-count cap. The assessment retains all RNA/frame alternatives.
+        """
+        return self._rank_translations(assessment.translations)
+
+    def _rank_translations(self, translations: Iterable[Translation]) -> list[ProteinSequence]:
+        """One selection policy for the list API and the assessment API."""
         # group distinct cDNA translations into ProteinSequence objects
         # by their amino acid sequence
         protein_sequences = group_equivalent_translations(translations)

@@ -37,6 +37,25 @@ from .variant_helpers import require_literal_variant
 logger = get_logger(__name__)
 
 
+def _assess_and_select(creator, variant, read_evidence, transcript_id_whitelist):
+    """Keep legacy injected list-only creators authoritative about their output.
+
+    Standard creators assemble once. A caller that replaces either old list
+    hook still controls protein creation; no RNA assessment is invented for it.
+    New subclasses customize ``assess_variant_reads`` and
+    ``protein_sequences_from_assessment`` to retain the complete result.
+    """
+    standard_hooks = all(
+        getattr(getattr(creator, name, None), "__func__", None) is getattr(ProteinSequenceCreator, name)
+        for name in ("translate_variant_reads", "sorted_protein_sequences_for_variant"))
+    if not standard_hooks:
+        return None, creator.sorted_protein_sequences_for_variant(
+            variant=variant, read_evidence=read_evidence,
+            transcript_id_whitelist=transcript_id_whitelist)
+    assessment = creator.assess_variant_reads(variant, read_evidence.alt_reads, transcript_id_whitelist)
+    return assessment, creator.protein_sequences_from_assessment(assessment)
+
+
 def run_isovar(
         variants,
         alignment_file,
@@ -174,12 +193,8 @@ def run_isovar(
 
     results = []
     for variant, read_evidence in read_evidence_gen:
-        # generate protein sequences by assembling variant reads
-        protein_sequences = \
-            protein_sequence_creator.sorted_protein_sequences_for_variant(
-                variant=variant,
-                read_evidence=read_evidence,
-                transcript_id_whitelist=transcript_id_whitelist)
+        assessment, protein_sequences = _assess_and_select(
+            protein_sequence_creator, variant, read_evidence, transcript_id_whitelist)
         protein_sequences = [p.with_known_variants(known_variants) for p in protein_sequences]
         predicted_effect = top_varcode_effect(
             variant=variant,
@@ -189,7 +204,8 @@ def run_isovar(
             predicted_effect=predicted_effect,
             read_evidence=read_evidence,
             sorted_protein_sequences=protein_sequences,
-            protein_sequence_settings=protein_sequence_creator.settings())
+            protein_sequence_settings=protein_sequence_creator.settings(),
+            rna_assessment=assessment)
         isovar_result = apply_filters(
             isovar_result,
             filter_thresholds=filter_thresholds,

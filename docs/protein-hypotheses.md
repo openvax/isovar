@@ -9,6 +9,8 @@ the top protein, and it adds nothing Isovar did not observe.
 The other table commands report one row per protein or translation. This format
 also keeps:
 
+- **unframed RNA**, through the event's [RNA assessment](variant-read-assessment.md),
+  with explicit reasons no ordinary-CDS protein was reconstructed;
 - **every alternative**, in Isovar's ranked order, including synonymous cDNAs
   that give the same protein;
 - **which hypotheses are shorter windows of another**, without merging them;

@@ -248,6 +248,7 @@ evaluates protein and peptide candidates. See
 | [Library responsibilities](https://github.com/openvax/isovar/blob/master/docs/library-responsibilities.md) | How Varcode, Isovar and Vaxrank divide the work |
 | [Internal design](https://github.com/openvax/isovar/blob/master/docs/internal-design.md) | The objects that carry reads to protein sequences |
 | [RNA in supplied ORF frames](https://github.com/openvax/isovar/blob/master/docs/variant-rna-orfs.md) | Reconstruct ncORF and ordinary coding candidates with original RNA support |
+| [RNA assessment before protein selection](https://github.com/openvax/isovar/blob/master/docs/variant-read-assessment.md) | Retain intronic and noncoding ALT RNA with explicit assembly and frame states |
 | [Changelog](https://github.com/openvax/isovar/blob/master/CHANGELOG.md) | Behavior changes by release |
 
 ## Sequencing recommendations

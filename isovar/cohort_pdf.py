@@ -34,6 +34,30 @@ def _counts(row):
     return event, event["allele_support"]["alt"]["fragments"]
 
 
+def _unframed_rna_description(event: dict) -> str:
+    """Explain retained local RNA separately from missing coding products."""
+    assessment = event.get("rna_assessment")
+    if assessment is None:
+        return "Local RNA assembly outcomes were not recorded in this result."
+    candidates = assessment["rna_candidates"]
+    if candidates:
+        longest = max(len(row["sequence"]) for row in candidates)
+        text = (f"{len(candidates)} local ALT RNA contexts retained; longest {longest} nt. "
+                "These are alternative contexts from the same reads, not independent molecules. ")
+    else:
+        text = ("No ALT observations supplied. " if assessment["assembly_state"] == "no_alt_reads" else
+                "ALT observations did not yield RNA passing the configured coverage and assembly policy. ")
+    reasons = {
+        "no_coding_reference_context": "No usable ordinary-CDS frame was supplied at this allele.",
+        "no_reference_path_compatible_reads": "Observed RNA paths conflict with every supplied coding transcript path.",
+        "no_retained_compatible_rna": "No coding-path-compatible RNA context passed the assembly policy.",
+        "no_retained_rna_frame_match": "No retained RNA context passed the reference-frame matching policy.",
+        "rna_frame_candidates": "Frame candidates exist before protein selection; no protein survived selection.",
+        "no_alt_reads": "No protein frame was assessed.",
+    }
+    return text + reasons[assessment["frame_state"]]
+
+
 def _collect(result, highlights=()):
     counts, categories, depths = Counter(), Counter(), defaultdict(list)
     examples = defaultdict(list)
@@ -787,8 +811,10 @@ def write_cohort_reports(manifest, summary, output):
                                            "this alignment shows one path, not a resolved model choice.", "Small"))
                     else:
                         intro.append(p(("RNA ALT is observed" if alt else "No RNA ALT support was observed under these settings") +
-                                       "; no protein sequence was reconstructed. "
-                                       "The full result retains ncORF model outcomes and RNA evidence.", "Small"))
+                                       "; no protein sequence was reconstructed.", "Small"))
+                        intro.append(p(escape(_unframed_rna_description(event)), "Small"))
+                        intro.append(p("The full result retains ncORF model outcomes and original RNA evidence. "
+                                       "Intronic depth alone does not establish retention, initiation or translation.", "Small"))
                         story.append(KeepTogether(intro))
                         continue
                     spans = coverage["allele_observation_span_support"]["fragments"]
