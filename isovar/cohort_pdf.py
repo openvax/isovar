@@ -34,6 +34,29 @@ def _counts(row):
     return event, event["allele_support"]["alt"]["fragments"]
 
 
+def _provenance_rows(value: object, label: str = "Source") -> list[tuple[str, str]]:
+    """Flatten presentation metadata without dumping a nested JSON paragraph.
+
+    Full values remain in the native receipt. Checksum display uses the same
+    16-character identifiers as the report's input inventory; paths and URLs
+    remain visible. Tables may split between rows across pages.
+    """
+    if isinstance(value, dict) and value:
+        return [row for key, child in sorted(value.items(), key=lambda item: str(item[0]))
+                for row in _provenance_rows(child, str(key) if label == "Source" else label + " / " + str(key))]
+    if isinstance(value, (list, tuple)) and value:
+        if all(not isinstance(item, (dict, list, tuple)) for item in value) and len(value) <= 4:
+            return [(label, ", ".join(str(item) for item in value))]
+        return [row for index, child in enumerate(value, 1)
+                for row in _provenance_rows(child, label + " / " + str(index))]
+    text = str(value) if value is not None else "Not supplied"
+    field = label.rsplit(" / ", 1)[-1].lower()
+    checksum = field in {"sha256", "sha-256", "sha_256"} or field.endswith("_sha256")
+    if checksum and len(text) == 64 and all(character in "0123456789abcdefABCDEF" for character in text):
+        text = text[:16] + " (SHA-256 prefix)"
+    return [(label, text)]
+
+
 def _unframed_rna_description(event: dict) -> str:
     """Explain retained local RNA separately from missing coding products."""
     assessment = event.get("rna_assessment")
@@ -681,10 +704,10 @@ def write_cohort_reports(manifest, summary, output):
     def p(text, style="Body"):
         return Paragraph(str(text), styles["Cohort" + style])
 
-    def table(headers, rows, widths):
+    def table(headers, rows, widths, *, split_rows=False):
         values = [[p("<b>" + escape(str(x)) + "</b>", "Cell") for x in headers]]
         values.extend([[p(escape(str(x)), "Cell") for x in row] for row in rows])
-        result = Table(values, colWidths=widths, repeatRows=1, hAlign="LEFT")
+        result = Table(values, colWidths=widths, repeatRows=1, hAlign="LEFT", splitInRow=int(split_rows))
         result.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(PALE)),
             ("LINEBELOW", (0, 0), (-1, 0), .7, colors.HexColor(TEAL)),
@@ -899,11 +922,13 @@ def write_cohort_reports(manifest, summary, output):
                         "in the companion source exports and receipts. Reproduce with the same cohort manifest; "
                         "use --render-only to regenerate figures and PDFs from verified results.")])
         for index, source in enumerate(sources):
-            block = [p("<b>" + escape(source.get("label", source["source_id"])) + "</b>", "Small"),
-                     p(escape(json.dumps(source["provenance"], sort_keys=True)), "Small")]
             if index == 0:
-                block.insert(0, Paragraph("Source provenance", styles["Heading2"]))
-            story.append(KeepTogether(block))
+                story.extend([Paragraph("Source provenance", styles["Heading2"]),
+                    p("Source fields are listed below. Full provenance and complete checksums remain in the "
+                      "cohort manifest and recorded receipts.", "Small")])
+            story.append(p("<b>" + escape(source.get("label", source["source_id"])) + "</b>", "Small"))
+            story.append(table(("Field", "Recorded value"), _provenance_rows(source["provenance"]),
+                               (170, 340), split_rows=True))
         normal_scopes = {result['matched_normal_scope']['receipt_sha256']: result['matched_normal_scope']
                          for result in results if result.get('matched_normal_scope')}
         for digest, scope in normal_scopes.items():

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.75.1
+
+- Render nested source provenance as readable tables that can split across
+  pages, retaining source URLs, scope, file paths and checksum identifiers.
+  Full metadata remains unchanged in native receipts (#636).
+
 ## 1.75.0
 
 - Add original ALT/REF RNA path reconstruction before coding annotation, shared
