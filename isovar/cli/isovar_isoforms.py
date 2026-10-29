@@ -4,11 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
-from pyensembl import Genome
-
-from ..antigen_reference import (
-    GDC_REFERENCE, _annotation_cache, gdc_genome, isoform_targets_from_genome, reference_file_identity, validate_alignment_reference,
-)
+from ..antigen_reference import GDC_REFERENCE
+from ..antigen_targets import CTA_GENE_SET, prepare_antigen_reference
 from ..antigen_isoforms import reconstruct_antigen_isoforms
 from ..audit_bundle import digest, publish_json
 from ..isoform_quantification import quantify_antigen_isoforms, write_isoform_fastas
@@ -20,7 +17,9 @@ def make_parser(prog="isovar isoforms"):
     actions = parser.add_subparsers(dest="action", required=True)
     reconstruct = actions.add_parser("reconstruct", help="Reconstruct explicit target genes from RNA alignments")
     add_rna_path_args(reconstruct)
-    reconstruct.add_argument("--gene", action="append", required=True, help="Gene ID/name; repeat for each target")
+    selection = reconstruct.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--gene", action="append", help="Gene ID/name; repeat for each target")
+    selection.add_argument("--gene-set", choices=[CTA_GENE_SET], help="Versioned OncoRef CTA catalogue")
     reconstruct.add_argument("--sample-id", required=True)
     reconstruct.add_argument("--genome-fasta", required=True, help="Local FASTA used for alignment")
     reconstruct.add_argument("--gtf", required=True, help="Local, versioned transcript/CDS annotation")
@@ -59,31 +58,20 @@ def run(args=None, prog=None):
             return
         output = Path(options.output_dir).expanduser()
         output.mkdir(parents=True, exist_ok=False)
-        if options.alignment_reference == GDC_REFERENCE:
-            if options.assembly != "GRCh38":
-                raise ValueError("The GDC profile uses GRCh38; use custom for other assemblies")
-            genome = gdc_genome(genome_fasta=options.genome_fasta, gtf=options.gtf,
-                                annotation_version=options.annotation_version, annotation_name=options.annotation_name,
-                                cache_directory=options.reference_cache)
-        else:
-            genome = Genome(options.assembly, options.annotation_name, options.annotation_version,
-                            gtf_path_or_url=str(Path(options.gtf).expanduser().resolve()),
-                            genome_fasta_path_or_url=str(Path(options.genome_fasta).expanduser().resolve()),
-                            cache_directory_path=_annotation_cache(options.gtf, directory=options.reference_cache))
-        with genome, rna_path_context(options, reference_name=options.assembly) as (bam, collector, library):
-            genome.index()
-            targets, unavailable = isoform_targets_from_genome(genome, options.gene, contig_names=bam.references)
-            identity = validate_alignment_reference(
-                bam, genome, profile=None if options.alignment_reference == "custom" else GDC_REFERENCE,
-                contigs=[t.reference.contig for t in targets])
-            identity["files"] = reference_file_identity(options.genome_fasta, options.gtf)
+        with rna_path_context(options, reference_name=options.assembly) as (bam, collector, library):
+            prepared = prepare_antigen_reference(
+                bam, genes=options.gene, gene_set=options.gene_set,
+                genome_fasta=options.genome_fasta, gtf=options.gtf,
+                annotation_version=options.annotation_version, annotation_name=options.annotation_name,
+                assembly=options.assembly, alignment_reference=options.alignment_reference,
+                reference_cache=options.reference_cache)
             result = reconstruct_antigen_isoforms(
-                bam, targets=targets, sample_id=options.sample_id, source=str(Path(options.bam).resolve()),
-                reference_identity=identity, max_discovery_reads=options.max_discovery_reads,
+                bam, targets=prepared.targets, sample_id=options.sample_id, source=str(Path(options.bam).resolve()),
+                reference_identity=prepared.identity, max_discovery_reads=options.max_discovery_reads,
                 max_paths=options.max_paths, min_overlap=options.min_overlap, scratch_dir=options.scratch_dir,
                 read_collector=collector, library_index=library)
             result["input"]["sha256"] = digest(options.bam)
-            result["target_selection"] = dict(genes=options.gene, unavailable_transcripts=unavailable)
+            result["target_selection"] = prepared.target_selection
         publish_json(output / "isoforms.json", result)
         write_isoform_fastas(result, output / "transcripts.fa", output / "proteins.fa")
     except (OSError, ValueError, KeyError, TypeError) as error:

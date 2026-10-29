@@ -1,10 +1,33 @@
 # CTA and other antigen isoforms
 
-`isovar isoforms` reconstructs RNA at explicitly selected genes without a
+`isovar isoforms` reconstructs RNA at selected genes without a
 nominated mutation. It keeps competing transcripts and sequence alleles,
 reports ambiguous fragment assignments, and groups complete encoded protein
-sequences. You supply the CTA target list: expression alone does not establish
-cancer-testis specificity or expression in malignant cells.
+sequences. Select a versioned OncoRef CTA catalogue or supply explicit genes.
+Expression alone does not establish cancer-testis specificity or expression in
+malignant cells.
+
+## Where CTA membership comes from
+
+`--gene-set oncoref-cta` uses the installed OncoRef
+`cta_selection.results(species="human", category="CTA")` catalogue. OncoRef owns
+the evidence and selection policy; Isovar keeps every nominated gene locus,
+including all loci in a protein-equivalence group, then loads every available
+transcript from your supplied annotation. It does not collapse a gene to its
+canonical protein or apply Vaxrank's target-admission exclusions.
+
+The result's `target_selection` records the OncoRef package version, policy,
+reference and snapshot identifiers, selected decisions, source inventory,
+gene mapping and unavailable transcripts. Sources retain their owner-defined
+status; an available literature resource is not necessarily used in the policy.
+This catalogue differs from OncoRef's historical `cta.cta_gene_ids()` API used
+by existing Vaxrank expression admission. A package upgrade is not an implicit
+change to Vaxrank admission policy.
+
+Missing stable IDs are reported, with a warning; they are never guessed from
+similar symbols. Explicit `--gene` symbols are resolved against your annotation.
+If no selected locus/model is available, preparation fails. The human catalogue
+accepts GRCh37/GRCh38 stable IDs; no coordinate liftover is implied.
 
 ## Reconstruct a panel
 
@@ -18,14 +41,16 @@ the alignment reference.
 ```sh
 isovar isoforms reconstruct \
     --bam tumor-rna.bam --sample-id tumor-1 \
-    --gene PRAME --gene MAGEA4 --gene CTAG1B \
+    --gene-set oncoref-cta \
     --genome-fasta GRCh38.d1.vd1.fa \
     --gtf gencode.v50.primary_assembly.annotation.gtf.gz \
     --annotation-version 50 \
     --output-dir tumor-1-isoforms
 ```
 
-These gene names illustrate an explicit panel, not an exhaustive CTA definition.
+To reconstruct an explicit panel, replace `--gene-set oncoref-cta` with repeated
+`--gene` arguments, such as `--gene PRAME --gene MAGEA4`. The two selection modes
+are mutually exclusive. These example genes do not define the CTA catalogue.
 Include related loci when reads could map to both. Contig matching uses the shared
 Varcode resolver: exact names take precedence, ambiguous aliases remain
 unavailable with structured diagnostics, and viral/decoy names retain their
@@ -153,28 +178,18 @@ The reconstruction and quantification input identities are recorded separately.
 
 ```python
 import pysam
-from isovar import (
-    gdc_genome, isoform_targets_from_genome, validate_alignment_reference,
-    reconstruct_antigen_isoforms, quantify_antigen_isoforms,
-)
+from isovar import prepare_antigen_reference, reconstruct_antigen_isoforms, quantify_antigen_isoforms
 
-with gdc_genome(
-    genome_fasta="GRCh38.d1.vd1.fa",
-    gtf="gencode.v50.primary_assembly.annotation.gtf.gz",
-    annotation_version=50,
-    cache_directory="annotation-cache",
-) as genome, pysam.AlignmentFile("tumor.bam") as bam:
-    genome.index()
-    targets, unavailable = isoform_targets_from_genome(
-        genome, ["PRAME", "MAGEA4"], contig_names=bam.references)
-    reference = validate_alignment_reference(
-        bam, genome, profile="GRCh38.d1.vd1",
-        contigs=[t.reference.contig for t in targets])
+with pysam.AlignmentFile("tumor.bam") as bam:
+    prepared = prepare_antigen_reference(
+        bam, gene_set="oncoref-cta",
+        genome_fasta="GRCh38.d1.vd1.fa",
+        gtf="gencode.v50.primary_assembly.annotation.gtf.gz",
+        annotation_version=50, reference_cache="annotation-cache")
     result = reconstruct_antigen_isoforms(
-        bam, targets=targets, sample_id="tumor-1", source="RNA-library-1",
-        reference_identity=reference)
-    result["target_selection"] = dict(
-        genes=["PRAME", "MAGEA4"], unavailable_transcripts=unavailable)
+        bam, targets=prepared.targets, sample_id="tumor-1", source="RNA-library-1",
+        reference_identity=prepared.identity)
+    result["target_selection"] = prepared.target_selection
 
 quantify_antigen_isoforms(
     result, transcriptome="gencode.v50.transcripts.fa.gz",
