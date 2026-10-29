@@ -151,8 +151,9 @@ receipt. The RNA cohort receipt embeds its source inventory for offline renderin
 The [Sid inventory](../reports/matched_normal/sid_normal_inventory.json.gz) pins
 the reviewed public source selection. Its acquisition script downloads original
 public file streams and filters locally, hashing the complete stream and indexed
-derivative. It sends no patient coordinates in HTTP queries. See the adjacent
-report README for the reproducible analysis and its actual limitations.
+derivative. It sends no patient coordinates in HTTP queries. The
+[Sid reassessment report](../reports/matched_normal/README.md) includes the
+reproducible analysis, changed background/origin identities and actual limitations.
 
 Primary definitions: [VCF specification](https://samtools.github.io/hts-specs/VCFv4.3.pdf)
 and [GATK reference-confidence blocks](https://gatk.broadinstitute.org/hc/en-us/articles/360035531812-GVCF-Genomic-Variant-Call-Format).
