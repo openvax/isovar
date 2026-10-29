@@ -171,6 +171,44 @@ def test_manifest_end_to_end_is_source_separated_and_resume_checks_outputs(tmp_p
         run_sv_rna_audit(manifest, output, resume=True)
 
 
+def test_dense_inventory_prepares_one_library_for_all_events_and_views(tmp_path, monkeypatch):
+    from isovar import rna_library, sv_rna_audit
+    manifest_path, manifest = manifest_fixture(tmp_path)
+    manifest['parameters'] = dict(dense_support=True, max_records=4, assemble=False)
+    original_view = manifest['events'][0]['views'][0]
+    manifest['events'][0]['views'].append(dict(deepcopy(original_view), view_id='second-budget', parameters=dict(max_records=6)))
+    manifest['events'].append(dict(deepcopy(manifest['events'][0]), event_id='another-nomination'))
+    write_json(manifest_path, manifest)
+    prepared = []
+    original = sv_rna_audit.prepare_rna_library
+
+    def counted(*args, **kwargs):
+        value = original(*args, **kwargs)
+        prepared.append(value.directory)
+        return value
+
+    monkeypatch.setattr(sv_rna_audit, 'prepare_rna_library', counted)
+    cache = tmp_path / 'library-cache'
+    output = tmp_path / 'first'
+    first = run_sv_rna_audit(manifest_path, output, library_cache_dir=cache)
+    assert len(prepared) == 1
+    assert len(first['runs']) == 8
+    assert sum(row['status'] == 'unassessed' for row in first['runs']) == 4
+
+    def no_rebuild(*args, **kwargs):
+        raise AssertionError('An unchanged library must reuse its verified index')
+
+    monkeypatch.setattr(rna_library, '_index_records', no_rebuild)
+    second_output = tmp_path / 'second'
+    second = run_sv_rna_audit(manifest_path, second_output, library_cache_dir=cache)
+    assert first == second
+    for row in first['runs']:
+        assert read_json(output / row['artifact']) == read_json(second_output / row['artifact'])
+    assert len(prepared) == 2 and prepared[0] == prepared[1]
+    assert first == run_sv_rna_audit(manifest_path, output, library_cache_dir=cache, resume=True)
+    assert len(prepared) == 2  # Resume needs no reconstruction index at all.
+
+
 def test_manifest_verifies_inputs_before_creating_output(tmp_path):
     path, manifest = manifest_fixture(tmp_path)
     manifest['files']['bam']['sha256'] = '0' * 64

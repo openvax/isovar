@@ -4,6 +4,19 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.68.0
+
+- Reuse content-addressed original RNA library indexes across dense SV views.
+  The shared acquisition layer preserves complete mates and alternative
+  placements without retaining a second full BAM copy. Source bytes, eligibility,
+  implementation identity and cached metadata are verified before reuse.
+- Add `prepare_rna_library`, context-managed index readers and `library_index`
+  for dense reconstruction. `sv-audit` shares indexes automatically and accepts
+  `--library-cache-dir` for reuse across invocations.
+- Antigen and viral reconstruction use the same acquisition layer. Their bounded
+  discovery now declares stable read-group/query-name traversal instead of a
+  temporary collation's physical order; complete support remains source scoped.
+
 ## 1.67.0
 
 - Add one typed matched-normal API and `isovar normal-evidence` command with

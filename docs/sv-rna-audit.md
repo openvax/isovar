@@ -6,6 +6,10 @@ Varcode hypotheses, ordinary transcripts, and competing original alignments.
 The same workflow accepts validated supplied-fusion inputs. Reports consume its
 snapshots; they do not infer frames independently.
 
+Dense views share an [original-template library index](rna-library-index.md)
+automatically. Add `--library-cache-dir rna-indexes` to retain verified indexes
+across runs. Cache location does not change source separation or evidence budgets.
+
 ```sh
 python -m isovar sv-audit --manifest manifest.json --output-dir results
 python -m isovar sv-audit --manifest manifest.json --output-dir results --resume

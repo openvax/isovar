@@ -11,6 +11,9 @@ a sequence-resolved fusion transcript from another tool, validate it with
 [`isovar fusion`](fusion.md) instead. Both commands produce the same
 [RNA path format](#the-rna-path-format), so downstream code can read either.
 
+For inventories, [prepare and reuse the original library index](rna-library-index.md)
+or run `isovar sv-audit`, which shares indexes across dense event views.
+
 The output is **exploratory**. It shows what the RNA supports; it does not prove
 the SV causes the RNA, that a protein is made, or that any peptide is presented.
 

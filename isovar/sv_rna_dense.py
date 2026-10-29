@@ -6,10 +6,8 @@ SQLite index keeps unrelated background and arbitrarily distant pieces on disk.
 
 from collections import Counter, defaultdict
 from bisect import bisect_left
-from collections.abc import Mapping
 from contextlib import ExitStack, closing
 from hashlib import sha256
-from os import fsdecode
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
@@ -22,166 +20,13 @@ from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
 from .rna_evidence import rna_support
 from .sv_rna import (
-    _Event, _GeometryCache, _Model, _Observations, _build_segment, _flip, _ineligible, _join_class, _merge, _record_gaps, _record_id,
+    _Event, _GeometryCache, _Model, _Observations, _build_segment, _flip, _join_class, _merge, _record_gaps, _record_id,
     _path_result, _possible_breakpoint_clip, _possible_exon_clip, _exon_clip_cores,
     _inside, _SEQUENCE_BRIDGE_BASES, reconstruct_sv_rna,
 )
 from . import sv_rna_stream
 from .sv_rna_relations import LINKAGE_STATUSES
-
-
-def _read_at(reader, offset):
-    """Read one original record, reusing an already decompressed BGZF block."""
-    current = reader.tell()
-    if current != offset:
-        if current < offset and current >> 16 == offset >> 16:
-            while reader.tell() < offset:
-                next(reader)
-        else:
-            reader.seek(offset)
-    return next(reader)
-
-
-def _read_forward(reader, offset):
-    """Reach an indexed record by sequentially skipping unselected records."""
-    current = reader.tell()
-    while current < offset:
-        next(reader)
-        current = reader.tell()
-    if current != offset:
-        raise ValueError('SV template spool offsets are not in physical order')
-    return next(reader)
-
-
-class _DiskGroups(Mapping):
-    """Original eligible records indexed in a private name-collated BAM."""
-
-    def __init__(self, connection, reader, header, segment_count):
-        self.connection, self.reader, self.header = connection, reader, header
-        self.segment_count = segment_count
-
-    def __getitem__(self, identity):
-        records = self.template(identity[:2]).get(identity)
-        if not records:
-            raise KeyError(identity)
-        return records
-
-    def __contains__(self, identity):
-        rg, name, segment = identity
-        return self.connection.execute(
-            'SELECT 1 FROM templates WHERE rg=? AND name=? AND segments & ? != 0',
-            (rg, name, 1 << (segment >> 6))).fetchone() is not None
-
-    def __iter__(self):
-        for rg, name, segments in self.connection.execute(
-                'SELECT rg, name, segments FROM templates ORDER BY rg, name'):
-            for segment in (0, 64, 128, 192):
-                if segments & (1 << (segment >> 6)):
-                    yield rg, name, segment
-
-    def __len__(self):
-        return self.segment_count
-
-    def templates(self):
-        """Stream complete eligible templates without paired-record seeks."""
-        # Collation keeps each QNAME contiguous. Separate read groups within
-        # one name while retaining their first-appearance traversal order.
-        with pysam.AlignmentFile(self.reader.filename, 'rb') as reader:
-            name, groups = None, {}
-            for offset, rg, current_name in self.connection.execute(
-                    'SELECT offset, rg, name FROM offsets WHERE excluded=0 ORDER BY offset'):
-                read = _read_forward(reader, offset)
-                if current_name != name:
-                    yield from groups.values()
-                    name, groups = current_name, {}
-                groups.setdefault(rg, []).append(read)
-            yield from groups.values()
-
-    def template(self, fragment):
-        """All eligible original mates/placements of one consulted template."""
-        groups = defaultdict(list)
-        for offset, in self.connection.execute(
-                'SELECT o.offset FROM offsets o LEFT JOIN record_ids r USING (offset) '
-                'WHERE o.rg=? AND o.name=? AND o.excluded=0 ORDER BY o.segment, r.rid', fragment):
-            read = _read_at(self.reader, offset)
-            groups[segment_identity(read)].append(read)
-        return groups
-
-
-def _spool(bam, db, collector, directory):
-    """Collate and index original BAM offsets without SQL payload copies.
-
-    QNAME/RG identify the only records that could share an original SAM payload.
-    Singletons therefore need no SAM serialization or hash. All records in
-    repeated templates are hashed in physical file order; identical originals
-    are deduplicated while exclusions still count every input record.
-    """
-    directory = Path(directory)
-    created_source = False
-    if bam.is_bam and bam.filename and Path(fsdecode(bam.filename)).is_file():
-        source = Path(fsdecode(bam.filename))
-    else:
-        source = directory / 'original.bam'
-        created_source = True
-        with ExitStack() as stack:
-            reader = bam
-            if bam.is_sam and bam.filename and Path(fsdecode(bam.filename)).is_file():
-                reader = stack.enter_context(pysam.AlignmentFile(bam.filename))
-            elif not bam.is_sam:
-                bam.reset()
-            output = stack.enter_context(pysam.AlignmentFile(
-                source, 'wb', header=bam.header, format_options=[b'level=1']))
-            for read in reader.fetch(until_eof=True):
-                output.write(read)
-    collated = directory / 'collated.bam'
-    pysam.collate('--no-PG', '-o', str(collated), str(source))
-    if created_source:
-        source.unlink()
-    source = collated
-    db.execute('CREATE TABLE offsets (offset INTEGER PRIMARY KEY, rg TEXT, name TEXT, segment INTEGER, excluded INTEGER)')
-    scanned, excluded = 0, Counter()
-    with pysam.AlignmentFile(source, 'rb') as reader:
-        while True:
-            offset = reader.tell()
-            read = next(reader, None)
-            if read is None:
-                break
-            scanned += 1
-            reason = 'unnamed_record' if read.query_name is None else _ineligible(read, collector)
-            if reason:
-                excluded[reason] += 1
-            rg, name, segment = segment_identity(read)
-            db.execute('INSERT INTO offsets VALUES (?, ?, ?, ?, ?)',
-                       (offset, rg, name or '', segment, int(reason is not None)))
-    db.execute('CREATE INDEX fragments ON offsets (rg, name)')
-    db.execute('CREATE TABLE repeated (rg TEXT, name TEXT, PRIMARY KEY (rg, name)) WITHOUT ROWID')
-    db.execute('INSERT INTO repeated SELECT rg, name FROM offsets GROUP BY rg, name HAVING count(*) > 1')
-    db.execute('CREATE TABLE record_ids (rid BLOB PRIMARY KEY, offset INTEGER UNIQUE)')
-    db.execute('CREATE TABLE duplicates (offset INTEGER PRIMARY KEY)')
-    duplicates = 0
-    with pysam.AlignmentFile(source, 'rb') as reader, pysam.AlignmentFile(source, 'rb') as previous:
-        for offset, in db.execute('SELECT o.offset FROM offsets o JOIN repeated USING (rg, name) ORDER BY o.offset'):
-            sam = _read_at(reader, offset).to_string()
-            rid = sha256(sam.encode()).digest()
-            row = db.execute('INSERT OR IGNORE INTO record_ids VALUES (?, ?)', (rid, offset))
-            if not row.rowcount:
-                old_offset, = db.execute('SELECT offset FROM record_ids WHERE rid=?', (rid,)).fetchone()
-                if _read_at(previous, old_offset).to_string() != sam:
-                    raise ValueError('Conflicting original SAM records share SV record identity %s' % rid.hex())
-                db.execute('INSERT INTO duplicates VALUES (?)', (offset,))
-                duplicates += 1
-    db.execute('DELETE FROM offsets WHERE offset IN (SELECT offset FROM duplicates)')
-    db.execute('DROP TABLE duplicates')
-    db.execute('DROP TABLE repeated')
-    db.execute('CREATE TABLE templates (rg TEXT, name TEXT, offset INTEGER, records INTEGER, '
-               'segments INTEGER, PRIMARY KEY (rg, name)) WITHOUT ROWID')
-    db.execute('INSERT INTO templates SELECT rg, name, min(offset), count(*), '
-               'sum(DISTINCT (1 << (segment >> 6))) FROM offsets WHERE excluded=0 GROUP BY rg, name')
-    db.execute('CREATE INDEX traversal ON templates (offset)')
-    segment_count, = db.execute('SELECT count(*) FROM (SELECT rg, name, segment FROM offsets '
-                                'WHERE excluded=0 GROUP BY rg, name, segment)').fetchone()
-    db.commit()
-    return scanned, dict(sorted(excluded.items())), scanned - duplicates, segment_count, source
+from .rna_library import _original_library_context
 
 
 def _search_regions(bam, options):
@@ -247,7 +92,7 @@ def _group_signatures(identity, records):
 
     Actual alternative/supplementary pieces, SA linkage hints and trimming tags
     remain in the key. No sketch, local window or consensus replaces an allele.
-    Original qualities, names and labels remain in the spool, not in this key.
+    Original qualities, names and labels remain in the source BAM, not in this key.
     """
     placed = sorted((r.reference_name, r.reference_start, r.flag, r.cigarstring,
                      r.get_tag('SA') if r.has_tag('SA') else '',
@@ -263,7 +108,8 @@ def _select(groups, db, options, collector, spans, event, annotated, exonic):
     db.execute('CREATE TABLE alleles (group_id INTEGER PRIMARY KEY, priority INTEGER, signature BLOB, '
                'structure BLOB, UNIQUE (priority, signature))')
     db.execute('CREATE TABLE discovery (rg TEXT, name TEXT, segment INTEGER, group_id INTEGER, size INTEGER)')
-    for template in groups.templates():
+    regions = [(contig, start, end) for contig, intervals in spans.items() for start, end in intervals]
+    for template in groups.templates(regions):
         members = defaultdict(list)
         for read in template:
             members[segment_identity(read)].append(read)
@@ -409,7 +255,8 @@ def _support(groups, result, collector, event, annotated, options, exonic=None):
     stream = sv_rna_stream._SupportStream(result['paths'], [_positions(p) for p in result['paths']], event, annotated)
     reasons, geometry_cache, batch, bases, intern = Counter(), _GeometryCache(), [], 0, {}
     clip_matches, clip_records = defaultdict(dict), {}
-    for template in groups.templates() if result['paths'] else ():
+    regions = [(contig, start, end) for contig, intervals in placements.items() for start, end in intervals]
+    for template in groups.templates(regions) if result['paths'] else ():
         if not any(_overlaps_placements(read, placements.get(read.reference_name, ())) for read in template):
             continue
         if not _may_support(template, joins, collector, event, clip_exonic):
@@ -552,6 +399,8 @@ def reconstruct_dense_sv_rna(bam, options):
     """Discover bounded hypotheses and recount their witnesses across the input."""
     options = dict(options)
     scratch = options.pop('scratch_dir')
+    library_index = options.pop('library_index')
+    read_filter_identity = options.pop('read_filter_identity')
     group_limit = options['max_evidence_groups']
     options['dense_support'] = False
     collector = options['read_collector']
@@ -562,17 +411,15 @@ def reconstruct_dense_sv_rna(bam, options):
                    options['annotated_junction_tolerance'])
 
     with TemporaryDirectory(prefix='isovar-sv-', dir=scratch) as directory:
-        with closing(sqlite3.connect(str(Path(directory) / 'records.sqlite'))) as db, ExitStack() as stack:
-            # This private spool is rebuilt from the unchanged input and is
-            # discarded on every exit. It never needs crash recovery or a
-            # rollback journal containing a second copy of the original SAM.
+        with closing(sqlite3.connect(str(Path(directory) / 'discovery.sqlite'))) as db, ExitStack() as stack:
+            # Event-specific grouping never mutates the shared source index.
             db.execute('PRAGMA journal_mode=OFF')
             db.execute('PRAGMA synchronous=OFF')
             db.execute('PRAGMA temp_store=FILE')
             db.execute('PRAGMA cache_size=-65536')
-            scanned, excluded, unique, segment_count, eligible = _spool(bam, db, collector, directory)
-            reader = stack.enter_context(pysam.AlignmentFile(eligible, 'rb'))
-            groups = _DiskGroups(db, reader, bam.header, segment_count)
+            groups = stack.enter_context(_original_library_context(bam, collector, directory, library_index=library_index,
+                reference_name=options['reference_name'], read_filter_identity=read_filter_identity))
+            statistics = groups.statistics
             exonic = _exonic(options['references']) if options['exon_anchored_clips'] else None
             selected, available, grouping = _select(groups, db, options, collector, spans, event, annotated, exonic)
             unsorted, discovery = str(Path(directory) / 'discovery.unsorted.bam'), str(Path(directory) / 'discovery.bam')
@@ -591,9 +438,10 @@ def reconstruct_dense_sv_rna(bam, options):
             result['acquisition']['input_scope'] = 'bounded_discovery_representatives'
             result['support_acquisition'] = dict(scope='all_original_input_records', records_complete=True,
                                                   complete=not support_notes.get('segment_grouping_limit'),
-                                                  records_scanned=scanned, unique_records=unique,
+                                                  records_scanned=statistics['records_scanned'], unique_records=statistics['unique_records'],
                                                   eligible_segments=len(groups),
-                                                  excluded_records=excluded, read_path_notes=support_notes)
+                                                  excluded_records=statistics['excluded_records'], read_path_notes=support_notes,
+                                                  library_index_identity=groups.prepared.identity)
             policy = ('event_first_full_allele_groups_with_exon_clips' if exonic is not None
                       else 'event_first_full_allele_groups')
             policy += '.v2' if group_limit is not None else '.v1'

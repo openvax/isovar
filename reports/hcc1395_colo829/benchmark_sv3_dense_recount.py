@@ -1,11 +1,9 @@
 """Time exact dense recount on a COLO829 SV3 candidate BAM."""
 
 import argparse
-from contextlib import closing
 import gzip
 import json
 from pathlib import Path
-import sqlite3
 from tempfile import TemporaryDirectory
 from time import monotonic
 
@@ -14,7 +12,7 @@ import pysam
 from isovar.fusion import FusionBreakpoint, FusionReference
 from isovar.read_collector import ReadCollector
 from isovar.sv_rna import reconstruct_sv_rna
-from isovar.sv_rna_dense import _DiskGroups, _spool
+from isovar.rna_library import prepare_rna_library
 from reports.hcc1395_colo829.build_sv_junction_audit import EVENTS
 
 
@@ -25,26 +23,19 @@ DATA = ROOT / "tests/data/colo829_whole_run"
 def benchmark_templates(bam_path, scratch_dir=None):
     """Time source indexing and one complete paired-template traversal."""
     with TemporaryDirectory(prefix="isovar-sv-benchmark-", dir=scratch_dir) as directory:
-        with pysam.AlignmentFile(str(bam_path), "rb") as alignment, closing(
-                sqlite3.connect(str(Path(directory) / "records.sqlite"))) as db:
-            indexed = monotonic()
-            scanned, excluded, unique, segments, source = _spool(
-                alignment, db, ReadCollector(min_mapping_quality=0, use_soft_clipped_bases=True),
-                directory)
-            spool_seconds = round(monotonic() - indexed, 2)
-            traversed = monotonic()
-            with pysam.AlignmentFile(source, "rb") as reader:
-                groups = _DiskGroups(db, reader, alignment.header, segments)
-                templates = records = 0
-                for template in groups.templates():
-                    templates += 1
-                    records += len(template)
-            return dict(
-                spool_seconds=spool_seconds,
-                traversal_seconds=round(monotonic() - traversed, 2),
-                records_scanned=scanned, unique_records=unique,
-                excluded_records=excluded, eligible_segments=segments,
-                templates=templates, eligible_records=records)
+        indexed = monotonic()
+        prepared = prepare_rna_library(bam_path, directory, reference_name="GRCh38",
+            read_collector=ReadCollector(min_mapping_quality=0, use_soft_clipped_bases=True))
+        index_seconds = round(monotonic() - indexed, 2)
+        traversed = monotonic()
+        with prepared.open() as groups:
+            templates = records = 0
+            for template in groups.templates():
+                templates += 1
+                records += len(template)
+        return dict(index_seconds=index_seconds, traversal_seconds=round(monotonic() - traversed, 2),
+            **{key: prepared.statistics[key] for key in ('records_scanned', 'unique_records', 'excluded_records', 'eligible_segments')},
+            templates=templates, eligible_records=records)
 
 
 def benchmark(bam_path, scratch_dir=None, max_records=20000):

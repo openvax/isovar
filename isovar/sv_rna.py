@@ -25,8 +25,12 @@ from functools import cached_property
 from hashlib import sha256
 from itertools import chain, combinations, islice, repeat
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from .rna_library import RnaLibraryIndex
 
 from .cell_umi import CellUmiEvidence
 from .chimeric_alignment import compatible_phasing_alignments, sa_entries, source_alignment_paths_from_pysam
@@ -1792,7 +1796,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                        inclusion_min_base_quality=SV_INCLUSION_MIN_BASE_QUALITY,
                        inclusion_min_mapping_quality=SV_INCLUSION_MIN_MAPPING_QUALITY,
                        inclusion_mapq_255_is_unique=SV_INCLUSION_MAPQ_255_IS_UNIQUE,
-                       dense_support=False, scratch_dir=None, max_evidence_groups=None):
+                       dense_support=False, scratch_dir=None, max_evidence_groups=None,
+                       library_index: "RnaLibraryIndex | None" = None, read_filter_identity: str | None = None):
     """Reconstruct RNA paths for one nominated, oriented DNA adjacency.
 
     Paths start at unannotated RNA junctions (and, when soft-clipped bases are
@@ -1898,7 +1903,18 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         Optional location for temporary files when dense_support is True.
         None uses the system temporary directory. Set an existing directory on
         another disk when more space is needed; this does not change results.
-        Space scales with the complete input, not max_records.
+        A temporary original-record index is built here unless ``library_index``
+        is supplied. Discovery work remains private to the current event view.
+    library_index : RnaLibraryIndex, optional
+        Open context from ``prepare_rna_library(...).open()`` for this same BAM
+        and read eligibility policy. Reuse it across dense event views to avoid
+        repeated whole-library preparation. Only complete original templates are
+        acquired; exact CIGAR/sequence evidence is still checked for each event.
+        Requires ``dense_support=True``. The caller owns its lifetime.
+    read_filter_identity : str, optional
+        Version/provenance of custom original-record eligibility, matching the
+        reusable index. Includes custom predicates and overridden collector
+        eligibility methods; update it when behavior or closed-over data changes.
 
     Returns
     -------
@@ -1912,6 +1928,8 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
         raise ValueError("dense_support must be True or False")
     if scratch_dir is not None and not dense_support:
         raise ValueError("scratch_dir requires dense_support")
+    if not dense_support and (library_index is not None or read_filter_identity is not None):
+        raise ValueError("library_index and read_filter_identity require dense_support")
     if max_evidence_groups is not None:
         if not dense_support:
             raise ValueError("max_evidence_groups requires dense_support")

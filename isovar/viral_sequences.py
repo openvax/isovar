@@ -1,13 +1,10 @@
 """Observed viral-associated RNA paths without a mutation or transcript GTF."""
 
 from collections import Counter, defaultdict
-from contextlib import closing
 from hashlib import sha256
 from pathlib import Path
-import sqlite3
 from tempfile import TemporaryDirectory
 
-import pysam
 from pyensembl import Genome
 
 from .antigen_reference import GDC_REFERENCE, gdc_viral_panel, validate_alignment_reference
@@ -15,31 +12,17 @@ from .audit_bundle import digest
 from .read_collector import ReadCollector
 from .rna_reconstruction import _assemble, _observations, _support
 from .sv_rna import _GeometryCache, _runs
-from .sv_rna_dense import _DiskGroups, _spool
+from .rna_library import _original_library_context
 from .viral_coding import viral_coding_predictions, viral_coding_references
 
 
 def _discover_viruses(groups, regions, collector, max_discovery_reads, max_paths, min_overlap):
-    # Index viral templates once, then retain discovery observations for only
-    # one contig at a time. Do not multiply the in-memory budget by panel size
-    # or rescan the background BAM once for each virus.
-    db = groups.connection
-    db.execute("CREATE TEMP TABLE viral_templates (contig TEXT, rg TEXT, name TEXT, "
-               "PRIMARY KEY (contig, rg, name)) WITHOUT ROWID")
-    for template in groups.templates():
-        names = {r.reference_name for r in template if not r.is_unmapped and r.reference_name in regions}
-        if names:
-            rg = template[0].get_tag("RG") if template[0].has_tag("RG") else ""
-            db.executemany("INSERT INTO viral_templates VALUES (?, ?, ?)",
-                           ((name, rg, template[0].query_name) for name in names))
+    # The shared placement index selects complete templates per contig without
+    # rescanning the original library or depending on its physical record order.
     candidates, discovery, reasons = {}, [], Counter()
     for contig in sorted(regions):
         chosen, considered, selected, cache = {}, 0, 0, _GeometryCache()
-        fragments = db.execute(
-            "SELECT v.rg, v.name FROM viral_templates v JOIN templates t USING (rg, name) "
-            "WHERE v.contig=? ORDER BY t.offset", (contig,))
-        for fragment in fragments:
-            template = [r for reads in groups.template(fragment).values() for r in reads]
+        for template in groups.templates([(contig, start, end) for start, end, _ in regions[contig]]):
             for _, observations in _observations(template, collector, reasons, regions, cache):
                 observed = [o for o in observations if any(p is not None and p[0] == contig for p in o.positions)]
                 if not observed:
@@ -73,7 +56,7 @@ def _discover_viruses(groups, regions, collector, max_discovery_reads, max_paths
                 rna_strand="unknown", transcript_completeness="unknown",
                 coding_status="unannotated", orientation="canonical_reference_orientation"))
     return sorted(candidates.values(), key=lambda row: row["id"]), dict(
-        scope="per_viral_contig", max_discovery_reads=max_discovery_reads, max_paths=max_paths,
+        scope="per_viral_contig", template_order="read_group_query_name", max_discovery_reads=max_discovery_reads, max_paths=max_paths,
         peak_discovery_observations=max((r["distinct_observations"] for r in discovery), default=0),
         min_overlap=min_overlap, contigs=discovery, truncated=any(r["truncated"] for r in discovery),
         observation_rejections=dict(reasons))
@@ -181,30 +164,28 @@ def reconstruct_viral_sequences(bam, *, genome_fasta, sample_id, source, contigs
     regions = {name: [(0, lengths[name], "+")] for name in contigs}
     collector = ReadCollector(use_secondary_alignments=True, min_mapping_quality=0,
                               use_soft_clipped_bases=False, use_reads_without_base_qualities=True)
-    with TemporaryDirectory(dir=scratch_dir, prefix="isovar-viral-") as directory, closing(
-            sqlite3.connect(str(Path(directory) / "reads.sqlite"))) as db:
-        scanned, excluded, unique, segments, path = _spool(bam, db, collector, directory)
-        with pysam.AlignmentFile(path, "rb") as reader:
-            groups = _DiskGroups(db, reader, bam.header, segments)
-            candidates, discovery = _discover_viruses(
-                groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
-            covered_contigs = {r.transcript.contig for r in coding_models}
-            for candidate in candidates:
-                candidate["coding"] = viral_coding_predictions(
-                    candidate["id"], candidate["sequence"], candidate["placements"], coding_models)
-                candidate["coding_status"] = (
-                    "reference_anchored_prediction" if candidate["coding"] else
-                    "no_coding_overlap" if set(candidate["viral_contigs"]).intersection(covered_contigs)
-                    else "unavailable_reference")
-            support = _support(groups, candidates, regions, collector, bam.header.to_dict(),
-                               sample_id, source, label="sequence")
-            counts = _contig_support(contigs, candidates, support, discovery)
+    with TemporaryDirectory(dir=scratch_dir, prefix="isovar-viral-") as directory, _original_library_context(
+            bam, collector, directory, library_index=None, reference_name="GRCh38" if panel else None, read_filter_identity=None) as groups:
+        statistics = groups.statistics
+        candidates, discovery = _discover_viruses(
+            groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
+        covered_contigs = {r.transcript.contig for r in coding_models}
+        for candidate in candidates:
+            candidate["coding"] = viral_coding_predictions(
+                candidate["id"], candidate["sequence"], candidate["placements"], coding_models)
+            candidate["coding_status"] = (
+                "reference_anchored_prediction" if candidate["coding"] else
+                "no_coding_overlap" if set(candidate["viral_contigs"]).intersection(covered_contigs)
+                else "unavailable_reference")
+        support = _support(groups, candidates, regions, collector, bam.header.to_dict(),
+                           sample_id, source, label="sequence")
+        counts = _contig_support(contigs, candidates, support, discovery)
     for row in candidates:
         row["mapping"] = [list(run) for run in _runs(row.pop("placements"))]
     return dict(schema="isovar.viral_sequences.v1", sample_id=sample_id, source=source,
                 reference=identity, coding_reference=coding_reference, selected_contigs=contigs,
-                input=dict(records=scanned, unique_records=unique, eligible_segments=segments,
-                           excluded_records=excluded, header=bam.header.to_dict()),
+                input=dict(records=statistics['records_scanned'], unique_records=statistics['unique_records'],
+                           eligible_segments=statistics['eligible_segments'], excluded_records=statistics['excluded_records'], header=bam.header.to_dict()),
                 discovery=discovery, sequences=candidates, contigs=counts, support=support,
                 limitations=["exact_overlap_reconstruction", "RNA_strand_and_transcript_ends_unknown",
                              "coding_reference_is_a_source_CDS_subset", "protein_predictions_are_not_expression_evidence",
