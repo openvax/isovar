@@ -4,6 +4,12 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.68.1
+
+- Show singleton categories in RNA ALT-support landscapes. Aggregate equal
+  support depths and correct inclusive threshold counts between observed depths;
+  explicitly label distributions without positive support.
+
 ## 1.68.0
 
 - Reuse content-addressed original RNA library indexes across dense SV views.

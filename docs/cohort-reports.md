@@ -183,6 +183,11 @@ parameters or scientific implementation. Completed exports use deterministic
 gzip headers. Per-call checkpoints use WAL so a long-running batch can be read
 without losing completed work.
 
+Landscape support distributions count calls at or above each observed positive
+ALT-fragment depth. Equal depths share one threshold, and points keep singleton
+categories visible. Zero-support calls remain in category totals and do not enter
+the logarithmic support distribution.
+
 The PDF separates focal-allele support, context contributors, exact full-window
 allele-observation spans, single-original-read spans and basewise coding depth.
 An allele observation can merge overlapping mates; only `source_read_count == 1`
