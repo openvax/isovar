@@ -6,7 +6,7 @@ CIGAR and sequence evidence is assessed by the existing reconstruction layers.
 """
 
 from collections import Counter, defaultdict
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from contextlib import ExitStack, closing, contextmanager
 from dataclasses import dataclass
 import errno
@@ -353,37 +353,59 @@ class RnaLibraryIndex(Mapping[Segment, list[pysam.AlignedSegment]]):
         return dict(records)
 
     @contextmanager
-    def _selected_templates(self, regions: Sequence[Region] | None, eligible_only: bool):
+    def _template_selection(self, regions: Sequence[Region] | None, eligible_only: bool,
+                            fragments: Iterable[Fragment] = ()) -> Iterator[sqlite3.Connection]:
         """Keep potentially large regional selections in a private temporary table."""
         with closing(_connect(self.database, readonly=True)) as db:
             if regions is None:
-                query = "SELECT rg, name FROM templates " + ("WHERE eligible_segments != 0 " if eligible_only else "")
-                yield db.execute(query + "ORDER BY rg, name")
+                db.execute("CREATE TEMP VIEW selected AS SELECT rg, name FROM main.templates "
+                           + ("WHERE eligible_segments != 0" if eligible_only else ""))
+                yield db
                 return
-            db.execute("CREATE TEMP TABLE selected (rg TEXT, name TEXT, first_offset INTEGER, "
+            db.execute("CREATE TEMP TABLE selected (rg TEXT, name TEXT, "
                        "PRIMARY KEY (rg, name)) WITHOUT ROWID")
+            db.executemany("INSERT OR IGNORE INTO selected SELECT rg, name FROM templates WHERE rg=? AND name=?",
+                           fragments)
             restriction = "AND r.excluded=0" if eligible_only else ""
-            for contig, start, end in regions:
+            for contig, start, end in regions or ():
                 if type(start) is not int or type(end) is not int or not 0 <= start < end:
                     raise ValueError("RNA index queries require nonnegative half-open integer intervals")
                 resolution = self.resolver.resolve(contig)
                 if resolution.resolved_name is None:
                     raise ValueError(resolution.diagnostic)
                 reference = self.reader.get_tid(resolution.resolved_name)
-                db.execute("INSERT OR IGNORE INTO selected SELECT r.rg, r.name, t.first_offset FROM placements p "
-                    "JOIN records r USING (offset) JOIN templates t USING (rg, name) "
+                db.execute("INSERT OR IGNORE INTO selected SELECT r.rg, r.name FROM placements p "
+                    "JOIN records r USING (offset) "
                     "WHERE p.ref_min<=? AND p.ref_max>=? AND p.start_min<? AND p.end_max>? "
                     "AND r.duplicate_of IS NULL " + restriction,
                     (reference, reference, end, start))
-            yield db.execute("SELECT rg, name FROM selected ORDER BY rg, name")
+            yield db
 
     def templates(self, regions: Sequence[Region] | None = None, *, eligible_only: bool = True
                   ) -> Iterator[list[pysam.AlignedSegment]]:
         """Yield complete selected templates in stable (read-group, query-name) order."""
         self.validate()
-        with self._selected_templates(regions, eligible_only) as fragments:
-            for fragment in fragments:
+        with self._template_selection(regions, eligible_only) as selected:
+            for fragment in selected.execute("SELECT rg, name FROM selected ORDER BY rg, name"):
                 yield [read for records in self.template(fragment, eligible_only=eligible_only).values() for read in records]
+
+    def records_for_templates(self, fragments: Iterable[Fragment] = (), regions: Sequence[Region] = ()
+                              ) -> Iterator[pysam.AlignedSegment]:
+        """Yield all physical records of selected templates in original BAM order.
+
+        Select the union of explicit template identities and region-overlapping
+        templates. An empty union is empty, not the whole library. Preserve
+        excluded records and duplicate payloads for the assessment layer, which
+        retains its own exact sequence/placement deduplication semantics.
+        """
+        if regions is None:
+            raise ValueError('Selected original records require explicit regions; use original_records for the whole library')
+        self.validate()
+        with self._template_selection(regions, False, fragments) as selected:
+            offsets = selected.execute("SELECT r.offset FROM records r JOIN selected USING (rg, name) ORDER BY r.offset")
+            for offset, in offsets:
+                yield _read_at(self.reader, offset)
+        self.validate()
 
     def original_records(self) -> Iterator[tuple[int, pysam.AlignedSegment]]:
         """Scan the unchanged original library, including excluded and unmapped RNA."""

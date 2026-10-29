@@ -6,10 +6,14 @@ to another RNA branch. Counts are source/read-group scoped, not molecule counts.
 """
 
 from collections import defaultdict
+from collections.abc import Iterable, Sequence
 from copy import deepcopy
 from dataclasses import asdict
 from hashlib import sha256
 import json
+from typing import Any, TypedDict
+
+import pysam
 
 from .fusion import FusionReference
 from .read_identity import read_group
@@ -95,21 +99,54 @@ def aligned_exon_clip_contains(record, segment):
     return False
 
 
-def collect_path_evidence(bam, references, raw_reads=(), min_exon_overlap=15):
+RawRead = tuple[str, str, int, str]
+Fragment = tuple[str, str | None]
+SequenceEvidence = tuple[Fragment, int, str, int | None, int | None]
+
+
+class PathEvidence(TypedDict):
+    """Original sequences, placements and source-wide accounting for one view."""
+
+    reads: list[SequenceEvidence]
+    exon_links: dict[Fragment, list[dict[str, Any]]]
+    placements: dict[tuple[Fragment, int], list[dict[str, Any]]]
+    records_scanned: int
+    fragments_scanned: int
+    exon_fragments: int
+    coding_exon_fragments: int
+    coding_reference_starts: list[dict[str, Any]]
+
+
+def collect_path_evidence(bam: pysam.AlignmentFile, references: Sequence[FusionReference],
+                          raw_reads: Iterable[RawRead] = (), min_exon_overlap: int = 15) -> PathEvidence:
     """Read a single library, retaining alternative alignments and raw ends.
 
     ``raw_reads`` supplies (read_group, query_name, mate, original_sequence).
     Mate is 0, 1 or 2. Raw sequences add sequence evidence, not placements.
     The caller must not combine independently processed copies as libraries.
     """
+    bam.reset()
+    return evidence_from_records(bam.fetch(until_eof=True), references, raw_reads, min_exon_overlap)
+
+
+def evidence_from_records(alignments: Iterable[pysam.AlignedSegment], references: Sequence[FusionReference],
+                          raw_reads: Iterable[RawRead] = (), min_exon_overlap: int = 15,
+                          *, source_records: int | None = None, source_fragments: int | None = None) -> PathEvidence:
+    """Interpret originals through the same collector for exhaustive and routed use.
+
+    Routed acquisition must supply every potentially matching sequence, all its
+    template placements and every alignment to the view's reference exons. Its
+    original-library denominators are supplied separately from selected records.
+    """
     exons, starts = exon_catalog(references)
-    by_contig = defaultdict(dict)
+    by_contig: dict[str, dict[tuple[str, int, int], dict[str, Any]]] = defaultdict(dict)
     for key, value in exons.items():
         by_contig[key[0]][key] = value
-    bam.reset()
-    reads, records, exon_links = set(), defaultdict(list), defaultdict(list)
+    reads: set[SequenceEvidence] = set()
+    records: dict[tuple[Fragment, int], list[dict[str, Any]]] = defaultdict(list)
+    exon_links: dict[Fragment, list[dict[str, Any]]] = defaultdict(list)
     fragments, coding, count = set(), set(), 0
-    for read in bam.fetch(until_eof=True):
+    for read in alignments:
         count += 1
         fragment = (read_group(read), read.query_name)
         mate = 1 if read.is_read1 else 2 if read.is_read2 else 0
@@ -118,7 +155,8 @@ def collect_path_evidence(bam, references, raw_reads=(), min_exon_overlap=15):
             reads.add((fragment, mate, read.query_sequence.upper(),
                        None if read.is_unmapped else read.query_alignment_start,
                        None if read.is_unmapped else read.query_alignment_end))
-        placements = exon_placements(read, by_contig.get(read.reference_name, {}), min_exon_overlap)
+        placements = exon_placements(read, by_contig.get(read.reference_name, {}) if read.reference_name is not None else {},
+                                     min_exon_overlap)
         # Keep every original alternative for cited exon links. Record counts
         # never enter the fragment support denominator.
         if placements:
@@ -152,7 +190,8 @@ def collect_path_evidence(bam, references, raw_reads=(), min_exon_overlap=15):
             raise ValueError("Raw RNA needs a sequence and a mate number in 0, 1, 2")
         reads.add(((group, name), mate, sequence.upper(), None, None))
     return dict(reads=sorted(reads, key=repr), exon_links=exon_links, placements=records,
-                records_scanned=count, fragments_scanned=len(fragments),
+                records_scanned=count if source_records is None else source_records,
+                fragments_scanned=len(fragments) if source_fragments is None else source_fragments,
                 exon_fragments=len(exon_links), coding_exon_fragments=len(coding),
                 coding_reference_starts=starts)
 

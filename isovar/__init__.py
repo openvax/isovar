@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.68.0"
+__version__ = "1.69.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -140,6 +140,9 @@ __all__ = [
     "prepare_rna_library",
     "PreparedRnaLibrary",
     "RnaLibraryIndex",
+    "PathEvidenceQuery",
+    "PathEvidenceIndex",
+    "route_path_evidence",
 
     "NormalEvidencePolicy",
     "NormalSource",
@@ -154,6 +157,7 @@ from .orf_annotation import annotate_sv_orf_evidence
 
 from .variant_rna_orfs import reconstruct_variant_orfs
 from .rna_library import prepare_rna_library, PreparedRnaLibrary, RnaLibraryIndex
+from .sv_path_routing import PathEvidenceQuery, PathEvidenceIndex, route_path_evidence
 
 
 from .normal_evidence import NormalEvidencePolicy

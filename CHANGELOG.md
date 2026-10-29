@@ -4,6 +4,17 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.69.0
+
+- Route all retained SV paths through one original-sequence pass per source and
+  reference context. Assess complete template alternatives and every reference
+  exon through the same collector as exhaustive direct assessment. Preserve
+  source-wide denominators and skip sequence scans for pathless inventories.
+- Decompose the audit into planning, reconstruction, routing and assessment.
+  Verify staged reconstruction checkpoints on resume and remove them only after
+  final receipts are durable. Process libraries serially and keep FASTQ identity
+  checks on disk rather than retaining whole libraries in Python collections.
+
 ## 1.68.0
 
 - Reuse content-addressed original RNA library indexes across dense SV views.

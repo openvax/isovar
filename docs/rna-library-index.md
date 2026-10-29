@@ -57,10 +57,58 @@ does not prepare indexes for already completed views. The cache location is an
 operational choice and does not change the result fingerprint or scientific
 evidence. Cohort SV tasks use the same audit runner.
 
-The current change reuses reconstruction acquisition and dense support queries.
-The separate path-assessment stage still needs inventory-wide sequence routing
-to remove its remaining per-event whole-library scans; this remains tracked in
-[#593](https://github.com/openvax/isovar/issues/593).
+The audit plans all views, reconstructs them into verified stage files, routes
+the union of retained paths through one original-sequence pass, then assesses
+each view. It processes source/reference groups serially. Pathless inventories
+retrieve reference-exon evidence and original-library counts without scanning
+unrelated sequences. Raw FASTQ, when supplied, is consumed once per group and its
+identity checks use a temporary database.
+
+Interrupted reconstructions remain under `.reconstructions` in the output
+directory. `--resume` verifies their input/code fingerprint and content digest;
+changed or incomplete checkpoints are errors. A stage is removed only after its
+final native snapshot and receipt are written. Final report order follows the
+manifest, independently of the source-wise execution order.
+
+## Shared path assessment API
+
+Use `PathEvidenceQuery` and `route_path_evidence` when assessing several already
+reconstructed views outside the audit runner:
+
+```python
+from tempfile import TemporaryDirectory
+from pathlib import Path
+from isovar import PathEvidenceQuery, route_path_evidence
+from isovar.sv_rna_assessment import assess_sv_rna_paths
+
+queries = [
+    PathEvidenceQuery(
+        identifier=view_id,
+        sequences=tuple(path["sequence"] for path in result["paths"]),
+        references=tuple(references),
+    )
+    for view_id, result, references in reconstructed_views
+]
+with prepared.open() as library, TemporaryDirectory() as scratch:
+    with route_path_evidence(library, queries, Path(scratch) / "routes.sqlite") as routed:
+        assessments = [
+            assess_sv_rna_paths(result, None, references, evidence=routed.evidence(view_id))
+            for view_id, result, references in reconstructed_views
+        ]
+```
+
+Here `reconstructed_views` is a reusable sequence of `(view_id, result,
+FusionReference models)` tuples. Match/exon thresholds in each query must match
+the corresponding `assess_sv_rna_paths` call. Direct single-view assessment
+continues to accept an original BAM and uses the same record interpretation.
+
+Routing uses exact sequence seeds to select candidates, including unmapped or
+distant reads. It retrieves every original record of matching templates plus all
+reference-exon templates, in original order. Collector eligibility does not filter
+this assessment evidence. Raw-only sequence matches retrieve their BAM template
+alternatives too. Exact matching, exon linkage and competing placements still
+determine support; a seed match itself is never a supporting read. `PathEvidenceIndex`
+is valid only inside its routing and library contexts.
 
 ## Scope, identity and resource use
 
