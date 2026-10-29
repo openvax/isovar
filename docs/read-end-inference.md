@@ -184,7 +184,7 @@ and low-complexity motifs do not establish an internal join. The finite
 from origin and sequence eligibility. It neither reorders reads nor proves that
 all expected anchors were sequenced.
 
-Every technical annotation reports a placement-specific origin state:
+Every technical or tail annotation reports a placement-specific origin state:
 
 | State | Evidence and consequence |
 |---|---|
@@ -198,6 +198,15 @@ claims remain limitations. Exact identity cannot cross an insertion or a D/N
 reference gap. `GenomicQueryEvidence` also accepts caller-verified exact query
 intervals with named sources; the caller must verify their assembly, orientation
 and query. It is never a substitute for a genome-wide search.
+
+Tail trimming checks the proposed removed query interval after protecting the
+aligned body. Exact or partial supplied reference/placement evidence in that
+interval prevents the cut. An aligned A-rich body can overlap a tail candidate
+without preventing removal of its unaligned extension when that extension has
+no supplied competitor. Both cases retain the complete candidate annotation;
+neither establishes biological tail origin or excludes internal priming.
+Placement evidence is reassessed for each call, even when the sequence match
+comes from the cache. With no candidates the evidence callback is not invoked.
 
 With `trim_adapters=True`, unresolved internal motifs are `barrier_intervals`:
 they cannot establish a spanning witness by themselves. This is conservative
