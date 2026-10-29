@@ -129,6 +129,8 @@ class _AuditJob:
     target: Path
     receipt: Path
     fingerprint: str
+    inputs: dict[str, Any] | None
+    model_limitations: tuple[str, ...]
 
 
 def _load_audit_context(manifest_path: Path, event_ids: set[str] | None) -> _AuditContext:
@@ -207,8 +209,14 @@ def _plan_jobs(context: _AuditContext, output: Path, event_ids: set[str] | None)
                 fingerprint = sha256(json.dumps(dict(manifest=context.manifest, event=event, source=source, view=view,
                     implementation=context.implementation, producer_version=__version__,
                     dependencies=context.dependencies, index_hashes=context.index_hashes), sort_keys=True).encode()).hexdigest()
+                inputs: dict[str, Any] | None
+                model_limitations: tuple[str, ...]
+                if source.get('unavailable_reason') or event.get('unassessed_reason'):
+                    inputs, model_limitations = None, ()
+                else:
+                    inputs, model_limitations = _view_inputs(event, source, view, context)
                 jobs.append(_AuditJob(event, source, view, identity, artifact, output / artifact,
-                                      output / (artifact + '.receipt.json'), fingerprint))
+                                      output / (artifact + '.receipt.json'), fingerprint, inputs, model_limitations))
     return jobs
 
 
@@ -239,12 +247,14 @@ def _publish_snapshot(job: _AuditJob, snapshot: dict[str, Any]) -> dict[str, Any
     return _summary(snapshot, job.artifact)
 
 
-def _view_inputs(job: _AuditJob, context: _AuditContext) -> tuple[dict[str, Any], list[str]]:
-    models = read_json(context.files[job.view['references']])
+def _view_inputs(event: dict[str, Any], source: dict[str, Any], view: dict[str, Any], context: _AuditContext
+                  ) -> tuple[dict[str, Any], tuple[str, ...]]:
+    """Parse each oriented view once, before any original-library preparation."""
+    models = read_json(context.files[view['references']])
     references = models['models'] if isinstance(models, dict) else models
-    data = dict(job.view['input'], references=references, event_id=job.identity[0],
-                sample_id=job.source['sample_id'], event_provenance=job.event['provenance'])
-    return sv_rna_input_from_dict(data), models.get('limitations', []) if isinstance(models, dict) else []
+    data = dict(view['input'], references=references, event_id=event['event_id'],
+                sample_id=source['sample_id'], event_provenance=event['provenance'])
+    return sv_rna_input_from_dict(data), tuple(models.get('limitations', ())) if isinstance(models, dict) else ()
 
 
 def _stage_paths(job: _AuditJob) -> tuple[Path, Path]:
@@ -255,7 +265,8 @@ def _stage_paths(job: _AuditJob) -> tuple[Path, Path]:
 def _reconstruct_job(job: _AuditJob, context: _AuditContext, library: RnaLibraryIndex,
                      collector: ReadCollector, resume: bool) -> PathEvidenceQuery:
     """Checkpoint reconstruction before the library-wide assessment routing pass."""
-    inputs, _ = _view_inputs(job, context)
+    inputs = job.inputs
+    assert inputs is not None  # Unavailable jobs never reach reconstruction.
     target, receipt = _stage_paths(job)
     prior = _read_verified_artifact(target, receipt, job.fingerprint, resume)
     if prior is not None:
@@ -291,7 +302,8 @@ def _reconstruct_job(job: _AuditJob, context: _AuditContext, library: RnaLibrary
 
 def _assess_job(job: _AuditJob, context: _AuditContext, evidence: PathEvidence) -> dict[str, Any]:
     """Assess and reconcile one staged view without reopening its whole library."""
-    inputs, model_limitations = _view_inputs(job, context)
+    inputs = job.inputs
+    assert inputs is not None
     target, receipt = _stage_paths(job)
     staged = _read_verified_artifact(target, receipt, job.fingerprint, True)
     if staged is None:
@@ -302,7 +314,7 @@ def _assess_job(job: _AuditJob, context: _AuditContext, evidence: PathEvidence) 
     hypotheses = read_json(context.files[job.view['hypotheses']]) if job.view.get('hypotheses') else []
     reconciliation = reconcile_sv_rna_hypotheses(assessment, hypotheses)
     assessment['limitations'] = list(dict.fromkeys(assessment['limitations']
-        + job.source['provenance'].get('limitations', []) + model_limitations))
+        + job.source['provenance'].get('limitations', []) + list(job.model_limitations)))
     reconciliation['limitations'] = assessment['limitations']
     snapshot = dict(_snapshot(job, context), status=result['status'], reconstruction=result,
                     assessment=assessment, reconciliation=reconciliation)
