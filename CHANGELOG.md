@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.74.2
+
+- Reuse candidate genomic block maps throughout original-RNA support recounts,
+  removing repeated whole-path work for each read comparison. Exact matching,
+  original identities and output placements are unchanged (#633).
+
 ## 1.74.1
 
 - Bind whole-observation RNA assembly seeds to their original segment placement
