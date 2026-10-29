@@ -84,6 +84,10 @@ unassemblable aligned reads remain explicit. Reference strain differences,
 discarded/unmapped reads and unavailable placements cannot be recovered from a
 filtered BAM by adding this command.
 
+## Shared policy and indexes
+
+Viral reconstruction uses the same [read-policy and index controls](antigen-isoforms.md#shared-read-policy-and-library-reuse) as antigen isoforms and literal RNA paths. The API accepts `read_collector`, `library_index` and `read_filter_identity`; the CLI exposes common read/adapter flags and `--library-cache`. Cohort `read_collection` applies to both discovery and support. Effective settings are recorded in `collection`.
+
 ## Coding products and ORFdata
 
 Isovar 1.57 requires ORFdata 0.29 or newer. ORFdata owns the small, offline coding

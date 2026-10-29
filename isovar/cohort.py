@@ -161,6 +161,8 @@ def _additional_artifacts(family, directory, target):
         paths.extend(_artifact_path(directory, row["artifact"]) for row in read_json(target)["runs"])
     elif family == "viral":
         paths.extend(directory / name for name in ("sequences.fasta", "proteins.fasta"))
+    elif family == "isoforms":
+        paths.extend(directory / name for name in ("transcripts.fasta", "proteins.fasta"))
     return {str(path.relative_to(directory)): file_sha256(path) for path in paths}
 
 
@@ -457,11 +459,23 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
                            source_ids=source_ids, render=render, contexts=contexts, cache_directory=cache_directory)
 
 
+def _source_library(source, files, collector, reference, contexts, cache_directory, libraries, *, genome_fasta=None):
+    """Share original templates across RNA task families with the same policy."""
+    from .rna_library import _original_library_context
+    from .sv_rna import _collection_parameters
+
+    key = source["source_id"], reference, canonical_json(_collection_parameters(collector))
+    if key not in libraries:
+        directory = contexts.enter_context(tempfile.TemporaryDirectory(dir=cache_directory, prefix='source-'))
+        bam = contexts.enter_context(pysam.AlignmentFile(files[source['bam']], reference_filename=genome_fasta))
+        libraries[key] = contexts.enter_context(_original_library_context(
+            bam, collector, directory, library_index=None, reference_name=reference, read_filter_identity=None))
+    return libraries[key]
+
+
 def _variant_path_task(task, source, files, contexts, cache_directory, libraries):
     """Use the CLI input contract and one prepared library per source/policy."""
     from .contig_resolution import variant_reference_name
-    from .rna_library import prepare_rna_library
-    from .sv_rna import _collection_parameters
     from .variant_rna_paths import reconstruct_variant_rna_paths, variant_rna_path_input_from_dict, variant_path_read_collector
 
     supplied = variant_rna_path_input_from_dict(read_json(files[task["input"]]))
@@ -469,14 +483,41 @@ def _variant_path_task(task, source, files, contexts, cache_directory, libraries
         raise ValueError("Literal RNA input and cohort source refer to different samples")
     collector = variant_path_read_collector(task.get("read_collection", {}), files=files)
     reference = variant_reference_name(supplied["variant"])
-    key = source["source_id"], reference, canonical_json(_collection_parameters(collector))
-    if key not in libraries:
-        prepared = prepare_rna_library(files[source["bam"]], cache_directory, read_collector=collector,
-                                       reference_name=reference)
-        libraries[key] = contexts.enter_context(prepared.open())
-    library = libraries[key]
+    library = _source_library(source, files, collector, reference, contexts, cache_directory, libraries)
     return reconstruct_variant_rna_paths(library.reader, **supplied, source=source["source_id"],
         read_collector=collector, library_index=library, **task.get("parameters", {}))
+
+
+def _antigen_path_task(family, task, source, files, contexts, cache_directory, libraries):
+    """Pass the recorded policy to both antigen families using shared acquisition."""
+    from .antigen_isoforms import reconstruct_antigen_isoforms
+    from .antigen_reference import GDC_REFERENCE, IsoformTarget
+    from .fusion import FusionReference
+    from .viral_sequences import reconstruct_viral_sequences
+
+    collector = ReadCollector.for_rna_paths(task.get('read_collection'), files=files)
+    if not collector.merge_overlapping_fragments:
+        raise ValueError('merge_overlapping_fragments is not a control for original RNA paths')
+    parameters = dict(task.get('parameters', {}))
+    reserved = {'read_collector', 'library_index', 'read_filter_identity'}.intersection(parameters)
+    if reserved:
+        raise ValueError('Use read_collection for cohort policy, not parameters: ' + ', '.join(sorted(reserved)))
+    if family == 'viral':
+        reference = 'GRCh38' if parameters.get('reference_profile', GDC_REFERENCE) == GDC_REFERENCE else None
+        arguments = dict(genome_fasta=files[task['genome_fasta']])
+        reconstruct = reconstruct_viral_sequences
+    else:
+        targets = [IsoformTarget(**dict(row, reference=FusionReference(**row['reference'])))
+                   for row in read_json(files[task['targets']])]
+        if not targets:
+            raise ValueError('Provide at least one IsoformTarget')
+        reference = targets[0].reference.reference_name
+        arguments = dict(targets=targets, reference_identity=task['reference_identity'])
+        reconstruct = reconstruct_antigen_isoforms
+    library = _source_library(source, files, collector, reference, contexts, cache_directory, libraries,
+                              genome_fasta=arguments.get('genome_fasta'))
+    return reconstruct(library.reader, sample_id=source['sample_id'], source=source['source_id'],
+                       read_collector=collector, library_index=library, **arguments, **parameters)
 
 
 def _run_cohort(manifest_path, output_dir, *, resume, render_only, source_ids, render, contexts, cache_directory):
@@ -594,33 +635,18 @@ def _run_cohort(manifest_path, output_dir, *, resume, render_only, source_ids, r
                     write_json(target, result)
                 elif family == "prior_assessments":
                     write_json(target, read_json(files[task["input"]]))
-                elif family == "viral":
-                    from .viral_sequences import reconstruct_viral_sequences, write_viral_fasta
+                else:
+                    from .isoform_quantification import write_isoform_fastas
+                    from .viral_sequences import write_viral_fasta
                     from .viral_coding import write_viral_proteins
 
-                    source = sources[task["source_id"]]
-                    with pysam.AlignmentFile(files[source["bam"]]) as bam:
-                        result = reconstruct_viral_sequences(
-                            bam, genome_fasta=files[task["genome_fasta"]],
-                            sample_id=source["sample_id"], source=source["source_id"],
-                            **task.get("parameters", {}))
+                    result = _antigen_path_task(family, task, source, files, contexts, cache_directory, libraries)
                     write_json(target, result)
-                    write_viral_fasta(result, directory / "sequences.fasta")
-                    write_viral_proteins(result, directory / "proteins.fasta")
-                else:
-                    from .antigen_isoforms import reconstruct_antigen_isoforms
-                    from .antigen_reference import IsoformTarget
-                    from .fusion import FusionReference
-
-                    targets = [IsoformTarget(**dict(row, reference=FusionReference(**row["reference"])))
-                               for row in read_json(files[task["targets"]])]
-                    source = sources[task["source_id"]]
-                    with pysam.AlignmentFile(files[source["bam"]]) as bam:
-                        result = reconstruct_antigen_isoforms(
-                            bam, targets=targets, reference_identity=task["reference_identity"],
-                            sample_id=source["sample_id"], source=source["source_id"],
-                            **task.get("parameters", {}))
-                    write_json(target, result)
+                    if family == 'viral':
+                        write_viral_fasta(result, directory / 'sequences.fasta')
+                        write_viral_proteins(result, directory / 'proteins.fasta')
+                    else:
+                        write_isoform_fastas(result, directory / 'transcripts.fasta', directory / 'proteins.fasta')
                 receipt = dict(schema="isovar.cohort_additional.v1", identity=identity,
                                artifacts=_additional_artifacts(family, directory, target))
                 write_json(receipt_path, receipt)

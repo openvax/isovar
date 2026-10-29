@@ -4,7 +4,6 @@ import argparse
 import json
 from pathlib import Path
 
-import pysam
 from pyensembl import Genome
 
 from ..antigen_reference import (
@@ -13,13 +12,14 @@ from ..antigen_reference import (
 from ..antigen_isoforms import reconstruct_antigen_isoforms
 from ..audit_bundle import digest, publish_json
 from ..isoform_quantification import quantify_antigen_isoforms, write_isoform_fastas
+from .rna_args import add_rna_path_args, rna_path_context
 
 
 def make_parser(prog="isovar isoforms"):
     parser = argparse.ArgumentParser(prog=prog, description=__doc__)
     actions = parser.add_subparsers(dest="action", required=True)
     reconstruct = actions.add_parser("reconstruct", help="Reconstruct explicit target genes from RNA alignments")
-    reconstruct.add_argument("--bam", required=True)
+    add_rna_path_args(reconstruct)
     reconstruct.add_argument("--gene", action="append", required=True, help="Gene ID/name; repeat for each target")
     reconstruct.add_argument("--sample-id", required=True)
     reconstruct.add_argument("--genome-fasta", required=True, help="Local FASTA used for alignment")
@@ -70,7 +70,7 @@ def run(args=None, prog=None):
                             gtf_path_or_url=str(Path(options.gtf).expanduser().resolve()),
                             genome_fasta_path_or_url=str(Path(options.genome_fasta).expanduser().resolve()),
                             cache_directory_path=_annotation_cache(options.gtf, directory=options.reference_cache))
-        with genome, pysam.AlignmentFile(options.bam, reference_filename=options.genome_fasta) as bam:
+        with genome, rna_path_context(options, reference_name=options.assembly) as (bam, collector, library):
             genome.index()
             targets, unavailable = isoform_targets_from_genome(genome, options.gene, contig_names=bam.references)
             identity = validate_alignment_reference(
@@ -80,10 +80,11 @@ def run(args=None, prog=None):
             result = reconstruct_antigen_isoforms(
                 bam, targets=targets, sample_id=options.sample_id, source=str(Path(options.bam).resolve()),
                 reference_identity=identity, max_discovery_reads=options.max_discovery_reads,
-                max_paths=options.max_paths, min_overlap=options.min_overlap, scratch_dir=options.scratch_dir)
+                max_paths=options.max_paths, min_overlap=options.min_overlap, scratch_dir=options.scratch_dir,
+                read_collector=collector, library_index=library)
             result["input"]["sha256"] = digest(options.bam)
             result["target_selection"] = dict(genes=options.gene, unavailable_transcripts=unavailable)
         publish_json(output / "isoforms.json", result)
         write_isoform_fastas(result, output / "transcripts.fa", output / "proteins.fa")
-    except (OSError, ValueError, KeyError) as error:
+    except (OSError, ValueError, KeyError, TypeError) as error:
         parser.error(str(error))

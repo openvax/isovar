@@ -73,6 +73,10 @@ If a sample supplies a `source_ids` display subset, every listed source must be
 declared and belong to that sample; the subset cannot reassign another sample's
 evidence.
 
+## Antigen reconstruction policy
+
+`viral` and `isoforms` tasks use the same `read_collection` mapping as the other RNA paths, including checksum-pinned read-end profiles. Their defaults retain MAPQ-zero/secondary reads and missing qualities, while excluding duplicate-marked reads and soft clips. An explicit policy applies to both discovery and complete-input support. The runner reuses validated original-library indexes across compatible tasks; different source identities are never pooled. See [shared policy controls](antigen-isoforms.md#shared-read-policy-and-library-reuse). Isoform tasks also write `transcripts.fasta` and `proteins.fasta`, with both files pinned in their receipts.
+
 ## Minimal manifest
 
 The format is `isovar.cohort_manifest.v1`. Replace each example digest with the

@@ -1,9 +1,15 @@
 """Observed viral-associated RNA paths without a mutation or transcript GTF."""
 
+from __future__ import annotations
+
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
+
+import pysam
 
 from pyensembl import Genome
 
@@ -11,8 +17,8 @@ from .antigen_reference import GDC_REFERENCE, gdc_viral_panel, validate_alignmen
 from .audit_bundle import digest
 from .read_collector import ReadCollector
 from .rna_reconstruction import _assemble, _observations, _support
-from .sv_rna import _GeometryCache, _runs
-from .rna_library import _original_library_context
+from .sv_rna import _GeometryCache, _collection_parameters, _runs
+from .rna_library import RnaLibraryIndex, _original_library_context
 from .viral_coding import viral_coding_predictions, viral_coding_references
 
 
@@ -89,9 +95,13 @@ def _contig_support(contigs, candidates, support, discovery):
                          "aligned_but_not_reconstructed")) for name in sorted(contigs)]
 
 
-def reconstruct_viral_sequences(bam, *, genome_fasta, sample_id, source, contigs=None,
-                               reference_profile=GDC_REFERENCE, max_discovery_reads=10000,
-                               max_paths=256, min_overlap=30, scratch_dir=None, reference_cache=None):
+def reconstruct_viral_sequences(
+        bam: pysam.AlignmentFile, *, genome_fasta: str | Path, sample_id: str, source: str,
+        contigs: Iterable[str] | None = None, reference_profile: str | None = GDC_REFERENCE,
+        max_discovery_reads: int = 10000, max_paths: int = 256, min_overlap: int = 30,
+        scratch_dir: str | Path | None = None, reference_cache: str | Path | None = None,
+        read_collector: ReadCollector | None = None, library_index: RnaLibraryIndex | None = None,
+        read_filter_identity: str | None = None) -> dict[str, Any]:
     """Recover viral-associated nucleotide paths from the complete declared input.
 
     Parameters
@@ -114,6 +124,15 @@ def reconstruct_viral_sequences(bam, *, genome_fasta, sample_id, source, contigs
         support pass always considers the full declared input.
     scratch_dir, reference_cache : str or Path, optional
         Temporary disk-index location and PyEnsembl genomic-FASTA cache root.
+    read_collector : ReadCollector, optional
+        Shared record/sequence policy for discovery and support; defaults to
+        ReadCollector.for_rna_paths(). Original mate identities remain separate;
+        the small-variant merge_overlapping_fragments override is unsupported.
+    library_index : RnaLibraryIndex, optional
+        Caller-owned index of the same BAM/reference/eligibility policy. Reuse
+        avoids rescanning the full library for each reconstruction task.
+    read_filter_identity : str, optional
+        Stable custom-filter identity required when reusing a library index.
 
     Returns
     -------
@@ -162,10 +181,12 @@ def reconstruct_viral_sequences(bam, *, genome_fasta, sample_id, source, contigs
     if panel:
         identity["viral_panel"] = panel
     regions = {name: [(0, lengths[name], "+")] for name in contigs}
-    collector = ReadCollector(use_secondary_alignments=True, min_mapping_quality=0,
-                              use_soft_clipped_bases=False, use_reads_without_base_qualities=True)
+    collector = read_collector if read_collector is not None else ReadCollector.for_rna_paths()
+    if not collector.merge_overlapping_fragments:
+        raise ValueError('merge_overlapping_fragments is not a control for original RNA paths')
     with TemporaryDirectory(dir=scratch_dir, prefix="isovar-viral-") as directory, _original_library_context(
-            bam, collector, directory, library_index=None, reference_name="GRCh38" if panel else None, read_filter_identity=None) as groups:
+            bam, collector, directory, library_index=library_index,
+            reference_name="GRCh38" if panel else None, read_filter_identity=read_filter_identity) as groups:
         statistics = groups.statistics
         candidates, discovery = _discover_viruses(
             groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
@@ -183,6 +204,7 @@ def reconstruct_viral_sequences(bam, *, genome_fasta, sample_id, source, contigs
     for row in candidates:
         row["mapping"] = [list(run) for run in _runs(row.pop("placements"))]
     return dict(schema="isovar.viral_sequences.v1", sample_id=sample_id, source=source,
+                collection=dict(_collection_parameters(collector), read_filter_identity=read_filter_identity),
                 reference=identity, coding_reference=coding_reference, selected_contigs=contigs,
                 input=dict(records=statistics['records_scanned'], unique_records=statistics['unique_records'],
                            eligible_segments=statistics['eligible_segments'], excluded_records=statistics['excluded_records'], header=bam.header.to_dict()),

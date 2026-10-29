@@ -66,6 +66,37 @@ select a separate child directory, preventing stale or same-basename indexes.
 `support.fragments_without_full_transcript_assignment` also counts fragments
 assigned only to partial sequence, which cannot be quantified as a full isoform.
 
+## Shared read policy and library reuse
+
+`ReadCollector.for_rna_paths()` supplies the same default policy for literal
+variant paths, CTA/antigen isoforms and viral reconstruction: include secondary
+placements, MAPQ-zero reads and missing qualities; exclude duplicate-marked
+records and soft-clipped bases. Both discovery and full-input support use the
+same collector, and `collection` records the effective settings/profile digest.
+
+The reconstruction CLI accepts the common `--min-mapping-quality`,
+`--use-duplicate-reads`, `--drop-secondary-alignments`, `--require-base-qualities`,
+`--use-soft-clipped-bases`, `--infer-read-ends`, `--read-end-profile`,
+`--trim-adapters` and `--trim-poly-a` options. Adapter profiles are explicit;
+see [technical-sequence evidence](read-end-inference.md). Original read records
+remain unchanged. Original mate/segment identities are retained; small-variant
+mate-merging overrides are not controls for this path workflow and are rejected.
+
+Use `--library-cache DIRECTORY` to reuse an original BAM index. The Python API
+accepts `read_collector`, `library_index` (an open `RnaLibraryIndex`) and
+`read_filter_identity` for a custom eligibility predicate. Build the index with
+`prepare_rna_library(..., read_collector=collector, reference_name=...)` using
+the same policy/reference. Reuse validates the original source, header,
+reference context and eligibility; sequence policies are applied again to the
+original reads. Ownership of a supplied index stays with the caller. Persistent
+indexes require a local seekable BAM; uncached input also supports SAM/CRAM.
+
+Cohort `viral` and `isoforms` tasks accept the same `read_collection` mapping,
+including a profile from the manifest's verified file registry. Tasks sharing a
+source, reference context and policy reuse an index within the cohort run.
+Separate libraries keep separate identities. Put read options in
+`read_collection`, not `parameters`; changed settings invalidate result reuse.
+
 ## Estimate abundance with Salmon
 
 Reconstruction support counts are not transcript abundance. For short reads,

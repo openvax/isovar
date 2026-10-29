@@ -3,17 +3,16 @@
 import argparse
 from pathlib import Path
 
-import pysam
-
 from ..antigen_reference import GDC_REFERENCE
 from ..audit_bundle import digest, publish_json
 from ..viral_sequences import reconstruct_viral_sequences, write_viral_fasta
 from ..viral_coding import write_viral_proteins
+from .rna_args import add_rna_path_args, rna_path_context
 
 
 def make_parser(prog="isovar viral"):
     parser = argparse.ArgumentParser(prog=prog, description=__doc__)
-    parser.add_argument("--bam", required=True, help="RNA aligned to the combined human/viral reference")
+    add_rna_path_args(parser)
     parser.add_argument("--genome-fasta", required=True, help="Local FASTA used for alignment")
     parser.add_argument("--sample-id", required=True)
     parser.add_argument("--output-dir", required=True, help="New directory for viral.json, sequences.fa and predicted proteins.fa")
@@ -38,18 +37,19 @@ def run(args=None, prog=None):
             raise ValueError("Output directory already exists: " + str(output))
         fasta = Path(options.genome_fasta).expanduser().resolve()
         bam_path = Path(options.bam).expanduser().resolve()
-        with pysam.AlignmentFile(str(bam_path), reference_filename=str(fasta)) as bam:
+        reference_name = "GRCh38" if options.alignment_reference == GDC_REFERENCE else None
+        with rna_path_context(options, reference_name=reference_name) as (bam, collector, library):
             result = reconstruct_viral_sequences(
                 bam, genome_fasta=fasta, sample_id=options.sample_id, source=str(bam_path),
                 contigs=options.contig,
                 reference_profile=None if options.alignment_reference == "custom" else GDC_REFERENCE,
                 max_discovery_reads=options.max_discovery_reads, max_paths=options.max_paths,
                 min_overlap=options.min_overlap, scratch_dir=options.scratch_dir,
-                reference_cache=options.reference_cache)
+                reference_cache=options.reference_cache, read_collector=collector, library_index=library)
         result["input"]["sha256"] = digest(bam_path)
         output.mkdir(parents=True, exist_ok=False)
         publish_json(output / "viral.json", result)
         write_viral_fasta(result, output / "sequences.fa")
         write_viral_proteins(result, output / "proteins.fa")
-    except (OSError, ValueError, KeyError) as error:
+    except (OSError, ValueError, KeyError, TypeError) as error:
         parser.error(str(error))

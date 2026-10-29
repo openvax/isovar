@@ -211,6 +211,22 @@ class ReadCollector(object):
         self._read_end_cache = ReadEndInferenceCache()
 
     @classmethod
+    def for_rna_paths(cls, parameters: Mapping[str, Any] | None = None, *,
+                      files: Mapping[str, Path] | None = None) -> "ReadCollector":
+        """Build the common original-RNA path policy with explicit overrides.
+
+        Retain secondary placements, MAPQ-zero reads and missing qualities for
+        competitive attribution. Exclude duplicate records and soft-clipped
+        bases by default. These defaults apply to literal-allele, antigen-isoform
+        and viral path reconstruction, independently of small-variant defaults.
+        Profile definitions use the same loader as :meth:`from_dict`.
+        """
+        settings = dict(use_secondary_alignments=True, min_mapping_quality=0,
+                        use_soft_clipped_bases=False, use_reads_without_base_qualities=True)
+        settings.update(parameters or {})
+        return cls.from_dict(settings, files=files)
+
+    @classmethod
     def from_dict(cls, parameters: Mapping[str, Any], *, files: Mapping[str, Path] | None = None) -> "ReadCollector":
         """Build from ordinary CLI/manifest settings without mutating them.
 

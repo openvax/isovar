@@ -5,19 +5,26 @@ identities as SV reconstruction. Reference models are competitors, never
 sequence donors. Transcript abundance is estimated separately by Salmon.
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import asdict
 from hashlib import sha256
+from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
+
+import pysam
 
 
 from .antigen_reference import IsoformTarget
 from .genetic_code import standard_genetic_code
 from .read_collector import ReadCollector
 from .transcript_path_frames import TranscriptPathModel
-from .sv_rna import _runs
+from .sv_rna import _collection_parameters, _runs
 from .rna_reconstruction import _contains, _discover, _support
-from .rna_library import _original_library_context
+from .rna_library import RnaLibraryIndex, _original_library_context
 
 
 def _coding(sequence, positions, models):
@@ -85,9 +92,12 @@ def _protein_groups(candidates, support):
     return output
 
 
-def reconstruct_antigen_isoforms(bam, *, targets, sample_id, source, reference_identity=None,
-                                max_discovery_reads=10000, max_paths=256, min_overlap=30,
-                                scratch_dir=None):
+def reconstruct_antigen_isoforms(
+        bam: pysam.AlignmentFile, *, targets: Iterable[IsoformTarget], sample_id: str, source: str,
+        reference_identity: dict[str, Any] | None = None,
+        max_discovery_reads: int = 10000, max_paths: int = 256, min_overlap: int = 30,
+        scratch_dir: str | Path | None = None, read_collector: ReadCollector | None = None,
+        library_index: RnaLibraryIndex | None = None, read_filter_identity: str | None = None) -> dict[str, Any]:
     """Reconstruct targeted RNA without a nominated mutation.
 
     Parameters
@@ -104,6 +114,17 @@ def reconstruct_antigen_isoforms(bam, *, targets, sample_id, source, reference_i
     max_discovery_reads, max_paths, min_overlap : int
         Discovery resource limits and minimum exact overlap. All eligible
         records are subsequently checked for support, including omitted reads.
+    read_collector : ReadCollector, optional
+        Shared record/sequence policy for discovery and support. Defaults to
+        ReadCollector.for_rna_paths(). Original mate identities are retained;
+        the small-variant merge_overlapping_fragments override is unsupported.
+    library_index : RnaLibraryIndex, optional
+        Open index for this same BAM, reference and eligibility policy. Reuse
+        avoids another whole-library scan; ownership remains with the caller.
+    read_filter_identity : str, optional
+        Stable identity required when reusing an index with a custom filter.
+    scratch_dir : str or Path, optional
+        Temporary index/conversion directory when no library index is supplied.
 
     Returns
     -------
@@ -134,15 +155,17 @@ def reconstruct_antigen_isoforms(bam, *, targets, sample_id, source, reference_i
         r = target.reference
         if r.contig not in lengths or r.exons[-1][1] > lengths[r.contig]:
             raise ValueError("Target transcript lies outside the BAM reference: %s" % r.transcript_id)
-    collector = ReadCollector(use_secondary_alignments=True, min_mapping_quality=0,
-                              use_soft_clipped_bases=False, use_reads_without_base_qualities=True)
+    collector = read_collector if read_collector is not None else ReadCollector.for_rna_paths()
+    if not collector.merge_overlapping_fragments:
+        raise ValueError('merge_overlapping_fragments is not a control for original RNA paths')
     regions = defaultdict(set)
     for t in targets:
         r = t.reference
         regions[r.contig].add((r.exons[0][0], r.exons[-1][1], r.strand))
     models = [TranscriptPathModel(t.reference) for t in targets]
     with TemporaryDirectory(dir=scratch_dir, prefix="isovar-isoforms-") as directory, _original_library_context(
-            bam, collector, directory, library_index=None, reference_name=targets[0].reference.reference_name, read_filter_identity=None) as groups:
+            bam, collector, directory, library_index=library_index,
+            reference_name=targets[0].reference.reference_name, read_filter_identity=read_filter_identity) as groups:
         statistics = groups.statistics
         paths, discovery = _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
         candidates = {}
@@ -176,6 +199,7 @@ def reconstruct_antigen_isoforms(bam, *, targets, sample_id, source, reference_i
         # sequence length remains available to reconstruct the placement map.
         row["mapping"] = [list(run) for run in _runs(row.pop("placements"))]
     return dict(schema="isovar.antigen_isoforms.v1", sample_id=sample_id, source=source,
+                collection=dict(_collection_parameters(collector), read_filter_identity=read_filter_identity),
                 reference=reference_identity or {}, targets=[asdict(t) for t in targets],
                 input=dict(records=statistics['records_scanned'], unique_records=statistics['unique_records'],
                            eligible_segments=statistics['eligible_segments'], excluded_records=statistics['excluded_records'], header=bam.header.to_dict()),

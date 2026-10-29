@@ -38,10 +38,7 @@ logger = logging.getLogger(__name__)
 
 def variant_path_read_collector(settings: Mapping[str, Any] | None = None, *, files=None) -> ReadCollector:
     """Shared original-path defaults, with explicit cohort/API policy overrides."""
-    configuration = dict(use_secondary_alignments=True, min_mapping_quality=0,
-                         use_soft_clipped_bases=False, use_reads_without_base_qualities=True)
-    configuration.update(settings or {})
-    return ReadCollector.from_dict(configuration, files=files)
+    return ReadCollector.for_rna_paths(settings, files=files)
 
 
 def _seed_offsets(sequence: str, positions: tuple, seeds: Iterable[AllelePathSeed]) -> list[tuple[int, AllelePathSeed]]:
