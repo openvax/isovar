@@ -65,6 +65,25 @@ def _observations(template, collector, reasons, regions, cache):
                              if _target_orientation(o, regions)]
 
 
+def _seed_choices(observations):
+    """Share geometric seeds only when an unambiguous original can seed them.
+
+    All observations remain in the overlap index. An unambiguous parent has no
+    other placement that could extend its own seed, so its identical geometric
+    copies are interchangeable here. Ambiguous parents retain their separate
+    seed constraints. Reciprocal orientation views are one placement choice.
+    """
+    placements, geometries = defaultdict(set), defaultdict(list)
+    for observation in observations:
+        placements[observation.identity].add(observation.key[:-1])
+        geometries[observation.comparison_key].append(observation)
+    seeds = []
+    for members in geometries.values():
+        unambiguous = [o for o in members if len(placements[o.identity]) == 1]
+        seeds.extend([min(unambiguous, key=lambda o: o.key)] if unambiguous else members)
+    return sorted(seeds, key=lambda o: (-len(o.sequence), o.sequence, repr(o.positions), o.key))
+
+
 def _assemble(chosen, max_paths, min_overlap):
     """Maximal exact paths from distinct coordinate-aware observations."""
     observations = {o.key: o for o in chosen.values()}
@@ -80,10 +99,8 @@ def _assemble(chosen, max_paths, min_overlap):
             reverse_complement=not o.reverse_complement, qualities=o.qualities[::-1]))
     index = _ObservationIndex(list(observations.values()))
     paths, notes = {}, set()
-    for seed in sorted(chosen.values(), key=lambda o: (-len(o.sequence), o.sequence, repr(o.positions))):
+    for seed in _seed_choices(chosen.values()):
         key = seed.sequence, tuple(seed.positions)
-        if any(_contains(path, key) for path in paths):
-            continue
         if len(paths) >= max_paths:
             notes.add("path_limit")
             break
@@ -109,10 +126,13 @@ def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_ov
                 continue
             selected += 1
             for o in observations:
-                chosen.setdefault((o.sequence, o.positions), o)
+                # Geometry can share matching work, but it cannot substitute
+                # for the original parent when enforcing placement choices.
+                chosen.setdefault(o.key, o)
     maximal, notes = _assemble(chosen, max_paths, min_overlap)
     return maximal, dict(template_order="read_group_query_name", target_segments=considered, selected_segments=selected,
-                         distinct_observations=len(chosen), max_discovery_reads=max_discovery_reads,
+                         distinct_observations=len({o.comparison_key for o in chosen.values()}),
+                         max_discovery_reads=max_discovery_reads,
                          max_paths=max_paths, min_overlap=min_overlap,
                          truncated=considered > selected or bool(notes), limitations=sorted(notes),
                          observation_rejections=dict(reasons))

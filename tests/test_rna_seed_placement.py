@@ -2,9 +2,11 @@
 
 from dataclasses import replace
 
+import pysam
 import pytest
 
-from isovar.rna_reconstruction import _assemble
+from isovar.read_collector import ReadCollector
+from isovar.rna_reconstruction import _assemble, _discover
 from isovar.sv_rna import RnaObservation, _mirror
 
 
@@ -48,3 +50,36 @@ def test_shared_path_budget_retains_an_alternative_without_manufacturing_extensi
     paths, notes = _assemble({o.comparison_key: o for o in chosen}, 1, 2)
     assert len(paths) == 1 and len(paths[0][0]) == 4
     assert "path_limit" in notes
+
+
+@pytest.mark.parametrize("reverse_order", [False, True])
+def test_independent_witness_of_identical_geometry_is_not_lost(reverse_order):
+    first, second = observations()
+    independent = replace(first, key="independent+", records=("sam-c",), identity=("RG", "independent", 0))
+    chosen = [first, second, independent]
+    if reverse_order:
+        chosen.reverse()
+    paths, _ = _assemble({o.key: o for o in chosen}, 10, 2)
+    assert len(paths) == 1 and paths[0][0] == "AAAAAA"
+
+
+def test_discovery_preserves_independent_originals_before_sharing_geometry():
+    header = pysam.AlignmentHeader.from_dict({"SQ": [{"SN": "chr1", "LN": 100}]})
+
+    def read(name, start, secondary=False):
+        record = pysam.AlignedSegment(header)
+        record.query_name, record.query_sequence = name, "AAAA"
+        record.query_qualities = [30] * 4
+        record.reference_id, record.reference_start, record.cigarstring = 0, start, "4M"
+        record.flag, record.mapping_quality = (256 if secondary else 0), 60
+        return record
+
+    class Originals:
+        def templates(self, regions):
+            yield [read("ambiguous", 0), read("ambiguous", 2, True)]
+            yield [read("independent", 0)]
+
+    paths, counts = _discover(Originals(), {"chr1": [(0, 6, "+")]},
+                              ReadCollector(use_secondary_alignments=True), 10, 10, 2)
+    assert len(paths) == 1 and paths[0][0] == "AAAAAA"
+    assert counts["distinct_observations"] == counts["selected_segments"] == 2
