@@ -9,6 +9,38 @@ from isovar.fusion import reconstruct_fusion
 from .test_fusion import example
 
 
+@pytest.mark.parametrize('depths,expected_x,expected_y', [
+    ([20], [20], [1]),
+    ([5, 20, 5, 0], [5, 20], [3, 1]),
+    ([8, 8, 8], [8], [3]),
+    ([0, 0], [], []),
+])
+def test_support_landscape_has_visible_inclusive_threshold_counts(tmp_path, monkeypatch, depths, expected_x, expected_y):
+    from matplotlib.figure import Figure
+    from isovar.cohort_pdf import _category_landscape
+    figures = []
+    save = Figure.savefig
+
+    def capture(figure, *args, **kwargs):
+        figures.append(figure)
+        return save(figure, *args, **kwargs)
+
+    monkeypatch.setattr(Figure, 'savefig', capture)
+    path = _category_landscape(dict(source_id='synthetic', pass_id='thresholds'),
+                               {'SNV': len(depths)}, {'SNV': depths}, tmp_path)
+    assert path.is_file()
+    support = figures[0].axes[1]
+    if expected_x:
+        line, = support.lines
+        assert list(line.get_xdata()) == expected_x
+        assert list(line.get_ydata()) == expected_y
+        assert line.get_marker() not in (None, '', 'None')
+        assert line.get_drawstyle() == 'steps-pre'
+    else:
+        assert not support.lines
+        assert any(text.get_text() == 'No positive RNA ALT support' for text in support.texts)
+
+
 def test_deletion_in_repeat_keeps_declared_anchor_and_neutral_flanks():
     ref = 'LAERKYSDEKKRVDELQQQVKLYKLNLESSKQE'
     rna = 'LAERKYSDEKRVDELQQQVKLYKLNLESSKQE'

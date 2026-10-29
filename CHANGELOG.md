@@ -15,6 +15,12 @@ releases that only fix bugs or add fixtures are omitted; see the
   final receipts are durable. Process libraries serially and keep FASTQ identity
   checks on disk rather than retaining whole libraries in Python collections.
 
+## 1.68.1
+
+- Show singleton categories in RNA ALT-support landscapes. Aggregate equal
+  support depths and correct inclusive threshold counts between observed depths;
+  explicitly label distributions without positive support.
+
 ## 1.68.0
 
 - Reuse content-addressed original RNA library indexes across dense SV views.
