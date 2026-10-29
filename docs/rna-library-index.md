@@ -89,3 +89,28 @@ with a private lifetime; SAM/CRAM inputs are converted to a temporary seekable B
 The SAM coordinate/record contract is defined by the
 [SAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf). Conservative
 spatial bounds follow [SQLite R-tree rounding](https://www.sqlite.org/rtree.html).
+
+## Measured acquisition
+
+The [benchmark driver](../examples/benchmark_rna_library.py) measures original
+index preparation, verified cache reopening and complete-template queries. It
+retains source hashes, implementation identity and per-view candidate counts.
+These are acquisition measurements, not SV support or end-to-end assembly times.
+
+On the complete HCC1395 direct-RNA library SRR23456709 (2,005,498 original
+alignment records), preparation took 125.2 seconds and validated reopening took
+1.46 seconds. Eight interpretable views among the first twelve inventory events
+required 0.080 seconds of queries in total. The index occupied 568 MB and the
+process peak RSS was 253 MB. The companion MAS measurement was interrupted to
+preserve disk space during concurrent work; it supplies no completed timing.
+The [receipt](../reports/hcc1395_colo829/rna_library_acquisition_benchmark.json)
+marks the combined benchmark incomplete and preserves the completed source.
+
+```bash
+python -m examples.benchmark_rna_library --manifest inventory.json \
+  --output acquisition-benchmark.json --event-count 12
+```
+
+Use `--source-id` to measure libraries separately. Cold preparation includes
+source and database hashing; verified reopening also rehashes both. Event queries
+within one open context reuse that verification and check for file mutation.
