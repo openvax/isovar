@@ -16,8 +16,8 @@ from pyensembl import Genome
 from .antigen_reference import GDC_REFERENCE, gdc_viral_panel, validate_alignment_reference
 from .audit_bundle import digest
 from .read_collector import ReadCollector
-from .rna_reconstruction import _assemble, _observations, _support
-from .sv_rna import _GeometryCache, _collection_parameters, _runs
+from .rna_reconstruction import _discover, _support
+from .sv_rna import _collection_parameters, _runs
 from .rna_library import RnaLibraryIndex, _original_library_context
 from .viral_coding import viral_coding_predictions, viral_coding_references
 
@@ -27,30 +27,12 @@ def _discover_viruses(groups, regions, collector, max_discovery_reads, max_paths
     # rescanning the original library or depending on its physical record order.
     candidates, discovery, reasons = {}, [], Counter()
     for contig in sorted(regions):
-        chosen, considered, selected, cache = {}, 0, 0, _GeometryCache()
-        for template in groups.templates([(contig, start, end) for start, end, _ in regions[contig]]):
-            for _, observations in _observations(template, collector, reasons, regions, cache):
-                observed = [o for o in observations if any(p is not None and p[0] == contig for p in o.positions)]
-                if not observed:
-                    continue
-                considered += 1
-                if selected >= max_discovery_reads:
-                    continue
-                selected += 1
-                orientations = {}
-                for o in observed:
-                    key = o.key[:-1]
-                    previous = orientations.get(key)
-                    if previous is None or (tuple(_runs(o.positions)), o.sequence) < (
-                            tuple(_runs(previous.positions)), previous.sequence):
-                        orientations[key] = o
-                for o in orientations.values():
-                    chosen.setdefault((o.sequence, o.positions), o)
-        paths, notes = _assemble(chosen, max_paths, min_overlap)
-        discovery.append(dict(contig=contig, eligible_observed_segments=considered,
-                              selected_segments=selected, distinct_observations=len(chosen),
-                              paths=len(paths), truncated=considered > selected or bool(notes),
-                              limitations=sorted(notes)))
+        paths, counts = _discover(groups, {contig: regions[contig]}, collector,
+                                   max_discovery_reads, max_paths, min_overlap)
+        reasons.update(counts['observation_rejections'])
+        discovery.append(dict(contig=contig, paths=len(paths), **{
+            key: counts[key] for key in ('target_segments', 'eligible_observed_segments',
+                                        'selected_segments', 'distinct_observations', 'truncated', 'limitations')}))
         for sequence, positions in paths:
             key = sequence, positions
             names = sorted({p[0] for p in positions if p is not None})

@@ -8,6 +8,7 @@ import pytest
 from isovar.read_collector import ReadCollector
 from isovar.rna_reconstruction import _assemble, _discover
 from isovar.sv_rna import RnaObservation, _mirror
+from isovar.viral_sequences import _discover_viruses
 
 
 def observations(independent=False, reverse=False):
@@ -63,7 +64,8 @@ def test_independent_witness_of_identical_geometry_is_not_lost(reverse_order):
     assert len(paths) == 1 and paths[0][0] == "AAAAAA"
 
 
-def test_discovery_preserves_independent_originals_before_sharing_geometry():
+@pytest.mark.parametrize('viral', [False, True])
+def test_discovery_preserves_independent_originals_before_sharing_geometry(viral):
     header = pysam.AlignmentHeader.from_dict({"SQ": [{"SN": "chr1", "LN": 100}]})
 
     def read(name, start, secondary=False):
@@ -79,7 +81,31 @@ def test_discovery_preserves_independent_originals_before_sharing_geometry():
             yield [read("ambiguous", 0), read("ambiguous", 2, True)]
             yield [read("independent", 0)]
 
-    paths, counts = _discover(Originals(), {"chr1": [(0, 6, "+")]},
-                              ReadCollector(use_secondary_alignments=True), 10, 10, 2)
+    discover = _discover_viruses if viral else _discover
+    paths, counts = discover(Originals(), {"chr1": [(0, 6, "+")]},
+                             ReadCollector(use_secondary_alignments=True), 10, 10, 2)
+    if viral:
+        paths = [(row['sequence'], row['placements']) for row in paths]
+        counts = counts['contigs'][0]
     assert len(paths) == 1 and paths[0][0] == "AAAAAA"
     assert counts["distinct_observations"] == counts["selected_segments"] == 2
+
+
+@pytest.mark.parametrize('viral', [False, True])
+def test_unassemblable_segment_does_not_spend_observation_budget(viral):
+    from .test_sv_rna import record
+
+    class Originals:
+        def templates(self, regions):
+            yield [record('ambiguous-bases', '1', 0, '4M', 'NNNN')]
+            yield [record('observed-bases', '1', 0, '4M', 'ACGT')]
+
+    discover = _discover_viruses if viral else _discover
+    paths, counts = discover(Originals(), {'1': [(0, 4, '+')]}, ReadCollector.for_rna_paths(), 1, 10, 2)
+    if viral:
+        paths = [(row['sequence'], row['placements']) for row in paths]
+        counts = counts['contigs'][0]
+    assert len(paths) == 1 and paths[0][0] == 'ACGT'
+    assert counts['target_segments'] == 2
+    assert counts['eligible_observed_segments'] == counts['selected_segments'] == 1
+    assert not counts['truncated']

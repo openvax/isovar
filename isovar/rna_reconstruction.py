@@ -123,11 +123,14 @@ def _assemble(chosen, max_paths, min_overlap, *, seed_observations: tuple[RnaObs
 def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap, *,
               seed_observations: tuple[RnaObservation, ...] | None = None):
     chosen, reasons, cache = {}, Counter(), _GeometryCache()
-    considered, selected = 0, 0
+    considered, eligible, selected = 0, 0, 0
     for template in groups.templates([(contig, start, end) for contig, spans in regions.items()
                                       for start, end, _ in spans]):
         for _, observations in _observations(template, collector, reasons, regions, cache):
             considered += 1
+            if not observations:
+                continue
+            eligible += 1
             if selected >= max_discovery_reads:
                 continue
             selected += 1
@@ -136,11 +139,12 @@ def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_ov
                 # for the original parent when enforcing placement choices.
                 chosen.setdefault(o.key, o)
     maximal, notes = _assemble(chosen, max_paths, min_overlap, seed_observations=seed_observations)
-    return maximal, dict(template_order="read_group_query_name", target_segments=considered, selected_segments=selected,
+    return maximal, dict(template_order="read_group_query_name", target_segments=considered,
+                         eligible_observed_segments=eligible, selected_segments=selected,
                          distinct_observations=len({o.comparison_key for o in chosen.values()}),
                          max_discovery_reads=max_discovery_reads,
                          max_paths=max_paths, min_overlap=min_overlap,
-                         truncated=considered > selected or bool(notes), limitations=sorted(notes),
+                         truncated=eligible > selected or bool(notes), limitations=sorted(notes),
                          observation_rejections=dict(reasons))
 
 

@@ -48,7 +48,7 @@ class UnresolvedContigError(ValueError):
         return dict(asdict(self.resolution), source=self.source)
 
 
-def require_resolved_contig(resolution: ContigResolution, alignment_file: AlignmentFile) -> str:
+def require_resolved_contig(resolution: ContigResolution, alignment_file: AlignmentFile | None = None) -> str:
     """Return an actual target name or raise without implying zero reads."""
     if resolution.resolved_name is None:
         filename = getattr(alignment_file, "filename", None)

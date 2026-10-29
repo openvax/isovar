@@ -70,7 +70,12 @@ TPM nor viral genome copies.
 
 By default, discovery uses up to 10,000 observed segments and 256 paths **per
 viral contig**, with a 30-base minimum exact overlap. Each contig has its own
-budget, and discovery retains only one contig's observations at a time. A disk
+budget, and discovery retains only one contig's observations at a time. Viral
+paths use the same discovery engine as antigen and literal-allele paths. Distinct
+original parents remain distinct even when their sequence and placement match;
+an alternative placement of one segment is never an independent witness.
+Unassemblable target segments are counted separately and do not spend the
+eligible-observation budget. A disk
 index keeps background records and the original mates/placements available.
 Use `--scratch-dir` to choose temporary storage and `--reference-cache` to choose
 PyEnsembl's genomic-FASTA cache. Support evidence and output memory still grow
