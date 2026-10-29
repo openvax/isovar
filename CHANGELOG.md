@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.74.0
+
+- Centralize transcript coordinate indexes and CDS-anchor readings in typed,
+  immutable path-frame assessments shared by SV reconstruction and assessment.
+  Preserve existing SV JSON and default frame/linkage outcomes.
+- Assess model-relative exon-to-intron continuations on supplied observed RNA,
+  with explicit partial frames and focal-allele coverage, including stops before
+  the allele. Keep collinear/substituted readings and unresolved models separate.
+- Document the shared API, coordinate requirements and original-read/linkage
+  scope. This is the frame-layer follow-up for #583, not automatic RNA discovery.
+
 ## 1.73.2
 
 - Close cohort checkpoint connections before publishing results and on resume

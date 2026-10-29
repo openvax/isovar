@@ -82,6 +82,11 @@ explicit, and mitochondrial aliases do not rewrite arbitrary substrings.
 
 ## Scope and biological interpretation
 
+For an already reconstructed nucleotide path with explicit placements, the
+[shared transcript-path frame assessor](transcript-path-frames.md) provides
+model-relative retention and focal-interval outcomes. It does not replace the
+original-read recovery and allele-linkage requirements below.
+
 This is local, allele-centred assembly, not a whole-transcript search. Each
 candidate retains its original witnesses and placement alternatives. A
 contributor count is not a count of reads spanning an entire RNA or protein.

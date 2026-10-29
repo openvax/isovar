@@ -249,6 +249,7 @@ evaluates protein and peptide candidates. See
 | [Internal design](https://github.com/openvax/isovar/blob/master/docs/internal-design.md) | The objects that carry reads to protein sequences |
 | [RNA in supplied ORF frames](https://github.com/openvax/isovar/blob/master/docs/variant-rna-orfs.md) | Reconstruct ncORF and ordinary coding candidates with original RNA support |
 | [RNA assessment before protein selection](https://github.com/openvax/isovar/blob/master/docs/variant-read-assessment.md) | Retain intronic and noncoding ALT RNA with explicit assembly and frame states |
+| [Observed-path reading frames](https://github.com/openvax/isovar/blob/master/docs/transcript-path-frames.md) | Shared transcript anchors, retained-intron interpretations and allele-versus-stop outcomes |
 | [Changelog](https://github.com/openvax/isovar/blob/master/CHANGELOG.md) | Behavior changes by release |
 
 ## Sequencing recommendations
