@@ -5,17 +5,15 @@ and consequence prediction; the runner needs no annotation download.
 """
 
 from collections import Counter
-from dataclasses import asdict
 import json
 from pathlib import Path
 
 from pyensembl import EnsemblRelease
 import varcode
-from varcode.sv_allele_parser import parse_symbolic_alt
 
-from isovar.fusion import FusionReference
 from isovar.sv_rna_audit import file_sha256, write_json
-from isovar.sv_rna_reconciliation import hypotheses_from_varcode
+from isovar.sv_sources import read_sv_source
+from isovar.sv_source_preparation import prepare_sv_source_record
 
 HERE = Path(__file__).parent
 ROOT = HERE.parents[1]
@@ -23,46 +21,6 @@ DATA = ROOT / 'tests/data/colo829_whole_run'
 OUTPUT = HERE / 'unified_sv_audit'
 SV3 = 'PaulinPaz_2024_v2:COLO829_SOMATIC_SV3_DEL'
 SOURCE_URL = 'https://github.com/PacificBiosciences/DevNet/wiki/Melanoma--Cancer-Cell-Line-Iso-Seq-Data'
-
-
-def reference_models(genome, junctions):
-    transcripts = {}
-    for junction in junctions:
-        for end in junction:
-            for gene in genome.genes_at_locus(end.contig.removeprefix('chr'), max(1, end.position - 10000), end.position + 10000):
-                transcripts.update((t.id, t) for t in gene.transcripts)
-    models, limitations = [], []
-    for transcript in sorted(transcripts.values(), key=lambda t: t.id):
-        sequence = transcript.sequence
-        if not sequence or set(sequence.upper()) - set('ACGT'):
-            limitations.append(transcript.id + ': missing_or_ambiguous_cdna')
-            continue
-        fields = dict(transcript_id=transcript.id, reference_name='GRCh38', annotation='Ensembl 87',
-                      contig='chr' + transcript.contig.removeprefix('chr'), strand=transcript.strand,
-                      exons=sorted((e.start - 1, e.end) for e in transcript.exons), sequence=sequence.upper())
-        complete = (transcript.contains_start_codon and transcript.contains_stop_codon
-                    and transcript.start_codon_complete and transcript.stop_codon_complete)
-        if complete:
-            try:
-                reference = FusionReference(**fields, cds_start=transcript.first_start_codon_spliced_offset,
-                                            cds_end=transcript.last_stop_codon_spliced_offset + 1)
-            except ValueError as error:
-                limitations.append(transcript.id + ': CDS validation: ' + str(error))
-                reference = FusionReference(**fields)
-        else:
-            reference = FusionReference(**fields)
-        models.append(asdict(reference))
-    if not models:
-        limitations.append('No reference transcripts in breakpoint windows; exon-anchored clip seeding unavailable')
-    return dict(models=models, limitations=limitations, annotation='Ensembl 87', reference_name='GRCh38',
-                selection='all transcripts of genes overlapping a 10kb breakpoint window')
-
-
-def breakpoint(end, donor):
-    """Convert Varcode retained 1-based bases to oriented interbase coordinates."""
-    left = end.keeps == 'left'
-    return dict(contig='chr' + end.contig.removeprefix('chr'), position=end.position if left else end.position - 1,
-                strand=('+' if left else '-') if donor else ('-' if left else '+'))
 
 
 def build(output=OUTPUT):
@@ -98,54 +56,42 @@ def build(output=OUTPUT):
                             provenance=dict(source_url=SOURCE_URL, issue='https://github.com/openvax/isovar/issues/574'),
                             unavailable_reason='Original CCS/FLNC RNA unavailable: documented PacBio host timed out 2026-10-26; alternate host 404. Polished representatives are not original molecules. See #574.'))
     genome = EnsemblRelease(87)
+    annotation_contigs = varcode.ContigResolver(genome.contigs(), reference_name=genome.reference_name)
     events, problems = [], []
     inventories = [('PaulinPaz_2024_v2', 'colo829-sv-grch38.vcf'),
                    ('ValleInclan_2022_lifted', 'colo829-sv-2022-hg38lifted.vcf')]
     for inventory, name in inventories:
         pin(inventory, DATA / name, 'Original unmodified source VCF; distinct benchmark inventory')
-        for number, line in enumerate((DATA / name).read_text().splitlines(), 1):
-            if line.startswith('#'):
-                continue
-            cols = line.split('\t')
-            event_id = inventory + ':' + cols[2]
+        profile = 'colo829_paulin_paz_v2' if inventory == 'PaulinPaz_2024_v2' else 'standard'
+        records = read_sv_source(DATA / name, sha256=files[inventory]['sha256'],
+                                 reference_name='GRCh38', profile=profile)
+        for record in records:
+            event_id = inventory + ':' + record.record_id
             event = dict(event_id=event_id, sources=['SRR8615617-selected-sites'],
-                         provenance=dict(inventory=inventory, file_id=inventory, line_number=number,
-                                         original_vcf_row=line, assembly='GRCh38', varcode_version=varcode.__version__))
+                         provenance=dict(inventory=inventory, file_id=inventory, line_number=record.line_number,
+                                         original_vcf_row=record.original_row, assembly='GRCh38',
+                                         source_interpretation=record.to_dict(),
+                                         varcode_version=varcode.__version__))
             events.append(event)
-            info = dict(part.split('=', 1) if '=' in part else (part, True) for part in cols[7].split(';'))
-            for key in ('CIPOS', 'CIEND'):
-                if key in info:
-                    info[key] = [int(v) for v in info[key].split(',')]
-            try:
-                variant = parse_symbolic_alt(cols[0].removeprefix('chr'), int(cols[1]), cols[3], cols[4], info,
-                                             genome=genome, convert_ucsc_contig_names=True)
-                junctions = variant.junctions
-            except ValueError as error:
-                event['unassessed_reason'] = 'Original event definition cannot be decoded: ' + str(error)
+            variant = record.variant
+            if variant is None:
+                event['unassessed_reason'] = '; '.join(record.reasons)
                 problems.append(dict(event_id=event_id, reason=event['unassessed_reason']))
                 continue
-            if not junctions or any(end.keeps not in ('left', 'right') for pair in junctions for end in pair):
-                event['unassessed_reason'] = 'Nominated event has no resolved oriented adjacency; no orientation or inserted sequence is invented'
-                problems.append(dict(event_id=event_id, reason=event['unassessed_reason']))
-                continue
-            models = reference_models(genome, junctions)
+            prepared = prepare_sv_source_record(record, genome, annotation_contigs, annotation='Ensembl 87')
+            models = prepared.reference_payload()
             key = 'event-%03d' % len(events)
             model_path = output / 'inputs' / (key + '.references.json.gz')
             write_json(model_path, models)
             ref = pin(key + '-refs', model_path, models['selection'])
-            hypotheses = hypotheses_from_varcode(variant.effects())
+            hypotheses = prepared.hypotheses
             hypothesis_path = output / 'inputs' / (key + '.varcode.json.gz')
             write_json(hypothesis_path, hypotheses)
             hyp = pin(key + '-hypotheses', hypothesis_path, 'All Varcode hypotheses, including null materialized cDNA')
-            event['views'] = []
-            for index, (first, second) in enumerate(junctions):
-                for orientation, (left, right) in [('forward', (first, second)), ('reverse', (second, first))]:
-                    regions = [['chr' + end.contig.removeprefix('chr'), max(0, end.position - 501), end.position + 500]
-                               for end in (left, right)]
-                    event['views'].append(dict(view_id=f'{index + 1}-{orientation}', references=ref, hypotheses=hyp,
-                        parameters=dict(exon_anchored_clips=bool(models['models'])),
-                        input=dict(reference_name='GRCh38', donor=breakpoint(left, True),
-                                   acceptor=breakpoint(right, False), regions=regions)))
+            event['views'] = [dict(view_id=view.view_id, references=ref, hypotheses=hyp,
+                parameters=dict(exon_anchored_clips=bool(prepared.references)),
+                input=view.to_dict(prepared.reference_name)) for view in prepared.views]
+            event['provenance'].update(gene_names=prepared.gene_names, nominal_igv=prepared.nominal_igv)
             if event_id == SV3:
                 event['sources'] = [s['source_id'] for s in sources]
                 # Match the established SV3 discovery budget. The exact same

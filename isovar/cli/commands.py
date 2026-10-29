@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 
 
 COMMANDS = {
+    "sv-source": ("isovar_sv_source", "Validate original SV source definitions and record-specific PCR evidence"),
     "normal-evidence": ("isovar_normal_evidence", "Assess source-pinned matched-normal genotypes and reference confidence"),
     "patient-background-pairs": ("isovar_patient_background_pairs", "Pair mutant RNA proteins with declared patient-background baselines"),
     "proteome": ("isovar_proteome", "Adapt recorded RNA hypotheses to an ORFdata Proteome and FASTA"),

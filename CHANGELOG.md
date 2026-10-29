@@ -4,6 +4,16 @@ Behavior changes that can alter results or break callers, by release. Patch
 releases that only fix bugs or add fixtures are omitted; see the
 [commit history](https://github.com/openvax/isovar/commits/master) for those.
 
+## 1.70.0
+
+- Add one typed SV source interpretation API and `sv-source` CLI. Preserve raw
+  rows, source checksums, caller-coordinate claims and record-specific PCR state.
+  Named source profiles require exact originals and record every transformation.
+- Recover four explicit COLO829 breakend alleles from their documented END
+  encoding. Keep invalid intervals, unknown inserted sequences and unanchored
+  HCC1395 consensus alleles explicit. Feed interpreted events through the shared
+  manifest/RNA workflow; resolve annotation contigs with Varcode's resolver.
+
 ## 1.69.0
 
 - Route all retained SV paths through one original-sequence pass per source and
