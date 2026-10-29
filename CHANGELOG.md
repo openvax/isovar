@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.75.2
+
+- Preserve supplied genomic competitors to candidate poly-A/T tails. Origin
+  annotations and opt-in trimming now assess the actual removed interval;
+  partial exact evidence remains a competitor rather than disappearing (#638).
+
 ## 1.75.1
 
 - Render nested source provenance as readable tables that can split across

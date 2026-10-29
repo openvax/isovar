@@ -74,7 +74,7 @@ class GenomicQueryEvidence:
         if (any(left <= start < end <= right for left, right in self.exact_intervals)
                 and not any(start < offset < end for offset in self.reference_breaks)):
             return 'reference_supported'
-        if any(left < end and start < right for left, right in self.aligned_intervals):
+        if any(left < end and start < right for left, right in self.exact_intervals + self.aligned_intervals):
             return 'alignment_competitor'
         return 'reference_unavailable'
 

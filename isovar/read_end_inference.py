@@ -378,7 +378,7 @@ def infer_read_ends(sequence: str, qualities: Sequence[int] | None = None,
         geometry, quality scores or trimming decisions.
     genomic_evidence : GenomicQueryEvidence, callable, or None
         Original-query reference competitors with explicit sources. A callable
-        is evaluated only if a technical motif matches; results are never cached
+        is evaluated only if a motif or tail candidate matches; results are never cached
         with sequence-only matches. Missing context is not a negative result.
     trim_adapters, trim_poly_a : bool
         Opt-in terminal cuts and internal barriers. Internal motifs without an
@@ -410,11 +410,11 @@ def infer_read_ends(sequence: str, qualities: Sequence[int] | None = None,
                  cache.structure(sequence.upper(), profile, reverse, mate))
     annotations, body_start, body_end = structure
     origin_evidence = None
-    if any(annotation.kind != 'poly_a' for annotation in annotations):
+    if annotations:
         origin_evidence = genomic_evidence() if callable(genomic_evidence) else genomic_evidence
         if origin_evidence is not None:
             origin_evidence.validate_length(len(sequence))
-        annotations = tuple(annotation if annotation.kind == 'poly_a' else annotation._replace(
+        annotations = tuple(annotation._replace(
             origin='reference_unavailable' if origin_evidence is None else origin_evidence.origin(annotation.start, annotation.end),
             origin_sources=() if origin_evidence is None else origin_evidence.sources) for annotation in annotations)
     start, end = 0, len(sequence)
@@ -446,6 +446,10 @@ def infer_read_ends(sequence: str, qualities: Sequence[int] | None = None,
             cut = annotation.end if annotation.side == "left" else annotation.start
             if soft_clip_bounds is not None:
                 cut = min(cut, soft_clip_bounds[0]) if annotation.side == "left" else max(cut, soft_clip_bounds[1])
+            removed = (start, cut) if annotation.side == 'left' else (cut, end)
+            if (origin_evidence is not None and removed[0] < removed[1]
+                    and origin_evidence.origin(*removed) in ('reference_supported', 'alignment_competitor')):
+                continue
         else:
             continue
         if annotation.side == "left":
