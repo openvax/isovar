@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.66.0"
+__version__ = "1.68.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -137,6 +137,9 @@ __all__ = [
     "VariantSequence",
     "VariantSequenceCreator",
     "reconstruct_variant_orfs",
+    "prepare_rna_library",
+    "PreparedRnaLibrary",
+    "RnaLibraryIndex",
 ]
 
 from .uorf_annotation import annotate_sv_uorf_evidence
@@ -144,3 +147,4 @@ from .uorf_annotation import annotate_sv_uorf_evidence
 from .orf_annotation import annotate_sv_orf_evidence
 
 from .variant_rna_orfs import reconstruct_variant_orfs
+from .rna_library import prepare_rna_library, PreparedRnaLibrary, RnaLibraryIndex

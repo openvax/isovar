@@ -1,10 +1,8 @@
 """Grouped computation keeps original identity, ordering, and interval evidence."""
 
-from contextlib import closing
 from dataclasses import replace
 from hashlib import sha256
 import random
-import sqlite3
 
 import pysam
 import pytest
@@ -13,14 +11,14 @@ from isovar.read_collector import ReadCollector
 from isovar.read_identity import segment_identity
 from isovar.read_lineage import ReadLineage
 from isovar.sv_rna import _GeometryCache, _Observations, _offsets, _runs, _segment_path
-from isovar.sv_rna_dense import _DiskGroups, _spool
+from isovar.rna_library import _original_library_context
 from isovar.sv_rna_orfs import _witnesses
 from tests.test_sv_rna import HEADER, record, write_bam
 from tests.test_sv_rna_orfs import inputs
 
 
 @pytest.mark.parametrize('input_format', ['bam', 'sam'])
-def test_collated_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, input_format):
+def test_original_library_keeps_all_payloads_mates_and_name_spellings(tmp_path, input_format):
     reads = []
     for name in ('read1', 'read01', 'read001'):
         for flag in (65, 129, 2113, 321):
@@ -39,23 +37,24 @@ def test_collated_spool_keeps_all_payloads_mates_and_name_spellings(tmp_path, in
             for read in reads:
                 output.write(read)
     original_digest = sha256(bam_path.read_bytes()).digest()
-    with pysam.AlignmentFile(bam_path) as bam, closing(sqlite3.connect(':memory:')) as db:
-        scanned, reasons, unique, segments, path = _spool(bam, db, ReadCollector(), tmp_path)
-        assert scanned == len(reads)
-        assert reasons == {'duplicate': 2}
-        assert unique == len({r.to_string() for r in reads})
-        with pysam.AlignmentFile(path) as reader:
-            assert reader.header.to_dict()['HD']['GO'] == 'query'
-            groups = _DiskGroups(db, reader, HEADER, segments)
-            wanted = {r.to_string() for r in reads if not r.is_duplicate}
-            assert {r.to_string() for group in groups.templates() for r in group} == wanted
-            assert len(groups) == len({segment_identity(r) for r in reads if not r.is_duplicate})
-            for identity in groups:
-                assert identity in groups
-                assert {r.to_string() for r in groups[identity]} == {
-                    r.to_string() for r in reads if segment_identity(r) == identity and not r.is_duplicate}
-        assert path == tmp_path / 'collated.bam'
-        assert path != bam_path  # Private query-name copy; original input remains unchanged.
+    with pysam.AlignmentFile(bam_path) as bam, _original_library_context(
+            bam, ReadCollector(), tmp_path, library_index=None, reference_name="test", read_filter_identity=None) as groups:
+        counts = groups.statistics
+        assert counts['records_scanned'] == len(reads)
+        assert counts['excluded_records'] == {'duplicate': 2}
+        assert counts['unique_records'] == len({r.to_string() for r in reads})
+        assert groups.header.to_dict() == bam.header.to_dict()
+        wanted = {r.to_string() for r in reads if not r.is_duplicate}
+        assert {r.to_string() for group in groups.templates() for r in group} == wanted
+        assert len(groups) == len({segment_identity(r) for r in reads if not r.is_duplicate})
+        for identity in groups:
+            assert identity in groups
+            assert {r.to_string() for r in groups[identity]} == {
+                r.to_string() for r in reads if segment_identity(r) == identity and not r.is_duplicate}
+        if input_format == 'bam':
+            assert groups.prepared.source == bam_path
+        else:
+            assert groups.prepared.source != bam_path
     assert sha256(bam_path.read_bytes()).digest() == original_digest
 
 

@@ -111,7 +111,9 @@ def main():
                 print(json.dumps(dict(stage=name, seconds=stages[name])), flush=True)
         return run
 
-    for name in ('_spool', '_select', '_support'):
+    from isovar import rna_library
+    rna_library.prepare_rna_library = timed('prepare_rna_library', rna_library.prepare_rna_library)
+    for name in ('_select', '_support'):
         setattr(sv_rna_dense, name, timed(name, getattr(sv_rna_dense, name)))
 
     def offline(*args, **kwargs):

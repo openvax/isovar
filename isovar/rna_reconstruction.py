@@ -100,7 +100,8 @@ def _assemble(chosen, max_paths, min_overlap):
 def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap):
     chosen, reasons, cache = {}, Counter(), _GeometryCache()
     considered, selected = 0, 0
-    for template in groups.templates():
+    for template in groups.templates([(contig, start, end) for contig, spans in regions.items()
+                                      for start, end, _ in spans]):
         for _, observations in _observations(template, collector, reasons, regions, cache):
             considered += 1
             if selected >= max_discovery_reads:
@@ -109,7 +110,7 @@ def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_ov
             for o in observations:
                 chosen.setdefault((o.sequence, o.positions), o)
     maximal, notes = _assemble(chosen, max_paths, min_overlap)
-    return maximal, dict(target_segments=considered, selected_segments=selected,
+    return maximal, dict(template_order="read_group_query_name", target_segments=considered, selected_segments=selected,
                          distinct_observations=len(chosen), max_discovery_reads=max_discovery_reads,
                          max_paths=max_paths, min_overlap=min_overlap,
                          truncated=considered > selected or bool(notes), limitations=sorted(notes),
@@ -126,7 +127,8 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
     lineage = ReadLineage(groups, header)
     labels = CellUmiEvidence(groups, header, sample_id, source, template_loader=groups.template)
     target_fragments, unassigned = 0, 0
-    for template in groups.templates():
+    for template in groups.templates([(contig, start, end) for contig, spans in regions.items()
+                                      for start, end, _ in spans]):
         observations = list(_observations(template, collector, reasons, regions, cache))
         if not observations:
             continue
