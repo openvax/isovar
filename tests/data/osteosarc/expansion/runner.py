@@ -97,7 +97,12 @@ class TracedCollector(ReadCollector):
 
 
 class TracedCreator(ProteinSequenceCreator):
-    """Record actual intermediate counts on the public production path."""
+    """Record historical coding-path counts from the explicit assessment.
+
+    Unmatched RNA is now retained by production but is outside this audit's
+    original coding-only denominator. A second assembler call must not replace
+    the coding count or turn a validated protein into ``no_rna_candidate``.
+    """
 
     def __init__(self, trace, capture_all_ranked=False):
         super().__init__()
@@ -122,15 +127,21 @@ class TracedCreator(ProteinSequenceCreator):
     def variant_sequences_from_reads(self, *args, **kwargs):
         self.trace["stage"] = "rna_sequence_creation"
         sequences = super().variant_sequences_from_reads(*args, **kwargs)
-        self.trace["rna_candidate_count"] = len(sequences)
         self.trace["stage"] = "reference_matching"
         return sequences
 
+    def assess_variant_reads(self, *args, **kwargs):
+        assessment = super().assess_variant_reads(*args, **kwargs)
+        if assessment.reference_contexts:
+            self.trace["rna_candidate_count"] = len(assessment.assembly.compatible_sequences)
+        return assessment
+
     def all_pairs_translations(self, variant_sequences, reference_contexts):
-        self.trace["reference_context_count"] = len(reference_contexts)
         self.trace["stage"] = "translation"
         result = super().all_pairs_translations(variant_sequences, reference_contexts)
-        self.trace["translation_count"] = len(result)
+        if variant_sequences and reference_contexts:
+            self.trace["reference_context_count"] = len(reference_contexts)
+            self.trace["translation_count"] = len(result)
         self.trace["stage"] = "protein_ranking"
         return result
 

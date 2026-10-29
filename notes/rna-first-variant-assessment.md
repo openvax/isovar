@@ -47,3 +47,10 @@ Current original DDX17 target: COLO829 GRCh38 chr22:38489856 GA>G, deleted A at
 38489857, 223 ALT observations / 221 fragments in the prior selected source.
 Original audit folder is /Users/iskander/code/isovar/output/ddx17_ref_alt_followup_20261027/original_audit/.
 Those are source-specific prior counts, not a newly verified full-library result.
+
+Self-review and validation: the first full run exposed a stateful audit adapter
+(#626), not changed proteins. It overwrote coding RNA counts with the later
+unmatched assembly call. The adapter now derives its historical coding-only
+counts from the explicit assessment. All 973 original expansion/union and audit
+validation checks pass with their original snapshots unchanged. The new native
+assessment retains unmatched RNA separately. Full suite is being repeated.
