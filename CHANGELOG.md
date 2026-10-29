@@ -11,6 +11,12 @@
 - Document the shared API, coordinate requirements and original-read/linkage
   scope. This is the frame-layer follow-up for #583, not automatic RNA discovery.
 
+## 1.73.2
+
+- Close cohort checkpoint connections before publishing results and on resume
+  errors. Finished report directories no longer retain WAL/SHM files until
+  garbage collection, which could race with copying or archiving results.
+
 ## 1.73.1
 
 - Report missing ncORF catalogue scope as unassessed, measured zero as zero,
