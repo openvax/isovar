@@ -216,7 +216,7 @@ def test_cohort_literal_path_pdf_keeps_conditional_frames_separate(tmp_path):
         family='variant_rna_paths', task=dict(id='retention', sample_id='sample', source_id='original-library'),
         status='recorded', path=str(result_path), sha256=file_sha256(result_path), identity=dict(inputs={}))])
     paths = write_cohort_reports(manifest, summary, tmp_path)
-    text = '\n'.join(page.extract_text() for page in PdfReader(paths[0]).pages)
+    text = ' '.join(' '.join(page.extract_text() for page in PdfReader(paths[0]).pages).split())
     assert 'after stop' in text
     assert 'paired-only whole-path templates' in text
     assert 'Frames are conditional' in text
@@ -233,3 +233,14 @@ def test_ordinary_splice_competitor_is_counted_without_becoming_alt_rna(tmp_path
     assert ordinary['whole_path_segments'][0][1] == 'ordinary'
     assert not ordinary['coding']  # the declared model is not an observed protein
     assert all(p['origin'] == 'observed_assembly' for p in result['paths'])
+
+
+def test_report_exemplars_include_ref_controls_and_hide_mirror_duplicates(tmp_path):
+    from isovar.variant_path_report import _exemplars, _allele_fragments
+
+    data = run_paths(tmp_path)
+    selected = _exemplars(data)
+    assert len(selected) == 2
+    assert {f['state'] for candidate in selected for f in candidate['focal_alleles']} == {'ALT', 'REF'}
+    assert all(block[-1] == '+' for candidate in selected for block in candidate['mapping'])
+    assert sorted(_allele_fragments(candidate, 'ALT') for candidate in selected) == [0, 1]
