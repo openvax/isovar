@@ -40,6 +40,8 @@ that collapse distinct BAM contigs onto one FASTA entry. Target contigs without
 BAM `M5` remain sequence-identity-unverified; accepting a name alias does not
 establish sequence equivalence. The named GDC profile still requires its exact
 published dictionary.
+Transcript sequence extraction uses the resolved FASTA spelling while returned
+models retain the BAM contig name used for RNA evidence.
 
 The command writes:
 

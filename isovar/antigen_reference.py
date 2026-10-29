@@ -103,14 +103,15 @@ def validate_alignment_reference(bam, genome, *, profile=None, contigs=()):
             raise ValueError("FASTA contigs do not match GDC GRCh38.d1.vd1")
     fasta_resolver = ContigResolver(fasta.keys(), reference_name=genome.reference_name)
     fasta_names, resolutions = {}, []
-    used_fasta_names = set()
+    bam_names_by_fasta = {}
     for row in rows:
         name = row["SN"]
         resolution = fasta_resolver.resolve(name)
         fasta_name = require_resolved_contig(resolution)
-        if fasta_name in used_fasta_names:
-            raise ValueError("Distinct BAM contigs resolve to the same FASTA contig: %s" % fasta_name)
-        used_fasta_names.add(fasta_name)
+        if fasta_name in bam_names_by_fasta:
+            raise ValueError("Distinct BAM contigs %r and %r resolve to the same FASTA contig: %s" % (
+                bam_names_by_fasta[fasta_name], name, fasta_name))
+        bam_names_by_fasta[fasta_name] = name
         fasta_names[name] = fasta_name
         resolutions.append(dict(bam_contig=name, fasta_contig=fasta_name, status=resolution.status))
         if len(fasta[fasta_name]) != row["LN"]:
@@ -163,6 +164,9 @@ def isoform_targets_from_genome(genome, genes, *, contig_names):
     """
     selected, unavailable = {}, []
     resolver = ContigResolver(contig_names, reference_name=genome.reference_name)
+    fasta = genome.fasta
+    fasta_resolver = ContigResolver(None if fasta is None else fasta.keys(),
+                                    reference_name=genome.reference_name)
     for name in genes:
         try:
             found = [genome.gene_by_id(name)]
@@ -180,8 +184,9 @@ def isoform_targets_from_genome(genome, genes, *, contig_names):
             try:
                 resolution = resolver.resolve(transcript.contig)
                 contig = require_resolved_contig(resolution)
+                fasta_contig = contig_in_reference(contig, fasta_resolver)
                 exons = tuple(sorted((a - 1, b) for a, b in transcript.exon_intervals))
-                sequence = "".join(genome.sequence(contig, a + 1, b) for a, b in exons)
+                sequence = "".join(genome.sequence(fasta_contig, a + 1, b) for a, b in exons)
                 if transcript.strand == "-":
                     sequence = reverse_complement_dna(sequence)
                 kwargs = dict(transcript_id=transcript.versioned_transcript_id, reference_name=genome.reference_name,

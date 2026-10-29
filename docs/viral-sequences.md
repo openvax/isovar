@@ -24,6 +24,12 @@ and available M5 sequence checksums; missing M5 leaves sequence identity
 explicitly unverified. A human-only BAM cannot supply viral alignments: retain
 the original sequences and align competitively to the combined reference first.
 
+For custom references, select the BAM's actual contig names. Validation and
+coding-reference loading resolve those names against the FASTA with Varcode's
+exact-first resolver. Unique supported aliases retain both spellings in
+`reference.alignment_contig_resolutions`; ambiguous names and mismatched lengths
+or target checksums fail. RNA placements and coding models retain BAM names.
+
 The output directory contains:
 
 - `sequences.fa`: observed nucleotide paths, including partial reconstructions.
