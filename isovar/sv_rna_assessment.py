@@ -19,7 +19,7 @@ from .fusion import FusionReference
 from .read_identity import read_group
 from .read_collector import ReadCollector
 from .read_end_inference import ReadSequenceView
-from .sv_rna import _Model, _anchor_runs
+from .transcript_path_frames import TranscriptPathModel as _Model, exact_anchor_runs as _anchor_runs
 from .sv_rna_path_support import exact_path_matches, interval_spots, overlap_chain_search, reverse_complement
 from .sv_rna_relations import EVENT_CROSSING_RELATIONS
 

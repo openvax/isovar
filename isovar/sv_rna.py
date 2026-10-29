@@ -45,7 +45,10 @@ from .default_parameters import (
     SV_INCLUSION_MAPQ_255_IS_UNIQUE,
 )
 from .fusion import FusionBlock, FusionBreakpoint, FusionReference
-from .genetic_code import standard_genetic_code
+from .transcript_path_frames import (
+    TranscriptPathModel as _Model, sv_frame_evidence as _frame_evidence,
+    reverse_position as _flip, next_position as _successor,
+)
 from .read_collector import ReadCollector
 from .dna import reverse_complement_dna
 from .read_identity import segment_identity, source_alignments_from_pysam
@@ -289,18 +292,8 @@ class RnaObservation:
         return self.sequence, self.positions
 
 
-def _flip(position):
-    contig, base, strand = position
-    return contig, base, "-" if strand == "+" else "+"
-
-
 def _mirror(sequence, positions):
     return reverse_complement_dna(sequence), tuple(None if p is None else _flip(p) for p in reversed(positions))
-
-
-def _successor(position):
-    contig, base, strand = position
-    return contig, base + 1 if strand == "+" else base - 1, strand
 
 
 def _runs(positions):
@@ -1399,159 +1392,6 @@ class _Event:
                 found.append((first - 1, first, [None, 0]))
         return found
 
-
-class _Model:
-    """A reference transcript's per-base placements, offsets and protein."""
-
-    def __init__(self, reference):
-        self.reference = reference
-        positions = [(reference.contig, p, reference.strand) for a, b in reference.exons for p in range(a, b)]
-        self.positions = positions[::-1] if reference.strand == "-" else positions
-        self.offsets = {p: i for i, p in enumerate(self.positions)}
-        self.protein = None
-        if reference.cds_start is not None:
-            self.protein = standard_genetic_code.translate(
-                reference.sequence[reference.cds_start:reference.cds_end], first_codon_is_start=True)[0]
-
-    def junctions(self):
-        pairs = set()
-        for a, b in zip(self.positions, self.positions[1:]):
-            if b != _successor(a):
-                pairs.update({(a, b), (_flip(b), _flip(a))})
-        return pairs
-
-
-def _anchor_runs(sequence, positions, model):
-    """Exact, collinear matches to one transcript: (query start, end, transcript offset)."""
-    runs = []
-    for q, (base, position) in enumerate(zip(sequence, positions)):
-        offset = model.offsets.get(position)
-        if offset is None or model.reference.sequence[offset] != base:
-            continue
-        if runs and runs[-1][1] == q and runs[-1][2] + q - runs[-1][0] == offset:
-            runs[-1] = (runs[-1][0], q + 1, runs[-1][2])
-        else:
-            runs.append((q, q + 1, offset))
-    return runs
-
-
-def _translations(sequence, positions, model, min_anchor, departures):
-    """Readings from each coding anchor which leave the transcript at a junction.
-
-    The frame is transferred downstream only; sequence after the anchor need
-    not match any annotation. A base substitution keeps the frame and does not
-    end the collinear match. A reading which first departs from the model
-    anywhere other than ``departures`` (a CIGAR indel, sequencing error or
-    another model's splice junction) is counted, not translated. Readings
-    ending at the same codon share a frame; the longest is kept.
-    """
-    reference = model.reference
-    runs = [r for r in _anchor_runs(sequence, positions, model) if r[1] - r[0] >= min_anchor]
-    if not runs:
-        return None
-    if reference.cds_start is None:
-        return dict(reason="CDS_unavailable", anchors=[list(r) for r in runs])
-    readings, reference_reading, coding, other_departures = {}, False, [], 0
-    for q0, q1, o0 in runs:
-        lo = max(q0, q0 + reference.cds_start - o0)
-        hi = min(q1, q0 + reference.cds_end - 3 - o0)
-        if hi - lo < min_anchor:
-            continue
-        coding.append([q0, q1, o0])
-        start = lo + (reference.cds_start - (o0 + lo - q0)) % 3
-        offset = o0 + start - q0
-        protein, stop = standard_genetic_code.translate(
-            sequence[start:], first_codon_is_start=offset == reference.cds_start)
-        end = start + 3 * (len(protein) + stop)
-        departure, substitutions = None, []
-        for q in range(start, end):
-            expected = offset + q - start
-            if expected >= len(model.positions) or positions[q] not in (None, model.positions[expected]):
-                departure = q
-            elif sequence[q] != reference.sequence[expected]:
-                if positions[q] is None:
-                    departure = q
-                else:
-                    substitutions.append(q)
-            if departure is not None:
-                break
-        if departure is None:
-            reference_reading = True
-            continue
-        if departure not in departures:
-            other_departures += 1
-            continue
-        reading = readings.setdefault(end, dict(
-            translation_start=start, translation_end=end, amino_acids=protein, ends_with_stop_codon=stop,
-            complete_5prime=offset == reference.cds_start, departure=departure,
-            substitutions=substitutions, anchors=[]))
-        if start < reading["translation_start"]:
-            reading.update(translation_start=start, amino_acids=protein, substitutions=substitutions,
-                           complete_5prime=offset == reference.cds_start)
-        reading["anchors"].append([q0, q1, o0])
-    if not coding:
-        return dict(reason="no_coding_anchor", anchors=[list(r) for r in runs])
-    return dict(readings=sorted(readings.values(), key=lambda r: r["translation_start"]),
-                reference_reading=reference_reading, other_departures=other_departures,
-                anchors=[list(r) for r in runs])
-
-
-def _frame_evidence(sequence, positions, departures, models, min_anchor, reference_peptides, lengths):
-    """Group translations across all anchored models; keep every alternative."""
-    groups, unresolved, reference_readings, other_departures = {}, [], [], 0
-    for model in models:
-        result = _translations(sequence, positions, model, min_anchor, departures)
-        if result is None:
-            continue
-        reference = model.reference
-        if "reason" in result:
-            unresolved.append(dict(transcript_id=reference.transcript_id, annotation=reference.annotation,
-                                   reason=result["reason"], anchors=result["anchors"]))
-            continue
-        if result["reference_reading"]:
-            reference_readings.append(reference.transcript_id)
-        other_departures += result["other_departures"]
-        for reading in result["readings"]:
-            key = (reading["translation_start"], reading["amino_acids"], reading["ends_with_stop_codon"])
-            if key not in groups:
-                protein = reading["amino_acids"]
-                groups[key] = dict(
-                    translation_start=reading["translation_start"], translation_end=reading["translation_end"],
-                    amino_acids=protein, ends_with_stop_codon=reading["ends_with_stop_codon"],
-                    transcript_ids=[], frame_evidence=[], competing_noncoding_models=[],
-                    candidate_peptides=[dict(sequence=protein[i:i + k], protein_interval=[i, i + k])
-                                        for k in lengths for i in range(len(protein) - k + 1)
-                                        if protein[i:i + k] not in reference_peptides],
-                    peptide_novelty="absent_from_supplied_reference_proteins", translation_observed=False)
-            groups[key]["transcript_ids"].append(reference.transcript_id)
-            groups[key]["frame_evidence"].append(dict(
-                transcript_id=reference.transcript_id, annotation=reference.annotation,
-                basis="exact_collinear_CDS_anchor", anchors=reading["anchors"],
-                departure=reading["departure"], departure_relation=departures[reading["departure"]],
-                frame_preserving_substitutions=reading["substitutions"],
-                complete_5prime=reading["complete_5prime"],
-                upstream_frame_assumed=not reading["complete_5prime"]))
-    translations = sorted(groups.values(), key=lambda g: (g["translation_start"], g["amino_acids"]))
-    for translation in translations:
-        translation["departure_relations"] = sorted({e["departure_relation"] for e in translation["frame_evidence"]})
-        translation["complete_5prime"] = any(e["complete_5prime"] for e in translation["frame_evidence"])
-        # A noncoding model matching the same frame-anchor sequence is an
-        # alternative explanation, not permission to drop the protein.
-        spans = [a for e in translation["frame_evidence"] for a in e["anchors"]]
-        translation["competing_noncoding_models"] = sorted(
-            u["transcript_id"] for u in unresolved
-            if any(a[0] < s[1] and s[0] < a[1] for a in u["anchors"] for s in spans))
-    if not translations:
-        # An exact coding anchor whose every reading leaves the model at an
-        # indel or error is still a gene anchor, not the absence of one.
-        status = ("reference_protein_only" if reference_readings else "unresolved" if unresolved
-                  else "departs_elsewhere_only" if other_departures else "no_gene_anchor")
-    elif len(translations) == 1 and not translations[0]["competing_noncoding_models"]:
-        status = "translated"
-    else:
-        status = "ambiguous"
-    return dict(frame_status=status, translations=translations, unresolved_models=unresolved,
-                reference_readings=sorted(reference_readings), readings_departing_elsewhere=other_departures)
 
 
 def _canonical(left, right):

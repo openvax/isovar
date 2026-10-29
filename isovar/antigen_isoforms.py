@@ -14,7 +14,8 @@ from tempfile import TemporaryDirectory
 from .antigen_reference import IsoformTarget
 from .genetic_code import standard_genetic_code
 from .read_collector import ReadCollector
-from .sv_rna import _Model, _runs
+from .transcript_path_frames import TranscriptPathModel as _Model
+from .sv_rna import _runs
 from .rna_reconstruction import _contains, _discover, _support
 from .rna_library import _original_library_context
 
@@ -31,7 +32,7 @@ def _coding(sequence, positions, models):
             offset = model.offsets.get(positions[q])
             if (offset is None or not reference.cds_start <= offset < reference.cds_end - 3
                     or (offset - reference.cds_start) % 3
-                    or list(positions[q:q + 3]) != model.positions[offset:offset + 3]):
+                    or tuple(positions[q:q + 3]) != model.positions[offset:offset + 3]):
                 continue
             complete_start = offset == reference.cds_start and sequence[q:q + 3] in standard_genetic_code.start_codons
             protein, stop = standard_genetic_code.translate(sequence[q:], first_codon_is_start=complete_start)

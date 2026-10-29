@@ -19,8 +19,9 @@ from .read_identity import segment_identity
 from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
 from .rna_evidence import rna_support
+from .transcript_path_frames import TranscriptPathModel as _Model
 from .sv_rna import (
-    _Event, _GeometryCache, _Model, _Observations, _build_segment, _flip, _join_class, _merge, _record_gaps, _record_id,
+    _Event, _GeometryCache, _Observations, _build_segment, _flip, _join_class, _merge, _record_gaps, _record_id,
     _path_result, _possible_breakpoint_clip, _possible_exon_clip, _exon_clip_cores,
     _inside, _SEQUENCE_BRIDGE_BASES, reconstruct_sv_rna,
 )
