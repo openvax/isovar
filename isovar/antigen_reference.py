@@ -12,7 +12,9 @@ from pathlib import Path
 
 from pyensembl import Genome
 from pyensembl.download_cache import cache_root
-from pyensembl.normalization import normalize_chromosome
+from varcode import ContigResolver
+
+from .contig_resolution import UnresolvedContigError, require_resolved_contig
 
 from .audit_bundle import digest
 from .dna import reverse_complement_dna
@@ -60,18 +62,14 @@ def gdc_genome(*, genome_fasta, gtf, annotation_version, cache_directory=None,
 
 
 def contig_in_reference(contig, names):
-    """Resolve PyEnsembl's normalized name only when the alias is unambiguous."""
-    if contig in names:
-        return contig
-    def alias(name):
-        name = normalize_chromosome(name)
-        name = name[3:] if name.startswith("chr") else name
-        return "MT" if name == "M" else name
+    """Resolve an exact name or unambiguous alias through the shared vocabulary.
 
-    matches = [n for n in names if alias(n) == alias(contig)]
-    if len(matches) != 1:
-        raise ValueError("Contig %r has no unique match in the alignment reference" % contig)
-    return matches[0]
+    ``names`` accepts a reused ContigResolver or an iterable of reference names.
+    Missing and ambiguous contigs raise the common UnresolvedContigError;
+    resolving a name does not establish sequence identity or perform liftover.
+    """
+    resolver = names if isinstance(names, ContigResolver) else ContigResolver(names)
+    return require_resolved_contig(resolver.resolve(contig))
 
 
 def validate_alignment_reference(bam, genome, *, profile=None, contigs=()):
@@ -108,9 +106,10 @@ def validate_alignment_reference(bam, genome, *, profile=None, contigs=()):
         if expected and row.get("M5") and row["M5"].lower() != expected[name]["md5"]:
             raise ValueError("BAM/GDC sequence checksum mismatch: %s" % name)
     checked, unverified = [], []
+    resolver = ContigResolver(lengths, reference_name=genome.reference_name)
     by_name = {row["SN"]: row for row in rows}
     for contig in sorted(set(contigs)):
-        name = contig_in_reference(contig, lengths)
+        name = contig_in_reference(contig, resolver)
         checksum = md5()
         for start in range(0, lengths[name], 1024 * 1024):
             checksum.update(str(fasta[name][start:min(lengths[name], start + 1024 * 1024)]).upper().encode("ascii"))
@@ -149,6 +148,7 @@ def isoform_targets_from_genome(genome, genes, *, contig_names):
     unsupported coding models are returned as explicit ``unavailable`` rows.
     """
     selected, unavailable = {}, []
+    resolver = ContigResolver(contig_names, reference_name=genome.reference_name)
     for name in genes:
         try:
             found = [genome.gene_by_id(name)]
@@ -164,7 +164,8 @@ def isoform_targets_from_genome(genome, genes, *, contig_names):
     for gene in sorted(selected.values(), key=lambda g: g.id):
         for transcript in sorted(gene.transcripts, key=lambda t: t.id):
             try:
-                contig = contig_in_reference(transcript.contig, contig_names)
+                resolution = resolver.resolve(transcript.contig)
+                contig = require_resolved_contig(resolution)
                 exons = tuple(sorted((a - 1, b) for a, b in transcript.exon_intervals))
                 sequence = "".join(genome.sequence(contig, a + 1, b) for a, b in exons)
                 if transcript.strand == "-":
@@ -174,7 +175,7 @@ def isoform_targets_from_genome(genome, genes, *, contig_names):
                               contig=contig, strand=transcript.strand, exons=exons, sequence=sequence)
                 reference = FusionReference(**kwargs)
                 status = "no_complete_annotated_CDS"
-                if contig in {"MT", "M", "chrM", "chrMT"}:
+                if resolution.normalized_name == 'MT':
                     status = "unsupported_mitochondrial_genetic_code"
                 elif transcript.start_codon_complete and transcript.stop_codon_complete:
                     try:
@@ -185,6 +186,9 @@ def isoform_targets_from_genome(genome, genes, *, contig_names):
                     except ValueError as error:
                         status = "unsupported_CDS: " + str(error)
                 targets.append(IsoformTarget(gene.id, gene.name or gene.id, reference, status))
+            except UnresolvedContigError as error:
+                unavailable.append(dict(gene_id=gene.id, transcript_id=transcript.id,
+                                        reason=str(error), contig_resolution=error.to_dict()))
             except ValueError as error:
                 unavailable.append(dict(gene_id=gene.id, transcript_id=transcript.id, reason=str(error)))
     return targets, unavailable

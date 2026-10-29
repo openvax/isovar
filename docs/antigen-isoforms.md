@@ -26,7 +26,10 @@ isovar isoforms reconstruct \
 ```
 
 These gene names illustrate an explicit panel, not an exhaustive CTA definition.
-Include related loci when reads could map to both. BAM secondary placements,
+Include related loci when reads could map to both. Contig matching uses the shared
+Varcode resolver: exact names take precedence, ambiguous aliases remain
+unavailable with structured diagnostics, and viral/decoy names retain their
+original identities. BAM secondary placements,
 mates and declared unreported alternatives remain part of the attribution.
 `--alignment-reference custom --assembly GRCh37 --annotation-name Ensembl`
 supports another assembly/reference; set its actual annotation version too.
