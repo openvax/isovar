@@ -19,7 +19,7 @@ from .read_identity import segment_identity
 from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
 from .rna_evidence import rna_support
-from .transcript_path_frames import TranscriptPathModel as _Model
+from .transcript_path_frames import TranscriptPathModel
 from .sv_rna import (
     _Event, _GeometryCache, _Observations, _build_segment, _flip, _join_class, _merge, _record_gaps, _record_id,
     _path_result, _possible_breakpoint_clip, _possible_exon_clip, _exon_clip_cores,
@@ -407,7 +407,7 @@ def reconstruct_dense_sv_rna(bam, options):
     options['dense_support'] = False
     collector = options['read_collector']
     spans = _search_regions(bam, options)
-    models = [_Model(r) for r in options['references']]
+    models = [TranscriptPathModel(r) for r in options['references']]
     annotated = set().union(*(m.junctions() for m in models))
     event = _Event(options['donor'], options['acceptor'], options['max_breakpoint_shift'], annotated,
                    options['annotated_junction_tolerance'])

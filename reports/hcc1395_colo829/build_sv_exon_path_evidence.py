@@ -9,7 +9,8 @@ import pysam
 
 from isovar.fusion import FusionBreakpoint, FusionReference
 from isovar.read_collector import ReadCollector
-from isovar.sv_rna import _Model, _anchor_runs, reconstruct_sv_rna
+from isovar.sv_rna import reconstruct_sv_rna
+from isovar.transcript_path_frames import TranscriptPathModel, exact_anchor_runs
 from reports.hcc1395_colo829.build_sv_junction_audit import COLO_BAM, EVENTS, HCC_BAM
 
 
@@ -52,7 +53,7 @@ def _exon_anchors(path, references):
     positions = _positions(path)
     anchors = [(reference.transcript_id, end - start)
                for reference in references
-               for start, end, _ in _anchor_runs(path["sequence"], positions, _Model(reference))]
+               for start, end, _ in exact_anchor_runs(path["sequence"], positions, TranscriptPathModel(reference))]
     maximum = max((length for _, length in anchors), default=0)
     transcripts = sorted({transcript for transcript, length in anchors if length >= 20})
     return maximum, transcripts

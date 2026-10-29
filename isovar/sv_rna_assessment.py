@@ -19,7 +19,7 @@ from .fusion import FusionReference
 from .read_identity import read_group
 from .read_collector import ReadCollector
 from .read_end_inference import ReadSequenceView
-from .transcript_path_frames import TranscriptPathModel as _Model, exact_anchor_runs as _anchor_runs
+from .transcript_path_frames import TranscriptPathModel, exact_anchor_runs
 from .sv_rna_path_support import exact_path_matches, interval_spots, overlap_chain_search, reverse_complement
 from .sv_rna_relations import EVENT_CROSSING_RELATIONS
 
@@ -394,7 +394,7 @@ def assess_sv_rna_paths(result: dict[str, Any], bam: pysam.AlignmentFile | None,
                      for records in evidence["exon_links"].values() for record in records}
     record_labels = {digest: "exon:%d" % index for index, digest in enumerate(sorted(set(alignment_ids.values())))}
     alignment_ids = {key: record_labels[digest] for key, digest in alignment_ids.items()}
-    models = [_Model(reference) for reference in reference_models]
+    models = [TranscriptPathModel(reference) for reference in reference_models]
     rows: list[dict[str, Any]] = []
     alternative_placements: dict[str, dict[str, Any]] = {}
     exon_alignments: dict[str, dict[str, Any]] = {}
@@ -407,7 +407,7 @@ def assess_sv_rna_paths(result: dict[str, Any], bam: pysam.AlignmentFile | None,
                         transcript_interval=[offset, offset + b - a],
                         coding_bases=max(0, min(offset + b - a, model.reference.cds_end or 0)
                                          - max(offset, model.reference.cds_start or 0)))
-                   for model in models for a, b, offset in _anchor_runs(sequence, positions, model)
+                   for model in models for a, b, offset in exact_anchor_runs(sequence, positions, model)
                    if b - a >= min_path_match]
         joins = []
         for index, junction in enumerate(path["junctions"]):
