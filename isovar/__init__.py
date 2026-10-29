@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.73.1"
+__version__ = "1.73.2"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
