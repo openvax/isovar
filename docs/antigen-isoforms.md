@@ -42,6 +42,7 @@ the alignment reference.
 isovar isoforms reconstruct \
     --bam tumor-rna.bam --sample-id tumor-1 \
     --gene-set oncoref-cta \
+    --discovery-partition gene \
     --genome-fasta GRCh38.d1.vd1.fa \
     --gtf gencode.v50.primary_assembly.annotation.gtf.gz \
     --annotation-version 50 \
@@ -92,7 +93,13 @@ Discovery retains original parent identities even when sequences and placements
 are identical, so sharing geometry cannot hide an independent overlap witness.
 
 The default discovery budget is 10,000 target read segments and 256 assembled
-paths. The later support pass checks the complete declared input, even when
+paths across the panel. For a large catalogue, `--discovery-partition gene`
+applies those budgets independently to each gene, preventing an abundant early
+locus from consuming another locus's budget. `discovery.genes` then records
+counts and truncation separately for every gene; these memberships are not
+summed as unique read counts. Both modes combine their retained paths for one
+joint support pass, keeping shared/paralog fragment assignments ambiguous.
+The later support pass checks the complete declared input, even when
 discovery stops early. Increase `--max-discovery-reads` or `--max-paths` when the
 result reports truncation. A truncated search cannot establish a dominant
 isoform. Disk-backed indexing avoids retaining background alignments; the
@@ -188,7 +195,7 @@ with pysam.AlignmentFile("tumor.bam") as bam:
         annotation_version=50, reference_cache="annotation-cache")
     result = reconstruct_antigen_isoforms(
         bam, targets=prepared.targets, sample_id="tumor-1", source="RNA-library-1",
-        reference_identity=prepared.identity)
+        reference_identity=prepared.identity, discovery_partition="gene")
     result["target_selection"] = prepared.target_selection
 
 quantify_antigen_isoforms(

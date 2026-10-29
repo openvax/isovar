@@ -33,6 +33,8 @@ def make_parser(prog="isovar isoforms"):
     reconstruct.add_argument("--max-discovery-reads", type=int, default=10000,
                              help="Reads used to discover sequence paths; support still scans the full input")
     reconstruct.add_argument("--max-paths", type=int, default=256)
+    reconstruct.add_argument("--discovery-partition", choices=['panel', 'gene'], default='panel',
+                             help="Apply discovery budgets across the panel or independently per gene")
     reconstruct.add_argument("--min-overlap", type=int, default=30)
     reconstruct.add_argument("--scratch-dir")
     quantify = actions.add_parser("quantify", help="Run installed Salmon against the complete competing transcriptome")
@@ -69,6 +71,7 @@ def run(args=None, prog=None):
                 bam, targets=prepared.targets, sample_id=options.sample_id, source=str(Path(options.bam).resolve()),
                 reference_identity=prepared.identity, max_discovery_reads=options.max_discovery_reads,
                 max_paths=options.max_paths, min_overlap=options.min_overlap, scratch_dir=options.scratch_dir,
+                discovery_partition=options.discovery_partition,
                 read_collector=collector, library_index=library)
             result["input"]["sha256"] = digest(options.bam)
             result["target_selection"] = prepared.target_selection

@@ -173,6 +173,7 @@ Each additional task has `id`, `sample_id`, and `source_id`:
   "sample_id": "sample-1",
   "source_id": "sample-1-RNA",
   "gene_set": "oncoref-cta",
+  "parameters": {"discovery_partition": "gene"},
   "reference": {
     "genome_fasta": "alignment-fasta",
     "gtf": "annotation-gtf",

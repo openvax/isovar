@@ -14,5 +14,13 @@ Selection is research nomination, not Vaxrank admission or translation proof.
 Keep explicit target-model input compatible. Core dependency adoption must be
 coordinated with Vaxrank/PirlyGenes exact OncoRef pins before release. Validate
 API/CLI/cohort parity, missing annotation coverage, reference identity, and
-receipt invalidation. Per-gene discovery budgets and scalable matching are
-required before the full catalogue is used for the sample survey.
+receipt invalidation.
+
+Issue #647: add `discovery_partition="gene"` as an explicit resource policy;
+the compatibility default remains the panel-wide budget. Each partition calls
+the shared exact discovery routine, then all paths enter one original-fragment
+support pass. Keep per-gene counts separate rather than summing overlapping
+memberships. Extract the existing placed-run index for reuse by assembly,
+coding model selection and support matching; exact sequence/placement checks
+remain unchanged. Compare indexed results against exhaustive matching and
+verify independent budgets, paralog counts, strands, splicing and insertions.

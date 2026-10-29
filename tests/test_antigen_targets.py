@@ -72,7 +72,7 @@ def test_api_cli_cohort_keep_same_models_and_selection(tmp_path, catalogue):
         prepared = prepare_antigen_reference(bam, gene_set='oncoref-cta', **reference)
         expected = reconstruct_antigen_isoforms(
             bam, targets=prepared.targets, reference_identity=prepared.identity,
-            sample_id='sample', source=str(bam_path))
+            sample_id='sample', source=str(bam_path), discovery_partition='gene')
     assert len(prepared.targets) == 2
     assert prepared.target_selection['gene_mapping'] == [
         dict(query='G', gene_ids=['G'], status='gene_id'),
@@ -82,10 +82,12 @@ def test_api_cli_cohort_keep_same_models_and_selection(tmp_path, catalogue):
         run(['reconstruct', '--bam', str(bam_path), '--sample-id', 'sample',
              '--gene-set', 'oncoref-cta', '--genome-fasta', str(fasta), '--gtf', str(gtf),
              '--annotation-version', 'test', '--alignment-reference', 'custom',
+             '--discovery-partition', 'gene',
              '--reference-cache', reference['reference_cache'], '--output-dir', str(out)])
     cli = json.loads((out / 'isoforms.json').read_text())
     files = dict(bam=bam_path, fasta=fasta, gtf=gtf)
-    task = dict(gene_set='oncoref-cta', reference=dict(reference, genome_fasta='fasta', gtf='gtf'))
+    task = dict(gene_set='oncoref-cta', reference=dict(reference, genome_fasta='fasta', gtf='gtf'),
+                parameters=dict(discovery_partition='gene'))
     source = dict(source_id=str(bam_path), sample_id='sample', bam='bam')
     with ExitStack() as contexts, pytest.warns(UserWarning, match='MISSING'):
         cohort = _antigen_path_task('isoforms', task, source, files, contexts, tmp_path, {})

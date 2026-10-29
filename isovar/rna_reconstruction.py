@@ -14,7 +14,7 @@ from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
 from .rna_path_linkage import OriginalPathMatch, template_path_linkage
 from .sv_rna import (
-    RnaObservation, _GeometryCache, _ObservationIndex, _Positions, _agrees, _build_segment, _extend_both,
+    RnaObservation, _GeometryCache, _ObservationIndex, _PlacementIndex, _Positions, _agrees, _build_segment, _extend_both,
     _mirror, _offsets, _record_id, _runs,
 )
 
@@ -152,9 +152,11 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
     compatible_key, overlapping_key = "compatible_" + label + "s", "overlapping_" + label + "s"
     ids_key = label + "_ids"
     coverage = {c["id"]: [0] * len(c["sequence"]) for c in candidates}
+    by_id = {c['id']: c for c in candidates}
     # Reuse each immutable candidate's collinear blocks across the entire
     # original-input recount. Raw output placements remain unchanged.
     placements = {c["id"]: _Positions(c["placements"]) for c in candidates}
+    candidate_index = _PlacementIndex({i: c['placements'] for i, c in enumerate(candidates)})
     supporters, whole, assignments = defaultdict(set), defaultdict(set), Counter()
     whole_cds = defaultdict(set)
     linkage = {c["id"]: [] for c in candidates if "features" in c}
@@ -175,7 +177,12 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
         outside |= bool(uncertainty)
         for identity, observed in observations:
             compatible, supporting = set(), set()
-            for candidate in candidates:
+            # An exact overlap needs a shared placed base. Use the same run
+            # index as assembly, then retain the original exact checks below.
+            relevant = sorted({i for o in observed for i, _ in
+                               candidate_index.overlapping(o.positions, 0, len(o.positions))})
+            for i in relevant:
+                candidate = candidates[i]
                 cid = candidate["id"]
                 covered, full = set(), False
                 for o in observed:
@@ -200,11 +207,11 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
             segment_rows.append(dict(identity=list(identity), **{compatible_key: sorted(compatible), overlapping_key: sorted(supporting)},
                                      lineage=lineage.segment(identity), cell_umi=labels.segment(identity)))
         ids = tuple(sorted(fragment_matches or ()))
-        for candidate in candidates:
-            cid = candidate["id"]
-            if cid in linkage and template_matches[cid]:
+        for cid, matches in template_matches.items():
+            if matches:
+                candidate = by_id[cid]
                 linkage[cid].append(dict(fragment=list(observations[0][0][:2]),
-                    **template_path_linkage(template_matches[cid], len(candidate["sequence"]), candidate["features"])))
+                    **template_path_linkage(matches, len(candidate["sequence"]), candidate["features"])))
         assignments[ids, outside] += 1
         unassigned += not ids
         witnesses.append(dict(fragment=list(observations[0][0][:2]), **{compatible_key: list(ids)},
