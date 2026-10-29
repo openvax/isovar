@@ -140,6 +140,12 @@ __all__ = [
     "prepare_rna_library",
     "PreparedRnaLibrary",
     "RnaLibraryIndex",
+
+    "NormalEvidencePolicy",
+    "NormalSource",
+    "assess_matched_normal",
+    "run_normal_evidence_manifest",
+    "normal_background_regions",
 ]
 
 from .uorf_annotation import annotate_sv_uorf_evidence
@@ -148,3 +154,8 @@ from .orf_annotation import annotate_sv_orf_evidence
 
 from .variant_rna_orfs import reconstruct_variant_orfs
 from .rna_library import prepare_rna_library, PreparedRnaLibrary, RnaLibraryIndex
+
+
+from .normal_evidence import NormalEvidencePolicy
+from .normal_sources import NormalSource, assess_matched_normal, run_normal_evidence_manifest
+from .normal_regions import normal_background_regions

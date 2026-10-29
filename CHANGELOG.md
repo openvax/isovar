@@ -17,6 +17,19 @@ releases that only fix bugs or add fixtures are omitted; see the
   discovery now declares stable read-group/query-name traversal instead of a
   temporary collation's physical order; complete support remains source scoped.
 
+## 1.67.0
+
+- Add one typed matched-normal API and `isovar normal-evidence` command with
+  explicit source selection, specimen/library assignments, pinned VCF indexes,
+  reference-confidence policies, per-allele evidence states and genotype-indexed
+  background alleles. Preserve no-calls, unavailable territory and caller conflicts.
+- Cohort tasks can consume the resulting receipt as `normal_evidence`; reports
+  retain its source inventory and scope, and changed normal evidence invalidates
+  resume identity. Reconcile the pinned Sid normal inventory into a new assessment.
+- Pin explicit background regions alongside focal flanks, so distant spliced
+  exons and ncORF blocks retain their supplied background. Scan each source once
+  for background records and correctly convert ORFdata's inclusive coordinates.
+
 ## 1.66.0
 
 - Keep assembly contributors, exact coding-window observations, single-read
