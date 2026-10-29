@@ -65,6 +65,20 @@ def test_published_panel_is_explicit_and_reconciles_all_dictionary_entries():
         assert (row["length"], row["md5"]) == (expected[row["name"]]["length"], expected[row["name"]]["md5"])
 
 
+def test_custom_fasta_alias_reaches_coding_reference_lookup(tmp_path, inputs):
+    dna, fasta, _ = inputs
+    # Random synthetic sequence: this tests names, not a viral coding model.
+    fasta.write_text(fasta.read_text().replace(">chrEBV\n", ">EBV\n"))
+    result = reconstruct(tmp_path, inputs, [read(inputs, "observed", "chrEBV", 100)], contigs=["chrEBV"])
+    row, = result["sequences"]
+    assert row["sequence"] == dna["chrEBV"][100:200]
+    assert row["compatible_fragments"] == 1
+    coding_reference, = result["coding_reference"]["contigs"]
+    assert coding_reference["contig"] == "chrEBV"
+    assert coding_reference["status"] == "unavailable"
+    assert result["reference"]["checked_sequence_contigs"] == ["chrEBV"]
+
+
 def test_real_ebv_reference_matches_gdc_and_recovers_exact_observed_rna(tmp_path):
     fixture = Path(__file__).parent / "data/viral/ebv-NC_007605.1.fa.gz"
     text = gzip.decompress(fixture.read_bytes()).decode()

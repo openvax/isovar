@@ -5,16 +5,21 @@ from pathlib import Path
 
 import orfdata
 from orfdata import SourceRNA, TranscriptORF, viral_orfs, viral_references
+from varcode import ContigResolver
 
+from .antigen_reference import contig_in_reference
 from .dna import reverse_complement_dna
 
 
 def viral_coding_references(genome, contigs):
     """Load exact-sequence ORFdata models and report unavailable coverage."""
     available = {ref.sequence_sha256: ref for ref in viral_references()}
+    fasta = genome.fasta
+    resolver = ContigResolver(fasta.keys(), reference_name=genome.reference_name)
     models, coverage = [], []
     for contig in contigs:
-        sequence = str(genome.fasta[contig]).upper()
+        fasta_contig = contig_in_reference(contig, resolver)
+        sequence = str(fasta[fasta_contig]).upper()
         fingerprint = sha256(sequence.encode("ascii")).hexdigest()
         source = available.get(fingerprint)
         row = dict(contig=contig, sequence_sha256=fingerprint,

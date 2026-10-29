@@ -330,6 +330,33 @@ def test_pyensembl_adapter_and_cli_use_same_genome_dna_and_exon_coordinates(tmp_
     assert (output / "proteins.fa").is_file()
 
 
+@pytest.mark.parametrize("bam_name,fasta_name", [
+    ("1", "chr1"), ("KI270728.1", "chr16_KI270728v1_random"),
+])
+def test_aliases_reach_transcript_sequence_extraction_and_cli(tmp_path, bam_name, fasta_name):
+    fasta, gtf, original = reference_fixture(tmp_path)
+    fasta.write_text(fasta.read_text().replace(">chr1\n", ">%s\n" % fasta_name))
+    gtf.write_text(gtf.read_text().replace("chr1\t", bam_name + "\t"))
+    bam_path = tmp_path / "renamed.bam"
+    with pysam.AlignmentFile(original) as source:
+        header = source.header.to_dict()
+        header["SQ"][0]["SN"] = bam_name
+        with pysam.AlignmentFile(bam_path, "wb", header=header) as destination:
+            for read in source:
+                destination.write(read)
+    output = tmp_path / "aliased-output"
+    run(["isoforms", "reconstruct", "--bam", str(bam_path), "--gene", "CTA", "--sample-id", "sample",
+         "--genome-fasta", str(fasta), "--gtf", str(gtf), "--annotation-version", "test",
+         "--alignment-reference", "custom", "--reference-cache", str(tmp_path / "alias-cache"),
+         "--output-dir", str(output)])
+    result = json.loads((output / "isoforms.json").read_text())
+    assert result["support"]["target_fragments"] == 1
+    assert {target["reference"]["contig"] for target in result["targets"]} == {bam_name}
+    assert {row["sequence"] for row in result["isoforms"]} == {
+        target.reference.sequence for target in target_models()[0]}
+    assert result["reference"]["checked_sequence_contigs"] == [bam_name]
+
+
 def test_gdc_factory_remains_a_normal_pyensembl_transcript_provider(tmp_path):
     fasta, gtf, _ = reference_fixture(tmp_path)
     cdna = tmp_path / "transcripts.fa"
