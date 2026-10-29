@@ -35,6 +35,8 @@ REF support here is at the allele. This replay does not recover all original
 splice-linked reads, reconstruct REF retention paths, resolve cryptic exons or
 establish translation. Those #583 requirements remain open. See the
 [shared assessment API](../../../docs/variant-read-assessment.md) for the scope
-of this step. Visual review of all four report pages also found the existing
-plot and absent-catalogue reporting defects tracked in #623 and #624; those
-must be fixed before treating this as a finished report.
+of this step. Visual review of all four report pages found plot and absent-catalogue
+reporting defects (#623 and #624), corrected in 1.73.1. The corrected rendering
+uses the same native result digest; it does not change the RNA assessment.
+The catalogue columns now say "Not assessed", and narrow depth ranges have
+readable integer labels with the funnel legend outside the data area.

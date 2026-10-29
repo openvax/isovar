@@ -1,0 +1,25 @@
+{
+  "renderer_version": "1.73.1",
+  "native_result_sha256": "607e383ab18de4e44a0695268660d74c65df8ffc74b976d377979e613bc58c2c",
+  "pdf_sha256": "067550b4f0c9e24a298ffc1b71cdd705609d6f1e28e8298bd24022c6b328cf38",
+  "pages": 4,
+  "reviewed_pages": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "checks": [
+    "Native result SHA unchanged from 1.73.0 replay",
+    "No ncORF catalogue: tables show Not assessed and narrative states unassessed",
+    "Narrow support range labels 109,155,221 are separated",
+    "Funnel legend outside data, endpoint count 1 unobscured",
+    "GOLGA5 deletion gap and RNA coverage retained",
+    "DDX17 unframed RNA state and 491 alternative contexts retained",
+    "Source accession, scope and input hashes visible"
+  ],
+  "limitations": [
+    "Focused two-nomination report, not a full cohort census",
+    "Original splice-aware DDX17 recovery is still pending"
+  ]
+}

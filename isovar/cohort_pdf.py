@@ -58,6 +58,24 @@ def _unframed_rna_description(event: dict) -> str:
     return text + reasons[assessment["frame_state"]]
 
 
+def _ncorf_count(counts: Counter, key: str) -> str:
+    """Display observed outcomes without turning unassessed scope into zero."""
+    assessed, value = counts["nc_catalogue_assessed"], counts[key]
+    if not assessed:
+        return f"{value:,} (scope unknown)" if value else "Not assessed"
+    return f"{value:,}" if assessed == counts["nominated"] else f"{value:,} (partial)"
+
+
+def _ncorf_scope_description(counts: Counter) -> str:
+    """Describe catalogue overlap and binding scope independently of RNA depth."""
+    assessed = counts["nc_catalogue_assessed"]
+    if not assessed:
+        return "ncORF catalogue assessment was not available; overlap and changed-ncORF screening remain unassessed. "
+    return (f"ncORF catalogue overlap evaluated for {assessed:,}/{counts['nominated']:,} nominations; "
+            f"{counts['nc_overlap']:,} overlap coding blocks. "
+            f"{counts['nc_unresolved_models']:,} overlapping model bindings remain unresolved. ")
+
+
 def _collect(result, highlights=()):
     counts, categories, depths = Counter(), Counter(), defaultdict(list)
     examples = defaultdict(list)
@@ -99,9 +117,13 @@ def _collect(result, highlights=()):
                 t["coding_support"]["single_read_span_support"]["fragments"] >= 20
                 for protein in changed for t in protein["translations"]
                 if t["reference_comparison"]["focal_amino_acid_change"])
-            nc = row["nc_orfs"].get("result")
-            counts["nc_overlap"] += bool(row["nc_orfs"].get("overlapping_models"))
-            counts["nc_unresolved_models"] += len(row["nc_orfs"].get("unresolved_models", []))
+            nc_scope = row.get("nc_orfs", {})
+            nc = nc_scope.get("result")
+            catalog_assessed = (nc_scope.get("status") in ("assessed", "no_alt_reads")
+                                and nc_scope.get("overlapping_models") is not None)
+            counts["nc_catalogue_assessed"] += catalog_assessed
+            counts["nc_overlap"] += catalog_assessed and bool(nc_scope["overlapping_models"])
+            counts["nc_unresolved_models"] += len(nc_scope.get("unresolved_models", []))
             changed_nc = [p for p in nc["protein_candidates"] if p["focal_amino_acid_change"]] if nc else []
             counts["changed_nc"] += bool(changed_nc) and not row["nomination"].get("origin_conflict", False)
             counts["changed_nc_span20"] += eligible and any(
@@ -162,7 +184,8 @@ def _landscape(sample, analyses, directory, index=1):
     ax.set_xscale("symlog", linthresh=1)
     ax.set_xlabel("Variant counts within each library (log scale above 1)", fontsize=8)
     ax.set_title(sample + " | RNA evidence funnel", loc="left", fontsize=12, color=INK)
-    ax.legend(frameon=False, fontsize=8, loc="lower right")
+    ax.legend(frameon=False, fontsize=7, loc="upper left", bbox_to_anchor=(0, -.28),
+              borderaxespad=0, ncol=3)
     ax.spines[["top", "right"]].set_visible(False)
     prefix = directory / ("landscape_" + str(index))
     for extension in ("svg", "pdf", "png"):
@@ -171,9 +194,18 @@ def _landscape(sample, analyses, directory, index=1):
 
 
 
+def _set_count_ticks(axis, low: int, high: int) -> None:
+    """Use at most three integer labels; minor log labels must not collide."""
+    from matplotlib.ticker import NullLocator
+
+    values = sorted({low, math.isqrt(low * high), high})
+    labels = [f"{value:,}" if value < 1_000_000 else f"{value:.2g}" for value in values]
+    axis.set_ticks(values, labels=labels)
+    axis.set_minor_locator(NullLocator())
+
+
 def _category_landscape(result, categories, depths, directory):
     from matplotlib.figure import Figure
-    from matplotlib.ticker import NullLocator
     import numpy as np
 
     fig = Figure(figsize=(7.2, 3.6), layout="constrained")
@@ -203,15 +235,12 @@ def _category_landscape(result, categories, depths, directory):
                      borderaxespad=0, ncol=2)
         maximum = max(int(max(line.get_ydata())) for line in right.lines)
         right.set_ylim(.8, max(1.25, maximum * 1.15))
-        if maximum <= 10:
-            right.set_yticks(range(1, maximum + 1), [str(n) for n in range(1, maximum + 1)])
-            right.yaxis.set_minor_locator(NullLocator())
+        _set_count_ticks(right.yaxis, 1, maximum)
         observed_depths = {depth for line in right.lines for depth in line.get_xdata()}
+        _set_count_ticks(right.xaxis, int(min(observed_depths)), int(max(observed_depths)))
         if len(observed_depths) == 1:
             depth = observed_depths.pop()
             right.set_xlim(depth / 1.5, depth * 1.5)
-            right.set_xticks([depth], [f"{depth:,}"])
-            right.xaxis.set_minor_locator(NullLocator())
     else:
         right.text(.5, .5, "No positive RNA ALT support", ha="center", va="center",
                    transform=right.transAxes, color=UNKNOWN, fontsize=9)
@@ -714,13 +743,13 @@ def write_cohort_reports(manifest, summary, output):
                             "local sequence; it is not automatically a complete mutant protein."),
                           table(("Source / pass", "Calls", "ALT", "ALT >=20", "Changed protein", "Changed ncORF", "Errors"),
                                 [(r["source_id"] + " / " + r["pass_id"], c["nominated"], c["alt"], c["alt20"],
-                                  c["changed_protein"], c["changed_nc"], c["errors"])
+                                  c["changed_protein"], _ncorf_count(c, "changed_nc"), c["errors"])
                                  for r, c, _, _, _ in analyses], (150, 55, 50, 60, 55, 85, 55))])
             story.extend([p("<b>At least 20 supporting fragments.</b> ALT support counts the focal allele. "
                             "Exact spans additionally support the displayed coding path; single-read spans exclude merged mates."),
                           table(("Source / pass", "ALT", "Changed protein spans", "Single-read spans", "Changed ncORF spans"),
                                 [(r["source_id"] + " / " + r["pass_id"], c["alt20"],
-                                  c["changed_protein_span20"], c["changed_protein_single20"], c["changed_nc_span20"])
+                                  c["changed_protein_span20"], c["changed_protein_single20"], _ncorf_count(c, "changed_nc_span20"))
                                  for r, c, _, _, _ in analyses], (170, 55, 95, 95, 95))])
             story.extend([p("<b>Reference comparisons of retained protein contexts.</b> A context with "
                             "conflicting or unavailable reference comparisons remains unresolved. "
@@ -734,9 +763,8 @@ def write_cohort_reports(manifest, summary, output):
                 story.append(PageBreak())
             story.extend([Paragraph(escape(result["source_id"] + " / " + result["pass_id"]),
                                                 styles["Heading2"]),
-                          p(f"{counts['processed']:,}/{counts['nominated']:,} nominations evaluated; {counts['alt']:,} RNA ALT-supported; "
-                            f"{counts['nc_overlap']:,} overlap ncORF coding blocks. "
-                            f"{counts['nc_unresolved_models']:,} overlapping model bindings remain unresolved. "
+                          p(f"{counts['processed']:,}/{counts['nominated']:,} nominations evaluated; {counts['alt']:,} RNA ALT-supported. " +
+                            _ncorf_scope_description(counts) +
                             f"{counts['unresolved_chromosomes']:,} nominations have unresolved chromosomes: "
                             "their RNA support is unmeasured and excluded from depth distributions.")])
             if counts['processed'] > 1:
