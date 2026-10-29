@@ -133,3 +133,26 @@ the configured budgets. Read the separate ALT/REF discovery receipts. Missing
 alternative alignments, mates and MAPQ uncertainty remain in support witnesses.
 A regional BAM cannot establish whole-library absence. RNA sequence and coverage
 alone cannot distinguish immature RNA from a translated mature isoform.
+
+## Replaying the retained COLO829 DDX17 evidence
+
+The repository's original DDX17 audit contains recovered original pairs aligned
+with STAR to a 50-kb genomic slice. The preparation example validates those
+source checksums, verifies the local reference against the supplied GRCh38 FASTA,
+projects the explicitly declared coordinates, preserves the SAM payload, and
+writes the standard input and cohort manifest. It does no assembly or translation.
+
+```bash
+python examples/prepare_ddx17_rna_paths.py \
+  --original-audit reports/hcc1395_colo829/ddx17_audit \
+  --genome-fasta /path/to/GRCh38_full_analysis_set_plus_decoy_hla.fa \
+  --output-dir ddx17-inputs
+isovar cohort --manifest ddx17-inputs/manifest.json --output-dir ddx17-report
+```
+
+Use a new output directory. Ensembl 87 supplies annotated CDS boundaries; its
+local cache is used or the standard annotation download is required. The
+manifest preserves the original recovery interval and local-alignment scope.
+It cannot establish whole-genome uniqueness or whole-library splice absence.
+Read `allele_counts` separately from each state's `seed_segments`: ambiguous
+flanking bases can prevent assembly while leaving the locus allele callable.
