@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from importlib.metadata import version
 import json
 from pathlib import Path
+from typing import Any
 import warnings
 
 import pysam
@@ -20,15 +21,26 @@ CTA_GENE_SET = "oncoref-cta"
 
 @dataclass(frozen=True)
 class AntigenReference:
-    """Prepared transcript competitors and their selection/reference provenance."""
+    """Prepared transcript competitors and their selection/reference provenance.
+
+    Attributes
+    ----------
+    targets : tuple of IsoformTarget
+        Detached transcript models usable after the annotation is closed.
+    identity : dict
+        Alignment/reference validation and local FASTA/GTF file identities.
+    target_selection : dict
+        Selected genes, provider decisions, sources and annotation mapping.
+        Attach this ledger to the reconstruction result to retain provenance.
+    """
 
     targets: tuple[IsoformTarget, ...]
-    identity: dict
-    target_selection: dict
+    identity: dict[str, Any]
+    target_selection: dict[str, Any]
 
 
 def antigen_gene_selection(*, genes: Iterable[str] | None = None,
-                           gene_set: str | None = None) -> dict:
+                           gene_set: str | None = None) -> dict[str, Any]:
     """Resolve exactly one explicit gene list or a versioned CTA catalogue.
 
     Parameters
@@ -73,7 +85,8 @@ def antigen_gene_selection(*, genes: Iterable[str] | None = None,
                 sources=json.loads(cta_selection.sources(species="human").to_json(orient="records")))
 
 
-def _annotation_genes(genome: Genome, selection: dict) -> tuple[list[str], list[dict]]:
+def _annotation_genes(
+        genome: Genome, selection: dict[str, Any]) -> tuple[list[str], list[dict[str, Any]]]:
     """Resolve IDs exactly; only explicitly supplied symbols permit name lookup."""
     resolved, decisions = set(), []
     for query in selection["genes"]:

@@ -15,7 +15,7 @@ from .rna_args import add_rna_path_args, rna_path_context
 def make_parser(prog="isovar isoforms"):
     parser = argparse.ArgumentParser(prog=prog, description=__doc__)
     actions = parser.add_subparsers(dest="action", required=True)
-    reconstruct = actions.add_parser("reconstruct", help="Reconstruct explicit target genes from RNA alignments")
+    reconstruct = actions.add_parser("reconstruct", help="Reconstruct selected genes or a named catalogue from RNA alignments")
     add_rna_path_args(reconstruct)
     selection = reconstruct.add_mutually_exclusive_group(required=True)
     selection.add_argument("--gene", action="append", help="Gene ID/name; repeat for each target")
