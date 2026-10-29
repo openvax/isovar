@@ -76,3 +76,28 @@ placements, excluded/no-quality records, raw ends, reverse strands, duplicate
 physical records and varying thresholds. Only then benchmark actual inventories
 and close #593. A compiled exact seed-routing implementation can replace Python
 word iteration if profiling justifies it; preserve literal sequence behavior.
+
+## Inventory runner phases and recovery
+
+Plan and validate every selected job before computation; handle verified completed
+views and explicit unavailable outcomes first. Process source/reference groups
+serially. Reconstruct into checksum-pinned stage artifacts, then route the union
+of retained sequences once and assess each view through the common collector.
+Keep staged reconstructions on interruption and verify them on resume; remove
+only this job's stage files after its final snapshot and receipt are written.
+Preserve original inventory order in the final report. Do not retain every full
+reconstruction or raw FASTQ sequence in Python memory across the inventory.
+
+Original-order selected record iteration must include all physical records;
+sequence/placement deduplication remains in the assessment layer. Raw-only
+sequence matches also select their BAM template's distant alternative placements.
+All reference-exon alignments, including ones unrelated to paths, remain available
+so exon-label hashes, denominators and complete assessment output stay identical.
+
+## Assessment reuse review
+
+Pin each collected view's reference models and exon threshold, and each routed
+view's path sequences and match threshold. Validate those inputs when evidence
+is reused. This prevents a direct API caller from silently assessing a new path
+or shorter match using an incomplete routed subset. Keep legacy caller-created
+evidence dictionaries compatible, and preserve native assessment output.

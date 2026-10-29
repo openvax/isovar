@@ -6,10 +6,14 @@ to another RNA branch. Counts are source/read-group scoped, not molecule counts.
 """
 
 from collections import defaultdict
+from collections.abc import Iterable, Sequence
 from copy import deepcopy
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
+from typing import Any, NotRequired, TypedDict
+
+import pysam
 
 from .fusion import FusionReference
 from .read_identity import read_group
@@ -95,21 +99,81 @@ def aligned_exon_clip_contains(record, segment):
     return False
 
 
-def collect_path_evidence(bam, references, raw_reads=(), min_exon_overlap=15):
+RawRead = tuple[str, str, int, str]
+Fragment = tuple[str, str | None]
+SequenceEvidence = tuple[Fragment, int, str, int | None, int | None]
+
+
+@dataclass(frozen=True)
+class PathEvidenceScope:
+    """Inputs that constrain reusable evidence, independent of its counts.
+
+    Exhaustive evidence has no path restriction. Routed evidence is valid only
+    for the declared sequences and matching threshold; otherwise a new path or
+    shorter match could silently miss original reads excluded by routing.
+    """
+
+    references: tuple[FusionReference, ...]
+    min_exon_overlap: int
+    path_sequences: tuple[str, ...] | None = None
+    min_path_match: int | None = None
+
+    def validate(self, references: tuple[FusionReference, ...], min_exon_overlap: int,
+                 sequences: tuple[str, ...], min_path_match: int) -> None:
+        """Reject reuse that would give an assessment incomplete evidence."""
+        if self.references != references or self.min_exon_overlap != min_exon_overlap:
+            raise ValueError('Path evidence reference models or exon threshold differ from assessment')
+        if self.path_sequences is not None and (
+                self.path_sequences != sequences or self.min_path_match != min_path_match):
+            raise ValueError('Routed path evidence sequences or match threshold differ from assessment')
+
+
+class PathEvidence(TypedDict):
+    """Original sequences, placements and source-wide accounting for one view."""
+
+    reads: list[SequenceEvidence]
+    exon_links: dict[Fragment, list[dict[str, Any]]]
+    placements: dict[tuple[Fragment, int], list[dict[str, Any]]]
+    records_scanned: int
+    fragments_scanned: int
+    exon_fragments: int
+    coding_exon_fragments: int
+    coding_reference_starts: list[dict[str, Any]]
+    # Legacy caller-created dictionaries may omit scope. Library collectors
+    # always attach it so narrower acquisition is checked before reuse.
+    scope: NotRequired[PathEvidenceScope]
+
+
+def collect_path_evidence(bam: pysam.AlignmentFile, references: Sequence[FusionReference],
+                          raw_reads: Iterable[RawRead] = (), min_exon_overlap: int = 15) -> PathEvidence:
     """Read a single library, retaining alternative alignments and raw ends.
 
     ``raw_reads`` supplies (read_group, query_name, mate, original_sequence).
     Mate is 0, 1 or 2. Raw sequences add sequence evidence, not placements.
     The caller must not combine independently processed copies as libraries.
     """
+    bam.reset()
+    return evidence_from_records(bam.fetch(until_eof=True), references, raw_reads, min_exon_overlap)
+
+
+def evidence_from_records(alignments: Iterable[pysam.AlignedSegment], references: Sequence[FusionReference],
+                          raw_reads: Iterable[RawRead] = (), min_exon_overlap: int = 15,
+                          *, source_records: int | None = None, source_fragments: int | None = None) -> PathEvidence:
+    """Interpret originals through the same collector for exhaustive and routed use.
+
+    Routed acquisition must supply every potentially matching sequence, all its
+    template placements and every alignment to the view's reference exons. Its
+    original-library denominators are supplied separately from selected records.
+    """
     exons, starts = exon_catalog(references)
-    by_contig = defaultdict(dict)
+    by_contig: dict[str, dict[tuple[str, int, int], dict[str, Any]]] = defaultdict(dict)
     for key, value in exons.items():
         by_contig[key[0]][key] = value
-    bam.reset()
-    reads, records, exon_links = set(), defaultdict(list), defaultdict(list)
+    reads: set[SequenceEvidence] = set()
+    records: dict[tuple[Fragment, int], list[dict[str, Any]]] = defaultdict(list)
+    exon_links: dict[Fragment, list[dict[str, Any]]] = defaultdict(list)
     fragments, coding, count = set(), set(), 0
-    for read in bam.fetch(until_eof=True):
+    for read in alignments:
         count += 1
         fragment = (read_group(read), read.query_name)
         mate = 1 if read.is_read1 else 2 if read.is_read2 else 0
@@ -118,7 +182,8 @@ def collect_path_evidence(bam, references, raw_reads=(), min_exon_overlap=15):
             reads.add((fragment, mate, read.query_sequence.upper(),
                        None if read.is_unmapped else read.query_alignment_start,
                        None if read.is_unmapped else read.query_alignment_end))
-        placements = exon_placements(read, by_contig.get(read.reference_name, {}), min_exon_overlap)
+        placements = exon_placements(read, by_contig.get(read.reference_name, {}) if read.reference_name is not None else {},
+                                     min_exon_overlap)
         # Keep every original alternative for cited exon links. Record counts
         # never enter the fragment support denominator.
         if placements:
@@ -152,9 +217,11 @@ def collect_path_evidence(bam, references, raw_reads=(), min_exon_overlap=15):
             raise ValueError("Raw RNA needs a sequence and a mate number in 0, 1, 2")
         reads.add(((group, name), mate, sequence.upper(), None, None))
     return dict(reads=sorted(reads, key=repr), exon_links=exon_links, placements=records,
-                records_scanned=count, fragments_scanned=len(fragments),
+                records_scanned=count if source_records is None else source_records,
+                fragments_scanned=len(fragments) if source_fragments is None else source_fragments,
                 exon_fragments=len(exon_links), coding_exon_fragments=len(coding),
-                coding_reference_starts=starts)
+                coding_reference_starts=starts,
+                scope=PathEvidenceScope(tuple(references), min_exon_overlap))
 
 
 def _matched_reads(paths, reads, seed_size):
@@ -223,24 +290,34 @@ def _alternative_placements(window, expected_positions, fragments, placements):
                         offset = record["query_sequence"].find(segment, offset + 1)
 
 
-def assess_sv_rna_paths(result, bam, references, *, raw_reads=(), min_path_match=20,
-                        min_exon_overlap=15, junction_flank=12, min_overlap=30,
-                        max_chain_reads=12, evidence=None):
+def assess_sv_rna_paths(result: dict[str, Any], bam: pysam.AlignmentFile | None,
+                        references: Iterable[FusionReference | dict[str, Any]], *,
+                        raw_reads: Iterable[RawRead] = (), min_path_match: int = 20,
+                        min_exon_overlap: int = 15, junction_flank: int = 12, min_overlap: int = 30,
+                        max_chain_reads: int = 12, evidence: PathEvidence | None = None) -> dict[str, Any]:
     """Assess all retained paths; never select a winner or infer a new frame.
 
     Returns a JSON-serializable source-specific assessment. Existing annotated
     translations retain their frame evidence. Exploratory ATGs stay separate.
     Exact matching can undercount noisy reads; a missing match is not absence.
+    Reused library-collected evidence must have the same reference models and
+    exon threshold; routed evidence also pins the path sequences and match
+    threshold. Caller-created legacy evidence dictionaries remain accepted.
     """
     for value in (min_path_match, min_exon_overlap, junction_flank, min_overlap, max_chain_reads):
         if type(value) is not int or value < 1:
             raise ValueError("Assessment thresholds must be positive integers")
-    references = tuple(FusionReference(**r) if isinstance(r, dict) else r for r in references)
-    if any(r.reference_name != result["reference_name"] for r in references):
+    reference_models = tuple(FusionReference(**r) if isinstance(r, dict) else r for r in references)
+    if any(r.reference_name != result["reference_name"] for r in reference_models):
         raise ValueError("Assessment reference assembly mismatch")
-    evidence = evidence if evidence is not None else collect_path_evidence(
-        bam, references, raw_reads, min_exon_overlap)
+    if evidence is None:
+        if bam is None:
+            raise ValueError('Assessment requires an original BAM or collected path evidence')
+        evidence = collect_path_evidence(bam, reference_models, raw_reads, min_exon_overlap)
     paths = result["paths"]
+    if 'scope' in evidence:
+        evidence['scope'].validate(reference_models, min_exon_overlap,
+                                   tuple(path['sequence'] for path in paths), min_path_match)
     if len({p["path_id"] for p in paths}) != len(paths):
         raise ValueError("Duplicate RNA path identity")
     seed_size = min(15, min_path_match)
@@ -249,8 +326,10 @@ def assess_sv_rna_paths(result, bam, references, *, raw_reads=(), min_path_match
                      for records in evidence["exon_links"].values() for record in records}
     record_labels = {digest: "exon:%d" % index for index, digest in enumerate(sorted(set(alignment_ids.values())))}
     alignment_ids = {key: record_labels[digest] for key, digest in alignment_ids.items()}
-    models = [_Model(reference) for reference in references]
-    rows, alternative_placements, exon_alignments = [], {}, {}
+    models = [_Model(reference) for reference in reference_models]
+    rows: list[dict[str, Any]] = []
+    alternative_placements: dict[str, dict[str, Any]] = {}
+    exon_alignments: dict[str, dict[str, Any]] = {}
     for path in paths:
         sequence = path["sequence"]
         matches = exact_path_matches(sequence, routed[path["path_id"]], min_path_match, seed_size)
@@ -279,7 +358,7 @@ def assess_sv_rna_paths(result, bam, references, *, raw_reads=(), min_path_match
                               exact_sequence_support=support,
                               exon_linked_fragments=[fragment for fragment in support["complete_fragments"]
                                                      if fragment in evidence["exon_links"]]))
-        links = {}
+        links: dict[tuple[Fragment, int, str], dict[str, Any]] = {}
         for match in matches:
             for record in evidence["exon_links"].get(match.spot, []):
                 same_end = match.mate == record["mate"]
@@ -323,7 +402,7 @@ def assess_sv_rna_paths(result, bam, references, *, raw_reads=(), min_path_match
                 fragments_scanned=evidence["fragments_scanned"],
                 exon_fragments=evidence["exon_fragments"], coding_exon_fragments=evidence["coding_exon_fragments"],
                 coding_reference_starts=evidence["coding_reference_starts"],
-                reference_models=[asdict(r) for r in references],
+                reference_models=[asdict(r) for r in reference_models],
                 exon_alignments=exon_alignments,
                 alternative_placements=sorted(alternative_placements.values(), key=lambda r: r["placement_id"]),
                 competing_annotated_junctions=deepcopy(result.get("competing_annotated_junctions", [])),
