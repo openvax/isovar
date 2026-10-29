@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from collections import Counter
+from contextlib import closing
 from importlib.metadata import version
 from pathlib import Path
 import sqlite3
@@ -355,7 +356,9 @@ def run_small_variant_source(task, source, files, output, *, resume=False):
     checkpoint = output / "checkpoint.sqlite"
     if checkpoint.exists() and not resume:
         raise ValueError("Checkpoint exists; use --resume or a new output directory")
-    with sqlite3.connect(checkpoint) as db:
+    # A sqlite connection context commits/rolls back; it does not close the
+    # handle. Close before publishing the receipt, including on failed resume.
+    with closing(sqlite3.connect(checkpoint)) as db, db:
         db.execute("PRAGMA journal_mode=WAL")
         db.execute("CREATE TABLE IF NOT EXISTS metadata (identity TEXT NOT NULL)")
         db.execute("CREATE TABLE IF NOT EXISTS calls (ordinal INTEGER PRIMARY KEY, result TEXT NOT NULL)")
