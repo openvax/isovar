@@ -25,7 +25,9 @@ from functools import cached_property
 from hashlib import sha256
 from itertools import chain, combinations, islice, repeat
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple, Sequence
+
+from .read_end_inference import ReadSequenceView, _uncovered_intervals
 
 import numpy as np
 
@@ -463,13 +465,24 @@ def _cache_geometry(cache, key, value):
         cache[key] = value
 
 
-def _segment_path(records, collector, intern, cache=None):
+class _SegmentPath(NamedTuple):
+    """One contiguous original-query interval with observed geometry and QUAL."""
+
+    sequence: str
+    positions: _Positions
+    breaks: tuple[tuple[int, int, str], ...]
+    query_interval: tuple[int, int]
+    qualities: tuple[int | None, ...]
+
+
+def _segment_path(records, collector, intern, cache=None, views=None):
     """Join one segment's linked records by original query offset.
 
     Returns (sequence, positions, breaks, query interval, qualities), where each
     base's quality is the lowest any record reports, or a rejection reason.
     """
-    views = [collector.read_sequence_view(read) for read in records]
+    if views is None:
+        views = [collector.read_sequence_view(read) for read in records]
     key = (collector.use_soft_clipped_bases, tuple(
         (read.reference_name, read.reference_start, read.is_reverse, read.cigarstring,
          view.sequence if len(records) > 1 else None,
@@ -494,7 +507,7 @@ def _segment_path(records, collector, intern, cache=None):
             qualities = (None,) * (hi - lo)
         else:
             qualities = (qualities[::-1] if read.is_reverse else qualities)[lo - start:hi - start]
-        return sequence, *geometry[1:], qualities
+        return _SegmentPath(sequence, *geometry[1:], tuple(qualities))
     if cache is not None and key in cache:
         geometry = cache[key]
         lo, hi = geometry[3]
@@ -510,7 +523,7 @@ def _segment_path(records, collector, intern, cache=None):
                 value = values[q - start]
                 previous = qualities[q - lo]
                 qualities[q - lo] = value if previous is None else min(previous, value)
-        return (*geometry, tuple(qualities))
+        return _SegmentPath(*geometry, tuple(qualities))
     bases, placements, sources, kinds = {}, defaultdict(set), defaultdict(set), {}
     quality_votes = defaultdict(list)
     for index, (read, view) in enumerate(zip(records, views)):
@@ -545,7 +558,68 @@ def _segment_path(records, collector, intern, cache=None):
         for i, j in _breaks(positions))
     qualities = tuple(min(quality_votes[q]) if quality_votes[q] else None for q in range(lo, hi))
     _cache_geometry(cache, key, (sequence, positions, breaks, (lo, hi)))
-    return sequence, positions, breaks, (lo, hi), qualities
+    return _SegmentPath(sequence, positions, breaks, (lo, hi), qualities)
+
+
+def _eligible_segment_parts(built: _SegmentPath, views: Sequence[ReadSequenceView]) -> list[_SegmentPath]:
+    """Slice observed geometry at technical barriers without inventing molecules."""
+    sequence, positions, breaks, (lo, hi), qualities = built
+    barriers = []
+    for view in views:
+        for start, end in view.barrier_intervals:
+            start, end = max(start, view.start), min(end, view.end)
+            if start < end:
+                barriers.append(view.sequenced_interval(start - view.start, end - view.start))
+    if not barriers:
+        return [built]
+    parts = []
+    for start, end in _uncovered_intervals(lo, hi, barriers):
+        left, right = start - lo, end - lo
+        local_positions = _Positions(positions[left:right])
+        if not any(position is not None for position in local_positions):
+            continue
+        local_breaks = tuple((a - left, b - left, kind) for a, b, kind in breaks
+                             if left <= a < b < right)
+        parts.append(_SegmentPath(sequence[left:right], local_positions, local_breaks,
+                                  (start, end), qualities[left:right]))
+    return parts
+
+
+def _oriented_observations(part: _SegmentPath, identity, members, intern, cache, split: bool) -> list[RnaObservation]:
+    """Represent both strands of one eligible interval with unchanged identity."""
+    observations = []
+    sequence, positions, breaks, interval, qualities = part
+    mapqs = [r.mapping_quality for r in members]
+    record_ids = tuple(sorted(_record_id(r) for r in members))
+    key = sha256("".join(record_ids).encode()).hexdigest()[:24]
+    if split:
+        key += ":%d-%d" % interval
+    common = dict(identity=identity, records=record_ids, query_interval=interval,
+                  missing_qualities=any(r.query_qualities is None for r in members),
+                  secondary=any(r.is_secondary for r in members),
+                  minimum_mapping_quality=min((q for q in mapqs if q != 255), default=None),
+                  mapping_quality_255=255 in mapqs)
+    n = len(sequence)
+    observations.append(RnaObservation(key + "+", sequence=sequence, positions=positions,
+                                       breaks=breaks, reverse_complement=False, qualities=qualities, **common))
+    mirror_key = ('mirror', id(positions), breaks)
+    mirror = cache.get(mirror_key) if cache is not None else None
+    if mirror is None:
+        original_positions = positions
+        positions = _Positions((None if p is None else intern.setdefault(_flip(p), _flip(p))
+                                for p in reversed(positions)),
+                               [(n - b, n - a, contig, low, high, '-' if strand == '+' else '+')
+                                for a, b, contig, low, high, strand in reversed(_runs(original_positions))])
+        # Hold the original tuple so its id cannot be recycled while cached.
+        _cache_geometry(cache, mirror_key, (original_positions, positions))
+    else:
+        positions = mirror[1]
+    sequence = reverse_complement_dna(sequence)
+    observations.append(RnaObservation(
+        key + "-", sequence=sequence, positions=positions, reverse_complement=True,
+        qualities=qualities[::-1],
+        breaks=tuple(sorted((n - 1 - j, n - 1 - i, kind) for i, j, kind in breaks)), **common))
+    return observations
 
 
 def _build_segment(identity, records, collector, reasons, intern, cache=None):
@@ -557,39 +631,17 @@ def _build_segment(identity, records, collector, reasons, intern, cache=None):
     for members in _segment_groupings(sorted(records, key=_record_id), reasons):
         if len(records) > 1 and len(members) == 1 and members[0].has_tag("SA"):
             reasons["SA_declared_piece_not_linked"] += 1
-        built = _segment_path(members, collector, intern, cache)
+        views = [collector.read_sequence_view(read) for read in members]
+        built = _segment_path(members, collector, intern, cache, views)
         if isinstance(built, str):
             reasons[built] += 1
             continue
-        sequence, positions, breaks, interval, qualities = built
-        mapqs = [r.mapping_quality for r in members]
-        record_ids = tuple(sorted(_record_id(r) for r in members))
-        key = sha256("".join(record_ids).encode()).hexdigest()[:24]
-        common = dict(identity=identity, records=record_ids, query_interval=interval,
-                      missing_qualities=any(r.query_qualities is None for r in members),
-                      secondary=any(r.is_secondary for r in members),
-                      minimum_mapping_quality=min((q for q in mapqs if q != 255), default=None),
-                      mapping_quality_255=255 in mapqs)
-        n = len(sequence)
-        observations.append(RnaObservation(key + "+", sequence=sequence, positions=positions,
-                                           breaks=breaks, reverse_complement=False, qualities=qualities, **common))
-        mirror_key = ('mirror', id(positions), breaks)
-        mirror = cache.get(mirror_key) if cache is not None else None
-        if mirror is None:
-            original_positions = positions
-            positions = _Positions((None if p is None else intern.setdefault(_flip(p), _flip(p))
-                                    for p in reversed(positions)),
-                                   [(n - b, n - a, contig, low, high, '-' if strand == '+' else '+')
-                                    for a, b, contig, low, high, strand in reversed(_runs(original_positions))])
-            # Hold the original tuple so its id cannot be recycled while cached.
-            _cache_geometry(cache, mirror_key, (original_positions, positions))
-        else:
-            positions = mirror[1]
-        sequence = reverse_complement_dna(sequence)
-        observations.append(RnaObservation(
-            key + "-", sequence=sequence, positions=positions, reverse_complement=True,
-            qualities=qualities[::-1],
-            breaks=tuple(sorted((n - 1 - j, n - 1 - i, kind) for i, j, kind in breaks)), **common))
+        parts = _eligible_segment_parts(built, views)
+        if len(parts) != 1 or (parts and parts[0][3] != built[3]):
+            reasons['internal_technical_join_not_spanning_evidence'] += 1
+        for part in parts:
+            observations.extend(_oriented_observations(part, identity, members, intern, cache,
+                                                         split=part.query_interval != built.query_interval))
     return observations
 
 
@@ -618,14 +670,17 @@ def _aligned_blocks(read):
             gap, r = (spliced or operation == 3, size + n), r + n
 
 
-def _record_gaps(read):
+def _record_gaps(read, collector=None):
     """(left, right, kind, inserted sequence) of CIGAR N/D joins, in + orientation."""
-    gaps, last = [], None
+    gaps, last, previous_query = [], None, None
+    view = (collector.read_sequence_view(read) if collector is not None
+            and (collector.trim_adapters or collector.trim_poly_a) else None)
     for q, r, n, gap, inserted in _aligned_blocks(read):
-        if last is not None and gap is not None:
+        eligible = view is None or (previous_query is not None and view.contains_usable_interval(previous_query, q + 1))
+        if last is not None and gap is not None and eligible:
             gaps.append(((read.reference_name, last, "+"), (read.reference_name, r, "+"), _gap_kind(*gap),
                          read.query_sequence[q - inserted:q].upper() if inserted else ''))
-        last = r + n - 1
+        last, previous_query = r + n - 1, q + n - 1
     return gaps
 
 
@@ -790,7 +845,7 @@ class _Observations:
             read, = records
             if read.has_tag("SA"):
                 self.reasons["SA_declared_piece_not_linked"] += 1  # Its declared pieces were not collected.
-            for left, right, kind, inserted in _record_gaps(read):
+            for left, right, kind, inserted in _record_gaps(read, self.collector):
                 self.gaps[left, right][identity] = inserted
                 self.gap_kinds[left, right].add(kind)
                 oriented = [(left, right), (_flip(right), _flip(left))]
@@ -1025,7 +1080,7 @@ def _vote_members(groups):
     return ((observation, offset) for _, offset, members in groups for observation in members.values())
 
 
-def _gather_extenders(sequence, positions, index, need, used, carried):
+def _gather_extenders(sequence, positions, index, need, used, carried, conflicts=None):
     """Compare each sequence/placement once, including already agreeing groups."""
     n = len(sequence)
     found = {(o.comparison_key, offset): (o, offset, members) for o, offset, members in carried
@@ -1043,6 +1098,8 @@ def _gather_extenders(sequence, positions, index, need, used, carried):
             continue
         permitted = _VotingMembers((k, members[k]) for k in keys
                                    if used.get(members[k].identity, k) == k)
+        if conflicts is not None:
+            conflicts.update(members[key].identity for key in keys - permitted.keys())
         if permitted:
             if previous is not None:
                 permitted = _VotingMembers(previous[2] | permitted)
@@ -1119,7 +1176,8 @@ def _votes(active, t):
     return votes
 
 
-def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned, notes, mirrored):
+def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned, notes, mirrored,
+            initial_used=None, conflicts=None):
     """Extend 3' through exact overlaps which share a placed base with the path.
 
     Continuations are added while every agreeing read agrees on the next base
@@ -1133,12 +1191,12 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
     why this end stopped: ``observations_end`` when no observation extends it,
     ``repeated_genomic_position`` or ``path_limit``.
     """
-    done, stack = [], [(sequence, positions, {}, ())]
+    done, stack = [], [(sequence, positions, dict(initial_used or {}), ())]
     while stack:
         sequence, positions, used, carried = stack.pop()
         n = len(sequence)
         need = min(min_overlap, n)
-        extenders = _gather_extenders(sequence, positions, index, need, used, carried)
+        extenders = _gather_extenders(sequence, positions, index, need, used, carried, conflicts)
         if not extenders:
             done.append((sequence, positions, frozenset(used.values()), "observations_end"))
             continue
@@ -1204,16 +1262,44 @@ def _extend(sequence, positions, index, min_overlap, thresholds, budget, pruned,
     return done
 
 
-def _extend_both(sequence, positions, index, min_overlap, thresholds, budget, pruned, notes):
-    """Extend both ends without replacing any bases of the starting path.
+def _mirrored_choices(voters, index):
+    """Keep each chosen original observation on its reciprocal orientation."""
+    return {index.observations[key].identity: key[:-1] + ('-' if key.endswith('+') else '+')
+            for key in voters}
 
-    Yields (sequence, positions, voter keys, end reasons by direction).
+
+def _extend_both(sequence, positions, index, min_overlap, thresholds, budget, pruned, notes):
+    """Extend both ends with one consistent observation per original segment.
+
+    If the opposite end needs an incompatible observation of an already used
+    segment, retain separate hypotheses by trying the opposite extension order.
+    Never combine these alternatives into one path or count them as molecules.
+    The same path budget bounds both orders together.
     """
-    for sequence, positions, voters, three_prime in _extend(
-            sequence, positions, index, min_overlap, thresholds, budget, pruned, notes, False):
-        for *mirror, more, five_prime in _extend(*_mirror(sequence, positions), index, min_overlap,
-                                                 thresholds, budget, pruned, notes, True):
-            yield (*_mirror(*mirror), voters | more, {"5prime": five_prime, "3prime": three_prime})
+    seen, conflicts = set(), set()
+    for reverse_first in (False, True):
+        if reverse_first:
+            if not conflicts:
+                break
+            notes.add('incompatible_segment_placements_retained_as_alternatives')
+        seed = _mirror(sequence, positions) if reverse_first else (sequence, positions)
+        for first_sequence, first_positions, voters, first_end in _extend(
+                *seed, index, min_overlap, thresholds, budget, pruned, notes, reverse_first):
+            choices = _mirrored_choices(voters, index)
+            for second_sequence, second_positions, more, second_end in _extend(
+                    *_mirror(first_sequence, first_positions), index, min_overlap, thresholds,
+                    budget, pruned, notes, not reverse_first, initial_used=choices, conflicts=conflicts):
+                path = ((second_sequence, second_positions) if reverse_first else
+                        _mirror(second_sequence, second_positions))
+                if path in seen:
+                    continue
+                if len(seen) >= budget:
+                    notes.add('path_limit')
+                    return
+                seen.add(path)
+                ends = ({'5prime': first_end, '3prime': second_end} if reverse_first else
+                        {'5prime': second_end, '3prime': first_end})
+                yield (*path, voters | (more - set(choices.values())), ends)
 
 
 def _distance(position, breakpoint, side):
@@ -2015,7 +2101,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                 continue
             if read.mapping_quality != 255 and read.mapping_quality < inclusion_min_mapping_quality:
                 continue
-            for left, right, kind, _ in _record_gaps(read):
+            for left, right, kind, _ in _record_gaps(read, collector):
                 if kind == "N":
                     inclusion_splices[left, right].add(identity[:2])
                     inclusion_splices[_flip(right), _flip(left)].add(identity[:2])

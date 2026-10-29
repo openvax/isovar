@@ -15,6 +15,7 @@ import numpy as np
 
 from .fusion import FusionReference
 from .read_identity import read_group
+from .read_collector import ReadCollector
 from .rna_library import RnaLibraryIndex
 from .sv_rna_assessment import PathEvidence, PathEvidenceScope, RawRead, evidence_from_records
 from .sv_rna_path_support import reverse_complement
@@ -89,6 +90,7 @@ class PathEvidenceIndex:
     library: RnaLibraryIndex
     connection: sqlite3.Connection
     queries: tuple[PathEvidenceQuery, ...]
+    read_collector: ReadCollector | None = None
 
     def evidence(self, identifier: str) -> PathEvidence:
         """Collect original-order records and all view-specific exon alignments."""
@@ -107,15 +109,17 @@ class PathEvidenceIndex:
         counts = self.library.statistics
         evidence = evidence_from_records(self.library.records_for_templates(fragments, regions), query.references,
             raw, query.min_exon_overlap, source_records=counts['records_scanned'],
-            source_fragments=counts['fragments_scanned'])
+            source_fragments=counts['fragments_scanned'], read_collector=self.read_collector)
         evidence['scope'] = PathEvidenceScope(query.references, query.min_exon_overlap,
-                                               query.sequences, query.min_path_match)
+                                               query.sequences, query.min_path_match,
+                                               evidence['scope'].sequence_policy)
         return evidence
 
 
 @contextmanager
 def route_path_evidence(library: RnaLibraryIndex, queries: Sequence[PathEvidenceQuery],
-                         database: str | Path, *, raw_reads: Iterable[RawRead] = ()) -> Iterator[PathEvidenceIndex]:
+                         database: str | Path, *, raw_reads: Iterable[RawRead] = (),
+                         read_collector: ReadCollector | None = None) -> Iterator[PathEvidenceIndex]:
     """Scan original BAM/FASTQ sequences once and retain matched identities on disk.
 
     Parameters
@@ -168,7 +172,7 @@ def route_path_evidence(library: RnaLibraryIndex, queries: Sequence[PathEvidence
                 if count % 100000 == 0:
                     connection.commit()
         for group, name, mate, sequence in raw_reads:
-            if mate not in (0, 1, 2) or not sequence:
+            if type(mate) is not int or mate not in (0, 1, 2) or not isinstance(sequence, str) or not sequence:
                 raise ValueError('Raw RNA needs a sequence and a mate number in 0, 1, 2')
             identifiers = router.matches(sequence)
             connection.executemany('INSERT OR IGNORE INTO raw_matches VALUES (?, ?, ?, ?, ?)',
@@ -177,5 +181,5 @@ def route_path_evidence(library: RnaLibraryIndex, queries: Sequence[PathEvidence
                 ((identifier, group, name) for identifier in identifiers))
         connection.commit()
         library.validate()
-        yield PathEvidenceIndex(library, connection, queries)
+        yield PathEvidenceIndex(library, connection, queries, read_collector)
         library.validate()

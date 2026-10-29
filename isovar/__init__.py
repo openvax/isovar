@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.71.0"
+__version__ = "1.72.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -44,6 +44,7 @@ from .read_end_profiles import (
     ReadLibraryProvenance, ReadProcessingStep, read_end_profile_from_fasta,
 )
 from .read_evidence import ReadEvidence
+from .read_sequence_origin import GenomicQueryEvidence, genomic_query_evidence_from_alignment
 from .phasing_calibration import PhasingCalibration, PhasingControl, calibrate_phasing_error_rates
 from .read_phasing import IsovarReadPhasing
 from .rna_evidence import union_rna_support
@@ -138,6 +139,8 @@ __all__ = [
     "ReadEndProfile",
     "ReadEndAnnotation",
     "ReadSequenceView",
+    "GenomicQueryEvidence",
+    "genomic_query_evidence_from_alignment",
     "infer_read_ends",
     "read_sequence_view_from_alignment",
     "ReadEvidence",

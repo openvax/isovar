@@ -109,7 +109,7 @@ def add_rna_args(parser):
         help="JSON adapter/kit profile, optionally keyed by read_groups; also enables end annotation.")
     rna_group.add_argument(
         "--trim-adapters", action="store_true", default=TRIM_ADAPTERS,
-        help="Trim inferred adapters from terminal soft clips (requires --read-end-profile; raw BAM unchanged).")
+        help="Trim eligible terminal adapters and withhold spanning inference across configured internal motifs (requires --read-end-profile; raw BAM unchanged).")
     rna_group.add_argument(
         "--trim-poly-a", action="store_true", default=TRIM_POLY_A,
         help="Trim candidate poly-A/T tails from terminal soft clips; enables inference, preserves aligned bases.")

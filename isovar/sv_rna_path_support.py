@@ -21,7 +21,7 @@ def reverse_complement(sequence):
 class PathMatch:
     """One maximal exact read-to-path interval, in path coordinates."""
 
-    spot: str
+    spot: str | tuple[str, str | None]
     mate: int
     start: int
     end: int

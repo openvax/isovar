@@ -47,7 +47,7 @@ def benchmark(iterations: int) -> dict:
     assert originals == [read.to_string() for read in records]
     return dict(schema='isovar.read_end_cache_benchmark.v1', producer_version=__version__,
         implementation_sha256={name: file_sha256(Path(__file__).resolve().parents[1] / 'isovar' / name)
-                               for name in ('read_end_inference.py', 'read_end_profiles.py', 'read_collector.py')},
+                               for name in ('read_end_inference.py', 'read_end_profiles.py', 'read_sequence_origin.py', 'read_collector.py')},
         dependencies={name: version(name) for name in ('pysam', 'edlib')}, driver_sha256=file_sha256(__file__),
         scope='Four unchanged selected original Sid records; repeated annotation only, not whole-library throughput',
         inputs=inputs, profile=asdict(profile), profile_sha256=profile.fingerprint,

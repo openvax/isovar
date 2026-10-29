@@ -15,8 +15,10 @@ from collections.abc import Iterable, Iterator, Mapping
 from itertools import groupby
 from pathlib import Path
 from typing import Any
+from hashlib import sha256
+import json
 
-from pysam import AlignmentFile
+from pysam import AlignedSegment, AlignmentFile
 from varcode import ContigResolution, Variant
 
 from .default_parameters import (
@@ -37,7 +39,9 @@ from .variant_helpers import require_literal_variant, trim_variant
 from .read_evidence import ReadEvidence
 from .read_identity import read_group, source_alignments_from_pysam, source_read_ids
 from .chimeric_alignment import source_alignment_paths_from_pysam
-from .read_end_inference import ReadEndProfile, ReadEndInferenceCache, read_sequence_view_from_alignment
+from .read_end_inference import (
+    ReadEndProfile, ReadEndInferenceCache, ReadSequenceView, infer_read_ends, read_sequence_view_from_alignment,
+)
 from .read_end_profiles import resolve_read_end_profile
 from .contig_resolution import (
     AlignmentContigCache, require_resolved_contig, variant_reference_name, variant_source_contig,
@@ -173,8 +177,9 @@ class ReadCollector(object):
             remain unknown; no adapter profile is guessed from the instrument.
 
         trim_adapters, trim_poly_a : bool
-            Opt-in removal from terminal soft clips only. Original alignments,
-            aligned bases and insertion evidence are never rewritten.
+            Opt-in terminal cuts and, for explicit internal motifs, barriers to
+            spanning inference. Original alignments and insertion hypotheses are
+            retained; unresolved internal candidates are not called technical.
 
         read_filter : callable or None
             Optional predicate on each eligible original pysam record. Return
@@ -253,13 +258,37 @@ class ReadCollector(object):
             return "read_filter"
         return None
 
-    def read_sequence_view(self, read):
-        """Infer original-query end structure independently of a variant locus."""
+    @property
+    def sequence_views_enabled(self) -> bool:
+        """Whether the caller requested any read-end annotation or exclusion."""
+        return bool(self.infer_read_ends or self.read_end_profile is not None
+                    or self.trim_adapters or self.trim_poly_a)
+
+    @property
+    def sequence_policy_fingerprint(self) -> str:
+        """Identify derived sequence eligibility, independently of read filtering."""
         profile = self.read_end_profile
-        if isinstance(profile, Mapping):
-            profile = profile.get(read_group(read))
+        profiles = ({group: value.fingerprint for group, value in profile.items()}
+                    if isinstance(profile, Mapping) else None if profile is None else profile.fingerprint)
+        return sha256(json.dumps(dict(profiles=profiles, annotation=self.sequence_views_enabled, trim_adapters=self.trim_adapters,
+                                      trim_poly_a=self.trim_poly_a), sort_keys=True).encode()).hexdigest()
+
+    def profile_for_read_group(self, group: str) -> ReadEndProfile | None:
+        """Resolve only the supplied RG, with an unknown fallback for absent groups."""
+        profile = self.read_end_profile
+        return profile.get(group) if isinstance(profile, Mapping) else profile
+
+    def raw_sequence_view(self, sequence: str, *, read_group: str = '', mate: int = 0) -> ReadSequenceView:
+        """Apply the same explicit profile to an original, unaligned FASTQ end."""
+        return infer_read_ends(sequence, profile=self.profile_for_read_group(read_group), mate=mate,
+                               trim_adapters=self.trim_adapters, trim_poly_a=self.trim_poly_a,
+                               cache=self._read_end_cache)
+
+    def read_sequence_view(self, read: AlignedSegment) -> ReadSequenceView:
+        """Infer original-query end structure independently of a variant locus."""
         return read_sequence_view_from_alignment(
-            read, profile, trim_adapters=self.trim_adapters, trim_poly_a=self.trim_poly_a,
+            read, self.profile_for_read_group(read_group(read)),
+            trim_adapters=self.trim_adapters, trim_poly_a=self.trim_poly_a,
             cache=self._read_end_cache)
 
     @staticmethod
@@ -584,6 +613,16 @@ class ReadCollector(object):
                 or self.trim_adapters or self.trim_poly_a):
             view = self.read_sequence_view(pysam_aligned_segment)
             retained_start, retained_end = view.start, view.end
+            if view.barrier_intervals:
+                # One observed allele must fit wholly on one usable side. An
+                # insertion at a barrier cannot be rescued by joining its flanks.
+                if query_interval is None:
+                    return None
+                candidates = [(start, end) for start, end in view.usable_intervals
+                              if start <= query_interval[0] <= query_interval[1] <= end]
+                if len(candidates) != 1:
+                    return None
+                retained_start, retained_end = candidates[0]
         if not self.use_soft_clipped_bases:
             retained_start = max(retained_start, aligned_subsequence_start)
             retained_end = min(retained_end, aligned_subsequence_end)

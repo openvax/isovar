@@ -292,7 +292,8 @@ def _reconstruct_job(job: _AuditJob, context: _AuditContext, library: RnaLibrary
                              parameters.get('min_exon_overlap', 15))
 
 
-def _assess_job(job: _AuditJob, context: _AuditContext, evidence: PathEvidence) -> dict[str, Any]:
+def _assess_job(job: _AuditJob, context: _AuditContext, evidence: PathEvidence,
+                collector: ReadCollector) -> dict[str, Any]:
     """Assess and reconcile one staged view without reopening its whole library."""
     inputs = job.inputs
     assert inputs is not None
@@ -301,7 +302,7 @@ def _assess_job(job: _AuditJob, context: _AuditContext, evidence: PathEvidence) 
     if staged is None:
         raise ValueError('Missing staged reconstruction: ' + job.artifact)
     result = staged['reconstruction']
-    assessment = assess_sv_rna_paths(result, None, inputs['references'], evidence=evidence,
+    assessment = assess_sv_rna_paths(result, None, inputs['references'], evidence=evidence, read_collector=collector,
                                     **context.manifest.get('assessment', {}))
     hypotheses = read_json(context.files[job.view['hypotheses']]) if job.view.get('hypotheses') else []
     reconciliation = reconcile_sv_rna_hypotheses(assessment, hypotheses)
@@ -377,9 +378,9 @@ def run_sv_rna_audit(manifest_path: str | Path, output_dir: str | Path, *, resum
                 queries = [_reconstruct_job(job, context, library, collector, resume) for job in group]
                 raw = (raw_fastq_reads(context.files[source['raw_fastq']], source.get('fastq_name_format', 'sra_dot_mate'),
                                       source.get('raw_read_group', '')) if source.get('raw_fastq') else ())
-                with route_path_evidence(library, queries, Path(routing) / 'routes.sqlite', raw_reads=raw) as routed:
+                with route_path_evidence(library, queries, Path(routing) / 'routes.sqlite', raw_reads=raw, read_collector=collector) as routed:
                     for job in group:
-                        rows[job.artifact] = _assess_job(job, context, routed.evidence(job.artifact))
+                        rows[job.artifact] = _assess_job(job, context, routed.evidence(job.artifact), collector)
     ordered = [rows[job.artifact] for job in jobs]
     report = dict(schema='isovar.sv_rna_audit_report.v1', manifest_sha256=file_sha256(manifest_path),
                   producer_version=__version__, implementation_sha256=context.implementation,
