@@ -77,8 +77,10 @@ def validate_alignment_reference(bam, genome, *, profile=None, contigs=()):
 
     A named GDC profile requires its complete sequence dictionary in the BAM
     and FASTA. Target contig DNA is checked against GDC's published MD5, and
-    BAM M5 values are checked wherever supplied. For custom references, missing
-    BAM M5 remains explicitly unverified; equal lengths do not prove identity.
+    target BAM M5 values are checked wherever supplied. Custom references use
+    exact names or unique Varcode aliases and retain both spellings. Missing
+    target BAM M5 remains explicitly unverified; equal lengths and name aliases
+    do not prove sequence identity.
     """
     fasta = genome.fasta
     if fasta is None:
@@ -99,20 +101,31 @@ def validate_alignment_reference(bam, genome, *, profile=None, contigs=()):
             raise ValueError("BAM sequence dictionary does not match GDC GRCh38.d1.vd1")
         if set(fasta.keys()) != set(expected):
             raise ValueError("FASTA contigs do not match GDC GRCh38.d1.vd1")
+    fasta_resolver = ContigResolver(fasta.keys(), reference_name=genome.reference_name)
+    fasta_names, resolutions = {}, []
+    used_fasta_names = set()
     for row in rows:
         name = row["SN"]
-        if name not in fasta or len(fasta[name]) != row["LN"]:
-            raise ValueError("BAM/FASTA contig or length mismatch: %s" % name)
+        resolution = fasta_resolver.resolve(name)
+        fasta_name = require_resolved_contig(resolution)
+        if fasta_name in used_fasta_names:
+            raise ValueError("Distinct BAM contigs resolve to the same FASTA contig: %s" % fasta_name)
+        used_fasta_names.add(fasta_name)
+        fasta_names[name] = fasta_name
+        resolutions.append(dict(bam_contig=name, fasta_contig=fasta_name, status=resolution.status))
+        if len(fasta[fasta_name]) != row["LN"]:
+            raise ValueError("BAM/FASTA contig length mismatch: %s -> %s" % (name, fasta_name))
         if expected and row.get("M5") and row["M5"].lower() != expected[name]["md5"]:
             raise ValueError("BAM/GDC sequence checksum mismatch: %s" % name)
     checked, unverified = [], []
     resolver = ContigResolver(lengths, reference_name=genome.reference_name)
     by_name = {row["SN"]: row for row in rows}
-    for contig in sorted(set(contigs)):
-        name = contig_in_reference(contig, resolver)
+    selected_names = {contig_in_reference(contig, resolver) for contig in contigs}
+    for name in sorted(selected_names):
         checksum = md5()
         for start in range(0, lengths[name], 1024 * 1024):
-            checksum.update(str(fasta[name][start:min(lengths[name], start + 1024 * 1024)]).upper().encode("ascii"))
+            sequence = fasta[fasta_names[name]][start:min(lengths[name], start + 1024 * 1024)]
+            checksum.update(str(sequence).upper().encode("ascii"))
         actual = checksum.hexdigest()
         required = expected[name]["md5"] if expected else by_name[name].get("M5")
         if required and actual != required.lower():
@@ -121,6 +134,7 @@ def validate_alignment_reference(bam, genome, *, profile=None, contigs=()):
     return dict(profile=profile, assembly=genome.reference_name,
                 annotation=dict(name=genome.annotation_name, version=genome.annotation_version),
                 checked_sequence_contigs=checked, bam_sequence_identity_unverified=unverified,
+                alignment_contig_resolutions=resolutions,
                 viral_annotation_inferred=False)
 
 

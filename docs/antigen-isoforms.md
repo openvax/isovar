@@ -33,6 +33,13 @@ original identities. BAM secondary placements,
 mates and declared unreported alternatives remain part of the attribution.
 `--alignment-reference custom --assembly GRCh37 --annotation-name Ensembl`
 supports another assembly/reference; set its actual annotation version too.
+Custom BAM/FASTA validation resolves each BAM contig against the FASTA with the
+same resolver and records both names in `reference.alignment_contig_resolutions`.
+It rejects missing or ambiguous names, mismatched lengths/checksums, and mappings
+that collapse distinct BAM contigs onto one FASTA entry. Target contigs without
+BAM `M5` remain sequence-identity-unverified; accepting a name alias does not
+establish sequence equivalence. The named GDC profile still requires its exact
+published dictionary.
 
 The command writes:
 
