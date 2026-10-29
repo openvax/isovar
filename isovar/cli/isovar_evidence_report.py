@@ -15,7 +15,7 @@ from ..isovar_result import IsovarResult
 from ..protein_hypotheses import export_protein_hypotheses
 from ..protein_reporting import protein_report_record
 from ..evidence_report import (
-    catalog_coding_index, changed_reference_interval, direct_read_context_proteins,
+    catalog_coding_index, changed_reference_interval,
     overlapping_catalog_orfs, overlaps_exon, reference_ninemer_matches, self_novelty,
     summarize,
 )
@@ -110,12 +110,9 @@ def collect(variants, alignment, collector, creator, *, sample_id, source, catal
         ref, alt, other = (list(getattr(evidence, field))
                            for field in ("ref_reads", "alt_reads", "other_reads"))
         raw_overlap = _raw_overlap(alignment, variant, collector) if not (ref or alt or other) else 0
-        if len(alt) > 750:
-            products = direct_read_context_proteins(variant, alt, creator)
-        elif alt:
-            products = creator.sorted_protein_sequences_for_variant(variant, evidence)
-        else:
-            products = []
+        assessment = creator.assess_variant_reads(
+            variant, alt, assembly_mode="read_contexts" if len(alt) > 750 else "configured")
+        products = creator.protein_sequences_from_assessment(assessment)
         call.update(rna_status=_rna_status(ref, alt, other, raw_overlap),
                     ref_reads=str(len(ref)), alt_reads=str(len(alt)), other_reads=str(len(other)),
                     alt_fragments=str(len(fragment_ids(alt))), protein_count=str(len(products)))
@@ -123,7 +120,8 @@ def collect(variants, alignment, collector, creator, *, sample_id, source, catal
         effects = variant.effects()
         top_effect = effects.top_priority_effect()
         result = IsovarResult(variant=variant, read_evidence=evidence, predicted_effect=top_effect,
-                              sorted_protein_sequences=products, protein_sequence_settings=creator.settings())
+                              sorted_protein_sequences=products, protein_sequence_settings=creator.settings(),
+                              rna_assessment=assessment)
         export = export_protein_hypotheses([result], sample_id=sample_id, source=source,
                                             alignment_header=alignment.header)
         call["protein_hypotheses"] = export

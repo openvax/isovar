@@ -5,9 +5,13 @@ on a noncoding transcript. Its reference observations supply a frame hypothesis,
 not evidence that this sample initiates translation or produces a protein.
 """
 
+from dataclasses import asdict
+
 from orfdata import ReferenceContext as ORFReferenceContext
+from varcode import ContigResolver
 
 from .dna import reverse_complement_dna
+from .contig_resolution import variant_reference_name, variant_source_contig
 from .coding_interval_support import coding_interval_support
 from .genetic_code import translate_cdna
 from .protein_sequence_creator import ProteinSequenceCreator
@@ -15,7 +19,7 @@ from .protein_window_comparison import compare_protein_windows, reference_window
 from .reference_context import ReferenceContext
 from .reference_sequence_key import ReferenceSequenceKey
 from .rna_evidence import EvidenceSets, content_identifier
-from .transcript_compatibility import annotate_reads_with_transcript_compatibility
+from .variant_read_assessment import assemble_variant_reads
 from .translation_helpers import find_mutant_amino_acid_interval
 from .variant_helpers import (
     NoExonicReferenceBases, interbase_range_affected_by_variant_on_transcript,
@@ -27,10 +31,11 @@ from .variant_orf_helpers import match_variant_sequence_to_reference_context
 SCHEMA = 'isovar.variant_rna_orfs.v1'
 
 
-def _context(variant, reference, size):
+def _context(variant, reference, size, resolved_contig):
     """Use the selected ORF frame without changing its parent's annotation."""
-    normalize = lambda c: str(c).removeprefix('chr').replace('MT', 'M')
-    if normalize(variant.contig) != normalize(reference.contig):
+    if resolved_contig is None:
+        return None, None, 'unresolved_reference_contig'
+    if reference.contig != resolved_contig:
         return None, None, 'outside_reference_locus'
     if not reference.start_complete or not reference.stop_complete:
         return None, None, 'incomplete_reference_orf'
@@ -160,7 +165,7 @@ def _candidate(sequence, context, locus, reference, model_id, rna_id, evidence, 
 
 
 def reconstruct_variant_orfs(variant, read_evidence, reference_orfs, *, sample_id, source,
-                             protein_sequence_creator=None):
+                             protein_sequence_creator=None, assembly_mode="configured"):
     """Reconstruct local RNA candidates in supplied ORFdata coding frames.
 
     Parameters
@@ -177,6 +182,8 @@ def reconstruct_variant_orfs(variant, read_evidence, reference_orfs, *, sample_i
     protein_sequence_creator : ProteinSequenceCreator, optional
         Assembly, matching and local protein-window budgets. Its protein-count
         cap does not discard models or RNA alternatives in this assessment.
+    assembly_mode : {"configured", "read_contexts"}
+        Shared local assembly policy; read contexts avoid overlap extension.
 
     Returns
     -------
@@ -194,45 +201,32 @@ def reconstruct_variant_orfs(variant, read_evidence, reference_orfs, *, sample_i
         raise ValueError('sample_id and source are required')
     creator = protein_sequence_creator or ProteinSequenceCreator(max_protein_sequences_per_variant=0)
     references = list(reference_orfs)
+    resolver = ContigResolver(tuple(dict.fromkeys(reference.contig for reference in references)) or None,
+                              reference_name=variant_reference_name(variant))
+    resolution = resolver.resolve(variant_source_contig(variant))
     variant_context = ORFReferenceContext.from_genome(variant.genome)
-    transcripts = {}
+    transcripts, all_transcripts = {}, {}
     for reference in references:
         if reference.context.key != variant_context.key:
             raise ValueError('Variant and ORF reference contexts differ')
         transcript = reference.transcript
-        prior = transcripts.get(transcript.id)
-        if prior is not None and (prior.sequence != transcript.sequence or
+        prior = all_transcripts.get(transcript.id)
+        if prior is not None and (prior.contig != transcript.contig or prior.strand != transcript.strand or
+                                  prior.sequence != transcript.sequence or
                                   prior.exon_intervals != transcript.exon_intervals):
             raise ValueError('Ambiguous supplied transcript identity')
-        transcripts[transcript.id] = transcript
+        all_transcripts[transcript.id] = transcript
+        if reference.contig == resolution.resolved_name:
+            transcripts[transcript.id] = transcript
     evidence = EvidenceSets([sample_id, source])
     reads = list(read_evidence.alt_reads)
-    if reads:
-        left, right = creator._variant_sequence_creator.flanking_sequence_lengths(len(reads[0].allele))
-        classified = annotate_reads_with_transcript_compatibility(reads, transcripts.values(), left, right)
-    else:
-        classified = []
-    compatible = [read for read in classified if read.compatible_transcript_ids]
-    excluded = [read for read in classified if not read.compatible_transcript_ids]
-    sequences = creator.variant_sequences_from_reads(variant, compatible)
-    unresolved_sequences = creator.variant_sequences_from_reads(
-        variant, [read.with_compatible_transcript_ids(None) for read in excluded])
-    rna_rows, sequence_ids = [], {}
-    for state, group in (('reference_path_compatible', sequences),
-                         ('no_supplied_reference_path', unresolved_sequences)):
-        for sequence in group:
-            support = evidence.support(sequence.reads)
-            placements = sorted(content_identifier('placement', [read.source_alignments,
-                                                                  read.source_alignment_paths])
-                                for read in sequence.reads)
-            ident = content_identifier('rna_candidate', [state, sequence.sequence, len(sequence.prefix),
-                                                         sorted(sequence.compatible_transcript_ids or ()),
-                                                         support['evidence_set_id'], placements])
-            sequence_ids[id(sequence)] = ident
-            rna_rows.append(dict(rna_candidate_id=ident, state=state, sequence=sequence.sequence,
-                                 variant_interval=[len(sequence.prefix), len(sequence.prefix) + len(sequence.alt)],
-                                 compatible_transcript_ids=sorted(sequence.compatible_transcript_ids or ()),
-                                 rna_support=support))
+    assembly = assemble_variant_reads(variant, reads, transcripts.values(), creator=creator, mode=assembly_mode)
+    sequences = assembly.compatible_sequences
+    classified = assembly.compatible_reads + assembly.unmatched_reads
+    excluded = assembly.unmatched_reads
+    records = assembly.candidate_records(evidence)
+    sequence_ids = {id(sequence): row['rna_candidate_id'] for sequence, row in records}
+    rna_rows = [row for _, row in records]
     models, candidates = [], []
     size = max(creator._cdna_sequence_length, creator.min_transcript_prefix_length)
     seen_models = set()
@@ -242,7 +236,7 @@ def reconstruct_variant_orfs(variant, read_evidence, reference_orfs, *, sample_i
         if model_id in seen_models:
             raise ValueError('Duplicate supplied ORF model')
         seen_models.add(model_id)
-        context, locus, reason = _context(variant, reference, size)
+        context, locus, reason = _context(variant, reference, size, resolution.resolved_name)
         matching_sequences = [s for s in sequences if reference.transcript_id in
                               (s.compatible_transcript_ids or ())]
         accepted = []
@@ -268,9 +262,10 @@ def reconstruct_variant_orfs(variant, read_evidence, reference_orfs, *, sample_i
     candidates.sort(key=lambda c: (-c['rna_support']['fragments'], -len(c['protein_sequence']), c['candidate_id']))
     return dict(schema=SCHEMA, producer=dict(name='isovar', version=__version__),
                 sample_id=sample_id, source=source,
+                reference_contig_resolution=asdict(resolution),
                 variant=dict(reference_name=variant.reference_name, contig=variant.contig,
                              start=variant.start, ref=variant.ref, alt=variant.alt),
-                assembly_state='assembled' if rna_rows else 'no_retained_rna' if reads else 'no_alt_reads',
+                assembly_state=assembly.state, assembly_mode=assembly.mode,
                 settings=creator.settings(), allele_support=evidence.support(reads),
                 protein_candidate_limit_applied=None,
                 reference_incompatible_support=evidence.support(excluded),

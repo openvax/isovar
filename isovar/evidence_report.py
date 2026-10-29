@@ -11,10 +11,6 @@ from bisect import bisect_left
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from .protein_sequence_helpers import group_equivalent_translations, sort_protein_sequences
-from .reference_context_helpers import reference_contexts_for_variant
-from .transcript_compatibility import annotate_reads_with_transcript_compatibility
-from .variant_sequence_helpers import initial_variant_sequences_from_reads, trim_variant_sequences
 
 
 RNA_STATUSES = (
@@ -27,34 +23,9 @@ AA_BINS = ("no local product", "unresolved", "0", "1", "2-4", "5-9", "10-19", "2
 
 
 def direct_read_context_proteins(variant, alt_reads, creator):
-    """Translate every high-depth ALT read without combinatorial overlap assembly."""
-    contexts = reference_contexts_for_variant(
-        variant, context_size=max(creator._cdna_sequence_length,
-                                  creator.min_transcript_prefix_length))
-    if not contexts:
-        return []
-    transcripts = {transcript.id: transcript
-                   for context in contexts for transcript in context.transcripts}
-    max_before, max_after = creator._variant_sequence_creator.flanking_sequence_lengths(
-        len(alt_reads[0].allele))
-    compatible = annotate_reads_with_transcript_compatibility(
-        alt_reads, transcripts.values(), max_prefix_size=max_before,
-        max_suffix_size=max_after)
-    compatible = [read for read in compatible if read.compatible_transcript_ids]
-    if not compatible:
-        return []
-    sequences = initial_variant_sequences_from_reads(
-        compatible, max_nucleotides_before_variant=max_before,
-        max_nucleotides_after_variant=max_after)
-    sequences = trim_variant_sequences(sequences, creator.min_variant_sequence_coverage)
-    if not sequences:
-        return []
-    translations = creator.all_pairs_translations(sequences, contexts)
-    return sort_protein_sequences(
-        group_equivalent_translations(translations),
-        preference=creator.protein_sequence_preference,
-        peptide_length=creator.protein_context_peptide_length,
-        min_support_fraction=creator.min_protein_sequence_support_fraction)
+    """Rank bounded read contexts using the shared assessment/selection policy."""
+    assessment = creator.assess_variant_reads(variant, alt_reads, assembly_mode="read_contexts")
+    return creator.protein_sequences_from_assessment(assessment)
 
 
 def changed_reference_interval(pos, ref, alt):

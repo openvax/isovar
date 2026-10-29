@@ -30,6 +30,14 @@ reasons. The caller supplies and pins models; this API does not choose a
 catalogue or download reads. Structural events use `reconstruct_sv_rna` and
 its assessment/reconciliation APIs.
 
+The [shared RNA assessment flow](variant-read-assessment.md) also retains
+unframed RNA in ordinary `run_isovar` and cohort results. Both interfaces use
+the same assembly helper and accept `assembly_mode="read_contexts"` for bounded
+original read contexts without overlap extension. `reference_contig_resolution`
+records Varcode's exact/alias/missing/ambiguous outcome for the supplied ORF
+vocabulary. A missing or ambiguous reference name leaves RNA retained and model
+frames unresolved; it is not a zero-support observation.
+
 Each protein candidate contains the observed nucleotide sequence and coding
 interval, mutant protein, reference window, focal mutation interval, and a
 counterfactual protein with only the focal allele replaced on the same observed

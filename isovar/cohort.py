@@ -19,7 +19,7 @@ from varcode.reference import infer_genome
 
 from .contig_resolution import UnresolvedContigError, require_resolved_contig
 from .evidence_report import (
-    catalog_coding_index, changed_reference_interval, direct_read_context_proteins,
+    catalog_coding_index, changed_reference_interval,
     overlapping_catalog_orfs, overlaps_exon,
 )
 from .isovar_result import IsovarResult
@@ -240,7 +240,7 @@ def _reference_declaration(source, genome):
                 sequence_equivalence="not_established_by_assembly_name")
 
 
-def _nc_orfs(variant, evidence, catalog, index, creator, sample, source):
+def _nc_orfs(variant, evidence, catalog, index, creator, sample, source, assembly_mode="configured"):
     """Bind every overlapping catalogue model; retain failures independently."""
     if catalog is None:
         return dict(status="not_assessed", reason="No ncORF catalogue supplied")
@@ -259,7 +259,7 @@ def _nc_orfs(variant, evidence, catalog, index, creator, sample, source):
             unresolved.append(dict(orf_id=record.orf_id, transcript_id=record.transcript_id,
                                    source_ids=list(record.source_ids), reason=str(error)))
     result = reconstruct_variant_orfs(variant, evidence, references, sample_id=sample, source=source,
-                                      protein_sequence_creator=creator) if references else None
+                                      protein_sequence_creator=creator, assembly_mode=assembly_mode) if references else None
     return dict(status="assessed", overlapping_models=len(records), bound_models=len(references),
                 unresolved_models=unresolved, result=result)
 
@@ -269,11 +269,13 @@ def _evaluate(variant, nomination, bam, source, collector, creator, catalog, ind
     effects = variant.effects() if evidence.alt_reads else []
     effect = effects.top_priority_effect() if effects else None
     dense = len(evidence.alt_reads) > dense_limit
-    products = (direct_read_context_proteins(variant, evidence.alt_reads, creator) if dense else
-                creator.sorted_protein_sequences_for_variant(variant, evidence)) if evidence.alt_reads else []
+    assembly_mode = "read_contexts" if dense else "configured"
+    assessment = creator.assess_variant_reads(variant, evidence.alt_reads, assembly_mode=assembly_mode)
+    products = creator.protein_sequences_from_assessment(assessment)
     products = [protein.with_known_variants(known) for protein in products]
     result = IsovarResult(variant=variant, read_evidence=evidence, predicted_effect=effect,
-                          sorted_protein_sequences=products, protein_sequence_settings=creator.settings())
+                          sorted_protein_sequences=products, protein_sequence_settings=creator.settings(),
+                          rna_assessment=assessment)
     export = export_protein_hypotheses([result], sample_id=source["sample_id"], source=source["source_id"],
                                       alignment_header=bam.header.to_dict(),
                                       cell_umi_alignment_file=bam if source.get("cell_umi_labels") else None,
@@ -292,9 +294,8 @@ def _evaluate(variant, nomination, bam, source, collector, creator, catalog, ind
     category = ("SNV" if len(variant.original_ref) == len(variant.original_alt) == 1 else
                 "Frameshift" if any(p.frameshift for p in products) or type(effect).__name__ == "FrameShift" else
                 "In-frame indel" if products and length_delta and length_delta % 3 == 0 else "Other non-SNV")
-    nc_creator = (ProteinSequenceCreator(**dict(creator.settings(), variant_sequence_assembly=False))
-                  if dense else creator)
-    nc = _nc_orfs(variant, evidence, catalog, index, nc_creator, source["sample_id"], source["source_id"])
+    nc = _nc_orfs(variant, evidence, catalog, index, creator, source["sample_id"], source["source_id"],
+                  assembly_mode=assembly_mode)
     nc["assembly_route"] = "direct_read_contexts_high_depth" if dense else "overlap_assembly"
     return dict(status="assessed", nomination=nomination, category=category, gene_names=gene_names,
                 igv=f"{contig}:{variant.original_start}-"

@@ -35,9 +35,10 @@ _EFFECT_FIELDS = ("gene_name", "gene_id", "transcript_id", "transcript_name", "m
 class _EvidenceSets(EvidenceSets):
     """Support records, each labelled with the reads it describes."""
 
-    def support(self, reads, description, labels=None):
+    def support(self, reads, description=None, labels=None):
         """The RNA support record and evidence set ID of ``reads``."""
-        return dict(scope=description, **super().support(reads, labels))
+        record = super().support(reads, labels)
+        return record if description is None else dict(scope=description, **record)
 
     def counts(self, reads, description, labels=None):
         """The RNA support record alone, storing no evidence set."""
@@ -230,6 +231,8 @@ def _event(result, evidence, cell_labels, partial_read_support=False, support_ma
         protein_sequence_limit=limit, protein_hypotheses_complete=complete,
         edit_attribution=_edit_attribution(result.sorted_protein_sequences),
         protein_sequence_settings=result.protein_sequence_settings,
+        rna_assessment=(None if result.rna_assessment is None else
+                        result.rna_assessment.to_dict(evidence, labels)),
         protein_hypotheses=_proteins(result.sorted_protein_sequences, event_id, evidence, labels))
 
     if partial_read_support:
