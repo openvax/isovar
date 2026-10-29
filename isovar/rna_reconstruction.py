@@ -14,7 +14,7 @@ from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
 from .rna_path_linkage import OriginalPathMatch, template_path_linkage
 from .sv_rna import (
-    RnaObservation, _GeometryCache, _ObservationIndex, _agrees, _build_segment, _extend_both,
+    RnaObservation, _GeometryCache, _ObservationIndex, _Positions, _agrees, _build_segment, _extend_both,
     _mirror, _offsets, _record_id, _runs,
 )
 
@@ -148,6 +148,9 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
     compatible_key, overlapping_key = "compatible_" + label + "s", "overlapping_" + label + "s"
     ids_key = label + "_ids"
     coverage = {c["id"]: [0] * len(c["sequence"]) for c in candidates}
+    # Reuse each immutable candidate's collinear blocks across the entire
+    # original-input recount. Raw output placements remain unchanged.
+    placements = {c["id"]: _Positions(c["placements"]) for c in candidates}
     supporters, whole, assignments = defaultdict(set), defaultdict(set), Counter()
     whole_cds = defaultdict(set)
     linkage = {c["id"]: [] for c in candidates if "features" in c}
@@ -172,7 +175,7 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
                 cid = candidate["id"]
                 covered, full = set(), False
                 for o in observed:
-                    for lo, hi in _matches(candidate["sequence"], candidate["placements"], o):
+                    for lo, hi in _matches(candidate["sequence"], placements[cid], o):
                         if cid in linkage:
                             template_matches[cid].append(OriginalPathMatch(identity, o.key, lo, hi))
                         covered.update(range(lo, hi))
@@ -180,7 +183,7 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
                         for i, coding in enumerate(candidate["coding"]):
                             if coding["status"] == "complete_CDS" and lo <= coding["query_start"] and hi >= coding["query_end"]:
                                 whole_cds[cid, i].add(identity)
-                    if any(_matches(candidate["sequence"], candidate["placements"], o, contained=True)):
+                    if any(_matches(candidate["sequence"], placements[cid], o, contained=True)):
                         compatible.add(cid)
                 if covered:
                     supporting.add(cid)
