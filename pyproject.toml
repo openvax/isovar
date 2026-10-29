@@ -47,6 +47,7 @@ data = ["biopython>=1.80,<2"]  # Independent SAM/ORF and annotated-proteome chec
 uorf-build = ["openpyxl>=3.1,<4"]  # Optional source-data builder; never needed to query the catalogue.
 
 [project.scripts]
+isovar-normal-evidence = "isovar.cli.isovar_normal_evidence:run"
 isovar-proteome = "isovar.cli.isovar_proteome:run"
 isovar-patient-background-pairs = "isovar.cli.isovar_patient_background_pairs:run"
 isovar-cohort = "isovar.cli.isovar_cohort:run"

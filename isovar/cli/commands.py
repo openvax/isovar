@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 
 
 COMMANDS = {
+    "normal-evidence": ("isovar_normal_evidence", "Assess source-pinned matched-normal genotypes and reference confidence"),
     "patient-background-pairs": ("isovar_patient_background_pairs", "Pair mutant RNA proteins with declared patient-background baselines"),
     "proteome": ("isovar_proteome", "Adapt recorded RNA hypotheses to an ORFdata Proteome and FASTA"),
     "cohort": ("isovar_cohort", "Reanalyze source-separated RNA libraries and render cohort PDF reports"),

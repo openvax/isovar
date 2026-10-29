@@ -29,6 +29,8 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | `isovar plot` | Protein, coverage, read-overlap and transcript figures for one mutation ([guide](visualization.md)) |
 | `isovar evidence-report` | Visual PDF and per-call TSV for a variant VCF plus indexed tumor RNA ([guide](../reports/hcc1395_colo829/PDF_REPORTS.md)) |
 | `isovar antigen-report` | Source-separated PDF and JSON from small-variant, SV, fusion, viral and antigen-isoform exports ([guide](antigen-evidence-report.md)) |
+| `isovar cohort` | Reproducible, source-separated reconstruction and per-sample PDFs from a pinned manifest ([guide](cohort-reports.md)) |
+| `isovar normal-evidence` | Normal genotype/reference-confidence states and background alleles from a reviewed source inventory ([guide](matched-normal-evidence.md)) |
 | `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](allele-interpretations.md)) |
 | `isovar sv-rna` | Exploratory RNA paths around one nominated SV, as JSON ([guide](sv-rna.md)) |
 | `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON ([guide](fusion.md)) |
@@ -40,11 +42,11 @@ scripts such as `isovar-protein-sequences` and `isovar-plot`.
 
 ## Output tables
 
-`isovar evidence-report` writes a PDF and a tab-separated per-call file. Install
-the report extra and run:
+`isovar evidence-report` writes a PDF and a tab-separated per-call file. Reports
+are included in the normal installation:
 
 ```sh
-pip install 'isovar[report]'
+pip install isovar
 isovar evidence-report --vcf somatic-variants.vcf.gz --bam tumor-rna.bam \
     --sample-id tumor-1 --output evidence.pdf
 ```

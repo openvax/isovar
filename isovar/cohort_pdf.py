@@ -826,6 +826,36 @@ def write_cohort_reports(manifest, summary, output):
             if index == 0:
                 block.insert(0, Paragraph("Source provenance", styles["Heading2"]))
             story.append(KeepTogether(block))
+        normal_scopes = {result['matched_normal_scope']['receipt_sha256']: result['matched_normal_scope']
+                         for result in results if result.get('matched_normal_scope')}
+        for digest, scope in normal_scopes.items():
+            story.extend([Paragraph('Matched-normal evidence scope', styles['Heading2']),
+                          p(escape(scope['interpretation']), 'Small'),
+                          p('Assessment receipt: ' + escape(scope['receipt_input']) + ' [' + digest[:16] + ']. '
+                            'Unavailable territory and absent variant-only calls do not establish reference. '
+                            'Caller products from the same library are not independent specimens.', 'Small')])
+            story.append(table(('Allele state', 'Nominations'),
+                sorted(scope['allele_states'].items()), (410, 100)))
+            selected = [row for row in scope['source_inventory'] if row['selected']]
+            if selected:
+                story.append(table(('Source / specimen / library', 'Caller / evidence', 'Confidence policy'),
+                    [(row['source_id'] + '\n' + row['specimen_id'] + '\n' + row['library_id'],
+                      row['caller'] + '\n' + row['evidence_kind'],
+                      row['policy']['genotype_quality_field'] + ' >= ' + str(row['policy']['minimum_genotype_quality']) +
+                      '; DP / indel ' + row['policy'].get('indel_depth_field', 'DP') +
+                      ' / block MIN_DP >= ' + str(row['policy']['minimum_depth']) +
+                      ('; unfiltered accepted' if row['policy']['allow_unfiltered'] else '; PASS required'))
+                     for row in selected], (230, 130, 150)))
+            excluded = Counter(row['selection_reason'] for row in scope['source_inventory'] if not row['selected'])
+            if excluded:
+                story.append(table(('Excluded or unavailable product: reason', 'Files'), sorted(excluded.items()), (450, 60)))
+            story.append(p(f"{scope['background_alleles']:,} genotype-indexed background alleles; "
+                           f"query flank {scope['background_flank']:,} bases; "
+                           f"{scope.get('background_region_count', 0):,} explicitly requested background regions. "
+                           'Region overlap selects complete observed genotype records; it does not establish '
+                           'reference confidence throughout those regions. The pinned normal receipt contains '
+                           'every source ID, exact VCF sample, processing relationship, acquisition interval, '
+                           'file/index digest, rejected record and background-allele provenance.', 'Small'))
         input_keys = set()
         for result in results:
             input_keys.update(result.get('identity', {}).get('inputs', {}))

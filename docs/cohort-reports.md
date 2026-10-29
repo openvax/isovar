@@ -123,11 +123,15 @@ explicit source assembly conflicting with the annotation is rejected: name
 conversion is not coordinate liftover or proof of reference-sequence identity.
 Absence from a normal variant-only callset does not establish a reference genotype.
 
-Supply `germline_variants` as another pinned allele array to annotate observed
-background differences. A nomination's `origin_conflict` records a supplied
-normal-call overlap; such calls remain visible but are excluded from report
-counts of tumor-specific changed contexts. This is not the complete
-patient-background peptide-pair API proposed in #100.
+Supply `normal_evidence` as the key of a pinned
+[`isovar normal-evidence` receipt](matched-normal-evidence.md) to retain selected
+and excluded normal sources, local reference-confidence states and accepted
+background alleles. The older `germline_variants` allele array also remains
+supported; choose one reconciled background input per task. A nomination's
+`origin_conflict` records supplied normal ALT or conflicting evidence; these
+calls remain visible but are excluded from tumor-specific changed-context
+counts. Use the [protein hypothesis API](protein-hypotheses.md) for the separate
+patient-background peptide comparisons.
 
 For a fully pinned annotation, list pinned annotation files under `files` and
 include their keys in the task's `reference_files`. The chosen PyEnsembl release

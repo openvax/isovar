@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.66.0"
+__version__ = "1.67.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -137,6 +137,11 @@ __all__ = [
     "VariantSequence",
     "VariantSequenceCreator",
     "reconstruct_variant_orfs",
+    "NormalEvidencePolicy",
+    "NormalSource",
+    "assess_matched_normal",
+    "run_normal_evidence_manifest",
+    "normal_background_regions",
 ]
 
 from .uorf_annotation import annotate_sv_uorf_evidence
@@ -144,3 +149,7 @@ from .uorf_annotation import annotate_sv_uorf_evidence
 from .orf_annotation import annotate_sv_orf_evidence
 
 from .variant_rna_orfs import reconstruct_variant_orfs
+
+from .normal_evidence import NormalEvidencePolicy
+from .normal_sources import NormalSource, assess_matched_normal, run_normal_evidence_manifest
+from .normal_regions import normal_background_regions

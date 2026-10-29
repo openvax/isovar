@@ -1,0 +1,207 @@
+"""Normal source selection uses declared IDs and sample columns, not file naming."""
+
+from dataclasses import asdict, replace
+import json
+
+import pysam
+import pytest
+from varcode import Variant
+
+from isovar.normal_sources import NormalSource, assess_matched_normal
+from isovar.sv_rna_audit import file_sha256
+
+
+def source_file(tmp_path, *, contig="chr1", start=104, alleles=("A", "G", "T"), genotype=(0, 2)):
+    path = tmp_path / "ArbitraryCase_and_not_a_Normal_suffix.vcf"
+    header = pysam.VariantHeader()
+    header.contigs.add(contig, length=max(1000, start + len(alleles[0]) + 50))
+    header.add_sample("EXPLICIT.sample-column")
+    for name, kind in (("GT", "String"), ("GQ", "Integer"), ("DP", "Integer"), ("MIN_DP", "Integer")):
+        header.formats.add(name, 1, kind, name)
+    with pysam.VariantFile(path, "w", header=header) as writer:
+        row = writer.new_record(contig=contig, start=start, stop=start + len(alleles[0]), alleles=alleles)
+        row.samples["EXPLICIT.sample-column"].update(GT=genotype, GQ=40, DP=12)
+        row.filter.add("PASS")
+        writer.write(row)
+    compressed = str(path) + ".gz"
+    pysam.tabix_compress(str(path), compressed)
+    pysam.tabix_index(compressed, preset="vcf")
+    return NormalSource(source_id="public-source-1", reference_name="GRCh38", evidence_kind="variant_only",
+        selected=True, selection_reason="Reviewed sample identity", specimen_id="blood-draw-1",
+        library_id="library-1", vcf_sample="EXPLICIT.sample-column", caller="test-caller",
+        processing_group="library-1-calling", path=compressed, sha256=file_sha256(compressed),
+        index_path=compressed + ".tbi", index_sha256=file_sha256(compressed + ".tbi"))
+
+
+def assess(variants, sources, **kwargs):
+    return assess_matched_normal(variants, sources, sample_id="patient", reference_name="GRCh38", **kwargs)
+
+
+def test_explicit_source_selection_and_genotype_indexed_background(tmp_path):
+    source = source_file(tmp_path)
+    result = assess([Variant("1", 105, "A", "G")], [source])
+    assert result["alleles"][0]["state"] == "other_allele_observed"
+    background, = result["background_variants"]
+    assert background["alt"] == "T"
+    assert background["origins"][0]["record"]["genotype"] == [0, 2]
+    assert result["source_inventory"][0]["library_id"] == "library-1"
+
+
+def test_missing_contig_is_unavailable_not_absent_normal_alt(tmp_path):
+    source = source_file(tmp_path)
+    result = assess([Variant("2", 105, "A", "G")], [source])
+    row = result["alleles"][0]
+    assert row["state"] == "unavailable"
+    assert row["source_assessments"][0]["reason"] == "unresolved_chromosome"
+    assert not row["origin_conflict"]
+
+
+def test_query_beyond_declared_source_contig_is_unavailable(tmp_path):
+    result = assess([Variant("1", 2000, "A", "G")], [source_file(tmp_path)])
+    row = result["alleles"][0]
+    assert row["state"] == "unavailable"
+    assert row["source_assessments"][0]["reason"] == "outside_declared_contig_length"
+
+
+def test_assembly_alias_is_preserved_in_inventory_and_canonicalized_for_cohort(tmp_path):
+    source = replace(source_file(tmp_path), reference_name="hg38")
+    result = assess_matched_normal([Variant("1", 105, "A", "G")], [source], sample_id="patient", reference_name="hg38")
+    assert result["reference_name"] == "GRCh38"
+    assert result["source_inventory"][0]["reference_name"] == "hg38"
+
+
+@pytest.mark.parametrize("contig,query", [("chrM", "MT"), ("HPV16", "HPV16"),
+                                         ("chrUn_gl000220", "chrUn_gl000220")])
+def test_mitochondrial_viral_and_decoy_names_use_shared_resolver(tmp_path, contig, query):
+    source = source_file(tmp_path, contig=contig, genotype=(0, 1))
+    result = assess([Variant(query, 105, "A", "G")], [source])
+    assert result["alleles"][0]["state"] == "alternate_observed"
+
+
+@pytest.mark.parametrize("source_contig,query,canonical", [
+    ("chrM", "chrMT", "MT"), ("chrUn_KI270442v1", "KI270442.1", "KI270442.1")])
+def test_normal_keys_join_annotation_nominations_without_losing_original_spelling(tmp_path, source_contig, query, canonical):
+    source = source_file(tmp_path, contig=source_contig, genotype=(0, 1))
+    for original in (source_contig, query):
+        result = assess([Variant(original, 105, "A", "G")], [source])
+        assert result["alleles"][0]["contig"] == original
+        assert result["alleles"][0]["normalized_allele"][0] == canonical
+        assert result["alleles"][0]["state"] == "alternate_observed"
+        assert result["background_variants"][0]["contig"] == canonical
+
+
+def test_subset_and_excluded_sources_are_not_complete_normal_scope(tmp_path):
+    source = source_file(tmp_path)
+    outside = replace(source, acquired_regions=(("chr1", 200, 300),))
+    excluded = replace(source, source_id="another-product", selected=False, path=None,
+                       selection_reason="Unresolved specimen assignment")
+    result = assess([Variant("1", 105, "A", "G")], [outside, excluded])
+    assert result["alleles"][0]["state"] == "unavailable"
+    assert [r["reason"] for r in result["alleles"][0]["source_assessments"]] == ["outside_acquired_regions"]
+    assert result["source_inventory"][1]["selection_reason"] == "Unresolved specimen assignment"
+
+
+def test_partial_background_scope_remains_explicit(tmp_path):
+    source = replace(source_file(tmp_path), acquired_regions=(("chr1", 104, 105),))
+    result = assess([Variant("1", 105, "A", "G")], [source], background_flank=10)
+    row = result["alleles"][0]["source_assessments"][0]
+    assert row["state"] == "other_allele_observed"
+    assert row["background_query_interval"] == [94, 115]
+    assert row["background_interval_fully_acquired"] is False
+
+
+def test_pinned_identity_and_reference_context_are_checked(tmp_path):
+    source = source_file(tmp_path)
+    with pytest.raises(ValueError, match="digest mismatch"):
+        assess([Variant("1", 105, "A", "G")], [replace(source, sha256="0" * 64)])
+    with pytest.raises(ValueError, match="index digest mismatch"):
+        assess([Variant("1", 105, "A", "G")], [replace(source, index_sha256="0" * 64)])
+    with pytest.raises(ValueError, match="incompatible reference"):
+        assess([Variant("1", 105, "A", "G", genome="GRCh37")], [source])
+    with pytest.raises(ValueError, match="Duplicate normal source"):
+        assess([Variant("1", 105, "A", "G")], [source, source])
+
+
+def test_cli_and_api_share_evidence_and_preserve_input_receipts(tmp_path, capsys):
+    from isovar.cli.commands import run
+    source = source_file(tmp_path)
+    nominations = tmp_path / "nominations.json"
+    nominations.write_text(json.dumps([dict(contig="1", start=105, ref="A", alt="G", origins=["tumor-call"])]))
+    manifest = tmp_path / "normal.json"
+    manifest.write_text(json.dumps(dict(schema="isovar.normal_manifest.v1", sample_id="patient", reference_name="GRCh38",
+        snapshot="public-snapshot", variants=dict(path=nominations.name, sha256=file_sha256(nominations)),
+        sources=[dict(asdict(source), path=source.path.split('/')[-1])], background_flank=0)))
+    output = tmp_path / "normal-result.json"
+    run(["normal-evidence", "--manifest", str(manifest), "--output", str(output)])
+    cli = json.loads(output.read_text())
+    api = json.loads(json.dumps(assess([Variant("1", 105, "A", "G")], [source])))
+    assert cli["alleles"][0].pop("nomination")["origins"] == ["tumor-call"]
+    assert cli["alleles"] == api["alleles"]
+    assert cli["background_variants"] == api["background_variants"]
+    prior = output.read_bytes()
+    with pytest.raises(SystemExit):
+        run(["normal-evidence", "--manifest", str(manifest), "--output", str(output)])
+    assert output.read_bytes() == prior
+    assert "already exists" in capsys.readouterr().err
+
+
+def test_distant_exon_background_survives_unavailable_focal_query(tmp_path):
+    source = source_file(tmp_path)
+    focal = Variant("missing-contig", 800, "A", "G")
+    assert not assess([focal], [source], background_flank=10)["background_variants"]
+    result = assess([focal], [source], additional_background_regions=[("1", 100, 110)])
+    assert result["alleles"][0]["state"] == "unavailable"
+    assert [(row["contig"], row["alt"]) for row in result["background_variants"]] == [("1", "T")]
+    scope, = result["background_source_scopes"]
+    assert len(scope["unresolved_contigs"]) == 1
+    assert scope["acquired_requested_bases"] == 10
+
+
+def test_background_is_independent_of_focal_ref_mismatch_and_duplicate_neighborhoods(tmp_path):
+    source = source_file(tmp_path)
+    result = assess([Variant("1", 105, "C", "G"), Variant("1", 106, "A", "G")], [source], background_flank=10)
+    assert result["alleles"][0]["state"] == "uncalled"
+    background, = result["background_variants"]
+    origin, = background["origins"]
+    assert background["alt"] == "T"
+    assert origin["record"]["accepted"]
+    assert not origin["record"]["rejection_reasons"]
+
+
+def test_complete_boundary_indel_record_remains_background_without_claiming_reference_coverage(tmp_path):
+    source = replace(source_file(tmp_path, alleles=("ATTT", "A"), genotype=(0, 1)),
+                     acquired_regions=(("chr1", 107, 108),))
+    result = assess([], [source], additional_background_regions=[("1", 107, 108)])
+    background, = result["background_variants"]
+    assert (background["start"], background["ref"], background["alt"]) == (106, "TTT", "")
+    assert background["origins"][0]["record"]["reference_interval"] is None
+    # A long record does not join disjoint acquired/requested territories.
+    assert not assess([], [source], additional_background_regions=[("1", 104, 105)])["background_variants"]
+
+
+def test_original_sid_multiallelic_case_does_not_supply_uncalled_alt(tmp_path):
+    source = source_file(tmp_path, start=4792519, alleles=("G", "GA", "GAA"), genotype=(1, 1))
+    result = assess([Variant("chr1", 4792520, "G", "GAA")], [source])
+    assert result["alleles"][0]["state"] == "other_allele_observed"
+    assert [(row["start"], row["ref"], row["alt"]) for row in result["background_variants"]] == [(4792520, "", "A")]
+
+
+def test_manifest_additional_background_scope_is_pinned_and_cannot_be_overwritten(tmp_path):
+    from isovar.normal_sources import run_normal_evidence_manifest
+    source = source_file(tmp_path)
+    nominations = tmp_path / "nominations.json"
+    nominations.write_text("[]")
+    regions = tmp_path / "exons.json"
+    regions.write_text(json.dumps([["1", 100, 110]]))
+    manifest = tmp_path / "normal.json"
+    manifest.write_text(json.dumps(dict(schema="isovar.normal_manifest.v1", sample_id="patient", reference_name="GRCh38",
+        variants=dict(path=nominations.name, sha256=file_sha256(nominations)), sources=[asdict(source)],
+        additional_background_regions=dict(path=regions.name, sha256=file_sha256(regions)))))
+    with pytest.raises(ValueError, match="overwrite an input"):
+        run_normal_evidence_manifest(manifest, regions)
+    result = run_normal_evidence_manifest(manifest, tmp_path / "result.json")
+    assert result["background_variants"][0]["alt"] == "T"
+    assert result["manifest"]["additional_background_regions"]["sha256"] == file_sha256(regions)
+    regions.write_text("[]")
+    with pytest.raises(ValueError, match="background-region digest"):
+        run_normal_evidence_manifest(manifest, tmp_path / "new-result.json")
