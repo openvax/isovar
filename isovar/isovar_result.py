@@ -25,7 +25,7 @@ from functools import cached_property
 
 from .common import safediv
 from .alignment_score import alignment_score
-from .effect_prediction import effect_outcomes, has_mutant_protein_sequence
+from .effect_prediction import effect_outcomes, effect_protein_comparisons, has_mutant_protein_sequence
 from .read_identity import count_reads, fragment_ids
 
 
@@ -439,13 +439,33 @@ class IsovarResult(object):
     @cached_property
     def predicted_effect_modifies_protein_sequence(self):
         """
-        Does the predicted effect change the protein sequence?
+        Does the selected comparison change its baseline protein sequence?
 
-        Returns bool
+        This is the selected effect's own flag, not an aggregate over its
+        alternatives. ``None`` means unresolved; candidate availability and
+        RNA agreement are reported separately.
+
+        Returns bool or None
         """
         if self.predicted_effect is None:
             return None
         return self.predicted_effect.modifies_protein_sequence
+
+    @cached_property
+    def has_protein_changing_predicted_effect(self) -> bool | None:
+        """Whether any retained comparison predicts a protein change.
+
+        True requires a changed candidate. Otherwise an unresolved candidate
+        gives None; False requires every terminal comparison to be unchanged.
+        This aggregate is used by the default filter, while
+        ``predicted_effect_modifies_protein_sequence`` describes the selected
+        comparison only. RNA support and sequence agreement remain separate.
+        """
+        statuses = [getattr(effect, "modifies_protein_sequence", None)
+                    for effect in effect_outcomes(self.predicted_effect)]
+        if True in statuses:
+            return True
+        return None if not statuses or None in statuses else False
 
     @cached_property
     def num_cdna_mismatches_in_top_protein_sequence(self):
@@ -542,17 +562,16 @@ class IsovarResult(object):
         """Candidate-specific mutant/reference windows, retaining unknowns."""
         p = self.top_protein_sequence
         pairs = []
-        for e in effect_outcomes(self.predicted_effect):
+        for e, reference_sequence, mutant_sequence in effect_protein_comparisons(
+                self.predicted_effect):
             mutant = reference = None
             offset = getattr(e, "aa_mutation_start_offset", None)
             if p is not None and offset is not None:
                 start = offset - p.mutation_start_idx
-                mutant_sequence = getattr(e, "mutant_protein_sequence", None)
                 aa_alt = getattr(e, "aa_alt", None)
                 if mutant_sequence is not None and aa_alt is not None:
                     end = offset + len(aa_alt) + len(p.amino_acids) - p.mutation_end_idx
                     mutant = mutant_sequence[start:end]
-                reference_sequence = getattr(e, "original_protein_sequence", None)
                 if reference_sequence is not None:
                     reference = reference_sequence[start:start + len(p.amino_acids)]
             pairs.append((mutant, reference))

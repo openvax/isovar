@@ -22,6 +22,27 @@ class TinyExons:
                                for a, b in self.intervals) else []
 
 
+def test_report_coding_annotation_includes_alternate_to_intronic_primary(tmp_path):
+    import pysam
+    from varcode import Variant
+    from isovar import ReadCollector, ProteinSequenceCreator
+    from isovar.cli.isovar_evidence_report import collect
+
+    path = tmp_path / "empty.bam"
+    with pysam.AlignmentFile(path, "wb", header={"SQ": [{"SN": "7", "LN": 160000000}]}):
+        pass
+    pysam.index(str(path))
+    variant = Variant("7", 117531117, "A", "C", genome=87)
+    with pysam.AlignmentFile(path) as bam:
+        calls, annotations, proteins = collect(
+            [variant], bam, ReadCollector(), ProteinSequenceCreator(),
+            sample_id="fixture", source="empty.bam")
+    annotation, = annotations.values()
+    assert annotation["reference_coding_effect"] is True
+    assert calls[0]["protein_count"] == "0"
+    assert proteins == []
+
+
 def test_exon_funnel_uses_changed_bases_and_both_insertion_flanks():
     genome = TinyExons([(103, 104), (200, 200)])
     assert changed_reference_interval(100, "ATTTTTA", "A") == (101, 106, False)

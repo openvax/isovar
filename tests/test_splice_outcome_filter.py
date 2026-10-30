@@ -2,14 +2,24 @@
 from types import SimpleNamespace
 
 import pytest
-from varcode import EffectCandidate, MultiOutcomeEffect, SpliceOutcomeSet, Variant
+from varcode import (
+    EffectCandidate, GermlineContext, MultiOutcomeEffect, MutantTranscript,
+    RNAEvidence, Variant, apply_rna_evidence_to_effects, iter_candidate_paths,
+    make_rna_outcome,
+)
 from varcode.effects import EffectCollection, MutationEffect
+from varcode.effects import Intronic, Substitution, Unresolved
+from varcode.effect_hypotheses import (
+    ClassifiedOutcome, EffectHypothesis, RealizedEffectCandidate, RealizedTranscriptProduct,
+)
 
 from isovar.effect_prediction import (
     effect_in_coding_sequence, effect_outcomes, has_mutant_protein_sequence,
     predicted_effects_for_variant, reference_coding_transcripts_for_variant,
-    top_varcode_effect,
+    top_varcode_effect, effect_protein_comparisons,
 )
+from isovar.default_parameters import DEFAULT_FILTER_FLAGS
+from isovar.filtering import evaluate_boolean_filters
 from isovar.isovar_result import IsovarResult
 from isovar.read_evidence import ReadEvidence
 
@@ -36,31 +46,129 @@ def result(effect, protein="ACD"):
                         sorted_protein_sequences=[] if protein is None else [sequence])
 
 
-def test_real_scp2_splice_set_survives_filters_and_reference_selection():
+def test_real_scp2_splice_alternatives_survive_filters_and_reference_selection():
     variant = Variant("1", 53513530, "A", "C", genome=75)
     scope = {"ENST00000371514"}
     effects = predicted_effects_for_variant(
         variant, transcript_id_whitelist=scope, only_coding_effects=True,
         require_mutant_protein_sequence=True)
     effect, = effects
-    assert isinstance(effect, SpliceOutcomeSet)
-    assert effect.effect_if_splicing_unchanged.short_description == "p.D490A"
-    assert effect.mutant_protein_sequence is None
+    assert isinstance(effect, Substitution)
+    assert effect.short_description == "p.D490A"
+    assert effect.mutant_protein_sequence is not None
     assert len({e.mutant_protein_sequence for e in effect_outcomes(effect)
                 if e.mutant_protein_sequence is not None}) >= 2
     assert len(effect.candidates) >= 3
     assert any(e.mutant_protein_sequence is None for e in effect_outcomes(effect))
     assert {t.id for t in reference_coding_transcripts_for_variant(variant, scope)} == scope
-    assert isinstance(top_varcode_effect(variant, scope), SpliceOutcomeSet)
+    assert isinstance(top_varcode_effect(variant, scope), Substitution)
     assert reference_coding_transcripts_for_variant(variant, set()) == []
     r = IsovarResult(variant=variant, predicted_effect=effect,
                      read_evidence=ReadEvidence.from_variant_and_allele_reads(variant, []))
     record = r.to_record()
-    assert record["predicted_effect_class"] == "SpliceOutcomeSet"
-    assert "exon-skip" in record["predicted_effect"]
+    assert record["predicted_effect_class"] == "Substitution"
+    assert record["predicted_effect"] == "p.D490A"
     assert record["has_mutant_protein_sequence_from_predicted_effect"] is True
-    assert record["predicted_effect_mutant_protein_sequence"] is None
+    assert record["predicted_effect_mutant_protein_sequence"] == effect.mutant_protein_sequence
+    assert record["has_protein_changing_predicted_effect"] is True
     assert record["protein_sequence_matches_predicted_mutation_effect"] is None
+
+
+def test_real_intronic_primary_keeps_alternative_and_candidate_aware_default_filter():
+    variant = Variant("7", 117531117, "A", "C", genome=87)
+    scope = {"ENST00000003084"}
+    effect, = predicted_effects_for_variant(
+        variant, transcript_id_whitelist=scope, only_coding_effects=True,
+        require_mutant_protein_sequence=True)
+    assert isinstance(effect, Intronic)
+    assert effect.modifies_coding_sequence is False
+    assert any(e.modifies_protein_sequence is True for e in effect_outcomes(effect))
+    assert {t.id for t in reference_coding_transcripts_for_variant(variant, scope)} == scope
+    r = result(effect, protein=None)
+    assert r.predicted_effect_modifies_protein_sequence is False
+    assert r.has_protein_changing_predicted_effect is True
+    assert "has_protein_changing_predicted_effect" in DEFAULT_FILTER_FLAGS
+    assert evaluate_boolean_filters(r, ["has_protein_changing_predicted_effect"]) == {
+        "has_protein_changing_predicted_effect": True}
+    assert effect.candidates[0].effect is effect
+
+
+def realized(effect, baseline, *, phase="unknown", mutant="MACDEFG", start=None):
+    outcome = ClassifiedOutcome(
+        EffectHypothesis(evidence={"phase": phase}), effect,
+        RealizedTranscriptProduct(None, None, baseline),
+        RealizedTranscriptProduct(None, None, mutant, start_codon_present=start))
+    return RealizedEffectCandidate(effect, (outcome,), (), None, None, 0)
+
+
+def test_shared_effect_retains_distinct_patient_baselines_in_protein_windows():
+    effect = prediction()
+    cis = realized(effect, "MAWDEFG", phase="cis")
+    trans = realized(effect, "MAYDEFG", phase="trans")
+    effect.realized_candidates = (cis, trans)
+    assert list(effect_outcomes(effect)) == [effect]
+    assert list(effect_protein_comparisons(effect)) == [
+        (effect, "MAWDEFG", "MACDEFG"), (effect, "MAYDEFG", "MACDEFG")]
+    r = result(effect)
+    assert r.trimmed_reference_protein_sequence is None
+    assert r.trimmed_predicted_mutant_protein_sequence == "ACD"
+    assert r.protein_sequence_matches_predicted_mutation_effect is True
+    assert effect.realized_candidates[0] is cis
+    assert trans.outcomes[0].hypothesis.evidence == {"phase": "trans"}
+
+
+def test_realized_products_do_not_fall_back_to_effect_reference_or_infer_start():
+    effect = prediction()
+    effect.realized_candidates = (realized(effect, None, start=False),)
+    assert list(effect_protein_comparisons(effect)) == [(effect, None, None)]
+    assert not has_mutant_protein_sequence(effect)
+    assert result(effect).trimmed_reference_protein_sequence is None
+    assert result(effect).protein_sequence_matches_predicted_mutation_effect is None
+
+
+def test_real_patient_hypotheses_and_partial_rna_keep_unavailable_baseline():
+    variant = Variant("7", 117531115, "G", "A", genome=87)
+    transcript = variant.genome.transcript_by_id("ENST00000003084")
+    germline = Variant("7", 117531113, "A", "C", genome=87)
+    predicted = variant.effect_on_transcript(
+        transcript, germline=GermlineContext.from_variants([germline]))
+    original_candidates = predicted.candidates
+    assert {state for c in original_candidates for o in c.outcomes
+            for _, state in o.hypothesis.phase} == {"cis", "trans"}
+    observed = Unresolved(variant, transcript, "observed_rna")
+    observed.mutant_transcript = MutantTranscript.from_sequence(
+        "ATGGCTTAA", reference_transcript=transcript, mutant_protein_sequence="MA",
+        annotator_name="reads", evidence={"sequence_status": "junction_fragment"})
+    observations = RNAEvidence([make_rna_outcome(
+        observed, source="reads", transcript_model_id="partial", read_count=7)])
+    effects = EffectCollection([predicted])
+    apply_rna_evidence_to_effects(effects, observations)
+    effect = effects[0]
+    comparisons = list(effect_protein_comparisons(effect))
+    partial = next(row for row in comparisons if row[2] == "MA")
+    assert partial[1] is None
+    assert partial[0].mutant_transcript.cdna_sequence == "ATGGCTTAA"
+    assert partial[0].modifies_protein_sequence is None
+    paths = list(iter_candidate_paths(effect))
+    candidate = next(path[-1] for terminal, path in paths if terminal is partial[0])
+    assert candidate.outcomes[0].hypothesis.evidence["rna_observation"]["read_count"] == 7
+    assert candidate.outcomes[0].baseline.protein_sequence is None
+    assert len(comparisons) >= len(original_candidates) + 1
+    assert has_mutant_protein_sequence(effect)
+    assert result(effect).trimmed_reference_protein_sequence is None
+
+
+@pytest.mark.parametrize("statuses, expected", [
+    ((False, False), False), ((False, None), None), ((False, True, None), True)])
+def test_aggregate_protein_change_does_not_relabel_selected_comparison(statuses, expected):
+    effects = [prediction() for _ in statuses]
+    for effect, status in zip(effects, statuses):
+        effect.modifies_protein_sequence = status
+    selected = effects[0]
+    selected.candidates = tuple(EffectCandidate(e) for e in effects)
+    r = result(selected)
+    assert r.predicted_effect_modifies_protein_sequence is statuses[0]
+    assert r.has_protein_changing_predicted_effect is expected
 
 
 @pytest.mark.parametrize("coding, expected", [(True, True), (False, False), (None, True)])

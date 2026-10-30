@@ -36,6 +36,34 @@ isovar_results = run_isovar(variants=variants, alignment_file="tumor-rna.bam")
 A `pyensembl.Genome` built from your own GTF and transcript FASTA files works
 the same way, and gene and transcript names then come from that annotation.
 
+## Prediction comparisons
+
+Isovar 1.78 requires Varcode 11.1 and uses its default transcript-model
+annotator. A selected ordinary effect can carry protein-changing alternatives
+even when its own classification is intronic or synonymous. Isovar keeps the
+original result and all candidate evidence when selecting potentially coding
+transcripts or requiring an available candidate protein. This uses Varcode's
+shared traversal for both ordinary effects and legacy outcome containers.
+
+`IsovarResult.predicted_effect_modifies_protein_sequence` describes only the
+selected comparison. `has_protein_changing_predicted_effect` considers all
+terminal comparisons and drives the default positive filter: True if any is
+changed, None if none is changed but some are unresolved, otherwise False.
+Neither flag establishes RNA support or translation.
+
+RNA/protein agreement compares the observed window with each candidate's own
+mutant product and patient baseline. A matching candidate gives True; a negative
+result requires every candidate to be comparable and nonmatching. Unresolved
+alternatives otherwise give None. Scalar trimmed protein windows are available
+only when all comparisons agree. Missing sequence is never filled from the
+annotation, and phase or RNA evidence is not converted into a probability.
+
+The prediction object retains its original candidate graph, including realized
+outcomes' baseline/mutant products and provenance. Consumers needing those
+details can use `varcode.iter_candidate_paths(result.predicted_effect)`; the
+flat selected-effect columns are not an exhaustive candidate export. Supplied
+RNA models remain observations; Isovar performs read collection and assembly.
+
 ## Combined human and viral reference
 
 For **new human alignments**, Isovar recommends GDC's **GRCh38.d1.vd1** combined

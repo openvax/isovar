@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 from ..contig_resolution import UnresolvedContigError, require_resolved_contig
+from ..effect_prediction import effect_outcomes
 from ..isovar_result import IsovarResult
 from ..protein_hypotheses import export_protein_hypotheses
 from ..protein_reporting import protein_report_record
@@ -130,7 +131,9 @@ def collect(variants, alignment, collector, creator, *, sample_id, source, catal
                if index is not None else ())
         annotations[ident] = dict(
             exon_overlap=overlaps_exon(genome, variant.contig, pos, ref_base, alt_base),
-            reference_coding_effect=any(e.modifies_coding_sequence for e in effects),
+            reference_coding_effect=any(
+                outcome is not None and outcome.modifies_coding_sequence is True
+                for effect in effects for outcome in effect_outcomes(effect)),
             orfdata_coding_block_overlap=bool(ids) if catalog is not None else None,
             top_effect_type=type(top_effect).__name__)
         proteins.extend(protein_report_record(protein, ident)
