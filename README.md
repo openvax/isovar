@@ -98,7 +98,8 @@ assembled for it.
 | `top_protein_sequence` | `protein_sequence` and other `protein_sequence_*` columns | The top-ranked mutant protein assembled from RNA, or none |
 | `sorted_protein_sequences` | | Every protein kept, ranked; one by default |
 | `num_alt_reads`, `num_alt_fragments`, `fraction_ref_reads`, ... | Same names | Read evidence for the ref, alt and other alleles |
-| `predicted_effect` | `predicted_effect` | Varcode's prediction from the reference plus this one edit, for comparison |
+| `predicted_effect` | `predicted_effect` | Varcode's selected comparison with its retained alternatives and supplied patient-baseline evidence |
+| `has_protein_changing_predicted_effect` | Same name | Whether any retained candidate predicts a protein change; unknown if unresolved and none is known to change |
 | `passes_all_filters`, `filter_values` | `passes_all_filters`, `filter:<name>` | Filter outcomes |
 
 By default Isovar aims for 49 residues of protein: 2K−1 for peptide size
@@ -144,10 +145,15 @@ for isovar_result in isovar_results:
 Omitting either argument applies the defaults in
 [`default_parameters.py`](https://github.com/openvax/isovar/blob/master/isovar/default_parameters.py):
 `DEFAULT_FILTER_THRESHOLDS`, and `DEFAULT_FILTER_FLAGS`, which are
-`predicted_effect_modifies_protein_sequence`,
+`has_protein_changing_predicted_effect`,
 `has_mutant_protein_sequence_from_rna` and `protein_sequence_contains_mutation`.
 Passing a value replaces the corresponding defaults; to change one threshold,
 copy `DEFAULT_FILTER_THRESHOLDS` and update it.
+
+`predicted_effect_modifies_protein_sequence` continues to describe the selected
+comparison alone. The default candidate-aware filter also considers alternatives
+when that preferred result is intronic or synonymous. Unknown change status
+fails this positive filter. See [prediction comparisons](docs/reference-annotation.md#prediction-comparisons).
 
 ## Structural variants and fusions
 

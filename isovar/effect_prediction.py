@@ -10,58 +10,68 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from varcode import MultiOutcomeEffect
+from collections.abc import Iterator
+
+from varcode import MutationEffect, iter_candidate_effects, iter_candidate_paths
+from varcode.effect_hypotheses import RealizedEffectCandidate
 
 from .logging import get_logger
 
 logger = get_logger(__name__)
 
 
-def effect_in_coding_sequence(effect):
-    """Keep potentially coding effects, including unresolved alternatives."""
-    def visit(current, ancestors):
-        if current is None or id(current) in ancestors:
-            return False
-        # None means unresolved, not known noncoding. SpliceOutcomeSet also
-        # advertises potential coding changes before resolving its candidates.
-        if current.modifies_coding_sequence is not False:
-            return True
-        if isinstance(current, MultiOutcomeEffect):
-            return any(visit(c.effect, ancestors | {id(current)})
-                       for c in current.candidates)
-        return False
+def effect_in_coding_sequence(effect: MutationEffect | None) -> bool:
+    """Keep potentially coding effects, including unresolved alternatives.
 
-    return visit(effect, set())
-
-
-def effect_outcomes(effect):
-    """Yield candidate effects without replacing the original outcome set.
-
-    Varcode structural/haplotype effects can include themselves as concrete
-    candidates. Visit those once; an empty set or a cycle has unknown outcomes.
+    The selected effect's own flag remains unchanged. Ordinary Varcode results
+    and legacy outcome sets both retain all candidate comparisons.
     """
-    def visit(current, ancestors):
-        if not isinstance(current, MultiOutcomeEffect):
-            yield current
-        elif id(current) in ancestors:
-            yield None
+    if effect is None:
+        return False
+    return effect.modifies_coding_sequence is not False or any(
+        candidate is None or candidate.modifies_coding_sequence is not False
+        for candidate in iter_candidate_effects(effect))
+
+
+def effect_outcomes(effect: MutationEffect | None) -> Iterator[MutationEffect | None]:
+    """Yield terminal candidate effects once by identity, retaining unknowns.
+
+    This compatibility name uses Varcode's shared traversal. For evidence or
+    patient-baseline comparisons use ``iter_candidate_paths`` instead, since
+    distinct provenance paths may lead to the same effect.
+    """
+    yield from iter_candidate_effects(effect)
+
+
+def effect_protein_comparisons(
+        effect: MutationEffect | None,
+) -> Iterator[tuple[MutationEffect | None, str | None, str | None]]:
+    """Yield each comparison's effect, baseline protein and mutant protein.
+
+    Realized outcomes retain their own patient products, including separate
+    phase/baseline hypotheses which share a terminal effect. Legacy and bare
+    effects use their standard sequence accessors. Unavailable products stay
+    ``None``; an empty string is a known empty protein. The original candidate
+    graph, evidence and ordering are never modified.
+    """
+    for terminal, path in iter_candidate_paths(effect):
+        candidate = path[-1] if path else None
+        if terminal is not None and isinstance(candidate, RealizedEffectCandidate):
+            if not candidate.outcomes:
+                yield None, None, None
+            for outcome in candidate.outcomes:
+                yield (
+                    outcome.effect,
+                    outcome.baseline.to_mutant_transcript().mutant_protein_sequence,
+                    outcome.mutant.to_mutant_transcript().mutant_protein_sequence)
         else:
-            candidates = current.candidates
-            if not candidates:
-                yield None
-            for candidate in candidates:
-                if candidate.effect is current:
-                    yield current
-                else:
-                    yield from visit(candidate.effect, ancestors | {id(current)})
-
-    yield from visit(effect, set())
+            yield (terminal, getattr(terminal, "original_protein_sequence", None),
+                   getattr(terminal, "mutant_protein_sequence", None))
 
 
-def has_mutant_protein_sequence(effect):
+def has_mutant_protein_sequence(effect: MutationEffect | None) -> bool:
     """Whether at least one outcome has a known protein (possibly empty)."""
-    return any(getattr(e, "mutant_protein_sequence", None) is not None
-               for e in effect_outcomes(effect))
+    return any(mutant is not None for _, _, mutant in effect_protein_comparisons(effect))
 
 def predicted_effects_for_variant(
         variant,

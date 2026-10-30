@@ -206,7 +206,7 @@ DEFAULT_FILTER_THRESHOLDS = OrderedDict([
 ])
 
 DEFAULT_FILTER_FLAGS = [
-    "predicted_effect_modifies_protein_sequence",
+    "has_protein_changing_predicted_effect",
     "has_mutant_protein_sequence_from_rna",
     "protein_sequence_contains_mutation",
 ]

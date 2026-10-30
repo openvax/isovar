@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.78.0
+
+- Adopt Varcode 11's shared transcript-model default and public candidate
+  traversal (#651). Retain coding alternatives attached to ordinary intronic
+  or synonymous selected effects, including nested legacy outcome sets.
+- Compare observed RNA proteins with each candidate's own patient baseline and
+  mutant product. Preserve phase/RNA provenance and unavailable sequence;
+  selected-effect summary flags continue to describe only that comparison.
+- Include coding alternatives in evidence-report annotation funnels. Require
+  Varcode 11.1 or later within major version 11.
+
 ## 1.75.2
 
 - Preserve supplied genomic competitors to candidate poly-A/T tails. Origin

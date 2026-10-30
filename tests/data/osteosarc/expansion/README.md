@@ -233,6 +233,13 @@ hashes, original source URLs, BAM/index checksums and original reference
 subsets make the fixture provenance auditable. The complete bulk MT region
 is retained, not subsampled.
 
+The expected public-result filters use Isovar 1.78's candidate-aware
+`has_protein_changing_predicted_effect` name. The migration changed that key
+in all 98 default/primary-only records, 16 stress results and 184 union-panel
+results. Their truth values, RNA counts, protein sequences, ranks and
+source/reference identities are unchanged. A preferred
+comparison's own change flag is now reported separately from this filter.
+
 `stress-corpus/` has four separately labelled alleles in four RNA products:
 ACSL6/KTN1 insertions, an EPPK1 MNV, and the source-linked NTF3 compound
 `AG>GT`. None substitutes for vaccine-index membership. No exact insertion

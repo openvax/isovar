@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from varcode import ReadPhaseResolver, apply_phase_resolver_to_effects, load_vcf
+from varcode import ReadPhaseResolver, apply_phase_resolver_to_effects, iter_candidate_paths, load_vcf
 
 from isovar import IsovarMutantTranscript, IsovarReadPhasing, run_isovar
 
@@ -110,13 +110,20 @@ def test_b16_effects_accept_composed_isovar_source(result_and_transcript):
         )
     ]
     assert matching_effects
-    mutant_transcripts = [
-        effect.mutant_transcript
+    observed_candidates = [
+        (candidate, path)
         for effect in matching_effects
-        if getattr(effect, "mutant_transcript", None) is not None
+        for candidate, path in iter_candidate_paths(effect)
+        if candidate is not None and candidate.mutant_transcript is not None
+        and candidate.mutant_protein_sequence == result.top_protein_sequence.amino_acids
     ]
-    assert mutant_transcripts
-    eq_(mutant_transcripts[0].reference_transcript.id, transcript.id)
-    eq_(
-        mutant_transcripts[0].mutant_protein_sequence,
-        result.top_protein_sequence.amino_acids)
+    assert observed_candidates
+    for candidate, path in observed_candidates:
+        model = candidate.mutant_transcript
+        assert model.reference_transcript.id == transcript.id
+        assert model.cdna_sequence in result.top_protein_sequence.cdna_sequences
+        # A supplied window does not replace the complete DNA prediction or
+        # establish a complete patient baseline. Varcode retains it explicitly.
+        assert candidate.original_protein_sequence is None
+        assert candidate.modifies_protein_sequence is None
+        assert path[-1].outcomes[0].baseline.protein_sequence is None
