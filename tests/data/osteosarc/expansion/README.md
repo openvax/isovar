@@ -235,8 +235,9 @@ is retained, not subsampled.
 
 The expected public-result filters use Isovar 1.78's candidate-aware
 `has_protein_changing_predicted_effect` name. The migration changed that key
-in all 98 default/primary-only records; their True values, RNA counts, protein
-sequences, ranks and source/reference identities are unchanged. A preferred
+in all 98 default/primary-only records, 16 stress results and 184 union-panel
+results. Their truth values, RNA counts, protein sequences, ranks and
+source/reference identities are unchanged. A preferred
 comparison's own change flag is now reported separately from this filter.
 
 `stress-corpus/` has four separately labelled alleles in four RNA products:

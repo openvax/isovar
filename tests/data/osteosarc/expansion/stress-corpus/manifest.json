@@ -25,6 +25,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -38,7 +39,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_callable_allele",
@@ -119,6 +119,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -132,7 +133,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_callable_allele",
@@ -213,6 +213,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -226,7 +227,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_alt_reads",
@@ -20008,6 +20008,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -20021,7 +20022,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_alt_reads",
@@ -20176,6 +20176,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -20189,7 +20190,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_callable_allele",
@@ -20270,6 +20270,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -20283,7 +20284,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_callable_allele",
@@ -20364,6 +20364,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -20377,7 +20378,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_alt_reads",
@@ -23103,6 +23103,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": true,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -23116,7 +23117,6 @@
           "min_num_alt_fragments": true,
           "min_num_alt_reads": true,
           "min_ratio_alt_to_other_fragments": true,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": true
         },
         "outcome": "expected_top_protein",
@@ -23315,6 +23315,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -23328,7 +23329,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_callable_allele",
@@ -23409,6 +23409,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -23422,7 +23423,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_callable_allele",
@@ -23503,6 +23503,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -23516,7 +23517,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_alt_reads",
@@ -24498,6 +24498,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -24511,7 +24512,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": true,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_rna_candidate",
@@ -24616,6 +24616,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -24629,7 +24630,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_callable_allele",
@@ -24710,6 +24710,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -24723,7 +24724,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_callable_allele",
@@ -24804,6 +24804,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": false,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -24817,7 +24818,6 @@
           "min_num_alt_fragments": false,
           "min_num_alt_reads": false,
           "min_ratio_alt_to_other_fragments": false,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": false
         },
         "outcome": "no_alt_reads",
@@ -31923,6 +31923,7 @@
         },
         "filter_values": {
           "has_mutant_protein_sequence_from_rna": true,
+          "has_protein_changing_predicted_effect": true,
           "max_fraction_other_fragments": true,
           "max_fraction_other_reads": true,
           "max_fraction_ref_fragments": true,
@@ -31936,7 +31937,6 @@
           "min_num_alt_fragments": true,
           "min_num_alt_reads": true,
           "min_ratio_alt_to_other_fragments": true,
-          "predicted_effect_modifies_protein_sequence": true,
           "protein_sequence_contains_mutation": true
         },
         "outcome": "expected_top_protein",
