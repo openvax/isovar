@@ -13,6 +13,9 @@ osteosarc>=0.15.5,<0.16
 # Shared species-scoped ORF models and reference MS observations.
 orfdata>=0.39.1,<1
 
+# Versioned human CTA nomination with policy, reference and source provenance.
+oncoref>=1.21.0,<2
+
 # Figures and PDF reports are part of the standard CLI installation.
 matplotlib>=3.6,<4
 reportlab>=4,<6

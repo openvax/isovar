@@ -61,7 +61,7 @@ def reconstruction_identity():
              if p.name != "cohort_pdf.py"}
     return dict(isovar_version=__version__, implementation_files=files,
                 dependencies={name: version(name) for name in
-                              ("pysam", "edlib", "pyensembl", "varcode", "orfdata")})
+                              ("pysam", "edlib", "pyensembl", "varcode", "orfdata", "oncoref")})
 
 
 def _inputs(manifest, root, keys=None):
@@ -88,6 +88,8 @@ def _selected_file_keys(manifest, source_ids):
             if source.get("unavailable_reason"):
                 continue
             keys.update(task.get("reference_files", []))
+            if family == "isoforms" and task.get("reference"):
+                keys.update(task["reference"][name] for name in ("genome_fasta", "gtf"))
             profile_id = read_end_profile_file_id(task.get('read_collection', {}).get('read_end_profile'))
             if profile_id is not None:
                 keys.add(profile_id)
@@ -492,6 +494,7 @@ def _antigen_path_task(family, task, source, files, contexts, cache_directory, l
     """Pass the recorded policy to both antigen families using shared acquisition."""
     from .antigen_isoforms import reconstruct_antigen_isoforms
     from .antigen_reference import GDC_REFERENCE, IsoformTarget
+    from .antigen_targets import prepare_antigen_reference
     from .fusion import FusionReference
     from .viral_sequences import reconstruct_viral_sequences
 
@@ -502,11 +505,15 @@ def _antigen_path_task(family, task, source, files, contexts, cache_directory, l
     reserved = {'read_collector', 'library_index', 'read_filter_identity'}.intersection(parameters)
     if reserved:
         raise ValueError('Use read_collection for cohort policy, not parameters: ' + ', '.join(sorted(reserved)))
+    prepared = None
+    reference_options = None
     if family == 'viral':
         reference = 'GRCh38' if parameters.get('reference_profile', GDC_REFERENCE) == GDC_REFERENCE else None
         arguments = dict(genome_fasta=files[task['genome_fasta']])
         reconstruct = reconstruct_viral_sequences
-    else:
+    elif 'targets' in task:
+        if any(key in task for key in ('reference', 'genes', 'gene_set')):
+            raise ValueError('Use explicit targets or reference plus genes/gene_set, not both')
         targets = [IsoformTarget(**dict(row, reference=FusionReference(**row['reference'])))
                    for row in read_json(files[task['targets']])]
         if not targets:
@@ -514,10 +521,26 @@ def _antigen_path_task(family, task, source, files, contexts, cache_directory, l
         reference = targets[0].reference.reference_name
         arguments = dict(targets=targets, reference_identity=task['reference_identity'])
         reconstruct = reconstruct_antigen_isoforms
+    else:
+        reference_options = dict(task['reference'])
+        for key in ('genome_fasta', 'gtf'):
+            reference_options[key] = files[reference_options[key]]
+        reference = reference_options.get('assembly', 'GRCh38')
+        arguments = {}
+        reconstruct = reconstruct_antigen_isoforms
+    genome_fasta = (reference_options['genome_fasta'] if reference_options is not None
+                    else arguments.get('genome_fasta'))
     library = _source_library(source, files, collector, reference, contexts, cache_directory, libraries,
-                              genome_fasta=arguments.get('genome_fasta'))
-    return reconstruct(library.reader, sample_id=source['sample_id'], source=source['source_id'],
-                       read_collector=collector, library_index=library, **arguments, **parameters)
+                              genome_fasta=genome_fasta)
+    if reference_options is not None:
+        prepared = prepare_antigen_reference(
+            library.reader, genes=task.get('genes'), gene_set=task.get('gene_set'), **reference_options)
+        arguments = dict(targets=prepared.targets, reference_identity=prepared.identity)
+    result = reconstruct(library.reader, sample_id=source['sample_id'], source=source['source_id'],
+                         read_collector=collector, library_index=library, **arguments, **parameters)
+    if prepared is not None:
+        result['target_selection'] = prepared.target_selection
+    return result
 
 
 def _run_cohort(manifest_path, output_dir, *, resume, render_only, source_ids, render, contexts, cache_directory):

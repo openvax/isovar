@@ -18,14 +18,14 @@ placement exists (insertions, soft clips, junction homology).
 
 from bisect import bisect_left, bisect_right
 from collections import Counter, OrderedDict, defaultdict, deque
-from collections.abc import Mapping
+from collections.abc import Hashable, Mapping
 from heapq import merge
 from dataclasses import asdict, dataclass
 from functools import cached_property
 from hashlib import sha256
 from itertools import chain, combinations, islice, repeat
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, NamedTuple, Sequence
+from typing import TYPE_CHECKING, Generic, NamedTuple, Sequence, TypeVar
 
 from .read_end_inference import ReadSequenceView, _uncovered_intervals
 
@@ -945,29 +945,39 @@ class _Observations:
         return found
 
 
-class _ObservationIndex:
-    """A fixed set of observations (e.g. one seed's reads), binned by placed runs."""
+_PlacementKey = TypeVar('_PlacementKey', bound=Hashable)
 
-    def __init__(self, observations):
-        self.observations = {o.key: o for o in observations}
+
+class _PlacementIndex(Generic[_PlacementKey]):
+    """Immutable named placements, binned by collinear runs for exact routing."""
+
+    def __init__(self, placements: Mapping[_PlacementKey, tuple[tuple[str, int, str] | None, ...]]) -> None:
         grouped = {}
-        for o in observations:
-            grouped.setdefault(o.positions, set()).add(o.key)
+        for key, positions in placements.items():
+            grouped.setdefault(positions, set()).add(key)
         self.geometry = [(_runs(positions), keys) for positions, keys in grouped.items()]
-        self.windows = {}
         self.bins = defaultdict(set)
         for group_id, (runs, _) in enumerate(self.geometry):
             for _, _, contig, low, high, strand in runs:
                 for b in range(low // _BIN, (high - 1) // _BIN + 1):
                     self.bins[contig, strand, b].add(group_id)
 
-    def overlapping(self, positions, lo, hi):
+    def overlapping(self, positions: Sequence[tuple[str, int, str] | None], lo: int, hi: int) -> set[tuple[_PlacementKey, int]]:
         """(key, path offset of the observation start) sharing a placed base in positions[lo:hi]."""
         runs = _runs(positions[lo:hi])
         groups = {g for _, _, contig, low, high, strand in runs
                   for b in range(low // _BIN, (high - 1) // _BIN + 1) for g in self.bins.get((contig, strand, b), ())}
         return {(key, offset) for g in groups for _, offset in _offsets(runs, lo, g, self.geometry[g][0])
                 for key in self.geometry[g][1]}
+
+
+class _ObservationIndex(_PlacementIndex[str]):
+    """Placed observations with cached windows for assembly extension."""
+
+    def __init__(self, observations):
+        self.observations = {o.key: o for o in observations}
+        super().__init__({key: o.positions for key, o in self.observations.items()})
+        self.windows = {}
 
     def grouped_overlapping(self, positions, lo, hi):
         window = positions[lo:hi]

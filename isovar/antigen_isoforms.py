@@ -7,13 +7,14 @@ sequence donors. Transcript abundance is estimated separately by Salmon.
 
 from __future__ import annotations
 
+from bisect import bisect_left
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import asdict
 from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import Any, Literal
 
 import pysam
 
@@ -22,7 +23,7 @@ from .antigen_reference import IsoformTarget
 from .genetic_code import standard_genetic_code
 from .read_collector import ReadCollector
 from .transcript_path_frames import TranscriptPathModel
-from .sv_rna import _collection_parameters, _runs
+from .sv_rna import _PlacementIndex, _collection_parameters, _runs
 from .rna_reconstruction import _contains, _discover, _support
 from .rna_library import RnaLibraryIndex, _original_library_context
 
@@ -55,13 +56,26 @@ def _coding(sequence, positions, models):
     return sorted(readings.values(), key=lambda row: (row["query_start"], row["amino_acids"]))
 
 
-def _candidate(sequence, positions, targets, models, annotated=()):
+def _candidate(sequence, positions, targets, models, model_index, annotated=()):
     positions = tuple(positions)
-    genes = sorted({t.gene_id for t in targets if any(
-        p is not None and p[0] == t.reference.contig and p[2] == t.reference.strand
-        and t.reference.exons[0][0] <= p[1] < t.reference.exons[-1][1] for p in positions)})
+    coordinates = defaultdict(set)
+    for position in positions:
+        if position is not None:
+            contig, base, strand = position
+            coordinates[contig, strand].add(base)
+    coordinates = {key: sorted(bases) for key, bases in coordinates.items()}
+    genes = set()
+    for target in targets:
+        reference = target.reference
+        bases = coordinates.get((reference.contig, reference.strand), ())
+        start = bisect_left(bases, reference.exons[0][0])
+        if start < len(bases) and bases[start] < reference.exons[-1][1]:
+            genes.add(target.gene_id)
+    genes = sorted(genes)
     if annotated:
         genes = sorted({t.gene_id for t in targets if t.reference.transcript_id in annotated})
+    relevant = sorted({i for i, _ in model_index.overlapping(positions, 0, len(positions))})
+    models = [models[i] for i in relevant]
     key = repr((sequence, positions)).encode()
     reaches_ends = any(positions[0] == model.positions[0] and positions[-1] == model.positions[-1]
                        for model in models)
@@ -70,6 +84,25 @@ def _candidate(sequence, positions, targets, models, annotated=()):
                 origin="reference_model" if annotated else "observed_assembly",
                 reaches_annotated_transcript_ends=reaches_ends,
                 coding=_coding(sequence, positions, models))
+
+
+def _discover_gene_paths(groups, targets, collector, max_discovery_reads, max_paths, min_overlap):
+    """Budget each gene independently, then reconcile/support the combined paths."""
+    by_gene = defaultdict(lambda: defaultdict(set))
+    for target in targets:
+        reference = target.reference
+        by_gene[target.gene_id][reference.contig].add(
+            (reference.exons[0][0], reference.exons[-1][1], reference.strand))
+    paths, searches = {}, []
+    for gene_id, regions in sorted(by_gene.items()):
+        found, discovery = _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
+        paths.update((path, None) for path in found)
+        searches.append(dict(gene_id=gene_id, paths=len(found), **discovery))
+    # A segment can occur in several gene partitions. Keep those counts local;
+    # the one subsequent support pass supplies unique panel fragment counts.
+    return list(paths), dict(scope='per_gene', genes=searches,
+                            max_discovery_reads=max_discovery_reads, max_paths=max_paths,
+                            min_overlap=min_overlap, truncated=any(row['truncated'] for row in searches))
 
 
 def _protein_groups(candidates, support):
@@ -96,6 +129,7 @@ def reconstruct_antigen_isoforms(
         bam: pysam.AlignmentFile, *, targets: Iterable[IsoformTarget], sample_id: str, source: str,
         reference_identity: dict[str, Any] | None = None,
         max_discovery_reads: int = 10000, max_paths: int = 256, min_overlap: int = 30,
+        discovery_partition: Literal['panel', 'gene'] = 'panel',
         scratch_dir: str | Path | None = None, read_collector: ReadCollector | None = None,
         library_index: RnaLibraryIndex | None = None, read_filter_identity: str | None = None) -> dict[str, Any]:
     """Reconstruct targeted RNA without a nominated mutation.
@@ -114,6 +148,11 @@ def reconstruct_antigen_isoforms(
     max_discovery_reads, max_paths, min_overlap : int
         Discovery resource limits and minimum exact overlap. All eligible
         records are subsequently checked for support, including omitted reads.
+    discovery_partition : {"panel", "gene"}
+        Apply discovery budgets across the panel (compatibility default), or
+        independently to each gene for large catalogues. Gene mode reports
+        counts/truncation per gene; overlapping memberships are never summed
+        as unique reads. Both modes use one joint original-fragment support pass.
     read_collector : ReadCollector, optional
         Shared record/sequence policy for discovery and support. Defaults to
         ReadCollector.for_rna_paths(). Original mate identities are retained;
@@ -134,6 +173,8 @@ def reconstruct_antigen_isoforms(
         exact sequence match; this initial workflow leaves them unassigned.
     """
     targets = tuple(targets)
+    if discovery_partition not in {'panel', 'gene'}:
+        raise ValueError("discovery_partition must be 'panel' or 'gene'")
     if not targets or not all(isinstance(t, IsoformTarget) for t in targets):
         raise ValueError("Provide at least one IsoformTarget")
     targets = tuple(sorted(targets, key=lambda t: t.reference.transcript_id))
@@ -163,11 +204,15 @@ def reconstruct_antigen_isoforms(
         r = t.reference
         regions[r.contig].add((r.exons[0][0], r.exons[-1][1], r.strand))
     models = [TranscriptPathModel(t.reference) for t in targets]
+    model_index = _PlacementIndex({i: model.positions for i, model in enumerate(models)})
     with TemporaryDirectory(dir=scratch_dir, prefix="isovar-isoforms-") as directory, _original_library_context(
             bam, collector, directory, library_index=library_index,
             reference_name=targets[0].reference.reference_name, read_filter_identity=read_filter_identity) as groups:
         statistics = groups.statistics
-        paths, discovery = _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
+        if discovery_partition == 'gene':
+            paths, discovery = _discover_gene_paths(groups, targets, collector, max_discovery_reads, max_paths, min_overlap)
+        else:
+            paths, discovery = _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
         candidates = {}
         for target, model in zip(targets, models):
             r = target.reference
@@ -176,13 +221,13 @@ def reconstruct_antigen_isoforms(
                 candidates[key]["annotated_transcript_ids"].append(r.transcript_id)
                 candidates[key]["gene_ids"] = sorted(set(candidates[key]["gene_ids"]) | {target.gene_id})
             else:
-                candidates[key] = _candidate(*key, targets, models, [r.transcript_id])
+                candidates[key] = _candidate(*key, targets, models, model_index, [r.transcript_id])
         partial = []
         for sequence, positions in paths:
             key = sequence, positions
             if key in candidates:
                 continue
-            row = _candidate(*key, targets, models)
+            row = _candidate(*key, targets, models, model_index)
             containers = [c["id"] for k, c in candidates.items() if _contains(k, key)]
             if containers or not row["reaches_annotated_transcript_ends"]:
                 row["compatible_models"] = sorted(containers)

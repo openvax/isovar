@@ -158,11 +158,38 @@ Each additional task has `id`, `sample_id`, and `source_id`:
   `genome_fasta` names the pinned reference, and `parameters` are passed to
   `reconstruct_viral_sequences`. A human-only or regional BAM does not perform
   whole-library viral discovery through this task.
-- `isoforms`: `targets` names a pinned JSON array of `IsoformTarget` fields,
-  including a nested `FusionReference`; supply `reference_identity` and any
-  reconstruction `parameters`.
+- `isoforms`: select `gene_set: "oncoref-cta"` or an explicit `genes` list, and
+  supply `reference` as in the example below. API, CLI and cohort runs use the
+  same target preparation and preserve the same selection ledger. Alternatively,
+  `targets` names a pinned JSON array of `IsoformTarget` fields, including a
+  nested `FusionReference`; supply `reference_identity`. These two input modes
+  cannot be mixed. Reconstruction settings belong in `parameters`.
 - `prior_assessments`: `input` pins an earlier assessment and `summary` explains
   its scope. Reports label it as earlier evidence, not a newly executed screen.
+
+```json
+{
+  "id": "sample-1-CTA",
+  "sample_id": "sample-1",
+  "source_id": "sample-1-RNA",
+  "gene_set": "oncoref-cta",
+  "parameters": {"discovery_partition": "gene"},
+  "reference": {
+    "genome_fasta": "alignment-fasta",
+    "gtf": "annotation-gtf",
+    "annotation_name": "Ensembl",
+    "annotation_version": 115,
+    "assembly": "GRCh38",
+    "alignment_reference": "custom"
+  }
+}
+```
+
+`genome_fasta` and `gtf` above are keys in the manifest's checksum-pinned file
+registry. Annotation release and target selection enter receipt identity;
+changing either requires a new result. The installed OncoRef version is also
+part of the computation identity. See [CTA membership](antigen-isoforms.md#where-cta-membership-comes-from)
+for the distinction between catalogue nomination and downstream admission.
 
 A source may have `unavailable_reason`. `pending_inputs` rows use `sample_id`,
 `source`, and `state`; the report identifies these gaps rather than treating
