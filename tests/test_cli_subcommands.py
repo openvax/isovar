@@ -1,5 +1,6 @@
 """Subcommands reuse legacy parsers/handlers without changing their defaults."""
 
+import inspect
 from importlib import import_module
 from pathlib import Path
 import re
@@ -125,12 +126,32 @@ def test_every_command_is_in_exactly_one_help_group():
     assert sorted(grouped) == sorted(commands.COMMANDS)
 
 
-def test_top_level_help_lists_commands_by_group_with_run_first(capsys):
+def test_top_level_help_lists_commands_by_group_with_run_first(capsys, monkeypatch):
+    monkeypatch.setenv("COLUMNS", "200")
     commands.run([])
     help_text = capsys.readouterr().out
     positions = [help_text.index(title + ":") for title, _ in commands.COMMAND_GROUPS]
     assert positions == sorted(positions)
     assert commands.COMMAND_GROUPS[0][1][0] == "run"
+    # Long descriptions wrap, so compare with whitespace collapsed.
+    collapsed = " ".join(help_text.split())
     for name, (_, description) in commands.COMMANDS.items():
-        assert re.search(r"^  %s +%s$" % (re.escape(name), re.escape(description)), help_text, re.M)
+        assert "%s %s" % (name, description) in collapsed
     assert "SUPPRESS" not in help_text
+
+
+def test_top_level_help_fits_an_80_column_terminal(capsys, monkeypatch):
+    monkeypatch.setenv("COLUMNS", "80")
+    commands.run([])
+    lines = capsys.readouterr().out.splitlines()
+    assert max(len(line) for line in lines) <= 80
+
+
+def test_table_exports_group_is_exactly_the_commands_that_write_tables():
+    def writes_table(name):
+        source = inspect.getsource(import_module("isovar.cli." + commands.COMMANDS[name][0]))
+        return "run_dataframe_command" in source or "add_output_args" in source
+    groups = dict(commands.COMMAND_GROUPS)
+    assert all(writes_table(name) for name in groups["Table exports"])
+    others = [n for title, names in commands.COMMAND_GROUPS if title != "Table exports" for n in names]
+    assert not [n for n in others if writes_table(n) and n != "run"]

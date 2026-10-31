@@ -3,7 +3,9 @@
 import argparse
 from copy import copy
 from importlib import import_module
+import shutil
 import sys
+import textwrap
 
 from ..logging import configure_cli_logging, get_logger
 from .output_args import write_dataframe
@@ -50,10 +52,11 @@ COMMANDS = {
 # Help sections, in display order. Every command appears in exactly one.
 COMMAND_GROUPS = (
     ("Pipeline", ("run",)),
-    ("Tables", (
-        "protein-sequences", "protein-hypotheses", "translations", "variant-sequences",
-        "variant-reads", "allele-reads", "allele-counts", "reference-contexts",
-        "variant-rna-paths", "allele-interpretations")),
+    ("Table exports", (
+        "protein-sequences", "translations", "variant-sequences", "variant-reads",
+        "allele-reads", "allele-counts", "reference-contexts")),
+    ("RNA hypotheses and interpretation", (
+        "protein-hypotheses", "variant-rna-paths", "allele-interpretations")),
     ("Structural variants and fusions", ("sv-source", "sv-rna", "sv-audit", "fusion")),
     ("Viral, isoform and uORF evidence", ("viral", "isoforms", "uorf-evidence")),
     ("Proteome and patient background", ("proteome", "patient-background-pairs", "normal-evidence")),
@@ -63,13 +66,21 @@ COMMAND_GROUPS = (
 
 
 def command_listing():
-    """Return the command help grouped into sections, `run` first."""
-    width = max(len(name) for name in COMMANDS) + 2
+    """Return the command help grouped into sections, wrapped to the terminal."""
+    columns = min(shutil.get_terminal_size((80, 24)).columns, 100)
+    name_width = max(len(name) for name in COMMANDS) + 4
     lines = []
     for title, names in COMMAND_GROUPS:
         lines.append(title + ":")
-        lines.extend("  %-*s%s" % (width, name, COMMANDS[name][1]) for name in names)
+        for name in names:
+            wrapped = textwrap.wrap(
+                COMMANDS[name][1], max(columns - name_width, 20), break_on_hyphens=False)
+            lines.append("  %-*s%s" % (name_width - 2, name, wrapped[0]))
+            lines.extend(" " * name_width + line for line in wrapped[1:])
         lines.append("")
+    lines.append(textwrap.fill(
+        "Use 'isovar COMMAND --help' for options. 'isovar --vcf ... --bam ...' runs the "
+        "pipeline, and table/plot commands also install as isovar-COMMAND scripts.", columns))
     return "\n".join(lines)
 
 
@@ -105,10 +116,9 @@ def run(args=None):
     if args and args[0].startswith("-") and args[0] not in {"-h", "--help", "--version"}:
         return import_module(".isovar_main", __package__).run(args, prog="isovar")
     parser = argparse.ArgumentParser(
-        prog="isovar", usage="%(prog)s [-h] [--version] COMMAND ...", description="Reconstruct mutant protein sequences from RNA evidence.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=command_listing() + "\n" + ("Use 'isovar COMMAND --help' for options. 'isovar --vcf ... --bam ...' runs the "
-                "pipeline, and table/plot commands also install as isovar-COMMAND scripts."))
+        prog="isovar", usage="%(prog)s [-h] [--version] COMMAND ...",
+        description="Reconstruct mutant protein sequences from RNA evidence.",
+        formatter_class=argparse.RawDescriptionHelpFormatter, epilog=command_listing())
     parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
     # The grouped listing in the epilog replaces argparse's flat command list.
     parser.add_argument("command", metavar="COMMAND", choices=list(COMMANDS), help=argparse.SUPPRESS)
