@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.79.0
+
+- Group `isovar --help` into sections with `run` first, replacing the flat
+  27-command list, wrapped to the terminal width. Command names and options
+  are unchanged (#653).
+- Suggest the closest command for a mistyped name instead of printing all 27,
+  and list every command, by the same groups, in `docs/command-line.md`.
+
 ## 1.78.0
 
 - Adopt Varcode 11's shared transcript-model default and public candidate

@@ -1,5 +1,6 @@
 """Subcommands reuse legacy parsers/handlers without changing their defaults."""
 
+import inspect
 from importlib import import_module
 from pathlib import Path
 import re
@@ -118,3 +119,60 @@ def test_real_subcommand_csv_matches_legacy_handler(name, tmp_path):
     import_module("isovar.cli." + module_name).run(args + ["--output", str(legacy)])
     commands.run([name] + args + ["--output", str(subcommand)])
     assert legacy.read_bytes() == subcommand.read_bytes()
+
+
+def test_every_command_is_in_exactly_one_help_group():
+    grouped = [name for _, names in commands.COMMAND_GROUPS for name in names]
+    assert sorted(grouped) == sorted(commands.COMMANDS)
+
+
+def test_top_level_help_lists_commands_by_group_with_run_first(capsys, monkeypatch):
+    monkeypatch.setenv("COLUMNS", "200")
+    commands.run([])
+    help_text = capsys.readouterr().out
+    positions = [help_text.index(title + ":") for title, _ in commands.COMMAND_GROUPS]
+    assert positions == sorted(positions)
+    assert commands.COMMAND_GROUPS[0][1][0] == "run"
+    # Long descriptions wrap, so compare with whitespace collapsed.
+    collapsed = " ".join(help_text.split())
+    for name, (_, description) in commands.COMMANDS.items():
+        assert "%s %s" % (name, description) in collapsed
+    assert "SUPPRESS" not in help_text
+
+
+def test_top_level_help_fits_an_80_column_terminal(capsys, monkeypatch):
+    monkeypatch.setenv("COLUMNS", "80")
+    commands.run([])
+    lines = capsys.readouterr().out.splitlines()
+    assert max(len(line) for line in lines) <= 80
+
+
+def test_table_exports_group_is_exactly_the_commands_that_write_tables():
+    def writes_table(name):
+        source = inspect.getsource(import_module("isovar.cli." + commands.COMMANDS[name][0]))
+        return "run_dataframe_command" in source or "add_output_args" in source
+    groups = dict(commands.COMMAND_GROUPS)
+    assert all(writes_table(name) for name in groups["Table exports"])
+    others = [n for title, names in commands.COMMAND_GROUPS if title != "Table exports" for n in names]
+    assert not [n for n in others if writes_table(n) and n != "run"]
+
+
+def test_unknown_command_suggests_the_closest_name_without_listing_all(capsys):
+    with pytest.raises(SystemExit) as error:
+        commands.run(["variant-sequnces"])
+    assert error.value.code == 2
+    err = capsys.readouterr().err
+    assert "invalid choice: 'variant-sequnces' (did you mean 'variant-sequences'?)" in err
+    assert "isovar --help" in err
+    assert "sv-audit" not in err
+    with pytest.raises(SystemExit):
+        commands.run(["zzzzzz"])
+    assert "did you mean" not in capsys.readouterr().err
+
+
+def test_command_line_doc_lists_every_command_in_help_group_order():
+    doc = (Path(__file__).parent.parent / "docs" / "command-line.md").read_text()
+    for title, names in commands.COMMAND_GROUPS:
+        section = doc[doc.index("### " + title + "\n"):]
+        positions = [section.index("`isovar %s`" % name) for name in names]
+        assert positions == sorted(positions)

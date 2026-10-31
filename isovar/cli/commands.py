@@ -2,8 +2,11 @@
 
 import argparse
 from copy import copy
+from difflib import get_close_matches
 from importlib import import_module
+import shutil
 import sys
+import textwrap
 
 from ..logging import configure_cli_logging, get_logger
 from .output_args import write_dataframe
@@ -47,6 +50,41 @@ COMMANDS = {
 }
 
 
+# Help sections, in display order. Every command appears in exactly one.
+COMMAND_GROUPS = (
+    ("Pipeline", ("run",)),
+    ("Table exports", (
+        "protein-sequences", "translations", "variant-sequences", "variant-reads",
+        "allele-reads", "allele-counts", "reference-contexts")),
+    ("RNA hypotheses and interpretation", (
+        "protein-hypotheses", "variant-rna-paths", "allele-interpretations")),
+    ("Structural variants and fusions", ("sv-source", "sv-rna", "sv-audit", "fusion")),
+    ("Viral, isoform and uORF evidence", ("viral", "isoforms", "uorf-evidence")),
+    ("Proteome and patient background", ("proteome", "patient-background-pairs", "normal-evidence")),
+    ("Reports and figures", ("plot", "evidence-report", "antigen-report", "cohort")),
+    ("Audit and calibration", ("audit-bundle", "calibrate-phasing")),
+)
+
+
+def command_listing():
+    """Return the command help grouped into sections, wrapped to the terminal."""
+    columns = min(shutil.get_terminal_size((80, 24)).columns, 100)
+    name_width = max(len(name) for name in COMMANDS) + 4
+    lines = []
+    for title, names in COMMAND_GROUPS:
+        lines.append(title + ":")
+        for name in names:
+            wrapped = textwrap.wrap(
+                COMMANDS[name][1], max(columns - name_width, 20), break_on_hyphens=False)
+            lines.append("  %-*s%s" % (name_width - 2, name, wrapped[0]))
+            lines.extend(" " * name_width + line for line in wrapped[1:])
+        lines.append("")
+    lines.append(textwrap.fill(
+        "Use 'isovar COMMAND --help' for options. 'isovar --vcf ... --bam ...' runs the "
+        "pipeline, and table/plot commands also install as isovar-COMMAND scripts.", columns))
+    return "\n".join(lines)
+
+
 def parser_for_program(parser, prog=None):
     """Give a call its own help/error name without mutating a shared parser."""
     parser = copy(parser)
@@ -79,17 +117,22 @@ def run(args=None):
     if args and args[0].startswith("-") and args[0] not in {"-h", "--help", "--version"}:
         return import_module(".isovar_main", __package__).run(args, prog="isovar")
     parser = argparse.ArgumentParser(
-        prog="isovar", description="Reconstruct mutant protein sequences from RNA evidence.",
-        epilog=("Use 'isovar COMMAND --help' for options. 'isovar --vcf ... --bam ...' runs the "
-                "pipeline, and table/plot commands also install as isovar-COMMAND scripts."))
+        prog="isovar", usage="%(prog)s [-h] [--version] COMMAND ...",
+        description="Reconstruct mutant protein sequences from RNA evidence.",
+        formatter_class=argparse.RawDescriptionHelpFormatter, epilog=command_listing())
     parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
-    commands = parser.add_subparsers(dest="command", metavar="COMMAND")
-    for name, (_, description) in COMMANDS.items():
-        commands.add_parser(name, help=description, add_help=False)
+    # The grouped listing in the epilog replaces argparse's flat command list.
+    parser.add_argument("command", metavar="COMMAND", help=argparse.SUPPRESS)
     if not args:
         parser.print_help()
         return
     # Parse only the command; its existing parser owns every remaining option.
     selected = parser.parse_args(args[:1]).command
+    if selected not in COMMANDS:
+        # Not argparse's `choices`, which would print all 27 names on one line.
+        close = get_close_matches(selected, COMMANDS, n=1)
+        hint = " (did you mean '%s'?)" % close[0] if close else ""
+        parser.error("argument COMMAND: invalid choice: '%s'%s. Run 'isovar --help' to list "
+                     "the commands." % (selected, hint))
     module_name, _ = COMMANDS[selected]
     return import_module("." + module_name, __package__).run(args[1:], prog="isovar " + selected)
