@@ -155,3 +155,24 @@ def test_table_exports_group_is_exactly_the_commands_that_write_tables():
     assert all(writes_table(name) for name in groups["Table exports"])
     others = [n for title, names in commands.COMMAND_GROUPS if title != "Table exports" for n in names]
     assert not [n for n in others if writes_table(n) and n != "run"]
+
+
+def test_unknown_command_suggests_the_closest_name_without_listing_all(capsys):
+    with pytest.raises(SystemExit) as error:
+        commands.run(["variant-sequnces"])
+    assert error.value.code == 2
+    err = capsys.readouterr().err
+    assert "invalid choice: 'variant-sequnces' (did you mean 'variant-sequences'?)" in err
+    assert "isovar --help" in err
+    assert "sv-audit" not in err
+    with pytest.raises(SystemExit):
+        commands.run(["zzzzzz"])
+    assert "did you mean" not in capsys.readouterr().err
+
+
+def test_command_line_doc_lists_every_command_in_help_group_order():
+    doc = (Path(__file__).parent.parent / "docs" / "command-line.md").read_text()
+    for title, names in commands.COMMAND_GROUPS:
+        section = doc[doc.index("### " + title + "\n"):]
+        positions = [section.index("`isovar %s`" % name) for name in names]
+        assert positions == sorted(positions)

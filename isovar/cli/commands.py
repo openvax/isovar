@@ -2,6 +2,7 @@
 
 import argparse
 from copy import copy
+from difflib import get_close_matches
 from importlib import import_module
 import shutil
 import sys
@@ -121,11 +122,17 @@ def run(args=None):
         formatter_class=argparse.RawDescriptionHelpFormatter, epilog=command_listing())
     parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
     # The grouped listing in the epilog replaces argparse's flat command list.
-    parser.add_argument("command", metavar="COMMAND", choices=list(COMMANDS), help=argparse.SUPPRESS)
+    parser.add_argument("command", metavar="COMMAND", help=argparse.SUPPRESS)
     if not args:
         parser.print_help()
         return
     # Parse only the command; its existing parser owns every remaining option.
     selected = parser.parse_args(args[:1]).command
+    if selected not in COMMANDS:
+        # Not argparse's `choices`, which would print all 27 names on one line.
+        close = get_close_matches(selected, COMMANDS, n=1)
+        hint = " (did you mean '%s'?)" % close[0] if close else ""
+        parser.error("argument COMMAND: invalid choice: '%s'%s. Run 'isovar --help' to list "
+                     "the commands." % (selected, hint))
     module_name, _ = COMMANDS[selected]
     return import_module("." + module_name, __package__).run(args[1:], prog="isovar " + selected)

@@ -15,29 +15,72 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 
 ## Commands
 
+### Pipeline
+
 | Command | Output |
 |---|---|
 | `isovar run` | One row per variant: read evidence, top protein sequence, predicted effect and filters |
+
+### Table exports
+
+| Command | Output |
+|---|---|
 | `isovar protein-sequences` | Ranked candidate protein sequences (`--max-protein-sequences-per-variant 0` keeps all) |
-| `isovar protein-hypotheses` | Every protein hypothesis, its translations and scoped RNA evidence, as JSON and TSV ([guide](protein-hypotheses.md)) |
 | `isovar translations` | Every translation of each assembled cDNA in each compatible reading frame, before grouping |
 | `isovar variant-sequences` | Assembled cDNA sequences supporting each variant |
-| `isovar reference-contexts` | Reference sequence and reading frame around each variant (no BAM needed) |
-| `isovar allele-counts` | Read and fragment counts for the ref, alt and other alleles; with `--cell-umi-labels`, cells and cell/UMI labels too |
-| `isovar allele-reads` | All reads overlapping each variant |
 | `isovar variant-reads` | Reads supporting each variant's alt allele |
+| `isovar allele-reads` | All reads overlapping each variant |
+| `isovar allele-counts` | Read and fragment counts for the ref, alt and other alleles; with `--cell-umi-labels`, cells and cell/UMI labels too |
+| `isovar reference-contexts` | Reference sequence and reading frame around each variant (no BAM needed) |
+
+### RNA hypotheses and interpretation
+
+| Command | Output |
+|---|---|
+| `isovar protein-hypotheses` | Every protein hypothesis, its translations and scoped RNA evidence, as JSON and TSV ([guide](protein-hypotheses.md)) |
+| `isovar variant-rna-paths` | Original ALT/REF RNA paths assembled before coding-model assessment, as JSON ([guide](variant-rna-paths.md)) |
+| `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](allele-interpretations.md)) |
+
+### Structural variants and fusions
+
+| Command | Output |
+|---|---|
+| `isovar sv-source` | Validate original SV definitions, caller claims and record-specific PCR evidence ([guide](sv-source-validation.md)) |
+| `isovar sv-rna` | Exploratory RNA paths around one nominated SV, as JSON ([guide](sv-rna.md)) |
+| `isovar sv-audit` | Reconstruct and reconcile a source-separated SV inventory ([guide](sv-rna-audit.md)) |
+| `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON ([guide](fusion.md)) |
+
+### Viral, isoform and uORF evidence
+
+| Command | Output |
+|---|---|
+| `isovar viral` | Observed viral RNA recovered from combined-reference alignments without a GTF ([guide](viral-sequences.md)) |
+| `isovar isoforms` | Targeted antigen (for example CTA) isoforms reconstructed and quantified ([guide](antigen-isoforms.md)) |
+| `isovar uorf-evidence` | Query and export the offline human uORF evidence reference ([guide](uorf-evidence.md)) |
+
+### Proteome and patient background
+
+| Command | Output |
+|---|---|
+| `isovar proteome` | Recorded RNA hypotheses adapted to an ORFdata Proteome and FASTA ([guide](rna-proteome.md)) |
+| `isovar patient-background-pairs` | Mutant RNA proteins paired with declared patient-background baselines ([guide](patient-background-pairs.md)) |
+| `isovar normal-evidence` | Normal genotype/reference-confidence states and background alleles from a reviewed source inventory ([guide](matched-normal-evidence.md)) |
+
+### Reports and figures
+
+| Command | Output |
+|---|---|
 | `isovar plot` | Protein, coverage, read-overlap and transcript figures for one mutation ([guide](visualization.md)) |
 | `isovar evidence-report` | Visual PDF and per-call TSV for a variant VCF plus indexed tumor RNA ([guide](../reports/hcc1395_colo829/PDF_REPORTS.md)) |
 | `isovar antigen-report` | Source-separated PDF and JSON from small-variant, SV, fusion, viral and antigen-isoform exports ([guide](antigen-evidence-report.md)) |
 | `isovar cohort` | Reproducible, source-separated reconstruction and per-sample PDFs from a pinned manifest ([guide](cohort-reports.md)) |
-| `isovar normal-evidence` | Normal genotype/reference-confidence states and background alleles from a reviewed source inventory ([guide](matched-normal-evidence.md)) |
-| `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](allele-interpretations.md)) |
-| `isovar sv-rna` | Exploratory RNA paths around one nominated SV, as JSON ([guide](sv-rna.md)) |
-| `isovar sv-source` | Validate original SV definitions, caller claims and record-specific PCR evidence ([guide](sv-source-validation.md)) |
-| `isovar sv-audit` | Reconstruct and reconcile a source-separated SV inventory ([guide](sv-rna-audit.md)) |
-| `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON ([guide](fusion.md)) |
+
+### Audit and calibration
+
+| Command | Output |
+|---|---|
 | `isovar audit-bundle` | Portable audit inputs, verified backups and offline reconstruction replay ([guide](audit-bundles.md)) |
-| `isovar uorf-evidence` | Query and export the offline human uORF evidence reference ([guide](uorf-evidence.md)) |
+| `isovar calibrate-phasing` | Phasing error bounds calibrated from truth-labeled control BAMs ([guide](phasing.md)) |
 
 Except `isovar run`, the table and plot commands also install as hyphenated
 scripts such as `isovar-protein-sequences` and `isovar-plot`.
