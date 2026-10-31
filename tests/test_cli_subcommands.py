@@ -118,3 +118,19 @@ def test_real_subcommand_csv_matches_legacy_handler(name, tmp_path):
     import_module("isovar.cli." + module_name).run(args + ["--output", str(legacy)])
     commands.run([name] + args + ["--output", str(subcommand)])
     assert legacy.read_bytes() == subcommand.read_bytes()
+
+
+def test_every_command_is_in_exactly_one_help_group():
+    grouped = [name for _, names in commands.COMMAND_GROUPS for name in names]
+    assert sorted(grouped) == sorted(commands.COMMANDS)
+
+
+def test_top_level_help_lists_commands_by_group_with_run_first(capsys):
+    commands.run([])
+    help_text = capsys.readouterr().out
+    positions = [help_text.index(title + ":") for title, _ in commands.COMMAND_GROUPS]
+    assert positions == sorted(positions)
+    assert commands.COMMAND_GROUPS[0][1][0] == "run"
+    for name, (_, description) in commands.COMMANDS.items():
+        assert re.search(r"^  %s +%s$" % (re.escape(name), re.escape(description)), help_text, re.M)
+    assert "SUPPRESS" not in help_text

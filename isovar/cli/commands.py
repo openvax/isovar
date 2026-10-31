@@ -47,6 +47,32 @@ COMMANDS = {
 }
 
 
+# Help sections, in display order. Every command appears in exactly one.
+COMMAND_GROUPS = (
+    ("Pipeline", ("run",)),
+    ("Tables", (
+        "protein-sequences", "protein-hypotheses", "translations", "variant-sequences",
+        "variant-reads", "allele-reads", "allele-counts", "reference-contexts",
+        "variant-rna-paths", "allele-interpretations")),
+    ("Structural variants and fusions", ("sv-source", "sv-rna", "sv-audit", "fusion")),
+    ("Viral, isoform and uORF evidence", ("viral", "isoforms", "uorf-evidence")),
+    ("Proteome and patient background", ("proteome", "patient-background-pairs", "normal-evidence")),
+    ("Reports and figures", ("plot", "evidence-report", "antigen-report", "cohort")),
+    ("Audit and calibration", ("audit-bundle", "calibrate-phasing")),
+)
+
+
+def command_listing():
+    """Return the command help grouped into sections, `run` first."""
+    width = max(len(name) for name in COMMANDS) + 2
+    lines = []
+    for title, names in COMMAND_GROUPS:
+        lines.append(title + ":")
+        lines.extend("  %-*s%s" % (width, name, COMMANDS[name][1]) for name in names)
+        lines.append("")
+    return "\n".join(lines)
+
+
 def parser_for_program(parser, prog=None):
     """Give a call its own help/error name without mutating a shared parser."""
     parser = copy(parser)
@@ -79,13 +105,13 @@ def run(args=None):
     if args and args[0].startswith("-") and args[0] not in {"-h", "--help", "--version"}:
         return import_module(".isovar_main", __package__).run(args, prog="isovar")
     parser = argparse.ArgumentParser(
-        prog="isovar", description="Reconstruct mutant protein sequences from RNA evidence.",
-        epilog=("Use 'isovar COMMAND --help' for options. 'isovar --vcf ... --bam ...' runs the "
+        prog="isovar", usage="%(prog)s [-h] [--version] COMMAND ...", description="Reconstruct mutant protein sequences from RNA evidence.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=command_listing() + "\n" + ("Use 'isovar COMMAND --help' for options. 'isovar --vcf ... --bam ...' runs the "
                 "pipeline, and table/plot commands also install as isovar-COMMAND scripts."))
     parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
-    commands = parser.add_subparsers(dest="command", metavar="COMMAND")
-    for name, (_, description) in COMMANDS.items():
-        commands.add_parser(name, help=description, add_help=False)
+    # The grouped listing in the epilog replaces argparse's flat command list.
+    parser.add_argument("command", metavar="COMMAND", choices=list(COMMANDS), help=argparse.SUPPRESS)
     if not args:
         parser.print_help()
         return

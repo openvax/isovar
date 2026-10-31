@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.79.0
+
+- Group `isovar --help` into sections with `run` first, replacing the flat
+  27-command list. Command names and options are unchanged (#653).
+
 ## 1.78.0
 
 - Adopt Varcode 11's shared transcript-model default and public candidate
