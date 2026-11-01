@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.79.1
+
+- `isovar uorf-evidence` runs only orfdata's query command, through
+  `orfdata.cli.query` (orfdata 0.45.0 or later). Since orfdata 0.44 its help
+  had shown orfdata's whole data/viral/setup command guide. Output follows
+  orfdata: a table by default, `--json` for JSON. An unknown ORF ID or a REF
+  mismatch exits 1, a rejected command line 2. `--species` is not offered,
+  since this command reads one catalogue.
+
 ## 1.79.0
 
 - Group `isovar --help` into sections with `run` first, replacing the flat
