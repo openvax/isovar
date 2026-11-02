@@ -100,11 +100,16 @@ def add_isoform_abundances(result, quant_sf, *, provenance):
                                for row in result["partial_sequences"])
         unavailable = any(row["gene_id"] == gene for row in
                           result.get("target_selection", {}).get("unavailable_transcripts", []))
+        # Paths stopped at a revisited placement are partial, though no budget was reached.
+        searches = [row for row in result["discovery"].get("genes", [result["discovery"]])
+                    if row.get("gene_id", gene) == gene]
+        stopped = any("repeated_genomic_position" in row.get("limitations", ()) for row in searches)
         dominant = (top["isoform_ids"][0] if supported and len(top["isoform_ids"]) == 1
                     and not top["also_compatible_with_other_genes"]
                     and all(row["gene_ids"] == [gene] for row in members if row["id"] in top["isoform_ids"])
                     and (len(ranked) == 1 or top["tpm"] > ranked[1]["tpm"])
-                    and not result["discovery"]["truncated"] and not unresolved_paths and not unavailable else None)
+                    and not result["discovery"]["truncated"] and not stopped and not unresolved_paths
+                    and not unavailable else None)
         genes.append(dict(gene_id=gene, tpm=total, groups=ranked, dominant_isoform_id=dominant,
                           dominance="estimated" if dominant else "unresolved" if total else "not_observed",
                           isoform_fractions={cid: estimates[cid]["TPM"] / total if total else None

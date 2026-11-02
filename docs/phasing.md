@@ -80,8 +80,10 @@ entry points above. On the command line, pass
 ```
 
 These numbers illustrate the format; they are not recommended platform rates.
-Coordinates and alleles must match the normalized input variants (1-based
-start).
+Each record names one input variant (1-based start). It may be written as in
+the VCF (`"chr7"`, anchored alleles) or normalized (`"7"`, trimmed alleles),
+as `isovar calibrate-phasing` writes it. A record that names no input variant
+is an error that gives its row number.
 
 Both directions use at least the scalar `phasing_error_rate` floor. Each allele
 combination is tested against the larger of its two incoming error rates; this

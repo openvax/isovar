@@ -121,3 +121,51 @@ def test_conflicting_reference_models_remain_unresolved():
                     for state in ("reference_identical", "amino_acid_divergent")]
     protein = dict(translations=translations)
     assert protein_comparison_status(protein) == protein_comparison_status(protein, focal=True) == "unresolved"
+
+
+def _stopping_translation(before, ref, alt, after, protein, interval):
+    from varcode import Variant
+    from isovar.reference_context import ReferenceContext
+    from isovar.translation import Translation
+    from isovar.variant_orf import VariantORF
+    from isovar.variant_sequence import VariantSequence
+
+    sequence = VariantSequence(before, alt, after, [])
+    context = ReferenceContext(strand="+", sequence_before_variant_locus=before,
+        sequence_at_variant_locus=ref, sequence_after_variant_locus=after, offset_to_first_complete_codon=0,
+        contains_start_codon=True, overlaps_start_codon=True, contains_five_prime_utr=False,
+        amino_acids_before_variant="", variant=Variant("1", len(before) + 1, ref, alt, normalize_contig_names=False),
+        transcripts=[])
+    orf = VariantORF(cdna_sequence=before + alt + after, offset_to_first_complete_codon=0,
+        variant_cdna_interval_start=len(before), variant_cdna_interval_end=len(before) + len(alt),
+        reference_cdna_sequence_before_variant=before, reference_cdna_sequence_after_variant=after,
+        num_mismatches_before_variant=0, num_mismatches_after_variant=0)
+    return Translation(amino_acids=protein, contains_mutation=False, mutation_start_idx=interval[0],
+        mutation_end_idx=interval[1], ends_with_stop_codon=True, frameshift=len(ref) % 3 != len(alt) % 3,
+        untrimmed_variant_sequence=sequence, reference_context=context, variant_orf=orf)
+
+
+@pytest.mark.parametrize("ref, alt", [("G", "T"), ("GGG", ""), ("G", "")])
+def test_a_frame_stopping_before_the_focal_codon_is_compared_without_it(ref, alt):
+    # Noisy single-read ONT frames on Sid H1-2, GTF3C5 and DYNC1H1 stopped
+    # upstream of the variant, and protein-hypotheses failed on them.
+    from isovar.protein_reference_comparison import reference_comparison
+
+    translation = _stopping_translation("ATGAAATAACCC", ref, alt, "GGTTTCCC", "MK", (4, 5 if alt else 4))
+    comparison = reference_comparison(translation, [])
+    assert comparison["focal_amino_acid_change"] is False
+    for name in ("annotation_comparison", "focal_allele_comparison"):
+        assert comparison[name]["status"] == "reference_identical"
+        assert comparison[name]["changed_residue_count"] == 0
+
+
+def test_a_stop_gained_in_the_focal_codon_is_a_stop_change():
+    from isovar.protein_reference_comparison import reference_comparison
+
+    translation = _stopping_translation("ATGAAA", "C", "T", "AACCC", "MK", (2, 3))
+    comparison = reference_comparison(translation, [])
+    assert comparison["reference_protein_window"] == "MKQP"
+    assert comparison["focal_amino_acid_change"] is True
+    for name in ("annotation_comparison", "focal_allele_comparison"):
+        assert comparison[name]["stop_changed"] is True
+        assert comparison[name]["changed_residue_count"] == 0

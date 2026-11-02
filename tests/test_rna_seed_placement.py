@@ -109,3 +109,23 @@ def test_unassemblable_segment_does_not_spend_observation_budget(viral):
     assert counts['target_segments'] == 2
     assert counts['eligible_observed_segments'] == counts['selected_segments'] == 1
     assert not counts['truncated']
+
+
+@pytest.mark.parametrize("notes, truncated", [
+    ({"incompatible_segment_placements_retained_as_alternatives"}, False),
+    ({"repeated_genomic_position"}, False),
+    ({"path_limit"}, True)])
+def test_only_a_reached_budget_truncates_discovery(monkeypatch, notes, truncated):
+    # On Sid H1-2 an informational note marked discovery truncated, which
+    # larger budgets could never clear, and blocked the dominant isoform.
+    from isovar import rna_reconstruction
+    from .test_sv_rna import record
+
+    class Originals:
+        def templates(self, regions):
+            yield [record('observed-bases', '1', 0, '4M', 'ACGT')]
+
+    monkeypatch.setattr(rna_reconstruction, "_assemble", lambda *args, **kwargs: ([], set(notes)))
+    _, counts = _discover(Originals(), {'1': [(0, 4, '+')]}, ReadCollector.for_rna_paths(), 1, 10, 2)
+    assert counts['truncated'] is truncated
+    assert counts['limitations'] == sorted(notes)

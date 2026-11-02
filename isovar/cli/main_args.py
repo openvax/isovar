@@ -16,6 +16,8 @@ Create parser and run Isovar from parsed args
 
 import json
 
+from varcode import Variant
+
 from ..main import run_isovar
 from ..default_parameters import PHASING_ERROR_RATE, MAX_P_VALUE_FOR_PHASING
 from ..phasing import _validate_locus_error_rates, _validate_phasing_rates
@@ -26,7 +28,8 @@ from .protein_sequence_args import (
 )
 from .filter_args import add_filter_args, filter_threshold_dict_from_args
 from .rna_args import read_collector_from_args, alignment_file_from_args
-from .validation import germline_variants_from_args, variant_collection_from_args
+from .validation import (
+    CommandInputError, germline_variants_from_args, open_fraction, variant_collection_from_args)
 
 def make_isovar_arg_parser(**kwargs):
     """
@@ -45,37 +48,60 @@ def make_isovar_arg_parser(**kwargs):
              "these are reported as known germline; edits that are other input "
              "variants are co-somatic; the rest stay unexplained.")
     group = parser.add_argument_group("Read phasing")
-    group.add_argument("--phasing-error-rate", type=float, default=PHASING_ERROR_RATE,
-                       help="Wrong-allele probability floor; use a calibrated value for the reads.")
-    group.add_argument("--max-p-value-for-phasing", type=float, default=MAX_P_VALUE_FOR_PHASING,
-                       help="Maximum one-sided p-value for allele support beyond read errors.")
+    group.add_argument("--phasing-error-rate", type=open_fraction, default=PHASING_ERROR_RATE,
+                       help="Wrong-allele probability floor; use a calibrated value for the reads "
+                            "(default: %(default)s)")
+    group.add_argument("--max-p-value-for-phasing", type=open_fraction, default=MAX_P_VALUE_FOR_PHASING,
+                       help="Maximum one-sided p-value for allele support beyond read errors "
+                            "(default: %(default)s)")
     group.add_argument("--phasing-error-rates", metavar="JSON",
-                       help="Per-locus calibration: JSON rows with contig, start, ref, alt, "
-                            "ref_to_alt and alt_to_ref. Coordinates must match the input variants.")
+                       help="Per-locus calibration, as written by isovar calibrate-phasing: JSON rows "
+                            "with contig, start, ref, alt, ref_to_alt and alt_to_ref, one per input "
+                            "variant they apply to (VCF-style or normalized alleles).")
     return parser
+
+
+def _locus(variant):
+    return (variant.contig, variant.start, variant.ref, variant.alt)
 
 
 def _phasing_error_rates_from_args(args, variants):
     path = getattr(args, "phasing_error_rates", None)
     if path is None:
         return None
-    by_key = {(v.contig, v.start, v.ref, v.alt): v for v in variants}
-    with open(path) as handle:
-        rows = json.load(handle)
+    # Rows may spell a locus as VCF does ("chr7", anchored alleles) or as
+    # calibrate-phasing and Varcode do; normalize each the way the inputs were.
+    genome = next(iter(variants)).genome if len(variants) else None
+    by_key = {_locus(v): v for v in variants}
+    try:
+        with open(path) as handle:
+            rows = json.load(handle)
+    except (OSError, ValueError) as error:
+        raise CommandInputError("Cannot read --phasing-error-rates %s: %s" % (path, error)) from None
     if not isinstance(rows, list):
-        raise ValueError("Phasing calibration must be a JSON list of locus records")
+        raise CommandInputError("--phasing-error-rates must be a JSON list of locus records")
     rates = {}
-    for row in rows:
+    for number, row in enumerate(rows, 1):
         try:
-            key = (row["contig"], row["start"], row["ref"], row["alt"])
+            locus = _locus(Variant(str(row["contig"]), int(row["start"]), row["ref"], row["alt"],
+                                   genome, convert_ucsc_contig_names=True))
             pair = (row["ref_to_alt"], row["alt_to_ref"])
-            variant = by_key[key]
-        except (KeyError, TypeError) as error:
-            raise ValueError("Phasing calibration row has missing fields or does not match an input variant") from error
+        except (KeyError, TypeError, ValueError) as error:
+            raise CommandInputError(
+                "--phasing-error-rates row %d needs contig, start, ref, alt, ref_to_alt and "
+                "alt_to_ref (%s)" % (number, error)) from None
+        variant = by_key.get(locus)
+        if variant is None:
+            raise CommandInputError("--phasing-error-rates row %d (%s %s %s>%s) matches no input variant" % (
+                number, row["contig"], row["start"], row["ref"], row["alt"]))
         if variant in rates:
-            raise ValueError("Duplicate locus in phasing calibration: %s" % (key,))
+            raise CommandInputError("--phasing-error-rates row %d repeats %s" % (number, variant))
         rates[variant] = pair
-    return _validate_locus_error_rates(rates)
+    try:
+        return _validate_locus_error_rates(rates)
+    except ValueError as error:
+        raise CommandInputError("--phasing-error-rates: %s" % error) from None
+
 
 def phasing_parameters_from_args(args, variants):
     """Validated phasing keywords for Isovar and downstream CLI callers."""

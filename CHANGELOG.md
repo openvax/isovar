@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.80.0
+
+Fixes for wrong or failed outputs found by running every command on Sid data:
+
+- In-frame deletions in repeats no longer count as mismatches against the
+  predicted protein. Varcode places them 3' in the repeat, as HGVS does; the
+  RNA protein may mark an equivalent placement. Sid GTF3C5 p.Glu503_Glu506del
+  reported 4 (bulk T0) and 8 (ONT T1) mismatches and H1-2 p.Ala197_Lys201del 1;
+  all now report 0 and match. Windows are cut at the equivalent placement that
+  best matches the RNA protein, preferring Varcode's.
+- `protein-hypotheses` no longer fails with "Invalid protein mutation interval"
+  on frames that stop before the variant (Sid ONT at coverage 1): the focal
+  allele changes none of their residues. A stop gained inside the affected
+  codons is compared as a stop change.
+- Transcript ID lists come out in the same order on every run; transcripts at
+  one locus used to follow set iteration order.
+- Isoform and viral discovery report `truncated` only when a discovery budget
+  was reached. Retained alternative placements no longer mark it, which had
+  blocked dominant isoforms (Sid H1-2) and could not be cleared with larger
+  budgets. Paths stopped at a repeated genomic position still block dominance.
+- `allele-interpretations` accepts `chr7` contigs like `7`. A UCSC name used to
+  skip annotation and the REF check silently. Non-object JSON input is a usage
+  error instead of a traceback.
+- `--phasing-error-rates` accepts rows written by `calibrate-phasing` on
+  `chr`-prefixed references and VCF-style alleles; bad rows are usage errors
+  naming the row. `--phasing-error-rate` and `--max-p-value-for-phasing` are
+  checked when parsed.
+- Small-variant commands skip structural-variant records in `--vcf` with one
+  warning naming them, instead of failing with a traceback; a VCF of only SVs
+  is a usage error pointing to `sv-source` and `sv-audit`.
+
 ## 1.79.1
 
 - `isovar uorf-evidence` runs only orfdata's query command, through

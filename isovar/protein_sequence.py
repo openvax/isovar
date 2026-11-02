@@ -248,7 +248,9 @@ class ProteinSequence(TranslationKey):
         transcript_set = set([])
         for translation in self.translations:
             transcript_set.update(translation.reference_context.transcripts)
-        return sorted(transcript_set)
+        # Transcripts at one locus are tied; sorting by ID first keeps them
+        # in a stable order (sorted() is stable), not set iteration order.
+        return sorted(sorted(transcript_set, key=lambda t: t.id))
 
     @property
     def transcript_names(self):

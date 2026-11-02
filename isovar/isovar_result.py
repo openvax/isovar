@@ -29,6 +29,27 @@ from .effect_prediction import effect_outcomes, effect_protein_comparisons, has_
 from .read_identity import count_reads, fragment_ids
 
 
+def _equivalent_indel_placements(reference, mutant):
+    """How far a length-changing edit can slide without changing ``mutant``.
+
+    A deletion of ``k`` residues at ``x`` is equivalent at every ``x`` where
+    ``reference[:x] == mutant[:x]`` and ``reference[x + k:] == mutant[x:]``;
+    insertions likewise. Equal-length changes and frameshifts don't slide.
+    """
+    if reference is None or len(reference) == len(mutant):
+        return 0
+    shorter = min(len(reference), len(mutant))
+    prefix = next((i for i in range(shorter) if reference[i] != mutant[i]), shorter)
+    suffix = next((i for i in range(shorter) if reference[-1 - i] != mutant[-1 - i]), shorter)
+    return max(0, prefix + suffix - shorter)
+
+
+def _positional_mismatches(protein, sequence, start):
+    """Residues of ``protein`` that differ from ``sequence`` placed at ``start``."""
+    return sum(start + i < 0 or start + i >= len(sequence) or sequence[start + i] != aa
+               for i, aa in enumerate(protein))
+
+
 class IsovarResult(object):
     """
     This object represents all information gathered about a variant,
@@ -559,7 +580,13 @@ class IsovarResult(object):
 
     @cached_property
     def _trimmed_predicted_protein_pairs(self):
-        """Candidate-specific mutant/reference windows, retaining unknowns."""
+        """Candidate-specific mutant/reference windows, retaining unknowns.
+
+        An in-frame indel in a repeat has several equivalent placements, and
+        Varcode's (3'-shifted, as in HGVS) need not be the one marked in the
+        RNA protein. Windows are cut at the equivalent placement that best
+        matches the RNA protein, preferring Varcode's on ties.
+        """
         p = self.top_protein_sequence
         pairs = []
         for e, reference_sequence, mutant_sequence in effect_protein_comparisons(
@@ -568,12 +595,16 @@ class IsovarResult(object):
             offset = getattr(e, "aa_mutation_start_offset", None)
             if p is not None and offset is not None:
                 start = offset - p.mutation_start_idx
-                aa_alt = getattr(e, "aa_alt", None)
-                if mutant_sequence is not None and aa_alt is not None:
-                    end = offset + len(aa_alt) + len(p.amino_acids) - p.mutation_end_idx
-                    mutant = mutant_sequence[start:end]
+                n = len(p.amino_acids)
+                if mutant_sequence is not None and getattr(e, "aa_alt", None) is not None:
+                    slide = _equivalent_indel_placements(reference_sequence, mutant_sequence)
+                    start = min(
+                        range(start - slide, start + slide + 1),
+                        key=lambda s: (_positional_mismatches(p.amino_acids, mutant_sequence, s),
+                                       abs(s - start), s))
+                    mutant = mutant_sequence[max(start, 0):start + n]
                 if reference_sequence is not None:
-                    reference = reference_sequence[start:start + len(p.amino_acids)]
+                    reference = reference_sequence[max(start, 0):start + n]
             pairs.append((mutant, reference))
         return tuple(pairs)
 
@@ -852,7 +883,9 @@ class IsovarResult(object):
         transcript_set = set([])
         for p in self.sorted_protein_sequences[:max_num_protein_sequences]:
             transcript_set.update(p.transcripts)
-        return sorted(transcript_set)
+        # Transcripts at one locus are tied; sorting by ID first keeps them
+        # in a stable order (sorted() is stable), not set iteration order.
+        return sorted(sorted(transcript_set, key=lambda t: t.id))
 
     def transcript_ids_from_protein_sequences(self, max_num_protein_sequences=None):
         """

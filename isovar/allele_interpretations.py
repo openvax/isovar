@@ -288,7 +288,7 @@ def interpretations_from_dict(data, genome=None):
     ValueError
         For missing or unknown keys.
     """
-    if set(data) != INPUT_KEYS:
+    if not isinstance(data, dict) or set(data) != INPUT_KEYS:
         raise ValueError("Interpretation input needs exactly the keys %s" % ", ".join(sorted(INPUT_KEYS)))
     genome = genome or data["reference_name"]
     result = {}
@@ -297,6 +297,9 @@ def interpretations_from_dict(data, genome=None):
             if set(row) != VARIANT_KEYS:
                 raise ValueError("Interpretation %s: each variant needs exactly %s" % (
                     key, ", ".join(sorted(VARIANT_KEYS))))
-        result[key] = [Variant(str(row["contig"]), int(row["start"]), row["ref"], row["alt"], genome)
+        # Accept "chr7" as well as "7", as VCF loading does; an unconverted
+        # UCSC name silently skips annotation and the REF check.
+        result[key] = [Variant(str(row["contig"]), int(row["start"]), row["ref"], row["alt"], genome,
+                               convert_ucsc_contig_names=True)
                        for row in variants]
     return result

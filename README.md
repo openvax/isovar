@@ -160,7 +160,8 @@ fails this positive filter. See [prediction comparisons](docs/reference-annotati
 The pipeline above accepts literal nucleotide alleles, including
 sequence-resolved indels. Symbolic structural variants (`<DEL>`, `<DUP>`, etc.),
 breakends and `varcode.StructuralVariant` objects are rejected rather than
-interpreted as small variants. Two separate workflows handle them:
+interpreted as small variants. On the command line, SV records in a mixed
+`--vcf` are skipped with a warning naming them. Two separate workflows handle them:
 
 - `isovar sv-source` validates original SV definitions and record-specific PCR evidence ([guide](docs/sv-source-validation.md)).
 - `isovar sv-audit` runs a source-separated manifest across nominated SVs, assesses every RNA path, and reconciles competing hypotheses ([guide](docs/sv-rna-audit.md)).
