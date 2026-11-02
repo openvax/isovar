@@ -41,9 +41,12 @@ def load_small_variants(path, sample_id):
         reader = csv.DictReader(handle, delimiter="\t")
         needed = {"sample_id", "call_id", "ref", "alt", "exon_overlap",
                   "alt_reads", "protein_count", "orfdata_coding_block_overlap"}
-        if not needed.issubset(reader.fieldnames or ()):
-            raise ValueError(f"{path}: not an Isovar evidence-report per-call TSV")
-        rows = list(reader)
+        try:
+            if not needed.issubset(reader.fieldnames or ()):
+                raise ValueError(f"{path}: not an Isovar evidence-report per-call TSV")
+            rows = list(reader)
+        except csv.Error as error:
+            raise ValueError(f"{path}: not an Isovar evidence-report per-call TSV ({error})") from None
     if any(row["sample_id"] != sample_id for row in rows):
         raise ValueError(f"{path}: sample_id does not match {sample_id}")
     if len({row["call_id"] for row in rows}) != len(rows):
@@ -57,12 +60,16 @@ def small_variant_summary(rows):
     ncorf_values = [row["orfdata_coding_block_overlap"] for row in rows]
     ncorf_assessed = bool(rows) and all(value in {"True", "False"}
                                         for value in ncorf_values)
+    # Blank counts are unmeasured (e.g. a chromosome absent from the reads), not zero.
+    measured = [row for row in rows if row["alt_reads"] != ""]
     by_class = {}
     for row in exonic:
-        by_class.setdefault(variant_type(row), []).append(int(row["alt_reads"]))
+        if row["alt_reads"] != "":
+            by_class.setdefault(variant_type(row), []).append(int(row["alt_reads"]))
     return dict(input_records=len(rows), exon_involved=len(exonic),
-                rna_alt_observed=sum(int(row["alt_reads"]) > 0 for row in rows),
-                local_products=sum(int(row["protein_count"]) > 0 for row in rows),
+                rna_unmeasured=len(rows) - len(measured),
+                rna_alt_observed=sum(int(row["alt_reads"]) > 0 for row in measured),
+                local_products=sum(int(row["protein_count"] or 0) > 0 for row in measured),
                 ncorf_reference_candidates=(sum(value == "True" for value in ncorf_values)
                                             if ncorf_assessed else None),
                 exonic_reads_by_class=by_class)

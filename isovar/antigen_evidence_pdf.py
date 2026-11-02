@@ -100,7 +100,9 @@ def write_antigen_report(path, inventory):
         story.append(p(
             f"{item['input_records']:,} loaded literal VCF alleles; "
             f"{item['exon_involved']:,} involve an annotated exon; "
-            f"{item['rna_alt_observed']:,} have an original RNA ALT read; "
+            f"{item['rna_alt_observed']:,} have an original RNA ALT read"
+            + (f" ({item['rna_unmeasured']:,} unmeasured, e.g. a chromosome absent from the reads)"
+               if item.get("rna_unmeasured") else "") + "; "
             f"{item['local_products']:,} have a local mutant protein context. "
             f"Reference ncORF coding-block overlap: {ncorf_text}. "
             "The plots include zero-support exon-involved calls "

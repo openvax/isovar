@@ -14,6 +14,7 @@ from ..phasing_calibration import PhasingControl, calibrate_phasing_error_rates
 from ..read_collector import ReadCollector
 from ..read_evidence import ReadEvidence
 from ..read_identity import source_read_ids
+from .validation import check_outputs, input_error
 
 _COLLECTOR_OPTIONS = frozenset((
     "use_secondary_alignments", "use_duplicate_reads", "min_mapping_quality",
@@ -153,9 +154,8 @@ def run(args=None, *, prog=None):
     parser.add_argument("--report", required=True, type=Path,
                         help="JSON audit report with per-group counts and confidence bounds")
     options = parser.parse_args(args)
-    if options.output == options.report:
-        parser.error("--output and --report must be different files")
     try:
+        check_outputs(options, "output", "report")
         manifest_bytes = options.manifest.read_bytes()
         manifest = json.loads(manifest_bytes)
         calibration = _calibrate(manifest, options.manifest.resolve().parent)
@@ -181,8 +181,10 @@ def run(args=None, *, prog=None):
                                         for target in manifest["targets"]],
                        "control_files": files, "controls": calibration.report}, handle, indent=2)
             handle.write("\n")
-    except (OSError, KeyError, TypeError, ValueError) as error:
-        parser.error(str(error))
+    except KeyError as error:
+        input_error(parser, "Missing manifest entry %s" % error)
+    except (OSError, TypeError, ValueError) as error:
+        input_error(parser, error)
 
 
 if __name__ == "__main__":

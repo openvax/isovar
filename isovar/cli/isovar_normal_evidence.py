@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ..normal_sources import run_normal_evidence_manifest
 from .commands import parser_for_program
+from .validation import input_error
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -22,5 +23,5 @@ def run(args=None, *, prog=None):
     try:
         run_normal_evidence_manifest(options.manifest, options.output)
     except (OSError, ValueError, TypeError, KeyError) as error:
-        command.error(str(error))
+        input_error(command, error)
     print(options.output)

@@ -8,6 +8,7 @@ from ..audit_bundle import digest, publish_json
 from ..viral_sequences import reconstruct_viral_sequences, write_viral_fasta
 from ..viral_coding import write_viral_proteins
 from .rna_args import add_rna_path_args, rna_path_context
+from .validation import input_error
 
 
 def make_parser(prog="isovar viral"):
@@ -52,4 +53,4 @@ def run(args=None, prog=None):
         write_viral_fasta(result, output / "sequences.fa")
         write_viral_proteins(result, output / "proteins.fa")
     except (OSError, ValueError, KeyError, TypeError) as error:
-        parser.error(str(error))
+        input_error(parser, error)

@@ -91,8 +91,10 @@ sequence-library versions, all isovar Python source digests, BAM-index digests,
 and the exact manifest. Each immutable compressed event/source/view snapshot
 has a receipt. Resume verifies the implementation, inputs, parameters and output
 hash; changed runs require a new output directory. `--event-id` selects explicit
-events and records that restriction in the report. `report.json` and
-`report.tsv` include unassessed and no-candidate runs, not just positives.
+events and records that restriction in the report, which is written as
+`report-events-<digest>.json` and `.tsv` so it never replaces the complete
+`report.json` and `report.tsv`. Reports include unassessed and no-candidate
+runs, not just positives.
 
 The report fixtures are bounded extracts of original data. Their limits are
 part of the evidence. They do not establish that unretained exons, alternative

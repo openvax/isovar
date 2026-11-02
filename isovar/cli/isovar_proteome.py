@@ -8,7 +8,7 @@ from pathlib import Path
 from orfdata import ReferenceContext
 
 from ..rna_proteome import from_rna_result
-from .validation import check_output_path
+from .validation import check_output_path, input_error
 
 
 def _read(path):
@@ -44,4 +44,4 @@ def run(args=None, *, prog=None):
         if options.fasta:
             proteome.write_fasta(options.fasta)
     except (ValueError, TypeError, OSError) as error:
-        parser.error(str(error))
+        input_error(parser, error)

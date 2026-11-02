@@ -4,12 +4,15 @@ import argparse
 import json
 from pathlib import Path
 
+from gtfparse import ParsingError
+
 from ..antigen_reference import GDC_REFERENCE
 from ..antigen_targets import CTA_GENE_SET, prepare_antigen_reference
 from ..antigen_isoforms import reconstruct_antigen_isoforms
 from ..audit_bundle import digest, publish_json
 from ..isoform_quantification import quantify_antigen_isoforms, write_isoform_fastas
 from .rna_args import add_rna_path_args, rna_path_context
+from .validation import input_error
 
 
 def make_parser(prog="isovar isoforms"):
@@ -59,7 +62,9 @@ def run(args=None, prog=None):
                                      salmon=options.salmon, threads=options.threads)
             return
         output = Path(options.output_dir).expanduser()
-        output.mkdir(parents=True, exist_ok=False)
+        # Created only after reconstruction succeeds, so a failed run can simply be repeated.
+        if output.exists():
+            raise ValueError("Output directory already exists: %s" % output)
         with rna_path_context(options, reference_name=options.assembly) as (bam, collector, library):
             prepared = prepare_antigen_reference(
                 bam, genes=options.gene, gene_set=options.gene_set,
@@ -75,7 +80,8 @@ def run(args=None, prog=None):
                 read_collector=collector, library_index=library)
             result["input"]["sha256"] = digest(options.bam)
             result["target_selection"] = prepared.target_selection
+        output.mkdir(parents=True, exist_ok=False)
         publish_json(output / "isoforms.json", result)
         write_isoform_fastas(result, output / "transcripts.fa", output / "proteins.fa")
-    except (OSError, ValueError, KeyError, TypeError) as error:
-        parser.error(str(error))
+    except (OSError, ValueError, KeyError, TypeError, ParsingError) as error:
+        input_error(parser, error)

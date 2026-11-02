@@ -94,3 +94,44 @@ def check_output_path(path):
     directory = os.path.dirname(os.path.abspath(path))
     if not os.path.isdir(directory):
         raise CommandInputError("Output directory does not exist: %s" % directory)
+    if os.path.isdir(path):
+        raise CommandInputError("Output is a directory, not a file: %s" % path)
+
+
+def _named_files(value):
+    values = value if isinstance(value, (list, tuple)) else [value]
+    return [str(v) for v in values if isinstance(v, (str, os.PathLike)) and os.path.isfile(v)]
+
+
+def check_outputs(args, *outputs, directories=()):
+    """Check output paths before any work, so a run never fails or clobbers at the end.
+
+    ``outputs`` are file paths (or ``args`` attribute names holding them) and
+    ``directories`` output directories. Each file's directory must exist, no
+    output may be an existing directory (or a directory an existing file), the
+    outputs must be distinct, and none may be a file given in any other option.
+    """
+    def resolve(value):
+        return getattr(args, value) if isinstance(value, str) and hasattr(args, value) else value
+
+    names = {name for name in outputs + tuple(directories) if isinstance(name, str) and hasattr(args, name)}
+    files = [str(path) for path in map(resolve, outputs) if path is not None]
+    folders = [str(path) for path in map(resolve, directories) if path is not None]
+    for path in files:
+        check_output_path(path)
+    for path in folders:
+        if os.path.exists(path) and not os.path.isdir(path):
+            raise CommandInputError("Output directory is an existing file: %s" % path)
+    absolute = [os.path.abspath(path) for path in files + folders]
+    if len(set(absolute)) != len(absolute):
+        raise CommandInputError("Outputs must be distinct files: %s" % ", ".join(files + folders))
+    inputs = [path for name, value in sorted(vars(args).items()) if name not in names
+              for path in _named_files(value)]
+    for output in files:
+        if os.path.exists(output) and any(os.path.samefile(output, path) for path in inputs):
+            raise CommandInputError("Output %s would overwrite an input file" % output)
+
+
+def input_error(parser, error):
+    """Report a problem with a command's inputs: one line, exit status 2, no usage block."""
+    parser.exit(2, "%s: error: %s\n" % (parser.prog, error))

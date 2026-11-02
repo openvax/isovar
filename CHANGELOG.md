@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.81.0
+
+Every command checks its outputs before doing any work and never overwrites
+its inputs (found running the CLI on Sid data, #661):
+
+- One shared check runs first. An output's directory must exist; a file
+  output can't be a directory, nor an output directory a file; outputs must
+  be distinct; and no output may be a file named in any other option.
+  `protein-hypotheses` used to replace `--vcf`, `allele-interpretations` its
+  `--input`, `patient-background-pairs` a `--maf` or read-end profile, and
+  `antigen-report --summary-json` its TSV. `run --output DIR` and
+  `plot --output-dir FILE` used to fail only after the analysis.
+- Problems with inputs are reported in one line, `isovar COMMAND: error: ...`,
+  with exit status 2 and without the full usage block.
+- `.json.gz` outputs are gzip-compressed and `.json.gz` inputs are read in
+  `protein-hypotheses`, `allele-interpretations`, `fusion` and `sv-rna`. JSON
+  outputs are replaced atomically. The protein-hypotheses TSV is named after
+  the JSON stem (`x.json.gz` gives `x.tsv`) and uses `\n` line endings.
+- `cohort --source-id` requires `--no-render`, so a partial selection can no
+  longer replace the complete cohort PDF; `--render-only` can't be combined
+  with `--resume` or `--no-render`. `cohort` takes `--log-level`.
+- `sv-audit --event-id` writes `report-events-<digest>.json`/`.tsv` instead of
+  truncating the complete `report.json`/`.tsv`. Unknown reconstruction
+  settings in a manifest fail before any work, and manifest errors name the
+  field, event or source.
+- `sv-source` rejects an unknown `--reference-name` up front (it used to mark
+  all 639 Sid rows invalid and exit 0).
+- `antigen-report` counts blank evidence-report counts (unresolved
+  chromosomes) as unmeasured instead of failing, and reports them.
+- `isoforms reconstruct` creates its output directory only after success, so a
+  failed run can be repeated; an unreadable GTF is a usage error.
+- `evidence-report` checks `--self-fasta` and `--nc-orf-catalog` before the
+  analysis and names the right program in errors.
+
 ## 1.80.0
 
 Fixes for wrong or failed outputs found by running every command on Sid data:

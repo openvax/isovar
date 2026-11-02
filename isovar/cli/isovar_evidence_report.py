@@ -24,7 +24,7 @@ from ..read_identity import fragment_ids
 from .commands import parser_for_program
 from .protein_sequence_args import make_protein_sequences_arg_parser, protein_sequence_creator_from_args
 from .rna_args import alignment_file_from_args, read_collector_from_args
-from .validation import CommandInputError, variant_collection_from_args
+from .validation import CommandInputError, check_outputs, input_error, variant_collection_from_args
 
 
 parser = make_protein_sequences_arg_parser(description=__doc__)
@@ -175,17 +175,19 @@ def write_per_call(path, calls, annotations, summary, sources, self_scores):
 
 
 def run(args=None, *, prog=None):
-    parsed = parser_for_program(parser, prog).parse_args(args)
+    command = parser_for_program(parser, prog)
+    parsed = command.parse_args(args)
     if parsed.output.suffix.lower() != ".pdf":
-        parser.error("--output must end in .pdf")
+        command.error("--output must end in .pdf")
     try:
         per_call = parsed.per_call or parsed.output.with_suffix(".tsv")
         evidence_json = parsed.evidence_json or parsed.output.with_suffix(".json")
-        outputs = [path.resolve() for path in (parsed.output, per_call, evidence_json)]
-        inputs = {Path(path).resolve() for path in
-                  [*parsed.vcf, parsed.bam, parsed.self_fasta, parsed.nc_orf_catalog] if path}
-        if len(set(outputs)) != len(outputs) or inputs.intersection(outputs):
-            raise CommandInputError("Report outputs must be distinct and must not overwrite input files")
+        for path in (parsed.output, per_call, evidence_json):
+            path.parent.mkdir(parents=True, exist_ok=True)
+        check_outputs(parsed, "output", per_call, evidence_json)
+        for option, path in (("--self-fasta", parsed.self_fasta), ("--nc-orf-catalog", parsed.nc_orf_catalog)):
+            if path is not None and not Path(path).is_file():
+                raise CommandInputError("%s %s does not exist" % (option, path))
         variants = tuple(variant_collection_from_args(parsed))
         if not variants:
             raise CommandInputError("VCF contains no loaded variants")
@@ -215,10 +217,7 @@ def run(args=None, *, prog=None):
                        rna_source=parsed.rna_source or parsed.bam,
                        self_fasta=str(parsed.self_fasta) if parsed.self_fasta else "",
                        self_fasta_sha256=self_fasta_sha256)
-        parsed.output.parent.mkdir(parents=True, exist_ok=True)
-        per_call.parent.mkdir(parents=True, exist_ok=True)
         write_per_call(per_call, calls, annotations, summary, sources, self_scores)
-        evidence_json.parent.mkdir(parents=True, exist_ok=True)
         with evidence_json.open("w") as stream:
             json.dump(dict(schema="isovar.evidence_report.v1", sources=sources, calls=calls,
                            annotations=annotations, proteins=proteins), stream, sort_keys=True)
@@ -227,7 +226,7 @@ def run(args=None, *, prog=None):
         write_generic_report(parsed.output, calls, annotations, summary, sources,
                              self_scores, catalog_assessed=catalog is not None)
     except (OSError, ValueError, CommandInputError) as error:
-        parser_for_program(parser, prog).error(str(error))
+        input_error(command, error)
     print(parsed.output)
     print(per_call)
     print(evidence_json)

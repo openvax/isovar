@@ -16,7 +16,7 @@ from ..visualization import (
 from .rna_args import alignment_file_from_args, read_collector_from_args
 from .commands import parser_for_program
 from .output_args import add_log_level_arg
-from .validation import CommandInputError, dpi, variant_collection_from_args
+from .validation import CommandInputError, check_outputs, dpi, input_error, variant_collection_from_args
 from .translation_args import (
     add_protein_selection_args,
     make_translation_arg_parser,
@@ -51,9 +51,10 @@ def run(args=None, *, prog=None):
     try:
         _plot_imports()
     except ImportError as error:
-        command_parser.error(str(error))
+        input_error(command_parser, error)
     configure_cli_logging(args.log_level)
     try:
+        check_outputs(args, directories=("output_dir",))
         collector = read_collector_from_args(args)
         variants = variant_collection_from_args(args)
         if len(variants) != 1:
@@ -61,7 +62,7 @@ def run(args=None, *, prog=None):
         variant = next(iter(variants))
         alignment = alignment_file_from_args(args)
     except CommandInputError as error:
-        command_parser.error(str(error))
+        input_error(command_parser, error)
     with alignment:
         evidence = collector.read_evidence_for_variant(variant, alignment)
     creator_kwargs = protein_sequence_creator_kwargs_from_args(args)
