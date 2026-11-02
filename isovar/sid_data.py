@@ -38,6 +38,8 @@ import shutil
 import sys
 import tempfile
 
+from .json_files import read_json
+
 
 BUNDLE = "openvax-v1"
 # The shared bundle Isovar's members come from (its manifest's SHA-256).
@@ -287,12 +289,6 @@ def check(shared=BUNDLE, *, sid=False, cache=None):
             if held(built, part, name) != held(packaged, part, name):
                 problems.append("%s %s differs" % (part[:-1], name))
     return problems
-
-
-def read_json(path):
-    """JSON from a file, gzip-compressed when its name ends ``.gz``."""
-    with gzip.open(path, "rt") if str(path).endswith(".gz") else open(path) as handle:
-        return json.load(handle)
 
 
 def records(name, cache=None):

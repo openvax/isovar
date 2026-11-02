@@ -18,7 +18,8 @@ from .normal_evidence import (
     normal_source_state, reconcile_normal_states,
 )
 from .normal_regions import GenomicRegion, normal_background_regions, normal_query_interval, resolve_normal_regions
-from .sv_rna_audit import file_sha256, read_json, write_json
+from .json_files import read_json
+from .sv_rna_audit import file_sha256, write_json
 from .rna_evidence import content_identifier
 
 

@@ -20,6 +20,7 @@ import pysam
 
 from . import __version__
 from ._audit_json import write_json_stream
+from .json_files import read_json
 from ._file_identity import file_sha256
 from .audit_bundle import software_identity
 from .fusion import fusion_from_dict, reconstruct_fusion
@@ -33,14 +34,8 @@ from .sv_rna_reconciliation import reconcile_sv_rna_hypotheses
 logger = logging.getLogger(__name__)
 
 
-def read_json(path):
-    opener = gzip.open if str(path).endswith(".gz") else open
-    with opener(path, "rt") as stream:
-        return json.load(stream)
-
-
 def write_json(path, value):
-    """Write deterministic bytes atomically, including compressed snapshots."""
+    """Write canonical (audit-grade, byte-stable) JSON atomically, including compressed snapshots."""
     path = Path(path)
     temporary = path.with_name(path.name + ".tmp")
     try:
