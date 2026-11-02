@@ -27,31 +27,38 @@ def make_parser(prog="isovar isoforms"):
     selection = reconstruct.add_mutually_exclusive_group(required=True)
     selection.add_argument("--gene", action="append", help="Gene ID/name; repeat for each target")
     selection.add_argument("--gene-set", choices=[CTA_GENE_SET], help="Versioned OncoRef CTA catalogue")
-    reconstruct.add_argument("--sample-id", required=True)
+    reconstruct.add_argument("--sample-id", required=True, help="Sample the reads came from")
     reconstruct.add_argument("--genome-fasta", required=True, help="Local FASTA used for alignment")
     reconstruct.add_argument("--gtf", required=True, help="Local, versioned transcript/CDS annotation")
-    reconstruct.add_argument("--annotation-version", required=True)
-    reconstruct.add_argument("--annotation-name", default="GENCODE")
-    reconstruct.add_argument("--assembly", default="GRCh38")
+    reconstruct.add_argument("--annotation-version", required=True,
+                             help="Release of the --gtf annotation, e.g. 115 for Ensembl or 47 for GENCODE")
+    reconstruct.add_argument("--annotation-name", default="GENCODE",
+                             help="Source of the --gtf annotation, e.g. Ensembl (default: %(default)s)")
+    reconstruct.add_argument("--assembly", default="GRCh38",
+                             help="Assembly of the reads, FASTA and GTF (default: %(default)s)")
     reconstruct.add_argument("--alignment-reference", choices=[GDC_REFERENCE, "custom"], default=GDC_REFERENCE,
                              help="Combined-reference profile (default: %(default)s); checked against the BAM")
     reconstruct.add_argument("--output-dir", required=True, help="New result directory")
     reconstruct.add_argument("--reference-cache", help="Reusable annotation-cache root (default: PyEnsembl cache)")
     reconstruct.add_argument("--max-discovery-reads", type=int, default=10000,
-                             help="Reads used to discover sequence paths; support still scans the full input")
-    reconstruct.add_argument("--max-paths", type=int, default=256)
+                             help="Reads used to discover sequence paths; support still scans the full input "
+                                  "(default: %(default)s)")
+    reconstruct.add_argument("--max-paths", type=int, default=256,
+                             help="Assembled paths kept per discovery scope (default: %(default)s)")
     reconstruct.add_argument("--discovery-partition", choices=['panel', 'gene'], default='panel',
-                             help="Apply discovery budgets across the panel or independently per gene")
-    reconstruct.add_argument("--min-overlap", type=int, default=30)
-    reconstruct.add_argument("--scratch-dir")
+                             help="Apply discovery budgets across the panel or independently per gene "
+                                  "(default: %(default)s)")
+    reconstruct.add_argument("--min-overlap", type=int, default=30,
+                             help="Minimum exact overlap for assembling reads (default: %(default)s)")
+    reconstruct.add_argument("--scratch-dir", help="Existing directory for temporary disk indexes")
     quantify = actions.add_parser("quantify", help="Run installed Salmon against the complete competing transcriptome")
     quantify.add_argument("--input", required=True, help="Reconstruction isoforms.json")
     quantify.add_argument("--transcriptome", required=True, help="Full matching background transcript FASTA")
     quantify.add_argument("--reads1", required=True, help="Short-read FASTQ, or first mates")
     quantify.add_argument("--reads2", help="Second mates of paired short reads")
     quantify.add_argument("--output-dir", required=True, help="New directory for Salmon inputs, estimates and report")
-    quantify.add_argument("--threads", type=int, default=1)
-    quantify.add_argument("--salmon", default="salmon", help="Installed Salmon executable")
+    quantify.add_argument("--threads", type=int, default=1, help="Salmon threads (default: %(default)s)")
+    quantify.add_argument("--salmon", default="salmon", help="Installed Salmon executable (default: %(default)s)")
     for action in (reconstruct, quantify):
         add_log_level_arg(action)
     return parser

@@ -176,3 +176,85 @@ def test_command_line_doc_lists_every_command_in_help_group_order():
         section = doc[doc.index("### " + title + "\n"):]
         positions = [section.index("`isovar %s`" % name) for name in names]
         assert positions == sorted(positions)
+
+
+def _leaf_parsers():
+    """Every command's actual parsers, including nested subcommands such as `isoforms reconstruct`."""
+    import argparse
+    leaves = {}
+
+    class Captured(Exception):
+        pass
+
+    def walk(parser, path):
+        children = [a for a in parser._actions if isinstance(a, argparse._SubParsersAction)]
+        if not children:
+            leaves[" ".join(path)] = parser
+        for action in children:
+            for name, child in action.choices.items():
+                walk(child, path + [name])
+
+    def capture(self, args=None, namespace=None):
+        walk(self, [self.prog])
+        raise Captured
+
+    original = argparse.ArgumentParser.parse_known_args
+    argparse.ArgumentParser.parse_known_args = capture
+    try:
+        for name, (module, _) in commands.COMMANDS.items():
+            try:
+                import_module("isovar.cli." + module).run(["--help"], prog="isovar " + name)
+            except (Captured, SystemExit):
+                pass
+    finally:
+        argparse.ArgumentParser.parse_known_args = original
+    return leaves
+
+
+def test_every_option_is_documented_hyphenated_and_states_its_default():
+    """#660: options keep help text, one flag spelling style and visible defaults."""
+    import argparse
+    leaves = _leaf_parsers()
+    assert {path.split()[1] for path in leaves} == set(commands.COMMANDS)
+    problems = []
+    for path, parser in leaves.items():
+        for action in parser._actions:
+            if isinstance(action, (argparse._HelpAction, argparse._VersionAction)):
+                continue
+            name = "/".join(action.option_strings) or action.dest
+            if not action.help:
+                problems.append("%s %s: no help" % (path, name))
+            for option in action.option_strings:
+                if option.startswith("--") and (option != option.lower() or "_" in option):
+                    problems.append("%s %s: not lowercase-hyphenated" % (path, option))
+            trivial = action.default in (None, False, True, argparse.SUPPRESS, [], ())
+            if action.option_strings and not trivial and "default" not in (action.help or "").lower():
+                problems.append("%s %s: default %r not stated" % (path, name, action.default))
+    assert not problems, "\n".join(problems)
+
+
+def test_every_command_controls_its_log_level():
+    # uorf-evidence is orfdata's own query command and logs nothing.
+    missing = [path for path, parser in _leaf_parsers().items()
+               if path != "isovar uorf-evidence"
+               and not any("--log-level" in action.option_strings for action in parser._actions)]
+    assert not missing
+
+
+@pytest.mark.parametrize("typo, suggestion", [("--verison", "--version"), ("--vfc", "--vcf"), ("--bogus", None)])
+def test_mistyped_top_level_options_are_named_not_sent_to_the_pipeline(typo, suggestion, capsys):
+    with pytest.raises(SystemExit) as error:
+        commands.run([typo])
+    assert error.value.code == 2
+    err = capsys.readouterr().err
+    assert err.startswith("isovar: error: unrecognized option '%s'" % typo) and "--bam" not in err
+    assert ("did you mean '%s'" % suggestion in err) if suggestion else "did you mean" not in err
+
+
+def test_help_command_shows_the_listing_or_a_command_help(capsys):
+    with pytest.raises(SystemExit) as error:
+        commands.run(["help"])
+    assert error.value.code == 0 and "Pipeline:" in capsys.readouterr().out
+    with pytest.raises(SystemExit) as error:
+        commands.run(["help", "fusion"])
+    assert error.value.code == 0 and capsys.readouterr().out.startswith("usage: isovar fusion ")

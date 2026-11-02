@@ -19,15 +19,16 @@ def make_parser(prog="isovar viral"):
     parser = argparse.ArgumentParser(prog=prog, description=__doc__)
     add_rna_path_args(parser)
     parser.add_argument("--genome-fasta", required=True, help="Local FASTA used for alignment")
-    parser.add_argument("--sample-id", required=True)
+    parser.add_argument("--sample-id", required=True, help="Sample the reads came from")
     parser.add_argument("--output-dir", required=True, help="New directory for viral.json, sequences.fa and predicted proteins.fa")
     parser.add_argument("--contig", action="append", help="Optional viral contig subset; repeat to select several")
     parser.add_argument("--alignment-reference", choices=[GDC_REFERENCE, "custom"], default=GDC_REFERENCE,
                         help="Checked reference profile (default: %(default)s); custom requires --contig")
     parser.add_argument("--max-discovery-reads", type=int, default=10000,
-                        help="Read segments for discovery per virus; support still scans the full input")
-    parser.add_argument("--max-paths", type=int, default=256, help="Assembled paths per viral contig")
-    parser.add_argument("--min-overlap", type=int, default=30, help="Minimum exact overlap for assembly")
+                        help="Read segments for discovery per virus; support still scans the full input "
+                             "(default: %(default)s)")
+    parser.add_argument("--max-paths", type=int, default=256, help="Assembled paths per viral contig (default: %(default)s)")
+    parser.add_argument("--min-overlap", type=int, default=30, help="Minimum exact overlap for assembly (default: %(default)s)")
     parser.add_argument("--scratch-dir", help="Temporary disk-index directory")
     parser.add_argument("--reference-cache", help="PyEnsembl genomic-FASTA cache directory")
     add_log_level_arg(parser)

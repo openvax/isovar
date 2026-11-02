@@ -26,7 +26,7 @@ def make_parser(prog='isovar variant-rna-paths'):
     parser.add_argument('--source', required=True, help='Original RNA library identity; keep cultures/libraries separate')
     parser.add_argument('--output', required=True, help='New JSON or JSON.gz result path')
     parser.add_argument('--library-cache', help='Reusable original-RNA index directory')
-    parser.add_argument('--scratch-dir')
+    parser.add_argument('--scratch-dir', help='Existing directory for temporary disk indexes')
     parser.add_argument('--reference-fasta', help='Reference for decoding CRAM input')
     for name, default in [('max-discovery-reads', 10000), ('max-seed-segments', 10000), ('max-paths', 256),
                           ('min-overlap', 30), ('min-anchor-bases', 12), ('flank', 1000)]:
