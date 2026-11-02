@@ -24,6 +24,15 @@ SELECTION = json.loads((DATA / "selection.json").read_text())
 MANIFEST = json.loads((DATA / "manifest.json").read_text())
 
 
+def _sorted_bam(directory, name, metadata):
+    sam = directory / (name + ".sam")
+    sam.write_bytes(gzip.decompress(sid_data.path("osteosarc/" + metadata["file"]).read_bytes()))
+    bam_path = directory / (name + ".bam")
+    pysam.sort("--no-PG", "-o", str(bam_path), str(sam))
+    pysam.index(str(bam_path))
+    return bam_path
+
+
 @pytest.fixture(scope="module")
 def protein_cases(tmp_path_factory):
     directory = tmp_path_factory.mktemp("osteosarc_proteins")
@@ -31,11 +40,7 @@ def protein_cases(tmp_path_factory):
     references = load_references()
     cases = {}
     for name, metadata in MANIFEST["datasets"].items():
-        sam = directory / (name + ".sam")
-        sam.write_bytes(gzip.decompress(sid_data.path("osteosarc/" + metadata["file"]).read_bytes()))
-        bam_path = directory / (name + ".bam")
-        pysam.sort("--no-PG", "-o", str(bam_path), str(sam))
-        pysam.index(str(bam_path))
+        bam_path = _sorted_bam(directory, name, metadata)
         for record in SELECTION["variants"]:
             variant = Variant(record["chrom"].removeprefix("chr"), int(record["pos"]),
                               record["ref"], record["alt"], ensembl=genome)
@@ -292,3 +297,35 @@ def test_full_region_adaptive_sweep_records_both_support_metrics():
             p25 = {r["min_coverage"]: r["top_proteins"][0] for r in sweep if r["peptide_length"] == 25}
             assert len(p25[2]["amino_acids"]) == 37
             assert len(p25[5]["amino_acids"]) == 33
+
+
+@pytest.fixture(scope="module")
+def isovar_results(tmp_path_factory):
+    from varcode import VariantCollection
+    from isovar import run_isovar
+
+    directory = tmp_path_factory.mktemp("osteosarc_results")
+    genome = reference_genome(directory / "reference")
+    variants = VariantCollection([
+        Variant(r["chrom"].removeprefix("chr"), int(r["pos"]), r["ref"], r["alt"], ensembl=genome)
+        for r in SELECTION["variants"]])
+    genes = {(r["chrom"].removeprefix("chr"), int(r["pos"])): r["gene"] for r in SELECTION["variants"]}
+    return {(name, genes[result.variant.original_contig.removeprefix("chr"), result.variant.original_start]): result
+            for name, metadata in MANIFEST["datasets"].items()
+            for result in run_isovar(variants, str(_sorted_bam(directory, name, metadata)))}
+
+
+@pytest.mark.parametrize("sample, gene", [
+    ("bulk_star_t0", "GTF3C5"), ("ont_t1", "GTF3C5"), ("ont_t1", "H1-2")])
+def test_in_frame_deletions_in_repeats_match_their_predicted_protein(isovar_results, sample, gene):
+    # Varcode places these deletions 3' in their repeats, as HGVS does
+    # (p.Glu503_Glu506del, p.Ala197_Lys201del), and the RNA protein marks them
+    # elsewhere: 4 aa upstream for GTF3C5, with H1-2's junction codon marked.
+    # Both describe the same protein, so no residue may count as a mismatch.
+    result = isovar_results[sample, gene]
+    protein = result.top_protein_sequence.amino_acids
+    assert protein in result.predicted_effect.mutant_protein_sequence
+    assert result.trimmed_predicted_mutant_protein_sequence == protein
+    assert result.num_amino_acid_mismatches_from_predicted_effect == 0
+    assert result.protein_sequence_matches_predicted_mutation_effect
+

@@ -56,9 +56,18 @@ def reference_comparison(translation: Translation, edits: Sequence[ObservedEdit]
     reference_amino, reference_stop = translate_cdna(reference[offset:], translation_table=table)
     counter_amino, counter_stop = translate_cdna(counter[offset:], translation_table=table)
     delta = len(context.sequence_at_variant_locus) - (end - begin)
+    length = len(translation.amino_acids)
+    start, stop = translation.mutation_start_idx, translation.mutation_end_idx
+    if start > length:
+        # The frame stops before the focal codon, so the focal allele changes
+        # none of the translated residues; compare without a focal gap.
+        delta, interval = 0, (length, length)
+    else:
+        # A stop inside the affected codons (e.g. a stop gain) ends the protein there.
+        interval = (start, min(stop, length))
     # A capped local protein is compared at the same window extent, allowing
     # the explicit focal in-frame length difference in the reference allele.
-    limit = len(translation.amino_acids) + (delta // 3 if delta % 3 == 0 else 0)
+    limit = length + (delta // 3 if delta % 3 == 0 else 0)
     counter_window = counter_amino[:max(0, limit)]
     counter_stop_in_window = reference_window_stop(counter_amino, counter_stop, limit,
                                                    translation.ends_with_stop_codon)
@@ -67,7 +76,6 @@ def reference_comparison(translation: Translation, edits: Sequence[ObservedEdit]
                                                       translation.ends_with_stop_codon)
     comparison_options = dict(allele_length_delta=delta, frameshift=translation.frameshift,
                               stop=translation.ends_with_stop_codon)
-    interval = (translation.mutation_start_idx, translation.mutation_end_idx)
     annotation = compare_protein_windows(annotation_window, translation.amino_acids, interval,
                                           reference_stop=annotation_stop_in_window, **comparison_options)
     focal_comparison = compare_protein_windows(counter_window, translation.amino_acids, interval,

@@ -493,3 +493,29 @@ def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
         protein_sequence_lengths = protein_sequences.str.len()
         assert (protein_sequence_lengths == desired_length).all(), (
             protein_sequence_lengths,)
+
+
+def test_transcripts_at_one_locus_are_ordered_by_id_whatever_the_input_order():
+    # PyEnsembl orders transcripts by locus only; ties used to follow set
+    # iteration order, so identical runs listed transcript IDs differently.
+    from types import SimpleNamespace
+    from isovar.isovar_result import IsovarResult
+    from isovar.protein_sequence import ProteinSequence
+
+    class Transcript:
+        def __init__(self, id):
+            self.id = id
+
+        def __lt__(self, other):
+            return False  # One locus, as PyEnsembl compares transcripts.
+
+    ids = ["ENST00000916425", "ENST00000372097", "ENST00000916424", "ENST00000372099",
+           "ENST00000902265", "ENST00000902266"]
+    tied = [Transcript(id) for id in ids]
+    for transcripts in (tied, tied[::-1]):
+        protein = SimpleNamespace(translations=[SimpleNamespace(
+            reference_context=SimpleNamespace(transcripts=transcripts))])
+        assert [t.id for t in ProteinSequence.transcripts.fget(protein)] == sorted(ids)
+        protein.transcripts = transcripts
+        result = SimpleNamespace(sorted_protein_sequences=[protein])
+        assert [t.id for t in IsovarResult.transcripts_from_protein_sequences(result)] == sorted(ids)

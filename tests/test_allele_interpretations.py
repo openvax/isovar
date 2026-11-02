@@ -215,3 +215,20 @@ def test_reference_allele_must_agree_with_the_annotation_and_inputs_are_strict(b
         reconcile(bam, {"empty": []})
     with pytest.raises(ValueError, match="exactly the keys"):
         interpretations_from_dict(dict(interpretations={}))
+
+
+@pytest.mark.parametrize("contig", ["chr12", "12"])
+def test_ucsc_contig_names_are_annotated_and_checked_like_ensembl_names(contig):
+    # A "chr" contig used to skip annotation silently, so a wrong REF on Sid
+    # EXOC4 came out "supported" and its reference reads as another allele.
+    from isovar.allele_interpretations import interpretations_from_dict
+
+    path, genome = real_case("NTF3")
+    interpretations = interpretations_from_dict(dict(reference_name="GRCh38", interpretations={
+        "wrong reference": [dict(contig=contig, start=5494381, ref="C", alt="G")]}), genome=genome)
+    assert interpretations["wrong reference"][0].contig == "12"
+    with pysam.AlignmentFile(str(path)) as bam, pytest.raises(ValueError, match="disagrees with the annotation"):
+        reconcile_allele_interpretations(interpretations, bam, sample_id="sid", source=path.name,
+                                         read_collector=ReadCollector(use_secondary_alignments=False))
+    with pytest.raises(ValueError, match="exactly the keys"):
+        interpretations_from_dict([dict(contig=contig)])

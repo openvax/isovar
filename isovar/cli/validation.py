@@ -17,9 +17,12 @@ missing or unusable inputs as CommandInputError.
 """
 
 from argparse import ArgumentTypeError
+import logging
 import os
 
 from varcode.cli import variant_collection_from_args as _varcode_variant_collection_from_args
+
+logger = logging.getLogger(__name__)
 
 
 class CommandInputError(ValueError):
@@ -43,18 +46,35 @@ positive_int = _bounded(int, lambda value: value > 0, "a positive integer")
 non_negative_int = _bounded(int, lambda value: value >= 0, "a non-negative integer")
 non_negative_float = _bounded(float, lambda value: value >= 0, "a non-negative number")
 fraction = _bounded(float, lambda value: 0 <= value <= 1, "between 0 and 1")
+open_fraction = _bounded(float, lambda value: 0 < value < 1, "strictly between 0 and 1")
 dpi = _bounded(int, lambda value: value >= 72, "a resolution of at least 72 dpi")
 
 
 def variant_collection_from_args(args):
-    """Load the requested variants, reporting input problems as CommandInputError."""
+    """Load the requested small variants, reporting input problems as CommandInputError.
+
+    Structural-variant records (symbolic or breakend ALTs) are skipped with a
+    warning: they need ``isovar sv-source`` and ``isovar sv-audit``.
+    """
     try:
-        return _varcode_variant_collection_from_args(args)
+        variants = _varcode_variant_collection_from_args(args)
     except (OSError, ValueError) as error:
         message = str(error)
         if "genome" in message.lower() and "--genome" not in message:
             message += " (specify the reference with --genome)"
         raise CommandInputError(message) from error
+    structural = [v for v in variants if getattr(v, "is_structural", False)]
+    if not structural:
+        return variants
+    examples = ", ".join(v.short_description for v in structural[:3])
+    if len(structural) == len(variants):
+        raise CommandInputError(
+            "All %d input variants are structural variants (%s); use isovar sv-source and "
+            "isovar sv-audit for them" % (len(structural), examples))
+    logger.warning("Skipping %d structural variant record(s) (%s%s); use isovar sv-source and "
+                   "isovar sv-audit for them", len(structural), examples,
+                   ", ..." if len(structural) > 3 else "")
+    return variants.filter(lambda v: not getattr(v, "is_structural", False))
 
 
 def germline_variants_from_args(args, variants):

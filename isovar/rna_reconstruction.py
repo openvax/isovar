@@ -144,7 +144,9 @@ def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_ov
                          distinct_observations=len({o.comparison_key for o in chosen.values()}),
                          max_discovery_reads=max_discovery_reads,
                          max_paths=max_paths, min_overlap=min_overlap,
-                         truncated=eligible > selected or bool(notes), limitations=sorted(notes),
+                         # Truncation means a budget was reached; other notes
+                         # (e.g. retained alternative placements) are limitations only.
+                         truncated=eligible > selected or "path_limit" in notes, limitations=sorted(notes),
                          observation_rejections=dict(reasons))
 
 

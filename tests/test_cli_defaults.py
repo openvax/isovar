@@ -9,6 +9,7 @@ from isovar import default_parameters as defaults
 from isovar.cli import rna_args
 from isovar.cli.filter_args import filter_threshold_dict_from_args
 from isovar.cli.main_args import make_isovar_arg_parser
+from isovar.cli.validation import CommandInputError
 from isovar.cli.protein_sequence_args import (
     make_protein_sequences_arg_parser,
     protein_sequence_creator_from_args,
@@ -221,5 +222,51 @@ def test_phasing_calibration_cli(monkeypatch, tmp_path):
     assert received["phasing_error_rates"] == {variant: (0.1, 0.02)}
     profile.write_text(json.dumps([dict(contig="unknown", start=10, ref="A", alt="G",
                                        ref_to_alt=0.1, alt_to_ref=0.02)]))
-    with pytest.raises(ValueError, match="does not match"):
+    with pytest.raises(CommandInputError, match="row 1 .* matches no input variant"):
         main_args.run_isovar_from_parsed_args(args)
+    # Rows from calibrate-phasing keep the reference's "chr" contig names, and
+    # VCF-style rows keep the anchor base; both name the same normalized loci.
+    deletion = Variant("1", 20, "AG", "A", normalize_contig_names=False)
+    monkeypatch.setattr(main_args, "variant_collection_from_args", lambda args: [variant, deletion])
+    profile.write_text(json.dumps([
+        dict(contig="chr1", start=10, ref="A", alt="G", ref_to_alt=0.1, alt_to_ref=0.02),
+        dict(contig="chr1", start=20, ref="AG", alt="A", ref_to_alt=0.2, alt_to_ref=0.03)]))
+    assert main_args.run_isovar_from_parsed_args(args)["phasing_error_rates"] == {
+        variant: (0.1, 0.02), deletion: (0.2, 0.03)}
+    for rows, message in [({}, "JSON list"), ([dict(contig="1")], "row 1 needs contig"),
+                          ([dict(contig="1", start=10, ref="A", alt="G", ref_to_alt=2, alt_to_ref=0)],
+                           "two probabilities")]:
+        profile.write_text(json.dumps(rows))
+        with pytest.raises(CommandInputError, match=message):
+            main_args.run_isovar_from_parsed_args(args)
+    profile.write_text("not JSON")
+    with pytest.raises(CommandInputError, match="Cannot read --phasing-error-rates"):
+        main_args.run_isovar_from_parsed_args(args)
+
+
+@pytest.mark.parametrize("option", ["--phasing-error-rate", "--max-p-value-for-phasing"])
+@pytest.mark.parametrize("value", ["0", "1", "2", "-0.1"])
+def test_phasing_probabilities_are_checked_when_parsed(option, value, capsys):
+    with pytest.raises(SystemExit) as error:
+        make_isovar_arg_parser().parse_args(["--bam", "unused.bam", option, value])
+    assert error.value.code == 2
+    assert "is not strictly between 0 and 1" in capsys.readouterr().err
+
+
+def test_structural_variant_records_are_skipped_with_a_warning(monkeypatch, caplog):
+    from varcode import Variant, VariantCollection
+    from varcode.structural_variant import StructuralVariant
+    from isovar.cli import validation
+
+    snv = Variant("7", 133274996, "G", "T", normalize_contig_names=False)
+    sv = StructuralVariant("7", 133274000, end=133276000, sv_type="DEL", normalize_contig_names=False)
+    collection = VariantCollection([snv, sv])
+    monkeypatch.setattr(validation, "_varcode_variant_collection_from_args", lambda args: collection)
+    caplog.set_level("WARNING", logger="isovar")  # Earlier CLI tests may have raised the CLI level.
+    assert list(validation.variant_collection_from_args(None)) == [snv]
+    assert "Skipping 1 structural variant record(s)" in caplog.text
+    assert "isovar sv-audit" in caplog.text
+    monkeypatch.setattr(validation, "_varcode_variant_collection_from_args",
+                        lambda args: VariantCollection([sv]))
+    with pytest.raises(validation.CommandInputError, match="All 1 input variants are structural"):
+        validation.variant_collection_from_args(None)
