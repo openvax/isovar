@@ -6,6 +6,8 @@ from pathlib import Path
 
 from gtfparse import ParsingError
 
+from .output_args import add_log_level_arg
+from ..logging import configure_cli_logging, get_logger
 from ..antigen_reference import GDC_REFERENCE
 from ..antigen_targets import CTA_GENE_SET, prepare_antigen_reference
 from ..antigen_isoforms import reconstruct_antigen_isoforms
@@ -13,6 +15,8 @@ from ..audit_bundle import digest, publish_json
 from ..isoform_quantification import quantify_antigen_isoforms, write_isoform_fastas
 from .rna_args import add_rna_path_args, rna_path_context
 from .validation import input_error
+
+logger = get_logger(__name__)
 
 
 def make_parser(prog="isovar isoforms"):
@@ -48,12 +52,15 @@ def make_parser(prog="isovar isoforms"):
     quantify.add_argument("--output-dir", required=True, help="New directory for Salmon inputs, estimates and report")
     quantify.add_argument("--threads", type=int, default=1)
     quantify.add_argument("--salmon", default="salmon", help="Installed Salmon executable")
+    for action in (reconstruct, quantify):
+        add_log_level_arg(action)
     return parser
 
 
 def run(args=None, prog=None):
     parser = make_parser(prog or "isovar isoforms")
     options = parser.parse_args(args)
+    configure_cli_logging(options.log_level)
     try:
         if options.action == "quantify":
             result = json.loads(Path(options.input).read_text())
@@ -83,5 +90,6 @@ def run(args=None, prog=None):
         output.mkdir(parents=True, exist_ok=False)
         publish_json(output / "isoforms.json", result)
         write_isoform_fastas(result, output / "transcripts.fa", output / "proteins.fa")
+        logger.info("Wrote isoforms.json, transcripts.fa and proteins.fa to %s", output)
     except (OSError, ValueError, KeyError, TypeError, ParsingError) as error:
         input_error(parser, error)

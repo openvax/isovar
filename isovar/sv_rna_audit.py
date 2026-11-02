@@ -10,6 +10,7 @@ from hashlib import sha256
 from importlib.metadata import version
 from inspect import signature
 import json
+import logging
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
@@ -28,6 +29,8 @@ from .sv_path_routing import PathEvidenceQuery, route_path_evidence
 from .sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 from .sv_rna_assessment import PathEvidence, assess_sv_rna_paths
 from .sv_rna_reconciliation import reconcile_sv_rna_hypotheses
+
+logger = logging.getLogger(__name__)
 
 
 def read_json(path):
@@ -248,7 +251,7 @@ def _snapshot(job: _AuditJob, context: _AuditContext) -> dict[str, Any]:
 def _publish_snapshot(job: _AuditJob, snapshot: dict[str, Any]) -> dict[str, Any]:
     write_json(job.target, snapshot)
     write_json(job.receipt, dict(fingerprint=job.fingerprint, sha256=file_sha256(job.target)))
-    print('%s / %s / %s: %s' % (*job.identity, snapshot['status']), flush=True)
+    logger.info('%s / %s / %s: %s', *job.identity, snapshot['status'])
     return _summary(snapshot, job.artifact)
 
 
@@ -298,7 +301,7 @@ def _reconstruct_job(job: _AuditJob, context: _AuditContext, library: RnaLibrary
         write_json(target, dict(schema='isovar.sv_rna_reconstruction_stage.v1', fingerprint=job.fingerprint,
                                reconstruction=result))
         write_json(receipt, dict(fingerprint=job.fingerprint, sha256=file_sha256(target)))
-    print('%s / %s / %s: reconstructed %d paths' % (*job.identity, len(result['paths'])), flush=True)
+    logger.info('%s / %s / %s: reconstructed %d paths', *job.identity, len(result['paths']))
     parameters = context.manifest.get('assessment', {})
     return PathEvidenceQuery(job.artifact, tuple(path['sequence'] for path in result['paths']),
                              tuple(inputs['references']), parameters.get('min_path_match', 20),

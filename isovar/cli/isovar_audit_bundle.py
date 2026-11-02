@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import zlib
 
+from .output_args import add_log_level_arg
+from ..logging import configure_cli_logging
 from ..audit_bundle import AuditBundle, AuditBundleError
 from ..audit_replay import _replay_sv_rna
 from ..sid_audit_bundle import bundle_sid_audit
@@ -15,14 +17,16 @@ def make_parser(prog="isovar audit-bundle"):
     parser = argparse.ArgumentParser(prog=prog, description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     create = commands.add_parser("create", help="Freeze explicitly selected files from a JSON specification")
-    create.add_argument("--spec", required=True, type=Path)
+    create.add_argument("--spec", required=True, type=Path,
+                        help="JSON specification naming the files to freeze and their roles")
     create_output = create.add_mutually_exclusive_group(required=True)
-    create_output.add_argument("--output", type=Path)
+    create_output.add_argument("--output", type=Path, help="New bundle directory")
     create_output.add_argument("--estimate", action="store_true", help="Print logical payload size without writing a bundle")
     sid = commands.add_parser("import-sid", help="Freeze existing Sid audit receipts, subsets and replay plans")
-    sid.add_argument("--audit", required=True, type=Path)
-    sid.add_argument("--output", required=True, type=Path)
-    sid.add_argument("--extra-file", action="append", default=[], metavar="NAME=PATH")
+    sid.add_argument("--audit", required=True, type=Path, help="Existing Sid SV audit output directory")
+    sid.add_argument("--output", required=True, type=Path, help="New bundle directory")
+    sid.add_argument("--extra-file", action="append", default=[], metavar="NAME=PATH",
+                     help="Also freeze this file under NAME (repeatable)")
     for sub in (create, sid):
         sub.add_argument("--copy-method", choices=("copy", "clone"), default="copy",
                          help="Full copy (default) or native independent clone; clones fail if unsupported")
@@ -33,18 +37,23 @@ def make_parser(prog="isovar audit-bundle"):
             "pack": "Create a verified tar.gz backup",
             "replay": "Reconstruct frozen SV views offline and compare full results",
         }[command])
-        sub.add_argument("bundle", type=Path)
+        sub.add_argument("bundle", type=Path, help="Bundle directory")
         if command in ("pack", "replay"):
-            sub.add_argument("--output", required=True, type=Path)
+            sub.add_argument("--output", required=True, type=Path,
+                             help="New tar.gz archive" if command == "pack" else "New replay output directory")
         if command == "replay":
             runs = sub.add_mutually_exclusive_group(required=True)
-            runs.add_argument("--run-id", action="append")
-            runs.add_argument("--all", action="store_true")
-            sub.add_argument("--allow-software-change", action="store_true")
-            sub.add_argument("--scratch-dir", type=Path)
+            runs.add_argument("--run-id", action="append", help="Replay this run (repeatable); see inspect")
+            runs.add_argument("--all", action="store_true", help="Replay every recorded run")
+            sub.add_argument("--allow-software-change", action="store_true",
+                             help="Replay although the installed Isovar differs from the bundle's")
+            sub.add_argument("--scratch-dir", type=Path, help="Temporary disk-index directory")
+        add_log_level_arg(sub)
     unpack = commands.add_parser("unpack", help="Restore and verify a backup in a new directory")
-    unpack.add_argument("archive", type=Path)
-    unpack.add_argument("--output", required=True, type=Path)
+    unpack.add_argument("archive", type=Path, help="tar.gz archive made by pack")
+    unpack.add_argument("--output", required=True, type=Path, help="New bundle directory")
+    for sub in (create, sid, unpack):
+        add_log_level_arg(sub)
     return parser
 
 
@@ -52,6 +61,7 @@ def run(args=None, prog=None):
     """Run the installed CLI; emit JSON on stdout and errors with exit status 2."""
     parser = make_parser(prog or "isovar audit-bundle")
     args = parser.parse_args(args)
+    configure_cli_logging(args.log_level)
     try:
         if args.command == "create":
             spec = json.loads(args.spec.read_text())

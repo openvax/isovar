@@ -198,7 +198,7 @@ class ReferenceCodingSequenceKey(ReferenceSequenceKey):
             context_size=context_size)
 
         if sequence_key is None:
-            logger.info(
+            logger.debug(
                 "No sequence key for variant %s on transcript %s",
                 variant,
                 transcript.name)

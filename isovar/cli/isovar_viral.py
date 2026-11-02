@@ -3,12 +3,16 @@
 import argparse
 from pathlib import Path
 
+from .output_args import add_log_level_arg
+from ..logging import configure_cli_logging, get_logger
 from ..antigen_reference import GDC_REFERENCE
 from ..audit_bundle import digest, publish_json
 from ..viral_sequences import reconstruct_viral_sequences, write_viral_fasta
 from ..viral_coding import write_viral_proteins
 from .rna_args import add_rna_path_args, rna_path_context
 from .validation import input_error
+
+logger = get_logger(__name__)
 
 
 def make_parser(prog="isovar viral"):
@@ -26,12 +30,14 @@ def make_parser(prog="isovar viral"):
     parser.add_argument("--min-overlap", type=int, default=30, help="Minimum exact overlap for assembly")
     parser.add_argument("--scratch-dir", help="Temporary disk-index directory")
     parser.add_argument("--reference-cache", help="PyEnsembl genomic-FASTA cache directory")
+    add_log_level_arg(parser)
     return parser
 
 
 def run(args=None, prog=None):
     parser = make_parser(prog or "isovar viral")
     options = parser.parse_args(args)
+    configure_cli_logging(options.log_level)
     try:
         output = Path(options.output_dir).expanduser()
         if output.exists():
@@ -52,5 +58,6 @@ def run(args=None, prog=None):
         publish_json(output / "viral.json", result)
         write_viral_fasta(result, output / "sequences.fa")
         write_viral_proteins(result, output / "proteins.fa")
+        logger.info("Wrote viral.json, sequences.fa and proteins.fa to %s", output)
     except (OSError, ValueError, KeyError, TypeError) as error:
         input_error(parser, error)

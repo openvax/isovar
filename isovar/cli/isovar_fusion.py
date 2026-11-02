@@ -4,9 +4,11 @@ import argparse
 from ..default_parameters import FUSION_PEPTIDE_LENGTHS, MIN_FUSION_FRAGMENTS, PLOT_DPI
 from ..fusion import fusion_from_dict, reconstruct_fusion
 from ..json_files import read_json, write_json
-from ..logging import configure_cli_logging
+from ..logging import configure_cli_logging, get_logger
 from .output_args import add_log_level_arg
 from .validation import CommandInputError, check_outputs, dpi, input_error
+
+logger = get_logger(__name__)
 
 
 def make_parser(prog="isovar fusion"):
@@ -37,6 +39,7 @@ def run(args=None, prog=None):
                                     min_fragments=options.min_fragments)
         # Write the result before plotting, so a plotting failure never loses it.
         write_json(options.output, result)
+        logger.info("Wrote %s", options.output)
         if options.plot_dir:
             from ..fusion_visualization import save_fusion_figures
             from ..visualization import timestamped_run_directory

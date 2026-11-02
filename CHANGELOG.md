@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.82.0
+
+Quieter, consistent progress messages (found running the CLI on Sid data, #661):
+
+- At the default INFO level a pipeline run logs one line per variant
+  (`Gathering reads for chr7 g.133274996G>T`) and what it wrote: 7 lines for
+  the six Sid variants instead of 306. Per-sequence, per-transcript and
+  per-read details, including 748 "Couldn't find position" lines for a MAP2
+  deletion, are DEBUG.
+- Every command takes `--log-level`; `sv-source`, `sv-audit`, `viral`,
+  `isoforms`, `audit-bundle`, `calibrate-phasing`, `proteome`,
+  `normal-evidence`, `evidence-report`, `antigen-report` and
+  `variant-rna-paths` didn't. All use the same stderr format.
+- Commands that wrote silently now log what they wrote. `sv-audit` logs its
+  per-run progress to stderr instead of printing it to stdout.
+- `audit-bundle` options and positionals have help text (part of #657).
+
 ## 1.81.0
 
 Every command checks its outputs before doing any work and never overwrites

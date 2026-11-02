@@ -9,12 +9,16 @@ from pathlib import Path
 from pysam import AlignmentFile, FastaFile
 from varcode import Variant
 
+from .output_args import add_log_level_arg
+from ..logging import configure_cli_logging, get_logger
 from .. import __version__
 from ..phasing_calibration import PhasingControl, calibrate_phasing_error_rates
 from ..read_collector import ReadCollector
 from ..read_evidence import ReadEvidence
 from ..read_identity import source_read_ids
 from .validation import check_outputs, input_error
+
+logger = get_logger(__name__)
 
 _COLLECTOR_OPTIONS = frozenset((
     "use_secondary_alignments", "use_duplicate_reads", "min_mapping_quality",
@@ -153,7 +157,9 @@ def run(args=None, *, prog=None):
                         help="JSON profile accepted by isovar --phasing-error-rates")
     parser.add_argument("--report", required=True, type=Path,
                         help="JSON audit report with per-group counts and confidence bounds")
+    add_log_level_arg(parser)
     options = parser.parse_args(args)
+    configure_cli_logging(options.log_level)
     try:
         check_outputs(options, "output", "report")
         manifest_bytes = options.manifest.read_bytes()
@@ -181,6 +187,7 @@ def run(args=None, *, prog=None):
                                         for target in manifest["targets"]],
                        "control_files": files, "controls": calibration.report}, handle, indent=2)
             handle.write("\n")
+        logger.info("Wrote %s and %s", options.output, options.report)
     except KeyError as error:
         input_error(parser, "Missing manifest entry %s" % error)
     except (OSError, TypeError, ValueError) as error:

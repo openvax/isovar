@@ -126,7 +126,7 @@ class VariantSequenceCreator(object):
             max_nucleotides_before_variant=max_nucleotides_before_variant,
             max_nucleotides_after_variant=max_nucleotides_after_variant)
 
-        logger.info(
+        logger.debug(
             "Initial pool of %d variant sequences (min length=%d, max length=%d)",
             len(variant_sequences),
             min(len(s) for s in variant_sequences),
@@ -149,7 +149,7 @@ class VariantSequenceCreator(object):
                 preserve_candidate_sequences=True)
 
         if variant_sequences:
-            logger.info(
+            logger.debug(
                 "After overlap assembly: %d variant sequences (min length=%d, max length=%d)",
                 len(variant_sequences),
                 min(len(s) for s in variant_sequences),
@@ -164,14 +164,14 @@ class VariantSequenceCreator(object):
             variant_sequences, self.min_variant_sequence_coverage)
 
         if variant_sequences:
-            logger.info(
+            logger.debug(
                 ("After coverage filtering: %d variant sequences "
                  "(min length=%d, max length=%d)"),
                 len(variant_sequences),
                 min(len(s) for s in variant_sequences),
                 max(len(s) for s in variant_sequences))
         else:
-            logger.info("After coverage filtering: 0 variant sequences")
+            logger.debug("After coverage filtering: 0 variant sequences")
             return []
 
         # Sort by decreasing read support, with content-based ties even when

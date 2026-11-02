@@ -9,7 +9,7 @@ import json
 import sys
 
 from ..cell_reconstruction import MODES, reconstruct_cell_groups
-from ..logging import configure_cli_logging
+from ..logging import configure_cli_logging, get_logger
 from ..protein_hypotheses import export_protein_hypotheses, write_protein_hypotheses
 from .commands import parser_for_program
 from .base_quality_args import add_base_quality_args, base_quality_policy_from_args
@@ -18,6 +18,8 @@ from .output_args import add_log_level_arg
 from .rna_args import alignment_file_from_args, read_collector_from_args
 from ..protein_hypotheses import protein_hypotheses_tsv_path
 from .validation import CommandInputError, check_outputs, input_error
+
+logger = get_logger(__name__)
 
 parser = make_isovar_arg_parser(description=__doc__)
 add_base_quality_args(parser)
@@ -83,6 +85,7 @@ def run(args=None, *, prog=None):
                     max_edits=max_edits, min_overlap=min_overlap,
                     read_collector=read_collector_from_args(args), base_quality_policy=quality_policy,
                     partial_read_support=args.partial_read_support)
-        write_protein_hypotheses(export, args.output)
+        written = write_protein_hypotheses(export, args.output)
+        logger.info("Wrote %s and %s", written["json"], written["tsv"])
     except (CommandInputError, ValueError, OSError) as error:
         input_error(command, error)

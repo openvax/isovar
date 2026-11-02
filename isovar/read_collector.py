@@ -1101,7 +1101,7 @@ class ReadCollector(object):
                         positions[:] = [share_position(p, p) if type(p) is int else p
                                         for p in positions]
                 reads.append(read)
-        logger.info(
+        logger.debug(
             "Kept %d/%d reads overlapping locus %s:%d-%d",
             len(reads),
             total_count,
@@ -1113,7 +1113,7 @@ class ReadCollector(object):
             return reads
 
         merged_reads = self._merge_overlapping_locus_reads(reads)
-        logger.info(
+        logger.debug(
             "Merged overlapping paired reads into %d locus reads",
             len(merged_reads),
         )
@@ -1186,8 +1186,8 @@ class ReadCollector(object):
                       self.resolve_contig(alignment_file, chromosome, reference_name=variant_reference_name(variant)))
         chromosome = require_resolved_contig(resolution, alignment_file)
 
-        logger.info("Gathering reads for variant %s:%s %s>%s",
-                    variant.contig, variant.start, variant.ref, variant.alt)
+        logger.info("Gathering reads for %s", getattr(variant, "short_description", None) or "%s:%s %s>%s" % (
+            variant.contig, variant.start, variant.ref, variant.alt))
 
         locus = LiteralVariantLocus.from_variant(variant)
         kwargs = dict(alignment_file=alignment_file, chromosome=chromosome, **locus.collection_arguments())
