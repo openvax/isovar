@@ -8,6 +8,7 @@ this is not unrestricted six-frame ORF prediction.
 import json
 from pathlib import Path
 
+from .json_files import write_json
 from .default_parameters import PLOT_DPI, PLOT_PROTEIN_ROWS_PER_PAGE, PLOT_WIDTH
 from .protein_sequence_helpers import covered_protein_groups
 from .visualization import (
@@ -151,7 +152,7 @@ def save_protein_comparison(products, output_dir, dpi=PLOT_DPI, rows_per_page=PL
     directory = Path(output_dir)
     directory.mkdir(parents=True, exist_ok=False)
     rows = comparison_rows(products)
-    (directory / "evidence.json").write_text(json.dumps(dict(products=products, rows=rows), indent=2) + "\n")
+    write_json(directory / "evidence.json", dict(products=products, rows=rows))
     with PdfPages(directory / "all-figures.pdf") as pdf:
         for name, figure in protein_comparison_figures(products, rows_per_page):
             pdf.savefig(figure)

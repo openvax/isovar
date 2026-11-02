@@ -14,13 +14,13 @@ def read_json(path):
         return json.load(stream)
 
 
-def write_json(path, value, *, indent=2):
+def write_json(path, value, *, indent=2, sort_keys=False):
     """Write ``value`` to ``path`` atomically, gzip-compressed for a ``.gz`` name.
 
     A failed write leaves any existing file unchanged.
     """
     path = Path(path).expanduser()
-    text = json.dumps(value, indent=indent, separators=None if indent else (",", ":")) + "\n"
+    text = json.dumps(value, indent=indent, sort_keys=sort_keys, separators=None if indent else (",", ":")) + "\n"
     descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix="." + path.name, suffix=".tmp")
     try:
         with os.fdopen(descriptor, "wb") as stream:

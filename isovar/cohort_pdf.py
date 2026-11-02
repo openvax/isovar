@@ -14,7 +14,8 @@ from reportlab.platypus import (
     Flowable, Image, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 
-from .sv_rna_audit import file_sha256, read_json, write_json
+from .json_files import read_json
+from .sv_rna_audit import file_sha256, write_json
 from .rna_evidence import content_identifier
 from .protein_window_comparison import aligned_protein_columns as aligned_columns
 from .protein_reporting import best_supported_translation, protein_comparison_status

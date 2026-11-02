@@ -13,6 +13,7 @@ from .cell_umi import missing_label_row
 from .default_parameters import (
     SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_LOCAL_VARIANT_FRACTION,
 )
+from .json_files import write_json
 from .genetic_code import standard_genetic_code
 from .orf_start import summarize_orf_start_evidence
 from .read_lineage import summarize_lineage_rows
@@ -295,7 +296,7 @@ def write_sv_rna_orfs(export, prefix):
     paths = sv_rna_orf_output_paths(prefix)
     for path in paths.values():
         path.parent.mkdir(parents=True, exist_ok=True)
-    paths["json"].write_text(json.dumps(export, indent=2) + "\n")
+    write_json(paths["json"], export)
     columns = ["schema", "candidate_id", "event_id", "reference_name", "sample_id", "source", "amino_acids",
                "nucleotide_sequence", "ends_with_stop_codon", *SUPPORT_COLUMNS, "signal_groups",
                "original_query_fragments", "reverse_complement_fragments", "mixed_orientation_fragments",

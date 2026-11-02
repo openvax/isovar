@@ -32,7 +32,8 @@ from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
 from .read_end_profiles import read_end_profile_file_id
 from .rna_evidence import canonical_json, content_identifier
-from .sv_rna_audit import file_sha256, read_json, run_sv_rna_audit, write_json
+from .json_files import read_json
+from .sv_rna_audit import file_sha256, run_sv_rna_audit, write_json
 from .variant_rna_orfs import reconstruct_variant_orfs
 
 
