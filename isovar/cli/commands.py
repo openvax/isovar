@@ -112,10 +112,24 @@ def run(args=None):
     from .. import __version__
 
     args = list(sys.argv[1:] if args is None else args)
+    if args[:1] == ["help"]:
+        # `isovar help` and `isovar help COMMAND`, as in sibling tools.
+        args = args[1:2] + ["--help"]
     # Preserve the original option-first interface, including option values
     # which happen to equal a command name. Only the first token dispatches.
     if args and args[0].startswith("-") and args[0] not in {"-h", "--help", "--version"}:
-        return import_module(".isovar_main", __package__).run(args, prog="isovar")
+        main = import_module(".isovar_main", __package__)
+        option = args[0].split("=", 1)[0]
+        known = main.make_parser("isovar")._option_string_actions
+        if option.startswith("--") and not any(name.startswith(option) for name in known):
+            # A mistyped top-level flag (e.g. --verison) would otherwise report
+            # the pipeline's missing --bam.
+            close = get_close_matches(option, ["--help", "--version", *sorted(known)], n=1)
+            hint = " (did you mean '%s'?)" % close[0] if close else ""
+            sys.stderr.write("isovar: error: unrecognized option '%s'%s. Run 'isovar --help' for the "
+                             "commands or 'isovar run --help' for the pipeline's options.\n" % (option, hint))
+            sys.exit(2)
+        return main.run(args, prog="isovar")
     parser = argparse.ArgumentParser(
         prog="isovar", usage="%(prog)s [-h] [--version] COMMAND ...",
         description="Reconstruct mutant protein sequences from RNA evidence.",

@@ -25,9 +25,12 @@ def isovar_results_dataframe_from_args(args):
     return isovar_results_to_dataframe(run_isovar_from_parsed_args(args))
 
 
-def run(args=None, *, prog=None):
-    parser = add_output_args(
+def make_parser(prog=None):
+    return add_output_args(
         make_isovar_arg_parser(prog=prog, description=__doc__),
         filename="isovar-results.csv",
         description="CSV with one row per variant")
-    run_dataframe_command(parser, isovar_results_dataframe_from_args, args)
+
+
+def run(args=None, *, prog=None):
+    run_dataframe_command(make_parser(prog), isovar_results_dataframe_from_args, args)

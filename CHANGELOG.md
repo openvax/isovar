@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.82.1
+
+- Every option of every command, including nested subcommands such as
+  `isoforms reconstruct` and `audit-bundle replay`, has help text and states
+  its non-trivial default. That finishes #657: `sv-source`, `sv-audit`,
+  `cohort`, `isoforms`, `viral`, `variant-rna-paths`, `antigen-report` and
+  `patient-background-pairs` were missing some.
+- A test enforces this for every command, together with lowercase-hyphenated
+  long options and `--log-level` everywhere (#660).
+- A mistyped top-level option is named with a suggestion
+  (`isovar --verison`: did you mean '--version'?) instead of being passed to
+  the pipeline, which reported a missing `--bam`.
+- `isovar help` shows the command listing and `isovar help COMMAND` a
+  command's help, as in sibling tools.
+
 ## 1.82.0
 
 Quieter, consistent progress messages (found running the CLI on Sid data, #661):
