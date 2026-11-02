@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.82.2
+
+- JSON evidence/summary files now go through `isovar.json_files.write_json` (atomic; new `sort_keys` option) instead of ad-hoc `write_text(json.dumps(...))`; duplicate `read_json` copies in `sv_rna_audit` and `sid_data` are now re-exports of `isovar.json_files.read_json`. Output bytes are unchanged.
+
 ## 1.82.1
 
 - Every option of every command, including nested subcommands such as

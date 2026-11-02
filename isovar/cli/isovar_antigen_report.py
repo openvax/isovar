@@ -1,12 +1,12 @@
 """Combine source-specific Isovar exports into a visual antigen evidence audit."""
 
 import argparse
-import json
 from pathlib import Path
 
 from .output_args import add_log_level_arg
 from ..logging import configure_cli_logging
 from ..antigen_report import compose
+from ..json_files import write_json
 from .commands import parser_for_program
 from .validation import CommandInputError, check_outputs, input_error
 
@@ -47,7 +47,7 @@ def run(args=None, *, prog=None):
             viral=parsed.viral_result, isoforms=parsed.isoforms_result)
         from ..antigen_evidence_pdf import write_antigen_report
         write_antigen_report(parsed.output, inventory)
-        summary_json.write_text(json.dumps(inventory, indent=2, sort_keys=True) + "\n")
+        write_json(summary_json, inventory, sort_keys=True)
     except (CommandInputError, OSError, ValueError, KeyError, TypeError) as error:
         input_error(command, error)
     print(parsed.output)

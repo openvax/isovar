@@ -1,10 +1,10 @@
 """Separate, publication-ready panels for an explicit fusion result."""
-import json
 from dataclasses import asdict
 from pathlib import Path
 import re
 import textwrap
 
+from .json_files import write_json
 from .default_parameters import PLOT_DPI, PLOT_WIDTH
 from .visualization import BLUE, GRAY, INK, ORANGE, _plot_imports, _side_note, _style_axis
 
@@ -171,9 +171,9 @@ def save_fusion_figures(result, output_dir, references=(), transcript_names=None
             figure.savefig(directory / (name+".svg"),facecolor="white",metadata={"Date":None})
             pdf.savefig(figure,facecolor="white")
             figure.clear()
-    (directory / "evidence.json").write_text(json.dumps(result,indent=2)+"\n")
-    (directory / "reference-models.json").write_text(json.dumps(dict(
-        references=[asdict(r) for r in references], transcript_names=transcript_names or {}),indent=2)+"\n")
+    write_json(directory / "evidence.json", result)
+    write_json(directory / "reference-models.json", dict(
+        references=[asdict(r) for r in references], transcript_names=transcript_names or {}))
     (directory / "caption.md").write_text(textwrap.dedent("""\
         # Fusion evidence
 

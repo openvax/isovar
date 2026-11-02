@@ -7,7 +7,6 @@ defaults. Genomic, cDNA and protein coordinates are deliberately separate.
 from collections import Counter
 from datetime import datetime, timezone
 from hashlib import sha256
-import json
 from pathlib import Path
 import re
 
@@ -15,6 +14,7 @@ from .default_parameters import (
     PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_OVERVIEW_DPI, PLOT_VIEW, PLOT_VIEWS, PLOT_WIDTH,
     PROTEIN_SEQUENCE_LENGTH,
 )
+from .json_files import write_json
 from .dna import reverse_complement_dna
 from .effect_prediction import predicted_effects_for_variant
 from .protein_sequence_creator import ProteinSequenceCreator
@@ -681,6 +681,6 @@ def save_variant_figures(data, output_dir, view=PLOT_VIEW, max_rows=PLOT_MAX_ROW
     payload = dict(data, rendering=dict(view=view, panels=views, max_rows=max_rows, dpi=dpi,
                                        overview_dpi=min(dpi, PLOT_OVERVIEW_DPI),
                                        width_inches=PLOT_WIDTH, background="white"))
-    (directory / "evidence.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    write_json(directory / "evidence.json", payload, sort_keys=True)
     (directory / "caption.md").write_text(_figure_caption(data))
     return directory
