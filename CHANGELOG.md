@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.82.3
+
+Documentation only:
+
+- The README is now a short front door: purpose, Install, Quick start with the
+  output it prints on the B16 test data, Command line, Documentation,
+  Development, Citation and License.
+- `docs/README.md` indexes every guide in reading order, separating user
+  guides from maintainer design specifications. The README's results and
+  filtering reference moved to `docs/results.md`, its sequencing advice to
+  `docs/sequencing-recommendations.md`, and its five-step overview to
+  `docs/internal-design.md`.
+- Version-stamped dependency notes now state the current minimums (Varcode
+  11.1, ORFdata 0.45).
+
 ## 1.82.1
 
 - Every option of every command, including nested subcommands such as

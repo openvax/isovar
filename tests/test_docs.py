@@ -26,15 +26,15 @@ def test_run_isovar_docstring_documents_every_parameter():
         assert re.search(r"^\s*%s : " % name, doc, re.M), "%s undocumented" % name
 
 
-def test_readme_filter_names_are_isovar_result_properties():
-    readme = (ROOT / "README.md").read_text()
-    thresholds = re.findall(r"""['"](?:min|max)_([a-z_]+)['"]""", readme)
-    negated_flags = re.findall(r"`not_([a-z_]+)`", readme)
+def test_results_guide_filter_names_are_isovar_result_properties():
+    guide = (ROOT / "docs" / "results.md").read_text()
+    thresholds = re.findall(r"""['"](?:min|max)_([a-z_]+)['"]""", guide)
+    negated_flags = re.findall(r"`not_([a-z_]+)`", guide)
     assert thresholds and negated_flags
     for name in thresholds + negated_flags + list(DEFAULT_FILTER_FLAGS):
         assert hasattr(IsovarResult, name), name
     for name in DEFAULT_FILTER_FLAGS:
-        assert "`%s`" % name in readme, name
+        assert "`%s`" % name in guide, name
 
 
 REPOSITORY_URL = "https://github.com/openvax/isovar/blob/master/"

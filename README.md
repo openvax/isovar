@@ -1,10 +1,6 @@
 [![Tests](https://github.com/openvax/isovar/actions/workflows/tests.yml/badge.svg)](https://github.com/openvax/isovar/actions/workflows/tests.yml)
-<a href="https://coveralls.io/github/openvax/isovar?branch=master">
-    <img src="https://coveralls.io/repos/openvax/isovar/badge.svg?branch=master&service=github" alt="Coverage Status" />
-</a>
-<a href="https://pypi.python.org/pypi/isovar/">
-    <img src="https://img.shields.io/pypi/v/isovar.svg?maxAge=1000" alt="PyPI" />
-</a>
+[![Coverage Status](https://coveralls.io/repos/openvax/isovar/badge.svg?branch=master&service=github)](https://coveralls.io/github/openvax/isovar?branch=master)
+[![PyPI](https://img.shields.io/pypi/v/isovar.svg?maxAge=1000)](https://pypi.org/project/isovar/)
 
 # Isovar
 
@@ -18,7 +14,14 @@ can include nearby variants and splice junctions that the reads show. Where
 coverage runs out or no reading frame can be established, the result is shorter
 or empty: Isovar never fills gaps with reference sequence.
 
-## Installation
+Isovar is one of three OpenVax libraries that share this work.
+[Varcode](https://github.com/openvax/varcode) generates transcript hypotheses
+and predicts coding consequences; Isovar reconstructs RNA-supported sequences
+and reconciles the evidence; [Vaxrank](https://github.com/openvax/vaxrank)
+evaluates protein and peptide candidates. See
+[library responsibilities](https://github.com/openvax/isovar/blob/master/docs/library-responsibilities.md).
+
+## Install
 
 ```sh
 pip install isovar
@@ -35,20 +38,8 @@ pyensembl install --release 75 --species human
 To choose a specific release or use your own GTF, see
 [choosing the reference annotation](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md).
 Figures and PDF reports are included in the standard installation.
-For the variant/RNA PDF command,
-see the [evidence report guide](https://github.com/openvax/isovar/blob/master/reports/hcc1395_colo829/PDF_REPORTS.md).
-`isovar antigen-report` combines versioned SV,
-fusion, viral, and targeted antigen-isoform exports while keeping their evidence
-units separate; see the [antigen report guide](https://github.com/openvax/isovar/blob/master/docs/antigen-evidence-report.md).
 
 ## Quick start
-
-For reproducible multi-library reanalysis and per-sample PDFs, use
-[`isovar cohort`](docs/cohort-reports.md). It keeps library and analysis-pass
-denominators separate, preserves unresolved calls, and combines small variants,
-ncORFs, supplied fusions, SV audits and declared viral/isoform assessments.
-
-From Python:
 
 ```python
 from isovar import run_isovar, isovar_results_to_dataframe
@@ -68,11 +59,32 @@ for isovar_result in isovar_results:
 df = isovar_results_to_dataframe(isovar_results)
 ```
 
+With this repository's B16 mouse melanoma test files
+(`tests/data/b16.f10/b16.vcf` and `b16.combined.sorted.bam`, after
+`pyensembl install --release 102 --species mouse`), it prints:
+
+```text
+Variant(contig='9', start=82927102, ref='G', alt='T', reference_name='GRCm38') 15 GIEDKITKMKVTMVAWDRHDNTVIHAVNNMTLKVWNSYTGQLIHVLMGH
+Variant(contig='X', start=8125624, ref='C', alt='A', reference_name='GRCm38') 21 FDVERAAKAAVNKLQGHSAPVLDVIVNCDESLLASSDASGMVIVWRREQ
+```
+
+The file's other two variants have no supporting RNA fragments and no protein.
+They are still in `isovar_results` and in `df`, where they fail the default
+filters.
+
+<a id="reading-the-results"></a>
+<a id="filtering-results"></a>
+
+Each result holds the RNA evidence at one variant's locus and the proteins
+assembled from it. Filters mark results but never remove them. See
+[reading and filtering results](https://github.com/openvax/isovar/blob/master/docs/results.md)
+for every property, table column and filter option.
+
 Isovar logs through the standard `logging` module under the `isovar` logger and
 never configures logging itself; configure it in your application to see
 progress.
 
-From the command line:
+## Command line
 
 ```sh
 isovar run \
@@ -82,222 +94,46 @@ isovar run \
 ```
 
 The CSV has one row per variant, with the same columns as the DataFrame.
-`isovar --help` lists the other commands; the
+`isovar --help` lists the other commands: table exports, RNA hypotheses,
+structural variants and fusions, viral and antigen-isoform evidence, proteomes,
+reports and figures, and audits. The
 [command-line guide](https://github.com/openvax/isovar/blob/master/docs/command-line.md)
 describes each one and its output.
 
-## Reading the results
-
-`run_isovar` returns one `IsovarResult` per input variant, in input order. Each
-holds the RNA evidence at that variant's locus and any mutant protein sequences
-assembled for it.
-
-| `IsovarResult` property | Table column | Meaning |
-|---|---|---|
-| `variant` | `variant`, `chr`, `pos`, `ref`, `alt` | The input variant |
-| `top_protein_sequence` | `protein_sequence` and other `protein_sequence_*` columns | The top-ranked mutant protein assembled from RNA, or none |
-| `sorted_protein_sequences` | | Every protein kept, ranked; one by default |
-| `num_alt_reads`, `num_alt_fragments`, `fraction_ref_reads`, ... | Same names | Read evidence for the ref, alt and other alleles |
-| `predicted_effect` | `predicted_effect` | Varcode's selected comparison with its retained alternatives and supplied patient-baseline evidence |
-| `has_protein_changing_predicted_effect` | Same name | Whether any retained candidate predicts a protein change; unknown if unresolved and none is known to change |
-| `passes_all_filters`, `filter_values` | `passes_all_filters`, `filter:<name>` | Filter outcomes |
-
-By default Isovar aims for 49 residues of protein: 2K−1 for peptide size
-K = 25, enough to contain every 25-mer overlapping a single changed residue.
-The actual length depends on RNA coverage.
-[Protein context selection](https://github.com/openvax/isovar/blob/master/docs/protein-selection.md)
-explains the target and how the top protein is chosen.
-
-A read is one sequenced segment, such as one mate of a pair; a fragment is one
-template, so both mates of a pair count once. Fragment counts are usually the
-ones to filter on. Neither is a molecule count; see
-[collecting and counting RNA reads](https://github.com/openvax/isovar/blob/master/docs/read-collection.md).
-
-### Filtering results
-
-`run_isovar` evaluates filters on each result; a failing result is kept, with
-`False` in its `filter_values` dictionary and in `passes_all_filters`. In the
-DataFrame and CSV each filter becomes a `filter:<name>` column. Filters never
-remove a result or a row.
-
-`filter_thresholds` maps names like `'min_num_alt_reads'` or
-`'max_fraction_other_fragments'` to numbers. The text after `min_` or `max_`
-names a numeric property of `IsovarResult`, and most read-evidence properties
-follow the pattern `{num|fraction}_{ref|alt|other}_{reads|fragments}`. For
-example, this requires at least 10 alt reads and at most 25% of fragments
-supporting other alleles:
-
-```python
-from isovar import run_isovar
-
-isovar_results = run_isovar(
-    variants="cancer-mutations.vcf",
-    alignment_file="tumor-rna.bam",
-    filter_thresholds={"min_num_alt_reads": 10, "max_fraction_other_fragments": 0.25})
-
-for isovar_result in isovar_results:
-    print(isovar_result.variant, isovar_result.passes_all_filters)
-```
-
-`filter_flags` names boolean properties of `IsovarResult`; prefix one with
-`not_` to negate it, as in `not_protein_sequence_matches_predicted_mutation_effect`.
-
-Omitting either argument applies the defaults in
-[`default_parameters.py`](https://github.com/openvax/isovar/blob/master/isovar/default_parameters.py):
-`DEFAULT_FILTER_THRESHOLDS`, and `DEFAULT_FILTER_FLAGS`, which are
-`has_protein_changing_predicted_effect`,
-`has_mutant_protein_sequence_from_rna` and `protein_sequence_contains_mutation`.
-Passing a value replaces the corresponding defaults; to change one threshold,
-copy `DEFAULT_FILTER_THRESHOLDS` and update it.
-
-`predicted_effect_modifies_protein_sequence` continues to describe the selected
-comparison alone. The default candidate-aware filter also considers alternatives
-when that preferred result is intronic or synonymous. Unknown change status
-fails this positive filter. See [prediction comparisons](docs/reference-annotation.md#prediction-comparisons).
-
-## Structural variants and fusions
-
-The pipeline above accepts literal nucleotide alleles, including
-sequence-resolved indels. Symbolic structural variants (`<DEL>`, `<DUP>`, etc.),
-breakends and `varcode.StructuralVariant` objects are rejected rather than
-interpreted as small variants. On the command line, SV records in a mixed
-`--vcf` are skipped with a warning naming them. Two separate workflows handle them:
-
-- `isovar sv-source` validates original SV definitions and record-specific PCR evidence ([guide](docs/sv-source-validation.md)).
-- `isovar sv-audit` runs a source-separated manifest across nominated SVs, assesses every RNA path, and reconciles competing hypotheses ([guide](docs/sv-rna-audit.md)).
-- Dense event views reuse an [original RNA library index](docs/rna-library-index.md); `sv-audit --library-cache-dir` keeps verified indexes across runs.
-- `isovar sv-rna` / `reconstruct_sv_rna` reconstructs exploratory RNA paths
-  around one nominated SV from a BAM and annotated transcript models
-  ([guide](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md)).
-- `isovar fusion` / `reconstruct_fusion` checks the junction evidence and
-  annotated coding frames of a fusion transcript assembled by another tool
-  ([guide](https://github.com/openvax/isovar/blob/master/docs/fusion.md)).
-
-## How it works
-
-For antigen genes without a nominated mutation, `isovar isoforms` reconstructs
-competing CTA or other targeted transcripts, retains ambiguous RNA support,
-and optionally estimates abundance with Salmon. See
-[antigen isoforms](https://github.com/openvax/isovar/blob/master/docs/antigen-isoforms.md)
-and the [preferred combined human/viral reference](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md#combined-human-and-viral-reference).
-
-For RNA aligned to GDC GRCh38.d1.vd1, `isovar viral` recovers observed viral
-sequences across its 200-contig panel without a mutation or human GTF. It
-exports partial/spliced nucleotide paths and original fragment evidence.
-Sequence-qualified ORFdata annotations also provide predicted coding products
-and protein FASTA, initially covering nine RefSeq HPV16 CDSs. Sample variants
-and partial coding ends remain explicit. See
-[viral sequence recovery](https://github.com/openvax/isovar/blob/master/docs/viral-sequences.md).
-
-For each variant, Isovar:
-
-1. collects the RNA reads that overlap it,
-2. keeps the reads that carry the mutant allele,
-3. assembles overlapping mutant reads into longer cDNA sequences,
-4. places those sequences in the reading frames of annotated transcripts, and
-5. translates them into mutant protein sequences.
-
-[Internal design](https://github.com/openvax/isovar/blob/master/docs/internal-design.md)
-describes the objects behind each step.
-
-Isovar is one of three OpenVax libraries that share this work.
-[Varcode](https://github.com/openvax/varcode) generates transcript hypotheses
-and predicts coding consequences; Isovar reconstructs RNA-supported sequences
-and reconciles the evidence; [Vaxrank](https://github.com/openvax/vaxrank)
-evaluates protein and peptide candidates. See
-[library responsibilities](https://github.com/openvax/isovar/blob/master/docs/library-responsibilities.md).
-
 ## Documentation
 
-**Running the pipeline**
+The [documentation index](https://github.com/openvax/isovar/blob/master/docs/README.md)
+lists every guide in reading order. Start with:
 
-| Guide | What it covers |
-|---|---|
-| [Choosing the reference annotation](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md) | `--genome`, Ensembl releases and your own GTF |
-| [Command line](https://github.com/openvax/isovar/blob/master/docs/command-line.md) | Every `isovar` command, its output table, logging and errors |
-| [Collecting and counting RNA reads](https://github.com/openvax/isovar/blob/master/docs/read-collection.md) | `ReadCollector` options, reads versus fragments, and the RNA support record in every JSON export |
-| [Matched-normal evidence](docs/matched-normal-evidence.md) | Reviewed normal inventories, genotype/reference-confidence states, supplied backgrounds and cohort integration |
-| [Read eligibility across platforms](https://github.com/openvax/isovar/blob/master/docs/read-processing-audit.md) | Which alignments are used, and what Illumina, ONT and PacBio quality tags mean |
-| [Assembly and translation](https://github.com/openvax/isovar/blob/master/docs/assembly-and-translation.md) | `ProteinSequenceCreator` options, and other variants found in the assembled RNA |
-| [Protein context selection](https://github.com/openvax/isovar/blob/master/docs/protein-selection.md) | How much protein context is reported and which candidate comes first |
-| [Reading frames from aligned reads](https://github.com/openvax/isovar/blob/master/docs/aligned-reading-frame.md) | How an indel upstream of the variant carries into the reading frame |
-| [Phasing](https://github.com/openvax/isovar/blob/master/docs/phasing.md) | Which variants share RNA molecules, the cis/trans test, and matched germline variants |
+- [Reading and filtering results](https://github.com/openvax/isovar/blob/master/docs/results.md)
+- [Choosing the reference annotation](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md)
+  and [sequencing recommendations](https://github.com/openvax/isovar/blob/master/docs/sequencing-recommendations.md)
+- [Collecting and counting RNA reads](https://github.com/openvax/isovar/blob/master/docs/read-collection.md)
+  and [protein context selection](https://github.com/openvax/isovar/blob/master/docs/protein-selection.md)
+- Structural variants: `run_isovar` rejects symbolic SVs and breakends; use
+  [`isovar sv-rna`](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md),
+  [`isovar sv-audit`](https://github.com/openvax/isovar/blob/master/docs/sv-rna-audit.md)
+  or, for a fusion assembled by another tool,
+  [`isovar fusion`](https://github.com/openvax/isovar/blob/master/docs/fusion.md)
+- [Internal design](https://github.com/openvax/isovar/blob/master/docs/internal-design.md):
+  how reads become proteins
+- [Changelog](https://github.com/openvax/isovar/blob/master/CHANGELOG.md)
 
-**Exports and evidence for small variants**
+## Development
 
-| Guide | What it covers |
-|---|---|
-| [Protein hypothesis export and Proteome adapter](https://github.com/openvax/isovar/blob/master/docs/protein-hypotheses.md) | Every protein and translation with scoped RNA evidence, including offline ORFdata composition |
-| [RNA Proteomes](https://github.com/openvax/isovar/blob/master/docs/rna-proteome.md) | Shared API and CLI for SV, fusion and ncORF hypotheses, preserving unresolved alternatives |
-| [Patient-background peptide pairs](https://github.com/openvax/isovar/blob/master/docs/patient-background-pairs.md) | Declared cDNA somatic-reversion baselines retaining germline changes, with separate reference-RNA support |
-| [Competing allele interpretations](https://github.com/openvax/isovar/blob/master/docs/allele-interpretations.md) | Which of several callers' versions of one locus the RNA supports |
-| [Mutation-evidence figures](https://github.com/openvax/isovar/blob/master/docs/visualization.md) | `isovar plot`, how to read its figures, and the osteosarc gallery |
-| [Adapter and poly-A trimming](https://github.com/openvax/isovar/blob/master/docs/read-end-inference.md) | Opt-in annotation and trimming of technical read ends |
-| [Base-quality evidence](https://github.com/openvax/isovar/blob/master/docs/base-quality.md) | Optional focal-allele quality categories reported alongside raw counts |
-| [Partial-read support](https://github.com/openvax/isovar/blob/master/docs/partial-read-support.md) | Fractional support scores that divide each fragment among compatible hypotheses |
-| [Cell/UMI evidence](https://github.com/openvax/isovar/blob/master/docs/cell-umi-evidence.md) | Cell barcode and UMI labels behind small-variant alleles and SV support |
+```sh
+./develop.sh   # editable install with uv
+./lint.sh      # ruff
+./test.sh      # pytest
+```
 
-**Structural variants and fusions**
+`./test.sh` needs the Ensembl releases that
+[`.github/scripts/install_ensembl_data.sh`](https://github.com/openvax/isovar/blob/master/.github/scripts/install_ensembl_data.sh)
+installs (human 75, 87 and 95, mouse 102). See
+[RELEASING.md](https://github.com/openvax/isovar/blob/master/RELEASING.md) for
+version bumps and releases.
 
-| Guide | What it covers |
-|---|---|
-| [Literal-allele RNA paths](docs/variant-rna-paths.md) | Intronic, coding and noncoding ALT/REF paths through the shared original-read and frame workflow |
-| [SV RNA reconstruction](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md) | `isovar sv-rna`: RNA paths around an SV call, their frames and ORFs, export and comparison |
-| [Supplied fusion RNA](https://github.com/openvax/isovar/blob/master/docs/fusion.md) | `isovar fusion`: checking a fusion transcript assembled by another tool |
-| [ORF start evidence](https://github.com/openvax/isovar/blob/master/docs/orf-start-evidence.md) | Where an SV ORF's start codon comes from, in four tiers |
-| [ONT read lineage](https://github.com/openvax/isovar/blob/master/docs/ont-read-lineage.md) | Split and duplex nanopore reads in SV support counts |
-| [uORF evidence](https://github.com/openvax/isovar/blob/master/docs/uorf-evidence.md) | Offline human upstream-ORF models, protein sequences, native peptide evidence and mutation-position annotation |
-| [Portable audit bundles](https://github.com/openvax/isovar/blob/master/docs/audit-bundles.md) | Installed Python API and CLI for preserving inputs, backup/restore and offline SV RNA replay |
-
-**Project**
-
-| Guide | What it covers |
-|---|---|
-| [Library responsibilities](https://github.com/openvax/isovar/blob/master/docs/library-responsibilities.md) | How Varcode, Isovar and Vaxrank divide the work |
-| [Internal design](https://github.com/openvax/isovar/blob/master/docs/internal-design.md) | The objects that carry reads to protein sequences |
-| [RNA in supplied ORF frames](https://github.com/openvax/isovar/blob/master/docs/variant-rna-orfs.md) | Reconstruct ncORF and ordinary coding candidates with original RNA support |
-| [RNA assessment before protein selection](https://github.com/openvax/isovar/blob/master/docs/variant-read-assessment.md) | Retain intronic and noncoding ALT RNA with explicit assembly and frame states |
-| [Observed-path reading frames](https://github.com/openvax/isovar/blob/master/docs/transcript-path-frames.md) | Shared transcript anchors, retained-intron interpretations and allele-versus-stop outcomes |
-| [Changelog](https://github.com/openvax/isovar/blob/master/CHANGELOG.md) | Behavior changes by release |
-
-## Sequencing recommendations
-
-Isovar works best with high-quality, high-coverage poly-A-selected mRNA
-sequencing, for example >100M paired-end reads on a current Illumina short-read
-platform. The depth needed depends on RNA degradation and tumor purity.
-
-With short reads, read length bounds the recoverable protein. Assembly only uses
-reads overlapping the variant, so 100 bp reads give at most 199 bp of sequence
-around a somatic SNV, about 66 amino acids. Without assembly, one 100 bp read
-determines at most 33.
-
-Overlap assembly requires exact sequence matches, which suits short reads with
-low error rates. Long reads (PacBio, Oxford Nanopore) often span the whole
-context without assembly, but noisy reads may not join by exact overlap; SV
-reconstruction (`isovar sv-rna`) uses noise-tolerant extension. Coverage
-trimming assumes that read coverage falls off away from the variant, which reads
-spanning splice junctions can violate.
-
-## Project reports and test data
-
-The [notes](https://github.com/openvax/isovar/tree/master/notes) directory holds
-maintainer working notes: Sid analysis reports, design specifications and
-benchmark records, with their data. They are not usage guides.
-
-- [Sid test reads](https://github.com/openvax/isovar/blob/master/notes/sid-test-reads.md):
-  the original Sid osteosarcoma reads packaged with Isovar for its tests, and
-  how to make them again.
-- [Tumor-RNA audit](https://github.com/openvax/isovar/blob/master/tests/data/osteosarc/SAMPLE_AUDIT.md):
-  a sample-by-sample RNA and protein audit of six osteosarc loci in two RNA
-  sources, made for Isovar 1.8.0.
-- [WLOS_0001 canine TP53 example](https://github.com/openvax/isovar/blob/master/tests/data/wlos0001_tp53/README.md):
-  a published matched-normal tumor DNA call replayed against original,
-  region-extracted tumor RNA reads in a small offline fixture.
-- [HCC1395 and COLO829 source audit](https://github.com/openvax/isovar/blob/master/reports/hcc1395_colo829/README.md):
-  published somatic call inventories, including SVs, and COLO829 polished
-  isoform counts, with explicit RNA-support status for every source row.
-
-## Citing Isovar
+## Citation
 
 Isovar is part of the OpenVax pipeline described in:
 

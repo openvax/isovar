@@ -101,7 +101,7 @@ Viral reconstruction uses the same [read-policy and index controls](antigen-isof
 
 ## Coding products and ORFdata
 
-Isovar 1.57 requires ORFdata 0.29 or newer. ORFdata owns the small, offline coding
+Isovar requires ORFdata 0.45 or newer. ORFdata owns the small, offline coding
 catalogue and its provenance; Isovar does not duplicate CDS annotations or add
 viral transcripts to human Ensembl releases. The initial catalogue has the nine
 CDSs annotated in RefSeq **NC_001526.4**, including its two joined products. It
