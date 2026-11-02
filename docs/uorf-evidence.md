@@ -56,8 +56,11 @@ does not infer a shared genetic code for mixed-compartment fusion candidates.
 - The upstream-only dataset still contains 3,771 models. Isovar retains its
   released `load_uorf_catalog`, `UORFRecord` and initiation-context API as
   compatibility imports, and `isovar uorf-evidence` queries and exports this
-  reference. The legacy `annotate_sv_uorf_evidence` call keeps upstream-only
-  defaults and field names.
+  reference. It prints a table by default; `--json` writes the complete JSON
+  document and `--format fasta`, `tsv` or `gtf` export every matching record.
+  An unknown ORF ID or a REF that disagrees with the genome exits 1; a rejected
+  command line exits 2. The legacy `annotate_sv_uorf_evidence` call keeps
+  upstream-only defaults and field names.
 
 ## Osteosarc example
 

@@ -1,8 +1,8 @@
-"""Compatibility entry point for the human upstream-ORF reference."""
+"""Query and export the offline human upstream-ORF reference."""
 
-from orfdata.cli import run as _run
 from orfdata import load_uorf_catalog
+from orfdata.cli import query
 
 
 def run(argv=None, prog=None):
-    return _run(argv, prog, catalog_loader=load_uorf_catalog)
+    return query(argv, prog or "isovar-uorf-evidence", catalog_loader=load_uorf_catalog)
