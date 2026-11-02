@@ -454,7 +454,14 @@ def _write_companions(path, output):
                                                                for i in range(0, len(sequence), 80)) + "\n")
 
 def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, source_ids=None, render=True):
-    """Run one manifest with reusable original-library contexts and scoped receipts."""
+    """Run one manifest with reusable original-library contexts and scoped receipts.
+
+    Reports cover every source, so a ``source_ids`` selection is computed with
+    ``render=False`` and rendered afterwards with ``render_only=True``.
+    """
+    if source_ids and render:
+        raise ValueError("Reports cover every source: compute a source selection without rendering, "
+                         "then render them all together with --render-only")
     with ExitStack() as contexts:
         cache_directory = contexts.enter_context(tempfile.TemporaryDirectory(prefix="isovar-cohort-libraries-"))
         return _run_cohort(manifest_path, output_dir, resume=resume, render_only=render_only,

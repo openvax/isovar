@@ -273,7 +273,7 @@ def test_cli_rejects_output_collision_before_opening_inputs(tmp_path, capsys, su
     with pytest.raises(SystemExit):
         cli_run(["--input", "nonexistent", "--bam", "nonexistent", "--output", str(prefix) + suffix,
                  "--orf-output-prefix", str(prefix)])
-    assert "collides with --output" in capsys.readouterr().err
+    assert "Outputs must be distinct files" in capsys.readouterr().err
 
 
 def test_path_end_reasons_are_exported_and_truncation_is_flagged():

@@ -13,12 +13,12 @@ reported, not applied.
 """
 
 import csv
-import json
 from pathlib import Path
 
 from . import __version__
 from .coding_interval_support import coding_interval_support
 from .genetic_code import translate_cdna
+from .json_files import json_stem, write_json
 from .protein_sequence_helpers import covered_protein_groups
 from .protein_reference_comparison import reference_comparison
 from .read_identity import source_read_ids
@@ -432,6 +432,12 @@ def _tsv_rows(export):
                 yield row
 
 
+def protein_hypotheses_tsv_path(path):
+    """The TSV written beside a protein hypotheses JSON ``path``."""
+    stem = json_stem(Path(path).expanduser())
+    return stem.with_name(stem.name + ".tsv")
+
+
 def write_protein_hypotheses(export, path):
     """Write an export as JSON, plus a TSV with one row per translation.
 
@@ -440,8 +446,9 @@ def write_protein_hypotheses(export, path):
     export : dict
         An ``isovar.protein_hypotheses.v2`` export.
     path : str or Path
-        The JSON path; the TSV is written beside it with ``.tsv`` in place of
-        the ``.json`` suffix (or appended). Existing files are replaced.
+        The JSON path, gzip-compressed when it ends in ``.gz``. The TSV is
+        written beside it with ``.tsv`` in place of ``.json`` or ``.json.gz``
+        (or appended). Existing files are replaced.
 
     Returns
     -------
@@ -451,12 +458,12 @@ def write_protein_hypotheses(export, path):
     if export.get("schema") != SCHEMA:
         raise ValueError("Expected an %s export" % SCHEMA)
     path = Path(path).expanduser()
-    tsv = path.with_suffix(".tsv") if path.suffix == ".json" else Path(str(path) + ".tsv")
+    tsv = protein_hypotheses_tsv_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(export, indent=2) + "\n")
+    write_json(path, export)
     with tsv.open("w", newline="") as handle:
         columns = _TSV_COLUMNS + (_SCORE_TSV_COLUMNS if export.get("partial_read_support") is not None else ())
-        writer = csv.DictWriter(handle, fieldnames=columns, delimiter="\t")
+        writer = csv.DictWriter(handle, fieldnames=columns, delimiter="\t", lineterminator="\n")
         writer.writeheader()
         writer.writerows(_tsv_rows(export))
     return dict(json=path, tsv=tsv)

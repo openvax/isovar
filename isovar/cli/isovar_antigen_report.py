@@ -6,12 +6,15 @@ from pathlib import Path
 
 from ..antigen_report import compose
 from .commands import parser_for_program
+from .validation import CommandInputError, check_outputs, input_error
 
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--sample-id", required=True)
+parser.add_argument("--sample-id", required=True,
+                    help="Sample every input must name; inputs for another sample are rejected")
 parser.add_argument("--output", required=True, type=Path, help="Output PDF")
-parser.add_argument("--summary-json", type=Path, help="Full source-separated summary JSON")
+parser.add_argument("--summary-json", type=Path,
+                    help="Full source-separated summary JSON (default: --output with .json)")
 parser.add_argument("--small-variant-tsv", type=Path,
                     help="Per-call TSV from isovar evidence-report")
 parser.add_argument("--sv-result", type=Path, action="append", default=[],
@@ -25,21 +28,23 @@ parser.add_argument("--isoforms-result", type=Path, action="append", default=[],
 
 
 def run(args=None, *, prog=None):
-    parsed = parser_for_program(parser, prog).parse_args(args)
+    command = parser_for_program(parser, prog)
+    parsed = command.parse_args(args)
     if parsed.output.suffix.lower() != ".pdf":
-        parser.error("--output must end in .pdf")
+        command.error("--output must end in .pdf")
+    summary_json = parsed.summary_json or parsed.output.with_suffix(".json")
     try:
+        for path in (parsed.output, summary_json):
+            path.parent.mkdir(parents=True, exist_ok=True)
+        check_outputs(parsed, "output", summary_json)
         inventory = compose(
             parsed.sample_id, small_variants=parsed.small_variant_tsv,
             sv=parsed.sv_result, fusion=parsed.fusion_result,
             viral=parsed.viral_result, isoforms=parsed.isoforms_result)
-        parsed.output.parent.mkdir(parents=True, exist_ok=True)
-        summary_json = parsed.summary_json or parsed.output.with_suffix(".json")
-        summary_json.parent.mkdir(parents=True, exist_ok=True)
         from ..antigen_evidence_pdf import write_antigen_report
         write_antigen_report(parsed.output, inventory)
         summary_json.write_text(json.dumps(inventory, indent=2, sort_keys=True) + "\n")
-    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
-        parser_for_program(parser, prog).error(str(error))
+    except (CommandInputError, OSError, ValueError, KeyError, TypeError) as error:
+        input_error(command, error)
     print(parsed.output)
     print(summary_json)

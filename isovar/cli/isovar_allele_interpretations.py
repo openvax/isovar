@@ -4,22 +4,23 @@ representation of an SNV, multi-base change or indel do the reads carry?
 """
 
 import argparse
-import json
-from pathlib import Path
 
 from ..allele_interpretations import interpretations_from_dict, reconcile_allele_interpretations
 from ..default_parameters import INTERPRETATION_FLANK, MIN_INTERPRETATION_FRAGMENTS
+from ..json_files import read_json, write_json
 from ..logging import configure_cli_logging
 from .output_args import add_log_level_arg
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
-from .validation import CommandInputError, non_negative_int, positive_int
+from .validation import CommandInputError, check_outputs, input_error, non_negative_int, positive_int
 
 
 def make_parser(prog="isovar allele-interpretations"):
     parser = argparse.ArgumentParser(prog=prog, description=__doc__)
     parser.add_argument("--input", required=True,
-                        help="JSON with reference_name and interpretations: ID to a list of variants")
-    parser.add_argument("--output", required=True, help="Candidate by RNA evidence JSON")
+                        help="JSON (or .json.gz) with reference_name and interpretations: ID to a list of "
+                             "variants with contig, start, ref and alt")
+    parser.add_argument("--output", required=True,
+                        help="Candidate by RNA evidence JSON, gzip-compressed if it ends in .gz")
     parser.add_argument("--sample-id", required=True, help="Sample the reads came from")
     parser.add_argument("--source", help="Identity of the read set, which scopes read IDs (default: --bam)")
     parser.add_argument("--genome", help="Annotation for the variants (default: the input's reference_name)")
@@ -39,14 +40,14 @@ def run(args=None, prog=None):
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
-        interpretations = interpretations_from_dict(
-            json.loads(Path(options.input).expanduser().read_text()), genome=options.genome)
+        check_outputs(options, "output")
+        interpretations = interpretations_from_dict(read_json(options.input), genome=options.genome)
         with alignment_file_from_args(options) as alignment_file:
             result = reconcile_allele_interpretations(
                 interpretations, alignment_file, sample_id=options.sample_id,
                 source=options.source or options.bam, read_collector=read_collector_from_args(options),
                 flank=options.flank, min_fragments=options.min_fragments,
                 cell_umi_labels=options.cell_umi_labels)
-        Path(options.output).expanduser().write_text(json.dumps(result, indent=2) + "\n")
+        write_json(options.output, result)
     except (OSError, ValueError, CommandInputError) as error:
-        parser.error(str(error))
+        input_error(parser, error)

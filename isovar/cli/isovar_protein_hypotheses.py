@@ -16,7 +16,8 @@ from .base_quality_args import add_base_quality_args, base_quality_policy_from_a
 from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
 from .output_args import add_log_level_arg
 from .rna_args import alignment_file_from_args, read_collector_from_args
-from .validation import CommandInputError, check_output_path
+from ..protein_hypotheses import protein_hypotheses_tsv_path
+from .validation import CommandInputError, check_outputs, input_error
 
 parser = make_isovar_arg_parser(description=__doc__)
 add_base_quality_args(parser)
@@ -32,7 +33,8 @@ _group.add_argument(
     help="Also report cell barcode/UMI labels behind each allele and protein (single-cell data)")
 _group.add_argument(
     "--output", default="isovar-protein-hypotheses.json",
-    help="JSON output; the TSV is written beside it (default: %(default)s)")
+    help="JSON output, gzip-compressed if it ends in .gz; the TSV is written beside it "
+         "with .tsv in place of .json (default: %(default)s)")
 
 _group.add_argument(
     "--cell-reconstruction", choices=MODES,
@@ -51,7 +53,7 @@ def run(args=None, *, prog=None):
     args = command.parse_args(sys.argv[1:] if args is None else args)
     configure_cli_logging(args.log_level)
     try:
-        check_output_path(args.output)
+        check_outputs(args, "output", protein_hypotheses_tsv_path(args.output))
         quality_policy = base_quality_policy_from_args(args)
         if not args.cell_reconstruction and (args.cell_groups is not None or (
                 not args.partial_read_support and any(value is not None for value in
@@ -83,4 +85,4 @@ def run(args=None, *, prog=None):
                     partial_read_support=args.partial_read_support)
         write_protein_hypotheses(export, args.output)
     except (CommandInputError, ValueError, OSError) as error:
-        command.error(str(error))
+        input_error(command, error)

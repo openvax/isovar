@@ -205,4 +205,4 @@ def test_report_rejects_output_collisions_before_loading_inputs(tmp_path, capsys
         run(["--vcf", str(source), "--bam", "unopened.bam", "--sample-id", "s",
              "--output", str(tmp_path / "report.pdf"), "--evidence-json", str(source)])
     assert source.read_text() == "preserved input"
-    assert "must not overwrite input files" in capsys.readouterr().err
+    assert "would overwrite an input file" in capsys.readouterr().err

@@ -8,6 +8,7 @@ import zlib
 from ..audit_bundle import AuditBundle, AuditBundleError
 from ..audit_replay import _replay_sv_rna
 from ..sid_audit_bundle import bundle_sid_audit
+from .validation import input_error
 
 
 def make_parser(prog="isovar audit-bundle"):
@@ -97,7 +98,7 @@ def run(args=None, prog=None):
             result = bundle.verify()
         print(json.dumps(result, sort_keys=True))
     except (OSError, ValueError, TypeError, KeyError, EOFError, zlib.error) as error:
-        parser.error(str(error))
+        input_error(parser, error)
 
 
 if __name__ == "__main__":

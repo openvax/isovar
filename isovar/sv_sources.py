@@ -214,6 +214,12 @@ def read_sv_source(path: str | Path, *, sha256: str, reference_name: str,
         raise ValueError('Unknown SV source profile')
     if not reference_name:
         raise ValueError('SV source requires an explicit reference assembly')
+    from varcode.reference import infer_genome
+    try:
+        infer_genome(reference_name)
+    except ValueError:
+        # Checked once here; otherwise every row would come back invalid.
+        raise ValueError(f'Unknown reference assembly {reference_name!r}; name one such as GRCh38') from None
     if len(sha256) != 64 or file_sha256(path) != sha256:
         raise ValueError('SV source checksum mismatch')
     pinned = SOURCE_PROFILES[profile]

@@ -1,6 +1,5 @@
 """Reconstruct exploratory RNA paths around one nominated SV from an indexed BAM."""
 import argparse
-import json
 from pathlib import Path
 
 from ..default_parameters import (
@@ -12,17 +11,21 @@ from ..default_parameters import (
     SV_INCLUSION_MAPQ_255_IS_UNIQUE,
 )
 from ..sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
+from ..json_files import read_json, write_json
 from ..logging import configure_cli_logging
 from ..sv_rna_orf_export import export_sv_rna_orfs, sv_rna_orf_output_paths, write_sv_rna_orfs
 from .output_args import add_log_level_arg
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
+from .validation import check_outputs, input_error
 
 
 def make_parser(prog="isovar sv-rna"):
     parser = argparse.ArgumentParser(prog=prog, description=__doc__)
     parser.add_argument("--input", required=True,
-                        help="Nominated event, search regions, reference models and event provenance JSON")
-    parser.add_argument("--output", required=True, help="Exploratory candidate paths JSON")
+                        help="Nominated event, search regions, reference models and event provenance JSON "
+                             "(or .json.gz)")
+    parser.add_argument("--output", required=True,
+                        help="Exploratory candidate paths JSON, gzip-compressed if it ends in .gz")
     parser.add_argument("--orf-output-prefix", help="Also export exploratory ORFs as JSON, TSV and protein/DNA FASTA")
     parser.add_argument("--predictions", type=Path,
                         help="Optional source-identified protein predictions JSON for sequence comparison")
@@ -98,11 +101,11 @@ def run(args=None, prog=None):
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
-        if options.orf_output_prefix and Path(options.output).expanduser().resolve() in {
-                path.resolve() for path in sv_rna_orf_output_paths(options.orf_output_prefix).values()}:
-            raise ValueError("ORF output prefix collides with --output")
-        inputs = sv_rna_input_from_dict(json.loads(Path(options.input).expanduser().read_text()))
-        predictions = json.loads(options.predictions.expanduser().read_text()) if options.predictions else None
+        orf_outputs = (sv_rna_orf_output_paths(options.orf_output_prefix).values()
+                       if options.orf_output_prefix else ())
+        check_outputs(options, "output", *orf_outputs)
+        inputs = sv_rna_input_from_dict(read_json(options.input))
+        predictions = read_json(options.predictions) if options.predictions else None
         with alignment_file_from_args(options) as bam:
             result = reconstruct_sv_rna(
                 bam, source=options.source or options.bam, read_collector=read_collector_from_args(options),
@@ -128,8 +131,8 @@ def run(args=None, prog=None):
             from ..sv_rna_comparison import compare_sv_rna_predictions
             result["prediction_comparison"] = compare_sv_rna_predictions(
                 result, predictions)
-        Path(options.output).expanduser().write_text(json.dumps(result, separators=(",", ":")) + "\n")
+        write_json(options.output, result, indent=None)
         if options.orf_output_prefix:
             write_sv_rna_orfs(export_sv_rna_orfs(result), options.orf_output_prefix)
     except (OSError, ValueError) as error:
-        parser.error(str(error))
+        input_error(parser, error)

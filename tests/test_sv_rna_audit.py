@@ -329,3 +329,27 @@ def test_committed_cohort_manifest_preserves_every_original_inventory_row():
     assert sum(bool(e.get('unassessed_reason')) for e in manifest['events']) == 14
     assert sum(len(e.get('views', [])) * len(e['sources']) if e.get('views') else len(e['sources'])
                for e in manifest['events']) == 380
+
+
+def test_an_event_selection_keeps_the_complete_report(tmp_path):
+    # `--resume --event-id X` used to replace a complete report with X's rows.
+    manifest, data = manifest_fixture(tmp_path)
+    output = tmp_path / 'output'
+    run_sv_rna_audit(manifest, output)
+    complete = (output / 'report.tsv').read_text()
+    selected = run_sv_rna_audit(manifest, output, resume=True, event_ids=['D--A'])
+    assert (output / 'report.tsv').read_text() == complete
+    selection, = output.glob('report-events-*.tsv')
+    assert read_json(selection.with_suffix('.json')) == selected
+    assert selected['selected_event_ids'] == ['D--A']
+
+
+@pytest.mark.parametrize('scope', ['manifest', 'view'])
+def test_unknown_reconstruction_settings_fail_before_any_work(tmp_path, scope):
+    manifest, data = manifest_fixture(tmp_path)
+    holder = data if scope == 'manifest' else data['events'][0]['views'][0]
+    holder['parameters'] = dict(max_reccords=5)
+    write_json(manifest, data)
+    with pytest.raises(ValueError, match='Unknown SV reconstruction setting in .*: max_reccords'):
+        run_sv_rna_audit(manifest, tmp_path / 'output')
+    assert not (tmp_path / 'output').exists()

@@ -9,15 +9,16 @@ from ..patient_background import BASELINES, export_patient_background_pairs
 from .commands import parser_for_program
 from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
 from .output_args import add_log_level_arg
-from .validation import check_output_path
+from .validation import check_outputs, input_error
 
 parser = make_isovar_arg_parser(description=__doc__)
 parser.set_defaults(max_protein_sequences_per_variant=0)
 add_log_level_arg(parser)
-parser.add_argument('--sample-id', required=True)
+parser.add_argument('--sample-id', required=True, help='Sample the reads came from')
 parser.add_argument('--source', help='Original RNA read-set identity; defaults to --bam')
 parser.add_argument('--baseline', choices=BASELINES, default='focal',
-                    help='Somatic edits to revert; germline and unexplained edits are retained')
+                    help='Somatic edits to revert; germline and unexplained edits are retained '
+                         '(default: %(default)s)')
 parser.add_argument('--output', required=True, help='Paired-window JSON or JSON.gz output')
 
 
@@ -27,11 +28,7 @@ def run(args=None, *, prog=None):
     configure_cli_logging(options.log_level)
     try:
         output = Path(options.output)
-        inputs = list(options.vcf or []) + [getattr(options, name, None) for name in
-                                          ('bam', 'germline_vcf', 'phasing_error_rates')]
-        if output.resolve() in {Path(path).resolve() for path in inputs if path}:
-            raise ValueError('Output must not overwrite an input file')
-        check_output_path(output)
+        check_outputs(options, 'output')
         result = export_patient_background_pairs(
             run_isovar_from_parsed_args(options), sample_id=options.sample_id,
             source=options.source or options.bam, baseline=options.baseline)
@@ -39,4 +36,4 @@ def run(args=None, *, prog=None):
             json.dump(result, handle, sort_keys=True, indent=2)
             handle.write('\n')
     except (OSError, ValueError) as error:
-        command.error(str(error))
+        input_error(command, error)

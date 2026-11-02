@@ -11,6 +11,7 @@ from ..rna_library import prepare_rna_library
 from ..sv_rna_audit import read_json, write_json
 from ..variant_rna_paths import reconstruct_variant_rna_paths, variant_rna_path_input_from_dict
 from .rna_args import add_rna_args, read_collector_from_args
+from .validation import input_error
 
 
 def make_parser(prog='isovar variant-rna-paths'):
@@ -53,4 +54,4 @@ def run(args=None, *, prog=None):
         output.parent.mkdir(parents=True, exist_ok=True)
         write_json(output, result)
     except (OSError, ValueError, TypeError) as error:
-        parser.error(str(error))
+        input_error(parser, error)

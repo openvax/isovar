@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import gzip
 from hashlib import sha256
 from importlib.metadata import version
+from inspect import signature
 import json
 from pathlib import Path
 import sqlite3
@@ -125,6 +126,9 @@ class _AuditJob:
     model_limitations: tuple[str, ...]
 
 
+# Settings a manifest may pass to reconstruct_sv_rna; the audit supplies the rest.
+_RECONSTRUCTION_SETTINGS = frozenset(signature(reconstruct_sv_rna).parameters) - {'bam', 'source', 'read_collector'}
+
 def _load_audit_context(manifest_path: Path, event_ids: set[str] | None) -> _AuditContext:
     """Validate manifest identities and pin every source before planning work."""
     manifest = read_json(manifest_path)
@@ -132,10 +136,19 @@ def _load_audit_context(manifest_path: Path, event_ids: set[str] | None) -> _Aud
         raise ValueError("Unsupported SV audit manifest schema")
     allowed = {"schema", "description", "files", "sources", "events", "parameters", "read_collection", "assessment"}
     if set(manifest) - allowed:
-        raise ValueError("Unknown audit manifest field")
+        raise ValueError("Unknown audit manifest field: " + ", ".join(sorted(set(manifest) - allowed)))
     thresholds = manifest.get('assessment', {})
-    if set(thresholds) - {'min_path_match', 'min_exon_overlap', 'junction_flank', 'min_overlap', 'max_chain_reads'}:
-        raise ValueError('Unknown path assessment parameter')
+    unknown = set(thresholds) - {'min_path_match', 'min_exon_overlap', 'junction_flank', 'min_overlap', 'max_chain_reads'}
+    if unknown:
+        raise ValueError('Unknown path assessment parameter: ' + ', '.join(sorted(unknown)))
+    # Checked before any work; a misspelled name would otherwise fail mid-run.
+    reconstruction = _RECONSTRUCTION_SETTINGS
+    for scope, values in [('parameters', manifest.get('parameters', {}))] + [
+            ('event %s view %s parameters' % (event.get('event_id'), view.get('view_id')), view.get('parameters', {}))
+            for event in manifest.get('events', []) for view in event.get('views', [])]:
+        if set(values) - reconstruction:
+            raise ValueError('Unknown SV reconstruction setting in %s: %s' % (
+                scope, ', '.join(sorted(set(values) - reconstruction))))
     if any(type(value) is not int or value < 1 for value in thresholds.values()):
         raise ValueError('Assessment thresholds must be positive integers')
     files = _files(manifest, manifest_path.parent)
@@ -146,7 +159,7 @@ def _load_audit_context(manifest_path: Path, event_ids: set[str] | None) -> _Aud
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate event identity")
     if event_ids is not None and set(event_ids) - set(ids):
-        raise ValueError("Requested event not in manifest")
+        raise ValueError("Requested event not in manifest: " + ", ".join(sorted(set(event_ids) - set(ids))))
     for source in sources.values():
         if not all(source.get(k) for k in ("sample_id", "library_id", "culture", "role", "provenance")):
             raise ValueError("Sources require sample, library, culture, role and provenance")
@@ -172,7 +185,7 @@ def _load_audit_context(manifest_path: Path, event_ids: set[str] | None) -> _Aud
         if not event.get("sources") or len(event["sources"]) != len(set(event["sources"])):
             raise ValueError("Events require distinct source IDs")
         if set(event["sources"]) - set(sources) or not event.get("provenance"):
-            raise ValueError("Event source or provenance missing")
+            raise ValueError("Event %s: unknown source or missing provenance" % event["event_id"])
         views = event.get("views", [])
         if not views and not event.get("unassessed_reason"):
             raise ValueError("Event requires views or an explicit unassessed reason")
@@ -386,9 +399,12 @@ def run_sv_rna_audit(manifest_path: str | Path, output_dir: str | Path, *, resum
                   producer_version=__version__, implementation_sha256=context.implementation,
                   dependency_versions=context.dependencies, index_sha256=context.index_hashes,
                   selected_event_ids=sorted(selected) if selected is not None else None, runs=ordered)
-    write_json(output_dir / 'report.json', report)
+    # A selection's report never replaces the complete report.
+    name = 'report' if selected is None else 'report-events-' + sha256(
+        json.dumps(sorted(selected)).encode()).hexdigest()[:12]
+    write_json(output_dir / (name + '.json'), report)
     fields = list(ordered[0]) if ordered else ['event_id', 'source_id', 'view_id', 'status']
-    with (output_dir / 'report.tsv').open('w', newline='') as stream:
+    with (output_dir / (name + '.tsv')).open('w', newline='') as stream:
         writer = csv.DictWriter(stream, fields, delimiter='\t', lineterminator='\n')
         writer.writeheader()
         writer.writerows(dict(row, limitations=';'.join(row['limitations'])) for row in ordered)
