@@ -68,6 +68,16 @@ def test_cli_writes_logs_to_stderr_not_stdout(capsys):
     assert "Gathering reads" in captured.err
 
 
+def test_cli_progress_is_one_line_per_variant_unless_debugging(capsys):
+    # Per-sequence and per-transcript details used to fill ~300 INFO lines for
+    # six Sid variants; they are DEBUG now.
+    run_cli_fn(isovar_protein_sequences)
+    lines = capsys.readouterr().err.splitlines()
+    assert lines and all("Gathering reads for " in line or "Wrote " in line for line in lines), lines
+    run_cli_fn(isovar_protein_sequences, extra_args=["--log-level", "DEBUG"])
+    assert "DEBUG" in capsys.readouterr().err
+
+
 def test_cli_allele_counts():
     df = run_cli_fn(isovar_allele_counts, return_dataframe=True)
     args = make_rna_reads_arg_parser().parse_args(args_with_bam)

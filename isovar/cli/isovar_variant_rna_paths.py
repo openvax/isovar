@@ -6,12 +6,16 @@ from pathlib import Path
 
 import pysam
 
+from .output_args import add_log_level_arg
+from ..logging import configure_cli_logging, get_logger
 from ..contig_resolution import variant_reference_name
 from ..rna_library import prepare_rna_library
 from ..sv_rna_audit import read_json, write_json
 from ..variant_rna_paths import reconstruct_variant_rna_paths, variant_rna_path_input_from_dict
 from .rna_args import add_rna_args, read_collector_from_args
 from .validation import input_error
+
+logger = get_logger(__name__)
 
 
 def make_parser(prog='isovar variant-rna-paths'):
@@ -27,12 +31,14 @@ def make_parser(prog='isovar variant-rna-paths'):
     for name, default in [('max-discovery-reads', 10000), ('max-seed-segments', 10000), ('max-paths', 256),
                           ('min-overlap', 30), ('min-anchor-bases', 12), ('flank', 1000)]:
         parser.add_argument('--' + name, type=int, default=default, help='Default: %(default)s')
+    add_log_level_arg(parser)
     return parser
 
 
 def run(args=None, *, prog=None):
     parser = make_parser(prog or 'isovar variant-rna-paths')
     options = parser.parse_args(args)
+    configure_cli_logging(options.log_level)
     try:
         output = Path(options.output)
         if output.exists():
@@ -53,5 +59,6 @@ def run(args=None, *, prog=None):
                 read_collector=collector, library_index=library, scratch_dir=options.scratch_dir)
         output.parent.mkdir(parents=True, exist_ok=True)
         write_json(output, result)
+        logger.info("Wrote %s", output)
     except (OSError, ValueError, TypeError) as error:
         input_error(parser, error)

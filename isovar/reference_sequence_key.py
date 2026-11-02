@@ -82,7 +82,7 @@ class ReferenceSequenceKey(ValueObject):
                 variant=variant,
                 transcript=transcript)
         except NoExonicReferenceBases:
-            logger.info(
+            logger.debug(
                 "Skipping transcript %s for variant %s: no exonic reference bases",
                 transcript.name,
                 variant)
@@ -111,7 +111,7 @@ class ReferenceSequenceKey(ValueObject):
                 len(full_transcript_sequence))
             return None
 
-        logger.info(
+        logger.debug(
             "Interbase offset range on %s for variant %s = %d:%d",
             transcript.name,
             variant,

@@ -7,8 +7,12 @@ from pathlib import Path
 
 from orfdata import ReferenceContext
 
+from .output_args import add_log_level_arg
+from ..logging import configure_cli_logging, get_logger
 from ..rna_proteome import from_rna_result
 from .validation import check_output_path, input_error
+
+logger = get_logger(__name__)
 
 
 def _read(path):
@@ -25,7 +29,9 @@ def run(args=None, *, prog=None):
                         help='JSON object of ORFdata ReferenceContext fields; must agree with recorded inputs')
     parser.add_argument('--output', required=True, help='ORFdata Proteome JSON or JSON.gz output')
     parser.add_argument('--fasta', help='Also write all retained protein hypotheses as FASTA')
+    add_log_level_arg(parser)
     options = parser.parse_args(args)
+    configure_cli_logging(options.log_level)
     try:
         inputs = {Path(path).resolve() for path in options.input + [options.reference_context]}
         outputs = [Path(options.output).resolve()]
@@ -43,5 +49,6 @@ def run(args=None, *, prog=None):
         proteome.save(options.output)
         if options.fasta:
             proteome.write_fasta(options.fasta)
+        logger.info("Wrote %s%s", options.output, " and " + str(options.fasta) if options.fasta else "")
     except (ValueError, TypeError, OSError) as error:
         input_error(parser, error)

@@ -12,11 +12,13 @@ from ..default_parameters import (
 )
 from ..sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 from ..json_files import read_json, write_json
-from ..logging import configure_cli_logging
+from ..logging import configure_cli_logging, get_logger
 from ..sv_rna_orf_export import export_sv_rna_orfs, sv_rna_orf_output_paths, write_sv_rna_orfs
 from .output_args import add_log_level_arg
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
 from .validation import check_outputs, input_error
+
+logger = get_logger(__name__)
 
 
 def make_parser(prog="isovar sv-rna"):
@@ -132,6 +134,7 @@ def run(args=None, prog=None):
             result["prediction_comparison"] = compare_sv_rna_predictions(
                 result, predictions)
         write_json(options.output, result, indent=None)
+        logger.info("Wrote %s", options.output)
         if options.orf_output_prefix:
             write_sv_rna_orfs(export_sv_rna_orfs(result), options.orf_output_prefix)
     except (OSError, ValueError) as error:

@@ -8,10 +8,12 @@ import argparse
 from ..allele_interpretations import interpretations_from_dict, reconcile_allele_interpretations
 from ..default_parameters import INTERPRETATION_FLANK, MIN_INTERPRETATION_FRAGMENTS
 from ..json_files import read_json, write_json
-from ..logging import configure_cli_logging
+from ..logging import configure_cli_logging, get_logger
 from .output_args import add_log_level_arg
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
 from .validation import CommandInputError, check_outputs, input_error, non_negative_int, positive_int
+
+logger = get_logger(__name__)
 
 
 def make_parser(prog="isovar allele-interpretations"):
@@ -49,5 +51,6 @@ def run(args=None, prog=None):
                 flank=options.flank, min_fragments=options.min_fragments,
                 cell_umi_labels=options.cell_umi_labels)
         write_json(options.output, result)
+        logger.info("Wrote %s", options.output)
     except (OSError, ValueError, CommandInputError) as error:
         input_error(parser, error)

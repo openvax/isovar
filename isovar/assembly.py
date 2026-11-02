@@ -308,7 +308,7 @@ def iterative_overlap_assembly(
     n_before_collapse = len(variant_sequences)
     variant_sequences = collapse_substrings(variant_sequences)
     n_after_collapse = len(variant_sequences)
-    logger.info(
+    logger.debug(
         "Collapsed %d -> %d sequences",
         n_before_collapse,
         n_after_collapse)

@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
+from .output_args import add_log_level_arg
+from ..logging import configure_cli_logging
 from ..antigen_report import compose
 from .commands import parser_for_program
 from .validation import CommandInputError, check_outputs, input_error
@@ -25,11 +27,13 @@ parser.add_argument("--viral-result", type=Path, action="append", default=[],
                     help="Versioned isovar viral JSON; repeat per RNA panel/run")
 parser.add_argument("--isoforms-result", type=Path, action="append", default=[],
                     help="Versioned isovar isoforms JSON; repeat per target panel/run")
+add_log_level_arg(parser)
 
 
 def run(args=None, *, prog=None):
     command = parser_for_program(parser, prog)
     parsed = command.parse_args(args)
+    configure_cli_logging(parsed.log_level)
     if parsed.output.suffix.lower() != ".pdf":
         command.error("--output must end in .pdf")
     summary_json = parsed.summary_json or parsed.output.with_suffix(".json")

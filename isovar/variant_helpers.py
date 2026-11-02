@@ -242,7 +242,7 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
             try:
                 offsets.append(transcript.spliced_offset(dna_pos))
             except ValueError:
-                logger.info(
+                logger.debug(
                     "Couldn't find position %d from %s on exons of %s",
                     dna_pos,
                     variant,

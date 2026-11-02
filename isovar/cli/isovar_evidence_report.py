@@ -10,6 +10,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from .output_args import add_log_level_arg
+from ..logging import configure_cli_logging
 from ..contig_resolution import UnresolvedContigError, require_resolved_contig
 from ..effect_prediction import effect_outcomes
 from ..isovar_result import IsovarResult
@@ -174,9 +176,13 @@ def write_per_call(path, calls, annotations, summary, sources, self_scores):
                 self_fasta_sha256=sources.get("self_fasta_sha256", "")))
 
 
+add_log_level_arg(parser)
+
+
 def run(args=None, *, prog=None):
     command = parser_for_program(parser, prog)
     parsed = command.parse_args(args)
+    configure_cli_logging(parsed.log_level)
     if parsed.output.suffix.lower() != ".pdf":
         command.error("--output must end in .pdf")
     try:

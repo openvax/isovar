@@ -285,7 +285,7 @@ def trim_variant_sequences(variant_sequences, min_variant_sequence_coverage):
     trimmed_variant_sequences = _variant_sequences_with_shared_read_support(
         trimmed_variant_sequences, read_groups)
     n_after_trimming = len(trimmed_variant_sequences)
-    logger.info(
+    logger.debug(
         "Kept %d/%d variant sequences after read coverage trimming to >=%dx",
         n_after_trimming,
         n_total,
