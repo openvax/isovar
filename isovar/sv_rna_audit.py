@@ -20,7 +20,7 @@ import pysam
 
 from . import __version__
 from ._audit_json import write_json_stream
-from .json_files import read_json  # noqa: F401  (re-exported for audit callers)
+from .json_files import read_json
 from ._file_identity import file_sha256
 from .audit_bundle import software_identity
 from .fusion import fusion_from_dict, reconstruct_fusion

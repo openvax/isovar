@@ -1,3 +1,5 @@
+"""Tests for :mod:`isovar.json_files`, the shared JSON reader/writer."""
+
 from isovar.json_files import read_json, write_json
 
 
