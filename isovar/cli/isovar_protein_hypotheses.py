@@ -13,6 +13,7 @@ from ..logging import configure_cli_logging, get_logger
 from ..protein_hypotheses import export_protein_hypotheses, write_protein_hypotheses
 from .commands import parser_for_program
 from .base_quality_args import add_base_quality_args, base_quality_policy_from_args
+from .filter_args import filter_threshold_dict_from_args
 from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
 from .output_args import add_log_level_arg
 from .rna_args import alignment_file_from_args, read_collector_from_args
@@ -70,20 +71,21 @@ def run(args=None, *, prog=None):
             with open(args.cell_groups) as handle:
                 groups = json.load(handle)
         results = run_isovar_from_parsed_args(args)
+        collector = read_collector_from_args(args)
         with alignment_file_from_args(args) as alignment_file:
             export = export_protein_hypotheses(
                 results, sample_id=args.sample_id, source=args.source or args.bam,
                 alignment_header=alignment_file.header.to_dict(),
                 cell_umi_alignment_file=alignment_file if args.cell_umi_labels else None,
-                read_collector=read_collector_from_args(args), base_quality_policy=quality_policy,
+                read_collector=collector, base_quality_policy=quality_policy,
                 partial_read_support=args.partial_read_support, support_max_edits=max_edits,
-                support_min_overlap=min_overlap)
+                support_min_overlap=min_overlap, filter_thresholds=filter_threshold_dict_from_args(args))
             if args.cell_reconstruction:
                 export["cell_reconstruction"] = reconstruct_cell_groups(
                     results, alignment_file, sample_id=args.sample_id, source=args.source or args.bam,
                     mode=args.cell_reconstruction, cell_groups=groups,
                     max_edits=max_edits, min_overlap=min_overlap,
-                    read_collector=read_collector_from_args(args), base_quality_policy=quality_policy,
+                    read_collector=collector, base_quality_policy=quality_policy,
                     partial_read_support=args.partial_read_support)
         written = write_protein_hypotheses(export, args.output)
         logger.info("Wrote %s and %s", written["json"], written["tsv"])

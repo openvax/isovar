@@ -26,7 +26,7 @@ from .read_collector import ReadCollector
 from .rna_library import RnaLibraryIndex, _original_library_context
 from .rna_path_linkage import PathFeature
 from .rna_reconstruction import _discover, _matches, _support
-from .sv_rna import _Positions, _breaks, _collection_parameters, _runs
+from .sv_rna import _Positions, _breaks, _runs
 from .transcript_path_frames import Position, TranscriptPathModel, assess_transcript_path
 from .variant_helpers import LiteralVariantLocus, require_literal_variant
 
@@ -277,7 +277,7 @@ def reconstruct_variant_rna_paths(
             ref=variant.ref, alt=variant.alt), resolved_contig=contig, contig_diagnostics=diagnostics,
         references=[asdict(reference) for reference in resolved], provenance=dict(provenance or {}),
         input=dict(statistics=statistics, identity=library_identity, header=bam.header.to_dict()),
-        collection=_collection_parameters(collector), search_regions={key: sorted(value) for key, value in search.items()},
+        collection=collector.collection_parameters(), search_regions={key: sorted(value) for key, value in search.items()},
         allele_counts={state: dict(segments=len(seeds.segments(state)), fragments=len(seeds.fragments(state)))
                        for state in ("ALT", "REF", "OTHER")},
         allele_observation_notes=dict(seeds.notes), original_allele_records=dict(seeds.original_records),

@@ -320,7 +320,8 @@ def from_rna_result(result, *, reference):
     handlers = {'isovar.sv_rna_orfs.v4': _sv, 'isovar.variant_rna_orfs.v1': _variant,
                 'isovar.fusion_rna.v3': _fusion, 'isovar.sv_rna_candidates.v5': _native_sv}
     if schema not in handlers:
-        raise ValueError(f"Unsupported Isovar RNA result schema: {schema!r}")
+        raise ValueError(f"Unsupported Isovar RNA result schema {schema!r}; supported: "
+                         + ", ".join(sorted(handlers) + ['isovar.protein_hypotheses.v2']))
     try:
         build = result['variant']['reference_name'] if schema == 'isovar.variant_rna_orfs.v1' else result['reference_name']
         if build != reference.genome_build:

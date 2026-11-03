@@ -1,13 +1,20 @@
-"""Convert recorded RNA hypotheses to a source-qualified ORFdata Proteome."""
+"""Convert recorded RNA hypotheses to a source-qualified ORFdata Proteome.
+
+Inputs are the JSON written by `isovar protein-hypotheses`
+(isovar.protein_hypotheses.v2), `isovar sv-rna` (isovar.sv_rna_orfs.v4 or
+isovar.sv_rna_candidates.v5), `isovar fusion` (isovar.fusion_rna.v3) or the
+variant ORF export (isovar.variant_rna_orfs.v1, library API only). The
+--reference-context build, and the Ensembl release when the input records it,
+must match what produced the input.
+"""
 
 import argparse
-import gzip
-import json
 from pathlib import Path
 
 from orfdata import ReferenceContext
 
 from .output_args import add_log_level_arg
+from ..json_files import read_json
 from ..logging import configure_cli_logging, get_logger
 from ..rna_proteome import from_rna_result
 from .validation import check_output_path, input_error
@@ -15,14 +22,9 @@ from .validation import check_output_path, input_error
 logger = get_logger(__name__)
 
 
-def _read(path):
-    path = Path(path)
-    with (gzip.open if path.suffix == '.gz' else open)(path, 'rt') as handle:
-        return json.load(handle)
-
-
 def run(args=None, *, prog=None):
-    parser = argparse.ArgumentParser(prog=prog, description=__doc__)
+    parser = argparse.ArgumentParser(prog=prog, description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--input', action='append', required=True,
                         help='Recorded Isovar RNA JSON/JSON.gz result; repeat to combine sources')
     parser.add_argument('--reference-context', required=True,
@@ -41,11 +43,17 @@ def run(args=None, *, prog=None):
             raise ValueError('Output paths must be distinct from each other and the input/reference paths')
         for output in outputs:
             check_output_path(output)
-        reference = ReferenceContext(**_read(options.reference_context))
+        reference = ReferenceContext(**read_json(options.reference_context))
         proteome = None
         for path in options.input:
-            converted = from_rna_result(_read(path), reference=reference)
-            proteome = converted if proteome is None else proteome.merge(converted)
+            converted = from_rna_result(read_json(path), reference=reference)
+            try:
+                proteome = converted if proteome is None else proteome.merge(converted)
+            except ValueError as error:
+                if 'Conflicting producer record identity' not in str(error):
+                    raise
+                raise ValueError(f'{path} repeats a sample and source already merged; give each '
+                                 'input a distinct --source when it is produced') from error
         proteome.save(options.output)
         if options.fasta:
             proteome.write_fasta(options.fasta)

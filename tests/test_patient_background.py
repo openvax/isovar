@@ -222,7 +222,10 @@ def test_cli_uses_same_export_and_rejects_input_overwrite(tmp_path, monkeypatch,
             '--sample-id', 'patient', '--source', 'RNA', '--output', str(output)]
     commands.run(args)
     with gzip.open(output, 'rt') as handle:
-        assert json.load(handle) == export(value)
+        written = json.load(handle)
+    assert written.pop('read_collection')['min_mapping_quality'] is not None
+    assert 'min_num_alt_reads' in written.pop('filter_thresholds')
+    assert written == export(value)
     original = output.read_bytes()
     with pytest.raises(SystemExit):
         commands.run(args + ['--vcf', str(output)])

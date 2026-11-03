@@ -3,7 +3,7 @@
 from . import __version__
 from .coding_interval_support import coding_interval_support
 from .genetic_code import translate_cdna
-from .protein_hypotheses import _EvidenceSets, _check_translation, _completeness, _edits, _event_id, _hypothesis_id, _variant
+from .protein_hypotheses import analysis_provenance, _EvidenceSets, _check_translation, _completeness, _edits, _event_id, _hypothesis_id, _variant
 from .rna_evidence import content_identifier
 from .transcript_edit_helpers import transcript_edit_from_variant
 
@@ -138,7 +138,8 @@ def _pair(translation, transcript, known, result, evidence, baseline):
     return row
 
 
-def export_patient_background_pairs(isovar_results, *, sample_id, source, baseline='focal'):
+def export_patient_background_pairs(isovar_results, *, sample_id, source, baseline='focal',
+                                    read_collector=None, filter_thresholds=None):
     """Pair each nucleotide/transcript hypothesis with a declared RNA background.
 
     Parameters
@@ -152,6 +153,9 @@ def export_patient_background_pairs(isovar_results, *, sample_id, source, baseli
         Revert only the nominated focal edit (default), or every edit attributed
         to the supplied somatic calls on this RNA. Germline and unexplained
         changes remain. The export lists actual removed and retained edits.
+    read_collector, filter_thresholds : optional
+        The collector and thresholds used for the results, recorded in the
+        export as in :func:`export_protein_hypotheses`.
 
     Returns
     -------
@@ -165,6 +169,7 @@ def export_patient_background_pairs(isovar_results, *, sample_id, source, baseli
         raise ValueError(f'Unknown patient-background baseline: {baseline!r}')
     if any(not isinstance(value, str) or not value.strip() for value in (sample_id, source)):
         raise ValueError('sample_id and source must be nonempty strings')
+    isovar_results = list(isovar_results)
     evidence = _EvidenceSets([sample_id, source])
     events, supplied_variants = [], {}
     for result in isovar_results:
@@ -199,6 +204,7 @@ def export_patient_background_pairs(isovar_results, *, sample_id, source, baseli
                            phased_variants_in_supporting_reads=sorted(
                                _event_id(v) for v in result.phased_variants_in_supporting_reads)))
     return dict(schema=SCHEMA, isovar_version=__version__, sample_id=sample_id, source=source,
+                **analysis_provenance(isovar_results, read_collector, filter_thresholds),
                 evidence_scope=[sample_id, source], interval_convention='zero_based_half_open',
                 baseline_policy=baseline, supplied_variants=supplied_variants,
                 events=events, evidence_sets=evidence.sets)

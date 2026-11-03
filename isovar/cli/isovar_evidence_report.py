@@ -126,7 +126,7 @@ def collect(variants, alignment, collector, creator, *, sample_id, source, catal
                               sorted_protein_sequences=products, protein_sequence_settings=creator.settings(),
                               rna_assessment=assessment)
         export = export_protein_hypotheses([result], sample_id=sample_id, source=source,
-                                            alignment_header=alignment.header)
+                                            alignment_header=alignment.header, read_collector=collector)
         call["protein_hypotheses"] = export
         begin, end, _ = changed_reference_interval(pos, ref_base, alt_base)
         ids = (overlapping_catalog_orfs(index, variant.contig, begin - 1, end)

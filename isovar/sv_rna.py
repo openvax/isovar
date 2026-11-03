@@ -1705,29 +1705,6 @@ def _intervals(indices):
     return result
 
 
-def _collection_parameters(collector):
-    """Every ReadCollector setting which can change the collected evidence."""
-    profile = collector.read_end_profile
-    if profile is None:
-        fingerprint = None
-    elif isinstance(profile, Mapping):
-        fingerprint = {group: p.fingerprint for group, p in sorted(profile.items())}
-    else:
-        fingerprint = profile.fingerprint
-    return dict(
-        min_mapping_quality=collector.min_mapping_quality,
-        use_duplicate_reads=collector.use_duplicate_reads,
-        use_secondary_alignments=collector.use_secondary_alignments,
-        use_soft_clipped_bases=collector.use_soft_clipped_bases,
-        use_reads_without_base_qualities=collector.use_reads_without_base_qualities,
-        merge_overlapping_fragments=collector.merge_overlapping_fragments,
-        infer_read_ends=collector.infer_read_ends,
-        trim_adapters=collector.trim_adapters,
-        trim_poly_a=collector.trim_poly_a,
-        read_end_profile_sha256=fingerprint,
-        custom_read_filter=collector.read_filter is not None)
-
-
 def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, regions, references,
                        sample_id, source, event_provenance, read_collector=None,
                        min_anchor_bases=SV_MIN_ANCHOR_BASES, min_overlap=SV_MIN_OVERLAP,
@@ -2147,7 +2124,7 @@ def reconstruct_sv_rna(bam, *, event_id, reference_name, donor, acceptor, region
                         peptide_lengths=lengths, genetic_code=1,
                         min_orf_amino_acids=min_orf_amino_acids, max_orf_candidates=max_orf_candidates,
                         inclusion=dict(inclusion_thresholds),
-                        read_collection=_collection_parameters(collector)),
+                        read_collection=collector.collection_parameters()),
         seeds=seed_rows,
         competing_annotated_junctions=[dict(left=list(left), right=list(right), fragments=len(fragments))
                                        for (left, right), fragments in sorted(competing.items())],

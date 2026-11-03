@@ -65,6 +65,16 @@ def _event_status(proteins, complete):
     return "retained" if complete is True else "completeness_unknown"
 
 
+def _check_recorded_annotation(annotation, reference):
+    """Reject an Ensembl release, recorded by the export, which the reference contradicts."""
+    if not annotation or reference.annotation_name != "Ensembl" or reference.annotation_version is None:
+        return
+    recorded = sorted({str(entry["ensembl_release"]) for entry in annotation if entry.get("ensembl_release")})
+    if recorded and recorded != [str(reference.annotation_version)]:
+        raise ValueError(f"Isovar export used Ensembl release {', '.join(recorded)}, "
+                         f"but the reference context says {reference.annotation_version}")
+
+
 def from_protein_hypotheses(export, *, reference):
     """Convert a portable Isovar v2 export without reads or a live genome.
 
@@ -73,9 +83,9 @@ def from_protein_hypotheses(export, *, reference):
     export : dict
         Output of :func:`isovar.export_protein_hypotheses`, or its parsed JSON.
     reference : orfdata.ReferenceContext
-        Explicit taxon, build and annotation asserted by the caller. The v2
-        export only records a build name, so it cannot verify the annotation
-        release. A contradictory recorded build is rejected.
+        Explicit taxon, build and annotation asserted by the caller. A
+        contradictory recorded build or Ensembl release is rejected; exports
+        which predate the recorded ``annotation`` leave the release a caller claim.
 
     Returns
     -------
@@ -95,6 +105,7 @@ def from_protein_hypotheses(export, *, reference):
         raise ValueError("Isovar evidence scope does not match sample_id and source")
     if export.get("interval_convention") != "zero_based_half_open":
         raise ValueError("Unsupported Isovar interval convention")
+    _check_recorded_annotation(export.get("annotation"), reference)
     events, evidence_sets = export.get("events"), export.get("evidence_sets")
     if not isinstance(events, list) or not isinstance(evidence_sets, Mapping):
         raise ValueError("Isovar events and evidence_sets are required")
