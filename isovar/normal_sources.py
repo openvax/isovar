@@ -324,7 +324,9 @@ def run_normal_evidence_manifest(manifest_path: str | Path, output_path: str | P
     manifest_path, output_path = Path(manifest_path).resolve(), Path(output_path).resolve()
     manifest = read_json(manifest_path)
     if manifest.get("schema") != "isovar.normal_manifest.v1":
-        raise ValueError("Unsupported normal evidence manifest schema")
+        raise ValueError(f"Unsupported normal evidence manifest schema {manifest.get('schema')!r}; "
+                         "expected 'isovar.normal_manifest.v1' (the input of `isovar normal-evidence`, "
+                         "not its receipt or an inventory)")
     root = manifest_path.parent
     nomination_file = (root / manifest["variants"]["path"]).resolve()
     if file_sha256(nomination_file) != manifest["variants"]["sha256"]:

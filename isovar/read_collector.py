@@ -281,13 +281,40 @@ class ReadCollector(object):
                     or self.trim_adapters or self.trim_poly_a)
 
     @property
+    def read_end_profile_fingerprint(self):
+        """Fingerprint of the read-end profile(s): a hash, a hash per read group, or None."""
+        profile = self.read_end_profile
+        if profile is None:
+            return None
+        if isinstance(profile, Mapping):
+            return {group: value.fingerprint for group, value in sorted(profile.items())}
+        return profile.fingerprint
+
+    @property
     def sequence_policy_fingerprint(self) -> str:
         """Identify derived sequence eligibility, independently of read filtering."""
-        profile = self.read_end_profile
-        profiles = ({group: value.fingerprint for group, value in profile.items()}
-                    if isinstance(profile, Mapping) else None if profile is None else profile.fingerprint)
-        return sha256(json.dumps(dict(profiles=profiles, annotation=self.sequence_views_enabled, trim_adapters=self.trim_adapters,
-                                      trim_poly_a=self.trim_poly_a), sort_keys=True).encode()).hexdigest()
+        return sha256(json.dumps(dict(profiles=self.read_end_profile_fingerprint, annotation=self.sequence_views_enabled,
+                                      trim_adapters=self.trim_adapters, trim_poly_a=self.trim_poly_a),
+                                 sort_keys=True).encode()).hexdigest()
+
+    def collection_parameters(self) -> dict:
+        """Every setting which can change the collected evidence, JSON-ready.
+
+        Recorded beside results so a reader can tell which read policy produced
+        them.
+        """
+        return dict(
+            min_mapping_quality=self.min_mapping_quality,
+            use_duplicate_reads=self.use_duplicate_reads,
+            use_secondary_alignments=self.use_secondary_alignments,
+            use_soft_clipped_bases=self.use_soft_clipped_bases,
+            use_reads_without_base_qualities=self.use_reads_without_base_qualities,
+            merge_overlapping_fragments=self.merge_overlapping_fragments,
+            infer_read_ends=self.infer_read_ends,
+            trim_adapters=self.trim_adapters,
+            trim_poly_a=self.trim_poly_a,
+            read_end_profile_sha256=self.read_end_profile_fingerprint,
+            custom_read_filter=self.read_filter is not None)
 
     def profile_for_read_group(self, group: str) -> ReadEndProfile | None:
         """Resolve only the supplied RG, with an unknown fallback for absent groups."""

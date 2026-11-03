@@ -285,7 +285,7 @@ def _evaluate(variant, nomination, bam, source, collector, creator, catalog, ind
     export = export_protein_hypotheses([result], sample_id=source["sample_id"], source=source["source_id"],
                                       alignment_header=bam.header.to_dict(),
                                       cell_umi_alignment_file=bam if source.get("cell_umi_labels") else None,
-                                      read_collector=collector if source.get("cell_umi_labels") else None)
+                                      read_collector=collector)
     contig = require_resolved_contig(collector.resolve_variant_contig(variant, bam), bam)
     raw = None
     if not (evidence.ref_reads or evidence.alt_reads or evidence.other_reads):
@@ -472,9 +472,8 @@ def run_cohort(manifest_path, output_dir, *, resume=False, render_only=False, so
 def _source_library(source, files, collector, reference, contexts, cache_directory, libraries, *, genome_fasta=None):
     """Share original templates across RNA task families with the same policy."""
     from .rna_library import _original_library_context
-    from .sv_rna import _collection_parameters
 
-    key = source["source_id"], reference, canonical_json(_collection_parameters(collector))
+    key = source["source_id"], reference, canonical_json(collector.collection_parameters())
     if key not in libraries:
         directory = contexts.enter_context(tempfile.TemporaryDirectory(dir=cache_directory, prefix='source-'))
         bam = contexts.enter_context(pysam.AlignmentFile(files[source['bam']], reference_filename=genome_fasta))

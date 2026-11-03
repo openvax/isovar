@@ -14,7 +14,9 @@ from isovar import (
 from .test_protein_hypotheses import BAM, VCF, synthetic_result
 
 
-REFERENCE = ReferenceContext(9606, "human", "GRCh38", "Ensembl", "87")
+from .test_protein_hypotheses import VARIANT
+
+REFERENCE = ReferenceContext(9606, "human", "GRCh38", "Ensembl", str(VARIANT.ensembl.release))
 Protein = getattr(orfdata, "ProteinSequence", None) or orfdata.ProteomeEntry
 
 
@@ -89,13 +91,37 @@ def test_zero_product_unknown_and_capped_events_remain_distinct():
         zero["event_id"]] * 3
 
 
+def test_export_records_annotation_read_policy_and_filters():
+    from isovar import ReadCollector
+    export = export_protein_hypotheses(
+        [synthetic_result()], sample_id="s", source="rna.bam",
+        read_collector=ReadCollector(min_mapping_quality=7), filter_thresholds={"min_num_alt_reads": 3})
+    genome = synthetic_result().variant.ensembl
+    assert export["annotation"] == [dict(species=genome.species.latin_name, reference_name=genome.reference_name,
+                                         ensembl_release=genome.release)]
+    assert export["read_collection"]["min_mapping_quality"] == 7
+    assert export["filter_thresholds"] == {"min_num_alt_reads": 3}
+    assert "read_collection" not in exported() and "filter_thresholds" not in exported()
+
+
+def test_recorded_ensembl_release_must_match_the_reference_context():
+    export = exported()
+    release = export["annotation"][0]["ensembl_release"]
+    reference = ReferenceContext(9606, "human", "GRCh38", "Ensembl", str(release))
+    from_protein_hypotheses(export, reference=reference)
+    with pytest.raises(ValueError, match=f"Ensembl release {release}.*says 999"):
+        from_protein_hypotheses(export, reference=ReferenceContext(9606, "human", "GRCh38", "Ensembl", "999"))
+    legacy = {key: value for key, value in export.items() if key != "annotation"}
+    from_protein_hypotheses(legacy, reference=ReferenceContext(9606, "human", "GRCh38", "Ensembl", "999"))
+
+
 def test_reference_and_schema_must_be_explicit_and_consistent():
     export = exported()
     with pytest.raises(ValueError, match="Expected isovar.protein_hypotheses.v2"):
         from_protein_hypotheses({"schema": "isovar.sv_rna_orfs.v4"}, reference=REFERENCE)
     with pytest.raises(ValueError, match="conflicts"):
         from_protein_hypotheses(export, reference=ReferenceContext(
-            9606, "human", "GRCh37", "Ensembl", "75"))
+            9606, "human", "GRCh37", "custom", "75"))
     with pytest.raises(ValueError, match="ReferenceContext"):
         from_protein_hypotheses(export, reference=None)
     broken = deepcopy(export)

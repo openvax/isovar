@@ -7,8 +7,10 @@ from pathlib import Path
 from ..logging import configure_cli_logging, get_logger
 from ..patient_background import BASELINES, export_patient_background_pairs
 from .commands import parser_for_program
+from .filter_args import filter_threshold_dict_from_args
 from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
 from .output_args import add_log_level_arg
+from .rna_args import read_collector_from_args
 from .validation import check_outputs, input_error
 
 logger = get_logger(__name__)
@@ -33,7 +35,9 @@ def run(args=None, *, prog=None):
         check_outputs(options, 'output')
         result = export_patient_background_pairs(
             run_isovar_from_parsed_args(options), sample_id=options.sample_id,
-            source=options.source or options.bam, baseline=options.baseline)
+            source=options.source or options.bam, baseline=options.baseline,
+            read_collector=read_collector_from_args(options),
+            filter_thresholds=filter_threshold_dict_from_args(options))
         with (gzip.open if output.suffix == '.gz' else open)(output, 'wt') as handle:
             json.dump(result, handle, sort_keys=True, indent=2)
             handle.write('\n')

@@ -21,6 +21,13 @@ not independent support. Historical v4 files cannot supply native path data or
 annotated-frame products that were never exported. Save the full v5 result to
 replay the complete native mapping offline.
 
+Pass the Ensembl release the input reports in its `annotation` field (small
+variants) or `reference_name` (other schemas); a contradicting release or build
+is rejected. From the command line, `isovar proteome --input A.json
+--reference-context ref.json --output out.proteome.json.gz` accepts any of the
+schemas above, repeated to combine sources. Give each input a distinct
+`--source` when it is produced, or merging fails on a repeated sample/source.
+
 ```python
 import json
 from orfdata import ReferenceContext

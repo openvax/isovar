@@ -149,7 +149,7 @@ def test_unresolved_ncorf_retains_rna_and_model_outcomes(noncoding_rna):
 
 def test_dispatch_rejects_unknown_schema_build_and_corrupt_translation():
     assert from_rna_result(exported(), reference=REFERENCE)
-    with pytest.raises(ValueError, match='Unsupported'):
+    with pytest.raises(ValueError, match="Unsupported.*'not-isovar'.*isovar.fusion_rna.v3.*isovar.protein_hypotheses.v2"):
         from_rna_result({'schema': 'not-isovar'}, reference=REFERENCE)
     with pytest.raises(ValueError, match='conflicts'):
         from_rna_result(reconstruction(), reference=REFERENCE)
@@ -306,3 +306,22 @@ def test_colo829_sv3_keeps_exploratory_alternatives_and_unresolved_frame():
     target = [r for r in occurrences if r.payload['path_id'] == '653d5d9c015d3e590fb149b3']
     assert target and all(r.payload['frame_status'] == 'no_gene_anchor' for r in target)
     assert records_of(proteome, 'event')[0].status == 'limited'
+
+
+def test_cli_merge_conflict_says_to_use_a_distinct_source(tmp_path, capsys):
+    reference = tmp_path / 'reference.json'
+    reference.write_text(json.dumps(dict(taxon_id=9606, species='human', genome_build='GRCh38',
+                                         annotation_name='Ensembl', annotation_version=REFERENCE.annotation_version)))
+    first = tmp_path / 'first.json'
+    export = exported()
+    first.write_text(json.dumps(export))
+    # The same sample and source, with different content for an evidence set.
+    key = next(iter(export['evidence_sets']))
+    export['evidence_sets'][key]['reprocessed'] = True
+    second = tmp_path / 'second.json'
+    second.write_text(json.dumps(export))
+    args = ['proteome', '--input', str(first), '--input', str(second), '--reference-context', str(reference),
+            '--output', str(tmp_path / 'out.json.gz')]
+    with pytest.raises(SystemExit):
+        commands.run(args)
+    assert 'distinct --source' in capsys.readouterr().err
