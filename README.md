@@ -27,7 +27,7 @@ evaluates protein and peptide candidates. See
 pip install isovar
 ```
 
-Isovar requires Python 3.11 or later. Reference annotation comes from
+<a id="installation"></a>Isovar requires Python 3.11 or later. Reference annotation comes from
 [PyEnsembl](https://github.com/openvax/pyensembl); install the Ensembl release
 that matches your alignments before the first run, for example:
 
@@ -102,20 +102,20 @@ describes each one and its output.
 
 ## Documentation
 
-The [documentation index](https://github.com/openvax/isovar/blob/master/docs/README.md)
+<a id="project-reports-and-test-data"></a>The [documentation index](https://github.com/openvax/isovar/blob/master/docs/README.md)
 lists every guide in reading order. Start with:
 
 - [Reading and filtering results](https://github.com/openvax/isovar/blob/master/docs/results.md)
-- [Choosing the reference annotation](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md)
+- <a id="sequencing-recommendations"></a>[Choosing the reference annotation](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md)
   and [sequencing recommendations](https://github.com/openvax/isovar/blob/master/docs/sequencing-recommendations.md)
 - [Collecting and counting RNA reads](https://github.com/openvax/isovar/blob/master/docs/read-collection.md)
   and [protein context selection](https://github.com/openvax/isovar/blob/master/docs/protein-selection.md)
-- Structural variants: `run_isovar` rejects symbolic SVs and breakends; use
+- <a id="structural-variants-and-fusions"></a>Structural variants: `run_isovar` rejects symbolic SVs and breakends; use
   [`isovar sv-rna`](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md),
   [`isovar sv-audit`](https://github.com/openvax/isovar/blob/master/docs/sv-rna-audit.md)
   or, for a fusion assembled by another tool,
   [`isovar fusion`](https://github.com/openvax/isovar/blob/master/docs/fusion.md)
-- [Internal design](https://github.com/openvax/isovar/blob/master/docs/internal-design.md):
+- <a id="how-it-works"></a>[Internal design](https://github.com/openvax/isovar/blob/master/docs/internal-design.md):
   how reads become proteins
 - [Changelog](https://github.com/openvax/isovar/blob/master/CHANGELOG.md)
 
@@ -135,7 +135,7 @@ version bumps and releases.
 
 ## Citation
 
-Isovar is part of the OpenVax pipeline described in:
+<a id="citing-isovar"></a>Isovar is part of the OpenVax pipeline described in:
 
 > Rubinsteyn, A., Kodysh, J., Hodes, I., et al.
 > [Computational Pipeline for the PGV-001 Neoantigen Vaccine Trial.](https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2017.01807/full)
