@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.82.3
+
+Documentation only:
+
+- The README is now a short front door: purpose, Install, Quick start with the
+  output it prints on the B16 test data, Command line, Documentation,
+  Development, Citation and License.
+- `docs/README.md` indexes every guide in reading order, separating user
+  guides from maintainer design specifications. The README's results and
+  filtering reference moved to `docs/results.md`, its sequencing advice to
+  `docs/sequencing-recommendations.md`, and its five-step overview to
+  `docs/internal-design.md`.
+- Version-stamped dependency notes now state the current minimums (Varcode
+  11.1, ORFdata 0.45).
+
 ## 1.82.2
 
 - JSON evidence/summary files now go through `isovar.json_files.write_json` (atomic; new `sort_keys` option) instead of ad-hoc `write_text(json.dumps(...))`; duplicate `read_json` copies in `sv_rna_audit` and `sid_data` are now re-exports of `isovar.json_files.read_json`. Output bytes are unchanged.

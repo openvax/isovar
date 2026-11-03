@@ -74,7 +74,7 @@ joint.write_fasta("joint.fasta")
 joint.save("joint.proteome.json.gz")
 ```
 
-ORFdata 0.39.1 or newer is required. The adapter keeps one FASTA entry per
+Isovar requires ORFdata 0.45 or newer. The adapter keeps one FASTA entry per
 retained Isovar protein by default, including shorter windows and equal amino
 acid sequences from different sources. `write_fasta(..., deduplicate=True)`
 is an explicit sequence-grouping choice. The versioned snapshot retains the

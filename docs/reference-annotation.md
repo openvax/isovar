@@ -38,7 +38,7 @@ the same way, and gene and transcript names then come from that annotation.
 
 ## Prediction comparisons
 
-Isovar 1.78 requires Varcode 11.1 and uses its default transcript-model
+Isovar requires Varcode 11.1 or later (below 12) and uses its default transcript-model
 annotator. A selected ordinary effect can carry protein-changing alternatives
 even when its own classification is intronic or synonymous. Isovar keeps the
 original result and all candidate evidence when selecting potentially coding

@@ -1,5 +1,9 @@
 # Command line
 
+This page lists every `isovar` command, the conventions its output tables
+share, and how to change options, logging and error handling. The pipeline
+command is:
+
 ```sh
 isovar run \
     --vcf somatic-variants.vcf \
@@ -121,7 +125,7 @@ so tables from different commands can be joined.
 
 The CLI applies the same default filters as `run_isovar`. Filters only set the
 `filter:*` columns and `passes_all_filters`; they never remove rows. See
-[filtering results](../README.md#filtering-results).
+[filtering results](results.md#filtering-results).
 
 ## Changing options
 

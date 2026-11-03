@@ -1,5 +1,21 @@
 # Internal design
 
+This page explains how `run_isovar` turns reads into protein sequences, first
+as five steps and then as the objects that carry data between them. Read it if
+you want to understand a result in detail or work on Isovar's code.
+
+## How it works
+
+For each variant, Isovar:
+
+1. collects the RNA reads that overlap it,
+2. keeps the reads that carry the mutant allele,
+3. assembles overlapping mutant reads into longer cDNA sequences,
+4. places those sequences in the reading frames of annotated transcripts, and
+5. translates them into mutant protein sequences.
+
+## Objects
+
 ![Isovar's data flow, from variants and RNA reads to protein sequences](https://raw.githubusercontent.com/openvax/isovar/master/isovar_design.png)
 
 Isovar's inputs are one or more somatic variant call (VCF) files and a BAM file

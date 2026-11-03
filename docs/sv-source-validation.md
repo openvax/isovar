@@ -1,6 +1,9 @@
 # Validating SV source definitions
 
-Inspect source rows before interpreting their RNA support:
+`isovar sv-source` checks the original structural-variant calls (VCF rows,
+caller claims and PCR results) before any RNA analysis. Use it first when SV
+calls come from several callers or sources. Inspect source rows before
+interpreting their RNA support:
 
 ```bash
 isovar sv-source --vcf original.vcf --sha256 SOURCE_SHA256 \
