@@ -44,7 +44,7 @@ from .read_end_inference import (
 )
 from .read_end_profiles import resolve_read_end_profile
 from .contig_resolution import (
-    AlignmentContigCache, require_resolved_contig, variant_reference_name, variant_source_contig,
+    AlignmentContigCache, require_resolved_contig, resolve_reference_contig, variant_reference_name, variant_source_contig,
 )
 
 logger = get_logger(__name__)
@@ -1168,7 +1168,7 @@ class ReadCollector(object):
             No annotation lookup, sequence validation or liftover is performed.
             Indexes are reused across queries in a bounded header/context cache.
         """
-        return self._contig_cache.resolver(alignment_file, reference_name).resolve(contig)
+        return resolve_reference_contig(self._contig_cache.resolver(alignment_file, reference_name), contig)
 
     def resolve_variant_contig(self, variant: Variant, alignment_file: AlignmentFile) -> ContigResolution:
         """Resolve the original variant name using its declared assembly context."""

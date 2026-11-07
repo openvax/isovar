@@ -21,6 +21,8 @@ from typing import Any
 import pysam
 from varcode import ContigResolver
 
+from .contig_resolution import resolve_reference_contig
+
 from .audit_bundle import software_identity
 from .read_collector import ReadCollector
 from .read_identity import segment_identity
@@ -370,7 +372,7 @@ class RnaLibraryIndex(Mapping[Segment, list[pysam.AlignedSegment]]):
             for contig, start, end in regions or ():
                 if type(start) is not int or type(end) is not int or not 0 <= start < end:
                     raise ValueError("RNA index queries require nonnegative half-open integer intervals")
-                resolution = self.resolver.resolve(contig)
+                resolution = resolve_reference_contig(self.resolver, contig)
                 if resolution.resolved_name is None:
                     raise ValueError(resolution.diagnostic)
                 reference = self.reader.get_tid(resolution.resolved_name)

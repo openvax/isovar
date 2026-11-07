@@ -150,3 +150,83 @@ def test_original_exact_name_wins_over_normalized_exact_name(tmp_path):
     with pysam.AlignmentFile(path) as bam:
         evidence = ReadCollector().read_evidence_for_variant(variant, bam)
     assert [read.name for read in evidence.alt_reads] == ["source-exact"]
+
+
+@pytest.mark.parametrize("assembly", ["GRCh37", "hg19", "b37", "NCBI37", " grch37 "])
+@pytest.mark.parametrize("query,target", [
+    ("MT", "chrM"), ("chrM", "MT"), ("M", "chrMT"), ("chrMT", "M"),
+    ("mt", "CHRM"), ("chrm", "CHRMT"),
+])
+def test_grch37_distinct_mitochondrial_sequences_are_not_aliases(assembly, query, target):
+    result = resolve(query, [target], reference_name=assembly)
+    assert result.status == "missing"
+    assert result.resolved_name is None and result.candidates == ()
+    assert result.original_name == query and result.reference_name == assembly
+    assert result.normalized_name == ("MT" if query.upper() in ("MT", "CHRMT") else "chrM")
+
+
+@pytest.mark.parametrize("query,names,status,selected,candidates", [
+    ("M", ["chrM", "MT", "chrMT"], "alias", "chrM", ("chrM",)),
+    ("mt", ["M", "chrM", "chrMT"], "alias", "chrMT", ("chrMT",)),
+    ("M", ["chrM", "CHRM", "MT"], "ambiguous", None, ("CHRM", "chrM")),
+    ("MT", ["chrMT", "mt", "chrM"], "ambiguous", None, ("chrMT", "mt")),
+    ("chrM", ["chrM", "M", "MT"], "exact", "chrM", ("chrM",)),
+    ("MT", ["MT", "M", "chrMT"], "exact", "MT", ("MT",)),
+    ("MT", None, "reference_unavailable", None, ()),
+])
+def test_grch37_resolution_retains_only_same_sequence_candidates(query, names, status, selected, candidates):
+    result = resolve(query, names, reference_name="GRCh37")
+    assert (result.status, result.resolved_name, result.candidates) == (status, selected, candidates)
+
+
+def test_cached_mitochondrial_lookup_remains_assembly_scoped():
+    collector = ReadCollector()
+    bam = SimpleNamespace(references=("chrM",))
+    for assembly, status in [("GRCh38", "alias"), ("GRCh37", "missing"), ("GRCh38", "alias")]:
+        assert collector.resolve_contig(bam, "MT", reference_name=assembly).status == status
+
+
+def mitochondrial_bam(path, names):
+    header = {"SQ": [{"SN": name, "LN": 16571 if name == "chrM" else 16569} for name in names]}
+    with pysam.AlignmentFile(path, "wb", header=header) as bam:
+        for index, name in enumerate(names):
+            read = pysam.AlignedSegment(bam.header)
+            read.query_name = "witness-" + name
+            read.query_sequence = "A" * 9 + "G" + "A" * 20
+            read.query_qualities = pysam.qualitystring_to_array("I" * 30)
+            read.reference_id, read.reference_start = index, 90
+            read.mapping_quality, read.cigarstring = 60, "30M"
+            bam.write(read)
+    pysam.index(str(path))
+    return path
+
+
+@pytest.mark.parametrize("query,target", [("MT", "chrM"), ("chrM", "MT")])
+def test_grch37_collection_does_not_read_another_mitochondrial_sequence(tmp_path, query, target):
+    path = mitochondrial_bam(tmp_path / "mitochondria.bam", [target])
+    variant = Variant(query, 100, "A", "G", EnsemblRelease(75), normalize_contig_names=False)
+    with pysam.AlignmentFile(path) as bam:
+        with pytest.raises(UnresolvedContigError) as caught:
+            ReadCollector().read_evidence_for_variant(variant, bam)
+    assert caught.value.resolution.status == "missing"
+    assert caught.value.resolution.original_name == query
+
+
+@pytest.mark.parametrize("query,expected", [("M", "chrM"), ("MT", "chrMT"), ("chrM", "chrM")])
+def test_grch37_collection_selects_the_same_reference_from_mixed_header(tmp_path, query, expected):
+    path = mitochondrial_bam(tmp_path / "mixed.bam", ["chrM", "chrMT"])
+    variant = Variant(query, 100, "A", "G", EnsemblRelease(75), convert_ucsc_contig_names=True)
+    assert variant.contig == ("chrM" if expected == "chrM" else "MT")
+    with pysam.AlignmentFile(path) as bam:
+        evidence = ReadCollector().read_evidence_for_variant(variant, bam)
+    assert [read.name for read in evidence.alt_reads] == ["witness-" + expected]
+
+
+def test_grch37_original_library_query_keeps_mitochondrial_references_separate(tmp_path):
+    from isovar.rna_library import prepare_rna_library
+    path = mitochondrial_bam(tmp_path / "library.bam", ["chrM"])
+    with prepare_rna_library(path, tmp_path / "index", reference_name="GRCh37").open() as library:
+        with pytest.raises(ValueError, match="absent"):
+            list(library.templates([("MT", 90, 120)]))
+        matches = list(library.templates([("M", 90, 120)]))
+        assert [[read.query_name for read in template] for template in matches] == [["witness-chrM"]]

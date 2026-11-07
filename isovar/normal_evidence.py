@@ -10,9 +10,9 @@ from math import isfinite
 from typing import Literal, TypedDict
 
 from pysam import VariantRecord
-from varcode import Variant, normalize_contig_name
+from varcode import Variant
 
-from .contig_resolution import variant_reference_name
+from .contig_resolution import reference_contig_key, variant_reference_name
 
 
 NormalState = Literal["alternate_observed", "conflicting_calls", "confidently_reference",
@@ -75,8 +75,9 @@ class NormalRecordEvidence(TypedDict):
 
 def literal_allele_key(contig: str, start: int, reference: str, alternate: str, *,
                        reference_name: str | None = None) -> tuple[str, int, str, str]:
-    """Normalize spelling and trim with Varcode; do not left-align or lift over."""
-    value = Variant(normalize_contig_name(contig, reference_name=reference_name), start, reference, alternate)
+    """Normalize reference-aware spelling and trim; do not left-align or lift over."""
+    value = Variant(reference_contig_key(contig, reference_name=reference_name), start, reference, alternate,
+                    normalize_contig_names=False)
     return value.contig, value.start, value.ref, value.alt
 
 

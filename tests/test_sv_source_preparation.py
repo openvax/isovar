@@ -11,10 +11,22 @@ from isovar import prepare_sv_source_record, read_sv_source
 from isovar._file_identity import file_sha256
 
 
-def source(tmp_path, contig='virus_A', mate='decoy_B', alt=None):
+def source(tmp_path, contig='virus_A', mate='decoy_B', alt=None, reference_name='GRCh38'):
     path = tmp_path / 'source.vcf'
     path.write_text(f'{contig}\t100\tevent\tN\t{alt or "N[" + mate + ":200["}\t.\tPASS\tCIPOS=-2,3\n')
-    return read_sv_source(path, sha256=file_sha256(path), reference_name='GRCh38')[0]
+    return read_sv_source(path, sha256=file_sha256(path), reference_name=reference_name)[0]
+
+
+def test_grch37_sv_source_keeps_unavailable_chrm_annotation_explicit(tmp_path):
+    record = source(tmp_path, contig='chrM', mate='chrM', reference_name='GRCh37')
+    genome = EnsemblRelease(75)
+    resolver = ContigResolver(['MT'], reference_name='GRCh37')
+    with pytest.raises(ValueError, match='Unresolved annotation contig'):
+        record.for_annotation(genome, resolver)
+    prepared = prepare_sv_source_record(record, genome, resolver, annotation='Ensembl 75')
+    assert prepared.references == prepared.hypotheses == ()
+    assert any('annotation_contig_unresolved:chrM:' in value for value in prepared.limitations)
+    assert all(view.donor.contig == view.acceptor.contig == 'chrM' for view in prepared.views)
 
 
 def test_missing_annotation_retains_custom_contig_rna_views(tmp_path):

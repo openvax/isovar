@@ -87,6 +87,17 @@ def test_input_decoder_rejects_typos_and_reference_mismatch(tmp_path):
             reconstruct_variant_rna_paths(bam, **variant_rna_path_input_from_dict(data), source='original')
 
 
+def test_grch37_paths_do_not_use_rna_from_the_other_mitochondrial_reference(tmp_path):
+    from isovar import UnresolvedContigError
+    data, reference = inputs(contig='MT')
+    data.update(reference_name='GRCh37', references=[])
+    with pysam.AlignmentFile(bam_file(tmp_path / 'mitochondria.bam', reference, contig='chrM')) as bam:
+        with pytest.raises(UnresolvedContigError) as caught:
+            reconstruct_variant_rna_paths(bam, **variant_rna_path_input_from_dict(data), source='original')
+    assert caught.value.resolution.status == 'missing'
+    assert caught.value.resolution.original_name == 'MT'
+
+
 def match(name, segment, low, high, placement='a'):
     return OriginalPathMatch(('rg', name, segment), name + placement, low, high)
 

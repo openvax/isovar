@@ -7,7 +7,7 @@ from typing import Any
 from pysam import VariantHeader
 from varcode import ContigResolver, Variant
 
-from .contig_resolution import variant_source_contig
+from .contig_resolution import resolve_reference_contig, variant_source_contig
 from .evidence_report import changed_reference_interval
 from .genomic_intervals import GenomicIntervalIndex
 
@@ -73,7 +73,7 @@ def resolve_normal_regions(regions: Iterable[GenomicRegion], header: VariantHead
     resolved, outside, clipped = [], [], []
     for name, start, end in GenomicIntervalIndex(regions).intervals():
         if name not in resolutions:
-            resolutions[name] = resolver.resolve(name)
+            resolutions[name] = resolve_reference_contig(resolver, name)
         contig = resolutions[name].resolved_name
         if contig is None:
             continue

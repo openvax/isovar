@@ -11,7 +11,7 @@ from orfdata import ReferenceContext as ORFReferenceContext
 from varcode import ContigResolver
 
 from .dna import reverse_complement_dna
-from .contig_resolution import variant_reference_name, variant_source_contig
+from .contig_resolution import resolve_reference_contig, variant_reference_name, variant_source_contig
 from .coding_interval_support import coding_interval_support
 from .genetic_code import translate_cdna
 from .protein_sequence_creator import ProteinSequenceCreator
@@ -203,7 +203,7 @@ def reconstruct_variant_orfs(variant, read_evidence, reference_orfs, *, sample_i
     references = list(reference_orfs)
     resolver = ContigResolver(tuple(dict.fromkeys(reference.contig for reference in references)) or None,
                               reference_name=variant_reference_name(variant))
-    resolution = resolver.resolve(variant_source_contig(variant))
+    resolution = resolve_reference_contig(resolver, variant_source_contig(variant))
     variant_context = ORFReferenceContext.from_genome(variant.genome)
     transcripts, all_transcripts = {}, {}
     for reference in references:

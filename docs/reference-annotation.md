@@ -10,6 +10,28 @@ pyensembl install --release 75 --species human
 
 Align the RNA to the same assembly as the annotation.
 
+## Mitochondrial coordinates on GRCh37/hg19
+
+The hg19 `chrM` sequence (NC_001807) differs from the rCRS sequence
+(NC_012920) named `MT` by Ensembl and `chrMT` by UCSC. They cannot be
+interchanged at the same coordinate. See [UCSC's mitochondrial reference
+guidance](https://genome.ucsc.edu/FAQ/FAQgenes.html).
+
+For `GRCh37`, `hg19`, `b37` and `NCBI37`, Isovar resolves aliases only within
+`M`/`chrM` and within `MT`/`chrMT`, case-insensitively. An exact name still
+takes precedence. If only the other sequence is present, read collection
+raises `UnresolvedContigError`; this is unassessed evidence, not zero coverage.
+Other builds retain their existing aliases.
+Matched-normal allele identities use the same distinction, so background
+calls on these two sequences cannot share a key at the same numeric position.
+
+Varcode 11.8.0 also keeps hg19 `chrM` separate during annotation. Use a matching
+custom annotation or explicitly validated coordinates on the required
+reference. Some GRCh37 references, including GENCODE's, call the rCRS `chrM`;
+reconcile those source names explicitly after checking the actual reference.
+Isovar does not infer sequence identity from a name or length, apply a fixed
+coordinate offset, or perform mitochondrial liftover.
+
 ## On the command line
 
 `--genome` names an assembly such as `GRCh38` or `hg19`, and the most recent
@@ -38,7 +60,7 @@ the same way, and gene and transcript names then come from that annotation.
 
 ## Prediction comparisons
 
-Isovar requires Varcode 11.1 or later (below 12) and uses its default transcript-model
+Isovar requires Varcode 11.8 or later (below 12) and uses its default transcript-model
 annotator. A selected ordinary effect can carry protein-changing alternatives
 even when its own classification is intronic or synonymous. Isovar keeps the
 original result and all candidate evidence when selecting potentially coding

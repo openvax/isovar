@@ -20,7 +20,7 @@ from pyensembl import Genome
 from varcode import ContigResolver, Variant
 
 from .allele_path_seeds import AllelePathSeed, AllelePathSeeds, allele_path_seeds
-from .contig_resolution import require_resolved_contig, variant_reference_name, variant_source_contig
+from .contig_resolution import require_resolved_contig, resolve_reference_contig, variant_reference_name, variant_source_contig
 from .fusion import FusionReference
 from .read_collector import ReadCollector
 from .rna_library import RnaLibraryIndex, _original_library_context
@@ -138,7 +138,7 @@ def _resolved_context(bam: pysam.AlignmentFile, variant: Variant, reference_name
     diagnostics = []
 
     def resolve(name: str | int) -> str:
-        resolution = resolver.resolve(name)
+        resolution = resolve_reference_contig(resolver, name)
         diagnostics.append(asdict(resolution))
         return require_resolved_contig(resolution, bam)
 

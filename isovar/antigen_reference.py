@@ -14,7 +14,7 @@ from pyensembl import Genome
 from pyensembl.download_cache import cache_root
 from varcode import ContigResolver
 
-from .contig_resolution import UnresolvedContigError, require_resolved_contig
+from .contig_resolution import UnresolvedContigError, require_resolved_contig, resolve_reference_contig
 
 from .audit_bundle import digest
 from .dna import reverse_complement_dna
@@ -69,7 +69,7 @@ def contig_in_reference(contig, names):
     resolving a name does not establish sequence identity or perform liftover.
     """
     resolver = names if isinstance(names, ContigResolver) else ContigResolver(names)
-    return require_resolved_contig(resolver.resolve(contig))
+    return require_resolved_contig(resolve_reference_contig(resolver, contig))
 
 
 def validate_alignment_reference(bam, genome, *, profile=None, contigs=()):
@@ -106,7 +106,7 @@ def validate_alignment_reference(bam, genome, *, profile=None, contigs=()):
     bam_names_by_fasta = {}
     for row in rows:
         name = row["SN"]
-        resolution = fasta_resolver.resolve(name)
+        resolution = resolve_reference_contig(fasta_resolver, name)
         fasta_name = require_resolved_contig(resolution)
         if fasta_name in bam_names_by_fasta:
             raise ValueError("Distinct BAM contigs %r and %r resolve to the same FASTA contig: %s" % (
@@ -182,7 +182,7 @@ def isoform_targets_from_genome(genome, genes, *, contig_names):
     for gene in sorted(selected.values(), key=lambda g: g.id):
         for transcript in sorted(gene.transcripts, key=lambda t: t.id):
             try:
-                resolution = resolver.resolve(transcript.contig)
+                resolution = resolve_reference_contig(resolver, transcript.contig)
                 contig = require_resolved_contig(resolution)
                 fasta_contig = contig_in_reference(contig, fasta_resolver)
                 exons = tuple(sorted((a - 1, b) for a, b in transcript.exon_intervals))

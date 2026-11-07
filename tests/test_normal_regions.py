@@ -23,3 +23,14 @@ def test_region_resolution_handles_aliases_ambiguity_and_declared_bounds():
     assert len(result.unresolved_contigs) == 1
     assert result.clipped_regions == (("MT", 90, 120),)
     assert result.outside_contig_regions == (("HPV16", 100, 110),)
+
+
+def test_grch37_regions_do_not_acquire_the_other_mitochondrial_reference():
+    header = pysam.VariantHeader()
+    header.contigs.add("chrM", length=16571)
+    result = resolve_normal_regions([("MT", 12993, 12994), ("M", 12994, 12995)],
+                                    header, reference_name="GRCh37")
+    assert result.regions == (("chrM", 12994, 12995),)
+    assert len(result.unresolved_contigs) == 1
+    assert result.unresolved_contigs[0]["original_name"] == "MT"
+    assert result.unresolved_contigs[0]["status"] == "missing"
