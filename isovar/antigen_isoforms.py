@@ -23,7 +23,7 @@ from .antigen_reference import IsoformTarget
 from .genetic_code import standard_genetic_code
 from .read_collector import ReadCollector
 from .transcript_path_frames import TranscriptPathModel
-from .sv_rna import _PlacementIndex, _collection_parameters, _runs
+from .sv_rna import _PlacementIndex, _runs
 from .rna_reconstruction import _contains, _discover, _support
 from .rna_library import RnaLibraryIndex, _original_library_context
 
@@ -244,7 +244,7 @@ def reconstruct_antigen_isoforms(
         # sequence length remains available to reconstruct the placement map.
         row["mapping"] = [list(run) for run in _runs(row.pop("placements"))]
     return dict(schema="isovar.antigen_isoforms.v1", sample_id=sample_id, source=source,
-                collection=dict(_collection_parameters(collector), read_filter_identity=read_filter_identity),
+                collection=dict(collector.collection_parameters(), read_filter_identity=read_filter_identity),
                 reference=reference_identity or {}, targets=[asdict(t) for t in targets],
                 input=dict(records=statistics['records_scanned'], unique_records=statistics['unique_records'],
                            eligible_segments=statistics['eligible_segments'], excluded_records=statistics['excluded_records'], header=bam.header.to_dict()),

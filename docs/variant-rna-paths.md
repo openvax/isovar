@@ -22,7 +22,7 @@ models do not discard an observed RNA path.
 
 The variant uses Varcode's one-based literal-allele convention; regions are
 zero-based, half-open. `references` contains versioned `FusionReference` objects
-serialized as dictionaries: transcript ID, annotation, assembly, contig, strand,
+serialized as dictionaries: transcript ID, `reference_name`, annotation, contig, strand,
 ascending genomic exons, spliced sequence, and optional validated CDS bounds.
 Supply coding, noncoding and credible alternative models together. An empty
 list permits RNA discovery but leaves protein interpretation unassessed.

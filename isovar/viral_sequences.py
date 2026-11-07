@@ -17,7 +17,7 @@ from .antigen_reference import GDC_REFERENCE, gdc_viral_panel, validate_alignmen
 from .audit_bundle import digest
 from .read_collector import ReadCollector
 from .rna_reconstruction import _discover, _support
-from .sv_rna import _collection_parameters, _runs
+from .sv_rna import _runs
 from .rna_library import RnaLibraryIndex, _original_library_context
 from .viral_coding import viral_coding_predictions, viral_coding_references
 
@@ -186,7 +186,7 @@ def reconstruct_viral_sequences(
     for row in candidates:
         row["mapping"] = [list(run) for run in _runs(row.pop("placements"))]
     return dict(schema="isovar.viral_sequences.v1", sample_id=sample_id, source=source,
-                collection=dict(_collection_parameters(collector), read_filter_identity=read_filter_identity),
+                collection=dict(collector.collection_parameters(), read_filter_identity=read_filter_identity),
                 reference=identity, coding_reference=coding_reference, selected_contigs=contigs,
                 input=dict(records=statistics['records_scanned'], unique_records=statistics['unique_records'],
                            eligible_segments=statistics['eligible_segments'], excluded_records=statistics['excluded_records'], header=bam.header.to_dict()),

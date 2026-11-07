@@ -277,9 +277,40 @@ def _read_groups(results, alignment_header):
     return {group: metadata.get(group) for group in sorted(groups)}
 
 
+def analysis_provenance(results, read_collector=None, filter_thresholds=None):
+    """The annotation, read policy and filter thresholds which produced these results.
+
+    Parameters
+    ----------
+    results : iterable of IsovarResult
+    read_collector : ReadCollector, optional
+        The collector used for the results; omitted keys mean the policy was not supplied.
+    filter_thresholds : mapping, optional
+        The thresholds given to ``run_isovar``.
+
+    Returns
+    -------
+    dict
+        ``annotation`` is the distinct Ensembl annotation (species, reference
+        name, release) of the results' variants. ``read_collection`` and
+        ``filter_thresholds`` are present only when supplied.
+    """
+    # A custom pyensembl Genome (GTF/FASTA) has no species or release.
+    annotations = {
+        (getattr(getattr(genome, "species", None), "latin_name", None), genome.reference_name,
+         getattr(genome, "release", None))
+        for genome in (result.variant.ensembl for result in results)}
+    return dict(
+        annotation=[dict(species=species, reference_name=name, ensembl_release=release)
+                    for species, name, release in sorted(annotations, key=repr)],
+        **({} if read_collector is None else dict(read_collection=read_collector.collection_parameters())),
+        **({} if filter_thresholds is None else dict(filter_thresholds=dict(filter_thresholds))))
+
+
 def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_header=None,
                               cell_umi_alignment_file=None, read_collector=None, base_quality_policy=None,
-                              partial_read_support=False, support_max_edits=1, support_min_overlap=10):
+                              partial_read_support=False, support_max_edits=1, support_min_overlap=10,
+                              filter_thresholds=None):
     """Export every protein hypothesis and translation, with scoped RNA evidence.
 
     Parameters
@@ -304,7 +335,10 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
         otherwise those fields are null (not assessed).
     read_collector : ReadCollector, optional
         The collector used for the results, for record eligibility when
-        resolving cell/UMI labels.
+        resolving cell/UMI labels. Its read policy is recorded in the export.
+    filter_thresholds : mapping, optional
+        The thresholds given to ``run_isovar``, recorded in the export. Each
+        event's own ``filters`` hold the values they were compared with.
     base_quality_policy : BaseQualityPolicy, optional
         Add focal-allele quality support alongside raw RNA support in JSON.
         Reconstruction, ranking and the TSV's raw support are unchanged.
@@ -348,6 +382,7 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
         **({} if not partial_read_support else dict(partial_read_support=dict(
             max_edits=support_max_edits, min_overlap=support_min_overlap))),
         schema=SCHEMA, isovar_version=__version__, sample_id=sample_id, source=source,
+        **analysis_provenance(results, read_collector, filter_thresholds),
         evidence_scope=scope, interval_convention="zero_based_half_open",
         evidence_identity_policy="sha256_of_domain_and_canonical_json; sample/source scoped",
         read_group_metadata="alignment_header" if alignment_header is not None else "not_supplied",

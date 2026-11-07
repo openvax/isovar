@@ -7,7 +7,7 @@ import pysam
 import pytest
 from varcode import Variant
 
-from isovar.normal_sources import NormalSource, assess_matched_normal
+from isovar.normal_sources import NormalSource, assess_matched_normal, run_normal_evidence_manifest
 from isovar.sv_rna_audit import file_sha256
 
 
@@ -205,3 +205,10 @@ def test_manifest_additional_background_scope_is_pinned_and_cannot_be_overwritte
     regions.write_text("[]")
     with pytest.raises(ValueError, match="background-region digest"):
         run_normal_evidence_manifest(manifest, tmp_path / "new-result.json")
+
+
+def test_manifest_schema_error_names_expected_and_received(tmp_path):
+    manifest, output = tmp_path / "wrong.json", tmp_path / "receipt.json"
+    manifest.write_text(json.dumps(dict(schema="isovar.normal_evidence.v1")))
+    with pytest.raises(ValueError, match="'isovar.normal_evidence.v1'.*expected 'isovar.normal_manifest.v1'"):
+        run_normal_evidence_manifest(manifest, output)

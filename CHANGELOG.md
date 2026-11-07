@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.82.4
+
+Fixes #670.
+
+- `isovar.protein_hypotheses.v2` and `isovar.patient_background_pairs.v1`
+  exports record `annotation` (species, reference name, Ensembl release of the
+  variants), `read_collection` (the `ReadCollector` policy, including read-end
+  profile and adapter trimming) and `filter_thresholds`, when the library
+  call is given them. `isovar protein-hypotheses`,
+  `isovar patient-background-pairs`, `isovar evidence-report` and `isovar
+  cohort` always record the read policy.
+- `isovar proteome` and `from_protein_hypotheses` reject a reference context
+  whose Ensembl release contradicts the recorded one. The docs example no
+  longer hard-codes a release.
+- `ReadCollector.collection_parameters()` replaces the private
+  `sv_rna._collection_parameters`, which five modules imported.
+- `isovar proteome --help` names the accepted schemas and the commands that
+  produce them; its unsupported-schema, `normal-evidence` manifest-schema and
+  merge-conflict errors name what is expected and what to do.
+- `docs/variant-rna-paths.md` names the `reference_name` field, not "assembly".
+
 ## 1.82.3
 
 Documentation only:

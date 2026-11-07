@@ -35,12 +35,15 @@ From Python:
 
 ```python
 from isovar import (
-    ProteinSequenceCreator, export_protein_hypotheses, run_isovar, write_protein_hypotheses)
+    ProteinSequenceCreator, ReadCollector, export_protein_hypotheses, run_isovar, write_protein_hypotheses)
 
+collector = ReadCollector()
+thresholds = {"min_num_alt_fragments": 2}
 results = run_isovar(
-    "variants.vcf", "tumor-rna.bam",
+    "variants.vcf", "tumor-rna.bam", read_collector=collector, filter_thresholds=thresholds,
     protein_sequence_creator=ProteinSequenceCreator(max_protein_sequences_per_variant=0))
-export = export_protein_hypotheses(results, sample_id="tumor-1", source="tumor-rna.bam")
+export = export_protein_hypotheses(results, sample_id="tumor-1", source="tumor-rna.bam",
+                                   read_collector=collector, filter_thresholds=thresholds)
 write_protein_hypotheses(export, "tumor-1.hypotheses.json")
 ```
 
@@ -50,8 +53,17 @@ group's sample and library.
 ## Add hypotheses to an ORFdata Proteome
 
 The Python adapter accepts native results or the saved v2 JSON. Supply the
-species, assembly and annotation explicitly: the Isovar export records the
-build, but does not prove which annotation release was used.
+species, assembly and annotation that produced the export. The export records:
+
+- `annotation`: the species, reference name and Ensembl release of its variants;
+- `read_collection`: the read policy, when a `ReadCollector` is passed;
+- `filter_thresholds`: the filters, when given.
+
+`isovar protein-hypotheses` and `isovar patient-background-pairs` always record
+all three. `from_protein_hypotheses` rejects a reference context whose build or
+Ensembl release contradicts the recorded ones, so use the release in
+`export["annotation"]` (87 below is only an example). Exports written before
+1.82.4 do not record the release, so it remains your claim.
 
 ```python
 import json
