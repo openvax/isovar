@@ -5,7 +5,7 @@ import pytest
 from varcode import Variant
 
 from isovar.normal_evidence import (
-    NormalEvidencePolicy, assess_normal_record, normal_source_state, reconcile_normal_states,
+    NormalEvidencePolicy, assess_normal_record, literal_allele_key, normal_source_state, reconcile_normal_states,
 )
 
 
@@ -33,6 +33,21 @@ def record(*, genotype=(0, 0), alleles=("A", "<NON_REF>"), start=99, stop=110,
 
 TARGET = Variant("1", 105, "A", "G")
 POLICY = NormalEvidencePolicy()
+
+
+@pytest.mark.parametrize("assembly", ["GRCh37", "hg19", "b37", "NCBI37"])
+def test_normal_allele_keys_keep_grch37_mitochondrial_references_distinct(assembly):
+    # Trim a shared VCF anchor without moving either sequence's coordinates.
+    keys = {name: literal_allele_key(name, 12994, "AT", "AC", reference_name=assembly)
+            for name in ("M", "chrM", "CHRM", "MT", "chrMT", "mt")}
+    assert keys["M"] == keys["chrM"] == keys["CHRM"] == ("chrM", 12995, "T", "C")
+    assert keys["MT"] == keys["chrMT"] == keys["mt"] == ("MT", 12995, "T", "C")
+
+
+@pytest.mark.parametrize("assembly", [None, "GRCh38", "hg38", "GRCm39"])
+def test_other_build_normal_allele_keys_keep_mitochondrial_aliases(assembly):
+    assert literal_allele_key("chrM", 100, "A", "G", reference_name=assembly) == (
+        literal_allele_key("MT", 100, "A", "G", reference_name=assembly))
 
 
 def assess(row, target=TARGET):

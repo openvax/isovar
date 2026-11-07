@@ -22,6 +22,8 @@ For `GRCh37`, `hg19`, `b37` and `NCBI37`, Isovar resolves aliases only within
 takes precedence. If only the other sequence is present, read collection
 raises `UnresolvedContigError`; this is unassessed evidence, not zero coverage.
 Other builds retain their existing aliases.
+Matched-normal allele identities use the same distinction, so background
+calls on these two sequences cannot share a key at the same numeric position.
 
 Varcode 11.8.0 also keeps hg19 `chrM` separate during annotation. Use a matching
 custom annotation or explicitly validated coordinates on the required

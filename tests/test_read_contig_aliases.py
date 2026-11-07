@@ -162,6 +162,7 @@ def test_grch37_distinct_mitochondrial_sequences_are_not_aliases(assembly, query
     assert result.status == "missing"
     assert result.resolved_name is None and result.candidates == ()
     assert result.original_name == query and result.reference_name == assembly
+    assert result.normalized_name == ("MT" if query.upper() in ("MT", "CHRMT") else "chrM")
 
 
 @pytest.mark.parametrize("query,names,status,selected,candidates", [

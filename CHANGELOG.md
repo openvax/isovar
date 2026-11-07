@@ -2,13 +2,15 @@
 
 ## 1.83.0
 
-Fixes #685.
+Fixes #685 and #687.
 
 - Keep GRCh37/hg19 mitochondrial coordinate lookups within `M`/`chrM` or
   `MT`/`chrMT`. These references have different sequences and coordinates;
   a cross-reference match now remains unresolved instead of collecting reads
   or assigning evidence at the wrong position. Apply the same rule to RNA
   paths and indexes, normal-source regions, and reference/SV preparation.
+- Keep matched-normal allele identities on hg19 `chrM` separate from rCRS
+  `MT`, using the same assembly policy while preserving allele trimming.
 - Preserve exact-name priority, ambiguity within each group, and the existing
   aliases for other builds. No coordinate conversion or sequence validation
   is inferred from a name match.
