@@ -7,6 +7,7 @@ from pyensembl import Genome
 from varcode import ContigResolver
 from varcode.structural_variant import Breakend
 
+from .contig_resolution import resolve_reference_contig
 from .fusion import FusionBreakpoint, FusionReference
 from .sv_rna_reconciliation import hypotheses_from_varcode
 from .sv_sources import SVSourceRecord
@@ -117,7 +118,7 @@ def prepare_sv_source_record(record: SVSourceRecord, genome: Genome,
         if isinstance(value, bool) or not isinstance(value, int) or value < 0:
             raise ValueError('SV source flanks must be nonnegative integers')
     ends = tuple(dict.fromkeys(end for pair in variant.junctions for end in pair))
-    resolved = {end.contig: resolver.resolve(end.contig) for end in ends}
+    resolved = {end.contig: resolve_reference_contig(resolver, end.contig) for end in ends}
     limitations = [f'annotation_contig_unresolved:{name}: {resolution.diagnostic}'
                    for name, resolution in resolved.items() if resolution.resolved_name is None]
     transcripts: dict[str, tuple[Any, str]] = {}

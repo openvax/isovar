@@ -92,7 +92,9 @@ def test_all_completed_count_units_and_ranked_checks_are_consistent(full_audit_i
     assert sum(s["defaults"]["products_with_ranked_protein"] > 0 for s in full_audit_index["summary"]) == 39
 
 
-def test_full_matrix_native_mitochondrial_coordinates_and_alias_recovery(full_audit_index):
+def test_historical_full_matrix_native_mitochondrial_coordinates(full_audit_index):
+    # This checksum-pinned Isovar 1.8.1 artifact predates #685. Its normalized
+    # MT labels are historical output, not evidence of chrM/rCRS equivalence.
     rows = {r["source_id"]: r for r in full_audit_index["rows"] if r["variant_id"] == "MT_ND5-chrM-12994"}
     bulk = rows["f30f618fb76a0e49"]
     assert bulk["defaults"]["counts"]["reads"] == dict(ref=10, alt=27, other=1)

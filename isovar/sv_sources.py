@@ -18,6 +18,7 @@ from varcode import ContigResolver
 from varcode.structural_variant import StructuralVariant
 from varcode.sv_allele_parser import breakend_mate, parse_symbolic_alt
 
+from .contig_resolution import resolve_reference_contig
 from ._file_identity import file_sha256
 from . import __version__
 
@@ -93,7 +94,7 @@ class SVSourceRecord:
         for key in ('contig', 'mate_contig'):
             if fields[key] is None:
                 continue
-            resolution = resolver.resolve(fields[key])
+            resolution = resolve_reference_contig(resolver, fields[key])
             if resolution.resolved_name is None:
                 raise ValueError('Unresolved annotation contig: ' + resolution.diagnostic)
             fields[key] = resolution.resolved_name

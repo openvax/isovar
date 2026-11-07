@@ -1,14 +1,14 @@
 """Resolve input names against immutable alignment reference vocabularies.
 
-Varcode owns spelling rules. This module owns alignment-context lifetime and
-the distinction between an unresolved name and a successfully queried locus.
+Varcode owns spelling rules. This module excludes known incompatible reference
+sequences and owns alignment-context lifetime and unresolved-name diagnostics.
 Name resolution does not establish sequence identity or perform liftover.
 """
 
 from __future__ import annotations
 
 from collections import OrderedDict
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import os
 
 from pysam import AlignmentFile
@@ -24,6 +24,45 @@ def variant_reference_name(variant: Variant) -> str | None:
 def variant_source_contig(variant: Variant) -> str | int:
     """Retain the supplied name so exact source matches precede aliases."""
     return getattr(variant, "original_contig", variant.contig)
+
+
+def resolve_reference_contig(resolver: ContigResolver, name: str | int) -> ContigResolution:
+    """Resolve coordinate names without aliasing distinct GRCh37 mitochondria.
+
+    Parameters
+    ----------
+    resolver : varcode.ContigResolver
+        Reusable vocabulary index with the input's assembly context.
+    name : str or int
+        Source contig spelling. An exact target match always takes precedence.
+
+    Returns
+    -------
+    varcode.ContigResolution
+        Exact, alias, ambiguous, missing or reference-unavailable result. For
+        GRCh37/hg19/b37/NCBI37, aliases stay within M/chrM (NC_001807) or
+        MT/chrMT (rCRS, NC_012920), case-insensitively. Other builds retain
+        Varcode's spelling rules. No sequence validation or liftover occurs.
+
+    Notes
+    -----
+    UCSC documents the distinct hg19 sequences at
+    https://genome.ucsc.edu/FAQ/FAQgenes.html. A GRCh37 chrM
+    already using rCRS coordinates needs an explicitly reconciled source name;
+    a name or length alone does not establish sequence identity.
+    """
+    result = resolver.resolve(name)
+    if (result.status not in ("alias", "ambiguous") or
+            (resolver.reference_name or "").strip().lower() not in {"grch37", "hg19", "b37", "ncbi37"}):
+        return result
+    group = str(name).upper().removeprefix("CHR")
+    if group not in {"M", "MT"}:
+        return result
+    candidates = tuple(candidate for candidate in result.candidates
+                       if candidate.upper().removeprefix("CHR") == group)
+    status = "alias" if len(candidates) == 1 else "ambiguous" if candidates else "missing"
+    return replace(result, candidates=candidates, status=status,
+                   resolved_name=candidates[0] if status == "alias" else None)
 
 
 class UnresolvedContigError(ValueError):

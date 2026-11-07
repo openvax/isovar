@@ -19,6 +19,14 @@ completed reruns of all ten previously interrupted mitochondrial modes and
 unchanged results for 215 nuclear control rows. Its audit budget is explicit;
 the original matrix below remains the historical 1.8.1 snapshot.
 
+That snapshot predates the GRCh37 mitochondrial fix in Isovar 1.83.0 (#685).
+It records hg19 `chrM:12995` normalized to `MT` without changing its position.
+This is historical software output, not a valid conversion to rCRS coordinates
+or a current correctness expectation. The native coordinates and checksummed
+artifacts remain unchanged. A new audit must use the original reference
+identity and explicitly compatible annotation; the old normalized label must
+not be used to reinterpret its reads on rCRS.
+
 The [variant summary](audit/SUMMARY.md) and [source summary](audit/SOURCE_SUMMARY.md)
 cover 7,216 cells (44 variants × 164 RNA products), with completed Isovar counts
 for 6,202. The other cells explicitly record failed acquisition (442), missing

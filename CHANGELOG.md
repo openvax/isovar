@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.83.0
+
+Fixes #685.
+
+- Keep GRCh37/hg19 mitochondrial coordinate lookups within `M`/`chrM` or
+  `MT`/`chrMT`. These references have different sequences and coordinates;
+  a cross-reference match now remains unresolved instead of collecting reads
+  or assigning evidence at the wrong position. Apply the same rule to RNA
+  paths and indexes, normal-source regions, and reference/SV preparation.
+- Preserve exact-name priority, ambiguity within each group, and the existing
+  aliases for other builds. No coordinate conversion or sequence validation
+  is inferred from a name match.
+- Require Varcode 11.8.0, which preserves hg19 `chrM` in variants and rejects
+  annotation against Ensembl's different mitochondrial reference. Label the
+  pinned Isovar 1.8.1 osteosarc audit's old normalization as historical.
+
 ## 1.82.4
 
 Fixes #670.

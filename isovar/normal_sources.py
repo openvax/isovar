@@ -10,7 +10,7 @@ import pysam
 from varcode import ContigResolver, Variant
 from varcode.reference import infer_genome
 
-from .contig_resolution import variant_source_contig, variant_reference_name
+from .contig_resolution import resolve_reference_contig, variant_source_contig, variant_reference_name
 from .audit_bundle import software_identity
 from .genomic_intervals import GenomicIntervalIndex
 from .normal_evidence import (
@@ -159,7 +159,7 @@ def _assess_source_allele(reader: pysam.VariantFile, source: NormalSource, sampl
                           resolver: ContigResolver, acquired: GenomicIntervalIndex | None,
                           variant: Variant, background_flank: int) -> NormalSourceAssessment:
     """Assess one focal query without changing independent background selection."""
-    resolution = resolver.resolve(variant_source_contig(variant))
+    resolution = resolve_reference_contig(resolver, variant_source_contig(variant))
     interval = normal_query_interval(variant)
     row: NormalSourceAssessment = dict(source_id=source.source_id, state="unavailable", interval=list(interval),
                                         contig_resolution=asdict(resolution))

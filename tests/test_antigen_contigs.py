@@ -76,6 +76,15 @@ def test_alignment_reference_alias_without_checksum_remains_unverified():
     assert result['bam_sequence_identity_unverified'] == ['chrM']
 
 
+def test_grch37_alignment_reference_does_not_pair_chrm_with_rcrs():
+    bam, genome = alignment_reference({'MT': 'ACGT'}, [dict(SN='chrM', LN=4)])
+    genome.reference_name = 'GRCh37'
+    with pytest.raises(UnresolvedContigError) as caught:
+        validate_alignment_reference(bam, genome)
+    assert caught.value.resolution.original_name == 'chrM'
+    assert caught.value.resolution.status == 'missing'
+
+
 @pytest.mark.parametrize('fasta,status', [
     ({'1': 'ACGT', 'CHR1': 'ACGT'}, 'ambiguous'),
     ({'2': 'ACGT'}, 'missing'),
