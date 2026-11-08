@@ -19,6 +19,18 @@ def assess(scenario, bam_path, result=None):
         return assess_sv_rna_paths(result, bam, [scenario.donor_ref, scenario.acceptor_ref], max_chain_reads=30)
 
 
+def test_splice_ambiguous_frames_are_not_counted_as_event_linked(tmp_path):
+    s = Scenario()
+    bam = write_bam(tmp_path / 'rna.bam', s.reads())
+    result = s.run(bam)
+    assert result['paths'][0]['translations']
+    for path in result['paths']:
+        for translation in path['translations']:
+            translation['departure_relations'] = ['splice_ambiguous_event_junction']
+    value = assess(s, bam, result)
+    assert not any(p['event_linked'] for path in value['paths'] for p in path['proteins'])
+
+
 @pytest.mark.parametrize('strand', ['+', '-'])
 def test_all_paths_have_separate_junction_exon_frame_and_sequence_evidence(tmp_path, strand):
     s = Scenario(strand)

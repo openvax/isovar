@@ -10,6 +10,7 @@ from typing import Literal, TypedDict
 
 
 ComparisonStatus = Literal["reference_identical", "amino_acid_divergent", "unresolved"]
+AMBIGUOUS_RESIDUES = frozenset("XBZJ?-")
 
 
 class ProteinColumn(TypedDict):
@@ -49,12 +50,14 @@ def aligned_protein_columns(
         reference: str, protein: str, interval: Sequence[int], *,
         allele_length_delta: int = 0, frameshift: bool = False,
         stop: bool = False, reference_stop: bool = False) -> list[ProteinColumn]:
-    """Position residues and focal gaps without realigning repeated sequences.
+    """Position a single focal gap without realigning the flanking sequences.
 
     ``interval`` is the observed protein's zero-based half-open focal interval;
     ``allele_length_delta`` is reference minus observed nucleotide length.
     Missing reference sequence is rendered as a gap with an out-of-range
     reference position, distinct from a justified insertion (position None).
+    Within the focal interval, minimize substitutions and prefer the most
+    C-terminal equivalent gap. Unknown residues retain the anchored placement.
     """
     begin, end = interval
     if not 0 <= begin <= end <= len(protein):
@@ -73,9 +76,25 @@ def aligned_protein_columns(
     for position in range(begin):
         add(position, position)
     reference_end = max(begin, end + delta)
-    for offset in range(max(reference_end - begin, end - begin)):
-        ref_position = begin + offset if begin + offset < reference_end else None
-        observed_position = begin + offset if begin + offset < end else None
+    ref_size, observed_size = reference_end - begin, end - begin
+    shared = min(ref_size, observed_size)
+    gap = shared
+    if delta and reference_end <= reference_length and not (
+            set(reference[begin:reference_end] + protein[begin:end]) & AMBIGUOUS_RESIDUES):
+        # Only the known focal codons compete for the allele-derived gap.
+        # No extra gaps, repeat search outside the interval, or tail realignment.
+        def mismatches(offset):
+            return sum(reference[begin + i + (max(delta, 0) if i >= offset else 0)] !=
+                       protein[begin + i + (max(-delta, 0) if i >= offset else 0)]
+                       for i in range(shared))
+        gap = min(range(shared + 1), key=lambda offset: (mismatches(offset), -offset))
+    reference_positions = list(range(begin, reference_end))
+    observed_positions = list(range(begin, end))
+    if ref_size < observed_size:
+        reference_positions[gap:gap] = [None] * (observed_size - ref_size)
+    else:
+        observed_positions[gap:gap] = [None] * (ref_size - observed_size)
+    for ref_position, observed_position in zip(reference_positions, observed_positions):
         add(ref_position, observed_position, deletion=observed_position is None and ref_position is not None)
     for position in range(end, len(protein)):
         add(position + delta, position)
@@ -110,7 +129,7 @@ def compare_protein_windows(
                     unresolved_alignment_columns=list(range(len(protein))), stop_changed=None)
     columns = aligned_protein_columns(reference, protein, interval,
                                       allele_length_delta=allele_length_delta, frameshift=frameshift)
-    ambiguous = set("XBZJ?-")
+    ambiguous = AMBIGUOUS_RESIDUES
     for column_index, column in enumerate(columns):
         observed, expected = column["protein"], column["reference"]
         position, ref_position = column["position"], column["reference_position"]

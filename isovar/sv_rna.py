@@ -1353,6 +1353,11 @@ class _Event:
         self.read_through = any(
             _forward_splice(left, right) and left in self.donor_sites and right in self.acceptor_sites
             for left, right in (self._at(d, -d) for d in range(-max_shift, max_shift + 1)))
+        # A duplication-like adjacency joins a base back to one upstream of it
+        # on the same strand. Forward joins happen within either copy, so they
+        # never cross it.
+        left, right = self._at(0, 0)
+        self.backward = left[::2] == right[::2] and not _forward_splice(left, right)
 
     def _at(self, d, a):
         """The donor and acceptor bases at these signed distances from the breakpoints."""
@@ -1369,7 +1374,7 @@ class _Event:
         """
         return any(r[::2] == right[::2] and abs(r[1] - right[1]) <= self.tolerance for r in self.nearby.get(left, ()))
 
-    def relation(self, left, right, unplaced):
+    def relation(self, left, right, unplaced, kind=None):
         """Relation of one join to the adjacency, and its breakpoint assignment.
 
         Unplaced junction bases (homology or untemplated insertion) may belong
@@ -1379,12 +1384,21 @@ class _Event:
         against a genome sequence. Every placement of a read-through-ambiguous
         adjacency is splice-ambiguous. A join just off the diagonal, with one
         side past a breakpoint, is a (noisy) event join, not an unrelated one.
+        Off the diagonal, a join must run in the adjacency's direction: a
+        forward join (an ordinary splice or a small CIGAR deletion) cannot
+        cross a duplication-like adjacency, because one copy can make it.
         """
         d, a = _distance(left, self.donor, "donor"), _distance(right, self.acceptor, "acceptor")
         if d is None or a is None:
             return None, None
+        # CIGAR deletions are alignment indels unless they place the nominated
+        # adjacency itself. Apply the same rule during seeding and export.
+        if kind == "D" and not self.near_breakpoint(d, a, unplaced):
+            return None, None
         if self.on_diagonal(d, a, unplaced):
             return ("splice_ambiguous_event_junction" if self.read_through else "breakpoint_junction"), [d, a]
+        if self.backward and _forward_splice(left, right):
+            return None, None
         if min(d, a) < 0 and not self.near_breakpoint(d, a, unplaced):
             return None, None
         return ("splice_ambiguous_event_junction" if _forward_splice(left, right)
@@ -1430,13 +1444,13 @@ def _join_class(event, annotated, left, right, unplaced, kind):
     across the event (seeded later, by support), ``("wobble", None)`` for
     unannotated joins beside annotated ones, or ``(None, relation)``.
     """
-    relation, assignment = event.relation(left, right, unplaced)
+    relation, assignment = event.relation(left, right, unplaced, kind=kind)
     if unplaced == 0 and (left, right) in annotated:
         return "annotated", relation
     if relation and (relation != "splice_ambiguous_event_junction" or event.on_diagonal(*assignment, unplaced)):
         return "event", relation
     if kind == "D":
-        return None, relation  # Small deletions are not splices.
+        return None, None  # A small deletion is an indel, not a splice across the event.
     if unplaced == 0 and event.near_annotated(left, right):
         return "wobble", None
     return ("lazy", relation) if relation else (None, None)
@@ -1634,11 +1648,11 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
             kinds = {kind for *_, kind in direct}
             if segments - {o.identity for o, *_ in direct}:
                 kinds |= store.gap_kinds.get((left, right), set()) | store.gap_kinds.get((_flip(right), _flip(left)), set())
-            junction_cache[key] = (None if relation is None and kinds <= {"D"} else
-                                   _junction_summary(direct, segments, kinds, left, right, store))
+            junction_cache[key] = _junction_summary(direct, segments, kinds, left, right, store)
         summary = junction_cache[key]
-        # CIGAR deletions are reported only when they also cross the event.
-        if summary is None:
+        # Apply the same policy to bounded discovery and streamed support.
+        # CIGAR deletions are reported only as placements of the adjacency.
+        if set(summary['kinds']) <= {"D"} and not event.relation(left, right, j - i - 1, kind="D")[0]:
             continue
         rows.append((i, j, relation or "regional_novel_junction", assignment, is_annotated, summary))
     for i, j, assignment in event.clips(positions, len(sequence)):

@@ -6,12 +6,47 @@ from pathlib import Path
 import sqlite3
 
 import pytest
+import pysam
 
 from isovar.cohort import _literal, _reference_declaration, run_cohort, run_small_variant_source
 from pyensembl import EnsemblRelease
 from isovar.sv_rna_audit import file_sha256, write_json
 
 from .testing_helpers import data_path
+
+
+@pytest.mark.parametrize('contig,start,ref,alt,category', [
+    ('6', 26055824, 'ACCTTGGGCTTAGCGG', 'A', 'In-frame indel'),
+    ('1', 151242178, 'AG', 'A', 'Frameshift'),
+    ('2', 209694768, 'CCTGGGCTACTGTGTGTTCAATA', 'C', 'Frameshift'),
+])
+def test_dna_categories_are_available_without_rna_support(tmp_path, contig, start, ref, alt, category):
+    from isovar.cli.isovar_evidence_report import collect
+    from isovar.effect_prediction import variant_effect_summary
+    from isovar.read_collector import ReadCollector
+    from isovar.protein_sequence_creator import ProteinSequenceCreator
+
+    bam = tmp_path / 'empty.bam'
+    with pysam.AlignmentFile(bam, 'wb', header={'SQ': [{'SN': contig, 'LN': 300000000}]}):
+        pass
+    pysam.index(str(bam))
+    calls = tmp_path / 'calls.json'
+    nomination = dict(contig=contig, start=start, ref=ref, alt=alt)
+    write_json(calls, [nomination])
+    output = tmp_path / 'result'
+    receipt = run_small_variant_source(dict(variants='calls', ensembl_release=87),
+        dict(sample_id='Sid', source_id='empty', bam='bam'), dict(calls=calls, bam=bam), output)
+    with gzip.open(output / receipt['results'], 'rt') as stream:
+        row, = [json.loads(line) for line in stream]
+    assert row['status'] == 'assessed'
+    assert row['category'] == category
+    variant = _literal(nomination, EnsemblRelease(87))
+    assert row['annotation'] == variant_effect_summary(variant, variant.effects())
+    assert row['protein_hypotheses']['events'][0]['protein_hypotheses'] == []
+    with pysam.AlignmentFile(bam) as alignment:
+        _, annotations, _ = collect([variant], alignment, ReadCollector(), ProteinSequenceCreator(),
+                                    sample_id='Sid', source='empty')
+    assert annotations[variant.short_description]['category'] == category
 
 
 @pytest.mark.parametrize('source_contig', ['M', 'MT', 'chrM', 'chrMT'])

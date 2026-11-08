@@ -180,9 +180,6 @@ class _SupportStream:
         """Resolve original identities once, after all batches are accounted for."""
         summaries, cache = {}, {}
         for cache_key, key in self.cache_keys.items():
-            if len(cache_key) == 3 and cache_key[2] is None and self.kinds[key] <= {'D'}:
-                cache[cache_key] = None
-                continue
             if key not in summaries:
                 evidence = self.direct[key]
                 identities = {tuple(row['identity']) for row in evidence.values()}

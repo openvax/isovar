@@ -19,6 +19,7 @@ from varcode import Variant
 from varcode.reference import infer_genome
 
 from .contig_resolution import UnresolvedContigError, require_resolved_contig
+from .effect_prediction import variant_effect_summary
 from .evidence_report import (
     catalog_coding_index, changed_reference_interval,
     overlapping_catalog_orfs, overlaps_exon,
@@ -272,7 +273,7 @@ def _nc_orfs(variant, evidence, catalog, index, creator, sample, source, assembl
 
 def _evaluate(variant, nomination, bam, source, collector, creator, catalog, index, known, dense_limit):
     evidence = collector.read_evidence_for_variant(variant, bam)
-    effects = variant.effects() if evidence.alt_reads else []
+    effects = variant.effects()
     effect = effects.top_priority_effect() if effects else None
     dense = len(evidence.alt_reads) > dense_limit
     assembly_mode = "read_contexts" if dense else "configured"
@@ -296,14 +297,12 @@ def _evaluate(variant, nomination, bam, source, collector, creator, catalog, ind
         gene_names = sorted({g.name for g in variant.genome.genes_at_locus(
             variant.contig, variant.original_start,
             variant.original_start + max(1, len(variant.original_ref)) - 1) if g.name})
-    length_delta = len(variant.original_alt) - len(variant.original_ref)
-    category = ("SNV" if len(variant.original_ref) == len(variant.original_alt) == 1 else
-                "Frameshift" if any(p.frameshift for p in products) or type(effect).__name__ == "FrameShift" else
-                "In-frame indel" if products and length_delta and length_delta % 3 == 0 else "Other non-SNV")
+    annotation = variant_effect_summary(variant, effects)
     nc = _nc_orfs(variant, evidence, catalog, index, creator, source["sample_id"], source["source_id"],
                   assembly_mode=assembly_mode)
     nc["assembly_route"] = "direct_read_contexts_high_depth" if dense else "overlap_assembly"
-    return dict(status="assessed", nomination=nomination, category=category, gene_names=gene_names,
+    return dict(status="assessed", nomination=nomination, category=annotation["category"],
+                annotation=annotation, gene_names=gene_names,
                 igv=f"{contig}:{variant.original_start}-"
                     f"{variant.original_start + max(1, len(variant.original_ref)) - 1}",
                 raw_alignment_overlap_when_no_allele=raw,

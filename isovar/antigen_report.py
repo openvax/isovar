@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 from .evidence_report import variant_type
+from .sv_rna_relations import ADJACENCY_JOIN_RELATIONS
 
 
 SCHEMAS = {
@@ -20,7 +21,6 @@ SCHEMAS = {
     "isoforms": "isovar.antigen_isoforms.v1",
 }
 CATEGORIES = ("small_variants", "sv", "fusion", "viral", "isoforms")
-EVENT_LINKED = {"breakpoint_junction", "event_compatible_junction"}
 
 
 def load_json(path, schema, sample_id):
@@ -85,11 +85,11 @@ def sv_summary(result):
     """Summarize one nominated DNA SV without asserting tumor protein expression."""
     paths = result["paths"]
     linked = [path for path in paths if path.get("event_linkage", {}).get("status")
-              in EVENT_LINKED]
+              in ADJACENCY_JOIN_RELATIONS]
     supported = [path for path in linked
-                 if _direct_fragments(path, relations=EVENT_LINKED) > 0]
+                 if _direct_fragments(path, relations=ADJACENCY_JOIN_RELATIONS) > 0]
     translated = [path for path in supported
-                  if any(EVENT_LINKED.intersection(row.get("departure_relations", ()))
+                  if any(any(relation in ADJACENCY_JOIN_RELATIONS for relation in row.get("departure_relations", ()))
                          for row in path.get("translations", ()))]
     exploratory = sum(len(path.get("exploratory_orfs", {}).get("candidates", ()))
                       for path in paths)
@@ -97,7 +97,7 @@ def sv_summary(result):
                 input_events=1, candidate_paths=len(paths),
                 linked_paths=len(linked),
                 max_direct_junction_fragments=max(
-                    (_direct_fragments(path, relations=EVENT_LINKED) for path in linked),
+                    (_direct_fragments(path, relations=ADJACENCY_JOIN_RELATIONS) for path in linked),
                     default=0),
                 rna_linked_events=bool(supported),
                 event_linked_translated_paths=len(translated),

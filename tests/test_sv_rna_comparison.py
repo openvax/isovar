@@ -82,9 +82,10 @@ def test_mismatched_context_is_rejected(key, value):
         compare_sv_rna_predictions(result, predictions)
 
 
-def test_regional_translation_cannot_validate_an_event():
+@pytest.mark.parametrize("relation", ["regional_novel_junction", "splice_ambiguous_event_junction"])
+def test_unlinked_translation_cannot_validate_an_event(relation):
     result, predictions = inputs()
-    result["paths"][0]["translations"][0]["departure_relations"] = ["regional_novel_junction"]
+    result["paths"][0]["translations"][0]["departure_relations"] = [relation]
     assert not compare_sv_rna_predictions(result, predictions)["hypotheses"]
 
 

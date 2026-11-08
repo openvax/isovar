@@ -17,7 +17,8 @@ from reportlab.platypus import (
 from .json_files import read_json
 from .sv_rna_audit import file_sha256, write_json
 from .rna_evidence import content_identifier
-from .protein_window_comparison import aligned_protein_columns as aligned_columns
+from .sv_rna_relations import ADJACENCY_JOIN_RELATIONS
+from .protein_window_comparison import aligned_protein_columns
 from .protein_reporting import best_supported_translation, protein_comparison_status
 
 
@@ -118,6 +119,7 @@ def _collect(result, highlights=()):
                 continue
             event, alt = _counts(row)
             category = row["category"]
+            counts["dna_categorized"] += row.get("annotation", {}).get("category") == category
             categories[category] += 1
             depths[category].append(alt)
             counts["alt"] += alt > 0
@@ -513,7 +515,7 @@ def _sv_path_figure(candidate, assessment, directory, identifier):
     blocks.axis('off')
     coverage.fill_between(np.arange(length), depth, color=TEAL, alpha=.8)
     for junction in candidate['junctions']:
-        if junction['relation'] in ('breakpoint_junction', 'event_compatible_junction'):
+        if junction['relation'] in ADJACENCY_JOIN_RELATIONS:
             a, b = junction['query_interval']
             for ax in (blocks, coverage):
                 ax.axvline(a, color=MUTANT, linewidth=1)
@@ -636,13 +638,13 @@ def _additional_sections(manifest, summary, sample_id, figures, p, table, styles
                 reconstruction = snapshot['reconstruction']
                 supported = sorted(reconstruction['paths'], key=lambda x: -max(
                     (j['direct_support'].get('fragments', 0) for j in x['junctions']
-                     if j['relation'] in ('breakpoint_junction', 'event_compatible_junction')), default=0))
+                     if j['relation'] in ADJACENCY_JOIN_RELATIONS), default=0))
                 if not supported:
                     continue
                 candidate = supported[0]
                 assessed = next(p for p in snapshot['assessment']['paths'] if p['path_id'] == candidate['path_id'])
                 count = max((j['direct_support'].get('fragments', 0) for j in candidate['junctions']
-                             if j['relation'] in ('breakpoint_junction', 'event_compatible_junction')), default=0)
+                             if j['relation'] in ADJACENCY_JOIN_RELATIONS), default=0)
                 score = (any(p['event_linked'] for p in assessed['proteins']), count)
                 key = (row['event_id'], row['source_id'])
                 if key not in strongest or score > strongest[key][0]:
@@ -650,7 +652,7 @@ def _additional_sections(manifest, summary, sample_id, figures, p, table, styles
             selected = sorted(strongest.values(), key=lambda x: (-x[0][0], -x[0][1], x[1]['event_id']))[:5]
             for display_index, (_, row, candidate, assessed, reference_name) in enumerate(selected):
                 junctions = [j for j in candidate['junctions'] if j['relation'] in
-                             ('breakpoint_junction', 'event_compatible_junction')]
+                             ADJACENCY_JOIN_RELATIONS]
                 coord = []
                 for j in junctions:
                     for point in (j.get('left'), j.get('right')):
@@ -797,10 +799,11 @@ def write_cohort_reports(manifest, summary, output):
                             "their RNA support is unmeasured and excluded from depth distributions.")])
             if counts['processed'] > 1:
                 story.extend([Image(str(_category_landscape(result, categories, depths, figures)), width=510, height=255),
-                          p("These are RNA-informed groups: frameshift labels use annotation predictions or reconstructed "
-                            "coding contexts; in-frame labels require a reconstructed context. Other non-SNV includes indels "
-                            "without resolved coding consequences. Consequence prediction is run on ALT-supported calls. "
-                            "Unprocessed calls have no inferred support state.", "Small"),
+                          p("Variant categories use the DNA allele and its selected annotation effect, independently of RNA "
+                            "support. Other non-SNV includes indels without resolved coding consequences. "
+                            "Unprocessed calls have no inferred support state." if counts["dna_categorized"] == sum(categories.values()) else
+                            "These saved categories include older RNA-dependent assignments. Recompute the analysis "
+                            "to obtain DNA categories independent of RNA support.", "Small"),
                               table(("Variant category", "Evaluated calls"), sorted(categories.items()), (330, 180))])
             displayed_variants = set()
             for category in ("SNV", "Frameshift", "In-frame indel", "Other non-SNV", "ncORF", "ALT without changed protein", "Normal-call overlap", "Highlighted loci"):
@@ -892,7 +895,7 @@ def write_cohort_reports(manifest, summary, output):
                         delta = len(v["ref"]) - len(v["alt"])
                     else:
                         delta = comparison["reference_allele_length"] - comparison["observed_allele_length"]
-                    columns = aligned_columns(reference, protein, interval, allele_length_delta=delta,
+                    columns = aligned_protein_columns(reference, protein, interval, allele_length_delta=delta,
                                               frameshift=candidate["frameshift"], stop=stop,
                                               reference_stop=comparison.get("reference_stop_in_context", False))
                     sequence_panels = [SequencePanel(columns[start:start + 80], interval,

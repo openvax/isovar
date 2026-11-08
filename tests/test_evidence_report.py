@@ -73,7 +73,7 @@ def test_nested_counts_and_top_context_aa_denominators():
     annotations = {
         "s": dict(exon_overlap=True, reference_coding_effect=True,
                   top_effect_type="Substitution"),
-        "d": dict(exon_overlap=True, top_effect_type="FrameShift"),
+        "d": dict(exon_overlap=True, top_effect_type="FrameShift", category="Frameshift"),
         "i": dict(exon_overlap=False, top_effect_type="Intronic"),
         "z": dict(exon_overlap=False, top_effect_type="Intergenic"),
     }

@@ -7,6 +7,17 @@ counts separately, on an identified nucleotide path. See
 [coding coverage and comparisons](protein-hypotheses.md#coding-coverage-and-sequence-comparisons)
 for the shared API and TSV semantics.
 
+Variant categories use the DNA allele and its selected Varcode effect, even
+when no ALT RNA or protein was reconstructed. Cohort and evidence-report use
+the same annotation summary. RNA support remains a separate measurement.
+In-frame indels require a resolved insertion, deletion or replacement effect;
+genomic length alone does not establish a coding consequence. Saved results
+retain their original categories; recompute older analyses to apply these rules.
+
+Protein comparisons and sequence panels share the same bounded focal gap
+placement. A deletion which leaves its junction codon unchanged counts only
+the deleted residues, and the retained boundary residue stays neutral.
+
 `isovar cohort` runs the same reconstruction APIs across declared RNA sources,
 then produces one PDF per sample. Each library, culture, timepoint and analysis
 pass keeps its own denominator. A processing copy or alternative transcript is

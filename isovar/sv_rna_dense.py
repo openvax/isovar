@@ -26,7 +26,7 @@ from .sv_rna import (
     _inside, _SEQUENCE_BRIDGE_BASES, reconstruct_sv_rna,
 )
 from . import sv_rna_stream
-from .sv_rna_relations import LINKAGE_STATUSES
+from .sv_rna_relations import ADJACENCY_JOIN_RELATIONS, LINKAGE_STATUSES
 from .rna_library import _original_library_context
 
 
@@ -350,7 +350,7 @@ def _support(groups, result, collector, event, annotated, options, exonic=None):
             window = stream.local_windows[index]
             start, end = window['query_interval']
             junctions = [j for j in path['junctions']
-                         if j['relation'] in ('breakpoint_junction', 'event_compatible_junction')]
+                         if j['relation'] in ADJACENCY_JOIN_RELATIONS]
             base_start, base_end = window['base_query_interval']
             path['event_junction_window_support'] = dict(
                 query_interval=[base_start, base_end], flank_bases=12,
