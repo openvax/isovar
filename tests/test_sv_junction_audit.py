@@ -13,9 +13,10 @@ def test_low_mapq_junctions_are_retained_and_assembly_support_is_distinct(tmp_pa
 
     chr9 = rows["chr9_83969153_chr9_84015113_-+"]
     assert (chr9["screen_split_candidates"], chr9["junction_fragments_all_mapq"]) == ("7", "7")
-    assert chr9["assembled_event_paths_retained"] == "3"
+    assert chr9["assembled_event_paths_retained"] == "2"
     assert len(chr9["junction_read_ids_all_mapq"].split(";")) == 7
-    assert "path_limit" in chr9["assembly_limitations"]
+    assert "path_limit" not in chr9["assembly_limitations"]
+    assert "extension_segment_limit" in chr9["assembly_limitations"]
 
     chr13 = rows["chr13_52688329_chr13_60966095_+-"]
     assert (chr13["screen_split_candidates"], chr13["junction_fragments_all_mapq"],

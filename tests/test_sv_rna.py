@@ -1129,7 +1129,9 @@ def test_sa_only_long_reads_do_not_become_a_placed_bcr_abl1_junction(tmp_path):
 @pytest.mark.parametrize("name,fragments,frame_statuses", [
     ("PARD3B--CDKN2B-AS1-CDKN2B-T1", 2, {"no_gene_anchor"}),
     ("FOXO3--STRADA-CCDC47-T1", 5, {"no_gene_anchor"}),
-    ("TPST1--CRCP-T1", 61, {"reference_protein_only", "ambiguous"}),
+    # Removing incidental splice/indel departures can leave noncoding anchor
+    # models unresolved; they do not become an event-linked coding frame.
+    ("TPST1--CRCP-T1", 61, {"reference_protein_only", "ambiguous", "unresolved"}),
 ])
 def test_original_ont_split_reads_recover_the_junction_without_a_coding_frame(tmp_path, name, fragments,
                                                                                 frame_statuses):

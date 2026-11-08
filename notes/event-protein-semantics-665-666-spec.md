@@ -64,3 +64,16 @@ Streamed support previously filtered indels separately from the shared path
 builder. That duplicate filter is removed; final junction filtering now uses
 the same event relation policy for both bounded and streamed reconstruction.
 No additional evidence sidecars are introduced.
+
+Full-suite validation also guards sequence-assembled joins without a directly
+crossing read. Their junction kind is unknown, not a CIGAR deletion; they retain
+event linkage with zero direct support. Only explicit D-only evidence invokes
+the deletion-placement rule.
+
+The pinned HCC1395 chr9 DUP report disables regional seeding. Its former third
+breakpoint-containing path was reached only from an ordinary forward-splice
+seed labelled splice-ambiguous. The corrected policy retains the two paths
+seeded at the actual adjacency and all seven direct junction fragments. Refresh
+the generated junction audit and transcript report to remove the old path count,
+FASTA entry and path-limit claim. These are bounded search results, not a claim
+that the third sequence is biologically impossible.

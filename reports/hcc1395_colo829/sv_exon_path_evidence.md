@@ -14,9 +14,9 @@ the original join table and must not be summed across paths.
 | Event | Path | Joined RNA bases | Direct join | Local exact | Longest exon anchor | Frame | Event-linked translations | Limits |
 |---|---|---:|---:|---:|---:|---|---:|---|
 | HCC1395 chr13_52688329_chr13_60966095_+- | `ca1f6566` | 2430 | 4 | 1 | 59 | reference_protein_only | 0 | path_limit |
-| HCC1395 chr21_42975947_chr21_43035721_-+ | `be71afcf` | 2120 | 2 | 1 | 62 | ambiguous | 0 | none |
+| HCC1395 chr21_42975947_chr21_43035721_-+ | `be71afcf` | 2120 | 2 | 1 | 62 | unresolved | 0 | none |
 | HCC1395 chr21_42975947_chr21_43035721_-+ | `476eb4d7` | 2225 | 2 | 1 | 126 | ambiguous | 0 | none |
-| HCC1395 chr9_83969153_chr9_84015113_-+ | `f5ad7eb6` | 1953 | 7 | 1 | 77 | ambiguous | 0 | extension_segment_limit, path_limit |
+| HCC1395 chr9_83969153_chr9_84015113_-+ | `f5ad7eb6` | 1953 | 7 | 1 | 77 | reference_protein_only | 0 | extension_segment_limit, path_limit |
 | HCC1395 chr9_83969153_chr9_84015113_-+ | `b98ae3f5` | 1796 | 7 | 1 | 69 | ambiguous | 0 | extension_segment_limit, path_limit |
 | COLO829 COLO829_SOMATIC_SV3_DEL | `88ab60e1` | 1213 | 3 | 3 | 0 | no_gene_anchor | 0 | extension_segment_limit |
 
@@ -37,7 +37,7 @@ than the nominated DNA call.
 
 | Screened source | Joined path | RNA bases | Placed join fragments | Exact 43-mer spots | Longest exact CNIH3 exon anchor | Frame | Limits |
 |---|---|---:|---:|---:|---:|---|---|
-| SRR8615617 CNIH3 target screen | `c2162971` | 2435 | 3 | 5 | 0 | no_gene_anchor | mate_location_unavailable, path_limit |
+| SRR8615617 CNIH3 target screen | `c2162971` | 2435 | 3 | 5 | 0 | no_gene_anchor | incompatible_segment_placements_retained_as_alternatives, mate_location_unavailable, path_limit |
 
 The five exact 43-mer spots include the three placed split
 fragments and two with clipped or partial placements. The latter

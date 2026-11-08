@@ -1652,7 +1652,11 @@ def _path_result(sequence, positions, voters, store, event, annotated, adjacency
         summary = junction_cache[key]
         # Apply the same policy to bounded discovery and streamed support.
         # CIGAR deletions are reported only as placements of the adjacency.
-        if set(summary['kinds']) <= {"D"} and not event.relation(left, right, j - i - 1, kind="D")[0]:
+        # An assembled join without direct witnesses has unknown kind; absence
+        # of a crossing read does not make the join a CIGAR deletion.
+        kinds = set(summary['kinds'])
+        if (not kinds and relation is None) or (
+                kinds == {"D"} and not event.relation(left, right, j - i - 1, kind="D")[0]):
             continue
         rows.append((i, j, relation or "regional_novel_junction", assignment, is_annotated, summary))
     for i, j, assignment in event.clips(positions, len(sequence)):
