@@ -19,6 +19,8 @@ from .dna import reverse_complement_dna
 from .effect_prediction import predicted_effects_for_variant
 from .protein_sequence_creator import ProteinSequenceCreator
 from .protein_sequence_helpers import mutant_peptide_window_count
+from .protein_reference_comparison import reference_comparison
+from .protein_window_comparison import compare_protein_windows
 from .read_identity import fragment_ids, observation_groups
 from .variant_helpers import base0_interval_for_variant, interbase_range_affected_by_variant_on_transcript
 
@@ -66,6 +68,14 @@ def _reference_predictions(variant, whitelist, length, transcripts):
                               mutation_end=min(right, altered_end) - left,
                               protein_start_1based=left + 1, anchor_1based=anchor + 1,
                               frameshift=frameshift, ends_with_stop_codon=False)
+        protein = row["protein"]
+        interval = [min(max(0, p), len(protein["amino_acids"])) for p in
+                    (protein["mutation_start"], protein["mutation_end"])]
+        delta = len(variant.ref) - len(variant.alt)
+        reference_end = right + (delta // 3 if not frameshift else 0)
+        protein["comparison"] = compare_protein_windows(
+            transcript.protein_sequence[left:max(left, reference_end)], protein["amino_acids"], interval,
+            allele_length_delta=delta, frameshift=frameshift)
     return sorted(predictions, key=lambda p: (p["transcript_id"], p["description"]))
 
 
@@ -196,7 +206,8 @@ def collect_visualization_data(
                 templates=protein.num_supporting_fragments,
                 peptide_windows=mutant_peptide_window_count(protein, creator.protein_context_peptide_length),
                 transcript_ids=sorted(ids), translation_count=len(protein.translations),
-                frames=frames, witness=_witness_data(witness)))
+                frames=frames, witness=_witness_data(witness),
+                comparison=reference_comparison(witness, [])["annotation_comparison"]))
         entry["protein"] = next(iter(entry["proteins"]), None)
         results.append(entry)
     predictions = (_reference_predictions(
@@ -310,24 +321,31 @@ def draw_protein_rows(ax, rows, rectangle, differences=None):
             ax.text(0, y, "No translated protein", va="center", fontsize=10, color=GRAY)
             continue
         a, b = p["mutation_start"], p["mutation_end"]
+        comparison = p.get("comparison", {})
+        changed_positions = set(comparison.get("substituted_positions", ())) | set(
+            comparison.get("inserted_positions", ()))
+        focal_changes = sorted(j for j in changed_positions if a <= j < b)
+        deletions = comparison.get("deleted_reference_positions", ())
         left, right = min(left, -a - 0.7), max(right, len(p["amino_acids"]) - a + 0.7)
         letters = len(p["amino_acids"]) <= 80
         if not letters:
             ax.plot([-a, len(p["amino_acids"]) - a], [y, y], color=color, lw=4)
-            ax.plot([0, b - a], [y, y], color=ORANGE, lw=5)
+            for j in focal_changes:
+                ax.plot([j - a - .4, j - a + .4], [y, y], color=ORANGE, lw=5)
         end = len(p["amino_acids"]) - a + int(p["ends_with_stop_codon"])
         for offset in sorted(differences):
             if -a <= offset < end:
                 ax.plot([offset - .4, offset + .4], [y - .27, y - .27],
                         color="#AA3377", lw=2.5, label="_protein_difference")
         for j, aa in enumerate(p["amino_acids"] if letters else ""):
-            changed = a <= j < b
+            changed = j in focal_changes
             if changed:
                 ax.add_patch(rectangle((j - a - .46, y - .20), .92, .40, color=ORANGE, alpha=.12, lw=0))
             ax.text(j - a, y, aa, ha="center", va="center", fontfamily="DejaVu Sans Mono", fontsize=12,
                     color=ORANGE if changed else color, fontweight="bold" if changed else "normal")
-        if a == b:
-            ax.plot([-.5, -.5], [y - .23, y + .23], color=ORANGE, lw=2)
+        if deletions:
+            boundary = min(deletions) - a - .5
+            ax.plot([boundary, boundary], [y - .23, y + .23], color=ORANGE, lw=2)
         if p["ends_with_stop_codon"]:
             ax.text(len(p["amino_acids"]) - a, y, "*", ha="center", va="center", fontsize=11)
     ax.axvline(-.5, color=ORANGE, alpha=.3, lw=.8, zorder=0)
@@ -361,7 +379,7 @@ def _protein_panel(ax, data, rectangle, max_rows):
         if len(groups) > max_rows:
             label += " (%d/%d sequence groups shown)" % (max_rows, len(groups))
         ax.text(0, 1.005, label, transform=ax.transAxes, fontsize=10, color=GRAY)
-    ax.text(1.035, 1.005, "Orange: mutation\nMagenta: track difference\nBlank: no sequence", transform=ax.transAxes,
+    ax.text(1.035, 1.005, "Orange: focal difference\nMagenta: track difference\nBlank: no sequence", transform=ax.transAxes,
             fontsize=10, color=GRAY, va="bottom")
 
 
@@ -602,7 +620,8 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
 def _figure_caption(data):
     caption = (
         "# Figure notes\n\nReference: " + data["variant"]["reference"] + ".\n\n"
-        "Orange marks the mutation or deletion boundary; blue denotes assembly on, gray assembly off. "
+        "Orange marks the nucleotide edit in RNA tracks and verified focal differences or deletion boundaries "
+        "in protein tracks; blue denotes assembly on, gray assembly off. "
         "Protein tracks are ordered no assembly, assembly, then Varcode. Magenta underlines mark "
         "different residues (or a stop versus a residue) at shared mutation-relative offsets, including "
         "positions outside the mutation. This is an edit-anchored comparison, not a homology alignment. "

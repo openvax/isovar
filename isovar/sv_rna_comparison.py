@@ -7,9 +7,7 @@ from copy import deepcopy
 from hashlib import sha256
 
 from .sv_rna_orf_export import export_sv_rna_orfs
-from .sv_rna_relations import EVENT_CROSSING_RELATIONS
-
-EVENT_RELATIONS = frozenset(EVENT_CROSSING_RELATIONS)
+from .sv_rna_relations import EVENT_LINKED_RELATIONS
 
 
 def _matches(observed, complete, prediction):
@@ -65,12 +63,12 @@ def compare_sv_rna_predictions(result, predictions):
             raise ValueError("Prediction completeness must be boolean")
     # Filter occurrences before the shared exporter unions their witnesses.
     # Regional-only occurrences must not inflate event-linked support.
-    # exploratory_orfs already selects these relations; this guards results
-    # read from files, which may be older or edited.
+    # Exploratory ORFs also include splice-ambiguous crossings; they cannot
+    # supply event-linked witnesses here, including when read from old files.
     linked = dict(result, paths=[])
     for path in result["paths"]:
         candidates = [c for c in path["exploratory_orfs"]["candidates"]
-                      if any(path["junctions"][i]["relation"] in EVENT_RELATIONS
+                      if any(path["junctions"][i]["relation"] in EVENT_LINKED_RELATIONS
                              for i in c["crossed_junctions"])]
         if candidates:
             linked["paths"].append(dict(path, exploratory_orfs=dict(path["exploratory_orfs"], candidates=candidates)))
@@ -86,7 +84,7 @@ def compare_sv_rna_predictions(result, predictions):
     annotated = {}
     for path in result["paths"]:
         for candidate in path["translations"]:
-            if not EVENT_RELATIONS.intersection(candidate["departure_relations"]):
+            if not any(relation in EVENT_LINKED_RELATIONS for relation in candidate["departure_relations"]):
                 continue
             start, end = candidate["translation_start"], candidate["translation_end"]
             complete = candidate["ends_with_stop_codon"] and any(

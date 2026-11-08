@@ -140,7 +140,7 @@ def protein_comparison_figures(products, rows_per_page=PLOT_PROTEIN_ROWS_PER_PAG
             draw_protein_rows(ax, display, rectangle, differences)
             figure.suptitle(title, x=.035, y=.975, ha="left", fontsize=19, fontweight="bold")
             figure.subplots_adjust(left=.24, right=.79, bottom=.16, top=.85)
-            figure.text(.24, .065, "Orange: nominated mutation. Magenta: differing residues at shared offsets; missing context is not a mismatch.", fontsize=10, color=GRAY)
+            figure.text(.24, .065, "Orange: focal difference / deletion. Magenta: differing residues at shared offsets; missing context is not a mismatch.", fontsize=10, color=GRAY)
             figure.text(.24, .03, "Page %d/%d. Varcode repeats for comparison. Exact shorter contexts grouped, not joined. All ranks/frames: evidence.json." %
                         (number, len(pages)), fontsize=9, color=GRAY)
         yield "protein-comparison-%02d" % number, figure

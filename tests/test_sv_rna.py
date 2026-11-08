@@ -167,6 +167,31 @@ def spanning(result, relation=None):
     return [j for p in result["paths"] for j in p["junctions"] if relation in (None, j["relation"])]
 
 
+@pytest.mark.parametrize("deletion", [1, 3])
+def test_ordinary_splicing_and_indels_do_not_support_a_duplication(tmp_path, deletion):
+    s = Scenario()
+    original = s.donor_ref.sequence
+    sequence = original[:150] + original[150 + deletion:]
+    reads = s.tile("ordinary", original, s.donor_positions)
+    reads.append(record("indel", "1", 1000, f"100M900N50M{deletion}D{100-deletion}M850N300M", sequence))
+    result = s.run(write_bam(tmp_path / "ordinary.bam", reads),
+                   donor=FusionBreakpoint("1", 3200, "+"), acceptor=FusionBreakpoint("1", 1050, "+"),
+                   references=[s.donor_ref])
+    assert not result["paths"]
+    assert not result["competing_annotated_junctions"]
+
+
+def test_a_small_deletion_at_its_nominated_breakpoints_remains_event_evidence(tmp_path):
+    s = Scenario()
+    sequence = s.donor_ref.sequence[:50] + s.donor_ref.sequence[53:100]
+    read = record("deletion", "1", 1000, "50M3D47M", sequence)
+    result = s.run(write_bam(tmp_path / "deletion.bam", [read]),
+                   donor=FusionBreakpoint("1", 1050, "+"), acceptor=FusionBreakpoint("1", 1053, "+"),
+                   references=[s.donor_ref])
+    assert result["status"] == "event_linked_candidates"
+    assert any(j["kinds"] == ["D"] for j in spanning(result, "breakpoint_junction"))
+
+
 @pytest.mark.parametrize("acceptor_strand", ["+", "-"])
 def test_reordered_contigs_preserve_reconstruction_and_witnesses(tmp_path, acceptor_strand):
     scenario = Scenario(acceptor_strand)
@@ -1104,7 +1129,9 @@ def test_sa_only_long_reads_do_not_become_a_placed_bcr_abl1_junction(tmp_path):
 @pytest.mark.parametrize("name,fragments,frame_statuses", [
     ("PARD3B--CDKN2B-AS1-CDKN2B-T1", 2, {"no_gene_anchor"}),
     ("FOXO3--STRADA-CCDC47-T1", 5, {"no_gene_anchor"}),
-    ("TPST1--CRCP-T1", 61, {"reference_protein_only", "ambiguous"}),
+    # Removing incidental splice/indel departures can leave noncoding anchor
+    # models unresolved; they do not become an event-linked coding frame.
+    ("TPST1--CRCP-T1", 61, {"reference_protein_only", "ambiguous", "unresolved"}),
 ])
 def test_original_ont_split_reads_recover_the_junction_without_a_coding_frame(tmp_path, name, fragments,
                                                                                 frame_statuses):
@@ -1125,6 +1152,11 @@ def test_original_ont_split_reads_recover_the_junction_without_a_coding_frame(tm
     # The supplied analysis found no coding donor frame; neither does this.
     assert {p["frame_status"] for p in event} <= frame_statuses
     assert not any("breakpoint_junction" in t["departure_relations"] for p in event for t in p["translations"])
+    if name == "TPST1--CRCP-T1":
+        assert not any(j['forward_splice_geometry'] and j['relation'] != 'regional_novel_junction'
+                       for p in result['paths'] for j in p['junctions'])
+        assert not any(c['amino_acids'].startswith('MWQWTKRTQHRRAQLAPAFHEVRRP')
+                       for p in result['paths'] for c in p['exploratory_orfs']['candidates'])
 
 
 LONG_READ = FUSIONS / "long-read"
@@ -1166,6 +1198,10 @@ def test_pacbio_places_homologous_junction_bases_past_the_catalogue_breakpoint(t
     assert complete_umis(junction["direct_support"]) is None
     assert junction["direct_support"]["label_statuses"] == {"unresolved_xm": 20}
     assert result["status"] == "event_linked_candidates"
+    assert not any(j['forward_splice_geometry'] and j['relation'] != 'regional_novel_junction'
+                   for p in result['paths'] for j in p['junctions'])
+    assert not any(c['amino_acids'].startswith(('MPILRF', 'MESRSVTQ'))
+                   for p in result['paths'] for c in p['exploratory_orfs']['candidates'])
 
 
 def test_noisy_ont_reads_count_as_direct_junction_support(tmp_path):

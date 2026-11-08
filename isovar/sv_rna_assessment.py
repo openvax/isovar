@@ -21,7 +21,7 @@ from .read_collector import ReadCollector
 from .read_end_inference import ReadSequenceView
 from .transcript_path_frames import TranscriptPathModel, exact_anchor_runs
 from .sv_rna_path_support import exact_path_matches, interval_spots, overlap_chain_search, reverse_complement
-from .sv_rna_relations import EVENT_CROSSING_RELATIONS
+from .sv_rna_relations import EVENT_LINKED_RELATIONS
 
 
 def path_positions(path):
@@ -441,7 +441,7 @@ def assess_sv_rna_paths(result: dict[str, Any], bam: pysam.AlignmentFile | None,
                         record, sequence[match.start:match.end])))
         proteins = []
         for candidate in path.get("translations", []):
-            linked = bool(set(candidate.get("departure_relations", [])) & set(EVENT_CROSSING_RELATIONS))
+            linked = any(relation in EVENT_LINKED_RELATIONS for relation in candidate.get("departure_relations", []))
             # Supplied-fusion translations already require a coding junction.
             linked |= result.get("schema", "").startswith("isovar.fusion_rna.")
             proteins.append(dict(candidate=deepcopy(candidate), event_linked=linked,

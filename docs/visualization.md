@@ -70,8 +70,11 @@ Some notes on these options:
 ## Reading the figure
 
 **Protein panel.** Rows are aligned at the mutation, N terminus to C terminus.
-Orange marks altered residues or an in-frame deletion boundary; for a
-frameshift, the altered downstream region. Contexts longer than 80 aa are drawn
+Orange marks verified focal differences or an in-frame deletion boundary.
+An unchanged boundary residue remains neutral even when its codon touches the
+nucleotide edit. A single in-frame gap is placed within the focal codons to
+minimize substitutions, with C-terminal placement breaking ties; flanks and
+frameshift tails are never realigned. Contexts longer than 80 aa are drawn
 as bars, and complete sequences are always in `evidence.json`.
 
 **Varcode rows** show the **reference transcript plus the nominated edit only**,

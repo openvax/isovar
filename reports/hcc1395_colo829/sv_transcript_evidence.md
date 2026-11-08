@@ -3,11 +3,14 @@
 These are **bounded, breakpoint-compatible RNA path hypotheses**, not a
 complete atlas of SV transcripts. The selected original-read fixtures cover
 three HCC1395 and one COLO829 DNA events with direct junction observations.
-They yield **7 retained paths** (6 HCC1395;
-1 COLO829). Only **2**
-have at least two exact local path witnesses. HCC1395 chr9 reaches
-`path_limit`, so this is a retained-hypothesis count rather than a
-count of biological isoforms.
+They yield **6 retained paths** (5 HCC1395;
+1 COLO829). Paths with at least two exact local witnesses:
+**1**. These counts depend on
+the bounded discovery policy and are not counts of biological isoforms.
+Regional seeding is disabled: ordinary forward splices cannot seed
+a nominated backward duplication adjacency. The corrected chr9 search
+retains two paths and all seven direct junction fragments; its former
+third path was reached only from a misclassified ordinary-splice seed.
 
 **Evidence units:** direct fragments are distinct original RNA fragments
 making the join, shared by paths. Local exact fragments each match one
@@ -32,9 +35,8 @@ MAPQ 20 is a sensitivity subset, not a gate for the primary SV search.
 | HCC1395 chr13_52688329_chr13_60966095_+- | `ca1f6566` | 2430 | 4 / 3 | 1 (one retained) | 1 / 12 flank (one retained) | 1 | reference_models_unavailable |
 | HCC1395 chr21_42975947_chr21_43035721_-+ | `be71afcf` | 2120 | 2 / 2 | 1 (unique) | 1 / 12 flank (unique) | 1 | reference_models_unavailable |
 | HCC1395 chr21_42975947_chr21_43035721_-+ | `476eb4d7` | 2225 | 2 / 2 | 1 (unique) | 1 / 12 flank (unique) | 1 | reference_models_unavailable |
-| HCC1395 chr9_83969153_chr9_84015113_-+ | `351071fd` | 1953 | 7 / 7 | 2 (shared) | 1 / 24 flank (unique) | 1 | extension_segment_limit, path_limit, reference_models_unavailable |
-| HCC1395 chr9_83969153_chr9_84015113_-+ | `7c9ff8ab` | 1796 | 7 / 7 | 2 (shared) | 1 / 24 flank (unique) | 1 | extension_segment_limit, path_limit, reference_models_unavailable |
-| HCC1395 chr9_83969153_chr9_84015113_-+ | `386f7562` | 2198 | 7 / 7 | 3 (shared) | 3 / 24 flank (unique) | 0 | extension_segment_limit, path_limit, reference_models_unavailable |
+| HCC1395 chr9_83969153_chr9_84015113_-+ | `351071fd` | 1953 | 7 / 7 | 2 (shared) | 1 / 24 flank (unique) | 1 | extension_segment_limit, reference_models_unavailable |
+| HCC1395 chr9_83969153_chr9_84015113_-+ | `7c9ff8ab` | 1796 | 7 / 7 | 2 (shared) | 1 / 24 flank (unique) | 1 | extension_segment_limit, reference_models_unavailable |
 | COLO829 SV3_DEL | `88ab60e1` | 1213 | 3 / 0 | 3 (one retained) | 3 / 12 flank (one retained) | 0 | extension_segment_limit, reference_models_unavailable |
 
 ## Observed join versus unrearranged reference
@@ -53,7 +55,6 @@ candidate sequences are in [`sv_transcript_evidence.fasta`](sv_transcript_eviden
 | chr21_42975947_chr21_43035721_-+ `476eb4d7` | `ACCTGGTCTACTAAAATAAA|AAA|TGTGAACCTTGCCAGTATAG` | `TGGTCTCTACTAAAAATAAA|AAAATTAGTCGGGCATGGTG` | `AAGGAAGAATCGAGGTGAAA|TGTGAACCTCTGCCAGTATA` |
 | chr9_83969153_chr9_84015113_-+ `351071fd` | `GGCGTGCAAAAACTAACATT|GAAA|CAGTGAAAAAGAGGATTGCT` | `GGCGTGCAAAAACTAACATT|GAAATTTTGAAACAGCAGCA` | `TAGGAGTGGGACGTGGGAAA|CAGTGAAAAAGAGGATTGCT` |
 | chr9_83969153_chr9_84015113_-+ `7c9ff8ab` | `GGCGTGCAAAAACTAACATT|GAAA|CAGTGAAAAAGAGGATTGCT` | `GGCGTGCAAAAACTAACATT|GAAATTTTGAAACAGCAGCA` | `TAGGAGTGGGACGTGGGAAA|CAGTGAAAAAGAGGATTGCT` |
-| chr9_83969153_chr9_84015113_-+ `386f7562` | `GGGCGTGCAAAACTAACATT|GAAA|CAGTGAAAAAGAGGATTGCT` | `GGCGTGCAAAAACTAACATT|GAAATTTTGAAACAGCAGCA` | `TAGGAGTGGGACGTGGGAAA|CAGTGAAAAAGAGGATTGCT` |
 | COLO829_SOMATIC_SV3_DEL `88ab60e1` | `AATTTGCCCTGTTGTCAGGC|CTATAGTAGAACTTCTTTT|GGAGTTGCTTCTTATGGATG` | `AATTTGCCCTGTTGTCAGGC|TGGAGTGCAGGGAAGTGATC` | `GATCAAATGTGAATGTTTGA|GGAGTTGCTTCTTATGGATG` |
 
 The GRCh38 controls are pinned in

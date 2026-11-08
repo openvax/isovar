@@ -81,7 +81,7 @@ def reference_comparison(translation: Translation, edits: Sequence[ObservedEdit]
     focal_comparison = compare_protein_windows(counter_window, translation.amino_acids, interval,
                                                 reference_stop=counter_stop_in_window, **comparison_options)
     origins = []
-    for transcript in context.transcripts:
+    for transcript in context.transcripts if edits else ():
         focal = transcript_edit_from_variant(context.variant, transcript)
         left = focal.cdna_start - len(orf.reference_cdna_sequence_before_variant)
         right = left + len(reference)

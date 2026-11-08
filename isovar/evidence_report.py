@@ -153,9 +153,9 @@ def summarize(calls, annotations, proteins=(), sv=()):
         counts["exonic_changed_product"] += exonic and bool(states["focal_changed"])
         counts["coding"] += _yes(annotation.get("reference_coding_effect"))
         counts["ncorf"] += _yes(annotation.get("orfdata_coding_block_overlap"))
-        counts["frameshift"] += annotation.get("top_effect_type") == "FrameShift"
+        counts["frameshift"] += annotation.get("category") == "Frameshift"
         counts["frameshift_alt"] += (
-            annotation.get("top_effect_type") == "FrameShift" and alt)
+            annotation.get("category") == "Frameshift" and alt)
         if alt:
             if product:
                 selected = top[ident]

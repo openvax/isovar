@@ -499,12 +499,14 @@ def test_pinned_hcc_and_colo_sv_local_evidence():
     from reports.hcc1395_colo829.build_sv_transcript_evidence import build
 
     rows, _, _ = build()
-    assert len(rows) == 7
+    assert len(rows) == 6
     chr9 = [row for row in rows if row['call_id'].startswith('chr9_')]
-    assert len(chr9) == 3
+    # Regional seeding is disabled. The former third path was discovered only
+    # from an ordinary forward splice mislabelled as duplication-linked (#665).
+    assert len(chr9) == 2
     assert {row['direct_junction_fragments'] for row in chr9} == {7}
-    assert sorted(row['local_exact_fragments'] for row in chr9) == [1, 1, 3]
-    assert sorted(row['junction_12_flank_exact_fragments'] for row in chr9) == [2, 2, 3]
+    assert sorted(row['local_exact_fragments'] for row in chr9) == [1, 1]
+    assert sorted(row['junction_12_flank_exact_fragments'] for row in chr9) == [2, 2]
     assert {row['junction_12_flank_specificity'] for row in chr9} == {'shared_or_unresolved'}
     assert all(row['local_specificity'] == 'unique_among_retained_paths' for row in chr9)
     sv3, = [row for row in rows if row['sample'] == 'COLO829']

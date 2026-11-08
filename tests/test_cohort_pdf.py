@@ -7,7 +7,8 @@ import json
 
 import pytest
 
-from isovar.cohort_pdf import aligned_columns, _fusion_comparisons
+from isovar.cohort_pdf import _fusion_comparisons
+from isovar.protein_window_comparison import aligned_protein_columns as aligned_columns
 from isovar.fusion import reconstruct_fusion
 from .test_fusion import example
 

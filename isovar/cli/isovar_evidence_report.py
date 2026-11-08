@@ -13,7 +13,7 @@ from pathlib import Path
 from .output_args import add_log_level_arg
 from ..logging import configure_cli_logging
 from ..contig_resolution import UnresolvedContigError, require_resolved_contig
-from ..effect_prediction import effect_outcomes
+from ..effect_prediction import variant_effect_summary
 from ..isovar_result import IsovarResult
 from ..protein_hypotheses import export_protein_hypotheses
 from ..protein_reporting import protein_report_record
@@ -46,7 +46,7 @@ parser.add_argument("--self-fasta", type=Path,
 FIELDS = (
     "sample_id", "dna_source", "rna_source", "call_id", "class", "chrom", "pos",
     "ref", "alt", "exon_overlap", "reference_coding_effect",
-    "orfdata_coding_block_overlap", "top_effect_type", "rna_status", "ref_reads",
+    "orfdata_coding_block_overlap", "top_effect_type", "category", "rna_status", "ref_reads",
     "alt_reads", "other_reads", "alt_fragments", "protein_count",
     "top_changed_aa_positions", "top_local_protein", "novel_9mers", "total_9mers",
     "self_fasta_sha256", "contig_resolution", "top_marked_aa_positions",
@@ -133,11 +133,8 @@ def collect(variants, alignment, collector, creator, *, sample_id, source, catal
                if index is not None else ())
         annotations[ident] = dict(
             exon_overlap=overlaps_exon(genome, variant.contig, pos, ref_base, alt_base),
-            reference_coding_effect=any(
-                outcome is not None and outcome.modifies_coding_sequence is True
-                for effect in effects for outcome in effect_outcomes(effect)),
             orfdata_coding_block_overlap=bool(ids) if catalog is not None else None,
-            top_effect_type=type(top_effect).__name__)
+            **variant_effect_summary(variant, effects))
         proteins.extend(protein_report_record(protein, ident)
                         for protein in export["events"][0]["protein_hypotheses"])
     return calls, annotations, proteins
@@ -163,6 +160,7 @@ def write_per_call(path, calls, annotations, summary, sources, self_scores):
                 reference_coding_effect=annotations[ident]["reference_coding_effect"],
                 orfdata_coding_block_overlap=annotations[ident]["orfdata_coding_block_overlap"],
                 top_effect_type=annotations[ident]["top_effect_type"],
+                category=annotations[ident].get("category"),
                 top_changed_aa_positions=top.get("changed_residue_count") if top else "",
                 top_marked_aa_positions=(int(top["mutation_end_idx"]) - int(top["mutation_start_idx"])) if top else "",
                 **{name + "_contexts": context_counts.get(name) for name in

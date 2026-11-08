@@ -2,7 +2,53 @@
 
 import pytest
 
-from isovar.protein_window_comparison import compare_protein_windows, reference_window_stop
+from isovar.protein_window_comparison import aligned_protein_columns, compare_protein_windows, reference_window_stop
+
+
+@pytest.mark.parametrize("reference,observed,interval,delta,deleted,inserted,substituted", [
+    # H1-2: the nucleotide edit touches a V codon which still encodes V.
+    ("KAVKPKAAKPKVVKPKK", "KAVKPKVVKPKK", (6, 7), 15, list(range(6, 11)), [], []),
+    ("KAVKPKVVKPKK", "KAVKPKAAKPKVVKPKK", (6, 12), -15, [], list(range(6, 11)), []),
+    # Ties shift C-terminally only inside the focal codons, never into flanks.
+    ("MAAAAG", "MAAG", (1, 2), 6, [2, 3], [], []),
+    ("MAAG", "MAAAAG", (1, 4), -6, [], [2, 3], []),
+    ("MAAKG", "MQG", (1, 2), 6, [2, 3], [], [1]),
+    # An independent upstream mismatch is neither moved nor erased.
+    ("KAVKPKAAKPKVVKPKK", "QAVKPKVVKPKK", (6, 7), 15, list(range(6, 11)), [], [0]),
+])
+def test_bounded_focal_gap_minimizes_substitutions(reference, observed, interval, delta, deleted, inserted, substituted):
+    comparison = compare_protein_windows(reference, observed, interval, allele_length_delta=delta,
+                                         reference_stop=False)
+    assert comparison["deleted_reference_positions"] == deleted
+    assert comparison["inserted_positions"] == inserted
+    assert comparison["substituted_positions"] == substituted
+    assert comparison["changed_residue_count"] == len(deleted) + len(inserted) + len(substituted)
+    columns = aligned_protein_columns(reference, observed, interval, allele_length_delta=delta)
+    assert ''.join(c['protein'] for c in columns if c['position'] is not None) == observed
+    assert ''.join(c['reference'] for c in columns if c['reference_position'] is not None) == reference
+
+
+def test_unknown_focal_residues_cannot_justify_gap_repositioning():
+    columns = aligned_protein_columns("MAXKG", "MKG", (1, 2), allele_length_delta=6)
+    assert [c["reference_position"] for c in columns if c["focal_deletion"]] == [2, 3]
+    comparison = compare_protein_windows("MAXKG", "MKG", (1, 2), allele_length_delta=6)
+    assert comparison["changed_residue_count"] is None
+
+
+def test_h12_display_keeps_the_unchanged_boundary_valine_neutral():
+    from matplotlib.figure import Figure
+    from matplotlib.patches import Rectangle
+    from isovar.visualization import BLUE, ORANGE, draw_protein_rows
+
+    sequence = "KAVKPKVVKPKK"
+    comparison = compare_protein_windows("KAVKPKAAKPKVVKPKK", sequence, (6, 7), allele_length_delta=15)
+    protein = dict(amino_acids=sequence, mutation_start=6, mutation_end=7, ends_with_stop_codon=False,
+                   comparison=comparison)
+    ax = Figure().subplots()
+    draw_protein_rows(ax, [("H1-2", protein, BLUE, "")], Rectangle)
+    assert all(text.get_color() == BLUE for text in ax.texts if text.get_text() == "V")
+    assert not any(text.get_color() == ORANGE for text in ax.texts)
+    assert any(list(line.get_xdata()) == [-.5, -.5] and line.get_color() == ORANGE for line in ax.lines)
 
 
 @pytest.mark.parametrize("reference,observed,interval,delta,count,field,positions", [

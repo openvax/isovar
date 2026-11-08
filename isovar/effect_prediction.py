@@ -13,11 +13,31 @@
 from collections.abc import Iterator
 
 from varcode import MutationEffect, iter_candidate_effects, iter_candidate_paths
+from varcode.effects import FrameShift, Insertion, Deletion, ComplexSubstitution
 from varcode.effect_hypotheses import RealizedEffectCandidate
 
 from .logging import get_logger
 
 logger = get_logger(__name__)
+
+
+def variant_effect_summary(variant, effects):
+    """Describe DNA-predicted coding consequences independently of RNA support.
+
+    Categories follow the selected annotation effect. Unresolved alternatives
+    are not promoted to a coding indel from the genomic length difference alone.
+    Literal SNVs retain their allele category even when they affect splicing.
+    """
+    top = effects.top_priority_effect() if effects else None
+    delta = len(variant.original_alt) - len(variant.original_ref)
+    category = ("SNV" if len(variant.original_ref) == len(variant.original_alt) == 1 else
+                "Frameshift" if isinstance(top, FrameShift) else
+                "In-frame indel" if delta and delta % 3 == 0 and
+                isinstance(top, (Insertion, Deletion, ComplexSubstitution)) else "Other non-SNV")
+    return dict(category=category, top_effect_type=type(top).__name__ if top is not None else None,
+                reference_coding_effect=any(
+                    outcome is not None and outcome.modifies_coding_sequence is True
+                    for effect in effects for outcome in effect_outcomes(effect)))
 
 
 def effect_in_coding_sequence(effect: MutationEffect | None) -> bool:

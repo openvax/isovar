@@ -159,6 +159,18 @@ Annotated junctions that happen to cross the event are listed in
 `competing_annotated_junctions` and never become candidates.
 `somatic_causation_proven` is always false: RNA cannot establish that the SV caused the join.
 
+A forward splice inside a tandem duplication does not cross its backward
+adjacency. It remains ordinary annotated splicing or a regional novel join.
+CIGAR deletions count as event junctions only when they place the nominated
+adjacency at its breakpoints; incidental alignment indels are omitted from
+junction and protein linkage. The same rules apply during seeding and reporting.
+
+Audit summaries distinguish `paths_with_direct_junction` (the literal breakpoint)
+from `paths_with_event_compatible_junction` (for example, an RNA splice connecting
+the two partners after removing intronic breakpoints). Both require direct
+fragment support. `paths_with_event_linked_protein` excludes splice-ambiguous
+crossings, which remain exploratory hypotheses.
+
 ### How to judge a candidate
 
 Isovar reports sequence, frame and event linkage as separate kinds of evidence.
@@ -443,6 +455,8 @@ annotated-frame translation and exploratory ORF with each prediction. Statuses
 distinguish identical sequences from exact fragments and from no match.
 A shorter complete ORF is not called a fragment of a longer prediction.
 Junction-only support is never reported as whole-protein support.
+Splice-ambiguous and regional-only occurrences cannot contribute event-linked
+protein hypotheses or inflate their witness counts.
 
 ## Read evidence you can filter on
 

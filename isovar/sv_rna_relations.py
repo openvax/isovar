@@ -13,9 +13,13 @@ LINKAGE_STATUSES = (
     "regional_novel_junction",  # Unannotated join not crossing the event.
 )
 
+# Joins which reproduce the adjacency or connect its two sides: the
+# event-linked relations with both partners placed.
+ADJACENCY_JOIN_RELATIONS = LINKAGE_STATUSES[:2]
+
 # Relations which rest on the rearrangement (the "event-linked" statuses).
 EVENT_LINKED_RELATIONS = LINKAGE_STATUSES[:3]
 
 # Relations which cross the event, including splice-ambiguous joins: the
-# junctions an exploratory ORF or event-linked comparison must cross.
+# junctions an exploratory ORF must cross. This is not event-linked evidence.
 EVENT_CROSSING_RELATIONS = LINKAGE_STATUSES[:4]
