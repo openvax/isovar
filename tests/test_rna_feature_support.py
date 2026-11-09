@@ -46,18 +46,20 @@ def brute_opportunity(f, geometry):
             covered = [required <= bases for required in requirements]
             return all(covered) if f.mode == "all" else any(covered)
         reads += sum(accepts(end) for end in ends)
-        fragments += accepts(set.union(*ends))
+        fragments += (accepts(set.union(*ends)) if f.fragment_mode == "union"
+                      else any(accepts(end) for end in ends))
     return reads / len(geometry.segments), fragments
 
 
-def test_geometry_matches_independent_oracle():
+@pytest.mark.parametrize("fragment_mode", ["union", "any_read"])
+def test_geometry_matches_independent_oracle(fragment_mode):
     rng = random.Random(11)
     for _ in range(60):
         insert = rng.randint(60, 250)
         length = rng.randint(20, min(insert, 100))
         geometry = RNASamplingGeometry(((0, length), (insert - length, insert)), insert)
         start = rng.randint(0, 150)
-        f = feature(start, start + rng.randint(1, 80), path_length=300)
+        f = feature(start, start + rng.randint(1, 80), path_length=300, fragment_mode=fragment_mode)
         if rng.choice([True, False]):
             f = replace(f, intervals=(*f.intervals, (240, 250)), mode=rng.choice(["all", "any"]))
         expected = brute_opportunity(f, geometry)
@@ -100,6 +102,25 @@ def test_joint_template_support_does_not_create_supporting_reads():
     assert record["values"]["effective_length_fragments"] == 26
     assert record["values"]["reads_per_effective_kb"] is None
     assert len(record["joint_only_fragment_ids"]) == 1
+
+
+def test_individually_spanning_fragment_rule_matches_denominator():
+    f = feature(500, 650, kind="coding_interval", fragment_mode="any_read")
+    p = RNASamplingProfile("PE", (RNASamplingGeometry(((0, 100), (75, 175)), 175),))
+    rows = [match("a", 490, 590, 64), match("a", 565, 665, 128)]
+    record = measure_rna_feature(f, rows, evidence_scope=("S", "L"), profile=p)
+    assert record["values"]["fragments"] == record["values"]["reads"] == 0
+    assert record["values"]["effective_length_fragments"] == 0
+    assert not record["joint_only_fragment_ids"]
+    shorter = replace(f, intervals=((500, 550),))
+    supported = measure_rna_feature(shorter, rows, evidence_scope=("S", "L"), profile=p)
+    assert supported["values"]["fragments"] == supported["values"]["reads"] == 1
+    assert supported["values"]["effective_length_fragments"] == 102
+    # For SE both rules coincide, including normalized values.
+    for mode in ("union", "any_read"):
+        se = measure_rna_feature(replace(shorter, fragment_mode=mode), [match("s",490,590)],
+            evidence_scope=("S", "L"), profile=profile())
+        assert se["values"]["reads_per_effective_kb_per_million"] == se["values"]["fragments_per_effective_kb_per_million"]
 
 
 def test_disconnected_bases_are_not_tiled_by_unsequenced_insert():

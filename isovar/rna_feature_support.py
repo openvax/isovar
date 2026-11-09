@@ -68,6 +68,10 @@ class RNAFeature:
     observation_keys : tuple of str or None
         Optional original placement keys admitted by an upstream allele caller.
         An empty tuple permits no original; None imposes no additional filter.
+    fragment_mode : str
+        ``union`` permits joint sequenced-mate support; ``any_read`` requires
+        an individually supporting read and counts its template once. This
+        changes both fragment counts and effective sampling opportunities.
     """
 
     identifier: str
@@ -77,6 +81,7 @@ class RNAFeature:
     mode: str = "all"
     path_length: int | None = None
     observation_keys: tuple[str, ...] | None = None
+    fragment_mode: str = "union"
 
     def __post_init__(self):
         if not self.identifier or not self.path_id or self.kind not in FEATURE_KINDS:
@@ -84,6 +89,8 @@ class RNAFeature:
         object.__setattr__(self, "intervals", _intervals(self.intervals, "feature"))
         if self.mode not in ("all", "any"):
             raise ValueError("RNA feature mode must be all or any")
+        if self.fragment_mode not in ("union", "any_read"):
+            raise ValueError("RNA fragment mode must be union or any_read")
         if self.path_length is not None:
             _integer(self.path_length, "path_length", 1)
             if max(b for _, b in self.intervals) > self.path_length:
@@ -200,7 +207,12 @@ def _interval_effective_lengths(feature, geometries):
     # A connected observed union may span the interval jointly; the insert
     # between disjoint ends remains unobserved. Works for either end order.
     connected = np.maximum(a, c) <= np.minimum(b, d)
-    fragments = np.where(connected, opportunities(np.minimum(a, c), np.maximum(b, d)), reads)
+    if feature.fragment_mode == "any_read":
+        # Inclusion/exclusion of per-end start sets: the intersection requires
+        # the feature to fit inside both sequenced segments.
+        fragments = reads - np.where(ends == 2, opportunities(np.maximum(a, c), np.minimum(b, d)), 0)
+    else:
+        fragments = np.where(connected, opportunities(np.minimum(a, c), np.maximum(b, d)), reads)
     return dict(reads=float(np.dot(weight, reads) / np.dot(weight, ends)),
                 fragments=float(np.dot(weight, fragments) / weight.sum()))
 
@@ -241,7 +253,9 @@ def effective_rna_feature_lengths(feature: RNAFeature, profile: RNASamplingProfi
         for start, end in starts:
             observed = [(start + a, start + b) for a, b in segments]
             read_opportunities += (end - start) * sum(_accepts([segment], feature) for segment in observed)
-            fragment_opportunities += (end - start) * _accepts(observed, feature)
+            accepted = (_accepts(observed, feature) if feature.fragment_mode == "union"
+                        else any(_accepts([segment], feature) for segment in observed))
+            fragment_opportunities += (end - start) * accepted
         read_total += geometry.weight * read_opportunities
         read_weight += geometry.weight * len(segments)
         fragment_total += geometry.weight * fragment_opportunities
@@ -268,7 +282,7 @@ def _count_matches(feature, matches):
         reads.update(single)
         if single:
             fragments.add(identity)
-        elif any({a[0][2], b[0][2]} == {64, 128} and _accepts(first + second, feature)
+        elif feature.fragment_mode == "union" and any({a[0][2], b[0][2]} == {64, 128} and _accepts(first + second, feature)
                  for (a, first), (b, second) in combinations(placements.items(), 2)):
             fragments.add(identity)
             joint.add(identity)

@@ -159,3 +159,10 @@ feature; a mismatch inside a required interval prevents complete support.
 Alternative placements or offsets on a repeated path are never combined to
 invent phase. Required reference/alternate feature bases must be resolved:
 unknown model bases are an input error, not measured zero support.
+
+`fragment_mode="union"` (the default) allows jointly sequenced mates to satisfy
+the feature. `fragment_mode="any_read"` requires an individually supporting
+read and deduplicates its template. Use the latter when an upstream allele
+caller supplies only individually spanning witnesses. The fragment effective
+length uses the same choice; it cannot normalize individually spanning counts
+with a denominator that also includes joint-only sampling opportunities.
