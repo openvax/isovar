@@ -249,3 +249,31 @@ def test_saved_measurements_reject_inconsistent_rehashed_metadata(field, value):
     record["measurement_id"] = content_identifier("rna_feature", record)
     with pytest.raises(ValueError):
         validate_rna_feature_support(record)
+
+
+def test_mixed_length_weighted_interval_geometry_and_unbounded_edges():
+    geometries = (RNASamplingGeometry(((0, 60),), 60, 2),
+                  RNASamplingGeometry(((40, 120), (0, 80)), 120, 3),
+                  RNASamplingGeometry(((0, 30), (150, 200)), 200, 0.5))
+    for path_length in (None, 300):
+        for start, end in ((0, 1), (5, 75), (100, 175), (290, 300)):
+            f = feature(start, end, path_length=path_length)
+            expected = [brute_opportunity(f, g) for g in geometries]
+            got = effective_rna_feature_lengths(f, RNASamplingProfile('mixture', geometries))
+            assert got['reads'] == pytest.approx(sum(g.weight * len(g.segments) * v[0]
+                for g, v in zip(geometries, expected)) / sum(g.weight * len(g.segments) for g in geometries))
+            assert got['fragments'] == pytest.approx(sum(g.weight * v[1]
+                for g, v in zip(geometries, expected)) / sum(g.weight for g in geometries))
+
+
+def test_later_library_normalization_retains_raw_identity_and_feature():
+    from isovar import normalize_rna_feature_support
+    original = measure_rna_feature(feature(), [match("a", 450, 550)], evidence_scope=("S", "L"))
+    normalized = normalize_rna_feature_support(original, profile())
+    assert original['values']['reads_per_million'] is None
+    assert normalized['values']['reads_per_million'] == 1
+    assert normalized['feature'] == original['feature']
+    assert normalized['read_ids'] == original['read_ids']
+    assert normalized['fragment_ids'] == original['fragment_ids']
+    assert normalized['measurement_id'] != original['measurement_id']
+    assert normalized['provenance']['normalizes_measurement_id'] == original['measurement_id']

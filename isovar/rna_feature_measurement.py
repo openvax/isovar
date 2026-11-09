@@ -74,6 +74,10 @@ def measure_rna_path_features(
         regions[contig].append((start, end, strand))
     if not regions:
         raise ValueError("RNA path needs coordinate anchors for original-read matching")
+    lengths = dict(zip(bam.references, bam.lengths))
+    if any(contig not in lengths or end > lengths[contig]
+           for contig, spans in regions.items() for _, end, _ in spans):
+        raise ValueError("RNA path placements are outside the supplied alignment reference")
     collector = read_collector or ReadCollector.for_rna_paths()
     matches, rejections, uncertainty = [], Counter(), Counter()
     cache = _GeometryCache()

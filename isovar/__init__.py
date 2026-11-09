@@ -50,7 +50,7 @@ from .read_phasing import IsovarReadPhasing
 from .rna_evidence import union_rna_support
 from .rna_feature_support import (
     RNAFeature, RNASamplingGeometry, RNASamplingProfile,
-    effective_rna_feature_lengths, measure_rna_feature, validate_rna_feature_support,
+    effective_rna_feature_lengths, measure_rna_feature, validate_rna_feature_support, normalize_rna_feature_support,
 )
 from .rna_feature_measurement import measure_rna_path_features
 from .transcript_assembly_edit import TranscriptAssemblyEdit
@@ -80,7 +80,7 @@ from .isoform_quantification import quantify_antigen_isoforms, add_isoform_abund
 __all__ = [
     "RNAFeature", "RNASamplingGeometry", "RNASamplingProfile",
     "effective_rna_feature_lengths", "measure_rna_feature", "validate_rna_feature_support",
-    "measure_rna_path_features",
+    "measure_rna_path_features", "normalize_rna_feature_support",
     "VariantRNAAssembly", "VariantReadAssessment",
     "ReadLibraryProvenance", "ReadProcessingStep", "read_end_profile_from_fasta", "ReadEndInferenceCache",
     "PreparedSVSourceRecord", "SVSourceView", "prepare_sv_source_record",

@@ -103,7 +103,10 @@ A peptide shared by several indistinguishable isoforms can have sequence-level R
 uses **RNA-path nucleotide coordinates**, including any required anchors.
 `RNASamplingProfile` carries independently supplied read/template geometry and
 optional original-library denominators. `effective_rna_feature_lengths` computes
-both lengths. `measure_rna_feature` accepts existing `OriginalPathMatch` objects;
+both lengths. `normalize_rna_feature_support(record, profile)` can add or replace
+independently supplied library statistics on a validated observation while
+retaining its original feature, unit identities and measurement lineage.
+`measure_rna_feature` accepts existing `OriginalPathMatch` objects;
 `measure_rna_path_features` obtains those matches from the original BAM using
 Isovar's common read policy and optional reusable RNA library index.
 

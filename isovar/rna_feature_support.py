@@ -8,8 +8,12 @@ observations of RNA sequence/path, not translation or molecule abundance.
 from __future__ import annotations
 
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import asdict, dataclass
 from itertools import combinations
+from functools import lru_cache
+
+import numpy as np
 import math
 from typing import Any, Iterable
 
@@ -174,6 +178,33 @@ def _accepts(observed, feature):
     return all(covered) if feature.mode == "all" else any(covered)
 
 
+@lru_cache(maxsize=16)
+def _geometry_arrays(geometries):
+    """Reuse a compact array for many coding windows under one library profile."""
+    return np.asarray([(g.segments[0][0], g.segments[0][1],
+                        g.segments[-1][0], g.segments[-1][1],
+                        len(g.segments), g.template_length, g.weight) for g in geometries], dtype=float).T
+
+
+def _interval_effective_lengths(feature, geometries):
+    a, b, c, d, ends, length, weight = _geometry_arrays(geometries)
+    low, high = feature.intervals[0]
+    def opportunities(start, end):
+        lower, upper = high - end, low - start
+        if feature.path_length is not None:
+            lower = np.maximum(lower, 0)
+            upper = np.minimum(upper, feature.path_length - length)
+        return np.maximum(0, upper - lower + 1)
+    first, second = opportunities(a, b), opportunities(c, d)
+    reads = first + np.where(ends == 2, second, 0)
+    # A connected observed union may span the interval jointly; the insert
+    # between disjoint ends remains unobserved. Works for either end order.
+    connected = np.maximum(a, c) <= np.minimum(b, d)
+    fragments = np.where(connected, opportunities(np.minimum(a, c), np.maximum(b, d)), reads)
+    return dict(reads=float(np.dot(weight, reads) / np.dot(weight, ends)),
+                fragments=float(np.dot(weight, fragments) / weight.sum()))
+
+
 def effective_rna_feature_lengths(feature: RNAFeature, profile: RNASamplingProfile) -> dict:
     """Return separate expected read/fragment opportunity lengths in effective bp.
 
@@ -185,6 +216,8 @@ def effective_rna_feature_lengths(feature: RNAFeature, profile: RNASamplingProfi
     """
     if not profile.geometries:
         return dict(reads=None, fragments=None)
+    if len(feature.intervals) == 1:
+        return _interval_effective_lengths(feature, profile.geometries)
     read_total = fragment_total = read_weight = fragment_weight = 0.0
     for geometry in profile.geometries:
         segments = geometry.segments
@@ -239,6 +272,33 @@ def _count_matches(feature, matches):
     return reads, fragments, joint
 
 
+def _quantities(counts, profile, lengths):
+    values, unavailable = {}, {}
+    for unit, count, denominator in (("reads", counts["reads"], profile.library_reads),
+                                     ("fragments", counts["fragments"], profile.library_fragments)):
+        length = lengths[unit]
+        if length == 0 and count:
+            raise ValueError(f"Observed {unit} support contradicts zero effective opportunity")
+        if denominator is not None and count > denominator:
+            raise ValueError(f"Supporting {unit} exceed the declared library denominator")
+        values[unit] = count
+        values["library_" + unit] = denominator
+        values["effective_length_" + unit] = length
+        for suffix, scale, divisors, reason in (
+                ("per_million", 1e6, (denominator,), "whole_library_denominator_unavailable"),
+                ("per_effective_kb", 1e3, (length,), "sampling_geometry_unavailable" if length is None else "feature_unobservable"),
+                ("per_effective_kb_per_million", 1e9, (denominator, length),
+                 "whole_library_denominator_unavailable" if denominator is None else
+                 "sampling_geometry_unavailable" if length is None else "feature_unobservable")):
+            name = unit + "_" + suffix
+            if any(v is None or v == 0 for v in divisors):
+                values[name] = None
+                unavailable[name] = reason
+            else:
+                values[name] = scale * count / math.prod(divisors)
+    return values, unavailable
+
+
 def measure_rna_feature(
         feature: RNAFeature, matches: Iterable[OriginalPathMatch], *,
         evidence_scope: tuple[str, str], profile: RNASamplingProfile | None = None,
@@ -262,33 +322,14 @@ def measure_rna_feature(
     reads, fragments, joint = _count_matches(feature, matches)
     scope = list(evidence_scope)
     profile = profile or RNASamplingProfile("not_supplied")
+    if profile.geometries and all(len(g.segments) == 1 for g in profile.geometries):
+        if len(reads) != len(fragments) or joint:
+            raise ValueError("Single-end read and fragment support must agree")
     lengths = effective_rna_feature_lengths(feature, profile)
     ids = dict(read_ids=sorted(content_identifier("segment", [scope, list(k)]) for k in reads),
                fragment_ids=sorted(content_identifier("fragment", [scope, list(k)]) for k in fragments),
                joint_only_fragment_ids=sorted(content_identifier("fragment", [scope, list(k)]) for k in joint))
-    values, unavailable = {}, {}
-    for unit, count, denominator in (("reads", len(reads), profile.library_reads),
-                                     ("fragments", len(fragments), profile.library_fragments)):
-        length = lengths[unit]
-        if length == 0 and count:
-            raise ValueError(f"Observed {unit} support contradicts zero effective opportunity")
-        if denominator is not None and count > denominator:
-            raise ValueError(f"Supporting {unit} exceed the declared library denominator")
-        values[unit] = count
-        values["library_" + unit] = denominator
-        values["effective_length_" + unit] = length
-        for suffix, scale, divisors, reason in (
-                ("per_million", 1e6, (denominator,), "whole_library_denominator_unavailable"),
-                ("per_effective_kb", 1e3, (length,), "sampling_geometry_unavailable" if length is None else "feature_unobservable"),
-                ("per_effective_kb_per_million", 1e9, (denominator, length),
-                 "whole_library_denominator_unavailable" if denominator is None else
-                 "sampling_geometry_unavailable" if length is None else "feature_unobservable")):
-            name = unit + "_" + suffix
-            if any(v is None or v == 0 for v in divisors):
-                values[name] = None
-                unavailable[name] = reason
-            else:
-                values[name] = scale * count / math.prod(divisors)
+    values, unavailable = _quantities(dict(reads=len(reads), fragments=len(fragments)), profile, lengths)
     record = dict(schema=SCHEMA, feature=asdict(feature), evidence_scope=scope,
                   sampling_profile=asdict(profile), normalization_model=GEOMETRY_MODEL,
                   geometry_scope="complete_path" if feature.path_length is not None else "unbounded_local_path",
@@ -296,6 +337,13 @@ def measure_rna_feature(
                   provenance=dict(provenance or {}))
     record["measurement_id"] = content_identifier("rna_feature", record)
     return record
+
+
+def _same_numeric(actual, expected):
+    if expected is None:
+        return actual is None
+    return (isinstance(actual, (int, float)) and not isinstance(actual, bool)
+            and math.isfinite(actual) and math.isclose(actual, expected, rel_tol=1e-10, abs_tol=1e-12))
 
 
 def validate_rna_feature_support(record: dict) -> dict:
@@ -337,7 +385,7 @@ def validate_rna_feature_support(record: dict) -> dict:
             raise ValueError("RNA unit identities must be nonempty strings")
         if len(identifiers) != len(set(identifiers)) or values[unit] != len(identifiers):
             raise ValueError("RNA support counts disagree with distinct unit identities")
-        if values["effective_length_" + unit] != lengths[unit]:
+        if not _same_numeric(values["effective_length_" + unit], lengths[unit]):
             raise ValueError("RNA effective length disagrees with sampling geometry")
         count, denominator, length = values[unit], getattr(profile, "library_" + unit), lengths[unit]
         if values["library_" + unit] != denominator or (denominator is not None and count > denominator):
@@ -352,7 +400,7 @@ def validate_rna_feature_support(record: dict) -> dict:
                 unavailable[unit + "_" + suffix] = (
                     "whole_library_denominator_unavailable" if denominator is None and "million" in suffix
                     else "sampling_geometry_unavailable" if length is None else "feature_unobservable")
-            if values[unit + "_" + suffix] != expected:
+            if not _same_numeric(values[unit + "_" + suffix], expected):
                 raise ValueError("RNA normalized value disagrees with counts and denominators")
     if record["unavailable"] != unavailable:
         raise ValueError("RNA unavailable reasons disagree with measurement inputs")
@@ -368,3 +416,20 @@ def validate_rna_feature_support(record: dict) -> dict:
     if not set(record["joint_only_fragment_ids"]) <= set(record["fragment_ids"]):
         raise ValueError("Joint-only RNA templates are outside the support set")
     return record
+
+
+def normalize_rna_feature_support(record: dict, profile: RNASamplingProfile) -> dict:
+    """Apply independently supplied library statistics to an existing observation.
+
+    Keep original feature, observed-unit identities and provenance. This only
+    recomputes normalization; it never infers counts from expression estimates.
+    The returned record carries the prior measurement identity as lineage.
+    """
+    result = deepcopy(validate_rna_feature_support(record))
+    feature = RNAFeature(**result["feature"])
+    values, unavailable = _quantities(result["values"], profile, effective_rna_feature_lengths(feature, profile))
+    result["sampling_profile"] = asdict(profile)
+    result["values"], result["unavailable"] = values, unavailable
+    result["provenance"]["normalizes_measurement_id"] = result.pop("measurement_id")
+    result["measurement_id"] = content_identifier("rna_feature", result)
+    return validate_rna_feature_support(result)
