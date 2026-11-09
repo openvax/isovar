@@ -89,9 +89,7 @@ class GeneticCode(object):
             cdna_sequence = str(cdna_sequence)
         n = len(cdna_sequence)
 
-        # trim to multiple of 3 length, if there are 1 or 2 nucleotides
-        # dangling at the end of an mRNA they will not affect translation
-        # since ribosome will fall off at that point
+        # Only complete codons in the supplied sequence can be decoded.
         end_idx = 3 * (n // 3)
 
         codon_table = self.codon_table
@@ -150,69 +148,14 @@ class GeneticCode(object):
             stop_codons=new_stop_codons,
             codon_table=new_codon_table)
 
-standard_genetic_code = GeneticCode(
-    name="standard",
-    start_codons={'ATG', 'CTG', 'TTG'},
-    stop_codons={'TAA', 'TAG', 'TGA'},
-    codon_table={
-        'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L',
-        'TCT': 'S', 'TCC': 'S', 'TCA': 'S', 'TCG': 'S',
-        'TAT': 'Y', 'TAC': 'Y', 'TAA': '*', 'TAG': '*',
-        'TGT': 'C', 'TGC': 'C', 'TGA': '*', 'TGG': 'W',
-        'CTT': 'L', 'CTC': 'L', 'CTA': 'L', 'CTG': 'L',
-        'CCT': 'P', 'CCC': 'P', 'CCA': 'P', 'CCG': 'P',
-        'CAT': 'H', 'CAC': 'H', 'CAA': 'Q', 'CAG': 'Q',
-        'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R',
-        'ATT': 'I', 'ATC': 'I', 'ATA': 'I', 'ATG': 'M',
-        'ACT': 'T', 'ACC': 'T', 'ACA': 'T', 'ACG': 'T',
-        'AAT': 'N', 'AAC': 'N', 'AAA': 'K', 'AAG': 'K',
-        'AGT': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
-        'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V',
-        'GCT': 'A', 'GCC': 'A', 'GCA': 'A', 'GCG': 'A',
-        'GAT': 'D', 'GAC': 'D', 'GAA': 'E', 'GAG': 'E',
-        'GGT': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G'
-    }
-)
-
-# Non-canonical start sites based on figure 2 of
-#   "Global mapping of translation initiation sites in mammalian
-#   cells at single-nucleotide resolution"
-standard_genetic_code_with_extra_start_codons = standard_genetic_code.copy(
-    name="standard-with-extra-start-codons",
-    start_codons=standard_genetic_code.start_codons.union({
-        'GTG',
-        'AGG',
-        'ACG',
-        'AAG',
-        'ATC',
-        'ATA',
-        'ATT'}))
-
-vertebrate_mitochondrial_genetic_code = standard_genetic_code.copy(
-    name="vertebrate-mitochondrial",
-    # NCBI translation table 2. AGA/AGG termination is supported by direct
-    # mtRF1 termination experiments (2023):
-    # https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG2
-    # https://pubmed.ncbi.nlm.nih.gov/37141370/
-    # They are not translated as arginine during mitochondrial elongation.
-    stop_codons={'TAA', 'TAG', 'AGA', 'AGG'},
-    # "AUU codes for isoleucine during elongation but can code for
-    #  methionine for initiation (ND2) See Fearnley & Walker (1987) and
-    #  Peabody (1989)."
-    # (http://mitomap.org/bin/view.pl/MITOMAP/HumanMitoCode)
-    start_codons=['ATT', 'ATC', 'ATA', 'ATG', 'GTG'],
-    # "UGA codes for tryptophan instead of termination and AUA codes for
-    #  methionine instead of isoleucine."
-    # (http://mitomap.org/bin/view.pl/MITOMAP/HumanMitoCode)
-    codon_table_changes={'TGA': 'W', 'ATA': 'M', 'AGA': '*', 'AGG': '*'},
-)
+# Generic nuclear/fusion consumers use the same NCBI registry as explicit codes.
+standard_genetic_code = genetic_code_by_id(1)
 
 
 def translate_cdna(
         cdna_sequence,
         first_codon_is_start=False,
-        mitochondrial=False,
-        *, translation_table=None):
+        *, translation_table):
     """
     Given a cDNA sequence which is aligned to a reading frame, returns
     the translated protein sequence and a boolean flag indicating whether
@@ -224,23 +167,16 @@ def translate_cdna(
         cDNA sequence which is expected to start and end on complete codons.
 
     first_codon_is_start : bool
-
-    mitochondrial : bool
-        Legacy shorthand for vertebrate mitochondrial table 2.
+        Decode a recognized initiation codon as methionine at the first
+        position only; internal codons retain their normal assignments.
     translation_table : int or None
-        Explicit NCBI table ID. Other mitochondrial codes (for example yeast
-        table 3) must use this parameter. Unsupported codes fail explicitly.
+        Required NCBI table ID, for example 1 (standard), 2 (vertebrate
+        mitochondrial) or 3 (yeast mitochondrial). None retains the existing
+        table-1 decoding convention for undeclared annotated-ORF codes; it
+        does not change their source metadata. Unsupported explicit codes
+        and codes requiring context-dependent stop recoding fail explicitly.
     """
-    # once we drop some of the prefix nucleotides, we should be in a reading frame
-    # which allows us to translate this protein
-    if translation_table is not None:
-        if mitochondrial and translation_table != 2:
-            raise ValueError("mitochondrial=True denotes table 2, conflicting with translation_table")
-        genetic_code = genetic_code_by_id(translation_table)
-    elif mitochondrial:
-        genetic_code = vertebrate_mitochondrial_genetic_code
-    else:
-        genetic_code = standard_genetic_code_with_extra_start_codons
+    genetic_code = genetic_code_by_id(1 if translation_table is None else translation_table)
 
     return genetic_code.translate(
         cdna_sequence=cdna_sequence,

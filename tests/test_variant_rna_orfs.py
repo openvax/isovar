@@ -126,6 +126,37 @@ def test_no_alt_and_start_loss_are_explicit_unresolved_outcomes(noncoding_rna):
     assert not result['protein_candidates']
 
 
+def test_native_annotated_orf_retains_undeclared_table_and_reconstructs():
+    from orfdata import TranscriptORF
+    from .genomes_for_testing import grch38
+
+    transcript = grch38.transcripts_by_name('TP53-001')[0]
+    reference = TranscriptORF.from_annotation(transcript)
+    assert reference.translation_table is None
+    positions = [p for start, end in sorted(transcript.exon_intervals)
+                 for p in range(start, end + 1)]
+    reverse = transcript.strand == '-'
+    if reverse:
+        positions.reverse()
+    index = reference.start + 18
+    sequence = reference.transcript_sequence
+    ref = sequence[index]
+    alt = 'C' if ref != 'C' else 'A'
+    prefix, suffix = sequence[index - 24:index], sequence[index + 1:index + 31]
+    if reverse:
+        ref, alt = reverse_complement_dna(ref), reverse_complement_dna(alt)
+        prefix, suffix = reverse_complement_dna(suffix), reverse_complement_dna(prefix)
+    variant = Variant(transcript.contig, positions[index], ref, alt, grch38)
+    reads = [AlleleRead(prefix, alt, suffix, name='native-annotated-model')]
+    evidence = ReadEvidence.from_variant_and_allele_reads(variant, reads)
+    result = assess(variant, evidence, [reference])
+    model, = result['models']
+    assert model['state'] == 'rna_frame_candidates'
+    assert model['reference']['translation_table'] is None
+    assert result['protein_candidates']
+    assert all(candidate['rna_support']['fragments'] == 1 for candidate in result['protein_candidates'])
+
+
 def test_reference_and_focal_evidence_validation(noncoding_rna):
     genome, reference, observations = noncoding_rna
     variant, evidence = observations()

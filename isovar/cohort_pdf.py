@@ -446,10 +446,12 @@ def _fusion_comparisons(result, supplied, depth, whole_fragments):
         # arbitrarily pick among references with the same transcript ID.
         acceptor = acceptors[0] if len(acceptors) == 1 else None
         acceptor_status = 'available' if acceptor else 'ambiguous' if acceptors else 'unavailable'
-        donor_protein, _ = translate_cdna(donor.sequence[donor.cds_start:donor.cds_end])
+        donor_protein, _ = translate_cdna(
+            donor.sequence[donor.cds_start:donor.cds_end], translation_table=donor.genetic_code)
         acceptor_protein = ''
         if acceptor is not None:
-            acceptor_protein, _ = translate_cdna(acceptor.sequence[acceptor.cds_start:acceptor.cds_end])
+            acceptor_protein, _ = translate_cdna(
+                acceptor.sequence[acceptor.cds_start:acceptor.cds_end], translation_table=acceptor.genetic_code)
             acceptor_start = acceptor.spliced_offset(path['junctions'][0]['right'][1]) - acceptor.cds_start
         q0 = translation['translation_start']
         donor_start = donor_frame['donor_reference_offset'] - donor.cds_start

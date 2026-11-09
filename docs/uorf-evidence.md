@@ -41,9 +41,21 @@ assert translate_cdna("GTGCTGTGAAGATAG", translation_table=3,
                       first_codon_is_start=True) == ("MTWR", True)
 ```
 
-`mitochondrial=True` remains a compatibility shorthand for table 2. Unsupported
-codes and codes requiring context-dependent stop recoding raise an error.
+`translate_cdna` requires an explicit `translation_table` keyword. Use
+`translation_table=2` in place of the removed `mitochondrial=True` shorthand;
+use table 1 for standard-code translation. Explicit `None` retains the existing
+standard decoding convention for annotated ORFs with undeclared source codes,
+without rewriting their metadata to assert table 1. This also preserves the
+released Vaxrank validation contract ([vaxrank #814](https://github.com/openvax/vaxrank/issues/814)).
+Missing arguments, unsupported explicit IDs and codes requiring
+context-dependent stop recoding raise an error.
 The definitions follow [NCBI's genetic-code tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).
+The public `standard_genetic_code` object uses the same Varcode registry as
+explicit-code translation. Isovar keeps no separate codon assignments or
+implicit expanded-start table. `first_codon_is_start=True` uses the selected
+table's initiator set at the first position only. Source-supported non-AUG
+starts outside that set remain conditional interpretations of their supplied
+ORF model, rather than a change to the global genetic code.
 Generic exploratory SV ORFs retain their documented standard-code scope; this
 does not infer a shared genetic code for mixed-compartment fusion candidates.
 

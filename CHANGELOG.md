@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.88.0
+
+Fixes #682.
+
+- Build the standard genetic code from Varcode's offline NCBI registry, shared
+  with explicit-code translation. Remove hand-maintained codon tables and the
+  implicit expanded-start table; retain model-specific initiation handling.
+- `translate_cdna` now requires `translation_table=`. Replace the removed
+  `mitochondrial=True` shorthand with `translation_table=2`, and specify table 1
+  for standard-code calls. Explicit `None` retains standard decoding for
+  annotated ORFs with undeclared codes, preserving their source metadata and
+  released Vaxrank validation. The `standard_genetic_code` and `genetic_code_by_id`
+  interfaces used by Vaxrank remain available with the same decoding behavior.
+- Fusion report translations use each reference's declared genetic code.
+
 ## 1.87.1
 
 Fixes #689.

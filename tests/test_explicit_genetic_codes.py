@@ -69,10 +69,8 @@ def test_unsupported_or_context_dependent_codes_never_fall_back(table):
         translate_cdna("ATGTGA", translation_table=table)
 
 
-def test_legacy_boolean_is_still_explicitly_table_two():
-    assert translate_cdna("ATATGAAGG", mitochondrial=True) == ("MW", True)
-    with pytest.raises(ValueError, match="conflicting"):
-        translate_cdna("ATATGAAGG", mitochondrial=True, translation_table=3)
+def test_distinct_mitochondrial_codes_keep_their_declared_assignments():
+    assert translate_cdna("ATATGAAGG", translation_table=2) == ("MW", True)
     assert translate_cdna("GTGCTGTGAAGATAG", translation_table=3, first_codon_is_start=True) == ("MTWR", True)
 
 
