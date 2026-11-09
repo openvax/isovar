@@ -106,6 +106,14 @@ def test_translation_requires_an_explicit_table():
         translate_cdna("ATGTGA", translation_table=2, mitochondrial=True)
 
 
+def test_undeclared_annotated_code_keeps_standard_decoding():
+    # Released ORFdata/Isovar exports and Vaxrank validation retain null source
+    # metadata while using the producer's existing standard decoding convention.
+    assert translate_cdna("ATGTTTTAA", translation_table=None) == ("MF", True)
+    assert translate_cdna("ATATGAAGG", translation_table=None) == ("I", True)
+    assert translate_cdna("GTGGTGTAA", translation_table=None, first_codon_is_start=True) == ("VV", True)
+
+
 def test_declared_custom_start_does_not_mutate_the_shared_code():
     custom = standard_genetic_code.copy("source-declared-GTG", start_codons={"GTG"})
     assert custom.translate("GTGGTGTAA", first_codon_is_start=True) == ("MV", True)

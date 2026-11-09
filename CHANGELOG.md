@@ -9,7 +9,9 @@ Fixes #682.
   implicit expanded-start table; retain model-specific initiation handling.
 - `translate_cdna` now requires `translation_table=`. Replace the removed
   `mitochondrial=True` shorthand with `translation_table=2`, and specify table 1
-  for standard-code calls. The `standard_genetic_code` and `genetic_code_by_id`
+  for standard-code calls. Explicit `None` retains standard decoding for
+  annotated ORFs with undeclared codes, preserving their source metadata and
+  released Vaxrank validation. The `standard_genetic_code` and `genetic_code_by_id`
   interfaces used by Vaxrank remain available with the same decoding behavior.
 - Fusion report translations use each reference's declared genetic code.
 

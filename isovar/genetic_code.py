@@ -169,12 +169,14 @@ def translate_cdna(
     first_codon_is_start : bool
         Decode a recognized initiation codon as methionine at the first
         position only; internal codons retain their normal assignments.
-    translation_table : int
+    translation_table : int or None
         Required NCBI table ID, for example 1 (standard), 2 (vertebrate
-        mitochondrial) or 3 (yeast mitochondrial). Unsupported codes and
-        codes requiring context-dependent stop recoding fail explicitly.
+        mitochondrial) or 3 (yeast mitochondrial). None retains the existing
+        table-1 decoding convention for undeclared annotated-ORF codes; it
+        does not change their source metadata. Unsupported explicit codes
+        and codes requiring context-dependent stop recoding fail explicitly.
     """
-    genetic_code = genetic_code_by_id(translation_table)
+    genetic_code = genetic_code_by_id(1 if translation_table is None else translation_table)
 
     return genetic_code.translate(
         cdna_sequence=cdna_sequence,

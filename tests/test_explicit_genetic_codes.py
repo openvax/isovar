@@ -63,7 +63,7 @@ def test_equal_sequence_contexts_with_different_codes_do_not_group():
         context(None, context(1).transcripts + context(3).transcripts)
 
 
-@pytest.mark.parametrize("table", [None, 0, 999, True, "2", 27])
+@pytest.mark.parametrize("table", [0, 999, True, "2", 27])
 def test_unsupported_or_context_dependent_codes_never_fall_back(table):
     with pytest.raises(ValueError, match="translation table|recoding"):
         translate_cdna("ATGTGA", translation_table=table)
