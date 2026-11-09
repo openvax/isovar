@@ -126,7 +126,8 @@ def protein_comparison_figures(products, rows_per_page=PLOT_PROTEIN_ROWS_PER_PAG
                 if row["assembly"] is not None:
                     label += "\nAssembly " + ("on" if row["assembly"] else "off")
                     if row["rank"]:
-                        label += " / rank %d" % row["rank"]
+                        ranks = row["covered_ranks"]
+                        label += " / " + ("rank " if len(ranks) == 1 else "ranks ") + ", ".join(map(str, ranks))
                 elif row["rank"]:
                     label += " %d" % row["rank"]
                 if row["source"] == "Varcode":

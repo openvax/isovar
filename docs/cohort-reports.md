@@ -30,6 +30,12 @@ isovar cohort --manifest cohort.json --output-dir results --resume
 isovar cohort --manifest cohort.json --output-dir results --render-only
 ```
 
+Rendering unchanged saved evidence produces identical PDF bytes. The
+`report_files.json` paths are relative to the output directory, so its PDF
+inventory remains usable after relocation. Sparse count panels use integer
+ticks and labeled bars; fusion coverage uses a depth trace with its legend below
+the data.
+
 For larger runs, compute individual sources and render together:
 
 ```bash

@@ -35,12 +35,15 @@ from .validation import (
     check_outputs,
     dpi,
     input_error,
+    positive_int,
     variant_collection_from_args,
 )
 
 parser = make_translation_arg_parser(description=(
     "Plot the protein context, read overlap and local transcript models around one mutation. "
     "Writes white-background SVG/PNG figures and evidence JSON into a new UTC-stamped directory."))
+parser.add_argument("--variant-index", type=positive_int,
+                    help="Select the 1-based position among loaded literal variants (default: require exactly one variant).")
 parser.add_argument("--view", choices=PLOT_VIEWS, default=PLOT_VIEW,
                     help="Figure panels (default %(default)s).")
 parser.add_argument("--compare-assembly", action="store_true", default=PLOT_COMPARE_ASSEMBLY,
@@ -70,10 +73,16 @@ def run(args=None, *, prog=None):
     try:
         check_outputs(args, directories=("output_dir",))
         collector = read_collector_from_args(args)
-        variants = variant_collection_from_args(args)
-        if len(variants) != 1:
-            command_parser.error("Select exactly one mutation (use --variant or a single-record variant file).")
-        variant = next(iter(variants))
+        variants = list(variant_collection_from_args(args))
+        if args.variant_index is not None:
+            if args.variant_index > len(variants):
+                command_parser.error("--variant-index %d exceeds the %d loaded literal variants." %
+                                     (args.variant_index, len(variants)))
+            variant = variants[args.variant_index - 1]
+        elif len(variants) == 1:
+            variant = variants[0]
+        else:
+            command_parser.error("Select one mutation with --variant-index (1-based), --variant, or a single-record variant file.")
         alignment = alignment_file_from_args(args)
     except CommandInputError as error:
         input_error(command_parser, error)
@@ -87,7 +96,8 @@ def run(args=None, *, prog=None):
         compare_assembly=args.compare_assembly)
     label = args.sample_label or Path(urlsplit(args.bam).path).name
     data["provenance"] = dict(sample_label=label)
-    data["inputs"] = dict(bam=args.bam, vcf=args.vcf, maf=args.maf, json_variants=args.json_variants)
+    data["inputs"] = dict(bam=args.bam, vcf=args.vcf, maf=args.maf, json_variants=args.json_variants,
+                          variant_index=args.variant_index, loaded_variant_count=len(variants))
     data["collection_settings"] = dict(
         min_mapping_quality=collector.min_mapping_quality,
         use_duplicate_reads=collector.use_duplicate_reads,
