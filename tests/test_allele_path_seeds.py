@@ -7,9 +7,8 @@ import pytest
 
 from isovar.allele_path_seeds import allele_path_seeds
 from isovar.read_collector import ReadCollector
-from isovar.rna_reconstruction import _assemble
+from isovar.rna_reconstruction import assemble_rna_paths
 from isovar.variant_helpers import LiteralVariantLocus
-
 
 HEADER = pysam.AlignmentHeader.from_dict({
     "SQ": [{"SN": "chr1", "LN": 1000}],
@@ -112,9 +111,9 @@ def test_explicit_allele_seeds_use_shared_extension_without_unrelated_paths():
                   if seed.observation.positions[0][2] == "+")
     pool = {seed.observation.key: seed.observation for seed in background.seeds
             if seed.observation.positions[0][2] == "+"}
-    paths, _ = _assemble(pool, 10, 2, seed_observations=seeds)
+    paths, _ = assemble_rna_paths(pool, 10, 2, seed_observations=seeds)
     assert len(paths) == 1 and paths[0][0] == "ACGTAA"
-    assert _assemble(pool, 10, 2, seed_observations=())[0] == []
+    assert assemble_rna_paths(pool, 10, 2, seed_observations=())[0] == []
 
 
 @pytest.mark.parametrize("start,ref,alt", [(True, "A", "T"), (0, "A", "T"), (-1, "", "T"),

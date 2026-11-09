@@ -8,12 +8,17 @@ this is not unrestricted six-frame ORF prediction.
 import json
 from pathlib import Path
 
-from .json_files import write_json
 from .default_parameters import PLOT_DPI, PLOT_PROTEIN_ROWS_PER_PAGE, PLOT_WIDTH
+from .json_files import write_json
 from .protein_sequence_helpers import covered_protein_groups
 from .visualization import (
-    BLUE, GRAY, INK, draw_protein_rows, _plot_imports,
-    _protein_disagreements, _style_axis,
+    BLUE,
+    GRAY,
+    INK,
+    draw_protein_rows,
+    plot_dependencies,
+    protein_disagreements,
+    style_evidence_axis,
 )
 
 
@@ -99,8 +104,8 @@ def protein_comparison_figures(products, rows_per_page=PLOT_PROTEIN_ROWS_PER_PAG
     if isinstance(rows_per_page, bool) or not isinstance(rows_per_page, int) or rows_per_page < 2:
         raise ValueError("rows_per_page must be an integer >= 2")
     rows = comparison_rows(products)
-    Figure, rc_context, rectangle = _plot_imports()
-    differences = _protein_disagreements(row["protein"] for row in rows)
+    Figure, rc_context, rectangle = plot_dependencies()
+    differences = protein_disagreements(row["protein"] for row in rows)
     title = " / ".join(products[0]["visualization"]["genes"]) + " | Protein alternatives"
     references = [r for r in rows if r["source"] == "Varcode"]
     rna = [r for r in rows if r["source"] != "Varcode"]
@@ -113,7 +118,7 @@ def protein_comparison_figures(products, rows_per_page=PLOT_PROTEIN_ROWS_PER_PAG
         with rc_context({"svg.fonttype": "none", "font.family": "DejaVu Sans"}):
             figure = Figure(figsize=(PLOT_WIDTH, max(6.5, 2.5 + .8 * len(page))), facecolor="white")
             ax = figure.subplots()
-            _style_axis(ax, "Sample / technology / assembly mode; all recovered alternatives")
+            style_evidence_axis(ax, "Sample / technology / assembly mode; all recovered alternatives")
             display = []
             for row in page:
                 p = row["protein"]

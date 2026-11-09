@@ -1,11 +1,10 @@
 """JSON encoding and comparison without whole-document serialized copies."""
 
 import gzip
-from hashlib import sha256
 import json
+from hashlib import sha256
 
-from ._audit_json_reader import json_events
-
+from .audit_json_reader import json_events
 
 _ENCODER = json.JSONEncoder(sort_keys=True, separators=(",", ":"), allow_nan=False)
 _CHUNK_SIZE = 64 * 1024

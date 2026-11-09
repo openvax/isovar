@@ -18,14 +18,13 @@ from typing import Any, Literal
 
 import pysam
 
-
 from .antigen_reference import IsoformTarget
 from .genetic_code import standard_genetic_code
 from .read_collector import ReadCollector
+from .rna_library import RnaLibraryIndex, original_library_context
+from .rna_path_geometry import PlacementIndex, position_runs
+from .rna_reconstruction import discover_rna_paths, path_contains, support_rna_paths
 from .transcript_path_frames import TranscriptPathModel
-from .sv_rna import _PlacementIndex, _runs
-from .rna_reconstruction import _contains, _discover, _support
-from .rna_library import RnaLibraryIndex, _original_library_context
 
 
 def _coding(sequence, positions, models):
@@ -95,7 +94,7 @@ def _discover_gene_paths(groups, targets, collector, max_discovery_reads, max_pa
             (reference.exons[0][0], reference.exons[-1][1], reference.strand))
     paths, searches = {}, []
     for gene_id, regions in sorted(by_gene.items()):
-        found, discovery = _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
+        found, discovery = discover_rna_paths(groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
         paths.update((path, None) for path in found)
         searches.append(dict(gene_id=gene_id, paths=len(found), **discovery))
     # A segment can occur in several gene partitions. Keep those counts local;
@@ -204,15 +203,15 @@ def reconstruct_antigen_isoforms(
         r = t.reference
         regions[r.contig].add((r.exons[0][0], r.exons[-1][1], r.strand))
     models = [TranscriptPathModel(t.reference) for t in targets]
-    model_index = _PlacementIndex({i: model.positions for i, model in enumerate(models)})
-    with TemporaryDirectory(dir=scratch_dir, prefix="isovar-isoforms-") as directory, _original_library_context(
+    model_index = PlacementIndex({i: model.positions for i, model in enumerate(models)})
+    with TemporaryDirectory(dir=scratch_dir, prefix="isovar-isoforms-") as directory, original_library_context(
             bam, collector, directory, library_index=library_index,
             reference_name=targets[0].reference.reference_name, read_filter_identity=read_filter_identity) as groups:
         statistics = groups.statistics
         if discovery_partition == 'gene':
             paths, discovery = _discover_gene_paths(groups, targets, collector, max_discovery_reads, max_paths, min_overlap)
         else:
-            paths, discovery = _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
+            paths, discovery = discover_rna_paths(groups, regions, collector, max_discovery_reads, max_paths, min_overlap)
         candidates = {}
         for target, model in zip(targets, models):
             r = target.reference
@@ -228,21 +227,21 @@ def reconstruct_antigen_isoforms(
             if key in candidates:
                 continue
             row = _candidate(*key, targets, models, model_index)
-            containers = [c["id"] for k, c in candidates.items() if _contains(k, key)]
+            containers = [c["id"] for k, c in candidates.items() if path_contains(k, key)]
             if containers or not row["reaches_annotated_transcript_ends"]:
                 row["compatible_models"] = sorted(containers)
                 partial.append(row)
             else:
                 candidates[key] = row
         candidates = sorted(candidates.values(), key=lambda c: c["id"])
-        support = _support(groups, candidates + partial, regions, collector, bam.header.to_dict(), sample_id, source)
+        support = support_rna_paths(groups, candidates + partial, regions, collector, bam.header.to_dict(), sample_id, source)
         full_ids = {c["id"] for c in candidates}
         support["fragments_without_full_transcript_assignment"] = sum(
             row["fragments"] for row in support["equivalence_classes"] if not full_ids.intersection(row["isoform_ids"]))
     for row in candidates + partial:
         # Compact placed runs leave insertions explicitly unplaced; query
         # sequence length remains available to reconstruct the placement map.
-        row["mapping"] = [list(run) for run in _runs(row.pop("placements"))]
+        row["mapping"] = [list(run) for run in position_runs(row.pop("placements"))]
     return dict(schema="isovar.antigen_isoforms.v1", sample_id=sample_id, source=source,
                 collection=dict(collector.collection_parameters(), read_filter_identity=read_filter_identity),
                 reference=reference_identity or {}, targets=[asdict(t) for t in targets],

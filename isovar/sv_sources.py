@@ -5,12 +5,12 @@ PCR validation from caller support and applies only explicitly selected, pinned
 source conventions. A resolved adjacency is a nomination, not RNA support.
 """
 
+import gzip
+import re
 from collections import Counter
 from dataclasses import asdict, dataclass
-import gzip
 from importlib.metadata import version
 from pathlib import Path
-import re
 from typing import Any, Literal
 
 from pyensembl import Genome
@@ -18,10 +18,9 @@ from varcode import ContigResolver
 from varcode.structural_variant import StructuralVariant
 from varcode.sv_allele_parser import breakend_mate, parse_symbolic_alt
 
-from .contig_resolution import resolve_reference_contig
-from ._file_identity import file_sha256
 from . import __version__
-
+from .contig_resolution import resolve_reference_contig
+from .file_identity import file_sha256
 
 SourceProfile = Literal['standard', 'colo829_paulin_paz_v2', 'hcc1395_svscope_2026']
 SourceState = Literal['resolved_adjacency', 'unresolved', 'invalid']

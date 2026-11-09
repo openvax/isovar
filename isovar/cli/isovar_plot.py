@@ -1,28 +1,42 @@
 """Publication-ready figures for one mutation, using the standard RNA pipeline."""
 
 import sys
-from dataclasses import asdict
 from collections.abc import Mapping
+from dataclasses import asdict
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from ..default_parameters import (
-    PLOT_ALL_PROTEINS, PLOT_COMPARE_ASSEMBLY, PLOT_DPI, PLOT_MAX_ROWS, PLOT_OUTPUT_DIRECTORY, PLOT_VIEW, PLOT_VIEWS,
+    PLOT_ALL_PROTEINS,
+    PLOT_COMPARE_ASSEMBLY,
+    PLOT_DPI,
+    PLOT_MAX_ROWS,
+    PLOT_OUTPUT_DIRECTORY,
+    PLOT_VIEW,
+    PLOT_VIEWS,
 )
 from ..logging import configure_cli_logging
 from ..visualization import (
-    _plot_imports, collect_visualization_data, save_variant_figures, timestamped_run_directory,
+    collect_visualization_data,
+    plot_dependencies,
+    save_variant_figures,
+    timestamped_run_directory,
 )
-from .rna_args import alignment_file_from_args, read_collector_from_args
 from .commands import parser_for_program
 from .output_args import add_log_level_arg
-from .validation import CommandInputError, check_outputs, dpi, input_error, variant_collection_from_args
+from .rna_args import alignment_file_from_args, read_collector_from_args
 from .translation_args import (
     add_protein_selection_args,
     make_translation_arg_parser,
     protein_sequence_creator_kwargs_from_args,
 )
-
+from .validation import (
+    CommandInputError,
+    check_outputs,
+    dpi,
+    input_error,
+    variant_collection_from_args,
+)
 
 parser = make_translation_arg_parser(description=(
     "Plot the protein context, read overlap and local transcript models around one mutation. "
@@ -49,7 +63,7 @@ def run(args=None, *, prog=None):
     if args.max_rows < 2:
         command_parser.error("--max-rows must be >= 2")
     try:
-        _plot_imports()
+        plot_dependencies()
     except ImportError as error:
         input_error(command_parser, error)
     configure_cli_logging(args.log_level)

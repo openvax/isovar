@@ -5,21 +5,25 @@ import pysam
 import pytest
 from varcode import Variant
 
+from isovar import sid_data
+from isovar.allele_read import AlleleRead
 from isovar.chimeric_alignment import (
-    _alignment, _matches_reported, source_alignment_paths_from_pysam,
+    alignment_placement,
+    matches_reported_alignment,
+    source_alignment_paths_from_pysam,
 )
+from isovar.isovar_result import IsovarResult
+from isovar.phasing import annotate_phased_variants
 from isovar.read_collector import ReadCollector, _CompactLocusRead
 from isovar.read_identity import (
-    alignment_constraints, compatible_alignments, count_reads, fragment_ids,
+    alignment_constraints,
+    compatible_alignments,
+    count_reads,
+    fragment_ids,
     source_alignments_from_pysam,
 )
-from isovar.allele_read import AlleleRead
-from isovar.phasing import annotate_phased_variants
 from tests.mock_objects import MockAlignmentFile
 from tests.test_phasing import DummyProteinSequence, assert_placement_phasing
-from isovar.isovar_result import IsovarResult
-from isovar import sid_data
-
 
 HEADER = pysam.AlignmentHeader.from_references(["1", "2"], [10000, 10000])
 
@@ -219,12 +223,12 @@ def test_protein_phasing_uses_its_own_actual_path_observations():
 
 
 def test_cigar_normalization_preserves_interior_mapping_and_original_orientation():
-    forward = _alignment("1", 100, False, "5H5S10=1X9M30S")
+    forward = alignment_placement("1", 100, False, "5H5S10=1X9M30S")
     assert forward.cigar == ((10, "S"), (20, "M"), (30, "S"))
     assert forward.query_start == 10 and forward.query_end == 30 and forward.query_length == 60
-    reverse = _alignment("1", 100, True, "5H5S20M30H")
+    reverse = alignment_placement("1", 100, True, "5H5S20M30H")
     assert reverse.query_start == 30 and reverse.query_end == 50
-    assert _matches_reported(forward, _alignment("1", 100, False, "10S20M30S"))
+    assert matches_reported_alignment(forward, alignment_placement("1", 100, False, "10S20M30S"))
 
 
 def test_source_metadata_keeps_segment_flags_separate_from_alignment_flags():

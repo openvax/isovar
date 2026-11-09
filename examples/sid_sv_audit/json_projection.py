@@ -4,13 +4,13 @@ import gzip
 import json
 from pathlib import Path
 
-from isovar._audit_json_reader import json_events
-from isovar.sv_rna_orf_export import _WitnessPool
+from isovar.audit_json_reader import json_events
+from isovar.sv_rna_orf_export import WitnessPool
 
 
 def read_evidence_json(handle):
     """Decode complete evidence, sharing equal nested witness values only."""
-    keys, pool = {}, _WitnessPool()
+    keys, pool = {}, WitnessPool()
     witness_fields = {"observation", "observation_interval", "original_query_interval", "junction_links"}
 
     def normalize(row):

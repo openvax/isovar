@@ -8,30 +8,74 @@ from collections import Counter, defaultdict
 from dataclasses import replace
 
 from .cell_umi import CellUmiEvidence
-from .chimeric_alignment import _alignment, _matches_reported, sa_entries
-from .read_identity import segment_identity
+from .chimeric_alignment import (
+    alignment_placement,
+    matches_reported_alignment,
+    sa_entries,
+)
+from .read_identity import sam_record_id, segment_identity
 from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
-from .rna_path_linkage import OriginalPathMatch, template_path_linkage
-from .sv_rna import (
-    RnaObservation, _GeometryCache, _ObservationIndex, _PlacementIndex, _Positions, _agrees, _build_segment, _extend_both,
-    _mirror, _offsets, _record_id, _runs,
+from .rna_observation import (
+    ObservationGeometryCache,
+    ObservationIndex,
+    RnaObservation,
+    build_segment_observations,
 )
+from .rna_path_assembly import extend_path_both_directions
+from .rna_path_geometry import (
+    PathPositions,
+    PlacementIndex,
+    exact_overlap_agrees,
+    overlap_offsets,
+    position_runs,
+    reverse_path,
+)
+from .rna_path_linkage import OriginalPathMatch, template_path_linkage
 
 
+def matching_observation_intervals(sequence, positions, observation, *, contained=False):
+    """Find exact, coordinate-consistent overlaps with an original observation.
 
-def _matches(sequence, positions, observation, *, contained=False):
-    """All exact, coordinate-consistent overlaps with an original observation."""
-    for _, offset in sorted(_offsets(_runs(positions), 0, observation.key, _runs(observation.positions))):
+    Parameters
+    ----------
+    sequence : str
+        Observed RNA bases in the orientation of positions; no reference filling.
+    positions : sequence of Position or None
+        One placement per query base: (contig, zero-based base, strand), or
+        None for an observed base whose placement is unresolved.
+    observation : RnaObservation
+        One original segment and placement choice, retaining its identity.
+    contained : bool, optional
+        Require the entire observation inside the candidate path (default False).
+
+    Returns
+    -------
+    iterator of tuple[int, int]
+        Half-open intervals on the candidate path. Shared placed anchors route
+        the match; exact bases and every jointly placed coordinate must agree.
+    """
+    for _, offset in sorted(overlap_offsets(position_runs(positions), 0, observation.key, position_runs(observation.positions))):
         if contained and (offset < 0 or offset + len(observation.sequence) > len(sequence)):
             continue
         lo, hi = max(0, offset), min(len(sequence), offset + len(observation.sequence))
-        if lo < hi and _agrees(sequence, positions, observation, offset, lo, hi):
+        if lo < hi and exact_overlap_agrees(sequence, positions, observation, offset, lo, hi):
             yield lo, hi
 
 
-def _contains(first, second):
-    """Whether an entire (sequence, placements) is contained exactly in another."""
+def path_contains(first, second):
+    """Check exact sequence and placement containment of two RNA paths.
+
+    Parameters
+    ----------
+    first, second : tuple[str, sequence]
+        (Observed sequence, per-base placements) paths in the same orientation.
+
+    Returns
+    -------
+    bool
+        Whether second is wholly contained in first with identical placements.
+    """
     sequence, positions = first
     other, mapping = second
     start = sequence.find(other)
@@ -54,7 +98,30 @@ def _target_orientation(observation, regions):
                for p in observation.positions)
 
 
-def _observations(template, collector, reasons, regions, cache):
+def original_template_observations(template, collector, reasons, regions, cache):
+    """Build target-oriented alternatives for the original segments of a template.
+
+    Parameters
+    ----------
+    template : sequence of pysam.AlignedSegment
+        Eligible original records from the library index, including competing
+        alignments and mates. Records remain grouped by original segment.
+    collector : ReadCollector
+        Read/end processing policy used to prepare the library index.
+    reasons : mutable counter
+        Receives observation rejection and limitation counts.
+    regions : mapping
+        Contig to zero-based, half-open (start, end, orientation) intervals.
+    cache : ObservationGeometryCache or None
+        Optional bounded geometry cache; placement interning is per template.
+
+    Yields
+    ------
+    tuple
+        Original segment identity and its target-oriented observations. Segments
+        with an overlapping alignment are yielded even if all their observation
+        alternatives are rejected, in which case the observation list is empty.
+    """
     grouped = defaultdict(list)
     for read in template:
         grouped[segment_identity(read)].append(read)
@@ -62,7 +129,7 @@ def _observations(template, collector, reasons, regions, cache):
         if any(_relevant(read, regions) for read in records):
             # The placement interner is per template: full-input support does
             # not retain every background genomic base in an unbounded cache.
-            yield identity, [o for o in _build_segment(identity, records, collector, reasons, {}, cache)
+            yield identity, [o for o in build_segment_observations(identity, records, collector, reasons, {}, cache)
                              if _target_orientation(o, regions)]
 
 
@@ -86,47 +153,101 @@ def _seed_choices(observations, candidates=None):
     return sorted(seeds, key=lambda o: (-len(o.sequence), o.sequence, repr(o.positions), o.key))
 
 
-def _assemble(chosen, max_paths, min_overlap, *, seed_observations: tuple[RnaObservation, ...] | None = None):
-    """Maximal exact paths from distinct coordinate-aware observations."""
+def assemble_rna_paths(chosen, max_paths, min_overlap, *, seed_observations: tuple[RnaObservation, ...] | None = None):
+    """Assemble maximal exact paths from original observation alternatives.
+
+    Parameters
+    ----------
+    chosen : mapping
+        Original observation keys to RnaObservation objects.
+    max_paths : int
+        Bound on retained discovered paths; reaching it is reported.
+    min_overlap : int
+        Minimum exact overlap for extension.
+    seed_observations : tuple of RnaObservation, optional
+        Explicit event-adapter seeds. Their original placement constraints
+        remain attached through both extension directions.
+
+    Returns
+    -------
+    tuple[list, set[str]]
+        Maximal (sequence, placement_tuple) paths and limit/ambiguity notes.
+
+    Notes
+    -----
+    This is discovery, not quantification. Identical geometry can share work,
+    but alternative placements of one parent cannot be independent witnesses.
+    """
     observations = {o.key: o for o in chosen.values()}
     if seed_observations is not None:
         observations.update((o.key, o) for o in seed_observations)
     originals = tuple(observations.values())
-    # _extend_both mirrors the path to extend its 5' end. The index needs the
+    # extend_path_both_directions mirrors the path to extend its 5' end. The index needs the
     # same mirror views, retaining the original segment/fragment identity.
     for o in originals:
-        sequence, positions = _mirror(o.sequence, o.positions)
+        sequence, positions = reverse_path(o.sequence, o.positions)
         key = o.key[:-1] + ("-" if o.key.endswith("+") else "+")
         n = len(o.sequence)
         observations.setdefault(key, replace(
             o, key=key, sequence=sequence, positions=positions,
             breaks=tuple(sorted((n - 1 - j, n - 1 - i, kind) for i, j, kind in o.breaks)),
             reverse_complement=not o.reverse_complement, qualities=o.qualities[::-1]))
-    index = _ObservationIndex(list(observations.values()))
+    index = ObservationIndex(list(observations.values()))
     paths, notes = {}, set()
     for seed in _seed_choices(originals, seed_observations):
         key = seed.sequence, tuple(seed.positions)
         if len(paths) >= max_paths:
             notes.add("path_limit")
             break
-        for sequence, positions, _, _ in _extend_both(
+        for sequence, positions, _, _ in extend_path_both_directions(
                 *key, index, min_overlap, (0, 0, 0), max_paths - len(paths), [], notes,
                 seed_observation=seed):
             paths[sequence, tuple(positions)] = None
             if len(paths) >= max_paths:
                 notes.add("path_limit")
                 break
-    maximal = [p for p in paths if not any(len(q[0]) > len(p[0]) and _contains(q, p) for q in paths)]
+    maximal = [p for p in paths if not any(len(q[0]) > len(p[0]) and path_contains(q, p) for q in paths)]
     return maximal, notes
 
 
-def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_overlap, *,
+def discover_rna_paths(groups, regions, collector, max_discovery_reads, max_paths, min_overlap, *,
               seed_observations: tuple[RnaObservation, ...] | None = None):
-    chosen, reasons, cache = {}, Counter(), _GeometryCache()
+    """Discover bounded observed RNA paths from an original-library index.
+
+    Parameters
+    ----------
+    groups : RnaLibraryIndex
+        Open original-library index with matching source and eligibility policy.
+    regions : mapping
+        Contig to (start, end, strand) search intervals; bounds are zero-based
+        and half-open. Strand chooses path orientation, not biological RNA strand.
+    collector : ReadCollector
+        Explicit read/end policy, applied to original alignments.
+    max_discovery_reads : int
+        Maximum eligible original segments selected for assembly, not a support cap.
+    max_paths : int
+        Bound on distinct discovered paths.
+    min_overlap : int
+        Minimum exact overlap used by assemble_rna_paths.
+    seed_observations : tuple of RnaObservation, optional
+        Adapter-selected original seeds, retaining their placement constraints.
+
+    Returns
+    -------
+    tuple[list, dict]
+        Observed (sequence, placement_tuple) paths and discovery accounting:
+        considered/eligible/selected segments, budgets, rejections and truncation.
+
+    Notes
+    -----
+    The caller owns the open library index. A truncated search does not prove
+    absence of another path, nor identify a dominant isoform.
+    """
+    chosen, reasons, cache = {}, Counter(), ObservationGeometryCache()
     considered, eligible, selected = 0, 0, 0
     for template in groups.templates([(contig, start, end) for contig, spans in regions.items()
                                       for start, end, _ in spans]):
-        for _, observations in _observations(template, collector, reasons, regions, cache):
+        for _, observations in original_template_observations(template, collector, reasons, regions, cache):
             considered += 1
             if not observations:
                 continue
@@ -138,7 +259,7 @@ def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_ov
                 # Geometry can share matching work, but it cannot substitute
                 # for the original parent when enforcing placement choices.
                 chosen.setdefault(o.key, o)
-    maximal, notes = _assemble(chosen, max_paths, min_overlap, seed_observations=seed_observations)
+    maximal, notes = assemble_rna_paths(chosen, max_paths, min_overlap, seed_observations=seed_observations)
     return maximal, dict(template_order="read_group_query_name", target_segments=considered,
                          eligible_observed_segments=eligible, selected_segments=selected,
                          distinct_observations=len({o.comparison_key for o in chosen.values()}),
@@ -150,32 +271,71 @@ def _discover(groups, regions, collector, max_discovery_reads, max_paths, min_ov
                          observation_rejections=dict(reasons))
 
 
-def _support(groups, candidates, regions, collector, header, sample_id, source, *, label="isoform"):
+def support_rna_paths(groups, candidates, regions, collector, header, sample_id, source, *, label="isoform"):
+    """Measure fixed candidate paths against the complete declared original input.
+
+    Parameters
+    ----------
+    groups : RnaLibraryIndex
+        Open original-library index with matching source and eligibility policy.
+    candidates : list of dict
+        Mutable native candidate records: id, sequence, immutable placements,
+        and coding entries. Complete coding entries need status=complete_CDS
+        and half-open query_start/query_end. Optional features enable linkage.
+    regions : mapping
+        Contig to (start, end, strand) search intervals; bounds are zero-based
+        and half-open. Strand chooses path orientation, not biological RNA strand.
+    collector : ReadCollector
+        Explicit read/end policy, applied to original alignments.
+    header : dict
+        Original SAM header, preserving read groups and processing lineage.
+    sample_id, source : str
+        Original evidence scope; counts from different sources are not pooled.
+    label : str, optional
+        Existing native schema label (isoform, sequence or path). Changes
+        identifier-key spelling only, never attribution or counting rules.
+
+    Returns
+    -------
+    dict
+        Complete-input target/unassigned fragment totals, equivalence classes,
+        original witnesses and observation rejections. candidates are also updated
+        with support fields; no new sidecar or alternate schema is created.
+
+    Notes
+    -----
+    supporting_segments/fragments and rna_support count partial-overlap
+    contributors. coverage is per-base original-segment depth. compatible_fragments
+    requires compatible observations for a template; unique_fragments additionally
+    requires one candidate and no unresolved outside placement. Whole-path/CDS
+    segment witnesses are separate from tiled coverage. Shared alternative counts
+    are not additive. Discovery truncation does not cap this support pass.
+    """
     compatible_key, overlapping_key = "compatible_" + label + "s", "overlapping_" + label + "s"
     ids_key = label + "_ids"
     coverage = {c["id"]: [0] * len(c["sequence"]) for c in candidates}
     by_id = {c['id']: c for c in candidates}
     # Reuse each immutable candidate's collinear blocks across the entire
     # original-input recount. Raw output placements remain unchanged.
-    placements = {c["id"]: _Positions(c["placements"]) for c in candidates}
-    candidate_index = _PlacementIndex({i: c['placements'] for i, c in enumerate(candidates)})
+    placements = {c["id"]: PathPositions(c["placements"]) for c in candidates}
+    candidate_index = PlacementIndex({i: c['placements'] for i, c in enumerate(candidates)})
     supporters, whole, assignments = defaultdict(set), defaultdict(set), Counter()
     whole_cds = defaultdict(set)
     linkage = {c["id"]: [] for c in candidates if "features" in c}
-    witnesses, reasons, cache = [], Counter(), _GeometryCache()
+    witnesses, reasons, cache = [], Counter(), ObservationGeometryCache()
     lineage = ReadLineage(groups, header)
     labels = CellUmiEvidence(groups, header, sample_id, source, template_loader=groups.template)
     target_fragments, unassigned = 0, 0
     for template in groups.templates([(contig, start, end) for contig, spans in regions.items()
                                       for start, end, _ in spans]):
-        observations = list(_observations(template, collector, reasons, regions, cache))
+        observations = list(original_template_observations(template, collector, reasons, regions, cache))
         if not observations:
             continue
         target_fragments += 1
         fragment_matches, segment_rows = None, []
         template_matches = defaultdict(list)
         outside = any(not _relevant(read, regions) for read in template)
-        uncertainty = _placement_uncertainty(template)
+        uncertainty = placement_uncertainty(template)
         outside |= bool(uncertainty)
         for identity, observed in observations:
             compatible, supporting = set(), set()
@@ -188,7 +348,7 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
                 cid = candidate["id"]
                 covered, full = set(), False
                 for o in observed:
-                    for lo, hi in _matches(candidate["sequence"], placements[cid], o):
+                    for lo, hi in matching_observation_intervals(candidate["sequence"], placements[cid], o):
                         if cid in linkage:
                             template_matches[cid].append(OriginalPathMatch(identity, o.key, lo, hi))
                         covered.update(range(lo, hi))
@@ -196,7 +356,7 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
                         for i, coding in enumerate(candidate["coding"]):
                             if coding["status"] == "complete_CDS" and lo <= coding["query_start"] and hi >= coding["query_end"]:
                                 whole_cds[cid, i].add(identity)
-                    if any(_matches(candidate["sequence"], placements[cid], o, contained=True)):
+                    if any(matching_observation_intervals(candidate["sequence"], placements[cid], o, contained=True)):
                         compatible.add(cid)
                 if covered:
                     supporting.add(cid)
@@ -218,7 +378,7 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
         unassigned += not ids
         witnesses.append(dict(fragment=list(observations[0][0][:2]), **{compatible_key: list(ids)},
                               competing_placement_outside_targets=outside, placement_uncertainty=uncertainty, segments=segment_rows,
-                              records=[dict(id=_record_id(read), contig=read.reference_name,
+                              records=[dict(id=sam_record_id(read), contig=read.reference_name,
                                             start=read.reference_start, cigar=read.cigarstring,
                                             supplementary_alignments=read.get_tag("SA") if read.has_tag("SA") else None,
                                             mate_contig=read.next_reference_name if read.is_paired and read.next_reference_id >= 0 else None,
@@ -260,9 +420,22 @@ def _support(groups, candidates, regions, collector, header, sample_id, source, 
                 observation_rejections=dict(reasons), witnesses=witnesses)
 
 
+def placement_uncertainty(template):
+    """Describe unavailable or uncertain placements preventing unique attribution.
 
-def _placement_uncertainty(template):
-    """Known unavailable placements cannot establish unique attribution."""
+    Parameters
+    ----------
+    template : sequence of pysam.AlignedSegment
+        Actual original records for one template, including supplied alternative
+        alignments and mates. Tags alone never supply missing observations.
+
+    Returns
+    -------
+    list of str
+        Sorted reason codes for unavailable MAPQ, missing mapped mates or SA/NH
+        placements, zero MAPQ, or malformed SA tags. An empty list does not by
+        itself establish unique support; candidate compatibility is separate.
+    """
     reasons, segments = set(), defaultdict(list)
     for read in template:
         segments[segment_identity(read)].append(read)
@@ -283,9 +456,9 @@ def _placement_uncertainty(template):
                     for contig, start, strand, cigar, mapq, nm in sa_entries(read.get_tag("SA")):
                         if strand not in {"+", "-"} or not 0 <= mapq <= 255 or nm < 0:
                             raise ValueError("Invalid SA entry")
-                        reported = _alignment(contig, start, strand == "-", cigar)
-                        if not any(r is not read and not r.is_unmapped and _matches_reported(
-                                _alignment(r.reference_name, r.reference_start, r.is_reverse, r.cigarstring), reported)
+                        reported = alignment_placement(contig, start, strand == "-", cigar)
+                        if not any(r is not read and not r.is_unmapped and matches_reported_alignment(
+                                alignment_placement(r.reference_name, r.reference_start, r.is_reverse, r.cigarstring), reported)
                                    for r in records):
                             reasons.add("missing_SA_placement")
                 except ValueError:

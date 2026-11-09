@@ -6,24 +6,64 @@ infer protein expression, complete partial sequences, or select a winner.
 
 from collections.abc import Mapping
 
-from orfdata import ProducerInfo, ProducerLink, ProducerRecord, Proteome, ProteinSequence as _Protein
+from orfdata import (
+    ProducerInfo,
+    ProducerLink,
+    ProducerRecord,
+    ProteinSequence,
+    Proteome,
+)
 from orfdata import ReferenceContext as ProteomeReferenceContext
 
 from .protein_hypotheses import SCHEMA, export_protein_hypotheses
 from .rna_evidence import content_identifier
 
+PROTEIN_TARGET = "protein"
 
-_PROTEIN_TARGET = "protein"
 
+def producer_record(kind, native_id, payload, sample_id, source, *, schema_version="v2", **kwargs):
+    """Create an Isovar-owned ORFdata producer record.
 
-def _record(kind, native_id, payload, sample_id, source, *, schema_version="v2", **kwargs):
+    Parameters
+    ----------
+    kind, native_id : str
+        Native record category and stable producer identifier.
+    payload : dict
+        Original producer payload, retaining its evidence semantics.
+    sample_id, source : str
+        Original sample and library/analysis evidence scope.
+    schema_version : str, optional
+        Native schema version, default v2.
+    **kwargs : dict
+        Additional explicit ProducerRecord fields.
+
+    Returns
+    -------
+    orfdata.ProducerRecord
+        Scoped native record for the shared Proteome adapter.
+    """
     return ProducerRecord(
         namespace="isovar", schema_version=schema_version, kind=kind, native_id=native_id,
         exporter="isovar", sample_id=sample_id, run_id=source, payload=payload, **kwargs)
 
 
-def _validate_evidence(evidence_id, payload, sample_id, source):
-    """Validate the recorded scope and set identity, without inventing reads."""
+def validate_rna_evidence(evidence_id, payload, sample_id, source):
+    """Validate the recorded scope and set identity, without inventing reads.
+
+    Parameters
+    ----------
+    evidence_id : str
+        Expected content identifier of the original read set.
+    payload : mapping
+        Recorded counts, hashed read/fragment IDs and evidence scope.
+    sample_id, source : str
+        Original sample and library/analysis evidence scope.
+
+    Returns
+    -------
+    None
+        Raises ValueError for mismatched scope, identities or counts.
+    """
     if not isinstance(payload, Mapping):
         raise ValueError("RNA evidence must be a JSON object")
     scope = payload.get("evidence_scope")
@@ -42,7 +82,23 @@ def _validate_evidence(evidence_id, payload, sample_id, source):
         raise ValueError("RNA evidence read and fragment counts disagree")
 
 
-def _support_link(support, target, evidence_records):
+def rna_support_link(support, target, evidence_records):
+    """Link support to its verified original evidence set.
+
+    Parameters
+    ----------
+    support : mapping
+        Native support record with optional evidence_set_id.
+    target : ProducerRecord
+        RNA/protein record supported by the evidence.
+    evidence_records : mapping
+        Evidence-set IDs to previously verified ProducerRecord objects.
+
+    Returns
+    -------
+    ProducerLink or None
+        RNA-sequence support link, or None when no evidence identity was recorded.
+    """
     if not isinstance(support, Mapping):
         raise ValueError("RNA support must be a JSON object")
     evidence_id = support.get("evidence_set_id")
@@ -114,7 +170,7 @@ def from_protein_hypotheses(export, *, reference):
         raise ValueError("Isovar version is required")
 
     metadata = {key: value for key, value in export.items() if key not in ("events", "evidence_sets")}
-    exported = _record("export", content_identifier("export", export), metadata, sample_id, source)
+    exported = producer_record("export", content_identifier("export", export), metadata, sample_id, source)
     records = [exported]
     links = []
     entries = []
@@ -122,8 +178,8 @@ def from_protein_hypotheses(export, *, reference):
     for evidence_id, payload in sorted(evidence_sets.items()):
         if not isinstance(evidence_id, str) or not isinstance(payload, Mapping):
             raise ValueError("RNA evidence sets need string IDs and JSON objects")
-        _validate_evidence(evidence_id, payload, sample_id, source)
-        record = _record(
+        validate_rna_evidence(evidence_id, payload, sample_id, source)
+        record = producer_record(
             "evidence", evidence_id, payload, sample_id, source, support="rna_sequence",
             scope={"sample": sample_id, "read_set": source})
         evidence_records[evidence_id] = record
@@ -146,7 +202,7 @@ def from_protein_hypotheses(export, *, reference):
         if complete is not None and type(complete) is not bool:
             raise ValueError("protein_hypotheses_complete must be true, false or null")
         event_payload = {key: value for key, value in event.items() if key != "protein_hypotheses"}
-        event_record = _record(
+        event_record = producer_record(
             "event", f"{event_id}:{event_index}", event_payload, sample_id, source,
             status=_event_status(proteins, complete), complete=complete,
             limits={"max_protein_sequences_per_variant": event.get("protein_sequence_limit")})
@@ -156,7 +212,7 @@ def from_protein_hypotheses(export, *, reference):
         if not isinstance(allele_support, Mapping):
             raise ValueError("allele_support must be a JSON object")
         if "alt" in allele_support:
-            link = _support_link(allele_support["alt"], event_record, evidence_records)
+            link = rna_support_link(allele_support["alt"], event_record, evidence_records)
             if link is not None:
                 links.append(link)
 
@@ -168,7 +224,7 @@ def from_protein_hypotheses(export, *, reference):
                 raise ValueError("Each protein hypothesis needs a hypothesis_id")
             native_id = f"{hypothesis_id}:event{event_index}:rank{protein_index + 1}"
             hypothesis_payload = {key: value for key, value in protein.items() if key != "translations"}
-            hypothesis_record = _record(
+            hypothesis_record = producer_record(
                 "hypothesis", native_id, hypothesis_payload, sample_id, source)
             records.append(hypothesis_record)
             links.append(ProducerLink(event_record.key, hypothesis_record.key, "record", "has_hypothesis"))
@@ -189,11 +245,11 @@ def from_protein_hypotheses(export, *, reference):
                 start_complete=(True if n_terminus == "annotated_start_codon" else
                                 False if n_terminus == "local_window" else None),
                 stop_complete=c_terminus == "stop_codon")
-            entry = _Protein.from_producer(sequence, taxon_id=reference.taxon_id, producer=producer)
+            entry = ProteinSequence.from_producer(sequence, taxon_id=reference.taxon_id, producer=producer)
             entries.append(entry)
-            links.append(ProducerLink(hypothesis_record.key, entry.accession, _PROTEIN_TARGET,
+            links.append(ProducerLink(hypothesis_record.key, entry.accession, PROTEIN_TARGET,
                                       "has_sequence"))
-            link = _support_link(protein.get("rna_support"), hypothesis_record, evidence_records)
+            link = rna_support_link(protein.get("rna_support"), hypothesis_record, evidence_records)
             if link is not None:
                 links.append(link)
             for translation_index, translation in enumerate(protein["translations"]):
@@ -202,13 +258,13 @@ def from_protein_hypotheses(export, *, reference):
                 translation_id = translation.get("translation_id")
                 if not isinstance(translation_id, str) or not translation_id:
                     raise ValueError("Each Isovar translation needs a translation_id")
-                translation_record = _record(
+                translation_record = producer_record(
                     "translation", f"{translation_id}:event{event_index}:protein{protein_index}:"
                     f"translation{translation_index}", translation, sample_id, source)
                 records.append(translation_record)
                 links.append(ProducerLink(hypothesis_record.key, translation_record.key,
                                           "record", "has_translation"))
-                link = _support_link(translation.get("rna_support"), translation_record, evidence_records)
+                link = rna_support_link(translation.get("rna_support"), translation_record, evidence_records)
                 if link is not None:
                     links.append(link)
 

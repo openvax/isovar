@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.86.0
+
+Fixes #681.
+
+- Publish documented shared RNA observation, placement, assembly and original-input
+  support contracts used by literal alleles, SVs, CTA isoforms and viral paths.
+  Keep event interpretation in adapters and preserve native evidence schemas.
+- Split the SV orchestration module by responsibility and remove cross-module
+  private imports, including shared audit and file-identity modules. Migrate
+  package, example and benchmark consumers to their public owners.
+- Document read/fragment units, ambiguous assignments, discovery budgets,
+  whole-interval witnesses, half-open coordinates and library/cache ownership.
+  Add public-consumer regressions and shared-engine dependency checks.
+
 ## 1.83.0
 
 Fixes #685 and #687.

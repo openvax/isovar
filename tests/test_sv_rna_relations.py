@@ -1,13 +1,14 @@
 """How joins relate to a nominated adjacency (#665)."""
 
-from isovar.fusion import FusionBreakpoint
-from isovar.sv_rna import _Event, _join_class
-from isovar.sv_rna_audit import _summary
 import pytest
+
+from isovar.fusion import FusionBreakpoint
+from isovar.sv_rna_audit import _summary
+from isovar.sv_rna_event import OrientedAdjacency, classify_join
 
 
 def event(donor, acceptor, max_shift=5):
-    return _Event(FusionBreakpoint("chr1", donor, "+"), FusionBreakpoint("chr1", acceptor, "+"),
+    return OrientedAdjacency(FusionBreakpoint("chr1", donor, "+"), FusionBreakpoint("chr1", acceptor, "+"),
                   max_shift, annotated=set(), tolerance=3)
 
 
@@ -39,9 +40,9 @@ def test_forward_joins_across_a_deletion_like_adjacency_stay_splice_ambiguous():
 
 def test_small_deletions_relate_only_as_placements_of_the_adjacency():
     # The adjacency itself, as a CIGAR deletion: a short deletion SV.
-    assert _join_class(DELETION, set(), *join(499, 1000), 0, "D") == ("event", "breakpoint_junction")
+    assert classify_join(DELETION, set(), *join(499, 1000), 0, "D") == ("event", "breakpoint_junction")
     # The same span, crossed far from the breakpoints: an alignment indel.
-    assert _join_class(DELETION, set(), *join(400, 1100), 0, "D") == (None, None)
+    assert classify_join(DELETION, set(), *join(400, 1100), 0, "D") == (None, None)
     assert DELETION.relation(*join(400, 1100), 0, kind="D") == (None, None)
     assert DELETION.relation(*join(497, 1002), 0, kind="D")[0] == "splice_ambiguous_event_junction"
 
@@ -50,7 +51,7 @@ def test_small_deletions_relate_only_as_placements_of_the_adjacency():
 @pytest.mark.parametrize("kind", ["N", "D", "split"])
 def test_duplication_direction_in_transcript_orientation(strand, kind):
     donor, acceptor = (1000, 500) if strand == "+" else (500, 1000)
-    nominated = _Event(FusionBreakpoint("chr1", donor, strand), FusionBreakpoint("chr1", acceptor, strand),
+    nominated = OrientedAdjacency(FusionBreakpoint("chr1", donor, strand), FusionBreakpoint("chr1", acceptor, strand),
                        5, annotated=set(), tolerance=3)
     left, right = (600, 700) if strand == "+" else (700, 600)
     assert nominated.relation(("chr1", left, strand), ("chr1", right, strand), 0, kind=kind) == (None, None)

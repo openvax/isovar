@@ -4,21 +4,20 @@ Bundles contain data and structured metadata, never executable replay commands.
 The manifest format and the public API are documented in ``docs/audit-bundles.md``.
 """
 
-from copy import deepcopy
-from collections.abc import Mapping
-from hashlib import sha256
-from importlib.metadata import version
 import json
 import os
-from pathlib import Path, PurePosixPath
 import re
 import shutil
 import sys
 import tarfile
 import tempfile
+from collections.abc import Mapping
+from copy import deepcopy
+from hashlib import sha256
+from importlib.metadata import version
+from pathlib import Path, PurePosixPath
 
-from ._audit_json import canonical, canonical_chunks, identity, write_json_stream  # noqa: F401
-
+from .audit_json import canonical, canonical_chunks, identity, write_json_stream  # noqa: F401
 
 FORMAT = "isovar-audit-bundle"
 SCHEMA_VERSION = 1
@@ -72,7 +71,19 @@ def software_identity():
                 dependencies={name: version(name) for name in ("pysam", "edlib")})
 
 
-def _name(value):
+def validate_relative_bundle_path(value):
+    """Validate a portable bundle-relative file name.
+
+    Parameters
+    ----------
+    value : str
+        Relative POSIX path stored in a bundle manifest.
+
+    Returns
+    -------
+    str
+        Validated path; absolute paths, traversal and nonportable names raise AuditBundleError.
+    """
     if not isinstance(value, str) or not value or any(c in value for c in ("\\", ":", "\0")):
         raise AuditBundleError("File names must be nonempty relative POSIX paths")
     path = PurePosixPath(value)
@@ -91,7 +102,7 @@ def _validate(manifest):
     if not isinstance(manifest.get("software"), dict):
         raise AuditBundleError("Missing bundle software identity")
     for name, pin in manifest["files"].items():
-        _name(name)
+        validate_relative_bundle_path(name)
         if not isinstance(pin, dict) or type(pin.get("size")) is not int or pin["size"] < 0:
             raise AuditBundleError("Invalid file size: " + name)
         if not isinstance(pin.get("sha256"), str) or not re.fullmatch("[0-9a-f]{64}", pin["sha256"]):
@@ -184,7 +195,7 @@ class AuditBundle:
             raise AuditBundleError("copy_method must be 'copy' or 'clone'")
         if not isinstance(files, Mapping):
             raise AuditBundleError("Files must be a mapping of logical names to local paths")
-        files = {_name(name): Path(path) for name, path in files.items()}
+        files = {validate_relative_bundle_path(name): Path(path) for name, path in files.items()}
         expected_sha256 = {} if expected_sha256 is None else dict(expected_sha256)
         if set(expected_sha256) - set(files):
             raise AuditBundleError("Checksum names must refer to declared input files")
@@ -235,7 +246,7 @@ class AuditBundle:
             raise AuditBundleError("Files must be a mapping of logical names to local paths")
         total = 0
         for name, source in files.items():
-            _name(name)
+            validate_relative_bundle_path(name)
             source = Path(source)
             if not source.is_file():
                 raise AuditBundleError("Missing input file: " + str(source))
@@ -260,7 +271,7 @@ class AuditBundle:
 
     def path(self, name):
         """Resolve a declared logical file name within this bundle."""
-        _name(name)
+        validate_relative_bundle_path(name)
         if name not in self._manifest["files"]:
             raise AuditBundleError("File is not declared in the bundle: " + name)
         path = self.directory / "files" / name

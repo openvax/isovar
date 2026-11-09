@@ -1,24 +1,34 @@
 """Auditable length, phase, haplotype and supplied-fusion gallery extension."""
 import argparse
-from collections import Counter, defaultdict
 import gzip
-from hashlib import sha256
 import json
 import logging
+from collections import Counter, defaultdict
+from hashlib import sha256
 from pathlib import Path
 
 import pysam
 
-from isovar.sid_data import restore_records
 from isovar.fusion import FUSION_INPUT_KEYS, fusion_from_dict, reconstruct_fusion
-from isovar.fusion_visualization import GREEN, _canvas, save_fusion_figures
-from isovar.visualization import BLUE, GRAY, ORANGE, _plot_imports, _protein_disagreements, _side_note
+from isovar.fusion_visualization import GREEN, fusion_figure_canvas, save_fusion_figures
+from isovar.sid_data import restore_records
+from isovar.visualization import (
+    BLUE,
+    GRAY,
+    ORANGE,
+    draw_side_note,
+    plot_dependencies,
+    protein_disagreements,
+)
 from tests.data.osteosarc.expansion.references import translate
-from tests.osteosarc_protein_helpers import transcript_offset
 from tests.data.osteosarc.figure_comparisons import nr2f2
-from . import osteosarc_assembly_figures
-from . import osteosarc_footprint_figures
-from . import osteosarc_extended_figures
+from tests.osteosarc_protein_helpers import transcript_offset
+
+from . import (
+    osteosarc_assembly_figures,
+    osteosarc_extended_figures,
+    osteosarc_footprint_figures,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "tests/data/osteosarc/figure_comparisons/corpus"
@@ -127,8 +137,8 @@ def cd109_protein(data):
 
 
 def protein_rows(title, subtitle, rows, offsets, note, footer=""):
-    figure, ax = _canvas(title,subtitle,5.4)
-    differences = _protein_disagreements(dict(amino_acids=p, mutation_start=-start, ends_with_stop_codon=False)
+    figure, ax = fusion_figure_canvas(title,subtitle,5.4)
+    differences = protein_disagreements(dict(amino_acids=p, mutation_start=-start, ends_with_stop_codon=False)
                                         for _,p,_,start in rows)
     for y,(label,protein,color,start) in enumerate(rows[::-1],1):
         for i,aa in enumerate(protein,start):
@@ -141,7 +151,7 @@ def protein_rows(title, subtitle, rows, offsets, note, footer=""):
         ax.axvspan(offset,offset+1,color=ORANGE,alpha=.12,zorder=-1)
     ax.set(xlim=(min(r[3] for r in rows)-1,max(r[3]+len(r[1]) for r in rows)+1),
            ylim=(.4,len(rows)+.7),xlabel="Aligned protein offset (amino acids)")
-    _side_note(ax,note + "\n\nMagenta: tracks differ")
+    draw_side_note(ax,note + "\n\nMagenta: tracks differ")
     figure.text(.19,.06,footer,fontsize=10,color=GRAY)
     return figure
 
@@ -155,18 +165,18 @@ def context_panels(data, cd109):
     yield "ZNF436-length", "protein", protein_rows("ZNF436   T1 matched timepoint", "Read length limits recovered protein context",
         rows,[0],"ONT: 49 aa\nIllumina on: 30 aa\nIllumina off: 29 aa\n\n3 alternate cell/UMI\ngroups per library",
         "Same patient/timepoint, different libraries; not a controlled platform experiment. All translations independently validated.")
-    figure,ax=_canvas("ZNF436   T1 matched timepoint","Observed alternate-read spans",6.8)
+    figure,ax=fusion_figure_canvas("ZNF436   T1 matched timepoint","Observed alternate-read spans",6.8)
     rows=[("ONT",a,BLUE) for a in long["alt_observations"]]+[("Illumina",a,GREEN) for a in short["alt_observations"]]
     for y,(label,row,color) in enumerate(rows[::-1],1):
         ax.plot([max(-80,-row["prefix"]),min(80,row["suffix"]+1)],[y,y],color=color,lw=4,solid_capstyle="butt")
         ax.text(-.03,y,label,transform=ax.get_yaxis_transform(),ha="right",va="center",fontsize=10)
     ax.axvline(0,color=ORANGE,ls="--",lw=1)
     ax.set(xlim=(-82,82),ylim=(.3,len(rows)+.7),xlabel="cDNA offset from alternate base (nt)")
-    _side_note(ax,"3 ONT reads\n8 Illumina reads\n\nIllumina union: 113 nt\n49 aa require 147 nt\n\nONT spans are clipped\nto this viewing window")
+    draw_side_note(ax,"3 ONT reads\n8 Illumina reads\n\nIllumina union: 113 nt\n49 aa require 147 nt\n\nONT spans are clipped\nto this viewing window")
     figure.text(.19,.06,"The short-read union is an optimistic bound, not an asserted phased assembly. Extra PCR copies do not add span.",fontsize=10,color=GRAY)
     yield "ZNF436-length","read-spans",figure
 
-    figure,ax=_canvas("CD109   T2","Long RNA molecules directly connect both alleles",5.8)
+    figure,ax=fusion_figure_canvas("CD109   T2","Long RNA molecules directly connect both alleles",5.8)
     categories=[("ONT: alternate / alternate",21,BLUE), ("Illumina: focal alternate",22,GREEN),
                 ("Illumina: linked alternate",19,GREEN), ("Illumina: observed at both",0,GRAY)]
     for y,(label,count,color) in enumerate(categories[::-1],1):
@@ -174,7 +184,7 @@ def context_panels(data, cd109):
         ax.text(-.03,y,label,transform=ax.get_yaxis_transform(),ha="right",va="center",fontsize=10)
         ax.text(count+.35,y,str(count),va="center",fontsize=12)
     ax.set(xlim=(0,27),ylim=(.3,4.8),xlabel="Distinct read/template IDs passing Q20 at the queried bases")
-    _side_note(ax,"207 nt apart in cDNA\n6,181 bp in genome\n\n21 linked ONT UMIs\n0 linked Illumina UMIs\n\nShort reads: 90 nt")
+    draw_side_note(ax,"207 nt apart in cDNA\n6,181 bp in genome\n\n21 linked ONT UMIs\n0 linked Illumina UMIs\n\nShort reads: 90 nt")
     figure.text(.19,.06,"Separate short-read support at each site does not establish their phase. No single 25-mer contains both changed codons.",fontsize=10,color=GRAY)
     yield "CD109-phase","phase-support",figure
     yield "CD109-phase","protein",protein_rows("CD109   T2", "Observed two-edit protein context versus a single-edit prediction",
@@ -190,7 +200,7 @@ def context_panels(data, cd109):
          ("Observed compound",m["combined"]["window"],BLUE,0)],list(range(5,10)),
         "Predicted full lengths\n22-nt: 906 aa\n28-nt: 904 aa\nCompound: 904 aa\n\n"+m["transcript"]+"\n(MAP2-001)",
         "These are edited-reference predictions, not whole RNA protein reconstructions. Compound = 28-nt deletion + two substitutions.")
-    figure,ax=_canvas("MAP2   anchored RNA and DNA evidence","Exact compound-haplotype support",6)
+    figure,ax=fusion_figure_canvas("MAP2   anchored RNA and DNA evidence","Exact compound-haplotype support",6)
     selected=[("T1 DNA","d9200d085cb7774d"),("T2 DNA","707928e142bdb21a"),
               ("T1 bulk Illumina RNA","261f8be4ce5aa8c8"),("T2 bulk Illumina RNA","95a1e72e7ec10990"),
               ("T2 deduplicated ONT RNA","2bc1fc291308debb")]
@@ -201,14 +211,14 @@ def context_panels(data, cd109):
         ax.text(-.03,y,label,transform=ax.get_yaxis_transform(),ha="right",va="center",fontsize=10)
         ax.text(count+.3,y,str(count),va="center",fontsize=12)
     ax.set(xlim=(0,29),ylim=(.3,5.8),xlabel="Distinct templates with exact anchored sequence and Q20 at every retained base")
-    _side_note(ax,"No exact isolated\n22-nt allele observed\nin the 35-product audit\n\nProcessed copies are\nnot summed together")
+    draw_side_note(ax,"No exact isolated\n22-nt allele observed\nin the 35-product audit\n\nProcessed copies are\nnot summed together")
     figure.text(.19,.06,"Both genomic anchors must align. A large annotated splice skip is not counted as a deletion observation.",fontsize=10,color=GRAY)
     yield "MAP2-haplotypes","haplotype-support",figure
 
 
 def nr2f2_panels(data):
     """Keep the DNA/RNA discrepancy and molecular-independence caveat visible."""
-    figure, ax = _canvas("NR2F2 | RNA-supported, DNA-unconfirmed",
+    figure, ax = fusion_figure_canvas("NR2F2 | RNA-supported, DNA-unconfirmed",
                          "Matched CeGaT T0 samples | chr15:96875577-96875579 | GRCh37", 5.0)
     columns = [0, 3.0, 5.0, 7.0]
     for x, label in zip(columns, ["Sample", "GTG retained", "GTG deleted", "Other"]):
@@ -222,13 +232,13 @@ def nr2f2_panels(data):
         ax.axhline(y-.32, color="#e7e7e7", linewidth=.7)
     ax.set(xlim=(-.1, 8.3), ylim=(0, 3.7))
     ax.axis("off")
-    _side_note(ax, "5 RNA templates\n1 endpoint family\n\nNot five proven\nindependent molecules.\n\nNo germline/somatic\norigin assigned.")
+    draw_side_note(ax, "5 RNA templates\n1 endpoint family\n\nNot five proven\nindependent molecules.\n\nNo germline/somatic\norigin assigned.")
     figure.text(.08, .07, "Exact sequence between eight-base flanks; Q20 across the window; MAPQ >=20 (255 retained).\n"
                 "Primary/QC-passing; duplicate-flagged records excluded; mates counted once. Other alleles remain visible.",
                 fontsize=10, color=GRAY)
     yield "NR2F2-evidence", "dna-rna", figure
 
-    figure, ax = _canvas("NR2F2 | Directly observed local haplotypes",
+    figure, ax = fusion_figure_canvas("NR2F2 | Directly observed local haplotypes",
                          "Focal G>T and nearby deletion assessed together on one aligned segment", 5.4)
     labels = ["G + retained GTG", "T + retained GTG", "G + deleted GTG", "T + deleted GTG", "Other"]
     keys = ["reference/reference", "alternate/reference", "reference/deletion", "alternate/deletion"]
@@ -245,7 +255,7 @@ def nr2f2_panels(data):
         ax.axhline(y-.3, color="#e7e7e7", linewidth=.7)
     ax.set(xlim=(-.1, 8.3), ylim=(0, 4.6))
     ax.axis("off")
-    _side_note(ax, "4 RNA templates\nphase T with deletion.\n\nSame endpoint family;\nPCR or alignment\nartifact not excluded.\n\nDNA supports T\nwithout the deletion.")
+    draw_side_note(ax, "4 RNA templates\nphase T with deletion.\n\nSame endpoint family;\nPCR or alignment\nartifact not excluded.\n\nDNA supports T\nwithout the deletion.")
     figure.text(.08, .065, "One template counted once; only records passing both focal-base and full deletion-window Q20 checks.\n"
                 "This is direct phase in observed RNA, not validation of a distinct biological deletion.", fontsize=10, color=GRAY)
     yield "NR2F2-evidence", "direct-haplotypes", figure
@@ -255,7 +265,7 @@ def generate(output_dir):
     data=load_context()
     cd109=verify_context(data)
     output=osteosarc_assembly_figures.generate(output_dir)
-    _,rc_context,_=_plot_imports()
+    _,rc_context,_=plot_dependencies()
     from matplotlib.backends.backend_pdf import PdfPages
     from pypdf import PdfReader, PdfWriter
 

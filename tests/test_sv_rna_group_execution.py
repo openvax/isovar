@@ -1,8 +1,8 @@
 """Grouped computation keeps original identity, ordering, and interval evidence."""
 
+import random
 from dataclasses import replace
 from hashlib import sha256
-import random
 
 import pysam
 import pytest
@@ -10,9 +10,11 @@ import pytest
 from isovar.read_collector import ReadCollector
 from isovar.read_identity import segment_identity
 from isovar.read_lineage import ReadLineage
-from isovar.sv_rna import _GeometryCache, _Observations, _offsets, _runs, _segment_path
-from isovar.rna_library import _original_library_context
-from isovar.sv_rna_orfs import _witnesses
+from isovar.rna_library import original_library_context
+from isovar.rna_observation import ObservationGeometryCache, _segment_path
+from isovar.rna_path_geometry import overlap_offsets, position_runs
+from isovar.sv_rna_event import SvObservationStore
+from isovar.sv_rna_witnesses import junction_interval_witnesses
 from tests.test_sv_rna import HEADER, record, write_bam
 from tests.test_sv_rna_orfs import inputs
 
@@ -37,7 +39,7 @@ def test_original_library_keeps_all_payloads_mates_and_name_spellings(tmp_path, 
             for read in reads:
                 output.write(read)
     original_digest = sha256(bam_path.read_bytes()).digest()
-    with pysam.AlignmentFile(bam_path) as bam, _original_library_context(
+    with pysam.AlignmentFile(bam_path) as bam, original_library_context(
             bam, ReadCollector(), tmp_path, library_index=None, reference_name="test", read_filter_identity=None) as groups:
         counts = groups.statistics
         assert counts['records_scanned'] == len(reads)
@@ -63,7 +65,7 @@ def test_grouped_geometry_keeps_the_original_overlap_cap_and_ties():
         ('a-short', 100, '10M', 10), ('z-long', 90, '40M', 40),
         ('b-long', 90, '40M', 40), ('a-long', 90, '40M', 40),
         ('partial', 105, '60M', 60), ('terminal-gap', 90, '40M20D', 40)]]
-    store = _Observations(reads, ReadCollector(), 3, HEADER.to_dict(), 'sample', 'source')
+    store = SvObservationStore(reads, ReadCollector(), 3, HEADER.to_dict(), 'sample', 'source')
     window = tuple(('1', q, '+') for q in range(100, 110))
     found = store.overlapping(window, 0, len(window))
     # Equal full coverage, then furthest reference extent, then original ID.
@@ -85,11 +87,11 @@ def test_array_coverage_matches_original_segment_ranking_across_spliced_windows(
             reads.append(record(name, '1', start, '%dM%dN%dM' % (length, gap, length), 'A' * (2 * length)))
             if i % 5 == 0:
                 reads.append(record(name, '1', start + 3, '50M', 'A' * 50, flag=256))
-        store = _Observations(reads, ReadCollector(), 7, HEADER.to_dict(), 'sample', 'source')
+        store = SvObservationStore(reads, ReadCollector(), 7, HEADER.to_dict(), 'sample', 'source')
         bases = list(range(110, 121)) + list(range(160, 171))
         strand = '-' if trial % 2 else '+'
         window = tuple(('1', p, strand) for p in (reversed(bases) if strand == '-' else bases))
-        runs = _runs(window)
+        runs = position_runs(window)
         scores = {}
         for identity, records in store.groups.items():
             blocks = {(r.reference_name, a, b) for r in records for a, b in r.get_blocks()}
@@ -100,7 +102,7 @@ def test_array_coverage_matches_original_segment_ranking_across_spliced_windows(
                 scores[identity] = (-score, -high if strand == '+' else low, identity)
         selected = sorted(scores, key=scores.__getitem__)[:7]
         expected = {pair for identity in selected for o in store.build(identity)
-                    for pair in _offsets(runs, 0, o.key, _runs(o.positions))}
+                    for pair in overlap_offsets(runs, 0, o.key, position_runs(o.positions))}
         assert store.overlapping(window, 0, len(window)) == expected
         assert store.limited == (len(scores) > 7)
 
@@ -111,7 +113,7 @@ def test_large_rank_tie_selects_original_ids_across_unequal_groups():
         names = ['read-%02d' % (29 - i)] + ['z-extra-%02d-%d' % (i, j) for j in range(i % 4)]
         for name in names:
             reads.append(record(name, '1', 60 + i, '%dM' % (140 - i), 'A' * (140 - i)))
-    store = _Observations(reads, ReadCollector(), 5, HEADER.to_dict(), 'sample', 'source')
+    store = SvObservationStore(reads, ReadCollector(), 5, HEADER.to_dict(), 'sample', 'source')
     window = tuple(('1', q, '+') for q in range(100, 110))
     found = store.overlapping(window, 0, len(window))
     assert {store.observations[key].identity[1] for key, _ in found} == {
@@ -130,12 +132,12 @@ def test_shared_interval_comparison_keeps_each_original_orientation_and_query_of
                                         positions=tuple(('3', q, '+') for q in range(len(sequence))))
     junction['direct_observations'] = sorted(observations)
     cache = {}
-    witnesses = _witnesses(sequence, positions, 3, 9, [junction], observations, group_cache=cache)
+    witnesses = junction_interval_witnesses(sequence, positions, 3, 9, [junction], observations, group_cache=cache)
     assert {w['observation']: w['original_query_interval'] for w in witnesses} == {
         'first': [13, 19], 'second': [33, 39], 'reverse': [46, 52]}
     assert all(w['observation_interval'] == [3, 9] for w in witnesses)
     assert len(next(iter(cache.values()))) == 2  # Same sequence at two distinct placements.
-    assert witnesses == _witnesses(sequence, positions, 3, 9, [junction], observations, group_cache=cache)
+    assert witnesses == junction_interval_witnesses(sequence, positions, 3, 9, [junction], observations, group_cache=cache)
 
 
 @pytest.mark.parametrize('reverse', [False, True])
@@ -144,7 +146,7 @@ def test_run_geometry_preserves_hard_clips_insertions_gap_kinds_and_qualities(re
     read = record('complex', '1', 100, '5H3S6M2I5M4D4M30N5M2S7H', 'A' * 27, flag=16 if reverse else 0)
     read.query_qualities = list(range(27))
     sequence, positions, breaks, interval, qualities = _segment_path(
-        [read], ReadCollector(use_soft_clipped_bases=keep_clips), {}, _GeometryCache())
+        [read], ReadCollector(use_soft_clipped_bases=keep_clips), {}, ObservationGeometryCache())
     bases = list(range(100, 106)) + [None] * 2 + list(range(106, 111)) + list(range(115, 119)) + list(range(149, 154))
     if keep_clips:
         bases = [None] * 3 + bases + [None] * 2

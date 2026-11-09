@@ -11,17 +11,33 @@ from itertools import product
 import pysam
 import pytest
 
-from isovar import Adapter, ReadCollector, ReadEndProfile, infer_read_ends, read_sequence_view_from_alignment
+from isovar import (
+    Adapter,
+    ReadCollector,
+    ReadEndProfile,
+    infer_read_ends,
+    read_sequence_view_from_alignment,
+)
 from isovar.dna import reverse_complement_dna
 from isovar.read_end_inference import ReadEndInferenceCache, adapter_matches
-from isovar.read_sequence_origin import GenomicQueryEvidence, genomic_query_evidence_from_alignment
+from isovar.read_sequence_origin import (
+    GenomicQueryEvidence,
+    genomic_query_evidence_from_alignment,
+)
 from isovar.rna_library import prepare_rna_library
+from isovar.rna_observation import alignment_gaps, build_segment_observations
 from isovar.sv_path_routing import PathEvidenceQuery, route_path_evidence
-from isovar.sv_rna import _build_segment, _record_gaps
-from isovar.sv_rna_assessment import aligned_exon_clip_contains, assess_sv_rna_paths, evidence_from_records
-from isovar.sv_rna_path_support import exact_path_matches, interval_spots, overlap_chain_search
+from isovar.sv_rna_assessment import (
+    aligned_exon_clip_contains,
+    assess_sv_rna_paths,
+    evidence_from_records,
+)
+from isovar.sv_rna_path_support import (
+    exact_path_matches,
+    interval_spots,
+    overlap_chain_search,
+)
 from tests.test_sv_rna import Scenario, link, record, write_bam
-
 
 LEFT = 'GCTACGTCGCTG'
 RIGHT = 'CTGACGTGACCG'
@@ -171,12 +187,12 @@ def test_sv_observations_preserve_parent_identity_without_cross_linker_gaps(reve
     read = record('parent', '1', 1000, f'12M{len(MOTIF)}I100N12M', sequence, flag=16 if reverse else 0)
     before = read.to_string()
     reasons = Counter()
-    observations = _build_segment(('a', 'parent', 0), [read], collector(), reasons, {})
+    observations = build_segment_observations(('a', 'parent', 0), [read], collector(), reasons, {})
     assert len(observations) == 4  # Two intervals, each in two orientations; one parent.
     assert {observation.identity for observation in observations} == {('a', 'parent', 0)}
     assert all(not observation.breaks and len(observation.sequence) == 12 for observation in observations)
     assert len({observation.key for observation in observations}) == 4
-    assert _record_gaps(read) and not _record_gaps(read, collector())
+    assert alignment_gaps(read) and not alignment_gaps(read, collector())
     assert reasons['internal_technical_join_not_spanning_evidence'] == 1
     assert read.to_string() == before
 
@@ -187,7 +203,7 @@ def test_linked_supplementary_records_cannot_bridge_the_same_internal_barrier():
         record('parent', '2', 2000, f'{len(SEQUENCE) - 12}S12M', SEQUENCE, flag=2048),
     ])
     originals = [read.to_string() for read in records]
-    observations = _build_segment(('a', 'parent', 0), records, collector(), Counter(), {})
+    observations = build_segment_observations(('a', 'parent', 0), records, collector(), Counter(), {})
     assert len(observations) == 4
     assert all(not observation.breaks and len(observation.sequence) == 12 for observation in observations)
     assert {observation.fragment for observation in observations} == {('a', 'parent')}
@@ -317,7 +333,8 @@ def test_explicit_adapter_order_preserves_conflicts_without_reordering_reads(rev
 
 @pytest.mark.parametrize('same_parent', [True, False])
 def test_two_direction_extension_cannot_switch_parent_segment(same_parent):
-    from isovar.sv_rna import RnaObservation, _ObservationIndex, _extend_both
+    from isovar.rna_observation import ObservationIndex, RnaObservation
+    from isovar.rna_path_assembly import extend_path_both_directions
 
     observations = []
     for key, sequence, start, interval in [('first', 'CGTT', 100, (0, 4)), ('second', 'AACG', 98, (10, 14))]:
@@ -328,6 +345,6 @@ def test_two_direction_extension_cannot_switch_parent_segment(same_parent):
                 reverse_complement_dna(sequence) if reverse else sequence,
                 tuple((c, p, '-') for c, p, _ in reversed(positions)) if reverse else positions,
                 (), reverse, interval, False, False))
-    paths = list(_extend_both('CG', (('1', 100, '+'), ('1', 101, '+')),
-                            _ObservationIndex(observations), 2, (1, 0, 0), 8, [], set()))
+    paths = list(extend_path_both_directions('CG', (('1', 100, '+'), ('1', 101, '+')),
+                            ObservationIndex(observations), 2, (1, 0, 0), 8, [], set()))
     assert sorted(path[0] for path in paths) == (['AACG', 'CGTT'] if same_parent else ['AACGTT'])

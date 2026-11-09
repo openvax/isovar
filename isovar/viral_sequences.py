@@ -10,15 +10,18 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 import pysam
-
 from pyensembl import Genome
 
-from .antigen_reference import GDC_REFERENCE, gdc_viral_panel, validate_alignment_reference
+from .antigen_reference import (
+    GDC_REFERENCE,
+    gdc_viral_panel,
+    validate_alignment_reference,
+)
 from .audit_bundle import digest
 from .read_collector import ReadCollector
-from .rna_reconstruction import _discover, _support
-from .sv_rna import _runs
-from .rna_library import RnaLibraryIndex, _original_library_context
+from .rna_library import RnaLibraryIndex, original_library_context
+from .rna_path_geometry import position_runs
+from .rna_reconstruction import discover_rna_paths, support_rna_paths
 from .viral_coding import viral_coding_predictions, viral_coding_references
 
 
@@ -27,7 +30,7 @@ def _discover_viruses(groups, regions, collector, max_discovery_reads, max_paths
     # rescanning the original library or depending on its physical record order.
     candidates, discovery, reasons = {}, [], Counter()
     for contig in sorted(regions):
-        paths, counts = _discover(groups, {contig: regions[contig]}, collector,
+        paths, counts = discover_rna_paths(groups, {contig: regions[contig]}, collector,
                                    max_discovery_reads, max_paths, min_overlap)
         reasons.update(counts['observation_rejections'])
         discovery.append(dict(contig=contig, paths=len(paths), **{
@@ -166,7 +169,7 @@ def reconstruct_viral_sequences(
     collector = read_collector if read_collector is not None else ReadCollector.for_rna_paths()
     if not collector.merge_overlapping_fragments:
         raise ValueError('merge_overlapping_fragments is not a control for original RNA paths')
-    with TemporaryDirectory(dir=scratch_dir, prefix="isovar-viral-") as directory, _original_library_context(
+    with TemporaryDirectory(dir=scratch_dir, prefix="isovar-viral-") as directory, original_library_context(
             bam, collector, directory, library_index=library_index,
             reference_name="GRCh38" if panel else None, read_filter_identity=read_filter_identity) as groups:
         statistics = groups.statistics
@@ -180,11 +183,11 @@ def reconstruct_viral_sequences(
                 "reference_anchored_prediction" if candidate["coding"] else
                 "no_coding_overlap" if set(candidate["viral_contigs"]).intersection(covered_contigs)
                 else "unavailable_reference")
-        support = _support(groups, candidates, regions, collector, bam.header.to_dict(),
+        support = support_rna_paths(groups, candidates, regions, collector, bam.header.to_dict(),
                            sample_id, source, label="sequence")
         counts = _contig_support(contigs, candidates, support, discovery)
     for row in candidates:
-        row["mapping"] = [list(run) for run in _runs(row.pop("placements"))]
+        row["mapping"] = [list(run) for run in position_runs(row.pop("placements"))]
     return dict(schema="isovar.viral_sequences.v1", sample_id=sample_id, source=source,
                 collection=dict(collector.collection_parameters(), read_filter_identity=read_filter_identity),
                 reference=identity, coding_reference=coding_reference, selected_contigs=contigs,

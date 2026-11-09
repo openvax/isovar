@@ -7,11 +7,11 @@ coding prediction is conditional RNA evidence, not evidence of translation.
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, replace
 from hashlib import sha256
-import logging
 from tempfile import TemporaryDirectory
 from typing import Any
 
@@ -20,16 +20,28 @@ from pyensembl import Genome
 from varcode import ContigResolver, Variant
 
 from .allele_path_seeds import AllelePathSeed, AllelePathSeeds, allele_path_seeds
-from .contig_resolution import require_resolved_contig, resolve_reference_contig, variant_reference_name, variant_source_contig
+from .contig_resolution import (
+    require_resolved_contig,
+    resolve_reference_contig,
+    variant_reference_name,
+    variant_source_contig,
+)
 from .fusion import FusionReference
 from .read_collector import ReadCollector
-from .rna_library import RnaLibraryIndex, _original_library_context
+from .rna_library import RnaLibraryIndex, original_library_context
+from .rna_path_geometry import PathPositions, path_breaks, position_runs
 from .rna_path_linkage import PathFeature
-from .rna_reconstruction import _discover, _matches, _support
-from .sv_rna import _Positions, _breaks, _runs
-from .transcript_path_frames import Position, TranscriptPathModel, assess_transcript_path
+from .rna_reconstruction import (
+    discover_rna_paths,
+    matching_observation_intervals,
+    support_rna_paths,
+)
+from .transcript_path_frames import (
+    Position,
+    TranscriptPathModel,
+    assess_transcript_path,
+)
 from .variant_helpers import LiteralVariantLocus, require_literal_variant
-
 
 Region = tuple[str, int, int]
 ObservedPath = tuple[str, tuple[Position | None, ...]]
@@ -44,7 +56,7 @@ def variant_path_read_collector(settings: Mapping[str, Any] | None = None, *, fi
 def _seed_offsets(sequence: str, positions: tuple, seeds: Iterable[AllelePathSeed]) -> list[tuple[int, AllelePathSeed]]:
     """Retain full original allele-bearing geometries, never sequence-only hits."""
     return [(low, seed) for seed in seeds for low, _ in
-            _matches(sequence, positions, seed.observation, contained=True)]
+            matching_observation_intervals(sequence, positions, seed.observation, contained=True)]
 
 
 def _permitted_departures(seed_offsets: Sequence[tuple[int, AllelePathSeed]]) -> dict[int, str]:
@@ -61,7 +73,7 @@ def _permitted_departures(seed_offsets: Sequence[tuple[int, AllelePathSeed]]) ->
 
 def _path_candidate(sequence: str, positions: tuple, seeds: AllelePathSeeds,
                     models: Sequence[TranscriptPathModel], minimum: int) -> dict:
-    positions = _Positions(positions)
+    positions = PathPositions(positions)
     matches = _seed_offsets(sequence, positions, seeds.seeds)
     identifier = "isovar_allele_path_" + sha256(repr((sequence, positions)).encode()).hexdigest()[:24]
     focal: dict[tuple[str, tuple[int, int], tuple[int, int]], list[AllelePathSeed]] = defaultdict(list)
@@ -73,9 +85,9 @@ def _path_candidate(sequence: str, positions: tuple, seeds: AllelePathSeeds,
     focal_rows: list[dict[str, Any]] = []
     frames: list[dict[str, Any]] = []
     coding: list[dict[str, Any]] = []
-    departures = {left + 1: "assembled_path_discontinuity" for left, _ in _breaks(positions)}
+    departures = {left + 1: "assembled_path_discontinuity" for left, _ in path_breaks(positions)}
     departures.update(_permitted_departures(matches))
-    for number, (left, right) in enumerate(_breaks(positions)):
+    for number, (left, right) in enumerate(path_breaks(positions)):
         features.append(PathFeature("junction_%d" % number, left, right + 1))
     for index, ((state, observed, canonical), witnesses) in enumerate(sorted(focal.items())):
         feature_id = "allele_%d" % index
@@ -239,7 +251,7 @@ def reconstruct_variant_rna_paths(
     models = tuple(TranscriptPathModel(reference) for reference in resolved)
     collector = read_collector or variant_path_read_collector()
     locus = LiteralVariantLocus.from_variant(variant)
-    with TemporaryDirectory(dir=scratch_dir, prefix="isovar-allele-paths-") as directory, _original_library_context(
+    with TemporaryDirectory(dir=scratch_dir, prefix="isovar-allele-paths-") as directory, original_library_context(
             bam, collector, directory, library_index=library_index, reference_name=reference_name,
             read_filter_identity=read_filter_identity) as groups:
         seeds = allele_path_seeds(groups.templates([(contig, max(0, locus.start - 1), locus.end + 1)]),
@@ -254,7 +266,7 @@ def reconstruct_variant_rna_paths(
             allowed = {s.observation.key: s.observation for s in seeds.seeds
                        if s.state == state and s.observation.identity in selected}
             logger.info("%s: discovering %s paths from %d original seed segments", source, state, len(selected))
-            found, discovery = _discover(groups, search, collector, max_discovery_reads, max_paths, min_overlap,
+            found, discovery = discover_rna_paths(groups, search, collector, max_discovery_reads, max_paths, min_overlap,
                                           seed_observations=tuple(allowed.values()))
             discovery.update(seed_segments=len(identities), selected_seed_segments=len(selected),
                              seed_limit_reached=len(identities) > len(selected))
@@ -265,11 +277,11 @@ def reconstruct_variant_rna_paths(
                       for sequence, positions in sorted(paths, key=repr)]
         reference_candidates = _reference_competitors(candidates, models)
         logger.info("%s: recounting original support for %d retained RNA paths", source, len(candidates))
-        support = _support(groups, candidates + reference_candidates, search, collector,
+        support = support_rna_paths(groups, candidates + reference_candidates, search, collector,
                            bam.header.to_dict(), sample_id, source, label="path")
         statistics, library_identity = groups.statistics, groups.prepared.identity
     for candidate in candidates + reference_candidates:
-        candidate["mapping"] = [list(run) for run in _runs(candidate.pop("placements"))]
+        candidate["mapping"] = [list(run) for run in position_runs(candidate.pop("placements"))]
         if "features" in candidate:
             candidate["features"] = [asdict(feature) for feature in candidate["features"]]
     return dict(schema="isovar.variant_rna_paths.v1", sample_id=sample_id, source=source,

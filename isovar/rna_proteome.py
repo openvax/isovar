@@ -3,12 +3,21 @@
 from collections.abc import Mapping
 from hashlib import sha256
 
-from orfdata import ProducerInfo, ProducerLink, Proteome, ReferenceContext
+from orfdata import (
+    ProducerInfo,
+    ProducerLink,
+    ProteinSequence,
+    Proteome,
+    ReferenceContext,
+)
 
 from .genetic_code import standard_genetic_code, translate_cdna
 from .proteome import (
-    _PROTEIN_TARGET, _Protein, _record, _support_link, _validate_evidence,
+    PROTEIN_TARGET,
     from_protein_hypotheses,
+    producer_record,
+    rna_support_link,
+    validate_rna_evidence,
 )
 from .rna_evidence import canonical_json
 from .sv_rna_orf_export import export_sv_rna_orfs
@@ -62,7 +71,7 @@ class _Snapshot:
         self.records, self.links, self.proteins, self.evidence = [], [], [], {}
 
     def record(self, kind, native_id, payload, **kwargs):
-        record = _record(kind, self.digest + ':' + native_id, payload, self.sample, self.source,
+        record = producer_record(kind, self.digest + ':' + native_id, payload, self.sample, self.source,
                          schema_version=self.schema, **kwargs)
         self.records.append(record)
         return record
@@ -71,7 +80,7 @@ class _Snapshot:
         self.links.append(ProducerLink(parent.key, child.key, 'record', relation, payload))
 
     def add_evidence(self, evidence_id, payload):
-        _validate_evidence(evidence_id, payload, self.sample, self.source)
+        validate_rna_evidence(evidence_id, payload, self.sample, self.source)
         prior = self.evidence.get(evidence_id)
         if prior is not None:
             if prior.to_dict()['payload'] != dict(payload):
@@ -86,7 +95,7 @@ class _Snapshot:
         if inline and isinstance(support, Mapping) and support.get('evidence_set_id') is not None:
             keys = ('evidence_set_id', 'evidence_scope', 'reads', 'fragments', 'read_ids', 'fragment_ids')
             self.add_evidence(support['evidence_set_id'], {k: support.get(k) for k in keys})
-        link = _support_link(support, target, self.evidence)
+        link = rna_support_link(support, target, self.evidence)
         if link is not None:
             self.links.append(link)
 
@@ -96,9 +105,9 @@ class _Snapshot:
             tool_version=self.version, exporter='isovar', sample_id=self.sample, run_id=self.source,
             reference=self.reference, source_sha256=self.digest,
             start_complete=start, stop_complete=stop, **identities)
-        protein = _Protein.from_producer(amino, taxon_id=self.reference.taxon_id, producer=producer)
+        protein = ProteinSequence.from_producer(amino, taxon_id=self.reference.taxon_id, producer=producer)
         self.proteins.append(protein)
-        self.links.append(ProducerLink(record.key, protein.accession, _PROTEIN_TARGET, 'has_sequence'))
+        self.links.append(ProducerLink(record.key, protein.accession, PROTEIN_TARGET, 'has_sequence'))
 
     def finish(self):
         return Proteome.from_proteins(self.proteins, reference=self.reference,

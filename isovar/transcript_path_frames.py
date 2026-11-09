@@ -16,26 +16,13 @@ from typing import Literal, NamedTuple
 
 from .fusion import FusionReference
 from .genetic_code import standard_genetic_code
+from .rna_path_geometry import Position, next_position, reverse_position
 
-
-Position = tuple[str, int, str]
 PathPositions = Sequence[Position | None]
 FocalCoverage = Literal[
     "not_assessed", "covered", "partially_covered", "upstream_of_frame_anchor",
     "after_stop", "beyond_observed_translation",
 ]
-
-
-def next_position(position: Position) -> Position:
-    """Return the next genomic base in this oriented path."""
-    contig, base, strand = position
-    return contig, base + (1 if strand == "+" else -1), strand
-
-
-def reverse_position(position: Position) -> Position:
-    """Reverse the strand of one placed base without moving it."""
-    contig, base, strand = position
-    return contig, base, "-" if strand == "+" else "+"
 
 
 class ExactAnchor(NamedTuple):
@@ -380,4 +367,3 @@ def sv_frame_evidence(sequence: str, positions: PathPositions, departures: Mappi
         status = "ambiguous"
     return dict(frame_status=status, translations=translations, unresolved_models=unresolved,
                 reference_readings=sorted(reference_readings), readings_departing_elsewhere=other_departures)
-

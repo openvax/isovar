@@ -1,16 +1,17 @@
 """Candidate initiation is separate from annotation and full-span RNA support."""
 
-from dataclasses import replace
 from copy import deepcopy
+from dataclasses import replace
 
 import pysam
 import pytest
 
-from isovar.cell_umi import CellUmiEvidence
 from isovar import FusionReference, export_sv_rna_orfs
-from isovar.sv_rna import RnaObservation, _Model
+from isovar.cell_umi import CellUmiEvidence
 from isovar.read_metadata import record_evidence
+from isovar.rna_observation import RnaObservation
 from isovar.sv_rna_orfs import exploratory_orfs
+from isovar.transcript_path_frames import TranscriptPathModel
 from tests.test_sv_rna import long_read_run
 from tests.testing_helpers import complete_umis
 
@@ -293,23 +294,25 @@ def test_original_pacbio_upstream_orf_has_full_span_support_and_retains_tags(tmp
 
 
 def test_anchored_reading_that_departs_at_an_indel_is_not_reported_as_no_gene_anchor():
-    from isovar.sv_rna import _frame_evidence
+    from isovar.transcript_path_frames import sv_frame_evidence
     cds = "ATG" + "GCC" * 38 + "TAA"
     ref = FusionReference(contig="1", strand="+", exons=((0, len(cds)),), sequence=cds, cds_start=0,
                           cds_end=len(cds), transcript_id="coding", annotation="test", reference_name="test")
     # A 52-nt exact CDS anchor, then a 1-nt deletion and too little sequence to re-anchor.
     path = cds[:52] + cds[53:63]
     positions = [("1", p, "+") for p in list(range(52)) + list(range(53, 63))]
-    result = _frame_evidence(path, positions, {60: "breakpoint_junction"}, [_Model(ref)], 18, set(), (9,))
+    result = sv_frame_evidence(path, positions, {60: "breakpoint_junction"}, [TranscriptPathModel(ref)], 18, set(), (9,))
     assert result["frame_status"] == "departs_elsewhere_only"
     assert result["readings_departing_elsewhere"] == 1 and not result["translations"]
-    unanchored = _frame_evidence(path[:17], positions[:17], {}, [_Model(ref)], 18, set(), (9,))
+    unanchored = sv_frame_evidence(path[:17], positions[:17], {}, [TranscriptPathModel(ref)], 18, set(), (9,))
     assert unanchored["frame_status"] == "no_gene_anchor"
 
 
 def test_sid_native_uorf_ms_overlay_keeps_candidate_specific_rna_support(tmp_path):
     import json
+
     from pyensembl import cached_release
+
     from isovar import annotate_sv_uorf_evidence, load_uorf_catalog
 
     result = long_read_run(tmp_path, "TPST1--CRCP", "PacBio-T1")
@@ -350,9 +353,11 @@ def test_sid_native_uorf_ms_overlay_keeps_candidate_specific_rna_support(tmp_pat
 
 def test_sid_generic_orf_api_preserves_reference_and_modification(tmp_path):
     import json
-    from pyensembl import cached_release
-    from isovar import annotate_sv_orf_evidence
+
     from orfdata import load_catalog
+    from pyensembl import cached_release
+
+    from isovar import annotate_sv_orf_evidence
 
     result = long_read_run(tmp_path, "TPST1--CRCP", "PacBio-T1")
     transcript = cached_release(95).transcript_by_id("ENST00000304842")

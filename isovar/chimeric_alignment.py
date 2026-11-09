@@ -6,8 +6,8 @@ requires reciprocal SA links, agreement on the remaining path, compatible query
 spans, and the same primary/secondary hypothesis class.
 """
 
-from collections import namedtuple
 import re
+from collections import namedtuple
 
 from .logging import get_logger
 from .read_identity import compatible_alignments
@@ -20,8 +20,26 @@ _AlignmentPath = namedtuple("_AlignmentPath", "secondary supplementary alignment
 _CIGAR = re.compile(r"(?:[1-9][0-9]*[MIDNSHP=X])+")
 
 
-def _alignment(contig, start, reverse, cigar):
-    """Normalize clipping and =/X, retaining the actual interior alignment."""
+def alignment_placement(contig, start, reverse, cigar):
+    """Normalize clipping and =/X, retaining the actual interior alignment.
+
+    Parameters
+    ----------
+    contig : str
+        Reference contig name.
+    start : int
+        Zero-based aligned reference start.
+    reverse : bool
+        Whether the alignment is on the reverse strand.
+    cigar : str
+        Actual SAM CIGAR, including terminal clipping.
+
+    Returns
+    -------
+    tuple
+        Normalized placement with contig/start/reverse/cigar, original-query
+        start/end/length and reference_end fields. Intervals are half-open.
+    """
     if not isinstance(cigar, str) or not _CIGAR.fullmatch(cigar) or start < 0:
         raise ValueError("invalid alignment coordinates/CIGAR")
     operations = []
@@ -71,14 +89,14 @@ def source_alignment_paths_from_pysam(read, source_alignments, query_interval=No
     if not read.has_tag("SA") or read.is_unmapped or read.cigarstring is None:
         return ()
     try:
-        own = _alignment(read.reference_name, read.reference_start,
+        own = alignment_placement(read.reference_name, read.reference_start,
                          read.is_reverse, read.cigarstring)
         others = []
         for contig, start, strand, cigar, mapq, nm in sa_entries(read.get_tag("SA")):
             if (strand not in ("+", "-") or read.header.get_tid(contig) < 0
                     or not 0 <= mapq <= 255 or nm < 0):
                 raise ValueError("invalid SA entry")
-            others.append(_alignment(contig, start, strand == "-", cigar))
+            others.append(alignment_placement(contig, start, strand == "-", cigar))
         members = sorted([own] + others, key=lambda a: (a.query_start, a.query_end))
         if (any(a.query_length != own.query_length for a in others)
                 or any(a.query_start >= b.query_start or a.query_end >= b.query_end
@@ -103,9 +121,22 @@ def source_alignment_paths_from_pysam(read, source_alignments, query_interval=No
         return ()
 
 
-def _matches_reported(actual, reported):
+def matches_reported_alignment(actual, reported):
     """Match exact SA CIGARs or minimap2's documented span-only SA summary.
 
+    Parameters
+    ----------
+    actual, reported : tuple
+        Placements returned by alignment_placement for an actual record and
+        a reported supplementary placement.
+
+    Returns
+    -------
+    bool
+        Whether the reported geometry matches the actual alignment.
+
+    Notes
+    -----
     The summary must match both reference and original-query coordinates. It
     never replaces the actual CIGAR used for allele extraction or assembly.
     See minimap2 format.c (SA writer) and the SAMtags SA definition.
@@ -126,7 +157,7 @@ def _matches_reported(actual, reported):
 
 
 def _linked_member(path, other, placement, observed_placements):
-    matches = [a for a in path.others if _matches_reported(other.alignment, a)]
+    matches = [a for a in path.others if matches_reported_alignment(other.alignment, a)]
     if len(matches) != 1:
         return None
     reported = matches[0]
@@ -135,13 +166,13 @@ def _linked_member(path, other, placement, observed_placements):
         # with identical spans, even when one happens to equal the summary.
         try:
             candidates = {
-                _alignment(reported.contig, start, reverse, cigar)
+                alignment_placement(reported.contig, start, reverse, cigar)
                 for ref, start, cigar, reverse in observed_placements
                 if ref == placement[0]
             }
         except ValueError:
             return None
-        if sum(_matches_reported(a, reported) for a in candidates) != 1:
+        if sum(matches_reported_alignment(a, reported) for a in candidates) != 1:
             return None
     return reported
 

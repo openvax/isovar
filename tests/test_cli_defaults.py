@@ -9,7 +9,6 @@ from isovar import default_parameters as defaults
 from isovar.cli import rna_args
 from isovar.cli.filter_args import filter_threshold_dict_from_args
 from isovar.cli.main_args import make_isovar_arg_parser
-from isovar.cli.validation import CommandInputError
 from isovar.cli.protein_sequence_args import (
     make_protein_sequences_arg_parser,
     protein_sequence_creator_from_args,
@@ -19,8 +18,12 @@ from isovar.cli.translation_args import (
     make_translation_arg_parser,
     protein_sequence_creator_kwargs_from_args,
 )
+from isovar.cli.validation import CommandInputError
 from isovar.cli.variant_sequences_args import make_variant_sequences_arg_parser
-from isovar.reference_context_helpers import reference_contexts_for_variant, reference_contexts_generator
+from isovar.reference_context_helpers import (
+    reference_contexts_for_variant,
+    reference_contexts_generator,
+)
 from isovar.variant_sequence_creator import VariantSequenceCreator
 
 from .mock_objects import MockAlignmentFile, make_pysam_read
@@ -101,7 +104,7 @@ def test_filter_defaults_match_python_and_overrides_do_not_remove_other_filters(
 
 
 def test_main_keeps_public_default_filter_imports():
-    from isovar.main import DEFAULT_FILTER_THRESHOLDS, DEFAULT_FILTER_FLAGS
+    from isovar.main import DEFAULT_FILTER_FLAGS, DEFAULT_FILTER_THRESHOLDS
     assert DEFAULT_FILTER_THRESHOLDS is defaults.DEFAULT_FILTER_THRESHOLDS
     assert DEFAULT_FILTER_FLAGS is defaults.DEFAULT_FILTER_FLAGS
 
@@ -201,7 +204,9 @@ def test_reference_context_command_passes_size_to_api(monkeypatch):
 
 def test_phasing_calibration_cli(monkeypatch, tmp_path):
     import json
+
     from varcode import Variant
+
     from isovar.cli import main_args
     variant = Variant("1", 10, "A", "G", normalize_contig_names=False)
     profile = tmp_path / "calibration.json"
@@ -256,6 +261,7 @@ def test_phasing_probabilities_are_checked_when_parsed(option, value, capsys):
 def test_structural_variant_records_are_skipped_with_a_warning(monkeypatch, caplog):
     from varcode import Variant, VariantCollection
     from varcode.structural_variant import StructuralVariant
+
     from isovar.cli import validation
 
     snv = Variant("7", 133274996, "G", "T", normalize_contig_names=False)

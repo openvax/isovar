@@ -1,23 +1,35 @@
 """Figure geometry and evidence stay faithful to the existing protein pipeline."""
 
-from copy import deepcopy
 import json
-from pathlib import Path
 import re
 import subprocess
 import sys
+from copy import deepcopy
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from varcode import Variant
 
 from isovar import ProteinSequenceCreator
-from isovar.default_parameters import PLOT_DPI, PLOT_MAX_ROWS, PLOT_VIEW, PLOT_VIEWS, PLOT_WIDTH
+from isovar.default_parameters import (
+    PLOT_DPI,
+    PLOT_MAX_ROWS,
+    PLOT_VIEW,
+    PLOT_VIEWS,
+    PLOT_WIDTH,
+)
 from isovar.read_evidence import ReadEvidence
 from isovar.visualization import (
-    _genomic_projection, _witness_data, collect_visualization_data,
-    plot_variant_evidence, save_variant_figures, timestamped_run_directory, variant_directory_name,
+    _genomic_projection,
+    _witness_data,
+    collect_visualization_data,
+    plot_variant_evidence,
+    save_variant_figures,
+    timestamped_run_directory,
+    variant_directory_name,
 )
+
 from .test_translation_regressions import _context, _read
 
 
@@ -85,7 +97,7 @@ def test_reference_predictions_group_sequences_not_transcript_identity(evidence_
 
 def test_protein_order_and_differences_include_flanks_but_not_missing_coverage(evidence_data):
     pytest.importorskip("matplotlib")
-    from isovar.visualization import _protein_disagreements
+    from isovar.visualization import protein_disagreements
 
     data = deepcopy(evidence_data[0])
     for mode in data["modes"]:
@@ -93,7 +105,7 @@ def test_protein_order_and_differences_include_flanks_but_not_missing_coverage(e
                                mutation_end=2, ends_with_stop_codon=False)
     predicted = dict(amino_acids="ACYEF", mutation_start=1, mutation_end=2, ends_with_stop_codon=False)
     data["reference_predictions"] = [dict(transcript_id="TX1", description="p.K2C", protein=predicted)]
-    assert _protein_disagreements([m["protein"] for m in data["modes"]] + [predicted]) == {1}
+    assert protein_disagreements([m["protein"] for m in data["modes"]] + [predicted]) == {1}
     figure = plot_variant_evidence(data, view="protein")
     ax = figure.axes[0]
     labels = {t.get_text(): t.get_position()[1] for t in ax.texts}
@@ -102,7 +114,7 @@ def test_protein_order_and_differences_include_flanks_but_not_missing_coverage(e
     lines = [line for line in ax.lines if line.get_label() == "_protein_difference"]
     assert len(lines) == 3
     assert all(list(line.get_xdata()) == [.6, 1.4] for line in lines)
-    assert _protein_disagreements([dict(predicted, amino_acids="AC", ends_with_stop_codon=True), predicted]) == {1}
+    assert protein_disagreements([dict(predicted, amino_acids="AC", ends_with_stop_codon=True), predicted]) == {1}
 
 
 def test_unannotated_flank_is_not_labeled_as_an_intron(evidence_data):
@@ -362,8 +374,9 @@ def test_missing_transcript_name_still_renders(evidence_data):
 def test_cli_writes_a_timestamped_report(evidence_data, monkeypatch, tmp_path):
     pytest.importorskip("matplotlib")
     from contextlib import nullcontext
-    from isovar.cli import isovar_plot
+
     from isovar import ReadCollector
+    from isovar.cli import isovar_plot
 
     data, variant, evidence = evidence_data
     monkeypatch.setattr(isovar_plot, "variant_collection_from_args", lambda args: [variant])

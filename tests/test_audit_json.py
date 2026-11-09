@@ -1,18 +1,22 @@
 """Streaming must preserve original bytes, values and publication guarantees."""
 
-from copy import deepcopy
 import gzip
-from hashlib import sha256
 import itertools
 import json
 import tracemalloc
+from copy import deepcopy
+from hashlib import sha256
 
 import pytest
 
-from isovar._audit_json import canonical_chunks, comparison_identity, identity, normalize_json
-from isovar.audit_bundle import publish_json
 from examples.sid_sv_audit.inventory import read_json, write_json
-
+from isovar.audit_bundle import publish_json
+from isovar.audit_json import (
+    canonical_chunks,
+    comparison_identity,
+    identity,
+    normalize_json,
+)
 
 VALUES = [None, True, False, 0, -1, 2**100, 0.0, -0.0, 1.0, 1e-200, 1e200,
           "", "quoted\"\\\t\n\x00", "\u00e9\U0001f600\ud800", [], {},

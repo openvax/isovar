@@ -15,6 +15,7 @@ from collections.abc import Mapping
 from itertools import combinations
 from math import exp, lgamma, log, log1p
 
+from .chimeric_alignment import compatible_phasing_alignments
 from .default_parameters import (
     MAX_P_VALUE_FOR_PHASING,
     MIN_SHARED_FRAGMENTS_FOR_PHASING,
@@ -22,7 +23,6 @@ from .default_parameters import (
 )
 from .phase_group import PhaseGroup
 from .read_identity import alignment_constraints, fragment_ids
-from .chimeric_alignment import compatible_phasing_alignments
 from .transcript_edit_helpers import transcript_assembly_edit_sort_key
 
 
@@ -41,23 +41,59 @@ def _binomial_tail(count, trials, rate):
     return min(total, 1.0)
 
 
-def _allele_reads(result, allele):
-    """``result``'s ref/alt/other reads; names for legacy inputs."""
+def reads_for_allele(result, allele):
+    """``result``'s ref/alt/other reads; names for legacy inputs.
+
+    Parameters
+    ----------
+    result : object
+        Read-evidence/result object with allele read attributes.
+    allele : str
+        ref, alt or other.
+
+    Returns
+    -------
+    iterable
+        Original allele observations; legacy name-only inputs retain their existing fallback.
+    """
     reads = getattr(result, allele + "_reads", None)
     if reads is None:
         reads = getattr(result, allele + "_read_names", ())
     return reads
 
 
-def _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing):
+def validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing):
+    """Validate the global phasing error and significance probabilities.
+
+    Parameters
+    ----------
+    phasing_error_rate, max_p_value_for_phasing : float
+        Probabilities strictly between zero and one.
+
+    Returns
+    -------
+    None
+        Raises ValueError for a value outside the open unit interval.
+    """
     for name, value in (("phasing_error_rate", phasing_error_rate),
                         ("max_p_value_for_phasing", max_p_value_for_phasing)):
         if not 0 < value < 1:
             raise ValueError("%s must be between 0 and 1, not %r" % (name, value))
 
 
-def _validate_locus_error_rates(error_rates):
-    """Copy externally calibrated (ref-to-alt, alt-to-ref) probabilities."""
+def validate_locus_error_rates(error_rates):
+    """Copy externally calibrated (ref-to-alt, alt-to-ref) probabilities.
+
+    Parameters
+    ----------
+    error_rates : mapping or None
+        Variants to (ref-to-alt, alt-to-ref) calibrated error probabilities.
+
+    Returns
+    -------
+    dict
+        Validated copy of the supplied rates; None becomes an empty mapping.
+    """
     if error_rates is not None and not isinstance(error_rates, Mapping):
         raise ValueError("phasing_error_rates must be a mapping from variants to rate pairs")
     result = {}
@@ -73,17 +109,52 @@ def _validate_locus_error_rates(error_rates):
     return result
 
 
-def _locus_error_rates(variant, error_rates, floor):
+def locus_error_rates(variant, error_rates, floor):
+    """Resolve two directional locus error rates with an explicit floor.
+
+    Parameters
+    ----------
+    variant : varcode.Variant
+        Literal allele and its declared reference identity.
+    error_rates : mapping
+        Validated variant-specific error pairs.
+    floor : float
+        Minimum probability used for either direction and for missing loci.
+
+    Returns
+    -------
+    tuple[float, float]
+        Ref-to-alt and alt-to-ref rates, each at least the floor.
+    """
     return tuple(max(floor, rate) for rate in error_rates.get(variant, (floor, floor)))
 
 
-def _four_gamete(
+def assess_four_gamete(
         both, first, second, neither,
         min_shared_fragments_for_phasing=MIN_SHARED_FRAGMENTS_FOR_PHASING,
         phasing_error_rate=PHASING_ERROR_RATE,
         max_p_value_for_phasing=MAX_P_VALUE_FOR_PHASING,
         first_error_rates=None, second_error_rates=None):
-    """Cis, trans or ``None`` for two variants in the run, from their fragment table."""
+    """Cis, trans or ``None`` for two variants in the run, from their fragment table.
+
+    Parameters
+    ----------
+    both, first, second, neither : int
+        Unambiguous original-fragment counts for ALT/ALT, ALT/REF, REF/ALT and REF/REF.
+    min_shared_fragments_for_phasing : int
+        Minimum fragments for an observed combination.
+    phasing_error_rate : float
+        Default directional observation error probability.
+    max_p_value_for_phasing : float
+        Maximum binomial-tail probability accepted as evidence.
+    first_error_rates, second_error_rates : tuple[float, float], optional
+        Directional locus-specific (ref-to-alt, alt-to-ref) rates.
+
+    Returns
+    -------
+    bool or None
+        True for supported cis, False for trans, None for unresolved evidence.
+    """
     first_ra, first_ar = first_error_rates or (phasing_error_rate,) * 2
     second_ra, second_ar = second_error_rates or (phasing_error_rate,) * 2
 
@@ -105,7 +176,19 @@ def _four_gamete(
     return None
 
 
-def _variant_sort_key(variant):
+def variant_order_key(variant):
+    """Return the deterministic literal-allele ordering key.
+
+    Parameters
+    ----------
+    variant : varcode.Variant
+        Literal allele and its declared reference identity.
+
+    Returns
+    -------
+    tuple
+        Contig, start, REF and ALT, without changing coordinates or normalizing alleles.
+    """
     return (
         variant.contig,
         variant.start,
@@ -130,9 +213,22 @@ def create_variant_to_top_protein_sequence_dict(isovar_results):
     }
 
 
-def _phasing_support(variant_to_reads):
+def phasing_support(variant_to_reads):
     """Build pairwise edges from compatible observations, once per fragment.
 
+    Parameters
+    ----------
+    variant_to_reads : mapping
+        Variant/hypothesis keys to original read observations.
+
+    Returns
+    -------
+    tuple[dict, dict]
+        Symmetric pairwise sets of compatible original fragments and a separate
+        fragment-to-display-name mapping; display names never replace scoped identity.
+
+    Notes
+    -----
     Alternative observations are hypotheses, not simultaneous constraints.
     A pair needs at least one jointly compatible choice. Reuse the assembly
     rule for linear placements and complementary mates. Different placements
@@ -165,10 +261,23 @@ def _phasing_support(variant_to_reads):
     return support, names_by_id
 
 
-def _allele_table(v1, reads1, v2, reads2):
-    """Unambiguous fragment counts: both alt, first only, second only, neither."""
-    support, _ = _phasing_support({
-        (allele, variant): _allele_reads(reads, allele)
+def allele_fragment_table(v1, reads1, v2, reads2):
+    """Unambiguous fragment counts: both alt, first only, second only, neither.
+
+    Parameters
+    ----------
+    v1, v2 : hashable
+        Distinct variant identities.
+    reads1, reads2 : object
+        Corresponding ref/alt/other read-evidence collections.
+
+    Returns
+    -------
+    tuple[int, int, int, int]
+        Unambiguous ALT/ALT, ALT/REF, REF/ALT and REF/REF fragment counts.
+    """
+    support, _ = phasing_support({
+        (allele, variant): reads_for_allele(reads, allele)
         for variant, reads in ((v1, reads1), (v2, reads2)) for allele in ("alt", "ref", "other")
     })
     cells = {(a, b): support[(a, v1)].get((b, v2), set())
@@ -199,7 +308,7 @@ def _phase_annotations(
     When supplied, ``in_cis`` must confirm each edge against the complete
     reference/alternate allele evidence.
     """
-    support, names_by_id = _phasing_support(variant_to_reads)
+    support, names_by_id = phasing_support(variant_to_reads)
     phased_neighbors = {
         variant: {other for other, ids in support[variant].items()
                   if len(ids) >= min_shared_fragments_for_phasing
@@ -209,7 +318,7 @@ def _phase_annotations(
 
     visited = set()
     variant_to_phase_group = {}
-    for variant in sorted(variant_to_reads, key=_variant_sort_key):
+    for variant in sorted(variant_to_reads, key=variant_order_key):
         if variant in visited:
             continue
 
@@ -261,12 +370,12 @@ def _phase_annotations(
             unexplained_transcript_edits.update(categorized_edits["unexplained"])
 
         phase_group = PhaseGroup(
-            somatic_variants=tuple(sorted(component, key=_variant_sort_key)),
+            somatic_variants=tuple(sorted(component, key=variant_order_key)),
             # Germline variants whose edits the group's assemblies contain.
             germline_variants=tuple(sorted(
                 {edit.source_variant for edit in known_germline_transcript_edits
                  if edit.source_variant is not None},
-                key=_variant_sort_key)),
+                key=variant_order_key)),
             supporting_read_names=supporting_read_names,
             cdna_sequences=tuple(sorted(cdna_sequences)),
             mutant_protein_sequences=tuple(sorted(mutant_protein_sequences)),
@@ -350,8 +459,8 @@ def annotate_phased_variants(
     list of IsovarResult
     """
 
-    _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
-    phasing_error_rates = _validate_locus_error_rates(phasing_error_rates)
+    validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
+    phasing_error_rates = validate_locus_error_rates(phasing_error_rates)
     unphased_isovar_results = tuple(unphased_isovar_results)
     # Assess every pair against the full allele evidence, including reference
     # reads. Selecting only protein-supporting reads would discard the error
@@ -362,13 +471,13 @@ def annotate_phased_variants(
     def in_cis(v1, v2):
         key = frozenset((v1, v2))
         if key not in calls:
-            calls[key] = _four_gamete(
-                *_allele_table(v1, by_variant[v1], v2, by_variant[v2]),
+            calls[key] = assess_four_gamete(
+                *allele_fragment_table(v1, by_variant[v1], v2, by_variant[v2]),
                 min_shared_fragments_for_phasing=min_shared_fragments_for_phasing,
                 phasing_error_rate=phasing_error_rate,
                 max_p_value_for_phasing=max_p_value_for_phasing,
-                first_error_rates=_locus_error_rates(v1, phasing_error_rates, phasing_error_rate),
-                second_error_rates=_locus_error_rates(v2, phasing_error_rates, phasing_error_rate))
+                first_error_rates=locus_error_rates(v1, phasing_error_rates, phasing_error_rate),
+                second_error_rates=locus_error_rates(v2, phasing_error_rates, phasing_error_rate))
         return calls[key] is True
 
     settings = dict(

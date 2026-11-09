@@ -1,19 +1,24 @@
 """Versioned gene nomination and shared antigen reference preparation."""
 
+import json
+import warnings
 from collections.abc import Iterable
 from dataclasses import dataclass
 from importlib.metadata import version
-import json
 from pathlib import Path
 from typing import Any
-import warnings
 
 import pysam
 from pyensembl import Genome
 
 from .antigen_reference import (
-    GDC_REFERENCE, IsoformTarget, _annotation_cache, gdc_genome,
-    isoform_targets_from_genome, reference_file_identity, validate_alignment_reference,
+    GDC_REFERENCE,
+    IsoformTarget,
+    annotation_cache,
+    gdc_genome,
+    isoform_targets_from_genome,
+    reference_file_identity,
+    validate_alignment_reference,
 )
 
 CTA_GENE_SET = "oncoref-cta"
@@ -152,7 +157,7 @@ def prepare_antigen_reference(
         genome = Genome(assembly, annotation_name, annotation_version,
                         gtf_path_or_url=str(Path(gtf).expanduser().resolve()),
                         genome_fasta_path_or_url=str(Path(genome_fasta).expanduser().resolve()),
-                        cache_directory_path=_annotation_cache(gtf, directory=reference_cache))
+                        cache_directory_path=annotation_cache(gtf, directory=reference_cache))
     else:
         raise ValueError("Unknown alignment reference profile: %r" % alignment_reference)
     with genome:

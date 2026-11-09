@@ -1,16 +1,17 @@
 """A completed reconstruction is not a successfully exported result."""
 
 import json
-from pathlib import Path
 import signal
 import socket
 import time
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
+import isovar.sv_rna_stream as sv_rna_stream
 from examples import benchmark_dense_sv as driver
-from isovar import rna_library, sv_rna_dense, sv_rna_stream
+from isovar import rna_library, sv_rna_dense
 from isovar.sid_audit_bundle import bundle_sid_audit
 from tests.test_audit_bundle import original_sid_audit
 
@@ -43,7 +44,7 @@ def test_resource_guard_covers_export_and_marks_partial_results(tmp_path, reques
     # main deliberately installs process-local instrumentation and offline
     # guards; restore these when exercising it inside the test process.
     for obj, names in ((socket, ('create_connection',)), (socket.socket, ('connect',)),
-                       (rna_library, ('prepare_rna_library',)), (sv_rna_dense, ('_select', '_support')), (sv_rna_stream._SupportStream, ('consume',))):
+                       (rna_library, ('prepare_rna_library',)), (sv_rna_dense, ('_select', '_support')), (sv_rna_stream.SvSupportStream, ('consume',))):
         for name in names:
             monkeypatch.setattr(obj, name, getattr(obj, name))
     previous = signal.getsignal(signal.SIGALRM)

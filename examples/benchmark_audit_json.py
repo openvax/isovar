@@ -8,18 +8,18 @@ itself add substantial memory. Input bytes are always checksum-pinned.
 import argparse
 import gc
 import gzip
-from hashlib import sha256
 import json
-from pathlib import Path
 import resource
 import sys
 import tempfile
 import time
 import tracemalloc
+from hashlib import sha256
+from pathlib import Path
 
-from isovar._audit_json import canonical, identity, normalize_json
-from isovar.audit_bundle import digest
 from examples.sid_sv_audit.inventory import read_json, write_json
+from isovar.audit_bundle import digest
+from isovar.audit_json import canonical, identity, normalize_json
 
 
 def main():

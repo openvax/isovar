@@ -1,14 +1,17 @@
 """Observed intronic paths must retain frame/allele uncertainty on both strands."""
 
-from dataclasses import FrozenInstanceError, asdict, replace
 import pickle
+from dataclasses import FrozenInstanceError, asdict, replace
 
 import pytest
 
 from isovar.fusion import FusionReference
+from isovar.rna_path_geometry import next_position
 from isovar.transcript_path_frames import (
-    TranscriptPathModel, assess_transcript_path, exact_anchor_runs,
-    next_position, retained_intron_departures,
+    TranscriptPathModel,
+    assess_transcript_path,
+    exact_anchor_runs,
+    retained_intron_departures,
 )
 
 

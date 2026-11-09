@@ -1,9 +1,9 @@
 """Offline regressions using original public RNA alignments, not simulated reads."""
 
-from collections import Counter
 import gzip
-from hashlib import sha256
 import json
+from collections import Counter
+from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -17,7 +17,6 @@ from isovar.variant_helpers import base0_interval_for_variant, trim_variant
 from isovar.variant_sequence_creator import VariantSequenceCreator
 
 from .real_rna_helpers import cigar_observation, record_digest
-
 
 DATA = Path(__file__).parent / "data" / "real_rna"
 MANIFEST = json.loads((DATA / "manifest.json").read_text())
@@ -245,8 +244,8 @@ def test_real_splice_skip_is_not_deletion_evidence(name, alignments):
 
 @pytest.mark.parametrize("name,record", [(n, v) for n, v in CASES if len(v["ref"]) == len(v["alt"]) == 1])
 def test_partial_fragment_budget_matches_independent_real_snv_ledger(name, record, alignments):
-    from isovar.protein_hypotheses import _EvidenceSets
     from isovar.rna_candidate_support import score_fragments
+    from isovar.rna_evidence import ScopedEvidenceSets
 
     expected_observations = {o["record"]: o for o in record["observations"]}
     fragments = {}
@@ -268,7 +267,7 @@ def test_partial_fragment_budget_matches_independent_real_snv_ledger(name, recor
     # CIGAR ledger; it makes no claim about the remainder of a transcript/ORF.
     transcripts = {"alt": [SimpleNamespace(id="local", exon_intervals=[(1, 1_000_000_000)])]}
     scored = score_fragments(reads.ref_reads + reads.alt_reads + reads.other_reads, catalog, transcripts,
-                             record["ref"], _EvidenceSets([name, "fixture"], BaseQualityPolicy(20)),
+                             record["ref"], ScopedEvidenceSets([name, "fixture"], BaseQualityPolicy(20)),
                              min_overlap=1, max_edits=0)
     assert scored["input_fragments"] == len(fragments)
     assert scored["scored_fragments"] == len(expected)

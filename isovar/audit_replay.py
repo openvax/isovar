@@ -6,11 +6,12 @@ from pathlib import Path
 import pysam
 
 from .audit_bundle import AuditBundleError, identity, publish_json, software_identity
-from ._audit_json import comparison_identity, expected_json_identity, normalize_json
-from ._audit_json_reader import read_json_stream
-from ._audit_checkpoint import NonCanonicalCheckpoint, checkpoint_summary
+from .audit_checkpoint import NonCanonicalCheckpoint, checkpoint_summary
+from .audit_json import comparison_identity, expected_json_identity, normalize_json
+from .audit_json_reader import read_json_stream
 from .read_collector import ReadCollector
 from .sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
+
 __all__ = ["replay_sv_rna"]
 
 
@@ -24,34 +25,6 @@ def _expected_identity(path):
     path = Path(path)
     with gzip.open(path, "rt") if path.suffix == ".gz" else path.open() as handle:
         return expected_json_identity(handle)
-
-
-def replay_sv_rna(bundle, run_id, output_directory, *, allow_software_change=False, scratch_dir=None):
-    """Reconstruct one frozen SV view, compare its result and safely resume.
-
-    Parameters
-    ----------
-    bundle : AuditBundle
-        Verified local files and a ``metadata.sv_rna_runs`` plan dictionary.
-    run_id : str
-        Exact source/event/orientation run identifier in that dictionary.
-    output_directory : path-like
-        Checkpoint directory, outside the immutable bundle. Existing matching
-        checkpoints are reused only after their content is verified.
-    allow_software_change : bool
-        Permit a different engine/dependency identity. The frozen result must
-        still match; a changed implementation is never silently accepted.
-    scratch_dir : path-like, optional
-        Disposable scratch storage for the existing dense reconstruction engine.
-
-    Returns
-    -------
-    dict
-        Checkpoint containing request, full reconstruction, result checksum and
-        comparison. A mismatch raises AuditBundleError and retains its checkpoint.
-    """
-    return _replay_sv_rna(bundle, run_id, output_directory, include_result=True,
-                          allow_software_change=allow_software_change, scratch_dir=scratch_dir)
 
 
 def _resume_summary(path, request, expected):
@@ -72,8 +45,33 @@ def _resume_summary(path, request, expected):
     return checkpoint
 
 
-def _replay_sv_rna(bundle, run_id, output_directory, *, include_result, allow_software_change=False, scratch_dir=None):
-    """Share replay gates between the full API and the summary-only CLI."""
+def replay_sv_rna(bundle, run_id, output_directory, *, include_result=True, allow_software_change=False, scratch_dir=None):
+    """Reconstruct one frozen SV view, compare its result and safely resume.
+
+    Parameters
+    ----------
+    bundle : AuditBundle
+        Verified local files and a ``metadata.sv_rna_runs`` plan dictionary.
+    run_id : str
+        Exact source/event/orientation run identifier in that dictionary.
+    output_directory : path-like
+        Checkpoint directory, outside the immutable bundle. Existing matching
+        checkpoints are reused only after their content is verified.
+    allow_software_change : bool
+        Permit a different engine/dependency identity. The frozen result must
+        still match; a changed implementation is never silently accepted.
+    scratch_dir : path-like, optional
+        Disposable scratch storage for the existing dense reconstruction engine.
+    include_result : bool, optional
+        Include the full reconstruction in the returned checkpoint (default True).
+        False returns the verified summary without materializing a cached result.
+
+    Returns
+    -------
+    dict
+        Checkpoint containing request, optional reconstruction, result checksum and
+        comparison. A mismatch raises AuditBundleError and retains its checkpoint.
+    """
     bundle.verify()
     plans = bundle.manifest["metadata"].get("sv_rna_runs", {})
     if not isinstance(plans, dict):

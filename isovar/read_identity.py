@@ -6,6 +6,8 @@ IDs are (reference ID, reference start, CIGAR, reverse strand). Legacy
 caller-created reads without this metadata retain their original semantics.
 """
 
+from hashlib import sha256
+
 
 def read_group(read):
     """SAM read group of a pysam record, or "" when it has no RG tag."""
@@ -125,3 +127,20 @@ def read_sort_key(read):
             getattr(read, "name", read if isinstance(read, str) else ""),
             getattr(read, "prefix", ""), getattr(read, "allele", ""),
             getattr(read, "suffix", ""))
+
+
+def sam_record_id(read):
+    """Hash one original SAM payload independently of header contig ordering.
+
+    Parameters
+    ----------
+    read : pysam.AlignedSegment
+        Original alignment payload.
+
+    Returns
+    -------
+    str
+        SHA-256 of the SAM text. This is record provenance, not a segment,
+        fragment or molecule identity; use segment_identity for counting.
+    """
+    return sha256(read.to_string().encode()).hexdigest()

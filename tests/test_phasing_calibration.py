@@ -7,13 +7,14 @@ from varcode import Variant
 
 from isovar.allele_read import AlleleRead
 from isovar.cli.isovar_calibrate_phasing import run as run_calibration
-from isovar.phasing import _four_gamete
+from isovar.phasing import assess_four_gamete
 from isovar.phasing_calibration import (
-    PhasingControl, calibrate_phasing_error_rates, one_sided_error_bound,
+    PhasingControl,
+    calibrate_phasing_error_rates,
+    one_sided_error_bound,
 )
 from isovar.read_evidence import ReadEvidence
 from isovar.variant_helpers import trim_variant
-
 
 META = dict(platform="ONT", basecaller="dorado-1", library="PCR-free-RNA",
             biological_context="osteosarcoma", reference="GRCh38", context="AAAAAA")
@@ -50,8 +51,8 @@ def test_exact_bound_and_directional_control_rates_change_wrong_definite_call():
     assert result.report[0]["wrong"] == 10
     assert result.report[0]["other"] == 12
     assert result.profile_rows()[0]["ref_to_alt"] == ref_to_alt
-    assert _four_gamete(3, 47, 2, 48, phasing_error_rate=0.01) is True
-    assert _four_gamete(3, 47, 2, 48, first_error_rates=result.rates[variant],
+    assert assess_four_gamete(3, 47, 2, 48, phasing_error_rate=0.01) is True
+    assert assess_four_gamete(3, 47, 2, 48, first_error_rates=result.rates[variant],
                         second_error_rates=result.rates[variant]) is None
     assert one_sided_error_bound(0, 100) == pytest.approx(1 - 0.05 ** .01)
 
@@ -74,11 +75,11 @@ def test_mixed_groups_take_worst_bound_and_deduplicate_ambiguous_fragments():
     assert result.report[0]["callable"] == 100
     assert result.report[0]["confidence"] == pytest.approx(0.9875)
     assert {row["read_group"] for row in result.report} == {"rg1", "rg2"}
-    assert _four_gamete(4, 48, 1, 47, phasing_error_rate=0.01) is True
-    assert _four_gamete(4, 48, 1, 47, first_error_rates=result.rates[variant],
+    assert assess_four_gamete(4, 48, 1, 47, phasing_error_rate=0.01) is True
+    assert assess_four_gamete(4, 48, 1, 47, first_error_rates=result.rates[variant],
                         second_error_rates=result.rates[variant]) is None
-    assert _four_gamete(1, 3, 33, 63, phasing_error_rate=0.01) is False
-    assert _four_gamete(1, 3, 33, 63, first_error_rates=result.rates[variant],
+    assert assess_four_gamete(1, 3, 33, 63, phasing_error_rate=0.01) is False
+    assert assess_four_gamete(1, 3, 33, 63, first_error_rates=result.rates[variant],
                         second_error_rates=result.rates[variant]) is None
 
 

@@ -1,12 +1,20 @@
 """Import existing Sid audit evidence into the public portable bundle format."""
 
-from copy import deepcopy
-from pathlib import Path
 import re
 import tempfile
+from copy import deepcopy
+from pathlib import Path
 
-from .audit_bundle import AuditBundle, AuditBundleError, _name, digest, identity, publish_json
+from .audit_bundle import (
+    AuditBundle,
+    AuditBundleError,
+    digest,
+    identity,
+    publish_json,
+    validate_relative_bundle_path,
+)
 from .audit_replay import read_json
+
 __all__ = ["bundle_sid_audit"]
 
 
@@ -114,7 +122,7 @@ def bundle_sid_audit(directory, destination, *, extra_files=None, copy_method="c
         if not isinstance(pins, dict):
             raise AuditBundleError("Invalid audit checksum map: " + str(path))
         for name, checksum in pins.items():
-            _name(name)
+            validate_relative_bundle_path(name)
             if not (directory / name).resolve().is_relative_to(directory):
                 raise AuditBundleError("Audit checksum path escapes its directory: " + name)
             if not isinstance(checksum, str) or not re.fullmatch("[0-9a-f]{64}", checksum):

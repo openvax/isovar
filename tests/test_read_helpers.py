@@ -10,16 +10,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+from varcode import Variant
+
 from isovar import ReadCollector
 from isovar.allele_read import AlleleRead
-from isovar.allele_read_helpers import group_unique_sequences, get_single_allele_from_reads
-
-from varcode import Variant
-import pytest
+from isovar.allele_read_helpers import (
+    get_single_allele_from_reads,
+    group_unique_sequences,
+)
 
 from .common import eq_
 from .testing_helpers import load_bam
-
 
 
 def test_group_unique_sequences():

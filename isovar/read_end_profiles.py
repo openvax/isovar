@@ -1,20 +1,22 @@
 """Explicit, versioned library profiles for shared technical-sequence inference."""
 
+import json
 from dataclasses import asdict, dataclass
 from functools import cached_property
 from hashlib import sha256
-import json
 from pathlib import Path
 from typing import Any, Literal, Mapping
 
 import pysam
 
-from ._file_identity import file_sha256
 from .default_parameters import (
-    READ_END_WINDOW, MIN_ADAPTER_OVERLAP, MAX_ADAPTER_ERROR_RATE,
-    MIN_POLY_A_LENGTH, MAX_POLY_A_ERROR_RATE,
+    MAX_ADAPTER_ERROR_RATE,
+    MAX_POLY_A_ERROR_RATE,
+    MIN_ADAPTER_OVERLAP,
+    MIN_POLY_A_LENGTH,
+    READ_END_WINDOW,
 )
-
+from .file_identity import file_sha256
 
 TechnicalRole = Literal['adapter', 'primer', 'linker']
 
