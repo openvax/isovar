@@ -675,7 +675,7 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
         panels.append(lambda ax: _transcript_panel(ax, data, max_rows, rectangle))
     with rc_context({"font.family": "DejaVu Sans", "font.size": 12, "text.color": INK,
                      "axes.labelcolor": INK, "svg.fonttype": "none", "axes.formatter.useoffset": False}):
-        height = sum(heights) + 1.7 + .7 * (len(panels) - 1)
+        height = sum(heights) + 1.95 + .7 * (len(panels) - 1)
         figure = Figure(figsize=(PLOT_WIDTH, height), facecolor="white")
         axes = figure.subplots(len(panels), 1, squeeze=False, gridspec_kw={"height_ratios": heights})[:, 0]
         for name, draw, ax in zip(names, panels, axes):
@@ -704,10 +704,10 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
             note = ("Focal RNA: ALT %d/%d fragments (REF %d; other %d) | ALT %d/%d original reads" %
                     (alt["fragments"], total["fragments"], ref["fragments"], other["fragments"],
                      alt["reads"], total["reads"]))
-            figure.text(.17, 1 - .72 / height, note, fontsize=9, color=GRAY)
+            figure.text(.17, 1 - .65 / height, note, fontsize=9, color=GRAY)
         if view not in {"coverage", "protein", "all"}:
             figure.text(.815, 1 - .7 / height, "Orange: mutation", fontsize=10, color=ORANGE)
-        figure.subplots_adjust(left=.17, right=.79, top=1 - 1.05 / height, bottom=.65 / height, hspace=.5)
+        figure.subplots_adjust(left=.17, right=.79, top=1 - 1.3 / height, bottom=.65 / height, hspace=.5)
     return figure
 
 

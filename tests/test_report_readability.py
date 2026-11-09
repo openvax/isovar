@@ -44,6 +44,21 @@ def test_transcript_cap_keeps_supported_then_focal_exon_models(evidence_data):
     assert data['transcripts'][0]['id'] == 'blank-0'
 
 
+@pytest.mark.parametrize('view', ['all', 'protein', 'transcripts'])
+def test_allele_counts_do_not_overlap_the_first_panel_title(evidence_data, view):
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.text import Text
+
+    figure = plot_variant_evidence(evidence_data[0], view=view)
+    canvas = FigureCanvasAgg(figure)
+    canvas.draw()
+    note, = [text for text in figure.texts if text.get_text().startswith('Focal RNA:')]
+    axis = figure.axes[0]
+    title, = [text for text in axis.get_children()
+              if isinstance(text, Text) and text.get_text() == axis.get_title(loc='left')]
+    assert title.get_window_extent(canvas.get_renderer()).y1 < note.get_window_extent(canvas.get_renderer()).y0
+
+
 def test_plot_selects_one_loaded_variant_before_collecting_rna(evidence_data, monkeypatch, tmp_path):
     from contextlib import nullcontext
     from isovar.cli import isovar_plot
