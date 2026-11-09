@@ -17,6 +17,7 @@ new read identity or silently reinterpret another workflow's count.
 | `rna_path_geometry` | Query-to-genome placements, collinear runs, overlap routing and geometric spans |
 | `rna_path_assembly` | Exact overlap extension with consistent original-segment choices |
 | `rna_reconstruction` | Bounded path discovery and complete-input support for fixed candidates |
+| `rna_feature_measurement`, `rna_feature_support` | Explicit local-feature read/fragment measurements and optional opportunity normalization |
 | `transcript_path_frames` | Conditional coding frames on observed paths, without reference-filled sequence |
 
 The shared engine does not import the SV, CTA or viral adapters. SV acquisition,
@@ -111,6 +112,16 @@ original identities when combining evidence. Different original libraries remain
 separate; reused processing views are not independent replication. Unmeasured,
 unavailable and measured-zero outcomes remain distinct.
 
+`measure_rna_path_features` measures explicitly defined local features on a
+supplied path through these same original-library, observation and placement
+contracts. Its local exact runs intentionally differ from whole-overlap path
+matching: mismatches outside the requested feature do not reject local support.
+The declared fragment rule determines whether mates may jointly cover required
+bases. See [common RNA feature support](../RNA_FEATURE_SUPPORT.md) for the public
+`RNAFeature` model, fragment rules and optional sampling opportunities. Neither
+an effective length nor a whole-library denominator is inferred from a regional
+input. Existing native path measurements retain their original predicates.
+
 ## Coordinates, placement choices and cache ownership
 
 - A `Position` is `(contig, zero_based_base, strand)`. `None` means an observed
@@ -136,6 +147,7 @@ unavailable and measured-zero outcomes remain distinct.
 ## Related contracts
 
 - [Read collection and RNA support records](read-collection.md)
+- [Local feature measurements and normalization](../RNA_FEATURE_SUPPORT.md)
 - [Coding-window coverage and protein hypotheses](protein-hypotheses.md)
 - [Literal-allele RNA paths](variant-rna-paths.md)
 - [SV reconstruction and junction evidence](sv-rna.md)

@@ -19,6 +19,7 @@ from typing import Any, Iterable
 
 from .rna_evidence import content_identifier
 from .rna_path_linkage import OriginalPathMatch
+from .rna_path_geometry import merge_intervals
 
 
 SCHEMA = "isovar.rna_feature_support.v1"
@@ -168,18 +169,8 @@ class RNASamplingProfile:
         return cls(**value)
 
 
-def _merge(intervals):
-    merged = []
-    for start, end in sorted(intervals):
-        if merged and start <= merged[-1][1]:
-            merged[-1] = (merged[-1][0], max(end, merged[-1][1]))
-        else:
-            merged.append((start, end))
-    return merged
-
-
 def _accepts(observed, feature):
-    observed = _merge(observed)
+    observed = merge_intervals(observed)
     covered = [any(start <= low and end >= high for start, end in observed)
                for low, high in feature.intervals]
     return all(covered) if feature.mode == "all" else any(covered)
