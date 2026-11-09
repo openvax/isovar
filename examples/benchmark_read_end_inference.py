@@ -2,15 +2,15 @@
 
 import argparse
 from dataclasses import asdict
-from pathlib import Path
 from importlib.metadata import version
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import perf_counter
 
 import pysam
 
-from isovar import __version__, Adapter, ReadEndProfile, ReadEndInferenceCache, sid_data
-from isovar._file_identity import file_sha256
+from isovar import Adapter, ReadEndInferenceCache, ReadEndProfile, __version__, sid_data
+from isovar.file_identity import file_sha256
 from isovar.read_end_inference import read_sequence_view_from_alignment
 from isovar.sv_rna_audit import write_json
 

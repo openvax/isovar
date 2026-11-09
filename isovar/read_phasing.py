@@ -75,14 +75,14 @@ from .default_parameters import (
 )
 from .isovar_result_provider import IsovarResultProvider
 from .phasing import (
-    _allele_table,
-    _allele_reads,
-    _phasing_support,
-    _locus_error_rates,
-    _validate_locus_error_rates,
-    _four_gamete,
-    _validate_phasing_rates,
-    _variant_sort_key,
+    allele_fragment_table,
+    assess_four_gamete,
+    locus_error_rates,
+    phasing_support,
+    reads_for_allele,
+    validate_locus_error_rates,
+    validate_phasing_rates,
+    variant_order_key,
 )
 
 
@@ -177,8 +177,8 @@ class IsovarReadPhasing(IsovarResultProvider):
         min_shared_fragments_for_phasing = settings["min_shared_fragments_for_phasing"]
         phasing_error_rate = settings["phasing_error_rate"]
         max_p_value_for_phasing = settings["max_p_value_for_phasing"]
-        self.phasing_error_rates = _validate_locus_error_rates(settings["phasing_error_rates"])
-        _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
+        self.phasing_error_rates = validate_locus_error_rates(settings["phasing_error_rates"])
+        validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
         self._rephase = any(
             requested[name] is not None and requested[name] != s.get(name, defaults[name])
             for s in (stored or [{}]) for name in defaults)
@@ -222,11 +222,11 @@ class IsovarReadPhasing(IsovarResultProvider):
         partners = result.phased_variants_in_supporting_reads
         if self._rephase:
             if self._partner_support is None:
-                self._partner_support, _ = _phasing_support({
-                    v: _allele_reads(r, "alt") for v, r in self._by_variant.items()})
+                self._partner_support, _ = phasing_support({
+                    v: reads_for_allele(r, "alt") for v, r in self._by_variant.items()})
             partners = (other for other in self._partner_support[variant]
                         if self.in_cis(variant, other) is True)
-        return tuple(sorted(partners, key=_variant_sort_key))
+        return tuple(sorted(partners, key=variant_order_key))
 
     def in_cis(self, v1, v2, transcript=None):
         """
@@ -278,7 +278,7 @@ class IsovarReadPhasing(IsovarResultProvider):
         ``transcript`` is accepted for varcode's phase-resolver interface;
         the evidence does not depend on the isoform.
         """
-        key = tuple(sorted((v1, v2), key=_variant_sort_key))
+        key = tuple(sorted((v1, v2), key=variant_order_key))
         if key not in self._calls:
             self._calls[key] = self._in_cis(v1, v2)
         return self._calls[key]
@@ -289,19 +289,19 @@ class IsovarReadPhasing(IsovarResultProvider):
         if r1 is None and r2 is None:
             return None
         if r1 is not None and r2 is not None:
-            return _four_gamete(
-                *_allele_table(v1, r1, v2, r2),
+            return assess_four_gamete(
+                *allele_fragment_table(v1, r1, v2, r2),
                 min_shared_fragments_for_phasing=self.min_shared_fragments_for_phasing,
                 phasing_error_rate=self.phasing_error_rate,
                 max_p_value_for_phasing=self.max_p_value_for_phasing,
-                first_error_rates=_locus_error_rates(v1, self.phasing_error_rates, self.phasing_error_rate),
-                second_error_rates=_locus_error_rates(v2, self.phasing_error_rates, self.phasing_error_rate))
+                first_error_rates=locus_error_rates(v1, self.phasing_error_rates, self.phasing_error_rate),
+                second_error_rates=locus_error_rates(v2, self.phasing_error_rates, self.phasing_error_rate))
         result, germline = (r1, v2) if r2 is None else (r2, v1)
         evidence = (getattr(result, "germline_read_evidence", None) or {}).get(germline)
         call = None
         if evidence is not None:
             # Only the somatic alt allele's fragments: with the germline alt allele, or its reference.
-            cis, trans = _allele_table(result.variant, result, germline, evidence)[:2]
+            cis, trans = allele_fragment_table(result.variant, result, germline, evidence)[:2]
             call = self._decide(cis, trans)
         in_protein = germline in getattr(result, "germline_variants_in_top_protein_sequence", ())
         if in_protein:

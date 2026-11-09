@@ -18,18 +18,22 @@ import json
 
 from varcode import Variant
 
+from ..default_parameters import MAX_P_VALUE_FOR_PHASING, PHASING_ERROR_RATE
 from ..main import run_isovar
-from ..default_parameters import PHASING_ERROR_RATE, MAX_P_VALUE_FOR_PHASING
-from ..phasing import _validate_locus_error_rates, _validate_phasing_rates
-
+from ..phasing import validate_locus_error_rates, validate_phasing_rates
+from .filter_args import add_filter_args, filter_threshold_dict_from_args
 from .protein_sequence_args import (
     make_protein_sequences_arg_parser,
-    protein_sequence_creator_from_args
+    protein_sequence_creator_from_args,
 )
-from .filter_args import add_filter_args, filter_threshold_dict_from_args
-from .rna_args import read_collector_from_args, alignment_file_from_args
+from .rna_args import alignment_file_from_args, read_collector_from_args
 from .validation import (
-    CommandInputError, germline_variants_from_args, open_fraction, variant_collection_from_args)
+    CommandInputError,
+    germline_variants_from_args,
+    open_fraction,
+    variant_collection_from_args,
+)
+
 
 def make_isovar_arg_parser(**kwargs):
     """
@@ -98,7 +102,7 @@ def _phasing_error_rates_from_args(args, variants):
             raise CommandInputError("--phasing-error-rates row %d repeats %s" % (number, variant))
         rates[variant] = pair
     try:
-        return _validate_locus_error_rates(rates)
+        return validate_locus_error_rates(rates)
     except ValueError as error:
         raise CommandInputError("--phasing-error-rates: %s" % error) from None
 
@@ -107,7 +111,7 @@ def phasing_parameters_from_args(args, variants):
     """Validated phasing keywords for Isovar and downstream CLI callers."""
     rate = getattr(args, "phasing_error_rate", PHASING_ERROR_RATE)
     alpha = getattr(args, "max_p_value_for_phasing", MAX_P_VALUE_FOR_PHASING)
-    _validate_phasing_rates(rate, alpha)
+    validate_phasing_rates(rate, alpha)
     return dict(phasing_error_rate=rate, max_p_value_for_phasing=alpha,
                 phasing_error_rates=_phasing_error_rates_from_args(args, variants))
 

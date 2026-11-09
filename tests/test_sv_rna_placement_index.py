@@ -1,11 +1,13 @@
+
 import random
 from types import SimpleNamespace
 
 import pytest
 
-from isovar.sv_rna import _merge
+import isovar.sv_rna_witnesses as sv_rna_witnesses
+from isovar.rna_path_geometry import merge_intervals
 from isovar.sv_rna_dense import _overlaps_placements
-from isovar.sv_rna_orfs import _PlacementIndex, _witnesses
+from isovar.sv_rna_witnesses import PlacementCompatibility, junction_interval_witnesses
 
 
 def test_run_placement_comparison_matches_literal_per_base_rule():
@@ -23,7 +25,7 @@ def test_run_placement_comparison_matches_literal_per_base_rule():
     for case in range(250):
         own = positions()
         other = (None,) * 4 + own + (None,) * 3 if case % 2 else positions()
-        left, right = _PlacementIndex(own), _PlacementIndex(other)
+        left, right = PlacementCompatibility(own), PlacementCompatibility(other)
         for shift in (-7, -3, 0, 4, 8):
             lo, hi = max(0, -shift), min(len(own), len(other) - shift)
             if hi < lo:
@@ -40,7 +42,7 @@ def test_run_placement_comparison_matches_literal_per_base_rule():
     ([(11, 20)], True), ([(0, 10), (60, 70)], False), ([], False),
 ])
 def test_candidate_union_prefilter_keeps_cigar_gaps_and_half_open_boundaries(blocks, expected):
-    intervals = _merge([(10, 20), (20, 30), (40, 50), (45, 60)])
+    intervals = merge_intervals([(10, 20), (20, 30), (40, 50), (45, 60)])
     read = SimpleNamespace(get_blocks=lambda: blocks)
     assert bool(_overlaps_placements(read, intervals)) == expected
     assert not _overlaps_placements(read, [])
@@ -49,7 +51,7 @@ def test_candidate_union_prefilter_keeps_cigar_gaps_and_half_open_boundaries(blo
 def test_witness_cache_exhaustion_keeps_repeated_occurrences_and_links(monkeypatch):
     from isovar import sv_rna_orfs
 
-    monkeypatch.setattr(sv_rna_orfs, '_WITNESS_CACHE_ENTRIES', 1)
+    monkeypatch.setattr(sv_rna_witnesses, '_WITNESS_CACHE_ENTRIES', 1)
     positions = tuple(('1', q, '+') for q in range(6))
     observed = (None,) * 2 + positions + (None,) * 2 + positions
     observation = SimpleNamespace(key='original', positions=observed, sequence='A' * 16,
@@ -57,7 +59,7 @@ def test_witness_cache_exhaustion_keeps_repeated_occurrences_and_links(monkeypat
                                   comparison_key=('A' * 16, observed))
     junction = dict(query_interval=[2, 2], left=list(positions[1]), right=list(positions[2]),
                     direct_observations=['original'])
-    witnesses = _witnesses('A' * 6, positions, 1, 3, [junction, junction], {'original': observation})
+    witnesses = junction_interval_witnesses('A' * 6, positions, 1, 3, [junction, junction], {'original': observation})
     assert [row['original_query_interval'] for row in witnesses] == [[3, 5], [11, 13]]
     assert all(len(row['junction_links']) == 1 for row in witnesses)
 
@@ -66,8 +68,8 @@ def test_witness_cache_exhaustion_keeps_repeated_occurrences_and_links(monkeypat
 def test_shared_exact_search_keeps_junction_membership_and_repeated_witnesses(monkeypatch, entries, bases):
     from isovar import sv_rna_orfs
 
-    monkeypatch.setattr(sv_rna_orfs, '_WITNESS_CACHE_ENTRIES', entries)
-    monkeypatch.setattr(sv_rna_orfs, '_WITNESS_CACHE_BASES', bases)
+    monkeypatch.setattr(sv_rna_witnesses, '_WITNESS_CACHE_ENTRIES', entries)
+    monkeypatch.setattr(sv_rna_witnesses, '_WITNESS_CACHE_BASES', bases)
     positions = tuple(('1', q, '+') for q in range(6))
     observed = (None,) * 2 + positions + (None,) * 2 + positions
     observations = {
@@ -78,11 +80,11 @@ def test_shared_exact_search_keeps_junction_membership_and_repeated_witnesses(mo
     junction = dict(query_interval=[2, 2], left=list(positions[1]), right=list(positions[2]),
                     direct_observations=['first'])
     other = dict(junction, direct_observations=['second'])
-    search = sv_rna_orfs._SequenceMatches(o.sequence for o in observations.values())
-    cache = {sv_rna_orfs._SEQUENCE_MATCHES: search}
+    search = sv_rna_witnesses.SequenceMatchCache(o.sequence for o in observations.values())
+    cache = {sv_rna_witnesses.SEQUENCE_MATCHES_CACHE_KEY: search}
     for start, end in ((1, 3), (2, 4)):
-        got = _witnesses('A' * 6, positions, start, end, [junction, other], observations, group_cache=cache)
-        expected = _witnesses('A' * 6, positions, start, end, [junction, other], observations)
+        got = junction_interval_witnesses('A' * 6, positions, start, end, [junction, other], observations, group_cache=cache)
+        expected = junction_interval_witnesses('A' * 6, positions, start, end, [junction, other], observations)
         assert got == expected
         assert [row['observation'] for row in got] == ['first', 'first', 'second', 'second']
         assert all(len(row['junction_links']) == 1 for row in got)

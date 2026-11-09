@@ -1,30 +1,47 @@
 """Portable exploratory SV ORFs with source-scoped, deduplicated RNA evidence."""
 
+import csv
+import json
 from collections import defaultdict
 from copy import deepcopy
-import csv
 from functools import cache, cmp_to_key
 from hashlib import sha256
-import json
 from pathlib import Path
 from urllib.parse import quote
 
 from .cell_umi import missing_label_row
 from .default_parameters import (
-    SV_MIN_ALTERNATIVE_FRAGMENTS, SV_MIN_ALTERNATIVE_FRACTION, SV_MIN_LOCAL_VARIANT_FRACTION,
+    SV_MIN_ALTERNATIVE_FRACTION,
+    SV_MIN_ALTERNATIVE_FRAGMENTS,
+    SV_MIN_LOCAL_VARIANT_FRACTION,
 )
-from .json_files import write_json
 from .genetic_code import standard_genetic_code
+from .json_files import write_json
 from .orf_start import summarize_orf_start_evidence
 from .read_lineage import summarize_lineage_rows
 from .rna_evidence import (
-    SUPPORT_COLUMNS, canonical_json as _canonical, content_identifier as _identifier, evidence_set, rna_support,
+    SUPPORT_COLUMNS,
+    evidence_set,
+    rna_support,
     support_columns,
+)
+from .rna_evidence import (
+    canonical_json as _canonical,
+)
+from .rna_evidence import (
+    content_identifier as _identifier,
 )
 
 
-class _WitnessPool:
-    """Own normalized witnesses while sharing only equal nested JSON values."""
+class WitnessPool:
+    """Own normalized witnesses while sharing only equal nested JSON values.
+
+    Notes
+    -----
+    Use one pool per export/projection. Values returned by share and unique may
+    share nested containers and must be treated as read-only. Deduplication uses
+    whole JSON equality, never just a read name or path-local coordinate.
+    """
 
     def __init__(self):
         self.strings, self.containers = {}, {}
@@ -220,7 +237,7 @@ def export_sv_rna_orfs(result):
     """
     if result.get("schema") != "isovar.sv_rna_candidates.v5":
         raise ValueError("SV ORF export requires isovar.sv_rna_candidates.v5")
-    groups, pool = {}, _WitnessPool()
+    groups, pool = {}, WitnessPool()
     for path in result["paths"]:
         for candidate in path["exploratory_orfs"]["candidates"]:
             start, end = candidate["query_interval"]

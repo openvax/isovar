@@ -2,18 +2,35 @@
 
 from collections import Counter, defaultdict
 
-from .sv_rna import _PathSpans, _breaks
-from .sv_rna_orfs import _PLACEMENT_INDEX, _SEQUENCE_MATCHES, _PlacementIndex, _SequenceMatches, _witnesses
-
+from .rna_path_geometry import PathSpans, path_breaks
+from .sv_rna_witnesses import (
+    PLACEMENT_INDEX_CACHE_KEY,
+    SEQUENCE_MATCHES_CACHE_KEY,
+    PlacementCompatibility,
+    SequenceMatchCache,
+    junction_interval_witnesses,
+)
 
 # Internal working-set bound, independent of discovery and scientific settings.
 # Templates are indivisible; a single oversized template is consumed on its own.
-_SUPPORT_BATCH_BASES = 250_000
+SUPPORT_BATCH_BASES = 250_000
 _SHARED_WITNESS_ROWS = 4096
 _LOCAL_FLANKS = (12, 24, 48, 96, 150)
 
 
-def _observation_row(o):
+def observation_witness_record(o):
+    """Retain original observation metadata after transient geometry is released.
+
+    Parameters
+    ----------
+    o : RnaObservation
+        Original observation contributing to a support batch.
+
+    Returns
+    -------
+    dict
+        Identity, source records, query interval, orientation and quality-availability metadata.
+    """
     return dict(identity=list(o.identity), records=list(o.records),
                 reverse_complement=o.reverse_complement,
                 original_query_interval=list(o.query_interval),
@@ -85,9 +102,22 @@ def _local_windows(paths, positions, path_queries):
     return windows
 
 
-class _SupportStream:
+class SvSupportStream:
     """Transpose batches into output-sized junction and interval evidence.
 
+    Parameters
+    ----------
+    paths : sequence of dict
+        Frozen candidate paths and exploratory ORF intervals.
+    positions : sequence
+        Per-base placements corresponding to each path.
+    event : OrientedAdjacency
+        Nominated adjacency policy.
+    annotated : set of tuple
+        Annotated joins retained as context rather than event evidence.
+
+    Notes
+    -----
     No observation, sequence, quality vector or coordinate tuple from a batch
     survives ``consume``. The retained rows are original observation metadata,
     direct-junction sequence counts, and exact witnesses required by the output.
@@ -99,13 +129,13 @@ class _SupportStream:
         self.pairs = defaultdict(set)
         self.cache_keys, self.rows, self.counts, self.kinds = {}, {}, defaultdict(Counter), defaultdict(set)
         self.direct = defaultdict(dict)
-        self.spans = [_PathSpans(p['sequence'], pos) for p, pos in zip(paths, positions)]
-        self.placement_indices = {(_PLACEMENT_INDEX, id(pos)): _PlacementIndex(pos) for pos in positions}
+        self.spans = [PathSpans(p['sequence'], pos) for p, pos in zip(paths, positions)]
+        self.placement_indices = {(PLACEMENT_INDEX_CACHE_KEY, id(pos)): PlacementCompatibility(pos) for pos in positions}
         self.linked = [dict() for _ in paths]
         self.witnesses = [defaultdict(list) for _ in paths]
         for path_index, (path, pos) in enumerate(zip(paths, positions)):
             queries = []
-            for i, j in _breaks(pos):
+            for i, j in path_breaks(pos):
                 left, right = pos[i], pos[j]
                 relation, _ = event.relation(left, right, j - i - 1)
                 if relation is None and j == i + 1 and (left, right) in annotated:
@@ -148,7 +178,7 @@ class _SupportStream:
             evidence = {o.key: o for o, *_ in entries}
             by_key[key] = evidence
             for observation_key, o in evidence.items():
-                row = self.rows.setdefault(observation_key, _observation_row(o))
+                row = self.rows.setdefault(observation_key, observation_witness_record(o))
                 self.direct[key][observation_key] = row
             self.kinds[key].update(kind for *_, kind in entries)
             self.counts[key].update(o.sequence[i + 1:j] for o, i, j, _ in entries)
@@ -160,7 +190,7 @@ class _SupportStream:
                 for o in equivalent.values():
                     interval = _merge_interval(interval, span(o))
                 self.linked[path_index][key] = interval
-        groups[_SEQUENCE_MATCHES] = _SequenceMatches(o.sequence for evidence in by_key.values() for o in evidence.values())
+        groups[SEQUENCE_MATCHES_CACHE_KEY] = SequenceMatchCache(o.sequence for evidence in by_key.values() for o in evidence.values())
         for path_index in affected:
             path, pos = self.paths[path_index], self.positions[path_index]
             junctions = [dict(q, direct_observations=sorted(by_key[q['key']]))
@@ -173,7 +203,7 @@ class _SupportStream:
             for start, end in intervals:
                 self.witnesses[path_index][start, end].extend(
                     _share_witness(row, shared_rows) for row in
-                    _witnesses(path['sequence'], pos, start, end, junctions, evidence, group_cache=groups))
+                    junction_interval_witnesses(path['sequence'], pos, start, end, junctions, evidence, group_cache=groups))
             self.spans[path_index].cache.clear()
 
     def summaries(self, cell_umi, lineage):

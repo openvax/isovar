@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from isovar import AlleleRead
-from isovar.rna_candidate_support import _comparison, _flank_alignment
+from isovar.rna_candidate_support import _flank_alignment, compare_candidate_read
 
 TX = SimpleNamespace(id="tx", exon_intervals=[(1, 1000)])
 
@@ -19,7 +19,7 @@ def compare(read_flank, candidate_flank, side="prefix", allele="G", alt="G", ref
     read = AlleleRead(prefix, allele, suffix, "read")
     candidate = dict(candidate_id="a", sequence=before + alt + after,
                      variant_interval=[len(before), len(before) + len(alt)])
-    return _comparison(read, candidate, ref, [TX], kwargs.get("max_edits", 1), kwargs.get("min_overlap", 1))
+    return compare_candidate_read(read, candidate, ref, [TX], kwargs.get("max_edits", 1), kwargs.get("min_overlap", 1))
 
 
 @pytest.mark.parametrize("side", ["prefix", "suffix"])
@@ -124,12 +124,12 @@ def test_path_checks_include_the_longest_tied_read_span():
     # The final base, included by one optimal endpoint, crosses to a different
     # exon without a recorded splice. Taking the shortest endpoint would hide it.
     read = AlleleRead("", "G", "ACGT", "read", reference_blocks=((0, 4, 0, 4), (4, 5, 100, 101)))
-    assert _comparison(read, candidate, "A", [transcript], 1, 4) is None
+    assert compare_candidate_read(read, candidate, "A", [transcript], 1, 4) is None
     spliced = AlleleRead("", "G", "ACGT", "read", reference_blocks=read.reference_blocks,
                          splice_junctions=((4, 100),))
-    assert _comparison(spliced, candidate, "A", [transcript], 1, 4)["edit_distance"] == 1
+    assert compare_candidate_read(spliced, candidate, "A", [transcript], 1, 4)["edit_distance"] == 1
     unknown = AlleleRead("", "G", "ACGN", "read")
-    assert _comparison(unknown, candidate, "A", [transcript], 1, 4) is None
+    assert compare_candidate_read(unknown, candidate, "A", [transcript], 1, 4) is None
 
 
 def test_unobserved_distal_path_is_neutral_after_an_insertion():
@@ -138,6 +138,6 @@ def test_unobserved_distal_path_is_neutral_after_an_insertion():
     # so the unrelated path of the last two read bases is outside the comparison.
     read = AlleleRead("", "G", "CATTGCAGG", "read",
                       reference_blocks=((0, 8, 0, 8), (8, 10, 100, 102)), splice_junctions=((8, 100),))
-    result = _comparison(read, candidate, "A", [TX], 1, 8)
+    result = compare_candidate_read(read, candidate, "A", [TX], 1, 8)
     assert result["edit_distance"] == 1 and result["compared_read_bases"] == 8
     assert result["spans_candidate"]

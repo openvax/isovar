@@ -5,10 +5,10 @@ import tracemalloc
 
 import pytest
 
-from isovar import _audit_json_reader
-from isovar._audit_checkpoint import NonCanonicalCheckpoint, checkpoint_summary
-from isovar._audit_json import canonical, comparison_identity, identity
+from isovar import audit_json_reader
 from isovar.audit_bundle import publish_json
+from isovar.audit_checkpoint import NonCanonicalCheckpoint, checkpoint_summary
+from isovar.audit_json import canonical, comparison_identity, identity
 
 
 @pytest.mark.parametrize("chunk_size", [1, 17, 65536])
@@ -17,7 +17,7 @@ from isovar.audit_bundle import publish_json
     {"a": ["é", "\\\"", "\ud800", {"x": []}], "z": {"b": False}},
 ])
 def test_streamed_checkpoint_identities_match_full_values(monkeypatch, chunk_size, result):
-    monkeypatch.setattr(_audit_json_reader, "_CHUNK_SIZE", chunk_size)
+    monkeypatch.setattr(audit_json_reader, "_CHUNK_SIZE", chunk_size)
     checkpoint = dict(request={"run_id": "example"}, result=result,
                       result_sha256=identity(result), comparison="matched")
     metadata, checksum, fingerprint = checkpoint_summary(io.StringIO(canonical(checkpoint).decode()))
@@ -31,7 +31,7 @@ def test_streamed_checkpoint_identities_match_full_values(monkeypatch, chunk_siz
     '{"result":[],"result":{}}',
 ])
 def test_noncanonical_large_objects_request_full_reader(monkeypatch, text):
-    monkeypatch.setattr(_audit_json_reader, "_CHUNK_SIZE", 1)
+    monkeypatch.setattr(audit_json_reader, "_CHUNK_SIZE", 1)
     with pytest.raises(NonCanonicalCheckpoint):
         checkpoint_summary(io.StringIO(text))
 

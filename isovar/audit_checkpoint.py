@@ -1,10 +1,16 @@
 """Stream verification identities from a canonical replay checkpoint."""
 
-from hashlib import sha256
 import json
+from hashlib import sha256
 
-from ._audit_json import _ENCODER, canonical_chunks, comparison_event_identity, comparison_identity, identity
-from ._audit_json_reader import json_events
+from .audit_json import (
+    canonical,
+    canonical_chunks,
+    comparison_event_identity,
+    comparison_identity,
+    identity,
+)
+from .audit_json_reader import json_events
 
 
 class NonCanonicalCheckpoint(ValueError):
@@ -48,7 +54,7 @@ def _canonical_events(events, checksum):
         else:
             # Buffered child containers are small. Preserve the bounded leaf
             # path above while using the C encoder for these common values.
-            checksum.update(_ENCODER.encode(value).encode())
+            checksum.update(canonical(value))
 
     for event, value in events:
         if event == "map_key":

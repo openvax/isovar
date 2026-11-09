@@ -1,8 +1,8 @@
 """Export fidelity and evidence denominators, using only synthetic sequences."""
 
-from copy import deepcopy
 import csv
 import json
+from copy import deepcopy
 
 import pytest
 
@@ -287,10 +287,11 @@ def test_path_end_reasons_are_exported_and_truncation_is_flagged():
 
 def test_factored_occurrence_order_matches_complete_canonical_json():
     from itertools import product
-    from isovar.rna_evidence import canonical_json
-    from isovar.sv_rna_orf_export import _WitnessPool, _unique_occurrences
 
-    pool = _WitnessPool()
+    from isovar.rna_evidence import canonical_json
+    from isovar.sv_rna_orf_export import WitnessPool, _unique_occurrences
+
+    pool = WitnessPool()
     values = [False, 0, 0.0, -0.0, "é", "\\\"", [], [1], {"z": 1, "a": 2}]
     witnesses = [dict(observation="read", value=value) for value in values]
     rows = []

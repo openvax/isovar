@@ -6,7 +6,8 @@ import pysam
 import pytest
 
 from isovar.fusion import FusionBreakpoint
-from isovar.sv_rna import collect_sv_records
+from isovar.sv_rna_collection import collect_sv_records
+
 from .test_sv_rna import record, write_bam
 
 

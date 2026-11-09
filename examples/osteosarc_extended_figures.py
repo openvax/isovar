@@ -4,12 +4,13 @@ import gzip
 import json
 from pathlib import Path
 
-from isovar.sid_data import restore_records
-from isovar.fusion_visualization import _canvas
+from isovar.fusion_visualization import fusion_figure_canvas
 from isovar.protein_comparison import save_protein_comparison
-from isovar.visualization import BLUE, GRAY, ORANGE, _side_note
+from isovar.sid_data import restore_records
+from isovar.visualization import BLUE, GRAY, ORANGE, draw_side_note
 from tests.data.osteosarc.expansion.inventory import digest
 from tests.data.osteosarc.figure_comparisons.extended_footprints import CORPUS, load
+
 from .osteosarc_footprint_figures import save_panels
 
 LABELS = {
@@ -32,7 +33,7 @@ def load_dlg5():
 
 def table_panel(title, subtitle, columns, rows, note, footer):
     """A compact scientific evidence table with caveats outside the values."""
-    figure, ax = _canvas(title, subtitle, 3 + .48 * len(rows))
+    figure, ax = fusion_figure_canvas(title, subtitle, 3 + .48 * len(rows))
     figure.subplots_adjust(left=.26, right=.79, top=.80, bottom=.18)
     for x, name in enumerate(columns, 1):
         ax.text(x, len(rows) + 1, name, ha="center", va="center", fontsize=11, weight="bold", color=GRAY)
@@ -43,7 +44,7 @@ def table_panel(title, subtitle, columns, rows, note, footer):
         ax.axhline(y - .44, lw=.6, color="#eeeeee")
     ax.set(xlim=(.5, len(columns) + .5), ylim=(.4, len(rows) + 1.5))
     ax.axis("off")
-    _side_note(ax, note)
+    draw_side_note(ax, note)
     figure.text(.26, .075, footer, fontsize=10, color=GRAY)
     return figure
 
@@ -108,7 +109,7 @@ def dlg5_panels(data):
         ["Start Q20 / unresolved", "Inside DNA interval", "BND sequence Q20"], rows,
         "Genomic CAT = ATG\non DLG5 minus strand\n\nUnresolved: absent/low QUAL\nInside: aligned coverage\nDifferent measurements\n\nNo mutant protein\nframe justified",
         "Retained-start RNA does not exclude a subclonal DNA deletion. Missing mutant junction does not establish biological absence.")
-    figure, ax = _canvas("DLG5 | What can be reconstructed?", "DNA sequence is concrete; mutant RNA and coding frame remain unresolved", 6)
+    figure, ax = fusion_figure_canvas("DLG5 | What can be reconstructed?", "DNA sequence is concrete; mutant RNA and coding frame remain unresolved", 6)
     ax.axis("off")
     items = [(3, "DNA", "Explicit BND + reference flanks; observed tumor reads", BLUE),
              (2, "RNA", "No matching junction sequence in the queried products", GRAY),
@@ -117,7 +118,7 @@ def dlg5_panels(data):
         ax.text(-.035, y, label, transform=ax.get_yaxis_transform(), ha="right", va="center", weight="bold", fontsize=14, color=color)
         ax.text(0, y, text, va="center", fontsize=13, color=color)
     ax.set(xlim=(0, 1), ylim=(.4, 3.6))
-    _side_note(ax, "SV locus retrieval does\nnot require Varcode\nprotein prediction\n\nSplice changes are\nhypotheses until linked\nto the mutant allele")
+    draw_side_note(ax, "SV locus retrieval does\nnot require Varcode\nprotein prediction\n\nSplice changes are\nhypotheses until linked\nto the mutant allele")
     figure.text(.19, .07, "Do not substitute a genomic junction or an arbitrary open reading frame for an expressed mutant protein.", fontsize=11, color=GRAY)
     yield "interpretation", figure
 

@@ -10,13 +10,32 @@ from numbers import Integral
 import edlib
 
 from .dna import reverse_complement_dna
-from .read_identity import fragment_ids, observation_groups, read_sort_key, source_read_ids
+from .read_identity import (
+    fragment_ids,
+    observation_groups,
+    read_sort_key,
+    source_read_ids,
+)
 from .rna_evidence import canonical_json, content_identifier
 from .transcript_compatibility import annotate_reads_with_transcript_compatibility
 
 COMPARISON_POLICY = "anchored_edit_compatibility.v2"
 
-def _candidate(translation, event_id):
+def translation_rna_candidate(translation, event_id):
+    """Describe the nucleotide candidate behind one retained translation.
+
+    Parameters
+    ----------
+    translation : Translation
+        Observed coding context, focal interval and its retained references.
+    event_id : str
+        Stable identity of the nominated event, included in child identifiers.
+
+    Returns
+    -------
+    tuple[dict, tuple]
+        Candidate identity/sequence/focal interval and sorted compatible transcripts.
+    """
     orf = translation.variant_orf
     sequence = orf.cdna_sequence
     start, end = orf.variant_cdna_interval_start, orf.variant_cdna_interval_end
@@ -59,7 +78,30 @@ def _flank_alignment(read, candidate):
     return dict(edit_distance=best, endpoints=[list(pair) for pair in sorted(endpoints)])
 
 
-def _comparison(read, candidate, ref, transcripts, max_edits, min_overlap):
+def compare_candidate_read(read, candidate, ref, transcripts, max_edits, min_overlap):
+    """Compare an allele observation against one anchored RNA candidate.
+
+    Parameters
+    ----------
+    read : AlleleRead
+        Original observation with focal allele and flanking sequence.
+    candidate : dict
+        Nucleotide candidate with a half-open focal variant_interval.
+    ref : str
+        Reference focal allele in candidate orientation.
+    transcripts : sequence
+        Reference transcript models used for path compatibility.
+    max_edits : int
+        Maximum total edit distance allowed for an ALT candidate.
+    min_overlap : int
+        Minimum number of observed compared bases.
+
+    Returns
+    -------
+    dict or None
+        Costs, conservatively covered interval and reference preference, or None
+        when coverage, alphabet or path is unsuitable.
+    """
     sequence = candidate["sequence"]
     start, end = candidate["variant_interval"]
     left = _flank_alignment(read.prefix[::-1], sequence[:start][::-1])
@@ -90,11 +132,32 @@ def _comparison(read, candidate, ref, transcripts, max_edits, min_overlap):
                 reference_preferred=ref_cost <= alt_cost)
 
 
-def _attribute(reads, candidates, transcripts, ref, max_edits, min_overlap):
+def attribute_read_observations(reads, candidates, transcripts, ref, max_edits, min_overlap):
+    """Retain candidate ambiguity across alternative placements of one observation.
+
+    Parameters
+    ----------
+    reads : iterable of AlleleRead
+        Alternative observations; they are not independent fragments.
+    candidates : sequence of dict
+        Retained candidate catalogue.
+    transcripts : mapping
+        Candidate IDs to compatible transcript models.
+    ref : str
+        Reference allele in candidate orientation.
+    max_edits, min_overlap : int
+        Explicit comparison tolerance and minimum compared bases.
+
+    Returns
+    -------
+    dict
+        Candidate IDs, comparisons and attribution status; differing placements
+        remain ambiguous rather than selecting one winner.
+    """
     comparisons = []
     for read in reads:
         comparisons.append([comparison for candidate in candidates
-                            if (comparison := _comparison(read, candidate, ref, transcripts[candidate["candidate_id"]],
+                            if (comparison := compare_candidate_read(read, candidate, ref, transcripts[candidate["candidate_id"]],
                                                           max_edits, min_overlap)) is not None])
     # Alternative placements of one observation must all agree before it is
     # called unique. Keep the union visible if any placement disagrees.
@@ -116,7 +179,21 @@ def _attribute(reads, candidates, transcripts, ref, max_edits, min_overlap):
                 placement_ambiguous=any(s != supported for s in supports))
 
 
-def _protein_assignment(attribution, candidates):
+def attribute_candidate_proteins(attribution, candidates):
+    """Project RNA candidate attribution to retained protein hypotheses.
+
+    Parameters
+    ----------
+    attribution : dict
+        Result of attribute_read_observations.
+    candidates : sequence of dict
+        Candidate records carrying hypothesis_ids.
+
+    Returns
+    -------
+    dict
+        Distinct hypothesis IDs and protein-level attribution status.
+    """
     ids = {hypothesis for candidate in candidates if candidate["candidate_id"] in attribution["candidate_ids"]
            for hypothesis in candidate["hypothesis_ids"]}
     status = attribution["status"]
@@ -136,7 +213,7 @@ def candidate_catalog(proteins, protein_rows, event_id):
     candidates, transcripts = {}, {}
     for protein, row in zip(proteins, protein_rows):
         for translation in protein.translations:
-            candidate, tx = _candidate(translation, event_id)
+            candidate, tx = translation_rna_candidate(translation, event_id)
             key = candidate["candidate_id"]
             existing = candidates.setdefault(key, candidate)
             existing["hypothesis_ids"].append(row["hypothesis_id"])
@@ -169,7 +246,7 @@ def _fragment_assignment(reads, candidates, transcripts, ref, max_edits, min_ove
         and source_read_ids(read) and read.allele == other.allele
         and other.prefix.endswith(read.prefix) and other.suffix.startswith(read.suffix)
         for other in reads)]
-    observations = [_attribute(group, candidates, transcripts, ref, max_edits, min_overlap)
+    observations = [attribute_read_observations(group, candidates, transcripts, ref, max_edits, min_overlap)
                     for group in observation_groups(reads)]
     sets = [set(o["candidate_ids"]) for o in observations]
     joint = set.intersection(*sets) if sets else set()

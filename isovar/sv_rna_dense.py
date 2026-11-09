@@ -4,30 +4,43 @@ Only candidate witnesses are retained in memory during support reporting. The
 SQLite index keeps unrelated background and arbitrarily distant pieces on disk.
 """
 
-from collections import Counter, defaultdict
+
+import sqlite3
 from bisect import bisect_left
+from collections import Counter, defaultdict
 from contextlib import ExitStack, closing
 from hashlib import sha256
 from pathlib import Path
-import sqlite3
 from tempfile import TemporaryDirectory
 
 import pysam
 
+from . import sv_rna_stream
 from .cell_umi import CellUmiEvidence
-from .read_identity import segment_identity
+from .read_identity import sam_record_id, segment_identity
 from .read_lineage import ReadLineage
 from .read_metadata import record_evidence
 from .rna_evidence import rna_support
-from .transcript_path_frames import TranscriptPathModel
-from .sv_rna import (
-    _Event, _GeometryCache, _Observations, _build_segment, _flip, _join_class, _merge, _record_gaps, _record_id,
-    _path_result, _possible_breakpoint_clip, _possible_exon_clip, _exon_clip_cores,
-    _inside, _SEQUENCE_BRIDGE_BASES, reconstruct_sv_rna,
+from .rna_library import original_library_context
+from .rna_observation import (
+    ObservationGeometryCache,
+    alignment_gaps,
+    build_segment_observations,
 )
-from . import sv_rna_stream
+from .rna_path_assembly import SEQUENCE_BRIDGE_BASES
+from .rna_path_geometry import interval_contains, merge_intervals, reverse_position
+from .sv_rna import reconstruct_sv_rna
+from .sv_rna_event import (
+    OrientedAdjacency,
+    SvObservationStore,
+    classify_join,
+    exon_clip_cores,
+    has_breakpoint_clip,
+    has_exon_clip,
+)
 from .sv_rna_relations import ADJACENCY_JOIN_RELATIONS, LINKAGE_STATUSES
-from .rna_library import _original_library_context
+from .sv_rna_result import build_sv_path_result
+from .transcript_path_frames import TranscriptPathModel
 
 
 def _search_regions(bam, options):
@@ -52,34 +65,34 @@ def _exonic(references):
     spans = defaultdict(list)
     for reference in references:
         spans[reference.contig, reference.strand].extend(reference.exons)
-    spans = {key: _merge(intervals) for key, intervals in spans.items()}
-    return lambda position: _inside(spans.get((position[0], position[2]), ()), position[1])
+    spans = {key: merge_intervals(intervals) for key, intervals in spans.items()}
+    return lambda position: interval_contains(spans.get((position[0], position[2]), ()), position[1])
 
 
 def _priority(records, collector, event, annotated, exonic=None):
     """Placed joins, breakpoint/exon clips, other joins, then context."""
     clip = exon_clip = False
     possible_clip = collector.use_soft_clipped_bases and any(
-        _possible_breakpoint_clip(read, [(b.contig, b.position) for b in (event.donor, event.acceptor)])
+        has_breakpoint_clip(read, [(b.contig, b.position) for b in (event.donor, event.acceptor)])
         for read in records)
     possible_exon_clip = exonic is not None and any(
-        _possible_exon_clip(read, exonic, _SEQUENCE_BRIDGE_BASES) for read in records)
+        has_exon_clip(read, exonic, SEQUENCE_BRIDGE_BASES) for read in records)
     if len(records) > 1 or possible_clip or possible_exon_clip:
         # Actual supplementary/alternative records stay together. An SA hint
         # alone neither raises priority nor fabricates its missing record.
-        store = _Observations(records, collector, 1, {}, '', '')
+        store = SvObservationStore(records, collector, 1, {}, '', '')
         for identity in store.groups:
             for o in store.build(identity):
                 clip |= bool(event.clips(o.positions, len(o.sequence)))
-                exon_clip |= exonic is not None and bool(_exon_clip_cores(o, exonic, _SEQUENCE_BRIDGE_BASES))
-                if any(_join_class(event, annotated, o.positions[i], o.positions[j], j - i - 1, kind)[0]
+                exon_clip |= exonic is not None and bool(exon_clip_cores(o, exonic, SEQUENCE_BRIDGE_BASES))
+                if any(classify_join(event, annotated, o.positions[i], o.positions[j], j - i - 1, kind)[0]
                        in ('event', 'lazy') for i, j, kind in o.breaks):
                     return 0
     priority = 3
     for read in records:
-        for left, right, kind, inserted in _record_gaps(read, collector):
-            classes = [_join_class(event, annotated, left, right, len(inserted), kind),
-                       _join_class(event, annotated, (right[0], right[1], '-'),
+        for left, right, kind, inserted in alignment_gaps(read, collector):
+            classes = [classify_join(event, annotated, left, right, len(inserted), kind),
+                       classify_join(event, annotated, (right[0], right[1], '-'),
                                    (left[0], left[1], '-'), len(inserted), kind)]
             if any(use in ('event', 'lazy') for use, _ in classes):
                 return 0
@@ -219,13 +232,13 @@ def _may_support(template, joins, collector, event, exonic=None):
         if identity in identities:
             return True
         identities.add(identity)
-        if collector.use_soft_clipped_bases and _possible_breakpoint_clip(
+        if collector.use_soft_clipped_bases and has_breakpoint_clip(
                 read, [(b.contig, b.position) for b in (event.donor, event.acceptor)]):
             return True
-        if exonic is not None and _possible_exon_clip(read, exonic, _SEQUENCE_BRIDGE_BASES):
+        if exonic is not None and has_exon_clip(read, exonic, SEQUENCE_BRIDGE_BASES):
             return True
-        for left, right, _, inserted in _record_gaps(read, collector):
-            for a, b in ((left, right), (_flip(right), _flip(left))):
+        for left, right, _, inserted in alignment_gaps(read, collector):
+            for a, b in ((left, right), (reverse_position(right), reverse_position(left))):
                 if (a, b) in joins or event.relation(a, b, len(inserted))[0] == 'breakpoint_junction':
                     return True
     return False
@@ -253,9 +266,9 @@ def _support(groups, result, collector, event, annotated, options, exonic=None):
     for path in result['paths']:
         for block in path['blocks']:
             placements[block['contig']].append((block['reference_start'], block['reference_end']))
-    placements = {contig: _merge(intervals) for contig, intervals in placements.items()}
-    stream = sv_rna_stream._SupportStream(result['paths'], [_positions(p) for p in result['paths']], event, annotated)
-    reasons, geometry_cache, batch, bases, intern = Counter(), _GeometryCache(), [], 0, {}
+    placements = {contig: merge_intervals(intervals) for contig, intervals in placements.items()}
+    stream = sv_rna_stream.SvSupportStream(result['paths'], [_positions(p) for p in result['paths']], event, annotated)
+    reasons, geometry_cache, batch, bases, intern = Counter(), ObservationGeometryCache(), [], 0, {}
     clip_matches, clip_records = defaultdict(dict), {}
     regions = [(contig, start, end) for contig, intervals in placements.items() for start, end in intervals]
     for template in groups.templates(regions) if result['paths'] else ():
@@ -266,23 +279,23 @@ def _support(groups, result, collector, event, annotated, options, exonic=None):
         members = defaultdict(list)
         # Share overlapping coordinates without accumulating an input-wide
         # interning table. An indivisible template can exceed this bound.
-        if len(intern) >= sv_rna_stream._SUPPORT_BATCH_BASES:
+        if len(intern) >= sv_rna_stream.SUPPORT_BATCH_BASES:
             intern.clear()
         for read in template:
             members[segment_identity(read)].append(read)
         observations = [o for identity, records in members.items()
-                        for o in _build_segment(identity, records, collector, reasons, intern, geometry_cache)]
+                        for o in build_segment_observations(identity, records, collector, reasons, intern, geometry_cache)]
         matched = set()
         if clip_seeds:
             for observation in observations:
-                for i, j, _, _ in _exon_clip_cores(observation, clip_exonic, _SEQUENCE_BRIDGE_BASES):
+                for i, j, _, _ in exon_clip_cores(observation, clip_exonic, SEQUENCE_BRIDGE_BASES):
                     signature = (observation.sequence[i:j + 1], observation.positions[i], observation.positions[j])
                     for index in clip_seeds.get(signature, ()):
-                        clip_matches[index][observation.key] = sv_rna_stream._observation_row(observation)
+                        clip_matches[index][observation.key] = sv_rna_stream.observation_witness_record(observation)
                         matched.update(observation.records)
             if matched:
                 for read in template:
-                    record_id = _record_id(read)
+                    record_id = sam_record_id(read)
                     if record_id in matched:
                         clip_records[record_id] = (read.to_string(), record_evidence(read))
         hit = any((o.positions[i], o.positions[j]) in joins
@@ -292,12 +305,12 @@ def _support(groups, result, collector, event, annotated, options, exonic=None):
         hit |= bool(matched)
         if hit:
             size = sum(len(o.sequence) for o in observations)
-            if batch and bases + size > sv_rna_stream._SUPPORT_BATCH_BASES:
+            if batch and bases + size > sv_rna_stream.SUPPORT_BATCH_BASES:
                 stream.consume(batch)
                 batch, bases = [], 0
             batch.extend(observations)
             bases += size
-            if bases >= sv_rna_stream._SUPPORT_BATCH_BASES:
+            if bases >= sv_rna_stream.SUPPORT_BATCH_BASES:
                 stream.consume(batch)
                 batch, bases = [], 0
     stream.consume(batch)
@@ -306,7 +319,7 @@ def _support(groups, result, collector, event, annotated, options, exonic=None):
     del geometry_cache
     # Only output metadata persists. Parents and mates resolve from the original
     # disk-backed input, including records outside every candidate's intervals.
-    store = _Observations([], collector, options['max_extension_segments'], header,
+    store = SvObservationStore([], collector, options['max_extension_segments'], header,
                           options['sample_id'], options['source'])
     store.lineage = ReadLineage(groups, header)
     store.cell_umi = CellUmiEvidence(groups, header, options['sample_id'], options['source'],
@@ -339,7 +352,7 @@ def _support(groups, result, collector, event, annotated, options, exonic=None):
 
     for index, path in enumerate(result['paths']):
         positions = stream.positions[index]
-        reported, evidence = _path_result(path['sequence'], positions, set(), store, event, annotated, [], {},
+        reported, evidence = build_sv_path_result(path['sequence'], positions, set(), store, event, annotated, [], {},
                                           lambda *args: {}, lambda *args: None, junction_cache=junction_cache,
                                           linked_intervals=linked[index])
         path['junctions'] = reported['junctions']
@@ -390,7 +403,7 @@ def _support(groups, result, collector, event, annotated, options, exonic=None):
     cited = {rid for row in used.values() for rid in row['records']}
     for identity in {tuple(row['identity']) for row in used.values()}:
         for read in groups[identity]:
-            rid = _record_id(read)
+            rid = sam_record_id(read)
             if rid in cited and rid not in result['original_records']:
                 result['original_records'][rid] = read.to_string()
                 result['record_evidence'][rid] = record_evidence(read)
@@ -409,7 +422,7 @@ def reconstruct_dense_sv_rna(bam, options):
     spans = _search_regions(bam, options)
     models = [TranscriptPathModel(r) for r in options['references']]
     annotated = set().union(*(m.junctions() for m in models))
-    event = _Event(options['donor'], options['acceptor'], options['max_breakpoint_shift'], annotated,
+    event = OrientedAdjacency(options['donor'], options['acceptor'], options['max_breakpoint_shift'], annotated,
                    options['annotated_junction_tolerance'])
 
     with TemporaryDirectory(prefix='isovar-sv-', dir=scratch) as directory:
@@ -419,7 +432,7 @@ def reconstruct_dense_sv_rna(bam, options):
             db.execute('PRAGMA synchronous=OFF')
             db.execute('PRAGMA temp_store=FILE')
             db.execute('PRAGMA cache_size=-65536')
-            groups = stack.enter_context(_original_library_context(bam, collector, directory, library_index=library_index,
+            groups = stack.enter_context(original_library_context(bam, collector, directory, library_index=library_index,
                 reference_name=options['reference_name'], read_filter_identity=read_filter_identity))
             statistics = groups.statistics
             exonic = _exonic(options['references']) if options['exon_anchored_clips'] else None

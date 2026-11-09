@@ -1,15 +1,22 @@
 """Nine additional indel/SV RNA footprints, including unresolved consequences."""
 
-from collections import defaultdict
 import gzip
-from hashlib import sha256
 import json
+from collections import defaultdict
+from hashlib import sha256
 from pathlib import Path
 
-from isovar.sid_data import restore_records
 from isovar.fusion import FUSION_INPUT_KEYS, fusion_from_dict, reconstruct_fusion
-from isovar.fusion_visualization import _canvas, save_fusion_figures
-from isovar.visualization import BLUE, GRAY, ORANGE, _plot_imports, _side_note, save_variant_figures
+from isovar.fusion_visualization import fusion_figure_canvas, save_fusion_figures
+from isovar.sid_data import restore_records
+from isovar.visualization import (
+    BLUE,
+    GRAY,
+    ORANGE,
+    draw_side_note,
+    plot_dependencies,
+    save_variant_figures,
+)
 
 CORPUS=Path(__file__).resolve().parents[1]/'tests/data/osteosarc/figure_comparisons/corpus'
 LABELS={'T1-ONT-dedup':'T1 ONT', 'T2-ONT-dedup':'T2 ONT', 'T1-short':'T1 short RNA', 'T2-short':'T2 short RNA'}
@@ -24,7 +31,7 @@ def load():
 
 
 def indel_panel(entry):
-    figure,ax=_canvas(entry['gene']+' | RNA allele support','Exact listed allele; processing choices retained explicitly',5.6)
+    figure,ax=fusion_figure_canvas(entry['gene']+' | RNA allele support','Exact listed allele; processing choices retained explicitly',5.6)
     columns=[('ref','Reference'),('alt','Alternate'),('other','Other')]
     for x,(_,title) in enumerate(columns,1):
         ax.text(x,4.6,title,ha='center',fontsize=12,weight='bold',color=GRAY)
@@ -35,7 +42,7 @@ def indel_panel(entry):
         ax.axhline(y-.4,color='#eeeeee',lw=.7)
     ax.set(xlim=(.1,3.5),ylim=(.3,5))
     ax.axis('off')
-    _side_note(ax,'Template IDs\nIsovar default filters\n\nONT: deduplicated\nNo cross-product pooling\n\nNot independent\nmolecule counts')
+    draw_side_note(ax,'Template IDs\nIsovar default filters\n\nONT: deduplicated\nNo cross-product pooling\n\nNot independent\nmolecule counts')
     size=len(entry['alt'])-len(entry['ref'])
     figure.text(.19,.11,'%s:%s  %s>%s  (%+d nt)' % (entry['contig'],format(entry['start'],','),entry['ref'],entry['alt'],size),fontsize=12)
     figure.text(.19,.055,'Protein panels use primary alignments only; alternate-placement sensitivity is recorded in evidence.json.',fontsize=10,color=GRAY)
@@ -55,9 +62,9 @@ def deletion_panels(entry):
     common=max(junctions,key=junctions.get) if junctions else None
     lo,hi=(min(start-1000,common[0]-500),max(end+1000,common[1]+500)) if common else (start-5000,end+5000)
     unit=1000
-    figure,ax=_canvas(entry['gene']+' | DNA interval in transcript context',
+    figure,ax=fusion_figure_canvas(entry['gene']+' | DNA interval in transcript context',
                      '%s:%s-%s  |  %s-bp listed deletion' % (entry['contig'],format(start,','),format(end,','),format(end-start,',')),6)
-    _,_,rectangle=_plot_imports()
+    _,_,rectangle=plot_dependencies()
     ax.axvspan(0,(end-start)/unit,color=ORANGE,alpha=.14)
     for y,m in enumerate(models[::-1],1):
         exons=m['exons']
@@ -70,13 +77,13 @@ def deletion_panels(entry):
                 ax.add_patch(rectangle(((a-start)/unit,y-.12),(b-a)/unit,.24,color=BLUE))
         ax.text(-.035,y,m['id']+'\n('+m['name']+')',ha='right',va='center',transform=ax.get_yaxis_transform(),fontsize=10)
     ax.set(xlim=((lo-start)/unit,(hi-start)/unit),ylim=(.4,len(models)+.7),xlabel='Genomic offset from deletion start (kb)')
-    _side_note(ax,'Orange: DNA interval\nBlue: annotated exon\n\nEnsembl 87 / GRCh38\nModels run on - strand\n\nNot an RNA assembly')
+    draw_side_note(ax,'Orange: DNA interval\nBlue: annotated exon\n\nEnsembl 87 / GRCh38\nModels run on - strand\n\nNot an RNA assembly')
     note=('Deletes the DLG5-001 coding-start region; no mutant RNA junction reconstructed.' if entry['gene']=='DLG5' else
           'Intronic in coding models; normal splicing can remove this interval with or without the DNA deletion.')
     figure.text(.19,.065,note,fontsize=11,color=GRAY)
     yield 'transcript-interval',figure
 
-    figure,ax=_canvas(entry['gene']+' | Observed RNA footprint',
+    figure,ax=fusion_figure_canvas(entry['gene']+' | Observed RNA footprint',
                      'Ordinary splice paths are not evidence of the DNA deletion',5.8)
     columns=['Inside interval','Normal skip','Exact-size D / N']
     for x,title in enumerate(columns,1):
@@ -91,7 +98,7 @@ def deletion_panels(entry):
         ax.axhline(y-.4,color='#eeeeee',lw=.7)
     ax.set(xlim=(.1,3.5),ylim=(.3,5))
     ax.axis('off')
-    _side_note(ax,'Template IDs\nPrimary / MAPQ >=20\n\nD: CIGAR deletion\nN: CIGAR skipped region\nEndpoints within 3 bp\n\nZero is not proof\nof biological absence')
+    draw_side_note(ax,'Template IDs\nPrimary / MAPQ >=20\n\nD: CIGAR deletion\nN: CIGAR skipped region\nEndpoints within 3 bp\n\nZero is not proof\nof biological absence')
     footer=('Normal skip: %s-%s; this observed annotated intron contains the DNA interval.' % tuple(format(x,',') for x in common)
             if common else 'No normal splice spanning the entire interval; RNA within it does not exclude a subclonal deletion.')
     figure.text(.19,.09,footer,fontsize=10,color=GRAY)
@@ -133,7 +140,7 @@ def fusion_inputs(entry,sources):
 
 
 def fusion_support_panel(entry):
-    figure,ax=_canvas(entry['name'].replace('--',' / ')+' | RNA paths',
+    figure,ax=fusion_figure_canvas(entry['name'].replace('--',' / ')+' | RNA paths',
                      'Both actual partner alignments required; SA alone does not count',5.6)
     products={p['source']:p for p in entry['products']}
     rows=[('T1 ONT tagged','T1-ONT-tagged'),('T1 short RNA','T1-short'),
@@ -144,7 +151,7 @@ def fusion_support_panel(entry):
         ax.text(-.03,y,label,ha='right',va='center',transform=ax.get_yaxis_transform(),fontsize=12)
         ax.text(p['complete_paths']+.15,y,str(p['complete_paths']),va='center',fontsize=18,color=BLUE)
     ax.set(xlim=(0,max(4,max(p['complete_paths'] for p in products.values())+2)),ylim=(.3,4.7),xlabel='Observed high-MAPQ chimeric read paths')
-    _side_note(ax,'Same-segment pieces\nNot mate-pair links\nNot alternate placements\n\nONT tagged predecessors\nNot added to dedup counts\n\nFrame remains unresolved')
+    draw_side_note(ax,'Same-segment pieces\nNot mate-pair links\nNot alternate placements\n\nONT tagged predecessors\nNot added to dedup counts\n\nFrame remains unresolved')
     labels=', '.join('%s: %d CB/UMI labels' % (s[:2],products[s]['cell_umi_labels']) for s in ('T1-ONT-tagged','T2-ONT-tagged'))
     figure.text(.19,.09,labels+'. Labels do not establish molecular independence.',fontsize=10,color=GRAY)
     figure.text(.19,.045,'Junction panels select repeated exact Q10 windows; their support is a subset of these event paths.',fontsize=10,color=GRAY)

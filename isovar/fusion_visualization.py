@@ -1,22 +1,44 @@
 """Separate, publication-ready panels for an explicit fusion result."""
-from dataclasses import asdict
-from pathlib import Path
 import re
 import textwrap
+from dataclasses import asdict
+from pathlib import Path
 
-from .json_files import write_json
 from .default_parameters import PLOT_DPI, PLOT_WIDTH
-from .visualization import BLUE, GRAY, INK, ORANGE, _plot_imports, _side_note, _style_axis
+from .json_files import write_json
+from .visualization import (
+    BLUE,
+    GRAY,
+    INK,
+    ORANGE,
+    draw_side_note,
+    plot_dependencies,
+    style_evidence_axis,
+)
 
 GREEN = "#009E73"
 
 
-def _canvas(title, subtitle, height=5.3):
-    Figure, _, _ = _plot_imports()
+def fusion_figure_canvas(title, subtitle, height=5.3):
+    """Create a labelled figure with room for source/evidence notes.
+
+    Parameters
+    ----------
+    title, subtitle : str
+        Figure heading and axis context.
+    height : float, optional
+        Figure height in inches; width follows the common plot setting.
+
+    Returns
+    -------
+    tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+        Empty figure and styled axis with reserved side and footer margins.
+    """
+    Figure, _, _ = plot_dependencies()
     figure = Figure(figsize=(PLOT_WIDTH, height), facecolor="white")
     ax = figure.subplots()
     figure.suptitle(title, x=.035, y=.965, ha="left", fontsize=19, fontweight="bold")
-    _style_axis(ax, subtitle)
+    style_evidence_axis(ax, subtitle)
     figure.subplots_adjust(left=.19, right=.78, bottom=.23, top=.76)
     return figure, ax
 
@@ -28,14 +50,14 @@ def fusion_figures(result, references=(), transcript_names=None):
     A straight thin line denotes the transcript locus; only annotated exons
     are thick. No inferred splice connector is drawn across a fusion.
     """
-    _, _, rectangle = _plot_imports()
+    _, _, rectangle = plot_dependencies()
     references = tuple(references)
     names = transcript_names or {}
     path, = result["paths"]
     j0, j1 = path["junctions"][0]["query_interval"]
     sequence = path["sequence"]
     title = result["event_id"].replace("--", " / ") + "   " + result["provenance"]["sample_id"]
-    figure, ax = _canvas(title, "Directly observed fusion RNA")
+    figure, ax = fusion_figure_canvas(title, "Directly observed fusion RNA")
     observations = result["evidence"]["observations"]
     groups = {}
     for read in observations:
@@ -61,7 +83,7 @@ def fusion_figures(result, references=(), transcript_names=None):
             (result["paths"][0]["junctions"][0]["direct_support"]["fragments"], len(shown), status))
     if j1 > j0:
         note += "\nOrange: %d-nt insert" % (j1-j0)
-    _side_note(ax, note)
+    draw_side_note(ax, note)
     motif = sequence[max(0,j0-18):j0] + " | " + (sequence[j0:j1] + " | " if j1 > j0 else "") + sequence[j1:j1+18]
     figure.text(.19, .075, motif, fontfamily="monospace", fontsize=12, color=INK)
     figure.text(.19, .035, "Observed junction sequence; counts describe this supplied hypothesis, not total event abundance.",
@@ -77,7 +99,7 @@ def fusion_figures(result, references=(), transcript_names=None):
         # Relevant same-strand models first; preserve all models in the JSON.
         models.sort(key=lambda r: (r.transcript_id not in compatible, r.strand != partner["strand"], r.transcript_id))
         shown_models = models[:6]
-        figure, ax = _canvas(title, side.capitalize() + " reference context", 3.7 + .55*len(shown_models))
+        figure, ax = fusion_figure_canvas(title, side.capitalize() + " reference context", 3.7 + .55*len(shown_models))
         lo, hi = position-120, position+120
         for y, ref in enumerate(shown_models[::-1], 1):
             a, b = max(lo, ref.exons[0][0]), min(hi, ref.exons[-1][1])
@@ -94,7 +116,7 @@ def fusion_figures(result, references=(), transcript_names=None):
         ax.axvline(0,color=ORANGE,lw=1.3,ls="--")
         ax.set(xlim=(-120,120), ylim=(.3,max(2,len(shown_models)+.7)),
                xlabel="Genomic offset from %s:%s (interbase; forward strand)" % (partner["contig"],position))
-        _side_note(ax, "%d of %d models\n%s event strand\n\nThick: annotated exon\nThin: transcript locus\n\n%s" %
+        draw_side_note(ax, "%d of %d models\n%s event strand\n\nThick: annotated exon\nThin: transcript locus\n\n%s" %
                    (len(shown_models),len(models),partner["strand"],status))
         reasons = "; ".join(result["reasons"])
         if reasons:
@@ -108,7 +130,7 @@ def fusion_figures(result, references=(), transcript_names=None):
         yield side + "-context", figure
 
     for number, protein in enumerate(path["translations"],1):
-        figure, ax = _canvas(title, "Protein hypothesis %d" % number)
+        figure, ax = fusion_figure_canvas(title, "Protein hypothesis %d" % number)
         left = max(0,protein["junction_in_translated_cds"][0]//3-24)
         right = min(len(protein["amino_acids"]),left+49)
         amino_acids = protein["amino_acids"][left:right]
@@ -120,7 +142,7 @@ def fusion_figures(result, references=(), transcript_names=None):
             if left <= boundary/3 <= right:
                 ax.axvline(boundary/3,color=ORANGE,ls="--",lw=1.3)
         ax.set(xlim=(left,max(left+1,right+1)),ylim=(0,2),xlabel="Protein offset (amino acids; local donor-junction window)")
-        _side_note(ax, "%s\n%s\n%d junction peptides\n%s" %
+        draw_side_note(ax, "%s\n%s\n%d junction peptides\n%s" %
                    (status, "Observed CDS start" if protein["complete_5prime"] else "Conditional partial CDS",
                     len(protein["candidate_peptides"]), "Ends at stop" if protein["ends_with_stop_codon"] else "Sequence ends first"))
         figure.text(.19,.065,"No proteome-novelty or protein-expression claim. Alternative hypotheses are not ranked.",fontsize=10,color=GRAY)
@@ -136,7 +158,7 @@ def fusion_figures(result, references=(), transcript_names=None):
             length = len(peptide["sequence"])
             if length not in shown:
                 shown[length] = peptide
-        figure, ax = _canvas(title, "Junction-spanning peptide examples", 5.8)
+        figure, ax = fusion_figure_canvas(title, "Junction-spanning peptide examples", 5.8)
         for y, (length, peptide) in enumerate(sorted(shown.items(), reverse=True), 1):
             a, b = peptide["protein_interval"]
             for i, aa in enumerate(peptide["sequence"], a):
@@ -147,7 +169,7 @@ def fusion_figures(result, references=(), transcript_names=None):
         ax.set(xlim=(min(p["protein_interval"][0] for p in shown.values())-.5,
                      max(p["protein_interval"][1] for p in shown.values())+.5),
                ylim=(.3,len(shown)+.7),xlabel="Protein offset (amino acids)")
-        _side_note(ax,"%d of %d windows\n%s\n\nNo binding or\nself-proteome test" % (len(shown),len(peptides),status))
+        draw_side_note(ax,"%d of %d windows\n%s\n\nNo binding or\nself-proteome test" % (len(shown),len(peptides),status))
         figure.text(.19,.065,"A mixed junction codon counts as spanning. These are sequence windows, not validated neoantigens.",
                     fontsize=10,color=GRAY)
         yield "junction-peptides-%d" % number, figure
@@ -158,7 +180,7 @@ def save_fusion_figures(result, output_dir, references=(), transcript_names=None
     if isinstance(dpi,bool) or not isinstance(dpi,int) or dpi < 72:
         raise ValueError("dpi must be an integer >= 72")
     references = tuple(references)
-    _, rc_context, _ = _plot_imports()
+    _, rc_context, _ = plot_dependencies()
     from matplotlib.backends.backend_pdf import PdfPages
 
     slug = re.sub(r"[^A-Za-z0-9_.-]", "_", result["event_id"] + "-" + result["provenance"]["sample_id"])

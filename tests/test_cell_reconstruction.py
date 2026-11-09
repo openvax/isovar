@@ -8,10 +8,19 @@ import pytest
 from pyensembl import Genome
 from varcode import Variant
 
-from isovar import IsovarResult, ProteinSequenceCreator, ReadCollector, reconstruct_cell_groups
+from isovar import (
+    IsovarResult,
+    ProteinSequenceCreator,
+    ReadCollector,
+    reconstruct_cell_groups,
+)
 from isovar.allele_read import AlleleRead
-from isovar.cell_reconstruction import _attribute, _comparison, _protein_assignment
 from isovar.dna import reverse_complement_dna
+from isovar.rna_candidate_support import (
+    attribute_candidate_proteins,
+    attribute_read_observations,
+    compare_candidate_read,
+)
 from tests.test_sv_rna import record, write_bam
 
 CDNA = "ATG" + "GCT" * 4 + "AAA" + "GGC" * 4 + "TAA"
@@ -208,7 +217,7 @@ def observation(prefix="AAACCC", allele="G", suffix="TTTAAA"):
 
 
 def assign(reads, candidates, **kwargs):
-    return _attribute(reads, candidates, {c["candidate_id"]: [TX] for c in candidates}, "A",
+    return attribute_read_observations(reads, candidates, {c["candidate_id"]: [TX] for c in candidates}, "A",
                       kwargs.get("max_edits", 1), kwargs.get("min_overlap", 3))
 
 
@@ -243,7 +252,7 @@ def test_insufficient_overlap_and_non_acgt_are_unassessed():
 
 def test_indel_competitor_and_observed_splice_path():
     insertion = candidate("insertion", alt="GG")
-    assert _comparison(observation(allele="GG"), insertion, "", [TX], 1, 3)["reference_edit_distance"] == 2
+    assert compare_candidate_read(observation(allele="GG"), insertion, "", [TX], 1, 3)["reference_edit_distance"] == 2
     incompatible = AlleleRead("AAACCC", "G", "TTTAAA", "splice", reference_blocks=((0, 6, 10, 16), (6, 13, 100, 107)),
                               splice_junctions=((16, 100),))
     assert assign([incompatible], [candidate("a")])["status"] == "insufficient_coverage_or_incompatible_path"
@@ -279,7 +288,8 @@ def test_empty_and_unlabelled_inputs_are_accounted_for(tmp_path, reference):
 
 def test_command_export_is_opt_in_and_contains_scoped_attribution(tmp_path):
     from isovar.cli.commands import run
-    from tests.test_cell_evidence import ALT, REF, HEADER as COUNTS_HEADER
+    from tests.test_cell_evidence import ALT, REF
+    from tests.test_cell_evidence import HEADER as COUNTS_HEADER
 
     bam = write_bam(tmp_path / "rna.bam", ALT + REF, header=COUNTS_HEADER)
     output = tmp_path / "proteins.json"
@@ -301,9 +311,14 @@ def test_command_export_is_opt_in_and_contains_scoped_attribution(tmp_path):
 
 def test_original_ont_single_cell_records_and_pinned_reference(tmp_path, monkeypatch):
     import socket
+
     from examples import osteosarc_assembly_figures as figures
     from isovar import run_isovar
-    from tests.data.osteosarc.expansion.references import load_reference, reference_genome, apply_variant
+    from tests.data.osteosarc.expansion.references import (
+        apply_variant,
+        load_reference,
+        reference_genome,
+    )
 
     manifest = json.loads((figures.CORPUS / "manifest.json").read_text())
     case = next(c for c in manifest["cases"] if c["case_id"] == "26-NME1-chr17-51154443-53f498a544883d51")
@@ -349,13 +364,13 @@ def test_synonymous_rna_ambiguity_can_identify_one_protein():
     candidates = [dict(candidate_id="a", hypothesis_ids=["protein"]),
                   dict(candidate_id="b", hypothesis_ids=["protein"])]
     attribution = dict(status="ambiguous", candidate_ids=["a", "b"], placement_ambiguous=False)
-    assert _protein_assignment(attribution, candidates) == dict(hypothesis_ids=["protein"],
+    assert attribute_candidate_proteins(attribution, candidates) == dict(hypothesis_ids=["protein"],
                                                               protein_status="unique_within_catalog")
     attribution["placement_ambiguous"] = True
-    assert _protein_assignment(attribution, candidates)["protein_status"] == "ambiguous"
+    assert attribute_candidate_proteins(attribution, candidates)["protein_status"] == "ambiguous"
     attribution["placement_ambiguous"] = False
     candidates[1]["hypothesis_ids"].append("other-frame")
-    assert _protein_assignment(attribution, candidates)["protein_status"] == "ambiguous"
+    assert attribute_candidate_proteins(attribution, candidates)["protein_status"] == "ambiguous"
 
 
 def test_quality_assessments_preserve_pooled_orfs_and_sparse_cell_attribution(tmp_path, reference):
@@ -482,7 +497,8 @@ def test_partial_scores_support_sparse_cells_and_preserve_sample_boundaries(tmp_
 
 def test_partial_support_cli_and_shared_comparison_options(tmp_path):
     from isovar.cli.commands import run
-    from tests.test_cell_evidence import ALT, REF, HEADER as COUNTS_HEADER
+    from tests.test_cell_evidence import ALT, REF
+    from tests.test_cell_evidence import HEADER as COUNTS_HEADER
 
     bam = write_bam(tmp_path / "rna.bam", ALT + REF, header=COUNTS_HEADER)
     output = tmp_path / "proteins.json"

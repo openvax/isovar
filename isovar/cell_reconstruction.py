@@ -8,15 +8,20 @@ allele competitors, without turning pooled support into per-cell confidence.
 from .base_quality import STATUSES
 from .cell_evidence import CellUmiAlleles
 from .cell_umi import UNTRUSTED_CELL_STATUSES
-from .protein_hypotheses import _EvidenceSets, _event_id, _proteins
+from .protein_hypotheses import protein_hypothesis_records, variant_event_id
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_evidence import ReadEvidence
 from .read_identity import observation_groups, read_sort_key, source_read_ids
-from .rna_evidence import canonical_json, content_identifier
 from .rna_candidate_support import (
-    COMPARISON_POLICY, _attribute, _candidate, _comparison as _comparison, _protein_assignment,
-    score_fragments, summarize_fragments, validate_comparison_settings,
+    COMPARISON_POLICY,
+    attribute_candidate_proteins,
+    attribute_read_observations,
+    score_fragments,
+    summarize_fragments,
+    translation_rna_candidate,
+    validate_comparison_settings,
 )
+from .rna_evidence import ScopedEvidenceSets, canonical_json, content_identifier
 
 SCHEMA = "isovar.cell_reconstruction.v1"
 MODES = ("sample", "library", "cell", "group")
@@ -93,7 +98,7 @@ def _event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap, 
            partial_read_support=False):
     read_evidence, variant = result.read_evidence, result.variant
     reads = sorted(set(read_evidence.ref_reads + read_evidence.alt_reads + read_evidence.other_reads), key=read_sort_key)
-    event_id = _event_id(variant)
+    event_id = variant_event_id(variant)
     pools, excluded = _partition(reads, labels, mode, cell_groups)
     settings = result.protein_sequence_settings
     if settings is None:
@@ -111,10 +116,10 @@ def _event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap, 
         proteins = creator.sorted_protein_sequences_for_variant(variant, subset, transcript_id_whitelist)
         if known_variants is not None:
             proteins = [p.with_known_variants(known_variants) for p in proteins]
-        exported = _proteins(proteins, event_id, evidence, labels)
+        exported = protein_hypothesis_records(proteins, event_id, evidence, labels)
         for protein, row in zip(proteins, exported):
             for translation in protein.translations:
-                candidate, tx = _candidate(translation, event_id)
+                candidate, tx = translation_rna_candidate(translation, event_id)
                 key = candidate["candidate_id"]
                 existing = candidates.setdefault(key, candidate)
                 existing["pool_ids"].append(pool_id)
@@ -141,9 +146,9 @@ def _event(result, labels, evidence, mode, cell_groups, max_edits, min_overlap, 
                           if description.get("header_sample", description.get("scope", {}).get("header_sample"))
                           == cell["scope"]["header_sample"]}
         eligible_candidates = [c for c in candidates if eligible_pools.intersection(c["pool_ids"])]
-        attribution = _attribute(observations, eligible_candidates, transcripts,
+        attribution = attribute_read_observations(observations, eligible_candidates, transcripts,
                                  read_evidence.trimmed_ref, max_edits, min_overlap)
-        row["observations"].append(dict(attribution, **_protein_assignment(attribution, eligible_candidates),
+        row["observations"].append(dict(attribution, **attribute_candidate_proteins(attribution, eligible_candidates),
                                         rna_support=evidence.support(
             observations, "original_observations_compared_with_candidate_catalog", labels)))
     # A synonymous RNA ambiguity may still identify one protein. A cell can
@@ -253,7 +258,7 @@ def reconstruct_cell_groups(isovar_results, alignment_file, *, sample_id, source
             raise ValueError("group mode requires a cell ID to nonempty group-name mapping")
     elif cell_groups is not None:
         raise ValueError("cell_groups applies only to group mode")
-    evidence = _EvidenceSets([sample_id, source], base_quality_policy)
+    evidence = ScopedEvidenceSets([sample_id, source], base_quality_policy)
     resolver = CellUmiAlleles(alignment_file, sample_id=sample_id, source=source, read_collector=read_collector)
     events = []
     for result in isovar_results:

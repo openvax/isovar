@@ -10,8 +10,8 @@ from examples.sid_sv_audit.json_projection import candidate_evidence, collection
 @pytest.mark.parametrize("compressed", [False, True])
 @pytest.mark.parametrize("chunk_size", [1, 7, 65536])
 def test_selected_collections_match_full_document(tmp_path, monkeypatch, compressed, chunk_size):
-    from isovar import _audit_json_reader
-    monkeypatch.setattr(_audit_json_reader, "_CHUNK_SIZE", chunk_size)
+    from isovar import audit_json_reader
+    monkeypatch.setattr(audit_json_reader, "_CHUNK_SIZE", chunk_size)
     path = tmp_path / ("result.json.gz" if compressed else "result.json")
     value = dict(before=[{"unused": "text"}], paths=[{"dna": "ATG", "nested": [1, True, None]}, {"dna": "é\\\""}],
                  observations={"one": {"records": ["r"]}, "two": {}}, after={"unused": []})
@@ -67,9 +67,10 @@ def test_background_collection_is_not_retained(tmp_path):
 @pytest.mark.parametrize("chunk_size", [1, 7, 65536])
 def test_evidence_reader_shares_nested_witness_values_on_bulk_and_streamed_paths(monkeypatch, chunk_size):
     import io
+
     from examples.sid_sv_audit.json_projection import read_evidence_json
-    from isovar import _audit_json_reader
-    monkeypatch.setattr(_audit_json_reader, "_CHUNK_SIZE", chunk_size)
+    from isovar import audit_json_reader
+    monkeypatch.setattr(audit_json_reader, "_CHUNK_SIZE", chunk_size)
 
     witness = dict(observation="same-read", observation_interval=[1, 19],
                    original_query_interval=[31, 49], junction_links=[dict(query_interval=[7, 7])])
@@ -90,6 +91,7 @@ def test_evidence_reader_shares_nested_witness_values_on_bulk_and_streamed_paths
 
 def test_evidence_reader_validates_complete_json_and_preserves_scalar_roots():
     import io
+
     from examples.sid_sv_audit.json_projection import read_evidence_json
 
     for text in ("null", "false", "12", '"string"', "[]", "{}", '[1, {"a": 2, "a": 3}]'):

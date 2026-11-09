@@ -21,6 +21,7 @@ in the project README.
 |---|---|
 | [Collecting and counting RNA reads](read-collection.md) | `ReadCollector` options, reads versus fragments, and the RNA support record in every JSON export |
 | [Read eligibility across platforms](read-processing-audit.md) | Which alignments are used, and what Illumina, ONT and PacBio quality tags mean |
+| [Shared RNA reconstruction and support](rna-reconstruction.md) | Public engine contracts across small variants, SVs, CTA isoforms and viral paths |
 | [Assembly and translation](assembly-and-translation.md) | `ProteinSequenceCreator` options, and other variants found in the assembled RNA |
 | [Protein context selection](protein-selection.md) | How much protein context is reported and which candidate comes first |
 | [Reading frames from aligned reads](aligned-reading-frame.md) | How an indel upstream of the variant carries into the reading frame |

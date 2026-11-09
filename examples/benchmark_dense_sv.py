@@ -5,14 +5,12 @@ Times cover reconstruction, including spooling, grouping and complete support;
 input verification is outside the timed interval. No remote input is acquired.
 """
 
+
 import argparse
 import cProfile
 import gzip
-from hashlib import sha256
-from importlib.metadata import version
 import json
 import os
-from pathlib import Path
 import platform
 import resource
 import shutil
@@ -22,6 +20,9 @@ import sys
 import tempfile
 import threading
 import time
+from hashlib import sha256
+from importlib.metadata import version
+from pathlib import Path
 
 
 def checksum(path):
@@ -58,6 +59,7 @@ def main():
         parser.error('Budgets must be positive')
     sys.path.insert(0, str(args.checkout.resolve()))
     import pysam
+
     import isovar
     from isovar import sv_rna_dense
     from isovar.audit_bundle import AuditBundle
@@ -83,7 +85,7 @@ def main():
     except ImportError:
         pass  # The identical driver also benchmarks engines predating streaming.
     else:
-        consume = sv_rna_stream._SupportStream.consume
+        consume = sv_rna_stream.SvSupportStream.consume
 
         def measured_consume(stream, observations):
             batches['count'] += 1
@@ -96,7 +98,7 @@ def main():
                 print(json.dumps(dict(stage='support_progress', **batches,
                                       elapsed_seconds=time.perf_counter() - start)), flush=True)
 
-        sv_rna_stream._SupportStream.consume = measured_consume
+        sv_rna_stream.SvSupportStream.consume = measured_consume
 
     def peak_rss():
         return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if sys.platform == 'darwin' else 1024)

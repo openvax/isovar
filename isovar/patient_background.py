@@ -3,10 +3,17 @@
 from . import __version__
 from .coding_interval_support import coding_interval_support
 from .genetic_code import translate_cdna
-from .protein_hypotheses import analysis_provenance, _EvidenceSets, _check_translation, _completeness, _edits, _event_id, _hypothesis_id, _variant
-from .rna_evidence import content_identifier
+from .protein_hypotheses import (
+    analysis_provenance,
+    literal_variant_record,
+    protein_hypothesis_id,
+    reconstruction_completeness,
+    translation_edit_records,
+    validate_translation_sequence,
+    variant_event_id,
+)
+from .rna_evidence import ScopedEvidenceSets, content_identifier
 from .transcript_edit_helpers import transcript_edit_from_variant
-
 
 SCHEMA = 'isovar.patient_background_pairs.v1'
 BASELINES = ('focal', 'supplied_somatic_haplotype')
@@ -68,7 +75,7 @@ def _phase(support):
 
 
 def _pair(translation, transcript, known, result, evidence, baseline):
-    _check_translation(translation)
+    validate_translation_sequence(translation)
     orf, context = translation.variant_orf, translation.reference_context
     sequence = orf.cdna_sequence
     start = orf.offset_to_first_complete_codon
@@ -90,7 +97,7 @@ def _pair(translation, transcript, known, result, evidence, baseline):
         baseline=None, reference=None, removed_edits=[], retained_edits=[],
         translation_observed=False)
     try:
-        selected = sorted((e for e in _edits(translation, known) if e['transcript_id'] == transcript.id),
+        selected = sorted((e for e in translation_edit_records(translation, known) if e['transcript_id'] == transcript.id),
                           key=lambda e: e['cdna_interval'])
         positioned, row['reference'] = _replay(translation, transcript, selected)
         origins = {'nominated_variant'} if baseline == 'focal' else {'nominated_variant', 'co_somatic_variant'}
@@ -170,19 +177,19 @@ def export_patient_background_pairs(isovar_results, *, sample_id, source, baseli
     if any(not isinstance(value, str) or not value.strip() for value in (sample_id, source)):
         raise ValueError('sample_id and source must be nonempty strings')
     isovar_results = list(isovar_results)
-    evidence = _EvidenceSets([sample_id, source])
+    evidence = ScopedEvidenceSets([sample_id, source])
     events, supplied_variants = [], {}
     for result in isovar_results:
-        event_id = _event_id(result.variant)
+        event_id = variant_event_id(result.variant)
         pairs = []
         for protein in result.sorted_protein_sequences:
-            hypothesis_id = _hypothesis_id(protein, event_id)
+            hypothesis_id = protein_hypothesis_id(protein, event_id)
             known = protein.known_variants
             if known is not None:
                 for origin in ('somatic', 'germline'):
                     for variant in getattr(known, origin):
-                        key = _event_id(variant)
-                        entry = dict(origin=origin, variant=_variant(variant))
+                        key = variant_event_id(variant)
+                        entry = dict(origin=origin, variant=literal_variant_record(variant))
                         if key in supplied_variants and supplied_variants[key] != entry:
                             raise ValueError('Conflicting supplied variant origins across RNA results')
                         supplied_variants[key] = entry
@@ -197,12 +204,12 @@ def export_patient_background_pairs(isovar_results, *, sample_id, source, baseli
                     pair['pair_id'] = content_identifier('patient_background_pair', [event_id, pair])
                     pairs.append(pair)
         pairs.sort(key=lambda row: row['pair_id'])
-        limit, complete = _completeness(result)
-        events.append(dict(event_id=event_id, variant=_variant(result.variant), pairs=pairs,
+        limit, complete = reconstruction_completeness(result)
+        events.append(dict(event_id=event_id, variant=literal_variant_record(result.variant), pairs=pairs,
                            state='retained' if pairs else 'no_protein_hypotheses',
                            protein_hypotheses_complete=complete, protein_sequence_limit=limit,
                            phased_variants_in_supporting_reads=sorted(
-                               _event_id(v) for v in result.phased_variants_in_supporting_reads)))
+                               variant_event_id(v) for v in result.phased_variants_in_supporting_reads)))
     return dict(schema=SCHEMA, isovar_version=__version__, sample_id=sample_id, source=source,
                 **analysis_provenance(isovar_results, read_collector, filter_thresholds),
                 evidence_scope=[sample_id, source], interval_convention='zero_based_half_open',

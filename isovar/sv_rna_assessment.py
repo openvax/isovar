@@ -5,23 +5,28 @@ An exon-linked read matching ordinary shared sequence never transfers its frame
 to another RNA branch. Counts are source/read-group scoped, not molecule counts.
 """
 
+import json
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from hashlib import sha256
-import json
 from typing import Any, NotRequired, TypedDict
 
 import pysam
 
 from .fusion import FusionReference
-from .read_identity import read_group
 from .read_collector import ReadCollector
 from .read_end_inference import ReadSequenceView
-from .transcript_path_frames import TranscriptPathModel, exact_anchor_runs
-from .sv_rna_path_support import exact_path_matches, interval_spots, overlap_chain_search, reverse_complement
+from .read_identity import read_group
+from .sv_rna_path_support import (
+    exact_path_matches,
+    interval_spots,
+    overlap_chain_search,
+    reverse_complement,
+)
 from .sv_rna_relations import EVENT_LINKED_RELATIONS
+from .transcript_path_frames import TranscriptPathModel, exact_anchor_runs
 
 
 def path_positions(path):

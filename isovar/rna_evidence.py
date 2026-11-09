@@ -13,8 +13,8 @@ without counting a read twice. IDs from different scopes never match, which
 says nothing about whether their reads overlap.
 """
 
-from hashlib import sha256
 import json
+from hashlib import sha256
 from typing import NotRequired, TypedDict
 
 from .read_identity import count_reads, fragment_ids, source_read_ids
@@ -225,3 +225,28 @@ def union_rna_support(supports):
         evidence_scope=list(supports[0]["evidence_scope"]), reads=len(read_ids),
         fragments=len(fragment_ids), read_ids=read_ids, fragment_ids=fragment_ids,
         evidence_set_id=content_identifier("evidence", read_ids))
+
+
+class ScopedEvidenceSets(EvidenceSets):
+    """Support records, each labelled with the reads it describes.
+
+    Parameters
+    ----------
+    scope : sequence[str]
+        [sample_id, source] for all accumulated original witnesses.
+    base_quality_policy : BaseQualityPolicy, optional
+        Optional focal-allele quality partition; does not change raw counts.
+    """
+
+    def support(self, reads, description=None, labels=None):
+        """The RNA support record and evidence set ID of ``reads``."""
+        record = super().support(reads, labels)
+        return record if description is None else dict(scope=description, **record)
+
+    def counts(self, reads, description, labels=None):
+        """The RNA support record alone, storing no evidence set."""
+        reads = list(reads)
+        record = dict(scope=description, **self.record(reads, labels)[0])
+        if self.base_quality_policy is not None:
+            record["base_quality"] = self.quality_support(reads, labels, store_sets=False)
+        return record

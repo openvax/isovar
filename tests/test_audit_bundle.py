@@ -1,19 +1,19 @@
 """Portable evidence must replay without original paths or silent drift."""
 
-from copy import deepcopy
 import errno
 import gzip
 import json
-from pathlib import Path
 import shutil
 import tarfile
+from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
 from isovar.audit_bundle import AuditBundle, AuditBundleError, digest, identity
-from isovar.audit_replay import replay_sv_rna, read_json
-from isovar.sid_audit_bundle import bundle_sid_audit
+from isovar.audit_replay import read_json, replay_sv_rna
 from isovar.cli.isovar_audit_bundle import run
+from isovar.sid_audit_bundle import bundle_sid_audit
 
 
 def source_file(tmp_path):
@@ -268,8 +268,8 @@ def test_unpack_rejects_incomplete_or_invalid_archives(tmp_path, change):
 @pytest.fixture
 def original_sid_audit(tmp_path):
     # Real, checksum-pinned original SAM records, independent of bundle code.
-    from tests.data.fusions.audit_three_fusions import DATA, run_case, pinned_json
     from examples.sid_sv_audit.inventory import write_json
+    from tests.data.fusions.audit_three_fusions import DATA, pinned_json, run_case
 
     directory = tmp_path / "old-audit"
     directory.mkdir()
@@ -401,7 +401,7 @@ def test_cli_streamed_resume_rejects_tampering(tmp_path, original_sid_audit, cha
 
 @pytest.mark.parametrize("duplicate", [False, True])
 def test_cli_resume_keeps_noncanonical_json_semantics(tmp_path, original_sid_audit, monkeypatch, capsys, duplicate):
-    from isovar import audit_replay, _audit_json_reader
+    from isovar import audit_json_reader, audit_replay
     from isovar.cli.isovar_audit_bundle import run
 
     original, run_id, _ = original_sid_audit
@@ -422,7 +422,7 @@ def test_cli_resume_keeps_noncanonical_json_semantics(tmp_path, original_sid_aud
         return original_read(source)
 
     monkeypatch.setattr(audit_replay, "read_json", tracked_read)
-    monkeypatch.setattr(_audit_json_reader, "_CHUNK_SIZE", 127)
+    monkeypatch.setattr(audit_json_reader, "_CHUNK_SIZE", 127)
     run(["replay", str(bundle.directory), "--run-id", run_id, "--output", str(tmp_path / "replay")])
     assert path in reads
     assert json.loads(capsys.readouterr().out)[0]["comparison"] == "matched"
@@ -474,6 +474,7 @@ def test_sid_import_rejects_changed_original_provenance(tmp_path, original_sid_a
 def test_sid_import_releases_payloads_before_next_read_and_publication(
         tmp_path, original_sid_audit, monkeypatch):
     import weakref
+
     from isovar import sid_audit_bundle
 
     original, run_id, _ = original_sid_audit
@@ -630,8 +631,8 @@ def test_sid_non_replayable_outcomes_still_require_provenance(
 @pytest.mark.parametrize("conflicting", [False, True])
 def test_sid_import_deduplicates_hashing_without_accepting_conflicting_pins(
         tmp_path, original_sid_audit, monkeypatch, conflicting):
-    from isovar import sid_audit_bundle
     from examples.sid_sv_audit.inventory import write_json
+    from isovar import sid_audit_bundle
 
     original, _, _ = original_sid_audit
     shared = original / "query-names.txt"

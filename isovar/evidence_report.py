@@ -11,8 +11,6 @@ from bisect import bisect_left
 from collections import Counter, defaultdict
 from pathlib import Path
 
-
-
 RNA_STATUSES = (
     "alternate_observed", "reference_only", "reference_and_other_only",
     "other_allele_only", "alignment_without_allele_call", "no_alignment_overlap",

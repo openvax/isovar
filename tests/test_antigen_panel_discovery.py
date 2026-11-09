@@ -4,6 +4,8 @@ from dataclasses import replace
 
 import pytest
 
+import isovar.antigen_isoforms as antigen_isoforms
+import isovar.rna_reconstruction as rna_reconstruction
 from isovar import IsoformTarget
 from tests.test_antigen_isoforms import reconstruct, target_models
 from tests.test_sv_rna import aligned, record
@@ -64,11 +66,11 @@ def test_indexed_candidates_match_exhaustive_results_with_fewer_exact_comparison
     reads = aligned('observed', sequence, mapping)
     reads += aligned('observed', sequence, [(c, p + 1000, s) for c, p, s in mapping], flag=256)
     calls = []
-    original = shared._matches
+    original = rna_reconstruction.matching_observation_intervals
     def counted(*args, **kwargs):
         calls.append(None)
         return original(*args, **kwargs)
-    monkeypatch.setattr(shared, '_matches', counted)
+    monkeypatch.setattr(rna_reconstruction, 'matching_observation_intervals', counted)
     indexed = reconstruct(tmp_path, reads, targets)
     indexed_calls = len(calls)
 
@@ -79,8 +81,8 @@ def test_indexed_candidates_match_exhaustive_results_with_fewer_exact_comparison
         def overlapping(self, positions, lo, hi):
             return {(key, 0) for key in self.keys}
 
-    monkeypatch.setattr(shared, '_PlacementIndex', Exhaustive)
-    monkeypatch.setattr(antigen, '_PlacementIndex', Exhaustive)
+    monkeypatch.setattr(rna_reconstruction, 'PlacementIndex', Exhaustive)
+    monkeypatch.setattr(antigen_isoforms, 'PlacementIndex', Exhaustive)
     calls.clear()
     exhaustive = reconstruct(tmp_path, reads, targets)
     assert indexed == exhaustive

@@ -11,10 +11,13 @@ import pysam
 
 from .allele_read import AlleleRead
 from .read_collector import ReadCollector
-from .read_identity import segment_identity
-from .sv_rna import RnaObservation, _GeometryCache, _build_segment, _record_id
+from .read_identity import sam_record_id, segment_identity
+from .rna_observation import (
+    ObservationGeometryCache,
+    RnaObservation,
+    build_segment_observations,
+)
 from .variant_helpers import LiteralVariantLocus
-
 
 AlleleState = Literal["ALT", "REF", "OTHER"]
 
@@ -95,7 +98,7 @@ def allele_path_seeds(
     label, SA tag, mate position or reference base substitutes for an observed
     allele. Both orientations are retained for downstream model competition.
     """
-    cache = _GeometryCache()
+    cache = ObservationGeometryCache()
     reasons: Counter[str] = Counter()
     seeds: dict[tuple, AllelePathSeed] = {}
     originals: dict[str, str] = {}
@@ -110,8 +113,8 @@ def allele_path_seeds(
             elif read_collector.alignment_filter_reason(read) is None:
                 groups[segment_identity(read)].append(read)
         for identity, members in sorted(groups.items()):
-            observations = _build_segment(identity, members, read_collector, reasons, {}, cache)
-            original_members = {_record_id(read): read.to_string() for read in members}
+            observations = build_segment_observations(identity, members, read_collector, reasons, {}, cache)
+            original_members = {sam_record_id(read): read.to_string() for read in members}
             for read in members:
                 if read.reference_name != contig:
                     continue
@@ -123,7 +126,7 @@ def allele_path_seeds(
                 if allele is None:
                     continue
                 state: AlleleState = "ALT" if allele.allele == locus.alt else "REF" if allele.allele == locus.ref else "OTHER"
-                rid = _record_id(read)
+                rid = sam_record_id(read)
                 calls.add(OriginalAlleleCall(state, allele.allele, identity, rid))
                 originals[rid] = original_members[rid]
                 view = read_collector.read_sequence_view(read)

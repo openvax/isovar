@@ -3,7 +3,6 @@
 import json
 import re
 
-
 _CHUNK_SIZE = 64 * 1024
 _DECODER = json.JSONDecoder()
 _NUMBER = re.compile(r"[0-9eE+.-]+")

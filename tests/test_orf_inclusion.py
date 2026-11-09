@@ -1,13 +1,18 @@
 """Same-sequence splice-linkage contrasts through public reconstruction/export."""
 
-from copy import deepcopy
 import csv
 import json
+from copy import deepcopy
 
 import pysam
 import pytest
 
-from isovar import FusionBreakpoint, export_sv_rna_orfs, reconstruct_sv_rna, write_sv_rna_orfs
+from isovar import (
+    FusionBreakpoint,
+    export_sv_rna_orfs,
+    reconstruct_sv_rna,
+    write_sv_rna_orfs,
+)
 from isovar.rna_evidence import CELL_UMI_FIELDS
 from tests.test_orf_start import reference
 from tests.test_sv_rna import aligned, write_bam
@@ -122,7 +127,7 @@ def test_inclusion_mapping_quality_threshold_is_configurable(tmp_path):
 
 def test_unrelated_splice_or_partial_witness_cannot_promote_start(tmp_path):
     from isovar import annotate_orf_inclusion, annotate_orf_start
-    from isovar.sv_rna import RnaObservation
+    from isovar.rna_observation import RnaObservation
     ref = reference()
     sequence = "ATG" + "GCC" * 20
     positions = [("1", q, "+") for q in range(180, 204)] + [("1", q, "+") for q in range(220, 240)]
@@ -147,7 +152,7 @@ def test_unrelated_splice_or_partial_witness_cannot_promote_start(tmp_path):
 def test_retention_requires_both_boundaries_processed_context_and_competing_splice(
         competitor, context, boundaries, expected):
     from isovar import FusionReference, annotate_orf_inclusion, annotate_orf_start
-    from isovar.sv_rna import RnaObservation
+    from isovar.rna_observation import RnaObservation
     ref = FusionReference("retained", "synthetic", "test", "1", "+",
                           ((100, 120), (200, 220), (300, 320)), "C" * 60)
     first = 100 if boundaries else 125
@@ -172,7 +177,7 @@ def test_retention_requires_both_boundaries_processed_context_and_competing_spli
 @pytest.mark.parametrize("donor_end", [224, 324])
 def test_rearranged_intronic_segment_needs_linked_partner_splicing(context, expected, donor_end):
     from isovar import FusionReference, annotate_orf_inclusion, annotate_orf_start
-    from isovar.sv_rna import RnaObservation
+    from isovar.rna_observation import RnaObservation
     donor = reference()
     partner = FusionReference("partner", "synthetic", "test", "2", "+",
                               ((500, 524), (700, 724)), "C" * 48)
@@ -199,7 +204,7 @@ def test_rearranged_intronic_segment_needs_linked_partner_splicing(context, expe
 @pytest.mark.parametrize("start_position,priority", [(180, 3), (230, 4)])
 def test_cryptic_splice_must_include_the_start_intron(strand, start_position, priority):
     from isovar import FusionReference, annotate_orf_inclusion, annotate_orf_start
-    from isovar.sv_rna import RnaObservation
+    from isovar.rna_observation import RnaObservation
     ref = FusionReference("introns", "synthetic", "test", "1", strand,
                           ((100, 120), (200, 220), (300, 320)), "C" * 60)
     coordinates = list(range(100, 120)) + list(range(160, 320))
@@ -230,6 +235,7 @@ def test_cryptic_splice_must_include_the_start_intron(strand, start_position, pr
 ])
 def test_cli_passes_inclusion_gates_to_reconstruction(tmp_path, monkeypatch, options, expected):
     from contextlib import nullcontext
+
     from isovar.cli import isovar_sv_rna
     seen = {}
     event = tmp_path / "input.json"

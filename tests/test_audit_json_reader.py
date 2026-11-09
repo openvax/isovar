@@ -6,8 +6,8 @@ import tracemalloc
 
 import pytest
 
-from isovar._audit_json import comparison_identity, expected_json_identity
-from isovar._audit_json_reader import read_json_stream
+from isovar.audit_json import comparison_identity, expected_json_identity
+from isovar.audit_json_reader import read_json_stream
 
 
 class ChunkOnly(io.StringIO):

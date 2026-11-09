@@ -1,26 +1,33 @@
 """Source-separated landscapes and sequence exemplars from cohort results."""
 
-from collections import Counter, defaultdict
 import gzip
-from html import escape
 import json
 import math
+from collections import Counter, defaultdict
+from html import escape
 from pathlib import Path
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.platypus import (
-    Flowable, Image, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
+    Flowable,
+    Image,
+    KeepTogether,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
 )
 
 from .json_files import read_json
-from .sv_rna_audit import file_sha256, write_json
-from .rna_evidence import content_identifier
-from .sv_rna_relations import ADJACENCY_JOIN_RELATIONS
-from .protein_window_comparison import aligned_protein_columns
 from .protein_reporting import best_supported_translation, protein_comparison_status
-
+from .protein_window_comparison import aligned_protein_columns
+from .rna_evidence import content_identifier
+from .sv_rna_audit import file_sha256, write_json
+from .sv_rna_relations import ADJACENCY_JOIN_RELATIONS
 
 INK = "#223743"
 MUTANT = "#d26928"
@@ -231,8 +238,8 @@ def _set_count_ticks(axis, low: int, high: int) -> None:
 
 
 def _category_landscape(result, categories, depths, directory):
-    from matplotlib.figure import Figure
     import numpy as np
+    from matplotlib.figure import Figure
 
     fig = Figure(figsize=(7.2, 3.6), layout="constrained")
     left, right = fig.subplots(1, 2)
@@ -483,8 +490,8 @@ def _fusion_display(result, supplied, directory):
 
 def _sv_path_figure(candidate, assessment, directory, identifier):
     """Show exact path matching without equating tiling with joint phase."""
-    from matplotlib.figure import Figure
     import numpy as np
+    from matplotlib.figure import Figure
 
     length = len(candidate['sequence'])
     intervals = defaultdict(list)
@@ -534,7 +541,7 @@ def _sv_path_figure(candidate, assessment, directory, identifier):
 
 
 def _additional_sections(manifest, summary, sample_id, figures, p, table, styles):
-    from .antigen_report import fusion_summary, viral_summary, isoform_summary
+    from .antigen_report import fusion_summary, isoform_summary, viral_summary
 
     story = []
     for entry in summary.get('additional', []):

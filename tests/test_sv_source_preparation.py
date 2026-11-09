@@ -2,13 +2,13 @@
 
 from types import SimpleNamespace
 
-from pyensembl import EnsemblRelease
 import pytest
+from pyensembl import EnsemblRelease
 from varcode import ContigResolver
 from varcode.structural_variant import StructuralVariant
 
 from isovar import prepare_sv_source_record, read_sv_source
-from isovar._file_identity import file_sha256
+from isovar.file_identity import file_sha256
 
 
 def source(tmp_path, contig='virus_A', mate='decoy_B', alt=None, reference_name='GRCh38'):

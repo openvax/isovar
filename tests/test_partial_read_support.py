@@ -1,7 +1,7 @@
 """Conserved fragment budgets distinguish informative and ambiguous partial reads."""
 
-from copy import copy, deepcopy
 import json
+from copy import copy, deepcopy
 from math import isclose
 from types import SimpleNamespace
 
@@ -9,8 +9,8 @@ import pytest
 
 from isovar import AlleleRead, BaseQualityPolicy
 from isovar.base_quality import AlleleQualityFootprint
-from isovar.protein_hypotheses import _EvidenceSets
 from isovar.rna_candidate_support import score_fragments
+from isovar.rna_evidence import ScopedEvidenceSets
 
 TX = SimpleNamespace(id="tx", exon_intervals=[(1, 20000)])
 
@@ -33,7 +33,7 @@ def read(name, prefix="CCC", allele="G", suffix="TTT", mate=0, group="rg", place
 def score(reads, candidates=None, **kwargs):
     candidates = candidates if candidates is not None else [candidate("a"), candidate("b", suffix="TTTCCC")]
     policy = kwargs.pop("quality_policy", None)
-    evidence = _EvidenceSets(["s", "input"], policy)
+    evidence = ScopedEvidenceSets(["s", "input"], policy)
     result = score_fragments(reads, candidates, {c["candidate_id"]: [TX] for c in candidates}, "A", evidence,
                              min_overlap=3, **kwargs)
     assert sum(s["fractional_fragments"] for s in result["protein_scores"]) == pytest.approx(result["scored_fragments"])

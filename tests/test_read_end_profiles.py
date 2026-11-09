@@ -1,15 +1,21 @@
 """Keep sequence sources, processing facts and cached matches reproducible."""
 
-from dataclasses import asdict, replace
 import json
+from dataclasses import asdict, replace
 
 import pytest
 
-from isovar import (Adapter, ReadEndProfile, ReadLibraryProvenance, ReadProcessingStep,
-                    ReadEndInferenceCache, infer_read_ends, read_end_profile_from_fasta)
-from isovar._file_identity import file_sha256
+from isovar import (
+    Adapter,
+    ReadEndInferenceCache,
+    ReadEndProfile,
+    ReadLibraryProvenance,
+    ReadProcessingStep,
+    infer_read_ends,
+    read_end_profile_from_fasta,
+)
+from isovar.file_identity import file_sha256
 from isovar.read_end_profiles import read_end_profiles_from_json
-
 
 MOTIF = 'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT'
 BODY = 'GCTACGTCGCTG'
@@ -154,10 +160,15 @@ def test_sv_manifest_source_profile_and_external_fasta_are_checked_on_resume(tmp
 
 
 def test_cohort_profile_file_is_part_of_acquisition_and_scientific_identity(tmp_path):
-    from isovar.cohort import _selected_file_keys, _small_variant_file_keys, run_small_variant_source
+    from pathlib import Path
+
+    from isovar.cohort import (
+        _selected_file_keys,
+        _small_variant_file_keys,
+        run_small_variant_source,
+    )
     from isovar.sv_rna_audit import write_json
     from tests.testing_helpers import data_path
-    from pathlib import Path
     calls = tmp_path / 'calls.json'
     write_json(calls, [dict(contig='14', start=92811641, ref='GAGA', alt='G')])
     profile = tmp_path / 'profile.json'

@@ -11,27 +11,36 @@
 # limitations under the License.
 
 
-from varcode import load_vcf
-from pysam import AlignmentFile
 from collections import OrderedDict
 
-from .protein_sequence_creator import ProteinSequenceCreator
-from .read_collector import ReadCollector
-from .logging import get_logger
-from .isovar_result import IsovarResult
-from .known_variants import KnownVariants
+from pysam import AlignmentFile
+from varcode import load_vcf
+
+from .default_parameters import (
+    DEFAULT_FILTER_FLAGS as DEFAULT_FILTER_FLAGS,
+)
 from .default_parameters import (
     DEFAULT_FILTER_THRESHOLDS as DEFAULT_FILTER_THRESHOLDS,
-    DEFAULT_FILTER_FLAGS as DEFAULT_FILTER_FLAGS,
-    MIN_SHARED_FRAGMENTS_FOR_PHASING,
+)
+from .default_parameters import (
     MAX_P_VALUE_FOR_PHASING,
-    PHASING_ERROR_RATE,
+    MIN_SHARED_FRAGMENTS_FOR_PHASING,
     NUM_RNA_DECOMPRESSION_THREADS,
+    PHASING_ERROR_RATE,
 )
 from .effect_prediction import top_varcode_effect
 from .filtering import apply_filters
 from .germline_evidence import germline_read_evidence
-from .phasing import annotate_phased_variants, _validate_phasing_rates, _validate_locus_error_rates
+from .isovar_result import IsovarResult
+from .known_variants import KnownVariants
+from .logging import get_logger
+from .phasing import (
+    annotate_phased_variants,
+    validate_locus_error_rates,
+    validate_phasing_rates,
+)
+from .protein_sequence_creator import ProteinSequenceCreator
+from .read_collector import ReadCollector
 from .variant_helpers import require_literal_variant
 
 logger = get_logger(__name__)
@@ -151,8 +160,8 @@ def run_isovar(
         One per variant, in input order. `sorted_protein_sequences` is
         empty if no sequences could be determined.
     """
-    _validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
-    phasing_error_rates = _validate_locus_error_rates(phasing_error_rates)
+    validate_phasing_rates(phasing_error_rate, max_p_value_for_phasing)
+    phasing_error_rates = validate_locus_error_rates(phasing_error_rates)
     if filter_thresholds is None:
         filter_thresholds = OrderedDict(DEFAULT_FILTER_THRESHOLDS)
 

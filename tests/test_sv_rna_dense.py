@@ -1,30 +1,33 @@
 """Complete-input support remains separate from bounded hypothesis discovery."""
 
-from dataclasses import asdict
 import json
-from pathlib import Path
 import weakref
+from dataclasses import asdict
+from pathlib import Path
 
 import pysam
 import pytest
 
+import isovar.rna_observation as rna_observation
+import isovar.sv_rna_dense as sv_rna_dense
+import isovar.sv_rna_stream as sv_rna_stream
 from isovar import export_sv_rna_orfs
 from isovar.cli.isovar_sv_rna import run as cli_run
-from isovar.read_collector import ReadCollector
 from isovar.fusion import FusionBreakpoint, FusionReference
+from isovar.read_collector import ReadCollector
 from isovar.sv_rna import reconstruct_sv_rna
 from tests.test_sv_rna import Scenario, aligned, record, write_bam
 
 
 @pytest.mark.parametrize('strand', ['+', '-'])
 def test_frozen_span_index_keeps_nested_and_repeated_genomic_blocks(strand):
-    from isovar.sv_rna import _PathSpans, _Positions
+    from isovar.rna_path_geometry import PathPositions, PathSpans
 
     positions = []
     for low, high in [(1000, 1010), (100, 150), (105, 110), (100, 150)]:
         bases = range(low, high) if strand == '+' else range(high - 1, low - 1, -1)
         positions.extend(('1', base, strand) for base in bases)
-    span = _PathSpans('A' * len(positions), _Positions(positions))
+    span = PathSpans('A' * len(positions), PathPositions(positions))
     assert {start for start, _, _ in span.overlapping_runs('1', strand, 108, 109)} == {10, 60, 65}
     assert span.overlapping_runs('1', strand, 150, 1000) == []
     assert not span.overlapping_runs('2', strand, 100, 1001)
@@ -33,27 +36,29 @@ def test_frozen_span_index_keeps_nested_and_repeated_genomic_blocks(strand):
 
 def test_fragmented_candidate_span_queries_skip_disjoint_blocks():
     from types import SimpleNamespace
-    from isovar.sv_rna import _PathSpans, _Positions
 
-    positions = _Positions([('1', q + q // 10, '+') for q in range(4000)])
-    span = _PathSpans('A' * 4000, positions)
+    from isovar.rna_path_geometry import PathPositions, PathSpans
+
+    positions = PathPositions([('1', q + q // 10, '+') for q in range(4000)])
+    span = PathSpans('A' * 4000, positions)
     assert len(span.overlapping_runs('1', '+', 110, 120)) == 1
     # Placed-base alleles do not alter the co-observed interval; exact sequence
     # agreement remains the separate full-interval witness calculation.
     observation = SimpleNamespace(key='original', positions=positions, sequence='C' * 4000)
-    assert span(observation) == (0, 3999)
+    assert span(observation) == (0, 4000)
 
 
 @pytest.mark.parametrize('strand', ['+', '-'])
 def test_span_rejects_incompatible_query_offsets_before_remaining_blocks(strand):
     from types import SimpleNamespace
-    from isovar.sv_rna import _PathSpans, _Positions
+
+    from isovar.rna_path_geometry import PathPositions, PathSpans
 
     bases = [q + q // 10 for q in range(4000)]
     if strand == '-':
         bases.reverse()
-    positions = _Positions([('1', q, strand) for q in bases])
-    span = _PathSpans('A' * 4000, positions)
+    positions = PathPositions([('1', q, strand) for q in bases])
+    span = PathSpans('A' * 4000, positions)
     original = span.overlapping_runs
     visited = []
 
@@ -64,7 +69,7 @@ def test_span_rejects_incompatible_query_offsets_before_remaining_blocks(strand)
     span.overlapping_runs = record
     # One inserted query base changes the offset after the first block. The
     # old equal-gap-length rule rejects it regardless of all later blocks.
-    observed = _Positions(positions[:10] + (None,) + positions[10:])
+    observed = PathPositions(positions[:10] + (None,) + positions[10:])
     observation = SimpleNamespace(key='indel', positions=observed, sequence='A' * 4001)
     assert span(observation) == ()
     assert len(visited) == 2
@@ -73,7 +78,6 @@ def test_span_rejects_incompatible_query_offsets_before_remaining_blocks(strand)
 @pytest.mark.parametrize('strand', ['+', '-'])
 @pytest.mark.parametrize('batch_bases', [1, 400, 1700])
 def test_stream_batches_preserve_whole_results_and_release_observations(tmp_path, monkeypatch, strand, batch_bases):
-    from isovar import sv_rna_dense, sv_rna_stream
 
     scenario = Scenario(strand)
     reads = dense_reads(scenario, 23)
@@ -89,9 +93,9 @@ def test_stream_batches_preserve_whole_results_and_release_observations(tmp_path
         read.query_qualities = quality
     bam = write_bam(tmp_path / 'batches.bam', reads)
     expected = scenario.run(bam, dense_support=True, max_records=4, assemble=False)
-    monkeypatch.setattr(sv_rna_stream, '_SUPPORT_BATCH_BASES', batch_bases)
+    monkeypatch.setattr(sv_rna_stream, 'SUPPORT_BATCH_BASES', batch_bases)
     live, sizes = weakref.WeakSet(), []
-    build, consume = sv_rna_dense._build_segment, sv_rna_stream._SupportStream.consume
+    build, consume = sv_rna_dense.build_segment_observations, sv_rna_stream.SvSupportStream.consume
 
     def tracked(*args):
         built = build(*args)
@@ -105,8 +109,8 @@ def test_stream_batches_preserve_whole_results_and_release_observations(tmp_path
         sizes.append(sum(len(o.sequence) for o in observations))
         return consume(self, observations)
 
-    monkeypatch.setattr(sv_rna_dense, '_build_segment', tracked)
-    monkeypatch.setattr(sv_rna_stream._SupportStream, 'consume', counted)
+    monkeypatch.setattr(sv_rna_dense, 'build_segment_observations', tracked)
+    monkeypatch.setattr(sv_rna_stream.SvSupportStream, 'consume', counted)
     observed = scenario.run(bam, dense_support=True, max_records=4, assemble=False)
     assert observed == expected
     assert not live
@@ -192,7 +196,6 @@ def test_late_rare_event_and_complete_support_do_not_depend_on_discovery_cap_or_
 
 
 def test_quality_and_label_variation_share_discovery_work_but_keep_all_support(tmp_path, monkeypatch):
-    from isovar import sv_rna_dense
 
     scenario = Scenario()
     reads = dense_reads(scenario, 30)
@@ -303,6 +306,7 @@ def test_grouping_preserves_major_minor_allele_proportions(tmp_path):
 @pytest.mark.parametrize('reverse', [False, True])
 def test_structural_cache_shares_positions_but_preserves_bases_and_quality(reverse, monkeypatch):
     from collections import Counter
+
     from isovar import sv_rna
     from isovar.read_identity import segment_identity
 
@@ -311,15 +315,15 @@ def test_structural_cache_shares_positions_but_preserves_bases_and_quality(rever
                     flag=16 if reverse else 0, qualities=i != 2) for i in range(3)]
     reads[1].query_sequence = 'A' * 60 + 'C' + 'A' * 39
     reads[1].query_qualities = [7] * 100
-    expected = [sv_rna._build_segment(segment_identity(r), [r], collector, Counter(), {}) for r in reads]
-    calls, placements = [], sv_rna._single_record_geometry
+    expected = [rna_observation.build_segment_observations(segment_identity(r), [r], collector, Counter(), {}) for r in reads]
+    calls, placements = [], rna_observation._single_record_geometry
 
     def counted(*args):
         calls.append(1)
         return placements(*args)
 
-    monkeypatch.setattr(sv_rna, '_single_record_geometry', counted)
-    observed = [sv_rna._build_segment(segment_identity(r), [r], collector, Counter(), {}, cache) for r in reads]
+    monkeypatch.setattr(rna_observation, '_single_record_geometry', counted)
+    observed = [rna_observation.build_segment_observations(segment_identity(r), [r], collector, Counter(), {}, cache) for r in reads]
     assert [[asdict(o) for o in group] for group in observed] == [[asdict(o) for o in group] for group in expected]
     assert len(calls) == 1
     assert observed[0][0].positions is observed[1][0].positions
@@ -327,7 +331,6 @@ def test_structural_cache_shares_positions_but_preserves_bases_and_quality(rever
 
 
 def test_support_screen_skips_overlapping_background_without_changing_evidence(tmp_path, monkeypatch):
-    from isovar import sv_rna_dense
 
     scenario = Scenario()
     reads = dense_reads(scenario, 5)
@@ -612,7 +615,8 @@ def test_distinct_original_payloads_preserve_ambiguous_labels_without_extra_frag
 @pytest.mark.parametrize('field', ['mapping_quality', 'next_reference_id', 'next_reference_start',
                                  'template_length', 'query_sequence', 'query_qualities', 'CB', 'UB', 'custom'])
 def test_indexed_collection_keeps_distinct_sam_payloads_and_deduplicates_repeat_fetches(tmp_path, field):
-    from isovar.sv_rna import _record_id, collect_sv_records
+    from isovar.read_identity import sam_record_id
+    from isovar.sv_rna_collection import collect_sv_records
     original = record('same-segment', '1', 100, '90M', 'A' * 90)
     different = pysam.AlignedSegment.fromstring(original.to_string(), original.header)
     if field == 'query_sequence':
@@ -623,7 +627,7 @@ def test_indexed_collection_keeps_distinct_sam_payloads_and_deduplicates_repeat_
         different.set_tag('ZZ' if field == 'custom' else field, 'changed')
     else:
         setattr(different, field, 1 if field == 'next_reference_id' else 123)
-    assert _record_id(original) != _record_id(different)
+    assert sam_record_id(original) != sam_record_id(different)
     bam_path = write_bam(tmp_path / 'distinct.bam', [original, different, original])
     with pysam.AlignmentFile(bam_path) as bam:
         records, _ = collect_sv_records(bam, [('1', 100, 150), ('1', 110, 190)], [])
@@ -632,8 +636,8 @@ def test_indexed_collection_keeps_distinct_sam_payloads_and_deduplicates_repeat_
 
 
 def test_original_short_read_fixture_keeps_pinned_translation_and_support(tmp_path):
-    from tests.test_sv_rna import corpus_bam, run_corpus
     from isovar.read_end_inference import Adapter, ReadEndProfile
+    from tests.test_sv_rna import corpus_bam, run_corpus
     _, bam, inputs = corpus_bam(tmp_path, 'ATP5MG--KMT2A')
     original = run_corpus(bam, inputs)
     result = run_corpus(bam, inputs, dense_support=True, max_records=10)

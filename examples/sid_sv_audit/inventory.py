@@ -4,20 +4,20 @@ The manifest is a denominator, not a positive-call filter. Original nominations
 and every alignment product remain inspectable, including exclusions.
 """
 
-from collections import Counter, defaultdict
-from dataclasses import asdict
 import csv
 import gzip
-from hashlib import sha256
 import io
 import os
-from pathlib import Path
 import re
 import tempfile
+from collections import Counter, defaultdict
+from dataclasses import asdict
+from hashlib import sha256
+from pathlib import Path
 
-from isovar._audit_json import canonical, identity, same_file_bytes, write_json_stream  # noqa: F401
+from isovar.audit_json import canonical, identity, same_file_bytes, write_json_stream  # noqa: F401
+
 from .json_projection import read_evidence_json
-
 
 RNA_ASSAYS = {"rna-seq", "scrna-seq", "cite-seq"}
 FUSION_TABLES = ("fusion_sequences", "scan_summary")

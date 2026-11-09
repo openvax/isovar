@@ -6,19 +6,27 @@ or hard-clip-inclusive coordinates. Terminal trimming is one contiguous derived 
 separate intervals without changing or concatenating the original sequence.
 """
 
-from dataclasses import replace
-from collections import OrderedDict
 import math
+from collections import OrderedDict
+from dataclasses import replace
 from typing import Callable, Literal, NamedTuple, Sequence
 
 import pysam
 
-from .dna import reverse_complement_dna
 from .default_parameters import TRIM_ADAPTERS, TRIM_POLY_A
-from .read_sequence_origin import GenomicQueryEvidence, OriginState, genomic_query_evidence_from_alignment
+from .dna import reverse_complement_dna
 from .read_end_profiles import (  # Compatibility imports for existing callers.
-    Adapter, ReadEndProfile, UNKNOWN_PROFILE,
+    UNKNOWN_PROFILE,
+    Adapter,
+    ReadEndProfile,
+)
+from .read_end_profiles import (
     read_end_profiles_from_json as read_end_profiles_from_json,
+)
+from .read_sequence_origin import (
+    GenomicQueryEvidence,
+    OriginState,
+    genomic_query_evidence_from_alignment,
 )
 
 
@@ -69,7 +77,7 @@ class ReadSequenceView(NamedTuple):
         explicit adapter exclusion they are barriers to a spanning inference;
         the flanks must never be concatenated into a biological sequence.
         """
-        return _uncovered_intervals(self.start, self.end, self.barrier_intervals)
+        return uncovered_intervals(self.start, self.end, self.barrier_intervals)
 
     def contains_usable_interval(self, start: int, end: int) -> bool:
         """Whether one eligible interval carries the complete original-query span."""
@@ -122,8 +130,21 @@ def _full_adapter_matches(pattern: str, target: str, budget: int) -> tuple[tuple
                          if start is not None and end >= start}))
 
 
-def _uncovered_intervals(start: int, end: int, blocked: Sequence[tuple[int, int]]) -> tuple[tuple[int, int], ...]:
-    """Keep contiguous original-query intervals; never join across removed bases."""
+def uncovered_intervals(start: int, end: int, blocked: Sequence[tuple[int, int]]) -> tuple[tuple[int, int], ...]:
+    """Keep contiguous original-query intervals; never join across removed bases.
+
+    Parameters
+    ----------
+    start, end : int
+        Half-open original-query interval.
+    blocked : sequence of tuple[int, int]
+        Excluded intervals in the same query coordinates.
+
+    Returns
+    -------
+    tuple of tuple[int, int]
+        Contiguous retained intervals; removed bases never become a join.
+    """
     intervals = []
     cursor = start
     for left, right in sorted(blocked):
@@ -165,7 +186,7 @@ def internal_adapter_matches(sequence: str, adapter: Adapter) -> tuple[ReadEndAn
                             for left, right, _ in locations)
             matches.add(ReadEndAnnotation(first + start, first + end, adapter.role, adapter.name,
                                            'internal', errors, len(adapter.sequence), False, ambiguous))
-        pending.extend(_uncovered_intervals(first, last, occupied))
+        pending.extend(uncovered_intervals(first, last, occupied))
     return tuple(sorted(matches))
 
 
