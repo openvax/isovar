@@ -18,7 +18,7 @@ import math
 from typing import Any, Iterable
 
 from .rna_evidence import content_identifier
-from .rna_path_linkage import OriginalPathMatch, paired_ends
+from .rna_path_linkage import OriginalPathMatch
 
 
 SCHEMA = "isovar.rna_feature_support.v1"
@@ -261,12 +261,15 @@ def _count_matches(feature, matches):
             by_fragment[match.identity[:2]].append(match)
     reads, fragments, joint = set(), set(), set()
     for identity, rows in by_fragment.items():
-        single = {row.identity for row in rows if _accepts([(row.start, row.end)], feature)}
+        placements = defaultdict(list)
+        for row in rows:
+            placements[(row.identity, row.observation_key)].append((row.start, row.end))
+        single = {segment for (segment, _), intervals in placements.items() if _accepts(intervals, feature)}
         reads.update(single)
         if single:
             fragments.add(identity)
-        elif any(paired_ends(a, b) and _accepts([(a.start, a.end), (b.start, b.end)], feature)
-                 for a, b in combinations(rows, 2)):
+        elif any({a[0][2], b[0][2]} == {64, 128} and _accepts(first + second, feature)
+                 for (a, first), (b, second) in combinations(placements.items(), 2)):
             fragments.add(identity)
             joint.add(identity)
     return reads, fragments, joint
@@ -309,7 +312,9 @@ def measure_rna_feature(
     as produced by Isovar's RNA path reconstruction. At most one alternative
     placement per read end can contribute to a template's complete support.
     An ``all`` compound feature may use two ends of one template, never two
-    unrelated templates. Inputs must have undergone the declared eligibility
+    unrelated templates. Disjoint exact runs of the same placement may satisfy a compound feature;
+    mismatches in required intervals cannot. Placement keys must distinguish
+    alternative offsets on a repeated path. Inputs must have undergone the declared eligibility
     policy; ``provenance`` records that policy and attribution limitations.
 
     Returned JSON uses hashed read/template identities, with raw counts and

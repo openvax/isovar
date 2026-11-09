@@ -151,3 +151,11 @@ not turn local evidence into calibrated transcript abundance. When full path
 ends are unknown, `path_length=None` explicitly selects an unbounded local-path
 approximation. Use a complete known path length for boundary correction; never
 use the edges of a cropped reconstruction as biological transcript ends.
+
+Local matching checks only the declared required bases and their coordinate
+placements. A mismatch outside a feature cannot erase an exact local witness.
+Disjoint exact runs from the same original placement may support a compound
+feature; a mismatch inside a required interval prevents complete support.
+Alternative placements or offsets on a repeated path are never combined to
+invent phase. Required reference/alternate feature bases must be resolved:
+unknown model bases are an input error, not measured zero support.

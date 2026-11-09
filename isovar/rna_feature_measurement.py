@@ -7,9 +7,31 @@ from .read_collector import ReadCollector
 from .rna_feature_support import RNAFeature, measure_rna_feature
 from .rna_library import _original_library_context
 from .rna_path_linkage import OriginalPathMatch
-from .rna_reconstruction import _matches, _observations, _placement_uncertainty
-from .sv_rna import _GeometryCache, _Positions, _runs
+from .rna_reconstruction import _observations, _placement_uncertainty
+from .sv_rna import _GeometryCache, _Positions, _runs, _offsets
+from .rna_evidence import content_identifier
 
+
+
+def _local_matches(sequence, positions, observation, identity):
+    """Exact runs of one original placement, preserving alternative path offsets."""
+    offsets = sorted({offset for _, offset in _offsets(
+        _runs(positions), 0, observation.key, _runs(observation.positions))})
+    for offset in offsets:
+        low, high = max(0, offset), min(len(sequence), offset + len(observation.sequence))
+        key = content_identifier("feature_placement", [observation.key, offset])
+        start = None
+        for q in range(low, high):
+            i = q - offset
+            exact = (sequence[q] in "ACGT" and sequence[q] == observation.sequence[i]
+                     and positions[q] == observation.positions[i])
+            if exact and start is None:
+                start = q
+            if not exact and start is not None:
+                yield OriginalPathMatch(identity, key, start, q)
+                start = None
+        if start is not None:
+            yield OriginalPathMatch(identity, key, start, high)
 
 def measure_rna_path_features(
         bam, *, sequence, positions, features, sample_id, source,
@@ -69,6 +91,8 @@ def measure_rna_path_features(
     if any(max(b for _, b in f.intervals) > len(sequence) or
            f.path_length not in (None, len(sequence)) for f in features):
         raise ValueError("Feature coordinates disagree with the supplied RNA path")
+    if any(set(sequence[a:b]) - set("ACGT") for f in features for a, b in f.intervals):
+        raise ValueError("Required feature bases must be resolved; unknown bases are not measured absence")
     regions = defaultdict(list)
     for _, _, contig, start, end, strand in _runs(positions):
         regions[contig].append((start, end, strand))
@@ -89,11 +113,11 @@ def measure_rna_path_features(
                 uncertainty.update(_placement_uncertainty(template))
                 for identity, observations in _observations(template, collector, rejections, regions, cache):
                     for observation in observations:
-                        matches.extend(OriginalPathMatch(identity, observation.key, start, end)
-                                       for start, end in _matches(sequence, positions, observation))
+                        matches.extend(_local_matches(sequence, positions, observation, identity))
             provenance = dict(input_identity=groups.prepared.identity,
                               input_extent="declared_input",
                               attribution="compatible_coordinate_path",
+                              matching_scope="declared_feature_intervals",
                               observation_rejections=dict(rejections),
                               placement_uncertainty=dict(uncertainty),
                               read_policy=groups.prepared.identity["eligibility"])

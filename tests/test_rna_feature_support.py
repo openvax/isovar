@@ -207,7 +207,7 @@ def test_original_bam_coding_junction_and_allele_features(tmp_path, strand):
     with pysam.AlignmentFile(bam_path) as bam, prepared.open() as index:
         records = measure_rna_path_features(bam, sequence=sequence, positions=positions,
             features=features, sample_id="S", source="L", library_index=index)
-    assert [(r["values"]["reads"], r["values"]["fragments"]) for r in records] == [(3, 2), (2, 2), (0, 1)]
+    assert [(r["values"]["reads"], r["values"]["fragments"]) for r in records] == [(3, 2), (3, 3), (0, 1)]
     assert all(validate_rna_feature_support(r) == r for r in records)
     assert records[2]["joint_only_fragment_ids"]
     assert all(r["values"]["library_fragments"] is None for r in records)
@@ -277,3 +277,69 @@ def test_later_library_normalization_retains_raw_identity_and_feature():
     assert normalized['fragment_ids'] == original['fragment_ids']
     assert normalized['measurement_id'] != original['measurement_id']
     assert normalized['provenance']['normalizes_measurement_id'] == original['measurement_id']
+
+
+def test_local_feature_ignores_external_mismatch_but_not_internal_mismatch(tmp_path):
+    import pysam
+    from isovar import measure_rna_path_features
+    from tests.test_sv_rna import aligned, write_bam
+    sequence = "ACGT" * 25
+    positions = [("1", i, "+") for i in range(100, 200)]
+    read_sequence = sequence[:50] + "A" + sequence[51:]
+    assert sequence[50] != "A"
+    path = write_bam(tmp_path / "local.bam", aligned("read", read_sequence, positions))
+    features = [RNAFeature("left", "path", ((20, 30),), "coding_interval"),
+                RNAFeature("whole", "path", ((20, 80),), "coding_interval"),
+                RNAFeature("compound", "path", ((20, 30), (70, 80)), "compound")]
+    with pysam.AlignmentFile(path) as bam:
+        records = measure_rna_path_features(bam, sequence=sequence, positions=positions,
+            features=features, sample_id="S", source="L")
+    assert [r['values']['reads'] for r in records] == [1, 0, 1]
+    assert [r['values']['fragments'] for r in records] == [1, 0, 1]
+
+
+def test_repeated_path_offsets_do_not_phase_distinct_copies(tmp_path):
+    import pysam
+    from isovar import measure_rna_path_features
+    from tests.test_sv_rna import aligned, write_bam
+    sequence = "ACGT" * 25
+    positions = [("1", i, "+") for i in range(100, 200)]
+    path = write_bam(tmp_path / "copies.bam", aligned("read", sequence, positions))
+    features = [RNAFeature("copies", "duplication", ((40, 45), (140, 145)), "compound"),
+                RNAFeature("partial", "duplication", ((40, 45), (140, 145)), "compound", mode="any")]
+    with pysam.AlignmentFile(path) as bam:
+        records = measure_rna_path_features(bam, sequence=sequence * 2, positions=positions * 2,
+            features=features, sample_id="S", source="L")
+    assert [r['values']['reads'] for r in records] == [0, 1]
+    assert [r['values']['fragments'] for r in records] == [0, 1]
+
+
+@pytest.mark.parametrize("event", ["insertion", "deletion", "splice", "fusion"])
+def test_local_bam_features_use_alternate_rna_coordinates(tmp_path, event):
+    import pysam
+    from isovar import measure_rna_path_features
+    from tests.test_sv_rna import aligned, record, write_bam
+    rng = random.Random(22)
+    sequence = "".join(rng.choice("ACGT") for _ in range(100))
+    positions = [("1", i, "+") for i in range(100, 200)]
+    if event == "insertion":
+        sequence = sequence[:40] + "AACGT" + sequence[40:]
+        positions = positions[:40] + [None] * 5 + positions[40:]
+        reads = [record("read", "1", 100, "40M5I60M", sequence)]
+        interval = (35, 50)
+    elif event in ("deletion", "splice"):
+        gap = 10 if event == "deletion" else 100
+        positions = positions[:40] + [("1", i + gap, "+") for i in range(140, 200)]
+        reads = [record("read", "1", 100, "40M%d%s60M" % (gap, "D" if event == "deletion" else "N"), sequence)]
+        interval = (35, 45)
+    else:
+        positions = positions[:40] + [("2", i, "+") for i in range(500, 560)]
+        reads = aligned("read", sequence, positions)
+        interval = (35, 45)
+    path = write_bam(tmp_path / "event.bam", reads)
+    f = RNAFeature(event, "alternate-path", (interval,), "allele" if event == "insertion" else "junction")
+    with pysam.AlignmentFile(path) as bam:
+        measured, = measure_rna_path_features(bam, sequence=sequence, positions=positions,
+            features=[f], sample_id="S", source="L", profile=profile(len(sequence)))
+    assert measured['values']['reads'] == measured['values']['fragments'] == 1
+    assert measured['values']['effective_length_reads'] == len(sequence) - (interval[1] - interval[0]) + 1
