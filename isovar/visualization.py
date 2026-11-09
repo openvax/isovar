@@ -345,8 +345,9 @@ def protein_disagreements(proteins):
 
     Parameters
     ----------
-    proteins : sequence of ProteinSequence
-        Retained hypotheses in their original producer order.
+    proteins : iterable of dict or None
+        Display records with amino_acids, ends_with_stop_codon and mutation_start.
+        None represents an unavailable prediction or reconstruction.
 
     Returns
     -------

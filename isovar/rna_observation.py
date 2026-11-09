@@ -43,13 +43,44 @@ _MAX_SEGMENT_PATHS = 64  # Alternative supplementary groupings per segment.
 
 @dataclass(frozen=True, eq=False)
 class RnaObservation:
-    """One sequenced segment's observed path, in one orientation.
+    """One original segment's observed path and one placement/orientation choice.
 
-    ``breaks`` lists consecutive placed bases ``(i, j, kind)`` which are not
-    genomic neighbours; kind is the CIGAR ``N``/``D`` or ``split`` between
-    supplementary records. ``reverse_complement`` marks the reverse complement
-    of the processed input-read orientation (which need not be the original
-    physical sequencing orientation or biological RNA strand).
+    Parameters
+    ----------
+    key : str
+        Stable observation-choice identifier ending in + or - for reciprocal
+        views. It differs between placements but is never a new read identity.
+    identity : tuple[str, str, int]
+        Read group, QNAME and mate bits, scoped to the owning original library.
+    records : tuple[str, ...]
+        sam_record_id digests of the actual contributing alignment records.
+    sequence : str
+        Eligible observed bases in this path orientation.
+    positions : tuple
+        One (contig, zero-based base, strand) or None per observed base.
+    breaks : tuple
+        (i, j, kind) for consecutive placed bases which are not genomic
+        neighbours. Kind retains CIGAR N/D or split-record evidence.
+    reverse_complement : bool
+        Reverse-complement view of the processed input-read orientation;
+        does not establish the biological RNA strand.
+    query_interval : tuple[int, int]
+        Half-open interval in the original segment's sequencing coordinates,
+        unchanged between reciprocal orientation views.
+    missing_qualities, secondary : bool
+        Whether any contributing record lacks QUAL or is secondary.
+    qualities : tuple, optional
+        Per-base quality values in path orientation; None marks missing quality.
+    minimum_mapping_quality : int or None, optional
+        Lowest contributing MAPQ other than unavailable 255.
+    mapping_quality_255 : bool, optional
+        Whether any contributing record reports unavailable MAPQ 255.
+
+    Notes
+    -----
+    Alternative placements and reciprocal views retain the same original
+    identity. Technical barriers can split eligible query intervals; they do
+    not create independent reads or invent sequence across removed bases.
     """
 
     key: str

@@ -458,5 +458,3 @@ class SvObservationStore(RnaObservationStore):
         """
         unbuilt = set(self.gaps.get((left, right), ())) | set(self.gaps.get((reverse_position(right), reverse_position(left)), ()))
         return {o.identity for o, *_ in self.joins.get((left, right), ())} | {i for i in unbuilt if i not in self.built}
-
-
