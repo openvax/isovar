@@ -97,7 +97,7 @@ def test_focal_frameshift_inframe_and_complex_indels_retranslate_cdna(ref, alt, 
     reference_suffix = 'CCATGGCTAAAGGCTAA'[8 + len(ref):]
     t = translation('CCATGGCC', suffix, '', focal=focal, reference_suffix=reference_suffix,
                     context_after=reference_suffix)
-    t.amino_acids, t.ends_with_stop_codon = translate_cdna(t.cdna_sequence[2:])
+    t.amino_acids, t.ends_with_stop_codon = translate_cdna(t.cdna_sequence[2:], translation_table=1)
     value = result(t, known=KnownVariants(somatic=[focal], germline=[SILENT_GERMLINE, CHANGING_GERMLINE]))
     p = pair(value)
     assert p['state'] == 'paired'
@@ -113,7 +113,7 @@ def test_focal_frameshift_inframe_and_complex_indels_retranslate_cdna(ref, alt, 
 
 def test_germline_deletion_remains_in_counterfactual():
     t = translation('CCATGGCT', 'GAAAC', '', reference_suffix='GAAAAC', context_after='GAAAAC')
-    t.amino_acids, t.ends_with_stop_codon = translate_cdna(t.cdna_sequence[2:])
+    t.amino_acids, t.ends_with_stop_codon = translate_cdna(t.cdna_sequence[2:], translation_table=1)
     p = pair(result(t, known=KnownVariants(somatic=[FOCAL], germline=[variant(110, 'A', '')])))
     assert p['state'] == 'paired'
     assert p['baseline']['nucleotide_sequence'] == 'CCATGGCTAGAAAC'
@@ -184,7 +184,7 @@ def test_alternative_transcript_offsets_and_incomplete_replay_are_not_collapsed(
 def test_capped_frame_boundary_has_no_fabricated_baseline():
     focal = variant(108, 'AAA', 'CCCC')
     t = translation('CCATGGCT', 'GGCTAA', '', focal=focal, reference_suffix='GGCTAA', context_after='GGCTAA')
-    amino, _ = translate_cdna(t.cdna_sequence[2:])
+    amino, _ = translate_cdna(t.cdna_sequence[2:], translation_table=1)
     t.amino_acids, t.ends_with_stop_codon = amino[:3], False
     p = pair(result(t, known=KnownVariants(somatic=[focal])))
     assert p['state'] == 'unavailable' and p['reason'] == 'focal_allele_outside_paired_coding_window'

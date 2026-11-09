@@ -260,8 +260,8 @@ def fusion():
     v = report(*paths.values())
     references = {r.transcript_id: r for r in load_references(paths['models.json.gz'])}
     donor, acceptor = (references[i] for i in (DONOR_ID, ACCEPTOR_ID))
-    dp, _ = translate_cdna(donor.sequence[donor.cds_start:donor.cds_end])
-    ap, _ = translate_cdna(acceptor.sequence[acceptor.cds_start:acceptor.cds_end])
+    dp, _ = translate_cdna(donor.sequence[donor.cds_start:donor.cds_end], translation_table=donor.genetic_code)
+    ap, _ = translate_cdna(acceptor.sequence[acceptor.cds_start:acceptor.cds_end], translation_table=acceptor.genetic_code)
     protein, = v['proteins']
     junction = v['fusion'].junction_start
     codon = junction // 3

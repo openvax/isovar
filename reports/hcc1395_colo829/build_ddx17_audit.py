@@ -90,7 +90,7 @@ def build(directory=HERE):
                                 (38490436, 'extended intronic acceptor'),
                                 (38491154, 'second intronic acceptor')):
             sequence = prefix + reverse_complement_dna(reference[38488115 - OFFSET:endpoint - OFFSET])
-            amino_acids, stopped = translate_cdna(sequence)
+            amino_acids, stopped = translate_cdna(sequence, translation_table=1)
             assert stopped
             stop_high = endpoint - (len(amino_acids) * 3 - partial_codon)
             hypotheses.append(dict(transcript=model['id'], path=label,

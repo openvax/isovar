@@ -63,16 +63,14 @@ def test_equal_sequence_contexts_with_different_codes_do_not_group():
         context(None, context(1).transcripts + context(3).transcripts)
 
 
-@pytest.mark.parametrize("table", [0, 999, True, "2", 27])
+@pytest.mark.parametrize("table", [None, 0, 999, True, "2", 27])
 def test_unsupported_or_context_dependent_codes_never_fall_back(table):
     with pytest.raises(ValueError, match="translation table|recoding"):
         translate_cdna("ATGTGA", translation_table=table)
 
 
-def test_legacy_boolean_is_still_explicitly_table_two():
-    assert translate_cdna("ATATGAAGG", mitochondrial=True) == ("MW", True)
-    with pytest.raises(ValueError, match="conflicting"):
-        translate_cdna("ATATGAAGG", mitochondrial=True, translation_table=3)
+def test_distinct_mitochondrial_codes_keep_their_declared_assignments():
+    assert translate_cdna("ATATGAAGG", translation_table=2) == ("MW", True)
     assert translate_cdna("GTGCTGTGAAGATAG", translation_table=3, first_codon_is_start=True) == ("MTWR", True)
 
 

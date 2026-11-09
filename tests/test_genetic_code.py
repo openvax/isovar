@@ -14,31 +14,31 @@ from itertools import product
 
 import pytest
 
-from isovar.genetic_code import translate_cdna
+from isovar.genetic_code import standard_genetic_code, translate_cdna
 from .common import eq_
 from .genomes_for_testing import grch38
 
 
 def test_translate_cdna_no_stop_codon():
-    eq_(translate_cdna("ATGATG", first_codon_is_start=False), ("MM", False))
+    eq_(translate_cdna("ATGATG", first_codon_is_start=False, translation_table=1), ("MM", False))
 
 
 def test_translate_cdna_stop_codon():
-    eq_(translate_cdna("ATGATGTAG", first_codon_is_start=False), ("MM", True))
+    eq_(translate_cdna("ATGATGTAG", first_codon_is_start=False, translation_table=1), ("MM", True))
 
 
 def test_translate_cdna_alternate_CTG_start():
-    eq_(translate_cdna("CTGCTG", first_codon_is_start=True), ("ML", False))
+    eq_(translate_cdna("CTGCTG", first_codon_is_start=True, translation_table=1), ("ML", False))
 
 
 def test_translate_cdna_CTG_after_start():
-    eq_(translate_cdna("CTGCTG", first_codon_is_start=False), ("LL", False))
+    eq_(translate_cdna("CTGCTG", first_codon_is_start=False, translation_table=1), ("LL", False))
 
 
 def test_TP53_translation_from_cdna():
     tp53_001 = grch38.transcripts_by_name("TP53-001")[0]
     cdna = tp53_001.coding_sequence
-    amino_acids, ends_with_stop_codon = translate_cdna(cdna, first_codon_is_start=True)
+    amino_acids, ends_with_stop_codon = translate_cdna(cdna, first_codon_is_start=True, translation_table=1)
     assert ends_with_stop_codon
     eq_(amino_acids, tp53_001.protein_sequence)
 
@@ -49,7 +49,7 @@ def test_mitochondrial_MTND5_translation_from_cdna():
     amino_acids, ends_with_stop_codon = translate_cdna(
         cdna,
         first_codon_is_start=True,
-        mitochondrial=True)
+        translation_table=2)
     assert ends_with_stop_codon
     eq_(amino_acids, mtnd5_001.protein_sequence)
 
@@ -60,20 +60,54 @@ NCBI_TABLE_1 = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
 NCBI_TABLE_2 = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSS**VVVVAAAADDEEGGGG"
 
 
-@pytest.mark.parametrize("mitochondrial,assignments", [(False, NCBI_TABLE_1), (True, NCBI_TABLE_2)])
+@pytest.mark.parametrize("table,assignments", [(1, NCBI_TABLE_1), (2, NCBI_TABLE_2)])
 @pytest.mark.parametrize("index", range(64))
-def test_every_nuclear_and_mitochondrial_codon(index, mitochondrial, assignments):
+def test_every_nuclear_and_mitochondrial_codon(index, table, assignments):
     aa = assignments[index]
-    assert translate_cdna(CODONS[index], mitochondrial=mitochondrial) == (("", True) if aa == "*" else (aa, False))
+    expected = ("", True) if aa == "*" else (aa, False)
+    assert translate_cdna(CODONS[index], translation_table=table) == expected
+    if table == 1:
+        # SV, CTA, transcript-frame and downstream Vaxrank consumers use this
+        # public object instead of translate_cdna; they must decode identically.
+        assert standard_genetic_code.translate(CODONS[index]) == expected
 
 
 @pytest.mark.parametrize("stop", ["AGA", "AGG", "TAA", "TAG"])
 def test_mitochondrial_termination_does_not_translate_downstream_codons(stop):
-    assert translate_cdna("ATG" + stop + "GCT", mitochondrial=True) == ("M", True)
+    assert translate_cdna("ATG" + stop + "GCT", translation_table=2) == ("M", True)
 
 
 @pytest.mark.parametrize("start", ["ATT", "ATC", "ATA", "ATG", "GTG"])
 def test_mitochondrial_initiation_does_not_change_elongation(start):
     internal = NCBI_TABLE_2[CODONS.index(start)]
-    assert translate_cdna(start + start, mitochondrial=True, first_codon_is_start=True) == ("M" + internal, False)
-    assert translate_cdna(start + start, mitochondrial=True, first_codon_is_start=False) == (internal * 2, False)
+    assert translate_cdna(start + start, translation_table=2, first_codon_is_start=True) == ("M" + internal, False)
+    assert translate_cdna(start + start, translation_table=2, first_codon_is_start=False) == (internal * 2, False)
+
+
+@pytest.mark.parametrize("start", ["ATG", "CTG", "TTG"])
+def test_standard_initiators_match_the_ncbi_table(start):
+    internal = NCBI_TABLE_1[CODONS.index(start)]
+    assert standard_genetic_code.start_codons == {"ATG", "CTG", "TTG"}
+    expected = ("M" + internal, False)
+    assert standard_genetic_code.translate(start + start, first_codon_is_start=True) == expected
+    assert translate_cdna(start + start, translation_table=1, first_codon_is_start=True) == expected
+
+
+@pytest.mark.parametrize("start", ["GTG", "AGG", "ACG", "AAG", "ATC", "ATA", "ATT"])
+def test_table_one_does_not_silently_expand_its_initiator_set(start):
+    internal = NCBI_TABLE_1[CODONS.index(start)]
+    assert translate_cdna(start + start, translation_table=1, first_codon_is_start=True) == (internal * 2, False)
+
+
+def test_translation_requires_an_explicit_table():
+    with pytest.raises(TypeError, match="translation_table"):
+        translate_cdna("ATGTGA")
+    with pytest.raises(TypeError, match="mitochondrial"):
+        translate_cdna("ATGTGA", translation_table=2, mitochondrial=True)
+
+
+def test_declared_custom_start_does_not_mutate_the_shared_code():
+    custom = standard_genetic_code.copy("source-declared-GTG", start_codons={"GTG"})
+    assert custom.translate("GTGGTGTAA", first_codon_is_start=True) == ("MV", True)
+    assert standard_genetic_code.translate("GTGGTGTAA", first_codon_is_start=True) == ("VV", True)
+    assert translate_cdna("GTGGTGTAA", translation_table=1, first_codon_is_start=True) == ("VV", True)
