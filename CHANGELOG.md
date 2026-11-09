@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.87.1
+
+Fixes #689.
+
+- Classify nonexonic insertion anchors with the shared `NoExonicReferenceBases`
+  outcome. Retain the unresolved ORF model and continue reconstructing other
+  supplied models, preserving original RNA counts and strand-specific offsets.
+
 ## 1.87.0
 
 Fixes #667 and #695.
