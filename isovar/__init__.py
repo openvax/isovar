@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.84.0"
+__version__ = "1.85.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -48,6 +48,11 @@ from .read_sequence_origin import GenomicQueryEvidence, genomic_query_evidence_f
 from .phasing_calibration import PhasingCalibration, PhasingControl, calibrate_phasing_error_rates
 from .read_phasing import IsovarReadPhasing
 from .rna_evidence import union_rna_support
+from .rna_feature_support import (
+    RNAFeature, RNASamplingGeometry, RNASamplingProfile,
+    effective_rna_feature_lengths, measure_rna_feature, validate_rna_feature_support,
+)
+from .rna_feature_measurement import measure_rna_path_features
 from .transcript_assembly_edit import TranscriptAssemblyEdit
 from .variant_orf import VariantORF
 from .variant_read_assessment import VariantRNAAssembly, VariantReadAssessment
@@ -73,6 +78,9 @@ from .isoform_quantification import quantify_antigen_isoforms, add_isoform_abund
 
 
 __all__ = [
+    "RNAFeature", "RNASamplingGeometry", "RNASamplingProfile",
+    "effective_rna_feature_lengths", "measure_rna_feature", "validate_rna_feature_support",
+    "measure_rna_path_features",
     "VariantRNAAssembly", "VariantReadAssessment",
     "ReadLibraryProvenance", "ReadProcessingStep", "read_end_profile_from_fasta", "ReadEndInferenceCache",
     "PreparedSVSourceRecord", "SVSourceView", "prepare_sv_source_record",

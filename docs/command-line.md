@@ -45,6 +45,8 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | `isovar variant-rna-paths` | Original ALT/REF RNA paths assembled before coding-model assessment, as JSON ([guide](variant-rna-paths.md)) |
 | `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](allele-interpretations.md)) |
 
+| `isovar rna-features` | Read/fragment counts and optional library/feature normalization for explicit RNA paths ([guide](../RNA_FEATURE_SUPPORT.md)) |
+
 ### Structural variants and fusions
 
 | Command | Output |
