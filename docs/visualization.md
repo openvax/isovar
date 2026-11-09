@@ -50,10 +50,23 @@ and `evidence.json` rather than over the data. Read names are not exported.
 | `--sample-label TEXT` | Name the sample and technology in the figures (default: the BAM filename) |
 | `--dpi N` | PNG resolution (default 600; the overview preview is capped at 300) |
 | `--max-rows N` | Show at most N read-span or transcript rows (default 20); analysis still uses every read |
+| `--variant-index N` | Select the Nth loaded literal variant (1-based) from a multi-variant input |
 
 Plot one mutation per run. The variant, read-collection and translation options
 of the other commands work here too, and the command is also installed as
 `isovar-plot`.
+
+Without `--variant-index`, the loaded input must contain exactly one literal
+variant. The evidence JSON records the selected index and loaded variant count.
+Transcript rows prioritize RNA-supported models, then models whose exons overlap
+the focal allele. This changes display order only. Protein groups name all their
+`covered_ranks`.
+
+The header gives ALT/total original reads and fragments, with REF and OTHER
+fragment counts. Overlapping mates count as two original reads and one fragment;
+the cDNA coverage panel separately labels processed observations. Empty protein
+panels use the producer's assembly/frame state to explain why reconstruction did
+not retain a protein, including the configured coverage floor when relevant.
 
 Some notes on these options:
 

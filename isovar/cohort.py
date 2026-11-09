@@ -35,6 +35,7 @@ from .protein_reporting import protein_comparison_status
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
 from .read_end_profiles import read_end_profile_file_id
+from .rna_evidence import input_sample_id
 from .rna_evidence import canonical_json, content_identifier
 from .sv_rna_audit import file_sha256, run_sv_rna_audit, write_json
 from .variant_rna_orfs import reconstruct_variant_orfs
@@ -491,7 +492,7 @@ def _variant_path_task(task, source, files, contexts, cache_directory, libraries
     )
 
     supplied = variant_rna_path_input_from_dict(read_json(files[task["input"]]))
-    if supplied["sample_id"] != source.get("input_sample_id", source["sample_id"]):
+    if supplied["sample_id"] != input_sample_id(source):
         raise ValueError("Literal RNA input and cohort source refer to different samples")
     collector = variant_path_read_collector(task.get("read_collection", {}), files=files)
     reference = variant_reference_name(supplied["variant"])
@@ -579,8 +580,7 @@ def _run_cohort(manifest_path, output_dir, *, resume, render_only, source_ids, r
             raise ValueError("Source IDs must be single path components")
         if source["sample_id"] not in sample_ids:
             raise ValueError("Source refers to an undeclared sample: " + key)
-        if "input_sample_id" in source and (not isinstance(source["input_sample_id"], str) or not source["input_sample_id"].strip()):
-            raise ValueError("Source input_sample_id must be a nonempty string")
+        input_sample_id(source)
     for sample in manifest["samples"]:
         for source_id in sample.get("source_ids", []):
             if source_id not in sources or sources[source_id]["sample_id"] != sample["sample_id"]:
@@ -659,7 +659,7 @@ def _run_cohort(manifest_path, output_dir, *, resume, render_only, source_ids, r
                     from .fusion import fusion_from_dict, reconstruct_fusion
 
                     fusion, references, reads = fusion_from_dict(read_json(files[task["input"]]))
-                    if fusion.provenance["sample_id"] != source.get("input_sample_id", source["sample_id"]):
+                    if fusion.provenance["sample_id"] != input_sample_id(source):
                         raise ValueError("Supplied fusion and cohort source refer to different samples")
                     result = reconstruct_fusion(fusion, references, reads, **task.get("parameters", {}))
                     write_json(target, result)

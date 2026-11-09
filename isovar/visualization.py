@@ -28,6 +28,7 @@ from .protein_sequence_creator import ProteinSequenceCreator
 from .protein_sequence_helpers import mutant_peptide_window_count
 from .protein_window_comparison import compare_protein_windows
 from .read_identity import fragment_ids, observation_groups
+from .rna_evidence import EvidenceSets
 from .variant_helpers import (
     base0_interval_for_variant,
     interbase_range_affected_by_variant_on_transcript,
@@ -178,9 +179,23 @@ def collect_visualization_data(
     results, transcripts = [], {}
     for assembly in modes:
         creator = ProteinSequenceCreator(**dict(creator_kwargs, variant_sequence_assembly=assembly))
-        proteins = creator.sorted_protein_sequences_for_variant(
-            variant, read_evidence, transcript_id_whitelist=transcript_id_whitelist)
-        entry = dict(assembly=assembly, settings=creator.settings(), protein=None, proteins=[])
+        assessment = creator.assess_variant_reads(
+            variant, read_evidence.alt_reads, transcript_id_whitelist=transcript_id_whitelist)
+        proteins = creator.protein_sequences_from_assessment(assessment)
+        entry = dict(assembly=assembly, settings=creator.settings(), protein=None, proteins=[],
+                     assembly_state=assessment.assembly.state, frame_state=assessment.frame_state)
+        if not proteins:
+            reasons = {
+                "no_alt_reads": "No ALT reads",
+                "no_coding_reference_context": "No coding reference context",
+                "no_reference_path_compatible_reads": "No RNA compatible with a supplied transcript path",
+                "no_retained_compatible_rna": "No retained RNA context",
+                "no_retained_rna_frame_match": "No retained RNA frame match",
+                "rna_frame_candidates": "No protein retained by the selection settings",
+            }
+            entry["no_protein_reason"] = reasons[assessment.frame_state]
+            if assessment.assembly.state == "no_retained_rna" or assessment.frame_state == "no_retained_compatible_rna":
+                entry["no_protein_reason"] = "No retained RNA context; coverage floor %d" % creator.min_variant_sequence_coverage
         selected_ids = {t.id for p in proteins[:1] for translation in p.translations
                         for t in translation.reference_context.transcripts}
         for protein in proteins:
@@ -224,16 +239,18 @@ def collect_visualization_data(
         variant, transcript_id_whitelist, requested.protein_sequence_length or PROTEIN_SEQUENCE_LENGTH, transcripts)
         if include_reference_predictions else [])
     start, end = base0_interval_for_variant(variant)
-    counts = {name: dict(observations=len(observation_groups(getattr(read_evidence, name + "_reads"))),
-                        templates=len(fragment_ids(getattr(read_evidence, name + "_reads"))))
-              for name in ("ref", "alt", "other")}
+    allele_reads = {name: list(getattr(read_evidence, name + "_reads")) for name in ("ref", "alt", "other")}
+    allele_support = {name: EvidenceSets.record(reads)[0] for name, reads in allele_reads.items()}
+    counts = {name: dict(observations=len(observation_groups(reads)), templates=allele_support[name]["fragments"])
+              for name, reads in allele_reads.items()}
+    allele_support["total"] = EvidenceSets.record([read for reads in allele_reads.values() for read in reads])[0]
     return dict(
         schema_version=1, isovar_version=__version__,
         result_filters_applied=False,
         variant=dict(contig=variant.contig, start=variant.start, ref=variant.ref, alt=variant.alt,
                      reference=variant.reference_name, interval=[start, end]),
         genes=sorted({t["gene"] for t in transcripts.values()}),
-        counts=counts, modes=results, reference_predictions=predictions,
+        counts=counts, allele_support=allele_support, modes=results, reference_predictions=predictions,
         varcode_version=varcode_version,
         transcript_whitelist=(None if transcript_id_whitelist is None else sorted(transcript_id_whitelist)),
         transcripts=[transcripts[k] for k in sorted(transcripts)],
@@ -421,7 +438,7 @@ def _protein_panel(ax, data, rectangle, max_rows):
         p = mode["protein"]
         note = ("%d aa · %d × %d-mers\n%d templates" % (
             len(p["amino_acids"]), p["peptide_windows"], mode["settings"]["protein_context_peptide_length"],
-            p["templates"]) if p else "%d alternate read objects" % data["counts"]["alt"]["observations"])
+            p["templates"]) if p else mode.get("no_protein_reason", "No retained RNA protein context"))
         if p and len(p["amino_acids"]) > 80:
             note += "\nSequence in evidence.json"
         rows.append(("Isovar\nAssembly " + ("on" if mode["assembly"] else "off"), p,
@@ -453,7 +470,9 @@ def _coverage_panel(ax, data):
 
     style_evidence_axis(ax, "RNA coverage")
     if not any(mode["protein"] for mode in data["modes"]):
-        ax.text(.5, .5, "No reconstructed cDNA meeting the current thresholds", transform=ax.transAxes, ha="center")
+        reasons = list(dict.fromkeys(mode.get("no_protein_reason", "No retained RNA protein context")
+                                     for mode in data["modes"]))
+        ax.text(.5, .5, "\n".join(reasons), transform=ax.transAxes, ha="center")
         ax.set_axis_off()
         return
     for mode in data["modes"]:
@@ -469,7 +488,7 @@ def _coverage_panel(ax, data):
     peak = max([floor, 1] + [max(m["protein"]["witness"]["coverage"], default=0)
                             for m in data["modes"] if m["protein"]])
     ax.set_ylim(0, peak * 1.15)
-    ax.set_ylabel("Read objects", fontsize=11)
+    ax.set_ylabel("Processed read observations", fontsize=11)
     ax.yaxis.set_major_locator(MaxNLocator(3, integer=True))
     ax.legend(frameon=False, fontsize=10, loc="upper left", bbox_to_anchor=(1.025, 1), borderaxespad=0)
     ax.set_xlabel("cDNA offset from alternate allele (nt; 5′ → 3′)")
@@ -550,7 +569,14 @@ def _transcript_panel(ax, data, max_rows, rectangle):
         ax.set_axis_off()
         return
     lo, hi, segments, project = _genomic_projection(data)
-    shown = data["transcripts"][:max_rows]
+    start, end = data["variant"]["interval"]
+    def priority(transcript):
+        # An insertion is an interbase boundary: either adjacent exon can
+        # provide context. Do not reorder the retained evidence itself.
+        overlaps = any((a <= start <= b if start == end else a < end and b > start)
+                       for a, b in transcript["exons"])
+        return not transcript.get("rna_supported", False), not overlaps, transcript["id"]
+    shown = sorted(data["transcripts"], key=priority)[:max_rows]
     for i, transcript in enumerate(shown):
         y = len(shown) - i
         exons = [(max(a, lo), min(b, hi)) for a, b in transcript["exons"] if a < hi and b > lo]
@@ -649,7 +675,7 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
         panels.append(lambda ax: _transcript_panel(ax, data, max_rows, rectangle))
     with rc_context({"font.family": "DejaVu Sans", "font.size": 12, "text.color": INK,
                      "axes.labelcolor": INK, "svg.fonttype": "none", "axes.formatter.useoffset": False}):
-        height = sum(heights) + 1.7 + .7 * (len(panels) - 1)
+        height = sum(heights) + 1.95 + .7 * (len(panels) - 1)
         figure = Figure(figsize=(PLOT_WIDTH, height), facecolor="white")
         axes = figure.subplots(len(panels), 1, squeeze=False, gridspec_kw={"height_ratios": heights})[:, 0]
         for name, draw, ax in zip(names, panels, axes):
@@ -672,9 +698,16 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
         if sample:
             title += " · " + sample
         figure.suptitle(title, x=.035, y=1 - .18 / height, ha="left", fontsize=18, fontweight="bold")
+        support = data.get("allele_support")
+        if support:
+            alt, ref, other, total = (support[name] for name in ("alt", "ref", "other", "total"))
+            note = ("Focal RNA: ALT %d/%d fragments (REF %d; other %d) | ALT %d/%d original reads" %
+                    (alt["fragments"], total["fragments"], ref["fragments"], other["fragments"],
+                     alt["reads"], total["reads"]))
+            figure.text(.17, 1 - .65 / height, note, fontsize=9, color=GRAY)
         if view not in {"coverage", "protein", "all"}:
             figure.text(.815, 1 - .7 / height, "Orange: mutation", fontsize=10, color=ORANGE)
-        figure.subplots_adjust(left=.17, right=.79, top=1 - 1.05 / height, bottom=.65 / height, hspace=.5)
+        figure.subplots_adjust(left=.17, right=.79, top=1 - 1.3 / height, bottom=.65 / height, hspace=.5)
     return figure
 
 

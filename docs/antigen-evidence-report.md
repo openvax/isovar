@@ -20,12 +20,28 @@ isovar antigen-report --sample-id tumor-1 --output tumor-1-antigens.pdf \
     --isoforms-result targeted-antigen-isoforms.json
 ```
 
-Repeat any JSON input option for additional events or panels. Every supplied
-JSON must have the expected versioned Isovar schema and the same `sample_id`.
+Repeat any input option, including `--small-variant-tsv`, for additional sources,
+events or panels. Every supplied JSON must have the expected versioned Isovar
+schema. By default, every input must have the report's `sample_id`.
 The command writes `tumor-1-antigens.pdf` and `tumor-1-antigens.json` by
 default; `--summary-json PATH` changes the latter path. Omitting an input marks
 that category **not assessed**. A zero within a supplied export means the
 selected source was assessed and had zero support by that export's criterion.
+
+To group different input sample IDs explicitly, map each file to its native ID:
+
+```sh
+isovar antigen-report --sample-id Sid --output Sid-antigens.pdf \
+    --small-variant-tsv T0.tsv --input-sample-id T0.tsv T0 \
+    --small-variant-tsv T1.tsv --input-sample-id T1.tsv T1 \
+    --fusion-result fusion.json --input-sample-id fusion.json Sid-T0-Personalis
+```
+
+The report label does not relabel or pool the original measurements. Each source
+retains its `input_sample_id` and file path in JSON; PDF headings name the original
+sample and source. Unknown mappings, repeated input paths and mismatched native
+IDs are rejected. The Python `compose` API accepts an iterable of small-variant
+paths and an `input_sample_ids` mapping from supplied paths to native sample IDs.
 
 `evidence-report` writes three companions: a PDF, a per-call TSV (`--per-call`)
 and full per-call protein hypotheses with their witness sets (`--evidence-json`,
@@ -43,8 +59,9 @@ Examples show contributors and exact coding spans on one identified nucleotide
 path, with single-read and paired-template subsets. See
 [protein evidence semantics](protein-hypotheses.md#coding-coverage-and-sequence-comparisons).
 
-The small-variant page groups exon-involved alleles by SNV, insertion,
-deletion and replacement. It shows original RNA ALT **reads** per allele,
+Small-variant tables name every call, gene and top effect, with original RNA
+ALT **reads** and **fragments** where measured. Histograms for larger inputs group
+exon-involved alleles by SNV, insertion, deletion and replacement,
 including zero-support alleles and then only positive-support alleles. The
 underlying `isovar evidence-report` command also writes these figures directly
 from a VCF and indexed RNA BAM/CRAM. A changed reference base meeting any
@@ -61,16 +78,23 @@ zero; they are not direct junction support. The generic composition command
 does not compute exon overlap for SV exports because `isovar sv-rna` JSON
 does not contain a genomic exon annotation for a complete DNA SV call set.
 
-Viral plots are on separate pages and count selected viral contigs by aligned
-and sequence-assigned original RNA **fragments**, each with and without zero
-support. They do not use a human exon filter. Selected contigs are the panel
+Viral tables name selected contigs and count their aligned and sequence-assigned
+original RNA **fragments**. Larger panels also have distributions with and without
+zero support. They do not use a human exon filter. Selected contigs are the panel
 denominator; a panel is not a screen of every possible virus. Coding
 predictions are separate from observed protein expression. Targeted
 antigen-gene isoforms are reported by nominated gene and RNA-compatible path;
 reference-only paths are not counted as observed tumor products. Reference
 ncORF overlaps are candidates, not mutant ncORF translations.
 
-The JSON preserves per-source summaries and paths. For large call sets, consult
-the original per-call TSV and source-specific JSON for individual events. The
+Named SV/fusion junction rows retain producer read/fragment support and fusion
+reason codes. CTA and viral path rows distinguish contributors, compatibility,
+uniqueness among retained paths, whole-path witnesses and whole complete-CDS
+witnesses. Whole spans use original segment identities through the shared support
+contract; tiled coverage is not a spanning read. Missing measurements show `-`,
+while a measured zero shows `0`. Counts from ambiguous paths are not additive.
+
+Sections flow together and long tables paginate without dropping rows. The JSON
+preserves every per-source call and measurement as well as full source paths. The
 report does not infer somatic status or harmonize cultures, assays, and
 reference assemblies; select compatible inputs before composing it.

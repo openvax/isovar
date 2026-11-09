@@ -211,11 +211,13 @@ def _landscape(sample, analyses, directory, index=1):
                                          (.23, "changed_protein", "Changed protein context", MUTANT)]:
             value = counts[key]
             ax.barh(i + offset, value, height=.21, color=color, label=label if i == 0 else None)
-            ax.text(max(value, 1), i + offset, f" {value:,}", fontsize=7, va="center", color=INK)
+            ax.annotate(f"{value:,}", (value, i + offset), xytext=(3, 0),
+                        textcoords="offset points", fontsize=7, va="center", color=INK)
     ax.set_yticks(range(len(labels)), labels, fontsize=7)
     ax.invert_yaxis()
-    ax.set_xscale("symlog", linthresh=1)
-    ax.set_xlabel("Variant counts within each library (log scale above 1)", fontsize=8)
+    maximum = max((counts['nominated'] for _, counts, _, _, _ in analyses), default=0)
+    scale = _count_axis(ax, maximum)
+    ax.set_xlabel("Variant counts within each library" + scale, fontsize=8)
     ax.set_title(sample + " | RNA evidence funnel", loc="left", fontsize=12, color=INK)
     ax.legend(frameon=False, fontsize=7, loc="upper left", bbox_to_anchor=(0, -.28),
               borderaxespad=0, ncol=3)
@@ -225,6 +227,28 @@ def _landscape(sample, analyses, directory, index=1):
         figure.savefig(str(prefix) + "." + extension, dpi=180, facecolor="white")
     return Path(str(prefix) + ".png"), figure.get_size_inches()
 
+
+
+def _count_axis(axes, maximum, *, vertical=False):
+    """Readable integer counts for sparse panels; compact log ticks for large ones."""
+    from matplotlib.ticker import MaxNLocator, NullLocator
+
+    axis = axes.yaxis if vertical else axes.xaxis
+    set_scale = axes.set_yscale if vertical else axes.set_xscale
+    set_limits = axes.set_ylim if vertical else axes.set_xlim
+    if maximum <= 20:
+        set_scale('linear')
+        axis.set_major_locator(MaxNLocator(nbins=5, integer=True, min_n_ticks=2))
+        set_limits(0, max(1, maximum * 1.2))
+        suffix = ''
+    else:
+        set_scale('symlog', linthresh=1)
+        values = sorted({0, 1, 10 ** (int(math.log10(maximum)) // 2), int(maximum)})
+        axis.set_ticks(values, labels=[f'{value:,}' for value in values])
+        set_limits(0, maximum * 2)
+        suffix = ' (log scale above 1)'
+    axis.set_minor_locator(NullLocator())
+    return suffix
 
 
 def _set_count_ticks(axis, low: int, high: int) -> None:
@@ -244,12 +268,15 @@ def _category_landscape(result, categories, depths, directory):
     fig = Figure(figsize=(7.2, 3.6), layout="constrained")
     left, right = fig.subplots(1, 2)
     labels = list(categories)
-    positions = range(len(labels))
-    left.barh(positions, [categories[k] for k in labels], color="#a4b6bd", label="Evaluated")
-    left.barh(positions, [sum(n >= 20 for n in depths[k]) for k in labels], color=TEAL, label="ALT >=20 fragments")
+    positions = np.arange(len(labels))
+    for offset, values, color, label in [
+            (-.18, [categories[k] for k in labels], '#a4b6bd', 'Evaluated'),
+            (.18, [sum(n >= 20 for n in depths[k]) for k in labels], TEAL, 'ALT >=20 fragments')]:
+        bars = left.barh(positions + offset, values, height=.32, color=color, label=label)
+        left.bar_label(bars, labels=[f'{value:,}' for value in values], padding=3, fontsize=7)
     left.set_yticks(positions, labels, fontsize=7)
-    left.set_xscale("symlog", linthresh=1)
-    left.set_xlabel("Calls (log scale above 1)", fontsize=8)
+    scale = _count_axis(left, max(categories.values(), default=0))
+    left.set_xlabel("Calls" + scale, fontsize=8)
     left.legend(frameon=False, fontsize=7, loc="upper left", bbox_to_anchor=(0, -.22),
                 borderaxespad=0, ncol=2)
     palette = [INK, MUTANT, TEAL, GERMLINE, COSOMATIC]
@@ -468,15 +495,16 @@ def _fusion_display(result, supplied, directory):
     junctions = sorted(set(path['junctions'][0]['query_interval']))
     fig = Figure(figsize=(7.2, 3.2), layout='constrained')
     ax = fig.subplots()
-    ax.fill_between(range(len(depth)), depth, color=TEAL, alpha=.8, step='mid')
+    ax.step(range(len(depth)), depth, color=TEAL, linewidth=1.4, where='mid', label='Fragment depth')
+    ax.fill_between(range(len(depth)), depth, color=TEAL, alpha=.15, step='mid')
     for i, junction in enumerate(junctions):
         ax.axvline(junction, color=MUTANT, linewidth=1.6, label='Fusion junction' if i == 0 else None)
-    ax.set_yscale('symlog', linthresh=1)
-    ax.set_ylim(bottom=0)
+    scale = _count_axis(ax, max(depth, default=0), vertical=True)
     ax.set_xlabel('Observed fusion cDNA position (nt)', fontsize=8)
-    ax.set_ylabel('Exact original fragments', fontsize=8)
+    ax.set_ylabel('Exact original fragments' + scale, fontsize=8)
     ax.set_title(result['event_id'].replace('--', ' / ') + ' | observed RNA coverage', loc='left', fontsize=11)
-    ax.legend(frameon=False, fontsize=8)
+    ax.legend(frameon=False, fontsize=8, loc='upper left', bbox_to_anchor=(0, -.22),
+              borderaxespad=0, ncol=2)
     ax.spines[['top', 'right']].set_visible(False)
     prefix = directory / 'coverage'
     for ext in ('png', 'svg', 'pdf'):
@@ -492,6 +520,7 @@ def _sv_path_figure(candidate, assessment, directory, identifier):
     """Show exact path matching without equating tiling with joint phase."""
     import numpy as np
     from matplotlib.figure import Figure
+    from .rna_path_geometry import merge_intervals
 
     length = len(candidate['sequence'])
     intervals = defaultdict(list)
@@ -499,13 +528,7 @@ def _sv_path_figure(candidate, assessment, directory, identifier):
         intervals[tuple(match['fragment_id'])].append(match['path_interval'])
     changes = np.zeros(length + 1, dtype=int)
     for spans in intervals.values():
-        merged = []
-        for start, end in sorted(spans):
-            if merged and start <= merged[-1][1]:
-                merged[-1][1] = max(end, merged[-1][1])
-            else:
-                merged.append([start, end])
-        for start, end in merged:
+        for start, end in merge_intervals(spans):
             changes[max(0, start)] += 1
             changes[min(length, end)] -= 1
     depth = np.cumsum(changes[:-1])
@@ -880,7 +903,7 @@ def write_cohort_reports(manifest, summary, output):
                                        "; no protein sequence was reconstructed.", "Small"))
                         intro.append(p(escape(_unframed_rna_description(event)), "Small"))
                         intro.append(p("The full result retains ncORF model outcomes and original RNA evidence. "
-                                       "Intronic depth alone does not establish retention, initiation or translation.", "Small"))
+                                       "RNA depth alone does not establish initiation or translation.", "Small"))
                         story.append(KeepTogether(intro))
                         continue
                     spans = coverage["allele_observation_span_support"]["fragments"]
@@ -1002,8 +1025,8 @@ def write_cohort_reports(manifest, summary, output):
             story.append(p('Original URLs, full source IDs, available checksums and snapshot identities are in the '
                            'pinned source-inventory JSON beside the cohort manifest.', 'Small'))
         doc = SimpleDocTemplate(str(report), pagesize=letter, leftMargin=42, rightMargin=42,
-                                topMargin=42, bottomMargin=48, title=sample_id + " RNA evidence")
+                                topMargin=42, bottomMargin=48, title=sample_id + " RNA evidence", invariant=1)
         doc.build(story, onFirstPage=footer, onLaterPages=footer)
         paths.append(report)
-    write_json(output / "report_files.json", [dict(path=str(p), sha256=file_sha256(p)) for p in paths])
+    write_json(output / "report_files.json", [dict(path=str(p.relative_to(output)), sha256=file_sha256(p)) for p in paths])
     return paths

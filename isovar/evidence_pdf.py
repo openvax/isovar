@@ -282,10 +282,12 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
     story.extend((p("The first panel includes assessed calls with zero ALT reads. "
                     "Unresolved chromosomes are excluded because support was not measured. The second "
                     "conditions on positive ALT support. Bars count variants, with "
-                    "classes shown in legend order."), PageBreak(),
-                  p("RNA alternate-read support: exon-involved variants", "EvidenceSection")))
-    story.extend(read_support_figures(summary["exonic_reads_by_class"],
-                                      scope="exon-involved variant"))
+                    "classes shown in legend order."),))
+    if counts["exonic"] < counts["total"] - counts["unresolved_chromosomes"]:
+        story.extend((PageBreak(), p("RNA alternate-read support: exon-involved variants", "EvidenceSection")))
+        story.extend(read_support_figures(summary["exonic_reads_by_class"], scope="exon-involved variant"))
+    else:
+        story.append(p("Every assessed call is exon-involved; the plots above also describe that subset."))
     story.extend((p("An exon-involved call intersects any annotated exon at a "
                     "changed reference base, or at an insertion flank. Both "
                     "panels retain SNVs, insertions, deletions and replacements. "
@@ -309,7 +311,7 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
                   p("Mutation classes and examples", "EvidenceSection")))
     story.append(table(("Category", "Count", "Scope"), (
         ("DNA-predicted frameshift", f"{counts['frameshift']:,}",
-         "Top Varcode effect; RNA ALT at %s" % counts["frameshift_alt"]),
+         "Top Varcode effect; %s calls have RNA ALT support" % counts["frameshift_alt"]),
         ("ncORF coding-block overlap", f"{counts['ncorf']:,}" if catalog_assessed else
          "not assessed", "Reference candidate; mutant ncORF translation not called"),
         ("Productive SV", "not assessed", "This command accepts small-variant VCF alleles"),
@@ -333,9 +335,11 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
                 novel, total = self_scores[ident]
                 measure += f"; {novel}/{total} novel 9-mers"
             sequence = protein["protein_sequence"]
-            rows.append((ident, variant_type(call), measure,
+            annotation = annotations[ident]
+            label = " | ".join(str(value) for value in (annotation.get("gene"), annotation.get("top_effect"), ident) if value)
+            rows.append((label, variant_type(call), measure,
                          sequence[:29] + ("..." if len(sequence) > 29 else "")))
-        story.append(table(("Call", "Type", "Support / self screen", "Local sequence"),
+        story.append(table(("Gene / effect / call", "Type", "Support / self screen", "Local sequence"),
                            rows, (150, 45, 125, 192)))
 
     translated = [call for call in calls if call["call_id"] in summary["top"]]
@@ -364,6 +368,22 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
         story.append(p("Reference protein FASTA: %s | SHA-256: %s" % (
             sources["self_fasta"], sources["self_fasta_sha256"])))
 
+    story.extend((p("Per-call RNA evidence", "EvidenceSection"),
+                  p("Read counts describe original sequenced segments; fragments group mates. "
+                    "A dash means unmeasured or unavailable. Zero means assessed without support.")))
+    def measured(value):
+        return "-" if value is None or value == "" else str(value)
+    rows = []
+    for call in calls:
+        annotation = annotations[call["call_id"]]
+        name = " | ".join(str(value) for value in (annotation.get("gene"), annotation.get("top_effect")) if value) or "-"
+        rows.append((name, call["call_id"],
+                     measured(call.get("alt_reads")) + " / " + measured(call.get("alt_fragments")),
+                     measured(call.get("ref_reads")) + " / " + measured(call.get("other_reads")),
+                     call["rna_status"].replace("_", " ") + "; " + measured(call.get("protein_count")) + " local proteins"))
+    story.append(table(("Gene / top effect", "Call", "ALT reads / fragments", "REF / other reads", "RNA / protein outcome"),
+                       rows, (115, 112, 85, 75, 125)))
+
     def footer(canvas, doc):
         canvas.saveState()
         canvas.setFont("Helvetica", 7)
@@ -374,5 +394,5 @@ def write_generic_report(path, calls, annotations, summary, sources, self_scores
 
     document = SimpleDocTemplate(str(path), pagesize=letter, leftMargin=50,
                                  rightMargin=50, topMargin=48, bottomMargin=48,
-                                 title=title, author="Isovar evidence report")
+                                 title=title, author="Isovar evidence report", invariant=1)
     document.build(story, onFirstPage=footer, onLaterPages=footer)

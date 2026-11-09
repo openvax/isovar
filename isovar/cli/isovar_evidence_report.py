@@ -22,7 +22,6 @@ from ..evidence_report import (
     overlapping_catalog_orfs, overlaps_exon, reference_ninemer_matches, self_novelty,
     summarize,
 )
-from ..read_identity import fragment_ids
 from .commands import parser_for_program
 from .protein_sequence_args import make_protein_sequences_arg_parser, protein_sequence_creator_from_args
 from .rna_args import alignment_file_from_args, read_collector_from_args
@@ -45,9 +44,10 @@ parser.add_argument("--self-fasta", type=Path,
 
 FIELDS = (
     "sample_id", "dna_source", "rna_source", "call_id", "class", "chrom", "pos",
-    "ref", "alt", "exon_overlap", "reference_coding_effect",
+    "ref", "alt", "gene", "top_effect", "exon_overlap", "reference_coding_effect",
     "orfdata_coding_block_overlap", "top_effect_type", "category", "rna_status", "ref_reads",
-    "alt_reads", "other_reads", "alt_fragments", "protein_count",
+    "alt_reads", "other_reads", "alt_fragments", "ref_fragments", "other_fragments",
+    "total_reads", "total_fragments", "protein_count",
     "top_changed_aa_positions", "top_local_protein", "novel_9mers", "total_9mers",
     "self_fasta_sha256", "contig_resolution", "top_marked_aa_positions",
     "reference_identical_contexts", "amino_acid_divergent_contexts", "unresolved_contexts",
@@ -116,9 +116,7 @@ def collect(variants, alignment, collector, creator, *, sample_id, source, catal
         assessment = creator.assess_variant_reads(
             variant, alt, assembly_mode="read_contexts" if len(alt) > 750 else "configured")
         products = creator.protein_sequences_from_assessment(assessment)
-        call.update(rna_status=_rna_status(ref, alt, other, raw_overlap),
-                    ref_reads=str(len(ref)), alt_reads=str(len(alt)), other_reads=str(len(other)),
-                    alt_fragments=str(len(fragment_ids(alt))), protein_count=str(len(products)))
+        call.update(rna_status=_rna_status(ref, alt, other, raw_overlap), protein_count=str(len(products)))
         calls.append(call)
         effects = variant.effects()
         top_effect = effects.top_priority_effect()
@@ -128,10 +126,15 @@ def collect(variants, alignment, collector, creator, *, sample_id, source, catal
         export = export_protein_hypotheses([result], sample_id=sample_id, source=source,
                                             alignment_header=alignment.header, read_collector=collector)
         call["protein_hypotheses"] = export
+        event = export["events"][0]
+        call.update({allele + "_" + unit: str(event["allele_support"][allele][unit])
+                     for allele in ("ref", "alt", "other", "total") for unit in ("reads", "fragments")})
+        prediction = event["reference_prediction"] or {}
         begin, end, _ = changed_reference_interval(pos, ref_base, alt_base)
         ids = (overlapping_catalog_orfs(index, variant.contig, begin - 1, end)
                if index is not None else ())
         annotations[ident] = dict(
+            gene=prediction.get("gene_name"), top_effect=prediction.get("description"),
             exon_overlap=overlaps_exon(genome, variant.contig, pos, ref_base, alt_base),
             orfdata_coding_block_overlap=bool(ids) if catalog is not None else None,
             **variant_effect_summary(variant, effects))
@@ -149,7 +152,7 @@ def write_per_call(path, calls, annotations, summary, sources, self_scores):
             ident = call["call_id"]
             top = summary["top"].get(ident)
             score = self_scores.get(ident)
-            serialized = dict({key: value for key, value in call.items() if key in FIELDS},
+            serialized = dict({key: value for key, value in call.items() if key in FIELDS and key not in ('gene', 'top_effect')},
                               contig_resolution=json.dumps(call["contig_resolution"], sort_keys=True)
                               if call.get("contig_resolution") else "")
             context_counts = summary["context_counts_by_call"].get(ident, {})
@@ -160,10 +163,11 @@ def write_per_call(path, calls, annotations, summary, sources, self_scores):
                 reference_coding_effect=annotations[ident]["reference_coding_effect"],
                 orfdata_coding_block_overlap=annotations[ident]["orfdata_coding_block_overlap"],
                 top_effect_type=annotations[ident]["top_effect_type"],
+                gene=annotations[ident].get("gene"), top_effect=annotations[ident].get("top_effect"),
                 category=annotations[ident].get("category"),
                 top_changed_aa_positions=top.get("changed_residue_count") if top else "",
                 top_marked_aa_positions=(int(top["mutation_end_idx"]) - int(top["mutation_start_idx"])) if top else "",
-                **{name + "_contexts": context_counts.get(name) for name in
+                **{name + "_contexts": context_counts.get(name, 0) if call.get("protein_count") not in (None, "") else None for name in
                    ("reference_identical", "amino_acid_divergent", "unresolved", "focal_changed")},
                 **{"top_" + key: top.get(key) if top else None for key in
                    ("contributor_fragments", "window_fragments", "single_read_fragments", "paired_template_fragments")},

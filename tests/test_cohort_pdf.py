@@ -59,6 +59,28 @@ def test_funnel_legend_does_not_cover_the_data(tmp_path, monkeypatch):
     axes = figures[0].axes[0]
     legend = axes.get_legend().get_window_extent(canvas.get_renderer())
     assert legend.y1 < axes.get_window_extent().y0
+    assert axes.get_xscale() == 'linear'
+    assert all(value == int(value) for value in axes.get_xticks())
+
+
+def test_sparse_categories_have_separate_labeled_bars(tmp_path, monkeypatch):
+    from matplotlib.figure import Figure
+    from isovar.cohort_pdf import _category_landscape
+    figures = []
+    save = Figure.savefig
+
+    def capture(figure, *args, **kwargs):
+        figures.append(figure)
+        return save(figure, *args, **kwargs)
+
+    monkeypatch.setattr(Figure, 'savefig', capture)
+    _category_landscape(dict(source_id='source', pass_id='default'),
+                        {'SNV': 6, 'Frameshift': 1}, {'SNV': [25, 0, 1, 2, 3, 4], 'Frameshift': [0]}, tmp_path)
+    axis = figures[0].axes[0]
+    assert axis.get_xscale() == 'linear'
+    assert all(value == int(value) for value in axis.get_xticks())
+    assert [label.get_text() for label in axis.texts] == ['6', '1', '1', '0']
+    assert len({bar.get_y() for bar in axis.patches}) == 4
 
 
 @pytest.mark.parametrize('scopes,expected_count,expected_label', [
@@ -238,6 +260,12 @@ def test_donor_only_fusion_renders_complete_cohort_pdf(tmp_path):
     assert 'MAAKGPFE' in (tmp_path / 'out/figures/sample/fusions/fusion/proteins.fasta').read_text()
     provenance_page, = [page for page in pages if 'Source provenance' in page]
     assert 'synthetic regression' in provenance_page
+    original = report.read_bytes()
+    rerendered, = run_cohort(path, tmp_path / 'out', render_only=True)
+    assert rerendered.read_bytes() == original
+    artifact, = read_json(tmp_path / 'out/report_files.json')
+    assert artifact['path'] == str(report.relative_to(tmp_path / 'out'))
+    assert artifact['sha256'] == file_sha256(report)
 
 
 def test_fusion_reference_comparison_uses_annotation_and_transcript_identity():

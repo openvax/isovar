@@ -250,3 +250,23 @@ class ScopedEvidenceSets(EvidenceSets):
         if self.base_quality_policy is not None:
             record["base_quality"] = self.quality_support(reads, labels, store_sets=False)
         return record
+
+
+def input_sample_id(source):
+    """Resolve the declared input sample without replacing its report grouping.
+
+    Parameters
+    ----------
+    source : mapping
+        sample_id names the analysis/report group. Optional input_sample_id
+        explicitly names the sample identity expected inside the source export.
+
+    Returns
+    -------
+    str
+        Nonempty input identity; no implicit sample renaming or pooling.
+    """
+    value = source.get("input_sample_id", source["sample_id"])
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("Source input_sample_id must be a nonempty string")
+    return value

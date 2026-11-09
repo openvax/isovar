@@ -1,19 +1,15 @@
-"""Vector report for source-separated Isovar antigen evidence exports."""
+"""Named, source-separated antigen evidence with producer RNA count units."""
 
 from html import escape
+from pathlib import Path
 
-from reportlab import rl_config
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Table, TableStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
 
-from .evidence_pdf import (
-    GRAY, NAVY, PALE, TEAL, read_support_figures, viral_support_figures,
-)
+from .evidence_pdf import GRAY, NAVY, PALE, TEAL, read_support_figures, viral_support_figures
 
-
-rl_config.invariant = 1
 LABELS = {
     "small_variants": "Literal DNA variants",
     "sv": "Nominated DNA SVs",
@@ -31,158 +27,141 @@ UNITS = {
 
 
 def write_antigen_report(path, inventory):
-    """Render one PDF; source counts stay in their native units."""
+    """Render every supplied export without pooling sources or truncating tables."""
     from . import __version__
 
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="AntigenTitle", parent=styles["Title"],
-                              fontName="Helvetica-Bold", fontSize=18, leading=22,
-                              textColor=NAVY, spaceAfter=10))
-    styles.add(ParagraphStyle(name="AntigenBody", parent=styles["Normal"],
-                              fontSize=8.5, leading=12, textColor=NAVY,
-                              spaceAfter=8))
-    styles.add(ParagraphStyle(name="AntigenSection", parent=styles["Heading2"],
-                              fontSize=12, leading=15, textColor=TEAL,
-                              spaceBefore=10, spaceAfter=7))
-    styles.add(ParagraphStyle(name="AntigenCell", parent=styles["Normal"],
-                              fontSize=8, leading=10, textColor=NAVY))
-    styles.add(ParagraphStyle(name="AntigenHeader", parent=styles["AntigenCell"],
-                              fontName="Helvetica-Bold", textColor=colors.white))
+    for name, parent, size, leading, color in (
+            ("Title", "Title", 18, 22, NAVY), ("Body", "Normal", 8.5, 12, NAVY),
+            ("Section", "Heading2", 12, 15, TEAL), ("Source", "Heading3", 9, 12, NAVY),
+            ("Cell", "Normal", 7.5, 10, NAVY)):
+        styles.add(ParagraphStyle(name="Antigen" + name, parent=styles[parent],
+            fontSize=size, leading=leading, textColor=color,
+            spaceAfter=7 if name != "Cell" else 0, keepWithNext=name in {"Section", "Source"}))
 
-    def p(value, style="AntigenBody"):
-        return Paragraph(escape(str(value)), styles[style])
+    def p(value, style="Body"):
+        return Paragraph(escape(str(value)), styles["Antigen" + style])
+
+    def shown(value):
+        return "-" if value is None or value == "" else str(value)
+
+    def words(value):
+        return shown(value).replace("_", " ")
 
     def table(headers, rows, widths):
-        values = [[p(x, "AntigenHeader") for x in headers]]
-        values.extend([[p(x, "AntigenCell") for x in row] for row in rows])
-        result = Table(values, colWidths=widths, repeatRows=1, hAlign="LEFT")
+        values = [[p(value, "Cell") for value in headers]]
+        values.extend([[p(shown(value), "Cell") for value in row] for row in rows])
+        result = Table(values, colWidths=widths, repeatRows=1, hAlign="LEFT", splitInRow=1)
         result.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), NAVY),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("BACKGROUND", (0, 0), (-1, 0), PALE),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, PALE]),
-            ("LINEBELOW", (0, 0), (-1, 0), 1, TEAL),
+            ("LINEBELOW", (0, 0), (-1, 0), .8, TEAL),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 6),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5), ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ]))
         return result
 
     categories = inventory["categories"]
-    overview = []
-    for key, category in categories.items():
-        count = len(category["records"])
-        overview.append((LABELS[key], category["status"],
-                         (f"{count} export(s)" if count else "—"), UNITS[key]))
-    story = [p(f"{inventory['sample_id']}: antigen-source evidence", "AntigenTitle"),
-             p("Each row has its own input unit. The report does not sum DNA "
-               "alleles, SV events, fusion transcripts, viral contigs or target genes "
-               "into one antigen count. A missing export is not assessed."),
-             p("Source coverage", "AntigenSection"),
-             table(("Category", "Status", "Inputs", "Denominator"),
-                   overview, (157, 75, 85, 195)),
-             p("Interpretation", "AntigenSection"),
-             p("RNA sequence and coding hypotheses are candidate evidence, not "
-               "measured protein expression or peptide presentation. Reference "
-               "ncORF overlaps, exploratory SV ORFs and viral coding predictions "
-               "remain separate from locally translated small-variant products.")]
+    story = [p(f"{inventory['sample_id']}: antigen-source evidence", "Title"),
+             p("Original reads are sequenced segments; fragments group mates. Each measurement names its "
+               "subject: an ALT allele, a junction, RNA path contributors or a complete interval. "
+               "Alternative paths can share reads and fragments; their counts are not additive. "
+               "Unique means unique among retained paths under the producer's placement rules. "
+               "A dash means unavailable or unmeasured; zero means assessed without support."),
+             table(("Category", "Status", "Exports", "Input unit"),
+                   [(LABELS[key], words(category["status"]), len(category["records"]), UNITS[key])
+                    for key, category in categories.items()], (150, 95, 55, 212)),
+             p("RNA and coding hypotheses do not establish protein expression or peptide presentation. "
+               "Input samples and libraries retain their own counts within this report group.")]
 
-    def new_page(title):
-        story.extend((PageBreak(), p(title, "AntigenSection")))
+    def source(item, label=None):
+        identifier = label or item.get("source") or Path(item.get("source_file", "export")).name
+        parts = [str(item.get("input_sample_id", inventory["sample_id"])), str(identifier)]
+        filename = Path(item.get("source_file", "")).name
+        if filename and filename != identifier:
+            parts.append(filename)
+        story.append(p(" | ".join(parts), "Source"))
+        if item.get("discovery_truncated"):
+            story.append(p("Discovery reached a configured limit; undiscovered alternative paths may remain."))
+
+    def measurements(item):
+        rows = item.get("measurements", [])
+        if not rows:
+            story.append(p("No path-level RNA measurements were supplied."))
+            return
+        scopes = sorted({words(row.get("scope")) for row in rows})
+        story.append(p("Support scope: " + "; ".join(scopes) + "."))
+        story.append(table(("Named RNA path", "Measurement", "Reads", "Fragments", "Status"),
+            [(row["name"], row["subject"], row.get("reads"), row.get("fragments"), words(row.get("status")))
+             for row in rows], (166, 137, 43, 54, 112)))
 
     small = categories["small_variants"]
     if small["status"] == "assessed":
-        item = small["records"][0]
-        ncorf = item["ncorf_reference_candidates"]
-        ncorf_text = "not assessed" if ncorf is None else f"{ncorf:,} candidates"
-        new_page("Exon-involved small variants: original RNA ALT reads")
-        story.append(p(
-            f"{item['input_records']:,} loaded literal VCF alleles; "
-            f"{item['exon_involved']:,} involve an annotated exon; "
-            f"{item['rna_alt_observed']:,} have an original RNA ALT read"
-            + (f" ({item['rna_unmeasured']:,} unmeasured, e.g. a chromosome absent from the reads)"
-               if item.get("rna_unmeasured") else "") + "; "
-            f"{item['local_products']:,} have a local mutant protein context. "
-            f"Reference ncORF coding-block overlap: {ncorf_text}. "
-            "The plots include zero-support exon-involved calls "
-            "and then condition on positive ALT support."))
-        story.extend(read_support_figures(item["exonic_reads_by_class"],
-                                          scope="exon-involved variant"))
-        story.append(p("Insertion flanks count as candidate exon involvement. "
-                       "Symbolic SVs use their own event and junction units."))
+        story.append(p("Small variants: named calls and RNA ALT support", "Section"))
+        for item in small["records"]:
+            source(item)
+            ncorf = item["ncorf_reference_candidates"]
+            ncorf_text = "not assessed" if ncorf is None else f"{ncorf:,} candidates"
+            story.append(p(f"{item['input_records']:,} loaded literal alleles; {item['exon_involved']:,} exon-involved; "
+                f"{item['rna_alt_observed']:,} with RNA ALT support; {item['rna_unmeasured']:,} unmeasured. "
+                f"Reference ncORF coding-block overlap: {ncorf_text}."))
+            rows = []
+            for call in item.get("calls", []):
+                name = " | ".join(str(value) for value in (call.get("gene"), call.get("top_effect"), call["call_id"]) if value)
+                rows.append((name, shown(call.get("alt_reads")),
+                    shown(call.get("alt_fragments")) + " / " + shown(call.get("total_fragments")),
+                    shown(call.get("ref_reads")) + " / " + shown(call.get("other_reads")),
+                    words(call.get("rna_status")) + "; " + shown(call.get("protein_count")) + " local proteins"))
+            if rows:
+                story.append(table(("Gene / effect / call", "ALT reads", "ALT / total fragments", "REF / other reads", "RNA / protein outcome"),
+                                   rows, (170, 50, 80, 75, 137)))
+            if len(rows) > 12 or not rows:
+                story.extend(read_support_figures(item["exonic_reads_by_class"], scope="exon-involved variant"))
 
-    sv = categories["sv"]
-    fusion = categories["fusion"]
-    if sv["status"] == "assessed" or fusion["status"] == "assessed":
-        new_page("Structural variants and supplied fusions")
-        if sv["records"]:
-            story.append(p("Nominated DNA SV events", "AntigenSection"))
-            rows = sorted(sv["records"], key=lambda row: (
-                -row["max_direct_junction_fragments"], row["event_id"]))
-            story.append(table(("Event", "RNA status", "Direct junction fragments",
-                                "Linked translated paths"),
-                               ((row["event_id"], row["status"],
-                                 row["max_direct_junction_fragments"],
-                                 row["event_linked_translated_paths"])
-                                for row in rows[:12]), (145, 127, 116, 124)))
-            story.append(p(
-                f"{sum(row['exploratory_orf_candidates'] for row in rows):,} "
-                "exploratory ORF candidates across supplied SV exports. These "
-                "may be partial or lack full-interval read support. Event linkage, "
-                "junction support and translation are separate evidence layers."))
-        if fusion["records"]:
-            story.append(p("Supplied fusion RNAs", "AntigenSection"))
-            rows = sorted(fusion["records"], key=lambda row: (
-                -row["direct_junction_fragments"], row["event_id"]))
-            story.append(table(("Fusion", "Status", "Direct fragments",
-                                "Translated candidates"),
-                               ((row["event_id"], row["status"],
-                                 row["direct_junction_fragments"],
-                                 row["translated_candidates"])
-                                for row in rows[:12]), (150, 135, 110, 117)))
+    if categories["sv"]["records"] or categories["fusion"]["records"]:
+        story.append(p("Structural variants and supplied fusions", "Section"))
+        for key in ("sv", "fusion"):
+            for item in categories[key]["records"]:
+                source(item, item["event_id"] + (" / " + item["source"] if item.get("source") else ""))
+                story.append(p(LABELS[key] + ": " + words(item["status"]) + "."))
+                if item.get("reasons"):
+                    story.append(p("Reasons: " + "; ".join(item["reasons"])))
+                if key == "sv":
+                    story.append(p(f"{item['event_linked_translated_paths']} event-linked translated paths; "
+                        f"{item['exploratory_orf_candidates']} exploratory ORF candidates. "
+                        "Regional or annotated junctions remain context and do not establish support for the nominated SV."))
+                measurements(item)
 
-    for number, row in enumerate(categories["viral"]["records"], 1):
-        new_page(f"Viral RNA panel {number}: aligned fragments")
-        story.append(p(
-            f"{row['selected_contigs']:,} selected contigs; "
-            f"{row['aligned_contigs']:,} with aligned fragments; "
-            f"{row['assigned_contigs']:,} with sequence-assigned fragments; "
-            f"{row['observed_paths']:,} observed paths; "
-            f"{row['coding_predictions']:,} predicted coding paths "
-            f"({row['complete_cds_predictions']:,} complete CDS). "
-            "Bars count contigs, not fragments or viral genomes."))
-        figures = viral_support_figures(row["contigs"])
-        story.extend(figures[:2])
-        new_page(f"Viral RNA panel {number}: sequence-assigned fragments")
-        story.extend(figures[2:])
-        story.append(p("The second panel excludes zero-support contigs. "
-                       "Fragment support can be ambiguous between viral paths; "
-                       "coding predictions do not establish translated proteins."))
+    if categories["viral"]["records"]:
+        story.append(p("Viral contigs and RNA paths", "Section"))
+        for item in categories["viral"]["records"]:
+            source(item)
+            story.append(p(f"{item['observed_paths']} observed paths; {item['coding_predictions']} coding predictions "
+                           f"({item['complete_cds_predictions']} complete CDS)."))
+            story.append(table(("Viral contig", "Aligned reads", "Aligned fragments", "Sequence-assigned fragments", "Status"),
+                [(row["contig"], row.get("aligned_segments"), row["aligned_fragments"],
+                  row["sequence_assigned_fragments"], words(row["status"])) for row in item["contigs"]],
+                (110, 65, 75, 95, 167)))
+            measurements(item)
+            if len(item["contigs"]) > 12:
+                story.extend(viral_support_figures(item["contigs"]))
 
     if categories["isoforms"]["records"]:
-        new_page("Targeted antigen-gene isoforms")
-        story.append(table(("Source", "Target genes", "RNA-supported genes",
-                            "Fully covered protein groups"),
-                           ((row["source"], row["target_genes"],
-                             row["rna_supported_genes"],
-                             row["fully_covered_protein_groups"])
-                            for row in categories["isoforms"]["records"]),
-                           (166, 88, 115, 143)))
-        story.append(p("A selected target panel is not an exhaustive cancer-testis "
-                       "antigen catalogue. RNA coverage of a coding sequence "
-                       "supports a sequence hypothesis, not its translation."))
+        story.append(p("Targeted antigen-gene isoforms", "Section"))
+        for item in categories["isoforms"]["records"]:
+            source(item)
+            targets = item.get("targets", [])
+            story.append(p("Targets: " + (", ".join(row.get("gene_name", row["gene_id"]) for row in targets) or "not named in export") + ". "
+                f"{item['rna_supported_genes']} RNA-supported genes; "
+                f"{item['fully_covered_protein_groups']} fully covered protein groups."))
+            measurements(item)
+            story.append(p("Whole retained RNA paths need not be full-length transcripts. Whole-CDS counts require "
+                           "a complete coding model and original spanning witnesses; tiled coverage alone is insufficient."))
 
-    new_page("Input provenance and scope")
-    sources = [(LABELS[key], row["source_file"])
-               for key, category in categories.items()
-               for row in category["records"] if "source_file" in row]
-    if small["status"] == "assessed":
-        sources.insert(0, (LABELS["small_variants"], small["source"]))
-    story.append(table(("Category", "Input export"), sources, (153, 359)))
-    story.append(p("The JSON alongside this PDF retains every supplied export's "
-                   "separate summary and input path. Unprovided categories are "
-                   "explicitly not assessed."))
+    story.append(p("Input provenance", "Section"))
+    story.append(p("Input samples, sources and export filenames are named above. The accompanying JSON retains "
+                   "their full source paths and detailed measurements. No library is pooled into another source's RNA denominator."))
 
     def footer(canvas, doc):
         canvas.saveState()
@@ -192,8 +171,7 @@ def write_antigen_report(path, inventory):
         canvas.drawRightString(562, 30, f"page {doc.page}")
         canvas.restoreState()
 
-    document = SimpleDocTemplate(str(path), pagesize=letter, leftMargin=50,
-                                 rightMargin=50, topMargin=48, bottomMargin=48,
-                                 title=f"{inventory['sample_id']} antigen-source evidence",
-                                 author="Isovar antigen evidence report")
+    document = SimpleDocTemplate(str(path), pagesize=letter, leftMargin=50, rightMargin=50,
+        topMargin=48, bottomMargin=48, title=f"{inventory['sample_id']}: antigen-source evidence",
+        author="Isovar antigen report", invariant=1)
     document.build(story, onFirstPage=footer, onLaterPages=footer)

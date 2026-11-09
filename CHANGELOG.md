@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.87.0
+
+Fixes #667 and #695.
+
+- Name genes, effects, calls, viral contigs and antigen isoforms in report tables.
+  Show source-specific original read/fragment counts and exact span support from
+  native producer contracts, preserving unavailable values and measured zeros.
+  Fix evidence-report read counts after overlapping mates are merged.
+- Accept repeated small-variant inputs and explicit input-sample mappings in
+  antigen-report; retain each original source identity. Flow and paginate all
+  named rows without forced category pages or truncated tables.
+- Select a variant from multi-variant plot inputs, prioritize RNA-supported
+  transcript rows, label protein groups with all covered ranks, and show allele
+  denominators and reconstruction failure reasons.
+- Improve sparse count axes, bar labels and fusion depth traces. Make cohort PDF
+  rerenders deterministic and their artifact listings relative to the output root.
+
 ## 1.86.0
 
 Fixes #681.

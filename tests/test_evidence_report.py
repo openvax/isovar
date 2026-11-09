@@ -163,6 +163,8 @@ def test_unresolved_chromosomes_keep_unmeasured_counts_and_do_not_enter_depth_bi
     with output.open() as stream:
         rows = list(csv.DictReader(stream, delimiter="\t"))
     assert rows[0]["alt_reads"] == "0" and rows[1]["alt_reads"] == ""
+    for field in ("reference_identical_contexts", "unresolved_contexts", "amino_acid_divergent_contexts"):
+        assert rows[0][field] == "0" and rows[1][field] == ""
     assert json.loads(rows[1]["contig_resolution"])["candidates"] == ["CHR1", "chr1"]
 
 
@@ -186,7 +188,13 @@ def test_vcf_bam_command_writes_per_call_and_visual_pdf(tmp_path):
     content = "\n".join(page.extract_text() for page in pdf.pages)
     assert "Variant-to-RNA funnel" in content
     assert "ALT reads per variant: positive support only" in content
-    assert "ALT reads per exon-involved variant: all records" in content
+    if rows[0]["exon_overlap"] == "True":
+        assert "Every assessed call is exon-involved" in content
+        assert "ALT reads per exon-involved variant: all records" not in content
+    else:
+        assert "ALT reads per exon-involved variant: all records" in content
+    assert "Per-call RNA evidence" in content
+    assert "Gene / top effect" in content
     assert "Verified residue differences: excluding one-residue calls" in content
     import json
     receipt = json.loads(output.with_suffix('.json').read_text())
@@ -194,6 +202,9 @@ def test_vcf_bam_command_writes_per_call_and_visual_pdf(tmp_path):
     native = receipt['calls'][0]['protein_hypotheses']
     assert native['sample_id'] == 'fixture'
     assert native['events'][0]['allele_support']['alt']['reads'] == 2
+    prediction = native['events'][0]['reference_prediction'] or {}
+    assert rows[0]['gene'] == (prediction.get('gene_name') or '')
+    assert rows[0]['top_effect'] == (prediction.get('description') or '')
     assert 'evidence_sets' in native
 
 
