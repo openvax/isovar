@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 
 
 class NoExonicReferenceBases(ValueError):
-    """A variant has no reference bases in a transcript's exons."""
+    """A variant's affected reference bases or insertion anchor are not exonic."""
 
 
 @dataclass(frozen=True)
@@ -215,21 +215,33 @@ def interbase_range_affected_by_variant_on_transcript(variant, transcript):
     offset pair such as (100,100) since no reference bases are changed or deleted by
     an insertion. On the other hand, deletion the preceding "CGG" at that same locus could
     result in an offset pair such as (97, 100)
+
+    Raises
+    ------
+    NoExonicReferenceBases
+        No affected reference base, or the insertion's genomic anchor, maps
+        to an exon of this transcript.
     """
     require_literal_variant(variant)
     if variant.is_insertion:
+        try:
+            anchor_offset = transcript.spliced_offset(variant.start)
+        except ValueError as error:
+            raise NoExonicReferenceBases(
+                "Couldn't find insertion anchor %d from %s on exons of %s" % (
+                    variant.start, variant, transcript)) from error
         if transcript.strand == "+":
             # base-1 position of an insertion is the genomic nucleotide
             # before any inserted mutant nucleotides, so the start offset
             # of the actual inserted nucleotides is one past that reference
             # position
-            start_offset = transcript.spliced_offset(variant.start) + 1
+            start_offset = anchor_offset + 1
         else:
             # on the negative strand the genomic base-1 position actually
             # refers to the transcript base *after* the insertion, so we can
             # use that as the interbase coordinate for where the insertion
             # occurs
-            start_offset = transcript.spliced_offset(variant.start)
+            start_offset = anchor_offset
         # an insertion happens *between* two reference bases
         # so the start:end offsets coincide
         end_offset = start_offset

@@ -30,6 +30,11 @@ reasons. The caller supplies and pins models; this API does not choose a
 catalogue or download reads. Structural events use `reconstruct_sv_rna` and
 its assessment/reconciliation APIs.
 
+An insertion whose genomic anchor is intronic or outside a supplied transcript
+retains that model as `unresolved` with reason `no_exonic_reference_bases`.
+Other valid models continue through reconstruction, and original RNA support
+remains available. This reference-model outcome is distinct from `no_alt_reads`.
+
 The [shared RNA assessment flow](variant-read-assessment.md) also retains
 unframed RNA in ordinary `run_isovar` and cohort results. Both interfaces use
 the same assembly helper and accept `assembly_mode="read_contexts"` for bounded
