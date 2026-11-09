@@ -270,3 +270,35 @@ def test_long_named_tables_paginate_without_dropping_rows(tmp_path):
     assert len(pages) > 1
     assert all(f'GENE{index:03d}' in content for index in range(60))
     assert content.count('ALT reads') >= 2  # Repeated headers on split tables.
+
+
+def test_native_isoform_and_viral_exports_keep_original_support_units(tmp_path):
+    from pypdf import PdfReader
+    from isovar.antigen_evidence_pdf import write_antigen_report
+    from .test_antigen_isoforms import target_models, aligned, reconstruct as isoforms
+    from .test_viral_sequences import inputs, read, reconstruct as viral
+
+    targets, positions = target_models()
+    cta_dir, viral_dir = tmp_path / 'cta', tmp_path / 'viral'
+    cta_dir.mkdir()
+    viral_dir.mkdir()
+    cta = isoforms(cta_dir, [r for i in range(2)
+        for r in aligned(f'full-{i}', targets[0].reference.sequence, positions[0])], targets[:1])
+    viral_inputs = inputs.__wrapped__(viral_dir)
+    virus = viral(viral_dir, viral_inputs,
+                  [read(viral_inputs, f'virus-{i}', 'HPV16', 100) for i in range(3)])
+    cta_path = write_json(cta_dir / 'result.json', cta)
+    viral_path = write_json(viral_dir / 'result.json', virus)
+    inventory = compose('report-group', isoforms=[cta_path], viral=[viral_path],
+                        input_sample_ids={cta_path: 'sample', viral_path: 'tumor'})
+    cta_rows = inventory['categories']['isoforms']['records'][0]['measurements']
+    viral_rows = inventory['categories']['viral']['records'][0]['measurements']
+    assert {row['reads'] for row in cta_rows if row['subject'] in
+            ('RNA path contributors', 'Whole retained RNA path', 'Whole complete CDS 1')} == {2}
+    assert {row['reads'] for row in viral_rows if row['subject'] in
+            ('RNA path contributors', 'Whole retained RNA path')} == {3}
+    assert next(row for row in cta_rows if row['subject'] == 'Compatible with RNA path')['fragments'] == 2
+    output = tmp_path / 'native-paths.pdf'
+    write_antigen_report(output, inventory)
+    content = ' '.join(page.extract_text() for page in PdfReader(output).pages)
+    assert 'HPV16' in content and 'CTA' in content and 'Whole complete CDS 1' in content
