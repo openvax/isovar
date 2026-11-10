@@ -14,11 +14,19 @@ from .rna_evidence import content_identifier
 
 
 
+def rna_path_offsets(positions, observation):
+    """Candidate offsets of an original observation on a supplied RNA path.
+
+    These are geometric proposals, not matches: callers must check observed
+    sequence and per-base placement at their required feature.
+    """
+    return sorted({offset for _, offset in overlap_offsets(
+        position_runs(positions), 0, observation.key, position_runs(observation.positions))})
+
+
 def _local_matches(sequence, positions, observation, identity):
     """Exact runs of one original placement, preserving alternative path offsets."""
-    offsets = sorted({offset for _, offset in overlap_offsets(
-        position_runs(positions), 0, observation.key, position_runs(observation.positions))})
-    for offset in offsets:
+    for offset in rna_path_offsets(positions, observation):
         low, high = max(0, offset), min(len(sequence), offset + len(observation.sequence))
         key = content_identifier("feature_placement", [observation.key, offset])
         start = None
