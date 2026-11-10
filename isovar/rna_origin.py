@@ -182,6 +182,25 @@ def _combine(statuses):
     return "ambiguous"
 
 
+def _sample_assessment(states):
+    """Independent fragments: uninformative ones are counted but cannot veto.
+
+    Opposing favored fragments stay mixed and any conflicting fragment stays
+    conflicting. Otherwise one favored origin summarizes the informative
+    fragments; ambiguous/unassessed fragments remain in ``support_by_status``.
+    """
+    favored = states & {"nuclear_favored", "mitochondrial_favored"}
+    if not states:
+        return "no_target_support"
+    if len(favored) > 1:
+        return "mixed_origins"
+    if "conflicting" in states:
+        return "conflicting"
+    if favored:
+        return next(iter(favored))
+    return "ambiguous" if "ambiguous" in states else "unassessed"
+
+
 def assess_rna_origin(bam, hypotheses, *, sample_id, source, policy=None,
                       read_collector=None, library_index=None, reference_name=None,
                       read_filter_identity=None, scratch_dir=None):
@@ -284,9 +303,7 @@ def assess_rna_origin(bam, hypotheses, *, sample_id, source, policy=None,
             provenance = dict(input_identity=groups.prepared.identity, input_extent="declared_input",
                               read_policy=groups.prepared.identity["eligibility"],
                               observation_rejections=dict(rejections), placement_uncertainty=dict(uncertainty))
-    states = {f["status"] for f in fragments}
-    status = ("no_target_support" if not states else "mixed_origins" if
-              {"nuclear_favored", "mitochondrial_favored"} <= states else _combine(states))
+    status = _sample_assessment({f["status"] for f in fragments})
     panel = [h.to_dict() for h in hypotheses]
     return dict(schema=SCHEMA, assessment=status, evidence_scope=scope, policy=asdict(policy),
                 comparison_policy="allele_anchored_origin_context.v1", hypotheses=panel,

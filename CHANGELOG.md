@@ -8,7 +8,8 @@ Fixes #704.
   `isovar rna-origin` for an opt-in nuclear/mitochondrial context heuristic.
   Compare target-bearing original RNA against explicit competing paths, with
   quality masking, anchored context alignment and conservative fragment counts.
-- Preserve ambiguous, conflicting and unassessed evidence; record the panel,
+- Preserve ambiguous, conflicting and unassessed evidence without letting
+  uninformative fragments veto a sample's favored origin; record the panel,
   thresholds, input provenance and scoped evidence sets. Reuse shared original
   observations and supplementary-link validation. This is not genome-wide NuMT
   discovery or calibrated origin inference, and does not change translation,

@@ -36,7 +36,9 @@ Paths are RNA sequences: join exons in transcript order and retain their actual
 genomic positions. Do not compare a spliced read to an unspliced nuclear genomic
 window and interpret its poor fit as evidence for mitochondrial origin. Include
 sufficient flanks on both sides; the comparison refuses to favor an origin
-when any supplied competitor is too short for the observed context.
+when any supplied competitor is too short for the observed context. Extend each
+path at least one read length beyond the target on both sides, or reads that run
+past a path end remain unassessed.
 
 The following constructs a panel from two supplied, positive-strand, contiguous
 201-base windows. Both text files contain ACGT only, carry the nominated allele
@@ -129,8 +131,12 @@ read names. `rna_support` counts eligible target-bearing reads and fragments;
 | `unassessed` | Inadequate quality/context, incomplete panel context, or poor fit |
 
 At sample level, `mixed_origins` preserves separately favored nuclear and
-mitochondrial fragments. `no_target_support` means no eligible target-bearing
-segment was found. Neither state implies a DNA genotype. Counts cover the
+mitochondrial fragments, and any `conflicting` fragment makes the sample
+conflicting. Otherwise one favored origin summarizes the informative fragments:
+ambiguous and unassessed fragments stay counted in `support_by_status` but cannot
+veto it. Without a favored fragment the sample is `ambiguous`, or `unassessed`
+when no fragment could be compared. `no_target_support` means no eligible
+target-bearing segment was found. Neither state implies a DNA genotype. Counts cover the
 declared input, which may be a regional BAM, and are not whole-library abundance,
 DNA heteroplasmy or an estimated NuMT contamination fraction. Libraries are
 assessed separately; read groups and mate identities retain their shared-engine

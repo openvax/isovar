@@ -163,6 +163,23 @@ def test_mixed_origins_are_not_pooled_into_one_call(tmp_path, panel):
         f["fragment_id"] for f in other_library["fragments"])
 
 
+@pytest.mark.parametrize("uninformative,status", [
+    # Shared sequence only: no distinguishing marker is reached.
+    (dict(start=70, end=130), "ambiguous"),
+    (dict(start=70, end=130, qualities=None), "unassessed"),
+])
+def test_uninformative_fragments_are_counted_but_cannot_veto_the_sample(tmp_path, panel, uninformative, status):
+    reads = [observed(panel[1], name=f"nuc{i}") for i in range(3)]
+    reads.append(observed(panel[1], name="shared", **uninformative))
+    result = assess(tmp_path, panel, reads)
+    assert result["assessment"] == "nuclear_favored"
+    counts = {s: row["fragments"] for s, row in result["support_by_status"].items()}
+    assert counts["nuclear_favored"] == 3 and counts[status] == 1
+    assert assess(tmp_path, panel, [reads[-1]])["assessment"] == status
+    conflicted = reads + [observed(panel[0], name="pair", flag=65), observed(panel[1], name="pair", flag=129)]
+    assert assess(tmp_path, panel, conflicted)["assessment"] == "conflicting"
+
+
 def test_wrong_allele_does_not_enter_the_origin_denominator(tmp_path, panel):
     wrong = replace(panel[0], sequence=panel[0].sequence[:100] + change(panel[0].sequence[100]) + panel[0].sequence[101:])
     result = assess(tmp_path, panel, [observed(wrong)])
