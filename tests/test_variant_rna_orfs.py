@@ -80,7 +80,7 @@ def test_noncoding_parent_recovers_observed_mutant_protein(noncoding_rna):
     assert not candidate['initiation_observed'] and not candidate['translation_observed']
     assert result['models'][0]['reference']['resolved_transcript']['biotype'] == 'lncRNA'
     assert candidate['transcript_id'] == 'T'
-    assert json.loads(json.dumps(result))['schema'] == 'isovar.variant_rna_orfs.v1'
+    assert json.loads(json.dumps(result))['schema'] == 'isovar.variant_rna_orfs.v2'
 
 
 def test_synonymous_context_is_not_promoted_to_amino_acid_change(noncoding_rna):

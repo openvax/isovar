@@ -12,7 +12,7 @@ of protein expression.
 | `isovar.sv_rna_orfs.v4` | Every exploratory nucleotide candidate and occurrence |
 | `isovar.sv_rna_candidates.v5` | Annotated-frame translations, all retained paths and the shared exploratory ORF mapping |
 | `isovar.fusion_rna.v3` | Every supplied-path translation, including partial/ambiguous models |
-| `isovar.variant_rna_orfs.v1` | Every retained model/RNA/protein candidate, including ncORFs |
+| `isovar.variant_rna_orfs.v2` (also reads v1) | Every retained model/RNA/protein candidate, including ncORFs; v2 records the effective genetic code |
 
 The v5 SV route preserves annotated-frame proteins and paths without an ORF in
 addition to the compact exploratory export. Its source record links to the

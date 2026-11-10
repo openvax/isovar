@@ -21,6 +21,7 @@ from .proteome import (
 )
 from .rna_evidence import canonical_json
 from .sv_rna_orf_export import export_sv_rna_orfs
+from .variant_rna_orfs import variant_orf_translation_table
 
 
 def _rows(value, name):
@@ -205,7 +206,8 @@ def _variant(value, reference):
         dna = _coding_sequence(candidate['nucleotide_sequence'], candidate['coding_interval'])
         if start and dna[:3] != model['start_codon']:
             raise ValueError("RNA start codon disagrees with the selected ORF model")
-        _translation(dna, amino, stop, table=model['translation_table'], start=start)
+        table = variant_orf_translation_table(candidate, model, schema=value['schema'])
+        _translation(dna, amino, stop, table=table, start=start)
         record = graph.record('hypothesis', cid, candidate, status=candidate['evidence_state'])
         graph.link(event, record, 'has_hypothesis', index=index)
         graph.link(model_records[mid], record, 'supplies_frame')
@@ -327,12 +329,13 @@ def from_rna_result(result, *, reference):
     if schema == 'isovar.protein_hypotheses.v2':
         return from_protein_hypotheses(result, reference=reference)
     handlers = {'isovar.sv_rna_orfs.v4': _sv, 'isovar.variant_rna_orfs.v1': _variant,
+                'isovar.variant_rna_orfs.v2': _variant,
                 'isovar.fusion_rna.v3': _fusion, 'isovar.sv_rna_candidates.v5': _native_sv}
     if schema not in handlers:
         raise ValueError(f"Unsupported Isovar RNA result schema {schema!r}; supported: "
                          + ", ".join(sorted(handlers) + ['isovar.protein_hypotheses.v2']))
     try:
-        build = result['variant']['reference_name'] if schema == 'isovar.variant_rna_orfs.v1' else result['reference_name']
+        build = result['variant']['reference_name'] if handlers[schema] is _variant else result['reference_name']
         if build != reference.genome_build:
             raise ValueError(f"Isovar build {build!r} conflicts with {reference.genome_build!r}")
         return handlers[schema](result, reference)

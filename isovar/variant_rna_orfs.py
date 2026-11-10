@@ -13,7 +13,7 @@ from varcode import ContigResolver
 from .dna import reverse_complement_dna
 from .contig_resolution import resolve_reference_contig, variant_reference_name, variant_source_contig
 from .coding_interval_support import coding_interval_support
-from .genetic_code import translate_cdna
+from .genetic_code import genetic_code_by_id, translate_cdna
 from .protein_sequence_creator import ProteinSequenceCreator
 from .protein_window_comparison import compare_protein_windows, reference_window_stop
 from .reference_context import ReferenceContext
@@ -28,7 +28,46 @@ from .variant_helpers import (
 from .variant_orf_helpers import match_variant_sequence_to_reference_context
 
 
-SCHEMA = 'isovar.variant_rna_orfs.v1'
+SCHEMA = 'isovar.variant_rna_orfs.v2'
+
+
+def variant_orf_translation_table(candidate, reference, *, schema):
+    """Read the decoding table from a native variant-ORF export.
+
+    Parameters
+    ----------
+    candidate : dict
+        Exported protein candidate. V2 requires an effective integer table and
+        provenance consistent with its source reference.
+    reference : dict
+        The candidate's model ``reference`` record, whose declared table is
+        preserved independently of the effective decoding table.
+    schema : str
+        Native export schema. Historical v1 retains its original source-table
+        convention, including None (standard decoding); it is not re-inferred.
+
+    Returns
+    -------
+    int or None
+        Validated table ID, or the historical v1 undeclared-code value.
+    """
+    declared = reference['translation_table']
+    if declared is not None:
+        genetic_code_by_id(declared)
+    if schema == 'isovar.variant_rna_orfs.v1':
+        table = declared
+    elif schema == SCHEMA:
+        table = candidate.get('translation_table')
+        if type(table) is not int:
+            raise ValueError('Native ORF candidate requires an integer translation_table')
+        source = 'reference_context' if declared is None else 'orf_model'
+        if candidate.get('translation_table_source') != source or (declared is not None and table != declared):
+            raise ValueError('Native ORF translation table disagrees with its source declaration/provenance')
+    else:
+        raise ValueError('Unsupported native variant-ORF schema: %r' % schema)
+    if table is not None:
+        genetic_code_by_id(table)
+    return table
 
 
 def _context(variant, reference, size, resolved_contig):
@@ -100,7 +139,8 @@ def _candidate(sequence, context, locus, reference, model_id, rna_id, evidence, 
     starts = reference_prefix_start <= reference.start
     if starts and cdna[offset:offset + 3] != reference.start_codon:
         return None
-    protein, stop = _translate(cdna[offset:], reference.translation_table, starts)
+    table = context.translation_table
+    protein, stop = _translate(cdna[offset:], table, starts)
     if creator.protein_sequence_length and len(protein) > creator.protein_sequence_length:
         protein, stop = protein[:creator.protein_sequence_length], False
     begin, end = framed.variant_cdna_interval_start, framed.variant_cdna_interval_end
@@ -115,7 +155,7 @@ def _candidate(sequence, context, locus, reference, model_id, rna_id, evidence, 
     if not contains:
         return None
     counterfactual = cdna[:begin] + context.sequence_at_variant_locus + cdna[end:]
-    counter_protein, counter_stop = _translate(counterfactual[offset:], reference.translation_table, starts)
+    counter_protein, counter_stop = _translate(counterfactual[offset:], table, starts)
     delta = len(context.sequence_at_variant_locus) - (end - begin)
     comparison_limit = max(0, len(protein) + (delta // 3 if delta % 3 == 0 else 0))
     counter_stop = reference_window_stop(counter_protein, counter_stop, comparison_limit, stop)
@@ -124,7 +164,7 @@ def _candidate(sequence, context, locus, reference, model_id, rna_id, evidence, 
                                 (reference.start - reference_prefix_start) % 3)
     reference_end = min(reference.end, locus[1] + len(cdna) - end)
     reference_window, reference_stop = _translate(reference.transcript_sequence[reference_codon_start:reference_end],
-                                     reference.translation_table, reference_codon_start == reference.start)
+                                     table, reference_codon_start == reference.start)
     reference_stop = reference_window_stop(reference_window, reference_stop, comparison_limit, stop)
     reference_window = reference_window[:comparison_limit]
     comparison_options = dict(allele_length_delta=delta, frameshift=frameshift, stop=stop)
@@ -141,10 +181,12 @@ def _candidate(sequence, context, locus, reference, model_id, rna_id, evidence, 
     support = _interval_support(sequence, shift + offset, shift + coding_end,
                                 reference.strand == '-', evidence)
     return dict(
-        candidate_id=content_identifier('orf_candidate', [model_id, rna_id, cdna, offset, protein]),
+        candidate_id=content_identifier('orf_candidate', [model_id, rna_id, cdna, offset, table, protein]),
         model_id=model_id, rna_candidate_id=rna_id, orf_id=reference.orf_id,
         transcript_id=reference.transcript_id, gene_name=reference.gene_name,
         nucleotide_sequence=cdna, coding_interval=[offset, coding_end],
+        translation_table=table,
+        translation_table_source='reference_context' if reference.translation_table is None else 'orf_model',
         variant_cdna_interval=[begin, end], protein_sequence=protein,
         mutation_interval=[mutation_start, mutation_end], frameshift=frameshift,
         starts_at_reference_start=starts, ends_with_stop_codon=stop,
