@@ -155,7 +155,7 @@ standard_genetic_code = genetic_code_by_id(1)
 def translate_cdna(
         cdna_sequence,
         first_codon_is_start=False,
-        *, translation_table):
+        *, translation_table=1):
     """
     Given a cDNA sequence which is aligned to a reading frame, returns
     the translated protein sequence and a boolean flag indicating whether
@@ -169,9 +169,10 @@ def translate_cdna(
     first_codon_is_start : bool
         Decode a recognized initiation codon as methionine at the first
         position only; internal codons retain their normal assignments.
-    translation_table : int or None
-        Required NCBI table ID, for example 1 (standard), 2 (vertebrate
-        mitochondrial) or 3 (yeast mitochondrial). None retains the existing
+    translation_table : int or None, optional
+        NCBI table ID, defaulting to 1 (standard, including mammalian nuclear
+        translation). Use 2 for vertebrate mitochondrial or 3 for yeast
+        mitochondrial translation. None retains the existing
         table-1 decoding convention for undeclared annotated-ORF codes; it
         does not change their source metadata. Unsupported explicit codes
         and codes requiring context-dependent stop recoding fail explicitly.

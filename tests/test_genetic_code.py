@@ -20,7 +20,7 @@ from .genomes_for_testing import grch38
 
 
 def test_translate_cdna_no_stop_codon():
-    eq_(translate_cdna("ATGATG", first_codon_is_start=False, translation_table=1), ("MM", False))
+    eq_(translate_cdna("ATGATG", first_codon_is_start=False), ("MM", False))
 
 
 def test_translate_cdna_stop_codon():
@@ -70,6 +70,7 @@ def test_every_nuclear_and_mitochondrial_codon(index, table, assignments):
         # SV, CTA, transcript-frame and downstream Vaxrank consumers use this
         # public object instead of translate_cdna; they must decode identically.
         assert standard_genetic_code.translate(CODONS[index]) == expected
+        assert translate_cdna(CODONS[index]) == expected
 
 
 @pytest.mark.parametrize("stop", ["AGA", "AGG", "TAA", "TAG"])
@@ -91,6 +92,7 @@ def test_standard_initiators_match_the_ncbi_table(start):
     expected = ("M" + internal, False)
     assert standard_genetic_code.translate(start + start, first_codon_is_start=True) == expected
     assert translate_cdna(start + start, translation_table=1, first_codon_is_start=True) == expected
+    assert translate_cdna(start + start, True) == expected
 
 
 @pytest.mark.parametrize("start", ["GTG", "AGG", "ACG", "AAG", "ATC", "ATA", "ATT"])
@@ -99,9 +101,12 @@ def test_table_one_does_not_silently_expand_its_initiator_set(start):
     assert translate_cdna(start + start, translation_table=1, first_codon_is_start=True) == (internal * 2, False)
 
 
-def test_translation_requires_an_explicit_table():
-    with pytest.raises(TypeError, match="translation_table"):
-        translate_cdna("ATGTGA")
+def test_default_translation_uses_standard_nuclear_code():
+    assert translate_cdna("ATATGAAGG") == ("I", True)
+    assert translate_cdna("ATATGAAGG", translation_table=2) == ("MW", True)
+
+
+def test_removed_mitochondrial_flag_is_rejected():
     with pytest.raises(TypeError, match="mitochondrial"):
         translate_cdna("ATGTGA", translation_table=2, mitochondrial=True)
 

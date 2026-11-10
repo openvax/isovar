@@ -32,23 +32,30 @@ and reference species/compartment metadata; an unknown mitochondrial reference
 requires an explicit assignment. The code is recorded in each translation's
 `reference_context` in the protein-hypothesis export and used to validate it.
 
-For direct translation of a sequence with a known code:
+Direct sequence translation defaults to the standard code (NCBI table 1),
+including mammalian nuclear translation. Supply another code when needed:
 
 ```python
 from isovar.genetic_code import translate_cdna
 
+assert translate_cdna("ATATGAAGG") == ("I", True)
+assert translate_cdna("ATATGAAGG", translation_table=2) == ("MW", True)
 assert translate_cdna("GTGCTGTGAAGATAG", translation_table=3,
                       first_codon_is_start=True) == ("MTWR", True)
 ```
 
-`translate_cdna` requires an explicit `translation_table` keyword. Use
+`translate_cdna` accepts an optional `translation_table` keyword. Use
 `translation_table=2` in place of the removed `mitochondrial=True` shorthand;
 use table 1 for standard-code translation. Explicit `None` retains the existing
 standard decoding convention for annotated ORFs with undeclared source codes,
 without rewriting their metadata to assert table 1. This also preserves the
 released Vaxrank validation contract ([vaxrank #814](https://github.com/openvax/vaxrank/issues/814)).
-Missing arguments, unsupported explicit IDs and codes requiring
-context-dependent stop recoding raise an error.
+Unsupported explicit IDs and codes requiring context-dependent stop recoding
+raise an error. This sequence-only helper does not infer species or cellular
+compartment; transcript-aware reconstruction must resolve those from reference
+context. [Issue #700](https://github.com/openvax/isovar/issues/700) tracks the
+remaining effective-code resolution defect for native annotated mitochondrial
+ORFs with undeclared source codes.
 The definitions follow [NCBI's genetic-code tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).
 The public `standard_genetic_code` object uses the same Varcode registry as
 explicit-code translation. Isovar keeps no separate codon assignments or

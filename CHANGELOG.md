@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.88.1
+
+Fixes #701.
+
+- Restore the standard genetic code (NCBI table 1, including mammalian nuclear
+  translation) as the default for `translate_cdna`. The `translation_table`
+  keyword is optional; explicit alternative codes and explicit None retain their
+  behavior. All paths continue using Varcode's shared NCBI registry.
+
 ## 1.88.0
 
 Fixes #682.
