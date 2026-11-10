@@ -44,8 +44,8 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | `isovar protein-hypotheses` | Every protein hypothesis, its translations and scoped RNA evidence, as JSON and TSV ([guide](protein-hypotheses.md)) |
 | `isovar variant-rna-paths` | Original ALT/REF RNA paths assembled before coding-model assessment, as JSON ([guide](variant-rna-paths.md)) |
 | `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](allele-interpretations.md)) |
-
 | `isovar rna-features` | Read/fragment counts and optional library/feature normalization for explicit RNA paths ([guide](../RNA_FEATURE_SUPPORT.md)) |
+| `isovar rna-origin` | Nuclear/mitochondrial context evidence against an explicit panel, as JSON ([guide](rna-origin.md)) |
 
 ### Structural variants and fusions
 

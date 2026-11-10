@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 
 
 COMMANDS = {
+    "rna-origin": ("isovar_rna_origin", "Compare mitochondrial and nuclear allele-bearing RNA contexts"),
     "rna-features": ("isovar_rna_features", "Count and normalize local RNA support for any antigen category"),
     "variant-rna-paths": ("isovar_variant_rna_paths", "Assemble original ALT/REF RNA paths before coding-model assessment"),
     "sv-source": ("isovar_sv_source", "Validate original SV source definitions and record-specific PCR evidence"),
@@ -58,7 +59,7 @@ COMMAND_GROUPS = (
         "protein-sequences", "translations", "variant-sequences", "variant-reads",
         "allele-reads", "allele-counts", "reference-contexts")),
     ("RNA hypotheses and interpretation", (
-        "protein-hypotheses", "variant-rna-paths", "allele-interpretations", "rna-features")),
+        "protein-hypotheses", "variant-rna-paths", "allele-interpretations", "rna-features", "rna-origin")),
     ("Structural variants and fusions", ("sv-source", "sv-rna", "sv-audit", "fusion")),
     ("Viral, isoform and uORF evidence", ("viral", "isoforms", "uorf-evidence")),
     ("Proteome and patient background", ("proteome", "patient-background-pairs", "normal-evidence")),

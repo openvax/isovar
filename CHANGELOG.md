@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.90.0
+
+Fixes #704.
+
+- Add `assess_rna_origin`, `RNAOriginHypothesis`, `RNAOriginPolicy` and
+  `isovar rna-origin` for an opt-in nuclear/mitochondrial context heuristic.
+  Compare target-bearing original RNA against explicit competing paths, with
+  quality masking, anchored context alignment and conservative fragment counts.
+- Preserve ambiguous, conflicting and unassessed evidence without letting
+  uninformative fragments veto a sample's favored origin; record the panel,
+  thresholds, input provenance and scoped evidence sets. Reuse shared original
+  observations and supplementary-link validation. This is not genome-wide NuMT
+  discovery or calibrated origin inference, and does not change translation,
+  candidate filtering or other exports' counts.
+
 ## 1.89.0
 
 Fixes #700; coordinated with openvax/vaxrank#830.

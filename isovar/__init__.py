@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.89.0"
+__version__ = "1.90.0"
 
 
 from .allele_interpretations import reconcile_allele_interpretations
@@ -53,6 +53,7 @@ from .rna_feature_support import (
     effective_rna_feature_lengths, measure_rna_feature, validate_rna_feature_support, normalize_rna_feature_support,
 )
 from .rna_feature_measurement import measure_rna_path_features
+from .rna_origin import RNAOriginHypothesis, RNAOriginPolicy, assess_rna_origin
 from .transcript_assembly_edit import TranscriptAssemblyEdit
 from .variant_orf import VariantORF
 from .variant_read_assessment import VariantRNAAssembly, VariantReadAssessment
@@ -78,6 +79,7 @@ from .isoform_quantification import quantify_antigen_isoforms, add_isoform_abund
 
 
 __all__ = [
+    "RNAOriginHypothesis", "RNAOriginPolicy", "assess_rna_origin",
     "RNAFeature", "RNASamplingGeometry", "RNASamplingProfile",
     "effective_rna_feature_lengths", "measure_rna_feature", "validate_rna_feature_support",
     "measure_rna_path_features", "normalize_rna_feature_support",
