@@ -52,10 +52,10 @@ without rewriting their metadata to assert table 1. This also preserves the
 released Vaxrank validation contract ([vaxrank #814](https://github.com/openvax/vaxrank/issues/814)).
 Unsupported explicit IDs and codes requiring context-dependent stop recoding
 raise an error. This sequence-only helper does not infer species or cellular
-compartment; transcript-aware reconstruction must resolve those from reference
-context. [Issue #700](https://github.com/openvax/isovar/issues/700) tracks the
-remaining effective-code resolution defect for native annotated mitochondrial
-ORFs with undeclared source codes.
+compartment; transcript-aware reconstruction resolves those from reference
+context. Native ORF reconstruction uses that resolved code for the candidate,
+reference window and focal-allele counterfactual, even when the source's
+declared code is None.
 The definitions follow [NCBI's genetic-code tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).
 The public `standard_genetic_code` object uses the same Varcode registry as
 explicit-code translation. Isovar keeps no separate codon assignments or
@@ -65,6 +65,40 @@ starts outside that set remain conditional interpretations of their supplied
 ORF model, rather than a change to the global genetic code.
 Generic exploratory SV ORFs retain their documented standard-code scope; this
 does not infer a shared genetic code for mixed-compartment fusion candidates.
+
+Native `reconstruct_variant_orfs` exports use `isovar.variant_rna_orfs.v2`.
+Every protein candidate carries an integer `translation_table` and
+`translation_table_source` (`orf_model` for an explicit source declaration,
+otherwise `reference_context`). The model's `reference.translation_table`
+remains unchanged. The effective code also participates in candidate identity.
+Readers should use the shared public contract:
+
+```python
+from isovar import variant_orf_translation_table
+
+table = variant_orf_translation_table(candidate, model["reference"],
+                                      schema=result["schema"])
+```
+
+V2 rejects absent/unsupported effective codes and conflicts with explicit source
+declarations or provenance. V1 replay retains the original nullable source-code
+convention and does not reinterpret old mitochondrial results. Isovar's native
+proteome reader and Vaxrank 3.54+ consume the same contract.
+
+A NuMT is nuclear sequence derived from mitochondrial DNA. If a supplied nuclear
+transcript contains such sequence, its nuclear code applies (table 1 in humans);
+similarity to mitochondrial sequence or a mitochondrial-looking gene name does
+not select table 2. A code assignment is conditional on the supplied reference
+placement and does not prove read origin or that the locus encodes a protein.
+Short-read cross-mapping can obscure origin; longer context and paired reads
+can improve placement ([Maude et al. 2019](https://doi.org/10.3389/fcell.2019.00201)).
+Non-reference NuMTs can also create false mitochondrial calls
+([Laricchia et al. 2022](https://pmc.ncbi.nlm.nih.gov/articles/PMC8896463/)).
+Isovar's osteosarc audit has limited original-read diagnostics and explicitly
+reports NuMT origin as not ruled out; it does not perform a general competitive
+nuclear/mitochondrial realignment or NuMT screen. A confident NuMT assignment
+requires supporting placement evidence, such as reads spanning unique nuclear
+flanks, with ambiguous alternatives retained rather than assigned by code choice.
 
 ## Catalogues
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.89.0
+
+Fixes #700; coordinated with openvax/vaxrank#830.
+
+- Native annotated ORF candidates, reference windows and focal-allele
+  counterfactuals now use the same resolved reference-context genetic code.
+  This restores missing MT-ND5 candidates and corrects MT-ND6 decoding while
+  preserving nuclear translation and original RNA support.
+- `isovar.variant_rna_orfs.v2` records each candidate's effective translation
+  table and provenance, separately from the unchanged source declaration.
+  `variant_orf_translation_table` is the shared public reader used by native
+  proteome export and Vaxrank. V1 replay retains its historical semantics.
+- Test nuclear NuMT-like carriers without inferring mitochondrial origin from
+  sequence similarity or gene names. NuMT detection remains outside code
+  selection; `translate_cdna` continues to default to standard table 1.
+
 ## 1.88.1
 
 Fixes #701.

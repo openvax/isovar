@@ -3,7 +3,7 @@
 Inputs are the JSON written by `isovar protein-hypotheses`
 (isovar.protein_hypotheses.v2), `isovar sv-rna` (isovar.sv_rna_orfs.v4 or
 isovar.sv_rna_candidates.v5), `isovar fusion` (isovar.fusion_rna.v3) or the
-variant ORF export (isovar.variant_rna_orfs.v1, library API only). The
+variant ORF export (isovar.variant_rna_orfs.v1/v2, library API only). The
 --reference-context build, and the Ensembl release when the input records it,
 must match what produced the input.
 """
