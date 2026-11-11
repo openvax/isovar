@@ -198,7 +198,7 @@ def audit_alignment(name, full_bam, primary_bam, variants, genome=None, referenc
                                   gene_names=(), short_description=record["variant_id"])
         expected = None
         if genome is not None:
-            variant = Variant(variant.contig, variant.start, variant.ref, variant.alt, ensembl=genome)
+            variant = Variant(variant.contig, variant.start, variant.ref, variant.alt, genome=genome)
             expected = expected_variant(record, references[record["gene"]])
         row = {"sample": name, "variant": record, "independent": independent_result(reads, record)}
         for mode, path in (("primary_only", primary_bam), ("defaults", full_bam)):

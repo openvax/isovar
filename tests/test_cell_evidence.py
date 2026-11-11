@@ -192,7 +192,7 @@ def test_single_cell_ont_rna_reports_cells_behind_the_alt_allele_and_protein(tmp
     reference_manifest, _ = load_reference(reference_dir)
     genome = reference_genome(reference_dir, tmp_path)
     r = case["variant"]
-    variant = Variant("17", r["pos"], r["ref"], r["alt"], ensembl=genome)
+    variant = Variant("17", r["pos"], r["ref"], r["alt"], genome=genome)
     collector = ReadCollector(use_secondary_alignments=False)
     with pysam.AlignmentFile(str(figures.corpus_file(case["primary_bam"]))) as bam:
         results = run_isovar([variant], bam, read_collector=collector,

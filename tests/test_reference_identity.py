@@ -111,7 +111,7 @@ def test_six_transcript_and_stress_annotations_are_independent_in_both_orders(tm
         genomes[name] = genome
         if name == "protein":
             # This subset has chromosome 1 but not the stress dataset's chr5.
-            assert "PIP5K1A" in Variant("1", 151242178, "AG", "A", ensembl=genome).gene_names
+            assert "PIP5K1A" in Variant("1", 151242178, "AG", "A", genome=genome).gene_names
         else:
-            assert "ACSL6" in Variant("5", 131988563, "G", "GTA", ensembl=genome).gene_names
+            assert "ACSL6" in Variant("5", 131988563, "G", "GTA", genome=genome).gene_names
     assert genomes["protein"].reference_name != genomes["stress"].reference_name

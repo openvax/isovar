@@ -31,7 +31,7 @@ def test_partition_variant_reads_snv():
         start=base1_location,
         ref=ref,
         alt=alt,
-        ensembl=ensembl_grch38)
+        genome=ensembl_grch38)
     read_collector = ReadCollector()
     read_evidence = read_collector.read_evidence_for_variant(
         alignment_file=alignment_file,
@@ -53,7 +53,7 @@ def test_partition_variant_reads_deletion():
         start=base1_location,
         ref=ref,
         alt=alt,
-        ensembl=ensembl_grch38)
+        genome=ensembl_grch38)
     read_collector = ReadCollector()
     read_evidence = read_collector.read_evidence_for_variant(
         alignment_file=alignment_file,

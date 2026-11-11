@@ -46,7 +46,7 @@ def test_assemble_transcript_fragments_snv():
         start=base1_location,
         ref=ref,
         alt=alt,
-        ensembl=ensembl_grch38)
+        genome=ensembl_grch38)
     read_creator = ReadCollector()
     variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,

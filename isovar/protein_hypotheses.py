@@ -385,7 +385,7 @@ def analysis_provenance(results, read_collector=None, filter_thresholds=None):
     annotations = {
         (getattr(getattr(genome, "species", None), "latin_name", None), genome.reference_name,
          getattr(genome, "release", None))
-        for genome in (result.variant.ensembl for result in results)}
+        for genome in (result.variant.genome for result in results)}
     return dict(
         annotation=[dict(species=species, reference_name=name, ensembl_release=release)
                     for species, name, release in sorted(annotations, key=repr)],

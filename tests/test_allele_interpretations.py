@@ -168,7 +168,7 @@ def real_case(gene):
 
 def run_real(gene, calls):
     path, genome = real_case(gene)
-    interpretations = {name: [Variant(*v, ensembl=genome) for v in vs] for name, vs in calls.items()}
+    interpretations = {name: [Variant(*v, genome=genome) for v in vs] for name, vs in calls.items()}
     with pysam.AlignmentFile(str(path)) as bam:
         return reconcile_allele_interpretations(
             interpretations, bam, sample_id="sid", source=path.name,

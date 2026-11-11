@@ -106,7 +106,7 @@ def run(args):
     record = next(r for r in json.loads(inventory.read_text())["variants"] if r["variant_id"] == args.variant_id)
     reference = destination / "reference-GRCh38"
     genome = reference_genome(reference, output / "reference-cache")
-    variant = Variant(record["chrom"], record["pos"], record["ref"], record["alt"], ensembl=genome)
+    variant = Variant(record["chrom"], record["pos"], record["ref"], record["alt"], genome=genome)
     position, ref, alt = trim_variant(variant)
     base0_start, base0_end = base0_interval_for_variant_fields(position, ref, alt)
     root = Path(isovar.__file__).resolve().parent.parent

@@ -384,7 +384,7 @@ def run_source(destination, source_id, reference_dir, output_dir, inventory_name
             contig = "MT" if contig in ("M", "MT") else contig
             stage = "variant_reference_setup"
             try:
-                variant = Variant(contig, record["pos"], record["ref"], record["alt"], ensembl=genome)
+                variant = Variant(contig, record["pos"], record["ref"], record["alt"], genome=genome)
                 row["native_variant"] = {k: record[k] for k in ("assembly", "chrom", "pos", "ref", "alt")}
                 row["normalized_variant"] = dict(contig=variant.contig, start=variant.start, ref=variant.ref, alt=variant.alt)
                 expectations = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}

@@ -103,7 +103,7 @@ def test_direct_alleles_match_independent_cigar_evidence(name, case, panel):
 def test_snv_evidence_partition_matches_independent_records(name, case, panel):
     paths, _, _, genome = panel
     record = target_record(name, MANIFEST["targets"][name])
-    variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], ensembl=genome)
+    variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], genome=genome)
     with pysam.AlignmentFile(paths[name]) as bam:
         evidence = ReadCollector(use_secondary_alignments=False, merge_overlapping_fragments=False,
                                  read_filter=lambda read: not read.is_supplementary).read_evidence_for_variant(variant, bam)
@@ -118,7 +118,7 @@ def test_snv_evidence_partition_matches_independent_records(name, case, panel):
 def test_public_rna_to_protein_pipeline(name, case, panel):
     paths, reference, models, genome = panel
     record = target_record(name, MANIFEST["targets"][name])
-    variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], ensembl=genome)
+    variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], genome=genome)
     expected = {tid: apply_variant(record, models[tid]) for tid in reference["variant_transcripts"][name]}
     actual = canonical_audit(audit_mode(paths[name], variant, expected, capture_all_ranked=True))
     assert actual["status"] == "ok", actual

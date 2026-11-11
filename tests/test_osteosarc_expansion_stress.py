@@ -51,7 +51,7 @@ def test_reference_subset_identities_are_distinct_and_annotation_order_independe
         genome = reference_genome(directory, tmp_path / name)
         identities[name] = genome.reference_name
         assert genome.reference_name == reference_dataset_identity(directory, manifest["files"])
-        variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], ensembl=genome)
+        variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], genome=genome)
         assert record["gene"] in variant.gene_names
         assert digest(directory / "manifest.json") == checksum
     assert identities["stress"] != identities["cohort"]
@@ -79,7 +79,7 @@ def test_stress_original_records_and_independent_cigar(case):
 def test_stress_public_protein_pipeline(case, stress_reference):
     manifest, models, genome = stress_reference
     record = case["variant"]
-    variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], ensembl=genome)
+    variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], genome=genome)
     expected = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}
     actual = audit_mode(stress_bam(case["bam"]), variant, expected)
     assert canonical_result(actual) == canonical_result(case["defaults"])

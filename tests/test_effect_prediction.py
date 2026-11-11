@@ -45,7 +45,7 @@ def test_empty_transcript_whitelist_excludes_transcriptless_effects():
 
 
 def test_empty_transcript_whitelist_does_not_broaden_reference_scope():
-    variant = Variant("14", 101980529, "G", "A", ensembl=grch38)
+    variant = Variant("14", 101980529, "G", "A", genome=grch38)
     unrestricted = reference_contexts_for_variant(variant, context_size=30)
     assert unrestricted
     assert reference_contexts_for_variant(variant, context_size=30, transcript_id_whitelist=set()) == []
@@ -57,7 +57,7 @@ def test_empty_transcript_whitelist_does_not_broaden_reference_scope():
 
 def test_nonexonic_splice_transcript_has_no_rna_reference_context(monkeypatch):
     """A retained splice effect need not provide an exonic RNA translation path."""
-    variant = Variant("X", 100, "C", "T", ensembl=None)
+    variant = Variant("X", 100, "C", "T", genome=None)
 
     def no_exonic_offset(_position):
         raise ValueError("position is outside this transcript's exons")

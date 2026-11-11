@@ -33,7 +33,7 @@ def test_one_sided_insertion_locus_is_not_reference(tmp_path, left, reverse, cli
         locus, = collector.collect_locus_reads_with_optional_compaction(bam, "1", 104, 104, compact=compact)
         assert locus.sequence == sequence if use_clips else locus.sequence == ("ACCA" if left else "CGGT")
         assert AlleleRead.from_locus_read(locus) is None
-        evidence = collector.read_evidence_for_variant(Variant("1", 104, "A", "A"+insert, ensembl=grch38), bam)
+        evidence = collector.read_evidence_for_variant(Variant("1", 104, "A", "A"+insert, genome=grch38), bam)
         assert not evidence.ref_reads and not evidence.alt_reads and not evidence.other_reads
     assert read.query_sequence == sequence  # No realignment/rewrite of input.
 
@@ -79,7 +79,7 @@ def test_unassigned_end_does_not_cancel_a_spanning_mate_or_placement(merge, alte
     second = make_pysam_read("ACCATGCA", "8M", reference_start=100, mapq=60)
     first.flag, second.flag = (0, 256) if alternative else (65, 129)
     collector = ReadCollector(use_soft_clipped_bases=use_clips, merge_overlapping_fragments=merge)
-    variant = Variant("1", 104, "A", "AGT", ensembl=grch38)
+    variant = Variant("1", 104, "A", "AGT", genome=grch38)
     evidence = collector.read_evidence_for_variant(variant, MockAlignmentFile(["1"], [first, second]))
     assert len(evidence.ref_reads) == 1
     assert not evidence.alt_reads and not evidence.other_reads
@@ -98,7 +98,7 @@ def test_original_sid_ktn1_endpoints_and_false_alternative_conflict():
     raw = (corpus / manifest["file"]).read_bytes()
     assert hashlib.sha256(raw).hexdigest() == manifest["sha256"]
     data = restore_records(json.loads(gzip.decompress(raw)))
-    variant = Variant(ensembl=grch38, **data["variant"])
+    variant = Variant(genome=grch38, **data["variant"])
     for product in data["products"]:
         header = pysam.AlignmentHeader.from_dict(product["header"])
         reads = [pysam.AlignedSegment.fromstring(s, header) for s in product["original_sam"]]

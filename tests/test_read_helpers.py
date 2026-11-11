@@ -34,7 +34,7 @@ def test_group_unique_sequences():
         contig=chromosome,
         start=base1_location,
         ref=ref, alt=alt,
-        ensembl="hg38")
+        genome="hg38")
     read_collector = ReadCollector()
     variant_reads = read_collector.allele_reads_supporting_variant(
         alignment_file=samfile,

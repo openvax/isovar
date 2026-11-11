@@ -155,7 +155,7 @@ def build_corpus(destination, output, cache):
                         target.write(read)
                         selected.append(dict(regional_ordinal=ordinal, sam_sha256=record_digest(read)))
             pysam.index(str(path))
-            variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], ensembl=genome)
+            variant = Variant(record["chrom"].removeprefix("chr"), record["pos"], record["ref"], record["alt"], genome=genome)
             expected = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}
             result = audit_mode(path, variant, expected)
             if result["status"] != "ok" or result["outcome"] == "protein_validation_error":
