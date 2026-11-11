@@ -1,5 +1,6 @@
 """Regression for #265: observed upstream indels must not be rephased away."""
 
+from copy import copy
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -7,6 +8,7 @@ import pytest
 from varcode import Variant
 
 from isovar import ReadCollector, ProteinSequenceCreator
+from isovar.aligned_reference_prefix import SplicedCoordinates, aligned_reference_prefix
 from isovar.allele_read import AlleleRead
 from isovar.dna import reverse_complement_dna
 from isovar.reference_context import ReferenceContext
@@ -136,3 +138,62 @@ def test_sid_cd109_observed_deletion_does_not_reset_frame(read_id, protein):
     assert orf.offset_to_first_complete_codon == 0
     assert orf.cdna_sequence == sequence
     assert translate(orf.in_frame_cdna_sequence)[0] == protein
+
+
+def test_sequence_geometry_keeps_insertions_gaps_and_disagreements():
+    # Query 2 is inserted; the genomic jump is a splice or deletion.
+    long = AlleleRead("ACGT", "G", "TT", name="long", reference_blocks=((0, 2, 10, 12), (3, 7, 112, 116)))
+    # Its first base is unaligned and its last lies beyond the sequence.
+    short = AlleleRead("T", "G", "TTA", name="short", reference_blocks=((1, 5, 113, 117),))
+    sequence = VariantSequence("ACGT", "G", "TT", [long, short])
+    assert sequence.aligned_positions() == ((10,), (11,), (None,), (112,), (113,), (114,), (115,))
+    assert sequence.aligned_positions() is sequence.aligned_positions()
+    shifted = AlleleRead("ACGT", "G", "TT", name="shifted", reference_blocks=((0, 7, 109, 116),))
+    disputed = VariantSequence("ACGT", "G", "TT", [long, shifted]).aligned_positions()
+    assert (disputed[0], disputed[2], disputed[3]) == ((10, 109), (111, None), (112,))
+    bare = VariantSequence("ACGT", "G", "TT", [AlleleRead("ACGT", "G", "TT", name="bare")])
+    assert bare.aligned_positions() == ((),) * 7
+    # A sequence pickled before the cache slot existed still computes.
+    del bare._aligned_positions_cache
+    assert bare.aligned_positions() == ((),) * 7
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_spliced_coordinates_follow_transcript_orientation(reverse):
+    # One-base, adjacent and unsorted exons; 1-based inclusive as in PyEnsembl.
+    exons = ((40, 44), (11, 11), (20, 24), (25, 30))
+    spliced = SplicedCoordinates(SimpleNamespace(exon_intervals=exons), reverse)
+    bases = sorted(g for a, b in exons for g in range(a - 1, b))
+    for g in range(5, 50):
+        upstream = [b for b in bases if (b >= g if reverse else b < g)]
+        assert spliced.boundary(g) == len(upstream)
+        assert spliced.base(g) == ((bases[::-1] if reverse else bases).index(g) if g in bases else None)
+
+
+class WalkedBlocks(tuple):
+    """Alignment blocks that count each traversal of their geometry."""
+
+    walks = 0
+
+    def __iter__(self):
+        WalkedBlocks.walks += 1
+        return super().__iter__()
+
+
+@pytest.mark.parametrize("strand", ["+", "-"])
+def test_coding_models_share_one_walk_of_each_read(strand):
+    # #690: alternative ORFs of one RNA sequence must not rescan its reads.
+    _, context, sequence = inputs(strand=strand)
+    genomic = sequence if strand == "+" else reverse_complement_dna(sequence)
+    cut = 30 if strand == "+" else 27
+    reads = [AlleleRead(genomic[:cut], genomic[cut], genomic[cut + 1:], name="r%d" % i) for i in range(4)]
+    for read in reads:
+        read.reference_blocks = WalkedBlocks(((0, 58, 99, 157),))
+    variant_sequence = VariantSequence(genomic[:cut], genomic[cut], genomic[cut + 1:], reads)
+    WalkedBlocks.walks = 0
+    for size, codon in [(30, 0), (24, 1), (18, 2), (12, 0), (6, 1)]:
+        model = copy(context)
+        model.sequence_before_variant_locus = "A" * size
+        model.offset_to_first_complete_codon = codon
+        assert aligned_reference_prefix(variant_sequence, model) == ("A" * size, "A" * size, codon, 0)
+    assert WalkedBlocks.walks == len(reads)

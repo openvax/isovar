@@ -1,7 +1,66 @@
 """Transfer local coding phase through observed, transcript-compatible alignments."""
 
+from bisect import bisect_right
+from itertools import accumulate
+
 from .dna import reverse_complement_dna
 from .variant_helpers import base0_interval_for_variant
+
+
+class SplicedCoordinates:
+    """Strand-oriented transcript offsets of zero-based genomic coordinates.
+
+    Parameters
+    ----------
+    transcript : object
+        Supplies ``exon_intervals``: disjoint, one-based inclusive exons.
+    reverse : bool
+        Whether the transcript is on the negative strand.
+    """
+
+    def __init__(self, transcript, reverse):
+        self.exons = sorted((a - 1, b) for a, b in transcript.exon_intervals)
+        self.starts = [a for a, _ in self.exons]
+        # Exonic bases before each exon; the last entry is the transcript length.
+        self.before = list(accumulate((b - a for a, b in self.exons), initial=0))
+        self.reverse = reverse
+
+    def boundary(self, g):
+        """Transcript offset of an interbase genomic coordinate.
+
+        Parameters
+        ----------
+        g : int
+            Zero-based interbase coordinate; exon edges, introns and
+            insertion points are valid.
+
+        Returns
+        -------
+        int
+            Number of transcript bases upstream of the coordinate.
+        """
+        i = bisect_right(self.starts, g) - 1
+        before = self.before[i] + min(g, self.exons[i][1]) - self.exons[i][0] if i >= 0 else 0
+        return self.before[-1] - before if self.reverse else before
+
+    def base(self, g):
+        """Transcript offset of one genomic base.
+
+        Parameters
+        ----------
+        g : int
+            Zero-based genomic position.
+
+        Returns
+        -------
+        int or None
+            Offset of an exonic base; None for an intronic or flanking one.
+        """
+        i = bisect_right(self.starts, g) - 1
+        if i < 0 or g >= self.exons[i][1]:
+            return None
+        before = self.before[i] + g - self.exons[i][0]
+        return self.before[-1] - 1 - before if self.reverse else before
 
 
 def aligned_reference_prefix(variant_sequence, reference_context):
@@ -19,46 +78,27 @@ def aligned_reference_prefix(variant_sequence, reference_context):
     prefix = (reverse_complement_dna(variant_sequence.suffix) if reverse
               else variant_sequence.prefix)
     reference = reference_context.sequence_before_variant_locus
+    # Read geometry belongs to the sequence, so every coding model reuses it.
+    placements = variant_sequence.aligned_positions()
+    last = len(variant_sequence) - 1
     mappings = {}
-    retained_start = len(variant_sequence) - len(prefix) if reverse else 0
-    retained_end = len(variant_sequence) if reverse else len(prefix)
-    for read in variant_sequence.reads:
-        shift = len(variant_sequence.prefix) - len(read.prefix)
-        blocks = read.reference_blocks
-        for index, (q0, q1, g0, _) in enumerate(blocks):
-            # Internal query gaps are insertions, not unobserved positions.
-            start = blocks[index - 1][1] if index else q0
-            for query in range(max(start, retained_start - shift), min(q1, retained_end - shift)):
-                q = shift + query
-                if reverse:
-                    q = len(variant_sequence) - 1 - q
-                if not 0 <= q < len(prefix):
-                    continue
-                g = g0 + query - q0 if query >= q0 else None
-                if q in mappings and mappings[q] != g:
-                    return None
-                mappings[q] = g
+    for q in range(len(prefix)):
+        observed = placements[last - q if reverse else q]
+        if len(observed) > 1:
+            return None
+        if observed:
+            mappings[q], = observed
 
     g_start, g_end = base0_interval_for_variant(reference_context.variant)
     results = set()
     for transcript in reference_context.transcripts:
-        exons = sorted((a - 1, b) for a, b in transcript.exon_intervals)
-        transcript_length = sum(b - a for a, b in exons)
-
-        def spliced_boundary(g):
-            # Interbase coordinate; also valid at exon edges and insertions.
-            before = sum(max(0, min(g, b) - a) for a, b in exons)
-            return transcript_length - before if reverse else before
-
-        locus = spliced_boundary(g_end if reverse else g_start)
-        reference_start = locus - len(reference)
+        spliced = SplicedCoordinates(transcript, reverse)
+        reference_start = spliced.boundary(g_end if reverse else g_start) - len(reference)
         pairs = {}
         for q, g in mappings.items():
-            if g is None or not any(a <= g < b for a, b in exons):
-                continue
-            r = spliced_boundary(g + 1 if reverse else g) - reference_start
-            if 0 <= r < len(reference):
-                pairs[q] = r
+            r = None if g is None else spliced.base(g)
+            if r is not None and 0 <= r - reference_start < len(reference):
+                pairs[q] = r - reference_start
         if not pairs:
             return None
         q_start = min(pairs)

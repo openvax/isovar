@@ -23,6 +23,8 @@ interior) or the entire sequence may be discarded (if a variant base falls
 below the threshold).
 """
 
+from collections import defaultdict
+
 import numpy as np
 
 
@@ -51,8 +53,9 @@ class VariantSequence(ValueObject):
         "reads",
         # intersection of classified transcript paths supporting this sequence
         "compatible_transcript_ids",
-        # lazily computed coverage array (not part of value identity)
+        # private slots are derived from reads, not part of value identity
         "_coverage_cache",
+        "_aligned_positions_cache",
         "_source_alignments",
     ]
 
@@ -73,6 +76,7 @@ class VariantSequence(ValueObject):
             if not transcript_sets
             else frozenset.intersection(*transcript_sets))
         self._coverage_cache = None
+        self._aligned_positions_cache = None
 
     def __len__(self):
         return len(self.sequence)
@@ -268,6 +272,37 @@ class VariantSequence(ValueObject):
         self._coverage_cache = coverage_array
         return coverage_array
 
+    def aligned_positions(self):
+        """
+        Genomic placements that reads observe at each offset of this sequence.
+
+        Returns
+        -------
+        tuple of tuple
+            One entry per sequence offset: the distinct zero-based genomic
+            positions its reads align that base to, with None for a base
+            inserted relative to the reference. An offset without an aligned
+            read is empty and disagreeing reads leave more than one placement.
+            Result is cached since VariantSequence is immutable after
+            construction.
+        """
+        # getattr: sequences pickled before this slot existed lack it.
+        if getattr(self, "_aligned_positions_cache", None) is None:
+            placements = defaultdict(set)
+            for read in self.reads:
+                shift = len(self.prefix) - len(read.prefix)
+                previous_end = None
+                for q0, q1, g0, _ in read.reference_blocks:
+                    # Query bases between blocks are insertions, not unobserved.
+                    start = q0 if previous_end is None else previous_end
+                    for query in range(max(start, -shift), min(q1, len(self) - shift)):
+                        placements[shift + query].add(g0 + query - q0 if query >= q0 else None)
+                    previous_end = q1
+            self._aligned_positions_cache = tuple(
+                tuple(sorted(placements[offset], key=lambda g: (g is None, g)))
+                if offset in placements else () for offset in range(len(self)))
+        return self._aligned_positions_cache
+
     def min_coverage(self):
         """
         Minimum number of reads covering any base in the cDNA sequence
@@ -331,12 +366,9 @@ class VariantSequence(ValueObject):
         return trimmed
 
 
-# _coverage_cache is an internal cache slot, not part of value identity.
+# Private slots are internal caches, not part of value identity.
 # Transcript compatibility is part of candidate identity even though it is
 # derived from reads: identical cDNA on different splice paths must stay
 # distinct through assembly.
 VariantSequence._fields = tuple(
-    f
-    for f in VariantSequence._fields
-    if f not in {"_coverage_cache", "_source_alignments"}
-)
+    f for f in VariantSequence._fields if not f.startswith("_"))
