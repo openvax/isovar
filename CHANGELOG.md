@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.90.3
+
+Fixes #707.
+
+- Place supporting reads on an RNA sequence once instead of once per ORF
+  model. The new `AlleleReadTiling` records where each allele observation
+  lies on a candidate cDNA and where it disagrees with it, then answers
+  `interval_support` for any coding interval. `reconstruct_variant_orfs`
+  shares one tiling per RNA sequence and strand across its ORF models.
+  `coding_interval_support` remains as the single-interval form.
+- Results are unchanged and no RNA or model alternative is dropped or capped.
+  A read that mismatches the cDNA outside an interval still supports that
+  interval, as before. On a synthetic locus with 400 reads, 60 ORF models and
+  177 RNA alternatives, `reconstruct_variant_orfs` takes 7.5 s instead of 38 s
+  with byte-identical output.
+
 ## 1.90.2
 
 Fixes #690.

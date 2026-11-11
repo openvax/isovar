@@ -256,3 +256,29 @@ def test_colo829_dynll2_original_rna_separates_merged_and_single_read_spans():
     assert candidate['coding_support']['minimum_fragment_depth'] == 24
     assert candidate['sequence_extent'] == 'partial_coding_candidate'
     assert not candidate['translation_observed']
+
+
+def test_coding_models_share_one_placement_of_each_rna_sequence(noncoding_rna, monkeypatch):
+    """Support is per model, but placing the reads on an RNA sequence is not (#707)."""
+    from isovar import variant_rna_orfs
+
+    built = []
+
+    class CountedTiling(variant_rna_orfs.AlleleReadTiling):
+        def __init__(self, *args):
+            built.append(args)
+            super().__init__(*args)
+
+    monkeypatch.setattr(variant_rna_orfs, 'AlleleReadTiling', CountedTiling)
+    _, reference, observations = noncoding_rna
+    variant, evidence = observations(split=True)
+    models = [replace(reference.record, orf_id=f'orf{i}').bind(reference.transcript) for i in range(4)]
+    alone = assess(variant, evidence, models[:1])
+    per_model = len(built)
+    assert per_model == len(alone['rna_candidates']) > 0
+    del built[:]
+    together = assess(variant, evidence, models)
+    assert len(built) == per_model
+    assert len(together['protein_candidates']) == 4 * len(alone['protein_candidates'])
+    supports = {json.dumps(p['coding_support'], sort_keys=True) for p in together['protein_candidates']}
+    assert supports == {json.dumps(p['coding_support'], sort_keys=True) for p in alone['protein_candidates']}
