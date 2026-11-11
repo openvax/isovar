@@ -127,7 +127,17 @@ class EvidenceSets:
 
     def __init__(self, scope, base_quality_policy=None):
         self.scope, self.sets = list(scope), {}
+        self._set_ids = {}
         self.base_quality_policy = base_quality_policy
+
+    def _store(self, identities):
+        """Store a read set once, however many hypotheses share it, and return its evidence set ID."""
+        identities = frozenset(identities)
+        if identities not in self._set_ids:
+            evidence = evidence_set(self.scope, identities)
+            self.sets[evidence["evidence_set_id"]] = evidence
+            self._set_ids[identities] = evidence["evidence_set_id"]
+        return self._set_ids[identities]
 
     @staticmethod
     def record(reads, labels=None):
@@ -157,9 +167,7 @@ class EvidenceSets:
             record["base_quality"] = self.quality_support(reads, labels)
         if keys is None:
             return dict(record, evidence_set_id=None)
-        evidence = evidence_set(self.scope, keys)
-        self.sets[evidence["evidence_set_id"]] = evidence
-        return dict(record, evidence_set_id=evidence["evidence_set_id"])
+        return dict(record, evidence_set_id=self._store(keys))
 
     def quality_support(self, reads, labels=None, *, store_sets=True):
         """Optional focal-allele quality categories; raw support is unchanged.
@@ -178,9 +186,7 @@ class EvidenceSets:
                 if store_sets:
                     record["evidence_set_id"] = None
             elif store_sets:
-                evidence = evidence_set(self.scope, keys)
-                self.sets[evidence["evidence_set_id"]] = evidence
-                record["evidence_set_id"] = evidence["evidence_set_id"]
+                record["evidence_set_id"] = self._store(keys)
             result[status] = record
         return result
 
