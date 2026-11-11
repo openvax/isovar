@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.90.4
+
+Fixes #710.
+
+- Store each distinct read set once per export. `EvidenceSets` now remembers
+  the evidence set ID of a set of read identities, so hypotheses that share
+  reads no longer re-hash every read ID. Support counts, cell/UMI fields and
+  base-quality partitions are still computed per call.
+- Results are unchanged. On a synthetic locus with 400 identity-carrying
+  reads, 60 ORF models and 177 RNA alternatives, `reconstruct_variant_orfs`
+  takes 7.9 s instead of 49.5 s with byte-identical output.
+
 ## 1.90.3
 
 Fixes #707.
