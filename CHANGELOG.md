@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.90.1
+
+Fixes #691.
+
+- Use varcode's `genome=` keyword and `.genome` attribute instead of
+  `ensembl=` and `.ensembl`, which varcode 12 removes (openvax/varcode#693).
+  Both names have existed since varcode 6, so the varcode floor is unchanged.
+- Add a source check that fails on any reintroduced removed varcode name,
+  because the `varcode<12` pin would otherwise hide such uses until the upgrade.
+
 ## 1.90.0
 
 Fixes #704.

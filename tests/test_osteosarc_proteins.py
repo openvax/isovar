@@ -43,7 +43,7 @@ def protein_cases(tmp_path_factory):
         bam_path = _sorted_bam(directory, name, metadata)
         for record in SELECTION["variants"]:
             variant = Variant(record["chrom"].removeprefix("chr"), int(record["pos"]),
-                              record["ref"], record["alt"], ensembl=genome)
+                              record["ref"], record["alt"], genome=genome)
             expected = expected_variant(record, references[record["gene"]])
             with pysam.AlignmentFile(bam_path) as bam:
                 evidence = ReadCollector().read_evidence_for_variant(variant, bam)
@@ -185,7 +185,7 @@ def test_subset_reference_does_not_poison_full_grch38_contig_validation(protein_
     variant, _, _ = protein_cases["ont_t1", "PIP5K1A"]
     assert variant.gene_names == ["PIP5K1A"]
     assert variant.reference_name != grch38.reference_name
-    assert "TP53" in Variant("17", 7676589, "CTC", "", ensembl=grch38).gene_names
+    assert "TP53" in Variant("17", 7676589, "CTC", "", genome=grch38).gene_names
 
 
 def test_full_region_snapshot_validates_proteins_without_calling_no_alt_a_failure():
@@ -307,7 +307,7 @@ def isovar_results(tmp_path_factory):
     directory = tmp_path_factory.mktemp("osteosarc_results")
     genome = reference_genome(directory / "reference")
     variants = VariantCollection([
-        Variant(r["chrom"].removeprefix("chr"), int(r["pos"]), r["ref"], r["alt"], ensembl=genome)
+        Variant(r["chrom"].removeprefix("chr"), int(r["pos"]), r["ref"], r["alt"], genome=genome)
         for r in SELECTION["variants"]])
     genes = {(r["chrom"].removeprefix("chr"), int(r["pos"])): r["gene"] for r in SELECTION["variants"]}
     return {(name, genes[result.variant.original_contig.removeprefix("chr"), result.variant.original_start]): result

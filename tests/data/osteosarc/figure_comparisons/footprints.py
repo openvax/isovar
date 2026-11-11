@@ -183,7 +183,7 @@ def audit(inputs, output, sources=None, all_proteins=False, use_soft_clipped_bas
     data['sources']=sources
     for row in INDELS:
         entry=dict(row,models=transcript_models(genome,[row['gene']]),products=[])
-        variant=Variant(row['contig'].removeprefix('chr'),row['start'],row['ref'],row['alt'],ensembl=genome)
+        variant=Variant(row['contig'].removeprefix('chr'),row['start'],row['ref'],row['alt'],genome=genome)
         expectations={}
         for tid in genome.transcript_ids_at_locus(variant.contig,variant.start,variant.end):
             t=genome.transcript_by_id(tid)

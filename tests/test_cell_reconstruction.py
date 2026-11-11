@@ -51,7 +51,7 @@ def reference(tmp_path, request):
                     protein_fasta_paths_or_urls=[str(protein)], cache_directory_path=str(tmp_path / "cache"))
     genome.index()
     variant = Variant("1", 1016 if strand == "+" else 1018, "A" if strand == "+" else "T",
-                      "C" if strand == "+" else "G", ensembl=genome)
+                      "C" if strand == "+" else "G", genome=genome)
     return strand, variant
 
 
@@ -330,7 +330,7 @@ def test_original_ont_single_cell_records_and_pinned_reference(tmp_path, monkeyp
     reference_manifest, models = load_reference(reference_dir)
     genome = reference_genome(reference_dir, tmp_path)
     record = case["variant"]
-    variant = Variant("17", record["pos"], record["ref"], record["alt"], ensembl=genome)
+    variant = Variant("17", record["pos"], record["ref"], record["alt"], genome=genome)
     whitelist = set(reference_manifest["variant_transcripts"][record["variant_id"]])
     collector = ReadCollector(use_secondary_alignments=False)
     with pysam.AlignmentFile(str(bam_path)) as bam:

@@ -212,8 +212,8 @@ def ntf3(tmp_path_factory):
     selected, reference_dir, transcripts = case("28-NTF3-chr12-5494381-53f498a544883d51")
     genome = reference_genome(reference_dir, tmp_path_factory.mktemp("ntf3-reference"))
     r = selected["variant"]
-    focal = Variant("12", r["pos"], r["ref"], r["alt"], ensembl=genome)
-    adjacent = Variant("12", r["pos"] + 1, "G", "T", ensembl=genome)
+    focal = Variant("12", r["pos"], r["ref"], r["alt"], genome=genome)
+    adjacent = Variant("12", r["pos"] + 1, "G", "T", genome=genome)
 
     def run(**kwargs):
         with pysam.AlignmentFile(str(figures.corpus_file(selected["primary_bam"]))) as bam:
@@ -244,9 +244,9 @@ def test_nr2f2_downstream_deletion_is_attributed_when_supplied(tmp_path):
     selected, reference_dir, transcripts = case("48-NR2F2-chr15-96332299-fbeb5d8a415e4d18")
     genome = reference_genome(reference_dir, tmp_path)
     r = selected["variant"]
-    focal = Variant("15", r["pos"], r["ref"], r["alt"], ensembl=genome)
+    focal = Variant("15", r["pos"], r["ref"], r["alt"], genome=genome)
     # The 3-nt CIGAR deletion the RNA templates carry (0-based [96875576, 96875579)).
-    deletion = Variant("15", 96875577, "GTG", "", ensembl=genome)
+    deletion = Variant("15", 96875577, "GTG", "", genome=genome)
     with pysam.AlignmentFile(str(figures.corpus_file(selected["primary_bam"]))) as bam:
         alone, = run_isovar([focal], bam, read_collector=ReadCollector(use_secondary_alignments=False),
                             transcript_id_whitelist=set(transcripts))

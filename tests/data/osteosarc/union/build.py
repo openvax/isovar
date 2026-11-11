@@ -55,7 +55,7 @@ def build(reference_source=None):
                 reads = list(bam)
             direct = direct_evidence(reads, record)
             variant = Variant(record["chrom"].removeprefix("chr").replace("MT", "M"),
-                              record["pos"], record["ref"], record["alt"], ensembl=genome)
+                              record["pos"], record["ref"], record["alt"], genome=genome)
             expected = {tid: apply_variant(record, models[tid]) for tid in reference["variant_transcripts"][name]}
             result = canonical_audit(audit_mode(path, variant, expected))
             if result["status"] != "ok" or any(p["validation_status"] != "ok" for p in result["proteins"]):

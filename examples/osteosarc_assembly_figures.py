@@ -164,7 +164,7 @@ def generate(output_dir, case_ids=CASE_IDS + ADDITIONAL_CASE_IDS + PAIR_CASE_IDS
             r = case["variant"]
             # osteosarc verifies the bundle, so the exported reads are the pinned originals.
             bam_path = corpus_file(case["primary_bam"], case_corpus)
-            variant = Variant(r["chrom"].removeprefix("chr"), r["pos"], r["ref"], r["alt"], ensembl=genome)
+            variant = Variant(r["chrom"].removeprefix("chr"), r["pos"], r["ref"], r["alt"], genome=genome)
             expected = {tid: apply_variant(r, models[tid])
                         for tid in reference_manifest["variant_transcripts"][r["variant_id"]]}
             with pysam.AlignmentFile(bam_path) as bam:

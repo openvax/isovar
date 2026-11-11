@@ -122,7 +122,7 @@ def main():
     entry, = [r for r in json.loads((fixture / 'checked-inventory.json').read_text())['variants']
               if r['variant_id'] == args.variant_id and r['input_status'] == 'ready']
     contig = entry['chrom'].removeprefix('chr')
-    variant = Variant('MT' if contig == 'M' else contig, entry['pos'], entry['ref'], entry['alt'], ensembl=genome)
+    variant = Variant('MT' if contig == 'M' else contig, entry['pos'], entry['ref'], entry['alt'], genome=genome)
     profile = cProfile.Profile() if args.profile else None
     with pysam.AlignmentFile(bam_path) as bam:
         wall, cpu = time.perf_counter(), time.process_time()

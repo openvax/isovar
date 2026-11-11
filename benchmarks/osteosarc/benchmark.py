@@ -126,7 +126,7 @@ def run(args):
     record = next(r for r in json.loads(inventory.read_text())["variants"] if r["variant_id"] == args.variant_id)
     genome = reference_genome(reference, output / "reference-cache")
     contig = record["chrom"].removeprefix("chr")
-    variant = Variant("MT" if contig == "M" else contig, record["pos"], record["ref"], record["alt"], ensembl=genome)
+    variant = Variant("MT" if contig == "M" else contig, record["pos"], record["ref"], record["alt"], genome=genome)
     expectations = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][args.variant_id]}
     root = Path(isovar.__file__).resolve().parent.parent
     identity = dict(

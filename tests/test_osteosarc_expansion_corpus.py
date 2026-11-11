@@ -77,7 +77,7 @@ def test_public_read_to_ranked_protein_pipeline(case, mode, cohort_references):
     manifest, models, genome = cohort_references[case["reference"]]
     record = case["variant"]
     contig = "MT" if record["chrom"] == "chrM" else record["chrom"].removeprefix("chr")
-    variant = Variant(contig, record["pos"], record["ref"], record["alt"], ensembl=genome)
+    variant = Variant(contig, record["pos"], record["ref"], record["alt"], genome=genome)
     expected = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}
     filename = case["bam"] if mode == "defaults" else case["primary_bam"]
     actual = audit_mode(corpus_bam(filename), variant, expected)
@@ -93,7 +93,7 @@ def test_uncapped_ranking_capture_preserves_exact_public_default(case, cohort_re
     manifest, models, genome = cohort_references[case["reference"]]
     record = case["variant"]
     contig = "MT" if record["chrom"] == "chrM" else record["chrom"].removeprefix("chr")
-    variant = Variant(contig, record["pos"], record["ref"], record["alt"], ensembl=genome)
+    variant = Variant(contig, record["pos"], record["ref"], record["alt"], genome=genome)
     expected = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}
     actual = audit_mode(corpus_bam(case["bam"]), variant, expected, capture_all_ranked=True)
     uncapped = actual.pop("uncapped_ranked_proteins")
@@ -113,7 +113,7 @@ def test_all_original_read_rankings_match_exhaustive_support(case, mode, cohort_
     manifest, models, genome = cohort_references[case["reference"]]
     record = case["variant"]
     contig = "MT" if record["chrom"] == "chrM" else record["chrom"].removeprefix("chr")
-    variant = Variant(contig, record["pos"], record["ref"], record["alt"], ensembl=genome)
+    variant = Variant(contig, record["pos"], record["ref"], record["alt"], genome=genome)
     expected = {tid: apply_variant(record, models[tid]) for tid in manifest["variant_transcripts"][record["variant_id"]]}
     path = corpus_bam(case["bam" if mode == "defaults" else "primary_bam"])
     actual = audit_mode(path, variant, expected, capture_all_ranked=True)

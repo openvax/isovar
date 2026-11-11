@@ -119,7 +119,7 @@ def make_inputs_for_tp53_201_variant(
     variant = Variant("chr17", 7676591, "C", "T", "GRCh38")
 
     # TP53-201
-    transcript = variant.ensembl.transcripts_by_name("TP53-201")[0]
+    transcript = variant.genome.transcripts_by_name("TP53-201")[0]
 
     effect = variant.effect_on_transcript(transcript)
 

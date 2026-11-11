@@ -16,7 +16,7 @@ from .test_protein_hypotheses import BAM, VCF, synthetic_result
 
 from .test_protein_hypotheses import VARIANT
 
-REFERENCE = ReferenceContext(9606, "human", "GRCh38", "Ensembl", str(VARIANT.ensembl.release))
+REFERENCE = ReferenceContext(9606, "human", "GRCh38", "Ensembl", str(VARIANT.genome.release))
 Protein = getattr(orfdata, "ProteinSequence", None) or orfdata.ProteomeEntry
 
 
@@ -96,7 +96,7 @@ def test_export_records_annotation_read_policy_and_filters():
     export = export_protein_hypotheses(
         [synthetic_result()], sample_id="s", source="rna.bam",
         read_collector=ReadCollector(min_mapping_quality=7), filter_thresholds={"min_num_alt_reads": 3})
-    genome = synthetic_result().variant.ensembl
+    genome = synthetic_result().variant.genome
     assert export["annotation"] == [dict(species=genome.species.latin_name, reference_name=genome.reference_name,
                                          ensembl_release=genome.release)]
     assert export["read_collection"]["min_mapping_quality"] == 7

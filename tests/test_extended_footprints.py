@@ -141,7 +141,7 @@ def test_original_pacbio_indels_recount_with_unknown_quality_not_imputed_phred()
         assert any("groupdedup" in p.get("ID", "") for p in bam.header.to_dict()["PG"])
         for entry in load()["indels"]:
             product = next(p for p in entry["products"] if p["source"] == "T1-PacBio")
-            variant = Variant(entry["contig"].removeprefix("chr"), entry["start"], entry["ref"], entry["alt"], ensembl=EnsemblRelease(87))
+            variant = Variant(entry["contig"].removeprefix("chr"), entry["start"], entry["ref"], entry["alt"], genome=EnsemblRelease(87))
             for adaptive in (False, True):
                 collector = ReadCollector(use_reads_without_base_qualities=adaptive)
                 evidence = collector.read_evidence_for_variant(variant, bam)
