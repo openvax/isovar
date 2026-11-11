@@ -12,7 +12,7 @@ from varcode import ContigResolver
 
 from .dna import reverse_complement_dna
 from .contig_resolution import resolve_reference_contig, variant_reference_name, variant_source_contig
-from .coding_interval_support import coding_interval_support
+from .coding_interval_support import AlleleReadTiling
 from .genetic_code import genetic_code_by_id, translate_cdna
 from .protein_sequence_creator import ProteinSequenceCreator
 from .protein_window_comparison import compare_protein_windows, reference_window_stop
@@ -120,15 +120,15 @@ def _translate(sequence, table, starts_at_reference_start):
     return amino, stop
 
 
-def _interval_support(sequence, start, end, reverse, evidence):
-    """Exact single-read spans and fragment tiling are separate measurements."""
-    oriented = reverse_complement_dna(sequence.sequence) if reverse else sequence.sequence
-    return coding_interval_support(
-        sequence.reads, oriented, len(sequence.suffix) if reverse else len(sequence.prefix),
-        (start, end), '-' if reverse else '+', evidence.support)
+def _tiling(sequence, strand):
+    """Place an assembled sequence's reads on its transcript-oriented cDNA."""
+    if strand == '-':
+        return AlleleReadTiling(sequence.reads, reverse_complement_dna(sequence.sequence),
+                                len(sequence.suffix), strand)
+    return AlleleReadTiling(sequence.reads, sequence.sequence, len(sequence.prefix), strand)
 
 
-def _candidate(sequence, context, locus, reference, model_id, rna_id, evidence, creator):
+def _candidate(sequence, tiling, context, locus, reference, model_id, rna_id, evidence, creator):
     framed = match_variant_sequence_to_reference_context(
         sequence, context, creator.min_transcript_prefix_length,
         creator.max_transcript_mismatches, creator.count_mismatches_after_variant)
@@ -172,14 +172,12 @@ def _candidate(sequence, context, locus, reference, model_id, rna_id, evidence, 
         reference_window, protein, (mutation_start, mutation_end), reference_stop=reference_stop, **comparison_options)
     focal_comparison = compare_protein_windows(
         counter_protein, protein, (mutation_start, mutation_end), reference_stop=counter_stop, **comparison_options)
-    oriented = reverse_complement_dna(sequence.sequence) if reference.strand == '-' else sequence.sequence
-    oriented_prefix = len(sequence.suffix) if reference.strand == '-' else len(sequence.prefix)
-    shift = oriented_prefix - begin
-    if oriented[shift:shift + len(cdna)] != cdna:
+    shift = tiling.variant_start - begin
+    if tiling.sequence[shift:shift + len(cdna)] != cdna:
         raise ValueError('Framed RNA does not map back to the original assembly')
     coding_end = offset + 3 * (len(protein) + int(stop))
-    support = _interval_support(sequence, shift + offset, shift + coding_end,
-                                reference.strand == '-', evidence)
+    # Exact single-read spans and fragment tiling are separate measurements.
+    support = tiling.interval_support((shift + offset, shift + coding_end), evidence.support)
     return dict(
         candidate_id=content_identifier('orf_candidate', [model_id, rna_id, cdna, offset, table, protein]),
         model_id=model_id, rna_candidate_id=rna_id, orf_id=reference.orf_id,
@@ -272,6 +270,7 @@ def reconstruct_variant_orfs(variant, read_evidence, reference_orfs, *, sample_i
     models, candidates = [], []
     size = max(creator._cdna_sequence_length, creator.min_transcript_prefix_length)
     seen_models = set()
+    tilings = {}  # the reads of an RNA sequence are placed once per strand, not once per ORF model
     for reference in references:
         model = reference.to_dict()
         model_id = content_identifier('orf_model', model)
@@ -284,7 +283,10 @@ def reconstruct_variant_orfs(variant, read_evidence, reference_orfs, *, sample_i
         accepted = []
         if context is not None:
             for sequence in matching_sequences:
-                candidate = _candidate(sequence, context, locus, reference, model_id,
+                key = id(sequence), reference.strand
+                if key not in tilings:
+                    tilings[key] = _tiling(sequence, reference.strand)
+                candidate = _candidate(sequence, tilings[key], context, locus, reference, model_id,
                                        sequence_ids[id(sequence)], evidence, creator)
                 if candidate is not None:
                     accepted.append(candidate)
