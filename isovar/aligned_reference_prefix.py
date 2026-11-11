@@ -8,7 +8,15 @@ from .variant_helpers import base0_interval_for_variant
 
 
 class SplicedCoordinates:
-    """Strand-oriented transcript offsets of zero-based genomic coordinates."""
+    """Strand-oriented transcript offsets of zero-based genomic coordinates.
+
+    Parameters
+    ----------
+    transcript : object
+        Supplies ``exon_intervals``: disjoint, one-based inclusive exons.
+    reverse : bool
+        Whether the transcript is on the negative strand.
+    """
 
     def __init__(self, transcript, reverse):
         self.exons = sorted((a - 1, b) for a, b in transcript.exon_intervals)
@@ -18,17 +26,41 @@ class SplicedCoordinates:
         self.reverse = reverse
 
     def boundary(self, g):
-        """Offset of an interbase coordinate; also valid at exon edges and insertions."""
+        """Transcript offset of an interbase genomic coordinate.
+
+        Parameters
+        ----------
+        g : int
+            Zero-based interbase coordinate; exon edges, introns and
+            insertion points are valid.
+
+        Returns
+        -------
+        int
+            Number of transcript bases upstream of the coordinate.
+        """
         i = bisect_right(self.starts, g) - 1
         before = self.before[i] + min(g, self.exons[i][1]) - self.exons[i][0] if i >= 0 else 0
         return self.before[-1] - before if self.reverse else before
 
     def base(self, g):
-        """Offset of an exonic base, or None for an intronic or flanking one."""
+        """Transcript offset of one genomic base.
+
+        Parameters
+        ----------
+        g : int
+            Zero-based genomic position.
+
+        Returns
+        -------
+        int or None
+            Offset of an exonic base; None for an intronic or flanking one.
+        """
         i = bisect_right(self.starts, g) - 1
         if i < 0 or g >= self.exons[i][1]:
             return None
-        return self.boundary(g + 1 if self.reverse else g)
+        before = self.before[i] + g - self.exons[i][0]
+        return self.before[-1] - 1 - before if self.reverse else before
 
 
 def aligned_reference_prefix(variant_sequence, reference_context):
@@ -51,12 +83,11 @@ def aligned_reference_prefix(variant_sequence, reference_context):
     last = len(variant_sequence) - 1
     mappings = {}
     for q in range(len(prefix)):
-        observed = placements.get(last - q if reverse else q)
-        if observed is None:
-            continue
+        observed = placements[last - q if reverse else q]
         if len(observed) > 1:
             return None
-        mappings[q], = observed
+        if observed:
+            mappings[q], = observed
 
     g_start, g_end = base0_interval_for_variant(reference_context.variant)
     results = set()

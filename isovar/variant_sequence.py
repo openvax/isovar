@@ -276,13 +276,18 @@ class VariantSequence(ValueObject):
         """
         Genomic placements that reads observe at each offset of this sequence.
 
-        Returns dict from sequence offset to the set of zero-based genomic
-        positions its reads align that base to; None marks a base inserted
-        relative to the reference. Offsets without an aligned read are
-        absent, and disagreeing reads leave more than one placement.
-        Result is cached since VariantSequence is immutable after construction.
+        Returns
+        -------
+        tuple of tuple
+            One entry per sequence offset: the distinct zero-based genomic
+            positions its reads align that base to, with None for a base
+            inserted relative to the reference. An offset without an aligned
+            read is empty and disagreeing reads leave more than one placement.
+            Result is cached since VariantSequence is immutable after
+            construction.
         """
-        if self._aligned_positions_cache is None:
+        # getattr: sequences pickled before this slot existed lack it.
+        if getattr(self, "_aligned_positions_cache", None) is None:
             placements = defaultdict(set)
             for read in self.reads:
                 shift = len(self.prefix) - len(read.prefix)
@@ -293,7 +298,9 @@ class VariantSequence(ValueObject):
                     for query in range(max(start, -shift), min(q1, len(self) - shift)):
                         placements[shift + query].add(g0 + query - q0 if query >= q0 else None)
                     previous_end = q1
-            self._aligned_positions_cache = dict(placements)
+            self._aligned_positions_cache = tuple(
+                tuple(sorted(placements[offset], key=lambda g: (g is None, g)))
+                if offset in placements else () for offset in range(len(self)))
         return self._aligned_positions_cache
 
     def min_coverage(self):

@@ -146,13 +146,16 @@ def test_sequence_geometry_keeps_insertions_gaps_and_disagreements():
     # Its first base is unaligned and its last lies beyond the sequence.
     short = AlleleRead("T", "G", "TTA", name="short", reference_blocks=((1, 5, 113, 117),))
     sequence = VariantSequence("ACGT", "G", "TT", [long, short])
-    assert sequence.aligned_positions() == {
-        0: {10}, 1: {11}, 2: {None}, 3: {112}, 4: {113}, 5: {114}, 6: {115}}
+    assert sequence.aligned_positions() == ((10,), (11,), (None,), (112,), (113,), (114,), (115,))
     assert sequence.aligned_positions() is sequence.aligned_positions()
     shifted = AlleleRead("ACGT", "G", "TT", name="shifted", reference_blocks=((0, 7, 109, 116),))
     disputed = VariantSequence("ACGT", "G", "TT", [long, shifted]).aligned_positions()
-    assert (disputed[0], disputed[2], disputed[3]) == ({10, 109}, {None, 111}, {112})
-    assert VariantSequence("ACGT", "G", "TT", [AlleleRead("ACGT", "G", "TT", name="bare")]).aligned_positions() == {}
+    assert (disputed[0], disputed[2], disputed[3]) == ((10, 109), (111, None), (112,))
+    bare = VariantSequence("ACGT", "G", "TT", [AlleleRead("ACGT", "G", "TT", name="bare")])
+    assert bare.aligned_positions() == ((),) * 7
+    # A sequence pickled before the cache slot existed still computes.
+    del bare._aligned_positions_cache
+    assert bare.aligned_positions() == ((),) * 7
 
 
 @pytest.mark.parametrize("reverse", [False, True])
