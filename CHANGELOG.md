@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.90.5
+
+Part of #718.
+
+- Keep GRCh37's two mitochondria apart with Varcode's `ContigResolver` instead
+  of a second copy of the rule. Varcode 11.14.0 does by name what
+  `resolve_reference_contig` used to add on top of it: `M`/`chrM` (hg19,
+  NC_001807) and `MT`/`chrMT` (rCRS, NC_012920) never match each other under
+  GRCh37/hg19/b37/NCBI37. `resolve_reference_contig` now returns the
+  resolver's result, and Isovar requires `varcode>=11.14.0`.
+- Results are unchanged: an `MT` variant still does not find a BAM's `chrM`
+  under GRCh37, whatever its length.
+
 ## 1.90.4
 
 Fixes #710.

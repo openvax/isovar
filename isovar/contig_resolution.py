@@ -1,14 +1,15 @@
 """Resolve input names against immutable alignment reference vocabularies.
 
-Varcode owns spelling rules. This module excludes known incompatible reference
-sequences and owns alignment-context lifetime and unresolved-name diagnostics.
-Name resolution does not establish sequence identity or perform liftover.
+Varcode owns spelling rules, including keeping GRCh37's two mitochondria apart
+(``ContigResolver``, varcode 11.14.0). This module owns alignment-context
+lifetime and unresolved-name diagnostics. Name resolution does not establish
+sequence identity or perform liftover.
 """
 
 from __future__ import annotations
 
 from collections import OrderedDict
-from dataclasses import asdict, replace
+from dataclasses import asdict
 import os
 
 from pysam import AlignmentFile
@@ -73,22 +74,12 @@ def resolve_reference_contig(resolver: ContigResolver, name: str | int) -> Conti
     Notes
     -----
     UCSC documents the distinct hg19 sequences at
-    https://genome.ucsc.edu/FAQ/FAQgenes.html. A GRCh37 chrM
-    already using rCRS coordinates needs an explicitly reconciled source name;
-    a name or length alone does not establish sequence identity.
+    https://genome.ucsc.edu/FAQ/FAQgenes.html. Unless the resolver was given
+    ``contig_lengths``, a GRCh37 chrM already using rCRS coordinates needs an
+    explicitly reconciled source name; a name alone does not establish
+    sequence identity.
     """
-    result = resolver.resolve(name)
-    group = _grch37_mitochondrial_group(name, resolver.reference_name)
-    if group is None:
-        return result
-    result = replace(result, normalized_name=group)
-    if result.status not in ("alias", "ambiguous"):
-        return result
-    candidates = tuple(candidate for candidate in result.candidates
-                       if _grch37_mitochondrial_group(candidate, resolver.reference_name) == group)
-    status = "alias" if len(candidates) == 1 else "ambiguous" if candidates else "missing"
-    return replace(result, candidates=candidates, status=status,
-                   resolved_name=candidates[0] if status == "alias" else None)
+    return resolver.resolve(name)
 
 
 class UnresolvedContigError(ValueError):
