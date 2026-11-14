@@ -311,7 +311,7 @@ class ReadCollector(object):
         Recorded beside results so a reader can tell which read policy produced
         them.
         """
-        return dict(
+        parameters = dict(
             min_mapping_quality=self.min_mapping_quality,
             use_duplicate_reads=self.use_duplicate_reads,
             use_secondary_alignments=self.use_secondary_alignments,
@@ -322,8 +322,11 @@ class ReadCollector(object):
             trim_adapters=self.trim_adapters,
             trim_poly_a=self.trim_poly_a,
             read_end_profile_sha256=self.read_end_profile_fingerprint,
-            match_mitochondrion_by_length=self.match_mitochondrion_by_length,
             custom_read_filter=self.read_filter is not None)
+        if self.match_mitochondrion_by_length:
+            # Recorded only when set, so existing results and their provenance are unchanged.
+            parameters["match_mitochondrion_by_length"] = True
+        return parameters
 
     def profile_for_read_group(self, group: str) -> ReadEndProfile | None:
         """Resolve only the supplied RG, with an unknown fallback for absent groups."""

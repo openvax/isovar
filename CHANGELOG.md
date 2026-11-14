@@ -12,7 +12,8 @@ Fixes #718.
   stays hg19's. Off by default, so results are unchanged unless it is set. It
   applies to read collection, `reconstruct_variant_rna_paths` and
   `PreparedRnaLibrary.open(mitochondrion_by_length=...)`, and is recorded in
-  `ReadCollector.collection_parameters()`. A reader adapter that lists no
+  `ReadCollector.collection_parameters()` when set, so existing results and
+  provenance are unchanged. A reader adapter that lists no
   lengths falls back to names. Needs Varcode 11.14.0.
 
 ## 1.90.5

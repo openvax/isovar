@@ -68,7 +68,7 @@ GRCh37 names the rCRS `chrM`, which by name is hg19's. Set
 on the command line) to read the BAM header's lengths instead: a `chrM` or `M`
 of 16,569 bp is the rCRS and matches `MT`, and one of 16,571 bp is hg19's. This
 is off by default, and falls back to names for a reader adapter that lists no
-lengths. The setting is recorded in `collection_parameters()`.
+lengths. `collection_parameters()` records the setting when it is on.
 
 The collector retains at most eight immutable header/assembly indexes, not
 open file handles. Reopening an input creates a new context; querying a closed

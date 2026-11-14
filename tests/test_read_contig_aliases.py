@@ -268,7 +268,8 @@ def test_mitochondrion_by_length_leaves_other_builds_alone():
 
 
 def test_mitochondrion_by_length_is_a_recorded_collection_parameter():
-    assert ReadCollector().collection_parameters()["match_mitochondrion_by_length"] is False
+    # Recorded only when set: default results and their provenance are unchanged.
+    assert "match_mitochondrion_by_length" not in ReadCollector().collection_parameters()
     collector = ReadCollector.from_dict({"match_mitochondrion_by_length": True})
     assert collector.match_mitochondrion_by_length is True
     assert collector.collection_parameters()["match_mitochondrion_by_length"] is True
