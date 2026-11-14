@@ -21,6 +21,7 @@ from varcode import ContigResolver, Variant
 
 from .allele_path_seeds import AllelePathSeed, AllelePathSeeds, allele_path_seeds
 from .contig_resolution import (
+    alignment_contig_lengths,
     require_resolved_contig,
     resolve_reference_contig,
     variant_reference_name,
@@ -144,9 +145,12 @@ def _reference_competitors(candidates: list[dict], models: Sequence[TranscriptPa
 
 
 def _resolved_context(bam: pysam.AlignmentFile, variant: Variant, reference_name: str,
-                      references: Sequence[FusionReference], regions: Sequence[Region], flank: int
+                      references: Sequence[FusionReference], regions: Sequence[Region], flank: int,
+                      mitochondrion_by_length: bool = False
                       ) -> tuple[str, tuple[FusionReference, ...], dict, list[dict]]:
-    resolver = ContigResolver(bam.references, reference_name=reference_name)
+    resolver = ContigResolver(
+        bam.references, reference_name=reference_name,
+        contig_lengths=alignment_contig_lengths(bam) if mitochondrion_by_length else None)
     diagnostics = []
 
     def resolve(name: str | int) -> str:
@@ -247,9 +251,10 @@ def reconstruct_variant_rna_paths(
         raise TypeError("references must contain FusionReference models")
     if len({r.transcript_id for r in references}) != len(references):
         raise ValueError("Transcript IDs must be unique")
-    contig, resolved, search, diagnostics = _resolved_context(bam, variant, reference_name, references, regions, flank)
-    models = tuple(TranscriptPathModel(reference) for reference in resolved)
     collector = read_collector or variant_path_read_collector()
+    contig, resolved, search, diagnostics = _resolved_context(
+        bam, variant, reference_name, references, regions, flank, collector.match_mitochondrion_by_length)
+    models = tuple(TranscriptPathModel(reference) for reference in resolved)
     locus = LiteralVariantLocus.from_variant(variant)
     with TemporaryDirectory(dir=scratch_dir, prefix="isovar-allele-paths-") as directory, original_library_context(
             bam, collector, directory, library_index=library_index, reference_name=reference_name,

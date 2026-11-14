@@ -390,7 +390,7 @@ def run_sv_rna_audit(manifest_path: str | Path, output_dir: str | Path, *, resum
                                            read_collector=collector, reference_name=reference_name)
             if prepared.identity['source_sha256'] != context.manifest['files'][source['bam']]['sha256']:
                 raise ValueError('Original RNA changed after manifest verification: ' + source_id)
-            with prepared.open() as library, TemporaryDirectory(prefix='isovar-path-routing-') as routing:
+            with prepared.open(mitochondrion_by_length=collector.match_mitochondrion_by_length) as library, TemporaryDirectory(prefix='isovar-path-routing-') as routing:
                 queries = [_reconstruct_job(job, context, library, collector, resume) for job in group]
                 raw = (raw_fastq_reads(context.files[source['raw_fastq']], source.get('fastq_name_format', 'sra_dot_mate'),
                                       source.get('raw_read_group', '')) if source.get('raw_fastq') else ())

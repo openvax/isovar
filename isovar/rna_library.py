@@ -22,7 +22,7 @@ import pysam
 from varcode import ContigResolver
 
 from .audit_bundle import software_identity
-from .contig_resolution import resolve_reference_contig
+from .contig_resolution import alignment_contig_lengths, resolve_reference_contig
 from .read_collector import ReadCollector
 from .read_identity import segment_identity
 from .rna_evidence import canonical_json, content_identifier
@@ -174,9 +174,13 @@ class PreparedRnaLibrary:
         """Return detached original-record counts and the source SAM header."""
         return json.loads(self._statistics_json)
 
-    def open(self) -> "RnaLibraryIndex":
-        """Open an independent reader; use it as a context manager."""
-        return RnaLibraryIndex(self)
+    def open(self, *, mitochondrion_by_length: bool = False) -> "RnaLibraryIndex":
+        """Open an independent reader; use it as a context manager.
+
+        ``mitochondrion_by_length`` is ``ReadCollector.match_mitochondrion_by_length``:
+        it changes how contig names resolve, not the index's contents.
+        """
+        return RnaLibraryIndex(self, mitochondrion_by_length=mitochondrion_by_length)
 
 
 def prepare_rna_library(source: str | Path, cache_dir: str | Path, *, read_collector: ReadCollector | None = None,
@@ -261,7 +265,7 @@ class RnaLibraryIndex(Mapping[Segment, list[pysam.AlignedSegment]]):
     candidate templates; every eligible original mate/placement is returned.
     """
 
-    def __init__(self, prepared: PreparedRnaLibrary) -> None:
+    def __init__(self, prepared: PreparedRnaLibrary, *, mitochondrion_by_length: bool = False) -> None:
         self.prepared = prepared
         self.database = prepared.directory / "records.sqlite"
         self._database_state = prepared.database_state
@@ -274,7 +278,9 @@ class RnaLibraryIndex(Mapping[Segment, list[pysam.AlignedSegment]]):
             self.connection.close()
             raise
         self.header = self.reader.header
-        self.resolver = ContigResolver(self.reader.references, reference_name=prepared.identity["reference_name"])
+        self.resolver = ContigResolver(
+            self.reader.references, reference_name=prepared.identity["reference_name"],
+            contig_lengths=alignment_contig_lengths(self.reader) if mitochondrion_by_length else None)
         self._statistics = prepared.statistics
 
     @property
@@ -483,4 +489,5 @@ def original_library_context(bam: pysam.AlignmentFile, collector: ReadCollector,
             read_filter_identity = 'private-context-custom-eligibility'
         prepared = prepare_rna_library(source, Path(directory) / 'library', read_collector=collector,
             reference_name=reference_name, read_filter_identity=read_filter_identity)
-        yield stack.enter_context(prepared.open())
+        yield stack.enter_context(prepared.open(
+            mitochondrion_by_length=collector.match_mitochondrion_by_length))

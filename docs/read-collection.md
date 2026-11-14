@@ -60,6 +60,16 @@ Empty `ReadEvidence` is reserved for a resolved locus with no eligible reads.
 The cohort and evidence-report commands retain `unresolved_chromosome` rows
 with unmeasured counts and exclude them from RNA-depth distributions.
 
+Under GRCh37/hg19/b37/NCBI37 the mitochondrion has two sequences: hg19's
+`chrM`/`M` (NC_001807) and the rCRS `MT`/`chrMT` (NC_012920). They never match
+each other by name, so an `MT` variant does not read an hg19 `chrM`. GENCODE's
+GRCh37 names the rCRS `chrM`, which by name is hg19's. Set
+`ReadCollector(match_mitochondrion_by_length=True)` (`--match-mitochondrion-by-length`
+on the command line) to read the BAM header's lengths instead: a `chrM` or `M`
+of 16,569 bp is the rCRS and matches `MT`, and one of 16,571 bp is hg19's. This
+is off by default, and falls back to names for a reader adapter that lists no
+lengths. The setting is recorded in `collection_parameters()`.
+
 The collector retains at most eight immutable header/assembly indexes, not
 open file handles. Reopening an input creates a new context; querying a closed
 handle fails. Reader adapters without a header must keep their `references`

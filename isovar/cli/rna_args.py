@@ -28,7 +28,7 @@ from ..default_parameters import (
     USE_READS_WITHOUT_BASE_QUALITIES,
     MERGE_OVERLAPPING_FRAGMENTS,
     NUM_RNA_DECOMPRESSION_THREADS,
-    INFER_READ_ENDS, TRIM_ADAPTERS, TRIM_POLY_A, READ_END_PROFILE,
+    INFER_READ_ENDS, TRIM_ADAPTERS, TRIM_POLY_A, READ_END_PROFILE, MATCH_MITOCHONDRION_BY_LENGTH,
 )
 
 from ..read_collector import ReadCollector
@@ -114,6 +114,10 @@ def add_rna_args(parser, *, include_fragment_merging=True):
     rna_group.add_argument(
         "--trim-poly-a", action="store_true", default=TRIM_POLY_A,
         help="Trim candidate poly-A/T tails from terminal soft clips; enables inference, preserves aligned bases.")
+    rna_group.add_argument(
+        "--match-mitochondrion-by-length", action="store_true", default=MATCH_MITOCHONDRION_BY_LENGTH,
+        help="Under GRCh37, treat a BAM chrM/M of 16,569 bp as the rCRS (matching MT), as in GENCODE's GRCh37; "
+             "by default mitochondrial contigs match by name alone.")
 
     if include_fragment_merging:
         rna_group.add_argument(
@@ -158,7 +162,8 @@ def rna_path_context(args, *, reference_name=None):
         if args.library_cache:
             prepared = prepare_rna_library(args.bam, args.library_cache,
                                            read_collector=collector, reference_name=reference_name)
-            library = contexts.enter_context(prepared.open())
+            library = contexts.enter_context(prepared.open(
+                mitochondrion_by_length=collector.match_mitochondrion_by_length))
         yield bam, collector, library
 
 
@@ -219,6 +224,8 @@ def _read_collector_from_args(args):
         read_end_profile=getattr(args, "read_end_profile", READ_END_PROFILE),
         trim_adapters=getattr(args, "trim_adapters", TRIM_ADAPTERS),
         trim_poly_a=getattr(args, "trim_poly_a", TRIM_POLY_A),
+        match_mitochondrion_by_length=getattr(
+            args, "match_mitochondrion_by_length", MATCH_MITOCHONDRION_BY_LENGTH),
         use_reads_without_base_qualities=getattr(
             args, "use_reads_without_base_qualities", USE_READS_WITHOUT_BASE_QUALITIES),
         merge_overlapping_fragments=getattr(
