@@ -123,6 +123,10 @@ USE_READS_WITHOUT_BASE_QUALITIES = True
 INFER_READ_ENDS = False
 TRIM_ADAPTERS = False
 TRIM_POLY_A = False
+
+# Treat a GRCh37 BAM contig named chrM or M as the rCRS (matching MT) when its
+# header length is 16,569 bp, as in GENCODE's GRCh37, rather than by name alone.
+MATCH_MITOCHONDRION_BY_LENGTH = False
 READ_END_PROFILE = None
 READ_END_WINDOW = 200
 MIN_ADAPTER_OVERLAP = 12

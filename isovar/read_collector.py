@@ -28,7 +28,7 @@ from .default_parameters import (
     USE_SOFT_CLIPPED_BASES,
     USE_READS_WITHOUT_BASE_QUALITIES,
     MERGE_OVERLAPPING_FRAGMENTS,
-    INFER_READ_ENDS, TRIM_ADAPTERS, TRIM_POLY_A, READ_END_PROFILE,
+    INFER_READ_ENDS, TRIM_ADAPTERS, TRIM_POLY_A, READ_END_PROFILE, MATCH_MITOCHONDRION_BY_LENGTH,
 )
 from .base_quality import AlleleQualityFootprint
 from .locus_read import LocusRead
@@ -142,6 +142,7 @@ class ReadCollector(object):
         trim_adapters=TRIM_ADAPTERS,
         trim_poly_a=TRIM_POLY_A,
         read_filter=None,
+        match_mitochondrion_by_length=MATCH_MITOCHONDRION_BY_LENGTH,
     ):
         """
         Parameters
@@ -181,6 +182,12 @@ class ReadCollector(object):
             spanning inference. Original alignments and insertion hypotheses are
             retained; unresolved internal candidates are not called technical.
 
+        match_mitochondrion_by_length : bool
+            Under GRCh37, match a BAM's ``chrM``/``M`` of 16,569 bp to ``MT``:
+            by length it is the rCRS, as in GENCODE's GRCh37. Off by default,
+            so mitochondrial contigs match by name alone and an ``MT`` variant
+            never reads an hg19 ``chrM``. Needs the BAM header's lengths.
+
         read_filter : callable or None
             Optional predicate on each eligible original pysam record. Return
             True to keep it. Used by both small-variant and SV reconstruction,
@@ -207,7 +214,8 @@ class ReadCollector(object):
         if read_filter is not None and not callable(read_filter):
             raise TypeError("read_filter must be callable or None")
         self.read_filter = read_filter
-        self._contig_cache = AlignmentContigCache()
+        self.match_mitochondrion_by_length = bool(match_mitochondrion_by_length)
+        self._contig_cache = AlignmentContigCache(mitochondrion_by_length=self.match_mitochondrion_by_length)
         self._read_end_cache = ReadEndInferenceCache()
 
     @classmethod
@@ -303,7 +311,7 @@ class ReadCollector(object):
         Recorded beside results so a reader can tell which read policy produced
         them.
         """
-        return dict(
+        parameters = dict(
             min_mapping_quality=self.min_mapping_quality,
             use_duplicate_reads=self.use_duplicate_reads,
             use_secondary_alignments=self.use_secondary_alignments,
@@ -315,6 +323,10 @@ class ReadCollector(object):
             trim_poly_a=self.trim_poly_a,
             read_end_profile_sha256=self.read_end_profile_fingerprint,
             custom_read_filter=self.read_filter is not None)
+        if self.match_mitochondrion_by_length:
+            # Recorded only when set, so existing results and their provenance are unchanged.
+            parameters["match_mitochondrion_by_length"] = True
+        return parameters
 
     def profile_for_read_group(self, group: str) -> ReadEndProfile | None:
         """Resolve only the supplied RG, with an unknown fallback for absent groups."""

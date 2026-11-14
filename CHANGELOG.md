@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.90.6
+
+Fixes #718.
+
+- Add `ReadCollector(match_mitochondrion_by_length=True)`, and the
+  `--match-mitochondrion-by-length` option on the RNA commands, to read a GENCODE
+  GRCh37 BAM. Its rCRS is called `chrM`, so by name it is hg19's mitochondrion
+  and an `MT` variant never found it. With the option, a GRCh37 `chrM` or `M`
+  of 16,569 bp in the BAM header is the rCRS and matches `MT`; one of 16,571 bp
+  stays hg19's. Off by default, so results are unchanged unless it is set. It
+  applies to read collection, `reconstruct_variant_rna_paths` and
+  `PreparedRnaLibrary.open(mitochondrion_by_length=...)`, and is recorded in
+  `ReadCollector.collection_parameters()` when set, so existing results and
+  provenance are unchanged. A reader adapter that lists no
+  lengths falls back to names. Needs Varcode 11.14.0.
+
 ## 1.90.5
 
 Part of #718.

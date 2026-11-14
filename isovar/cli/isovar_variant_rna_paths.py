@@ -55,7 +55,8 @@ def run(args=None, *, prog=None):
             if options.library_cache:
                 prepared = prepare_rna_library(options.bam, options.library_cache, read_collector=collector,
                                                reference_name=variant_reference_name(supplied['variant']))
-                library = contexts.enter_context(prepared.open())
+                library = contexts.enter_context(prepared.open(
+                    mitochondrion_by_length=collector.match_mitochondrion_by_length))
             result = reconstruct_variant_rna_paths(bam, **supplied, **parameters, source=options.source,
                 read_collector=collector, library_index=library, scratch_dir=options.scratch_dir)
         output.parent.mkdir(parents=True, exist_ok=True)

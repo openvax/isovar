@@ -16,6 +16,19 @@ from pysam import AlignmentFile
 from varcode import ContigResolution, ContigResolver, Variant, normalize_contig_name
 
 
+def alignment_contig_lengths(alignment_file) -> dict[str, int] | None:
+    """Header lengths by contig name, or None when the reader lists no lengths.
+
+    BAM and CRAM headers always carry them (``@SQ LN``); header-less reader
+    adapters that expose only ``references`` do not.
+    """
+    references = getattr(alignment_file, "references", None)
+    lengths = getattr(alignment_file, "lengths", None)
+    if references is None or lengths is None or len(references) != len(lengths):
+        return None
+    return dict(zip(references, lengths))
+
+
 def variant_reference_name(variant: Variant) -> str | None:
     """Return assembly spelling context without opening annotation data."""
     genome = getattr(variant, "genome", None)
@@ -116,6 +129,9 @@ def require_resolved_contig(resolution: ContigResolution, alignment_file: Alignm
 class AlignmentContigCache:
     """Reuse Varcode indexes for up to eight active header/assembly contexts.
 
+    With ``mitochondrion_by_length``, header lengths are passed to Varcode, so
+    under GRCh37 a ``chrM``/``M`` of 16,569 bp is the rCRS and matches ``MT``.
+
     Pysam headers are immutable and have stable identity, including when two
     open files have different vocabularies. The cache retains headers, not file
     handles. Reopening a file supplies a new header and therefore a new index.
@@ -124,7 +140,8 @@ class AlignmentContigCache:
     prevents a long-lived collector from retaining every historical header.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, mitochondrion_by_length: bool = False) -> None:
+        self._mitochondrion_by_length = mitochondrion_by_length
         self._indexes: OrderedDict[tuple[int, str | None], tuple[object, ContigResolver]] = OrderedDict()
 
     def resolver(self, alignment_file: AlignmentFile, reference_name: str | None) -> ContigResolver:
@@ -137,7 +154,9 @@ class AlignmentContigCache:
         if key in self._indexes:
             self._indexes.move_to_end(key)
             return self._indexes[key][1]
-        resolver = ContigResolver(getattr(alignment_file, "references", None), reference_name=reference_name)
+        resolver = ContigResolver(
+            getattr(alignment_file, "references", None), reference_name=reference_name,
+            contig_lengths=alignment_contig_lengths(alignment_file) if self._mitochondrion_by_length else None)
         self._indexes[key] = (identity, resolver)
         if len(self._indexes) > 8:
             self._indexes.popitem(last=False)

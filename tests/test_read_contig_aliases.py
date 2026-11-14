@@ -186,8 +186,8 @@ def test_cached_mitochondrial_lookup_remains_assembly_scoped():
         assert collector.resolve_contig(bam, "MT", reference_name=assembly).status == status
 
 
-def mitochondrial_bam(path, names):
-    header = {"SQ": [{"SN": name, "LN": 16571 if name == "chrM" else 16569} for name in names]}
+def mitochondrial_bam(path, names, chrm_length=16571):
+    header = {"SQ": [{"SN": name, "LN": chrm_length if name == "chrM" else 16569} for name in names]}
     with pysam.AlignmentFile(path, "wb", header=header) as bam:
         for index, name in enumerate(names):
             read = pysam.AlignedSegment(bam.header)
@@ -230,3 +230,93 @@ def test_grch37_original_library_query_keeps_mitochondrial_references_separate(t
             list(library.templates([("MT", 90, 120)]))
         matches = list(library.templates([("M", 90, 120)]))
         assert [[read.query_name for read in template] for template in matches] == [["witness-chrM"]]
+
+
+def _grch37_header(name, length):
+    return SimpleNamespace(references=("1", name), lengths=(249250621, length))
+
+
+@pytest.mark.parametrize("query,length,expected", [
+    ("MT", 16569, "chrM"),  # GENCODE's GRCh37 calls the rCRS chrM
+    ("chrM", 16569, None),
+    ("MT", 16571, None),  # hg19's NC_001807
+    ("chrM", 16571, "chrM"),
+])
+def test_mitochondrion_by_length_reads_the_header_when_asked(query, length, expected):
+    collector = ReadCollector(match_mitochondrion_by_length=True)
+    result = collector.resolve_contig(_grch37_header("chrM", length), query, reference_name="GRCh37")
+    assert result.resolved_name == expected
+
+
+@pytest.mark.parametrize("query,length,expected", [("MT", 16569, None), ("chrM", 16569, "chrM"),
+                                                  ("MT", 16571, None), ("chrM", 16571, "chrM")])
+def test_mitochondria_match_by_name_alone_by_default(query, length, expected):
+    result = ReadCollector().resolve_contig(_grch37_header("chrM", length), query, reference_name="GRCh37")
+    assert result.resolved_name == expected
+
+
+def test_mitochondrion_by_length_falls_back_to_names_without_header_lengths():
+    collector = ReadCollector(match_mitochondrion_by_length=True)
+    reader = SimpleNamespace(references=("1", "chrM"))  # a header-less adapter
+    assert collector.resolve_contig(reader, "MT", reference_name="GRCh37").resolved_name is None
+    assert collector.resolve_contig(reader, "chrM", reference_name="GRCh37").resolved_name == "chrM"
+
+
+def test_mitochondrion_by_length_leaves_other_builds_alone():
+    collector = ReadCollector(match_mitochondrion_by_length=True)
+    assert collector.resolve_contig(_grch37_header("chrM", 16569), "MT", reference_name="GRCh38").resolved_name == "chrM"
+
+
+def test_mitochondrion_by_length_is_a_recorded_collection_parameter():
+    # Recorded only when set: default results and their provenance are unchanged.
+    assert "match_mitochondrion_by_length" not in ReadCollector().collection_parameters()
+    collector = ReadCollector.from_dict({"match_mitochondrion_by_length": True})
+    assert collector.match_mitochondrion_by_length is True
+    assert collector.collection_parameters()["match_mitochondrion_by_length"] is True
+
+
+def test_alignment_contig_lengths_reads_a_real_header(tmp_path):
+    from isovar.contig_resolution import alignment_contig_lengths
+
+    path = tmp_path / "x.bam"
+    with pysam.AlignmentFile(path, "wb", header={"HD": {"VN": "1.6"}, "SQ": [
+            {"SN": "chrM", "LN": 16569}, {"SN": "1", "LN": 100}]}):
+        pass
+    with pysam.AlignmentFile(path) as bam:
+        assert alignment_contig_lengths(bam) == {"chrM": 16569, "1": 100}
+    assert alignment_contig_lengths(SimpleNamespace(references=("1",))) is None
+    assert alignment_contig_lengths(SimpleNamespace(references=("1",), lengths=())) is None
+
+
+def test_grch37_collection_reads_a_gencode_chrM_as_mt_only_when_asked(tmp_path):
+    path = mitochondrial_bam(tmp_path / "gencode.bam", ["chrM"], chrm_length=16569)
+    variant = Variant("MT", 100, "A", "G", EnsemblRelease(75), normalize_contig_names=False)
+    with pysam.AlignmentFile(path) as bam:
+        with pytest.raises(UnresolvedContigError):
+            ReadCollector().read_evidence_for_variant(variant, bam)
+        evidence = ReadCollector(match_mitochondrion_by_length=True).read_evidence_for_variant(variant, bam)
+    assert len(evidence.alt_reads) == 1
+
+
+def test_grch37_library_reads_a_gencode_chrM_as_mt_only_when_asked(tmp_path):
+    from isovar.rna_library import prepare_rna_library
+    path = mitochondrial_bam(tmp_path / "gencode-library.bam", ["chrM"], chrm_length=16569)
+    prepared = prepare_rna_library(path, tmp_path / "index", reference_name="GRCh37")
+    with prepared.open() as library:
+        with pytest.raises(ValueError, match="absent"):
+            list(library.templates([("MT", 90, 120)]))
+    with prepared.open(mitochondrion_by_length=True) as library:
+        matches = list(library.templates([("MT", 90, 120)]))
+        assert [[read.query_name for read in template] for template in matches] == [["witness-chrM"]]
+        with pytest.raises(ValueError, match="absent"):
+            list(library.templates([("chrM", 90, 120)]))  # by length this chrM is the rCRS, not hg19's
+
+
+def test_cli_flag_sets_mitochondrion_by_length():
+    from isovar.cli.main_args import make_isovar_arg_parser
+    from isovar.cli.rna_args import read_collector_from_args
+
+    parser = make_isovar_arg_parser()
+    assert not read_collector_from_args(parser.parse_args(["--bam", "x"])).match_mitochondrion_by_length
+    args = parser.parse_args(["--bam", "x", "--match-mitochondrion-by-length"])
+    assert read_collector_from_args(args).match_mitochondrion_by_length
