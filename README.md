@@ -145,6 +145,10 @@ version bumps and releases.
 > [OpenVax: An Open-Source Computational Pipeline for Cancer Neoantigen Prediction.](https://link.springer.com/protocol/10.1007/978-1-0716-0327-7_10)
 > *Methods Mol. Biol.* 2120, 147–160 (2020).
 
+The development installer uses `python` from the active environment. Set
+`PYTHON=/path/to/python ./develop.sh` to select an interpreter explicitly;
+additional arguments are passed to pip.
+
 ## License
 
 Isovar is released under the [Apache License 2.0](https://github.com/openvax/isovar/blob/master/LICENSE).
