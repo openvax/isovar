@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.90.8
+
+- Make the development installer directly executable, select its interpreter
+  with `PYTHON` (default `python`), and forward pip arguments.
+
 ## 1.90.7
 
 - Remove the unused pylint configuration; Ruff remains the lint gate.
