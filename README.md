@@ -122,7 +122,7 @@ lists every guide in reading order. Start with:
 ## Development
 
 ```sh
-./develop.sh   # editable install with uv
+./develop.sh   # editable install with the selected Python
 ./lint.sh      # ruff
 ./test.sh      # pytest
 ```
@@ -132,6 +132,10 @@ lists every guide in reading order. Start with:
 installs (human 75, 87 and 95, mouse 102). See
 [RELEASING.md](https://github.com/openvax/isovar/blob/master/RELEASING.md) for
 version bumps and releases.
+
+The development installer uses `python` from the active environment. Set
+`PYTHON=/path/to/python ./develop.sh` to select an interpreter explicitly;
+additional arguments are passed to pip.
 
 ## Citation
 
@@ -144,10 +148,6 @@ version bumps and releases.
 > Kodysh, J. & Rubinsteyn, A.
 > [OpenVax: An Open-Source Computational Pipeline for Cancer Neoantigen Prediction.](https://link.springer.com/protocol/10.1007/978-1-0716-0327-7_10)
 > *Methods Mol. Biol.* 2120, 147–160 (2020).
-
-The development installer uses `python` from the active environment. Set
-`PYTHON=/path/to/python ./develop.sh` to select an interpreter explicitly;
-additional arguments are passed to pip.
 
 ## License
 
