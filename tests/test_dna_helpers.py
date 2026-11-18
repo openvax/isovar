@@ -24,3 +24,15 @@ def test_complement_dna():
 
 def test_reverse_complement_handles_n_case_and_ambiguity_codes():
     eq_("NnRyAC", reverse_complement_dna("GTrYnN"))
+
+
+def test_shared_complement_covers_iupac_and_preserves_case():
+    from isovar.sv_rna_path_support import reverse_complement
+    # INSDC Feature Table Appendix IV 7.4.1; ambiguity complements follow
+    # the complement of each represented base set (e.g. R=A/G -> Y=T/C).
+    sequence = 'ACGTRYKMSWBDHVNacgtrykmswbdhvn'
+    complement = 'TGCAYRMKSWVHDBNtgcayrmkswvhdbn'
+    assert complement_dna(sequence) == complement
+    assert reverse_complement_dna(sequence) == complement[::-1]
+    assert reverse_complement(sequence) == complement[::-1]
+    assert reverse_complement(reverse_complement(sequence)) == sequence
