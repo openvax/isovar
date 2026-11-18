@@ -9,12 +9,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 
-_COMPLEMENT = str.maketrans("ACGT", "TGCA")
-
-
-def reverse_complement(sequence):
-    """Return the opposite DNA strand of an uppercase read sequence."""
-    return sequence.translate(_COMPLEMENT)[::-1]
+from .dna import reverse_complement_dna as reverse_complement
 
 
 @dataclass(frozen=True)

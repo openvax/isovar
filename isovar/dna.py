@@ -10,38 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Nucleotide helpers on Python strings, to avoid depending on a bigger library
-such as BioPython.
-"""
+"""Compatibility names for Varcode's shared nucleotide complementation."""
 
-# IUPAC codes, including N, in both cases. Other characters are unchanged.
-_COMPLEMENT = str.maketrans(
-    "ACGTRYKMSWBDHVNacgtrykmswbdhvn",
-    "TGCAYRMKSWVHDBNtgcayrmkswvhdbn")
+from varcode.nucleotides import reverse_complement as reverse_complement_dna
 
 
 def complement_dna(seq):
-    """
-    Complement every base of a DNA sequence, preserving case.
-
-    Parameters
-    ----------
-    seq : str
-
-    Returns str
-    """
-    return seq.translate(_COMPLEMENT)
-
-
-def reverse_complement_dna(seq):
-    """
-    Reverse complement of a DNA sequence
-
-    Parameters
-    ----------
-    seq : str
-
-    Returns str
-    """
-    return complement_dna(seq)[::-1]
+    """Complement a nucleotide string, preserving case and IUPAC codes."""
+    return reverse_complement_dna(seq)[::-1]
