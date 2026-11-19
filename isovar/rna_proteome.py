@@ -11,7 +11,7 @@ from orfdata import (
     ReferenceContext,
 )
 
-from .genetic_code import standard_genetic_code, translate_cdna
+from .genetic_code import standard_genetic_code, translate_cdna_with_initiator
 from .proteome import (
     PROTEIN_TARGET,
     from_protein_hypotheses,
@@ -45,9 +45,8 @@ def _translation(sequence, protein, stop, *, table=1, start=False):
         raise ValueError("A protein candidate needs nucleotide/protein sequences and stop status")
     if len(sequence) != 3 * (len(protein) + int(stop)):
         raise ValueError("RNA coding interval and protein length disagree")
-    amino, observed_stop = translate_cdna(sequence, translation_table=table)
-    if start and amino:
-        amino = 'M' + amino[1:]
+    amino, observed_stop = translate_cdna_with_initiator(
+        sequence, translation_table=table, starts_at_reference_start=start)
     if amino != protein or observed_stop != stop:
         raise ValueError("RNA coding sequence and protein translation disagree")
 

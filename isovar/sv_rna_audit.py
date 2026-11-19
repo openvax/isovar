@@ -20,10 +20,9 @@ import pysam
 
 from . import __version__
 from .audit_bundle import software_identity
-from .audit_json import write_json_stream
 from .file_identity import file_sha256
 from .fusion import fusion_from_dict, reconstruct_fusion
-from .json_files import read_json
+from .json_files import read_json, write_json as _write_json
 from .read_collector import ReadCollector
 from .rna_library import RnaLibraryIndex, prepare_rna_library
 from .sv_path_routing import PathEvidenceQuery, route_path_evidence
@@ -36,14 +35,7 @@ logger = logging.getLogger(__name__)
 
 def write_json(path, value):
     """Write canonical (audit-grade, byte-stable) JSON atomically, including compressed snapshots."""
-    path = Path(path)
-    temporary = path.with_name(path.name + ".tmp")
-    try:
-        with temporary.open("wb") as stream:
-            write_json_stream(stream, value, compressed=str(path).endswith(".gz"))
-        temporary.replace(path)
-    finally:
-        temporary.unlink(missing_ok=True)
+    _write_json(path, value, canonical=True)
 
 
 def raw_fastq_reads(path, name_format="sra_dot_mate", read_group=""):

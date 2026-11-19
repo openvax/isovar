@@ -11,6 +11,8 @@ from bisect import bisect_left
 from collections import Counter, defaultdict
 from pathlib import Path
 
+import pysam
+
 RNA_STATUSES = (
     "alternate_observed", "reference_only", "reference_and_other_only",
     "other_allele_only", "alignment_without_allele_call", "no_alignment_overlap",
@@ -245,20 +247,11 @@ def reference_ninemer_matches(proteins, fasta):
     """
     targets = set().union(*(mutant_ninemers(p) for p in proteins))
     found = set()
-    opener = gzip.open if str(fasta).endswith(".gz") else open
-    with opener(fasta, "rt") as handle:
-        sequence = []
-        for line in handle:
-            if line.startswith(">"):
-                joined = "".join(sequence)
-                found.update(joined[i:i + 9] for i in range(len(joined) - 8)
-                             if joined[i:i + 9] in targets)
-                sequence = []
-            else:
-                sequence.append(line.strip())
-        joined = "".join(sequence)
-        found.update(joined[i:i + 9] for i in range(len(joined) - 8)
-                     if joined[i:i + 9] in targets)
+    with pysam.FastxFile(str(fasta)) as records:
+        for record in records:
+            sequence = record.sequence
+            found.update(sequence[i:i + 9] for i in range(len(sequence) - 8)
+                         if sequence[i:i + 9] in targets)
     return found
 
 

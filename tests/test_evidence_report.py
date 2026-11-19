@@ -95,7 +95,7 @@ def test_nested_counts_and_top_context_aa_denominators():
     assert result["exonic_reads_by_class"] == {"SNV": [2], "deletion": [3]}
     pytest.importorskip("reportlab")
     from isovar.evidence_pdf import (
-        EvidenceFunnel, ProteinComparison, altered_aa_figures, read_support_figures,
+        EvidenceFunnel, ProteinComparisonFlowable, altered_aa_figures, read_support_figures,
     )
 
     assert [n for _, n in EvidenceFunnel(result["counts"]).stages] == [4, 2, 2, 2, 2]
@@ -103,7 +103,7 @@ def test_nested_counts_and_top_context_aa_denominators():
     with pytest.raises(ValueError, match="nested counts"):
         EvidenceFunnel(stages=(("SV", 2), ("exonic", 3)))
     with pytest.raises(ValueError, match="no amino-acid divergence"):
-        ProteinComparison("ABCDE", "ABCDE", 2, 3, point_change=True)
+        ProteinComparisonFlowable("ABCDE", "ABCDE", 2, 3, point_change=True)
     read_figures = read_support_figures(result["reads_by_class"])
     assert read_figures[0].values["0"] == (1, 0, 0)
     assert "0" not in read_figures[1].bins

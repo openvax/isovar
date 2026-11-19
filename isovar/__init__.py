@@ -76,6 +76,15 @@ from .antigen_targets import AntigenReference, antigen_gene_selection, prepare_a
 from .viral_sequences import reconstruct_viral_sequences, write_viral_fasta
 from .viral_coding import write_viral_proteins
 from .isoform_quantification import quantify_antigen_isoforms, add_isoform_abundances, write_isoform_fastas
+from .uorf_annotation import annotate_sv_uorf_evidence
+from .orf_annotation import annotate_sv_orf_evidence
+from .variant_rna_orfs import reconstruct_variant_orfs, variant_orf_translation_table
+from .rna_library import prepare_rna_library, PreparedRnaLibrary, RnaLibraryIndex
+from .sv_path_routing import PathEvidenceQuery, PathEvidenceIndex, route_path_evidence
+from .normal_evidence import NormalEvidencePolicy
+from .normal_sources import NormalSource, assess_matched_normal, run_normal_evidence_manifest
+from .normal_regions import normal_background_regions
+from .variant_rna_paths import reconstruct_variant_rna_paths, variant_rna_path_input_from_dict
 
 
 __all__ = [
@@ -85,7 +94,9 @@ __all__ = [
     "measure_rna_path_features", "normalize_rna_feature_support",
     "VariantRNAAssembly", "VariantReadAssessment",
     "ReadLibraryProvenance", "ReadProcessingStep", "read_end_profile_from_fasta", "ReadEndInferenceCache",
+    "CallerCoordinateClaim", "SVSourceRecord", "read_sv_source", "sv_source_report",
     "PreparedSVSourceRecord", "SVSourceView", "prepare_sv_source_record",
+    "PhasingCalibration", "PhasingControl", "calibrate_phasing_error_rates",
     "gdc_viral_panel",
     "reconstruct_viral_sequences",
     "write_viral_fasta",
@@ -181,18 +192,3 @@ __all__ = [
     "run_normal_evidence_manifest",
     "normal_background_regions",
 ]
-
-from .uorf_annotation import annotate_sv_uorf_evidence
-
-from .orf_annotation import annotate_sv_orf_evidence
-
-from .variant_rna_orfs import reconstruct_variant_orfs, variant_orf_translation_table
-from .rna_library import prepare_rna_library, PreparedRnaLibrary, RnaLibraryIndex
-from .sv_path_routing import PathEvidenceQuery, PathEvidenceIndex, route_path_evidence
-
-
-from .normal_evidence import NormalEvidencePolicy
-from .normal_sources import NormalSource, assess_matched_normal, run_normal_evidence_manifest
-from .normal_regions import normal_background_regions
-
-from .variant_rna_paths import reconstruct_variant_rna_paths, variant_rna_path_input_from_dict

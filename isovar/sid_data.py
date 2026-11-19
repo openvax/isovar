@@ -38,6 +38,7 @@ import shutil
 import sys
 import tempfile
 
+from .file_identity import file_sha256
 from .json_files import read_json
 
 
@@ -56,10 +57,6 @@ _FORMATS = ((".sam.gz", "sam.gz"), (".sam", "sam"), (".bam", "bam"))
 
 class SidDataUnavailable(RuntimeError):
     """Isovar's packaged test reads are missing or changed, or can't be made again."""
-
-
-def _digest(path):
-    return sha256(Path(path).read_bytes()).hexdigest()
 
 
 def bundle():
@@ -253,7 +250,7 @@ def build(destination, shared=BUNDLE, *, sid=False, cache=None):
         dataset, sources = None, {name: folder / manifest["sources"][name]["bam"]
                                   for name in mine["sources"] if name in manifest["sources"]}
     return generate_bundle(mine, destination, sources=sources, cache=cache, dataset=dataset,
-                           parent=dict(bundle=whole["id"], manifest_sha256=_digest(folder / "manifest.json")))
+                           parent=dict(bundle=whole["id"], manifest_sha256=file_sha256(folder / "manifest.json")))
 
 
 def check(shared=BUNDLE, *, sid=False, cache=None):
@@ -443,7 +440,7 @@ def fetch_metadata(url):
     if "sid-sijbrandij-osteosarc-dataset" in url:
         asset = dataset.file(url)
         path = dataset.download(asset)
-        receipt = dict(url=url, sha256=sha256(path.read_bytes()).hexdigest(),
+        receipt = dict(url=url, sha256=file_sha256(path),
                        size=path.stat().st_size, snapshot_id=dataset.id, asset_id=asset.id)
     else:
         receipt = dataset.cache.fetch(url, max_bytes=256_000_000)
@@ -491,7 +488,7 @@ def main(argv=None):
             parser.error("build requires --output")
         build(args.output, args.shared, sid=args.sid, cache=args.cache)
         # The hash to pin as PACKAGED_MANIFEST_SHA256.
-        print("%s  %s" % (_digest(args.output / "manifest.json"), args.output / "manifest.json"))
+        print("%s  %s" % (file_sha256(args.output / "manifest.json"), args.output / "manifest.json"))
     elif args.command == "check":
         problems = check(args.shared, sid=args.sid, cache=args.cache)
         for problem in problems:

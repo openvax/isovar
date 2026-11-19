@@ -13,11 +13,11 @@ import tarfile
 import tempfile
 from collections.abc import Mapping
 from copy import deepcopy
-from hashlib import sha256
 from importlib.metadata import version
 from pathlib import Path, PurePosixPath
 
 from .audit_json import canonical, canonical_chunks, identity, write_json_stream  # noqa: F401
+from .file_identity import file_sha256 as digest
 
 FORMAT = "isovar-audit-bundle"
 SCHEMA_VERSION = 1
@@ -28,14 +28,6 @@ __all__ = ["AuditBundle", "AuditBundleError"]
 
 class AuditBundleError(ValueError):
     """An audit bundle, input or replay checkpoint failed validation."""
-
-
-def digest(path):
-    result = sha256()
-    with Path(path).open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            result.update(chunk)
-    return result.hexdigest()
 
 
 def _clone_file(source, target):

@@ -44,7 +44,7 @@ isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*", "data/references/
 plot = []
 report = []
 data = ["biopython>=1.80,<2"]  # Independent SAM/ORF and annotated-proteome checks.
-uorf-build = ["openpyxl>=3.1,<4"]  # Optional source-data builder; never needed to query the catalogue.
+test = ["pypdf>=5,<7"]  # PDF text inspection in tests.
 
 [project.scripts]
 isovar-sv-source = "isovar.cli.isovar_sv_source:run"

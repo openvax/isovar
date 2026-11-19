@@ -6,11 +6,10 @@ as observed protein expression.
 """
 
 import csv
-import gzip
-import json
 from pathlib import Path
 
 from .evidence_report import variant_type
+from .json_files import read_json
 from .rna_evidence import input_sample_id, rna_support
 from .sv_rna_relations import ADJACENCY_JOIN_RELATIONS
 
@@ -26,9 +25,7 @@ CATEGORIES = ("small_variants", "sv", "fusion", "viral", "isoforms")
 
 def load_json(path, schema, sample_id):
     """Read a versioned Isovar JSON export, rejecting a different sample."""
-    opener = gzip.open if str(path).endswith(".gz") else open
-    with opener(path, "rt") as handle:
-        result = json.load(handle)
+    result = read_json(path)
     if not isinstance(result, dict) or result.get("schema") != schema:
         raise ValueError(f"{path}: expected schema {schema}")
     if result.get("sample_id") != sample_id:

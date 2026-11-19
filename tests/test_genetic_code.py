@@ -14,7 +14,11 @@ from itertools import product
 
 import pytest
 
-from isovar.genetic_code import standard_genetic_code, translate_cdna
+from isovar.genetic_code import (
+    standard_genetic_code,
+    translate_cdna,
+    translate_cdna_with_initiator,
+)
 from .common import eq_
 from .genomes_for_testing import grch38
 
@@ -124,3 +128,9 @@ def test_declared_custom_start_does_not_mutate_the_shared_code():
     assert custom.translate("GTGGTGTAA", first_codon_is_start=True) == ("MV", True)
     assert standard_genetic_code.translate("GTGGTGTAA", first_codon_is_start=True) == ("VV", True)
     assert translate_cdna("GTGGTGTAA", translation_table=1, first_codon_is_start=True) == ("VV", True)
+
+
+def test_translate_cdna_with_initiator_overrides_verified_non_aug_start():
+    assert translate_cdna_with_initiator("ACGGCC", translation_table=1, starts_at_reference_start=True) == ("MA", False)
+    assert translate_cdna_with_initiator("ACGGCC", translation_table=1, starts_at_reference_start=False) == ("TA", False)
+    assert translate_cdna_with_initiator("TAAGCC", translation_table=1, starts_at_reference_start=True) == ("", True)

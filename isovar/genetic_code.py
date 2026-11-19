@@ -182,3 +182,19 @@ def translate_cdna(
     return genetic_code.translate(
         cdna_sequence=cdna_sequence,
         first_codon_is_start=first_codon_is_start)
+
+
+def translate_cdna_with_initiator(
+        cdna_sequence,
+        *, translation_table=1, starts_at_reference_start=False):
+    """Translate cDNA, decoding a caller-verified reference start codon as Met.
+
+    Unlike ``translate_cdna(..., first_codon_is_start=True)``, which only
+    overrides codons in the NCBI table's ``start_codons``, this applies the
+    initiator-Met override to any caller-verified reference start codon
+    (including source-supported non-AUG starts).
+    """
+    amino, stop = translate_cdna(cdna_sequence, translation_table=translation_table)
+    if starts_at_reference_start and amino:
+        amino = "M" + amino[1:]
+    return amino, stop
