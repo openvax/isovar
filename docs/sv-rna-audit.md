@@ -68,7 +68,7 @@ observed translation, normal/tumor specificity, or somatic causation.
 ## Manifest and reproducibility
 
 The schema is `isovar.sv_rna_audit_manifest.v1`. The committed
-[COLO829 manifest](../reports/hcc1395_colo829/unified_sv_audit/manifest.json)
+COLO829 manifest
 is a full example. Its sections are:
 
 - `files`: identifiers mapped to relative paths, SHA-256, and source descriptions.

@@ -8,7 +8,7 @@ from .rna_args import add_rna_path_args, rna_path_context
 from .validation import input_error
 from .output_args import add_log_level_arg
 from ..logging import configure_cli_logging
-from ..audit_bundle import publish_json
+from ..json_files import publish_json
 from ..rna_feature_measurement import measure_rna_path_features
 from ..rna_feature_support import RNAFeature, RNASamplingProfile
 

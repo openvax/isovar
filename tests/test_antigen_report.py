@@ -6,7 +6,6 @@ import json
 import pytest
 
 from isovar.antigen_report import compose
-from reports.hcc1395_colo829.build_sv_exon_annotations import sv_footprints
 
 
 def write_json(path, payload):
@@ -34,19 +33,6 @@ def small_variant_tsv(path, *, ncorf_assessed=True):
         writer.writeheader()
         writer.writerows(rows)
     return path
-
-
-def test_sv_exon_footprint_uses_span_flanks_and_unknown_mate():
-    base = dict(chrom1="chr1", pos1="100", chrom2="chr1", pos2="200")
-    assert sv_footprints(dict(base, **{"class": "DEL"})) == (
-        [("1", 100, 200)], "intrachromosomal_span")
-    assert sv_footprints(dict(base, **{"class": "INS"})) == (
-        [("1", 100, 100), ("1", 101, 101), ("1", 200, 200)],
-        "insertion_flanks")
-    assert sv_footprints(dict(base, **{"class": "BND"}, pos2="NA")) == (
-        [("1", 100, 100)], "one_nominated_breakpoint_only")
-    assert sv_footprints(dict(base, **{"class": "TRA"}, chrom2="chr2")) == (
-        [("1", 100, 100), ("2", 200, 200)], "nominated_breakpoints")
 
 
 def test_mixed_source_report_preserves_denominators_and_viral_zero_bins(tmp_path):

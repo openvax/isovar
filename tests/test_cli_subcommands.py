@@ -37,7 +37,7 @@ def test_subcommand_help_uses_correct_program_and_preserves_parser(name, capsys)
     assert error.value.code == 0
     help_text = capsys.readouterr().out
     assert help_text.startswith("usage: isovar " + name + " ")
-    expected_input = ("--hypotheses" if name == "rna-origin" else "--features" if name == "rna-features" else "--manifest" if name in {"calibrate-phasing", "sv-audit", "cohort", "normal-evidence"} else "--genome-fasta" if name == "viral" else "reconstruct" if name == "isoforms" else "--gene" if name == "uorf-evidence" else "import-sid" if name == "audit-bundle" else "--sample-id" if name == "antigen-report"
+    expected_input = ("--hypotheses" if name == "rna-origin" else "--features" if name == "rna-features" else "--manifest" if name in {"calibrate-phasing", "sv-audit", "cohort", "normal-evidence"} else "--genome-fasta" if name == "viral" else "reconstruct" if name == "isoforms" else "--sample-id" if name == "antigen-report"
                       else "--input" if name in JSON_COMMANDS | {"proteome"} else "--vcf")
     assert expected_input in help_text
     if original is not None:
@@ -89,12 +89,10 @@ def test_only_selected_handler_is_imported(monkeypatch):
     assert imported == [(".isovar_allele_counts", "isovar.cli")]
 
 
-def test_entry_points_retain_all_legacy_aliases():
+def test_entry_point_is_single_unified_isovar_cli():
     config = Path("pyproject.toml").read_text()
     entries = dict(re.findall(r'^([a-z-]+) = "(isovar\.cli\.[^" ]+)"$', config, re.M))
-    assert entries.pop("isovar") == "isovar.cli.commands:run"
-    assert entries == {"isovar-" + name: "isovar.cli." + module + ":run"
-                       for name, (module, _) in commands.COMMANDS.items() if name not in {"run", *JSON_COMMANDS}}
+    assert entries == {"isovar": "isovar.cli.commands:run"}
 
 
 def test_module_help_does_not_load_plotting_or_command_handlers():
@@ -234,10 +232,8 @@ def test_every_option_is_documented_hyphenated_and_states_its_default():
 
 
 def test_every_command_controls_its_log_level():
-    # uorf-evidence is orfdata's own query command and logs nothing.
     missing = [path for path, parser in _leaf_parsers().items()
-               if path != "isovar uorf-evidence"
-               and not any("--log-level" in action.option_strings for action in parser._actions)]
+               if not any("--log-level" in action.option_strings for action in parser._actions)]
     assert not missing
 
 

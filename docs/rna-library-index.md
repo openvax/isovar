@@ -154,8 +154,8 @@ alignment records), preparation took 125.2 seconds and validated reopening took
 required 0.080 seconds of queries in total. The index occupied 568 MB and the
 process peak RSS was 253 MB. The companion MAS measurement was interrupted to
 preserve disk space during concurrent work; it supplies no completed timing.
-The [receipt](../reports/hcc1395_colo829/rna_library_acquisition_benchmark.json.gz)
-marks the combined benchmark incomplete and preserves the completed source.
+The benchmark receipt marks the combined benchmark incomplete and preserves the
+completed source.
 
 ```bash
 python -m examples.benchmark_rna_library --manifest inventory.json \
@@ -173,7 +173,7 @@ took 918.7 seconds. All eight final artifacts and receipts verified; their
 assessments retain the full original-library denominators. The views retained 52
 paths in total; six views reported regional candidates and two had no candidate
 paths. This is not a completed audit of the whole event inventory. The
-[workflow receipt](../reports/hcc1395_colo829/inventory_routing_benchmark.json.gz)
-records the actual states, parameters and source/artifact hashes. macOS denied
+workflow receipt records the actual states, parameters and source/artifact
+hashes. macOS denied
 the timing utility's detailed resource query after completion, so this run has
 no peak-RSS measurement.

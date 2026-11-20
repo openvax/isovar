@@ -75,7 +75,7 @@ Missing or ambiguous annotation contigs raise an explicit error. The original
 source coordinates stay intact; aliases do not imply a liftover. Exact custom,
 viral and decoy names are preserved during source parsing.
 
-The [COLO829 manifest preparer](../reports/hcc1395_colo829/build_unified_sv_manifest.py)
+The COLO829 manifest preparer
 uses this library interpretation and embeds it in each event's provenance. Its
 resolved events enter the ordinary [SV RNA audit](sv-rna-audit.md); unresolved
 rows retain explicit unassessed reasons. Source-specific interpretation does not
@@ -97,7 +97,7 @@ add a separate reconstruction or protein-inference path.
 - [Author's VCF writer](https://github.com/Goatofmountain/SVScope/blob/0ad36860326490e94b8567276aa54535a79e5b26/src/OutVCF.py)
   and [SVScope paper](https://doi.org/10.1186/s13059-026-04076-0).
 
-The [source-review receipts](../reports/sv_sources/README.md) include reproducible
+The source-review receipts include reproducible
 reference comparisons and a replay of the four newly interpreted COLO829 events.
 
 ## Shared manifest preparation
@@ -117,7 +117,7 @@ cannot be completed. Neither path silently identifies an unknown contig as
 intergenic. The helper selects all transcripts of genes in a declared breakpoint
 window; reference completeness and observed assembly coverage remain separate.
 
-[The general manifest preparer](../reports/sv_sources/build_sv_manifest.py) uses
+The general manifest preparer uses
 this same helper for HCC1395 or another single source inventory. Supply a JSON
 file with the audit schema's `files` and `sources` for the separate RNA libraries:
 

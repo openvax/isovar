@@ -32,8 +32,7 @@ dependencies = {file = ["requirements.txt"]}
 include = ["isovar", "isovar.*"]
 
 [tool.setuptools.package-data]
-# Isovar's Sid test reads: an osteosarc bundle (notes/sid-test-reads.md).
-isovar = ["data/sid-reads/*.json", "data/sid-reads/sources/*", "data/references/*.json"]
+isovar = ["data/references/*.json"]
 
 [project.urls]
 "Homepage" = "https://github.com/openvax/isovar"
@@ -47,28 +46,7 @@ data = ["biopython>=1.80,<2"]  # Independent SAM/ORF and annotated-proteome chec
 test = ["pypdf>=5,<7"]  # PDF text inspection in tests.
 
 [project.scripts]
-isovar-sv-source = "isovar.cli.isovar_sv_source:run"
-isovar-normal-evidence = "isovar.cli.isovar_normal_evidence:run"
-isovar-proteome = "isovar.cli.isovar_proteome:run"
-isovar-patient-background-pairs = "isovar.cli.isovar_patient_background_pairs:run"
-isovar-cohort = "isovar.cli.isovar_cohort:run"
-isovar-viral = "isovar.cli.isovar_viral:run"
-isovar-isoforms = "isovar.cli.isovar_isoforms:run"
-isovar-uorf-evidence = "isovar.cli.isovar_uorf_evidence:run"
-isovar-audit-bundle = "isovar.cli.isovar_audit_bundle:run"
 isovar = "isovar.cli.commands:run"
-isovar-calibrate-phasing = "isovar.cli.isovar_calibrate_phasing:run"
-isovar-protein-sequences = "isovar.cli.isovar_protein_sequences:run"
-isovar-protein-hypotheses = "isovar.cli.isovar_protein_hypotheses:run"
-isovar-translations = "isovar.cli.isovar_translations:run"
-isovar-reference-contexts = "isovar.cli.isovar_reference_contexts:run"
-isovar-allele-reads = "isovar.cli.isovar_allele_reads:run"
-isovar-allele-counts = "isovar.cli.isovar_allele_counts:run"
-isovar-variant-reads = "isovar.cli.isovar_variant_reads:run"
-isovar-variant-sequences = "isovar.cli.isovar_variant_sequences:run"
-isovar-plot = "isovar.cli.isovar_plot:run"
-isovar-evidence-report = "isovar.cli.isovar_evidence_report:run"
-isovar-antigen-report = "isovar.cli.isovar_antigen_report:run"
 
 [tool.ruff]
 target-version = "py311"

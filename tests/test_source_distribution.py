@@ -163,4 +163,4 @@ def test_incremental_wheel_excludes_removed_modules(tmp_path):
     assert "isovar/removed_module.py" not in names
     assert "isovar/__init__.py" in names
     assert "isovar/data/references/gdc-grch38.d1.vd1.json" in names
-    assert any(name.startswith("isovar/data/sid-reads/") for name in names)
+    assert not any(name.startswith("isovar/data/sid-reads/") for name in names)

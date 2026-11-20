@@ -148,11 +148,11 @@ policies, excluded-product counts/reasons, background scope and the receipt
 digest. Full source IDs and record provenance remain in the pinned normal
 receipt. The RNA cohort receipt embeds its source inventory for offline rendering.
 
-The [Sid inventory](../reports/matched_normal/sid_normal_inventory.json.gz) pins
+The Sid inventory pins
 the reviewed public source selection. Its acquisition script downloads original
 public file streams and filters locally, hashing the complete stream and indexed
 derivative. It sends no patient coordinates in HTTP queries. The
-[Sid reassessment report](../reports/matched_normal/README.md) includes the
+Sid reassessment report includes the
 reproducible analysis, changed background/origin identities and actual limitations.
 
 Primary definitions: [VCF specification](https://samtools.github.io/hts-specs/VCFv4.3.pdf)

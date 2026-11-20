@@ -1,4 +1,4 @@
-"""Isovar's packaged Sid test reads: openvax-v1's members, record for record, which osteosarc makes again."""
+"""Isovar's Sid test reads: openvax-v1's members, record for record, resolved via osteosarc."""
 
 import json
 import re
@@ -119,36 +119,43 @@ def test_export_never_overwrites_and_needs_a_known_format(tmp_path):
         sid_data.export("chimeric/osteosarc-ont.sam", tmp_path / "missing" / "reads.sam")
 
 
-def test_a_missing_or_damaged_packaged_bundle_fails_with_a_hint(tmp_path, monkeypatch):
-    packaged = sid_data.PACKAGED
-    monkeypatch.setattr(sid_data, "PACKAGED", tmp_path / "missing")
-    with pytest.raises(sid_data.SidDataUnavailable, match="python -m isovar.sid_data build"):
+def test_a_missing_or_damaged_bundle_fails_with_a_hint(tmp_path, monkeypatch, osteosarc):
+    cached = sid_data.bundle()
+    sid_data._verified.cache_clear()
+    monkeypatch.setattr(osteosarc, "fetch_bundle", lambda name, cache=None: (_ for _ in ()).throw(osteosarc.OfflineError("offline")))
+    with pytest.raises(sid_data.SidDataUnavailable, match="OSTEOSARC_CACHE"):
         sid_data.bundle()
+
+    monkeypatch.setattr(osteosarc, "fetch_bundle", lambda name, cache=None: tmp_path / "missing")
+    with pytest.raises(sid_data.SidDataUnavailable, match="clear the cached bundle"):
+        sid_data.bundle()
+
     changed = tmp_path / "changed"
     changed.mkdir()
     (changed / "manifest.json").write_text("{}")
-    monkeypatch.setattr(sid_data, "PACKAGED", changed)
-    with pytest.raises(sid_data.SidDataUnavailable, match="reinstall Isovar"):
+    monkeypatch.setattr(osteosarc, "fetch_bundle", lambda name, cache=None: changed)
+    with pytest.raises(sid_data.SidDataUnavailable, match="missing or damaged"):
         sid_data.bundle()
+
     # A file the manifest doesn't list, as macOS Finder leaves in a checkout.
     damaged = tmp_path / "damaged"
-    shutil.copytree(packaged, damaged)
+    shutil.copytree(cached, damaged)
     (damaged / ".DS_Store").write_bytes(b"")
-    monkeypatch.setattr(sid_data, "PACKAGED", damaged)
+    monkeypatch.setattr(osteosarc, "fetch_bundle", lambda name, cache=None: damaged)
     with pytest.raises(sid_data.SidDataUnavailable, match="unlisted"):
         sid_data.members()
 
 
-def test_osteosarc_makes_the_packaged_bundle_again(capsys):
-    # From the packaged bundle's own recipe and records, offline. CI also makes
-    # it again from openvax-v1 (python -m isovar.sid_data check).
-    assert sid_data.main(["check", "--from", str(sid_data.PACKAGED)]) is None
-    assert "makes Isovar's packaged bundle again" in capsys.readouterr().out
+def test_osteosarc_checks_and_rebuilds_isovar_bundle_members(capsys):
+    assert sid_data.main(["check"]) is None
+    assert "verified Isovar's Sid test reads" in capsys.readouterr().out
+    assert sid_data.main(["check", "--from", str(sid_data.bundle())]) is None
+    assert "verified Isovar's Sid test reads" in capsys.readouterr().out
 
 
 def test_acquiring_again_needs_the_recipes_snapshot(tmp_path):
     with pytest.raises(sid_data.SidDataUnavailable, match="snapshot 2026-09-25"):
-        sid_data.build(tmp_path / "bundle", sid_data.PACKAGED, sid=True, cache=str(tmp_path / "empty-cache"))
+        sid_data.build(tmp_path / "bundle", sid_data.bundle(), sid=True, cache=str(tmp_path / "empty-cache"))
     assert not (tmp_path / "bundle").exists()
 
 
@@ -260,10 +267,13 @@ def test_existing_expansion_api_uses_osteosarc_and_keeps_receipts(tmp_path, monk
 def test_record_references_preserve_order_repeats_and_metadata(monkeypatch, tmp_path):
     import socket
 
+    cached_bundle = sid_data.bundle()
+
     def no_network(*args, **kwargs):
         raise AssertionError("Fixture lookup must stay offline")
 
     monkeypatch.setattr(socket, "create_connection", no_network)
+    monkeypatch.setattr(sid_data, "bundle", lambda cache=None: cached_bundle)
     name = "fusions/coding-corpus/ATP5MG--KMT2A.input.json.gz#/original_records"
     lookup = sid_data.records(name, cache=str(tmp_path))
     first, second = lookup
@@ -300,6 +310,8 @@ def test_malformed_record_reference_is_not_silently_accepted(reference):
 
 def test_record_lookup_rejects_changed_cached_bam(tmp_path, monkeypatch):
     name = "chimeric/osteosarc-ont.sam"
+    cached_bundle = sid_data.bundle()
+    monkeypatch.setattr(sid_data, "bundle", lambda cache=None: cached_bundle)
     source = sid_data._file(name, "bam", str(tmp_path))
     changed = tmp_path / "changed.bam"
     with pysam.AlignmentFile(source) as reader, pysam.AlignmentFile(changed, "wb", template=reader) as writer:

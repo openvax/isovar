@@ -7,6 +7,7 @@ and every alignment product remain inspectable, including exclusions.
 import csv
 import gzip
 import io
+import json
 import os
 import re
 import tempfile
@@ -15,9 +16,37 @@ from dataclasses import asdict
 from hashlib import sha256
 from pathlib import Path
 
-from isovar.audit_json import canonical, identity, same_file_bytes, write_json_stream  # noqa: F401
-
 from .json_projection import read_evidence_json
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
+
+
+def identity(value):
+    return sha256(canonical(value)).hexdigest()
+
+
+def same_file_bytes(first, second):
+    first, second = Path(first), Path(second)
+    if first.stat().st_size != second.stat().st_size:
+        return False
+    with first.open("rb") as left, second.open("rb") as right:
+        while True:
+            a, b = left.read(1024 * 1024), right.read(1024 * 1024)
+            if a != b:
+                return False
+            if not a:
+                return True
+
+
+def write_json_stream(handle, value, *, compressed=False):
+    payload = canonical(value) + b"\n"
+    if compressed:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=handle, mtime=0) as gz:
+            gz.write(payload)
+    else:
+        handle.write(payload)
 
 RNA_ASSAYS = {"rna-seq", "scrna-seq", "cite-seq"}
 FUSION_TABLES = ("fusion_sequences", "scan_summary")

@@ -6,7 +6,8 @@ from pathlib import Path
 from .output_args import add_log_level_arg
 from ..logging import configure_cli_logging, get_logger
 from ..antigen_reference import GDC_REFERENCE
-from ..audit_bundle import digest, publish_json
+from ..file_identity import file_sha256 as digest
+from ..json_files import publish_json
 from ..viral_sequences import reconstruct_viral_sequences, write_viral_fasta
 from ..viral_coding import write_viral_proteins
 from .rna_args import add_rna_path_args, rna_path_context

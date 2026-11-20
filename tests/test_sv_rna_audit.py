@@ -280,28 +280,12 @@ def test_manifest_rejects_ambiguous_identities_and_unknown_selections(tmp_path):
     assert not (tmp_path / 'out').exists()
 
 
-def test_original_read_hcc1395_complete_protein_through_shared_assessment():
-    from reports.hcc1395_colo829.build_hcc1395_eif3k_fusion import report, load_references
-    data = Path(__file__).parent / 'data/hcc1395_eif3k_cyp39a1'
-    value = report(data / 'original_unmapped.bam', data / 'models.json.gz',
-                   data / 'ont_candidate_sequences.fasta.gz', data / 'coding_tiling.bam',
-                   data / 'ont_candidate_alignments.bam', data / 'ont_exon_models.json',
-                   data / 'dna_tumor_loci.bam', data / 'dna_normal_loci.bam')
-    from isovar.read_identity import read_group
-    with pysam.AlignmentFile(str(data / 'original_unmapped.bam')) as originals:
-        raw = [(read_group(r), r.query_name, 1 if r.is_read1 else 2 if r.is_read2 else 0, r.query_sequence)
-               for r in originals.fetch(until_eof=True) if r.query_sequence]
-    with pysam.AlignmentFile(str(data / 'coding_tiling.bam')) as bam:
-        assessment = assess_sv_rna_paths(value['result'], bam, load_references(data / 'models.json.gz'),
-                                        raw_reads=raw, min_overlap=20, max_chain_reads=30)
-    path, = assessment['paths']
-    candidate, = path['proteins']
-    assert candidate['completeness'] == 'complete' and candidate['event_linked']
-    assert len(candidate['candidate']['amino_acids']) == 531
-    assert candidate['sequence_support']['overlap_chain']
-    assert not assessment['translation_observed']
-    reconciliation = reconcile_sv_rna_hypotheses(assessment)
-    assert reconciliation['hypotheses'] and reconciliation['sample_id'] == 'HCC1395'
+def test_exon_clip_link_requires_the_exon_alignments_own_clipped_bases():
+    from isovar.sv_rna_assessment import aligned_exon_clip_contains
+    record = dict(query_sequence='AACCGGTTGATCAGTA', query_aligned_interval=[0, 8])
+    assert aligned_exon_clip_contains(record, 'TTGATCAG')
+    assert not aligned_exon_clip_contains(record, 'AACCGGTT')
+    assert not aligned_exon_clip_contains(dict(record, query_aligned_interval=[0, 16]), 'TTGATCAG')
 
 
 def test_original_fastq_names_are_explicit_and_duplicate_segments_rejected(tmp_path):
@@ -329,18 +313,6 @@ def test_predicted_transcript_loss_is_retained_without_treating_no_rna_as_valida
     assert row['status'] == 'unassessed' and row['sequence_state'] == 'predicted_empty_transcript'
     assert row['hypothesis']['sequence'] == ''
     assert not any(r['status'] == 'contradicted_by_informative_evidence' for r in row['comparisons'])
-
-
-def test_committed_cohort_manifest_preserves_every_original_inventory_row():
-    from reports.hcc1395_colo829.build_unified_sv_manifest import OUTPUT, DATA
-    manifest = read_json(OUTPUT / 'manifest.json')
-    source_rows = {line for name in ('colo829-sv-grch38.vcf', 'colo829-sv-2022-hg38lifted.vcf')
-                   for line in (DATA / name).read_text().splitlines() if not line.startswith('#')}
-    assert len(manifest['events']) == len(source_rows) == 188
-    assert {e['provenance']['original_vcf_row'] for e in manifest['events']} == source_rows
-    assert sum(bool(e.get('unassessed_reason')) for e in manifest['events']) == 14
-    assert sum(len(e.get('views', [])) * len(e['sources']) if e.get('views') else len(e['sources'])
-               for e in manifest['events']) == 380
 
 
 def test_an_event_selection_keeps_the_complete_report(tmp_path):

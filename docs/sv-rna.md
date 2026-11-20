@@ -111,7 +111,7 @@ measured. Read-through and unrearranged transcripts require comparison, as in
 [MINTIE](https://link.springer.com/article/10.1186/s13059-021-02507-8) and
 [FusionInspector](https://pmc.ncbi.nlm.nih.gov/articles/PMC10261907/).
 
-The [HCC1395 EIF3K–CYP39A1 example](../reports/hcc1395_colo829/eif3k_cyp39a1/report.md)
+The HCC1395 EIF3K–CYP39A1 example
 replays original Illumina and ONT RNA reads around a published fusion. The
 source-derived `sv-rna` test recovers a local junction-spanning partial protein;
 the sequence-resolved `isovar fusion` replay uses an exact original-read overlap
@@ -546,7 +546,7 @@ full indexed T1 alignment instead, pass `--bam PATH_OR_URL` (and `--source URL`
 for a local copy). Gene-pair labels do not assert a coding fusion.
 
 The long-read and three-fusion reads come from osteosarc's openvax-v1 bundle
-([Sid test reads](../notes/sid-test-reads.md)). The other fixture tools live with the
+(Sid test reads, via `osteosarc`). The other fixture tools live with the
 tests: `tests/data/fusions/build_osteosarc.py`, `audit_three_fusions.py`, and
 `validation-events.json` with its generator `build_validation_events.py`.
 
