@@ -6,25 +6,32 @@ import os
 from pathlib import Path
 import tempfile
 
+from .audit_json import write_json_stream
 
-def read_json(path):
+
+def read_json(path, *, loader=json.load):
     """Load JSON from ``path``, decompressing a ``.gz`` file."""
     opener = gzip.open if str(path).endswith(".gz") else open
     with opener(Path(path).expanduser(), "rt") as stream:
-        return json.load(stream)
+        return loader(stream)
 
 
-def write_json(path, value, *, indent=2, sort_keys=False):
+def write_json(path, value, *, indent=2, sort_keys=False, canonical=False):
     """Write ``value`` to ``path`` atomically, gzip-compressed for a ``.gz`` name.
 
-    A failed write leaves any existing file unchanged.
+    A failed write leaves any existing file unchanged. When ``canonical`` is
+    true, stream compact, key-sorted, strict byte-stable JSON.
     """
     path = Path(path).expanduser()
-    text = json.dumps(value, indent=indent, sort_keys=sort_keys, separators=None if indent else (",", ":")) + "\n"
+    text = None if canonical else (
+        json.dumps(value, indent=indent, sort_keys=sort_keys, separators=None if indent else (",", ":")) + "\n"
+    )
     descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix="." + path.name, suffix=".tmp")
     try:
         with os.fdopen(descriptor, "wb") as stream:
-            if str(path).endswith(".gz"):
+            if canonical:
+                write_json_stream(stream, value, compressed=str(path).endswith(".gz"))
+            elif str(path).endswith(".gz"):
                 with gzip.GzipFile(filename="", mode="wb", fileobj=stream, mtime=0) as compressed:
                     compressed.write(text.encode())
             else:

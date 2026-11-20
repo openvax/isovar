@@ -23,6 +23,7 @@ from varcode import ContigResolver
 
 from .audit_bundle import software_identity
 from .contig_resolution import alignment_contig_lengths, resolve_reference_contig
+from .file_identity import file_sha256
 from .read_collector import ReadCollector
 from .read_identity import segment_identity
 from .rna_evidence import canonical_json, content_identifier
@@ -31,14 +32,6 @@ Fragment = tuple[str, str]
 Segment = tuple[str, str, int]
 Region = tuple[str, int, int]
 _SCHEMA = "isovar.rna_library.v1"
-
-
-def _digest(path: Path) -> str:
-    value = sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            value.update(block)
-    return value.hexdigest()
 
 
 def _file_state(path: Path) -> tuple[int, int, int, int, int]:
@@ -216,7 +209,7 @@ def prepare_rna_library(source: str | Path, cache_dir: str | Path, *, read_colle
     source, cache_dir = Path(source).resolve(), Path(cache_dir).resolve()
     collector = ReadCollector() if read_collector is None else read_collector
     before = _file_state(source)
-    identity = dict(schema=_SCHEMA, source_sha256=_digest(source), reference_name=reference_name,
+    identity = dict(schema=_SCHEMA, source_sha256=file_sha256(source), reference_name=reference_name,
                     eligibility=_eligibility_policy(collector, read_filter_identity), software=software_identity())
     if _file_state(source) != before:
         raise ValueError("Original RNA changed while computing its index identity")
@@ -235,7 +228,7 @@ def prepare_rna_library(source: str | Path, cache_dir: str | Path, *, read_colle
                 db.commit()
             if _file_state(source) != before:
                 raise ValueError("Original RNA changed during RNA library preparation")
-            receipt = dict(identity=identity, statistics=statistics, database_sha256=_digest(database))
+            receipt = dict(identity=identity, statistics=statistics, database_sha256=file_sha256(database))
             (building / "receipt.json").write_text(canonical_json(receipt))
             try:
                 building.rename(directory)
@@ -245,7 +238,7 @@ def prepare_rna_library(source: str | Path, cache_dir: str | Path, *, read_colle
                 # Another preparer may have published the same immutable key.
                 # Its complete receipt and database are verified below.
     receipt = json.loads((directory / "receipt.json").read_text())
-    if receipt["identity"] != identity or receipt["database_sha256"] != _digest(directory / "records.sqlite"):
+    if receipt["identity"] != identity or receipt["database_sha256"] != file_sha256(directory / "records.sqlite"):
         raise ValueError("RNA library cache identity or database digest differs")
     with closing(_connect(directory / "records.sqlite", readonly=True)) as db:
         metadata = {key: json.loads(value) for key, value in db.execute("SELECT key, value FROM metadata")}

@@ -145,7 +145,7 @@ def run(args=None):
     # Parse only the command; its existing parser owns every remaining option.
     selected = parser.parse_args(args[:1]).command
     if selected not in COMMANDS:
-        # Not argparse's `choices`, which would print all 27 names on one line.
+        # Not argparse's `choices`, which would print every command name on one line.
         close = get_close_matches(selected, COMMANDS, n=1)
         hint = " (did you mean '%s'?)" % close[0] if close else ""
         parser.error("argument COMMAND: invalid choice: '%s'%s. Run 'isovar --help' to list "

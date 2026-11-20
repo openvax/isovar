@@ -6,14 +6,14 @@ from math import log10
 from reportlab.lib import colors
 from reportlab.platypus import Flowable, KeepTogether, PageBreak, Spacer
 
-from isovar.evidence_pdf import ProteinComparison
+from isovar.evidence_pdf import ProteinComparisonFlowable
 from isovar.evidence_report import variant_type
 from reports.hcc1395_colo829.build_evidence_pdfs import (
     REPORT, NAVY, TEAL, GRAY, PALE, ORANGE, data_table, para, read_tsv, section,
 )
 
 
-class NeutralReferenceComparison(ProteinComparison):
+class NeutralReferenceComparison(ProteinComparisonFlowable):
     """Color only differing mutant residues; keep reference residues neutral."""
 
     def __init__(self, reference, mutant, mutation_start, mutation_end, focal=True,

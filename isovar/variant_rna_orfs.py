@@ -13,7 +13,7 @@ from varcode import ContigResolver
 from .dna import reverse_complement_dna
 from .contig_resolution import resolve_reference_contig, variant_reference_name, variant_source_contig
 from .coding_interval_support import AlleleReadTiling
-from .genetic_code import genetic_code_by_id, translate_cdna
+from .genetic_code import genetic_code_by_id, translate_cdna_with_initiator
 from .protein_sequence_creator import ProteinSequenceCreator
 from .protein_window_comparison import compare_protein_windows, reference_window_stop
 from .reference_context import ReferenceContext
@@ -111,15 +111,6 @@ def _context(variant, reference, size, resolved_contig):
     return context, (start, end), None
 
 
-def _translate(sequence, table, starts_at_reference_start):
-    amino, stop = translate_cdna(sequence, translation_table=table)
-    # A source-supported non-AUG start is conditionally decoded as methionine.
-    # Its sequence was checked against the reference by frame matching.
-    if starts_at_reference_start and amino:
-        amino = 'M' + amino[1:]
-    return amino, stop
-
-
 def _tiling(sequence, strand):
     """Place an assembled sequence's reads on its transcript-oriented cDNA."""
     if strand == '-':
@@ -140,7 +131,8 @@ def _candidate(sequence, tiling, context, locus, reference, model_id, rna_id, ev
     if starts and cdna[offset:offset + 3] != reference.start_codon:
         return None
     table = context.translation_table
-    protein, stop = _translate(cdna[offset:], table, starts)
+    protein, stop = translate_cdna_with_initiator(
+        cdna[offset:], translation_table=table, starts_at_reference_start=starts)
     if creator.protein_sequence_length and len(protein) > creator.protein_sequence_length:
         protein, stop = protein[:creator.protein_sequence_length], False
     begin, end = framed.variant_cdna_interval_start, framed.variant_cdna_interval_end
@@ -155,7 +147,8 @@ def _candidate(sequence, tiling, context, locus, reference, model_id, rna_id, ev
     if not contains:
         return None
     counterfactual = cdna[:begin] + context.sequence_at_variant_locus + cdna[end:]
-    counter_protein, counter_stop = _translate(counterfactual[offset:], table, starts)
+    counter_protein, counter_stop = translate_cdna_with_initiator(
+        counterfactual[offset:], translation_table=table, starts_at_reference_start=starts)
     delta = len(context.sequence_at_variant_locus) - (end - begin)
     comparison_limit = max(0, len(protein) + (delta // 3 if delta % 3 == 0 else 0))
     counter_stop = reference_window_stop(counter_protein, counter_stop, comparison_limit, stop)
@@ -163,8 +156,9 @@ def _candidate(sequence, tiling, context, locus, reference, model_id, rna_id, ev
     reference_codon_start = max(reference.start, reference_prefix_start +
                                 (reference.start - reference_prefix_start) % 3)
     reference_end = min(reference.end, locus[1] + len(cdna) - end)
-    reference_window, reference_stop = _translate(reference.transcript_sequence[reference_codon_start:reference_end],
-                                     table, reference_codon_start == reference.start)
+    reference_window, reference_stop = translate_cdna_with_initiator(
+        reference.transcript_sequence[reference_codon_start:reference_end],
+        translation_table=table, starts_at_reference_start=reference_codon_start == reference.start)
     reference_stop = reference_window_stop(reference_window, reference_stop, comparison_limit, stop)
     reference_window = reference_window[:comparison_limit]
     comparison_options = dict(allele_length_delta=delta, frameshift=frameshift, stop=stop)

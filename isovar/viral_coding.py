@@ -8,7 +8,7 @@ from orfdata import SourceRNA, TranscriptORF, viral_orfs, viral_references
 from varcode import ContigResolver
 
 from .antigen_reference import contig_in_reference
-from .dna import reverse_complement_dna
+from .rna_path_geometry import reverse_path
 
 
 def viral_coding_references(genome, contigs):
@@ -59,10 +59,9 @@ def viral_coding_predictions(sequence_id, sequence, positions, models):
     """
     readings = {}
     size = len(sequence)
+    reverse_sequence, reverse_positions = reverse_path(sequence, positions)
     views = [("+", sequence, list(positions)),
-             ("-", reverse_complement_dna(sequence),
-              [(p[0], p[1], "-" if p[2] == "+" else "+") if p is not None else None
-               for p in reversed(positions)])]
+             ("-", reverse_sequence, list(reverse_positions))]
     for orientation, observed_sequence, observed_positions in views:
         for model in models:
             reference_positions = [(model.transcript.contig, p - 1, model.transcript.strand)

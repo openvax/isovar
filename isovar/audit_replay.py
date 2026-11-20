@@ -9,6 +9,7 @@ from .audit_bundle import AuditBundleError, identity, publish_json, software_ide
 from .audit_checkpoint import NonCanonicalCheckpoint, checkpoint_summary
 from .audit_json import comparison_identity, expected_json_identity, normalize_json
 from .audit_json_reader import read_json_stream
+from .json_files import read_json as _read_json
 from .read_collector import ReadCollector
 from .sv_rna import reconstruct_sv_rna, sv_rna_input_from_dict
 
@@ -16,9 +17,7 @@ __all__ = ["replay_sv_rna"]
 
 
 def read_json(path):
-    path = Path(path)
-    with gzip.open(path, "rt") if path.suffix == ".gz" else path.open() as handle:
-        return read_json_stream(handle)
+    return _read_json(path, loader=read_json_stream)
 
 
 def _expected_identity(path):

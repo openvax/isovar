@@ -4,7 +4,6 @@ import csv
 import gzip
 import json
 import logging
-import os
 import sqlite3
 import tempfile
 import traceback
@@ -26,8 +25,9 @@ from .evidence_report import (
     overlapping_catalog_orfs,
     overlaps_exon,
 )
+from .file_identity import file_sha256
 from .isovar_result import IsovarResult
-from .json_files import read_json
+from .json_files import read_json, write_json
 from .known_variants import KnownVariants
 from .normal_evidence import literal_allele_key
 from .protein_hypotheses import export_protein_hypotheses
@@ -35,25 +35,12 @@ from .protein_reporting import protein_comparison_status
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_collector import ReadCollector
 from .read_end_profiles import read_end_profile_file_id
-from .rna_evidence import input_sample_id
-from .rna_evidence import canonical_json, content_identifier
-from .sv_rna_audit import file_sha256, run_sv_rna_audit, write_json
+from .rna_evidence import canonical_json, content_identifier, input_sample_id
+from .sv_rna_audit import run_sv_rna_audit
 from .variant_rna_orfs import reconstruct_variant_orfs
 
 logger = logging.getLogger(__name__)
 SCHEMA = "isovar.cohort_manifest.v1"
-
-
-def _write_manifest(path, manifest):
-    """Publish a complete manifest even when separate source jobs share output."""
-    descriptor, temporary = tempfile.mkstemp(prefix=".manifest-", suffix=".json", dir=path.parent)
-    try:
-        with os.fdopen(descriptor, "w") as stream:
-            stream.write(canonical_json(manifest) + "\n")
-        os.replace(temporary, path)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
 
 
 def reconstruction_identity():
@@ -416,7 +403,7 @@ def run_small_variant_source(task, source, files, output, *, resume=False):
                    nominated_alleles=len(variants), results="variants.jsonl.gz",
                    result_sha256=file_sha256(output / "variants.jsonl.gz"))
     _write_companions(output / "variants.jsonl.gz", output)
-    write_json(output / "receipt.json", receipt)
+    write_json(output / "receipt.json", receipt, canonical=True)
     return receipt
 
 
@@ -623,7 +610,7 @@ def _run_cohort(manifest_path, output_dir, *, resume, render_only, source_ids, r
         outcomes.append(dict(source_id=source["source_id"], sample_id=source["sample_id"],
                              pass_id=task.get("pass_id", "default"), output=str(directory), **row))
         if not render_only:
-            write_json(output / ("progress-" + source["source_id"] + ".json"), dict(small_variants=outcomes))
+            write_json(output / ("progress-" + source["source_id"] + ".json"), dict(small_variants=outcomes), canonical=True)
     additional = []
     libraries = {}
     for family in ("sv_audits", "fusions", "viral", "isoforms", "variant_rna_paths", "prior_assessments"):
@@ -662,19 +649,19 @@ def _run_cohort(manifest_path, output_dir, *, resume, render_only, source_ids, r
                     if fusion.provenance["sample_id"] != input_sample_id(source):
                         raise ValueError("Supplied fusion and cohort source refer to different samples")
                     result = reconstruct_fusion(fusion, references, reads, **task.get("parameters", {}))
-                    write_json(target, result)
+                    write_json(target, result, canonical=True)
                 elif family == "variant_rna_paths":
                     result = _variant_path_task(task, source, files, contexts, cache_directory, libraries)
-                    write_json(target, result)
+                    write_json(target, result, canonical=True)
                 elif family == "prior_assessments":
-                    write_json(target, read_json(files[task["input"]]))
+                    write_json(target, read_json(files[task["input"]]), canonical=True)
                 else:
                     from .isoform_quantification import write_isoform_fastas
                     from .viral_coding import write_viral_proteins
                     from .viral_sequences import write_viral_fasta
 
                     result = _antigen_path_task(family, task, source, files, contexts, cache_directory, libraries)
-                    write_json(target, result)
+                    write_json(target, result, canonical=True)
                     if family == 'viral':
                         write_viral_fasta(result, directory / 'sequences.fasta')
                         write_viral_proteins(result, directory / 'proteins.fasta')
@@ -682,7 +669,7 @@ def _run_cohort(manifest_path, output_dir, *, resume, render_only, source_ids, r
                         write_isoform_fastas(result, directory / 'transcripts.fasta', directory / 'proteins.fasta')
                 receipt = dict(schema="isovar.cohort_additional.v1", identity=identity,
                                artifacts=_additional_artifacts(family, directory, target))
-                write_json(receipt_path, receipt)
+                write_json(receipt_path, receipt, canonical=True)
             additional.append(dict(family=family, task=task, path=str(target),
                                    status="recorded" if receipt else "not_run",
                                    sha256=receipt["artifacts"][target.name] if receipt else None,
@@ -692,8 +679,8 @@ def _run_cohort(manifest_path, output_dir, *, resume, render_only, source_ids, r
                    samples=manifest["samples"], sources=list(sources.values()), small_variants=outcomes, additional=additional)
     summary_name = ("cohort-" + content_identifier("selection", sorted(source_ids)) + ".json"
                     if source_ids else "cohort.json")
-    _write_manifest(output / "manifest.json", manifest)
-    write_json(output / summary_name, summary)
+    write_json(output / "manifest.json", manifest, canonical=True)
+    write_json(output / summary_name, summary, canonical=True)
     if not render:
         return []
     from .cohort_pdf import write_cohort_reports

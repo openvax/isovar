@@ -69,7 +69,7 @@ class EvidenceFunnel(Flowable):
         c.drawString(0, 2, "Boxes show subset order; widths are schematic, not scaled to count.")
 
 
-class ProteinComparison(Flowable):
+class ProteinComparisonFlowable(Flowable):
     """Draw two local protein windows anchored at the mutation boundary."""
 
     def __init__(self, reference, mutant, mutation_start, mutation_end,

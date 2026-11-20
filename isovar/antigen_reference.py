@@ -14,13 +14,13 @@ from pyensembl import Genome
 from pyensembl.download_cache import cache_root
 from varcode import ContigResolver
 
-from .audit_bundle import digest
 from .contig_resolution import (
     UnresolvedContigError,
     require_resolved_contig,
     resolve_reference_contig,
 )
 from .dna import reverse_complement_dna
+from .file_identity import file_sha256
 from .fusion import FusionReference
 
 GDC_REFERENCE = "GRCh38.d1.vd1"
@@ -53,7 +53,7 @@ def annotation_cache(gtf, transcript_fasta=None, protein_fasta=None, *, director
     str
         Content-addressed annotation cache directory.
     """
-    identities = [digest(Path(path).expanduser()) if path is not None else None
+    identities = [file_sha256(Path(path).expanduser()) if path is not None else None
                   for path in (gtf, transcript_fasta, protein_fasta)]
     key = sha256(json.dumps(identities).encode()).hexdigest()
     base = Path(directory).expanduser() if directory is not None else Path(cache_root()) / "isovar"
@@ -233,5 +233,5 @@ def isoform_targets_from_genome(genome, genes, *, contig_names):
 
 def reference_file_identity(genome_fasta, gtf):
     """Hash the supplied bytes; historical identities never follow live releases."""
-    return {kind: dict(path=str(Path(path).resolve()), sha256=digest(path))
+    return {kind: dict(path=str(Path(path).resolve()), sha256=file_sha256(path))
             for kind, path in (("genome_fasta", genome_fasta), ("gtf", gtf))}
