@@ -19,8 +19,7 @@ from typing import Any
 import pysam
 
 from . import __version__
-from .audit_bundle import software_identity
-from .file_identity import file_sha256
+from .file_identity import file_sha256, software_identity
 from .fusion import fusion_from_dict, reconstruct_fusion
 from .json_files import read_json, write_json as _write_json
 from .read_collector import ReadCollector

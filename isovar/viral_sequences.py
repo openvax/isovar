@@ -17,7 +17,7 @@ from .antigen_reference import (
     gdc_viral_panel,
     validate_alignment_reference,
 )
-from .audit_bundle import digest
+from .file_identity import file_sha256 as digest
 from .read_collector import ReadCollector
 from .rna_library import RnaLibraryIndex, original_library_context
 from .rna_path_geometry import position_runs

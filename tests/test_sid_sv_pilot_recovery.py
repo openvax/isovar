@@ -61,15 +61,6 @@ def pilot(directory):
     return path
 
 
-def test_frozen_original_pilot_accounts_for_all_failed_pairs():
-    path = Path(__file__).parents[1] / "notes/data/sid-sv-pilot/coverage.json.gz"
-    pairs = failed_pairs(read_json(path))
-    assert len(pairs) == 22
-    assert sum(len(row["original_outcomes"]) for row in pairs) == 44
-    assert len({row["pair"] for row in pairs}) == 22
-    assert {row["source_id"][:12] for row in pairs} == {"58f81602ec2f", "6e9147690525"}
-
-
 def test_recovery_keeps_pilot_and_catalogue_denominators_separate(tmp_path, empty_audit):
     path = pilot(tmp_path)
     _, _, selection, _ = prepare(tmp_path / "recovery", tmp_path, path)

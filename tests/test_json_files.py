@@ -1,9 +1,9 @@
 """Tests for :mod:`isovar.json_files`, the shared JSON reader/writer."""
 
 import gzip
+import json
 import pytest
 
-from isovar.audit_json_reader import read_json_stream
 from isovar.json_files import read_json, write_json
 
 
@@ -24,8 +24,8 @@ def test_write_json_canonical_plain_and_gzip_and_streaming_reader(tmp_path):
     write_json(compressed, payload, canonical=True)
     assert plain.read_text() == '{"a":"value","b":[1,2]}\n'
     assert gzip.decompress(compressed.read_bytes()) == b'{"a":"value","b":[1,2]}\n'
-    assert read_json(plain, loader=read_json_stream) == payload
-    assert read_json(compressed, loader=read_json_stream) == payload
+    assert read_json(plain, loader=json.load) == payload
+    assert read_json(compressed, loader=json.load) == payload
     with pytest.raises(ValueError):
         write_json(plain, {"bad": float("nan")}, canonical=True)
     assert read_json(plain) == payload

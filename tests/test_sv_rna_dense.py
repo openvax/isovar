@@ -498,27 +498,6 @@ def test_local_window_marks_distant_branch_unresolved():
     assert {row['specificity'] for row in windows.values()} == {'shared_or_unresolved'}
 
 
-def test_pinned_hcc_and_colo_sv_local_evidence():
-    from reports.hcc1395_colo829.build_sv_transcript_evidence import build
-
-    rows, _, _ = build()
-    assert len(rows) == 6
-    chr9 = [row for row in rows if row['call_id'].startswith('chr9_')]
-    # Regional seeding is disabled. The former third path was discovered only
-    # from an ordinary forward splice mislabelled as duplication-linked (#665).
-    assert len(chr9) == 2
-    assert {row['direct_junction_fragments'] for row in chr9} == {7}
-    assert sorted(row['local_exact_fragments'] for row in chr9) == [1, 1]
-    assert sorted(row['junction_12_flank_exact_fragments'] for row in chr9) == [2, 2]
-    assert {row['junction_12_flank_specificity'] for row in chr9} == {'shared_or_unresolved'}
-    assert all(row['local_specificity'] == 'unique_among_retained_paths' for row in chr9)
-    sv3, = [row for row in rows if row['sample'] == 'COLO829']
-    assert (sv3['direct_junction_fragments'], sv3['direct_junction_fragments_mapq20'],
-            sv3['local_exact_fragments'], sv3['full_path_exact_fragments']) == (3, 0, 3, 0)
-    assert sv3['junction_inserted'] == 'CTATAGTAGAACTTCTTTT'
-    assert sv3['reference_donor_after'] != sv3['junction_inserted']
-
-
 def test_no_candidates_and_failed_scans_never_claim_negative_evidence(tmp_path):
     scenario = Scenario()
     reads = [record('ordinary', '1', 2000, '90M', scenario.donor_ref.sequence[100:190])]

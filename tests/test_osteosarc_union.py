@@ -29,6 +29,9 @@ CASES = [(n, c) for n, c in MANIFEST["cases"].items() if c["status"] == "tested"
 
 @pytest.fixture(scope="module", autouse=True)
 def offline():
+    # Ensure osteosarc's openvax-v1 bundle is cached before blocking network.
+    sid_data.bundle()
+
     def forbidden(*args, **kwargs):
         raise AssertionError("Sid union regressions must run without network access")
     with pytest.MonkeyPatch.context() as patch:
@@ -65,7 +68,7 @@ def test_every_union_target_is_accounted_for():
             assert targets[name]["assembly"] == "GRCh38"
         elif case["status"] == "no_T2_member_for_reference":
             assert targets[name]["assembly"] == "GRCh37"
-            assert not any(v["target"] == name for v in recipe["members"].values())
+            assert not any(v["target"] == name for v in members.values())
         else:
             assert targets[name]["kind"] == "unresolved" and targets[name]["reason"]
     assert MANIFEST["shared_manifest_sha256"] == sid_data.BUNDLE_MANIFEST_SHA256

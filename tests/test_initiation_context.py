@@ -7,7 +7,6 @@ import json
 import pytest
 
 from isovar import InitiationContext, UORFCatalog, UORFRecord, annotate_initiation_context, load_uorf_catalog
-from isovar.cli.isovar_uorf_evidence import run
 from orfdata.build import load_transcript_reference, model_initiation_context
 
 
@@ -129,22 +128,6 @@ def test_reference_loading_preserves_version_and_checks_disagreement(tmp_path):
         stream.write(">tx.3\nATGAAATAA\n")
     with pytest.raises(ValueError, match="versions"):
         load_transcript_reference(gtf, fasta, {"tx"})
-
-
-def test_cli_context_lookup_and_ref_errors(capsys):
-    run(["--position", "7:66205480", "--genome-build", "GRCh38", "--ref", "A", "--alt", "C", "--json"])
-    output = json.loads(capsys.readouterr().out)
-    assert output["position_annotations"] == [None]
-    assert output["initiation_annotations"][0]["sequence_changes"] == ["kozak_preference_lost"]
-    with pytest.raises(SystemExit) as exc:
-        run(["--position", "7:66205480", "--genome-build", "GRCh38", "--ref", "T", "--alt", "C"])
-    # The genome disagrees with the command line: a failure (1), not a usage error (2).
-    assert exc.value.code == 1 and "REF mismatch" in capsys.readouterr().err
-    with pytest.raises(SystemExit):
-        run(["--ref", "A", "--alt", "C"])
-    with pytest.raises(SystemExit):
-        run(["--position", "7:66240380", "--genome-build", "GRCh38", "--ref", "A", "--alt", "C"])
-    assert "No mapped initiation context" in capsys.readouterr().err
 
 
 def test_old_catalogues_and_new_export_roundtrip(tmp_path):

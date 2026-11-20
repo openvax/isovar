@@ -8,7 +8,8 @@ import subprocess
 
 import pysam
 
-from .audit_bundle import digest, publish_json
+from .file_identity import file_sha256 as digest
+from .json_files import publish_json
 
 
 def write_isoform_fastas(result, transcript_path, protein_path):

@@ -70,7 +70,7 @@ annotated exon counts; insertions use both flanks as candidate exon involvement.
 SV and fusion sections report event-linked RNA junction **fragments** and
 separately count translated paths or candidates. They do not reinterpret a
 breakpoint-screen split alignment as a small-variant ALT read. The
-[HCC1395/COLO829 source PDFs](../reports/hcc1395_colo829/PDF_REPORTS.md) add
+HCC1395/COLO829 source PDFs add
 an exon-involved SV figure from pinned whole-run breakpoint screens: full
 intrachromosomal span for DEL/DUP/INV and nominated breakpoints for INS/TRA/BND.
 Those panels show split-alignment candidate counts, including and excluding

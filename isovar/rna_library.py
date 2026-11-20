@@ -21,7 +21,7 @@ from typing import Any
 import pysam
 from varcode import ContigResolver
 
-from .audit_bundle import software_identity
+from .file_identity import software_identity
 from .contig_resolution import alignment_contig_lengths, resolve_reference_contig
 from .file_identity import file_sha256
 from .read_collector import ReadCollector

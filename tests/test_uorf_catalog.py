@@ -13,8 +13,6 @@ import tarfile
 import pytest
 
 from isovar import UORFCatalog, UORFPeptide, UORFRecord, load_uorf_catalog
-from isovar.cli.commands import run as command
-from isovar.cli.isovar_uorf_evidence import run
 from orfdata.build import intervals
 from orfdata import build as builder
 
@@ -201,41 +199,6 @@ def test_packaged_dataset_manifest_and_local_replay(catalog, tmp_path):
     local.write_text(json.dumps(invalid))
     with pytest.raises(ValueError, match="schema"):
         load_uorf_catalog(local)
-
-
-@pytest.mark.parametrize("fmt", ["json", "tsv", "fasta"])
-def test_cli_exports_native_sequence_and_peptide_evidence(fmt, capsys):
-    run(["--orf-id", "c7riboseqorf56", "--format", fmt])
-    output = capsys.readouterr().out
-    assert "MPSRRRGGSSLIPDVGYLSEVDCPWPEHFPKIILSKISV" in output
-    if fmt == "json":
-        data = json.loads(output)
-        assert data["records"][0]["peptides"][0]["protein_intervals"] == [[31, 39]]
-    elif fmt == "tsv":
-        assert "coding_blocks_json\t" in output and "KIILSKISV" in output
-    else:
-        assert output.startswith(">c7riboseqorf56 gene=TPST1")
-
-
-def test_cli_position_annotation_and_review_filter(capsys):
-    command(["uorf-evidence", "--position", "chr7:66240380", "--genome-build", "GRCh38", "--json"])
-    output = json.loads(capsys.readouterr().out)
-    assert output["position_annotations"][0]["amino_acid_position"] == 32
-    assert output["position_annotations"][0]["mutant_translation_evidence"] == "not_assessed"
-    run(["--evidence", "immunopeptidomics", "--require-reviewed", "--json"])
-    output = json.loads(capsys.readouterr().out)
-    assert len(output["records"]) == 16
-
-
-@pytest.mark.parametrize("args, code", [
-    (["--position", "chr7:66205483"], 2), (["--region", "bad"], 2),
-    (["--position", "7:1", "--format", "tsv"], 2), (["--orf-id", "typo"], 1),
-    (["--position", "7:1", "--region", "7:1-2"], 2), (["--require-reviewed"], 2)])
-def test_cli_invalid_inputs_fail_explicitly(args, code):
-    # orfdata's statuses: 2 for a rejected command line, 1 for an unknown ORF.
-    with pytest.raises(SystemExit) as error:
-        run(args)
-    assert error.value.code == code
 
 
 def test_source_preparation_preserves_an_existing_Rdata_file(tmp_path, monkeypatch):

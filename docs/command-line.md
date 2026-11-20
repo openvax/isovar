@@ -56,13 +56,12 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | `isovar sv-audit` | Reconstruct and reconcile a source-separated SV inventory ([guide](sv-rna-audit.md)) |
 | `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON ([guide](fusion.md)) |
 
-### Viral, isoform and uORF evidence
+### Viral and isoform evidence
 
 | Command | Output |
 |---|---|
 | `isovar viral` | Observed viral RNA recovered from combined-reference alignments without a GTF ([guide](viral-sequences.md)) |
 | `isovar isoforms` | Targeted antigen (for example CTA) isoforms reconstructed and quantified ([guide](antigen-isoforms.md)) |
-| `isovar uorf-evidence` | Query and export the offline human uORF evidence reference ([guide](uorf-evidence.md)) |
 
 ### Proteome and patient background
 
@@ -77,19 +76,17 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | Command | Output |
 |---|---|
 | `isovar plot` | Protein, coverage, read-overlap and transcript figures for one mutation ([guide](visualization.md)) |
-| `isovar evidence-report` | Visual PDF and per-call TSV for a variant VCF plus indexed tumor RNA ([guide](../reports/hcc1395_colo829/PDF_REPORTS.md)) |
+| `isovar evidence-report` | Visual PDF and per-call TSV for a variant VCF plus indexed tumor RNA |
 | `isovar antigen-report` | Source-separated PDF and JSON from small-variant, SV, fusion, viral and antigen-isoform exports ([guide](antigen-evidence-report.md)) |
 | `isovar cohort` | Reproducible, source-separated reconstruction and per-sample PDFs from a pinned manifest ([guide](cohort-reports.md)) |
 
-### Audit and calibration
+### Calibration
 
 | Command | Output |
 |---|---|
-| `isovar audit-bundle` | Portable audit inputs, verified backups and offline reconstruction replay ([guide](audit-bundles.md)) |
 | `isovar calibrate-phasing` | Phasing error bounds calibrated from truth-labeled control BAMs ([guide](phasing.md)) |
 
-Except `isovar run`, the table and plot commands also install as hyphenated
-scripts such as `isovar-protein-sequences` and `isovar-plot`.
+All subcommands are invoked through the single `isovar` executable (`isovar COMMAND ...`).
 
 ## Output tables
 

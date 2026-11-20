@@ -247,25 +247,6 @@ def test_sv_occurrence_support_must_be_part_of_the_union():
         from_rna_result(export, reference=SV_REFERENCE)
 
 
-def test_hcc1395_original_rna_fusion_preserves_complete_sequence_and_support():
-    from tests.test_hcc1395_eif3k_fusion import DATA
-    from reports.hcc1395_colo829.build_hcc1395_eif3k_fusion import report
-
-    result = report(DATA / 'original_unmapped.bam', DATA / 'models.json.gz',
-                    mapped_tiling_bam=DATA / 'coding_tiling.bam')['result']
-    reference = ReferenceContext(9606, 'human', 'GRCh37-lite', 'INTEGRATE 2014 hg19 Ensembl exons')
-    proteome = from_rna_result(result, reference=reference)
-    protein, = proteome
-    assert len(protein.sequence) == 531
-    assert sha256(protein.sequence.encode()).hexdigest() == (
-        '6d2fbb1872c08a507f56a977fb97328471b90a0f077211892d0a5d5ef3053573')
-    assert protein.producer.start_complete and protein.producer.stop_complete
-    assert not protein.evidence
-    path, = records_of(proteome, 'path')
-    assert path.payload['junctions'][0]['direct_support']['fragments'] == 149
-    assert records_of(proteome, 'translation')[0].payload['translation_observed'] is False
-
-
 def test_native_sv_unknown_cell_labels_remain_unknown_and_conflicts_fail():
     from isovar.cell_umi import missing_label_row
 
@@ -287,25 +268,6 @@ def test_candidate_union_cannot_masquerade_as_measured_occurrence_support():
     candidate['occurrences'][0]['rna_support'] = deepcopy(candidate['rna_support'])
     with pytest.raises(ValueError, match='measured for that occurrence'):
         from_rna_result(export, reference=SV_REFERENCE)
-
-
-def test_colo829_sv3_keeps_exploratory_alternatives_and_unresolved_frame():
-    from reports.hcc1395_colo829.build_unified_sv_manifest import SV3
-    from reports.hcc1395_colo829.build_unified_sv_report import snapshots
-
-    snapshot = next(value for _, value in snapshots(event_id=SV3)
-                    if value['source_id'] == 'SRR8615617-CNIH3' and value['view_id'] == '1-forward')
-    export = export_sv_rna_orfs(snapshot['reconstruction'])
-    proteome = from_rna_result(export, reference=REFERENCE)
-    assert len(proteome) == len(export['candidates']) > 0
-    assert {p.sequence for p in proteome} == {c['amino_acids'] for c in export['candidates']}
-    assert all(not p.evidence for p in proteome)
-    assert all(r.status == 'exploratory' and not r.payload['translation_observed']
-               for r in records_of(proteome, 'hypothesis'))
-    occurrences = records_of(proteome, 'occurrence')
-    target = [r for r in occurrences if r.payload['path_id'] == '653d5d9c015d3e590fb149b3']
-    assert target and all(r.payload['frame_status'] == 'no_gene_anchor' for r in target)
-    assert records_of(proteome, 'event')[0].status == 'limited'
 
 
 def test_cli_merge_conflict_says_to_use_a_distinct_source(tmp_path, capsys):

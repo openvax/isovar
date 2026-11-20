@@ -238,7 +238,6 @@ full-span flag likewise use the minimum candidate span. Path and A/C/G/T checks
 use the maximum spans, so an endpoint tie cannot hide an incompatible splice
 or unknown base. Terminal gaps at the distal boundary remain unobserved
 overhangs; sequence alone cannot distinguish them from incomplete coverage.
-See the [comparison specification](../notes/flanking-indel-matching-spec.md).
 
 Every candidate also has a paired reference-allele competitor with the same
 flanks. An observation whose reference cost is equal or better cannot provide

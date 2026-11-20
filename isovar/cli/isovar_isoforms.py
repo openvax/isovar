@@ -11,7 +11,8 @@ from ..logging import configure_cli_logging, get_logger
 from ..antigen_reference import GDC_REFERENCE
 from ..antigen_targets import CTA_GENE_SET, prepare_antigen_reference
 from ..antigen_isoforms import reconstruct_antigen_isoforms
-from ..audit_bundle import digest, publish_json
+from ..file_identity import file_sha256 as digest
+from ..json_files import publish_json
 from ..isoform_quantification import quantify_antigen_isoforms, write_isoform_fastas
 from .rna_args import add_rna_path_args, rna_path_context
 from .validation import input_error

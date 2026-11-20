@@ -11,7 +11,7 @@ from varcode import ContigResolver, Variant
 from varcode.reference import infer_genome
 
 from .contig_resolution import resolve_reference_contig, variant_source_contig, variant_reference_name
-from .audit_bundle import software_identity
+from .file_identity import software_identity
 from .genomic_intervals import GenomicIntervalIndex
 from .normal_evidence import (
     NormalEvidencePolicy, NormalRecordEvidence, NormalState, assess_normal_record, literal_allele_key,

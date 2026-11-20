@@ -67,7 +67,7 @@ filled from reference. Partial references and unmatched RNA/frames remain
 explicit. This is local allele-centred assembly, not unrestricted cryptic-exon
 or whole-transcript discovery.
 
-The [cohort replay](../reports/hcc1395_colo829/ncorf_rna_audit/README.md)
+The cohort replay
 demonstrates default coverage and separately labelled single-read sensitivity
 passes on the same original molecules. Never add support across those passes.
 Reference ORF evidence follows [Mudge et al. 2022](https://doi.org/10.1038/s41587-022-01369-0);

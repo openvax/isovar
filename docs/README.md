@@ -62,7 +62,6 @@ with a warning naming them. These workflows handle them:
 | [ORF start evidence](orf-start-evidence.md) | Where an SV ORF's start codon comes from, in four tiers |
 | [ONT read lineage](ont-read-lineage.md) | Split and duplex nanopore reads in SV support counts |
 | [uORF evidence](uorf-evidence.md) | Offline human upstream-ORF models, protein sequences, native peptide evidence and mutation-position annotation |
-| [Portable audit bundles](audit-bundles.md) | Installed Python API and CLI for preserving inputs, backup/restore and offline SV RNA replay |
 
 ## Viral sequences, antigen isoforms and reports
 
@@ -70,7 +69,6 @@ with a warning naming them. These workflows handle them:
 |---|---|
 | [Viral sequence recovery](viral-sequences.md) | `isovar viral`: observed viral RNA from GDC GRCh38.d1.vd1 alignments, without a mutation or human GTF |
 | [CTA and other antigen isoforms](antigen-isoforms.md) | `isovar isoforms`: competing targeted transcripts, ambiguous RNA support and optional Salmon abundance |
-| [Evidence report](../reports/hcc1395_colo829/PDF_REPORTS.md) | `isovar evidence-report`: a visual variant/RNA PDF and per-call TSV |
 | [Antigen-source evidence report](antigen-evidence-report.md) | `isovar antigen-report`: SV, fusion, viral and antigen-isoform exports combined, with separate evidence units |
 | [Reproducible RNA cohort reports](cohort-reports.md) | `isovar cohort`: multi-library reanalysis and per-sample PDFs |
 
@@ -88,22 +86,12 @@ with a warning naming them. These workflows handle them:
 
 - [Changelog](../CHANGELOG.md): behavior changes by release.
 - [Releasing](../RELEASING.md): how a version is published.
-- [Historical experiments](archive/experiments/README.md): inputs, measurements
-  and code decisions behind earlier changes.
-- The [notes](../notes) directory holds maintainer working notes: Sid analysis
-  reports, design specifications and benchmark records, with their data. They
-  are not usage guides.
-- [Sid test reads](../notes/sid-test-reads.md): the original Sid osteosarcoma
-  reads packaged with Isovar for its tests, and how to make them again.
 - [Tumor-RNA audit](../tests/data/osteosarc/SAMPLE_AUDIT.md): a
   sample-by-sample RNA and protein audit of six osteosarc loci in two RNA
   sources, made for Isovar 1.8.0.
 - [WLOS_0001 canine TP53 example](../tests/data/wlos0001_tp53/README.md): a
   published matched-normal tumor DNA call replayed against original,
   region-extracted tumor RNA reads in a small offline fixture.
-- [HCC1395 and COLO829 source audit](../reports/hcc1395_colo829/README.md):
-  published somatic call inventories, including SVs, and COLO829 polished
-  isoform counts, with explicit RNA-support status for every source row.
 
 ### Design specifications
 
