@@ -8,7 +8,7 @@ from isovar import ProteinSequenceCreator, ReadCollector, run_isovar
 from isovar.reference_context_helpers import reference_contexts_for_variant
 from isovar.variant_helpers import (
     base0_interval_for_variant, base0_interval_for_variant_fields,
-    interbase_range_affected_by_variant_on_transcript, trim_variant, trim_variant_fields,
+    interbase_range_affected_by_variant_on_transcript, trim_variant,
 )
 
 
@@ -46,9 +46,8 @@ def test_symbolic_fields_are_rejected(alt):
     for function in (trim_variant, base0_interval_for_variant):
         with pytest.raises(ValueError, match="literal nucleotide"):
             function(variant)
-    for function in (trim_variant_fields, base0_interval_for_variant_fields):
-        with pytest.raises(ValueError, match="literal nucleotide"):
-            function(100, "C", alt)
+    with pytest.raises(ValueError, match="literal nucleotide"):
+        base0_interval_for_variant_fields(100, "C", alt)
 
 
 @pytest.mark.parametrize("ref,alt,interval", [

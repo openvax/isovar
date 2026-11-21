@@ -20,36 +20,16 @@ from varcode.mutant_transcript import TranscriptEdit
 
 from .dna import reverse_complement_dna
 from .transcript_assembly_edit import TranscriptAssemblyEdit
-from .variant_helpers import (
-    interbase_range_affected_by_variant_on_transcript,
-    trim_variant_fields,
-)
-
-
-class TrimmedVariant(object):
-    def __init__(self, start, ref, alt):
-        self.start = start
-        self.ref = ref
-        self.alt = alt
-
-    @property
-    def is_insertion(self):
-        return len(self.ref) == 0 and len(self.alt) > 0
-
-
-def trimmed_variant_from_variant(variant):
-    start, ref, alt = trim_variant_fields(variant.start, variant.ref, variant.alt)
-    return TrimmedVariant(start=start, ref=ref, alt=alt)
+from .variant_helpers import interbase_range_affected_by_variant_on_transcript
 
 
 def transcript_edit_from_variant(variant, transcript):
-    trimmed_variant = trimmed_variant_from_variant(variant)
     cdna_start, cdna_end = interbase_range_affected_by_variant_on_transcript(
-        trimmed_variant,
+        variant,
         transcript,
     )
 
-    alt_bases = trimmed_variant.alt
+    alt_bases = variant.alt
     if getattr(transcript, "strand", None) == "-":
         alt_bases = reverse_complement_dna(alt_bases)
 
