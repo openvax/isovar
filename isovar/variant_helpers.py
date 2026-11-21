@@ -16,6 +16,9 @@ Helper functions for normalizing and working with genomic variants
 
 from dataclasses import dataclass
 
+from varcode import Variant
+from varcode.string_helpers import trim_shared_flanking_strings
+
 from .logging import get_logger
 from .dna import reverse_complement_dna
 
@@ -88,16 +91,18 @@ def _require_literal_alleles(ref, alt):
 
 
 def trim_variant(variant):
-    """Return ``(start, ref, alt)`` for a literal Varcode ``Variant``.
+    """Return normalized ``(start, ref, alt)`` for a literal variant.
 
     ``varcode.Variant`` already trims shared flanking prefix/suffix bases and
-    anchors insertions on the base preceding the inserted sequence, so this
-    validates that ``variant`` carries literal nucleotide alleles and exposes
-    its normalized coordinates directly.
+    anchors insertions on the base preceding the inserted sequence, so Variant
+    instances return ``(variant.start, variant.ref, variant.alt)`` directly.
+    Duck-typed variant objects (e.g. lightweight test records with raw VCF
+    alleles) are normalized with Varcode's ``trim_shared_flanking_strings``
+    using the same offset convention.
 
     Parameters
     ----------
-    variant : varcode.Variant
+    variant : varcode.Variant or variant-like object
 
     Returns
     -------
@@ -105,7 +110,14 @@ def trim_variant(variant):
         Normalized ``(location, ref, alt)`` triplet.
     """
     require_literal_variant(variant)
-    return variant.start, variant.ref, variant.alt
+    if isinstance(variant, Variant):
+        return variant.start, variant.ref, variant.alt
+    ref, alt, prefix, _ = trim_shared_flanking_strings(variant.ref, variant.alt)
+    if len(ref) == 0:
+        start = variant.start + max(0, len(prefix) - 1)
+    else:
+        start = variant.start + len(prefix)
+    return start, ref, alt
 
 
 def base0_interval_for_variant_fields(base1_location, ref, alt):

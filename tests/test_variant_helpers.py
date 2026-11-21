@@ -56,6 +56,13 @@ def test_trim_variant_relies_on_varcode_prefix_suffix_and_insertion_normalizatio
     eq_(trim_variant(prefixed_and_suffixed_ins), (10, "", "CG"))
     assert prefixed_and_suffixed_ins.is_insertion
 
+    # Duck-typed VCF-style variant records normalize via Varcode's shared
+    # flanking-string helper with identical coordinates.
+    from types import SimpleNamespace
+    eq_(trim_variant(SimpleNamespace(start=10, ref="CG", alt="C")), (11, "G", ""))
+    eq_(trim_variant(SimpleNamespace(start=10, ref="C", alt="CG")), (10, "", "G"))
+    eq_(trim_variant(SimpleNamespace(start=10, ref="ACGT", alt="AT")), (11, "CG", ""))
+
 
 def test_base0_interval_for_variant_substitution():
     (start, end) = base0_interval_for_variant(Variant("chr1", 10, "C", "G"))
