@@ -3,11 +3,17 @@
 import ast
 from pathlib import Path
 
-# varcode 12 removes these (openvax/varcode#693); isovar pins varcode<12, so
-# without this check a reintroduced use would surface only at the upgrade.
+# varcode 12 removes these (openvax/varcode#693); keep an AST check so removed
+# 11.x aliases are never reintroduced.
 REMOVED_KEYWORDS = {"ensembl": "genome="}
-REMOVED_ATTRIBUTES = {"ensembl": ".genome"}
-REMOVED_FUNCTIONS = {"load_vcf_fast": "load_vcf"}
+REMOVED_ATTRIBUTES = {
+    "ensembl": ".genome",
+    "extended_protein_sequence": ".aa_alt",
+}
+REMOVED_FUNCTIONS = {
+    "load_vcf_fast": "load_vcf",
+    "detect_loh": "detect_germline_overlap",
+}
 
 
 def test_sources_use_varcode_genome_names():

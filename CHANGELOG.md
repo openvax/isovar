@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.91.2
+
+Fixes #730.
+
+- Lift the `varcode<12` cap and require `varcode>=12.0.1,<13`, adopting Varcode
+  12.x (which removes deprecated 11.x aliases already migrated out of Isovar
+  and makes `make_variants_parser` `--version` opt-in for downstream CLIs).
+
 ## 1.90.8
 
 - Make the development installer directly executable, select its interpreter
