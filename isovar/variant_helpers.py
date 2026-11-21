@@ -16,6 +16,9 @@ Helper functions for normalizing and working with genomic variants
 
 from dataclasses import dataclass
 
+from varcode import Variant
+from varcode.string_helpers import trim_shared_flanking_strings
+
 from .logging import get_logger
 from .dna import reverse_complement_dna
 
@@ -87,57 +90,34 @@ def _require_literal_alleles(ref, alt):
             "breakends, spanning-deletion markers or missing alleles.")
 
 
-def trim_variant_fields(location, ref, alt):
-    """
-    Trims common prefixes from the ref and alt sequences
-
-    Parameters
-    ----------
-    location : int
-        Position (starting from 1) on some chromosome
-
-    ref : str
-        Reference nucleotides
-
-    alt : str
-        Alternate (mutant) nucleotide
-
-    Returns adjusted triplet (location, ref, alt)
-    """
-    _require_literal_alleles(ref, alt)
-    if len(alt) > 0 and ref.startswith(alt):
-        # if alt is a prefix of the ref sequence then we actually have a
-        # deletion like:
-        #   g.10 GTT > GT
-        # which can be trimmed to
-        #   g.12 'T'>''
-        ref = ref[len(alt):]
-        location += len(alt)
-        alt = ""
-    if len(ref) > 0 and alt.startswith(ref):
-        # if ref sequence is a prefix of the alt sequence then we actually have
-        # an insertion like:
-        #   g.10 GT>GTT
-        # which can be trimmed to
-        #   g.11 ''>'T'
-        # Note that we are selecting the position *before* the insertion
-        # (as an arbitrary convention)
-        alt = alt[len(ref):]
-        location += len(ref) - 1
-        ref = ""
-    return location, ref, alt
-
-
 def trim_variant(variant):
-    """
+    """Return normalized ``(start, ref, alt)`` for a literal variant.
+
+    ``varcode.Variant`` already trims shared flanking prefix/suffix bases and
+    anchors insertions on the base preceding the inserted sequence, so Variant
+    instances return ``(variant.start, variant.ref, variant.alt)`` directly.
+    Duck-typed variant objects (e.g. lightweight test records with raw VCF
+    alleles) are normalized with Varcode's ``trim_shared_flanking_strings``
+    using the same offset convention.
+
     Parameters
     ----------
-    variant : varcode.Variant
+    variant : varcode.Variant or variant-like object
 
-    Returns trimmed triplet (location, ref, alt)
+    Returns
+    -------
+    tuple of (int, str, str)
+        Normalized ``(location, ref, alt)`` triplet.
     """
     require_literal_variant(variant)
-    return trim_variant_fields(variant.start, variant.ref, variant.alt)
+    if isinstance(variant, Variant):
+        return variant.start, variant.ref, variant.alt
+    ref, alt, prefix, _ = trim_shared_flanking_strings(variant.ref, variant.alt)
+    if len(ref) == 0:
+        start = variant.start + max(0, len(prefix) - 1)
+    else:
+        start = variant.start + len(prefix)
+    return start, ref, alt
 
 
 def base0_interval_for_variant_fields(base1_location, ref, alt):

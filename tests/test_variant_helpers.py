@@ -11,7 +11,6 @@
 # limitations under the License.
 
 from isovar.variant_helpers import (
-    trim_variant_fields,
     trim_variant,
     base0_interval_for_variant,
     interbase_range_affected_by_variant_on_transcript
@@ -20,17 +19,11 @@ from isovar.variant_helpers import (
 from varcode import Variant
 
 from .genomes_for_testing import grch38
-from .common import eq_ 
+from .common import eq_
+
 
 def test_trim_variant_substitution():
     loc, ref, alt = trim_variant(Variant("chr1", 10, "C", "G", grch38))
-    eq_(loc, 10)
-    eq_(ref, "C")
-    eq_(alt, "G")
-
-
-def test_trim_variant_fields_substitution():
-    loc, ref, alt = trim_variant_fields(10, "C", "G")
     eq_(loc, 10)
     eq_(ref, "C")
     eq_(alt, "G")
@@ -43,13 +36,6 @@ def test_trim_variant_insertion():
     eq_(alt, "G")
 
 
-def test_trim_variant_fields_insertion():
-    loc, ref, alt = trim_variant_fields(10, "C", "CG")
-    eq_(loc, 10)
-    eq_(ref, "")
-    eq_(alt, "G")
-
-
 def test_trim_variant_deletion():
     loc, ref, alt = trim_variant(Variant("chr1", 10, "CG", "C"))
     eq_(loc, 11)
@@ -57,11 +43,25 @@ def test_trim_variant_deletion():
     eq_(alt, "")
 
 
-def test_trim_variant_fields_deletion():
-    loc, ref, alt = trim_variant_fields(10, "CG", "C")
-    eq_(loc, 11)
-    eq_(ref, "G")
-    eq_(alt, "")
+def test_trim_variant_relies_on_varcode_prefix_suffix_and_insertion_normalization():
+    # Varcode trims shared flanking prefixes and suffixes during Variant
+    # construction and anchors insertions on the preceding base.
+    prefixed_and_suffixed_sub = Variant("chr1", 10, "ACT", "AGT")
+    eq_(trim_variant(prefixed_and_suffixed_sub), (11, "C", "G"))
+
+    prefixed_and_suffixed_del = Variant("chr1", 10, "ACGT", "AT")
+    eq_(trim_variant(prefixed_and_suffixed_del), (11, "CG", ""))
+
+    prefixed_and_suffixed_ins = Variant("chr1", 10, "AT", "ACGT")
+    eq_(trim_variant(prefixed_and_suffixed_ins), (10, "", "CG"))
+    assert prefixed_and_suffixed_ins.is_insertion
+
+    # Duck-typed VCF-style variant records normalize via Varcode's shared
+    # flanking-string helper with identical coordinates.
+    from types import SimpleNamespace
+    eq_(trim_variant(SimpleNamespace(start=10, ref="CG", alt="C")), (11, "G", ""))
+    eq_(trim_variant(SimpleNamespace(start=10, ref="C", alt="CG")), (10, "", "G"))
+    eq_(trim_variant(SimpleNamespace(start=10, ref="ACGT", alt="AT")), (11, "CG", ""))
 
 
 def test_base0_interval_for_variant_substitution():
