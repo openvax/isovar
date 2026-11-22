@@ -5,7 +5,6 @@ from isovar.transcript_compatibility import (
     annotate_reads_with_transcript_compatibility,
 )
 
-from .common import eq_
 
 
 def transcript(transcript_id, exon_intervals):
@@ -31,25 +30,21 @@ def classified_ids(reference_blocks, splice_junctions=()):
 
 def test_read_before_discriminating_junction_remains_ambiguous():
     # Base-0 half-open [110, 119) lies within both alternative exons.
-    eq_(classified_ids(((0, 8, 110, 118),)), frozenset({"short", "long"}))
+    assert classified_ids(((0, 8, 110, 118),)) == frozenset({"short", "long"})
 
 
 def test_junction_read_selects_compatible_splice_path():
-    eq_(
-        classified_ids(((0, 4, 116, 120), (4, 8, 200, 204)), ((120, 200),)),
-        frozenset({"short"}))
-    eq_(
-        classified_ids(((0, 4, 146, 150), (4, 8, 200, 204)), ((150, 200),)),
-        frozenset({"long"}))
+    assert classified_ids(((0, 4, 116, 120), (4, 8, 200, 204)), ((120, 200),)) == frozenset({"short"})
+    assert classified_ids(((0, 4, 146, 150), (4, 8, 200, 204)), ((150, 200),)) == frozenset({"long"})
 
 
 def test_contiguous_read_crossing_alternative_donor_selects_long_exon():
     # The read passes the short transcript's donor without a reference skip.
-    eq_(classified_ids(((0, 8, 116, 124),)), frozenset({"long"}))
+    assert classified_ids(((0, 8, 116, 124),)) == frozenset({"long"})
 
 
 def test_unaligned_read_metadata_does_not_choose_a_transcript():
-    eq_(classified_ids(()), frozenset({"short", "long"}))
+    assert classified_ids(()) == frozenset({"short", "long"})
 
 
 def test_alignment_beyond_terminal_transcript_boundary_is_compatible():
@@ -64,7 +59,7 @@ def test_alignment_beyond_terminal_transcript_boundary_is_compatible():
     annotated, = annotate_reads_with_transcript_compatibility(
         [read], [terminal])
 
-    eq_(annotated.compatible_transcript_ids, frozenset({"terminal"}))
+    assert annotated.compatible_transcript_ids == frozenset({"terminal"})
 
 
 def test_deletion_gap_within_one_exon_is_not_a_splice_conflict():
@@ -79,4 +74,4 @@ def test_deletion_gap_within_one_exon_is_not_a_splice_conflict():
     annotated, = annotate_reads_with_transcript_compatibility(
         [read], [single_exon])
 
-    eq_(annotated.compatible_transcript_ids, frozenset({"deletion"}))
+    assert annotated.compatible_transcript_ids == frozenset({"deletion"})

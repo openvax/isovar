@@ -90,14 +90,14 @@ def test_lint_uses_selected_python_module_not_path_ruff(tmp_path):
     result, invocations, trap_log = _run_gate(tmp_path, "lint.sh")
 
     assert result.returncode == 0, result.stderr
-    assert invocations == ["-m ruff check isovar/ tests/"]
+    assert invocations == ["-m ruff check isovar/ tests/ release_upload.py"]
     assert not trap_log.exists()
 
 
 @pytest.mark.parametrize(
     "script_name, expected_invocations",
     [
-        ("lint.sh", ["-m ruff check isovar/ tests/"]),
+        ("lint.sh", ["-m ruff check isovar/ tests/ release_upload.py"]),
         ("test.sh", [
             "-c import xdist",
             "-m pytest -n 1 --cov=isovar/ --cov-report=term-missing tests",

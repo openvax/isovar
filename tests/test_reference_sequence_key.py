@@ -1,5 +1,4 @@
 from varcode import Variant
-from .common import eq_ 
 
 
 from isovar.reference_sequence_key import ReferenceSequenceKey
@@ -15,7 +14,7 @@ def test_sequence_key_for_variant_on_transcript_substitution():
     # first 50 characters of BRCA2-001:
     #  "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG"
     brca2_ref_seq = brca2_001.sequence[:50]
-    eq_(brca2_ref_seq, "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG")
+    assert brca2_ref_seq == "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG"
     print(brca2_ref_seq)
     # get the 5 nucleotides before the variant and 10 nucleotides after
     sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
@@ -27,7 +26,7 @@ def test_sequence_key_for_variant_on_transcript_substitution():
         sequence_before_variant_locus=brca2_ref_seq[:5],
         sequence_at_variant_locus="T",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    eq_(sequence_key, expected_sequence_key)
+    assert sequence_key == expected_sequence_key
 
 
 def test_sequence_key_for_variant_on_transcript_deletion():
@@ -37,7 +36,7 @@ def test_sequence_key_for_variant_on_transcript_deletion():
     # first 50 characters of BRCA2-001:
     #  "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG"
     brca2_ref_seq = brca2_001.sequence[:50]
-    eq_(brca2_ref_seq, "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG")
+    assert brca2_ref_seq == "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG"
     print(brca2_ref_seq)
     # get the 5 nucleotides before the variant and 10 nucleotides after
     sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
@@ -49,7 +48,7 @@ def test_sequence_key_for_variant_on_transcript_deletion():
         sequence_before_variant_locus=brca2_ref_seq[:5],
         sequence_at_variant_locus="T",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    eq_(sequence_key, expected_sequence_key)
+    assert sequence_key == expected_sequence_key
 
 
 def test_sequence_key_for_variant_on_transcript_insertion():
@@ -60,7 +59,7 @@ def test_sequence_key_for_variant_on_transcript_insertion():
     # first 50 characters of BRCA2-001:
     #  "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG"
     brca2_ref_seq = brca2_001.sequence[:50]
-    eq_(brca2_ref_seq, "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG")
+    assert brca2_ref_seq == "GGGCTTGTGGCGCGAGCTTCTGAAACTAGGCGGCAGAGGCGGAGCCGCTG"
     print(brca2_ref_seq)
     # get the 5 nucleotides before the variant and 10 nucleotides after
     sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
@@ -75,7 +74,7 @@ def test_sequence_key_for_variant_on_transcript_insertion():
         sequence_before_variant_locus=brca2_ref_seq[:6],
         sequence_at_variant_locus="",
         sequence_after_variant_locus=brca2_ref_seq[6:16])
-    eq_(sequence_key, expected_sequence_key)
+    assert sequence_key == expected_sequence_key
 
 
 def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
@@ -86,7 +85,7 @@ def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
     # Sequence of TP53 around start codon with 10 context nucleotides:
     # In [51]: t.sequence[190-10:190+13]
     # Out[51]: 'GGTCACTGCC_ATG_GAGGAGCCGC'
-    eq_(tp53_001.sequence[190 - 10:190 + 13], "GGTCACTGCCATGGAGGAGCCGC")
+    assert tp53_001.sequence[190 - 10:190 + 13] == "GGTCACTGCCATGGAGGAGCCGC"
 
     # get the 5 nucleotides before the variant and 10 nucleotides after
     sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
@@ -99,7 +98,7 @@ def test_sequence_key_for_variant_on_transcript_substitution_reverse_strand():
         sequence_before_variant_locus="GGTCACTGCC",
         sequence_at_variant_locus="ATG",
         sequence_after_variant_locus="GAGGAGCCGC")
-    eq_(sequence_key, expected_sequence_key)
+    assert sequence_key == expected_sequence_key
 
 
 def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
@@ -110,7 +109,7 @@ def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
     # Sequence of TP53 around start codon with 10 context nucleotides:
     # In [51]: t.sequence[190-10:190+13]
     # Out[51]: 'GGTCACTGCC_ATG_GAGGAGCCGC'
-    eq_(tp53_001.sequence[190 - 10:190 + 13], "GGTCACTGCCATGGAGGAGCCGC")
+    assert tp53_001.sequence[190 - 10:190 + 13] == "GGTCACTGCCATGGAGGAGCCGC"
 
     # get the 5 nucleotides before the variant and 10 nucleotides after
     sequence_key = ReferenceSequenceKey.from_variant_and_transcript(
@@ -123,7 +122,7 @@ def test_sequence_key_for_variant_on_transcript_deletion_reverse_strand():
         sequence_before_variant_locus="GGTCACTGCC",
         sequence_at_variant_locus="ATG",
         sequence_after_variant_locus="GAGGAGCCGC")
-    eq_(sequence_key, expected_sequence_key)
+    assert sequence_key == expected_sequence_key
 
 
 def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
@@ -134,7 +133,7 @@ def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
     # Sequence of TP53 around start codon with 10 context nucleotides:
     # In [51]: t.sequence[190-10:190+13]
     # Out[51]: 'GGTCACTGCC_ATG_GAGGAGCCGC'
-    eq_(tp53_001.sequence[190 - 10:190 + 13], "GGTCACTGCCATGGAGGAGCCGC")
+    assert tp53_001.sequence[190 - 10:190 + 13] == "GGTCACTGCCATGGAGGAGCCGC"
 
     # The above gives us the cDNA sequence from the transcript, whereas the
     # reverse complement genomic sequence is:
@@ -151,7 +150,7 @@ def test_sequence_key_for_variant_on_transcript_insertion_reverse_strand():
         sequence_before_variant_locus="CACTGCCATG",
         sequence_at_variant_locus="",
         sequence_after_variant_locus="GAGGAGCCGC")
-    eq_(sequence_key, expected_sequence_key)
+    assert sequence_key == expected_sequence_key
 
 
 def test_reference_sequence_key_hash_and_equality_same_objects():
@@ -165,10 +164,10 @@ def test_reference_sequence_key_hash_and_equality_same_objects():
         sequence_before_variant_locus="AAA",
         sequence_at_variant_locus="T",
         sequence_after_variant_locus="GGG")
-    eq_(rsk1, rsk2)
-    eq_(hash(rsk1), hash(rsk2))
-    eq_(str(rsk1), str(rsk2))
-    eq_(repr(rsk1), repr(rsk2))
+    assert rsk1 == rsk2
+    assert hash(rsk1) == hash(rsk2)
+    assert str(rsk1) == str(rsk2)
+    assert repr(rsk1) == repr(rsk2)
 
 
 def test_reference_sequence_key_hash_and_equality_different_objects():

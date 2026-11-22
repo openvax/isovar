@@ -16,14 +16,13 @@ from isovar.reference_coding_sequence_key import (
     ReferenceCodingSequenceKey,
 )
 from varcode import Variant
-from .common import eq_
 from .genomes_for_testing import grch38
 
 
 def test_reading_frame_to_offset():
-    eq_(reading_frame_to_offset(0), 0)
-    eq_(reading_frame_to_offset(1), 2)
-    eq_(reading_frame_to_offset(2), 1)
+    assert reading_frame_to_offset(0) == 0
+    assert reading_frame_to_offset(1) == 2
+    assert reading_frame_to_offset(2) == 1
 
 
 def test_sequence_key_with_reading_frame_substitution_with_five_prime_utr():
@@ -60,7 +59,7 @@ def test_sequence_key_with_reading_frame_substitution_with_five_prime_utr():
         overlaps_start_codon=True,
         contains_five_prime_utr=True,
         amino_acids_before_variant="M")
-    eq_(result, expected)
+    assert result == expected
 
 
 def test_sequence_key_with_reading_frame_deletion_with_five_prime_utr():
@@ -98,7 +97,7 @@ def test_sequence_key_with_reading_frame_deletion_with_five_prime_utr():
         overlaps_start_codon=True,
         contains_five_prime_utr=True,
         amino_acids_before_variant="M")
-    eq_(result, expected)
+    assert result == expected
 
 
 def test_sequence_key_with_reading_frame_insertion():
@@ -136,7 +135,7 @@ def test_sequence_key_with_reading_frame_insertion():
         overlaps_start_codon=True,
         contains_five_prime_utr=True,
         amino_acids_before_variant="ME")
-    eq_(result, expected)
+    assert result == expected
 
 
 def test_reference_coding_sequence_key_insertion_inside_start_codon():
@@ -199,7 +198,7 @@ def test_sequence_key_with_reading_frame_insertion_context_6nt_contains_start():
         overlaps_start_codon=True,
         contains_five_prime_utr=False,
         amino_acids_before_variant="ME")
-    eq_(result, expected)
+    assert result == expected
 
 
 def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
@@ -235,7 +234,7 @@ def test_sequence_key_with_reading_frame_insertion_context_5nt_overlaps_start():
         overlaps_start_codon=True,
         contains_five_prime_utr=False,
         amino_acids_before_variant="E")
-    eq_(result, expected)
+    assert result == expected
 
 
 def test_sequence_key_with_reading_frame_insertion_context_3nt_no_start():
@@ -269,7 +268,7 @@ def test_sequence_key_with_reading_frame_insertion_context_3nt_no_start():
         overlaps_start_codon=False,
         contains_five_prime_utr=False,
         amino_acids_before_variant="E")
-    eq_(result, expected)
+    assert result == expected
 
 
 def test_reference_sequence_key_hash_and_equality_same_objects():
@@ -294,10 +293,10 @@ def test_reference_sequence_key_hash_and_equality_same_objects():
         contains_five_prime_utr=False,
         amino_acids_before_variant="E")
 
-    eq_(rcsk1, rcsk2)
-    eq_(str(rcsk1), str(rcsk2))
-    eq_(repr(rcsk1), repr(rcsk2))
-    eq_(hash(rcsk1), hash(rcsk2))
+    assert rcsk1 == rcsk2
+    assert str(rcsk1) == str(rcsk2)
+    assert repr(rcsk1) == repr(rcsk2)
+    assert hash(rcsk1) == hash(rcsk2)
 
 
 def test_reference_sequence_key_hash_and_equality_different_objects():
@@ -344,9 +343,9 @@ def test_reference_coding_sequence_key_around_TP53_201_variant():
 
     effect = variant.effect_on_transcript(transcript)
 
-    eq_(effect.__class__.__name__, "Substitution")
-    eq_(effect.aa_ref, "E")
-    eq_(effect.aa_alt, "K")
+    assert effect.__class__.__name__ == "Substitution"
+    assert effect.aa_ref == "E"
+    assert effect.aa_alt == "K"
     expected = ReferenceCodingSequenceKey(
         strand="-",
         sequence_before_variant_locus="ATG",
@@ -361,4 +360,4 @@ def test_reference_coding_sequence_key_around_TP53_201_variant():
         variant=variant,
         transcript=transcript,
         context_size=3)
-    eq_(expected, reference_coding_sequence_key)
+    assert expected == reference_coding_sequence_key

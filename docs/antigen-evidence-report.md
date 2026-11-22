@@ -6,7 +6,7 @@ nominated DNA structural variants, supplied fusion transcripts, selected viral
 contigs and targeted antigen genes in separate categories. Their counts have
 different denominators and are never summed as “total antigens.”
 
-Install `isovar[report]`. First run the source-specific commands with the same
+First run the source-specific commands with the same
 `--sample-id` and retain their versioned JSON outputs. For example:
 
 ```sh

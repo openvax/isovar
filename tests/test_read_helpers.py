@@ -20,7 +20,6 @@ from isovar.allele_read_helpers import (
     group_unique_sequences,
 )
 
-from .common import eq_
 from .testing_helpers import load_bam
 
 
@@ -58,8 +57,8 @@ def test_get_single_allele_from_reads_uniform():
         AlleleRead(prefix="AA", allele="G", suffix="TT", name="r2"),
     ]
     allele, filtered_reads = get_single_allele_from_reads(reads)
-    eq_(allele, "G")
-    eq_(len(filtered_reads), 2)
+    assert allele == "G"
+    assert len(filtered_reads) == 2
 
 
 def test_get_single_allele_from_reads_mixed_uses_most_common():
@@ -70,8 +69,8 @@ def test_get_single_allele_from_reads_mixed_uses_most_common():
         AlleleRead(prefix="AA", allele="C", suffix="TT", name="r4"),
     ]
     allele, filtered_reads = get_single_allele_from_reads(reads)
-    eq_(allele, "G")
-    eq_(len(filtered_reads), 3)
+    assert allele == "G"
+    assert len(filtered_reads) == 3
     assert all(r.allele == "G" for r in filtered_reads)
 
 

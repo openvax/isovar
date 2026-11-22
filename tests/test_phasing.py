@@ -21,7 +21,6 @@ from isovar.read_evidence import ReadEvidence
 from isovar.read_phasing import IsovarReadPhasing
 from isovar.transcript_assembly_edit import TranscriptAssemblyEdit
 
-from .common import eq_
 
 
 class DummyProteinSequence(object):
@@ -232,46 +231,31 @@ def test_annotate_phased_variants_creates_explicit_phase_groups():
         assert supporting_group is not None
         assert protein_group is not None
 
-        eq_(supporting_group.somatic_variants, expected_group_variants)
-        eq_(supporting_group.germline_variants, ())
-        eq_(supporting_group.supporting_read_names, expected_phase_read_names)
-        eq_(supporting_group.cdna_sequences, ())
-        eq_(supporting_group.mutant_protein_sequences, ())
-        eq_(supporting_group.transcript_ids, ())
-        eq_(supporting_group.transcript_names, ())
-        eq_(supporting_group.known_somatic_transcript_edits, ())
-        eq_(supporting_group.known_germline_transcript_edits, ())
-        eq_(supporting_group.unexplained_transcript_edits, ())
+        assert supporting_group.somatic_variants == expected_group_variants
+        assert supporting_group.germline_variants == ()
+        assert supporting_group.supporting_read_names == expected_phase_read_names
+        assert supporting_group.cdna_sequences == ()
+        assert supporting_group.mutant_protein_sequences == ()
+        assert supporting_group.transcript_ids == ()
+        assert supporting_group.transcript_names == ()
+        assert supporting_group.known_somatic_transcript_edits == ()
+        assert supporting_group.known_germline_transcript_edits == ()
+        assert supporting_group.unexplained_transcript_edits == ()
 
-        eq_(protein_group.somatic_variants, expected_group_variants)
+        assert protein_group.somatic_variants == expected_group_variants
         # The group's assemblies contain the germline edit.
-        eq_(protein_group.germline_variants, (germline,))
-        eq_(protein_group.supporting_read_names, expected_phase_protein_read_names)
-        eq_(protein_group.cdna_sequences, expected_cdna_sequences)
-        eq_(protein_group.mutant_protein_sequences, expected_protein_sequences)
-        eq_(protein_group.transcript_ids, expected_transcript_ids)
-        eq_(protein_group.transcript_names, expected_transcript_names)
-        eq_(
-            protein_group.known_somatic_transcript_edits,
-            expected_known_somatic_edits,
-        )
-        eq_(
-            protein_group.known_germline_transcript_edits,
-            expected_known_germline_edits,
-        )
-        eq_(
-            protein_group.unexplained_transcript_edits,
-            expected_unexplained_edits,
-        )
+        assert protein_group.germline_variants == (germline,)
+        assert protein_group.supporting_read_names == expected_phase_protein_read_names
+        assert protein_group.cdna_sequences == expected_cdna_sequences
+        assert protein_group.mutant_protein_sequences == expected_protein_sequences
+        assert protein_group.transcript_ids == expected_transcript_ids
+        assert protein_group.transcript_names == expected_transcript_names
+        assert protein_group.known_somatic_transcript_edits == expected_known_somatic_edits
+        assert protein_group.known_germline_transcript_edits == expected_known_germline_edits
+        assert protein_group.unexplained_transcript_edits == expected_unexplained_edits
 
-        eq_(
-            result.phased_variants_in_supporting_reads,
-            expected_supporting_neighbors[variant],
-        )
-        eq_(
-            result.phased_variants_in_protein_sequence,
-            expected_supporting_neighbors[variant],
-        )
+        assert result.phased_variants_in_supporting_reads == expected_supporting_neighbors[variant]
+        assert result.phased_variants_in_protein_sequence == expected_supporting_neighbors[variant]
 
 
 def test_annotate_phased_variants_leaves_singletons_without_phase_group():
@@ -283,8 +267,8 @@ def test_annotate_phased_variants_leaves_singletons_without_phase_group():
 
     assert result.phase_group_from_supporting_reads is None
     assert result.phase_group_from_protein_sequence is None
-    eq_(result.phased_variants_in_supporting_reads, set())
-    eq_(result.phased_variants_in_protein_sequence, set())
+    assert result.phased_variants_in_supporting_reads == set()
+    assert result.phased_variants_in_protein_sequence == set()
 
 
 def scoped_result(position, groups, segments=(64,), protein_groups=None):

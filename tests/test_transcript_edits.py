@@ -26,7 +26,6 @@ from isovar.transcript_edit_helpers import (
 )
 from isovar.variant_orf import VariantORF
 
-from .common import eq_
 
 
 @dataclass(frozen=True, order=True)
@@ -125,18 +124,12 @@ def test_categorize_transcript_assembly_edits_from_translation():
         transcript,
     )
 
-    eq_(
-        categorized_edits["known_somatic"],
-        (make_expected_edit(transcript, 5, 6, "G", variant),),
-    )
-    eq_(categorized_edits["known_germline"], ())
-    eq_(
-        categorized_edits["unexplained"],
-        (
+    assert categorized_edits["known_somatic"] == (make_expected_edit(transcript, 5, 6, "G", variant),)
+    assert categorized_edits["known_germline"] == ()
+    assert categorized_edits["unexplained"] == (
             make_expected_edit(transcript, 2, 3, "G"),
             make_expected_edit(transcript, 8, 9, "A"),
-        ),
-    )
+        )
 
 
 def test_categorize_transcript_assembly_edits_ignores_terminal_suffix_gap():
@@ -154,12 +147,9 @@ def test_categorize_transcript_assembly_edits_ignores_terminal_suffix_gap():
         transcript,
     )
 
-    eq_(
-        categorized_edits["known_somatic"],
-        (make_expected_edit(transcript, 5, 6, "G", variant),),
-    )
-    eq_(categorized_edits["known_germline"], ())
-    eq_(categorized_edits["unexplained"], (make_expected_edit(transcript, 2, 3, "G"),))
+    assert categorized_edits["known_somatic"] == (make_expected_edit(transcript, 5, 6, "G", variant),)
+    assert categorized_edits["known_germline"] == ()
+    assert categorized_edits["unexplained"] == (make_expected_edit(transcript, 2, 3, "G"),)
 
 
 def test_protein_sequence_exposes_deduplicated_transcript_assembly_edits():
@@ -168,18 +158,12 @@ def test_protein_sequence_exposes_deduplicated_transcript_assembly_edits():
     translation = make_translation(variant, transcript)
     protein_sequence = ProteinSequence.from_translations([translation, translation])
 
-    eq_(
-        protein_sequence.known_somatic_transcript_edits,
-        (make_expected_edit(transcript, 5, 6, "G", variant),),
-    )
-    eq_(protein_sequence.known_germline_transcript_edits, ())
-    eq_(
-        protein_sequence.unexplained_transcript_edits,
-        (
+    assert protein_sequence.known_somatic_transcript_edits == (make_expected_edit(transcript, 5, 6, "G", variant),)
+    assert protein_sequence.known_germline_transcript_edits == ()
+    assert protein_sequence.unexplained_transcript_edits == (
             make_expected_edit(transcript, 2, 3, "G"),
             make_expected_edit(transcript, 8, 9, "A"),
-        ),
-    )
+        )
 
 
 def test_isovar_mutant_transcript_includes_unexplained_edits():
@@ -192,14 +176,11 @@ def test_isovar_mutant_transcript_includes_unexplained_edits():
     mutant_transcript = source.mutant_transcript(variant, transcript)
 
     assert mutant_transcript is not None
-    eq_(
-        tuple(
+    assert tuple(
             (edit.cdna_start, edit.cdna_end, edit.alt_bases, edit.source_variant)
             for edit in mutant_transcript.edits
-        ),
-        (
+        ) == (
             (2, 3, "G", None),
             (5, 6, "G", variant),
             (8, 9, "A", None),
-        ),
-    )
+        )

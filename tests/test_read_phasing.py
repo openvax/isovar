@@ -25,7 +25,6 @@ from isovar.phasing import annotate_phased_variants
 from isovar.read_collector import ReadCollector
 from isovar.read_evidence import ReadEvidence
 
-from .common import eq_
 from .genomes_for_testing import grcm38
 from .mock_objects import MockAlignmentFile, make_pysam_read
 from .testing_helpers import data_path
@@ -82,21 +81,21 @@ def test_partners_in_cis_returns_phased_variants():
         _make_result(v2, alt_read_names={"r1"}, phased_partners={v1}),
         _make_result(v3, alt_read_names={"r1"}, phased_partners={v1}),
     ])
-    eq_(phasing.partners_in_cis(v1), (v2, v3))
-    eq_(phasing.partners_in_cis(v2), (v1,))
+    assert phasing.partners_in_cis(v1) == (v2, v3)
+    assert phasing.partners_in_cis(v2) == (v1,)
 
 
 def test_partners_in_cis_empty_when_no_partners():
     v = Variant("1", 10, "A", "C", normalize_contig_names=False)
     phasing = IsovarReadPhasing([_make_result(v, alt_read_names={"r1"})])
-    eq_(phasing.partners_in_cis(v), ())
+    assert phasing.partners_in_cis(v) == ()
 
 
 def test_partners_in_cis_empty_for_unknown_variant():
     v = Variant("1", 10, "A", "C", normalize_contig_names=False)
     unknown = Variant("2", 50, "A", "G", normalize_contig_names=False)
     phasing = IsovarReadPhasing([_make_result(v, alt_read_names={"r1"})])
-    eq_(phasing.partners_in_cis(unknown), ())
+    assert phasing.partners_in_cis(unknown) == ()
 
 
 def test_repr_includes_variant_count():
@@ -128,7 +127,7 @@ def test_partners_in_cis_is_deterministically_ordered():
             alt_read_names={"r1"},
             phased_partners={later, earlier, other_chrom}),
     ])
-    eq_(phasing.partners_in_cis(anchor), (earlier, later, other_chrom))
+    assert phasing.partners_in_cis(anchor) == (earlier, later, other_chrom)
 
 
 # ---- pipeline smoke tests against the b16 RNA fixture --------------------
@@ -157,9 +156,7 @@ def test_b16_has_evidence_matches_alt_fragment_count(b16_results):
     # against the real IsovarResult.num_alt_fragments rather than the
     # adapter's internal state.
     for result in b16_results:
-        eq_(
-            phasing.has_evidence(result.variant),
-            result.num_alt_fragments > 0)
+        assert phasing.has_evidence(result.variant) == (result.num_alt_fragments > 0)
 
 
 def test_b16_partners_are_subset_of_input_variants(b16_results):
@@ -174,9 +171,7 @@ def test_b16_partners_are_subset_of_input_variants(b16_results):
 def test_b16_partners_match_phased_variants_field(b16_results):
     phasing = IsovarReadPhasing(b16_results)
     for result in b16_results:
-        eq_(
-            set(phasing.partners_in_cis(result.variant)),
-            set(result.phased_variants_in_supporting_reads))
+        assert set(phasing.partners_in_cis(result.variant)) == set(result.phased_variants_in_supporting_reads)
 
 
 def test_b16_phasing_is_symmetric(b16_results):
@@ -222,16 +217,14 @@ def test_adapter_consistent_with_annotate_phased_variants():
     # Adapter must expose every partner that the upstream pipeline
     # populated, with no additions or omissions.
     for result in annotated:
-        eq_(
-            set(phasing.partners_in_cis(result.variant)),
-            set(result.phased_variants_in_supporting_reads))
+        assert set(phasing.partners_in_cis(result.variant)) == set(result.phased_variants_in_supporting_reads)
 
     # Spot-check the expected topology: v2 is partnered with both v1
     # and v3; v1 and v3 partner only with v2 (not with each other,
     # since no read spans v1 -> v3).
-    eq_(set(phasing.partners_in_cis(v1)), {v2})
-    eq_(set(phasing.partners_in_cis(v2)), {v1, v3})
-    eq_(set(phasing.partners_in_cis(v3)), {v2})
+    assert set(phasing.partners_in_cis(v1)) == {v2}
+    assert set(phasing.partners_in_cis(v2)) == {v1, v3}
+    assert set(phasing.partners_in_cis(v3)) == {v2}
 
     # All three have evidence.
     for v in (v1, v2, v3):
@@ -255,8 +248,8 @@ def test_threshold_filter_propagates_through_adapter():
         min_shared_fragments_for_phasing=2,
     )
     phasing = IsovarReadPhasing(annotated)
-    eq_(phasing.partners_in_cis(v1), ())
-    eq_(phasing.partners_in_cis(v2), ())
+    assert phasing.partners_in_cis(v1) == ()
+    assert phasing.partners_in_cis(v2) == ()
 
 
 # ---- synthetic somatic + germline phasing scenario -----------------------
@@ -335,14 +328,10 @@ def test_two_input_variants_with_competing_alleles_remain_unphased():
     # exercising the adapter -- if the read collector doesn't pick
     # the alts up as expected, downstream assertions would be
     # misleading.
-    eq_(
-        somatic_evidence.alt_read_names,
-        {"frag-both-1", "frag-both-2", "frag-both-3",
-         "frag-somatic-1", "frag-somatic-2"})
-    eq_(
-        germline_evidence.alt_read_names,
-        {"frag-both-1", "frag-both-2", "frag-both-3",
-         "frag-germline-1", "frag-germline-2"})
+    assert somatic_evidence.alt_read_names == {"frag-both-1", "frag-both-2", "frag-both-3",
+         "frag-somatic-1", "frag-somatic-2"}
+    assert germline_evidence.alt_read_names == {"frag-both-1", "frag-both-2", "frag-both-3",
+         "frag-germline-1", "frag-germline-2"}
 
     annotated = annotate_phased_variants([
         IsovarResult(
@@ -362,8 +351,8 @@ def test_two_input_variants_with_competing_alleles_remain_unphased():
     # (3 both, 2 first alone, 2 second alone) is ambiguous despite sharing
     # three alternate fragments. This is not the matched-germline path.
     assert phasing.in_cis(somatic, germline) is None
-    eq_(phasing.partners_in_cis(somatic), ())
-    eq_(phasing.partners_in_cis(germline), ())
+    assert phasing.partners_in_cis(somatic) == ()
+    assert phasing.partners_in_cis(germline) == ()
     assert all(result.phase_group_from_supporting_reads is None for result in annotated)
 
 

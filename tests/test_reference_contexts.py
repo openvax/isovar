@@ -20,7 +20,6 @@ from isovar.dataframe_helpers import variants_to_reference_contexts_dataframe
 
 from .testing_helpers import load_vcf
 from .genomes_for_testing import grch38
-from .common import eq_ 
 
 
 def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
@@ -72,13 +71,13 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
             transcript_id_whitelist={tp53_001.id}))
 
     # still only expect one variant key
-    eq_(len(reference_context_dict_single_transcript), 1)
+    assert len(reference_context_dict_single_transcript) == 1
 
     result_list = reference_context_dict_single_transcript[tp53_substitution]
 
     # since we limited the transcript ID whitelist, we only expect a single
     # reference context in the result
-    eq_(len(result_list), 1)
+    assert len(result_list) == 1
 
     result = result_list[0]
 
@@ -94,7 +93,7 @@ def test_sequence_key_with_reading_frame_substitution_on_negative_strand():
         amino_acids_before_variant="M",
         variant=tp53_substitution,
         transcripts=[tp53_001])
-    eq_(result, expected)
+    assert result == expected
 
 
 def test_variants_to_reference_contexts_dataframe():
@@ -106,7 +105,7 @@ def test_variants_to_reference_contexts_dataframe():
     groups = df.groupby(["chr", "pos", "ref", "alt"])
     # make sure we have at least one reference context for each
     # of the B16 coding variants
-    eq_(len(groups), len(variants))
+    assert len(groups) == len(variants)
 
 
 def test_reference_context_hash_and_equality_same_object():
@@ -135,10 +134,10 @@ def test_reference_context_hash_and_equality_same_object():
         variant=None,
         transcripts=[])
 
-    eq_(rc1, rc2)
-    eq_(str(rc1), str(rc2))
-    eq_(repr(rc1), repr(rc2))
-    eq_(hash(rc1), hash(rc2))
+    assert rc1 == rc2
+    assert str(rc1) == str(rc2)
+    assert repr(rc1) == repr(rc2)
+    assert hash(rc1) == hash(rc2)
 
 
 def test_reference_context_hash_and_equality_different_objects():

@@ -12,19 +12,18 @@
 
 
 from isovar.value_object import ValueObject
-from .common import eq_ 
 
 
 def test_no_fields_unless_specified():
     v = ValueObject()
-    eq_(v._fields, ())
-    eq_(v._values, ())
+    assert v._fields == ()
+    assert v._values == ()
 
 
 def test_default_string_repr():
     v = ValueObject()
-    eq_(str(v), "ValueObject()")
-    eq_(repr(v), "ValueObject()")
+    assert str(v) == "ValueObject()"
+    assert repr(v) == "ValueObject()"
 
 
 class DerivedWithoutInit(ValueObject):
@@ -33,8 +32,8 @@ class DerivedWithoutInit(ValueObject):
 
 def test_default_init():
     obj = DerivedWithoutInit(a=1, b=2)
-    eq_(obj.a, 1)
-    eq_(obj.b, 2)
+    assert obj.a == 1
+    assert obj.b == 2
 
 
 class DerivedWithInit(ValueObject):
@@ -51,11 +50,11 @@ def test_equality_checks_class():
     x = DerivedWithInit(a=1, b=2)
     y = DerivedWithoutInit(a=1, b=2)
 
-    eq_(hash(x), hash(y))
+    assert hash(x) == hash(y)
     assert x != y, "Expected %s != %s" % (x, y)
 
 
 def test_derived_string_repr():
     x = DerivedWithInit(a=1, b=2)
-    eq_(str(x), "DerivedWithInit(a=1, b=2)")
-    eq_(repr(x), "DerivedWithInit(a=1, b=2)")
+    assert str(x) == "DerivedWithInit(a=1, b=2)"
+    assert repr(x) == "DerivedWithInit(a=1, b=2)"

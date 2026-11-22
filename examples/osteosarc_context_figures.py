@@ -17,7 +17,6 @@ from isovar.visualization import (
     GRAY,
     ORANGE,
     draw_side_note,
-    plot_dependencies,
     protein_disagreements,
 )
 from tests.data.osteosarc.expansion.references import translate
@@ -265,7 +264,7 @@ def generate(output_dir):
     data=load_context()
     cd109=verify_context(data)
     output=osteosarc_assembly_figures.generate(output_dir)
-    _,rc_context,_=plot_dependencies()
+    from matplotlib import rc_context
     from matplotlib.backends.backend_pdf import PdfPages
     from pypdf import PdfReader, PdfWriter
 

@@ -10,8 +10,6 @@
 ## Quick start
 
 ```sh
-pip install 'isovar[plot]'
-
 isovar plot --variant 5 141526090 C A --genome GRCh38 --bam tumor.bam \
   --compare-assembly --output-dir figures
 ```
@@ -184,7 +182,7 @@ sequencing errors.
 
 Browse the [expanded figure gallery](../figures/osteosarc/2026-09-16_05-43-34-415330Z/README.md)
 or the [original three-example, 12-page vector PDF](../figures/osteosarc/2026-09-16_05-23-24-826750Z/three-examples-12-pages.pdf).
-To regenerate them from a repository checkout with the plotting extra installed:
+To regenerate them from a repository checkout:
 
 ```sh
 python -m examples.osteosarc_assembly_figures --output-dir figures/osteosarc

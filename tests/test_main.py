@@ -15,7 +15,6 @@ from isovar.cli.variant_sequences_args import make_variant_sequences_arg_parser
 from isovar.variant_sequence_creator import VariantSequenceCreator
 from isovar.cli.main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
 from pandas.testing import assert_frame_equal
-from .common import eq_
 from .testing_helpers import data_path
 
 
@@ -25,10 +24,10 @@ def test_isovar_main_to_dataframe():
         alignment_file=data_path("data/b16.f10/b16.combined.sorted.bam"))
     df = isovar_results_to_dataframe(results)
     print(df)
-    eq_(len(df), 4)
+    assert len(df) == 4
     # B16 test data has 2/4 variants with enough coverage
     # to translate protein sequences
-    eq_(df["passes_all_filters"].sum(), 2)
+    assert df["passes_all_filters"].sum() == 2
     cli_args = make_isovar_arg_parser().parse_args([
         "--vcf", data_path("data/b16.f10/b16.vcf"),
         "--bam", data_path("data/b16.f10/b16.combined.sorted.bam"),

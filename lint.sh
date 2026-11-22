@@ -27,6 +27,6 @@ resolve_python() {
 }
 
 resolve_python
-"${PYTHON}" -m ruff check isovar/ tests/
+"${PYTHON}" -m ruff check isovar/ tests/ release_upload.py
 
 echo 'Passes ruff check'

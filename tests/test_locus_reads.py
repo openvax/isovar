@@ -21,7 +21,6 @@ from isovar.read_collector import ReadCollector
 
 from .mock_objects import MockAlignmentFile, make_pysam_read
 from .testing_helpers import assert_equal_fields, load_bam, data_path
-from .common import eq_
 from .genomes_for_testing import grch38
 
 
@@ -285,7 +284,7 @@ def test_locus_reads_dataframe():
         45802538,
         45802539,
     )
-    eq_(sum(read.source_read_count for read in reads), n_reads_expected)
+    assert sum(read.source_read_count for read in reads) == n_reads_expected
 
     df = locus_reads_dataframe(
         alignments=sam_all_variants,
@@ -294,7 +293,7 @@ def test_locus_reads_dataframe():
         base0_end=45802539,
         merge_overlapping_fragments=False)
     print(df)
-    eq_(len(df), n_reads_expected)
+    assert len(df) == n_reads_expected
 
 
 def test_get_locus_reads_merges_overlapping_paired_reads():
@@ -324,13 +323,13 @@ def test_get_locus_reads_merges_overlapping_paired_reads():
         base0_start_inclusive=3,
         base0_end_exclusive=4,
     )
-    eq_(len(reads), 1)
+    assert len(reads) == 1
     merged_read = reads[0]
-    eq_(merged_read.sequence, "ACCGTGAA")
-    eq_(merged_read.reference_positions, list(range(8)))
-    eq_(merged_read.read_base0_start_inclusive, 3)
-    eq_(merged_read.read_base0_end_exclusive, 4)
-    eq_(merged_read.source_read_count, 2)
+    assert merged_read.sequence == "ACCGTGAA"
+    assert merged_read.reference_positions == list(range(8))
+    assert merged_read.read_base0_start_inclusive == 3
+    assert merged_read.read_base0_end_exclusive == 4
+    assert merged_read.source_read_count == 2
 
 
 @pytest.mark.parametrize("compact", [False, True])
@@ -451,7 +450,7 @@ def test_locus_read_avoids_linear_index_scans_over_reference_positions():
         base0_end_exclusive=4,
     )
     assert result is not None
-    eq_(tracking_positions.index_calls, 0)
+    assert tracking_positions.index_calls == 0
 
 
 def _make_mock_pysam_read_with_none_mapq():
@@ -538,8 +537,8 @@ def test_locus_read_insertion_locus_no_insertion_in_read():
         base0_end_exclusive=4,
     )
     assert result is not None, "Read without insertion should still be returned"
-    eq_(result.read_base0_start_inclusive, 4)
-    eq_(result.read_base0_end_exclusive, 4)
+    assert result.read_base0_start_inclusive == 4
+    assert result.read_base0_end_exclusive == 4
 
 
 def test_locus_read_insertion_locus_with_insertion_in_read():
@@ -560,8 +559,8 @@ def test_locus_read_insertion_locus_with_insertion_in_read():
         base0_end_exclusive=4,
     )
     assert result is not None, "Read with insertion should be returned"
-    eq_(result.read_base0_start_inclusive, 4)
-    eq_(result.read_base0_end_exclusive, 5)
+    assert result.read_base0_start_inclusive == 4
+    assert result.read_base0_end_exclusive == 5
 
 
 def test_locus_read_insertion_locus_with_insertion_at_start_of_read():
@@ -584,8 +583,8 @@ def test_locus_read_insertion_locus_with_insertion_at_start_of_read():
         base0_end_exclusive=3,
     )
     assert result is not None, "Insertion at the start of a read should be kept"
-    eq_(result.read_base0_start_inclusive, 0)
-    eq_(result.read_base0_end_exclusive, 1)
+    assert result.read_base0_start_inclusive == 0
+    assert result.read_base0_end_exclusive == 1
 
 
 def test_locus_read_insertion_locus_with_insertion_at_end_of_read():
@@ -608,8 +607,8 @@ def test_locus_read_insertion_locus_with_insertion_at_end_of_read():
         base0_end_exclusive=3,
     )
     assert result is not None, "Insertion at the end of a read should be kept"
-    eq_(result.read_base0_start_inclusive, 1)
-    eq_(result.read_base0_end_exclusive, 2)
+    assert result.read_base0_start_inclusive == 1
+    assert result.read_base0_end_exclusive == 2
 
 
 def test_locus_read_left_aligns_equivalent_homopolymer_insertion():
@@ -641,8 +640,8 @@ def test_locus_read_left_aligns_equivalent_homopolymer_insertion():
         chromosome="1",
     )
     assert len(reads) == 1
-    eq_(reads[0].read_base0_start_inclusive, 1)
-    eq_(reads[0].read_base0_end_exclusive, 2)
+    assert reads[0].read_base0_start_inclusive == 1
+    assert reads[0].read_base0_end_exclusive == 2
 
 
 def test_locus_read_left_aligns_equivalent_homopolymer_deletion():
@@ -671,5 +670,5 @@ def test_locus_read_left_aligns_equivalent_homopolymer_deletion():
         chromosome="1",
     )
     assert len(reads) == 1
-    eq_(reads[0].read_base0_start_inclusive, 1)
-    eq_(reads[0].read_base0_end_exclusive, 1)
+    assert reads[0].read_base0_start_inclusive == 1
+    assert reads[0].read_base0_end_exclusive == 1

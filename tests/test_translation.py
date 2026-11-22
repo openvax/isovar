@@ -12,7 +12,6 @@
 
 from isovar import ProteinSequenceCreator, ReadCollector
 
-from .common import eq_ 
 from .testing_helpers import load_bam, load_vcf
 
 
@@ -24,10 +23,7 @@ def test_translate_variant_collection():
         samfile)
     translation_gen = ProteinSequenceCreator().translate_variants(read_evidence_gen)
     translations = list(translation_gen)
-    eq_(
-        len(translations),
-        4,
-        "Expected %d translated variants but got %d: %s" % (
+    assert len(translations) == 4, "Expected %d translated variants but got %d: %s" % (
             len(variants),
             len(translations),
-            translations))
+            translations)

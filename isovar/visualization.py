@@ -280,23 +280,6 @@ def variant_directory_name(data):
     return slug if len(slug) <= 120 else slug[:100] + "-" + sha256(slug.encode()).hexdigest()[:12]
 
 
-def plot_dependencies():
-    """Load plotting objects only when a figure is requested.
-
-    Returns
-    -------
-    tuple
-        Matplotlib Figure, rc_context and Rectangle constructors.
-    """
-    try:
-        from matplotlib import rc_context
-        from matplotlib.figure import Figure
-        from matplotlib.patches import Rectangle
-    except ImportError as error:
-        raise ImportError("Figures require the optional plotting extra: pip install 'isovar[plot]'") from error
-    return Figure, rc_context, Rectangle
-
-
 # High-contrast, colorblind-friendly marks on an opaque white background.
 BLUE, ORANGE, GRAY, INK = "#0072B2", "#D55E00", "#707070", "#202020"
 
@@ -654,7 +637,9 @@ def plot_variant_evidence(data, view=PLOT_VIEW, max_rows=PLOT_MAX_ROWS):
         raise ValueError("Unknown visualization view: %s" % view)
     if isinstance(max_rows, bool) or not isinstance(max_rows, int) or max_rows < 2:
         raise ValueError("max_rows must be an integer >= 2")
-    Figure, rc_context, rectangle = plot_dependencies()
+    from matplotlib import rc_context
+    from matplotlib.figure import Figure
+    from matplotlib.patches import Rectangle as rectangle
     witness = _selected_witness(data)
     heights, panels, names = [], [], []
     if view in {"all", "protein"}:
@@ -776,7 +761,7 @@ def save_variant_figures(data, output_dir, view=PLOT_VIEW, max_rows=PLOT_MAX_ROW
     directory.mkdir(parents=True, exist_ok=False)
     views = (["all", "protein", "coverage", "reads", "transcripts"] if view == "all" else
              ["assembly", "coverage", "reads"] if view == "assembly" else [view])
-    _, rc_context, _ = plot_dependencies()
+    from matplotlib import rc_context
     from matplotlib.backends.backend_pdf import PdfPages
 
     with rc_context({"svg.fonttype": "none", "svg.hashsalt": "isovar", "pdf.fonttype": 42}), \
