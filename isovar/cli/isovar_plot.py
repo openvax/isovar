@@ -18,7 +18,6 @@ from ..default_parameters import (
 from ..logging import configure_cli_logging
 from ..visualization import (
     collect_visualization_data,
-    plot_dependencies,
     save_variant_figures,
     timestamped_run_directory,
 )
@@ -65,10 +64,6 @@ def run(args=None, *, prog=None):
     args = command_parser.parse_args(sys.argv[1:] if args is None else args)
     if args.max_rows < 2:
         command_parser.error("--max-rows must be >= 2")
-    try:
-        plot_dependencies()
-    except ImportError as error:
-        input_error(command_parser, error)
     configure_cli_logging(args.log_level)
     try:
         check_outputs(args, directories=("output_dir",))

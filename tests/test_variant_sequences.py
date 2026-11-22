@@ -25,7 +25,6 @@ from isovar.variant_sequence_helpers import trim_variant_sequences
 
 from .testing_helpers import load_bam
 from .genomes_for_testing import grch38
-from .common import eq_ 
 
 def test_sequence_counts_snv():
     samfile = load_bam("data/cancer-wgs-primary.chr12.bam")
@@ -47,17 +46,15 @@ def test_sequence_counts_snv():
     # candidates lost the other reads which also supported their bases.
     assert len(variant_sequences) == 14
     longest = max(variant_sequences, key=len)
-    eq_(len(longest.prefix), 30)
-    eq_(len(longest.suffix), 30)
+    assert len(longest.prefix) == 30
+    assert len(longest.suffix) == 30
     for variant_sequence in variant_sequences:
         print(variant_sequence)
-        eq_(variant_sequence.alt, alt)
+        assert variant_sequence.alt == alt
         assert longest.contains(variant_sequence)
         assert variant_sequence.min_coverage() >= 2
-        eq_(len(variant_sequence.reads), 19)
-        eq_(
-            variant_sequence.prefix + variant_sequence.alt + variant_sequence.suffix,
-            variant_sequence.sequence)
+        assert len(variant_sequence.reads) == 19
+        assert variant_sequence.prefix + variant_sequence.alt + variant_sequence.suffix == variant_sequence.sequence
 
 
 def test_variant_sequence_read_names():
@@ -68,7 +65,7 @@ def test_variant_sequence_read_names():
         reads=[
             AlleleRead(prefix="A", allele="C", suffix="T", name="1"),
             AlleleRead(prefix="A", allele="C", suffix="T", name="2")])
-    eq_(vs.read_names, {"1", "2"})
+    assert vs.read_names == {"1", "2"}
 
 
 def test_variant_sequence_contains():
@@ -164,7 +161,7 @@ def test_variant_sequence_add_reads():
     # adding reads '2' and '3', sometimes multiple times
     vs_result = vs.add_reads("2").add_reads("1").add_reads("2").add_reads("3")
     expected = VariantSequence(prefix="A", alt="C", suffix="G", reads={"1", "2", "3"})
-    eq_(vs_result, expected)
+    assert vs_result == expected
 
 
 def test_variant_sequence_combine():
@@ -172,12 +169,12 @@ def test_variant_sequence_combine():
     vs2 = VariantSequence(prefix="AA", alt="C", suffix="GG", reads={"2"})
     vs_result_1_to_2 = vs1.combine(vs2)
     expected = VariantSequence(prefix="AA", alt="C", suffix="GG", reads={"1", "2"})
-    eq_(vs_result_1_to_2, expected)
+    assert vs_result_1_to_2 == expected
 
     # shouldn't matter which sequence is first as an argument to the combine
     # function
     vs_result_2_to_1 = vs2.combine(vs1)
-    eq_(vs_result_2_to_1, expected)
+    assert vs_result_2_to_1 == expected
 
 
 def test_variant_sequence_trim_by_coverage():
@@ -193,14 +190,14 @@ def test_variant_sequence_trim_by_coverage():
         suffix="T",
         reads=reads)
     # every nucleotide is spanned by one read
-    eq_(vs.trim_by_coverage(1), vs)
+    assert vs.trim_by_coverage(1) == vs
 
     vs_expected_trim_by_2 = VariantSequence(
         prefix="A",
         alt="C",
         suffix="T",
         reads=reads)
-    eq_(vs.trim_by_coverage(2), vs_expected_trim_by_2)
+    assert vs.trim_by_coverage(2) == vs_expected_trim_by_2
 
 
 def test_variant_sequence_min_coverage():
@@ -220,7 +217,7 @@ def test_variant_sequence_min_coverage():
         alt="C",
         suffix="TT",
         reads=reads)
-    eq_(vs.min_coverage(), 2)
+    assert vs.min_coverage() == 2
 
 
 def test_variant_sequence_mean_coverage():
@@ -243,7 +240,7 @@ def test_variant_sequence_mean_coverage():
     # count the number of times a nucleotide in the sequences above
     # is contained in a read
     expected_mean_coverage = (2 + 3 + 3 + 3 + 2) / 5
-    eq_(vs.mean_coverage(), expected_mean_coverage)
+    assert vs.mean_coverage() == expected_mean_coverage
 
 
 def test_variant_sequence_len():
@@ -252,7 +249,7 @@ def test_variant_sequence_len():
         alt="C",
         suffix="TT",
         reads=[])
-    eq_(len(vs), 5)
+    assert len(vs) == 5
 
 
 def test_variant_sequence_coverage_is_cached():
@@ -272,8 +269,8 @@ def test_variant_sequence_coverage_cache_excluded_from_equality():
     vs1 = VariantSequence(prefix="AA", alt="C", suffix="TT", reads=reads)
     vs2 = VariantSequence(prefix="AA", alt="C", suffix="TT", reads=reads)
     vs1.coverage()
-    eq_(vs1, vs2, "Cached coverage should not affect equality")
-    eq_(hash(vs1), hash(vs2), "Cached coverage should not affect hash")
+    assert vs1 == vs2, "Cached coverage should not affect equality"
+    assert hash(vs1) == hash(vs2), "Cached coverage should not affect hash"
 
 
 def _variant_sequence(prefix, alt, suffix, n_fragments, name_prefix):
@@ -306,7 +303,7 @@ def test_trim_retains_nonempty_candidates_regardless_of_length_or_order():
     for ordered_candidates in permutations([short, long, deletion, degenerate]):
         kept = trim_variant_sequences(
             list(ordered_candidates), min_variant_sequence_coverage=1)
-        eq_(set(kept), {short, long, deletion})
+        assert set(kept) == {short, long, deletion}
 
 
 def test_trim_variant_sequences_drops_sequences_without_coverage():
@@ -317,7 +314,7 @@ def test_trim_variant_sequences_drops_sequences_without_coverage():
     trimmed = trim_variant_sequences(
         [uncovered, covered],
         min_variant_sequence_coverage=2)
-    eq_(trimmed, [covered])
+    assert trimmed == [covered]
     assert all(len(s) > 0 for s in trimmed), \
         "trim_variant_sequences should not return empty sequences"
 
@@ -333,8 +330,8 @@ def test_trim_variant_sequences_drops_sequences_without_coverage():
 def test_trim_variant_sequences_keeps_deletion_sequences():
     deletion = _variant_sequence("A" * 20, "", "T" * 20, 3, "deletion")
     trimmed = trim_variant_sequences([deletion], min_variant_sequence_coverage=2)
-    eq_(trimmed, [deletion])
-    eq_(trimmed[0].alt, "")
+    assert trimmed == [deletion]
+    assert trimmed[0].alt == ""
 
 
 def test_trim_variant_sequences_distinguishes_deletion_from_degenerate():
@@ -344,7 +341,7 @@ def test_trim_variant_sequences_distinguishes_deletion_from_degenerate():
     trimmed = trim_variant_sequences(
         [covered_deletion, uncovered_deletion],
         min_variant_sequence_coverage=2)
-    eq_(trimmed, [covered_deletion])
+    assert trimmed == [covered_deletion]
 
 
 def test_trim_variant_sequences_preserves_supported_substrings():
@@ -355,10 +352,10 @@ def test_trim_variant_sequences_preserves_supported_substrings():
         [longer, shorter],
         min_variant_sequence_coverage=2)
 
-    eq_(set(trimmed), {
+    assert set(trimmed) == {
         longer.add_reads(shorter.reads),
         shorter.add_reads(longer.reads),
-    })
+    }
 
 
 def test_trim_variant_sequences_merges_only_exact_trimmed_duplicates():
@@ -386,11 +383,9 @@ def test_trim_variant_sequences_merges_only_exact_trimmed_duplicates():
         [needs_trimming, already_trimmed],
         min_variant_sequence_coverage=2)
 
-    eq_(len(trimmed), 1)
-    eq_((trimmed[0].prefix, trimmed[0].alt, trimmed[0].suffix),
-        ("AA", "C", "GG"))
-    eq_(trimmed[0].reads,
-        {long_read, inner_read}.union(already_trimmed_reads))
+    assert len(trimmed) == 1
+    assert (trimmed[0].prefix, trimmed[0].alt, trimmed[0].suffix) == ("AA", "C", "GG")
+    assert trimmed[0].reads == {long_read, inner_read}.union(already_trimmed_reads)
 
 
 def test_trim_variant_sequences_keeps_well_supported_shorter_deletion():
@@ -400,7 +395,7 @@ def test_trim_variant_sequences_keeps_well_supported_shorter_deletion():
     kept = trim_variant_sequences(
         [long_sequence, short_deletion],
         min_variant_sequence_coverage=2)
-    eq_(set(kept), {long_sequence, short_deletion})
+    assert set(kept) == {long_sequence, short_deletion}
     assert all(s.alt == "" for s in kept)
 
 
@@ -416,6 +411,6 @@ def test_reads_to_variant_sequences_keeps_deletion():
     creator = VariantSequenceCreator(preferred_sequence_length=61)
     variant_sequences = creator.reads_to_variant_sequences(
         variant=variant, reads=reads)
-    eq_(len(variant_sequences), 1)
-    eq_(variant_sequences[0].alt, "")
-    eq_(variant_sequences[0].sequence, prefix + suffix)
+    assert len(variant_sequences) == 1
+    assert variant_sequences[0].alt == ""
+    assert variant_sequences[0].sequence == prefix + suffix

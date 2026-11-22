@@ -12,7 +12,6 @@
 
 from os.path import join, dirname
 
-from .common import eq_ 
 
 from pysam import AlignmentFile
 import varcode
@@ -22,7 +21,7 @@ def assert_equal_fields(result, expected):
     """
     Assert that fields of two namedtuple objects have same field values.
     """
-    eq_(result.__class__, expected.__class__)
+    assert result.__class__ == expected.__class__
     for field in result.__class__._fields:
         result_value = getattr(result, field)
         expected_value = getattr(expected, field)

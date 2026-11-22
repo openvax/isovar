@@ -14,7 +14,6 @@ from isovar.visualization import (
     GRAY,
     ORANGE,
     draw_side_note,
-    plot_dependencies,
     save_variant_figures,
 )
 
@@ -64,7 +63,7 @@ def deletion_panels(entry):
     unit=1000
     figure,ax=fusion_figure_canvas(entry['gene']+' | DNA interval in transcript context',
                      '%s:%s-%s  |  %s-bp listed deletion' % (entry['contig'],format(start,','),format(end,','),format(end-start,',')),6)
-    _,_,rectangle=plot_dependencies()
+    from matplotlib.patches import Rectangle as rectangle
     ax.axvspan(0,(end-start)/unit,color=ORANGE,alpha=.14)
     for y,m in enumerate(models[::-1],1):
         exons=m['exons']

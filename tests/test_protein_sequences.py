@@ -29,7 +29,6 @@ from isovar.translation import Translation
 from isovar.variant_orf import VariantORF
 from isovar.variant_sequence import VariantSequence
 
-from .common import eq_
 from .testing_helpers import load_bam, load_vcf, data_path
 from .mock_objects import make_dummy_protein_sequence
 
@@ -84,14 +83,14 @@ def test_protein_sequence_substitution():
         ends_with_stop_codon=True,
         frameshift=False,
         translations=[])
-    eq_(p.amino_acids, "SIINFEQL")
-    eq_(len(p), 8)
-    eq_(p.contains_mutation, True)
-    eq_(p.contains_deletion, False)
-    eq_(p.frameshift, False)
-    eq_(p.ends_with_stop_codon, True)
-    eq_(p.num_mutant_amino_acids, 1)
-    eq_(p.mutant_amino_acids, "Q")
+    assert p.amino_acids == "SIINFEQL"
+    assert len(p) == 8
+    assert p.contains_mutation
+    assert not p.contains_deletion
+    assert not p.frameshift
+    assert p.ends_with_stop_codon
+    assert p.num_mutant_amino_acids == 1
+    assert p.mutant_amino_acids == "Q"
 
 
 def test_protein_sequence_deletion():
@@ -105,14 +104,14 @@ def test_protein_sequence_deletion():
         ends_with_stop_codon=True,
         frameshift=False,
         translations=[])
-    eq_(p.amino_acids, "SIINFEL")
-    eq_(len(p), 7)
-    eq_(p.num_mutant_amino_acids, 0)
-    eq_(p.mutant_amino_acids, "")
-    eq_(p.contains_mutation, True)
-    eq_(p.contains_deletion, True)
-    eq_(p.frameshift, False)
-    eq_(p.ends_with_stop_codon, True)
+    assert p.amino_acids == "SIINFEL"
+    assert len(p) == 7
+    assert p.num_mutant_amino_acids == 0
+    assert p.mutant_amino_acids == ""
+    assert p.contains_mutation
+    assert p.contains_deletion
+    assert not p.frameshift
+    assert p.ends_with_stop_codon
 
 
 def test_protein_subsequence_overlaps_substitution():
@@ -127,14 +126,14 @@ def test_protein_subsequence_overlaps_substitution():
         frameshift=False,
         translations=[])
     p2 = p.subsequence(len("SIIN"), None)
-    eq_(p2.amino_acids, "FEQL")
-    eq_(p2.contains_mutation, True)
-    eq_(p2.contains_deletion, False)
-    eq_(p2.frameshift, False)
-    eq_(p2.ends_with_stop_codon, True)
-    eq_(p2.num_mutant_amino_acids, 1)
-    eq_(p2.mutant_amino_acids, "Q")
-    eq_(len(p2), 4)
+    assert p2.amino_acids == "FEQL"
+    assert p2.contains_mutation
+    assert not p2.contains_deletion
+    assert not p2.frameshift
+    assert p2.ends_with_stop_codon
+    assert p2.num_mutant_amino_acids == 1
+    assert p2.mutant_amino_acids == "Q"
+    assert len(p2) == 4
 
 def test_protein_subsequence_does_not_overlap_substitution():
     # testing that we got the correct properties for case where "SIINFEKL" was
@@ -148,14 +147,14 @@ def test_protein_subsequence_does_not_overlap_substitution():
         frameshift=False,
         translations=[])
     p2 = p.subsequence(0, len("SIIN"))
-    eq_(p2.amino_acids, "SIIN")
-    eq_(p2.contains_mutation, False)
-    eq_(p2.contains_deletion, False)
-    eq_(p2.frameshift, False)
-    eq_(p2.ends_with_stop_codon, False)
-    eq_(p2.num_mutant_amino_acids, 0)
-    eq_(p2.mutant_amino_acids, "")
-    eq_(len(p2), 4)
+    assert p2.amino_acids == "SIIN"
+    assert not p2.contains_mutation
+    assert not p2.contains_deletion
+    assert not p2.frameshift
+    assert not p2.ends_with_stop_codon
+    assert p2.num_mutant_amino_acids == 0
+    assert p2.mutant_amino_acids == ""
+    assert len(p2) == 4
 
 
 def test_protein_subsequence_overlaps_deletion():
@@ -171,14 +170,14 @@ def test_protein_subsequence_overlaps_deletion():
         frameshift=False,
         translations=[])
     p2 = p.subsequence(len("SIIN"), None)
-    eq_(len(p2), 3)
-    eq_(p2.amino_acids, "FEL")
-    eq_(p2.mutant_amino_acids, "")
-    eq_(p2.contains_deletion, True)
-    eq_(p2.contains_mutation, True)
-    eq_(p2.frameshift, False)
-    eq_(p2.ends_with_stop_codon, True)
-    eq_(p2.num_mutant_amino_acids, 0)
+    assert len(p2) == 3
+    assert p2.amino_acids == "FEL"
+    assert p2.mutant_amino_acids == ""
+    assert p2.contains_deletion
+    assert p2.contains_mutation
+    assert not p2.frameshift
+    assert p2.ends_with_stop_codon
+    assert p2.num_mutant_amino_acids == 0
 
 
 def test_protein_subsequence_does_not_overlap_deletion():
@@ -194,14 +193,14 @@ def test_protein_subsequence_does_not_overlap_deletion():
         frameshift=False,
         translations=[])
     p2 = p.subsequence(None, len("SIINFE"))
-    eq_(len(p2), 6)
-    eq_(p2.amino_acids, "SIINFE")
-    eq_(p2.contains_deletion, False)
-    eq_(p2.contains_mutation, False)
-    eq_(p2.frameshift, False)
-    eq_(p2.ends_with_stop_codon, False)
-    eq_(p2.mutant_amino_acids, "")
-    eq_(p2.num_mutant_amino_acids, 0)
+    assert len(p2) == 6
+    assert p2.amino_acids == "SIINFE"
+    assert not p2.contains_deletion
+    assert not p2.contains_mutation
+    assert not p2.frameshift
+    assert not p2.ends_with_stop_codon
+    assert p2.mutant_amino_acids == ""
+    assert p2.num_mutant_amino_acids == 0
 
 def test_sort_protein_sequences():
     protseq_most_reads = make_dummy_protein_sequence(
@@ -228,7 +227,7 @@ def test_sort_protein_sequences():
         protseq_most_reads,
         protseq_fewest_reads,
     ]
-    eq_(sort_protein_sequences(unsorted_protein_sequences, "support"), expected_order)
+    assert sort_protein_sequences(unsorted_protein_sequences, "support") == expected_order
 
 
 def test_sort_protein_sequences_uses_raw_reads_before_length():
@@ -245,11 +244,11 @@ def test_sort_protein_sequences_uses_raw_reads_before_length():
 
     sorted_proteins = sort_protein_sequences([long_protein, short_protein], "support")
 
-    eq_(short_protein.num_supporting_fragments, 3)
-    eq_(long_protein.num_supporting_fragments, 3)
-    eq_(short_protein.num_supporting_reads, 6)
-    eq_(long_protein.num_supporting_reads, 3)
-    eq_(sorted_proteins, [short_protein, long_protein])
+    assert short_protein.num_supporting_fragments == 3
+    assert long_protein.num_supporting_fragments == 3
+    assert short_protein.num_supporting_reads == 6
+    assert long_protein.num_supporting_reads == 3
+    assert sorted_proteins == [short_protein, long_protein]
 
 
 def test_grouped_protein_support_can_beat_each_individual_cdna_sequence():
@@ -275,11 +274,11 @@ def test_grouped_protein_support_can_beat_each_individual_cdna_sequence():
     ])
     sorted_proteins = sort_protein_sequences(proteins, "support")
 
-    eq_(len(proteins), 2)
-    eq_(sorted_proteins[0].amino_acids, "MKH")
-    eq_(sorted_proteins[0].num_supporting_fragments, 4)
-    eq_(sorted_proteins[1].amino_acids, "MKHW")
-    eq_(sorted_proteins[1].num_supporting_fragments, 3)
+    assert len(proteins) == 2
+    assert sorted_proteins[0].amino_acids == "MKH"
+    assert sorted_proteins[0].num_supporting_fragments == 4
+    assert sorted_proteins[1].amino_acids == "MKHW"
+    assert sorted_proteins[1].num_supporting_fragments == 3
 
 
 def variants_to_protein_sequences_dataframe(
@@ -318,24 +317,20 @@ def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_with_a
     df, expressed_variants, combined_variants = \
         variants_to_protein_sequences_dataframe(variant_sequence_assembly=True)
     print(df)
-    eq_(len(df),
-        len(expressed_variants),
-        "Expected %d/%d entries to have RNA support, got %d" % (
+    assert len(df) == len(expressed_variants), "Expected %d/%d entries to have RNA support, got %d" % (
             len(expressed_variants),
             len(combined_variants),
-            len(df)))
+            len(df))
 
 
 def test_variants_to_protein_sequences_dataframe_one_sequence_per_variant_without_assembly():
     df, expressed_variants, combined_variants = \
         variants_to_protein_sequences_dataframe(variant_sequence_assembly=False)
     print(df)
-    eq_(len(df),
-        len(expressed_variants),
-        "Expected %d/%d entries to have RNA support, got %d" % (
+    assert len(df) == len(expressed_variants), "Expected %d/%d entries to have RNA support, got %d" % (
             len(expressed_variants),
             len(combined_variants),
-            len(df)))
+            len(df))
 
 
 def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_quality():
@@ -355,10 +350,7 @@ def test_variants_to_protein_sequences_dataframe_filtered_all_reads_by_mapping_q
     df = protein_sequences_generator_to_dataframe(
         protein_sequences_generator)
     print(df)
-    eq_(
-        len(df),
-        0,
-        "Expected 0 entries, got %d: %s" % (len(df), df))
+    assert len(df) == 0, "Expected 0 entries, got %d: %s" % (len(df), df)
 
 
 def test_protein_sequence_creator_protein_length():
@@ -414,9 +406,8 @@ def test_sorted_protein_sequences_respects_max_per_variant_cap():
     creator = CappedStubCreator(max_protein_sequences_per_variant=2)
     result = creator.sorted_protein_sequences_for_variant(
         variant=None, read_evidence=_StubEvidence())
-    eq_(len(result), 2,
-        "Expected cap of 2 to trim 5 distinct protein sequences to 2, got %d" % (
-            len(result),))
+    assert len(result) == 2, "Expected cap of 2 to trim 5 distinct protein sequences to 2, got %d" % (
+            len(result),)
 
 
 def test_sorted_protein_sequences_no_cap_returns_all():
@@ -431,9 +422,8 @@ def test_sorted_protein_sequences_no_cap_returns_all():
     creator = UncappedStubCreator(max_protein_sequences_per_variant=None)
     result = creator.sorted_protein_sequences_for_variant(
         variant=None, read_evidence=_StubEvidence())
-    eq_(len(result), 3,
-        "Expected all 3 distinct protein sequences with no cap, got %d" % (
-            len(result),))
+    assert len(result) == 3, "Expected all 3 distinct protein sequences with no cap, got %d" % (
+            len(result),)
 
 
 def test_run_isovar_respects_max_protein_sequences_per_variant():
@@ -480,14 +470,11 @@ def test_variants_to_protein_sequences_dataframe_protein_sequence_length():
             "--protein-sequence-length", str(desired_length),
         ])
         df = protein_sequences_dataframe_from_args(args)
-        eq_(
-            len(df),
-            len(expressed_variants),
-            "Expected %d entries for protein_sequence_length=%d, got %d results: %s" % (
+        assert len(df) == len(expressed_variants), "Expected %d entries for protein_sequence_length=%d, got %d results: %s" % (
                 len(expressed_variants),
                 desired_length,
                 len(df),
-                df))
+                df)
         protein_sequences = df["amino_acids"]
         print(protein_sequences)
         protein_sequence_lengths = protein_sequences.str.len()

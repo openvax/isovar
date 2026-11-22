@@ -17,7 +17,6 @@ from isovar.read_collector import ReadCollector
 
 from .genomes_for_testing import grch38
 from .testing_helpers import load_bam
-from .common import eq_ 
 
 
 @pytest.mark.parametrize("merge,expected_alt_reads", [(False, 2), (True, 0)])
@@ -31,14 +30,14 @@ def test_somatic_variant_with_2_supporting_rna_reads(merge, expected_alt_reads):
     normal_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
         alignment_file=normal_reads)
-    eq_(len(normal_sample_variant_reads), 0)
+    assert len(normal_sample_variant_reads) == 0
     print(normal_sample_variant_reads)
 
     tumor_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
         alignment_file=tumor_reads)
     print(tumor_sample_variant_reads)
-    eq_(sum(r.source_read_count for r in tumor_sample_variant_reads), 8)
+    assert sum(r.source_read_count for r in tumor_sample_variant_reads) == 8
 
     rna_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
@@ -46,7 +45,7 @@ def test_somatic_variant_with_2_supporting_rna_reads(merge, expected_alt_reads):
     print(rna_sample_variant_reads)
     # Both raw A calls have quality 12; their overlapping mates call G at
     # quality 41. The existing consensus rule selects G when merging.
-    eq_(len(rna_sample_variant_reads), expected_alt_reads)
+    assert len(rna_sample_variant_reads) == expected_alt_reads
     # Arun went through the hassle of pulling out the exact read names
     # in IGV
     expected_variant_rna_read_names = {

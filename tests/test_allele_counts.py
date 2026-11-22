@@ -17,7 +17,6 @@ from isovar.read_collector import ReadCollector
 from varcode import Variant
 
 from .mock_objects import MockAlignmentFile, make_pysam_read
-from .common import eq_
 
 
 def test_allele_count_dataframe():
@@ -42,12 +41,12 @@ def test_allele_count_dataframe():
     df = allele_counts_dataframe([(variant, read_evidence)])
     assert len(df) == 1, "Wrong number of rows in DataFrame: %s" % (df,)
     row = df.iloc[0]
-    eq_(row.num_ref_reads, 2)
-    eq_(row.num_alt_reads, 2)
-    eq_(row.num_other_reads, 3)
-    eq_(row.num_ref_fragments, 1)
-    eq_(row.num_alt_fragments, 1)
-    eq_(row.num_other_fragments, 2)
+    assert row.num_ref_reads == 2
+    assert row.num_alt_reads == 2
+    assert row.num_other_reads == 3
+    assert row.num_ref_fragments == 1
+    assert row.num_alt_fragments == 1
+    assert row.num_other_fragments == 2
 
 
 def test_allele_count_dataframe_preserves_raw_read_count_after_fragment_merge():
@@ -80,13 +79,13 @@ def test_allele_count_dataframe_preserves_raw_read_count_after_fragment_merge():
             reads=[left_mate, right_mate],
         ),
     )
-    eq_(len(read_evidence.alt_reads), 1)
-    eq_(read_evidence.alt_reads[0].sequence, "ACCGTGAA")
+    assert len(read_evidence.alt_reads) == 1
+    assert read_evidence.alt_reads[0].sequence == "ACCGTGAA"
 
     df = allele_counts_dataframe([(variant, read_evidence)])
     row = df.iloc[0]
-    eq_(row.num_alt_reads, 2)
-    eq_(row.num_alt_fragments, 1)
+    assert row.num_alt_reads == 2
+    assert row.num_alt_fragments == 1
 
 
 if __name__ == "__main__":

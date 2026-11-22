@@ -17,7 +17,6 @@ from isovar.read_collector import ReadCollector
 
 from .genomes_for_testing import grch38
 from .testing_helpers import load_bam
-from .common import eq_ 
 
 
 def test_somatic_variant_with_0_supporting_rna_reads():
@@ -30,20 +29,20 @@ def test_somatic_variant_with_0_supporting_rna_reads():
     normal_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
         alignment_file=normal_reads)
-    eq_(len(normal_sample_variant_reads), 0)
+    assert len(normal_sample_variant_reads) == 0
     print(normal_sample_variant_reads)
 
     tumor_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
         alignment_file=tumor_reads)
     print(tumor_sample_variant_reads)
-    eq_(sum(r.source_read_count for r in tumor_sample_variant_reads), 5)
+    assert sum(r.source_read_count for r in tumor_sample_variant_reads) == 5
 
     rna_sample_variant_reads = read_creator.allele_reads_supporting_variant(
         variant=variant,
         alignment_file=rna_reads)
     print(rna_sample_variant_reads)
-    eq_(len(rna_sample_variant_reads), 0)
+    assert len(rna_sample_variant_reads) == 0
 
 if __name__ == "__main__":
     test_somatic_variant_with_0_supporting_rna_reads()

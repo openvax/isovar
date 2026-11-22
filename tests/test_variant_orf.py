@@ -28,54 +28,41 @@ from isovar.protein_sequence_helpers import group_equivalent_translations
 from isovar.variant_sequence_creator import VariantSequenceCreator
 from isovar.variant_sequence_helpers import trim_variant_sequences
 
-from .common import eq_ 
 from .genomes_for_testing import grch38
 
 def test_compute_offset_to_first_complete_codon_no_trimming():
     # if nothing gets trimmed from the reference sequence, then
     # the offset to the first codon shouldn't change
-    eq_(
-        compute_offset_to_first_complete_codon(
+    assert compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon=0,
-            n_trimmed_from_reference_sequence=0),
-        0)
-    eq_(
-        compute_offset_to_first_complete_codon(
+            n_trimmed_from_reference_sequence=0) == 0
+    assert compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon=5,
-            n_trimmed_from_reference_sequence=0),
-        5)
+            n_trimmed_from_reference_sequence=0) == 5
 
 
 def test_compute_offset_to_first_complete_codon_trimming_before_codon():
     # if the number of reference bases trimmed from the reference sequence
     # occurs before the reference codon, then it should decrease the
     # offset by the amount trimmed
-    eq_(
-        compute_offset_to_first_complete_codon(
+    assert compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon=7,
-            n_trimmed_from_reference_sequence=2),
-        5)
-    eq_(
-        compute_offset_to_first_complete_codon(
+            n_trimmed_from_reference_sequence=2) == 5
+    assert compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon=7,
-            n_trimmed_from_reference_sequence=7),
-        0)
+            n_trimmed_from_reference_sequence=7) == 0
 
 
 def test_compute_offset_to_first_complete_codon_trimming_after_codon():
     # if the number of reference bases trimmed from the reference sequence
     # occurs after the reference codon, then it needs to be rounded up the
     # next multiple of three
-    eq_(
-        compute_offset_to_first_complete_codon(
+    assert compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon=7,
-            n_trimmed_from_reference_sequence=8),
-        2)
-    eq_(
-        compute_offset_to_first_complete_codon(
+            n_trimmed_from_reference_sequence=8) == 2
+    assert compute_offset_to_first_complete_codon(
             offset_to_first_complete_reference_codon=7,
-            n_trimmed_from_reference_sequence=10),
-        0)
+            n_trimmed_from_reference_sequence=10) == 0
 
 
 def make_inputs_for_tp53_201_variant(
@@ -123,9 +110,9 @@ def make_inputs_for_tp53_201_variant(
 
     effect = variant.effect_on_transcript(transcript)
 
-    eq_(effect.__class__.__name__, "Substitution")
-    eq_(effect.aa_ref, "E")
-    eq_(effect.aa_alt, "K")
+    assert effect.__class__.__name__ == "Substitution"
+    assert effect.aa_ref == "E"
+    assert effect.aa_alt == "K"
 
     cdna_alt = "A"
 
@@ -147,8 +134,8 @@ def make_inputs_for_tp53_201_variant(
     # TP53-201 sequence but the suffix might change depending on what's
     # passed in as cdna_prefix
     if cdna_suffix == "AGGAGCCGCAGTCAGAT":
-        eq_(fully_overlapping_read.prefix, "ATCTGACTGCGGCTCCT")
-    eq_(fully_overlapping_read.allele, "T")
+        assert fully_overlapping_read.prefix == "ATCTGACTGCGGCTCCT"
+    assert fully_overlapping_read.allele == "T"
 
     partially_overlapping_read = AlleleRead(
         prefix=gdna_prefix,
@@ -156,8 +143,8 @@ def make_inputs_for_tp53_201_variant(
         suffix=gdna_suffix[:-1],
         name="partial-overlap")
     if cdna_suffix == "AGGAGCCGCAGTCAGAT":
-        eq_(partially_overlapping_read.prefix, "ATCTGACTGCGGCTCCT")
-    eq_(partially_overlapping_read.allele, "T")
+        assert partially_overlapping_read.prefix == "ATCTGACTGCGGCTCCT"
+    assert partially_overlapping_read.allele == "T"
 
     variant_sequence = VariantSequence(
         prefix=gdna_prefix,
@@ -242,9 +229,9 @@ def test_trim_variant_sequences_defers_reference_compatibility():
         variant_sequences=filtered,
         reference_contexts=[reference_context])
 
-    eq_(set(filtered), {compatible_short, incompatible_long})
-    eq_(len(translations), 1)
-    eq_(translations[0].untrimmed_variant_sequence, compatible_short)
+    assert set(filtered) == {compatible_short, incompatible_long}
+    assert len(translations) == 1
+    assert translations[0].untrimmed_variant_sequence == compatible_short
 
 
 @pytest.mark.parametrize("strand", ["+", "-"])
@@ -313,22 +300,20 @@ def test_nested_assemblies_reach_reference_matching_independently(
     else:
         observed_candidates = {sequence.suffix for sequence in variant_sequences}
         compatible_sequence = reverse_complement_dna("AAA")
-    eq_(observed_candidates,
-        set(genomic_prefixes if strand == "+" else genomic_suffixes))
+    assert observed_candidates == set(genomic_prefixes if strand == "+" else genomic_suffixes)
     # Shared support also allows two longer candidates to trim down to the
     # same compatible core. The original shortest candidate must still reach
     # translation independently, and grouping must not multiply its support.
-    eq_(len(translations), 3)
+    assert len(translations) == 3
     translated_sequence, = [
         translation.untrimmed_variant_sequence for translation in translations
         if (translation.untrimmed_variant_sequence.prefix if strand == "+" else
             translation.untrimmed_variant_sequence.suffix) == compatible_sequence
     ]
-    eq_(translated_sequence.prefix if strand == "+" else translated_sequence.suffix,
-        compatible_sequence)
+    assert (translated_sequence.prefix if strand == "+" else translated_sequence.suffix) == compatible_sequence
     protein_sequence, = group_equivalent_translations(translations)
-    eq_(protein_sequence.num_supporting_fragments, 8)
-    eq_(protein_sequence.num_supporting_reads, 8)
+    assert protein_sequence.num_supporting_fragments == 8
+    assert protein_sequence.num_supporting_reads == 8
 
 
 def test_protein_sequence_creator_translates_coding_deletion():
@@ -367,13 +352,13 @@ def test_protein_sequence_creator_translates_coding_deletion():
         variant_reads=reads,
         transcript_id_whitelist={transcript.id})
 
-    eq_(len(translations), 1)
+    assert len(translations) == 1
     translation = translations[0]
-    eq_(translation.amino_acids, "MEPQSD")
-    eq_(translation.contains_mutation, True)
-    eq_(translation.mutation_start_idx, 1)
-    eq_(translation.mutation_end_idx, 1)
-    eq_(translation.untrimmed_variant_sequence.alt, "")
+    assert translation.amino_acids == "MEPQSD"
+    assert translation.contains_mutation
+    assert translation.mutation_start_idx == 1
+    assert translation.mutation_end_idx == 1
+    assert translation.untrimmed_variant_sequence.alt == ""
 
 
 def test_match_variant_sequence_to_reference_context_exact_match():
@@ -386,7 +371,7 @@ def test_match_variant_sequence_to_reference_context_exact_match():
         reference_context=reference_context,
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0)
-    eq_(expected, result)
+    assert expected == result
 
 
 def test_match_variant_sequence_to_reference_context_not_enough_prefix():
@@ -404,7 +389,7 @@ def test_match_variant_sequence_to_reference_context_not_enough_prefix():
         reference_context=reference_context,
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0)
-    eq_(result, None)
+    assert result is None
 
 
 def test_match_variant_sequence_to_reference_context_trim_1_bad_nucleotide():
@@ -425,7 +410,7 @@ def test_match_variant_sequence_to_reference_context_trim_1_bad_nucleotide():
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0,
         max_trimming_attempts=1)
-    eq_(expected, result)
+    assert expected == result
 
 
 def test_match_variant_sequence_to_reference_context_ignore_extra_prefix():
@@ -444,10 +429,10 @@ def test_match_variant_sequence_to_reference_context_ignore_extra_prefix():
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0,
         max_trimming_attempts=0)
-    eq_(expected, result)
+    assert expected == result
     # make sure that the "GGG" codon got ignored since translation
     # should start at the "ATG" after it
-    eq_(result.cdna_sequence[:3], "ATG")
+    assert result.cdna_sequence[:3] == "ATG"
 
 
 def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_no_trimming():
@@ -464,7 +449,7 @@ def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_no_tri
         min_transcript_prefix_length=2,
         max_transcript_mismatches=0,
         max_trimming_attempts=0)
-    eq_(None, result)
+    assert None is result
 
 
 def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_trimming():
@@ -479,7 +464,7 @@ def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_trimmi
         min_transcript_prefix_length=2,
         max_transcript_mismatches=0,
         max_trimming_attempts=1)
-    eq_(expected, result)
+    assert expected == result
 
 
 def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_allow_mismatch():
@@ -495,7 +480,7 @@ def test_match_variant_sequence_to_reference_context_bad_start_nucleotide_allow_
         min_transcript_prefix_length=3,
         max_transcript_mismatches=1,
         max_trimming_attempts=0)
-    eq_(expected, result)
+    assert expected == result
 
 
 def test_match_variant_sequence_to_reference_context_include_mismatches_after_variant():
@@ -511,7 +496,7 @@ def test_match_variant_sequence_to_reference_context_include_mismatches_after_va
         max_transcript_mismatches=0,
         count_mismatches_after_variant=False)
     # should have a result, since we're not counting mismatches after the variant
-    eq_(expected, result)
+    assert expected == result
 
     # now say we want to count mismatches after the variant - expect no result
     result = match_variant_sequence_to_reference_context(
@@ -520,4 +505,4 @@ def test_match_variant_sequence_to_reference_context_include_mismatches_after_va
         min_transcript_prefix_length=3,
         max_transcript_mismatches=0,
         count_mismatches_after_variant=True)
-    eq_(None, result)
+    assert None is result

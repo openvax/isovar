@@ -17,7 +17,6 @@ from varcode import Variant
 
 from isovar import ReadCollector
 
-from .common import eq_
 from .testing_helpers import load_bam
 
 def test_partition_variant_reads_snv():
@@ -39,7 +38,7 @@ def test_partition_variant_reads_snv():
     alt_reads = read_evidence.alt_reads
     assert len(alt_reads) > 1
     for variant_read in alt_reads:
-        eq_(variant_read.allele, alt)
+        assert variant_read.allele == alt
 
 
 def test_partition_variant_reads_deletion():
@@ -60,7 +59,7 @@ def test_partition_variant_reads_deletion():
         variant=variant)
     assert len(read_evidence.alt_reads) > 1
     for variant_read in read_evidence.alt_reads:
-        eq_(variant_read.allele, alt)
+        assert variant_read.allele == alt
 
 if __name__ == "__main__":
     test_partition_variant_reads_snv()

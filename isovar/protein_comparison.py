@@ -16,7 +16,6 @@ from .visualization import (
     GRAY,
     INK,
     draw_protein_rows,
-    plot_dependencies,
     protein_disagreements,
     style_evidence_axis,
 )
@@ -104,7 +103,9 @@ def protein_comparison_figures(products, rows_per_page=PLOT_PROTEIN_ROWS_PER_PAG
     if isinstance(rows_per_page, bool) or not isinstance(rows_per_page, int) or rows_per_page < 2:
         raise ValueError("rows_per_page must be an integer >= 2")
     rows = comparison_rows(products)
-    Figure, rc_context, rectangle = plot_dependencies()
+    from matplotlib import rc_context
+    from matplotlib.figure import Figure
+    from matplotlib.patches import Rectangle as rectangle
     differences = protein_disagreements(row["protein"] for row in rows)
     title = " / ".join(products[0]["visualization"]["genes"]) + " | Protein alternatives"
     references = [r for r in rows if r["source"] == "Varcode"]

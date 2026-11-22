@@ -18,7 +18,6 @@ from varcode import ReadPhaseResolver, apply_phase_resolver_to_effects, iter_can
 
 from isovar import IsovarMutantTranscript, IsovarReadPhasing, run_isovar
 
-from .common import eq_
 from .testing_helpers import data_path
 
 
@@ -59,10 +58,10 @@ def test_isovar_mutant_transcript_exposes_observed_transcript(result_and_transcr
 
     mutant_transcript = source.mutant_transcript(result.variant, transcript)
     assert mutant_transcript is not None
-    eq_(mutant_transcript.reference_transcript.id, transcript.id)
+    assert mutant_transcript.reference_transcript.id == transcript.id
     assert mutant_transcript.cdna_sequence in result.top_protein_sequence.cdna_sequences
-    eq_(mutant_transcript.mutant_protein_sequence, result.top_protein_sequence.amino_acids)
-    eq_(mutant_transcript.annotator_name, "isovar")
+    assert mutant_transcript.mutant_protein_sequence == result.top_protein_sequence.amino_acids
+    assert mutant_transcript.annotator_name == "isovar"
     assert len(mutant_transcript.edits) >= 1
     assert any(
         edit.source_variant is not None and
@@ -86,12 +85,10 @@ def test_read_phase_resolver_applies_isovar_mutant_transcript(result_and_transcr
     effects = [effect]
 
     resolved_effects = apply_phase_resolver_to_effects(effects, resolver)
-    eq_(resolved_effects, effects)
+    assert resolved_effects == effects
     assert effect.mutant_transcript is not None
-    eq_(effect.mutant_transcript.reference_transcript.id, transcript.id)
-    eq_(
-        resolver.phased_partners(result.variant, transcript),
-        source.partners_in_cis(result.variant))
+    assert effect.mutant_transcript.reference_transcript.id == transcript.id
+    assert resolver.phased_partners(result.variant, transcript) == source.partners_in_cis(result.variant)
 
 
 def test_b16_effects_accept_composed_isovar_source(result_and_transcript):

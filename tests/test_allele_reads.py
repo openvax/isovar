@@ -18,7 +18,6 @@ from varcode import Variant
 
 from .mock_objects import MockAlignmentFile, make_pysam_read
 from .testing_helpers import assert_equal_fields
-from .common import eq_
 
 
 def make_read_at_locus(prefix, alt, suffix, base_quality=30, name="dummy"):
@@ -40,7 +39,7 @@ def test_allele_read_from_single_read_at_locus_trim_N_nucleotides():
     allele_read = AlleleRead.from_locus_read(read_at_locus)
     print(allele_read)
     expected = AlleleRead(prefix="", allele="A", suffix="T", name="dummy")
-    eq_(allele_read, expected)
+    assert allele_read == expected
 
 
 def test_allele_read_from_locus_with_N_in_allele_returns_none():
@@ -74,8 +73,8 @@ def test_allele_read_preserves_compact_splice_path():
 
     allele_read = AlleleRead.from_locus_read(locus_read)
 
-    eq_(allele_read.reference_blocks, ((0, 5, 100, 105), (5, 9, 205, 209)))
-    eq_(allele_read.splice_junctions, ((105, 205),))
+    assert allele_read.reference_blocks == ((0, 5, 100, 105), (5, 9, 205, 209))
+    assert allele_read.splice_junctions == ((105, 205),)
 
 
 def test_allele_reads_with_N_at_locus_dropped_from_helpers():

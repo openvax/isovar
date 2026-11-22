@@ -15,7 +15,6 @@ from isovar import ProteinSequence
 from varcode import Variant
 
 from .testing_helpers import data_path
-from .common import eq_
 
 
 def test_isovar_result_property_types():
@@ -82,8 +81,8 @@ def test_isovar_result_nonsyn_variants():
             assert result.num_amino_acid_mismatches_from_predicted_effect is not None
             assert result.num_amino_acid_mismatches_from_reference is not None
             assert result.num_amino_acid_mismatches_from_reference > 0
-            eq_(result.protein_sequence_matches_reference, False)
-            eq_(result.protein_sequence_contains_mutation, True)
+            assert not result.protein_sequence_matches_reference
+            assert result.protein_sequence_contains_mutation
         else:
             assert result.num_amino_acid_mismatches_from_predicted_effect is None
             assert result.num_amino_acid_mismatches_from_reference is None
@@ -97,7 +96,7 @@ def test_isovar_result_clone():
             variants=data_path("data/b16.f10/b16.vcf"),
             alignment_file=data_path("data/b16.f10/b16.combined.sorted.bam")):
         result2 = result.clone()
-        eq_(result, result2)
+        assert result == result2
 
 def test_isovar_result_clone_with_updates():
     for result in run_isovar(

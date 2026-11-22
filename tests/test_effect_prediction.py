@@ -17,7 +17,6 @@ from isovar.effect_prediction import (
 )
 from varcode import Variant
 from varcode.effects import Intergenic
-from .common import eq_
 from .genomes_for_testing import grch38
 from isovar.reference_context_helpers import reference_contexts_for_variant
 from types import SimpleNamespace
@@ -36,7 +35,7 @@ def test_reference_coding_transcripts_outside_of_gene():
     transcripts = \
         reference_coding_transcripts_for_variant(
             intergenic_variant)
-    eq_(len(transcripts), 0)
+    assert len(transcripts) == 0
 
 
 def test_empty_transcript_whitelist_excludes_transcriptless_effects():

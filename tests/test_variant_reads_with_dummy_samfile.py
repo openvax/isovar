@@ -10,7 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .common import eq_ 
 from varcode import Variant
 
 from isovar.allele_read import AlleleRead
@@ -58,7 +57,7 @@ def test_partitioned_read_sequences_snv():
         prefix="ACC",
         allele="G",
         suffix="TG")
-    eq_(variant_read, expected)
+    assert variant_read == expected
 
 
 def test_partitioned_read_sequences_insertion():
@@ -98,7 +97,7 @@ def test_partitioned_read_sequences_insertion():
         prefix="ACCT",
         allele="G",
         suffix="TG")
-    eq_(variant_read, expected)
+    assert variant_read == expected
 
 
 def test_partitioned_read_sequences_deletion():
@@ -135,7 +134,7 @@ def test_partitioned_read_sequences_deletion():
         prefix="ACCT",
         allele="",
         suffix="G")
-    eq_(variant_read, expected)
+    assert variant_read == expected
 
 
 def test_read_evidence_counts_snv_reads_at_read_boundaries():
@@ -186,8 +185,8 @@ def test_read_evidence_counts_snv_reads_at_read_boundaries():
         variant=variant,
         alignment_file=MockAlignmentFile(references=(chromosome,), reads=reads))
 
-    eq_(read_evidence.alt_read_names, {"alt-start", "alt-end"})
-    eq_(read_evidence.ref_read_names, {"ref-start", "ref-end"})
+    assert read_evidence.alt_read_names == {"alt-start", "alt-end"}
+    assert read_evidence.ref_read_names == {"ref-start", "ref-end"}
 
 
 def test_read_evidence_counts_insertion_reads_at_read_boundaries():
@@ -245,8 +244,8 @@ def test_read_evidence_counts_insertion_reads_at_read_boundaries():
         variant=variant,
         alignment_file=MockAlignmentFile(references=(chromosome,), reads=reads))
 
-    eq_(read_evidence.alt_read_names, {"alt-start", "alt-end"})
-    eq_(read_evidence.ref_read_names, {"ref-spanning"})
+    assert read_evidence.alt_read_names == {"alt-start", "alt-end"}
+    assert read_evidence.ref_read_names == {"ref-spanning"}
 
 
 def test_partitioned_read_sequences_snv_at_last_exonic_base_before_splice():
@@ -274,7 +273,7 @@ def test_partitioned_read_sequences_snv_at_last_exonic_base_before_splice():
         variant=variant,
         alignment_file=MockAlignmentFile(references=(chromosome,), reads=[read]))
     assert len(variant_reads) == 1
-    eq_(variant_reads[0].allele, "G")
+    assert variant_reads[0].allele == "G"
 
 
 def test_partitioned_read_sequences_snv_at_first_exonic_base_after_splice():
@@ -302,7 +301,7 @@ def test_partitioned_read_sequences_snv_at_first_exonic_base_after_splice():
         variant=variant,
         alignment_file=MockAlignmentFile(references=(chromosome,), reads=[read]))
     assert len(variant_reads) == 1
-    eq_(variant_reads[0].allele, "G")
+    assert variant_reads[0].allele == "G"
 
 
 def test_partitioned_read_sequences_left_align_homopolymer_insertion():
@@ -332,8 +331,8 @@ def test_partitioned_read_sequences_left_align_homopolymer_insertion():
         variant=variant,
         alignment_file=MockAlignmentFile(references=(chromosome,), reads=[read]),
     )
-    eq_(read_evidence.alt_read_names, {"dummy"})
-    eq_(read_evidence.ref_read_names, set())
+    assert read_evidence.alt_read_names == {"dummy"}
+    assert read_evidence.ref_read_names == set()
 
 
 def test_partitioned_read_sequences_left_align_homopolymer_deletion():
@@ -361,5 +360,5 @@ def test_partitioned_read_sequences_left_align_homopolymer_deletion():
         variant=variant,
         alignment_file=MockAlignmentFile(references=(chromosome,), reads=[read]),
     )
-    eq_(read_evidence.alt_read_names, {"dummy"})
-    eq_(read_evidence.ref_read_names, set())
+    assert read_evidence.alt_read_names == {"dummy"}
+    assert read_evidence.ref_read_names == set()

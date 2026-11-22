@@ -11,19 +11,18 @@
 # limitations under the License.
 
 from isovar.dna import reverse_complement_dna, complement_dna
-from .common import eq_
 
 
 def test_reverse_complement_dna():
-    eq_("ATGCAATTGGCC", reverse_complement_dna("GGCCAATTGCAT"))
+    assert "ATGCAATTGGCC" == reverse_complement_dna("GGCCAATTGCAT")
 
 
 def test_complement_dna():
-    eq_("ATGC", complement_dna("TACG"))
+    assert "ATGC" == complement_dna("TACG")
 
 
 def test_reverse_complement_handles_n_case_and_ambiguity_codes():
-    eq_("NnRyAC", reverse_complement_dna("GTrYnN"))
+    assert "NnRyAC" == reverse_complement_dna("GTrYnN")
 
 
 def test_shared_complement_covers_iupac_and_preserves_case():

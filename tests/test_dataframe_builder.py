@@ -11,7 +11,6 @@
 # limitations under the License.
 
 from collections import namedtuple, OrderedDict
-from .common import eq_
 from varcode import Variant
 import pandas as pd
 
@@ -23,7 +22,7 @@ test_variant = Variant("X", 10, "CC", "C")
 
 
 def check_same_dataframes(df, expected):
-    eq_(len(df.columns), len(expected.columns))
+    assert len(df.columns) == len(expected.columns)
     assert all(x == y for (x, y) in zip(df.columns, expected.columns)), \
         (df.columns, expected.columns)
     # need to aggregate twice because the first time just rolls up each column,

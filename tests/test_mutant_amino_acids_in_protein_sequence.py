@@ -16,7 +16,6 @@ from isovar.cli.protein_sequence_args import (
 )
 
 from .testing_helpers import data_path
-from .common import eq_
 
 def check_mutant_amino_acids(variant, protein_sequence, expected_amino_acids=None):
     predicted_effect = variant.effects().top_priority_effect()
@@ -29,14 +28,13 @@ def check_mutant_amino_acids(variant, protein_sequence, expected_amino_acids=Non
         protein_sequence.mutation_start_idx:
         protein_sequence.mutation_end_idx]
 
-    eq_(expected_amino_acids, isovar_mutant_amino_acids,
-        "Expected amino acids '%s' for %s but got '%s' from isovar in '%s' %d:%d" % (
+    assert expected_amino_acids == isovar_mutant_amino_acids, "Expected amino acids '%s' for %s but got '%s' from isovar in '%s' %d:%d" % (
             expected_amino_acids,
             predicted_effect,
             isovar_mutant_amino_acids,
             protein_sequence.amino_acids,
             protein_sequence.mutation_start_idx,
-            protein_sequence.mutation_end_idx))
+            protein_sequence.mutation_end_idx)
 
 
 def test_mutant_amino_acids_in_mm10_chrX_8125624_refC_altA_pS460I():

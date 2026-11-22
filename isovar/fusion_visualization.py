@@ -12,7 +12,6 @@ from .visualization import (
     INK,
     ORANGE,
     draw_side_note,
-    plot_dependencies,
     style_evidence_axis,
 )
 
@@ -34,7 +33,7 @@ def fusion_figure_canvas(title, subtitle, height=5.3):
     tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
         Empty figure and styled axis with reserved side and footer margins.
     """
-    Figure, _, _ = plot_dependencies()
+    from matplotlib.figure import Figure
     figure = Figure(figsize=(PLOT_WIDTH, height), facecolor="white")
     ax = figure.subplots()
     figure.suptitle(title, x=.035, y=.965, ha="left", fontsize=19, fontweight="bold")
@@ -50,7 +49,7 @@ def fusion_figures(result, references=(), transcript_names=None):
     A straight thin line denotes the transcript locus; only annotated exons
     are thick. No inferred splice connector is drawn across a fusion.
     """
-    _, _, rectangle = plot_dependencies()
+    from matplotlib.patches import Rectangle as rectangle
     references = tuple(references)
     names = transcript_names or {}
     path, = result["paths"]
@@ -180,7 +179,7 @@ def save_fusion_figures(result, output_dir, references=(), transcript_names=None
     if isinstance(dpi,bool) or not isinstance(dpi,int) or dpi < 72:
         raise ValueError("dpi must be an integer >= 72")
     references = tuple(references)
-    _, rc_context, _ = plot_dependencies()
+    from matplotlib import rc_context
     from matplotlib.backends.backend_pdf import PdfPages
 
     slug = re.sub(r"[^A-Za-z0-9_.-]", "_", result["event_id"] + "-" + result["provenance"]["sample_id"])

@@ -73,8 +73,8 @@ and translations, and checks the 222-nt CD109 witnesses before plotting.
 The remaining 30 MAP2 products retain audit summaries/digests, not raw SAMs.
 
 Generate the entire gallery with
-`python -m examples.osteosarc_context_figures --output-dir figures/osteosarc`
-(install `isovar[plot]`). Original assembly examples come first, followed by
+`python -m examples.osteosarc_context_figures --output-dir figures/osteosarc`.
+Original assembly examples come first, followed by
 context/haplotype comparisons and explicit fusion RNA windows. The output is
 UTC-stamped, with individual white 600-dpi PNG/SVG panels, per-example vector
 PDFs, evidence JSON, a page index, and `isovar-all-figures.pdf`.
