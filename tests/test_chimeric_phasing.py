@@ -275,6 +275,58 @@ def test_sa_entries_parse_every_field_and_reject_malformed_tags():
     from isovar.chimeric_alignment import sa_entries
     assert sa_entries("chr2,101,-,20S30M,60,1;chr3,5,+,30M20S,0,0;") == [
         ("chr2", 100, "-", "20S30M", 60, 1), ("chr3", 4, "+", "30M20S", 0, 0)]
-    for tag in ("chr2,101", "chr2,x,-,30M,60,0", 7):
+    assert sa_entries("chr2,101,-,20S30M,60,*;chr3,5,+,30M20S,0,;") == [
+        ("chr2", 100, "-", "20S30M", 60, None), ("chr3", 4, "+", "30M20S", 0, None)]
+    for tag in ("chr2,101", "chr2,x,-,30M,60,0", "chr2,101,-,30M,60,bad", 7):
         with pytest.raises(ValueError):
             sa_entries(tag)
+
+
+def test_sa_tag_with_star_nm_retains_chimeric_path_and_malformed_warnings_rate_limited(
+    caplog, monkeypatch,
+):
+    import logging
+    from types import SimpleNamespace
+    import isovar.chimeric_alignment as ca
+
+    header = SimpleNamespace(get_tid=lambda contig: 0 if contig in ("chr1", "chr2") else -1)
+    good_read = SimpleNamespace(
+        query_name="star_nm_read",
+        reference_name="chr1",
+        reference_start=100,
+        is_reverse=False,
+        cigarstring="30M20S",
+        cigartuples=[(0, 30), (4, 20)],
+        is_unmapped=False,
+        is_secondary=False,
+        is_supplementary=False,
+        header=header,
+        has_tag=lambda k: k == "SA",
+        get_tag=lambda k: "chr2,201,+,30S20M,60,*;",
+    )
+    paths = ca.source_alignment_paths_from_pysam(good_read, [("seg1", None)])
+    assert len(paths) == 1
+    assert paths[0][0] == "seg1"
+    assert len(paths[0][1].others) == 1
+
+    monkeypatch.setattr(ca, "_malformed_sa_warnings", 0)
+    bad_read = SimpleNamespace(
+        query_name="bad_read",
+        reference_name="chr1",
+        reference_start=100,
+        is_reverse=False,
+        cigarstring="30M20S",
+        cigartuples=[(0, 30), (4, 20)],
+        is_unmapped=False,
+        is_secondary=False,
+        is_supplementary=False,
+        header=header,
+        has_tag=lambda k: k == "SA",
+        get_tag=lambda k: "chr2,notanint,+,30S20M,60,0;",
+    )
+    with caplog.at_level(logging.WARNING, logger="isovar.chimeric_alignment"):
+        for _ in range(12):
+            assert ca.source_alignment_paths_from_pysam(bad_read, [("seg1", None)]) == ()
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == ca._MALFORMED_SA_WARNING_LIMIT
+    assert "suppressing further" in warnings[-1].getMessage()
