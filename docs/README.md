@@ -70,6 +70,7 @@ with a warning naming them. These workflows handle them:
 | [Viral sequence recovery](viral-sequences.md) | `isovar viral`: observed viral RNA from GDC GRCh38.d1.vd1 alignments, without a mutation or human GTF |
 | [CTA and other antigen isoforms](antigen-isoforms.md) | `isovar isoforms`: competing targeted transcripts, ambiguous RNA support and optional Salmon abundance |
 | [Antigen-source evidence report](antigen-evidence-report.md) | `isovar antigen-report`: SV, fusion, viral and antigen-isoform exports combined, with separate evidence units |
+| [Evidence report](command-line.md) | `isovar evidence-report`: visual variant/RNA PDF and per-call TSV |
 | [Reproducible RNA cohort reports](cohort-reports.md) | `isovar cohort`: multi-library reanalysis and per-sample PDFs |
 
 ## Concepts and design
@@ -92,25 +93,3 @@ with a warning naming them. These workflows handle them:
 - [WLOS_0001 canine TP53 example](../tests/data/wlos0001_tp53/README.md): a
   published matched-normal tumor DNA call replayed against original,
   region-extracted tumor RNA reads in a small offline fixture.
-
-### Design specifications
-
-Working specifications for in-progress or completed engineering work. They
-record goals and constraints for maintainers and are not usage guides.
-
-- [SV RNA and protein reconstruction plan](sv-protein-assembly-plan.md)
-- [Unified nominated-SV RNA audit (#305, #541, #563)](unified-sv-audit-spec.md)
-- [Exon anchored SV path completion (#555)](sv-exon-bridge-555-spec.md)
-- [Dense exon-anchored SV discovery (#559)](sv-dense-exon-anchor-spec.md)
-- [Stream complete SV templates in dense support (#562)](sv3-dense-template-stream-562-spec.md)
-- [Mutation-supporting RNA beyond canonical coding contexts](noncanonical-rna-discovery-spec.md)
-- [DDX17 RNA-path investigation and deletion-aware report alignment](ddx17-splice-and-deletion-report-spec.md)
-- [Complete the two unresolved ONT views (#470)](ont-igkc-recovery-spec.md)
-- [Recovery event report memory](ont-report-memory-spec.md)
-- [Share exact interval searches within each support batch](ont-shared-query-spec.md)
-- [Exact early rejection experiment](ont-support-refinement-spec.md)
-- [Bound complete-result validation (#500)](ont-validation-retention-spec.md)
-- [Stream audit JSON (#488)](stream-audit-json-spec.md)
-- [Incremental audit result decoding (#496)](stream-audit-decoding-spec.md)
-- [Stream CLI checkpoint verification (#498)](stream-cli-resume-spec.md)
-- [Complete report ledgers as release assets (#501)](sid-report-release-assets-spec.md)
