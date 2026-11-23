@@ -454,7 +454,7 @@ def placement_uncertainty(template):
             if read.has_tag("SA"):
                 try:
                     for contig, start, strand, cigar, mapq, nm in sa_entries(read.get_tag("SA")):
-                        if strand not in {"+", "-"} or not 0 <= mapq <= 255 or nm < 0:
+                        if strand not in {"+", "-"} or not 0 <= mapq <= 255 or (nm is not None and nm < 0):
                             raise ValueError("Invalid SA entry")
                         reported = alignment_placement(contig, start, strand == "-", cigar)
                         if not any(r is not read and not r.is_unmapped and matches_reported_alignment(

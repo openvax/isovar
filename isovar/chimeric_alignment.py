@@ -14,6 +14,9 @@ from .read_identity import compatible_alignments
 
 logger = get_logger(__name__)
 
+_MALFORMED_SA_WARNING_LIMIT = 5
+_malformed_sa_warnings = 0
+
 _Alignment = namedtuple(
     "_Alignment", "contig start reverse cigar query_start query_end query_length reference_end")
 _AlignmentPath = namedtuple("_AlignmentPath", "secondary supplementary alignment others query_interval")
@@ -67,14 +70,17 @@ def alignment_placement(contig, start, reverse, cigar):
 def sa_entries(tag):
     """Parse a SAM ``SA`` tag into (contig, 0-based start, strand, CIGAR, MAPQ, NM).
 
-    Raises ValueError for a malformed entry. See the SAMtags definition.
+    Missing edit-distance values emitted by some aligners/post-processors
+    (``*`` or empty) are returned as ``None``. Raises ValueError for a
+    malformed entry. See the SAMtags definition.
     """
     if not isinstance(tag, str):
         raise ValueError("SA tag is not a string")
     entries = []
     for entry in tag.rstrip(";").split(";"):
         contig, position, strand, cigar, mapq, nm = entry.split(",")
-        entries.append((contig, int(position) - 1, strand, cigar, int(mapq), int(nm)))
+        nm_value = None if nm in ("*", "") else int(nm)
+        entries.append((contig, int(position) - 1, strand, cigar, int(mapq), nm_value))
     return entries
 
 
@@ -94,7 +100,7 @@ def source_alignment_paths_from_pysam(read, source_alignments, query_interval=No
         others = []
         for contig, start, strand, cigar, mapq, nm in sa_entries(read.get_tag("SA")):
             if (strand not in ("+", "-") or read.header.get_tid(contig) < 0
-                    or not 0 <= mapq <= 255 or nm < 0):
+                    or not 0 <= mapq <= 255 or (nm is not None and nm < 0)):
                 raise ValueError("invalid SA entry")
             others.append(alignment_placement(contig, start, strand == "-", cigar))
         members = sorted([own] + others, key=lambda a: (a.query_start, a.query_end))
@@ -117,7 +123,22 @@ def source_alignment_paths_from_pysam(read, source_alignments, query_interval=No
                               own, tuple(sorted(others)), query_interval)
         return ((source_alignments[0][0], path),)
     except ValueError as error:
-        logger.warning("Ignoring chimeric-path evidence for read %s: %s", read.query_name, error)
+        global _malformed_sa_warnings
+        _malformed_sa_warnings += 1
+        if _malformed_sa_warnings <= _MALFORMED_SA_WARNING_LIMIT:
+            suffix = (
+                " (suppressing further per-read SA warnings; set DEBUG for all)"
+                if _malformed_sa_warnings == _MALFORMED_SA_WARNING_LIMIT
+                else ""
+            )
+            logger.warning(
+                "Ignoring chimeric-path evidence for read %s: %s%s",
+                read.query_name,
+                error,
+                suffix,
+            )
+        else:
+            logger.debug("Ignoring chimeric-path evidence for read %s: %s", read.query_name, error)
         return ()
 
 
