@@ -55,9 +55,20 @@ class SidDataUnavailable(RuntimeError):
     """Isovar's osteosarc Sid test reads are missing, changed, or unavailable."""
 
 
+def _import_osteosarc():
+    try:
+        import osteosarc
+    except ImportError as error:
+        raise ImportError(
+            "isovar.sid_data requires the optional 'osteosarc' package; "
+            "install test dependencies with `pip install 'isovar[test]'`."
+        ) from error
+    return osteosarc
+
+
 def bundle(cache=None):
     """The shared ``openvax-v1`` bundle folder, fetched via osteosarc and verified against its pinned manifest hash."""
-    from osteosarc import fetch_bundle
+    fetch_bundle = _import_osteosarc().fetch_bundle
     try:
         folder = Path(fetch_bundle(BUNDLE, cache=cache))
     except Exception as error:

@@ -64,7 +64,7 @@ jobs:
         with:
           path: ${{ runner.temp }}/osteosarc
           # A new pin or export layout gets a new cache.
-          key: ${{ runner.os }}-osteosarc-${{ hashFiles('requirements.txt', 'isovar/sid_data.py') }}
+          key: ${{ runner.os }}-osteosarc-${{ hashFiles('pyproject.toml', 'isovar/sid_data.py') }}
       - name: Fetch and verify Sid test reads via osteosarc
         env:
           OSTEOSARC_CACHE: ${{ runner.temp }}/osteosarc
