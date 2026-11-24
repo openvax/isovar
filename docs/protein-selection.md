@@ -118,7 +118,7 @@ configuration with explicit padding, which asks for K + 2 × padding residues.
 
 `balanced` has been the default since Isovar 1.8.0
 ([#219](https://github.com/openvax/isovar/pull/219)). The
-[six-locus, two-source original-RNA audit](../tests/data/osteosarc/SAMPLE_AUDIT.md)
+[six-locus, two-source original-RNA audit](https://github.com/openvax/isovar/blob/master/tests/data/osteosarc/SAMPLE_AUDIT.md)
 compares the three preferences against independent protein expectations.
 
 This is a configurable sequence-selection policy, not an immunogenicity model.

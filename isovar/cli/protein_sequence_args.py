@@ -12,8 +12,6 @@
 
 
 from ..default_parameters import MAX_PROTEIN_SEQUENCES_PER_VARIANT
-from ..protein_sequence_creator import ProteinSequenceCreator
-from ..dataframe_helpers import protein_sequences_generator_to_dataframe
 
 from .rna_args import read_evidence_generator_from_args
 from .validation import non_negative_int
@@ -45,6 +43,8 @@ def protein_sequence_creator_from_args(args):
     """
     Create ProteinSequenceCreator instance from parsed commandline arguments
     """
+    from ..protein_sequence_creator import ProteinSequenceCreator
+
     return ProteinSequenceCreator(
         **protein_sequence_creator_kwargs_from_args(args),
         max_protein_sequences_per_variant=args.max_protein_sequences_per_variant)
@@ -84,5 +84,7 @@ def protein_sequences_dataframe_from_args(args):
     create protein sequences for each variant and generate a DataFrame
     for them all.
     """
+    from ..dataframe_helpers import protein_sequences_generator_to_dataframe
+
     protein_sequences_generator = protein_sequences_generator_from_args(args)
     return protein_sequences_generator_to_dataframe(protein_sequences_generator)

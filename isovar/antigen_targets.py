@@ -21,7 +21,7 @@ from .antigen_reference import (
     validate_alignment_reference,
 )
 
-CTA_GENE_SET = "oncoref-cta"
+from .default_parameters import CTA_GENE_SET
 
 
 @dataclass(frozen=True)

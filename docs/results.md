@@ -2,7 +2,7 @@
 
 This page explains what `run_isovar` returns, what each result and table column
 means, and how filters mark results. Read it after the
-[quick start](../README.md#quick-start), before relying on Isovar's output.
+[quick start](https://github.com/openvax/isovar/blob/master/README.md#quick-start), before relying on Isovar's output.
 
 ## Reading the results
 
@@ -61,7 +61,7 @@ for isovar_result in isovar_results:
 `not_` to negate it, as in `not_protein_sequence_matches_predicted_mutation_effect`.
 
 Omitting either argument applies the defaults in
-[`default_parameters.py`](../isovar/default_parameters.py):
+[`default_parameters.py`](https://github.com/openvax/isovar/blob/master/isovar/default_parameters.py):
 `DEFAULT_FILTER_THRESHOLDS`, and `DEFAULT_FILTER_FLAGS`, which are
 `has_protein_changing_predicted_effect`,
 `has_mutant_protein_sequence_from_rna` and `protein_sequence_contains_mutation`.

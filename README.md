@@ -19,7 +19,7 @@ Isovar is one of three OpenVax libraries that share this work.
 and predicts coding consequences; Isovar reconstructs RNA-supported sequences
 and reconciles the evidence; [Vaxrank](https://github.com/openvax/vaxrank)
 evaluates protein and peptide candidates. See
-[library responsibilities](https://github.com/openvax/isovar/blob/master/docs/library-responsibilities.md).
+[library responsibilities](https://openvax.github.io/isovar/library-responsibilities/).
 
 ## Install
 
@@ -36,7 +36,7 @@ pyensembl install --release 75 --species human
 ```
 
 To choose a specific release or use your own GTF, see
-[choosing the reference annotation](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md).
+[choosing the reference annotation](https://openvax.github.io/isovar/reference-annotation/).
 Figures and PDF reports are included in the standard installation.
 
 ## Quick start
@@ -77,7 +77,7 @@ filters.
 
 Each result holds the RNA evidence at one variant's locus and the proteins
 assembled from it. Filters mark results but never remove them. See
-[reading and filtering results](https://github.com/openvax/isovar/blob/master/docs/results.md)
+[reading and filtering results](https://openvax.github.io/isovar/results/)
 for every property, table column and filter option.
 
 Isovar logs through the standard `logging` module under the `isovar` logger and
@@ -97,25 +97,40 @@ The CSV has one row per variant, with the same columns as the DataFrame.
 `isovar --help` lists the other commands: table exports, RNA hypotheses,
 structural variants and fusions, viral and antigen-isoform evidence, proteomes,
 reports and figures, and audits. The
-[command-line guide](https://github.com/openvax/isovar/blob/master/docs/command-line.md)
+[command-line guide](https://openvax.github.io/isovar/command-line/)
 describes each one and its output.
+
+### Shell tab completion
+
+`isovar` supports shell tab completion for subcommands and flags via
+`argcomplete`. Enable it once for every OpenVax command-line tool:
+
+```sh
+activate-global-python-argcomplete
+```
+
+Or enable it for `isovar` alone in your shell session or profile:
+
+```sh
+eval "$(register-python-argcomplete isovar)"
+```
 
 ## Documentation
 
-<a id="project-reports-and-test-data"></a>The [documentation index](https://github.com/openvax/isovar/blob/master/docs/README.md)
+<a id="project-reports-and-test-data"></a>The [documentation site](https://openvax.github.io/isovar/)
 lists every guide in reading order. Start with:
 
-- [Reading and filtering results](https://github.com/openvax/isovar/blob/master/docs/results.md)
-- <a id="sequencing-recommendations"></a>[Choosing the reference annotation](https://github.com/openvax/isovar/blob/master/docs/reference-annotation.md)
-  and [sequencing recommendations](https://github.com/openvax/isovar/blob/master/docs/sequencing-recommendations.md)
-- [Collecting and counting RNA reads](https://github.com/openvax/isovar/blob/master/docs/read-collection.md)
-  and [protein context selection](https://github.com/openvax/isovar/blob/master/docs/protein-selection.md)
+- [Reading and filtering results](https://openvax.github.io/isovar/results/)
+- <a id="sequencing-recommendations"></a>[Choosing the reference annotation](https://openvax.github.io/isovar/reference-annotation/)
+  and [sequencing recommendations](https://openvax.github.io/isovar/sequencing-recommendations/)
+- [Collecting and counting RNA reads](https://openvax.github.io/isovar/read-collection/)
+  and [protein context selection](https://openvax.github.io/isovar/protein-selection/)
 - <a id="structural-variants-and-fusions"></a>Structural variants: `run_isovar` rejects symbolic SVs and breakends; use
-  [`isovar sv-rna`](https://github.com/openvax/isovar/blob/master/docs/sv-rna.md),
-  [`isovar sv-audit`](https://github.com/openvax/isovar/blob/master/docs/sv-rna-audit.md)
+  [`isovar sv-rna`](https://openvax.github.io/isovar/sv-rna/),
+  [`isovar sv-audit`](https://openvax.github.io/isovar/sv-rna-audit/)
   or, for a fusion assembled by another tool,
-  [`isovar fusion`](https://github.com/openvax/isovar/blob/master/docs/fusion.md)
-- <a id="how-it-works"></a>[Internal design](https://github.com/openvax/isovar/blob/master/docs/internal-design.md):
+  [`isovar fusion`](https://openvax.github.io/isovar/fusion/)
+- <a id="how-it-works"></a>[Internal design](https://openvax.github.io/isovar/internal-design/):
   how reads become proteins
 - [Changelog](https://github.com/openvax/isovar/blob/master/CHANGELOG.md)
 
@@ -125,6 +140,7 @@ lists every guide in reading order. Start with:
 ./develop.sh   # editable install with the selected Python
 ./lint.sh      # ruff
 ./test.sh      # pytest
+./docs.sh      # mkdocs build --strict
 ```
 
 `./test.sh` needs the Ensembl releases that

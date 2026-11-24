@@ -1,0 +1,105 @@
+site_name: Isovar
+site_description: Determine mutant protein sequences from RNA using assembly around variants
+site_url: https://openvax.github.io/isovar/
+repo_url: https://github.com/openvax/isovar
+repo_name: openvax/isovar
+edit_uri: edit/master/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+
+nav:
+  - Home: README.md
+  - Getting started:
+      - Reading and filtering results: results.md
+      - Command line: command-line.md
+      - Choosing the reference annotation: reference-annotation.md
+      - Sequencing recommendations: sequencing-recommendations.md
+  - Running the pipeline:
+      - Collecting and counting RNA reads: read-collection.md
+      - Read eligibility across platforms: read-processing-audit.md
+      - Shared RNA reconstruction and support: rna-reconstruction.md
+      - Nuclear versus mitochondrial RNA origin: rna-origin.md
+      - Assembly and translation: assembly-and-translation.md
+      - Protein context selection: protein-selection.md
+      - Reading frames from aligned reads: aligned-reading-frame.md
+      - Phasing: phasing.md
+      - Matched-normal evidence: matched-normal-evidence.md
+  - Exports and evidence:
+      - Protein hypotheses and Proteome adapter: protein-hypotheses.md
+      - RNA Proteomes: rna-proteome.md
+      - Patient-background peptide pairs: patient-background-pairs.md
+      - Competing allele interpretations: allele-interpretations.md
+      - Mutation-evidence figures: visualization.md
+      - Adapter and poly-A trimming: read-end-inference.md
+      - Base-quality evidence: base-quality.md
+      - Partial-read support: partial-read-support.md
+      - Cell/UMI evidence: cell-umi-evidence.md
+  - Structural variants and fusions:
+      - Validating SV source definitions: sv-source-validation.md
+      - Unified SV RNA audit: sv-rna-audit.md
+      - Reusing original RNA libraries: rna-library-index.md
+      - SV RNA reconstruction: sv-rna.md
+      - Supplied fusion RNA: fusion.md
+      - Literal-allele RNA paths: variant-rna-paths.md
+      - ORF start evidence: orf-start-evidence.md
+      - ONT read lineage: ont-read-lineage.md
+      - uORF evidence: uorf-evidence.md
+  - Viral sequences, isoforms and reports:
+      - Viral sequence recovery: viral-sequences.md
+      - CTA and other antigen isoforms: antigen-isoforms.md
+      - Antigen-source evidence report: antigen-evidence-report.md
+      - Reproducible RNA cohort reports: cohort-reports.md
+  - Concepts and design:
+      - Library responsibilities: library-responsibilities.md
+      - Internal design: internal-design.md
+      - RNA assessment before protein selection: variant-read-assessment.md
+      - RNA in supplied ORF frames: variant-rna-orfs.md
+      - Observed-path reading frames: transcript-path-frames.md
+
+markdown_extensions:
+  - admonition
+  - def_list
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - tables
+
+plugins:
+  - search
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+    unrecognized_links: warn

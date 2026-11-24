@@ -16,8 +16,6 @@ frame of each compatible reference transcript, before candidates are grouped
 and ranked into protein sequences.
 """
 
-from ..dataframe_helpers import translations_generator_to_dataframe
-from ..protein_sequence_creator import ProteinSequenceCreator
 from .commands import run_dataframe_command
 from .output_args import add_output_args
 from .rna_args import read_evidence_generator_from_args
@@ -34,6 +32,8 @@ def translations_generator_from_args(args):
     Given parsed commandline arguments, returns a generator whose elements
     are (varcode.Variant, [Translation])
     """
+    from ..protein_sequence_creator import ProteinSequenceCreator
+
     read_evidence_generator = read_evidence_generator_from_args(args)
     protein_sequence_creator = ProteinSequenceCreator(**protein_sequence_creator_kwargs_from_args(args))
     return protein_sequence_creator.translate_variants(read_evidence_generator)
@@ -44,6 +44,8 @@ def translations_dataframe_from_args(args):
     Collects Translation objects based on commandline arguments and
     converts them into a DataFrame.
     """
+    from ..dataframe_helpers import translations_generator_to_dataframe
+
     return translations_generator_to_dataframe(translations_generator_from_args(args))
 
 

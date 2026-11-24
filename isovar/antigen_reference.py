@@ -23,7 +23,7 @@ from .dna import reverse_complement_dna
 from .file_identity import file_sha256
 from .fusion import FusionReference
 
-GDC_REFERENCE = "GRCh38.d1.vd1"
+from .default_parameters import GDC_REFERENCE
 
 
 def gdc_reference_dictionary():

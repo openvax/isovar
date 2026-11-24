@@ -12,6 +12,9 @@ orfdata>=0.45.0,<1
 # Versioned human CTA nomination with policy, reference and source provenance.
 oncoref>=1.21.0,<2
 
+# Shell tab completion for the isovar CLI.
+argcomplete>=3
+
 # Figures and PDF reports are part of the standard CLI installation.
 matplotlib>=3.6,<4
 reportlab>=4,<6

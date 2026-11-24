@@ -1,21 +1,13 @@
 """Derive per-locus phasing error bounds from truth-labeled control BAMs."""
 
-import argparse
 from contextlib import ExitStack
 from hashlib import sha256
 import json
 from pathlib import Path
 
-from pysam import AlignmentFile, FastaFile
-from varcode import Variant
-
+from .help import HelpArgumentParser
 from .output_args import add_log_level_arg
 from ..logging import configure_cli_logging, get_logger
-from .. import __version__
-from ..phasing_calibration import PhasingControl, calibrate_phasing_error_rates
-from ..read_collector import ReadCollector
-from ..read_evidence import ReadEvidence
-from ..read_identity import source_read_ids
 from .validation import check_outputs, input_error
 
 logger = get_logger(__name__)
@@ -40,6 +32,9 @@ def _check_group(bam, group, metadata):
 
 
 def _group_evidence(evidence, group=None):
+    from ..read_evidence import ReadEvidence
+    from ..read_identity import source_read_ids
+
     buckets, observed = [], set()
     for allele in ("ref", "alt", "other"):
         selected = []
@@ -58,6 +53,11 @@ def _group_evidence(evidence, group=None):
 
 
 def _calibrate(manifest, base_path=Path(".")):
+    from pysam import AlignmentFile, FastaFile
+    from varcode import Variant
+    from ..phasing_calibration import PhasingControl, calibrate_phasing_error_rates
+    from ..read_collector import ReadCollector
+
     if not isinstance(manifest, dict) or not isinstance(manifest.get("targets"), list):
         raise ValueError("Manifest needs a targets list")
     collector_options = manifest.get("read_collector_options", {})
@@ -149,8 +149,8 @@ def _calibrate(manifest, base_path=Path(".")):
         controls, target_metadata, confidence=manifest.get("confidence", 0.95))
 
 
-def run(args=None, *, prog=None):
-    parser = argparse.ArgumentParser(prog=prog, description=__doc__)
+def make_parser(prog="isovar calibrate-phasing"):
+    parser = HelpArgumentParser(prog=prog, description=__doc__)
     parser.add_argument("--manifest", required=True, type=Path,
                         help="JSON target loci and independent true-ref/true-alt control BAMs")
     parser.add_argument("--output", required=True, type=Path,
@@ -158,6 +158,13 @@ def run(args=None, *, prog=None):
     parser.add_argument("--report", required=True, type=Path,
                         help="JSON audit report with per-group counts and confidence bounds")
     add_log_level_arg(parser)
+    return parser
+
+
+def run(args=None, *, prog=None):
+    from .. import __version__
+
+    parser = make_parser(prog or "isovar calibrate-phasing")
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:

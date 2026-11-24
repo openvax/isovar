@@ -4,8 +4,8 @@ import gzip
 import json
 from pathlib import Path
 
+from ..default_parameters import PATIENT_BACKGROUND_BASELINES as BASELINES
 from ..logging import configure_cli_logging, get_logger
-from ..patient_background import BASELINES, export_patient_background_pairs
 from .commands import parser_for_program
 from .filter_args import filter_threshold_dict_from_args
 from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
@@ -31,6 +31,8 @@ def run(args=None, *, prog=None):
     options = command.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
+        from ..patient_background import export_patient_background_pairs
+
         output = Path(options.output)
         check_outputs(options, 'output')
         result = export_patient_background_pairs(

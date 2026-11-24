@@ -3,12 +3,9 @@ Compare competing interpretations of one locus with the RNA reads: which
 representation of an SNV, multi-base change or indel do the reads carry?
 """
 
-import argparse
-
-from ..allele_interpretations import interpretations_from_dict, reconcile_allele_interpretations
 from ..default_parameters import INTERPRETATION_FLANK, MIN_INTERPRETATION_FRAGMENTS
-from ..json_files import read_json, write_json
 from ..logging import configure_cli_logging, get_logger
+from .help import HelpArgumentParser
 from .output_args import add_log_level_arg
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
 from .validation import CommandInputError, check_outputs, input_error, non_negative_int, positive_int
@@ -17,7 +14,7 @@ logger = get_logger(__name__)
 
 
 def make_parser(prog="isovar allele-interpretations"):
-    parser = argparse.ArgumentParser(prog=prog, description=__doc__)
+    parser = HelpArgumentParser(prog=prog, description=__doc__)
     parser.add_argument("--input", required=True,
                         help="JSON (or .json.gz) with reference_name and interpretations: ID to a list of "
                              "variants with contig, start, ref and alt")
@@ -42,6 +39,9 @@ def run(args=None, prog=None):
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
+        from ..allele_interpretations import interpretations_from_dict, reconcile_allele_interpretations
+        from ..json_files import read_json, write_json
+
         check_outputs(options, "output")
         interpretations = interpretations_from_dict(read_json(options.input), genome=options.genome)
         with alignment_file_from_args(options) as alignment_file:

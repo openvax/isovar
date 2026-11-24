@@ -10,185 +10,148 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.92.0"
+from importlib import import_module
+
+__version__ = "1.93.0"
+
+# Lazily resolved top-level public API so importing ``isovar`` (or its CLI)
+# stays fast and avoids loading heavy runtime dependencies until needed.
+_LAZY_EXPORTS = {
+    "reconcile_allele_interpretations": (".allele_interpretations", "reconcile_allele_interpretations"),
+    "AlleleRead": (".allele_read", "AlleleRead"),
+    "BaseQualityPolicy": (".base_quality", "BaseQualityPolicy"),
+    "AlleleQualityFootprint": (".base_quality", "AlleleQualityFootprint"),
+    "cell_umi_allele_evidence": (".cell_evidence", "cell_umi_allele_evidence"),
+    "UnresolvedContigError": (".contig_resolution", "UnresolvedContigError"),
+    "CallerCoordinateClaim": (".sv_sources", "CallerCoordinateClaim"),
+    "SVSourceRecord": (".sv_sources", "SVSourceRecord"),
+    "read_sv_source": (".sv_sources", "read_sv_source"),
+    "sv_source_report": (".sv_sources", "sv_source_report"),
+    "PreparedSVSourceRecord": (".sv_source_preparation", "PreparedSVSourceRecord"),
+    "SVSourceView": (".sv_source_preparation", "SVSourceView"),
+    "prepare_sv_source_record": (".sv_source_preparation", "prepare_sv_source_record"),
+    "isovar_results_to_dataframe": (".dataframe_helpers", "isovar_results_to_dataframe"),
+    "IsovarResult": (".isovar_result", "IsovarResult"),
+    "LocusRead": (".locus_read", "LocusRead"),
+    "run_isovar": (".main", "run_isovar"),
+    "IsovarMutantTranscript": (".mutant_transcript_source", "IsovarMutantTranscript"),
+    "PhaseGroup": (".phase_group", "PhaseGroup"),
+    "export_protein_hypotheses": (".protein_hypotheses", "export_protein_hypotheses"),
+    "read_group_metadata": (".protein_hypotheses", "read_group_metadata"),
+    "write_protein_hypotheses": (".protein_hypotheses", "write_protein_hypotheses"),
+    "from_protein_hypotheses": (".proteome", "from_protein_hypotheses"),
+    "to_proteome": (".proteome", "to_proteome"),
+    "from_rna_result": (".rna_proteome", "from_rna_result"),
+    "export_patient_background_pairs": (".patient_background", "export_patient_background_pairs"),
+    "reconstruct_cell_groups": (".cell_reconstruction", "reconstruct_cell_groups"),
+    "ProteinSequence": (".protein_sequence", "ProteinSequence"),
+    "ProteinSequenceCreator": (".protein_sequence_creator", "ProteinSequenceCreator"),
+    "ReadCollector": (".read_collector", "ReadCollector"),
+    "Adapter": (".read_end_inference", "Adapter"),
+    "ReadEndProfile": (".read_end_inference", "ReadEndProfile"),
+    "ReadEndAnnotation": (".read_end_inference", "ReadEndAnnotation"),
+    "ReadSequenceView": (".read_end_inference", "ReadSequenceView"),
+    "ReadEndInferenceCache": (".read_end_inference", "ReadEndInferenceCache"),
+    "infer_read_ends": (".read_end_inference", "infer_read_ends"),
+    "read_sequence_view_from_alignment": (".read_end_inference", "read_sequence_view_from_alignment"),
+    "ReadLibraryProvenance": (".read_end_profiles", "ReadLibraryProvenance"),
+    "ReadProcessingStep": (".read_end_profiles", "ReadProcessingStep"),
+    "read_end_profile_from_fasta": (".read_end_profiles", "read_end_profile_from_fasta"),
+    "ReadEvidence": (".read_evidence", "ReadEvidence"),
+    "GenomicQueryEvidence": (".read_sequence_origin", "GenomicQueryEvidence"),
+    "genomic_query_evidence_from_alignment": (".read_sequence_origin", "genomic_query_evidence_from_alignment"),
+    "PhasingCalibration": (".phasing_calibration", "PhasingCalibration"),
+    "PhasingControl": (".phasing_calibration", "PhasingControl"),
+    "calibrate_phasing_error_rates": (".phasing_calibration", "calibrate_phasing_error_rates"),
+    "IsovarReadPhasing": (".read_phasing", "IsovarReadPhasing"),
+    "union_rna_support": (".rna_evidence", "union_rna_support"),
+    "RNAFeature": (".rna_feature_support", "RNAFeature"),
+    "RNASamplingGeometry": (".rna_feature_support", "RNASamplingGeometry"),
+    "RNASamplingProfile": (".rna_feature_support", "RNASamplingProfile"),
+    "effective_rna_feature_lengths": (".rna_feature_support", "effective_rna_feature_lengths"),
+    "measure_rna_feature": (".rna_feature_support", "measure_rna_feature"),
+    "validate_rna_feature_support": (".rna_feature_support", "validate_rna_feature_support"),
+    "normalize_rna_feature_support": (".rna_feature_support", "normalize_rna_feature_support"),
+    "measure_rna_path_features": (".rna_feature_measurement", "measure_rna_path_features"),
+    "RNAOriginHypothesis": (".rna_origin", "RNAOriginHypothesis"),
+    "RNAOriginPolicy": (".rna_origin", "RNAOriginPolicy"),
+    "assess_rna_origin": (".rna_origin", "assess_rna_origin"),
+    "TranscriptAssemblyEdit": (".transcript_assembly_edit", "TranscriptAssemblyEdit"),
+    "VariantORF": (".variant_orf", "VariantORF"),
+    "VariantRNAAssembly": (".variant_read_assessment", "VariantRNAAssembly"),
+    "VariantReadAssessment": (".variant_read_assessment", "VariantReadAssessment"),
+    "VariantSequence": (".variant_sequence", "VariantSequence"),
+    "VariantSequenceCreator": (".variant_sequence_creator", "VariantSequenceCreator"),
+    "FUSION_REASON_ALIASES": (".fusion", "FUSION_REASON_ALIASES"),
+    "FusionBlock": (".fusion", "FusionBlock"),
+    "FusionBreakpoint": (".fusion", "FusionBreakpoint"),
+    "FusionRead": (".fusion", "FusionRead"),
+    "FusionReference": (".fusion", "FusionReference"),
+    "FusionTranscript": (".fusion", "FusionTranscript"),
+    "normalize_fusion_reason": (".fusion", "normalize_fusion_reason"),
+    "reconstruct_fusion": (".fusion", "reconstruct_fusion"),
+    "reconstruct_sv_rna": (".sv_rna", "reconstruct_sv_rna"),
+    "export_sv_rna_orfs": (".sv_rna_orf_export", "export_sv_rna_orfs"),
+    "write_sv_rna_orfs": (".sv_rna_orf_export", "write_sv_rna_orfs"),
+    "compare_sv_rna_predictions": (".sv_rna_comparison", "compare_sv_rna_predictions"),
+    "assess_sv_rna_paths": (".sv_rna_assessment", "assess_sv_rna_paths"),
+    "hypotheses_from_varcode": (".sv_rna_reconciliation", "hypotheses_from_varcode"),
+    "reconcile_sv_rna_hypotheses": (".sv_rna_reconciliation", "reconcile_sv_rna_hypotheses"),
+    "run_sv_rna_audit": (".sv_rna_audit", "run_sv_rna_audit"),
+    "annotate_orf_inclusion": (".orf_inclusion", "annotate_orf_inclusion"),
+    "annotate_orf_start": (".orf_start", "annotate_orf_start"),
+    "summarize_orf_start_evidence": (".orf_start", "summarize_orf_start_evidence"),
+    "UORFCatalog": (".uorf_catalog", "UORFCatalog"),
+    "UORFRecord": (".uorf_catalog", "UORFRecord"),
+    "UORFPeptide": (".uorf_catalog", "UORFPeptide"),
+    "load_uorf_catalog": (".uorf_catalog", "load_uorf_catalog"),
+    "InitiationContext": (".initiation_context", "InitiationContext"),
+    "annotate_initiation_context": (".initiation_context", "annotate_initiation_context"),
+    "IsoformTarget": (".antigen_reference", "IsoformTarget"),
+    "gdc_genome": (".antigen_reference", "gdc_genome"),
+    "gdc_viral_panel": (".antigen_reference", "gdc_viral_panel"),
+    "isoform_targets_from_genome": (".antigen_reference", "isoform_targets_from_genome"),
+    "validate_alignment_reference": (".antigen_reference", "validate_alignment_reference"),
+    "reconstruct_antigen_isoforms": (".antigen_isoforms", "reconstruct_antigen_isoforms"),
+    "AntigenReference": (".antigen_targets", "AntigenReference"),
+    "antigen_gene_selection": (".antigen_targets", "antigen_gene_selection"),
+    "prepare_antigen_reference": (".antigen_targets", "prepare_antigen_reference"),
+    "reconstruct_viral_sequences": (".viral_sequences", "reconstruct_viral_sequences"),
+    "write_viral_fasta": (".viral_sequences", "write_viral_fasta"),
+    "write_viral_proteins": (".viral_coding", "write_viral_proteins"),
+    "quantify_antigen_isoforms": (".isoform_quantification", "quantify_antigen_isoforms"),
+    "add_isoform_abundances": (".isoform_quantification", "add_isoform_abundances"),
+    "write_isoform_fastas": (".isoform_quantification", "write_isoform_fastas"),
+    "annotate_sv_uorf_evidence": (".uorf_annotation", "annotate_sv_uorf_evidence"),
+    "annotate_sv_orf_evidence": (".orf_annotation", "annotate_sv_orf_evidence"),
+    "reconstruct_variant_orfs": (".variant_rna_orfs", "reconstruct_variant_orfs"),
+    "variant_orf_translation_table": (".variant_rna_orfs", "variant_orf_translation_table"),
+    "prepare_rna_library": (".rna_library", "prepare_rna_library"),
+    "PreparedRnaLibrary": (".rna_library", "PreparedRnaLibrary"),
+    "RnaLibraryIndex": (".rna_library", "RnaLibraryIndex"),
+    "PathEvidenceQuery": (".sv_path_routing", "PathEvidenceQuery"),
+    "PathEvidenceIndex": (".sv_path_routing", "PathEvidenceIndex"),
+    "route_path_evidence": (".sv_path_routing", "route_path_evidence"),
+    "NormalEvidencePolicy": (".normal_evidence", "NormalEvidencePolicy"),
+    "NormalSource": (".normal_sources", "NormalSource"),
+    "assess_matched_normal": (".normal_sources", "assess_matched_normal"),
+    "run_normal_evidence_manifest": (".normal_sources", "run_normal_evidence_manifest"),
+    "normal_background_regions": (".normal_regions", "normal_background_regions"),
+    "reconstruct_variant_rna_paths": (".variant_rna_paths", "reconstruct_variant_rna_paths"),
+    "variant_rna_path_input_from_dict": (".variant_rna_paths", "variant_rna_path_input_from_dict"),
+}
+
+__all__ = list(_LAZY_EXPORTS)
 
 
-from .allele_interpretations import reconcile_allele_interpretations
-from .allele_read import AlleleRead
-from .base_quality import BaseQualityPolicy, AlleleQualityFootprint
-from .cell_evidence import cell_umi_allele_evidence
-from .contig_resolution import UnresolvedContigError
-from .sv_sources import CallerCoordinateClaim, SVSourceRecord, read_sv_source, sv_source_report
-from .sv_source_preparation import (
-    PreparedSVSourceRecord, SVSourceView, prepare_sv_source_record,
-)
-from .dataframe_helpers import isovar_results_to_dataframe
-from .isovar_result import IsovarResult
-from .locus_read import LocusRead
-from .main import run_isovar
-from .mutant_transcript_source import IsovarMutantTranscript
-from .phase_group import PhaseGroup
-from .protein_hypotheses import export_protein_hypotheses, read_group_metadata, write_protein_hypotheses
-from .proteome import from_protein_hypotheses, to_proteome
-from .rna_proteome import from_rna_result
-from .patient_background import export_patient_background_pairs
-from .cell_reconstruction import reconstruct_cell_groups
-from .protein_sequence import ProteinSequence
-from .protein_sequence_creator import ProteinSequenceCreator
-from .read_collector import ReadCollector
-from .read_end_inference import (
-    Adapter, ReadEndProfile, ReadEndAnnotation, ReadSequenceView, ReadEndInferenceCache,
-    infer_read_ends, read_sequence_view_from_alignment,
-)
-from .read_end_profiles import (
-    ReadLibraryProvenance, ReadProcessingStep, read_end_profile_from_fasta,
-)
-from .read_evidence import ReadEvidence
-from .read_sequence_origin import GenomicQueryEvidence, genomic_query_evidence_from_alignment
-from .phasing_calibration import PhasingCalibration, PhasingControl, calibrate_phasing_error_rates
-from .read_phasing import IsovarReadPhasing
-from .rna_evidence import union_rna_support
-from .rna_feature_support import (
-    RNAFeature, RNASamplingGeometry, RNASamplingProfile,
-    effective_rna_feature_lengths, measure_rna_feature, validate_rna_feature_support, normalize_rna_feature_support,
-)
-from .rna_feature_measurement import measure_rna_path_features
-from .rna_origin import RNAOriginHypothesis, RNAOriginPolicy, assess_rna_origin
-from .transcript_assembly_edit import TranscriptAssemblyEdit
-from .variant_orf import VariantORF
-from .variant_read_assessment import VariantRNAAssembly, VariantReadAssessment
-from .variant_sequence import VariantSequence
-from .variant_sequence_creator import VariantSequenceCreator
-from .fusion import FusionBlock, FusionBreakpoint, FusionRead, FusionReference, FusionTranscript, reconstruct_fusion
-from .sv_rna import reconstruct_sv_rna
-from .sv_rna_orf_export import export_sv_rna_orfs, write_sv_rna_orfs
-from .sv_rna_comparison import compare_sv_rna_predictions
-from .sv_rna_assessment import assess_sv_rna_paths
-from .sv_rna_reconciliation import hypotheses_from_varcode, reconcile_sv_rna_hypotheses
-from .sv_rna_audit import run_sv_rna_audit
-from .orf_inclusion import annotate_orf_inclusion
-from .orf_start import annotate_orf_start, summarize_orf_start_evidence
-from .uorf_catalog import UORFCatalog, UORFRecord, UORFPeptide, load_uorf_catalog
-from .initiation_context import InitiationContext, annotate_initiation_context
-from .antigen_reference import IsoformTarget, gdc_genome, gdc_viral_panel, isoform_targets_from_genome, validate_alignment_reference
-from .antigen_isoforms import reconstruct_antigen_isoforms
-from .antigen_targets import AntigenReference, antigen_gene_selection, prepare_antigen_reference
-from .viral_sequences import reconstruct_viral_sequences, write_viral_fasta
-from .viral_coding import write_viral_proteins
-from .isoform_quantification import quantify_antigen_isoforms, add_isoform_abundances, write_isoform_fastas
-from .uorf_annotation import annotate_sv_uorf_evidence
-from .orf_annotation import annotate_sv_orf_evidence
-from .variant_rna_orfs import reconstruct_variant_orfs, variant_orf_translation_table
-from .rna_library import prepare_rna_library, PreparedRnaLibrary, RnaLibraryIndex
-from .sv_path_routing import PathEvidenceQuery, PathEvidenceIndex, route_path_evidence
-from .normal_evidence import NormalEvidencePolicy
-from .normal_sources import NormalSource, assess_matched_normal, run_normal_evidence_manifest
-from .normal_regions import normal_background_regions
-from .variant_rna_paths import reconstruct_variant_rna_paths, variant_rna_path_input_from_dict
+def __getattr__(name):
+    if name in _LAZY_EXPORTS:
+        module_name, attr_name = _LAZY_EXPORTS[name]
+        value = getattr(import_module(module_name, __name__), attr_name)
+        globals()[name] = value
+        return value
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))
 
 
-__all__ = [
-    "RNAOriginHypothesis", "RNAOriginPolicy", "assess_rna_origin",
-    "RNAFeature", "RNASamplingGeometry", "RNASamplingProfile",
-    "effective_rna_feature_lengths", "measure_rna_feature", "validate_rna_feature_support",
-    "measure_rna_path_features", "normalize_rna_feature_support",
-    "VariantRNAAssembly", "VariantReadAssessment",
-    "ReadLibraryProvenance", "ReadProcessingStep", "read_end_profile_from_fasta", "ReadEndInferenceCache",
-    "CallerCoordinateClaim", "SVSourceRecord", "read_sv_source", "sv_source_report",
-    "PreparedSVSourceRecord", "SVSourceView", "prepare_sv_source_record",
-    "PhasingCalibration", "PhasingControl", "calibrate_phasing_error_rates",
-    "gdc_viral_panel",
-    "reconstruct_viral_sequences",
-    "write_viral_fasta",
-    "write_viral_proteins",
-    "IsoformTarget",
-    "gdc_genome",
-    "isoform_targets_from_genome",
-    "validate_alignment_reference",
-    "reconstruct_antigen_isoforms",
-    "AntigenReference",
-    "antigen_gene_selection",
-    "prepare_antigen_reference",
-    "quantify_antigen_isoforms",
-    "add_isoform_abundances",
-    "write_isoform_fastas",
-    "annotate_sv_orf_evidence",
-    "annotate_sv_uorf_evidence",
-    "InitiationContext",
-    "annotate_initiation_context",
-    "UORFCatalog",
-    "UORFRecord",
-    "UORFPeptide",
-    "load_uorf_catalog",
-    "BaseQualityPolicy",
-    "AlleleQualityFootprint",
-    "run_isovar",
-    "UnresolvedContigError",
-    "reconcile_allele_interpretations",
-    "cell_umi_allele_evidence",
-    "reconstruct_cell_groups",
-    "export_protein_hypotheses",
-    "from_protein_hypotheses",
-    "to_proteome",
-    "export_patient_background_pairs",
-    "from_rna_result",
-    "write_protein_hypotheses",
-    "read_group_metadata",
-    "union_rna_support",
-    "FusionBlock",
-    "FusionBreakpoint",
-    "FusionRead",
-    "FusionReference",
-    "FusionTranscript",
-    "reconstruct_fusion",
-    "reconstruct_sv_rna",
-    "export_sv_rna_orfs",
-    "write_sv_rna_orfs",
-    "compare_sv_rna_predictions",
-    "assess_sv_rna_paths",
-    "hypotheses_from_varcode",
-    "reconcile_sv_rna_hypotheses",
-    "run_sv_rna_audit",
-    "annotate_orf_inclusion",
-    "annotate_orf_start",
-    "summarize_orf_start_evidence",
-    "isovar_results_to_dataframe",
-    "AlleleRead",
-    "PhaseGroup",
-    "IsovarMutantTranscript",
-    "IsovarReadPhasing",
-    "IsovarResult",
-    "LocusRead",
-    "ProteinSequence",
-    "ProteinSequenceCreator",
-    "ReadCollector",
-    "Adapter",
-    "ReadEndProfile",
-    "ReadEndAnnotation",
-    "ReadSequenceView",
-    "GenomicQueryEvidence",
-    "genomic_query_evidence_from_alignment",
-    "infer_read_ends",
-    "read_sequence_view_from_alignment",
-    "ReadEvidence",
-    "TranscriptAssemblyEdit",
-    "VariantORF",
-    "VariantSequence",
-    "VariantSequenceCreator",
-    "reconstruct_variant_orfs",
-    "variant_orf_translation_table",
-    "reconstruct_variant_rna_paths",
-    "variant_rna_path_input_from_dict",
-    "prepare_rna_library",
-    "PreparedRnaLibrary",
-    "RnaLibraryIndex",
-    "PathEvidenceQuery",
-    "PathEvidenceIndex",
-    "route_path_evidence",
-
-    "NormalEvidencePolicy",
-    "NormalSource",
-    "assess_matched_normal",
-    "run_normal_evidence_manifest",
-    "normal_background_regions",
-]
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

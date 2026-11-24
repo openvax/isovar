@@ -29,6 +29,7 @@ from .default_parameters import (
     USE_READS_WITHOUT_BASE_QUALITIES,
     MERGE_OVERLAPPING_FRAGMENTS,
     INFER_READ_ENDS, TRIM_ADAPTERS, TRIM_POLY_A, READ_END_PROFILE, MATCH_MITOCHONDRION_BY_LENGTH,
+    RNA_PATH_READ_COLLECTOR_DEFAULTS,
 )
 from .base_quality import AlleleQualityFootprint
 from .locus_read import LocusRead
@@ -229,8 +230,7 @@ class ReadCollector(object):
         and viral path reconstruction, independently of small-variant defaults.
         Profile definitions use the same loader as :meth:`from_dict`.
         """
-        settings = dict(use_secondary_alignments=True, min_mapping_quality=0,
-                        use_soft_clipped_bases=False, use_reads_without_base_qualities=True)
+        settings = dict(RNA_PATH_READ_COLLECTOR_DEFAULTS)
         settings.update(parameters or {})
         return cls.from_dict(settings, files=files)
 

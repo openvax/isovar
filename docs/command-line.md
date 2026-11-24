@@ -44,7 +44,7 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | `isovar protein-hypotheses` | Every protein hypothesis, its translations and scoped RNA evidence, as JSON and TSV ([guide](protein-hypotheses.md)) |
 | `isovar variant-rna-paths` | Original ALT/REF RNA paths assembled before coding-model assessment, as JSON ([guide](variant-rna-paths.md)) |
 | `isovar allele-interpretations` | Which competing representations of one locus the RNA reads carry, as JSON ([guide](allele-interpretations.md)) |
-| `isovar rna-features` | Read/fragment counts and optional library/feature normalization for explicit RNA paths ([guide](../RNA_FEATURE_SUPPORT.md)) |
+| `isovar rna-features` | Read/fragment counts and optional library/feature normalization for explicit RNA paths ([guide](https://github.com/openvax/isovar/blob/master/RNA_FEATURE_SUPPORT.md)) |
 | `isovar rna-origin` | Nuclear/mitochondrial context evidence against an explicit panel, as JSON ([guide](rna-origin.md)) |
 
 ### Structural variants and fusions
@@ -151,3 +151,18 @@ and `--log-level WARNING` keeps runs quiet.
 Unusable inputs and out-of-range options stop with a one-line error and exit
 status 2. Examples are a missing file, an unindexed BAM, SAM instead of BAM, a
 missing output directory and malformed JSON.
+
+## Shell tab completion
+
+`isovar` supports tab completion for subcommands and options via `argcomplete`.
+Turn it on once for every OpenVax command-line tool:
+
+```sh
+activate-global-python-argcomplete
+```
+
+Or enable it per tool:
+
+```sh
+eval "$(register-python-argcomplete isovar)"
+```

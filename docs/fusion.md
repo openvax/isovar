@@ -107,8 +107,16 @@ supplied transcript, in the same structure as `isovar sv-rna`:
 - **`insufficient_support`**: fewer than `--min-fragments` (2) distinct fragments
   directly span the junction, or some transcript bases are not covered by any
   read. A supplied sequence alone is never a validated protein.
-- **`unresolved`**: the RNA is supported, but no annotated frame can be justified.
-  This does not mean no fusion RNA exists.
+- **`unresolved`**: the RNA is supported, but no annotated ORF source can be
+  extended across the junction. Typical reasons are `no_orf_source` (no
+  annotated coding transcript matches the upstream window collinearly) and
+  `junction_before_orf_source:<transcript>` (the junction lies upstream of that
+  transcript's annotated CDS). This does not mean no fusion RNA or translatable
+  sequence exists — for example, an upstream or noncanonical ORF may still be
+  recoverable with [`isovar sv-rna`](sv-rna.md). For saved results written by
+  earlier versions, `normalize_fusion_reason` maps the legacy strings
+  `no_exact_collinear_annotated_donor` and
+  `junction_before_donor_CDS:<transcript>` to their current names.
 - **`ambiguous`**: more than one protein hypothesis, or coding and noncoding donor
   models both fit. Downstream tools must not silently pick one.
 - **`translated`**: one protein hypothesis across the compatible donor models.

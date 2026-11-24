@@ -1,10 +1,8 @@
 """Validate and translate an explicitly supplied fusion transcript/evidence JSON."""
-import argparse
 
 from ..default_parameters import FUSION_PEPTIDE_LENGTHS, MIN_FUSION_FRAGMENTS, PLOT_DPI
-from ..fusion import fusion_from_dict, reconstruct_fusion
-from ..json_files import read_json, write_json
 from ..logging import configure_cli_logging, get_logger
+from .help import HelpArgumentParser
 from .output_args import add_log_level_arg
 from .validation import CommandInputError, check_outputs, dpi, input_error
 
@@ -12,7 +10,7 @@ logger = get_logger(__name__)
 
 
 def make_parser(prog="isovar fusion"):
-    parser = argparse.ArgumentParser(prog=prog, description=__doc__)
+    parser = HelpArgumentParser(prog=prog, description=__doc__)
     parser.add_argument("--input", required=True,
                         help="Supplied fusion sequence, mapping, references and RNA evidence JSON (or .json.gz)")
     parser.add_argument("--output", required=True,
@@ -32,6 +30,9 @@ def run(args=None, prog=None):
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
+        from ..fusion import fusion_from_dict, reconstruct_fusion
+        from ..json_files import read_json, write_json
+
         check_outputs(options, "output", directories=("plot_dir",))
         data = read_json(options.input)
         fusion, references, reads = fusion_from_dict(data)

@@ -131,6 +131,23 @@ def test_mutation_overlapping_reference_ninemers_include_deletion_junction(tmp_p
     assert novel == total - 1
 
 
+def test_reference_ninemer_matches_ignores_sequence_before_first_header(tmp_path):
+    import gzip
+
+    protein = dict(protein_sequence="ABCDEFGHIJKL", mutation_start_idx="5",
+                   mutation_end_idx="5")
+    content = "ABCDEFGHI\n>real_protein\nDEFGHIJKL\n"
+    plain = tmp_path / "leading.fasta"
+    plain.write_text(content)
+    gz = tmp_path / "leading.fasta.gz"
+    with gzip.open(gz, "wt") as handle:
+        handle.write(content)
+    for path in (plain, gz):
+        matches = reference_ninemer_matches([protein], path)
+        assert "ABCDEFGHI" not in matches
+        assert "DEFGHIJKL" in matches
+
+
 def test_unresolved_chromosomes_keep_unmeasured_counts_and_do_not_enter_depth_bins(tmp_path):
     import json
     import pysam

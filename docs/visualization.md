@@ -155,7 +155,7 @@ path but does not choose one of the five isoforms.
 - **Soft clips.** `--use-soft-clipped-bases` keeps unaligned read ends. It does
   not realign an SV partner or recover an allele seen only in clips; CIGAR
   insertions are used either way. In a
-  [matched osteosarc audit](../tests/data/osteosarc/figure_comparisons/SOFT_CLIPS.md),
+  [matched osteosarc audit](https://github.com/openvax/isovar/blob/master/tests/data/osteosarc/figure_comparisons/SOFT_CLIPS.md),
   turning it on shortened some top protein contexts, because clipped sequence
   conflicted with aligned reads, so it stays off by default.
 - **Reads ending at an insertion.** A read that ends at an insertion supports
@@ -180,8 +180,8 @@ sequencing errors.
 
 ## Osteosarc examples
 
-Browse the [expanded figure gallery](../figures/osteosarc/2026-09-16_05-43-34-415330Z/README.md)
-or the [original three-example, 12-page vector PDF](../figures/osteosarc/2026-09-16_05-23-24-826750Z/three-examples-12-pages.pdf).
+Browse the [expanded figure gallery](https://github.com/openvax/isovar/blob/master/figures/osteosarc/2026-09-16_05-43-34-415330Z/README.md)
+or the [original three-example, 12-page vector PDF](https://github.com/openvax/isovar/blob/master/figures/osteosarc/2026-09-16_05-23-24-826750Z/three-examples-12-pages.pdf).
 To regenerate them from a repository checkout:
 
 ```sh
@@ -237,7 +237,7 @@ Other examples:
   selected fixtures. ONT gives 46 aa in both modes; Illumina has one alternate
   read and no protein at the two-read floor. This is a difference in library
   support, **not a controlled read-length comparison**. See the
-  [pinned original-read comparison and reproduction recipe](../tests/data/osteosarc/figure_comparisons/README.md).
+  [pinned original-read comparison and reproduction recipe](https://github.com/openvax/isovar/blob/master/tests/data/osteosarc/figure_comparisons/README.md).
 
 ### Structural variants
 
@@ -249,7 +249,7 @@ rearranged protein from `END` and a gene label. Use
 a supplied fusion transcript.
 
 The expanded gallery includes original fusion RNA and the
-[nine-candidate RNA footprint audit](../tests/data/osteosarc/figure_comparisons/EXTENDED_RNA.md),
+[nine-candidate RNA footprint audit](https://github.com/openvax/isovar/blob/master/tests/data/osteosarc/figure_comparisons/EXTENDED_RNA.md),
 which queries SV loci directly, without needing a Varcode protein prediction.
 DLG5 shows why DNA assembly, RNA splice footprints and translated consequences
 must stay separate: its sequence-resolved DNA junction is supported, but no
@@ -259,7 +259,7 @@ phased linkage. `python -m examples.osteosarc_context_figures` writes the full
 dated gallery and a combined vector PDF.
 
 The public data are CC0; see the
-[source and selection documentation](../tests/data/osteosarc/README.md). Each
+[source and selection documentation](https://github.com/openvax/isovar/blob/master/tests/data/osteosarc/README.md). Each
 batch records the exact source BAM URLs, original alleles, fixture and reference
 checksums, effective settings and independent checks, without read names.
 

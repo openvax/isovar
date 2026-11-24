@@ -1,17 +1,15 @@
 """Combine source-specific Isovar exports into a visual antigen evidence audit."""
 
-import argparse
 from pathlib import Path
 
+from .help import HelpArgumentParser
 from .output_args import add_log_level_arg
 from ..logging import configure_cli_logging
-from ..antigen_report import compose
-from ..json_files import write_json
 from .commands import parser_for_program
 from .validation import CommandInputError, check_outputs, input_error
 
 
-parser = argparse.ArgumentParser(description=__doc__)
+parser = HelpArgumentParser(description=__doc__)
 parser.add_argument("--sample-id", required=True,
                     help="Report sample/group; inputs must match unless explicitly mapped with --input-sample-id")
 parser.add_argument("--output", required=True, type=Path, help="Output PDF")
@@ -49,6 +47,9 @@ def run(args=None, *, prog=None):
             if key in mappings:
                 raise ValueError("Duplicate input sample mapping: " + path)
             mappings[key] = sample
+        from ..antigen_report import compose
+        from ..json_files import write_json
+
         inventory = compose(
             parsed.sample_id, small_variants=parsed.small_variant_tsv,
             sv=parsed.sv_result, fusion=parsed.fusion_result,

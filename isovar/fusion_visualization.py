@@ -5,6 +5,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .default_parameters import PLOT_DPI, PLOT_WIDTH
+from .fusion import normalize_fusion_reason
 from .json_files import write_json
 from .visualization import (
     BLUE,
@@ -120,11 +121,13 @@ def fusion_figures(result, references=(), transcript_names=None):
         reasons = "; ".join(result["reasons"])
         if reasons:
             # Raw identifiers and all reasons remain in evidence.json.
+            normalized_reasons = [normalize_fusion_reason(r) for r in result["reasons"]]
             summary = ("Coding hypothesis shown separately; alternative CDS/noncoding annotations remain compatible."
                        if path["translations"] else
-                       "Junction lies before the annotated donor CDS; no coding frame assigned."
-                       if any("junction_before_donor_CDS" in r for r in result["reasons"]) else
-                       "No validated coding frame for this observed RNA window; no protein is inferred.")
+                       "Junction lies before the annotated ORF source; no annotated coding frame assigned."
+                       if any(r == "junction_before_orf_source" or r.startswith("junction_before_orf_source:")
+                              for r in normalized_reasons) else
+                       "No annotated ORF source matches this observed RNA window; no protein is inferred.")
             figure.text(.19,.065,summary,fontsize=11,color=INK)
         yield side + "-context", figure
 

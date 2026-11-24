@@ -1,19 +1,12 @@
 """Reconstruct antigen isoforms, then optionally estimate short-read abundance."""
 
-import argparse
 import json
 from pathlib import Path
 
-from gtfparse import ParsingError
-
-from .output_args import add_log_level_arg
+from ..default_parameters import CTA_GENE_SET, GDC_REFERENCE
 from ..logging import configure_cli_logging, get_logger
-from ..antigen_reference import GDC_REFERENCE
-from ..antigen_targets import CTA_GENE_SET, prepare_antigen_reference
-from ..antigen_isoforms import reconstruct_antigen_isoforms
-from ..file_identity import file_sha256 as digest
-from ..json_files import publish_json
-from ..isoform_quantification import quantify_antigen_isoforms, write_isoform_fastas
+from .help import HelpArgumentParser
+from .output_args import add_log_level_arg
 from .rna_args import add_rna_path_args, rna_path_context
 from .validation import input_error
 
@@ -21,7 +14,7 @@ logger = get_logger(__name__)
 
 
 def make_parser(prog="isovar isoforms"):
-    parser = argparse.ArgumentParser(prog=prog, description=__doc__)
+    parser = HelpArgumentParser(prog=prog, description=__doc__)
     actions = parser.add_subparsers(dest="action", required=True)
     reconstruct = actions.add_parser("reconstruct", help="Reconstruct selected genes or a named catalogue from RNA alignments")
     add_rna_path_args(reconstruct)
@@ -69,6 +62,13 @@ def run(args=None, prog=None):
     parser = make_parser(prog or "isovar isoforms")
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
+    from gtfparse import ParsingError
+    from ..antigen_isoforms import reconstruct_antigen_isoforms
+    from ..antigen_targets import prepare_antigen_reference
+    from ..file_identity import file_sha256 as digest
+    from ..isoform_quantification import quantify_antigen_isoforms, write_isoform_fastas
+    from ..json_files import publish_json
+
     try:
         if options.action == "quantify":
             result = json.loads(Path(options.input).read_text())

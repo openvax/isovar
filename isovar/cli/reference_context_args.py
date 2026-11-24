@@ -10,12 +10,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from varcode.cli.variant_args import make_variants_parser
-
-from ..reference_context_helpers import reference_contexts_generator
-from ..dataframe_helpers import variants_to_reference_contexts_dataframe
 from ..default_parameters import REFERENCE_CONTEXT_SIZE
+from .help import HelpArgumentParser
 from .validation import positive_int, variant_collection_from_args
+
+# Lazily resolved on first use; kept as module attributes for test monkeypatching.
+reference_contexts_generator = None
+variants_to_reference_contexts_dataframe = None
 
 
 def add_reference_context_args(parser):
@@ -39,11 +40,14 @@ def make_reference_context_arg_parser(**kwargs):
     Parameters
     ----------
     **kwargs : dict
-        Parameters passed directly to argparse.ArgumentParser.
+        Parameters passed directly to HelpArgumentParser.
 
-    Returns an argparse.ArgumentParser instance.
+    Returns an HelpArgumentParser instance.
     """
-    parser = make_variants_parser(**kwargs)
+    from varcode.cli.variant_args import add_variant_args
+
+    parser = HelpArgumentParser(**kwargs)
+    add_variant_args(parser)
     add_reference_context_args(parser)
     return parser
 
@@ -53,8 +57,15 @@ def reference_contexts_dataframe_from_args(args):
     Generate a DataFrame for variants and their associated reference contexts
     loaded based on parsed commandline arguments.
     """
+    generator_fn = reference_contexts_generator
+    if generator_fn is None:
+        from ..reference_context_helpers import reference_contexts_generator as generator_fn
+    to_dataframe_fn = variants_to_reference_contexts_dataframe
+    if to_dataframe_fn is None:
+        from ..dataframe_helpers import variants_to_reference_contexts_dataframe as to_dataframe_fn
+
     variants = variant_collection_from_args(args)
-    reference_context_gen = reference_contexts_generator(
+    reference_context_gen = generator_fn(
         variants=variants,
         context_size=args.reference_context_size)
-    return variants_to_reference_contexts_dataframe(reference_context_gen)
+    return to_dataframe_fn(reference_context_gen)

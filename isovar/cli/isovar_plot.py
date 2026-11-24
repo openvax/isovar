@@ -16,11 +16,6 @@ from ..default_parameters import (
     PLOT_VIEWS,
 )
 from ..logging import configure_cli_logging
-from ..visualization import (
-    collect_visualization_data,
-    save_variant_figures,
-    timestamped_run_directory,
-)
 from .commands import parser_for_program
 from .output_args import add_log_level_arg
 from .rna_args import alignment_file_from_args, read_collector_from_args
@@ -37,6 +32,9 @@ from .validation import (
     positive_int,
     variant_collection_from_args,
 )
+
+# Lazily resolved on first use; kept as a module attribute for test monkeypatching.
+save_variant_figures = None
 
 parser = make_translation_arg_parser(description=(
     "Plot the protein context, read overlap and local transcript models around one mutation. "
@@ -86,6 +84,12 @@ def run(args=None, *, prog=None):
     creator_kwargs = protein_sequence_creator_kwargs_from_args(args)
     if args.all_proteins:
         creator_kwargs["max_protein_sequences_per_variant"] = None
+    from ..visualization import collect_visualization_data, timestamped_run_directory
+
+    saver = save_variant_figures
+    if saver is None:
+        from ..visualization import save_variant_figures as saver
+
     data = collect_visualization_data(
         variant, evidence, creator_kwargs=creator_kwargs,
         compare_assembly=args.compare_assembly)
@@ -107,8 +111,8 @@ def run(args=None, *, prog=None):
             {group: asdict(profile) for group, profile in collector.read_end_profile.items()}
             if isinstance(collector.read_end_profile, Mapping) else
             asdict(collector.read_end_profile) if collector.read_end_profile is not None else None))
-    directory = save_variant_figures(data, timestamped_run_directory(args.output_dir),
-                                    view=args.view, max_rows=args.max_rows, dpi=args.dpi)
+    directory = saver(data, timestamped_run_directory(args.output_dir),
+                      view=args.view, max_rows=args.max_rows, dpi=args.dpi)
     if args.all_proteins:
         from ..protein_comparison import save_protein_comparison
         save_protein_comparison([dict(source=args.bam, label=label, visualization=data)],
