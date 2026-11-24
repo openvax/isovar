@@ -213,6 +213,8 @@ def test_source_preparation_preserves_an_existing_Rdata_file(tmp_path, monkeypat
         member.size = 5
         archive.addfile(member, io.BytesIO(b"input"))
     monkeypatch.setattr(builder, "verify", lambda path: None)
+    if hasattr(builder, "fetch_build_input"):
+        monkeypatch.setattr(builder, "fetch_build_input", lambda url, target, *args, **kwargs: target)
 
     def run_R(args, **kwargs):
         scratch = Path(args[-2])
