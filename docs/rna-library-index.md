@@ -143,7 +143,7 @@ spatial bounds follow [SQLite R-tree rounding](https://www.sqlite.org/rtree.html
 
 ## Measured acquisition
 
-The [benchmark driver](../examples/benchmark_rna_library.py) measures original
+The [benchmark driver](https://github.com/openvax/isovar/blob/master/examples/benchmark_rna_library.py) measures original
 index preparation, verified cache reopening and complete-template queries. It
 retains source hashes, implementation identity and per-view candidate counts.
 These are acquisition measurements, not SV support or end-to-end assembly times.

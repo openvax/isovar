@@ -117,7 +117,7 @@ supplied path through these same original-library, observation and placement
 contracts. Its local exact runs intentionally differ from whole-overlap path
 matching: mismatches outside the requested feature do not reject local support.
 The declared fragment rule determines whether mates may jointly cover required
-bases. See [common RNA feature support](../RNA_FEATURE_SUPPORT.md) for the public
+bases. See [common RNA feature support](https://github.com/openvax/isovar/blob/master/RNA_FEATURE_SUPPORT.md) for the public
 `RNAFeature` model, fragment rules and optional sampling opportunities. Neither
 an effective length nor a whole-library denominator is inferred from a regional
 input. Existing native path measurements retain their original predicates.
@@ -147,7 +147,7 @@ input. Existing native path measurements retain their original predicates.
 ## Related contracts
 
 - [Read collection and RNA support records](read-collection.md)
-- [Local feature measurements and normalization](../RNA_FEATURE_SUPPORT.md)
+- [Local feature measurements and normalization](https://github.com/openvax/isovar/blob/master/RNA_FEATURE_SUPPORT.md)
 - [Coding-window coverage and protein hypotheses](protein-hypotheses.md)
 - [Literal-allele RNA paths](variant-rna-paths.md)
 - [SV reconstruction and junction evidence](sv-rna.md)

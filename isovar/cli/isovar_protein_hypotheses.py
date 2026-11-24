@@ -8,16 +8,14 @@ row per translation. All proteins are kept unless
 import json
 import sys
 
-from ..cell_reconstruction import MODES, reconstruct_cell_groups
+from ..default_parameters import CELL_RECONSTRUCTION_MODES as MODES
 from ..logging import configure_cli_logging, get_logger
-from ..protein_hypotheses import export_protein_hypotheses, write_protein_hypotheses
 from .commands import parser_for_program
 from .base_quality_args import add_base_quality_args, base_quality_policy_from_args
 from .filter_args import filter_threshold_dict_from_args
 from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
 from .output_args import add_log_level_arg
 from .rna_args import alignment_file_from_args, read_collector_from_args
-from ..protein_hypotheses import protein_hypotheses_tsv_path
 from .validation import CommandInputError, check_outputs, input_error
 
 logger = get_logger(__name__)
@@ -56,6 +54,13 @@ def run(args=None, *, prog=None):
     args = command.parse_args(sys.argv[1:] if args is None else args)
     configure_cli_logging(args.log_level)
     try:
+        from ..cell_reconstruction import reconstruct_cell_groups
+        from ..protein_hypotheses import (
+            export_protein_hypotheses,
+            protein_hypotheses_tsv_path,
+            write_protein_hypotheses,
+        )
+
         check_outputs(args, "output", protein_hypotheses_tsv_path(args.output))
         quality_policy = base_quality_policy_from_args(args)
         if not args.cell_reconstruction and (args.cell_groups is not None or (

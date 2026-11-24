@@ -16,11 +16,7 @@ Create parser and run Isovar from parsed args
 
 import json
 
-from varcode import Variant
-
 from ..default_parameters import MAX_P_VALUE_FOR_PHASING, PHASING_ERROR_RATE
-from ..main import run_isovar
-from ..phasing import validate_locus_error_rates, validate_phasing_rates
 from .filter_args import add_filter_args, filter_threshold_dict_from_args
 from .protein_sequence_args import (
     make_protein_sequences_arg_parser,
@@ -33,6 +29,9 @@ from .validation import (
     open_fraction,
     variant_collection_from_args,
 )
+
+# Lazily resolved on first use; kept as a module attribute for test monkeypatching.
+run_isovar = None
 
 
 def make_isovar_arg_parser(**kwargs):
@@ -73,6 +72,9 @@ def _phasing_error_rates_from_args(args, variants):
     path = getattr(args, "phasing_error_rates", None)
     if path is None:
         return None
+    from varcode import Variant
+    from ..phasing import validate_locus_error_rates
+
     # Rows may spell a locus as VCF does ("chr7", anchored alleles) or as
     # calibrate-phasing and Varcode do; normalize each the way the inputs were.
     genome = next(iter(variants)).genome if len(variants) else None
@@ -109,6 +111,8 @@ def _phasing_error_rates_from_args(args, variants):
 
 def phasing_parameters_from_args(args, variants):
     """Validated phasing keywords for Isovar and downstream CLI callers."""
+    from ..phasing import validate_phasing_rates
+
     rate = getattr(args, "phasing_error_rate", PHASING_ERROR_RATE)
     alpha = getattr(args, "max_p_value_for_phasing", MAX_P_VALUE_FOR_PHASING)
     validate_phasing_rates(rate, alpha)
@@ -120,13 +124,17 @@ def run_isovar_from_parsed_args(args):
     """
     Extract parameters from parsed arguments and use them to run Isovar
     """
+    runner = run_isovar
+    if runner is None:
+        from ..main import run_isovar as runner
+
     read_collector = read_collector_from_args(args)
     protein_sequence_creator = protein_sequence_creator_from_args(args)
     filter_thresholds = filter_threshold_dict_from_args(args)
     variants = variant_collection_from_args(args)
     germline_variants = germline_variants_from_args(args, variants)
     alignment_file = alignment_file_from_args(args)
-    return run_isovar(
+    return runner(
         variants=variants,
         alignment_file=alignment_file,
         read_collector=read_collector,

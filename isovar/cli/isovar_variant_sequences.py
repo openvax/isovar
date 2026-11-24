@@ -14,8 +14,6 @@
 Export the cDNA sequences assembled from reads supporting each variant.
 """
 
-from ..dataframe_helpers import variant_sequences_generator_to_dataframe
-from ..variant_sequence_creator import VariantSequenceCreator
 from .commands import run_dataframe_command
 from .output_args import add_output_args
 from .rna_args import read_evidence_generator_from_args
@@ -32,6 +30,8 @@ def variant_sequences_generator_from_args(args):
     Use parsed commandline arguments to load variants and RNA reads and
     generate a sequence of (Variant, list of VariantSequence) pairs.
     """
+    from ..variant_sequence_creator import VariantSequenceCreator
+
     read_evidence_generator = read_evidence_generator_from_args(args)
     variant_sequence_creator = VariantSequenceCreator(
         min_variant_sequence_coverage=args.min_variant_sequence_coverage,
@@ -41,6 +41,8 @@ def variant_sequences_generator_from_args(args):
 
 
 def variant_sequences_dataframe_from_args(args):
+    from ..dataframe_helpers import variant_sequences_generator_to_dataframe
+
     return variant_sequences_generator_to_dataframe(variant_sequences_generator_from_args(args))
 
 

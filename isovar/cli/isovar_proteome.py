@@ -8,23 +8,18 @@ variant ORF export (isovar.variant_rna_orfs.v1/v2, library API only). The
 must match what produced the input.
 """
 
-import argparse
 from pathlib import Path
 
-from orfdata import ReferenceContext
-
-from .output_args import add_log_level_arg
-from ..json_files import read_json
 from ..logging import configure_cli_logging, get_logger
-from ..rna_proteome import from_rna_result
+from .help import HelpArgumentParser
+from .output_args import add_log_level_arg
 from .validation import check_output_path, input_error
 
 logger = get_logger(__name__)
 
 
-def run(args=None, *, prog=None):
-    parser = argparse.ArgumentParser(prog=prog, description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+def make_parser(prog="isovar proteome"):
+    parser = HelpArgumentParser(prog=prog, description=__doc__)
     parser.add_argument('--input', action='append', required=True,
                         help='Recorded Isovar RNA JSON/JSON.gz result; repeat to combine sources')
     parser.add_argument('--reference-context', required=True,
@@ -32,9 +27,18 @@ def run(args=None, *, prog=None):
     parser.add_argument('--output', required=True, help='ORFdata Proteome JSON or JSON.gz output')
     parser.add_argument('--fasta', help='Also write all retained protein hypotheses as FASTA')
     add_log_level_arg(parser)
+    return parser
+
+
+def run(args=None, *, prog=None):
+    parser = make_parser(prog or "isovar proteome")
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
+        from orfdata import ReferenceContext
+        from ..json_files import read_json
+        from ..rna_proteome import from_rna_result
+
         inputs = {Path(path).resolve() for path in options.input + [options.reference_context]}
         outputs = [Path(options.output).resolve()]
         if options.fasta:

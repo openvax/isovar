@@ -1,18 +1,11 @@
 """Reconstruct original ALT/REF RNA paths before assessing supplied CDS models."""
 
-import argparse
 from contextlib import ExitStack
 from pathlib import Path
 
-import pysam
-
-from .output_args import add_log_level_arg
 from ..logging import configure_cli_logging, get_logger
-from ..contig_resolution import variant_reference_name
-from ..rna_library import prepare_rna_library
-from ..json_files import read_json
-from ..sv_rna_audit import write_json
-from ..variant_rna_paths import reconstruct_variant_rna_paths, variant_rna_path_input_from_dict
+from .help import HelpArgumentParser
+from .output_args import add_log_level_arg
 from .rna_args import add_rna_args, read_collector_from_args
 from .validation import input_error
 
@@ -20,7 +13,7 @@ logger = get_logger(__name__)
 
 
 def make_parser(prog='isovar variant-rna-paths'):
-    parser = argparse.ArgumentParser(prog=prog, description=__doc__)
+    parser = HelpArgumentParser(prog=prog, description=__doc__)
     add_rna_args(parser)
     parser.set_defaults(min_mapping_quality=0)
     parser.add_argument('--input', required=True, help='Explicit literal variant, assembly and versioned models JSON')
@@ -41,6 +34,13 @@ def run(args=None, *, prog=None):
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
+        import pysam
+        from ..contig_resolution import variant_reference_name
+        from ..json_files import read_json
+        from ..rna_library import prepare_rna_library
+        from ..sv_rna_audit import write_json
+        from ..variant_rna_paths import reconstruct_variant_rna_paths, variant_rna_path_input_from_dict
+
         output = Path(options.output)
         if output.exists():
             raise ValueError('Output exists; choose a new result path')

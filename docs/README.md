@@ -3,7 +3,7 @@
 Isovar finds the mutant protein sequence that tumor RNA actually encodes around
 each somatic mutation. This index lists the guides in reading order, from a
 first run to specialized workflows. Start with
-[Install](../README.md#install) and the [quick start](../README.md#quick-start)
+[Install](https://github.com/openvax/isovar/blob/master/README.md#install) and the [quick start](https://github.com/openvax/isovar/blob/master/README.md#quick-start)
 in the project README.
 
 ## Getting started
@@ -85,11 +85,11 @@ with a warning naming them. These workflows handle them:
 
 ## Development and project records
 
-- [Changelog](../CHANGELOG.md): behavior changes by release.
-- [Releasing](../RELEASING.md): how a version is published.
-- [Tumor-RNA audit](../tests/data/osteosarc/SAMPLE_AUDIT.md): a
+- [Changelog](https://github.com/openvax/isovar/blob/master/CHANGELOG.md): behavior changes by release.
+- [Releasing](https://github.com/openvax/isovar/blob/master/RELEASING.md): how a version is published.
+- [Tumor-RNA audit](https://github.com/openvax/isovar/blob/master/tests/data/osteosarc/SAMPLE_AUDIT.md): a
   sample-by-sample RNA and protein audit of six osteosarc loci in two RNA
   sources, made for Isovar 1.8.0.
-- [WLOS_0001 canine TP53 example](../tests/data/wlos0001_tp53/README.md): a
+- [WLOS_0001 canine TP53 example](https://github.com/openvax/isovar/blob/master/tests/data/wlos0001_tp53/README.md): a
   published matched-normal tumor DNA call replayed against original,
   region-extracted tumor RNA reads in a small offline fixture.

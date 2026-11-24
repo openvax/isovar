@@ -1,6 +1,5 @@
 """Explicit, shared reported-quality assessment for RNA evidence exports."""
 
-from ..base_quality import BaseQualityPolicy
 from .validation import CommandInputError, non_negative_int
 
 
@@ -14,6 +13,8 @@ def add_base_quality_args(parser):
 
 
 def base_quality_policy_from_args(args):
+    from ..base_quality import BaseQualityPolicy
+
     threshold = getattr(args, "min_base_quality", None)
     try:
         return None if threshold is None else BaseQualityPolicy(threshold)

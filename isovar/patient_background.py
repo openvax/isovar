@@ -2,6 +2,7 @@
 
 from . import __version__
 from .coding_interval_support import coding_interval_support
+from .default_parameters import PATIENT_BACKGROUND_BASELINES as BASELINES
 from .genetic_code import translate_cdna
 from .protein_hypotheses import (
     analysis_provenance,
@@ -16,7 +17,6 @@ from .rna_evidence import ScopedEvidenceSets, content_identifier
 from .transcript_edit_helpers import transcript_edit_from_variant
 
 SCHEMA = 'isovar.patient_background_pairs.v1'
-BASELINES = ('focal', 'supplied_somatic_haplotype')
 
 
 class _Unavailable(ValueError):

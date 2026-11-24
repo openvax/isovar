@@ -1,17 +1,15 @@
 """Run a reproducible, source-separated nominated-SV RNA audit."""
 
-import argparse
-
-from .output_args import add_log_level_arg
 from ..logging import configure_cli_logging, get_logger
-from ..sv_rna_audit import run_sv_rna_audit
+from .help import HelpArgumentParser
+from .output_args import add_log_level_arg
 from .validation import input_error
 
 logger = get_logger(__name__)
 
 
-def run(args=None, prog=None):
-    parser = argparse.ArgumentParser(prog=prog or "isovar sv-audit", description=__doc__)
+def make_parser(prog="isovar sv-audit"):
+    parser = HelpArgumentParser(prog=prog, description=__doc__)
     parser.add_argument("--manifest", required=True,
                         help="Source-pinned audit manifest JSON: files with checksums, sources, events and "
                              "views (see docs/sv-rna-audit.md)")
@@ -22,9 +20,16 @@ def run(args=None, prog=None):
     parser.add_argument("--event-id", action="append", help="Select event IDs; default: every manifest event")
     parser.add_argument("--library-cache-dir", help="Retain verified original-RNA indexes for reuse across audit invocations")
     add_log_level_arg(parser)
+    return parser
+
+
+def run(args=None, prog=None):
+    parser = make_parser(prog or "isovar sv-audit")
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
+        from ..sv_rna_audit import run_sv_rna_audit
+
         report = run_sv_rna_audit(options.manifest, options.output_dir, resume=options.resume,
                                   event_ids=options.event_id, library_cache_dir=options.library_cache_dir)
         logger.info("Assessed %d event/source/view runs; report in %s", len(report["runs"]), options.output_dir)

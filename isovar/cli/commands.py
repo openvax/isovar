@@ -1,3 +1,4 @@
+# PYTHON_ARGCOMPLETE_OK
 """Discoverable subcommands, delegating unchanged options to existing handlers."""
 
 import argparse
@@ -8,7 +9,11 @@ import shutil
 import sys
 import textwrap
 
+import argcomplete
+
 from ..logging import configure_cli_logging, get_logger
+from .completion import completing_subcommand, is_completing
+from .help import HelpArgumentParser
 from .output_args import write_dataframe
 from .validation import CommandInputError, check_outputs, input_error
 
@@ -92,6 +97,106 @@ def parser_for_program(parser, prog=None):
     return parser
 
 
+def load_subcommand_parser(name):
+    """Load one subcommand's argument parser without importing other handlers.
+
+    Parameters
+    ----------
+    name : str
+        Subcommand name from :data:`COMMANDS`.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        The subcommand's argument parser.
+    """
+    module_name, _ = COMMANDS[name]
+    module = import_module("." + module_name, __package__)
+    parser = getattr(module, "parser", None)
+    if parser is not None:
+        return parser_for_program(parser, "isovar " + name)
+    return module.make_parser("isovar " + name)
+
+
+def build_parser(subcommand_parsers=None):
+    """Build the top-level ``isovar`` argument parser without heavy imports.
+
+    Parameters
+    ----------
+    subcommand_parsers : mapping of str to argparse.ArgumentParser, optional
+        Parsers to attach for specific subcommands (used during shell tab
+        completion so only the selected subcommand's module is imported).
+        When ``None``, a flat ``COMMAND`` positional argument is registered
+        and the grouped command listing is shown in the epilog.
+
+    Returns
+    -------
+    HelpArgumentParser
+        Top-level parser for ``isovar``.
+    """
+    from .. import __version__
+
+    parser = HelpArgumentParser(
+        prog="isovar",
+        usage="%(prog)s [-h] [--version] COMMAND ...",
+        description="Reconstruct mutant protein sequences from RNA evidence.",
+        epilog=command_listing(),
+    )
+    parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
+    if subcommand_parsers is None:
+        # The grouped listing in the epilog replaces argparse's flat command list.
+        parser.add_argument("command", metavar="COMMAND", help=argparse.SUPPRESS)
+        return parser
+
+    subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
+    for name, (_, description) in COMMANDS.items():
+        if name in subcommand_parsers:
+            sub_parser = subcommand_parsers[name]
+            has_nested_subparsers = any(
+                isinstance(action, argparse._SubParsersAction)
+                for action in sub_parser._actions
+            )
+            if has_nested_subparsers:
+                # Directly attach nested-subcommand parsers (e.g. `isovar isoforms`)
+                # so nested actions and their flags complete cleanly.
+                subparsers._name_parser_map[name] = sub_parser
+                subparsers._choices_actions.append(
+                    subparsers._ChoicesPseudoAction(name, (), description)
+                )
+            else:
+                subparsers.add_parser(
+                    name,
+                    help=description,
+                    add_help=False,
+                    parents=[sub_parser],
+                )
+        else:
+            subparsers.add_parser(name, help=description, add_help=False)
+    return parser
+
+
+def build_completion_parser(environ=None):
+    """Build the import-light parser that answers a shell completion request.
+
+    When a known subcommand is already present on ``COMP_LINE``, only that
+    subcommand's module is imported and attached so its flags complete.
+
+    Parameters
+    ----------
+    environ : mapping, optional
+        Environment containing argcomplete variables. Defaults to ``os.environ``.
+
+    Returns
+    -------
+    HelpArgumentParser
+        Completion parser ready for :func:`argcomplete.autocomplete`.
+    """
+    selected = completing_subcommand(COMMANDS, environ)
+    if selected is not None:
+        return build_parser({selected: load_subcommand_parser(selected)})
+    return build_parser({})
+
+
 def run_dataframe_command(parser, dataframe_from_args, args=None, prog=None):
     """Parse options, build one table from them and write it as CSV."""
     parser = parser_for_program(parser, prog)
@@ -108,7 +213,8 @@ def run_dataframe_command(parser, dataframe_from_args, args=None, prog=None):
 
 
 def run(args=None):
-    from .. import __version__
+    if args is None and is_completing():
+        argcomplete.autocomplete(build_completion_parser())
 
     args = list(sys.argv[1:] if args is None else args)
     if args[:1] == ["help"]:
@@ -129,13 +235,7 @@ def run(args=None):
                              "commands or 'isovar run --help' for the pipeline's options.\n" % (option, hint))
             sys.exit(2)
         return main.run(args, prog="isovar")
-    parser = argparse.ArgumentParser(
-        prog="isovar", usage="%(prog)s [-h] [--version] COMMAND ...",
-        description="Reconstruct mutant protein sequences from RNA evidence.",
-        formatter_class=argparse.RawDescriptionHelpFormatter, epilog=command_listing())
-    parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
-    # The grouped listing in the epilog replaces argparse's flat command list.
-    parser.add_argument("command", metavar="COMMAND", help=argparse.SUPPRESS)
+    parser = build_parser()
     if not args:
         parser.print_help()
         return

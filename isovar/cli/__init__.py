@@ -12,14 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from importlib import import_module
 
-from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
-from .protein_sequence_args import protein_sequence_creator_from_args
-from .rna_args import read_collector_from_args
+_LAZY_EXPORTS = {
+    "make_isovar_arg_parser": (".main_args", "make_isovar_arg_parser"),
+    "run_isovar_from_parsed_args": (".main_args", "run_isovar_from_parsed_args"),
+    "protein_sequence_creator_from_args": (".protein_sequence_args", "protein_sequence_creator_from_args"),
+    "read_collector_from_args": (".rna_args", "read_collector_from_args"),
+}
 
-__all__ = [
-    "make_isovar_arg_parser",
-    "run_isovar_from_parsed_args",
-    "protein_sequence_creator_from_args",
-    "read_collector_from_args",
-]
+__all__ = list(_LAZY_EXPORTS)
+
+
+def __getattr__(name):
+    if name in _LAZY_EXPORTS:
+        module_name, attr_name = _LAZY_EXPORTS[name]
+        value = getattr(import_module(module_name, __name__), attr_name)
+        globals()[name] = value
+        return value
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

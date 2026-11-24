@@ -45,6 +45,23 @@ def test_fusion_cli_figures_are_optional_and_timestamped(tmp_path):
     assert len(list((tmp_path/"figures").glob("20*Z/*/all-figures.pdf")))==1
 
 
+def test_fusion_figures_accept_legacy_and_canonical_orf_source_reasons():
+    pytest.importorskip("matplotlib")
+    fusion, refs, reads = example()
+    result = reconstruct_fusion(fusion, (), reads)
+    assert result["reasons"] == ["no_orf_source"]
+    for reason, expected_phrase in [
+        ("junction_before_orf_source:donor.1", "before the annotated ORF source"),
+        ("junction_before_donor_CDS:donor.1", "before the annotated ORF source"),
+        ("no_orf_source", "No annotated ORF source"),
+        ("no_exact_collinear_annotated_donor", "No annotated ORF source"),
+    ]:
+        saved = dict(result, reasons=[reason])
+        panels = dict(fusion_figures(saved, refs))
+        texts = [t.get_text() for t in panels["donor-context"].texts]
+        assert any(expected_phrase in text for text in texts), (reason, texts)
+
+
 def test_context_counts_and_protein_are_reproduced_from_original_records():
     data=load_context()
     protein=verify_context(data)

@@ -1,20 +1,17 @@
 """Measure explicit local RNA features from the original alignment records."""
 
-import argparse
 import json
 from pathlib import Path
 
+from .help import HelpArgumentParser
 from .rna_args import add_rna_path_args, rna_path_context
 from .validation import input_error
 from .output_args import add_log_level_arg
 from ..logging import configure_cli_logging
-from ..json_files import publish_json
-from ..rna_feature_measurement import measure_rna_path_features
-from ..rna_feature_support import RNAFeature, RNASamplingProfile
 
 
 def make_parser(prog="isovar rna-features"):
-    parser = argparse.ArgumentParser(prog=prog, description=__doc__)
+    parser = HelpArgumentParser(prog=prog, description=__doc__)
     add_rna_path_args(parser)
     parser.add_argument("--genome-fasta", help="Reference FASTA when needed to read CRAM")
     parser.add_argument("--features", required=True,
@@ -32,6 +29,10 @@ def run(args=None, prog=None):
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
+        from ..json_files import publish_json
+        from ..rna_feature_measurement import measure_rna_path_features
+        from ..rna_feature_support import RNAFeature, RNASamplingProfile
+
         output = Path(options.output)
         if output.exists():
             raise ValueError("Output already exists: %s" % output)

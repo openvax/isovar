@@ -8,6 +8,7 @@ allele competitors, without turning pooled support into per-cell confidence.
 from .base_quality import STATUSES
 from .cell_evidence import CellUmiAlleles
 from .cell_umi import UNTRUSTED_CELL_STATUSES
+from .default_parameters import CELL_RECONSTRUCTION_MODES as MODES
 from .protein_hypotheses import protein_hypothesis_records, variant_event_id
 from .protein_sequence_creator import ProteinSequenceCreator
 from .read_evidence import ReadEvidence
@@ -24,7 +25,6 @@ from .rna_candidate_support import (
 from .rna_evidence import ScopedEvidenceSets, canonical_json, content_identifier
 
 SCHEMA = "isovar.cell_reconstruction.v1"
-MODES = ("sample", "library", "cell", "group")
 
 
 def _cell(row):

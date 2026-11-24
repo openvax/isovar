@@ -12,16 +12,6 @@ from pathlib import Path
 
 from .output_args import add_log_level_arg
 from ..logging import configure_cli_logging
-from ..contig_resolution import UnresolvedContigError, require_resolved_contig
-from ..effect_prediction import variant_effect_summary
-from ..isovar_result import IsovarResult
-from ..protein_hypotheses import export_protein_hypotheses
-from ..protein_reporting import protein_report_record
-from ..evidence_report import (
-    catalog_coding_index, changed_reference_interval,
-    overlapping_catalog_orfs, overlaps_exon, reference_ninemer_matches, self_novelty,
-    summarize,
-)
 from .commands import parser_for_program
 from .protein_sequence_args import make_protein_sequences_arg_parser, protein_sequence_creator_from_args
 from .rna_args import alignment_file_from_args, read_collector_from_args
@@ -69,6 +59,8 @@ def _rna_status(ref, alt, other, raw_overlap):
 
 
 def _raw_overlap(alignment, variant, collector):
+    from ..contig_resolution import require_resolved_contig
+
     start = variant.original_start - 1
     end = start + max(1, len(variant.original_ref))
     contig = require_resolved_contig(collector.resolve_variant_contig(variant, alignment), alignment)
@@ -81,6 +73,18 @@ def collect(variants, alignment, collector, creator, *, sample_id, source, catal
     Unresolved rows have null support and annotation fields. No annotation
     absence or reference allele is inferred from an unavailable RNA locus.
     """
+    from ..contig_resolution import UnresolvedContigError
+    from ..effect_prediction import variant_effect_summary
+    from ..evidence_report import (
+        catalog_coding_index,
+        changed_reference_interval,
+        overlapping_catalog_orfs,
+        overlaps_exon,
+    )
+    from ..isovar_result import IsovarResult
+    from ..protein_hypotheses import export_protein_hypotheses
+    from ..protein_reporting import protein_report_record
+
     calls, annotations, proteins = [], {}, []
     index = catalog_coding_index(catalog.records) if catalog is not None else None
     genome = variants[0].genome
@@ -210,6 +214,8 @@ def run(args=None, *, prog=None):
             calls, annotations, proteins = collect(
                 variants, alignment, collector, creator, sample_id=parsed.sample_id,
                 source=parsed.rna_source or parsed.bam, catalog=catalog)
+        from ..evidence_report import reference_ninemer_matches, self_novelty, summarize
+
         summary = summarize(calls, annotations, proteins)
         self_scores = {}
         self_fasta_sha256 = ""

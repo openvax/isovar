@@ -265,3 +265,25 @@ SV_INCLUSION_MIN_MAPPING_QUALITY = 20
 # MAPQ gate as a unique alignment; set False for aligners which use 255 to
 # mean unavailable.
 SV_INCLUSION_MAPQ_255_IS_UNIQUE = True
+
+# Common original-RNA path collector defaults (shared by ReadCollector.for_rna_paths
+# and CLI path commands so parser construction stays import-light).
+RNA_PATH_READ_COLLECTOR_DEFAULTS = dict(
+    use_secondary_alignments=True,
+    min_mapping_quality=0,
+    use_soft_clipped_bases=False,
+    use_reads_without_base_qualities=True,
+)
+
+# Shared CLI choice constants and defaults kept free of heavy library imports.
+GDC_REFERENCE = "GRCh38.d1.vd1"
+CTA_GENE_SET = "oncoref-cta"
+CELL_RECONSTRUCTION_MODES = ("sample", "library", "cell", "group")
+PATIENT_BACKGROUND_BASELINES = ("focal", "supplied_somatic_haplotype")
+SV_SOURCE_PROFILE_NAMES = ("standard", "colo829_paulin_paz_v2", "hcc1395_svscope_2026")
+RNA_ORIGIN_DEFAULTS = dict(
+    min_base_quality=20,
+    min_context_bases=30,
+    max_edit_fraction=0.05,
+    min_edit_margin=3,
+)

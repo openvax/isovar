@@ -13,6 +13,31 @@ from .default_parameters import FUSION_PEPTIDE_LENGTHS, MIN_FUSION_FRAGMENTS
 from .genetic_code import standard_genetic_code
 from .rna_evidence import CELL_UMI_FIELDS
 
+# Legacy fusion reason codes kept readable for saved results (#721).
+FUSION_REASON_ALIASES = {
+    "no_exact_collinear_annotated_donor": "no_orf_source",
+    "junction_before_donor_CDS": "junction_before_orf_source",
+}
+
+
+def normalize_fusion_reason(reason):
+    """Map legacy fusion reason strings to their current canonical names.
+
+    Parameters
+    ----------
+    reason : str
+        Reason string from a current or saved ``isovar.fusion_rna`` result,
+        optionally carrying a ``:<transcript_id>`` suffix.
+
+    Returns
+    -------
+    str
+        Canonical reason string with any ``:<transcript_id>`` suffix preserved.
+    """
+    code, separator, suffix = reason.partition(":")
+    canonical = FUSION_REASON_ALIASES.get(code, code)
+    return canonical + separator + suffix if separator else canonical
+
 
 def _integer(value, name):
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
@@ -355,7 +380,7 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
             continue
         projected_start = reference.cds_start - offset
         if projected_start >= fusion.junction_start:
-            result["reasons"].append("junction_before_donor_CDS:" + reference.transcript_id)
+            result["reasons"].append("junction_before_orf_source:" + reference.transcript_id)
             continue
         if offset + fusion.junction_start > reference.cds_end - 3:
             result["reasons"].append("junction_after_donor_CDS:" + reference.transcript_id)
@@ -413,7 +438,7 @@ def reconstruct_fusion(fusion, references=(), reads=(), peptide_lengths=FUSION_P
         # pick the one donor model that happens to produce a peptide.
         result["status"] = "ambiguous" if len(groups) > 1 or result["reasons"] else "translated"
     elif not matches["donor"]:
-        result["reasons"].append("no_exact_collinear_annotated_donor")
+        result["reasons"].append("no_orf_source")
     path["frame_status"] = result["status"]
     return result
 

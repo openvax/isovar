@@ -13,7 +13,7 @@ from isovar.sid_data import restore_records
 from isovar import FusionBlock, FusionBreakpoint, FusionRead, FusionReference, FusionTranscript, reconstruct_fusion
 from isovar.cli import commands
 from isovar.cli.isovar_fusion import make_parser
-from isovar.fusion import fusion_from_dict
+from isovar.fusion import FUSION_REASON_ALIASES, fusion_from_dict, normalize_fusion_reason
 from tests.testing_helpers import fusion_input
 from .data.osteosarc.expansion.references import translate
 
@@ -114,7 +114,7 @@ def test_utr_join_early_stop_and_no_acceptor_codon_are_explicit():
     fusion, refs, reads = example()
     utr = replace(refs[0], sequence=refs[0].sequence[:12] + "ATGAAATAA", cds_start=12, cds_end=21)
     result = reconstruct_fusion(fusion, (utr,), reads)
-    assert result["reasons"] == ["junction_before_donor_CDS:donor.1"]
+    assert result["reasons"] == ["junction_before_orf_source:donor.1"]
     fusion, refs, reads = example(insert="TAA")
     result = reconstruct_fusion(fusion, refs, reads)
     assert result["paths"][0]["translations"] == []
@@ -266,9 +266,9 @@ def test_original_osteosarc_rna_windows_remain_unresolved_not_fake_proteins():
         assert result["paths"][0]["translations"] == []
         assert result["paths"][0]["junctions"][0]["direct_support"]["fragments"] == entry["fragments"]
         if fusion.event_id.startswith("TPST1"):
-            assert "junction_before_donor_CDS:ENST00000304842" in result["reasons"]
+            assert "junction_before_orf_source:ENST00000304842" in result["reasons"]
         else:
-            assert result["reasons"] == ["no_exact_collinear_annotated_donor"]
+            assert result["reasons"] == ["no_orf_source"]
         if fusion.event_id.startswith("PARD3B"):
             assert fusion.sequence[fusion.junction_start:fusion.junction_end] == "TGTGCTGATATG"
         header = pysam.AlignmentHeader.from_references(["chr" + str(i) for i in range(1, 23)], [300000000] * 22)
@@ -292,3 +292,21 @@ def test_original_osteosarc_rna_windows_remain_unresolved_not_fake_proteins():
             assert record.has_tag("SA")
         checked.append((entry["event"], entry["sample"]))
     assert len(checked) == 5
+
+
+def test_fusion_reason_normalization_preserves_legacy_saved_results():
+    assert FUSION_REASON_ALIASES == {
+        "no_exact_collinear_annotated_donor": "no_orf_source",
+        "junction_before_donor_CDS": "junction_before_orf_source",
+    }
+    assert normalize_fusion_reason("no_exact_collinear_annotated_donor") == "no_orf_source"
+    assert normalize_fusion_reason("no_orf_source") == "no_orf_source"
+    assert (
+        normalize_fusion_reason("junction_before_donor_CDS:ENST00000304842")
+        == "junction_before_orf_source:ENST00000304842"
+    )
+    assert (
+        normalize_fusion_reason("junction_before_orf_source:ENST00000304842")
+        == "junction_before_orf_source:ENST00000304842"
+    )
+    assert normalize_fusion_reason("donor_CDS_unavailable:noncoding") == "donor_CDS_unavailable:noncoding"

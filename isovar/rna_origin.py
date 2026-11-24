@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 
 import edlib
 
+from .default_parameters import RNA_ORIGIN_DEFAULTS
 from .dna import reverse_complement_dna
 from .read_collector import ReadCollector
 from .read_identity import segment_identity
@@ -35,10 +36,10 @@ class RNAOriginPolicy:
     establish an origin. No MAPQ, allele fraction or protein score is a vote.
     """
 
-    min_base_quality: int = 20
-    min_context_bases: int = 30
-    max_edit_fraction: float = 0.05
-    min_edit_margin: int = 3
+    min_base_quality: int = RNA_ORIGIN_DEFAULTS["min_base_quality"]
+    min_context_bases: int = RNA_ORIGIN_DEFAULTS["min_context_bases"]
+    max_edit_fraction: float = RNA_ORIGIN_DEFAULTS["max_edit_fraction"]
+    min_edit_margin: int = RNA_ORIGIN_DEFAULTS["min_edit_margin"]
 
     def __post_init__(self):
         for name, minimum in (("min_base_quality", 0), ("min_context_bases", 1), ("min_edit_margin", 1)):

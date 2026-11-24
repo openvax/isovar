@@ -1,15 +1,11 @@
 """Recover observed viral RNA sequences from combined-reference alignments."""
 
-import argparse
 from pathlib import Path
 
-from .output_args import add_log_level_arg
+from ..default_parameters import GDC_REFERENCE
 from ..logging import configure_cli_logging, get_logger
-from ..antigen_reference import GDC_REFERENCE
-from ..file_identity import file_sha256 as digest
-from ..json_files import publish_json
-from ..viral_sequences import reconstruct_viral_sequences, write_viral_fasta
-from ..viral_coding import write_viral_proteins
+from .help import HelpArgumentParser
+from .output_args import add_log_level_arg
 from .rna_args import add_rna_path_args, rna_path_context
 from .validation import input_error
 
@@ -17,7 +13,7 @@ logger = get_logger(__name__)
 
 
 def make_parser(prog="isovar viral"):
-    parser = argparse.ArgumentParser(prog=prog, description=__doc__)
+    parser = HelpArgumentParser(prog=prog, description=__doc__)
     add_rna_path_args(parser)
     parser.add_argument("--genome-fasta", required=True, help="Local FASTA used for alignment")
     parser.add_argument("--sample-id", required=True, help="Sample the reads came from")
@@ -41,6 +37,11 @@ def run(args=None, prog=None):
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
+        from ..file_identity import file_sha256 as digest
+        from ..json_files import publish_json
+        from ..viral_coding import write_viral_proteins
+        from ..viral_sequences import reconstruct_viral_sequences, write_viral_fasta
+
         output = Path(options.output_dir).expanduser()
         if output.exists():
             raise ValueError("Output directory already exists: " + str(output))

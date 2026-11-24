@@ -20,7 +20,7 @@ from argparse import ArgumentTypeError
 import logging
 import os
 
-from varcode.cli import variant_collection_from_args as _varcode_variant_collection_from_args
+_varcode_variant_collection_from_args = None
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +56,11 @@ def variant_collection_from_args(args):
     Structural-variant records (symbolic or breakend ALTs) are skipped with a
     warning: they need ``isovar sv-source`` and ``isovar sv-audit``.
     """
+    loader = _varcode_variant_collection_from_args
+    if loader is None:
+        from varcode.cli import variant_collection_from_args as loader
     try:
-        variants = _varcode_variant_collection_from_args(args)
+        variants = loader(args)
     except (OSError, ValueError) as error:
         message = str(error)
         if "genome" in message.lower() and "--genome" not in message:

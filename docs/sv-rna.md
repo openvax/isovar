@@ -117,7 +117,7 @@ source-derived `sv-rna` test recovers a local junction-spanning partial protein;
 the sequence-resolved `isovar fusion` replay uses an exact original-read overlap
 chain to produce a 531-amino-acid coding candidate. Its full coding path is
 supported base by base, while protein expression remains unmeasured. The
-[small pinned fixture](../tests/data/hcc1395_eif3k_cyp39a1/README.md) runs
+[small pinned fixture](https://github.com/openvax/isovar/blob/master/tests/data/hcc1395_eif3k_cyp39a1/README.md) runs
 without live annotation or data downloads.
 
 ## Reading the result
@@ -270,7 +270,7 @@ For each candidate:
   junction bases.
 
 `isovar.annotate_orf_start` and `isovar.summarize_orf_start_evidence` expose the
-start annotation outside reconstruction. The [Sid neo-ORF report](../figures/osteosarc/neo-orfs-and-long-reads.md)
+start annotation outside reconstruction. The [Sid neo-ORF report](https://github.com/openvax/isovar/blob/master/figures/osteosarc/neo-orfs-and-long-reads.md)
 compares candidate sequence support with what is known about initiation.
 
 ## Link an intronic start to an observed transcript path
@@ -518,7 +518,7 @@ missing QUAL, deep noisy coverage, forks and limits. Original reads cover:
   invented; with soft clips, breakpoint-clip paths include the validated junction peptides.
 - **TPST1–CRCP, FOXO3, PARD3B** (Sid ONT split reads): the breakpoint junction is
   recovered, including PARD3B's 12-nt insertion; no coding frame crosses it.
-- **Sid T1 long reads** ([fixtures](../tests/data/fusions/long-read/README.md)):
+- **Sid T1 long reads** ([fixtures](https://github.com/openvax/isovar/blob/master/tests/data/fusions/long-read/README.md)):
   PacBio TPST1–CRCP reads with 8 nt of homology (20 fragments), and noisy ONT FOXO3
   reads (12 fragments, 8 cell/UMI labels with unknown library scope).
 

@@ -14,11 +14,8 @@
 Common command-line arguments for all Isovar commands which use RNA
 """
 
-from pysam import AlignmentFile
 from argparse import ArgumentTypeError
 from contextlib import ExitStack, contextmanager
-
-from varcode.cli import make_variants_parser
 
 from ..default_parameters import (
     MIN_READ_MAPPING_QUALITY,
@@ -29,17 +26,21 @@ from ..default_parameters import (
     MERGE_OVERLAPPING_FRAGMENTS,
     NUM_RNA_DECOMPRESSION_THREADS,
     INFER_READ_ENDS, TRIM_ADAPTERS, TRIM_POLY_A, READ_END_PROFILE, MATCH_MITOCHONDRION_BY_LENGTH,
+    RNA_PATH_READ_COLLECTOR_DEFAULTS,
 )
 
-from ..read_collector import ReadCollector
-from ..rna_library import prepare_rna_library
-from ..read_end_inference import read_end_profiles_from_json
-from ..dataframe_helpers import allele_counts_dataframe, allele_reads_to_dataframe
+from .help import HelpArgumentParser
 from .validation import CommandInputError, non_negative_int, positive_int, variant_collection_from_args
+
+# Lazily resolved on first use; kept as module attributes for test monkeypatching.
+AlignmentFile = None
+allele_counts_dataframe = None
 
 
 def read_end_profile_argument(filename):
     """Report explicit profile errors as argument errors, not tracebacks."""
+    from ..read_end_inference import read_end_profiles_from_json
+
     try:
         return read_end_profiles_from_json(filename)
     except (OSError, ValueError, TypeError, AttributeError) as error:
@@ -141,11 +142,11 @@ def add_rna_args(parser, *, include_fragment_merging=True):
 def add_rna_path_args(parser):
     """Common antigen/viral path controls, preserving original mate identities."""
     group = add_rna_args(parser, include_fragment_merging=False)
-    collector = ReadCollector.for_rna_paths()
-    parser.set_defaults(min_mapping_quality=collector.min_mapping_quality,
-                        drop_secondary_alignments=not collector.use_secondary_alignments,
-                        use_soft_clipped_bases=collector.use_soft_clipped_bases,
-                        use_reads_without_base_qualities=collector.use_reads_without_base_qualities)
+    defaults = RNA_PATH_READ_COLLECTOR_DEFAULTS
+    parser.set_defaults(min_mapping_quality=defaults["min_mapping_quality"],
+                        drop_secondary_alignments=not defaults["use_secondary_alignments"],
+                        use_soft_clipped_bases=defaults["use_soft_clipped_bases"],
+                        use_reads_without_base_qualities=defaults["use_reads_without_base_qualities"])
     group.add_argument('--library-cache', help='Reusable original-RNA index directory')
     return group
 
@@ -153,13 +154,18 @@ def add_rna_path_args(parser):
 @contextmanager
 def rna_path_context(args, *, reference_name=None):
     """Open one CLI input and optional reusable index under its effective policy."""
+    alignment_file_cls = AlignmentFile
+    if alignment_file_cls is None:
+        from pysam import AlignmentFile as alignment_file_cls
     collector = read_collector_from_args(args)
     with ExitStack() as contexts:
-        bam = contexts.enter_context(AlignmentFile(
+        bam = contexts.enter_context(alignment_file_cls(
             args.bam, reference_filename=args.genome_fasta,
             threads=args.num_rna_decompression_threads))
         library = None
         if args.library_cache:
+            from ..rna_library import prepare_rna_library
+
             prepared = prepare_rna_library(args.bam, args.library_cache,
                                            read_collector=collector, reference_name=reference_name)
             library = contexts.enter_context(prepared.open(
@@ -172,12 +178,15 @@ def make_rna_reads_arg_parser(**kwargs):
     Parameters
     ----------
     **kwargs : dict
-        Passed directly to argparse.ArgumentParser
+        Passed directly to HelpArgumentParser
 
-    Creates argparse.ArgumentParser instance with all of the options
+    Creates HelpArgumentParser instance with all of the options
     needed to load a set of variants and their supporting RNA reads.
     """
-    parser = make_variants_parser(**kwargs)
+    from varcode.cli.variant_args import add_variant_args
+
+    parser = HelpArgumentParser(**kwargs)
+    add_variant_args(parser)
     add_rna_args(parser)
     return parser
 
@@ -188,8 +197,11 @@ def alignment_file_from_args(args):
 
     Raises CommandInputError if it is missing, unreadable, SAM or unindexed.
     """
+    alignment_file_cls = AlignmentFile
+    if alignment_file_cls is None:
+        from pysam import AlignmentFile as alignment_file_cls
     try:
-        alignment_file = AlignmentFile(
+        alignment_file = alignment_file_cls(
             args.bam,
             threads=args.num_rna_decompression_threads)
     except (OSError, ValueError) as error:
@@ -215,6 +227,8 @@ def read_collector_from_args(args):
 
 
 def _read_collector_from_args(args):
+    from ..read_collector import ReadCollector
+
     return ReadCollector(
         min_mapping_quality=args.min_mapping_quality,
         use_duplicate_reads=args.use_duplicate_reads,
@@ -297,7 +311,10 @@ def allele_counts_dataframe_from_args(args):
                     evidence.append(dict(alleles={allele: dict(base_quality=quality.quality_support(
                         getattr(read_evidence, allele + "_reads"), store_sets=False)) for allele in ALLELES}))
                 yield variant, read_evidence
-        df = allele_counts_dataframe(pairs())
+        to_dataframe = allele_counts_dataframe
+        if to_dataframe is None:
+            from ..dataframe_helpers import allele_counts_dataframe as to_dataframe
+        df = to_dataframe(pairs())
     if cell_labels:
         warn_if_unlabelled(support for e in evidence for support in e["alleles"].values())
         for allele in ALLELES:
@@ -320,6 +337,8 @@ def allele_reads_dataframe_from_args(args):
     """
     Collect all allele reads for each variant and turn them into a DataFrame.
     """
+    from ..dataframe_helpers import allele_reads_to_dataframe
+
     return allele_reads_to_dataframe(
         allele_reads_generator_from_args(args))
 
@@ -329,6 +348,8 @@ def variant_reads_dataframe_from_args(args):
     Collect alt-supporting reads for each variant and turn them into a
     DataFrame.
     """
+    from ..dataframe_helpers import allele_reads_to_dataframe
+
     return allele_reads_to_dataframe(
         variant_reads_generator_from_args(args))
 
