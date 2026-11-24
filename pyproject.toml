@@ -43,7 +43,7 @@ isovar = ["data/references/*.json"]
 plot = []
 report = []
 data = ["biopython>=1.80,<2"]  # Independent SAM/ORF and annotated-proteome checks.
-test = ["pypdf>=5,<7"]  # PDF text inspection in tests.
+test = ["pypdf>=5,<7", "osteosarc>=0.15.5,<0.16"]  # PDF text inspection and Sid test reads in tests.
 
 [project.scripts]
 isovar = "isovar.cli.commands:run"
