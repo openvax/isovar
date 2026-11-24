@@ -59,6 +59,7 @@ def test_focal_pair_keeps_germline_cosomatic_and_unexplained_bases():
     value = result()
     p = pair(value)
     assert p['state'] == 'paired'
+    assert p['mutant_equals_baseline'] is False
     assert p['mutant']['protein_sequence'] == 'MAQD'
     baseline = p['baseline']
     assert baseline['protein_sequence'] == 'MAKD'  # annotation is MAKG
@@ -178,6 +179,7 @@ def test_alternative_transcript_offsets_and_incomplete_replay_are_not_collapsed(
     t = translation('GCATGGCC', 'AAGGCTAAGGG', 'MAQG')
     p = pair(result(t))
     assert p['state'] == 'unavailable' and p['baseline'] is None
+    assert p['mutant_equals_baseline'] is None
     assert p['reason'] == 'transcript_edits_do_not_reproduce_observed_rna'
 
 
@@ -230,3 +232,32 @@ def test_cli_uses_same_export_and_rejects_input_overwrite(tmp_path, monkeypatch,
     with pytest.raises(SystemExit):
         commands.run(args + ['--vcf', str(output)])
     assert output.read_bytes() == original and 'overwrite' in capsys.readouterr().err
+
+
+def test_synonymous_pair_flags_mutant_equals_baseline_and_filters_affect_events(tmp_path):
+    # Synonymous focal edit (AAA -> AAG, both K) yields mutant == baseline.
+    syn_focal = variant(110, 'A', 'G')
+    t = translation('CCATGGCTAA', 'GGCTAA', 'MAKG', focal=syn_focal,
+                    reference_prefix='CCATGGCTAA', reference_suffix='GGCTAA',
+                    context_before='CCATGGCTAA', context_after='GGCTAA')
+    syn_value = result(t, known=KnownVariants(somatic=[syn_focal]))
+    p = pair(syn_value)
+    assert p['state'] == 'paired'
+    assert p['mutant']['protein_sequence'] == p['baseline']['protein_sequence'] == 'MAKG'
+    assert p['mutant_equals_baseline'] is True
+
+    # Filter options change both top-level filter_thresholds and per-event filters.
+    from .testing_helpers import data_path
+    vcf = data_path('data/b16.f10/b16.vcf')
+    bam = data_path('data/b16.f10/b16.combined.sorted.bam')
+    low, high = tmp_path / 'low.json', tmp_path / 'high.json'
+    base = ['patient-background-pairs', '--vcf', vcf, '--bam', bam,
+            '--sample-id', 'b16', '--log-level', 'ERROR']
+    commands.run(base + ['--min-alt-rna-reads', '1', '--min-alt-rna-fragments', '1', '--output', str(low)])
+    commands.run(base + ['--min-alt-rna-reads', '1000', '--min-alt-rna-fragments', '1000', '--output', str(high)])
+    low_data, high_data = json.loads(low.read_text()), json.loads(high.read_text())
+    assert low_data['filter_thresholds']['min_num_alt_reads'] == 1
+    assert high_data['filter_thresholds']['min_num_alt_reads'] == 1000
+    assert any(event['filters']['values']['min_num_alt_reads'] for event in low_data['events'])
+    assert all(not event['filters']['values']['min_num_alt_reads'] for event in high_data['events'])
+    assert all(not event['filters']['passes_all_filters'] for event in high_data['events'])

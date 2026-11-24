@@ -198,18 +198,19 @@ def build_completion_parser(environ=None):
 
 
 def run_dataframe_command(parser, dataframe_from_args, args=None, prog=None):
-    """Parse options, build one table from them and write it as CSV."""
+    """Parse options, build one table from them and write it as CSV or TSV."""
     parser = parser_for_program(parser, prog)
     args = parser.parse_args(sys.argv[1:] if args is None else args)
     configure_cli_logging(args.log_level)
     logger.debug("Options: %s", args)
     try:
-        check_outputs(args, "output")
+        check_outputs(args, "output", allow_stdout=True)
         df = dataframe_from_args(args)
         write_dataframe(df, args)
     except CommandInputError as error:
         input_error(parser, error)
-    logger.info("Wrote %d rows to %s", len(df), args.output)
+    destination = "stdout" if str(args.output) == "-" else args.output
+    logger.info("Wrote %d rows to %s", len(df), destination)
 
 
 def run(args=None):

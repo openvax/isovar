@@ -16,7 +16,7 @@ For each variant, Isovar:
 
 ## Objects
 
-![Isovar's data flow, from variants and RNA reads to protein sequences](https://raw.githubusercontent.com/openvax/isovar/master/isovar_design.png)
+![Isovar's data flow, from variants and RNA reads to protein sequences](images/isovar_design.png)
 
 Isovar's inputs are one or more somatic variant call (VCF) files and a BAM file
 of aligned tumor RNA reads. These objects carry the information from one stage

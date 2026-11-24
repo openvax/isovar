@@ -479,6 +479,18 @@ def export_protein_hypotheses(isovar_results, *, sample_id, source, alignment_he
         evidence_sets={key: evidence.sets[key] for key in sorted(evidence.sets)})
 
 
+EVENT_SUPPORT_TSV_COLUMNS = (
+    "num_ref_reads",
+    "num_alt_reads",
+    "num_other_reads",
+    "num_total_reads",
+    "num_ref_fragments",
+    "num_alt_fragments",
+    "num_other_fragments",
+    "num_total_fragments",
+)
+
+
 _TSV_COLUMNS = (
     "schema", "sample_id", "source", "event_id", "variant", "hypothesis_id", "isovar_rank", "representative",
     "amino_acids", "mutation_start", "mutation_end", "ends_with_stop_codon", "frameshift", "n_terminus",
@@ -491,25 +503,112 @@ _TSV_COLUMNS = (
     "coding_window_fragments", "coding_window_evidence_set_id", "single_read_span_fragments",
     "single_read_span_evidence_set_id", "paired_template_span_fragments", "paired_template_span_evidence_set_id",
     "minimum_coding_fragment_depth", "coding_fully_tiled",
-    "protein_hypotheses_complete")
+    "protein_hypotheses_complete",
+    *EVENT_SUPPORT_TSV_COLUMNS)
 
 
 _SCORE_TSV_COLUMNS = ("protein_fractional_fragments", "protein_unique_support_fragments",
                       "protein_ambiguous_support_fragments", "protein_support_score_rank")
 
 
-def _tsv_rows(export):
+def protein_hypotheses_tsv_columns(export):
+    """Return the ordered TSV column names for a protein-hypotheses export.
+
+    Includes per-event allele read/fragment support, ``filter:*`` columns
+    present across the export's events, and ``passes_all_filters``.
+
+    Parameters
+    ----------
+    export : dict
+        An ``isovar.protein_hypotheses.v2`` export.
+
+    Returns
+    -------
+    tuple of str
+        Ordered TSV column names.
+    """
+    filter_names = []
+    seen = set()
+    for event in export.get("events", ()):
+        values = (event.get("filters") or {}).get("values") or {}
+        for name in values:
+            if name not in seen:
+                seen.add(name)
+                filter_names.append(name)
+    score_columns = _SCORE_TSV_COLUMNS if export.get("partial_read_support") is not None else ()
+    filter_columns = tuple("filter:" + name for name in filter_names) + ("passes_all_filters",)
+    return _TSV_COLUMNS + score_columns + filter_columns
+
+
+def event_tsv_fields(export, event):
+    """Return event-level TSV fields shared by hypothesis and no-hypothesis rows.
+
+    Parameters
+    ----------
+    export : dict
+        An ``isovar.protein_hypotheses.v2`` export.
+    event : dict
+        One event record from ``export["events"]``.
+
+    Returns
+    -------
+    dict
+        Event identity, allele read/fragment support, completeness, and filter
+        outcome fields.
+    """
+    allele_support = event.get("allele_support") or {}
+    filters = event.get("filters") or {}
+    filter_values = filters.get("values") or {}
+    complete = event.get("protein_hypotheses_complete")
+    row = dict(
+        schema=export.get("schema", ""),
+        sample_id=export.get("sample_id", ""),
+        source=export.get("source", ""),
+        event_id=event["event_id"],
+        variant=event["variant"]["description"],
+        protein_hypotheses_complete="" if complete is None else complete,
+        passes_all_filters=filters.get("passes_all_filters", ""),
+    )
+    for allele in ("ref", "alt", "other", "total"):
+        counts = allele_support.get(allele) or {}
+        row["num_%s_reads" % allele] = counts.get("reads", "")
+        row["num_%s_fragments" % allele] = counts.get("fragments", "")
+    for name, value in filter_values.items():
+        row["filter:" + name] = value
+    return row
+
+
+def protein_hypotheses_tsv_rows(export):
+    """Yield TSV row dicts for a protein-hypotheses export.
+
+    Emits one row per translation when an event has reconstructed protein
+    hypotheses, and one event-level row (with empty hypothesis/translation
+    columns) when an event has no hypotheses so every input variant is
+    represented.
+
+    Parameters
+    ----------
+    export : dict
+        An ``isovar.protein_hypotheses.v2`` export.
+
+    Yields
+    ------
+    dict
+        Row mapping TSV column names to scalar values.
+    """
     for event in export["events"]:
-        for protein in event["protein_hypotheses"]:
-            for translation in protein["translations"]:
+        base = event_tsv_fields(export, event)
+        emitted = False
+        for protein in event.get("protein_hypotheses") or ():
+            for translation in protein.get("translations") or ():
+                emitted = True
                 comparison = translation["reference_comparison"]
                 annotation = comparison.get("annotation_comparison", {})
                 focal = comparison.get("focal_allele_comparison", {})
                 coverage = translation["coding_support"]
                 paired = coverage.get("paired_template_span_support", {})
                 row = dict(
-                    schema=export["schema"], sample_id=export["sample_id"], source=export["source"],
-                    event_id=event["event_id"], variant=event["variant"]["description"],
+                    base,
                     hypothesis_id=protein["hypothesis_id"], isovar_rank=protein["isovar_rank"],
                     representative=protein["representative"],
                     amino_acids=protein["amino_acids"], mutation_start=protein["mutation_interval"][0],
@@ -542,15 +641,16 @@ def _tsv_rows(export):
                     paired_template_span_fragments=paired.get("fragments"),
                     paired_template_span_evidence_set_id=paired.get("evidence_set_id"),
                     minimum_coding_fragment_depth=coverage["minimum_fragment_depth"],
-                    coding_fully_tiled=coverage["fully_tiled"],
-                    protein_hypotheses_complete=("" if event["protein_hypotheses_complete"] is None
-                                                 else event["protein_hypotheses_complete"]))
+                    coding_fully_tiled=coverage["fully_tiled"])
 
                 if export.get("partial_read_support") is not None:
                     score = protein["partial_read_support"]
                     row.update(zip(_SCORE_TSV_COLUMNS, (score[key] for key in (
                         "fractional_fragments", "unique_fragments", "ambiguous_fragments", "rank"))))
                 yield row
+        if not emitted:
+            prediction = event.get("reference_prediction") or {}
+            yield dict(base, gene_names=prediction.get("gene_name") or "")
 
 
 def protein_hypotheses_tsv_path(path):
@@ -560,7 +660,8 @@ def protein_hypotheses_tsv_path(path):
 
 
 def write_protein_hypotheses(export, path):
-    """Write an export as JSON, plus a TSV with one row per translation.
+    """Write an export as JSON, plus a TSV with one row per translation
+    (and one event-level row for variants with no reconstructed hypothesis).
 
     Parameters
     ----------
@@ -583,8 +684,8 @@ def write_protein_hypotheses(export, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     write_json(path, export)
     with tsv.open("w", newline="") as handle:
-        columns = _TSV_COLUMNS + (_SCORE_TSV_COLUMNS if export.get("partial_read_support") is not None else ())
+        columns = protein_hypotheses_tsv_columns(export)
         writer = csv.DictWriter(handle, fieldnames=columns, delimiter="\t", lineterminator="\n")
         writer.writeheader()
-        writer.writerows(_tsv_rows(export))
+        writer.writerows(protein_hypotheses_tsv_rows(export))
     return dict(json=path, tsv=tsv)

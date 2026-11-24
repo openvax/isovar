@@ -87,6 +87,68 @@ class IsovarResult(object):
         ("protein_sequence_transcript_ids", "transcript_ids"),
     )
 
+    # Logical column order for numeric and boolean summary properties in
+    # to_record() / record_columns(), replacing alphabetical dir(cls) ordering.
+    RECORD_PROPERTY_NAMES = (
+        # Locus read and fragment counts
+        "num_total_reads",
+        "num_alt_reads",
+        "num_ref_reads",
+        "num_other_reads",
+        "num_total_fragments",
+        "num_alt_fragments",
+        "num_ref_fragments",
+        "num_other_fragments",
+        # Locus allele fractions
+        "fraction_alt_reads",
+        "fraction_ref_reads",
+        "fraction_other_reads",
+        "fraction_alt_fragments",
+        "fraction_ref_fragments",
+        "fraction_other_fragments",
+        # Locus allele ratios
+        "ratio_alt_to_other_reads",
+        "ratio_other_to_alt_reads",
+        "ratio_ref_to_other_reads",
+        "ratio_other_to_ref_reads",
+        "ratio_alt_to_other_fragments",
+        "ratio_other_to_alt_fragments",
+        "ratio_ref_to_other_fragments",
+        "ratio_other_to_ref_fragments",
+        # Overlapping annotation counts
+        "num_overlapping_genes",
+        "num_overlapping_coding_genes",
+        "num_overlapping_transcripts",
+        "num_overlapping_coding_transcripts",
+        # Reconstructed protein support and counts
+        "num_protein_sequences",
+        "num_reads_supporting_top_protein_sequence",
+        "num_fragments_supporting_top_protein_sequence",
+        "num_translations_from_top_protein_sequence",
+        "num_cdna_sequences_from_top_protein_sequence",
+        "num_genes_from_top_protein_sequence",
+        "num_genes_from_protein_sequences",
+        "num_transcripts_from_top_protein_sequence",
+        "num_transcripts_from_protein_sequences",
+        # Mutation, mismatch, edit and phasing counts
+        "num_mutant_amino_acids_in_protein_sequence",
+        "num_amino_acid_mismatches_from_predicted_effect",
+        "num_amino_acid_mismatches_from_reference",
+        "num_cdna_mismatches_in_top_protein_sequence",
+        "num_cdna_mismatches_before_variant_in_top_protein_sequence",
+        "num_cdna_mismatches_after_variant_in_top_protein_sequence",
+        "num_co_somatic_variants_in_top_protein_sequence",
+        "num_germline_variants_in_top_protein_sequence",
+        "num_unexplained_edits_in_top_protein_sequence",
+        "num_phased_variants_from_reads",
+        "num_phased_variants_in_protein_sequence",
+        # Boolean presence flags
+        "has_protein_changing_predicted_effect",
+        "has_reference_protein_sequence_from_predicted_effect",
+        "has_mutant_protein_sequence_from_predicted_effect",
+        "has_mutant_protein_sequence_from_rna",
+    )
+
     def __init__(
             self,
             variant,
@@ -295,7 +357,7 @@ class IsovarResult(object):
 
         ])
 
-        for key in self._record_property_names():
+        for key in self.record_property_names():
             d[key] = getattr(self, key)
 
         ########################################################################
@@ -349,11 +411,24 @@ class IsovarResult(object):
         return d
 
     @classmethod
-    def _record_property_names(cls):
-        """Numeric (num_/fraction_/ratio_) then boolean (has_) properties."""
+    def record_property_names(cls):
+        """Return numeric and boolean record property names in logical order.
+
+        Any additional ``num_``, ``fraction_``, ``ratio_`` or ``has_`` properties
+        defined on subclasses are appended deterministically so none are omitted.
+        """
+        ordered = [name for name in cls.RECORD_PROPERTY_NAMES if hasattr(cls, name)]
+        seen = set(ordered)
         names = dir(cls)
-        return ([key for key in names if key.startswith(("num_", "fraction_", "ratio_"))]
-                + [key for key in names if key.startswith("has_")])
+        extra_numeric = [
+            key for key in names
+            if key not in seen and key.startswith(("num_", "fraction_", "ratio_"))
+        ]
+        extra_flags = [
+            key for key in names
+            if key not in seen and key.startswith("has_")
+        ]
+        return ordered + extra_numeric + extra_flags
 
     @classmethod
     def record_columns(cls):
@@ -362,7 +437,7 @@ class IsovarResult(object):
             ["variant", "chr", "pos", "ref", "alt",
              "overlapping_gene_names", "overlapping_gene_ids",
              "overlapping_coding_gene_names", "overlapping_coding_gene_ids"]
-            + cls._record_property_names()
+            + cls.record_property_names()
             + ["predicted_effect", "predicted_effect_class",
                "predicted_effect_modifies_protein_sequence"]
             + ["predicted_effect_" + name for name in cls._PREDICTED_EFFECT_FIELDS]

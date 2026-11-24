@@ -335,21 +335,23 @@ def allele_counts_dataframe_from_args(args):
 
 def allele_reads_dataframe_from_args(args):
     """
-    Collect all allele reads for each variant and turn them into a DataFrame.
+    Collect all allele reads for each variant and turn them into a DataFrame,
+    preserving allele class (ref/alt/other), mate label, and secondary flag.
     """
-    from ..dataframe_helpers import allele_reads_to_dataframe
+    from ..dataframe_helpers import read_evidence_to_allele_reads_dataframe
 
-    return allele_reads_to_dataframe(
-        allele_reads_generator_from_args(args))
+    return read_evidence_to_allele_reads_dataframe(
+        read_evidence_generator_from_args(args))
 
 
 def variant_reads_dataframe_from_args(args):
     """
     Collect alt-supporting reads for each variant and turn them into a
-    DataFrame.
+    DataFrame with allele class, mate label, and secondary flag.
     """
-    from ..dataframe_helpers import allele_reads_to_dataframe
+    from ..dataframe_helpers import read_evidence_to_allele_reads_dataframe
 
-    return allele_reads_to_dataframe(
-        variant_reads_generator_from_args(args))
+    return read_evidence_to_allele_reads_dataframe(
+        read_evidence_generator_from_args(args),
+        allele_classes=("alt",))
 

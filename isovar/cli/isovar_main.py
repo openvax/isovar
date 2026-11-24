@@ -30,7 +30,7 @@ def make_parser(prog=None):
     return add_output_args(
         make_isovar_arg_parser(prog=prog, description=__doc__),
         filename="isovar-results.csv",
-        description="CSV with one row per variant")
+        description="Output table with one row per variant")
 
 
 def run(args=None, *, prog=None):

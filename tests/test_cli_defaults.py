@@ -82,9 +82,12 @@ def test_explicit_rna_options_and_legacy_namespace():
 def test_cli_variant_sequence_defaults_match_python():
     args = make_variant_sequences_arg_parser(add_sequence_length_arg=True).parse_args(["--bam", "unused"])
     creator = VariantSequenceCreator()
-    assert args.variant_sequence_length == creator.preferred_sequence_length
+    assert args.variant_sequence_length is None
     assert args.min_variant_sequence_coverage == creator.min_variant_sequence_coverage
     assert args.variant_sequence_assembly == creator.variant_sequence_assembly
+    fixed = make_variant_sequences_arg_parser(add_sequence_length_arg=True).parse_args(
+        ["--bam", "unused", "--variant-sequence-length", str(creator.preferred_sequence_length)])
+    assert fixed.variant_sequence_length == creator.preferred_sequence_length
 
 
 def test_filter_defaults_match_python_and_overrides_do_not_remove_other_filters():
@@ -97,8 +100,15 @@ def test_filter_defaults_match_python_and_overrides_do_not_remove_other_filters(
     ])
     expected = defaults.DEFAULT_FILTER_THRESHOLDS.copy()
     expected.update(min_num_alt_reads=7, min_num_alt_fragments=4,
-                    min_fraction_alt_fragments=0.1, min_ratio_alt_to_other_fragments=5)
+                    min_fraction_alt_reads=0.1, min_fraction_alt_fragments=0.1,
+                    min_ratio_alt_to_other_fragments=5)
     assert filter_threshold_dict_from_args(args) == expected
+    separate = parser.parse_args([
+        "--bam", "unused", "--min-alt-rna-fraction", "0.1", "--min-alt-rna-read-fraction", "0.02",
+    ])
+    thresholds = filter_threshold_dict_from_args(separate)
+    assert thresholds["min_fraction_alt_fragments"] == 0.1
+    assert thresholds["min_fraction_alt_reads"] == 0.02
     expected["max_num_other_reads"] = -1
     assert defaults.DEFAULT_FILTER_THRESHOLDS["max_num_other_reads"] != -1
 

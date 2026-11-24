@@ -21,7 +21,5 @@ QUAL), tags and read names are unchanged. These are not simulated adapter reads.
   validated adapter-positive or full-length transcript.
   [Source BAM](https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/pacbio/IPISRC044_T1_sclrs_live_pbmm2_mapped.bam)
 
-Acquisition receipts, unchanged subset BAMs and SHA-256 manifests are retained in
-the local `figures/osteosarc/2026-09-18_13-26-15-937302Z/sv-realignment/` evidence
-bundle. See [#302](https://github.com/openvax/isovar/issues/302) for the investigation
+See [#302](https://github.com/openvax/isovar/issues/302) for the investigation
 and the broader platform-aware design. Regression tests require no network.
