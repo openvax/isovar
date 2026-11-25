@@ -395,10 +395,18 @@ class SharedReadSupportIndex:
         cached = cache.get(seq_prefix)
         if cached is not None:
             return cached
-        p_index = state["prefix_index"]
         distinct_prefixes = state["distinct_prefixes"]
         p_to_mask = state["prefix_to_mask"]
         p_to_multi = state["prefix_to_multi_mask"]
+        if len(distinct_prefixes) == 1:
+            p = distinct_prefixes[0]
+            if p.endswith(seq_prefix) or seq_prefix.endswith(p):
+                res = (p_to_mask.get(p, 0), p_to_multi.get(p, 0), (p,))
+            else:
+                res = (0, 0, ())
+            cache[seq_prefix] = res
+            return res
+        p_index = state["prefix_index"]
         _, ranges = p_index.compatible_ranges(seq_prefix[::-1])
         entries = p_index.entries
         mask = 0
@@ -419,10 +427,18 @@ class SharedReadSupportIndex:
         cached = cache.get(seq_suffix)
         if cached is not None:
             return cached
-        s_index = state["suffix_index"]
         distinct_suffixes = state["distinct_suffixes"]
         s_to_mask = state["suffix_to_mask"]
         s_to_multi = state["suffix_to_multi_mask"]
+        if len(distinct_suffixes) == 1:
+            s = distinct_suffixes[0]
+            if s.startswith(seq_suffix) or seq_suffix.startswith(s):
+                res = (s_to_mask.get(s, 0), s_to_multi.get(s, 0), (s,))
+            else:
+                res = (0, 0, ())
+            cache[seq_suffix] = res
+            return res
+        s_index = state["suffix_index"]
         _, ranges = s_index.compatible_ranges(seq_suffix)
         entries = s_index.entries
         mask = 0
@@ -511,6 +527,8 @@ class SharedReadSupportIndex:
         mask = p_mask & s_mask & t_mask
         multi_mask = p_multi & s_multi & t_multi
         if not seq_alt:
+            if not seq_prefix and not seq_suffix:
+                return 0, 0, np.zeros(0, dtype="int32")
             if not seq_prefix:
                 mask &= state["nonempty_suffix_mask"]
                 multi_mask &= state["nonempty_suffix_multi_mask"]
