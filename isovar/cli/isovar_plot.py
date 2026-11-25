@@ -17,7 +17,7 @@ from ..default_parameters import (
 )
 from ..logging import configure_cli_logging
 from .commands import parser_for_program
-from .output_args import add_log_level_arg
+from .output_args import add_log_level_arg, add_output_dir_arg
 from .rna_args import alignment_file_from_args, read_collector_from_args
 from .translation_args import (
     add_protein_selection_args,
@@ -45,8 +45,11 @@ parser.add_argument("--view", choices=PLOT_VIEWS, default=PLOT_VIEW,
                     help="Figure panels (default %(default)s).")
 parser.add_argument("--compare-assembly", action="store_true", default=PLOT_COMPARE_ASSEMBLY,
                     help="Compare assembly on/off with the same collected reads and all other settings unchanged.")
-parser.add_argument("--output-dir", default=PLOT_OUTPUT_DIRECTORY,
-                    help="Parent of new UTC-stamped run directories (default %(default)s).")
+add_output_dir_arg(
+    parser,
+    default=PLOT_OUTPUT_DIRECTORY,
+    help="Parent of new UTC-stamped run directories (default %(default)s).",
+)
 parser.add_argument("--max-rows", type=int, default=PLOT_MAX_ROWS,
                     help="Maximum displayed span/model rows; never limits analysis (default %(default)s).")
 parser.add_argument("--dpi", type=dpi, default=PLOT_DPI, help="PNG resolution (default %(default)s); SVG is vector.")

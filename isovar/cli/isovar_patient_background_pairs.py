@@ -8,8 +8,9 @@ from ..default_parameters import PATIENT_BACKGROUND_BASELINES as BASELINES
 from ..logging import configure_cli_logging, get_logger
 from .commands import parser_for_program
 from .filter_args import filter_threshold_dict_from_args
+from .input_args import add_sample_id_arg, add_source_arg
 from .main_args import make_isovar_arg_parser, run_isovar_from_parsed_args
-from .output_args import add_log_level_arg
+from .output_args import add_log_level_arg, add_output_file_arg
 from .rna_args import read_collector_from_args
 from .validation import check_outputs, input_error
 
@@ -18,12 +19,12 @@ logger = get_logger(__name__)
 parser = make_isovar_arg_parser(description=__doc__)
 parser.set_defaults(max_protein_sequences_per_variant=0)
 add_log_level_arg(parser)
-parser.add_argument('--sample-id', required=True, help='Sample the reads came from')
-parser.add_argument('--source', help='Original RNA read-set identity; defaults to --bam')
+add_sample_id_arg(parser, required=True)
+add_source_arg(parser, help='Original RNA read-set identity; defaults to --bam')
 parser.add_argument('--baseline', choices=BASELINES, default='focal',
                     help='Somatic edits to revert; germline and unexplained edits are retained '
                          '(default: %(default)s)')
-parser.add_argument('--output', required=True, help='Paired-window JSON or JSON.gz output')
+add_output_file_arg(parser, required=True, help='Paired-window JSON or JSON.gz output file')
 
 
 def run(args=None, *, prog=None):

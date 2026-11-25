@@ -3,7 +3,7 @@
 from ..default_parameters import SV_SOURCE_PROFILE_NAMES
 from ..logging import configure_cli_logging, get_logger
 from .help import HelpArgumentParser
-from .output_args import add_log_level_arg
+from .output_args import add_log_level_arg, add_output_file_arg
 from .validation import check_outputs, input_error
 
 logger = get_logger(__name__)
@@ -18,8 +18,11 @@ def make_parser(prog: str = 'isovar sv-source'):
     parser.add_argument('--profile', choices=SV_SOURCE_PROFILE_NAMES, default='standard',
                         help='Interpretation profile; named profiles require their pinned original '
                              '(default: %(default)s)')
-    parser.add_argument('--output', required=True,
-                        help='Per-row source report JSON, gzip-compressed if it ends in .gz')
+    add_output_file_arg(
+        parser,
+        required=True,
+        help='Per-row source report JSON file, gzip-compressed if it ends in .gz',
+    )
     add_log_level_arg(parser)
     return parser
 

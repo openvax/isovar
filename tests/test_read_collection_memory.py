@@ -360,3 +360,54 @@ def test_separate_calls_do_not_share_a_persistent_coordinate_cache():
     second = collector.get_locus_reads(repeated_reads(), "1", 10005, 10006)
     assert_same_reads(first, second)
     assert first[0].reference_positions[0] is not second[0].reference_positions[0]
+
+
+def test_stock_collector_shares_coordinates_inline_without_post_pass(monkeypatch):
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("stock path should share coordinates inline, not via post-hook pass")
+
+    monkeypatch.setattr(ReadCollector, "share_reference_positions", staticmethod(fail_if_called))
+    reads = ReadCollector(merge_overlapping_fragments=False).get_locus_reads(
+        repeated_reads(n=4, length=20), "1", 10005, 10006
+    )
+    assert len(reads) == 4
+    for column in zip(*(r.reference_positions for r in reads)):
+        assert len({id(p) for p in column}) == 1
+
+
+def test_coordinate_table_is_released_before_mate_merging():
+    checked = []
+
+    class MergeInspectingCollector(ReadCollector):
+        @classmethod
+        def _merge_overlapping_locus_reads(cls, reads):
+            assert_no_coordinate_table_survives(reads, holders=len(reads))
+            checked.append(len(reads))
+            return super()._merge_overlapping_locus_reads(reads)
+
+    reads = MergeInspectingCollector(merge_overlapping_fragments=True).get_locus_reads(
+        repeated_reads(n=3, length=20), "1", 10005, 10006
+    )
+    assert checked == [3]
+    assert len(reads) == 3
+    for column in zip(*(r.reference_positions for r in reads)):
+        assert len({id(p) for p in column}) == 1
+
+
+def test_public_share_reference_positions_helper_shares_integers_in_place():
+    class IntSubclass(int):
+        pass
+
+    table = {}
+    first = [int("20000"), None, IntSubclass(20002)]
+    second = [int("20000"), None, int("20002")]
+    returned = ReadCollector.share_reference_positions(first, table)
+    assert returned is first
+    ReadCollector.share_reference_positions(second, table)
+    assert first[0] is second[0]
+    assert type(first[2]) is IntSubclass
+    assert first[2] is not second[2]
+    # Tuple / non-list sequences are left untouched.
+    immutable = (int("20000"),)
+    assert ReadCollector.share_reference_positions(immutable, table) is immutable
+    assert immutable[0] is not first[0]

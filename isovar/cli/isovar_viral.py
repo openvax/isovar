@@ -5,19 +5,25 @@ from pathlib import Path
 from ..default_parameters import GDC_REFERENCE
 from ..logging import configure_cli_logging, get_logger
 from .help import HelpArgumentParser
-from .output_args import add_log_level_arg
+from .input_args import add_genome_fasta_arg, add_sample_id_arg, add_scratch_dir_arg
+from .output_args import add_force_arg, add_log_level_arg, add_output_dir_arg
 from .rna_args import add_rna_path_args, rna_path_context
 from .validation import input_error
 
 logger = get_logger(__name__)
 
 
-def make_parser(prog="isovar viral"):
+def make_parser(prog="isovar viral-rna"):
     parser = HelpArgumentParser(prog=prog, description=__doc__)
     add_rna_path_args(parser)
-    parser.add_argument("--genome-fasta", required=True, help="Local FASTA used for alignment")
-    parser.add_argument("--sample-id", required=True, help="Sample the reads came from")
-    parser.add_argument("--output-dir", required=True, help="New directory for viral.json, sequences.fa and predicted proteins.fa")
+    add_genome_fasta_arg(parser, required=True, help="Local FASTA used for alignment")
+    add_sample_id_arg(parser, required=True)
+    add_output_dir_arg(
+        parser,
+        required=True,
+        help="New directory for viral.json, sequences.fa and predicted proteins.fa",
+    )
+    add_force_arg(parser, help="Allow writing into an existing --output-dir")
     parser.add_argument("--contig", action="append", help="Optional viral contig subset; repeat to select several")
     parser.add_argument("--alignment-reference", choices=[GDC_REFERENCE, "custom"], default=GDC_REFERENCE,
                         help="Checked reference profile (default: %(default)s); custom requires --contig")
@@ -26,14 +32,14 @@ def make_parser(prog="isovar viral"):
                              "(default: %(default)s)")
     parser.add_argument("--max-paths", type=int, default=256, help="Assembled paths per viral contig (default: %(default)s)")
     parser.add_argument("--min-overlap", type=int, default=30, help="Minimum exact overlap for assembly (default: %(default)s)")
-    parser.add_argument("--scratch-dir", help="Temporary disk-index directory")
+    add_scratch_dir_arg(parser, help="Temporary disk-index directory")
     parser.add_argument("--reference-cache", help="PyEnsembl genomic-FASTA cache directory")
     add_log_level_arg(parser)
     return parser
 
 
 def run(args=None, prog=None):
-    parser = make_parser(prog or "isovar viral")
+    parser = make_parser(prog or "isovar viral-rna")
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:
@@ -43,7 +49,7 @@ def run(args=None, prog=None):
         from ..viral_sequences import reconstruct_viral_sequences, write_viral_fasta
 
         output = Path(options.output_dir).expanduser()
-        if output.exists():
+        if output.exists() and not options.force:
             raise ValueError("Output directory already exists: " + str(output))
         fasta = Path(options.genome_fasta).expanduser().resolve()
         bam_path = Path(options.bam).expanduser().resolve()
@@ -57,7 +63,7 @@ def run(args=None, prog=None):
                 min_overlap=options.min_overlap, scratch_dir=options.scratch_dir,
                 reference_cache=options.reference_cache, read_collector=collector, library_index=library)
         result["input"]["sha256"] = digest(bam_path)
-        output.mkdir(parents=True, exist_ok=False)
+        output.mkdir(parents=True, exist_ok=options.force)
         publish_json(output / "viral.json", result)
         write_viral_fasta(result, output / "sequences.fa")
         write_viral_proteins(result, output / "proteins.fa")

@@ -313,7 +313,11 @@ def assess_matched_normal(variants: Sequence[Variant], sources: Sequence[NormalS
                     "Per-allele assessments cover selected sources; exclusions and unavailable products remain in the source inventory.")
 
 
-def run_normal_evidence_manifest(manifest_path: str | Path, output_path: str | Path) -> MatchedNormalEvidence:
+def run_normal_evidence_manifest(
+        manifest_path: str | Path,
+        output_path: str | Path,
+        *,
+        force: bool = False) -> MatchedNormalEvidence:
     """Run the shared assessment from pinned inputs and write a new JSON receipt.
 
     Paths are relative to the manifest, not the working directory. The manifest
@@ -354,7 +358,7 @@ def run_normal_evidence_manifest(manifest_path: str | Path, output_path: str | P
         sources.append(NormalSource(**descriptor))
     if output_path in inputs:
         raise ValueError("Normal assessment output must not overwrite an input")
-    if output_path.exists():
+    if output_path.exists() and not force:
         raise ValueError("Normal assessment output already exists; choose a new receipt path")
     nominations = read_json(nomination_file)
     reference = manifest["reference_name"]

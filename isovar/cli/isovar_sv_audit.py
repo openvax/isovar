@@ -2,7 +2,8 @@
 
 from ..logging import configure_cli_logging, get_logger
 from .help import HelpArgumentParser
-from .output_args import add_log_level_arg
+from .input_args import add_library_cache_arg, add_manifest_arg
+from .output_args import add_log_level_arg, add_output_dir_arg
 from .validation import input_error
 
 logger = get_logger(__name__)
@@ -10,15 +11,26 @@ logger = get_logger(__name__)
 
 def make_parser(prog="isovar sv-audit"):
     parser = HelpArgumentParser(prog=prog, description=__doc__)
-    parser.add_argument("--manifest", required=True,
-                        help="Source-pinned audit manifest JSON: files with checksums, sources, events and "
-                             "views (see docs/sv-rna-audit.md)")
-    parser.add_argument("--output-dir", required=True,
-                        help="Directory for per-run snapshots, receipts and report.json/report.tsv")
+    add_manifest_arg(
+        parser,
+        required=True,
+        help="Source-pinned audit manifest JSON: files with checksums, sources, events and "
+             "views (see docs/sv-rna-audit.md)",
+    )
+    add_output_dir_arg(
+        parser,
+        required=True,
+        help="Directory for per-run snapshots, receipts and report.json/report.tsv",
+    )
     parser.add_argument("--resume", action="store_true",
                         help="Reuse snapshots whose implementation, inputs and parameters match")
     parser.add_argument("--event-id", action="append", help="Select event IDs; default: every manifest event")
-    parser.add_argument("--library-cache-dir", help="Retain verified original-RNA indexes for reuse across audit invocations")
+    add_library_cache_arg(
+        parser,
+        dest="library_cache_dir",
+        aliases=("--library-cache-dir",),
+        help="Retain verified original-RNA indexes for reuse across audit invocations",
+    )
     add_log_level_arg(parser)
     return parser
 

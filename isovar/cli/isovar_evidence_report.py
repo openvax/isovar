@@ -10,7 +10,8 @@ import hashlib
 import json
 from pathlib import Path
 
-from .output_args import add_log_level_arg
+from .input_args import add_sample_id_arg
+from .output_args import add_hidden_alias, add_log_level_arg, add_output_file_arg
 from ..logging import configure_cli_logging
 from .commands import parser_for_program
 from .protein_sequence_args import make_protein_sequences_arg_parser, protein_sequence_creator_from_args
@@ -20,11 +21,14 @@ from .validation import CommandInputError, check_outputs, input_error, variant_c
 
 parser = make_protein_sequences_arg_parser(description=__doc__)
 parser.set_defaults(max_protein_sequences_per_variant=0)
-parser.add_argument("--sample-id", required=True, help="Identity of the RNA sample")
-parser.add_argument("--output", type=Path, required=True, help="Output PDF")
-parser.add_argument("--per-call", type=Path, help="Per-call TSV (default: PDF stem + .tsv)")
-parser.add_argument("--evidence-json", type=Path,
-                    help="Complete per-call protein paths and witness sets (default: PDF stem + .json)")
+add_sample_id_arg(parser, required=True, help="Identity of the RNA sample")
+add_output_file_arg(parser, required=True, type=Path, help="Output PDF file")
+parser.add_argument("--output-tsv", dest="per_call", type=Path, metavar="FILE",
+                    help="Per-call TSV file (default: PDF stem + .tsv)")
+add_hidden_alias(parser, "--per-call", dest="per_call", type=Path)
+parser.add_argument("--output-json", dest="evidence_json", type=Path, metavar="FILE",
+                    help="Complete per-call protein paths and witness sets JSON file (default: PDF stem + .json)")
+add_hidden_alias(parser, "--evidence-json", dest="evidence_json", type=Path)
 parser.add_argument("--dna-source", help="DNA call-set identity (default: VCF path)")
 parser.add_argument("--rna-source", help="RNA read-set identity (default: BAM path)")
 parser.add_argument("--nc-orf-catalog", type=Path,

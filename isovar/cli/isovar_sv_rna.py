@@ -11,7 +11,8 @@ from ..default_parameters import (
 )
 from ..logging import configure_cli_logging, get_logger
 from .help import HelpArgumentParser
-from .output_args import add_log_level_arg
+from .input_args import add_input_arg, add_scratch_dir_arg, add_source_arg
+from .output_args import add_log_level_arg, add_output_file_arg
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
 from .validation import check_outputs, input_error
 
@@ -24,15 +25,20 @@ sv_rna_input_from_dict = None
 
 def make_parser(prog="isovar sv-rna"):
     parser = HelpArgumentParser(prog=prog, description=__doc__)
-    parser.add_argument("--input", required=True,
-                        help="Nominated event, search regions, reference models and event provenance JSON "
-                             "(or .json.gz)")
-    parser.add_argument("--output", required=True,
-                        help="Exploratory candidate paths JSON, gzip-compressed if it ends in .gz")
+    add_input_arg(
+        parser,
+        required=True,
+        help="Nominated event, search regions, reference models and event provenance JSON (or .json.gz)",
+    )
+    add_output_file_arg(
+        parser,
+        required=True,
+        help="Exploratory candidate paths JSON file, gzip-compressed if it ends in .gz",
+    )
     parser.add_argument("--orf-output-prefix", help="Also export exploratory ORFs as JSON, TSV and protein/DNA FASTA")
     parser.add_argument("--predictions", type=Path,
                         help="Optional source-identified protein predictions JSON for sequence comparison")
-    parser.add_argument("--source", help="Alignment source identity recorded in the output (default: --bam)")
+    add_source_arg(parser, help="Alignment source identity recorded in the output (default: --bam)")
     add_rna_args(parser)
     add_log_level_arg(parser)
     group = parser.add_argument_group("SV RNA reconstruction")
@@ -56,9 +62,15 @@ def make_parser(prog="isovar sv-rna"):
     group.add_argument("--dense-support", action="store_true",
                        help="Use temporary disk space for large inputs: automatically group equivalent reads "
                             "for search, then count candidate support across all original reads")
-    group.add_argument("--sv-scratch-dir", type=Path,
-                       help="Optional directory for --dense-support temporary files (default: system temporary "
-                            "directory); choose another disk if more space is needed")
+    add_scratch_dir_arg(
+        parser,
+        dest="sv_scratch_dir",
+        type=Path,
+        aliases=("--sv-scratch-dir",),
+        help="Optional directory for --dense-support temporary files (default: system temporary "
+             "directory); choose another disk if more space is needed",
+        group=group,
+    )
     group.add_argument("--max-queries", type=int, default=SV_MAX_QUERIES,
                        help="Region/mate/supplementary lookups; reaching the limit is reported (default: %(default)s)")
     group.add_argument("--max-paths", type=int, default=SV_MAX_PATHS,

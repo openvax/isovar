@@ -30,6 +30,7 @@ from ..default_parameters import (
 )
 
 from .help import HelpArgumentParser
+from .input_args import add_library_cache_arg
 from .validation import CommandInputError, non_negative_int, positive_int, variant_collection_from_args
 
 # Lazily resolved on first use; kept as module attributes for test monkeypatching.
@@ -147,7 +148,7 @@ def add_rna_path_args(parser):
                         drop_secondary_alignments=not defaults["use_secondary_alignments"],
                         use_soft_clipped_bases=defaults["use_soft_clipped_bases"],
                         use_reads_without_base_qualities=defaults["use_reads_without_base_qualities"])
-    group.add_argument('--library-cache', help='Reusable original-RNA index directory')
+    add_library_cache_arg(parser, group=group)
     return group
 
 

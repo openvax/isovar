@@ -3,18 +3,23 @@
 from pathlib import Path
 
 from .help import HelpArgumentParser
-from .output_args import add_log_level_arg
+from .input_args import add_sample_id_arg
+from .output_args import add_hidden_alias, add_log_level_arg, add_output_file_arg
 from ..logging import configure_cli_logging
 from .commands import parser_for_program
 from .validation import CommandInputError, check_outputs, input_error
 
 
 parser = HelpArgumentParser(description=__doc__)
-parser.add_argument("--sample-id", required=True,
-                    help="Report sample/group; inputs must match unless explicitly mapped with --input-sample-id")
-parser.add_argument("--output", required=True, type=Path, help="Output PDF")
-parser.add_argument("--summary-json", type=Path,
-                    help="Full source-separated summary JSON (default: --output with .json)")
+add_sample_id_arg(
+    parser,
+    required=True,
+    help="Report sample/group; inputs must match unless explicitly mapped with --input-sample-id",
+)
+add_output_file_arg(parser, required=True, type=Path, help="Output PDF file")
+parser.add_argument("--output-json", dest="summary_json", type=Path, metavar="FILE",
+                    help="Full source-separated summary JSON file (default: --output with .json)")
+add_hidden_alias(parser, "--summary-json", dest="summary_json", type=Path)
 parser.add_argument("--small-variant-tsv", type=Path, action="append", default=[],
                     help="Per-call TSV from isovar evidence-report; repeat per source")
 parser.add_argument("--input-sample-id", nargs=2, action="append", default=[], metavar=("INPUT", "SAMPLE"),
