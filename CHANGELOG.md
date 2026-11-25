@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.96.0
+
+- Deduplicate `isovar/cli/help.py` onto the shared `datacache.cli_help` module
+  (requiring `datacache>=1.38.0,<2`), align the `pyensembl` dependency floor to
+  `pyensembl>=2.36.0,<3`, honor `OPENVAX_OFFLINE` in `isovar.sid_data.open_dataset`,
+  and enable `strict: true` in `mkdocs.yml`.
+
 ## 1.95.0
 
 Fixes #241, #544, #661 (#654, #655, #656, #658, #663), and adds forward-compatibility for orfdata#201.

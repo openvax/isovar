@@ -4,6 +4,7 @@ site_url: https://openvax.github.io/isovar/
 repo_url: https://github.com/openvax/isovar
 repo_name: openvax/isovar
 edit_uri: edit/master/docs/
+strict: true
 
 theme:
   name: material
