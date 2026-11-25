@@ -23,8 +23,8 @@ from .base_quality_args import add_base_quality_args
 
 parser = add_output_args(
     make_rna_reads_arg_parser(description=__doc__),
-    filename="isovar-allele-counts-result.csv",
-    description="CSV of read and fragment counts")
+    filename="isovar-allele-counts.csv",
+    description="Output table of read and fragment counts")
 _cells = parser.add_argument_group("Cell/UMI labels (single-cell data)")
 _cells.add_argument(
     "--cell-umi-labels", action="store_true",

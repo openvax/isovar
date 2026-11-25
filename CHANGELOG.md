@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.94.0
+
+Fixes #679 and #669.
+
+- Remove remaining repository bloat (`figures/`, `notebook/`, and unreferenced
+  Sid dense-audit scripts in `examples/`), move `isovar_design.png` to
+  `docs/images/isovar_design.png` with a relative link in
+  `docs/internal-design.md`, and remove stale local figure bundle links.
+- Unify table export column names (`gene_names`, `transcript_ids`,
+  `transcript_names`, `num_supporting_reads`, `num_supporting_fragments`) and
+  replace alphabetical `dir(cls)` ordering in `IsovarResult.to_record()` with
+  explicit logical grouping (`IsovarResult.RECORD_PROPERTY_NAMES`).
+- Add `allele_class`, `mate`, and `is_secondary` columns to `allele-reads` and
+  `variant-reads` so per-read exports reconcile with `allele-counts`.
+- Default `isovar variant-sequences` to the protein pipeline's context-length
+  ladder (`ProteinSequenceCreator.variant_sequences_from_read_evidence_generator`)
+  when `--variant-sequence-length` is omitted.
+- Have `--min-alt-rna-fraction` update both `min_fraction_alt_fragments` and
+  `min_fraction_alt_reads`, with `--min-alt-rna-read-fraction` to tune read
+  fraction separately.
+- Retain variants with no reconstructed protein hypothesis in the
+  `protein-hypotheses` TSV alongside event-level allele counts, `filter:*`, and
+  `passes_all_filters` columns (LF line endings).
+- Record per-event `filters` and per-pair `mutant_equals_baseline` in
+  `patient-background-pairs` exports.
+- Standardize default table filenames to `isovar-<command>.csv` (keeping
+  `isovar-results.csv` for `isovar run`), infer TSV delimiter for `.tsv`/`.tab`
+  outputs, and support `--output -` for stdout.
+
 ## 1.91.2
 
 Fixes #730.

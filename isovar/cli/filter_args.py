@@ -47,8 +47,17 @@ def add_filter_args(parser):
         type=fraction,
         default=DEFAULT_FILTER_THRESHOLDS["min_fraction_alt_fragments"],
         help=(
-            "Minimum ratio of fragments supporting variant allele to total RNA fragments "
+            "Minimum ratio of fragments (and, unless --min-alt-rna-read-fraction is set, "
+            "reads) supporting variant allele to total RNA fragments/reads "
             "(default %(default)s)."))
+
+    filter_group.add_argument(
+        "--min-alt-rna-read-fraction",
+        type=fraction,
+        default=None,
+        help=(
+            "Minimum ratio of reads supporting variant allele to total RNA reads "
+            "(default: same as --min-alt-rna-fraction)."))
 
     filter_group.add_argument(
         "--min-ratio-alt-to-other-fragments",
@@ -70,8 +79,12 @@ def filter_threshold_dict_from_args(args):
     Returns OrderedDict
     """
     d = OrderedDict(DEFAULT_FILTER_THRESHOLDS)
+    read_fraction = getattr(args, "min_alt_rna_read_fraction", None)
     d["min_ratio_alt_to_other_fragments"] = args.min_ratio_alt_to_other_fragments
     d["min_fraction_alt_fragments"] = args.min_alt_rna_fraction
+    d["min_fraction_alt_reads"] = (
+        args.min_alt_rna_fraction if read_fraction is None else read_fraction
+    )
     d["min_num_alt_fragments"] = args.min_alt_rna_fragments
     d["min_num_alt_reads"] = args.min_alt_rna_reads
     return d

@@ -95,6 +95,7 @@ def _pair(translation, transcript, known, result, evidence, baseline):
         phase=dict(state=_phase(mutant_support), scope='the_mutant_coding_window',
                    normal_tissue_observed=False),
         baseline=None, reference=None, removed_edits=[], retained_edits=[],
+        mutant_equals_baseline=None,
         translation_observed=False)
     try:
         selected = sorted((e for e in translation_edit_records(translation, known) if e['transcript_id'] == transcript.id),
@@ -128,6 +129,9 @@ def _pair(translation, transcript, known, result, evidence, baseline):
             (counter_start, translated_end), context.strand, support)
         observed = _phase(ref_support)
         row.update(state='paired' if amino else 'zero_length_baseline',
+                   mutant_equals_baseline=(
+                       amino == translation.amino_acids
+                       and stop == translation.ends_with_stop_codon),
                    baseline=dict(
                        construction='transcript_cdna_somatic_reversion',
                        observation=('reference_allele_rna_span' if observed in
@@ -207,6 +211,8 @@ def export_patient_background_pairs(isovar_results, *, sample_id, source, baseli
         limit, complete = reconstruction_completeness(result)
         events.append(dict(event_id=event_id, variant=literal_variant_record(result.variant), pairs=pairs,
                            state='retained' if pairs else 'no_protein_hypotheses',
+                           filters=dict(values=dict(result.filter_values),
+                                        passes_all_filters=result.passes_all_filters),
                            protein_hypotheses_complete=complete, protein_sequence_limit=limit,
                            phased_variants_in_supporting_reads=sorted(
                                variant_event_id(v) for v in result.phased_variants_in_supporting_reads)))

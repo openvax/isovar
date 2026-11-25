@@ -232,9 +232,44 @@ def test_real_rna_export_keeps_every_hypothesis_and_records_settings(tmp_path):
             assert union["reads"] <= alt["reads"]
     paths = write_protein_hypotheses(export, tmp_path / "hypotheses.json")
     assert json.loads(paths["json"].read_text()) == export
+    assert b"\r\n" not in paths["tsv"].read_bytes()
     with paths["tsv"].open() as handle:
         rows = list(csv.DictReader(handle, delimiter="\t"))
-    assert len(rows) == sum(len(p["translations"]) for e in events for p in e["protein_hypotheses"])
+    expected_rows = sum(
+        max(1, sum(len(p["translations"]) for p in e["protein_hypotheses"]))
+        for e in export["events"]
+    )
+    assert len(rows) == expected_rows
+    assert {r["event_id"] for r in rows} == {e["event_id"] for e in export["events"]}
+    assert {
+        "num_ref_reads", "num_alt_reads", "num_other_reads", "num_total_reads",
+        "num_ref_fragments", "num_alt_fragments", "num_other_fragments", "num_total_fragments",
+        "filter:min_num_alt_reads", "passes_all_filters",
+    } <= set(rows[0])
+
+
+def test_tsv_retains_events_without_hypotheses_and_exports_event_support_and_filters(tmp_path):
+    with_protein = synthetic_result()
+    with_protein.filter_values = {"min_num_alt_reads": True, "has_mutant_protein_sequence_from_rna": True}
+    without_protein = synthetic_result().clone_with_updates(
+        variant=Variant("1", 200, "G", "T", normalize_contig_names=False),
+        sorted_protein_sequences=[],
+        read_evidence=ReadEvidence(200, "G", "T", ref_reads=[READS["b"]], alt_reads=[], other_reads=[]),
+        filter_values={"min_num_alt_reads": False, "has_mutant_protein_sequence_from_rna": False},
+    )
+    export = export_protein_hypotheses([with_protein, without_protein], sample_id="s", source="rna.bam")
+    paths = write_protein_hypotheses(export, tmp_path / "both.json")
+    assert b"\r\n" not in paths["tsv"].read_bytes()
+    with paths["tsv"].open() as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    no_hyp_rows = [r for r in rows if r["variant"] == without_protein.variant.short_description]
+    assert len(no_hyp_rows) == 1
+    row = no_hyp_rows[0]
+    assert row["hypothesis_id"] == "" and row["translation_id"] == "" and row["amino_acids"] == ""
+    assert row["num_ref_reads"] == "1" and row["num_alt_reads"] == "0" and row["num_total_reads"] == "1"
+    assert row["filter:min_num_alt_reads"] == "False"
+    assert row["filter:has_mutant_protein_sequence_from_rna"] == "False"
+    assert row["passes_all_filters"] == "False"
 
 
 def test_two_reconstruction_modes_of_the_same_reads_combine_without_inflation():

@@ -270,8 +270,9 @@ For each candidate:
   junction bases.
 
 `isovar.annotate_orf_start` and `isovar.summarize_orf_start_evidence` expose the
-start annotation outside reconstruction. The [Sid neo-ORF report](https://github.com/openvax/isovar/blob/master/figures/osteosarc/neo-orfs-and-long-reads.md)
-compares candidate sequence support with what is known about initiation.
+start annotation outside reconstruction; see `examples/osteosarc_sv_orfs.py` for
+a runnable Osteosarc example comparing candidate sequence support with
+initiation context.
 
 ## Link an intronic start to an observed transcript path
 

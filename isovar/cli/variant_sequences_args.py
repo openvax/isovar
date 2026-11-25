@@ -14,7 +14,6 @@
 from ..default_parameters import (
     MIN_VARIANT_SEQUENCE_COVERAGE,
     VARIANT_SEQUENCE_ASSEMBLY,
-    VARIANT_SEQUENCE_LENGTH,
 )
 from .rna_args import make_rna_reads_arg_parser
 from .validation import non_negative_int, positive_int
@@ -45,9 +44,11 @@ def add_variant_sequence_args(
     if add_sequence_length_arg:
         rna_sequence_group.add_argument(
             "--variant-sequence-length",
-            default=VARIANT_SEQUENCE_LENGTH,
+            default=None,
             type=positive_int,
-            help="Preferred cDNA sequence length in nucleotides (default %(default)s).")
+            help=(
+                "Fixed preferred cDNA sequence length in nucleotides. When omitted, "
+                "uses the protein pipeline's context-length ladder (default: length ladder)."))
     return parser
 
 

@@ -96,8 +96,12 @@ def test_cli_allele_counts():
 ])
 def test_cli_allele_reads(extra_args, expected_count):
     df = run_cli_fn(isovar_allele_reads, return_dataframe=True, extra_args=extra_args)
-    assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
+    assert set([
+        "prefix", "allele", "suffix", "name", "sequence", "gene_names",
+        "allele_class", "mate", "is_secondary",
+    ]).issubset(df.columns)
     assert "ref_reads" not in df.columns
+    assert set(df["allele_class"]).issubset({"ref", "alt", "other"})
     assert len(df) == expected_count
 
 
@@ -118,8 +122,12 @@ def test_cli_translations():
 ])
 def test_cli_variant_reads(extra_args, expected_count):
     df = run_cli_fn(isovar_variant_reads, return_dataframe=True, extra_args=extra_args)
-    assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
+    assert set([
+        "prefix", "allele", "suffix", "name", "sequence", "gene_names",
+        "allele_class", "mate", "is_secondary",
+    ]).issubset(df.columns)
     assert "ref_reads" not in df.columns
+    assert set(df["allele_class"]) == {"alt"}
     assert len(df) == expected_count
 
 
@@ -136,5 +144,9 @@ def test_cli_main():
 def test_variant_reads_dataframe_helper(extra_args, expected_count):
     args = make_rna_reads_arg_parser().parse_args(args_with_bam + extra_args)
     df = variant_reads_dataframe_from_args(args)
-    assert set(["prefix", "allele", "suffix", "name", "sequence", "gene"]).issubset(df.columns)
+    assert set([
+        "prefix", "allele", "suffix", "name", "sequence", "gene_names",
+        "allele_class", "mate", "is_secondary",
+    ]).issubset(df.columns)
+    assert set(df["allele_class"]) == {"alt"}
     assert len(df) == expected_count

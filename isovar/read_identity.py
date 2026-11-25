@@ -33,6 +33,39 @@ def source_read_ids(read):
     return {key for key, _ in getattr(read, "source_alignments", ())}
 
 
+def allele_read_mate_label(read):
+    """Human-readable mate/segment label derived from ``source_alignments``.
+
+    Parameters
+    ----------
+    read : AlleleRead or LocusRead
+        Read observation carrying optional ``source_alignments`` metadata.
+
+    Returns
+    -------
+    str or None
+        ``"R1"`` for first-in-pair, ``"R2"`` for second-in-pair, ``"R1+R2"``
+        for merged overlapping mates (or both pair bits set), ``"unpaired"``
+        for single-end/unpaired records, or ``None`` when no SAM provenance is
+        attached.
+    """
+    keys = source_read_ids(read)
+    if not keys:
+        return None
+    bits = {key[2] for key in keys}
+    if bits == {0}:
+        return "unpaired"
+    has_r1 = any(bit & 0x40 for bit in bits)
+    has_r2 = any(bit & 0x80 for bit in bits)
+    if has_r1 and has_r2:
+        return "R1+R2"
+    if has_r1:
+        return "R1"
+    if has_r2:
+        return "R2"
+    return "unpaired"
+
+
 def count_reads(reads):
     """Count each sequenced segment once, including merged mates."""
     identities = set()

@@ -26,7 +26,10 @@ isovar protein-hypotheses --vcf variants.vcf --bam tumor-rna.bam \
 ```
 
 This writes `tumor-1.hypotheses.json` and `tumor-1.hypotheses.tsv`, with one TSV
-row per translation. The command takes the same read, assembly, filter and
+row per translation (and one event-level row with blank hypothesis columns when
+a variant has no reconstructed hypothesis), including event-level allele counts
+(`num_{ref,alt,other,total}_{reads,fragments}`), `filter:*` columns, and
+`passes_all_filters`. The command takes the same read, assembly, filter and
 `--germline-vcf` options as `isovar run`. It keeps every protein by default
 (`--max-protein-sequences-per-variant 0`). `--source` names the read set for the
 evidence IDs and defaults to the `--bam` path.

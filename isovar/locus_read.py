@@ -41,6 +41,7 @@ class LocusRead(ValueObject):
         "splice_junctions",
         "source_alignments",
         "is_primary",
+        "is_secondary",
         "source_alignment_paths",
         "source_read_views",
         "source_allele_qualities",
@@ -60,6 +61,7 @@ class LocusRead(ValueObject):
             splice_junctions=(),
             source_alignments=(),
             is_primary=False,
+            is_secondary=None,
             source_alignment_paths=(),
             source_read_views=(),
             source_allele_qualities=()):
@@ -188,11 +190,15 @@ class LocusRead(ValueObject):
         self.splice_junctions = tuple(splice_junctions)
         self.source_alignments = tuple(source_alignments)
         self.is_primary = is_primary
+        self.is_secondary = is_secondary
         self.source_alignment_paths = tuple(source_alignment_paths)
         self.source_read_views = tuple(source_read_views)
         self.source_allele_qualities = tuple(source_allele_qualities)
 
 
-# Additional quality provenance must not change existing observation identity
-# or field-based output (including caller-created and older serialized reads).
-LocusRead._fields = tuple(field for field in LocusRead._fields if field != "source_allele_qualities")
+# Additional quality/alignment provenance must not change existing observation
+# identity or field-based output (including caller-created and older serialized reads).
+LocusRead._fields = tuple(
+    field for field in LocusRead._fields
+    if field not in {"source_allele_qualities", "is_secondary"}
+)

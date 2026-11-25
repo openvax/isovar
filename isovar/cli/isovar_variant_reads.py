@@ -20,8 +20,8 @@ from .rna_args import make_rna_reads_arg_parser, variant_reads_dataframe_from_ar
 
 parser = add_output_args(
     make_rna_reads_arg_parser(description=__doc__),
-    filename="isovar-variant-reads-result.csv",
-    description="CSV of alt-allele read sequences")
+    filename="isovar-variant-reads.csv",
+    description="Output table of alt-allele read sequences")
 
 
 def run(args=None, *, prog=None):

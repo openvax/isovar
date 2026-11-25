@@ -24,8 +24,8 @@ from .reference_context_args import (
 
 parser = add_output_args(
     make_reference_context_arg_parser(description=__doc__),
-    filename="isovar-reference-contexts-result.csv",
-    description="CSV of reference contexts")
+    filename="isovar-reference-contexts.csv",
+    description="Output table of reference contexts")
 
 
 def run(args=None, *, prog=None):

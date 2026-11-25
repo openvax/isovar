@@ -180,9 +180,9 @@ sequencing errors.
 
 ## Osteosarc examples
 
-Browse the [expanded figure gallery](https://github.com/openvax/isovar/blob/master/figures/osteosarc/2026-09-16_05-43-34-415330Z/README.md)
-or the [original three-example, 12-page vector PDF](https://github.com/openvax/isovar/blob/master/figures/osteosarc/2026-09-16_05-23-24-826750Z/three-examples-12-pages.pdf).
-To regenerate them from a repository checkout:
+Rendered Osteosarc figure galleries and vector PDFs are generated on demand
+rather than committed to the repository. To build them from a repository
+checkout:
 
 ```sh
 python -m examples.osteosarc_assembly_figures --output-dir figures/osteosarc

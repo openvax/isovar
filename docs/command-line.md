@@ -111,12 +111,17 @@ It includes exon-involved ALT-read distributions with and without zero-support
 calls. Use `isovar antigen-report` to compose other source-specific exports,
 including separate viral fragment distributions.
 
-The following CSV conventions apply to the other table commands.
+The following table conventions apply to the other table commands (`run` and the
+table exports).
 
-Every CSV starts with the same variant key: `variant` (as in
+Every table starts with the same variant key: `variant` (as in
 `chr9 g.82927102G>T`) and `chr`, `pos`, `ref` and `alt` as given in the input,
 so tables from different commands can be joined.
 
+- Default output filenames follow `isovar-<command>.csv` (and `isovar-results.csv` for `isovar run`).
+- Output paths ending in `.tsv` or `.tab` (optionally followed by `.gz`/`.bz2`/`.xz`) write tab-separated tables; `--output -` writes to stdout while logs remain on stderr.
+- Gene lists use `gene_names`, transcript lists use `transcript_ids` / `transcript_names`, and candidate support uses `num_supporting_reads` / `num_supporting_fragments`.
+- `allele-reads` and `variant-reads` include `allele_class` (`ref`, `alt`, or `other`), `mate` (`R1`, `R2`, `R1+R2`, or `unpaired`), and `is_secondary` so rows reconcile with `allele-counts`.
 - Counts are `num_*` columns.
 - Lists are `;`-separated.
 - Numbers are written with six significant digits.

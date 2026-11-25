@@ -66,6 +66,7 @@ class _CompactLocusRead(object):
         "splice_junctions",
         "source_alignments",
         "is_primary",
+        "is_secondary",
         "source_alignment_paths",
         "source_read_views",
         "source_allele_qualities",
@@ -85,6 +86,7 @@ class _CompactLocusRead(object):
             splice_junctions=(),
             source_alignments=(),
             is_primary=False,
+            is_secondary=None,
             source_alignment_paths=(),
             source_read_views=(),
             source_allele_qualities=()):
@@ -100,6 +102,7 @@ class _CompactLocusRead(object):
         self.splice_junctions = tuple(splice_junctions)
         self.source_alignments = tuple(source_alignments)
         self.is_primary = is_primary
+        self.is_secondary = is_secondary
         self.source_alignment_paths = tuple(source_alignment_paths)
         self.source_read_views = tuple(source_read_views)
         self.source_allele_qualities = tuple(source_allele_qualities)
@@ -119,6 +122,7 @@ class _CompactLocusRead(object):
             splice_junctions=read.splice_junctions,
             source_alignments=read.source_alignments,
             is_primary=read.is_primary,
+            is_secondary=getattr(read, "is_secondary", None),
             source_alignment_paths=read.source_alignment_paths,
             source_read_views=read.source_read_views,
             source_allele_qualities=getattr(read, "source_allele_qualities", ()),
@@ -710,6 +714,7 @@ class ReadCollector(object):
             source_allele_qualities=() if footprint is None else (footprint,),
             is_primary=not (pysam_aligned_segment.is_secondary
                             or pysam_aligned_segment.is_supplementary),
+            is_secondary=bool(pysam_aligned_segment.is_secondary),
         )
 
     @staticmethod
@@ -973,6 +978,7 @@ class ReadCollector(object):
             source_allele_qualities=(getattr(first, "source_allele_qualities", ())
                                      + getattr(second, "source_allele_qualities", ())),
             is_primary=True,
+            is_secondary=False,
         )
         if isinstance(first, _CompactLocusRead) and isinstance(second, _CompactLocusRead):
             return _CompactLocusRead(

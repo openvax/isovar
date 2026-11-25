@@ -62,6 +62,7 @@ class AlleleRead(ValueObject):
         "source_read_views",
         "quality_scores",
         "source_allele_qualities",
+        "is_secondary",
     ]
 
     def __init__(
@@ -78,7 +79,8 @@ class AlleleRead(ValueObject):
             source_alignment_paths=(),
             source_read_views=(),
             quality_scores=None,
-            source_allele_qualities=()):
+            source_allele_qualities=(),
+            is_secondary=None):
         self.prefix = prefix
         self.allele = allele
         self.suffix = suffix
@@ -92,6 +94,7 @@ class AlleleRead(ValueObject):
         if self.quality_scores is not None and len(self.quality_scores) != len(self.sequence):
             raise ValueError("quality_scores must match the allele read sequence length")
         self.source_allele_qualities = tuple(source_allele_qualities)
+        self.is_secondary = is_secondary
         self.reference_blocks = tuple(reference_blocks)
         self.splice_junctions = tuple(splice_junctions)
         self.compatible_transcript_ids = (
@@ -117,7 +120,8 @@ class AlleleRead(ValueObject):
             source_alignment_paths=self.source_alignment_paths,
             source_read_views=self.source_read_views,
             quality_scores=getattr(self, "quality_scores", None),
-            source_allele_qualities=getattr(self, "source_allele_qualities", ()))
+            source_allele_qualities=getattr(self, "source_allele_qualities", ()),
+            is_secondary=getattr(self, "is_secondary", None))
 
     @staticmethod
     def _reference_blocks(reference_positions):
@@ -259,7 +263,8 @@ class AlleleRead(ValueObject):
             source_read_views=getattr(locus_read, "source_read_views", ()),
             quality_scores=(None if locus_read.quality_scores is None
                             else locus_read.quality_scores[retained_start:retained_end]),
-            source_allele_qualities=getattr(locus_read, "source_allele_qualities", ()))
+            source_allele_qualities=getattr(locus_read, "source_allele_qualities", ()),
+            is_secondary=getattr(locus_read, "is_secondary", None))
 
 
 # Branch-local transcript classifications are not distinct observations.
@@ -275,5 +280,6 @@ AlleleRead._fields = tuple(
         "source_read_views",
         "quality_scores",
         "source_allele_qualities",
+        "is_secondary",
     }
 )

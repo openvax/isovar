@@ -40,7 +40,11 @@ Isovar supply the separate baseline support assessment.
 
 Each record lists the actual removed and retained edits, including transcript
 coordinates, their positions in the observed RNA, restored reference bases and
-source event IDs. A supplied-variant registry retains genomic coordinates and
+source event IDs, plus `mutant_equals_baseline` (`true` when the reverted
+baseline translates to the same protein sequence and stop state as the mutant,
+`false` when it differs, and `null` when unavailable). Each event also records
+its `filters` (`values` and `passes_all_filters`) alongside top-level
+`filter_thresholds`. A supplied-variant registry retains genomic coordinates and
 declared origins. Equal proteins from different transcripts/nucleotide contexts
 remain separate, linked to the standard protein-hypothesis and translation IDs.
 

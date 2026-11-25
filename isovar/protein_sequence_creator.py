@@ -281,6 +281,23 @@ class ProteinSequenceCreator(object):
                 variant, compatible_reads))
         return merge_identical_sequences(sequences)
 
+    def variant_sequences_from_read_evidence_generator(
+            self, variant_and_read_evidence_generator):
+        """Yield ``(Variant, [VariantSequence])`` using this creator's length ladder.
+
+        Parameters
+        ----------
+        variant_and_read_evidence_generator : iterable
+            Sequence or generator of ``(Variant, ReadEvidence)`` pairs.
+
+        Yields
+        ------
+        tuple of (varcode.Variant, list of VariantSequence)
+        """
+        for variant, read_evidence in variant_and_read_evidence_generator:
+            yield variant, self.variant_sequences_from_reads(
+                variant, read_evidence.alt_reads)
+
     def translation_from_variant_sequence_and_reference_context(
                 self,
                 variant_sequence,

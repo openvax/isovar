@@ -20,8 +20,8 @@ from .rna_args import make_rna_reads_arg_parser, allele_reads_dataframe_from_arg
 
 parser = add_output_args(
     make_rna_reads_arg_parser(description=__doc__),
-    filename="isovar-allele-reads-result.csv",
-    description="CSV of reads overlapping each variant")
+    filename="isovar-allele-reads.csv",
+    description="Output table of reads overlapping each variant")
 
 
 def run(args=None, *, prog=None):

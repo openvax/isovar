@@ -23,8 +23,8 @@ from .translation_args import make_translation_arg_parser, protein_sequence_crea
 
 parser = add_output_args(
     make_translation_arg_parser(description=__doc__),
-    filename="isovar-translate-variants-results.csv",
-    description="CSV of translations")
+    filename="isovar-translations.csv",
+    description="Output table of translations")
 
 
 def translations_generator_from_args(args):

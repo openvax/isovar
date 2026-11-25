@@ -24,8 +24,8 @@ from .protein_sequence_args import (
 
 parser = add_output_args(
     make_protein_sequences_arg_parser(description=__doc__),
-    filename="isovar-protein-sequences-result.csv",
-    description="CSV of candidate protein sequences")
+    filename="isovar-protein-sequences.csv",
+    description="Output table of candidate protein sequences")
 
 
 def run(args=None, *, prog=None):
