@@ -1,4 +1,5 @@
-pyensembl>=2.27.2
+datacache>=1.38.0,<2
+pyensembl>=2.36.0,<3
 # Require varcode>=12.0.1 (preserves hg19 chrM, removes deprecated 11.x aliases,
 # and keeps make_variants_parser --version opt-in for downstream CLIs).
 varcode>=12.0.1,<13

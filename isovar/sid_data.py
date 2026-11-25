@@ -431,10 +431,16 @@ def minimal_header(header, records):
 
 def open_dataset(snapshot=None, cache=None, offline=False):
     """Open an explicitly created snapshot; never create one implicitly."""
+    from datacache.offline import is_offline
+
     name = snapshot or os.environ.get("ISOVAR_SID_SNAPSHOT")
     if not name:
         raise ValueError("Specify --snapshot or ISOVAR_SID_SNAPSHOT (an osteosarc snapshot name)")
-    return _open_dataset(name, cache or os.environ.get("ISOVAR_SID_CACHE"), offline)
+    return _open_dataset(
+        name,
+        cache or os.environ.get("ISOVAR_SID_CACHE"),
+        bool(offline or is_offline()),
+    )
 
 
 @lru_cache(maxsize=4)

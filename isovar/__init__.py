@@ -12,7 +12,7 @@
 
 from importlib import import_module
 
-__version__ = "1.95.0"
+__version__ = "1.96.0"
 
 # Lazily resolved top-level public API so importing ``isovar`` (or its CLI)
 # stays fast and avoids loading heavy runtime dependencies until needed.
