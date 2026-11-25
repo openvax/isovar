@@ -177,13 +177,32 @@ def test_multiple_I_L_equivalent_intervals_and_invalid_assignments():
 
 
 def test_packaged_dataset_manifest_and_local_replay(catalog, tmp_path):
-    root = files("orfdata").joinpath("data/uorf-evidence")
+    orf_evidence_root = files("orfdata").joinpath("data/orf-evidence")
+    using_orf_evidence = orf_evidence_root.joinpath("manifest.json").is_file()
+    root = (
+        orf_evidence_root
+        if using_orf_evidence
+        else files("orfdata").joinpath("data/uorf-evidence")
+    )
     raw = root.joinpath("catalog.json.gz").read_bytes()
     manifest = json.loads(root.joinpath("manifest.json").read_text())
     assert hashlib.sha256(raw).hexdigest() == manifest["catalog_sha256"]
-    assert manifest["statistics"]["records"] == len(catalog.records) == 3771
-    assert manifest["statistics"]["ms_orfs"] == len(catalog.query(evidence="ms")) == 1219
-    assert manifest["statistics"]["reviewed_ms_orfs"] == len(catalog.query(evidence="ms", require_reviewed=True)) == 16
+    if using_orf_evidence:
+        from orfdata.catalog import load_catalog
+
+        full_catalog = load_catalog()
+        assert manifest["statistics"]["records"] == len(full_catalog.records)
+        assert manifest["statistics"]["ms_orfs"] == len(full_catalog.query(evidence="ms"))
+        assert manifest["statistics"]["reviewed_ms_orfs"] == len(
+            full_catalog.query(evidence="ms", require_reviewed=True)
+        )
+        assert len(catalog.records) == 3771
+        assert len(catalog.query(evidence="ms")) == 1219
+        assert len(catalog.query(evidence="ms", require_reviewed=True)) == 16
+    else:
+        assert manifest["statistics"]["records"] == len(catalog.records) == 3771
+        assert manifest["statistics"]["ms_orfs"] == len(catalog.query(evidence="ms")) == 1219
+        assert manifest["statistics"]["reviewed_ms_orfs"] == len(catalog.query(evidence="ms", require_reviewed=True)) == 16
     local = tmp_path / "copied.json.gz"
     local.write_bytes(raw)
     assert load_uorf_catalog(local, expected_sha256=manifest["catalog_sha256"]).records == catalog.records

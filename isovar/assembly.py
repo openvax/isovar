@@ -36,6 +36,7 @@ from itertools import groupby
 from .default_parameters import MIN_VARIANT_SEQUENCE_ASSEMBLY_OVERLAP_SIZE
 from .logging import get_logger
 from .read_identity import compatible_alignments, observation_groups, read_sort_key
+from .variant_sequence import VariantSequence
 
 logger = get_logger(__name__)
 
@@ -260,7 +261,15 @@ def merge_identical_sequences(variant_sequences):
         for variant_sequence in group:
             for i, existing in enumerate(alternatives):
                 if compatible_alignments(existing._source_alignments, variant_sequence.reads):
-                    alternatives[i] = existing.add_reads(variant_sequence.reads)
+                    new_reads = existing.reads.union(variant_sequence.reads)
+                    if len(new_reads) > len(existing.reads):
+                        alternatives[i] = VariantSequence._from_validated(
+                            prefix=existing.prefix,
+                            alt=existing.alt,
+                            suffix=existing.suffix,
+                            reads=new_reads,
+                            compatible_transcript_ids=existing.compatible_transcript_ids,
+                        )
                     break
             else:
                 alternatives.append(variant_sequence)

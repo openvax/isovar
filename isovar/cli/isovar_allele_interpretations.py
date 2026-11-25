@@ -6,7 +6,8 @@ representation of an SNV, multi-base change or indel do the reads carry?
 from ..default_parameters import INTERPRETATION_FLANK, MIN_INTERPRETATION_FRAGMENTS
 from ..logging import configure_cli_logging, get_logger
 from .help import HelpArgumentParser
-from .output_args import add_log_level_arg
+from .input_args import add_input_arg, add_sample_id_arg, add_source_arg
+from .output_args import add_log_level_arg, add_output_file_arg
 from .rna_args import add_rna_args, alignment_file_from_args, read_collector_from_args
 from .validation import CommandInputError, check_outputs, input_error, non_negative_int, positive_int
 
@@ -15,13 +16,19 @@ logger = get_logger(__name__)
 
 def make_parser(prog="isovar allele-interpretations"):
     parser = HelpArgumentParser(prog=prog, description=__doc__)
-    parser.add_argument("--input", required=True,
-                        help="JSON (or .json.gz) with reference_name and interpretations: ID to a list of "
-                             "variants with contig, start, ref and alt")
-    parser.add_argument("--output", required=True,
-                        help="Candidate by RNA evidence JSON, gzip-compressed if it ends in .gz")
-    parser.add_argument("--sample-id", required=True, help="Sample the reads came from")
-    parser.add_argument("--source", help="Identity of the read set, which scopes read IDs (default: --bam)")
+    add_input_arg(
+        parser,
+        required=True,
+        help="JSON (or .json.gz) with reference_name and interpretations: ID to a list of "
+             "variants with contig, start, ref and alt",
+    )
+    add_output_file_arg(
+        parser,
+        required=True,
+        help="Candidate by RNA evidence JSON file, gzip-compressed if it ends in .gz",
+    )
+    add_sample_id_arg(parser, required=True)
+    add_source_arg(parser, help="Identity of the read set, which scopes read IDs (default: --bam)")
     parser.add_argument("--genome", help="Annotation for the variants (default: the input's reference_name)")
     parser.add_argument("--flank", type=non_negative_int, default=INTERPRETATION_FLANK,
                         help="Exonic bases added on each side of the locus (default: %(default)s)")

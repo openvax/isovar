@@ -31,20 +31,26 @@ from .default_parameters import (
     protein_sequence_length_for_peptide_length,
 )
 
-from .assembly import merge_identical_sequences
+from .allele_read_helpers import get_single_allele_from_reads, group_unique_sequences
+from .assembly import iterative_overlap_assembly, merge_identical_sequences
 from .genetic_code import translate_cdna
 from .protein_sequence_helpers import (
     sort_protein_sequences,
     group_equivalent_translations,
     validate_protein_sequence_preference,
 )
+from .read_identity import partition_read_alignments
 from .reference_context_helpers import reference_contexts_for_variant
 from .reference_context import ReferenceContext
 from .translation import Translation
 from .translation_helpers import find_mutant_amino_acid_interval
 from .variant_sequence_creator import VariantSequenceCreator
 from .variant_sequence import VariantSequence
-from .variant_sequence_helpers import initial_variant_sequences_from_reads, trim_variant_sequences
+from .variant_sequence_helpers import (
+    SharedReadSupportIndex,
+    initial_variant_sequences_from_reads,
+    trim_variant_sequences,
+)
 from .variant_read_assessment import AssemblyMode, VariantReadAssessment, assemble_variant_reads
 
 if TYPE_CHECKING:
@@ -57,6 +63,8 @@ from .variant_helpers import require_literal_variant
 from .logging import get_logger
 
 logger = get_logger(__name__)
+
+_STOCK_READS_TO_VARIANT_SEQUENCES = VariantSequenceCreator.reads_to_variant_sequences
 
 
 class ProteinSequenceCreator(object):
@@ -225,6 +233,57 @@ class ProteinSequenceCreator(object):
             for indices, transcript_ids in transcript_ids_by_indices.items()
         ]
 
+    def _flank_length_pairs(self, n_alt_nucleotides):
+        """Distinct (before, after) flank budgets across configured context lengths."""
+        pairs = []
+        seen = set()
+        for length in self.candidate_context_lengths():
+            creator = (
+                self._variant_sequence_creator
+                if length == self.protein_sequence_length
+                else self._make_variant_sequence_creator(3 * length + 2)
+            )
+            pair = creator.flanking_sequence_lengths(n_alt_nucleotides)
+            if pair not in seen:
+                seen.add(pair)
+                pairs.append(pair)
+        return pairs
+
+    def _assemble_candidates_for_flanks(self, variant_reads, flank_pairs):
+        """Build pre-trim candidate VariantSequences across one or more flank pairs."""
+        candidates = []
+        for max_before, max_after in flank_pairs:
+            initial = initial_variant_sequences_from_reads(
+                variant_reads=variant_reads,
+                max_nucleotides_before_variant=max_before,
+                max_nucleotides_after_variant=max_after,
+            )
+            if self.variant_sequence_assembly and initial:
+                min_overlap_size = min(
+                    self.min_assembly_overlap_size,
+                    max(1, (max_before + max_after) // 2),
+                )
+                initial = iterative_overlap_assembly(
+                    initial,
+                    min_overlap_size=min_overlap_size,
+                    preserve_candidate_sequences=True,
+                )
+            candidates.extend(initial)
+        return candidates
+
+    def _uses_stock_variant_sequence_creator(self):
+        """Return True when VariantSequenceCreator hooks have not been overridden."""
+        return (
+            VariantSequenceCreator.reads_to_variant_sequences
+            is _STOCK_READS_TO_VARIANT_SEQUENCES
+            and type(self._variant_sequence_creator) is VariantSequenceCreator
+            and "reads_to_variant_sequences"
+            not in self._variant_sequence_creator.__dict__
+            and type(self)._make_variant_sequence_creator
+            is ProteinSequenceCreator._make_variant_sequence_creator
+            and "_make_variant_sequence_creator" not in self.__dict__
+        )
+
     def _variant_sequences_from_compatible_reads(self, variant, reads):
         """Retain multiple context sizes; merge only identical RNA sequences.
 
@@ -241,12 +300,159 @@ class ProteinSequenceCreator(object):
             # One context length, in the creator's own candidate order
             # (protein support ties are stable).
             return self._variant_sequence_creator.reads_to_variant_sequences(variant, reads)
+        if not self._uses_stock_variant_sequence_creator():
+            sequences = []
+            for length in self.candidate_context_lengths():
+                creator = (
+                    self._variant_sequence_creator
+                    if length == self.protein_sequence_length
+                    else self._make_variant_sequence_creator(3 * length + 2)
+                )
+                sequences.extend(creator.reads_to_variant_sequences(variant, reads))
+            return merge_identical_sequences(sequences)
+        alt_seq, variant_reads = get_single_allele_from_reads(reads)
+        flank_pairs = self._flank_length_pairs(len(alt_seq))
+        all_candidates = []
+        per_length_batches = []
+        all_nonempty_reads = {
+            read for read in variant_reads if len(read.prefix) or len(read.allele) or len(read.suffix)
+        }
+        same_read_pool = True
+        for pair in flank_pairs:
+            batch = self._assemble_candidates_for_flanks(variant_reads, [pair])
+            nonempty_batch = [seq for seq in batch if len(seq) > 0]
+            batch_reads = {read for seq in nonempty_batch for read in seq.reads}
+            if batch_reads != all_nonempty_reads:
+                same_read_pool = False
+            per_length_batches.append(nonempty_batch)
+            all_candidates.extend(nonempty_batch)
+        if same_read_pool:
+            trimmed = trim_variant_sequences(
+                all_candidates, self.min_variant_sequence_coverage
+            )
+            return merge_identical_sequences(trimmed)
         sequences = []
-        for length in self.candidate_context_lengths():
-            creator = (self._variant_sequence_creator if length == self.protein_sequence_length
-                       else self._make_variant_sequence_creator(3 * length + 2))
-            sequences.extend(creator.reads_to_variant_sequences(variant, reads))
+        for batch in per_length_batches:
+            sequences.extend(
+                trim_variant_sequences(batch, self.min_variant_sequence_coverage)
+            )
         return merge_identical_sequences(sequences)
+
+    def _variant_sequences_from_transcript_groups_shared(self, reads, transcript_read_groups):
+        """Reconcile support across multiple transcript read groups using one shared index.
+
+        Preserves every transcript group's exact candidate pool, read identities,
+        per-read ``compatible_transcript_ids`` labels, coverage counts, and
+        competing alignment alternatives while building ``_FlankIndex`` once.
+        """
+        alt_seq, variant_reads = get_single_allele_from_reads(reads)
+        flank_pairs = (
+            [self._variant_sequence_creator.flanking_sequence_lengths(len(alt_seq))]
+            if self.protein_sequence_preference == "support"
+            else self._flank_length_pairs(len(alt_seq))
+        )
+        group_tx_sets = [transcript_ids for transcript_ids, _ in transcript_read_groups]
+
+        # Collect candidates per group. When overlap assembly is disabled, group
+        # the original reads once per flank pair instead of repeating per group.
+        all_candidates = []
+        if not self.variant_sequence_assembly:
+            for max_before, max_after in flank_pairs:
+                grouped_by_seq = group_unique_sequences(
+                    variant_reads,
+                    max_prefix_size=max_before,
+                    max_suffix_size=max_after,
+                )
+                for (prefix, alt, suffix), seq_reads in grouped_by_seq.items():
+                    if not (prefix or alt or suffix):
+                        continue
+                    by_read_tx = {}
+                    for read in seq_reads:
+                        by_read_tx.setdefault(read.compatible_transcript_ids, []).append(read)
+                    for read_tx_ids, tx_reads in by_read_tx.items():
+                        partitioned = partition_read_alignments(tx_reads)
+                        for group_tx_ids in group_tx_sets:
+                            if read_tx_ids is None or group_tx_ids.issubset(read_tx_ids):
+                                for compat_reads in partitioned:
+                                    all_candidates.append(
+                                        VariantSequence._from_validated(
+                                            prefix=prefix,
+                                            alt=alt,
+                                            suffix=suffix,
+                                            reads=frozenset(compat_reads),
+                                            compatible_transcript_ids=group_tx_ids,
+                                        )
+                                    )
+        else:
+            for group_tx_ids, compatible_reads in transcript_read_groups:
+                batch = self._assemble_candidates_for_flanks(compatible_reads, flank_pairs)
+                all_candidates.extend(seq for seq in batch if len(seq) > 0)
+
+        if not all_candidates:
+            return []
+
+        max_prefix = max(len(seq.prefix) for seq in all_candidates)
+        max_suffix = max(len(seq.suffix) for seq in all_candidates)
+        nonempty_reads = {
+            read
+            for read in variant_reads
+            if len(read.prefix) or len(read.allele) or len(read.suffix)
+        }
+        read_groups = group_unique_sequences(nonempty_reads)
+        shared_index = SharedReadSupportIndex(
+            read_groups,
+            max_prefix=max_prefix,
+            max_suffix=max_suffix,
+            extra_reads=[read for seq in all_candidates for read in seq.reads],
+        )
+        trimmed = trim_variant_sequences(
+            all_candidates,
+            self.min_variant_sequence_coverage,
+            support_index=shared_index,
+            preserve_candidate_transcript_ids=True,
+        )
+
+        # Re-tag surviving reads with their group's compatible_transcript_ids
+        # so every VariantSequence carries the exact same read objects as the
+        # per-group path. Prebuild per-group clone maps once and remap in C.
+        group_clone_maps = {
+            group_tx_ids: {
+                read: (
+                    read
+                    if read.compatible_transcript_ids == group_tx_ids
+                    else read.with_compatible_transcript_ids(group_tx_ids)
+                )
+                for read in variant_reads
+                if read.compatible_transcript_ids is None
+                or group_tx_ids.issubset(read.compatible_transcript_ids)
+            }
+            for group_tx_ids in group_tx_sets
+        }
+        retagged_reads_cache = {}
+        retagged = []
+        for seq in trimmed:
+            group_tx_ids = seq.compatible_transcript_ids
+            cache_key = (id(seq.reads), group_tx_ids)
+            tagged_fs = retagged_reads_cache.get(cache_key)
+            if tagged_fs is None:
+                clone_map = group_clone_maps[group_tx_ids]
+                tagged_fs = frozenset(map(clone_map.__getitem__, seq.reads))
+                retagged_reads_cache[cache_key] = tagged_fs
+            retagged.append(
+                VariantSequence._from_validated(
+                    prefix=seq.prefix,
+                    alt=seq.alt,
+                    suffix=seq.suffix,
+                    reads=tagged_fs,
+                    compatible_transcript_ids=group_tx_ids,
+                    source_alignments=seq._source_alignments_cache,
+                    coverage_cache=seq._coverage_cache,
+                )
+            )
+        if not shared_index.conflicting_segments:
+            # trim_and_support_no_conflicts already deduplicated and sorted by _sequence_key.
+            return retagged
+        return merge_identical_sequences(retagged)
 
     def variant_sequences_from_reads(
             self, variant: Variant | None, reads: Iterable[AlleleRead], *,
@@ -274,6 +480,15 @@ class ProteinSequenceCreator(object):
         transcript_read_groups = self._transcript_read_groups(reads)
         if transcript_read_groups is None:
             return self._variant_sequences_from_compatible_reads(variant, reads)
+
+        if (
+            len(transcript_read_groups) > 1
+            and len(set(reads)) == len(reads)
+            and self._uses_stock_variant_sequence_creator()
+        ):
+            return self._variant_sequences_from_transcript_groups_shared(
+                reads, transcript_read_groups
+            )
 
         sequences = []
         for _transcript_ids, compatible_reads in transcript_read_groups:

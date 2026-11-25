@@ -16,6 +16,7 @@ variant locus.
 """
 
 from .commands import run_dataframe_command
+from .input_args import add_sample_id_arg, add_source_arg
 from .output_args import add_output_args
 from .rna_args import make_rna_reads_arg_parser, allele_counts_dataframe_from_args
 from .validation import CommandInputError
@@ -31,8 +32,8 @@ _cells.add_argument(
     help="Add num_{ref,alt,other}_{umis,cells,unlabeled_reads,unknown_library_reads}, "
          "{ref,alt,other}_{umis,cells}_complete and num_cells_with_ref_and_alt columns from "
          "CB/UB tags; needs --sample-id")
-_cells.add_argument("--sample-id", help="Sample the reads came from; scopes the labels")
-_cells.add_argument("--source", help="Identity of the read set (default: --bam)")
+add_sample_id_arg(parser, help="Sample the reads came from; scopes the labels", group=_cells)
+add_source_arg(parser, help="Identity of the read set (default: --bam)", group=_cells)
 add_base_quality_args(parser)
 
 

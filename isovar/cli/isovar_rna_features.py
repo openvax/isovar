@@ -4,22 +4,30 @@ import json
 from pathlib import Path
 
 from .help import HelpArgumentParser
+from .input_args import add_genome_fasta_arg, add_sample_id_arg, add_source_arg
 from .rna_args import add_rna_path_args, rna_path_context
 from .validation import input_error
-from .output_args import add_log_level_arg
+from .output_args import add_force_arg, add_log_level_arg, add_output_file_arg
 from ..logging import configure_cli_logging
 
 
 def make_parser(prog="isovar rna-features"):
     parser = HelpArgumentParser(prog=prog, description=__doc__)
     add_rna_path_args(parser)
-    parser.add_argument("--genome-fasta", help="Reference FASTA when needed to read CRAM")
+    add_genome_fasta_arg(parser, help="Reference FASTA when needed to read CRAM")
     parser.add_argument("--features", required=True,
                         help="JSON with paths (sequence, positions, features); see RNA_FEATURE_SUPPORT.md")
-    parser.add_argument("--sample-id", required=True, help="Sample providing the RNA")
-    parser.add_argument("--source-id", required=True, help="Stable identity of the original RNA library")
+    add_sample_id_arg(parser, required=True, help="Sample providing the RNA")
+    add_source_arg(
+        parser,
+        required=True,
+        dest="source_id",
+        aliases=("--source-id",),
+        help="Stable identity of the original RNA library",
+    )
     parser.add_argument("--sampling-profile", help="JSON library geometry and whole-library denominators")
-    parser.add_argument("--output", required=True, help="New JSON file with source-separated measurements")
+    add_output_file_arg(parser, required=True, help="New JSON output file with source-separated measurements")
+    add_force_arg(parser, help="Overwrite an existing --output file")
     add_log_level_arg(parser)
     return parser
 
@@ -34,7 +42,7 @@ def run(args=None, prog=None):
         from ..rna_feature_support import RNAFeature, RNASamplingProfile
 
         output = Path(options.output)
-        if output.exists():
+        if output.exists() and not options.force:
             raise ValueError("Output already exists: %s" % output)
         request = json.loads(Path(options.features).read_text())
         if set(request) != {"paths"} or not request["paths"]:

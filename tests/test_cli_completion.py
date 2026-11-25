@@ -47,18 +47,18 @@ NON_VARCODE_SUBCOMMANDS = (
     "allele-interpretations",
     "antigen-report",
     "calibrate-phasing",
-    "cohort",
-    "fusion",
+    "cohort-report",
+    "fusion-rna",
     "isoforms",
     "normal-evidence",
-    "proteome",
     "rna-features",
     "rna-origin",
+    "rna-proteome",
     "sv-audit",
     "sv-rna",
     "sv-source",
     "variant-rna-paths",
-    "viral",
+    "viral-rna",
 )
 
 
@@ -133,12 +133,12 @@ def test_subcommand_parser_loading_avoids_heavy_runtime_modules(subcommand):
         ("isovar ", set(commands.COMMANDS)),
         ("isovar sv-", {"sv-source", "sv-rna", "sv-audit"}),
         ("isovar --", {"--help", "--version"}),
-        ("isovar run --", {"--vcf", "--bam", "--output", "--min-alt-rna-reads", "--log-level"}),
-        ("isovar fusion --", {"--input", "--output", "--peptide-lengths", "--min-fragments", "--plot-dir", "--dpi"}),
-        ("isovar sv-rna --", {"--input", "--output", "--bam", "--min-anchor-bases", "--dense-support"}),
-        ("isovar sv-audit --", {"--manifest", "--output-dir", "--resume", "--event-id"}),
+        ("isovar run --", {"--vcf", "--bam", "--output", "--min-alt-rna-reads", "--log-level", "--quiet"}),
+        ("isovar fusion-rna --", {"--input", "--output", "--peptide-lengths", "--min-fragments", "--output-dir", "--dpi"}),
+        ("isovar sv-rna --", {"--input", "--output", "--bam", "--min-anchor-bases", "--dense-support", "--scratch-dir"}),
+        ("isovar sv-audit --", {"--manifest", "--output-dir", "--resume", "--event-id", "--library-cache"}),
         ("isovar allele-counts --", {"--vcf", "--bam", "--cell-umi-labels", "--min-base-quality"}),
-        ("isovar cohort --", {"--manifest", "--output-dir", "--resume", "--render-only"}),
+        ("isovar cohort-report --", {"--manifest", "--output-dir", "--resume", "--render-only"}),
         ("isovar isoforms ", {"reconstruct", "quantify"}),
         ("isovar isoforms reconstruct --", {"--bam", "--gene", "--gene-set", "--gtf", "--output-dir"}),
     ],
@@ -178,9 +178,9 @@ def test_completion_helpers():
     assert (
         completing_subcommand(
             commands.COMMANDS,
-            {"_ARGCOMPLETE": "1", "COMP_LINE": "isovar fusion --in", "COMP_POINT": "18"},
+            {"_ARGCOMPLETE": "1", "COMP_LINE": "isovar fusion-rna --in", "COMP_POINT": "22"},
         )
-        == "fusion"
+        == "fusion-rna"
     )
     assert (
         completing_subcommand(

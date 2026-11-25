@@ -15,7 +15,7 @@ from isovar.cli import commands
 
 
 # Structured-input commands: no --vcf and no hyphenated legacy script.
-JSON_COMMANDS = {"rna-origin", "rna-features", "variant-rna-paths", "fusion", "sv-rna", "allele-interpretations", "sv-audit"}
+JSON_COMMANDS = {"rna-origin", "rna-features", "variant-rna-paths", "fusion-rna", "sv-rna", "allele-interpretations", "sv-audit"}
 
 @pytest.mark.parametrize("name", commands.COMMANDS)
 def test_dispatch_passes_options_unchanged_to_the_existing_handler(name, monkeypatch):
@@ -37,8 +37,8 @@ def test_subcommand_help_uses_correct_program_and_preserves_parser(name, capsys)
     assert error.value.code == 0
     help_text = capsys.readouterr().out
     assert help_text.startswith("usage: isovar " + name + " ")
-    expected_input = ("--hypotheses" if name == "rna-origin" else "--features" if name == "rna-features" else "--manifest" if name in {"calibrate-phasing", "sv-audit", "cohort", "normal-evidence"} else "--genome-fasta" if name == "viral" else "reconstruct" if name == "isoforms" else "--sample-id" if name == "antigen-report"
-                      else "--input" if name in JSON_COMMANDS | {"proteome"} else "--vcf")
+    expected_input = ("--hypotheses" if name == "rna-origin" else "--features" if name == "rna-features" else "--manifest" if name in {"calibrate-phasing", "sv-audit", "cohort-report", "normal-evidence"} else "--genome-fasta" if name == "viral-rna" else "reconstruct" if name == "isoforms" else "--sample-id" if name == "antigen-report"
+                      else "--input" if name in JSON_COMMANDS | {"rna-proteome"} else "--vcf")
     assert expected_input in help_text
     if original is not None:
         assert handler.parser.prog == original
@@ -219,6 +219,8 @@ def test_every_option_is_documented_hyphenated_and_states_its_default():
         for action in parser._actions:
             if isinstance(action, (argparse._HelpAction, argparse._VersionAction)):
                 continue
+            if action.help == argparse.SUPPRESS:
+                continue
             name = "/".join(action.option_strings) or action.dest
             if not action.help:
                 problems.append("%s %s: no help" % (path, name))
@@ -232,9 +234,127 @@ def test_every_option_is_documented_hyphenated_and_states_its_default():
 
 
 def test_every_command_controls_its_log_level():
-    missing = [path for path, parser in _leaf_parsers().items()
-               if not any("--log-level" in action.option_strings for action in parser._actions)]
-    assert not missing
+    leaves = _leaf_parsers()
+    missing_level = [
+        path for path, parser in leaves.items()
+        if not any("--log-level" in action.option_strings for action in parser._actions)
+    ]
+    missing_quiet = [
+        path for path, parser in leaves.items()
+        if not any(
+            "-q" in action.option_strings and "--quiet" in action.option_strings
+            for action in parser._actions
+        )
+    ]
+    assert not missing_level
+    assert not missing_quiet
+
+
+def test_quiet_flag_raises_log_level_to_warning():
+    parser = commands.load_subcommand_parser("allele-counts")
+    default_args = parser.parse_args(["--bam", "rna.bam"])
+    assert default_args.log_level == "INFO" and default_args.quiet is False
+    quiet_args = parser.parse_args(["--bam", "rna.bam", "-q"])
+    assert quiet_args.log_level == "WARNING" and quiet_args.quiet is True
+    err_quiet_args = parser.parse_args(["--bam", "rna.bam", "--log-level", "ERROR", "--quiet"])
+    assert err_quiet_args.log_level == "ERROR" and err_quiet_args.quiet is True
+
+
+def test_output_and_short_flag_conventions_are_consistent():
+    """#655, #658, #663: -o/--output is always a file, --output-dir a dir, short flags minimal."""
+    import argparse
+
+    allowed_short_flags = {"-h", "-o", "-f", "-q"}
+    deprecated_visible = {
+        "--plot-dir",
+        "--summary-json",
+        "--evidence-json",
+        "--per-call",
+        "--reference-fasta",
+        "--library-cache-dir",
+        "--sv-scratch-dir",
+    }
+    leaves = _leaf_parsers()
+    problems = []
+    for path, parser in leaves.items():
+        for action in parser._actions:
+            if action.help == argparse.SUPPRESS:
+                continue
+            for opt in action.option_strings:
+                if opt.startswith("-") and not opt.startswith("--") and opt not in allowed_short_flags:
+                    problems.append("%s: unexpected short flag %s" % (path, opt))
+                if opt in deprecated_visible:
+                    problems.append("%s: deprecated flag %s should be a hidden alias" % (path, opt))
+            if "--output" in action.option_strings:
+                if "-o" not in action.option_strings:
+                    problems.append("%s: --output missing -o short flag" % path)
+                if action.metavar != "FILE":
+                    problems.append("%s: --output metavar is %r, expected 'FILE'" % (path, action.metavar))
+            if "--output-dir" in action.option_strings and action.metavar != "DIR":
+                problems.append("%s: --output-dir metavar is %r, expected 'DIR'" % (path, action.metavar))
+    assert not problems, "\n".join(problems)
+
+
+def test_version_option_has_explicit_help_text():
+    import argparse
+
+    parser = commands.build_parser()
+    version_actions = [a for a in parser._actions if isinstance(a, argparse._VersionAction)]
+    assert len(version_actions) == 1
+    assert "version" in (version_actions[0].help or "").lower()
+    assert "isovar" in (version_actions[0].help or "").lower()
+
+
+@pytest.mark.parametrize("alias,canonical", sorted(commands.COMMAND_ALIASES.items()))
+def test_deprecated_command_aliases_dispatch_with_stderr_warning(alias, canonical, monkeypatch, capsys):
+    calls = []
+    module_name = commands.COMMANDS[canonical][0]
+    handler = import_module("isovar.cli." + module_name)
+    monkeypatch.setattr(handler, "run", lambda args, **kw: calls.append((args, kw)))
+    commands.run([alias, "--help"])
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert ("'isovar %s' is deprecated; use 'isovar %s'" % (alias, canonical)) in captured.err
+    assert calls == [(["--help"], {"prog": "isovar " + canonical})]
+
+
+@pytest.mark.parametrize(
+    "command,legacy_args,canonical_args,attr",
+    [
+        ("fusion-rna", ["--input", "in.json", "-o", "out.json", "--plot-dir", "figs"], ["--input", "in.json", "--output", "out.json", "--output-dir", "figs"], "plot_dir"),
+        ("antigen-report", ["--sample-id", "s1", "-o", "out.pdf", "--summary-json", "s.json"], ["--sample-id", "s1", "--output", "out.pdf", "--output-json", "s.json"], "summary_json"),
+        ("evidence-report", ["--sample-id", "s1", "--bam", "a.bam", "-o", "out.pdf", "--per-call", "c.tsv", "--evidence-json", "e.json"], ["--sample-id", "s1", "--bam", "a.bam", "--output", "out.pdf", "--output-tsv", "c.tsv", "--output-json", "e.json"], "per_call"),
+        ("rna-proteome", ["--input", "in.json", "--reference-context", "ref.json", "-o", "out.json", "--fasta", "out.fa"], ["--input", "in.json", "--reference-context", "ref.json", "--output", "out.json", "--output-fasta", "out.fa"], "fasta"),
+        ("sv-rna", ["--input", "in.json", "--bam", "a.bam", "-o", "out.json", "--sv-scratch-dir", "/tmp"], ["--input", "in.json", "--bam", "a.bam", "--output", "out.json", "--scratch-dir", "/tmp"], "sv_scratch_dir"),
+        ("sv-audit", ["--manifest", "m.json", "--output-dir", "out", "--library-cache-dir", "cache"], ["--manifest", "m.json", "--output-dir", "out", "--library-cache", "cache"], "library_cache_dir"),
+        ("variant-rna-paths", ["--input", "in.json", "--bam", "a.bam", "--source", "L1", "-o", "out.json", "--reference-fasta", "ref.fa"], ["--input", "in.json", "--bam", "a.bam", "--source", "L1", "--output", "out.json", "--genome-fasta", "ref.fa"], "reference_fasta"),
+        ("rna-origin", ["--bam", "a.bam", "--hypotheses", "h.json", "--sample-id", "s1", "--source-id", "L1", "-o", "out.json"], ["--bam", "a.bam", "--hypotheses", "h.json", "--sample-id", "s1", "--source", "L1", "--output", "out.json"], "source_id"),
+        ("rna-features", ["--bam", "a.bam", "--features", "f.json", "--sample-id", "s1", "--source-id", "L1", "-o", "out.json"], ["--bam", "a.bam", "--features", "f.json", "--sample-id", "s1", "--source", "L1", "--output", "out.json"], "source_id"),
+    ],
+)
+def test_hidden_flag_aliases_match_canonical_flags(command, legacy_args, canonical_args, attr):
+    parser = commands.load_subcommand_parser(command)
+    legacy = parser.parse_args(legacy_args)
+    canonical = parser.parse_args(canonical_args)
+    assert getattr(legacy, attr) == getattr(canonical, attr)
+    assert legacy.output == canonical.output if hasattr(legacy, "output") else True
+
+
+@pytest.mark.parametrize(
+    "command,argv",
+    [
+        ("rna-origin", ["--bam", "a.bam", "--hypotheses", "h.json", "--sample-id", "s", "--source", "L", "-o", "out.json", "-f"]),
+        ("rna-features", ["--bam", "a.bam", "--features", "f.json", "--sample-id", "s", "--source", "L", "-o", "out.json", "--force"]),
+        ("variant-rna-paths", ["--bam", "a.bam", "--input", "i.json", "--source", "L", "-o", "out.json", "-f"]),
+        ("viral-rna", ["--bam", "a.bam", "--genome-fasta", "g.fa", "--sample-id", "s", "--output-dir", "out", "-f"]),
+        ("normal-evidence", ["--manifest", "m.json", "-o", "out.json", "-f"]),
+        ("isoforms", ["reconstruct", "--bam", "a.bam", "--gene", "MAGEA1", "--sample-id", "s", "--genome-fasta", "g.fa", "--gtf", "g.gtf", "--annotation-version", "47", "--output-dir", "out", "-f"]),
+    ],
+)
+def test_force_flag_is_accepted_on_overwrite_guarded_commands(command, argv):
+    parser = commands.load_subcommand_parser(command)
+    parsed = parser.parse_args(argv)
+    assert parsed.force is True
 
 
 @pytest.mark.parametrize("typo, suggestion", [("--verison", "--version"), ("--vfc", "--vcf"), ("--bogus", None)])
@@ -252,5 +372,5 @@ def test_help_command_shows_the_listing_or_a_command_help(capsys):
         commands.run(["help"])
     assert error.value.code == 0 and "Pipeline:" in capsys.readouterr().out
     with pytest.raises(SystemExit) as error:
-        commands.run(["help", "fusion"])
-    assert error.value.code == 0 and capsys.readouterr().out.startswith("usage: isovar fusion ")
+        commands.run(["help", "fusion-rna"])
+    assert error.value.code == 0 and capsys.readouterr().out.startswith("usage: isovar fusion-rna ")

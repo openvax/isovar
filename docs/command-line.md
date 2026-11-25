@@ -54,20 +54,20 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | `isovar sv-source` | Validate original SV definitions, caller claims and record-specific PCR evidence ([guide](sv-source-validation.md)) |
 | `isovar sv-rna` | Exploratory RNA paths around one nominated SV, as JSON ([guide](sv-rna.md)) |
 | `isovar sv-audit` | Reconstruct and reconcile a source-separated SV inventory ([guide](sv-rna-audit.md)) |
-| `isovar fusion` | Validated junction evidence and frames for a supplied fusion, as JSON ([guide](fusion.md)) |
+| `isovar fusion-rna` | Validated junction evidence and frames for a supplied fusion, as JSON (compatibility alias: `fusion`; [guide](fusion.md)) |
 
 ### Viral and isoform evidence
 
 | Command | Output |
 |---|---|
-| `isovar viral` | Observed viral RNA recovered from combined-reference alignments without a GTF ([guide](viral-sequences.md)) |
-| `isovar isoforms` | Targeted antigen (for example CTA) isoforms reconstructed and quantified ([guide](antigen-isoforms.md)) |
+| `isovar viral-rna` | Observed viral RNA recovered from combined-reference alignments without a GTF (compatibility alias: `viral`; [guide](viral-sequences.md)) |
+| `isovar isoforms` | Targeted antigen (for example CTA) isoforms reconstructed and quantified (`reconstruct`, `quantify`; [guide](antigen-isoforms.md)) |
 
 ### Proteome and patient background
 
 | Command | Output |
 |---|---|
-| `isovar proteome` | Recorded RNA hypotheses adapted to an ORFdata Proteome and FASTA ([guide](rna-proteome.md)) |
+| `isovar rna-proteome` | Recorded RNA hypotheses adapted to an ORFdata Proteome and FASTA (compatibility alias: `proteome`; [guide](rna-proteome.md)) |
 | `isovar patient-background-pairs` | Mutant RNA proteins paired with declared patient-background baselines ([guide](patient-background-pairs.md)) |
 | `isovar normal-evidence` | Normal genotype/reference-confidence states and background alleles from a reviewed source inventory ([guide](matched-normal-evidence.md)) |
 
@@ -78,7 +78,7 @@ options and defaults, which match the Python API. `isovar --vcf ... --bam ...`
 | `isovar plot` | Protein, coverage, read-overlap and transcript figures for one mutation ([guide](visualization.md)) |
 | `isovar evidence-report` | Visual PDF and per-call TSV for a variant VCF plus indexed tumor RNA |
 | `isovar antigen-report` | Source-separated PDF and JSON from small-variant, SV, fusion, viral and antigen-isoform exports ([guide](antigen-evidence-report.md)) |
-| `isovar cohort` | Reproducible, source-separated reconstruction and per-sample PDFs from a pinned manifest ([guide](cohort-reports.md)) |
+| `isovar cohort-report` | Reproducible, source-separated reconstruction and per-sample PDFs from a pinned manifest (compatibility alias: `cohort`; [guide](cohort-reports.md)) |
 
 ### Calibration
 
@@ -148,10 +148,21 @@ isovar run --vcf somatic-variants.vcf --bam rnaseq.bam \
 protein commands size their reference context from the requested cDNA length
 and minimum transcript prefix.
 
+## CLI conventions
+
+Isovar enforces a consistent command and flag vocabulary across every subcommand:
+
+- **Command naming:** Data-producing commands use lowercase hyphenated artifact/domain noun phrases (plural nouns for table exports such as `protein-sequences` and `allele-counts`; domain-artifact pairs such as `sv-rna`, `fusion-rna`, `viral-rna`, `rna-proteome`, `evidence-report`, `antigen-report`, and `cohort-report`). Imperative verbs are reserved for top-level actions (`run`, `plot`, `calibrate-phasing`). Deprecated bare-noun aliases (`fusion`, `viral`, `proteome`, `cohort`) remain accepted with a one-line warning on stderr.
+- **Flat vs. nested subcommands:** Commands are flat (`isovar COMMAND ...`) by default. Nested subcommands are used only for multi-step workflows that operate sequentially on the same domain artifact (`isovar isoforms reconstruct` followed by `isovar isoforms quantify`).
+- **Output flags:** `-o`/`--output FILE` always denotes a single output file, and `--output-dir DIR` always denotes a directory. Companion files use `--output-tsv`, `--output-json`, or `--output-fasta`. Legacy spellings (`--plot-dir`, `--summary-json`, `--evidence-json`, `--per-call`, `--fasta`) remain accepted as hidden compatibility aliases.
+- **Input vocabulary:** Shared inputs use one spelling across commands: `--bam` (indexed RNA BAM/CRAM), `--vcf` (variants), `--input` (structured JSON/upstream export), `--manifest` (multi-source/cohort manifest JSON), `--genome` (Varcode/PyEnsembl reference), `--genome-fasta` (local FASTA; hidden alias `--reference-fasta`), `--gtf` (local transcript annotation), `--sample-id` (sample scope), `--source` (read-set/library identity; hidden alias `--source-id`), `--library-cache` (reusable RNA index directory; hidden alias `--library-cache-dir`), and `--scratch-dir` (temporary disk-index directory; hidden alias `--sv-scratch-dir`).
+- **Short flags:** Only globally unambiguous single-letter flags are defined: `-h`/`--help`, `-o`/`--output`, `-f`/`--force` (overwrite existing outputs on overwrite-guarded commands), and `-q`/`--quiet` (suppress INFO progress logs on stderr).
+- **Alignment with sibling OpenVax tools:** Isovar adopts `-o`/`--output`, `-f`/`--force`, `-q`/`--quiet` alongside `--log-level`, explicit `--version` help text, and JSON output across all structured-analysis commands. Deliberate differences: Isovar keeps `--genome` (via Varcode, which binds species to an explicit Ensembl release or assembly) instead of a separate `--species` flag, and leaves reference-catalog management (`list`, `status`, `download`, `install`, `--json`) in `orfdata` and `pyensembl` rather than duplicating those commands in `isovar`.
+
 ## Logging and errors
 
 Progress messages go to stderr. `--log-level DEBUG` adds per-candidate detail,
-and `--log-level WARNING` keeps runs quiet.
+and `-q`/`--quiet` (or `--log-level WARNING`) keeps runs quiet.
 
 Unusable inputs and out-of-range options stop with a one-line error and exit
 status 2. Examples are a missing file, an unindexed BAM, SAM instead of BAM, a

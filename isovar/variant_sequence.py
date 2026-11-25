@@ -56,7 +56,8 @@ class VariantSequence(ValueObject):
         # private slots are derived from reads, not part of value identity
         "_coverage_cache",
         "_aligned_positions_cache",
-        "_source_alignments",
+        "_source_alignments_cache",
+        "_hash_cache",
     ]
 
     def __init__(self, prefix, alt, suffix, reads):
@@ -65,18 +66,82 @@ class VariantSequence(ValueObject):
         self.suffix = suffix
         self.sequence = prefix + alt + suffix
         self.reads = frozenset(reads)
-        self._source_alignments = alignment_constraints(self.reads)
-        transcript_sets = [
-            read.compatible_transcript_ids
-            for read in self.reads
-            if getattr(read, "compatible_transcript_ids", None) is not None
-        ]
-        self.compatible_transcript_ids = (
-            None
-            if not transcript_sets
-            else frozenset.intersection(*transcript_sets))
+        self._source_alignments_cache = alignment_constraints(self.reads)
+        compatible_ids = None
+        for read in self.reads:
+            ids = getattr(read, "compatible_transcript_ids", None)
+            if ids is not None:
+                if compatible_ids is None:
+                    compatible_ids = ids
+                elif ids is not compatible_ids:
+                    compatible_ids = compatible_ids.intersection(ids)
+        self.compatible_transcript_ids = compatible_ids
         self._coverage_cache = None
         self._aligned_positions_cache = None
+        self._hash_cache = None
+
+    @classmethod
+    def _from_validated(
+            cls,
+            prefix,
+            alt,
+            suffix,
+            reads,
+            compatible_transcript_ids,
+            source_alignments=None,
+            coverage_cache=None):
+        """Construct a VariantSequence when reads were already alignment-validated."""
+        instance = cls.__new__(cls)
+        instance.prefix = prefix
+        instance.alt = alt
+        instance.suffix = suffix
+        instance.sequence = prefix + alt + suffix
+        instance.reads = reads if type(reads) is frozenset else frozenset(reads)
+        instance.compatible_transcript_ids = compatible_transcript_ids
+        instance._source_alignments_cache = source_alignments
+        instance._coverage_cache = coverage_cache
+        instance._aligned_positions_cache = None
+        instance._hash_cache = None
+        return instance
+
+    @property
+    def _source_alignments(self):
+        cached = getattr(self, "_source_alignments_cache", None)
+        if cached is None:
+            cached = alignment_constraints(self.reads)
+            self._source_alignments_cache = cached
+        return cached
+
+    @_source_alignments.setter
+    def _source_alignments(self, value):
+        self._source_alignments_cache = value
+
+    def __hash__(self):
+        cached = getattr(self, "_hash_cache", None)
+        if cached is None:
+            cached = hash((
+                self.prefix,
+                self.alt,
+                self.suffix,
+                self.sequence,
+                self.reads,
+                self.compatible_transcript_ids,
+            ))
+            self._hash_cache = cached
+        return cached
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if self.__class__ is not other.__class__:
+            return False
+        return (
+            self.prefix == other.prefix
+            and self.alt == other.alt
+            and self.suffix == other.suffix
+            and self.compatible_transcript_ids == other.compatible_transcript_ids
+            and self.reads == other.reads
+        )
 
     def __len__(self):
         return len(self.sequence)
@@ -355,14 +420,15 @@ class VariantSequence(ValueObject):
             #       variant_end_index = 11
             logger.debug("Some variant bases in %s don't have coverage >= %d", self, min_reads)
             return VariantSequence(prefix="", alt="", suffix="", reads=self.reads)
-        trimmed = VariantSequence(
+        trimmed = VariantSequence._from_validated(
             prefix=self.prefix[first_covered_index:],
             alt=self.alt,
             suffix=self.suffix[:last_covered_index - variant_end_index + 1],
-            reads=self.reads)
-        # The retained interval has the same original reads and coverage.
-        # Copy so callers cannot mutate the parent through this array.
-        trimmed._coverage_cache = read_count_array[first_covered_index:last_covered_index + 1].copy()
+            reads=self.reads,
+            compatible_transcript_ids=self.compatible_transcript_ids,
+            source_alignments=self._source_alignments_cache,
+            coverage_cache=read_count_array[first_covered_index:last_covered_index + 1].copy(),
+        )
         return trimmed
 
 

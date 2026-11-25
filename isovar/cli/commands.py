@@ -27,10 +27,10 @@ COMMANDS = {
     "sv-source": ("isovar_sv_source", "Validate original SV source definitions and record-specific PCR evidence"),
     "normal-evidence": ("isovar_normal_evidence", "Assess source-pinned matched-normal genotypes and reference confidence"),
     "patient-background-pairs": ("isovar_patient_background_pairs", "Pair mutant RNA proteins with declared patient-background baselines"),
-    "proteome": ("isovar_proteome", "Adapt recorded RNA hypotheses to an ORFdata Proteome and FASTA"),
-    "cohort": ("isovar_cohort", "Reanalyze source-separated RNA libraries and render cohort PDF reports"),
+    "rna-proteome": ("isovar_proteome", "Adapt recorded RNA hypotheses to an ORFdata Proteome and FASTA"),
+    "cohort-report": ("isovar_cohort", "Reanalyze source-separated RNA libraries and render cohort PDF reports"),
     "calibrate-phasing": ("isovar_calibrate_phasing", "Calibrate phasing error bounds from truth-labeled control BAMs"),
-    "viral": ("isovar_viral", "Recover observed viral RNA from combined-reference alignments without a GTF"),
+    "viral-rna": ("isovar_viral", "Recover observed viral RNA from combined-reference alignments without a GTF"),
     "isoforms": ("isovar_isoforms", "Reconstruct and quantify CTA or other targeted antigen isoforms"),
     "run": ("isovar_main", "Run the complete RNA-to-protein pipeline and result filters"),
     "protein-sequences": ("isovar_protein_sequences", "Export candidate protein sequences"),
@@ -47,11 +47,21 @@ COMMANDS = {
                         "Build a visual variant/RNA evidence PDF and per-call TSV"),
     "antigen-report": ("isovar_antigen_report",
                        "Combine small-variant, SV, fusion, viral and antigen-isoform evidence"),
-    "fusion": ("isovar_fusion", "Validate and translate supplied fusion RNA with junction evidence"),
+    "fusion-rna": ("isovar_fusion", "Validate and translate supplied fusion RNA with junction evidence"),
     "sv-rna": ("isovar_sv_rna", "Reconstruct exploratory RNA paths around one nominated SV"),
     "sv-audit": ("isovar_sv_audit", "Reconstruct and reconcile all nominated SVs in a source-pinned manifest"),
     "allele-interpretations": ("isovar_allele_interpretations",
                                "Compare competing interpretations of one locus with the RNA reads"),
+}
+
+# Backward-compatible aliases for commands renamed under the #654 naming
+# convention (artifact/domain noun phrases, reserving bare verbs for top-level
+# actions like `run`, `plot`, and `calibrate-phasing`).
+COMMAND_ALIASES = {
+    "fusion": "fusion-rna",
+    "viral": "viral-rna",
+    "proteome": "rna-proteome",
+    "cohort": "cohort-report",
 }
 
 
@@ -63,10 +73,10 @@ COMMAND_GROUPS = (
         "allele-reads", "allele-counts", "reference-contexts")),
     ("RNA hypotheses and interpretation", (
         "protein-hypotheses", "variant-rna-paths", "allele-interpretations", "rna-features", "rna-origin")),
-    ("Structural variants and fusions", ("sv-source", "sv-rna", "sv-audit", "fusion")),
-    ("Viral and isoform evidence", ("viral", "isoforms")),
-    ("Proteome and patient background", ("proteome", "patient-background-pairs", "normal-evidence")),
-    ("Reports and figures", ("plot", "evidence-report", "antigen-report", "cohort")),
+    ("Structural variants and fusions", ("sv-source", "sv-rna", "sv-audit", "fusion-rna")),
+    ("Viral and isoform evidence", ("viral-rna", "isoforms")),
+    ("Proteome and patient background", ("rna-proteome", "patient-background-pairs", "normal-evidence")),
+    ("Reports and figures", ("plot", "evidence-report", "antigen-report", "cohort-report")),
     ("Calibration", ("calibrate-phasing",)),
 )
 
@@ -103,19 +113,21 @@ def load_subcommand_parser(name):
     Parameters
     ----------
     name : str
-        Subcommand name from :data:`COMMANDS`.
+        Subcommand name from :data:`COMMANDS` (or a compatibility alias in
+        :data:`COMMAND_ALIASES`).
 
     Returns
     -------
     argparse.ArgumentParser
         The subcommand's argument parser.
     """
-    module_name, _ = COMMANDS[name]
+    canonical = COMMAND_ALIASES.get(name, name)
+    module_name, _ = COMMANDS[canonical]
     module = import_module("." + module_name, __package__)
     parser = getattr(module, "parser", None)
     if parser is not None:
-        return parser_for_program(parser, "isovar " + name)
-    return module.make_parser("isovar " + name)
+        return parser_for_program(parser, "isovar " + canonical)
+    return module.make_parser("isovar " + canonical)
 
 
 def build_parser(subcommand_parsers=None):
@@ -142,7 +154,12 @@ def build_parser(subcommand_parsers=None):
         description="Reconstruct mutant protein sequences from RNA evidence.",
         epilog=command_listing(),
     )
-    parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s " + __version__,
+        help="Show the isovar version number and exit",
+    )
     if subcommand_parsers is None:
         # The grouped listing in the epilog replaces argparse's flat command list.
         parser.add_argument("command", metavar="COMMAND", help=argparse.SUPPRESS)
@@ -242,6 +259,13 @@ def run(args=None):
         return
     # Parse only the command; its existing parser owns every remaining option.
     selected = parser.parse_args(args[:1]).command
+    if selected in COMMAND_ALIASES:
+        canonical = COMMAND_ALIASES[selected]
+        sys.stderr.write(
+            "isovar: warning: 'isovar %s' is deprecated; use 'isovar %s' instead.\n"
+            % (selected, canonical)
+        )
+        selected = canonical
     if selected not in COMMANDS:
         # Not argparse's `choices`, which would print every command name on one line.
         close = get_close_matches(selected, COMMANDS, n=1)

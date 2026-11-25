@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.95.0
+
+Fixes #241, #544, #661 (#654, #655, #656, #658, #663), and adds forward-compatibility for orfdata#201.
+
+- Share equal built-in coordinate integers inline while building `LocusRead` in
+  `ReadCollector.locus_read_from_pysam_aligned_segment` (avoiding the post-hook
+  list rebuild on the stock path), expose the public
+  `ReadCollector.share_reference_positions` helper for subclasses overriding the
+  read hook, and release the per-call coordinate table before
+  `_merge_overlapping_locus_reads` (#241).
+- Reduce repeated translation support work at high-depth multi-transcript loci
+  (#544): cache immutable hashes and add fast equality paths on `AlleleRead`
+  and `VariantSequence`, introduce `SharedReadSupportIndex` using bitmask
+  coverage and C-level `frozenset` intersection to reuse flank/read-pool
+  indexing across pre-/post-trim passes, context lengths, and transcript read
+  groups while preserving every candidate sequence, read identity, support
+  count, alignment placement, and transcript compatibility identically.
+- Standardize the `isovar` CLI surface with backward-compatible aliases (#661):
+  - Adopt artifact/domain command names (`fusion-rna`, `viral-rna`,
+    `rna-proteome`, `cohort-report`), keeping `fusion`, `viral`, `proteome`,
+    and `cohort` as deprecated aliases emitting a one-line stderr warning (#654).
+  - Unify output options via shared helpers in `isovar/cli/output_args.py`:
+    `-o`/`--output FILE` always denotes a single output file, `--output-dir DIR`
+    always denotes a directory, companion files use `--output-tsv` /
+    `--output-json` / `--output-fasta`, and `-f`/`--force` controls overwrite on
+    overwrite-guarded commands, with legacy spellings (`--plot-dir`,
+    `--summary-json`, `--evidence-json`, `--per-call`, `--fasta`) preserved as
+    hidden aliases (#655, #658).
+  - Unify shared input flags in `isovar/cli/input_args.py` (`--bam`, `--input`,
+    `--manifest`, `--genome-fasta`, `--gtf`, `--sample-id`, `--source`,
+    `--library-cache`, `--scratch-dir`), keeping legacy spellings
+    (`--reference-fasta`, `--source-id`, `--library-cache-dir`,
+    `--sv-scratch-dir`) as hidden aliases (#656).
+  - Add `-q`/`--quiet` alongside `--log-level` across all commands, add explicit
+    help text to `--version`, and document all CLI conventions and sibling
+    OpenVax tool alignment decisions in `docs/command-line.md` (#663).
+- Update `tests/test_uorf_catalog.py` to prefer `orfdata`'s `data/orf-evidence`
+  directory with fallback to `data/uorf-evidence` for forward-compatibility with
+  `orfdata` 0.61.0 (orfdata#201).
+
 ## 1.94.0
 
 Fixes #679 and #669.

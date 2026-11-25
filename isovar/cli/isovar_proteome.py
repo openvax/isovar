@@ -12,26 +12,33 @@ from pathlib import Path
 
 from ..logging import configure_cli_logging, get_logger
 from .help import HelpArgumentParser
-from .output_args import add_log_level_arg
+from .input_args import add_input_arg
+from .output_args import add_hidden_alias, add_log_level_arg, add_output_file_arg
 from .validation import check_output_path, input_error
 
 logger = get_logger(__name__)
 
 
-def make_parser(prog="isovar proteome"):
+def make_parser(prog="isovar rna-proteome"):
     parser = HelpArgumentParser(prog=prog, description=__doc__)
-    parser.add_argument('--input', action='append', required=True,
-                        help='Recorded Isovar RNA JSON/JSON.gz result; repeat to combine sources')
+    add_input_arg(
+        parser,
+        action='append',
+        required=True,
+        help='Recorded Isovar RNA JSON/JSON.gz result; repeat to combine sources',
+    )
     parser.add_argument('--reference-context', required=True,
                         help='JSON object of ORFdata ReferenceContext fields; must agree with recorded inputs')
-    parser.add_argument('--output', required=True, help='ORFdata Proteome JSON or JSON.gz output')
-    parser.add_argument('--fasta', help='Also write all retained protein hypotheses as FASTA')
+    add_output_file_arg(parser, required=True, help='ORFdata Proteome JSON or JSON.gz output file')
+    parser.add_argument('--output-fasta', dest='fasta', metavar='FILE',
+                        help='Also write all retained protein hypotheses as FASTA')
+    add_hidden_alias(parser, '--fasta', dest='fasta')
     add_log_level_arg(parser)
     return parser
 
 
 def run(args=None, *, prog=None):
-    parser = make_parser(prog or "isovar proteome")
+    parser = make_parser(prog or "isovar rna-proteome")
     options = parser.parse_args(args)
     configure_cli_logging(options.log_level)
     try:

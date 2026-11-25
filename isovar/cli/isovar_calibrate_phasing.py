@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 
 from .help import HelpArgumentParser
-from .output_args import add_log_level_arg
+from .input_args import add_manifest_arg
+from .output_args import add_log_level_arg, add_output_file_arg
 from ..logging import configure_cli_logging, get_logger
 from .validation import check_outputs, input_error
 
@@ -151,10 +152,18 @@ def _calibrate(manifest, base_path=Path(".")):
 
 def make_parser(prog="isovar calibrate-phasing"):
     parser = HelpArgumentParser(prog=prog, description=__doc__)
-    parser.add_argument("--manifest", required=True, type=Path,
-                        help="JSON target loci and independent true-ref/true-alt control BAMs")
-    parser.add_argument("--output", required=True, type=Path,
-                        help="JSON profile accepted by isovar --phasing-error-rates")
+    add_manifest_arg(
+        parser,
+        required=True,
+        type=Path,
+        help="JSON target loci and independent true-ref/true-alt control BAMs",
+    )
+    add_output_file_arg(
+        parser,
+        required=True,
+        type=Path,
+        help="JSON profile file accepted by isovar --phasing-error-rates",
+    )
     parser.add_argument("--report", required=True, type=Path,
                         help="JSON audit report with per-group counts and confidence bounds")
     add_log_level_arg(parser)

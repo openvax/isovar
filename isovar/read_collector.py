@@ -491,6 +491,46 @@ class ReadCollector(object):
                 reference_position += length
         return tuple(junctions)
 
+    @staticmethod
+    def share_reference_positions(read_or_positions, shared_positions):
+        """Share equal built-in coordinate integers in place through ``shared_positions``.
+
+        Accepts either a read-like object exposing ``reference_positions`` or a
+        plain ``list`` of coordinates. Custom sequence types and non-builtin
+        integer subclasses are left untouched so hook-created objects preserve
+        their identity and type.
+
+        Parameters
+        ----------
+        read_or_positions : object or list
+            A ``LocusRead`` (or read-like hook result) or plain ``list`` of
+            ``int | None`` coordinates.
+        shared_positions : dict or None
+            Per-call integer interning table (maps coordinate ``int`` to the
+            canonical shared ``int`` object). When ``None``, this is a no-op.
+
+        Returns
+        -------
+        object or list
+            ``read_or_positions``, modified in place when its coordinate store
+            is a plain ``list``.
+        """
+        if shared_positions is None:
+            return read_or_positions
+        positions = (
+            read_or_positions
+            if type(read_or_positions) is list
+            else getattr(read_or_positions, "reference_positions", None)
+        )
+        if type(positions) is list:
+            share_position = shared_positions.setdefault
+            for index, position in enumerate(positions):
+                if type(position) is int:
+                    shared = share_position(position, position)
+                    if shared is not position:
+                        positions[index] = shared
+        return read_or_positions
+
     def locus_read_from_pysam_aligned_segment(
         self,
         pysam_aligned_segment,
@@ -499,6 +539,7 @@ class ReadCollector(object):
         trimmed_base1_start=None,
         trimmed_ref=None,
         trimmed_alt=None,
+        shared_positions=None,
     ):
         """
         Create LocusRead from pysam.AlignedSegment object and the start/end indices
@@ -518,6 +559,11 @@ class ReadCollector(object):
             Trimmed variant fields. When supplied for an indel, an equivalent
             indel aligned elsewhere in the same repeat is found and its query
             interval is used for the allele.
+
+        shared_positions : dict or None
+            Optional per-call table used to share equal built-in coordinate
+            integers in a single pass while ``base0_reference_positions`` is
+            inspected, avoiding a second post-build pass over the list.
 
         Returns
         -------
@@ -553,11 +599,23 @@ class ReadCollector(object):
             )
             return None
 
-        reference_position_to_read_position = {
-            ref_pos: read_pos
-            for read_pos, ref_pos in enumerate(base0_reference_positions)
-            if ref_pos is not None
-        }
+        if shared_positions is not None and type(base0_reference_positions) is list:
+            share_position = shared_positions.setdefault
+            reference_position_to_read_position = {}
+            for read_pos, ref_pos in enumerate(base0_reference_positions):
+                if ref_pos is not None:
+                    if type(ref_pos) is int:
+                        shared = share_position(ref_pos, ref_pos)
+                        if shared is not ref_pos:
+                            base0_reference_positions[read_pos] = shared
+                            ref_pos = shared
+                    reference_position_to_read_position[ref_pos] = read_pos
+        else:
+            reference_position_to_read_position = {
+                ref_pos: read_pos
+                for read_pos, ref_pos in enumerate(base0_reference_positions)
+                if ref_pos is not None
+            }
 
         aligned_subsequence_start = pysam_aligned_segment.query_alignment_start
         aligned_subsequence_end = pysam_aligned_segment.query_alignment_end
@@ -687,9 +745,10 @@ class ReadCollector(object):
             retained_end = min(retained_end, aligned_subsequence_end)
         # One slice and one coordinate shift for both policies. Allele and SA
         # intervals above came from the unchanged original CIGAR/SEQ.
-        sequence = sequence[retained_start:retained_end]
-        base0_reference_positions = base0_reference_positions[retained_start:retained_end]
-        base_qualities = base_qualities[retained_start:retained_end]
+        if retained_start != 0 or retained_end != len(sequence):
+            sequence = sequence[retained_start:retained_end]
+            base0_reference_positions = base0_reference_positions[retained_start:retained_end]
+            base_qualities = base_qualities[retained_start:retained_end]
         if read_base0_start_inclusive is not None:
             read_base0_start_inclusive -= retained_start
         if read_base0_end_exclusive is not None:
@@ -1105,7 +1164,12 @@ class ReadCollector(object):
         # so the cache adds only table slots, and its size is bounded by the
         # reference span of reads at this locus.
         shared_positions = {} if not compact else None
-        share_position = shared_positions.setdefault if shared_positions is not None else None
+        use_inline_sharing = (
+            shared_positions is not None
+            and type(self).locus_read_from_pysam_aligned_segment
+            is ReadCollector.locus_read_from_pysam_aligned_segment
+            and "locus_read_from_pysam_aligned_segment" not in self.__dict__
+        )
 
         # check overlap against wider overlap to make sure we don't miss
         # any reads
@@ -1126,26 +1190,36 @@ class ReadCollector(object):
                 == 0
             ):
                 continue
-            read = self.locus_read_from_pysam_aligned_segment(
-                aligned_segment,
-                base0_start_inclusive=base0_start_inclusive,
-                base0_end_exclusive=base0_end_exclusive,
-                trimmed_base1_start=trimmed_base1_start,
-                trimmed_ref=trimmed_ref,
-                trimmed_alt=trimmed_alt,
-            )
+            if use_inline_sharing:
+                read = self.locus_read_from_pysam_aligned_segment(
+                    aligned_segment,
+                    base0_start_inclusive=base0_start_inclusive,
+                    base0_end_exclusive=base0_end_exclusive,
+                    trimmed_base1_start=trimmed_base1_start,
+                    trimmed_ref=trimmed_ref,
+                    trimmed_alt=trimmed_alt,
+                    shared_positions=shared_positions,
+                )
+            else:
+                read = self.locus_read_from_pysam_aligned_segment(
+                    aligned_segment,
+                    base0_start_inclusive=base0_start_inclusive,
+                    base0_end_exclusive=base0_end_exclusive,
+                    trimmed_base1_start=trimmed_base1_start,
+                    trimmed_ref=trimmed_ref,
+                    trimmed_alt=trimmed_alt,
+                )
             if read is not None:
                 if compact:
                     read = _CompactLocusRead.from_locus_read(read)
-                else:
-                    # Hooks may return read-like objects without coordinates.
-                    positions = getattr(read, "reference_positions", None)
-                    if type(positions) is list:
-                        # Keep the original list object, and leave custom sequence
-                        # types / non-builtin coordinate objects from hooks alone.
-                        positions[:] = [share_position(p, p) if type(p) is int else p
-                                        for p in positions]
+                elif not use_inline_sharing and shared_positions is not None:
+                    self.share_reference_positions(read, shared_positions)
                 reads.append(read)
+        # Release the per-call coordinate table before mate merging; merging
+        # builds fresh token lists and does not need the table.
+        if shared_positions is not None:
+            shared_positions.clear()
+            shared_positions = None
         logger.debug(
             "Kept %d/%d reads overlapping locus %s:%d-%d",
             len(reads),
