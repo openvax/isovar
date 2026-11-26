@@ -9,12 +9,31 @@ from copy import deepcopy
 from hashlib import sha256
 
 
-def hypotheses_from_varcode(effects):
+def _json_junctions(junctions):
+    return [list(j) for j in (junctions or ())]
+
+
+def hypotheses_from_varcode(effects, *, sequence_provider=None):
     """Preserve all Varcode EffectCandidates, including unresolved products.
 
     Varcode owns consequence prediction. This adapter reads its materialized
-    MutantTranscript; it neither chooses the first effect nor reconstructs
-    missing cDNA from protein or partial reference segments.
+    ``MutantTranscript`` (spliced cDNA, predicted novel/back/wildtype splice
+    junctions, and open rearrangement search templates); it neither chooses
+    the first effect nor reconstructs missing cDNA from protein or partial
+    reference segments.
+
+    Parameters
+    ----------
+    effects : iterable of varcode.MutationEffect
+        Effects returned by Varcode (default ``"dna"`` annotator or legacy
+        annotators).
+    sequence_provider : callable, optional
+        Optional ``(contig, start_1based, end_1based) -> str`` DNA fetcher
+        passed to ``MutantTranscript.template_sequence(sequence_provider)``
+        to materialize oriented 5'->3' pre-mRNA search templates for open
+        rearrangements (e.g. large insertions and gene-to-intergenic
+        translocations). Stored separately in ``template_sequence``;
+        ``sequence`` remains the spliced cDNA (``None`` for open templates).
     """
     import varcode
 
@@ -30,11 +49,42 @@ def hypotheses_from_varcode(effects):
             sequence = getattr(model, "cdna_sequence", None)
             protein = getattr(inner, "mutant_protein_sequence", None)
             evidence = deepcopy(dict(candidate.evidence))
-            row = dict(kind="varcode_prediction", sequence=sequence,
-                       amino_acids=protein, transcript_id=getattr(transcript, "id", None),
-                       effect_type=type(inner).__name__, description=inner.short_description,
-                       source=dict(producer=candidate.source, varcode_version=varcode.__version__),
-                       evidence=evidence)
+            mechanisms = list(getattr(candidate, "mechanisms", ()) or ())
+            phase = [[str(v), state] for v, state in (getattr(candidate, "phase", ()) or ())]
+            uncertainty = list(getattr(candidate, "uncertainty", ()) or ())
+            is_complete = getattr(model, "is_complete", None) if model is not None else None
+            novel_junctions = _json_junctions(getattr(model, "novel_junctions", ()))
+            back_junctions = _json_junctions(getattr(model, "back_junctions", ()))
+            wildtype_junctions = _json_junctions(getattr(model, "wildtype_junctions", ()))
+            mate_region_val = getattr(model, "mate_region", None) if model is not None else None
+            mate_region = list(mate_region_val) if mate_region_val is not None else None
+            exit_frame = getattr(model, "exit_frame", None) if model is not None else None
+            template_sequence = None
+            model_evidence = (getattr(model, "evidence", None) or {}) if model is not None else {}
+            if (sequence_provider is not None and model is not None
+                    and model_evidence.get("template_segments")
+                    and callable(getattr(model, "template_sequence", None))):
+                template_sequence = model.template_sequence(sequence_provider)
+            row = dict(
+                kind="varcode_prediction",
+                sequence=sequence,
+                amino_acids=protein,
+                transcript_id=getattr(transcript, "id", None),
+                effect_type=type(inner).__name__,
+                description=inner.short_description,
+                source=dict(producer=candidate.source, varcode_version=varcode.__version__),
+                evidence=evidence,
+                mechanisms=mechanisms,
+                phase=phase,
+                uncertainty=uncertainty,
+                is_complete=is_complete,
+                novel_junctions=novel_junctions,
+                back_junctions=back_junctions,
+                wildtype_junctions=wildtype_junctions,
+                mate_region=mate_region,
+                exit_frame=exit_frame,
+                template_sequence=template_sequence,
+            )
             # Ordinals retain genuinely separate hypotheses even when proteins
             # coincide; do not discard their phase/splice evidence.
             identifier = sha256(repr(row).encode()).hexdigest()

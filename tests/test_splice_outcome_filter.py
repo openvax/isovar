@@ -133,8 +133,8 @@ def test_real_patient_hypotheses_and_partial_rna_keep_unavailable_baseline():
     predicted = variant.effect_on_transcript(
         transcript, germline=GermlineContext.from_variants([germline]))
     original_candidates = predicted.candidates
-    assert {state for c in original_candidates for o in c.outcomes
-            for _, state in o.hypothesis.phase} == {"cis", "trans"}
+    assert {state for c in original_candidates
+            for _, state in c.phase} == {"cis", "trans"}
     observed = Unresolved(variant, transcript, "observed_rna")
     observed.mutant_transcript = MutantTranscript.from_sequence(
         "ATGGCTTAA", reference_transcript=transcript, mutant_protein_sequence="MA",
@@ -151,8 +151,8 @@ def test_real_patient_hypotheses_and_partial_rna_keep_unavailable_baseline():
     assert partial[0].modifies_protein_sequence is None
     paths = list(iter_candidate_paths(effect))
     candidate = next(path[-1] for terminal, path in paths if terminal is partial[0])
-    assert candidate.outcomes[0].hypothesis.evidence["rna_observation"]["read_count"] == 7
-    assert candidate.outcomes[0].baseline.protein_sequence is None
+    assert candidate.evidence["rna_observation"]["read_count"] == 7
+    assert partial[0].original_protein_sequence is None
     assert len(comparisons) >= len(original_candidates) + 1
     assert has_mutant_protein_sequence(effect)
     assert result(effect).trimmed_reference_protein_sequence is None
