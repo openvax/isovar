@@ -123,4 +123,4 @@ def test_b16_effects_accept_composed_isovar_source(result_and_transcript):
         # establish a complete patient baseline. Varcode retains it explicitly.
         assert candidate.original_protein_sequence is None
         assert candidate.modifies_protein_sequence is None
-        assert path[-1].outcomes[0].baseline.protein_sequence is None
+        assert "rna_observation" in path[-1].evidence

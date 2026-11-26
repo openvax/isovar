@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.97.0
+
+- Adopt `varcode>=13.0.2,<14` (#741):
+  - Extend `hypotheses_from_varcode(effects, *, sequence_provider=None)` in
+    `isovar/sv_rna_reconciliation.py` to retain `EffectCandidate` metadata
+    (`mechanisms`, `phase`, `uncertainty`) and `MutantTranscript` junction and
+    open-template metadata (`is_complete`, `novel_junctions`, `back_junctions`,
+    `wildtype_junctions`, `mate_region`, `exit_frame`), plus optional
+    pre-mRNA `template_sequence` materialization via
+    `MutantTranscript.template_sequence(sequence_provider)` without overwriting
+    spliced `sequence=None`.
+  - Update candidate provenance assertions in `tests/test_splice_outcome_filter.py`
+    and `tests/test_mutant_transcript_source.py` for `varcode>=13.0.2`'s default
+    `"dna"` `EffectCandidate` output, and add unit tests covering novel/back
+    junctions and open rearrangement templates in `tests/test_sv_rna_audit.py`.
+
 ## 1.96.0
 
 - Deduplicate `isovar/cli/help.py` onto the shared `datacache.cli_help` module

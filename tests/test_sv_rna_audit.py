@@ -144,6 +144,90 @@ def test_varcode_adapter_preserves_unresolved_and_materialized_candidates():
     assert all(v['source']['varcode_version'] == varcode.__version__ for v in values)
 
 
+def test_varcode13_adapter_preserves_junctions_and_open_templates():
+    from types import SimpleNamespace
+    import varcode
+
+    closed_model = varcode.MutantTranscript(
+        reference_transcript=None,
+        reference_segments=(),
+        cdna_sequence='ATGAAACCC',
+        evidence={
+            'novel_junctions': (('7', 55181379, 55191718, '+'),),
+            'back_junctions': (('7', 55181379, 55200317, '+'),),
+            'wildtype_junctions': (('7', 55181379, 55181478, '+'),),
+        },
+    )
+    open_model = varcode.MutantTranscript(
+        reference_transcript=None,
+        reference_segments=(),
+        cdna_sequence=None,
+        evidence={
+            'mate_search_region': ('7', 55191000, 55195000, '+'),
+            'exit_frame': 2,
+            'inserted_sequence': 'GGCC',
+            'template_segments': (
+                ('five_prime_anchor', '7', 100, 105, '+'),
+                ('inserted_sequence', '7', 105, 105, '+'),
+                ('mate_window', '7', 200, 205, '+'),
+            ),
+        },
+    )
+    closed_effect = SimpleNamespace(
+        mutant_transcript=closed_model,
+        mutant_protein_sequence='MKP',
+        transcript=SimpleNamespace(id='ENST_EGFR'),
+        short_description='ex20-skip',
+    )
+    open_effect = SimpleNamespace(
+        mutant_transcript=open_model,
+        mutant_protein_sequence=None,
+        transcript=SimpleNamespace(id='ENST_EGFR'),
+        short_description='large-ins',
+    )
+    candidates = [
+        varcode.EffectCandidate(
+            effect=closed_effect,
+            source='varcode.dna',
+            mechanisms=('exon_skipping',),
+            phase=(('chr7 g.1A>G', 'cis'),),
+            uncertainty=('splice',),
+        ),
+        varcode.EffectCandidate(
+            effect=open_effect,
+            source='varcode.dna',
+            mechanisms=('large_insertion',),
+            uncertainty=('splice', 'structural'),
+        ),
+    ]
+    without_fasta = hypotheses_from_varcode([SimpleNamespace(candidates=candidates)])
+    by_desc = {row['description']: row for row in without_fasta}
+    assert by_desc['ex20-skip']['is_complete'] is True
+    assert by_desc['ex20-skip']['novel_junctions'] == [['7', 55181379, 55191718, '+']]
+    assert by_desc['ex20-skip']['back_junctions'] == [['7', 55181379, 55200317, '+']]
+    assert by_desc['ex20-skip']['wildtype_junctions'] == [['7', 55181379, 55181478, '+']]
+    assert by_desc['ex20-skip']['mechanisms'] == ['exon_skipping']
+    assert by_desc['ex20-skip']['phase'] == [['chr7 g.1A>G', 'cis']]
+    assert by_desc['ex20-skip']['uncertainty'] == ['splice']
+    assert by_desc['ex20-skip']['template_sequence'] is None
+
+    assert by_desc['large-ins']['is_complete'] is False
+    assert by_desc['large-ins']['sequence'] is None
+    assert by_desc['large-ins']['mate_region'] == ['7', 55191000, 55195000, '+']
+    assert by_desc['large-ins']['exit_frame'] == 2
+    assert by_desc['large-ins']['template_sequence'] is None
+
+    def provider(contig, start, end):
+        return {('7', 100, 105): 'ATGAAA', ('7', 200, 205): 'TTTCCC'}[(contig, start, end)]
+
+    with_fasta = hypotheses_from_varcode([SimpleNamespace(candidates=candidates)], sequence_provider=provider)
+    by_desc_fasta = {row['description']: row for row in with_fasta}
+    # Open pre-mRNA template is materialized separately without overwriting spliced sequence=None.
+    assert by_desc_fasta['large-ins']['sequence'] is None
+    assert by_desc_fasta['large-ins']['template_sequence'] == 'ATGAAAGGCC' + 'TTTCCC'
+    assert by_desc_fasta['ex20-skip']['template_sequence'] is None
+
+
 def manifest_fixture(tmp_path):
     s = Scenario()
     bam = write_bam(tmp_path / 'rna.bam', s.reads())
