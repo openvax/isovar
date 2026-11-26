@@ -91,13 +91,17 @@ def test_read_phase_resolver_applies_isovar_mutant_transcript(result_and_transcr
     assert resolver.phased_partners(result.variant, transcript) == source.partners_in_cis(result.variant)
 
 
-def test_b16_effects_accept_composed_isovar_source(result_and_transcript):
+@pytest.mark.parametrize("annotator", [None, "transcript_model"])
+def test_b16_effects_accept_composed_isovar_source(result_and_transcript, annotator):
     results, result, transcript = result_and_transcript
     source = IsovarReadEvidence(results)
     resolver = ReadPhaseResolver(source)
     tumor = load_vcf(data_path("data/b16.f10/b16.vcf"))
 
-    effects = tumor.effects(phase_resolver=resolver)
+    kwargs = {"phase_resolver": resolver}
+    if annotator is not None:
+        kwargs["annotator"] = annotator
+    effects = tumor.effects(**kwargs)
     matching_effects = [
         effect
         for effect in effects
@@ -119,8 +123,10 @@ def test_b16_effects_accept_composed_isovar_source(result_and_transcript):
         model = candidate.mutant_transcript
         assert model.reference_transcript.id == transcript.id
         assert model.cdna_sequence in result.top_protein_sequence.cdna_sequences
-        # A supplied window does not replace the complete DNA prediction or
-        # establish a complete patient baseline. Varcode retains it explicitly.
-        assert candidate.original_protein_sequence is None
-        assert candidate.modifies_protein_sequence is None
-        assert path[-1].outcomes[0].baseline.protein_sequence is None
+        assert model.annotator_name == "isovar"
+        if annotator == "transcript_model":
+            # A supplied window does not replace the complete DNA prediction or
+            # establish a complete patient baseline. Varcode retains it explicitly.
+            assert candidate.original_protein_sequence is None
+            assert candidate.modifies_protein_sequence is None
+            assert path[-1].outcomes[0].baseline.protein_sequence is None

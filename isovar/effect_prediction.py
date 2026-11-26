@@ -12,7 +12,7 @@
 
 from collections.abc import Iterator
 
-from varcode import MutationEffect, iter_candidate_effects, iter_candidate_paths
+from varcode import EffectCandidate, MutationEffect, iter_candidate_effects, iter_candidate_paths
 from varcode.effects import FrameShift, Insertion, Deletion, ComplexSubstitution
 from varcode.effect_hypotheses import RealizedEffectCandidate
 
@@ -68,18 +68,26 @@ def effect_protein_comparisons(
 ) -> Iterator[tuple[MutationEffect | None, str | None, str | None]]:
     """Yield each comparison's effect, baseline protein and mutant protein.
 
-    Realized outcomes retain their own patient products, including separate
-    phase/baseline hypotheses which share a terminal effect. Legacy and bare
-    effects use their standard sequence accessors. Unavailable products stay
-    ``None``; an empty string is a known empty protein. The original candidate
-    graph, evidence and ordering are never modified.
+    Realized outcomes (from ``annotator="transcript_model"``) and default
+    ``varcode>=13`` ``EffectCandidate`` records carrying paired outcomes retain
+    their own patient products, including separate phase/baseline hypotheses
+    which share a terminal effect. Legacy, fast-path and bare effects use their
+    standard sequence accessors. Unavailable products stay ``None``; an empty
+    string is a known empty protein. The original candidate graph, evidence and
+    ordering are never modified.
     """
     for terminal, path in iter_candidate_paths(effect):
         candidate = path[-1] if path else None
         if terminal is not None and isinstance(candidate, RealizedEffectCandidate):
-            if not candidate.outcomes:
+            outcomes = candidate.outcomes
+        elif terminal is not None and isinstance(candidate, EffectCandidate):
+            outcomes = getattr(candidate, "_paired_outcomes", None)
+        else:
+            outcomes = None
+        if outcomes is not None:
+            if not outcomes:
                 yield None, None, None
-            for outcome in candidate.outcomes:
+            for outcome in outcomes:
                 yield (
                     outcome.effect,
                     outcome.baseline.to_mutant_transcript().mutant_protein_sequence,

@@ -126,15 +126,25 @@ def test_realized_products_do_not_fall_back_to_effect_reference_or_infer_start()
     assert result(effect).protein_sequence_matches_predicted_mutation_effect is None
 
 
-def test_real_patient_hypotheses_and_partial_rna_keep_unavailable_baseline():
+@pytest.mark.parametrize("annotator", [None, "dna", "transcript_model"])
+def test_real_patient_hypotheses_and_partial_rna_keep_unavailable_baseline(annotator):
     variant = Variant("7", 117531115, "G", "A", genome=87)
     transcript = variant.genome.transcript_by_id("ENST00000003084")
     germline = Variant("7", 117531113, "A", "C", genome=87)
-    predicted = variant.effect_on_transcript(
-        transcript, germline=GermlineContext.from_variants([germline]))
+    kwargs = {"germline": GermlineContext.from_variants([germline])}
+    if annotator is not None:
+        kwargs["annotator"] = annotator
+    predicted = variant.effect_on_transcript(transcript, **kwargs)
     original_candidates = predicted.candidates
-    assert {state for c in original_candidates for o in c.outcomes
-            for _, state in o.hypothesis.phase} == {"cis", "trans"}
+    if annotator == "transcript_model":
+        assert all(isinstance(c, RealizedEffectCandidate) for c in original_candidates)
+        assert {state for c in original_candidates for o in c.outcomes
+                for _, state in o.hypothesis.phase} == {"cis", "trans"}
+    else:
+        assert all(isinstance(c, EffectCandidate) for c in original_candidates)
+        assert {state for c in original_candidates
+                for _, state in c.phase} == {"cis", "trans"}
+        assert all(c.uncertainty == ("phasing", "splicing") for c in original_candidates)
     observed = Unresolved(variant, transcript, "observed_rna")
     observed.mutant_transcript = MutantTranscript.from_sequence(
         "ATGGCTTAA", reference_transcript=transcript, mutant_protein_sequence="MA",
@@ -151,8 +161,9 @@ def test_real_patient_hypotheses_and_partial_rna_keep_unavailable_baseline():
     assert partial[0].modifies_protein_sequence is None
     paths = list(iter_candidate_paths(effect))
     candidate = next(path[-1] for terminal, path in paths if terminal is partial[0])
-    assert candidate.outcomes[0].hypothesis.evidence["rna_observation"]["read_count"] == 7
-    assert candidate.outcomes[0].baseline.protein_sequence is None
+    paired = candidate.outcomes if isinstance(candidate, RealizedEffectCandidate) else candidate._paired_outcomes
+    assert paired[0].hypothesis.evidence["rna_observation"]["read_count"] == 7
+    assert paired[0].baseline.protein_sequence is None
     assert len(comparisons) >= len(original_candidates) + 1
     assert has_mutant_protein_sequence(effect)
     assert result(effect).trimmed_reference_protein_sequence is None

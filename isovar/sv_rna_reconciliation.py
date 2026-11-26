@@ -5,16 +5,51 @@ from a sample. Conflicting reads can reflect coexisting isoforms. Predictions
 without sequence and unexamined alternatives remain explicit.
 """
 
+from collections.abc import Mapping
 from copy import deepcopy
 from hashlib import sha256
 
 
-def hypotheses_from_varcode(effects):
+def _normalize_junction(entry):
+    contig, start, end, strand = entry
+    start_i, end_i = int(start), int(end)
+    if start_i > end_i:
+        start_i, end_i = end_i, start_i
+    return (str(contig), start_i, end_i, str(strand))
+
+
+def _materialize_open_template(model, sequence_provider):
+    if model is None or sequence_provider is None:
+        return None
+    template_fn = getattr(model, "template_sequence", None)
+    if not callable(template_fn):
+        return None
+    model_evidence = getattr(model, "evidence", None)
+    if isinstance(model_evidence, Mapping) and not model_evidence.get("template_segments"):
+        return None
+    if not isinstance(model_evidence, Mapping) and hasattr(model, "evidence"):
+        return None
+    template = template_fn(sequence_provider)
+    return None if template is None else str(template).upper()
+
+
+def hypotheses_from_varcode(effects, sequence_provider=None):
     """Preserve all Varcode EffectCandidates, including unresolved products.
 
     Varcode owns consequence prediction. This adapter reads its materialized
-    MutantTranscript; it neither chooses the first effect nor reconstructs
-    missing cDNA from protein or partial reference segments.
+    ``MutantTranscript`` and candidate metadata (``mechanisms``, ``phase``,
+    ``uncertainty``, 1-based inclusive ascending ``(contig, start, end, strand)``
+    junctions, ``mate_region``, and ``exit_frame``); it neither chooses the
+    first effect nor reconstructs missing cDNA from protein or partial
+    reference segments.
+
+    When ``sequence_provider`` is supplied (a callable
+    ``(contig, start_1based, end_1based) -> str``), open rearrangement
+    templates (``not model.is_complete`` with template segments) materialize
+    their oriented 5'-to-3' pre-mRNA sequence via
+    ``model.template_sequence(sequence_provider)`` while retaining
+    ``is_complete=False``. Without ``sequence_provider``, open templates keep
+    ``sequence=None``.
     """
     import varcode
 
@@ -27,14 +62,65 @@ def hypotheses_from_varcode(effects):
             inner = candidate.effect
             model = getattr(inner, "mutant_transcript", None)
             transcript = getattr(inner, "transcript", None)
-            sequence = getattr(model, "cdna_sequence", None)
+            cdna_sequence = getattr(model, "cdna_sequence", None)
+            is_complete = bool(getattr(model, "is_complete", cdna_sequence is not None))
+            sequence = cdna_sequence
+            if sequence is None and not is_complete and sequence_provider is not None:
+                sequence = _materialize_open_template(model, sequence_provider)
             protein = getattr(inner, "mutant_protein_sequence", None)
-            evidence = deepcopy(dict(candidate.evidence))
-            row = dict(kind="varcode_prediction", sequence=sequence,
-                       amino_acids=protein, transcript_id=getattr(transcript, "id", None),
-                       effect_type=type(inner).__name__, description=inner.short_description,
-                       source=dict(producer=candidate.source, varcode_version=varcode.__version__),
-                       evidence=evidence)
+            evidence = deepcopy(dict(getattr(candidate, "evidence", None) or {}))
+            mechanisms = tuple(
+                str(m) for m in (getattr(candidate, "mechanisms", None) or ())
+            )
+            phase = tuple(
+                (str(variant), str(state))
+                for variant, state in (getattr(candidate, "phase", None) or ())
+            )
+            uncertainty = tuple(
+                str(axis) for axis in (getattr(candidate, "uncertainty", None) or ())
+            )
+            novel_junctions = tuple(
+                _normalize_junction(j)
+                for j in (getattr(model, "novel_junctions", None) or ())
+            )
+            back_junctions = tuple(
+                _normalize_junction(j)
+                for j in (getattr(model, "back_junctions", None) or ())
+            )
+            wildtype_junctions = tuple(
+                _normalize_junction(j)
+                for j in (getattr(model, "wildtype_junctions", None) or ())
+            )
+            raw_mate_region = getattr(model, "mate_region", None)
+            mate_region = (
+                _normalize_junction(raw_mate_region)
+                if raw_mate_region is not None
+                else None
+            )
+            raw_exit_frame = getattr(model, "exit_frame", None)
+            exit_frame = None if raw_exit_frame is None else int(raw_exit_frame)
+            row = dict(
+                kind="varcode_prediction",
+                sequence=sequence,
+                amino_acids=protein,
+                transcript_id=getattr(transcript, "id", None),
+                effect_type=type(inner).__name__,
+                description=inner.short_description,
+                source=dict(
+                    producer=getattr(candidate, "source", "varcode"),
+                    varcode_version=varcode.__version__,
+                ),
+                evidence=evidence,
+                mechanisms=mechanisms,
+                phase=phase,
+                uncertainty=uncertainty,
+                is_complete=is_complete,
+                novel_junctions=novel_junctions,
+                back_junctions=back_junctions,
+                wildtype_junctions=wildtype_junctions,
+                mate_region=mate_region,
+                exit_frame=exit_frame,
+            )
             # Ordinals retain genuinely separate hypotheses even when proteins
             # coincide; do not discard their phase/splice evidence.
             identifier = sha256(repr(row).encode()).hexdigest()

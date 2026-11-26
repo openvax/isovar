@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.97.0
+
+- Adopt `varcode>=13.0.0,<14` (`#741`):
+  - Update `hypotheses_from_varcode` in `isovar/sv_rna_reconciliation.py` to
+    preserve `EffectCandidate` metadata (`mechanisms`, `phase`, `uncertainty`)
+    and `MutantTranscript` junction and search-template metadata
+    (`is_complete`, `novel_junctions`, `back_junctions`, `wildtype_junctions`,
+    `mate_region`, `exit_frame`) in 1-based inclusive ascending
+    `(contig, start, end, strand)` coordinates.
+  - Add optional `sequence_provider=None` to `hypotheses_from_varcode` to
+    materialize oriented 5'-to-3' mutant pre-mRNA templates via
+    `model.template_sequence(sequence_provider)` for open rearrangement
+    templates (`not model.is_complete`) while leaving `sequence=None` when no
+    provider is supplied.
+  - Update `effect_protein_comparisons` in `isovar/effect_prediction.py` to
+    support default `varcode>=13` `EffectCandidate` paired outcomes alongside
+    explicit `annotator="transcript_model"` `RealizedEffectCandidate` outcomes.
+
 ## 1.96.0
 
 - Deduplicate `isovar/cli/help.py` onto the shared `datacache.cli_help` module
