@@ -219,7 +219,7 @@ def test_hypotheses_from_varcode_open_template_materialization_unit():
 
 
 def test_real_varcode13_splice_kdd_phase_and_open_templates():
-    genome = cached_release(81)
+    genome = cached_release(87)
 
     # 1. + strand exon-skipping splice junction (MET exon 14 donor +1)
     met = genome.transcript_by_id("ENST00000397752")
@@ -332,7 +332,7 @@ def test_effect_protein_comparisons_parity_between_dna_and_transcript_model():
     # Real comparison parity between default "dna" and explicit "transcript_model"
     # on a phased BRAF V600E + missense germline SNV in the same codon (V600M),
     # producing distinct patient baselines (V600 vs M600) and mutants (V600E vs M600K).
-    genome = cached_release(81)
+    genome = cached_release(87)
     braf = genome.transcript_by_id("ENST00000288602")
     v_braf = Variant("7", 140753336, "A", "T", genome=genome)
     g_braf = Variant("7", 140753337, "C", "T", genome=genome)
